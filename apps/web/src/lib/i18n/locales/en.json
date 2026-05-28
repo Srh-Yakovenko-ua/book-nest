@@ -1,0 +1,28 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry",
+    "somethingWentWrong": "Something went wrong"
+  },
+  "nav": {
+    "home": "Home"
+  },
+  "appShell": {
+    "label": "Instagram Clone"
+  },
+  "home": {
+    "eyebrow": "Teaching project",
+    "title": "Instagram Clone",
+    "description": "A clean monorepo skeleton. Frontend, backend and shared types are wired up — start building features."
+  },
+  "notFound": {
+    "eyebrow": "Error · 404",
+    "headline": "Not found",
+    "description": "The page you tried to reach doesn't exist on this server. It may have moved, or you followed a stale link.",
+    "backHome": "Back home",
+    "footer": "Instagram Clone · teaching project"
+  },
+  "localePicker": {
+    "ariaLabel": "Language"
+  }
+}

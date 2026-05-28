@@ -1,0 +1,76 @@
+{
+  "name": "instagram-clone",
+  "version": "0.0.1",
+  "private": true,
+  "packageManager": "pnpm@10.28.1",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm kill-ports && turbo run dev",
+    "dev:web": "pnpm kill-ports:web && turbo run dev --filter=@app/web",
+    "dev:api": "pnpm kill-ports:api && turbo run dev --filter=@app/api",
+    "kill-ports": "pnpm kill-ports:api && pnpm kill-ports:web",
+    "kill-ports:api": "lsof -ti:4000 | xargs kill -9 2>/dev/null || true",
+    "kill-ports:web": "lsof -ti:5173 | xargs kill -9 2>/dev/null || true",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "turbo run test",
+    "knip": "knip",
+    "knip:fix": "knip --fix",
+    "clean": "turbo run clean && rm -rf node_modules .turbo",
+    "storybook": "pnpm --filter @app/web storybook",
+    "clean:cache": "rm -rf .turbo apps/*/.turbo packages/*/.turbo node_modules/.cache .playwright-mcp && find . -maxdepth 1 -name '*.png' -delete",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,cjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css,html}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "@eslint/js": "catalog:",
+    "@vitest/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-import-resolver-typescript": "catalog:",
+    "eslint-plugin-better-tailwindcss": "catalog:",
+    "eslint-plugin-import-x": "catalog:",
+    "eslint-plugin-jsx-a11y": "catalog:",
+    "eslint-plugin-perfectionist": "catalog:",
+    "eslint-plugin-react": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "eslint-plugin-react-refresh": "catalog:",
+    "eslint-plugin-testing-library": "catalog:",
+    "globals": "catalog:",
+    "husky": "catalog:",
+    "knip": "catalog:",
+    "lint-staged": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "mongodb-memory-server",
+      "oxc-parser",
+      "oxc-resolver",
+      "@parcel/watcher",
+      "unrs-resolver",
+      "@swc/core"
+    ]
+  }
+}

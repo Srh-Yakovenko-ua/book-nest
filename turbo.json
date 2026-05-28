@@ -1,0 +1,61 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "stream",
+  "globalDependencies": [
+    "tsconfig.base.json",
+    ".env",
+    ".env.local",
+    "pnpm-workspace.yaml",
+    ".prettierrc",
+    ".prettierignore",
+    "eslint.config.mjs"
+  ],
+  "globalEnv": ["NODE_ENV", "CI"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**/*.{ts,tsx,js,jsx,css,html,json}",
+        "tsconfig*.json",
+        "vite.config.ts",
+        "package.json",
+        "index.html",
+        "public/**"
+      ],
+      "outputs": ["dist/**", "build/**", ".vite/**"],
+      "env": ["VITE_*"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "inputs": ["src/**/*.{ts,tsx}", "tsconfig*.json", "package.json", "src/env.d.ts"],
+      "outputs": []
+    },
+    "lint": {
+      "inputs": ["src/**/*.{ts,tsx,js,jsx}", "eslint.config.mjs", "package.json", "tsconfig*.json"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**/*.{ts,tsx}",
+        "vitest.config.ts",
+        "vitest.setup.ts",
+        "package.json",
+        "tsconfig*.json"
+      ],
+      "env": [
+        "JWT_SECRET",
+        "JWT_ACCESS_EXPIRES_IN",
+        "JWT_REFRESH_EXPIRES_IN",
+        "FRONTEND_URL",
+        "EMAIL_FROM"
+      ],
+      "outputs": ["coverage/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": []
+    }
+  }
+}

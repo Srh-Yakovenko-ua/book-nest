@@ -1,0 +1,8 @@
+STASHED=0
+if [ -n "$(git status --porcelain)" ]; then
+  git stash push --include-untracked --quiet -m "husky-pre-push"
+  STASHED=1
+  trap 'if [ $STASHED -eq 1 ]; then git stash pop --quiet || true; fi' EXIT INT TERM
+fi
+
+pnpm typecheck && pnpm lint && pnpm test

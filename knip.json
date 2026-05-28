@@ -1,0 +1,67 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": ["lsof"],
+  "workspaces": {
+    ".": {
+      "ignore": ["api/**"]
+    },
+    "apps/web": {
+      "project": ["src/**/*.{ts,tsx}"],
+      "ignore": [
+        "src/components/ui/**",
+        "src/test-utils.tsx",
+        "src/lib/api-errors.ts",
+        "src/lib/env.ts",
+        "src/lib/format.ts",
+        "src/lib/gradient-from-string.ts",
+        "src/lib/http-client.ts"
+      ],
+      "ignoreDependencies": [
+        "@app/shared",
+        "@hookform/devtools",
+        "@hookform/resolvers",
+        "@tanstack/query-sync-storage-persister",
+        "@tanstack/react-query-persist-client",
+        "@tanstack/react-table",
+        "@tanstack/react-virtual",
+        "@testing-library/user-event",
+        "cmdk",
+        "date-fns",
+        "input-otp",
+        "nanoid",
+        "react-day-picker",
+        "react-hook-form",
+        "recharts",
+        "superjson",
+        "ts-pattern",
+        "type-fest",
+        "vaul",
+        "zustand"
+      ]
+    },
+    "apps/api": {
+      "project": ["src/**/*.ts"],
+      "entry": [
+        "src/index.ts",
+        "src/core/database/data-source.ts",
+        "src/core/database/migrations/*.ts"
+      ],
+      "ignore": ["src/test/truncate.ts"],
+      "ignoreDependencies": [
+        "@nestjs/schedule",
+        "@nestjs/throttler",
+        "@types/nodemailer",
+        "bcryptjs",
+        "date-fns",
+        "jose",
+        "nodemailer",
+        "pino-pretty",
+        "ua-parser-js"
+      ]
+    },
+    "packages/shared": {
+      "project": ["src/**/*.ts"]
+    }
+  }
+}

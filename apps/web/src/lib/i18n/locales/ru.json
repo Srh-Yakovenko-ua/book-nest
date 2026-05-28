@@ -1,0 +1,28 @@
+{
+  "common": {
+    "loading": "Загрузка...",
+    "retry": "Повторить",
+    "somethingWentWrong": "Что-то пошло не так"
+  },
+  "nav": {
+    "home": "Главная"
+  },
+  "appShell": {
+    "label": "Instagram Clone"
+  },
+  "home": {
+    "eyebrow": "Учебный проект",
+    "title": "Instagram Clone",
+    "description": "Чистый каркас монорепозитория. Фронтенд, бэкенд и общие типы готовы — начинайте строить фичи."
+  },
+  "notFound": {
+    "eyebrow": "Ошибка · 404",
+    "headline": "Не найдено",
+    "description": "Страница, которую вы пытались открыть, не существует на этом сервере. Возможно, она была перемещена или ссылка устарела.",
+    "backHome": "На главную",
+    "footer": "Instagram Clone · учебный проект"
+  },
+  "localePicker": {
+    "ariaLabel": "Язык"
+  }
+}
