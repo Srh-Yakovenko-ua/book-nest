@@ -2,12 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [dev, stage, prod]
   pull_request:
-    branches: [main]
+    branches: [dev, stage, prod]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -23,9 +23,9 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_USER: monorepo
-          POSTGRES_PASSWORD: monorepo_dev_2026
-          POSTGRES_DB: monorepo_test
+          POSTGRES_USER: instagram
+          POSTGRES_PASSWORD: instagram_ci
+          POSTGRES_DB: instagram_clone_test
         ports:
           - 5432:5432
         options: >-
@@ -35,10 +35,7 @@ jobs:
           --health-retries 10
 
     env:
-      DATABASE_URL: postgresql://monorepo:monorepo_dev_2026@localhost:5432/monorepo_test
-      JWT_SECRET: ci-test-secret-must-be-at-least-thirty-two-chars
-      FRONTEND_URL: http://localhost:5173
-      EMAIL_FROM: no-reply@example.com
+      DATABASE_URL: postgresql://instagram:instagram_ci@localhost:5432/instagram_clone_test
 
     steps:
       - name: Checkout

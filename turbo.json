@@ -44,11 +44,13 @@
         "tsconfig*.json"
       ],
       "env": [
-        "JWT_SECRET",
-        "JWT_ACCESS_EXPIRES_IN",
-        "JWT_REFRESH_EXPIRES_IN",
-        "FRONTEND_URL",
-        "EMAIL_FROM"
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "CORS_ORIGINS",
+        "ENABLE_SWAGGER",
+        "LOG_LEVEL",
+        "PORT",
+        "TRACING_ENABLED"
       ],
       "outputs": ["coverage/**"]
     },
