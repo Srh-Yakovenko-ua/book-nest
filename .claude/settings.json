@@ -191,6 +191,14 @@
           {
             "type": "command",
             "command": "f=$(jq -r '.tool_input.file_path'); case $f in *.env|*.env.local|*.env.production) echo 'Refusing to edit a real .env file (secrets live here). Put new variables in .env.example instead.' >&2; exit 2 ;; esac; true"
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | grep -q 'apps/api/prisma/migrations/.*/migration.sql' && { echo 'Refusing to edit an applied migration. Migrations are the source of truth — create a NEW migration via pnpm --filter @app/api db:migrate instead.' >&2; exit 2; } || true"
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | grep -q 'pnpm-lock.yaml' && { echo 'Do not hand-edit pnpm-lock.yaml — run a pnpm command so the lockfile stays consistent.' >&2; exit 2; } || true"
           }
         ]
       }
