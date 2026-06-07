@@ -7,6 +7,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# turbo prune output (Docker build artifact)
+out/
+
 # Prisma generated client (run `pnpm --filter @app/api db:generate`)
 apps/api/src/generated/
 
