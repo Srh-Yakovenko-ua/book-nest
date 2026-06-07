@@ -134,6 +134,19 @@ services:
     depends_on:
       - api-dev
 
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: "5000"
+    volumes:
+      - mailpit-data:/data
+    networks:
+      - edge
+      - dev-internal
+    mem_limit: 128m
+
 networks:
   edge:
   prod-internal:
@@ -144,3 +157,4 @@ volumes:
   caddy-config:
   db-prod-data:
   db-dev-data:
+  mailpit-data:

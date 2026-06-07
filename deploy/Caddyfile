@@ -25,3 +25,13 @@ dev.book-nest.net {
 		reverse_proxy web-dev:3000
 	}
 }
+
+mail.book-nest.net {
+	encode zstd gzip
+
+	basic_auth {
+		team $2a$14$EZ3HR9NPntLMz3KroDAGa.33SGtXx4jAQPWZJl5qhAraMuHd1aWfW
+	}
+
+	reverse_proxy mailpit:8025
+}
