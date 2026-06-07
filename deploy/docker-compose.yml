@@ -1,0 +1,142 @@
+name: booknest
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - edge
+    mem_limit: 96m
+    depends_on:
+      - web-prod
+      - api-prod
+      - web-dev
+      - api-dev
+
+  db-prod:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PROD_POSTGRES_USER:-booknest}
+      POSTGRES_PASSWORD: ${PROD_POSTGRES_PASSWORD:?set PROD_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${PROD_POSTGRES_DB:-booknest}
+    volumes:
+      - db-prod-data:/var/lib/postgresql/data
+    networks:
+      - prod-internal
+    mem_limit: 512m
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${PROD_POSTGRES_USER:-booknest} -d ${PROD_POSTGRES_DB:-booknest}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api-prod:
+    image: ${API_IMAGE:-ghcr.io/srh-yakovenko-ua/booknest-api}:${PROD_TAG:-prod}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${PROD_POSTGRES_USER:-booknest}:${PROD_POSTGRES_PASSWORD}@db-prod:5432/${PROD_POSTGRES_DB:-booknest}
+      CORS_ORIGINS: https://book-nest.net
+      LOG_LEVEL: ${PROD_LOG_LEVEL:-info}
+      ENABLE_SWAGGER: ${PROD_ENABLE_SWAGGER:-false}
+      TRACING_ENABLED: "false"
+    networks:
+      - edge
+      - prod-internal
+    mem_limit: 384m
+    depends_on:
+      db-prod:
+        condition: service_healthy
+
+  web-prod:
+    image: ${WEB_IMAGE:-ghcr.io/srh-yakovenko-ua/booknest-web}:${PROD_TAG:-prod}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      API_BASE_URL: http://api-prod:4000
+    networks:
+      - edge
+    mem_limit: 384m
+    depends_on:
+      - api-prod
+
+  db-dev:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DEV_POSTGRES_USER:-booknest}
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:?set DEV_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${DEV_POSTGRES_DB:-booknest}
+    volumes:
+      - db-dev-data:/var/lib/postgresql/data
+    networks:
+      - dev-internal
+    mem_limit: 512m
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DEV_POSTGRES_USER:-booknest} -d ${DEV_POSTGRES_DB:-booknest}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api-dev:
+    image: ${API_IMAGE:-ghcr.io/srh-yakovenko-ua/booknest-api}:${DEV_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${DEV_POSTGRES_USER:-booknest}:${DEV_POSTGRES_PASSWORD}@db-dev:5432/${DEV_POSTGRES_DB:-booknest}
+      CORS_ORIGINS: https://dev.book-nest.net
+      LOG_LEVEL: ${DEV_LOG_LEVEL:-debug}
+      ENABLE_SWAGGER: ${DEV_ENABLE_SWAGGER:-true}
+      TRACING_ENABLED: "false"
+    networks:
+      - edge
+      - dev-internal
+    mem_limit: 384m
+    depends_on:
+      db-dev:
+        condition: service_healthy
+
+  web-dev:
+    image: ${WEB_IMAGE:-ghcr.io/srh-yakovenko-ua/booknest-web}:${DEV_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      API_BASE_URL: http://api-dev:4000
+    networks:
+      - edge
+    mem_limit: 384m
+    depends_on:
+      - api-dev
+
+networks:
+  edge:
+  prod-internal:
+  dev-internal:
+
+volumes:
+  caddy-data:
+  caddy-config:
+  db-prod-data:
+  db-dev-data:

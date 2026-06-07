@@ -40,6 +40,7 @@
     "nodemailer": "catalog:",
     "pino": "catalog:",
     "pino-http": "catalog:",
+    "prisma": "catalog:",
     "prom-client": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
@@ -57,7 +58,6 @@
     "@types/nodemailer": "catalog:",
     "@types/supertest": "catalog:",
     "pino-pretty": "catalog:",
-    "prisma": "catalog:",
     "supertest": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

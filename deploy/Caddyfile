@@ -1,0 +1,27 @@
+{
+	email admin@book-nest.net
+}
+
+book-nest.net {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api-prod:4000
+	}
+
+	handle {
+		reverse_proxy web-prod:3000
+	}
+}
+
+dev.book-nest.net {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy api-dev:4000
+	}
+
+	handle {
+		reverse_proxy web-dev:3000
+	}
+}
