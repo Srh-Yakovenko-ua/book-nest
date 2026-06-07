@@ -18,6 +18,7 @@
     "db:copy:dev": "./scripts/copy-remote-db.sh dev",
     "db:copy:prod": "./scripts/copy-remote-db.sh prod",
     "db:size": "./scripts/db-size.sh",
+    "server:ps": "./scripts/server-ps.sh",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "lint": "eslint .",
