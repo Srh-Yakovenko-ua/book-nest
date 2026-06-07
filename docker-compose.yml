@@ -31,6 +31,31 @@ services:
     volumes:
       - booknest-local-mailpit:/data
 
+  minio:
+    image: minio/minio:latest
+    container_name: booknest-local-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9101:9001"
+    environment:
+      MINIO_ROOT_USER: booknest
+      MINIO_ROOT_PASSWORD: booknest_local_s3
+    volumes:
+      - booknest-local-minio:/data
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: booknest-local-minio-init
+    depends_on:
+      - minio
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "until mc alias set local http://minio:9000 booknest booknest_local_s3; do sleep 1; done; mc mb -p local/book-nest-dev; mc anonymous set download local/book-nest-dev; echo bucket ready"
+
 volumes:
   booknest-local-db:
   booknest-local-mailpit:
+  booknest-local-minio:
