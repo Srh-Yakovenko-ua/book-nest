@@ -1,4 +1,7 @@
+"use client";
+
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -7,14 +10,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type Theme, ThemeSchema, useTheme } from "@/hooks/use-theme";
 import { cn } from "@/lib/utils";
 
-const OPTIONS: ReadonlyArray<{ Icon: typeof Sun; label: string; value: Theme }> = [
+type ThemeValue = "dark" | "light" | "system";
+
+const OPTIONS: ReadonlyArray<{ Icon: typeof Sun; label: string; value: ThemeValue }> = [
   { Icon: Sun, label: "Light", value: "light" },
   { Icon: Moon, label: "Dark", value: "dark" },
   { Icon: Monitor, label: "System", value: "system" },
 ];
+
+const THEME_VALUES: ReadonlySet<string> = new Set<ThemeValue>(["dark", "light", "system"]);
 
 export function ThemePicker() {
   const { resolvedTheme, setTheme, theme } = useTheme();
@@ -23,9 +29,9 @@ export function ThemePicker() {
   function handleThemeSelect(event: Event) {
     const target = event.currentTarget;
     if (!(target instanceof HTMLElement)) return;
-    const parsed = ThemeSchema.safeParse(target.dataset.theme);
-    if (!parsed.success) return;
-    setTheme(parsed.data);
+    const value = target.dataset.theme;
+    if (!value || !THEME_VALUES.has(value)) return;
+    setTheme(value);
   }
 
   return (

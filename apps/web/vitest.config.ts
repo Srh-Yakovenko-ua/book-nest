@@ -3,10 +3,6 @@ import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  define: {
-    __DEV__: JSON.stringify(true),
-    __PROD__: JSON.stringify(false),
-  },
   plugins: [react()],
   resolve: {
     alias: {
@@ -19,7 +15,8 @@ export default defineConfig({
         "src/**/*.d.ts",
         "src/**/*.test.{ts,tsx}",
         "src/**/*.spec.{ts,tsx}",
-        "src/main.tsx",
+        "src/app/**",
+        "src/middleware.ts",
         "src/components/ui/**",
       ],
       include: ["src/**/*.{ts,tsx}"],
@@ -28,7 +25,7 @@ export default defineConfig({
     },
     css: false,
     environment: "happy-dom",
-    exclude: ["node_modules", "dist", ".vite"],
+    exclude: ["node_modules", "dist", ".next"],
     globals: true,
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],

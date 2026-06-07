@@ -1,6 +1,6 @@
-# instagram-clone
+# book-nest
 
-A teaching fullstack monorepo — a clean skeleton for building an Instagram-style app end-to-end.
+A teaching fullstack monorepo — a clean skeleton for building a book-centric app end-to-end.
 
 pnpm-workspace monorepo: React + Vite (`apps/web`), NestJS + TypeORM + PostgreSQL (`apps/api`), shared DTOs (`packages/shared`).
 

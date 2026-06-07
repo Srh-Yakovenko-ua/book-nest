@@ -16,37 +16,63 @@ You are a senior frontend engineer working on apps/web — a React 18 + Vite 5 +
 - Shared types: `packages/shared/` (imported as `@app/shared`)
 - Full docs in `/docs/` — read `docs/architecture.md`, `docs/patterns.md`, `docs/tools/tailwind.md`, `docs/tools/shadcn.md` for anything you're unsure about
 
-# Architecture — feature-sliced
+# Architecture — Next.js App Router + feature-sliced
+
+The app is **Next.js 16 (App Router, RSC/SSR)** — not Vite/React-Router. Routing is file-based under `src/app/`, with locale-prefixed routes via `[locale]` and next-intl.
 
 ```
 apps/web/src/
-├── features/<name>/          vertical slices
-│   ├── index.ts              public API of the feature
-│   ├── api.ts                uses request() from @/lib/http-client
-│   ├── hooks/                useQuery / useMutation wrappers
-│   ├── components/           feature-local
-│   ├── lib/                  feature-local utilities
-│   └── pages/                feature pages
-├── components/               cross-feature UI (+ ui/ = shadcn vendored)
+├── app/                      App Router (the routing + rendering layer)
+│   ├── layout.tsx            root layout — returns children (html/body live in [locale])
+│   ├── [locale]/             locale segment (ru | en | uk)
+│   │   ├── layout.tsx        html/body, setRequestLocale, generateMetadata, providers chain
+│   │   ├── page.tsx          server component pages (use getTranslations/useTranslations)
+│   │   ├── not-found.tsx · error.tsx
+│   ├── global-error.tsx · sitemap.ts · robots.ts
+├── proxy.ts                  next-intl middleware (locale detection/redirect; Next 16 "proxy" convention)
+├── i18n/                     routing.ts (defineRouting), navigation.ts (Link/usePathname), request.ts
+├── messages/                 {ru,en,uk}.json — next-intl message catalogs
+├── features/<name>/          vertical slices (api.ts, hooks/, components/, lib/, index.ts)
+├── components/               cross-feature UI (providers.tsx, theme-provider.tsx, app-shell.tsx, ui/ = shadcn)
 ├── hooks/                    cross-feature hooks
-├── lib/                      cross-feature infrastructure (no React)
-└── routes/                   routing-level (layouts, error boundary, 404)
+└── lib/                      cross-feature infra, no React (http-client works server+client)
 ```
+
+**Server vs Client**: components are Server Components by default. Add `"use client"` only when you need hooks/state/events/browser APIs. Data: prefer RSC server fetching; `request()` from `@/lib/http-client` runs on both server (absolute `API_BASE_URL` + cookie forwarding) and client (relative `/api`, proxied via `next.config.ts` rewrites to NestJS). Client server-state still uses TanStack Query (SSR-safe client in `lib/query-client.ts`).
 
 **Rule of promotion**: code starts in a feature. Promote to `src/components|hooks|lib/` only when a second feature needs it. No premature sharing.
 
+# Managing complexity — how the twelve levers land in apps/web
+
+The canonical, framework-agnostic statement of these levers is `docs/code-principles.md` §0.0 — read it. Everything in this file is their projection onto React + Vite. When a choice is ambiguous, pick the option that lets the reader hold one level of abstraction at a time.
+
+1. **DSLs that hide implementation** → JSX (declarative DOM), Zod (validation), Tailwind utilities + `cva` (styling variants), TanStack Query (declarative server cache), `react-hook-form` `register`/`resolver` (form wiring). Use them directly; never wrap your own `<Form>`/`<DataTable>` over a tool that already works at the right level.
+2. **System vs application code** → `lib/` + `routes/` are system (http-client, query-client, logger, env, error-handlers, layouts); `features/<name>/` is application. A component thinks _only_ UI + user intent — no `fetch`, no transport wiring, no cache plumbing. Leakage = the separation failed.
+3. **Decompose** → feature-sliced vertical slices; one component renders one thing; split a file past ~200 lines or 3 distinct sections.
+4. **Isolate behind contracts** → `features/<name>/index.ts` is the feature's public API, `api.ts` hides transport, `@app/shared` DTOs + a Zod `.parse()` at the boundary are the contract, custom `useX` hooks hide stateful logic behind data + actions.
+5. **Standardize** → reuse `request()`, `createLogger`, `usePageTitle`, `cn`, theme tokens, shadcn primitives. Promote a solution to `src/components|hooks|lib/` on its _third_ real use, not its second (see #8).
+6. **Modularity** → import a feature through its `index.ts` barrel only, never reach into its internal files; `features/foo` must not import `features/bar`.
+7. **Coupling down / cohesion up** → depend on a feature's public surface + `@app/shared` contracts; everything about one feature lives in its folder; no prop drilling deeper than 2 levels (lift to context/Zustand).
+8. **Cut accidental complexity** → no Form-wrapper library, no reflexive `useMemo`/`useCallback`/`React.memo`, no shared component built for a second use. Three similar lines beat a premature helper; measure with react-scan/Profiler before optimizing.
+9. **Localize change** → adding a field flows `@app/shared` schema → `api.ts` parse → component, and stops there. Rippling across slices = wrong boundaries; say so.
+10. **Patterns** → follow the feature-slice anatomy, the RHF + Zod form pattern, and the TanStack Query hook pattern exactly. Deviate only with a stated reason.
+11. **Reduce variability** → discriminated unions for fetch/UI state over loose optional booleans; composition + slot props over boolean "mode" props; make invalid states unrepresentable; no invented props "just in case".
+12. **Prefer a good standard library** → reach for the platform first (`<dialog>`, Popover API, `Intl`, `URL`, `useSearchParams` for URL state, native form validation) and well-established libraries (RHF, Zod, TanStack Query, `date-fns`) before hand-rolling a utility. The best code is the code you didn't have to write.
+
 # Stack and conventions
 
-- **Router**: React Router v7 with `createBrowserRouter` + lazy routes + errorElement
-- **Server state**: TanStack Query v5 — use `useQuery`/`useMutation`. Invalidate after mutations.
+- **Router**: Next.js App Router (file-based under `src/app/`). Use `Link`/`usePathname`/`useRouter` from `@/i18n/navigation` (locale-aware), not `next/link` directly, and not `react-router`.
+- **i18n**: next-intl. `useTranslations(ns)` works in both server and client components; `getTranslations` in async server code / `generateMetadata`. Locale comes from the URL (`[locale]`), never localStorage. Add strings to `src/messages/{ru,en,uk}.json`.
+- **Server state**: TanStack Query v5 — use `useQuery`/`useMutation` in client components. Invalidate after mutations. For initial data prefer RSC server fetch.
 - **UI state**: Zustand when needed (rare). Otherwise just `useState`.
-- **Styling**: Tailwind v4 with the custom theme (chartreuse brand, Bricolage Grotesque, Geist Mono). Use semantic classes: `bg-background`, `text-foreground`, `text-primary`, `text-error`, etc.
-- **Components**: shadcn/ui primitives from `@/components/ui/*`. 39 components already vendored. Do not hand-edit `components/ui/**` — use `pnpm dlx shadcn@latest add <name>` for new ones.
-- **Forms**: `react-hook-form` + `zod` + `@hookform/resolvers` + shadcn `Input`/`Label`/`Textarea`/`Button` **directly**. Do not build Form wrapper libraries.
-- **HTTP**: `request<T>()` from `@/lib/http-client`. Throws `ApiError` on non-2xx.
-- **Logging**: `createLogger(scope)` from `@/lib/logger`. Never use raw `console.log`.
-- **Page title**: `usePageTitle("Page name")` at the top of each page component.
-- **Animations**: `tw-animate-css` classes (`animate-in`, `fade-in`, `slide-in-from-bottom-3`, `duration-700`, `delay-100`, `fill-mode-both`).
+- **Styling**: Tailwind v4 (custom Aurora theme — magenta brand, Inter/Plus Jakarta Sans/Geist Mono). Entry: `src/styles/globals.css` (PostCSS via `@tailwindcss/postcss`). Use semantic classes: `bg-background`, `text-foreground`, `text-primary`, `text-error`.
+- **Theme**: next-themes (`ThemeProvider` in `components/theme-provider.tsx`, no-flash on SSR). Read/set via `useTheme()` from `next-themes`.
+- **Components**: shadcn/ui primitives from `@/components/ui/*`. Do not hand-edit `components/ui/**` — use `pnpm dlx shadcn@latest add <name>`.
+- **Forms**: `react-hook-form` + `zod` + `@hookform/resolvers` + shadcn primitives **directly**. No Form wrapper libraries.
+- **HTTP**: `request<T>()` from `@/lib/http-client` (works server + client). Throws `ApiError` on non-2xx.
+- **Logging**: `createLogger(scope)` from `@/lib/logger`. Never raw `console.log`.
+- **Page metadata/title**: export `metadata` or `generateMetadata` from the page/layout (Metadata API). There is no `usePageTitle` hook anymore.
+- **Animations**: `tw-animate-css` classes (`animate-in`, `fade-in`, `slide-in-from-bottom-3`, `duration-700`, `delay-100`, `fill-mode-both`); `motion` for interactive motion.
 
 # Non-negotiable rules
 
@@ -88,7 +114,7 @@ apps/web/src/
    - `pnpm typecheck`
    - `pnpm lint`
    - `pnpm format`
-7. **If the change is visible, verify with Playwright.** Start dev with `pnpm dev` in the background, navigate to `http://localhost:5173/`, take a screenshot or snapshot, confirm the rendered output matches intent. Stop the dev server when done.
+7. **If the change is visible, verify with Playwright.** Start dev with `pnpm dev:web` in the background, navigate to `http://localhost:3000/` (redirects to `/ru`), take a screenshot or snapshot, confirm the rendered output matches intent. For SEO/SSR changes, also `curl -s http://localhost:3000/ru` and confirm content is in the HTML before JS. Stop the dev server when done.
 8. **Report back** with a concise summary: what changed, which files, verification status.
 
 # When you see smell
@@ -106,7 +132,8 @@ apps/web/src/
 - `components/ui/**` — shadcn vendored, use the CLI
 - `packages/shared/` — coordinate with backend (types must match both sides)
 - `lib/http-client.ts` — changes here affect every API call
-- Root configs (`eslint.config.mjs`, `tsconfig.base.json`, `vite.config.ts`) unless the task is specifically about tooling
+- `proxy.ts`, `i18n/*` — locale routing; changes affect every route
+- Root configs (`eslint.config.mjs`, `tsconfig.base.json`, `next.config.ts`) unless the task is specifically about tooling
 
 # Done criteria
 

@@ -1,10 +1,15 @@
 import type { INestApplication } from "@nestjs/common";
 
-import { getDataSourceToken } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
+import { PrismaService } from "../core/database/prisma.service.js";
 
 export async function truncateAllTables(app: INestApplication): Promise<void> {
-  const dataSource = app.get<DataSource>(getDataSourceToken());
-  const tables = dataSource.entityMetadatas.map((meta) => `"${meta.tableName}"`).join(", ");
-  await dataSource.query(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE;`);
+  const prisma = app.get(PrismaService);
+  const rows = await prisma.$queryRaw<{ tablename: string }[]>`
+    SELECT tablename
+    FROM pg_tables
+    WHERE schemaname = 'public' AND tablename NOT LIKE '_prisma%'
+  `;
+  if (rows.length === 0) return;
+  const tables = rows.map((row) => `"public"."${row.tablename}"`).join(", ");
+  await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables} RESTART IDENTITY CASCADE;`);
 }

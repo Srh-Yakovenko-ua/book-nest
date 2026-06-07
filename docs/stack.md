@@ -2,25 +2,23 @@
 
 ## Summary
 
-| Layer           | Choice                                     |
-| --------------- | ------------------------------------------ |
-| Language        | TypeScript 5.9 (strict)                    |
-| Package manager | pnpm 10 with workspaces + catalogs         |
-| Task runner     | Turborepo                                  |
-| FE framework    | React 18.3                                 |
-| FE build        | Vite 5.4 + `@vitejs/plugin-react-swc`      |
-| FE styling      | Tailwind CSS v4                            |
-| FE UI kit       | shadcn/ui (radix-nova preset)              |
-| FE routing      | React Router v7                            |
-| FE server state | TanStack Query v5                          |
-| FE UI state     | Zustand                                    |
-| FE forms        | react-hook-form + zod                      |
-| FE tests        | Vitest + React Testing Library + happy-dom |
-| BE framework    | Express 4 (phase 1)                        |
-| BE ORM          | Mongoose 8 (phase 1)                       |
-| BE database     | MongoDB (phase 1)                          |
-| BE framework    | NestJS (planned phase 2)                   |
-| BE database     | PostgreSQL (planned phase 2)               |
+| Layer           | Choice                                      |
+| --------------- | ------------------------------------------- |
+| Language        | TypeScript 5.9 (strict)                     |
+| Package manager | pnpm 10 with workspaces + catalogs          |
+| Task runner     | Turborepo                                   |
+| FE framework    | React 18.3                                  |
+| FE build        | Vite 5.4 + `@vitejs/plugin-react-swc`       |
+| FE styling      | Tailwind CSS v4                             |
+| FE UI kit       | shadcn/ui (radix-nova preset)               |
+| FE routing      | React Router v7                             |
+| FE server state | TanStack Query v5                           |
+| FE UI state     | Zustand                                     |
+| FE forms        | react-hook-form + zod                       |
+| FE tests        | Vitest + React Testing Library + happy-dom  |
+| BE framework    | NestJS 11                                   |
+| BE ORM          | Prisma 7 (engineless, `@prisma/adapter-pg`) |
+| BE database     | PostgreSQL                                  |
 
 ## FE runtime dependencies
 

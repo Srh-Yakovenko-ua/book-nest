@@ -12,13 +12,15 @@
         "src/components/ui/**",
         "src/test-utils.tsx",
         "src/lib/api-errors.ts",
-        "src/lib/env.ts",
         "src/lib/format.ts",
         "src/lib/gradient-from-string.ts",
         "src/lib/http-client.ts"
       ],
       "ignoreDependencies": [
         "@app/shared",
+        "@fontsource-variable/geist-mono",
+        "@fontsource-variable/inter",
+        "@fontsource-variable/plus-jakarta-sans",
         "@hookform/devtools",
         "@hookform/resolvers",
         "@tanstack/query-sync-storage-persister",
@@ -30,27 +32,29 @@
         "date-fns",
         "input-otp",
         "nanoid",
+        "postcss",
         "react-day-picker",
         "react-hook-form",
         "recharts",
+        "shadcn",
         "superjson",
+        "tailwindcss",
         "ts-pattern",
+        "tw-animate-css",
         "type-fest",
         "vaul",
         "zustand"
       ]
     },
     "apps/api": {
-      "project": ["src/**/*.ts"],
-      "entry": [
-        "src/index.ts",
-        "src/core/database/data-source.ts",
-        "src/core/database/migrations/*.ts"
-      ],
+      "project": ["src/**/*.ts", "!src/generated/**"],
+      "entry": ["src/index.ts"],
       "ignore": ["src/test/truncate.ts"],
+      "prisma": false,
       "ignoreDependencies": [
         "@nestjs/schedule",
         "@nestjs/throttler",
+        "@prisma/client",
         "@types/nodemailer",
         "bcryptjs",
         "date-fns",

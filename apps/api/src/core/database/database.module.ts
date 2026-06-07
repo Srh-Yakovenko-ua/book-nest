@@ -1,13 +1,10 @@
-import { Module } from "@nestjs/common";
-import { TypeOrmModule } from "@nestjs/typeorm";
+import { Global, Module } from "@nestjs/common";
 
-import { buildRuntimeOptions } from "./typeorm-options.js";
+import { PrismaService } from "./prisma.service.js";
 
+@Global()
 @Module({
-  imports: [
-    TypeOrmModule.forRootAsync({
-      useFactory: () => ({ ...buildRuntimeOptions(), autoLoadEntities: true }),
-    }),
-  ],
+  exports: [PrismaService],
+  providers: [PrismaService],
 })
 export class DatabaseModule {}

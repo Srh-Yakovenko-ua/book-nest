@@ -19,8 +19,4 @@ function report(metric: Metric): void {
     rating: metric.rating,
     value: Math.round(metric.value),
   });
-
-  if (__PROD__) {
-    void metric;
-  }
 }

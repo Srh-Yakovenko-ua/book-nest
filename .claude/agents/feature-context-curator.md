@@ -62,12 +62,12 @@ Numbered list that walks from user action to rendered result. Every step names t
 1. User clicks X at `apps/web/src/features/<name>/components/<file>.tsx:NN`
 2. `useCreateX` mutation fires → `apps/web/src/features/<name>/hooks/use-create-x.ts:NN`
 3. `request<CreateXResponse>` posts to `/api/<name>` → `apps/web/src/features/<name>/api.ts:NN`
-4. Vite proxies to `localhost:4000` → `apps/web/vite.config.ts`
-5. Express router hits `apps/api/src/routes/<name>.routes.ts:NN`
-6. Controller parses body with Zod → `apps/api/src/controllers/<name>.controller.ts:NN`
-7. Service runs business logic → `apps/api/src/services/<name>.service.ts:NN`
-8. Mongoose model persists → `apps/api/src/db/models/<name>.model.ts:NN`
-9. Response shaped as `CreateXResponse` DTO from `@app/shared`
+4. Next.js `rewrites()` proxy to `localhost:4000` → `apps/web/next.config.ts` (or an RSC fetch hits `API_BASE_URL` directly)
+5. Controller method handles the route → `apps/api/src/modules/<name>/api/<name>.controller.ts:NN`
+6. `ZodBodyPipe(CreateXSchema)` validates the body → same controller param
+7. Service runs business logic → `apps/api/src/modules/<name>/application/<name>.service.ts:NN`
+8. Repository persists via Prisma → `apps/api/src/modules/<name>/infrastructure/<name>.repository.ts:NN` (`this.prisma.<model>.create(...)`)
+9. Service maps the Prisma model → `CreateXResponse` DTO from `@app/shared`
 10. FE cache invalidated → `queryClient.invalidateQueries({ queryKey: [...] })` at `…hooks/use-create-x.ts:NN`
 11. `useListX` refetches, component re-renders with new row
 
@@ -78,30 +78,35 @@ Numbered list that walks from user action to rendered result. Every step names t
 | POST   | `/api/<name>` | 201     | 422, 409 | `CreateXBodySchema` | `CreateXResponseSchema` |
 | GET    | `/api/<name>` | 200     | —        | —                   | `ListXResponseSchema`   |
 
-## Backend
+## Backend (feature-sliced NestJS module)
 
-### Routes
+### Controllers (`api/`)
 
-- `apps/api/src/routes/<name>.routes.ts:NN` — wires the paths to controller functions
+- `apps/api/src/modules/<name>/api/<name>.controller.ts:NN` — `@Controller("api/<name>")`, methods `createX`, `listX`, `getX`, `deleteX`
+  - Validates `@Body`/`@Query` with `ZodBodyPipe`/`ZodQueryPipe`
+  - Calls the service, returns the DTO (Nest serializes)
+  - DTO classes via `createZodDto` in `api/input-dto/`; Swagger decorators
+  - Errors surface through the global `HttpErrorFilter`
 
-### Controllers
+### Services (`application/`)
 
-- `apps/api/src/controllers/<name>.controller.ts:NN` — `createX`, `listX`, `getX`, `deleteX`
-  - Parses input with Zod schemas
-  - Calls service
-  - Maps service errors to HTTP responses via `HttpError` from `lib/errors.ts`
+- `apps/api/src/modules/<name>/application/<name>.service.ts:NN` — pure business logic
+  - `createX({ … })` — validates invariants, calls the repository, maps the Prisma model → ViewModel DTO
+  - Multi-write flows wrapped in `prisma.$transaction(...)`
+  - Throws: `BadRequestError`, `NotFoundError`, `ForbiddenError` (`HttpError` subclasses)
 
-### Services
+### Repositories (`infrastructure/`)
 
-- `apps/api/src/services/<name>.service.ts:NN` — pure business logic
-  - `createX({ … })` — validates invariants, writes to DB, returns DTO
-  - Throws: `ValidationError`, `NotFoundError`, `ConflictError`
+- `apps/api/src/modules/<name>/infrastructure/<name>.repository.ts:NN` — the only layer touching Prisma
+  - Injects `PrismaService`, calls `this.prisma.<model>.findMany/create/update/...`
+  - Returns Prisma model rows / primitives — never a ViewModel
 
-### Models
+### Model (`prisma/schema.prisma`)
 
-- `apps/api/src/db/models/<name>.model.ts:NN` — Mongoose schema
-  - Fields: `title: string` required, `body: string` required, `createdAt: Date`
-  - Indexes: `{ createdAt: -1 }`
+- `apps/api/prisma/schema.prisma` → `model <Name>` block
+  - Fields: `title String`, `body String`, `createdAt DateTime @default(now()) @db.Timestamptz`
+  - UUID PK `@id @default(uuid())`; snake_case columns via `@map`/`@@map`; indexes via `@@index([...])`
+  - Schema change → `pnpm --filter @app/api db:migrate` (reviewed SQL in `prisma/migrations/`)
 
 ### Middleware touched
 
@@ -174,7 +179,7 @@ Feature slice: `apps/web/src/features/<name>/`
 
 - `@tanstack/react-query` (FE server state)
 - `react-hook-form` + `zod` + `@hookform/resolvers/zod` (FE form)
-- `express` + `mongoose` + `zod` (BE)
+- `@nestjs/common` + `@prisma/client` + `zod` (BE)
 - `lucide-react` — icons used: `<Plus>`, `<Trash2>`
 
 ### Internal primitives
@@ -337,6 +342,7 @@ If `docs/features/<name>.md` already exists:
 6. **Update, don't overwrite.** Preserve human-authored notes unless they are now wrong.
 7. **Absolute dates only.** `2026-04-10`, not "today" or "last week" — memory-style.
 8. **Stay inside `docs/features/`.** Do not edit `docs/architecture.md`, `docs/patterns.md`, or any other doc. Those have other owners.
+9. **Follow `docs/code-principles.md` §0.0.** The twelve levers shape the doc itself: structure it so a reader holds one level of abstraction at a time — behavior first, then data flow, then file:line detail (isolate complexity behind layers). Decompose one feature per doc, link related features instead of inlining them (lower coupling), and cut sections you can't populate from real code (no accidental complexity).
 
 # Done criteria
 

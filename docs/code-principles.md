@@ -8,6 +8,23 @@ Applied by every agent in `.claude/agents/` and by human contributors. When a pr
 
 ## 0. Top-level philosophy
 
+### 0.0 The twelve levers against complexity
+
+Everything else in this document — and in every agent under `.claude/agents/` — is a concrete application of these twelve levers. The single goal is to keep complexity controllable so a reader holds **one level of abstraction at a time**. When a choice is ambiguous, pick the option that best serves them.
+
+1. **Expressive, compact DSLs that hide implementation.** Lean on declarative DSLs (Zod schemas, ORM decorators, framework decorators) that compress intent and hide mechanics. Use them directly; never wrap your own DSL over a tool that already works at the right level.
+2. **Separate system code from application code.** Infrastructure (transport, persistence, threading, security, framework wiring) lives apart from business logic. When you write business logic you should be thinking _only_ business rules — if infra concerns leak in, the separation has failed.
+3. **Decompose.** Break every task into the smallest units you can hold in your head, and solve one at a time. One concern per file, one responsibility per layer. (→ §7)
+4. **Isolate complexity behind abstractions, interfaces, contracts.** Put the hard part behind a stable seam so callers depend on the contract, not the implementation. (→ §3.9, §6.2)
+5. **Standardize — push recurring solutions into the platform.** Reuse shared helpers and conventions instead of re-solving per feature. Lift a solution into the platform on its _third_ real use, not its second.
+6. **Modularity — hold only part of the model.** Depend on a module's public surface, never its internals. You should be able to work inside one module knowing only its contracts to neighbors. (→ §7.4)
+7. **Lower coupling, raise cohesion.** Coupling down: depend on exports + contracts, no cycles. Cohesion up: everything about one concern lives together. (→ §7.2)
+8. **Cut accidental complexity (no over-engineering).** No speculative abstraction, no config knob nobody asked for. Three similar lines beat a premature helper; measure before optimizing. (→ §0.3, §4.8, §9)
+9. **Localize change.** Structure so a typical change touches the fewest modules and abstractions. If a change ripples across many places, the boundaries are wrong — say so. (→ §0.3)
+10. **Use patterns.** Follow the canonical shape so author and reader recognize it and stop re-deriving it. Deviate only with a stated reason. (→ `docs/patterns.md`)
+11. **Reduce variability.** Narrow scope without losing requirements — resist invented use cases and speculative generality. Make invalid states unrepresentable. (→ §0.4, §3.3, §3.4, §3.7)
+12. **Prefer a good standard library.** Reach for the platform and well-established libraries before writing a utility. The best code is the code you didn't have to write.
+
 ### 0.1 Names over comments
 
 Good names make comments unnecessary. If you feel the urge to write a comment, rename the thing instead. This repository forbids code comments by project rule — rename until the code explains itself.
