@@ -17,6 +17,8 @@
     "db:down": "docker compose stop db",
     "mail:up": "docker compose up -d mailpit",
     "mail:down": "docker compose stop mailpit",
+    "storage:up": "docker compose up -d minio minio-init",
+    "storage:down": "docker compose stop minio",
     "dev:up": "docker compose up -d",
     "dev:down": "docker compose down",
     "db:copy:dev": "./scripts/copy-remote-db.sh dev",
