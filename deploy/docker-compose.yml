@@ -23,6 +23,8 @@ services:
   db-prod:
     image: postgres:17-alpine
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5432"
     environment:
       POSTGRES_USER: ${PROD_POSTGRES_USER:-booknest}
       POSTGRES_PASSWORD: ${PROD_POSTGRES_PASSWORD:?set PROD_POSTGRES_PASSWORD in .env}
@@ -78,6 +80,8 @@ services:
   db-dev:
     image: postgres:17-alpine
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: ${DEV_POSTGRES_USER:-booknest}
       POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:?set DEV_POSTGRES_PASSWORD in .env}
