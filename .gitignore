@@ -42,15 +42,11 @@ apps/web/next-env.d.ts
 # Claude Code runtime locks
 .claude/*.lock
 
-# Vercel
-.vercel/
-
 # Storybook
 storybook-static/
 
 # Turborepo cache
 .turbo/
 
-# Agent screenshot artifacts in repo root (anchored — src/ and public/ PNGs safe)
+# Agent screenshot artifacts in repo root (anchored, src/ and public/ PNGs safe)
 /*.png
-.vercel
