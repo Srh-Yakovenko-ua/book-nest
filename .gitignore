@@ -7,6 +7,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Prisma generated client (run `pnpm --filter @app/api db:generate`)
+apps/api/src/generated/
+
 # Env
 .env
 .env.local
@@ -23,8 +26,9 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 
-# Vite
-apps/web/.vite/
+# Next.js
+apps/web/.next/
+apps/web/next-env.d.ts
 
 # Playwright MCP — auto-generated snapshots/console logs from browser sessions
 .playwright-mcp/

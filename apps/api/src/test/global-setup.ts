@@ -1,14 +1,8 @@
-import "reflect-metadata";
-import { DataSource } from "typeorm";
+import { execFileSync } from "node:child_process";
 
-import { buildMigrationOptions } from "../core/database/typeorm-options.js";
-
-export default async function setup(): Promise<void> {
-  const dataSource = new DataSource(buildMigrationOptions());
-  await dataSource.initialize();
-  try {
-    await dataSource.runMigrations();
-  } finally {
-    await dataSource.destroy();
-  }
+export default function globalSetup(): void {
+  execFileSync("pnpm", ["exec", "prisma", "migrate", "deploy"], {
+    env: process.env,
+    stdio: "inherit",
+  });
 }

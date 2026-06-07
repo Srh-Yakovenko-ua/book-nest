@@ -26,15 +26,11 @@ export class ApiError extends Error {
   }
 }
 
+const isServer = typeof window === "undefined";
+
 export async function request<T>(path: string, init?: RequestOptions): Promise<T> {
-  const res = await fetch(`${env.VITE_API_BASE_URL}${path}`, {
-    ...init,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
+  const { init: requestInit, url } = await buildRequest(path, init);
+  const res = await fetch(url, requestInit);
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
@@ -53,4 +49,38 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
   if (res.status === 204) return undefined as T;
 
   return res.json() as Promise<T>;
+}
+
+async function buildRequest(
+  path: string,
+  init?: RequestOptions,
+): Promise<{ init: RequestInit; url: string }> {
+  if (isServer) {
+    const base = process.env.API_BASE_URL ?? "http://localhost:4000";
+    const { cookies } = await import("next/headers");
+    const cookieHeader = (await cookies()).toString();
+    return {
+      init: {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          ...(cookieHeader ? { cookie: cookieHeader } : {}),
+          ...init?.headers,
+        },
+      },
+      url: `${base}${path}`,
+    };
+  }
+
+  return {
+    init: {
+      ...init,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...init?.headers,
+      },
+    },
+    url: `${env.NEXT_PUBLIC_API_BASE_URL}${path}`,
+  };
 }

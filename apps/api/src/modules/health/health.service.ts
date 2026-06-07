@@ -1,14 +1,14 @@
 import type { ApiHealth } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource } from "typeorm";
+
+import { PrismaService } from "../../core/database/prisma.service.js";
 
 const PG_HEALTHCHECK_TIMEOUT_MS = 1000;
 
 @Injectable()
 export class HealthService {
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getHealth(): Promise<ApiHealth> {
     const postgres = await this.pingPostgres();
@@ -23,7 +23,7 @@ export class HealthService {
   private async pingPostgres(): Promise<"down" | "ok"> {
     let timeoutId: NodeJS.Timeout | undefined;
     try {
-      const queryPromise = this.dataSource.query("SELECT 1");
+      const queryPromise = this.prisma.$queryRaw`SELECT 1`;
       const timeoutPromise = new Promise<never>((_resolve, reject) => {
         timeoutId = setTimeout(
           () => reject(new Error("postgres healthcheck timeout")),

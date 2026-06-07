@@ -6,7 +6,7 @@
 monorepo-fullstack/
 ├── apps/
 │   ├── web/           React 18 + Vite 5 + TypeScript SPA
-│   └── api/           Express + Mongoose + TypeScript (phase 1)
+│   └── api/           NestJS + Prisma + PostgreSQL + TypeScript
 ├── packages/
 │   └── shared/        TypeScript types shared between FE and BE (@app/shared)
 └── docs/              project documentation
@@ -101,15 +101,17 @@ apps/api/src/
 ├── app.ts                createApp() — Express builder, separate from listen
 ├── config/
 │   └── env.ts            typed env reader
-├── db/
-│   └── mongo.ts          mongoose connect/disconnect
+├── core/
+│   └── database/
+│       ├── prisma.service.ts    PrismaClient with $connect/$disconnect lifecycle
+│       └── database.module.ts   @Global() module providing PrismaService
 ├── routes/               URL → controller mapping only
 ├── controllers/          req/res parsing, no business logic
 ├── services/             pure business logic, no HTTP awareness
 └── middleware/           express middleware (errorHandler, ...)
 ```
 
-The layer separation (routes → controllers → services) is intentional and prepares for phase 2: migration to NestJS where services become `@Injectable()` classes, controllers become `@Controller` methods, and routes become decorators.
+The layer separation (controllers → services → repositories) is intentional: services are `@Injectable()` classes, controllers are `@Controller` methods, routes are decorators, and only the repository layer (`infrastructure/`) touches Prisma via the injected `PrismaService`. Keeping the data layer isolated behind repositories means swapping the persistence tool stays mechanical.
 
 ## Rules of import flow
 

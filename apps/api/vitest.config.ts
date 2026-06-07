@@ -2,7 +2,7 @@ import { defineConfig } from "vitest/config";
 
 const testDefaults = {
   CORS_ORIGINS: "http://localhost:5173",
-  DATABASE_URL: "postgresql://instagram:instagram_dev_2026@localhost:5432/instagram_clone_test",
+  DATABASE_URL: "postgresql://booknest:booknest_dev_2026@localhost:5432/booknest_test",
   LOG_LEVEL: "error",
   NODE_ENV: "test",
   PORT: "4001",

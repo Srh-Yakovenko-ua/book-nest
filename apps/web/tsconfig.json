@@ -3,15 +3,20 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": false,
+    "allowJs": true,
     "noEmit": true,
-    "types": ["vite/client", "node"],
+    "incremental": true,
+    "declaration": false,
+    "sourceMap": false,
+    "types": ["node"],
+    "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "src/env.d.ts", "vite.config.ts"]
+  "include": ["next-env.d.ts", "src/**/*", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
 }

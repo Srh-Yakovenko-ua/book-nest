@@ -14,8 +14,8 @@ const STYLES: Record<LogLevel, string> = {
   warn: "color:#f59e0b;font-weight:600",
 };
 
-const ENABLED: boolean = __DEV__;
-const MIN_LEVEL: LogLevel = __DEV__ ? "debug" : "warn";
+const ENABLED: boolean = process.env.NODE_ENV !== "production";
+const MIN_LEVEL: LogLevel = ENABLED ? "debug" : "warn";
 
 export function createLogger(scope: string) {
   return {

@@ -316,7 +316,7 @@ export class BlogsController {
 }
 ```
 
-Контроллер — тонкий: `parse → service.call → return`. Никакой бизнес-логики, никакого Mongoose, никакого Express.
+Контроллер — тонкий: `parse → service.call → return`. Никакой бизнес-логики, никакого Prisma, никакого Express.
 
 `return ...` — Nest сам сериализует возвращённое значение в JSON и шлёт `200 OK` (или указанный `@HttpCode`). Никаких `res.json(...)` руками.
 
@@ -453,7 +453,7 @@ listBlogs(@Query(new ZodQueryPipe(BlogQuerySchema)) query: BlogQuery) { ... }
 getBlog(@Param('id') id: string) { ... }     // без pipe — id остаётся string
 ```
 
-У нас два pipe'а: `ZodBodyPipe` и `ZodQueryPipe`. `Param` обычно валидируется внутри service (для Mongo ObjectID — там же мы должны бросить 404 на невалидный id, что естественнее в сервисе).
+У нас два pipe'а: `ZodBodyPipe` и `ZodQueryPipe`. `Param` обычно валидируется внутри service (для UUID — там же мы должны бросить 404 на невалидный id, что естественнее в сервисе).
 
 ### Когда что выбирать
 
@@ -517,7 +517,6 @@ export class HttpErrorFilter implements ExceptionFilter {
 
     if (exception instanceof HttpError) { ... }
     else if (exception instanceof ZodError) { ... }
-    else if (exception instanceof mongoose.Error.CastError) { ... }
     else if (exception instanceof HttpException) { ... }   // 404 от Nest
     else { /* 500 — неизвестная */ }
 
@@ -533,8 +532,7 @@ export class HttpErrorFilter implements ExceptionFilter {
 ### Что он покрывает
 
 - `HttpError` (наши `NotFoundError`, `BadRequestError`, `UnauthorizedError`, ...) → их кастомный JSON
-- `ZodError` → 422 с массивом `{ field, message }`
-- mongoose `CastError` (например, кривой ObjectID в `:id`) → 404
+- `ZodError` → 422 с массивом `{ field, message }` (кривой UUID в `:id` ловится здесь, на границе, ещё до Prisma)
 - `HttpException` от Nest (например, дефолтный 404 на несуществующий путь) → пробрасывается с кодом
 - body-parser errors (некорректный JSON) → 400
 - всё остальное → 500 с requestId
@@ -765,23 +763,23 @@ const isPublic = this.reflector.get<boolean>("isPublic", context.getHandler());
 
 Используются для подключений к внешним системам (DB, очереди), которые надо корректно закрыть.
 
-### Phase 2 (NestJS + Postgres) — что изменится
+### Postgres + Prisma — что изменилось в data-слое
 
 Чисто архитектурно — ничего радикального:
 
-- `db/repositories/` останутся, но переедут на TypeORM/Prisma/Drizzle
-- Сервисы получат инъекцию репозитория через DI (а не прямой import)
-- Mongoose-схемы заменятся на ORM-сущности
-- Контроллеры, guards, pipes, filters — **не меняются**
+- `db/repositories/` остались, но переехали на Prisma 7 (engineless, `@prisma/adapter-pg`); инжектят `PrismaService` и зовут `this.prisma.<model>.findMany/...`
+- Сервисы получают инъекцию репозитория через DI (а не прямой import)
+- Mongoose-схемы заменились на `model`-блоки в `prisma/schema.prisma` (snake_case колонки через `@map`/`@@map`, UUID PK `@id @default(uuid())`)
+- Контроллеры, guards, pipes, filters — **не изменились**
 
-Это и было главной целью «layered architecture is sacred» из CLAUDE.md: phase 1 готовил почву так, чтобы phase 2 был механической заменой data-слоя, а не переписыванием всего.
+Это и было главной целью «layered architecture is sacred» из CLAUDE.md: чистые слои сделали замену data-слоя механической, а не переписыванием всего.
 
 ---
 
 ## 18. Краткий чек-лист «как добавить новый эндпоинт в Nest-эре»
 
 1. Добавить request/response типы в `packages/shared/src/index.ts`
-2. Добавить Mongoose model в `apps/api/src/db/models/<feature>.model.ts` (если новая сущность)
+2. Добавить `model` в `apps/api/prisma/schema.prisma` (если новая сущность) и накатить миграцию через `pnpm db:migrate`
 3. Создать папку `apps/api/src/modules/<feature>/`:
    - `<feature>.service.ts` с `@Injectable()`
    - `<feature>.controller.ts` с `@Controller('api/<feature>')`

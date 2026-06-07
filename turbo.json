@@ -17,13 +17,13 @@
       "inputs": [
         "src/**/*.{ts,tsx,js,jsx,css,html,json}",
         "tsconfig*.json",
-        "vite.config.ts",
+        "next.config.ts",
+        "postcss.config.mjs",
         "package.json",
-        "index.html",
         "public/**"
       ],
-      "outputs": ["dist/**", "build/**", ".vite/**"],
-      "env": ["VITE_*"]
+      "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"],
+      "env": ["NEXT_PUBLIC_*", "API_BASE_URL"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],

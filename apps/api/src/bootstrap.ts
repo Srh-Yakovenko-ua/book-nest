@@ -39,8 +39,8 @@ export async function bootstrapNestApp(): Promise<NestExpressApplication> {
 
   if (env.enableSwagger) {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle("instagram-clone API")
-      .setDescription("REST API for the instagram-clone project")
+      .setTitle("book-nest API")
+      .setDescription("REST API for the book-nest project")
       .setVersion("1.0")
       .addBearerAuth({ bearerFormat: "JWT", scheme: "bearer", type: "http" })
       .addCookieAuth("refreshToken")

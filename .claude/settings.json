@@ -138,6 +138,21 @@
       "mcp__plugin_vercel-plugin_vercel__authenticate",
       "mcp__plugin_vercel-plugin_vercel__web_fetch_vercel_url"
     ],
+    "ask": [
+      "Bash(pnpm --filter @app/api db:migrate)",
+      "Bash(pnpm --filter @app/api db:migrate:*)",
+      "Bash(pnpm --filter @app/api exec prisma migrate:*)",
+      "Bash(pnpm --filter @app/api exec prisma db push:*)",
+      "Bash(pnpm --filter @app/api exec prisma db execute:*)",
+      "Bash(pnpm exec prisma migrate:*)",
+      "Bash(pnpm exec prisma db push:*)",
+      "Bash(pnpm exec prisma db execute:*)",
+      "Bash(prisma migrate:*)",
+      "Bash(prisma db push:*)",
+      "Bash(prisma db execute:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma db push:*)"
+    ],
     "deny": [
       "Bash(rm -rf:*)",
       "Bash(rm -fr:*)",
@@ -163,5 +178,37 @@
     "chrome-devtools-mcp@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
     "vercel@claude-plugins-official": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | grep -q 'apps/api/src/generated/' && { echo 'Refusing to edit the generated Prisma client. Edit apps/api/prisma/schema.prisma, then run pnpm --filter @app/api db:generate.' >&2; exit 2; } || true"
+          },
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path'); case $f in *.env|*.env.local|*.env.production) echo 'Refusing to edit a real .env file (secrets live here). Put new variables in .env.example instead.' >&2; exit 2 ;; esac; true"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | grep -q 'apps/api/prisma/schema.prisma' && pnpm --filter @app/api db:generate || true"
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | grep -q 'apps/web/src/messages/' && node .claude/scripts/check-i18n-parity.mjs || true"
+          }
+        ]
+      }
+    ]
   }
 }

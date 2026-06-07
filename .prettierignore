@@ -6,3 +6,4 @@ build
 pnpm-lock.yaml
 *.tsbuildinfo
 .playwright-mcp
+**/generated
