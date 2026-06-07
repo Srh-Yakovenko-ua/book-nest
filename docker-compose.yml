@@ -1,0 +1,23 @@
+name: book-nest-local
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: booknest-local-db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: booknest
+      POSTGRES_PASSWORD: booknest_dev_2026
+      POSTGRES_DB: booknest_dev
+    volumes:
+      - booknest-local-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booknest -d booknest_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  booknest-local-db:
