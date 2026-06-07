@@ -4,7 +4,7 @@
   "ignoreBinaries": ["lsof"],
   "workspaces": {
     ".": {
-      "ignore": ["api/**"]
+      "ignore": ["api/**", ".claude/**"]
     },
     "apps/web": {
       "project": ["src/**/*.{ts,tsx}"],
