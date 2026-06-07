@@ -17,8 +17,33 @@ env:
   IMAGE_PREFIX: ghcr.io/srh-yakovenko-ua
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Filter changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'packages/shared/**'
+              - 'pnpm-lock.yaml'
+            web:
+              - 'apps/web/**'
+              - 'packages/shared/**'
+              - 'pnpm-lock.yaml'
+
   deploy:
     name: Build images and deploy
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -48,6 +73,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push API image
+        if: needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -59,6 +85,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=api-${{ steps.env.outputs.name }}
 
       - name: Build and push web image
+        if: needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: .
