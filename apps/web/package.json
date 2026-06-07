@@ -13,7 +13,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "gen:api": "orval --config ./orval.config.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",
@@ -73,6 +74,7 @@
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",
     "happy-dom": "catalog:",
+    "orval": "catalog:",
     "react-scan": "catalog:",
     "storybook": "catalog:",
     "tailwindcss": "catalog:",

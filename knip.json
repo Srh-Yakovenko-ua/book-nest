@@ -8,8 +8,11 @@
     },
     "apps/web": {
       "project": ["src/**/*.{ts,tsx}"],
+      "entry": ["orval.config.ts"],
       "ignore": [
         "src/components/ui/**",
+        "src/shared/api/generated/**",
+        "src/shared/api/mutator.ts",
         "src/test-utils.tsx",
         "src/lib/api-errors.ts",
         "src/lib/format.ts",

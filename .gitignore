@@ -10,6 +10,9 @@ build/
 # turbo prune output (Docker build artifact)
 out/
 
+# Generated OpenAPI spec (run `pnpm --filter @app/api generate:openapi`)
+openapi.json
+
 # Prisma generated client (run `pnpm --filter @app/api db:generate`)
 apps/api/src/generated/
 

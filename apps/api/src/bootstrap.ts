@@ -1,15 +1,15 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { type NestExpressApplication } from "@nestjs/platform-express";
-import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { SwaggerModule } from "@nestjs/swagger";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
-import { cleanupOpenApiDoc } from "nestjs-zod";
 
 import { AppModule } from "./app.module.js";
 import { env } from "./config/env.js";
 import { HttpErrorFilter } from "./core/exceptions/http-error.filter.js";
+import { buildOpenApiDocument } from "./core/openapi.js";
 
 const JSON_BODY_LIMIT = "1mb";
 
@@ -38,14 +38,7 @@ export async function bootstrapNestApp(): Promise<NestExpressApplication> {
   app.useGlobalFilters(new HttpErrorFilter());
 
   if (env.enableSwagger) {
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle("book-nest API")
-      .setDescription("REST API for the book-nest project")
-      .setVersion("1.0")
-      .addBearerAuth({ bearerFormat: "JWT", scheme: "bearer", type: "http" })
-      .addCookieAuth("refreshToken")
-      .build();
-    const document = cleanupOpenApiDoc(SwaggerModule.createDocument(app, swaggerConfig));
+    const document = buildOpenApiDocument(app);
     SwaggerModule.setup("api/docs", app, document, {
       jsonDocumentUrl: "api/docs/json",
     });
