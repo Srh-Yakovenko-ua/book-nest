@@ -27,6 +27,7 @@
     "test": "turbo run test",
     "knip": "knip",
     "knip:fix": "knip --fix",
+    "gen:api": "pnpm --filter @app/api generate:openapi && pnpm --filter @app/web gen:api",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "storybook": "pnpm --filter @app/web storybook",
     "clean:cache": "rm -rf .turbo apps/*/.turbo packages/*/.turbo node_modules/.cache .playwright-mcp && find . -maxdepth 1 -name '*.png' -delete",

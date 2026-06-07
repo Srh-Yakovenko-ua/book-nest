@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
+    "generate:openapi": "node --import @swc-node/register/esm-register --conditions=source src/scripts/generate-openapi.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "prisma generate",
