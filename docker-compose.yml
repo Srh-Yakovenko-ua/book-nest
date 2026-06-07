@@ -19,5 +19,18 @@ services:
       timeout: 5s
       retries: 12
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: booknest-local-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    environment:
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - booknest-local-mailpit:/data
+
 volumes:
   booknest-local-db:
+  booknest-local-mailpit:
