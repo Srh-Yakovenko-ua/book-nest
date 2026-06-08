@@ -52,20 +52,8 @@
     "apps/api": {
       "project": ["src/**/*.ts", "!src/generated/**"],
       "entry": ["src/index.ts"],
-      "ignore": ["src/test/truncate.ts"],
       "prisma": false,
-      "ignoreDependencies": [
-        "@nestjs/schedule",
-        "@nestjs/throttler",
-        "@prisma/client",
-        "@types/nodemailer",
-        "bcryptjs",
-        "date-fns",
-        "jose",
-        "nodemailer",
-        "pino-pretty",
-        "ua-parser-js"
-      ]
+      "ignoreDependencies": ["@nestjs/schedule", "@prisma/client", "pino-pretty", "ua-parser-js"]
     },
     "packages/shared": {
       "project": ["src/**/*.ts"]

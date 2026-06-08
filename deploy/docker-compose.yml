@@ -55,6 +55,20 @@ services:
       LOG_LEVEL: ${PROD_LOG_LEVEL:-info}
       ENABLE_SWAGGER: ${PROD_ENABLE_SWAGGER:-false}
       TRACING_ENABLED: "false"
+      JWT_ACCESS_SECRET: ${PROD_JWT_ACCESS_SECRET:?set PROD_JWT_ACCESS_SECRET in .env}
+      JWT_REFRESH_SECRET: ${PROD_JWT_REFRESH_SECRET:?set PROD_JWT_REFRESH_SECRET in .env}
+      ACCESS_TOKEN_TTL: "15m"
+      REFRESH_TOKEN_TTL_DAYS: "7"
+      COOKIE_SECURE: "true"
+      WEB_BASE_URL: https://book-nest.net
+      SMTP_HOST: ${PROD_SMTP_HOST:-live.smtp.mailtrap.io}
+      SMTP_PORT: ${PROD_SMTP_PORT:-587}
+      SMTP_SECURE: ${PROD_SMTP_SECURE:-false}
+      SMTP_USER: ${PROD_SMTP_USER:-api}
+      SMTP_PASS: ${PROD_SMTP_PASS:-}
+      MAIL_FROM: BookNest <no-reply@book-nest.net>
+      EMAIL_VERIFICATION_TTL_MINUTES: "60"
+      RESEND_COOLDOWN_SECONDS: "60"
     networks:
       - edge
       - prod-internal
@@ -112,6 +126,18 @@ services:
       LOG_LEVEL: ${DEV_LOG_LEVEL:-debug}
       ENABLE_SWAGGER: ${DEV_ENABLE_SWAGGER:-true}
       TRACING_ENABLED: "false"
+      JWT_ACCESS_SECRET: ${DEV_JWT_ACCESS_SECRET:?set DEV_JWT_ACCESS_SECRET in .env}
+      JWT_REFRESH_SECRET: ${DEV_JWT_REFRESH_SECRET:?set DEV_JWT_REFRESH_SECRET in .env}
+      ACCESS_TOKEN_TTL: "15m"
+      REFRESH_TOKEN_TTL_DAYS: "7"
+      COOKIE_SECURE: "true"
+      WEB_BASE_URL: https://dev.book-nest.net
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      MAIL_FROM: BookNest <no-reply@book-nest.net>
+      EMAIL_VERIFICATION_TTL_MINUTES: "60"
+      RESEND_COOLDOWN_SECONDS: "60"
     networks:
       - edge
       - dev-internal
