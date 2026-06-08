@@ -33,6 +33,7 @@ RUN addgroup -S nodejs && adduser -S nestjs -G nodejs
 COPY --from=prod-deps --chown=nestjs:nodejs /repo/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /repo/packages/shared/package.json ./packages/shared/package.json
 COPY --from=builder --chown=nestjs:nodejs /repo/packages/shared/dist ./packages/shared/dist
+COPY --from=prod-deps --chown=nestjs:nodejs /repo/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=prod-deps --chown=nestjs:nodejs /repo/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=nestjs:nodejs /repo/apps/api/package.json ./apps/api/package.json
 COPY --from=builder --chown=nestjs:nodejs /repo/apps/api/dist ./apps/api/dist
