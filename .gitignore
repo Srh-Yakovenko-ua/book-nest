@@ -16,9 +16,11 @@ openapi.json
 # Prisma generated client (run `pnpm --filter @app/api db:generate`)
 apps/api/src/generated/
 
-# Env
+# Env — real values are local/secret; only *.example files are committed
 .env
 .env.local
+.env.dev
+.env.prod
 .env.*.local
 .env.remotely
 

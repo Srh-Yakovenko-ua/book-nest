@@ -1,5 +1,7 @@
-import "dotenv/config";
+import { config } from "dotenv";
 import { z } from "zod";
+
+config({ path: `.env.${process.env.APP_ENV ?? "local"}` });
 
 const envSchema = z
   .object({

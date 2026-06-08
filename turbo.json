@@ -10,7 +10,7 @@
     ".prettierignore",
     "eslint.config.mjs"
   ],
-  "globalEnv": ["NODE_ENV", "CI"],
+  "globalEnv": ["NODE_ENV", "CI", "APP_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
