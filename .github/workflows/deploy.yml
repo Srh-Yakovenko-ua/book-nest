@@ -17,6 +17,10 @@ env:
   IMAGE_PREFIX: ghcr.io/srh-yakovenko-ua
 
 jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
@@ -43,7 +47,7 @@ jobs:
 
   deploy:
     name: Build images and deploy
-    needs: changes
+    needs: [changes, ci]
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
