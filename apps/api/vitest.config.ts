@@ -3,6 +3,8 @@ import { defineConfig } from "vitest/config";
 const testDefaults = {
   CORS_ORIGINS: "http://localhost:5173",
   DATABASE_URL: "postgresql://booknest:booknest_dev_2026@localhost:5432/booknest_test",
+  JWT_ACCESS_SECRET: "test-access-secret-0000000000000000000000",
+  JWT_REFRESH_SECRET: "test-refresh-secret-000000000000000000000",
   LOG_LEVEL: "error",
   NODE_ENV: "test",
   PORT: "4001",
