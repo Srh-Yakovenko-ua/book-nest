@@ -99,7 +99,7 @@ jobs:
           cache-from: type=gha,scope=web-${{ steps.env.outputs.name }}
           cache-to: type=gha,mode=max,scope=web-${{ steps.env.outputs.name }}
 
-      - name: Deploy over SSH
+      - name: Sync stack files + secrets, then deploy over SSH
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           HOST: ${{ secrets.DEPLOY_HOST }}
@@ -107,12 +107,50 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
           ENV: ${{ steps.env.outputs.name }}
+          DEV_POSTGRES_PASSWORD: ${{ secrets.DEV_POSTGRES_PASSWORD }}
+          PROD_POSTGRES_PASSWORD: ${{ secrets.PROD_POSTGRES_PASSWORD }}
+          DEV_JWT_ACCESS_SECRET: ${{ secrets.DEV_JWT_ACCESS_SECRET }}
+          DEV_JWT_REFRESH_SECRET: ${{ secrets.DEV_JWT_REFRESH_SECRET }}
+          PROD_JWT_ACCESS_SECRET: ${{ secrets.PROD_JWT_ACCESS_SECRET }}
+          PROD_JWT_REFRESH_SECRET: ${{ secrets.PROD_JWT_REFRESH_SECRET }}
+          PROD_SMTP_PASS: ${{ secrets.PROD_SMTP_PASS }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ci
           chmod 600 ~/.ssh/id_ci
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          ssh -i ~/.ssh/id_ci "$USER@$HOST" ENV="$ENV" GHCR_USER="$GHCR_USER" GHCR_TOKEN="$GHCR_TOKEN" 'bash -s' <<'REMOTE'
+          SSHC="ssh -i ~/.ssh/id_ci"
+          SCPC="scp -i ~/.ssh/id_ci"
+
+          {
+            echo "PROD_POSTGRES_USER=booknest"
+            echo "PROD_POSTGRES_PASSWORD=${PROD_POSTGRES_PASSWORD}"
+            echo "PROD_POSTGRES_DB=booknest"
+            echo "PROD_TAG=prod"
+            echo "PROD_LOG_LEVEL=info"
+            echo "PROD_ENABLE_SWAGGER=false"
+            echo "DEV_POSTGRES_USER=booknest"
+            echo "DEV_POSTGRES_PASSWORD=${DEV_POSTGRES_PASSWORD}"
+            echo "DEV_POSTGRES_DB=booknest"
+            echo "DEV_TAG=dev"
+            echo "DEV_LOG_LEVEL=debug"
+            echo "DEV_ENABLE_SWAGGER=true"
+            echo "DEV_JWT_ACCESS_SECRET=${DEV_JWT_ACCESS_SECRET}"
+            echo "DEV_JWT_REFRESH_SECRET=${DEV_JWT_REFRESH_SECRET}"
+            echo "PROD_JWT_ACCESS_SECRET=${PROD_JWT_ACCESS_SECRET}"
+            echo "PROD_JWT_REFRESH_SECRET=${PROD_JWT_REFRESH_SECRET}"
+            echo "PROD_SMTP_PASS=${PROD_SMTP_PASS}"
+            echo "API_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-api"
+            echo "WEB_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-web"
+          } > /tmp/server.env
+
+          $SSHC "$USER@$HOST" "mkdir -p ~/booknest"
+          $SCPC deploy/docker-compose.yml deploy/Caddyfile deploy/deploy.sh deploy/README.md "$USER@$HOST:~/booknest/"
+          $SCPC /tmp/server.env "$USER@$HOST:~/booknest/.env"
+          $SSHC "$USER@$HOST" "chmod +x ~/booknest/deploy.sh && chmod 600 ~/booknest/.env"
+          rm -f /tmp/server.env
+
+          $SSHC "$USER@$HOST" ENV="$ENV" GHCR_USER="$GHCR_USER" GHCR_TOKEN="$GHCR_TOKEN" 'bash -s' <<'REMOTE'
           set -e
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
           cd ~/booknest
