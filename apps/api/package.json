@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "node --import @swc-node/register/esm-register --conditions=source --watch --enable-source-maps src/index.ts",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && pnpm copy:assets",
+    "copy:assets": "node --import @swc-node/register/esm-register --conditions=source scripts/copy-assets.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "generate:openapi": "node --import @swc-node/register/esm-register --conditions=source src/scripts/generate-openapi.ts",

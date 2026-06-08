@@ -3,9 +3,14 @@ import { z } from "zod";
 
 const envSchema = z
   .object({
+    ACCESS_TOKEN_TTL: z.string().default("15m"),
+    COOKIE_SECURE: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
     CORS_ORIGINS: z
       .string()
-      .default("http://localhost:5173")
+      .default("http://localhost:3000")
       .transform((value, ctx) => {
         const items = value
           .split(",")
@@ -32,27 +37,56 @@ const envSchema = z
       }),
     DATABASE_URL: z.string().url(),
     DIRECT_URL: z.string().url().optional(),
+    EMAIL_VERIFICATION_TTL_MINUTES: z.coerce.number().int().positive().default(60),
     ENABLE_SWAGGER: z
       .enum(["true", "false"])
       .default("true")
       .transform((value) => value === "true"),
+    JWT_ACCESS_SECRET: z.string().min(32),
+    JWT_REFRESH_SECRET: z.string().min(32),
     LOG_LEVEL: z.enum(["debug", "error", "info", "warn"]).default("info"),
+    MAIL_FROM: z.string().default("BookNest <no-reply@book-nest.net>"),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     PORT: z.coerce.number().int().positive().default(4000),
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
+    RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
+    SMTP_HOST: z.string().default("localhost"),
+    SMTP_PASS: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().positive().default(1025),
+    SMTP_SECURE: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    SMTP_USER: z.string().optional(),
     TRACING_ENABLED: z
       .enum(["true", "false"])
       .default("false")
       .transform((value) => value === "true"),
+    WEB_BASE_URL: z.string().url().default("http://localhost:3000"),
   })
   .transform((raw) => ({
+    accessTokenTtl: raw.ACCESS_TOKEN_TTL,
+    cookieSecure: raw.COOKIE_SECURE,
     corsOrigins: raw.CORS_ORIGINS,
     databaseUrl: raw.DATABASE_URL,
     directUrl: raw.DIRECT_URL,
+    emailVerificationTtlMinutes: raw.EMAIL_VERIFICATION_TTL_MINUTES,
     enableSwagger: raw.ENABLE_SWAGGER,
+    jwtAccessSecret: raw.JWT_ACCESS_SECRET,
+    jwtRefreshSecret: raw.JWT_REFRESH_SECRET,
     logLevel: raw.LOG_LEVEL,
+    mailFrom: raw.MAIL_FROM,
     nodeEnv: raw.NODE_ENV,
     port: raw.PORT,
+    refreshTokenTtlDays: raw.REFRESH_TOKEN_TTL_DAYS,
+    resendCooldownSeconds: raw.RESEND_COOLDOWN_SECONDS,
+    smtpHost: raw.SMTP_HOST,
+    smtpPass: raw.SMTP_PASS,
+    smtpPort: raw.SMTP_PORT,
+    smtpSecure: raw.SMTP_SECURE,
+    smtpUser: raw.SMTP_USER,
     tracingEnabled: raw.TRACING_ENABLED,
+    webBaseUrl: raw.WEB_BASE_URL,
   }));
 
 const parsed = envSchema.safeParse(process.env);
