@@ -93,6 +93,10 @@ export const RegistrationInputSchema = z.object({
   password: PasswordSchema,
 });
 
+export const RoleSchema = z.enum(["user", "super_admin"]);
+
+export type Role = z.infer<typeof RoleSchema>;
+
 export const LoginInputSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email()),
   password: z.string().min(1),
@@ -151,4 +155,5 @@ export type UserView = {
   id: string;
   name: string;
   nickname: null | string;
+  role: Role;
 };

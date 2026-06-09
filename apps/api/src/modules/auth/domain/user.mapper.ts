@@ -11,5 +11,6 @@ export function toUserView(user: UserModel): UserView {
     id: user.id,
     name: user.name,
     nickname: user.nickname,
+    role: user.role,
   };
 }
