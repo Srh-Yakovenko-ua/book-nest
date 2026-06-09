@@ -203,8 +203,6 @@ services:
     environment:
       CB_SERVER_NAME: BookNest DB
       CB_SERVER_URL: https://db.book-nest.net
-      CB_ADMIN_NAME: ${CB_ADMIN_NAME:-admin}
-      CB_ADMIN_PASSWORD: ${CB_ADMIN_PASSWORD:?set CB_ADMIN_PASSWORD in .env}
       CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED: "false"
       CLOUDBEAVER_FORCE_HTTPS: "false"
       PROXY_TYPE: nginx

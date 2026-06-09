@@ -118,7 +118,6 @@ jobs:
           PROD_JWT_ACCESS_SECRET: ${{ secrets.PROD_JWT_ACCESS_SECRET }}
           PROD_JWT_REFRESH_SECRET: ${{ secrets.PROD_JWT_REFRESH_SECRET }}
           PROD_SMTP_PASS: ${{ secrets.PROD_SMTP_PASS }}
-          CB_ADMIN_PASSWORD: ${{ secrets.CB_ADMIN_PASSWORD }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ci
@@ -145,8 +144,6 @@ jobs:
             echo "PROD_JWT_ACCESS_SECRET=${PROD_JWT_ACCESS_SECRET}"
             echo "PROD_JWT_REFRESH_SECRET=${PROD_JWT_REFRESH_SECRET}"
             echo "PROD_SMTP_PASS=${PROD_SMTP_PASS}"
-            echo "CB_ADMIN_NAME=admin"
-            echo "CB_ADMIN_PASSWORD=${CB_ADMIN_PASSWORD}"
             echo "API_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-api"
             echo "WEB_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-web"
           } > /tmp/server.env
