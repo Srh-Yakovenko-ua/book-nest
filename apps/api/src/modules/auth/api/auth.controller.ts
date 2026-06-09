@@ -4,6 +4,7 @@ import type {
   LogoutResultView,
   RegistrationResultView,
   ResetPasswordResultView,
+  UserView,
 } from "@app/shared";
 import type { Request, Response } from "express";
 
@@ -15,9 +16,10 @@ import {
   ResetPasswordInputSchema,
   VerifyEmailSchema,
 } from "@app/shared";
-import { Body, Controller, HttpCode, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -28,6 +30,8 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
+import type { UserModel } from "../../../generated/prisma/models.js";
+
 import { env } from "../../../config/env.js";
 import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
@@ -36,6 +40,9 @@ import { AuthService } from "../application/auth.service.js";
 import { EmailVerificationService } from "../application/email-verification.service.js";
 import { PasswordResetService } from "../application/password-reset.service.js";
 import { SessionService } from "../application/session.service.js";
+import { toUserView } from "../domain/user.mapper.js";
+import { CurrentUser } from "./guards/current-user.decorator.js";
+import { JwtAccessGuard } from "./guards/jwt-access.guard.js";
 import { ForgotPasswordInputDto } from "./input-dto/forgot-password.input-dto.js";
 import { LoginInputDto } from "./input-dto/login.input-dto.js";
 import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
@@ -70,6 +77,16 @@ export class AuthController {
     private readonly passwordResetService: PasswordResetService,
     private readonly sessionService: SessionService,
   ) {}
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "The currently authenticated user" })
+  @ApiOperation({ summary: "Return the currently authenticated user" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("me")
+  @UseGuards(JwtAccessGuard)
+  me(@CurrentUser() user: UserModel): UserView {
+    return toUserView(user);
+  }
 
   @ApiBadRequestResponse({ description: "Validation failed or email/nickname already taken" })
   @ApiBody({ type: RegistrationInputDto })

@@ -123,6 +123,16 @@ async function seedVerifiedUser(): Promise<void> {
   await request(app.getHttpServer()).post("/api/auth/verify-email").send({ token });
 }
 
+async function seedVerifiedUserAndLoginToken(): Promise<string> {
+  await seedVerifiedUser();
+  const res = await request(app.getHttpServer())
+    .post("/api/auth/login")
+    .send({ email: validBody.email, password: validBody.password });
+  const accessToken = res.body.accessToken;
+  if (typeof accessToken !== "string") throw new Error("login did not return an access token");
+  return accessToken;
+}
+
 function tokenFromUrl(verificationUrl: string): string {
   const token = new URL(verificationUrl).searchParams.get("token");
   if (token === null) throw new Error("token query param missing");
@@ -700,5 +710,91 @@ describe("POST /api/auth/reset-password", () => {
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "password" })]),
     );
+  });
+});
+
+describe("GET /api/auth/me", () => {
+  it("returns 200 with the authenticated user view for a valid bearer token", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.id).toMatch(UUID);
+    expect(res.body.email).toBe("reader@example.com");
+    expect(res.body.role).toBe("user");
+    expect(res.body.emailVerified).toBe(true);
+  });
+
+  it("does not leak the password hash or any token fields", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.body).not.toHaveProperty("passwordHash");
+    expect(res.body).not.toHaveProperty("accessToken");
+    expect(res.body).not.toHaveProperty("refreshToken");
+  });
+
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).get("/api/auth/me");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 for a garbage token", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .set("Authorization", "Bearer not-a-jwt");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 for a non-Bearer scheme", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .set("Authorization", `Basic ${accessToken}`);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 for a raw token without the Bearer scheme", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .set("Authorization", accessToken);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 when the user was deleted after the token was issued", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+    await prisma.session.deleteMany();
+    await prisma.user.deleteMany();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("reflects fresh user state when the role changes after the token was issued", async () => {
+    const accessToken = await seedVerifiedUserAndLoginToken();
+    await prisma.user.updateMany({ data: { role: "super_admin" } });
+
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.role).toBe("super_admin");
   });
 });

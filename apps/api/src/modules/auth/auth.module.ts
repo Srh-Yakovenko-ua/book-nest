@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { MailModule } from "../mail/mail.module.js";
 import { AuthController } from "./api/auth.controller.js";
+import { JwtAccessGuard } from "./api/guards/jwt-access.guard.js";
 import { AuthService } from "./application/auth.service.js";
 import { EmailVerificationService } from "./application/email-verification.service.js";
 import { PasswordResetService } from "./application/password-reset.service.js";
@@ -15,6 +16,7 @@ import { UsersRepository } from "./infrastructure/users.repository.js";
 
 @Module({
   controllers: [AuthController],
+  exports: [JwtAccessGuard],
   imports: [MailModule],
   providers: [
     AuthService,
@@ -27,6 +29,7 @@ import { UsersRepository } from "./infrastructure/users.repository.js";
     SessionsRepository,
     EmailVerificationTokensRepository,
     PasswordResetTokensRepository,
+    JwtAccessGuard,
   ],
 })
 export class AuthModule {}

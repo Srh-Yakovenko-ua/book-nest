@@ -1,10 +1,14 @@
-import { jwtVerify } from "jose";
+import { jwtVerify, SignJWT, UnsecuredJWT } from "jose";
 import { describe, expect, it } from "vitest";
 
 import { env } from "../../../config/env.js";
+import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { TokenService } from "./token.service.js";
 
 const service = new TokenService();
+
+const accessSecret = new TextEncoder().encode(env.jwtAccessSecret);
+const wrongSecret = new TextEncoder().encode("z".repeat(env.jwtAccessSecret.length));
 
 describe("TokenService.signAccessToken", () => {
   it("produces a JWT verifiable with the access secret carrying the user id as sub", async () => {
@@ -21,6 +25,62 @@ describe("TokenService.signAccessToken", () => {
     await expect(
       jwtVerify(token, new TextEncoder().encode("a".repeat(env.jwtAccessSecret.length))),
     ).rejects.toThrow();
+  });
+});
+
+describe("TokenService.verifyAccessToken", () => {
+  it("returns the sub for a token it signed itself", async () => {
+    const token = await service.signAccessToken("11111111-1111-4111-8111-111111111111");
+
+    const result = await service.verifyAccessToken(token);
+
+    expect(result).toEqual({ sub: "11111111-1111-4111-8111-111111111111" });
+  });
+
+  it("throws UnauthorizedError for a token signed with a different secret", async () => {
+    const token = await new SignJWT({ sub: "11111111-1111-4111-8111-111111111111" })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("15m")
+      .sign(wrongSecret);
+
+    await expect(service.verifyAccessToken(token)).rejects.toThrow(UnauthorizedError);
+  });
+
+  it("throws UnauthorizedError for an expired token", async () => {
+    const token = await new SignJWT({ sub: "11111111-1111-4111-8111-111111111111" })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime(Math.floor(Date.now() / 1000) - 60)
+      .sign(accessSecret);
+
+    await expect(service.verifyAccessToken(token)).rejects.toThrow(UnauthorizedError);
+  });
+
+  it("throws UnauthorizedError when the payload has no sub", async () => {
+    const token = await new SignJWT({})
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("15m")
+      .sign(accessSecret);
+
+    await expect(service.verifyAccessToken(token)).rejects.toThrow(UnauthorizedError);
+  });
+
+  it("throws UnauthorizedError when sub is an empty string", async () => {
+    const token = await new SignJWT({ sub: "" })
+      .setProtectedHeader({ alg: "HS256" })
+      .setExpirationTime("15m")
+      .sign(accessSecret);
+
+    await expect(service.verifyAccessToken(token)).rejects.toThrow(UnauthorizedError);
+  });
+
+  it("throws UnauthorizedError for a garbage string", async () => {
+    await expect(service.verifyAccessToken("not-a-jwt")).rejects.toThrow(UnauthorizedError);
+  });
+
+  it("throws UnauthorizedError for an unsigned alg:none token", async () => {
+    const token = new UnsecuredJWT({ sub: "11111111-1111-4111-8111-111111111111" }).encode();
+
+    await expect(service.verifyAccessToken(token)).rejects.toThrow(UnauthorizedError);
   });
 });
 
