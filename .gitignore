@@ -24,8 +24,6 @@ apps/api/src/generated/
 .env.*.local
 .env.*.readonly
 .env.remotely
-CREDENTIALS.local.md
-
 # Logs
 *.log
 npm-debug.log*
