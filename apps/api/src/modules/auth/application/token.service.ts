@@ -5,28 +5,39 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { env } from "../../../config/env.js";
 
-const REFRESH_TOKEN_BYTES = 32;
-const VERIFICATION_TOKEN_BYTES = 32;
+const TOKEN_BYTES = 32;
 const ACCESS_TOKEN_ALG = "HS256";
 
 @Injectable()
 export class TokenService {
   private readonly accessSecret = new TextEncoder().encode(env.jwtAccessSecret);
 
+  generatePasswordResetToken(): string {
+    return this.randomToken();
+  }
+
   generateRefreshToken(): string {
-    return randomBytes(REFRESH_TOKEN_BYTES).toString("base64url");
+    return this.randomToken();
   }
 
   generateVerificationToken(): string {
-    return randomBytes(VERIFICATION_TOKEN_BYTES).toString("base64url");
+    return this.randomToken();
+  }
+
+  hashPasswordResetToken(token: string): string {
+    return this.hashToken(token);
   }
 
   hashRefreshToken(token: string): string {
-    return createHash("sha256").update(`${token}${env.jwtRefreshSecret}`).digest("hex");
+    return this.hashToken(token);
   }
 
   hashVerificationToken(token: string): string {
-    return createHash("sha256").update(`${token}${env.jwtRefreshSecret}`).digest("hex");
+    return this.hashToken(token);
+  }
+
+  passwordResetExpiry(): Date {
+    return addMinutes(new Date(), env.passwordResetTtlMinutes);
   }
 
   refreshExpiry(): Date {
@@ -43,5 +54,13 @@ export class TokenService {
 
   verificationExpiry(): Date {
     return addMinutes(new Date(), env.emailVerificationTtlMinutes);
+  }
+
+  private hashToken(token: string): string {
+    return createHash("sha256").update(`${token}${env.jwtRefreshSecret}`).digest("hex");
+  }
+
+  private randomToken(): string {
+    return randomBytes(TOKEN_BYTES).toString("base64url");
   }
 }

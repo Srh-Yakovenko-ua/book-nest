@@ -53,3 +53,35 @@ describe("TokenService.generateRefreshToken", () => {
     expect(first).not.toBe(second);
   });
 });
+
+describe("TokenService.generatePasswordResetToken", () => {
+  it("returns distinct values across calls", () => {
+    const first = service.generatePasswordResetToken();
+    const second = service.generatePasswordResetToken();
+
+    expect(first).not.toBe(second);
+  });
+});
+
+describe("TokenService.hashPasswordResetToken", () => {
+  it("is deterministic for the same token", () => {
+    const first = service.hashPasswordResetToken("raw-reset-token");
+    const second = service.hashPasswordResetToken("raw-reset-token");
+
+    expect(first).toBe(second);
+  });
+
+  it("produces a 64-character sha256 hex digest", () => {
+    const hash = service.hashPasswordResetToken("raw-reset-token");
+
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe("TokenService.passwordResetExpiry", () => {
+  it("returns a future date", () => {
+    const expiry = service.passwordResetExpiry();
+
+    expect(expiry.getTime()).toBeGreaterThan(Date.now());
+  });
+});

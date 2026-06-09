@@ -21,4 +21,11 @@ export class SessionsRepository {
   ): Promise<SessionModel> {
     return client.session.create({ data });
   }
+
+  async deleteAllByUserId(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.session.deleteMany({ where: { userId } });
+  }
 }

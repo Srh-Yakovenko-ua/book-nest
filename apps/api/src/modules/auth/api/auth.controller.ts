@@ -1,10 +1,17 @@
-import type { AuthResultView, RegistrationResultView } from "@app/shared";
+import type {
+  AuthResultView,
+  ForgotPasswordResultView,
+  RegistrationResultView,
+  ResetPasswordResultView,
+} from "@app/shared";
 import type { Response } from "express";
 
 import {
+  ForgotPasswordInputSchema,
   LoginInputSchema,
   RegistrationInputSchema,
   ResendVerificationSchema,
+  ResetPasswordInputSchema,
   VerifyEmailSchema,
 } from "@app/shared";
 import { Body, Controller, HttpCode, Post, Res } from "@nestjs/common";
@@ -25,9 +32,12 @@ import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { AuthService } from "../application/auth.service.js";
 import { EmailVerificationService } from "../application/email-verification.service.js";
+import { PasswordResetService } from "../application/password-reset.service.js";
+import { ForgotPasswordInputDto } from "./input-dto/forgot-password.input-dto.js";
 import { LoginInputDto } from "./input-dto/login.input-dto.js";
 import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
 import { ResendVerificationInputDto } from "./input-dto/resend-verification.input-dto.js";
+import { ResetPasswordInputDto } from "./input-dto/reset-password.input-dto.js";
 import { VerifyEmailInputDto } from "./input-dto/verify-email.input-dto.js";
 
 const REFRESH_COOKIE_NAME = "refresh_token";
@@ -39,8 +49,13 @@ const RESEND_TTL_SECONDS = 60;
 const RESEND_LIMIT = 3;
 const LOGIN_TTL_SECONDS = 60;
 const LOGIN_LIMIT = 10;
+const FORGOT_PASSWORD_TTL_SECONDS = 60;
+const FORGOT_PASSWORD_LIMIT = 3;
+const RESET_PASSWORD_TTL_SECONDS = 60;
+const RESET_PASSWORD_LIMIT = 5;
 
 const VERIFICATION_SENT: RegistrationResultView["status"] = "verification_sent";
+const RESET_EMAIL_SENT: ForgotPasswordResultView["status"] = "reset_email_sent";
 
 @ApiTags("auth")
 @Controller("api/auth")
@@ -48,6 +63,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly emailVerificationService: EmailVerificationService,
+    private readonly passwordResetService: PasswordResetService,
   ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed or email/nickname already taken" })
@@ -111,6 +127,35 @@ export class AuthController {
     await this.emailVerificationService.resend(body.email);
 
     return { status: VERIFICATION_SENT };
+  }
+
+  @ApiBody({ type: ForgotPasswordInputDto })
+  @ApiOkResponse({ description: "If the account exists, a reset email was sent" })
+  @ApiOperation({ summary: "Send a password reset link if the account exists and is verified" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post("forgot-password")
+  @Throttle({
+    default: { limit: FORGOT_PASSWORD_LIMIT, ttl: seconds(FORGOT_PASSWORD_TTL_SECONDS) },
+  })
+  async forgotPassword(
+    @Body(new ZodBodyPipe(ForgotPasswordInputSchema)) body: ForgotPasswordInputDto,
+  ): Promise<ForgotPasswordResultView> {
+    await this.passwordResetService.requestReset(body.email);
+
+    return { status: RESET_EMAIL_SENT };
+  }
+
+  @ApiBadRequestResponse({ description: "Invalid or expired reset link" })
+  @ApiBody({ type: ResetPasswordInputDto })
+  @ApiOkResponse({ description: "Password reset; all sessions invalidated" })
+  @ApiOperation({ summary: "Set a new password using a reset token and invalidate all sessions" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post("reset-password")
+  @Throttle({ default: { limit: RESET_PASSWORD_LIMIT, ttl: seconds(RESET_PASSWORD_TTL_SECONDS) } })
+  resetPassword(
+    @Body(new ZodBodyPipe(ResetPasswordInputSchema)) body: ResetPasswordInputDto,
+  ): Promise<ResetPasswordResultView> {
+    return this.passwordResetService.reset(body.token, body.password);
   }
 
   private setRefreshCookie(response: Response, refreshToken: string): void {
