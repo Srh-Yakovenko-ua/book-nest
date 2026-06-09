@@ -57,6 +57,15 @@ const NICKNAME_PATTERN = /^[A-Za-z0-9._]+$/;
 const NICKNAME_EDGES = /^[A-Za-z0-9].*[A-Za-z0-9]$/;
 const NICKNAME_NO_REPEAT = /^(?!.*(?:\.\.|__))/;
 
+export const PasswordSchema = z
+  .string()
+  .min(PASSWORD_MIN, "Password must be at least 8 characters long")
+  .max(PASSWORD_MAX, "Password must be at most 128 characters long")
+  .regex(PASSWORD_UPPERCASE, "Password must contain at least one uppercase letter")
+  .regex(PASSWORD_LOWERCASE, "Password must contain at least one lowercase letter")
+  .regex(PASSWORD_DIGIT, "Password must contain at least one digit")
+  .regex(PASSWORD_SPECIAL, "Password must contain at least one special character");
+
 export const RegistrationInputSchema = z.object({
   dateOfBirth: z.iso.date().optional(),
   email: z.string().trim().toLowerCase().pipe(z.email().max(EMAIL_MAX)),
@@ -81,14 +90,7 @@ export const RegistrationInputSchema = z.object({
     .regex(NICKNAME_EDGES, "Nickname must start and end with a letter or digit")
     .regex(NICKNAME_NO_REPEAT, "Nickname must not contain consecutive dots or underscores")
     .optional(),
-  password: z
-    .string()
-    .min(PASSWORD_MIN, "Password must be at least 8 characters long")
-    .max(PASSWORD_MAX, "Password must be at most 128 characters long")
-    .regex(PASSWORD_UPPERCASE, "Password must contain at least one uppercase letter")
-    .regex(PASSWORD_LOWERCASE, "Password must contain at least one lowercase letter")
-    .regex(PASSWORD_DIGIT, "Password must contain at least one digit")
-    .regex(PASSWORD_SPECIAL, "Password must contain at least one special character"),
+  password: PasswordSchema,
 });
 
 export const LoginInputSchema = z.object({
@@ -108,10 +110,23 @@ export const ResendVerificationSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email()),
 });
 
+export const ForgotPasswordInputSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email()),
+});
+
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordInputSchema>;
+
+export const ResetPasswordInputSchema = z.object({
+  password: PasswordSchema,
+  token: z.string().min(1),
+});
+
 export type AuthResultView = {
   accessToken: string;
   user: UserView;
 };
+
+export type ForgotPasswordResultView = { status: "reset_email_sent" };
 
 export type RegistrationInput = z.infer<typeof RegistrationInputSchema>;
 
@@ -121,6 +136,10 @@ export type RegistrationResultView = {
 };
 
 export type ResendVerificationInput = z.infer<typeof ResendVerificationSchema>;
+
+export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
+
+export type ResetPasswordResultView = { status: "password_reset" };
 
 export type UserView = {
   createdAt: string;

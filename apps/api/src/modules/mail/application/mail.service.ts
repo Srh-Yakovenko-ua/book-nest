@@ -5,6 +5,8 @@ import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "../../../config/env.js";
 import { createLogger } from "../../../core/logger.js";
 import { renderEmailVerification } from "./templates/email-verification.js";
+import { renderPasswordChanged } from "./templates/password-changed.js";
+import { renderPasswordReset } from "./templates/password-reset.js";
 import { renderWelcomeEmail } from "./templates/welcome-email.js";
 
 type SendInput = {
@@ -36,6 +38,57 @@ export class MailService {
 
     const logoPath = new URL("../assets/booknest-logo-horizontal.png", import.meta.url);
     this.logoBuffer = readFileSync(logoPath);
+  }
+
+  async sendPasswordChangedEmail({
+    to,
+    userName,
+  }: {
+    to: string;
+    userName: string;
+  }): Promise<void> {
+    const safeUserName = userName.trim().length === 0 ? DEFAULT_USER_NAME : userName.trim();
+    const loginUrl = `${env.webBaseUrl}/login`;
+    const resetPasswordUrl = `${env.webBaseUrl}/forgot-password`;
+
+    const { html, subject, text } = renderPasswordChanged({
+      loginUrl,
+      resetPasswordUrl,
+      userName: safeUserName,
+    });
+
+    try {
+      await this.send({ html, subject, text, to });
+      logger.info({ to }, "password changed email sent");
+    } catch (error) {
+      logger.error({ error, to }, "failed to send password changed email");
+    }
+  }
+
+  async sendPasswordResetEmail({
+    resetPasswordUrl,
+    to,
+    userName,
+  }: {
+    resetPasswordUrl: string;
+    to: string;
+    userName: string;
+  }): Promise<void> {
+    const safeUserName = userName.trim().length === 0 ? DEFAULT_USER_NAME : userName.trim();
+    const loginUrl = `${env.webBaseUrl}/login`;
+
+    const { html, subject, text } = renderPasswordReset({
+      loginUrl,
+      resetPasswordUrl,
+      userName: safeUserName,
+    });
+
+    try {
+      await this.send({ html, subject, text, to });
+      logger.info({ to }, "password reset email sent");
+    } catch (error) {
+      logger.error({ error, to }, "failed to send password reset email");
+    }
   }
 
   async sendVerificationEmail({

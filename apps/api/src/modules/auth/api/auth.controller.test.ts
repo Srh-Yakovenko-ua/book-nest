@@ -9,12 +9,29 @@ import { truncateAllTables } from "../../../test/truncate.js";
 import { MailService } from "../../mail/application/mail.service.js";
 import { AuthModule } from "../auth.module.js";
 
+type SentReset = { resetPasswordUrl: string; to: string };
 type SentVerification = { to: string; verificationUrl: string };
 
 const sentVerifications: SentVerification[] = [];
+const sentResets: SentReset[] = [];
 let welcomeEmailCount = 0;
+let passwordChangedCount = 0;
 
 const mailServiceStub = {
+  sendPasswordChangedEmail: (): Promise<void> => {
+    passwordChangedCount += 1;
+    return Promise.resolve();
+  },
+  sendPasswordResetEmail: ({
+    resetPasswordUrl,
+    to,
+  }: {
+    resetPasswordUrl: string;
+    to: string;
+  }): Promise<void> => {
+    sentResets.push({ resetPasswordUrl, to });
+    return Promise.resolve();
+  },
   sendVerificationEmail: ({
     to,
     verificationUrl,
@@ -50,7 +67,9 @@ beforeAll(async () => {
 
 beforeEach(() => {
   sentVerifications.length = 0;
+  sentResets.length = 0;
   welcomeEmailCount = 0;
+  passwordChangedCount = 0;
 });
 
 afterEach(async () => {
@@ -73,6 +92,15 @@ async function registerAndExtractToken(): Promise<string> {
   const sent = sentVerifications.at(-1);
   if (sent === undefined) throw new Error("verification email not sent");
   return tokenFromUrl(sent.verificationUrl);
+}
+
+async function requestResetToken(): Promise<string> {
+  await request(app.getHttpServer())
+    .post("/api/auth/forgot-password")
+    .send({ email: validBody.email });
+  const sent = sentResets.at(-1);
+  if (sent === undefined) throw new Error("reset email not sent");
+  return tokenFromUrl(sent.resetPasswordUrl);
 }
 
 async function seedVerifiedUser(): Promise<void> {
@@ -421,5 +449,135 @@ describe("POST /api/auth/resend-verification", () => {
     expect(first.body).toEqual({ status: "verification_sent" });
     expect(second.body).toEqual({ status: "verification_sent" });
     expect(sentVerifications).toHaveLength(0);
+  });
+});
+
+describe("POST /api/auth/forgot-password", () => {
+  it("returns 200 with a generic reset_email_sent status for a verified user", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/forgot-password")
+      .send({ email: validBody.email });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: "reset_email_sent" });
+  });
+
+  it("creates exactly one password reset token row for a verified user", async () => {
+    await seedVerifiedUser();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/forgot-password")
+      .send({ email: validBody.email });
+
+    const tokenCount = await prisma.passwordResetToken.count();
+
+    expect(tokenCount).toBe(1);
+  });
+
+  it("returns the same generic status for an unknown email and creates no token", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/forgot-password")
+      .send({ email: "ghost@example.com" });
+
+    const tokenCount = await prisma.passwordResetToken.count();
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: "reset_email_sent" });
+    expect(tokenCount).toBe(0);
+  });
+});
+
+describe("POST /api/auth/reset-password", () => {
+  const newPassword = "Brandnewpass123!";
+
+  it("returns 200 with a password_reset status for a valid token", async () => {
+    await seedVerifiedUser();
+    const token = await requestResetToken();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: newPassword, token });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: "password_reset" });
+  });
+
+  it("changes the stored password hash, consumes the token and clears all sessions", async () => {
+    await seedVerifiedUser();
+    const before = await prisma.user.findFirstOrThrow();
+    const token = await requestResetToken();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: newPassword, token });
+
+    const after = await prisma.user.findFirstOrThrow();
+    const tokenCount = await prisma.passwordResetToken.count();
+    const sessionCount = await prisma.session.count();
+
+    expect(after.passwordHash).not.toBe(before.passwordHash);
+    expect(tokenCount).toBe(0);
+    expect(sessionCount).toBe(0);
+  });
+
+  it("does not set a refresh_token cookie", async () => {
+    await seedVerifiedUser();
+    const token = await requestResetToken();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: newPassword, token });
+
+    expect(res.headers["set-cookie"]).toBeUndefined();
+  });
+
+  it("fires the password changed email after a successful reset", async () => {
+    await seedVerifiedUser();
+    const token = await requestResetToken();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: newPassword, token });
+
+    expect(passwordChangedCount).toBe(1);
+  });
+
+  it("returns 400 when an already consumed token is reused", async () => {
+    await seedVerifiedUser();
+    const token = await requestResetToken();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: newPassword, token });
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: newPassword, token });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for an unknown token", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: newPassword, token: "does-not-exist" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 with a password field error when the new password lacks complexity", async () => {
+    await seedVerifiedUser();
+    const token = await requestResetToken();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/reset-password")
+      .send({ password: "alllowercase", token });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "password" })]),
+    );
   });
 });
