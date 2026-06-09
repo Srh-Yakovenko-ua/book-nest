@@ -1,12 +1,16 @@
 import { Injectable } from "@nestjs/common";
 import { addDays, addMinutes } from "date-fns";
-import { SignJWT } from "jose";
+import { jwtVerify, SignJWT } from "jose";
 import { createHash, randomBytes } from "node:crypto";
+import { z } from "zod";
 
 import { env } from "../../../config/env.js";
+import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 
 const TOKEN_BYTES = 32;
 const ACCESS_TOKEN_ALG = "HS256";
+
+const AccessTokenPayloadSchema = z.object({ sub: z.uuid() });
 
 @Injectable()
 export class TokenService {
@@ -54,6 +58,24 @@ export class TokenService {
 
   verificationExpiry(): Date {
     return addMinutes(new Date(), env.emailVerificationTtlMinutes);
+  }
+
+  async verifyAccessToken(token: string): Promise<{ sub: string }> {
+    let payload: unknown;
+    try {
+      ({ payload } = await jwtVerify(token, this.accessSecret, {
+        algorithms: [ACCESS_TOKEN_ALG],
+      }));
+    } catch {
+      throw new UnauthorizedError("Invalid access token");
+    }
+
+    const parsed = AccessTokenPayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new UnauthorizedError("Invalid access token");
+    }
+
+    return { sub: parsed.data.sub };
   }
 
   private hashToken(token: string): string {
