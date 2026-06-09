@@ -105,11 +105,16 @@ function tokenRow(overrides: Partial<PasswordResetTokenModel> = {}): PasswordRes
 
 function userModel(overrides: Partial<UserModel> = {}): UserModel {
   return {
+    avatarUrl: null,
+    bio: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     dateOfBirth: null,
     email: "reader@example.com",
     emailVerifiedAt: new Date("2026-01-02T00:00:00.000Z"),
+    favoriteBookQuote: null,
+    favoriteGenres: [],
     id: "11111111-1111-4111-8111-111111111111",
+    lastName: null,
     name: "Reader",
     nickname: null,
     passwordHash: "stored-hash",

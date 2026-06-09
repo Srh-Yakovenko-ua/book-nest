@@ -71,11 +71,16 @@ function sessionModel(overrides: Partial<SessionModel> = {}): SessionModel {
 
 function userModel(overrides: Partial<UserModel> = {}): UserModel {
   return {
+    avatarUrl: null,
+    bio: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     dateOfBirth: null,
     email: "reader@example.com",
     emailVerifiedAt: new Date("2026-01-02T00:00:00.000Z"),
+    favoriteBookQuote: null,
+    favoriteGenres: [],
     id: USER_ID,
+    lastName: null,
     name: "Reader",
     nickname: null,
     passwordHash: "stored-hash",
