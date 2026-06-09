@@ -1,15 +1,22 @@
 import type { AuthResultView, RegistrationResultView } from "@app/shared";
 import type { Response } from "express";
 
-import { RegistrationInputSchema, ResendVerificationSchema, VerifyEmailSchema } from "@app/shared";
+import {
+  LoginInputSchema,
+  RegistrationInputSchema,
+  ResendVerificationSchema,
+  VerifyEmailSchema,
+} from "@app/shared";
 import { Body, Controller, HttpCode, Post, Res } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
@@ -18,6 +25,7 @@ import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { AuthService } from "../application/auth.service.js";
 import { EmailVerificationService } from "../application/email-verification.service.js";
+import { LoginInputDto } from "./input-dto/login.input-dto.js";
 import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
 import { ResendVerificationInputDto } from "./input-dto/resend-verification.input-dto.js";
 import { VerifyEmailInputDto } from "./input-dto/verify-email.input-dto.js";
@@ -29,6 +37,8 @@ const REGISTRATION_TTL_SECONDS = 60;
 const REGISTRATION_LIMIT = 5;
 const RESEND_TTL_SECONDS = 60;
 const RESEND_LIMIT = 3;
+const LOGIN_TTL_SECONDS = 60;
+const LOGIN_LIMIT = 10;
 
 const VERIFICATION_SENT: RegistrationResultView["status"] = "verification_sent";
 
@@ -64,6 +74,25 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResultView> {
     const { refreshToken, result } = await this.emailVerificationService.verify(body.token);
+
+    this.setRefreshCookie(response, refreshToken);
+
+    return result;
+  }
+
+  @ApiBody({ type: LoginInputDto })
+  @ApiForbiddenResponse({ description: "Email not verified" })
+  @ApiOkResponse({ description: "Logged in; access token returned, refresh cookie set" })
+  @ApiOperation({ summary: "Authenticate with email and password and open a session" })
+  @ApiUnauthorizedResponse({ description: "Invalid email or password" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post("login")
+  @Throttle({ default: { limit: LOGIN_LIMIT, ttl: seconds(LOGIN_TTL_SECONDS) } })
+  async login(
+    @Body(new ZodBodyPipe(LoginInputSchema)) body: LoginInputDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthResultView> {
+    const { refreshToken, result } = await this.authService.login(body);
 
     this.setRefreshCookie(response, refreshToken);
 

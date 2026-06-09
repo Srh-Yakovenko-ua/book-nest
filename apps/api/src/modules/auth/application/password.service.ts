@@ -6,8 +6,14 @@ const BCRYPT_COST = 12;
 
 @Injectable()
 export class PasswordService {
+  private readonly dummyHash = bcrypt.hashSync(this.digest("dummy-password"), BCRYPT_COST);
+
   compare(plain: string, hash: string): Promise<boolean> {
     return bcrypt.compare(this.digest(plain), hash);
+  }
+
+  fakeCompare(plain: string): Promise<boolean> {
+    return bcrypt.compare(this.digest(plain), this.dummyHash);
   }
 
   hash(plain: string): Promise<string> {

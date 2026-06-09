@@ -91,6 +91,13 @@ export const RegistrationInputSchema = z.object({
     .regex(PASSWORD_SPECIAL, "Password must contain at least one special character"),
 });
 
+export const LoginInputSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email()),
+  password: z.string().min(1),
+});
+
+export type LoginInput = z.infer<typeof LoginInputSchema>;
+
 export const VerifyEmailSchema = z.object({
   token: z.string().min(1),
 });
