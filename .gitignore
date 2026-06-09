@@ -52,3 +52,6 @@ storybook-static/
 
 # Agent screenshot artifacts in repo root (anchored, src/ and public/ PNGs safe)
 /*.png
+
+# Local scratch notes / spec dumps (not part of the codebase)
+apps/api/md/
