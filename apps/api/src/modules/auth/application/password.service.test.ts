@@ -28,4 +28,8 @@ describe("PasswordService", () => {
 
     await expect(service.compare(second, hash)).resolves.toBe(false);
   });
+
+  it("always resolves false from fakeCompare regardless of input", async () => {
+    await expect(service.fakeCompare("anything")).resolves.toBe(false);
+  });
 });

@@ -1,12 +1,23 @@
-import type { RegistrationInput, RegistrationResultView } from "@app/shared";
+import type {
+  AuthResultView,
+  LoginInput,
+  RegistrationInput,
+  RegistrationResultView,
+} from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { BadRequestError } from "../../../core/exceptions/errors.js";
+import {
+  BadRequestError,
+  ForbiddenError,
+  UnauthorizedError,
+} from "../../../core/exceptions/errors.js";
+import { toUserView } from "../domain/user.mapper.js";
 import { UsersRepository } from "../infrastructure/users.repository.js";
 import { EmailVerificationService } from "./email-verification.service.js";
 import { PasswordService } from "./password.service.js";
+import { SessionService } from "./session.service.js";
 
 @Injectable()
 export class AuthService {
@@ -14,8 +25,33 @@ export class AuthService {
     private readonly usersRepository: UsersRepository,
     private readonly passwordService: PasswordService,
     private readonly emailVerificationService: EmailVerificationService,
+    private readonly sessionService: SessionService,
     private readonly prisma: PrismaService,
   ) {}
+
+  async login(input: LoginInput): Promise<{ refreshToken: string; result: AuthResultView }> {
+    const user = await this.usersRepository.findByEmail(input.email);
+    if (user === null) {
+      await this.passwordService.fakeCompare(input.password);
+      throw new UnauthorizedError("Invalid email or password");
+    }
+
+    const passwordMatches = await this.passwordService.compare(input.password, user.passwordHash);
+    if (!passwordMatches) {
+      throw new UnauthorizedError("Invalid email or password");
+    }
+
+    if (user.emailVerifiedAt === null) {
+      throw new ForbiddenError("Email not verified", { code: "email_not_verified" });
+    }
+
+    const session = await this.sessionService.issue(user);
+
+    return {
+      refreshToken: session.refreshToken,
+      result: { accessToken: session.accessToken, user: toUserView(user) },
+    };
+  }
 
   async register(input: RegistrationInput): Promise<RegistrationResultView> {
     const existingByEmail = await this.usersRepository.findByEmail(input.email);

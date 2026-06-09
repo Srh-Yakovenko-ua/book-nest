@@ -1,4 +1,4 @@
-import type { RegistrationInput } from "@app/shared";
+import type { LoginInput, RegistrationInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -7,8 +7,13 @@ import type { UserModel } from "../../../generated/prisma/models.js";
 import type { UsersRepository } from "../infrastructure/users.repository.js";
 import type { EmailVerificationService } from "./email-verification.service.js";
 import type { PasswordService } from "./password.service.js";
+import type { SessionService } from "./session.service.js";
 
-import { BadRequestError } from "../../../core/exceptions/errors.js";
+import {
+  BadRequestError,
+  ForbiddenError,
+  UnauthorizedError,
+} from "../../../core/exceptions/errors.js";
 import { AuthService } from "./auth.service.js";
 
 const baseInput: RegistrationInput = {
@@ -17,14 +22,21 @@ const baseInput: RegistrationInput = {
   password: "supersecret",
 };
 
+const loginInput: LoginInput = {
+  email: "reader@example.com",
+  password: "supersecret",
+};
+
 type Mocks = {
   emailVerificationService: EmailVerificationService;
   passwordService: PasswordService;
   prisma: PrismaService;
+  sessionService: SessionService;
   usersRepository: UsersRepository;
 };
 
 function buildService(overrides: {
+  compare?: boolean;
   findByEmail?: null | UserModel;
   findByNickname?: null | UserModel;
   sendVerification?: EmailVerificationService["sendVerification"];
@@ -41,6 +53,8 @@ function buildService(overrides: {
   } as unknown as UsersRepository;
 
   const passwordService = {
+    compare: vi.fn().mockResolvedValue(overrides.compare ?? false),
+    fakeCompare: vi.fn().mockResolvedValue(false),
     hash: vi.fn().mockResolvedValue("hashed-password"),
   } as unknown as PasswordService;
 
@@ -55,10 +69,17 @@ function buildService(overrides: {
     sendVerification: overrides.sendVerification ?? vi.fn().mockResolvedValue(undefined),
   } as unknown as EmailVerificationService;
 
+  const sessionService = {
+    issue: vi
+      .fn()
+      .mockResolvedValue({ accessToken: "access-token", refreshToken: "refresh-token" }),
+  } as unknown as SessionService;
+
   const service = new AuthService(
     usersRepository,
     passwordService,
     emailVerificationService,
+    sessionService,
     prisma,
   );
 
@@ -67,6 +88,7 @@ function buildService(overrides: {
       emailVerificationService,
       passwordService,
       prisma,
+      sessionService,
       usersRepository,
     },
     service,
@@ -230,5 +252,101 @@ describe("AuthService.register", () => {
     const output = await service.register(baseInput);
 
     expect(output.status).toBe("verification_sent");
+  });
+});
+
+describe("AuthService.login", () => {
+  it("returns the refresh token and an auth result for a verified user with the correct password", async () => {
+    const { service } = buildService({ compare: true, findByEmail: verifiedUser() });
+
+    const output = await service.login(loginInput);
+
+    expect(output.refreshToken).toBe("refresh-token");
+    expect(output.result.accessToken).toBe("access-token");
+    expect(output.result.user.email).toBe("reader@example.com");
+    expect(output.result.user.emailVerified).toBe(true);
+  });
+
+  it("looks the user up by email and confirms the supplied password", async () => {
+    const { mocks, service } = buildService({ compare: true, findByEmail: verifiedUser() });
+
+    await service.login(loginInput);
+
+    expect(mocks.usersRepository.findByEmail).toHaveBeenCalledWith("reader@example.com");
+    expect(mocks.passwordService.compare).toHaveBeenCalledWith("supersecret", "stored-hash");
+  });
+
+  it("issues a session for the matched user", async () => {
+    const verified = verifiedUser();
+    const { mocks, service } = buildService({ compare: true, findByEmail: verified });
+
+    await service.login(loginInput);
+
+    expect(mocks.sessionService.issue).toHaveBeenCalledWith(verified);
+  });
+
+  it("throws an UnauthorizedError when no user matches the email", async () => {
+    const { service } = buildService({ findByEmail: null });
+
+    await expect(service.login(loginInput)).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it("runs the timing equalizer and skips session issuance for an unknown email", async () => {
+    const { mocks, service } = buildService({ findByEmail: null });
+
+    await service.login(loginInput).catch(() => undefined);
+
+    expect(mocks.passwordService.fakeCompare).toHaveBeenCalledWith("supersecret");
+    expect(mocks.sessionService.issue).not.toHaveBeenCalled();
+  });
+
+  it("throws an UnauthorizedError when the password does not match", async () => {
+    const { service } = buildService({ compare: false, findByEmail: verifiedUser() });
+
+    await expect(service.login(loginInput)).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it("does not issue a session when the password does not match", async () => {
+    const { mocks, service } = buildService({ compare: false, findByEmail: verifiedUser() });
+
+    await service.login(loginInput).catch(() => undefined);
+
+    expect(mocks.sessionService.issue).not.toHaveBeenCalled();
+  });
+
+  it("uses the same generic message for an unknown email and a wrong password", async () => {
+    const unknown = await buildService({ findByEmail: null })
+      .service.login(loginInput)
+      .catch((caught: unknown) => caught);
+    const wrong = await buildService({ compare: false, findByEmail: verifiedUser() })
+      .service.login(loginInput)
+      .catch((caught: unknown) => caught);
+
+    expect(unknown).toBeInstanceOf(UnauthorizedError);
+    expect(wrong).toBeInstanceOf(UnauthorizedError);
+    expect((unknown as UnauthorizedError).message).toBe((wrong as UnauthorizedError).message);
+  });
+
+  it("throws a ForbiddenError coded email_not_verified for an unverified user with the correct password", async () => {
+    const { service } = buildService({
+      compare: true,
+      findByEmail: createdUser({ emailVerifiedAt: null }),
+    });
+
+    const error = await service.login(loginInput).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ForbiddenError);
+    expect((error as ForbiddenError).code).toBe("email_not_verified");
+  });
+
+  it("does not issue a session for an unverified user even with the correct password", async () => {
+    const { mocks, service } = buildService({
+      compare: true,
+      findByEmail: createdUser({ emailVerifiedAt: null }),
+    });
+
+    await service.login(loginInput).catch(() => undefined);
+
+    expect(mocks.sessionService.issue).not.toHaveBeenCalled();
   });
 });

@@ -75,6 +75,11 @@ async function registerAndExtractToken(): Promise<string> {
   return tokenFromUrl(sent.verificationUrl);
 }
 
+async function seedVerifiedUser(): Promise<void> {
+  const token = await registerAndExtractToken();
+  await request(app.getHttpServer()).post("/api/auth/verify-email").send({ token });
+}
+
 function tokenFromUrl(verificationUrl: string): string {
   const token = new URL(verificationUrl).searchParams.get("token");
   if (token === null) throw new Error("token query param missing");
@@ -274,6 +279,108 @@ describe("POST /api/auth/verify-email", () => {
     const res = await request(app.getHttpServer()).post("/api/auth/verify-email").send({ token });
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/auth/login", () => {
+  it("returns 200 with an access token and a verified user view for correct credentials", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.accessToken).toBe("string");
+    expect(res.body.user.id).toMatch(UUID);
+    expect(res.body.user.email).toBe("reader@example.com");
+    expect(res.body.user.emailVerified).toBe(true);
+  });
+
+  it("sets an httpOnly refresh_token cookie scoped to /api/auth on success", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+
+    const cookie = readRefreshCookie(res.headers["set-cookie"]);
+
+    expect(cookie).toMatch(/HttpOnly/i);
+    expect(cookie).toMatch(/Path=\/api\/auth/);
+  });
+
+  it("opens a session row on successful login", async () => {
+    await seedVerifiedUser();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+
+    const sessionCount = await prisma.session.count();
+
+    expect(sessionCount).toBe(2);
+  });
+
+  it("returns 401 with an empty body for a wrong password", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: "Wrongpassword123!" });
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({});
+  });
+
+  it("does not set a refresh_token cookie when the password is wrong", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: "Wrongpassword123!" });
+
+    expect(res.headers["set-cookie"]).toBeUndefined();
+  });
+
+  it("returns 401 for an unknown email", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: "ghost@example.com", password: validBody.password });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 when the credentials are correct but the email is unverified", async () => {
+    await request(app.getHttpServer()).post("/api/auth/registration").send(validBody);
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+
+    expect(res.status).toBe(403);
+  });
+
+  it("returns 400 with a password field error when the password is missing", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "password" })]),
+    );
+  });
+
+  it("returns 400 with an email field error when the email is malformed", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: "not-an-email", password: validBody.password });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "email" })]),
+    );
   });
 });
 
