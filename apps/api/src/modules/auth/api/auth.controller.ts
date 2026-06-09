@@ -1,10 +1,11 @@
 import type {
   AuthResultView,
   ForgotPasswordResultView,
+  LogoutResultView,
   RegistrationResultView,
   ResetPasswordResultView,
 } from "@app/shared";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 
 import {
   ForgotPasswordInputSchema,
@@ -14,7 +15,7 @@ import {
   ResetPasswordInputSchema,
   VerifyEmailSchema,
 } from "@app/shared";
-import { Body, Controller, HttpCode, Post, Res } from "@nestjs/common";
+import { Body, Controller, HttpCode, Post, Req, Res } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -28,11 +29,13 @@ import {
 import { seconds, Throttle } from "@nestjs/throttler";
 
 import { env } from "../../../config/env.js";
+import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { AuthService } from "../application/auth.service.js";
 import { EmailVerificationService } from "../application/email-verification.service.js";
 import { PasswordResetService } from "../application/password-reset.service.js";
+import { SessionService } from "../application/session.service.js";
 import { ForgotPasswordInputDto } from "./input-dto/forgot-password.input-dto.js";
 import { LoginInputDto } from "./input-dto/login.input-dto.js";
 import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
@@ -56,6 +59,7 @@ const RESET_PASSWORD_LIMIT = 5;
 
 const VERIFICATION_SENT: RegistrationResultView["status"] = "verification_sent";
 const RESET_EMAIL_SENT: ForgotPasswordResultView["status"] = "reset_email_sent";
+const LOGGED_OUT: LogoutResultView["status"] = "logged_out";
 
 @ApiTags("auth")
 @Controller("api/auth")
@@ -64,6 +68,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly passwordResetService: PasswordResetService,
+    private readonly sessionService: SessionService,
   ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed or email/nickname already taken" })
@@ -113,6 +118,52 @@ export class AuthController {
     this.setRefreshCookie(response, refreshToken);
 
     return result;
+  }
+
+  @ApiOkResponse({ description: "New access token issued, refresh cookie rotated" })
+  @ApiOperation({ summary: "Rotate the refresh token and issue a new access token" })
+  @ApiUnauthorizedResponse({
+    description: "Missing, invalid, expired, or reused refresh token",
+  })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post("refresh")
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<AuthResultView> {
+    const presented = request.cookies?.[REFRESH_COOKIE_NAME];
+    if (typeof presented !== "string" || presented.length === 0) {
+      throw new UnauthorizedError("Missing refresh token");
+    }
+
+    const { refreshToken, result } = await this.sessionService.refresh(presented);
+
+    this.setRefreshCookie(response, refreshToken);
+
+    return result;
+  }
+
+  @ApiOkResponse({ description: "Session revoked and refresh cookie cleared" })
+  @ApiOperation({ summary: "Revoke the current session and clear the refresh cookie" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post("logout")
+  async logout(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<LogoutResultView> {
+    const presented = request.cookies?.[REFRESH_COOKIE_NAME];
+    if (typeof presented === "string" && presented.length > 0) {
+      await this.sessionService.revoke(presented);
+    }
+
+    response.clearCookie(REFRESH_COOKIE_NAME, {
+      httpOnly: true,
+      path: REFRESH_COOKIE_PATH,
+      sameSite: "lax",
+      secure: env.cookieSecure,
+    });
+
+    return { status: LOGGED_OUT };
   }
 
   @ApiBody({ type: ResendVerificationInputDto })

@@ -80,6 +80,21 @@ afterAll(async () => {
   await app.close();
 });
 
+function cookieValue(cookie: string): string {
+  const pair = cookie.split(";")[0];
+  if (pair === undefined) throw new Error("empty cookie");
+  return pair;
+}
+
+async function loginAndExtractCookie(): Promise<string> {
+  await seedVerifiedUser();
+  await prisma.session.deleteMany();
+  const res = await request(app.getHttpServer())
+    .post("/api/auth/login")
+    .send({ email: validBody.email, password: validBody.password });
+  return readRefreshCookie(res.headers["set-cookie"]);
+}
+
 function readRefreshCookie(setCookie: string | string[] | undefined): string {
   const header = Array.isArray(setCookie) ? setCookie : setCookie === undefined ? [] : [setCookie];
   const cookie = header.find((entry) => entry.startsWith("refresh_token="));
@@ -409,6 +424,112 @@ describe("POST /api/auth/login", () => {
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "email" })]),
     );
+  });
+});
+
+describe("POST /api/auth/refresh", () => {
+  it("returns 200 with a new access token and the user view for a valid cookie", async () => {
+    const cookie = await loginAndExtractCookie();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Cookie", cookieValue(cookie));
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.accessToken).toBe("string");
+    expect(res.body.user.id).toMatch(UUID);
+    expect(res.body.user.email).toBe("reader@example.com");
+  });
+
+  it("rotates the cookie to a new refresh_token value", async () => {
+    const cookie = await loginAndExtractCookie();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Cookie", cookieValue(cookie));
+
+    const rotated = readRefreshCookie(res.headers["set-cookie"]);
+
+    expect(cookieValue(rotated)).not.toBe(cookieValue(cookie));
+  });
+
+  it("tombstones the old session row and persists a new live one", async () => {
+    const cookie = await loginAndExtractCookie();
+
+    await request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", cookieValue(cookie));
+
+    const tombstoned = await prisma.session.count({ where: { rotatedAt: { not: null } } });
+    const live = await prisma.session.count({ where: { rotatedAt: null } });
+
+    expect(tombstoned).toBe(1);
+    expect(live).toBe(1);
+  });
+
+  it("returns 401 and wipes every session when a pre-rotation cookie is replayed", async () => {
+    const cookie = await loginAndExtractCookie();
+    const user = await prisma.user.findFirstOrThrow();
+
+    await request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", cookieValue(cookie));
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Cookie", cookieValue(cookie));
+
+    const sessionCount = await prisma.session.count({ where: { userId: user.id } });
+
+    expect(res.status).toBe(401);
+    expect(sessionCount).toBe(0);
+  });
+
+  it("returns 401 when no refresh cookie is present", async () => {
+    const res = await request(app.getHttpServer()).post("/api/auth/refresh");
+
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("POST /api/auth/logout", () => {
+  it("returns 200 with a logged_out status and clears the refresh cookie", async () => {
+    const cookie = await loginAndExtractCookie();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/logout")
+      .set("Cookie", cookieValue(cookie));
+
+    const cleared = readRefreshCookie(res.headers["set-cookie"]);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: "logged_out" });
+    expect(cleared).toMatch(/Expires=Thu, 01 Jan 1970/);
+  });
+
+  it("deletes the session row for the presented token", async () => {
+    const cookie = await loginAndExtractCookie();
+
+    await request(app.getHttpServer()).post("/api/auth/logout").set("Cookie", cookieValue(cookie));
+
+    const sessionCount = await prisma.session.count();
+
+    expect(sessionCount).toBe(0);
+  });
+
+  it("invalidates the cookie so a later refresh with it returns 401", async () => {
+    const cookie = await loginAndExtractCookie();
+
+    await request(app.getHttpServer()).post("/api/auth/logout").set("Cookie", cookieValue(cookie));
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Cookie", cookieValue(cookie));
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 200 with a logged_out status when no cookie is present", async () => {
+    const res = await request(app.getHttpServer()).post("/api/auth/logout");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: "logged_out" });
   });
 });
 
