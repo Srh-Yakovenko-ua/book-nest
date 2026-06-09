@@ -35,3 +35,9 @@ mail.book-nest.net {
 
 	reverse_proxy mailpit:8025
 }
+
+db.book-nest.net {
+	encode zstd gzip
+
+	reverse_proxy cloudbeaver:8978
+}
