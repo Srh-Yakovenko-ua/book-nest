@@ -24,6 +24,11 @@ model User {
   passwordHash    String    @map("password_hash")
   role            Role      @default(user) @map("role")
   nickname        String?   @unique
+  lastName          String?  @map("last_name")
+  bio               String?  @map("bio")
+  avatarUrl         String?  @map("avatar_url")
+  favoriteBookQuote String?  @map("favorite_book_quote")
+  favoriteGenres    String[] @default([]) @map("favorite_genres")
   dateOfBirth     DateTime? @map("date_of_birth") @db.Date
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -32,8 +37,49 @@ model User {
   sessions                Session[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
+  socialLinks             UserSocialLink[]
+  settings                UserProfileSettings?
 
   @@map("users")
+}
+
+model UserProfileSettings {
+  id                    String   @id @default(uuid()) @db.Uuid
+  userId                String   @unique @map("user_id") @db.Uuid
+  themeMode             String   @default("system") @map("theme_mode")
+  accentColor           String   @default("brown") @map("accent_color")
+  language              String   @default("uk")
+  dateFormat            String   @default("DD.MM.YYYY") @map("date_format")
+  weekStartDay          String   @default("monday") @map("week_start_day")
+  timezone              String   @default("Europe/Kyiv")
+  libraryViewMode       String   @default("grid") @map("library_view_mode")
+  confirmBeforeDelete   Boolean  @default(true) @map("confirm_before_delete")
+  readingReminders      Boolean  @default(false) @map("reading_reminders")
+  readingGoalReminders  Boolean  @default(false) @map("reading_goal_reminders")
+  borrowedBookReminders Boolean  @default(true) @map("borrowed_book_reminders")
+  deliveryReminders     Boolean  @default(true) @map("delivery_reminders")
+  weeklyReadingSummary  Boolean  @default(false) @map("weekly_reading_summary")
+  monthlyReadingReport  Boolean  @default(false) @map("monthly_reading_report")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profile_settings")
+}
+
+model UserSocialLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  platform  String
+  username  String?
+  url       String?
+  label     String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_social_links")
 }
 
 model EmailVerificationToken {

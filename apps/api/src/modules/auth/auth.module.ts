@@ -16,7 +16,7 @@ import { UsersRepository } from "./infrastructure/users.repository.js";
 
 @Module({
   controllers: [AuthController],
-  exports: [JwtAccessGuard],
+  exports: [JwtAccessGuard, TokenService, UsersRepository],
   imports: [MailModule],
   providers: [
     AuthService,

@@ -11,6 +11,7 @@ import { AuthModule } from "./modules/auth/auth.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { MetricsMiddleware } from "./modules/observability/metrics.middleware.js";
 import { MetricsModule } from "./modules/observability/metrics.module.js";
+import { ProfileModule } from "./modules/profile/profile.module.js";
 
 const GLOBAL_THROTTLE_TTL_SECONDS = 60;
 const GLOBAL_THROTTLE_LIMIT = 120;
@@ -24,6 +25,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     HealthModule,
     MetricsModule,
     AuthModule,
+    ProfileModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
