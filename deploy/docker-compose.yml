@@ -197,6 +197,24 @@ services:
       - dev-internal
     mem_limit: 128m
 
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:25
+    restart: unless-stopped
+    environment:
+      CB_SERVER_NAME: BookNest DB
+      CB_SERVER_URL: https://db.book-nest.net
+      CB_ADMIN_NAME: ${CB_ADMIN_NAME:-admin}
+      CB_ADMIN_PASSWORD: ${CB_ADMIN_PASSWORD:?set CB_ADMIN_PASSWORD in .env}
+      CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED: "false"
+      PROXY_TYPE: nginx
+    volumes:
+      - cloudbeaver-data:/opt/cloudbeaver/workspace
+    networks:
+      - edge
+      - dev-internal
+      - prod-internal
+    mem_limit: 512m
+
 networks:
   edge:
   prod-internal:
@@ -208,3 +226,4 @@ volumes:
   db-prod-data:
   db-dev-data:
   mailpit-data:
+  cloudbeaver-data:
