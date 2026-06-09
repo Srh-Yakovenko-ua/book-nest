@@ -128,6 +128,8 @@ export type AuthResultView = {
 
 export type ForgotPasswordResultView = { status: "reset_email_sent" };
 
+export type LogoutResultView = { status: "logged_out" };
+
 export type RegistrationInput = z.infer<typeof RegistrationInputSchema>;
 
 export type RegistrationResultView = {

@@ -28,4 +28,35 @@ export class SessionsRepository {
   ): Promise<void> {
     await client.session.deleteMany({ where: { userId } });
   }
+
+  async deleteById(id: string, client: Prisma.TransactionClient = this.prisma): Promise<void> {
+    await client.session.delete({ where: { id } });
+  }
+
+  async deleteByRefreshHash(
+    refreshHash: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.session.deleteMany({ where: { refreshHash } });
+  }
+
+  findByRefreshHash(
+    refreshHash: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<null | SessionModel> {
+    return client.session.findUnique({ where: { refreshHash } });
+  }
+
+  async rotate(
+    id: string,
+    rotatedAt: Date,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const { count } = await client.session.updateMany({
+      data: { rotatedAt },
+      where: { id, rotatedAt: null },
+    });
+
+    return count;
+  }
 }

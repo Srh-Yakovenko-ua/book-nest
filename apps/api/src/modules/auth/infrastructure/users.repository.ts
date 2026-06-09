@@ -32,6 +32,10 @@ export class UsersRepository {
     return client.user.findUnique({ where: { email } });
   }
 
+  findById(id: string, client: Prisma.TransactionClient = this.prisma): Promise<null | UserModel> {
+    return client.user.findUnique({ where: { id } });
+  }
+
   findByNickname(
     nickname: string,
     client: Prisma.TransactionClient = this.prisma,

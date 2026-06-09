@@ -55,10 +55,11 @@ model PasswordResetToken {
 model Session {
   id          String   @id @default(uuid()) @db.Uuid
   userId      String   @map("user_id") @db.Uuid
-  refreshHash String   @unique @map("refresh_hash")
-  expiresAt   DateTime @map("expires_at") @db.Timestamptz
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash String    @unique @map("refresh_hash")
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz
+  rotatedAt   DateTime? @map("rotated_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("sessions")
