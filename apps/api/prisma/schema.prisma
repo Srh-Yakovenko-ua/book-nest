@@ -10,11 +10,19 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  user
+  super_admin
+
+  @@map("role")
+}
+
 model User {
   id              String    @id @default(uuid()) @db.Uuid
   name            String
   email           String    @unique
   passwordHash    String    @map("password_hash")
+  role            Role      @default(user) @map("role")
   nickname        String?   @unique
   dateOfBirth     DateTime? @map("date_of_birth") @db.Date
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz

@@ -14,6 +14,7 @@ function userModel(overrides: Partial<UserModel> = {}): UserModel {
     name: "Reader",
     nickname: null,
     passwordHash: "stored-hash",
+    role: "user",
     updatedAt: new Date("2026-01-02T03:04:05.000Z"),
     ...overrides,
   };
