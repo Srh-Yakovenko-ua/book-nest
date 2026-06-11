@@ -72,6 +72,13 @@ model Author {
   userId         String?  @map("user_id") @db.Uuid
   name           String
   normalizedName String   @map("normalized_name")
+  bio            String?
+  photoUrl       String?  @map("photo_url")
+  countryCode    String?  @map("country_code")
+  birthYear      Int?     @map("birth_year")
+  deathYear      Int?     @map("death_year")
+  wikidataId     String?  @unique @map("wikidata_id")
+  openLibraryKey String?  @unique @map("open_library_key")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
   user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
