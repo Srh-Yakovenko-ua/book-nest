@@ -1,4 +1,5 @@
 import type {
+  AuthorBookSuggestionView,
   AuthorLookupResult,
   AuthorView,
   Paginator,
@@ -7,13 +8,23 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import type { AuthorModel } from "../../../generated/prisma/models.js";
+
+import { HttpError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { HTTP_STATUS } from "../../../core/http-status.js";
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { toAuthorView } from "../domain/author.mapper.js";
 import { AuthorsRepository } from "../infrastructure/authors.repository.js";
 import { OpenLibraryClient } from "../infrastructure/open-library.client.js";
+import { WikidataClient } from "../infrastructure/wikidata.client.js";
+
+type FindExistingGlobalAuthorInput = {
+  normalizedName: string;
+  openLibraryKey: string;
+  wikidataId: null | string;
+};
 
 type ResolveAuthorInput = {
   id?: string;
@@ -25,7 +36,21 @@ export class AuthorsService {
   constructor(
     private readonly authorsRepository: AuthorsRepository,
     private readonly openLibraryClient: OpenLibraryClient,
+    private readonly wikidataClient: WikidataClient,
   ) {}
+
+  async listBookSuggestions(userId: string, authorId: string): Promise<AuthorBookSuggestionView[]> {
+    const author = await this.authorsRepository.findVisibleById(userId, authorId);
+    if (author === null) {
+      throw new NotFoundError("Author not found");
+    }
+
+    if (author.openLibraryKey === null) {
+      return [];
+    }
+
+    return this.openLibraryClient.getWorksByAuthor(author.openLibraryKey);
+  }
 
   async lookup(userId: string, query: string): Promise<AuthorLookupResult[]> {
     const candidates = await this.openLibraryClient.searchAuthors(query);
@@ -52,6 +77,63 @@ export class AuthorsService {
       photoUrl: candidate.photoUrl,
       source: "open_library",
     }));
+  }
+
+  async materializeFromOpenLibrary(openLibraryKey: string): Promise<AuthorModel> {
+    const existingByKey = await this.authorsRepository.findGlobalByOpenLibraryKey(openLibraryKey);
+    if (existingByKey !== null) {
+      return existingByKey;
+    }
+
+    const detail = await this.openLibraryClient.getAuthorByKey(openLibraryKey);
+    if (detail === null) {
+      throw new HttpError(HTTP_STATUS.BAD_GATEWAY, "Could not fetch author from Open Library", {
+        code: "open_library_unavailable",
+      });
+    }
+
+    const normalizedName = normalizeName(detail.name);
+
+    if (detail.wikidataId !== null) {
+      const existingByWikidata = await this.authorsRepository.findGlobalByWikidataId(
+        detail.wikidataId,
+      );
+      if (existingByWikidata !== null) {
+        return existingByWikidata;
+      }
+    }
+
+    const facts =
+      detail.wikidataId === null
+        ? null
+        : await this.wikidataClient.getAuthorFactsByQid(detail.wikidataId);
+
+    try {
+      return await this.authorsRepository.createGlobal({
+        bio: detail.bio,
+        birthYear: detail.birthYear ?? facts?.birthYear ?? null,
+        countryCode: facts?.countryCode ?? null,
+        deathYear: facts?.deathYear ?? null,
+        name: detail.name,
+        normalizedName,
+        openLibraryKey,
+        photoUrl: detail.photoUrl,
+        wikidataId: detail.wikidataId,
+      });
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) {
+        throw error;
+      }
+      const winner = await this.findExistingGlobalAuthor({
+        normalizedName,
+        openLibraryKey,
+        wikidataId: detail.wikidataId,
+      });
+      if (winner === null) {
+        throw error;
+      }
+      return winner;
+    }
   }
 
   async resolveOrCreate(userId: string, input: ResolveAuthorInput): Promise<string> {
@@ -110,5 +192,25 @@ export class AuthorsService {
       pageSize,
       totalCount,
     });
+  }
+
+  private async findExistingGlobalAuthor({
+    normalizedName,
+    openLibraryKey,
+    wikidataId,
+  }: FindExistingGlobalAuthorInput): Promise<AuthorModel | null> {
+    const byKey = await this.authorsRepository.findGlobalByOpenLibraryKey(openLibraryKey);
+    if (byKey !== null) {
+      return byKey;
+    }
+
+    if (wikidataId !== null) {
+      const byWikidata = await this.authorsRepository.findGlobalByWikidataId(wikidataId);
+      if (byWikidata !== null) {
+        return byWikidata;
+      }
+    }
+
+    return this.authorsRepository.findGlobalByNormalizedName(normalizedName);
   }
 }

@@ -2,9 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { AuthorModel } from "../../../generated/prisma/models.js";
 import type { AuthorsRepository } from "../infrastructure/authors.repository.js";
-import type { OpenLibraryClient } from "../infrastructure/open-library.client.js";
+import type {
+  OpenLibraryAuthorDetail,
+  OpenLibraryClient,
+} from "../infrastructure/open-library.client.js";
+import type { WikidataAuthorFacts, WikidataClient } from "../infrastructure/wikidata.client.js";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { HttpError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { AuthorsService } from "./authors.service.js";
 
@@ -74,9 +78,14 @@ function buildService(overrides: {
     searchAuthors: vi.fn().mockResolvedValue([]),
   };
 
+  const wikidataClient = {
+    getAuthorFactsByQid: vi.fn().mockResolvedValue(null),
+  };
+
   const service = new AuthorsService(
     repository as unknown as AuthorsRepository,
     openLibraryClient as unknown as OpenLibraryClient,
+    wikidataClient as unknown as WikidataClient,
   );
 
   return { repository, service };
@@ -227,5 +236,222 @@ describe("AuthorsService.search", () => {
       userId: USER_ID,
     });
     expect(repository.countVisible).toHaveBeenCalledWith(USER_ID, "orwell");
+  });
+});
+
+const OPEN_LIBRARY_KEY = "OL23919A";
+
+function authorDetail(overrides: Partial<OpenLibraryAuthorDetail> = {}): OpenLibraryAuthorDetail {
+  return {
+    bio: "An English novelist.",
+    birthYear: 1903,
+    name: "George Orwell",
+    photoUrl: "https://covers.openlibrary.org/a/id/12345-L.jpg",
+    wikidataId: "Q3335",
+    ...overrides,
+  };
+}
+
+function buildMaterializeService(overrides: {
+  createGlobal?: AuthorModel | Error;
+  detail?: null | OpenLibraryAuthorDetail;
+  facts?: null | WikidataAuthorFacts;
+  findGlobal?: AuthorModel | null;
+  findGlobalByNormalizedName?: AuthorModel | null;
+  findGlobalByWikidataId?: AuthorModel | null;
+  findGlobalRetry?: AuthorModel | null;
+}): {
+  createGlobal: ReturnType<typeof vi.fn>;
+  findGlobalByNormalizedName: ReturnType<typeof vi.fn>;
+  findGlobalByWikidataId: ReturnType<typeof vi.fn>;
+  getAuthorByKey: ReturnType<typeof vi.fn>;
+  getAuthorFactsByQid: ReturnType<typeof vi.fn>;
+  service: AuthorsService;
+} {
+  const findGlobalByOpenLibraryKey = vi.fn().mockResolvedValue(overrides.findGlobal ?? null);
+  if (overrides.findGlobalRetry !== undefined) {
+    findGlobalByOpenLibraryKey
+      .mockResolvedValueOnce(overrides.findGlobal ?? null)
+      .mockResolvedValueOnce(overrides.findGlobalRetry);
+  }
+
+  const findGlobalByWikidataId = vi
+    .fn()
+    .mockResolvedValue(overrides.findGlobalByWikidataId ?? null);
+  const findGlobalByNormalizedName = vi
+    .fn()
+    .mockResolvedValue(overrides.findGlobalByNormalizedName ?? null);
+
+  const createGlobal = vi.fn();
+  if (overrides.createGlobal instanceof Error) {
+    createGlobal.mockRejectedValue(overrides.createGlobal);
+  } else {
+    createGlobal.mockResolvedValue(overrides.createGlobal ?? author({ userId: null }));
+  }
+
+  const getAuthorByKey = vi
+    .fn()
+    .mockResolvedValue(overrides.detail === undefined ? authorDetail() : overrides.detail);
+  const getAuthorFactsByQid = vi.fn().mockResolvedValue(overrides.facts ?? null);
+
+  const repository = {
+    createGlobal,
+    findGlobalByNormalizedName,
+    findGlobalByOpenLibraryKey,
+    findGlobalByWikidataId,
+  } as unknown as AuthorsRepository;
+  const openLibraryClient = { getAuthorByKey } as unknown as OpenLibraryClient;
+  const wikidataClient = { getAuthorFactsByQid } as unknown as WikidataClient;
+
+  const service = new AuthorsService(repository, openLibraryClient, wikidataClient);
+
+  return {
+    createGlobal,
+    findGlobalByNormalizedName,
+    findGlobalByWikidataId,
+    getAuthorByKey,
+    getAuthorFactsByQid,
+    service,
+  };
+}
+
+describe("AuthorsService.materializeFromOpenLibrary", () => {
+  it("returns the existing global author without fetching when the key is already stored", async () => {
+    const existing = author({ id: GLOBAL_ID, openLibraryKey: OPEN_LIBRARY_KEY, userId: null });
+    const { getAuthorByKey, service } = buildMaterializeService({ findGlobal: existing });
+
+    const result = await service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY);
+
+    expect(result.id).toBe(GLOBAL_ID);
+    expect(getAuthorByKey).not.toHaveBeenCalled();
+  });
+
+  it("creates a global author enriched with wikidata country and years", async () => {
+    const { createGlobal, service } = buildMaterializeService({
+      detail: authorDetail({ birthYear: null }),
+      facts: { birthYear: 1903, countryCode: "GB", deathYear: 1950 },
+    });
+
+    await service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY);
+
+    expect(createGlobal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        birthYear: 1903,
+        countryCode: "GB",
+        deathYear: 1950,
+        name: "George Orwell",
+        normalizedName: "george orwell",
+        openLibraryKey: OPEN_LIBRARY_KEY,
+        wikidataId: "Q3335",
+      }),
+    );
+  });
+
+  it("prefers the open library birth year over the wikidata one when both are present", async () => {
+    const { createGlobal, service } = buildMaterializeService({
+      detail: authorDetail({ birthYear: 1903 }),
+      facts: { birthYear: 1900, countryCode: "GB", deathYear: 1950 },
+    });
+
+    await service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY);
+
+    expect(createGlobal).toHaveBeenCalledWith(expect.objectContaining({ birthYear: 1903 }));
+  });
+
+  it("creates the global author with null country and years when wikidata returns nothing", async () => {
+    const { createGlobal, service } = buildMaterializeService({
+      detail: authorDetail({ birthYear: null }),
+      facts: null,
+    });
+
+    await service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY);
+
+    expect(createGlobal).toHaveBeenCalledWith(
+      expect.objectContaining({ birthYear: null, countryCode: null, deathYear: null }),
+    );
+  });
+
+  it("does not query wikidata when the open library author has no wikidata id", async () => {
+    const { getAuthorFactsByQid, service } = buildMaterializeService({
+      detail: authorDetail({ wikidataId: null }),
+    });
+
+    await service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY);
+
+    expect(getAuthorFactsByQid).not.toHaveBeenCalled();
+  });
+
+  it("throws a 502 open_library_unavailable error when open library returns null", async () => {
+    const { service } = buildMaterializeService({ detail: null });
+
+    await expect(service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY)).rejects.toMatchObject({
+      code: "open_library_unavailable",
+      status: 502,
+    });
+  });
+
+  it("throws an HttpError when open library returns null", async () => {
+    const { service } = buildMaterializeService({ detail: null });
+
+    await expect(service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY)).rejects.toBeInstanceOf(
+      HttpError,
+    );
+  });
+
+  it("resolves to the winning row when createGlobal hits a concurrent unique violation", async () => {
+    const winner = author({ id: GLOBAL_ID, openLibraryKey: OPEN_LIBRARY_KEY, userId: null });
+    const { service } = buildMaterializeService({
+      createGlobal: uniqueConstraintError(),
+      findGlobalRetry: winner,
+    });
+
+    const result = await service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY);
+
+    expect(result.id).toBe(GLOBAL_ID);
+  });
+
+  it("rethrows non-unique errors from createGlobal", async () => {
+    const { service } = buildMaterializeService({ createGlobal: new Error("connection lost") });
+
+    await expect(service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY)).rejects.toThrow(
+      "connection lost",
+    );
+  });
+
+  it("reuses the global author sharing a wikidata id under a different open library key", async () => {
+    const existing = author({ id: GLOBAL_ID, openLibraryKey: "OL999A", userId: null });
+    const { createGlobal, service } = buildMaterializeService({
+      detail: authorDetail({ wikidataId: "Q3335" }),
+      findGlobalByWikidataId: existing,
+    });
+
+    const result = await service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY);
+
+    expect(result.id).toBe(GLOBAL_ID);
+    expect(createGlobal).not.toHaveBeenCalled();
+  });
+
+  it("recovers by wikidata id when createGlobal hits a unique violation on wikidata", async () => {
+    const winner = author({ id: GLOBAL_ID, openLibraryKey: "OL999A", userId: null });
+    const { service } = buildMaterializeService({
+      createGlobal: uniqueConstraintError(),
+      detail: authorDetail({ wikidataId: "Q3335" }),
+      findGlobalByWikidataId: winner,
+    });
+
+    const result = await service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY);
+
+    expect(result.id).toBe(GLOBAL_ID);
+  });
+
+  it("rethrows the unique violation when no existing global author can be found", async () => {
+    const { service } = buildMaterializeService({
+      createGlobal: uniqueConstraintError(),
+      detail: authorDetail({ wikidataId: "Q3335" }),
+    });
+
+    await expect(service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY)).rejects.toThrow(
+      "Unique constraint failed",
+    );
   });
 });

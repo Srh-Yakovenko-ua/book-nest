@@ -5,6 +5,7 @@ import type {
   OpenLibraryAuthor,
   OpenLibraryClient,
 } from "../infrastructure/open-library.client.js";
+import type { WikidataClient } from "../infrastructure/wikidata.client.js";
 
 import { AuthorsService } from "./authors.service.js";
 
@@ -22,8 +23,11 @@ function buildService(overrides: { candidates?: OpenLibraryAuthor[]; matches?: L
 
   const repository = { findExistingByLookup } as unknown as AuthorsRepository;
   const openLibraryClient = { searchAuthors } as unknown as OpenLibraryClient;
+  const wikidataClient = {
+    getAuthorFactsByQid: vi.fn().mockResolvedValue(null),
+  } as unknown as WikidataClient;
 
-  const service = new AuthorsService(repository, openLibraryClient);
+  const service = new AuthorsService(repository, openLibraryClient, wikidataClient);
 
   return { findExistingByLookup, searchAuthors, service };
 }

@@ -25,6 +25,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
+import { seconds, Throttle } from "@nestjs/throttler";
 
 import type { UserModel } from "../../../generated/prisma/models.js";
 
@@ -36,6 +37,9 @@ import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
 import { BooksService } from "../application/books.service.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { PaginationQueryDto } from "./input-dto/pagination-query.input-dto.js";
+
+const CREATE_BOOK_TTL_SECONDS = 60;
+const CREATE_BOOK_LIMIT = 30;
 
 @ApiTags("books")
 @Controller("api/books")
@@ -50,6 +54,7 @@ export class BooksController {
   @ApiOperation({ summary: "Create a book in the current user library" })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Post()
+  @Throttle({ default: { limit: CREATE_BOOK_LIMIT, ttl: seconds(CREATE_BOOK_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   create(
     @CurrentUser() user: UserModel,

@@ -1,4 +1,5 @@
 import type {
+  BookAuthorReference,
   BookView,
   CreateBookInput,
   DeliveryInfoInput,
@@ -139,10 +140,7 @@ export class BooksService {
   ) {}
 
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
-    const authorId = await this.authorsService.resolveOrCreate(userId, {
-      id: input.authorId,
-      name: input.authorName,
-    });
+    const authorId = await this.resolveAuthorId(userId, input.author);
 
     const publisherId = await this.publishersService.resolveOrCreate(userId, {
       id: input.publisherId,
@@ -236,6 +234,21 @@ export class BooksService {
       pageSize,
       totalCount,
     });
+  }
+
+  private async resolveAuthorId(userId: string, author: BookAuthorReference): Promise<string> {
+    if ("id" in author) {
+      return this.authorsService.resolveOrCreate(userId, { id: author.id });
+    }
+
+    if ("openLibraryKey" in author) {
+      const materialized = await this.authorsService.materializeFromOpenLibrary(
+        author.openLibraryKey,
+      );
+      return materialized.id;
+    }
+
+    return this.authorsService.resolveOrCreate(userId, { name: author.name });
   }
 
   private async resolveQueuePlacement(
