@@ -86,7 +86,10 @@ function buildService(
     tagIds?: string[];
   } = {},
 ): {
-  authorsService: { resolveOrCreate: ReturnType<typeof vi.fn> };
+  authorsService: {
+    materializeFromOpenLibrary: ReturnType<typeof vi.fn>;
+    resolveOrCreate: ReturnType<typeof vi.fn>;
+  };
   listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
   publishersService: { resolveOrCreate: ReturnType<typeof vi.fn> };
   repository: Repository;
@@ -104,6 +107,7 @@ function buildService(
   };
 
   const authorsService = {
+    materializeFromOpenLibrary: vi.fn().mockResolvedValue({ id: overrides.authorId ?? AUTHOR_ID }),
     resolveOrCreate: vi.fn().mockResolvedValue(overrides.authorId ?? AUTHOR_ID),
   };
   const publishersService = {
@@ -145,7 +149,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      authorName: "Frank Herbert",
+      author: { name: "Frank Herbert" },
       bookType: "solo",
       formats: [],
       genres: [],
@@ -161,7 +165,6 @@ describe("BooksService.create", () => {
     await service.create(USER_ID, input);
 
     expect(authorsService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
-      id: undefined,
       name: "Frank Herbert",
     });
     expect(publishersService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
@@ -192,7 +195,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      authorName: "Frank Herbert",
+      author: { name: "Frank Herbert" },
       bookType: "solo",
       formats: [],
       genres: [],
@@ -253,7 +256,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "16_plus",
-      authorName: "Frank Herbert",
+      author: { name: "Frank Herbert" },
       bookType: "solo",
       formats: ["paper", "ebook"],
       genres: ["fantasy", "science_fiction"],
@@ -308,7 +311,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      authorName: "Frank Herbert",
+      author: { name: "Frank Herbert" },
       bookType: "solo",
       formats: [],
       genres: [],
@@ -345,7 +348,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      authorName: "Frank Herbert",
+      author: { name: "Frank Herbert" },
       bookType: "solo",
       formats: [],
       genres: [],
@@ -371,7 +374,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      authorName: "Frank Herbert",
+      author: { name: "Frank Herbert" },
       bookType: "solo",
       deliveryInfo: { storeName: "Should be ignored" },
       formats: [],
@@ -408,7 +411,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      authorName: "Frank Herbert",
+      author: { name: "Frank Herbert" },
       bookType: "solo",
       deliveryInfo: { orderNumber: "TTN-1", storeName: "Yakaboo" },
       formats: [],
@@ -444,7 +447,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      authorName: "Frank Herbert",
+      author: { name: "Frank Herbert" },
       bookType: "solo",
       formats: [],
       genres: [],
@@ -480,7 +483,7 @@ describe("BooksService.create organization", () => {
     return {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      authorName: "Frank Herbert",
+      author: { name: "Frank Herbert" },
       bookType: "solo",
       formats: [],
       genres: [],
@@ -569,7 +572,7 @@ describe("BooksService.create series handling", () => {
     return {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      authorName: "Sarah J. Maas",
+      author: { name: "Sarah J. Maas" },
       bookType: "series_part",
       formats: [],
       genres: [],

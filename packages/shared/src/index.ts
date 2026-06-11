@@ -929,12 +929,26 @@ export type BookListView = {
 
 export type NewListInput = z.infer<typeof NewListInputSchema>;
 
+export const OPEN_LIBRARY_AUTHOR_KEY_PATTERN = /^OL\d+A$/;
+
+export const OpenLibraryAuthorKeySchema = z
+  .string()
+  .trim()
+  .regex(OPEN_LIBRARY_AUTHOR_KEY_PATTERN, "Enter a valid Open Library author key");
+
+export const BookAuthorReferenceSchema = z.union([
+  z.strictObject({ id: z.uuid() }),
+  z.strictObject({ openLibraryKey: OpenLibraryAuthorKeySchema }),
+  z.strictObject({ name: TaxonomyNameSchema }),
+]);
+
+export type BookAuthorReference = z.infer<typeof BookAuthorReferenceSchema>;
+
 export const CreateBookInputSchema = z
   .object({
     addToReadingQueue: z.boolean().default(false),
     ageCategory: AgeCategorySchema.default("not_specified"),
-    authorId: z.uuid().optional(),
-    authorName: TaxonomyNameSchema.optional(),
+    author: BookAuthorReferenceSchema,
     bookType: BookTypeSchema.default("solo"),
     dedication: DedicationSchema.nullable().optional(),
     deliveryInfo: DeliveryInfoInputSchema,
@@ -964,10 +978,6 @@ export const CreateBookInputSchema = z
     tags: BookTagsInputSchema.default([]),
     title: BookTitleSchema,
     translator: TranslatorSchema.nullable().optional(),
-  })
-  .refine((value) => (value.authorId === undefined) !== (value.authorName === undefined), {
-    error: "Provide either an existing author or a custom author name",
-    path: ["authorName"],
   })
   .refine((value) => !(value.publisherId !== undefined && value.publisherName !== undefined), {
     error: "Provide either an existing publisher or a custom publisher name",
@@ -1064,6 +1074,13 @@ export const AuthorLookupQuerySchema = z.object({
     .min(AUTHOR_LOOKUP_QUERY_MIN, "Search query must be at least 2 characters long")
     .max(AUTHOR_LOOKUP_QUERY_MAX, "Search query must be at most 100 characters long"),
 });
+
+export type AuthorBookSuggestionView = {
+  coverUrl: null | string;
+  firstPublishYear: null | number;
+  openLibraryWorkKey: string;
+  title: string;
+};
 
 export type AuthorLookupQuery = z.infer<typeof AuthorLookupQuerySchema>;
 

@@ -1,11 +1,17 @@
-import type { AuthorLookupResult, AuthorView, Paginator } from "@app/shared";
+import type {
+  AuthorBookSuggestionView,
+  AuthorLookupResult,
+  AuthorView,
+  Paginator,
+} from "@app/shared";
 
 import { AuthorLookupQuerySchema, TaxonomySearchPaginationQuerySchema } from "@app/shared";
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -42,6 +48,21 @@ export class AuthorsController {
     @Query(new ZodQueryPipe(AuthorLookupQuerySchema)) query: AuthorLookupQueryDto,
   ): Promise<AuthorLookupResult[]> {
     return this.authorsService.lookup(user.id, query.q);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Books by this author proxied live from Open Library" })
+  @ApiOperation({ summary: "List an author's books from Open Library" })
+  @ApiParam({ name: "id" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get(":id/books")
+  @Throttle({ default: { limit: LOOKUP_LIMIT, ttl: seconds(LOOKUP_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  listBooks(
+    @CurrentUser() user: UserModel,
+    @Param("id", ParseUUIDPipe) authorId: string,
+  ): Promise<AuthorBookSuggestionView[]> {
+    return this.authorsService.listBookSuggestions(user.id, authorId);
   }
 
   @ApiBearerAuth()

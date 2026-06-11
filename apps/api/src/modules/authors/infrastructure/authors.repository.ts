@@ -5,6 +5,18 @@ import type { AuthorModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
+export type CreateGlobalAuthorData = {
+  bio: null | string;
+  birthYear: null | number;
+  countryCode: null | string;
+  deathYear: null | number;
+  name: string;
+  normalizedName: string;
+  openLibraryKey: string;
+  photoUrl: null | string;
+  wikidataId: null | string;
+};
+
 type AuthorLookupMatch = {
   normalizedName: string;
   openLibraryKey: null | string;
@@ -35,6 +47,10 @@ export class AuthorsRepository {
     return this.prisma.author.create({ data: { name, normalizedName, userId } });
   }
 
+  createGlobal(data: CreateGlobalAuthorData): Promise<AuthorModel> {
+    return this.prisma.author.create({ data: { ...data, userId: null } });
+  }
+
   findByNormalized(userId: string, normalizedName: string): Promise<AuthorModel | null> {
     return this.prisma.author.findFirst({
       where: { normalizedName, OR: [{ userId: null }, { userId }] },
@@ -56,6 +72,18 @@ export class AuthorsRepository {
       select: { normalizedName: true, openLibraryKey: true },
       where: { AND: [{ OR: candidateMatches }, { OR: visibilityClauses }] },
     });
+  }
+
+  findGlobalByNormalizedName(normalizedName: string): Promise<AuthorModel | null> {
+    return this.prisma.author.findFirst({ where: { normalizedName, userId: null } });
+  }
+
+  findGlobalByOpenLibraryKey(openLibraryKey: string): Promise<AuthorModel | null> {
+    return this.prisma.author.findFirst({ where: { openLibraryKey, userId: null } });
+  }
+
+  findGlobalByWikidataId(wikidataId: string): Promise<AuthorModel | null> {
+    return this.prisma.author.findFirst({ where: { userId: null, wikidataId } });
   }
 
   findVisibleById(userId: string, id: string): Promise<AuthorModel | null> {
