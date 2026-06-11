@@ -207,11 +207,15 @@ const ProfileQuoteSchema = z
   .trim()
   .pipe(NoHtmlString.max(PROFILE_QUOTE_MAX, "Quote must be at most 200 characters long"));
 
-const ProfileDateOfBirthSchema = z.iso.date().refine((value) => {
+const isNotInFuture = (value: string): boolean => {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   return new Date(`${value}T00:00:00.000Z`) <= today;
-}, "Date of birth must not be in the future");
+};
+
+const notInFutureDate = (message: string) => z.iso.date().refine(isNotInFuture, message);
+
+const ProfileDateOfBirthSchema = notInFutureDate("Date of birth must not be in the future");
 
 const ProfileGenresSchema = z
   .array(
@@ -416,6 +420,722 @@ export type SettingsView = {
 };
 
 export type UpdateSettingsInput = z.infer<typeof UpdateSettingsInputSchema>;
+
+export const ReadingStatusSchema = z.enum([
+  "not_started",
+  "want_to_read",
+  "reading",
+  "paused",
+  "finished",
+  "dnf",
+  "rereading",
+]);
+
+export type ReadingStatus = z.infer<typeof ReadingStatusSchema>;
+
+export const OwnershipStatusSchema = z.enum([
+  "none",
+  "want_to_buy",
+  "in_transit",
+  "owned",
+  "borrowed_from_someone",
+  "lent_to_someone",
+]);
+
+export type OwnershipStatus = z.infer<typeof OwnershipStatusSchema>;
+
+export const CurrencySchema = z.enum(["UAH", "EUR", "USD"]);
+
+export type Currency = z.infer<typeof CurrencySchema>;
+
+export const QueuePrioritySchema = z.enum(["low", "normal", "high"]);
+
+export type QueuePriority = z.infer<typeof QueuePrioritySchema>;
+
+export const DeliveryStatusSchema = z.enum([
+  "ordered",
+  "in_transit",
+  "ready_for_pickup",
+  "cancelled",
+]);
+
+export type DeliveryStatus = z.infer<typeof DeliveryStatusSchema>;
+
+export const BookGenreSchema = z.enum([
+  "fantasy",
+  "science_fiction",
+  "dystopia",
+  "romance",
+  "thriller",
+  "mystery",
+  "detective",
+  "horror",
+  "historical_fiction",
+  "literary_fiction",
+  "contemporary",
+  "young_adult",
+  "childrens",
+  "classics",
+  "poetry",
+  "drama",
+  "short_stories",
+  "nonfiction",
+  "biography",
+  "memoir",
+  "self_help",
+  "psychology",
+  "philosophy",
+  "history",
+  "science",
+  "business",
+  "true_crime",
+  "comics",
+  "other",
+]);
+
+export type BookGenre = z.infer<typeof BookGenreSchema>;
+
+const BOOK_GENRES_MAX = 5;
+
+export const BookGenresSchema = z
+  .array(BookGenreSchema)
+  .max(BOOK_GENRES_MAX, "You can select at most 5 genres")
+  .refine((genres) => new Set(genres).size === genres.length, "Genres must not contain duplicates");
+
+export const BookFormatSchema = z.enum(["paper", "ebook", "audiobook"]);
+
+export type BookFormat = z.infer<typeof BookFormatSchema>;
+
+export const BookFormatsSchema = z
+  .array(BookFormatSchema)
+  .refine(
+    (formats) => new Set(formats).size === formats.length,
+    "Formats must not contain duplicates",
+  );
+
+export const BookLanguageSchema = z.enum([
+  "ukrainian",
+  "english",
+  "polish",
+  "german",
+  "french",
+  "spanish",
+  "other",
+]);
+
+export type BookLanguage = z.infer<typeof BookLanguageSchema>;
+
+export const AgeCategorySchema = z.enum([
+  "not_specified",
+  "no_restrictions",
+  "6_plus",
+  "12_plus",
+  "14_plus",
+  "16_plus",
+  "18_plus",
+]);
+
+export type AgeCategory = z.infer<typeof AgeCategorySchema>;
+
+const BOOK_TITLE_MIN = 1;
+const BOOK_TITLE_MAX = 150;
+const TAXONOMY_NAME_MIN = 2;
+const TAXONOMY_NAME_MAX = 100;
+const BOOK_DESCRIPTION_MAX = 500;
+const TAG_NAME_MIN = 2;
+const TAG_NAME_MAX = 30;
+const BOOK_TAGS_MAX = 12;
+const TAG_ALLOWED = /^[\p{L}\p{N} '’-]+$/u;
+
+const SERIES_NAME_MIN = 2;
+const SERIES_NAME_MAX = 120;
+const SERIES_DESCRIPTION_MAX = 300;
+const SERIES_TOTAL_BOOKS_MIN = 1;
+const SERIES_TOTAL_BOOKS_MAX = 999;
+const BOOK_PART_NUMBER_MIN = 1;
+const BOOK_PART_NUMBER_MAX = 999;
+
+const LIST_NAME_MIN = 2;
+const LIST_NAME_MAX = 80;
+const LIST_DESCRIPTION_MAX = 300;
+const BOOK_LIST_IDS_MAX = 50;
+const BOOK_NEW_LISTS_MAX = 20;
+
+const BOOK_PAGES_COUNT_MIN = 1;
+const BOOK_PAGES_COUNT_MAX = 10000;
+const BOOK_PUBLICATION_YEAR_MIN = 1000;
+const BOOK_ORIGINAL_TITLE_MAX = 200;
+const BOOK_CONTRIBUTOR_NAME_MAX = 100;
+const BOOK_DEDICATION_MAX = 300;
+const READING_CURRENT_PAGE_MIN = 0;
+const READING_CURRENT_PAGE_MAX = 100000;
+const READING_RATING_MIN = 1;
+const READING_RATING_MAX = 5;
+const READING_NOTE_MAX = 300;
+const READING_IMPRESSION_MAX = 500;
+const ISBN_INPUT_PATTERN = /^[0-9Xx\s-]+$/;
+const ISBN_10_LENGTH = 10;
+const ISBN_13_LENGTH = 13;
+const ISBN_10_CHECK_MODULUS = 11;
+const ISBN_10_CHECK_X_VALUE = 10;
+const ISBN_13_CHECK_MODULUS = 10;
+const ISBN_13_ODD_WEIGHT = 1;
+const ISBN_13_EVEN_WEIGHT = 3;
+
+const normalizeTagName = (name: string): string => name.trim().replace(/\s+/g, " ").toLowerCase();
+
+export const BookTitleSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.min(BOOK_TITLE_MIN, "Enter the book title").max(
+      BOOK_TITLE_MAX,
+      "Title must be at most 150 characters long",
+    ),
+  );
+
+export const TaxonomyNameSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.min(TAXONOMY_NAME_MIN, "Name must be at least 2 characters long").max(
+      TAXONOMY_NAME_MAX,
+      "Name must be at most 100 characters long",
+    ),
+  );
+
+export const BookDescriptionSchema = z
+  .string()
+  .trim()
+  .pipe(NoHtmlString.max(BOOK_DESCRIPTION_MAX, "Description must be at most 500 characters long"));
+
+export const TagNameSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.min(TAG_NAME_MIN, "Tag must be at least 2 characters long")
+      .max(TAG_NAME_MAX, "Tag must be at most 30 characters long")
+      .regex(TAG_ALLOWED, "Tag may contain only letters, digits, spaces, hyphens and apostrophes"),
+  );
+
+export const BookTagsInputSchema = z
+  .array(TagNameSchema)
+  .max(BOOK_TAGS_MAX, "You can add at most 12 tags")
+  .refine((tags) => {
+    const seen = new Set(tags.map(normalizeTagName));
+    return seen.size === tags.length;
+  }, "Tags must not contain duplicates");
+
+const normalizeIsbn = (value: string): string => value.replace(/[\s-]/g, "").toUpperCase();
+
+const isValidIsbn10 = (digits: string): boolean => {
+  let sum = 0;
+  for (let position = 0; position < ISBN_10_LENGTH; position += 1) {
+    const character = digits[position] ?? "";
+    if (position === ISBN_10_LENGTH - 1 && character === "X") {
+      sum += ISBN_10_CHECK_X_VALUE * (ISBN_10_LENGTH - position);
+      continue;
+    }
+    if (character < "0" || character > "9") {
+      return false;
+    }
+    sum += Number(character) * (ISBN_10_LENGTH - position);
+  }
+  return sum % ISBN_10_CHECK_MODULUS === 0;
+};
+
+const isValidIsbn13 = (digits: string): boolean => {
+  if (!/^\d{13}$/.test(digits)) {
+    return false;
+  }
+  let sum = 0;
+  for (let position = 0; position < ISBN_13_LENGTH; position += 1) {
+    const weight = position % 2 === 0 ? ISBN_13_ODD_WEIGHT : ISBN_13_EVEN_WEIGHT;
+    sum += Number(digits[position]) * weight;
+  }
+  return sum % ISBN_13_CHECK_MODULUS === 0;
+};
+
+export const isValidIsbn = (value: string): boolean => {
+  const normalized = normalizeIsbn(value);
+  if (normalized.length === ISBN_10_LENGTH) {
+    return isValidIsbn10(normalized);
+  }
+  if (normalized.length === ISBN_13_LENGTH) {
+    return isValidIsbn13(normalized);
+  }
+  return false;
+};
+
+export const BookPagesCountSchema = z
+  .number()
+  .int()
+  .min(BOOK_PAGES_COUNT_MIN, "Pages must be greater than 0")
+  .max(BOOK_PAGES_COUNT_MAX, "Pages must be at most 10000");
+
+export const BookPublicationYearSchema = z
+  .number()
+  .int()
+  .min(BOOK_PUBLICATION_YEAR_MIN, "Enter a valid publication year")
+  .max(new Date().getUTCFullYear() + 1, "Enter a valid publication year");
+
+export const IsbnSchema = z
+  .string()
+  .trim()
+  .refine(noHtmlTags, "HTML tags are not allowed")
+  .refine((value) => ISBN_INPUT_PATTERN.test(value), "Enter a valid ISBN-10 or ISBN-13")
+  .refine(isValidIsbn, "Enter a valid ISBN-10 or ISBN-13");
+
+export const OriginalTitleSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.max(BOOK_ORIGINAL_TITLE_MAX, "Original title must be at most 200 characters long"),
+  );
+
+export const TranslatorSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.max(BOOK_CONTRIBUTOR_NAME_MAX, "Translator must be at most 100 characters long"),
+  );
+
+export const IllustratorSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.max(BOOK_CONTRIBUTOR_NAME_MAX, "Illustrator must be at most 100 characters long"),
+  );
+
+export const DedicationSchema = z
+  .string()
+  .trim()
+  .pipe(NoHtmlString.max(BOOK_DEDICATION_MAX, "Dedication must be at most 300 characters long"));
+
+export const ReadingNoteSchema = z
+  .string()
+  .trim()
+  .pipe(NoHtmlString.max(READING_NOTE_MAX, "Note must be at most 300 characters long"));
+
+export const ReadingImpressionSchema = z
+  .string()
+  .trim()
+  .pipe(NoHtmlString.max(READING_IMPRESSION_MAX, "Impression must be at most 500 characters long"));
+
+export const ReadingProgressInputSchema = z
+  .object({
+    abandonedAt: notInFutureDate("Abandoned date must not be in the future").optional(),
+    currentPage: z
+      .number()
+      .int()
+      .min(READING_CURRENT_PAGE_MIN)
+      .max(READING_CURRENT_PAGE_MAX)
+      .optional(),
+    finishedAt: notInFutureDate("Finished date must not be in the future").optional(),
+    impression: ReadingImpressionSchema.optional(),
+    note: ReadingNoteSchema.optional(),
+    pausedAt: notInFutureDate("Paused date must not be in the future").optional(),
+    rating: z
+      .number()
+      .int()
+      .min(READING_RATING_MIN, "Rating must be from 1 to 5")
+      .max(READING_RATING_MAX, "Rating must be from 1 to 5")
+      .optional(),
+    startedAt: notInFutureDate("Start date must not be in the future").optional(),
+  })
+  .optional();
+
+const OWNERSHIP_STORE_NAME_MAX = 100;
+const OWNERSHIP_STORE_URL_MAX = 300;
+const OWNERSHIP_ORDER_NUMBER_MAX = 100;
+const OWNERSHIP_NOTE_MAX = 300;
+const OWNERSHIP_PERSON_NAME_MIN = 2;
+const OWNERSHIP_PERSON_NAME_MAX = 100;
+const OWNERSHIP_PRICE_MIN = 0;
+
+const OwnershipStoreNameSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.max(OWNERSHIP_STORE_NAME_MAX, "Store name must be at most 100 characters long"),
+  );
+
+const OwnershipStoreUrlSchema = z
+  .string()
+  .trim()
+  .max(OWNERSHIP_STORE_URL_MAX, "URL must be at most 300 characters long")
+  .refine(noHtmlTags, "HTML tags are not allowed")
+  .pipe(z.url({ error: "Enter a valid https link", protocol: HTTPS_PROTOCOL }));
+
+const OwnershipOrderNumberSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.max(
+      OWNERSHIP_ORDER_NUMBER_MAX,
+      "Order number must be at most 100 characters long",
+    ),
+  );
+
+const OwnershipNoteSchema = z
+  .string()
+  .trim()
+  .pipe(NoHtmlString.max(OWNERSHIP_NOTE_MAX, "Note must be at most 300 characters long"));
+
+const OwnershipPersonNameSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.min(OWNERSHIP_PERSON_NAME_MIN, "Name must be at least 2 characters long").max(
+      OWNERSHIP_PERSON_NAME_MAX,
+      "Name must be at most 100 characters long",
+    ),
+  );
+
+const OwnershipPriceSchema = z.number().min(OWNERSHIP_PRICE_MIN, "Price must be at least 0");
+
+export const PurchaseInfoInputSchema = z
+  .object({
+    currency: CurrencySchema.optional(),
+    expectedPrice: OwnershipPriceSchema.optional(),
+    note: OwnershipNoteSchema.optional(),
+    storeName: OwnershipStoreNameSchema.optional(),
+    storeUrl: OwnershipStoreUrlSchema.optional(),
+  })
+  .optional();
+
+export type PurchaseInfoInput = z.infer<typeof PurchaseInfoInputSchema>;
+
+export const DeliveryInfoInputSchema = z
+  .object({
+    deliveryStatus: DeliveryStatusSchema.optional(),
+    expectedDeliveryDate: z.iso.date().optional(),
+    note: OwnershipNoteSchema.optional(),
+    orderDate: notInFutureDate("Order date must not be in the future").optional(),
+    orderNumber: OwnershipOrderNumberSchema.optional(),
+    storeName: OwnershipStoreNameSchema.optional(),
+  })
+  .refine(
+    (value) =>
+      value.orderDate === undefined ||
+      value.expectedDeliveryDate === undefined ||
+      value.expectedDeliveryDate >= value.orderDate,
+    {
+      error: "Expected delivery cannot be before the order date",
+      path: ["expectedDeliveryDate"],
+    },
+  )
+  .optional();
+
+export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
+
+export const LoanInfoInputSchema = z
+  .object({
+    expectedReturnDate: z.iso.date().optional(),
+    loanDate: notInFutureDate("Loan date must not be in the future").optional(),
+    note: OwnershipNoteSchema.optional(),
+    personName: OwnershipPersonNameSchema,
+  })
+  .refine(
+    (value) =>
+      value.loanDate === undefined ||
+      value.expectedReturnDate === undefined ||
+      value.expectedReturnDate >= value.loanDate,
+    {
+      error: "Expected return cannot be before the loan date",
+      path: ["expectedReturnDate"],
+    },
+  )
+  .optional();
+
+export type LoanInfoInput = z.infer<typeof LoanInfoInputSchema>;
+
+export const SeriesStatusSchema = z.enum(["completed", "ongoing", "unknown"]);
+
+export type SeriesStatus = z.infer<typeof SeriesStatusSchema>;
+
+export const BookTypeSchema = z.enum(["solo", "series_part"]);
+
+export type BookType = z.infer<typeof BookTypeSchema>;
+
+export const SeriesNameSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.min(SERIES_NAME_MIN, "Series name must be at least 2 characters long").max(
+      SERIES_NAME_MAX,
+      "Series name must be at most 120 characters long",
+    ),
+  );
+
+const SeriesDescriptionSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.max(SERIES_DESCRIPTION_MAX, "Description must be at most 300 characters long"),
+  );
+
+const SeriesTotalBooksSchema = z
+  .number()
+  .int()
+  .min(SERIES_TOTAL_BOOKS_MIN, "Total books must be at least 1")
+  .max(SERIES_TOTAL_BOOKS_MAX, "Total books must be at most 999");
+
+const BookPartNumberSchema = z
+  .number()
+  .int()
+  .min(BOOK_PART_NUMBER_MIN, "Part number must be from 1 to 999")
+  .max(BOOK_PART_NUMBER_MAX, "Part number must be from 1 to 999");
+
+export const NewSeriesInputSchema = z.object({
+  description: SeriesDescriptionSchema.optional(),
+  name: SeriesNameSchema,
+  status: SeriesStatusSchema.default("unknown"),
+  totalBooks: SeriesTotalBooksSchema.optional(),
+});
+
+export type NewSeriesInput = z.infer<typeof NewSeriesInputSchema>;
+
+const OWNERSHIP_STATUSES_WITH_LOAN: ReadonlySet<OwnershipStatus> = new Set([
+  "borrowed_from_someone",
+  "lent_to_someone",
+]);
+
+export const ListNameSchema = z
+  .string()
+  .trim()
+  .pipe(
+    NoHtmlString.min(LIST_NAME_MIN, "List name must be at least 2 characters long").max(
+      LIST_NAME_MAX,
+      "List name must be at most 80 characters long",
+    ),
+  );
+
+export const ListDescriptionSchema = z
+  .string()
+  .trim()
+  .pipe(NoHtmlString.max(LIST_DESCRIPTION_MAX, "Description must be at most 300 characters long"));
+
+export const NewListInputSchema = z.object({
+  description: ListDescriptionSchema.optional(),
+  name: ListNameSchema,
+});
+
+export type BookListView = {
+  description: null | string;
+  id: string;
+  name: string;
+};
+
+export type NewListInput = z.infer<typeof NewListInputSchema>;
+
+export const CreateBookInputSchema = z
+  .object({
+    addToReadingQueue: z.boolean().default(false),
+    ageCategory: AgeCategorySchema.default("not_specified"),
+    authorId: z.uuid().optional(),
+    authorName: TaxonomyNameSchema.optional(),
+    bookType: BookTypeSchema.default("solo"),
+    dedication: DedicationSchema.nullable().optional(),
+    deliveryInfo: DeliveryInfoInputSchema,
+    description: BookDescriptionSchema.nullable().optional(),
+    formats: BookFormatsSchema.default([]),
+    genres: BookGenresSchema.default([]),
+    illustrator: IllustratorSchema.nullable().optional(),
+    isbn: IsbnSchema.nullable().optional(),
+    isFavorite: z.boolean().default(false),
+    language: BookLanguageSchema.default("ukrainian"),
+    listIds: z.array(z.uuid()).max(BOOK_LIST_IDS_MAX).optional(),
+    loanInfo: LoanInfoInputSchema,
+    newLists: z.array(NewListInputSchema).max(BOOK_NEW_LISTS_MAX).optional(),
+    newSeries: NewSeriesInputSchema.optional(),
+    originalTitle: OriginalTitleSchema.nullable().optional(),
+    ownershipStatus: OwnershipStatusSchema.default("none"),
+    pagesCount: BookPagesCountSchema.nullable().optional(),
+    partNumber: BookPartNumberSchema.optional(),
+    publicationYear: BookPublicationYearSchema.nullable().optional(),
+    publisherId: z.uuid().optional(),
+    publisherName: TaxonomyNameSchema.optional(),
+    purchaseInfo: PurchaseInfoInputSchema,
+    queuePriority: QueuePrioritySchema.optional(),
+    readingProgress: ReadingProgressInputSchema,
+    readingStatus: ReadingStatusSchema.default("not_started"),
+    seriesId: z.uuid().optional(),
+    tags: BookTagsInputSchema.default([]),
+    title: BookTitleSchema,
+    translator: TranslatorSchema.nullable().optional(),
+  })
+  .refine((value) => (value.authorId === undefined) !== (value.authorName === undefined), {
+    error: "Provide either an existing author or a custom author name",
+    path: ["authorName"],
+  })
+  .refine((value) => !(value.publisherId !== undefined && value.publisherName !== undefined), {
+    error: "Provide either an existing publisher or a custom publisher name",
+    path: ["publisherName"],
+  })
+  .superRefine((value, context) => {
+    const currentPage = value.readingProgress?.currentPage;
+    const pagesCount = value.pagesCount;
+    if (
+      currentPage !== undefined &&
+      pagesCount !== undefined &&
+      pagesCount !== null &&
+      currentPage > pagesCount
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Current page cannot exceed the page count",
+        path: ["readingProgress", "currentPage"],
+      });
+    }
+
+    if (OWNERSHIP_STATUSES_WITH_LOAN.has(value.ownershipStatus) && value.loanInfo === undefined) {
+      context.addIssue({
+        code: "custom",
+        message: "Enter the person's name",
+        path: ["loanInfo", "personName"],
+      });
+    }
+
+    if (value.bookType === "series_part") {
+      const hasExistingSeries = value.seriesId !== undefined;
+      const hasNewSeries = value.newSeries !== undefined;
+      if (hasExistingSeries === hasNewSeries) {
+        context.addIssue({
+          code: "custom",
+          message: "Choose an existing series or create a new one",
+          path: ["newSeries"],
+        });
+      }
+
+      if (value.partNumber === undefined) {
+        context.addIssue({
+          code: "custom",
+          message: "Enter the part number",
+          path: ["partNumber"],
+        });
+      }
+
+      const totalBooks = value.newSeries?.totalBooks;
+      if (
+        totalBooks !== undefined &&
+        value.partNumber !== undefined &&
+        totalBooks < value.partNumber
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Total books cannot be fewer than the part number",
+          path: ["newSeries", "totalBooks"],
+        });
+      }
+    }
+  });
+
+export type AuthorView = {
+  id: string;
+  isCustom: boolean;
+  name: string;
+};
+
+export type BookView = {
+  ageCategory: AgeCategory;
+  author: { id: string; name: string };
+  bookType: BookType;
+  createdAt: string;
+  dedication: null | string;
+  deliveryInfo: DeliveryInfoView | null;
+  description: null | string;
+  formats: BookFormat[];
+  genres: BookGenre[];
+  id: string;
+  illustrator: null | string;
+  isbn: null | string;
+  isFavorite: boolean;
+  isInReadingQueue: boolean;
+  language: BookLanguage;
+  lists: BookListView[];
+  loanInfo: LoanInfoView | null;
+  originalTitle: null | string;
+  ownershipStatus: OwnershipStatus;
+  pagesCount: null | number;
+  partNumber: null | number;
+  publicationYear: null | number;
+  publisher: null | { id: string; name: string };
+  purchaseInfo: null | PurchaseInfoView;
+  queuePriority: null | QueuePriority;
+  readingProgress: null | ReadingProgressView;
+  readingStatus: ReadingStatus;
+  series: null | SeriesView;
+  tags: TagView[];
+  title: string;
+  translator: null | string;
+  updatedAt: string;
+  userId: string;
+};
+
+export type CreateBookInput = z.infer<typeof CreateBookInputSchema>;
+
+export type DeliveryInfoView = {
+  deliveryStatus: DeliveryStatus | null;
+  expectedDeliveryDate: null | string;
+  note: null | string;
+  orderDate: null | string;
+  orderNumber: null | string;
+  storeName: null | string;
+};
+
+export type LoanInfoView = {
+  expectedReturnDate: null | string;
+  loanDate: null | string;
+  note: null | string;
+  personName: string;
+};
+
+export type PublisherView = {
+  id: string;
+  isCustom: boolean;
+  name: string;
+};
+
+export type PurchaseInfoView = {
+  currency: Currency | null;
+  expectedPrice: null | number;
+  note: null | string;
+  storeName: null | string;
+  storeUrl: null | string;
+};
+
+export type ReadingProgressInput = z.infer<typeof ReadingProgressInputSchema>;
+
+export type ReadingProgressView = {
+  abandonedAt: null | string;
+  currentPage: null | number;
+  finishedAt: null | string;
+  impression: null | string;
+  note: null | string;
+  pausedAt: null | string;
+  rating: null | number;
+  startedAt: null | string;
+};
+
+export type SeriesView = {
+  description: null | string;
+  id: string;
+  name: string;
+  status: SeriesStatus;
+  totalBooks: null | number;
+};
+
+export type TagView = {
+  id: string;
+  name: string;
+};
+
+export const TaxonomySearchPaginationQuerySchema = PaginationQuerySchema.extend({
+  search: z.string().trim().max(TAXONOMY_NAME_MAX).optional(),
+});
+
+export type TaxonomySearchPaginationQuery = z.infer<typeof TaxonomySearchPaginationQuerySchema>;
 
 export const defaultUserProfileSettings: SettingsView = {
   accentColor: "brown",

@@ -1,0 +1,18 @@
+import { Module } from "@nestjs/common";
+
+import { AuthModule } from "../auth/auth.module.js";
+import { AuthorsModule } from "../authors/authors.module.js";
+import { ListsModule } from "../lists/lists.module.js";
+import { PublishersModule } from "../publishers/publishers.module.js";
+import { SeriesModule } from "../series/series.module.js";
+import { TagsModule } from "../tags/tags.module.js";
+import { BooksController } from "./api/books.controller.js";
+import { BooksService } from "./application/books.service.js";
+import { BooksRepository } from "./infrastructure/books.repository.js";
+
+@Module({
+  controllers: [BooksController],
+  imports: [AuthModule, AuthorsModule, PublishersModule, TagsModule, SeriesModule, ListsModule],
+  providers: [BooksService, BooksRepository],
+})
+export class BooksModule {}

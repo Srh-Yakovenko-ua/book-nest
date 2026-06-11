@@ -1,0 +1,44 @@
+import type { Paginator, SeriesView } from "@app/shared";
+
+import { TaxonomySearchPaginationQuerySchema } from "@app/shared";
+import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+
+import type { UserModel } from "../../../generated/prisma/models.js";
+
+import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
+import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
+import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { SeriesService } from "../application/series.service.js";
+import { TaxonomySearchPaginationQueryDto } from "./input-dto/taxonomy-search-query.input-dto.js";
+
+@ApiTags("series")
+@Controller("api/series")
+export class SeriesController {
+  constructor(private readonly seriesService: SeriesService) {}
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "A page of the current user series" })
+  @ApiOperation({ summary: "Search the current user series" })
+  @ApiQuery({ name: "search", required: false })
+  @ApiQuery({ name: "pageNumber", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
+  @ApiQuery({ enum: ["asc", "desc"], name: "sortDirection", required: false })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get()
+  @UseGuards(JwtAccessGuard)
+  search(
+    @CurrentUser() user: UserModel,
+    @Query(new ZodQueryPipe(TaxonomySearchPaginationQuerySchema))
+    query: TaxonomySearchPaginationQueryDto,
+  ): Promise<Paginator<SeriesView>> {
+    return this.seriesService.search(user.id, query);
+  }
+}
