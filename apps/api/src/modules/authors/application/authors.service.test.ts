@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { AuthorModel } from "../../../generated/prisma/models.js";
 import type { AuthorsRepository } from "../infrastructure/authors.repository.js";
+import type { OpenLibraryClient } from "../infrastructure/open-library.client.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -13,12 +14,19 @@ const GLOBAL_ID = "33333333-3333-4333-8333-333333333333";
 
 function author(overrides: Partial<AuthorModel> = {}): AuthorModel {
   return {
+    bio: null,
+    birthYear: null,
+    countryCode: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    deathYear: null,
     id: AUTHOR_ID,
     name: "Frank Herbert",
     normalizedName: "frank herbert",
+    openLibraryKey: null,
+    photoUrl: null,
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),
     userId: USER_ID,
+    wikidataId: null,
     ...overrides,
   };
 }
@@ -62,7 +70,14 @@ function buildService(overrides: {
     searchVisible: vi.fn().mockResolvedValue(searchVisible),
   };
 
-  const service = new AuthorsService(repository as unknown as AuthorsRepository);
+  const openLibraryClient = {
+    searchAuthors: vi.fn().mockResolvedValue([]),
+  };
+
+  const service = new AuthorsService(
+    repository as unknown as AuthorsRepository,
+    openLibraryClient as unknown as OpenLibraryClient,
+  );
 
   return { repository, service };
 }
@@ -180,16 +195,19 @@ describe("AuthorsService.search", () => {
       sortDirection: "desc",
     });
 
-    expect(page).toEqual({
-      items: [
-        { id: AUTHOR_ID, isCustom: true, name: "My Author" },
-        { id: GLOBAL_ID, isCustom: false, name: "George Orwell" },
-      ],
-      page: 1,
-      pagesCount: 1,
-      pageSize: 10,
-      totalCount: 2,
-    });
+    expect(page.totalCount).toBe(2);
+    expect(page.items).toEqual([
+      expect.objectContaining({
+        id: AUTHOR_ID,
+        isCustom: true,
+        name: "My Author",
+      }),
+      expect.objectContaining({
+        id: GLOBAL_ID,
+        isCustom: false,
+        name: "George Orwell",
+      }),
+    ]);
   });
 
   it("computes skip and take from the page coordinates", async () => {

@@ -66,6 +66,7 @@ const envSchema = z
       .default("false")
       .transform((value) => value === "true"),
     WEB_BASE_URL: z.string().url().default("http://localhost:3000"),
+    WIKIDATA_CONTACT: z.string().default("book-nest/1.0 (+https://book-nest.net)"),
   })
   .transform((raw) => ({
     accessTokenTtl: raw.ACCESS_TOKEN_TTL,
@@ -91,6 +92,7 @@ const envSchema = z
     smtpUser: raw.SMTP_USER,
     tracingEnabled: raw.TRACING_ENABLED,
     webBaseUrl: raw.WEB_BASE_URL,
+    wikidataContact: raw.WIKIDATA_CONTACT,
   }));
 
 const parsed = envSchema.safeParse(process.env);

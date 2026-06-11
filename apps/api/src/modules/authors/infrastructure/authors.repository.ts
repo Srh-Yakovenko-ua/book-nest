@@ -5,6 +5,17 @@ import type { AuthorModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
+type AuthorLookupMatch = {
+  normalizedName: string;
+  openLibraryKey: null | string;
+};
+
+type FindExistingByLookupInput = {
+  normalizedNames: string[];
+  openLibraryKeys: string[];
+  userId: string;
+};
+
 type SearchAuthorsInput = {
   query: string | undefined;
   skip: number;
@@ -27,6 +38,23 @@ export class AuthorsRepository {
   findByNormalized(userId: string, normalizedName: string): Promise<AuthorModel | null> {
     return this.prisma.author.findFirst({
       where: { normalizedName, OR: [{ userId: null }, { userId }] },
+    });
+  }
+
+  findExistingByLookup({
+    normalizedNames,
+    openLibraryKeys,
+    userId,
+  }: FindExistingByLookupInput): Promise<AuthorLookupMatch[]> {
+    const candidateMatches: Prisma.AuthorWhereInput[] = [
+      { openLibraryKey: { in: openLibraryKeys } },
+      { normalizedName: { in: normalizedNames } },
+    ];
+    const visibilityClauses: Prisma.AuthorWhereInput[] = [{ userId: null }, { userId }];
+
+    return this.prisma.author.findMany({
+      select: { normalizedName: true, openLibraryKey: true },
+      where: { AND: [{ OR: candidateMatches }, { OR: visibilityClauses }] },
     });
   }
 

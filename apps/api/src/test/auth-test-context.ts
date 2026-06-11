@@ -1,4 +1,4 @@
-import type { INestApplication, ModuleMetadata } from "@nestjs/common";
+import type { INestApplication, InjectionToken, ModuleMetadata } from "@nestjs/common";
 
 import request from "supertest";
 
@@ -15,6 +15,11 @@ export type AuthTestContext = {
   close: () => Promise<void>;
   registerVerifyAndLogin: (overrides?: Partial<RegisterCredentials>) => Promise<AuthenticatedUser>;
   reset: () => void;
+};
+
+type ProviderOverride = {
+  provide: InjectionToken;
+  useValue: unknown;
 };
 
 type RegisterCredentials = {
@@ -35,6 +40,7 @@ const defaultCredentials: RegisterCredentials = {
 
 export async function createAuthTestContext(
   imports: NonNullable<ModuleMetadata["imports"]>,
+  extraOverrides: ProviderOverride[] = [],
 ): Promise<AuthTestContext> {
   const sentVerifications: SentVerification[] = [];
 
@@ -54,7 +60,10 @@ export async function createAuthTestContext(
     sendWelcomeEmail: (): Promise<void> => Promise.resolve(),
   };
 
-  const app = await createTestApp(imports, [{ provide: MailService, useValue: mailServiceStub }]);
+  const app = await createTestApp(imports, [
+    { provide: MailService, useValue: mailServiceStub },
+    ...extraOverrides,
+  ]);
 
   async function waitForVerification(email: string): Promise<SentVerification> {
     for (let attempt = 0; attempt < 50; attempt += 1) {

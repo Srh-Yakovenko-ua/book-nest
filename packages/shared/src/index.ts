@@ -1032,10 +1032,40 @@ export const CreateBookInputSchema = z
   });
 
 export type AuthorView = {
+  bio: null | string;
+  birthYear: null | number;
+  countryCode: null | string;
+  deathYear: null | number;
   id: string;
   isCustom: boolean;
   name: string;
+  openLibraryKey: null | string;
+  photoUrl: null | string;
 };
+
+export const AuthorLookupResultSchema = z.object({
+  birthYear: z.number().int().nullable(),
+  inDb: z.boolean(),
+  name: z.string(),
+  openLibraryKey: z.string(),
+  photoUrl: z.string().nullable(),
+  source: z.literal("open_library"),
+});
+
+export type AuthorLookupResult = z.infer<typeof AuthorLookupResultSchema>;
+
+const AUTHOR_LOOKUP_QUERY_MIN = 2;
+const AUTHOR_LOOKUP_QUERY_MAX = 100;
+
+export const AuthorLookupQuerySchema = z.object({
+  q: z
+    .string()
+    .trim()
+    .min(AUTHOR_LOOKUP_QUERY_MIN, "Search query must be at least 2 characters long")
+    .max(AUTHOR_LOOKUP_QUERY_MAX, "Search query must be at most 100 characters long"),
+});
+
+export type AuthorLookupQuery = z.infer<typeof AuthorLookupQuerySchema>;
 
 export type BookView = {
   ageCategory: AgeCategory;

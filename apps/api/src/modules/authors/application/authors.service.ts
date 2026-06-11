@@ -1,4 +1,9 @@
-import type { AuthorView, Paginator, TaxonomySearchPaginationQuery } from "@app/shared";
+import type {
+  AuthorLookupResult,
+  AuthorView,
+  Paginator,
+  TaxonomySearchPaginationQuery,
+} from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -8,6 +13,7 @@ import { buildPaginator } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { toAuthorView } from "../domain/author.mapper.js";
 import { AuthorsRepository } from "../infrastructure/authors.repository.js";
+import { OpenLibraryClient } from "../infrastructure/open-library.client.js";
 
 type ResolveAuthorInput = {
   id?: string;
@@ -16,7 +22,37 @@ type ResolveAuthorInput = {
 
 @Injectable()
 export class AuthorsService {
-  constructor(private readonly authorsRepository: AuthorsRepository) {}
+  constructor(
+    private readonly authorsRepository: AuthorsRepository,
+    private readonly openLibraryClient: OpenLibraryClient,
+  ) {}
+
+  async lookup(userId: string, query: string): Promise<AuthorLookupResult[]> {
+    const candidates = await this.openLibraryClient.searchAuthors(query);
+    if (candidates.length === 0) {
+      return [];
+    }
+
+    const matches = await this.authorsRepository.findExistingByLookup({
+      normalizedNames: candidates.map((candidate) => normalizeName(candidate.name)),
+      openLibraryKeys: candidates.map((candidate) => candidate.key),
+      userId,
+    });
+
+    const existingKeys = new Set(
+      matches.map((match) => match.openLibraryKey).filter((key): key is string => key !== null),
+    );
+    const existingNames = new Set(matches.map((match) => match.normalizedName));
+
+    return candidates.map((candidate) => ({
+      birthYear: candidate.birthYear,
+      inDb: existingKeys.has(candidate.key) || existingNames.has(normalizeName(candidate.name)),
+      name: candidate.name,
+      openLibraryKey: candidate.key,
+      photoUrl: candidate.photoUrl,
+      source: "open_library",
+    }));
+  }
 
   async resolveOrCreate(userId: string, input: ResolveAuthorInput): Promise<string> {
     if (input.id !== undefined) {
