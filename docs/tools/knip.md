@@ -97,4 +97,4 @@ Unlisted dependencies (1)
 
 ## Versions
 
-We use **knip 5** (not 6) because knip 6 uses `oxc-parser` which has Node 20.12 ESM interop issues. Knip 5 uses the TypeScript compiler directly and works on our Node version. When we bump Node to 20.19+, we can upgrade knip to 6.
+We use **knip 5** (not 6). The original reason was that knip 6's `oxc-parser` had ESM interop issues on Node 20.12, and we were on Node 20. That blocker is gone — we now run Node 24 everywhere (local `.nvmrc`, both Dockerfiles, CI). knip 5 still works fine, so this is no longer forced; upgrading to knip 6 is now possible but unprioritized — do it only when there's a reason and verify the gate stays green.

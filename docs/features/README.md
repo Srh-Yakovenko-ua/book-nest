@@ -20,6 +20,7 @@ All concrete claims use `path:line` references so the reader can click straight 
 
 ## Active
 
+- [books](./books.md) — backend "Create Book" domain (spec §6–§11): POST/GET/GET:id/DELETE `/api/books` + author/publisher/tag/series/list resolve-or-create + paginated taxonomy search; no cover, no edit mode yet (active)
 - [blogs-posts](./blogs-posts.md) — full-stack blogs + posts with modal-only UX, TanStack Query, BE CRUD + 33 integration tests (active)
 - [blogs-posts-videos](./blogs-posts-videos.md) — BE-only reference for all three resources including videos; 55 integration tests; superseded by blogs-posts.md for FE sections (active)
 
