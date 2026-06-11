@@ -1,0 +1,1188 @@
+import type { INestApplication } from "@nestjs/common";
+
+import request from "supertest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+import type { AuthTestContext } from "../../../test/auth-test-context.js";
+
+import { PrismaService } from "../../../core/database/prisma.service.js";
+import { createAuthTestContext } from "../../../test/auth-test-context.js";
+import { truncateAllTables } from "../../../test/truncate.js";
+import { AuthModule } from "../../auth/auth.module.js";
+import { ListsModule } from "../../lists/lists.module.js";
+import { BooksModule } from "../books.module.js";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
+
+let context: AuthTestContext;
+let app: INestApplication;
+let prisma: PrismaService;
+
+beforeAll(async () => {
+  context = await createAuthTestContext([AuthModule, BooksModule, ListsModule]);
+  app = context.app;
+  prisma = app.get(PrismaService);
+});
+
+beforeEach(() => {
+  context.reset();
+});
+
+afterEach(async () => {
+  await truncateAllTables(app);
+});
+
+afterAll(async () => {
+  await context.close();
+});
+
+function createBook(accessToken: string, body: Record<string, unknown>): request.Test {
+  return request(app.getHttpServer())
+    .post("/api/books")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
+}
+
+describe("POST /api/books", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/books")
+      .send({ authorName: "Frank Herbert", title: "Dune" });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("creates a book with a custom author and publisher and returns the nested view", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      publisherName: "Penguin",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.id).toMatch(UUID);
+    expect(res.body.title).toBe("Dune");
+    expect(res.body.userId).toBe(userId);
+    expect(res.body.author).toMatchObject({ name: "Frank Herbert" });
+    expect(res.body.author.id).toMatch(UUID);
+    expect(res.body.publisher).toMatchObject({ name: "Penguin" });
+    expect(res.body.publisher.id).toMatch(UUID);
+    expect(res.body.readingStatus).toBe("not_started");
+    expect(res.body.ownershipStatus).toBe("none");
+  });
+
+  it("creates a book with genres, a non-default language and age category and echoes them back", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      ageCategory: "16_plus",
+      authorName: "Frank Herbert",
+      genres: ["fantasy", "romance"],
+      language: "english",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.genres).toEqual(["fantasy", "romance"]);
+    expect(res.body.language).toBe("english");
+    expect(res.body.ageCategory).toBe("16_plus");
+  });
+
+  it("applies classification defaults when genres, language and age category are omitted", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, { authorName: "Frank Herbert", title: "Dune" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.genres).toEqual([]);
+    expect(res.body.formats).toEqual([]);
+    expect(res.body.language).toBe("ukrainian");
+    expect(res.body.ageCategory).toBe("not_specified");
+  });
+
+  it("creates a book with formats and echoes them back", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      formats: ["paper", "ebook"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.formats).toEqual(["paper", "ebook"]);
+  });
+
+  it("returns 400 for duplicate formats", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      formats: ["paper", "paper"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "formats" })]),
+    );
+  });
+
+  it("returns 400 for an unknown format value", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      formats: ["hardcover"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "formats.0" })]),
+    );
+  });
+
+  it("returns 400 for an unknown genre value", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      genres: ["not_a_real_genre"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "genres.0" })]),
+    );
+  });
+
+  it("reuses the same author row when the name is given in a different case and spacing", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+
+    const first = await createBook(accessToken, { authorName: "Frank Herbert", title: "Dune" });
+    const second = await createBook(accessToken, {
+      authorName: "  frank   HERBERT ",
+      title: "Dune Messiah",
+    });
+
+    expect(second.body.author.id).toBe(first.body.author.id);
+    const authors = await prisma.author.findMany({ where: { userId } });
+    expect(authors).toHaveLength(1);
+  });
+
+  it("resolves to a single author when two books are created concurrently with the same new name", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+
+    const [first, second] = await Promise.all([
+      createBook(accessToken, { authorName: "Brand New Author", title: "Dune" }),
+      createBook(accessToken, { authorName: "Brand New Author", title: "Dune Messiah" }),
+    ]);
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(second.body.author.id).toBe(first.body.author.id);
+    const authors = await prisma.author.findMany({ where: { userId } });
+    expect(authors).toHaveLength(1);
+  });
+
+  it("returns 400 when neither authorId nor authorName is provided", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, { title: "Dune" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when both authorId and authorName are provided", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorId: MISSING_UUID,
+      authorName: "Frank Herbert",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for an unknown reading status", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      readingStatus: "halfway",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "readingStatus" })]),
+    );
+  });
+
+  it("returns 404 when authorId is not visible to the user", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, { authorId: MISSING_UUID, title: "Dune" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("creates a book with tags and echoes them back as id and name", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      tags: ["dark academia", "slow burn"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    const names = res.body.tags.map((tag: { name: string }) => tag.name);
+    expect(names).toEqual(expect.arrayContaining(["dark academia", "slow burn"]));
+    for (const tag of res.body.tags) {
+      expect(tag.id).toMatch(UUID);
+    }
+    const tags = await prisma.tag.findMany({ where: { userId } });
+    expect(tags).toHaveLength(2);
+  });
+
+  it("applies an empty tags default when tags are omitted", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, { authorName: "Frank Herbert", title: "Dune" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.tags).toEqual([]);
+  });
+
+  it("reuses the same tag row across books when the name differs only in case and spacing", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+
+    const first = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      tags: ["dark academia"],
+      title: "Dune",
+    });
+    const second = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      tags: ["  Dark   Academia "],
+      title: "Dune Messiah",
+    });
+
+    expect(second.body.tags[0].id).toBe(first.body.tags[0].id);
+    const tags = await prisma.tag.findMany({ where: { userId } });
+    expect(tags).toHaveLength(1);
+  });
+
+  it("returns 400 when more than 12 tags are provided", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const tags = Array.from({ length: 13 }, (unused, index) => `tag ${index}`);
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      tags,
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "tags" })]),
+    );
+  });
+
+  it("returns 400 when tags contain a case-insensitive duplicate", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      tags: ["slow burn", "Slow Burn"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "tags" })]),
+    );
+  });
+
+  it("returns 400 for a tag shorter than the minimum length", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      tags: ["a"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "tags.0" })]),
+    );
+  });
+
+  it("creates a book with edition details and echoes them back", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Rebecca Yarros",
+      dedication: "To everyone who has been told they are too much",
+      illustrator: "Jane Doe",
+      isbn: "9780306406157",
+      originalTitle: "Fourth Wing",
+      pagesCount: 528,
+      publicationYear: 2024,
+      title: "Четверте крило",
+      translator: "John Smith",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      dedication: "To everyone who has been told they are too much",
+      illustrator: "Jane Doe",
+      isbn: "9780306406157",
+      originalTitle: "Fourth Wing",
+      pagesCount: 528,
+      publicationYear: 2024,
+      translator: "John Smith",
+    });
+  });
+
+  it("accepts a valid hyphenated ISBN-10", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      isbn: "0-306-40615-2",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.isbn).toBe("0-306-40615-2");
+  });
+
+  it("returns all edition details as null when they are omitted", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, { authorName: "Frank Herbert", title: "Dune" });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      dedication: null,
+      illustrator: null,
+      isbn: null,
+      originalTitle: null,
+      pagesCount: null,
+      publicationYear: null,
+      translator: null,
+    });
+  });
+
+  it("returns 400 for an ISBN with an invalid checksum", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      isbn: "9780306406158",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "isbn" })]),
+    );
+  });
+
+  it("returns 400 when pagesCount is below the minimum", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      pagesCount: 0,
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "pagesCount" })]),
+    );
+  });
+
+  it("returns 400 when pagesCount exceeds the maximum", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      pagesCount: 10001,
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "pagesCount" })]),
+    );
+  });
+
+  it("returns 400 when publicationYear is too far in the future", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      publicationYear: new Date().getUTCFullYear() + 2,
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "publicationYear" })]),
+    );
+  });
+
+  it("scopes tag resolution to the caller so two users get separate tag rows for the same name", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const ownerBook = await createBook(owner.accessToken, {
+      authorName: "Frank Herbert",
+      tags: ["dark academia"],
+      title: "Dune",
+    });
+    const strangerBook = await createBook(stranger.accessToken, {
+      authorName: "Isaac Asimov",
+      tags: ["dark academia"],
+      title: "Foundation",
+    });
+
+    expect(ownerBook.body.tags[0].id).not.toBe(strangerBook.body.tags[0].id);
+    const ownerTags = await prisma.tag.findMany({ where: { userId: owner.userId } });
+    const strangerTags = await prisma.tag.findMany({ where: { userId: stranger.userId } });
+    expect(ownerTags).toHaveLength(1);
+    expect(strangerTags).toHaveLength(1);
+  });
+
+  it("returns readingProgress as null when none is provided", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, { authorName: "Frank Herbert", title: "Dune" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.readingProgress).toBeNull();
+  });
+
+  it("creates a reading book with reading progress and echoes the provided fields", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      readingProgress: { currentPage: 120, note: "great so far", startedAt: "2026-02-01" },
+      readingStatus: "reading",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.readingProgress).toEqual({
+      abandonedAt: null,
+      currentPage: 120,
+      finishedAt: null,
+      impression: null,
+      note: "great so far",
+      pausedAt: null,
+      rating: null,
+      startedAt: "2026-02-01",
+    });
+  });
+
+  it("creates a finished book with a rating, finished date and impression", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      readingProgress: { finishedAt: "2026-02-05", impression: "loved it", rating: 5 },
+      readingStatus: "finished",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.readingProgress).toEqual({
+      abandonedAt: null,
+      currentPage: null,
+      finishedAt: "2026-02-05",
+      impression: "loved it",
+      note: null,
+      pausedAt: null,
+      rating: 5,
+      startedAt: null,
+    });
+  });
+
+  it("does not create a reading-progress row for a not_started status even when progress is sent", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      readingProgress: { currentPage: 50, startedAt: "2026-02-01" },
+      readingStatus: "not_started",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.readingProgress).toBeNull();
+    const rows = await prisma.bookReadingProgress.findMany({ where: { bookId: res.body.id } });
+    expect(rows).toHaveLength(0);
+  });
+
+  it("returns 400 when currentPage exceeds pagesCount", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      pagesCount: 300,
+      readingProgress: { currentPage: 301 },
+      readingStatus: "reading",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "readingProgress.currentPage" })]),
+    );
+  });
+
+  it("returns 400 when a reading date is in the future", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const nextYear = `${new Date().getUTCFullYear() + 1}-01-01`;
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      readingProgress: { startedAt: nextYear },
+      readingStatus: "reading",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "readingProgress.startedAt" })]),
+    );
+  });
+
+  it("returns 400 when the rating is above 5", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      readingProgress: { rating: 6 },
+      readingStatus: "finished",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "readingProgress.rating" })]),
+    );
+  });
+
+  it("returns all ownership conditional blocks as null for an owned book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      ownershipStatus: "owned",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.purchaseInfo).toBeNull();
+    expect(res.body.deliveryInfo).toBeNull();
+    expect(res.body.loanInfo).toBeNull();
+  });
+
+  it("creates a want_to_buy book with purchase info and echoes the price as a number", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      ownershipStatus: "want_to_buy",
+      purchaseInfo: { currency: "UAH", expectedPrice: 299.99, storeName: "Yakaboo" },
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.purchaseInfo).toEqual({
+      currency: "UAH",
+      expectedPrice: 299.99,
+      note: null,
+      storeName: "Yakaboo",
+      storeUrl: null,
+    });
+    expect(res.body.deliveryInfo).toBeNull();
+    expect(res.body.loanInfo).toBeNull();
+  });
+
+  it("ignores a non-matching conditional block sent for a want_to_buy book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "want_to_buy",
+      purchaseInfo: { storeName: "Yakaboo" },
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.purchaseInfo).toMatchObject({ storeName: "Yakaboo" });
+    expect(res.body.loanInfo).toBeNull();
+  });
+
+  it("defaults the delivery status to ordered for an in_transit book without one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      deliveryInfo: { orderNumber: "TTN-1", storeName: "Yakaboo" },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.deliveryInfo).toMatchObject({
+      deliveryStatus: "ordered",
+      orderNumber: "TTN-1",
+      storeName: "Yakaboo",
+    });
+  });
+
+  it("returns 400 when expectedDeliveryDate is before orderDate", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      deliveryInfo: { expectedDeliveryDate: "2026-02-01", orderDate: "2026-02-10" },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "deliveryInfo.expectedDeliveryDate" }),
+      ]),
+    );
+  });
+
+  it("creates a borrowed_from_someone book with loan info", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      loanInfo: { loanDate: "2026-02-01", personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.loanInfo).toEqual({
+      expectedReturnDate: null,
+      loanDate: "2026-02-01",
+      note: null,
+      personName: "Olha",
+    });
+  });
+
+  it("creates a lent_to_someone book with loan info", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "lent_to_someone",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.loanInfo).toMatchObject({ personName: "Olha" });
+  });
+
+  it("returns 400 for a borrowed book without loan info", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "loanInfo.personName" })]),
+    );
+  });
+
+  it("returns 400 when expectedReturnDate is before loanDate", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      loanInfo: { expectedReturnDate: "2026-02-01", loanDate: "2026-02-10", personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "loanInfo.expectedReturnDate" })]),
+    );
+  });
+});
+
+describe("POST /api/books series handling", () => {
+  function searchSeries(accessToken: string, search?: string): request.Test {
+    const path = search === undefined ? "/api/series" : `/api/series?search=${search}`;
+    return request(app.getHttpServer()).get(path).set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  it("creates a solo book with a null series and part number", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      bookType: "solo",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.bookType).toBe("solo");
+    expect(res.body.series).toBeNull();
+    expect(res.body.partNumber).toBeNull();
+  });
+
+  it("creates a series_part with a new series and exposes it in the series search", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Sarah J. Maas",
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
+      partNumber: 1,
+      title: "Throne of Glass",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.bookType).toBe("series_part");
+    expect(res.body.partNumber).toBe(1);
+    expect(res.body.series).toMatchObject({
+      name: "Throne of Glass",
+      status: "ongoing",
+      totalBooks: 3,
+    });
+    expect(res.body.series.id).toMatch(UUID);
+
+    const seriesRows = await prisma.series.findMany({ where: { userId } });
+    expect(seriesRows).toHaveLength(1);
+
+    const searchRes = await searchSeries(accessToken, "throne");
+    expect(searchRes.body.totalCount).toBe(1);
+    expect(searchRes.body.items[0].name).toBe("Throne of Glass");
+  });
+
+  it("links a series_part to an existing series by id", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", userId },
+    });
+
+    const res = await createBook(accessToken, {
+      authorName: "Sarah J. Maas",
+      bookType: "series_part",
+      partNumber: 2,
+      seriesId: existing.id,
+      title: "Crown of Midnight",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.series.id).toBe(existing.id);
+    expect(res.body.partNumber).toBe(2);
+    const seriesRows = await prisma.series.findMany({ where: { userId } });
+    expect(seriesRows).toHaveLength(1);
+  });
+
+  it("returns 400 for a series_part without a part number", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Sarah J. Maas",
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass" },
+      title: "Throne of Glass",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
+    );
+  });
+
+  it("returns 400 for a series_part with neither an existing series nor a new one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Sarah J. Maas",
+      bookType: "series_part",
+      partNumber: 1,
+      title: "Throne of Glass",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "newSeries" })]),
+    );
+  });
+
+  it("returns 400 for a series_part with both an existing series and a new one", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Existing", normalizedName: "existing", userId },
+    });
+
+    const res = await createBook(accessToken, {
+      authorName: "Sarah J. Maas",
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass" },
+      partNumber: 1,
+      seriesId: existing.id,
+      title: "Throne of Glass",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "newSeries" })]),
+    );
+  });
+
+  it("returns 400 when the new series total books is fewer than the part number", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Sarah J. Maas",
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass", totalBooks: 2 },
+      partNumber: 3,
+      title: "Throne of Glass",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "newSeries.totalBooks" })]),
+    );
+  });
+
+  it("returns 404 when linking to a series owned by another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const ownerSeries = await prisma.series.create({
+      data: { name: "Owner Series", normalizedName: "owner series", userId: owner.userId },
+    });
+
+    const res = await createBook(stranger.accessToken, {
+      authorName: "Sarah J. Maas",
+      bookType: "series_part",
+      partNumber: 1,
+      seriesId: ownerSeries.id,
+      title: "Steal",
+    });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("ignores series fields for a solo book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      bookType: "solo",
+      newSeries: { name: "Ignored" },
+      partNumber: 9,
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.bookType).toBe("solo");
+    expect(res.body.series).toBeNull();
+    expect(res.body.partNumber).toBeNull();
+  });
+});
+
+describe("POST /api/books organization", () => {
+  function searchLists(accessToken: string, search?: string): request.Test {
+    const path = search === undefined ? "/api/lists" : `/api/lists?search=${search}`;
+    return request(app.getHttpServer()).get(path).set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  it("does not add a book to the queue by default", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, { authorName: "Frank Herbert", title: "Dune" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.isInReadingQueue).toBe(false);
+    expect(res.body.queuePriority).toBeNull();
+  });
+
+  it("adds a book to the queue with the default normal priority", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authorName: "Frank Herbert",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.isInReadingQueue).toBe(true);
+    expect(res.body.queuePriority).toBe("normal");
+  });
+
+  it("echoes back a provided high queue priority", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authorName: "Frank Herbert",
+      queuePriority: "high",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.queuePriority).toBe("high");
+  });
+
+  it("appends a second queued book after the first", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+
+    const first = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authorName: "Frank Herbert",
+      title: "Dune",
+    });
+    const second = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authorName: "Frank Herbert",
+      queuePriority: "high",
+      title: "Dune Messiah",
+    });
+
+    expect(first.body.isInReadingQueue).toBe(true);
+    expect(second.body.isInReadingQueue).toBe(true);
+    expect(second.body.queuePriority).toBe("high");
+
+    const rows = await prisma.book.findMany({
+      orderBy: { queuePosition: "asc" },
+      where: { userId },
+    });
+    const positions = rows.map((book) => book.queuePosition);
+    expect(positions).toEqual([1, 2]);
+  });
+
+  it("does not enqueue a want_to_read book when addToReadingQueue is false", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      addToReadingQueue: false,
+      authorName: "Frank Herbert",
+      readingStatus: "want_to_read",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.readingStatus).toBe("want_to_read");
+    expect(res.body.isInReadingQueue).toBe(false);
+    expect(res.body.queuePriority).toBeNull();
+  });
+
+  it("adds the book to an existing list and a new list and exposes the new one in the list search", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.bookList.create({
+      data: { name: "Gifts", normalizedName: "gifts", userId },
+    });
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      listIds: [existing.id],
+      newLists: [{ description: "cozy", name: "Autumn reads" }],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    const listNames = res.body.lists.map((list: { name: string }) => list.name);
+    expect(listNames).toEqual(expect.arrayContaining(["Gifts", "Autumn reads"]));
+
+    const lists = await prisma.bookList.findMany({ where: { userId } });
+    expect(lists).toHaveLength(2);
+
+    const searchRes = await searchLists(accessToken, "autumn");
+    expect(searchRes.body.totalCount).toBe(1);
+    expect(searchRes.body.items[0]).toMatchObject({ description: "cozy", name: "Autumn reads" });
+  });
+
+  it("returns 404 when adding the book to a list owned by another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const ownerList = await prisma.bookList.create({
+      data: { name: "Owner List", normalizedName: "owner list", userId: owner.userId },
+    });
+
+    const res = await createBook(stranger.accessToken, {
+      authorName: "Frank Herbert",
+      listIds: [ownerList.id],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("does not duplicate the book-to-list link when the same list is given twice", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.bookList.create({
+      data: { name: "Autumn reads", normalizedName: "autumn reads", userId },
+    });
+
+    const res = await createBook(accessToken, {
+      authorName: "Frank Herbert",
+      listIds: [existing.id],
+      newLists: [{ name: "  autumn   reads " }],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.lists).toHaveLength(1);
+
+    const items = await prisma.bookListItem.findMany({ where: { bookId: res.body.id } });
+    expect(items).toHaveLength(1);
+
+    const lists = await prisma.bookList.findMany({ where: { userId } });
+    expect(lists).toHaveLength(1);
+  });
+});
+
+describe("GET /api/books", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).get("/api/books");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns only the caller's own books", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    await createBook(owner.accessToken, { authorName: "Frank Herbert", title: "Dune" });
+    await createBook(stranger.accessToken, { authorName: "Isaac Asimov", title: "Foundation" });
+
+    const res = await request(app.getHttpServer())
+      .get("/api/books")
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(1);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].title).toBe("Dune");
+  });
+
+  it("paginates with correct totalCount and pagesCount", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    for (let index = 0; index < 3; index += 1) {
+      await createBook(accessToken, { authorName: `Author ${index}`, title: `Book ${index}` });
+    }
+
+    const res = await request(app.getHttpServer())
+      .get("/api/books?pageNumber=1&pageSize=2")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ page: 1, pagesCount: 2, pageSize: 2, totalCount: 3 });
+    expect(res.body.items).toHaveLength(2);
+  });
+});
+
+describe("GET /api/books/:id", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).get(`/api/books/${MISSING_UUID}`);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 for a book owned by another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const created = await createBook(owner.accessToken, {
+      authorName: "Frank Herbert",
+      title: "Dune",
+    });
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const res = await request(app.getHttpServer())
+      .get(`/api/books/${created.body.id}`)
+      .set("Authorization", `Bearer ${stranger.accessToken}`);
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("DELETE /api/books/:id", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).delete(`/api/books/${MISSING_UUID}`);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when deleting a book owned by another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const created = await createBook(owner.accessToken, {
+      authorName: "Frank Herbert",
+      title: "Dune",
+    });
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const res = await request(app.getHttpServer())
+      .delete(`/api/books/${created.body.id}`)
+      .set("Authorization", `Bearer ${stranger.accessToken}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 204 on the owner's book and then 404 on a follow-up read", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, { authorName: "Frank Herbert", title: "Dune" });
+
+    const deleteRes = await request(app.getHttpServer())
+      .delete(`/api/books/${created.body.id}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(deleteRes.status).toBe(204);
+
+    const readRes = await request(app.getHttpServer())
+      .get(`/api/books/${created.body.id}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(readRes.status).toBe(404);
+  });
+});

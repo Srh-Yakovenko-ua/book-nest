@@ -39,8 +39,221 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   socialLinks             UserSocialLink[]
   settings                UserProfileSettings?
+  authors                 Author[]
+  publishers              Publisher[]
+  books                   Book[]
+  tags                    Tag[]
+  series                  Series[]
+  bookLists               BookList[]
 
   @@map("users")
+}
+
+model Series {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  name           String
+  normalizedName String   @map("normalized_name")
+  status         String   @default("unknown")
+  totalBooks     Int?     @map("total_books")
+  description    String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books          Book[]
+
+  @@unique([userId, normalizedName])
+  @@index([userId])
+  @@map("series")
+}
+
+model Author {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  name           String
+  normalizedName String   @map("normalized_name")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books          Book[]
+
+  @@unique([userId, normalizedName])
+  @@index([normalizedName])
+  @@map("authors")
+}
+
+model Publisher {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  name           String
+  normalizedName String   @map("normalized_name")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books          Book[]
+
+  @@unique([userId, normalizedName])
+  @@index([normalizedName])
+  @@map("publishers")
+}
+
+model Book {
+  id              String     @id @default(uuid()) @db.Uuid
+  userId          String     @map("user_id") @db.Uuid
+  title           String
+  authorId        String     @map("author_id") @db.Uuid
+  publisherId     String?    @map("publisher_id") @db.Uuid
+  description     String?
+  genres          String[]   @default([])
+  formats         String[]   @default([])
+  language        String     @default("ukrainian")
+  ageCategory     String     @default("not_specified") @map("age_category")
+  readingStatus   String     @default("not_started") @map("reading_status")
+  ownershipStatus String     @default("none") @map("ownership_status")
+  isFavorite      Boolean    @default(false) @map("is_favorite")
+  pagesCount      Int?       @map("pages_count")
+  publicationYear Int?       @map("publication_year")
+  isbn            String?
+  originalTitle   String?    @map("original_title")
+  translator      String?
+  illustrator     String?
+  dedication      String?
+  seriesId        String?    @map("series_id") @db.Uuid
+  partNumber      Int?       @map("part_number")
+  queuePriority   String?    @map("queue_priority")
+  queuePosition   Int?       @map("queue_position")
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  author          Author     @relation(fields: [authorId], references: [id])
+  publisher       Publisher? @relation(fields: [publisherId], references: [id])
+  series          Series?    @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  tags            BookTag[]
+  lists           BookListItem[]
+  readingProgress BookReadingProgress?
+  purchaseInfo    BookPurchaseInfo?
+  deliveryInfo    BookDeliveryInfo?
+  loanInfo        BookLoanInfo?
+
+  @@index([userId])
+  @@index([seriesId])
+  @@map("books")
+}
+
+model BookReadingProgress {
+  id          String    @id @default(uuid()) @db.Uuid
+  bookId      String    @unique @map("book_id") @db.Uuid
+  currentPage Int?      @map("current_page")
+  startedAt   DateTime? @map("started_at") @db.Date
+  finishedAt  DateTime? @map("finished_at") @db.Date
+  pausedAt    DateTime? @map("paused_at") @db.Date
+  abandonedAt DateTime? @map("abandoned_at") @db.Date
+  rating      Int?
+  note        String?
+  impression  String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@map("book_reading_progress")
+}
+
+model BookPurchaseInfo {
+  id            String   @id @default(uuid()) @db.Uuid
+  bookId        String   @unique @map("book_id") @db.Uuid
+  storeName     String?  @map("store_name")
+  storeUrl      String?  @map("store_url")
+  expectedPrice Decimal? @map("expected_price") @db.Decimal(10, 2)
+  currency      String?
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  book          Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@map("book_purchase_info")
+}
+
+model BookDeliveryInfo {
+  id                   String    @id @default(uuid()) @db.Uuid
+  bookId               String    @unique @map("book_id") @db.Uuid
+  storeName            String?   @map("store_name")
+  orderNumber          String?   @map("order_number")
+  orderDate            DateTime? @map("order_date") @db.Date
+  expectedDeliveryDate DateTime? @map("expected_delivery_date") @db.Date
+  deliveryStatus       String?   @map("delivery_status")
+  note                 String?
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  book                 Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@map("book_delivery_info")
+}
+
+model BookLoanInfo {
+  id                 String    @id @default(uuid()) @db.Uuid
+  bookId             String    @unique @map("book_id") @db.Uuid
+  personName         String    @map("person_name")
+  loanDate           DateTime? @map("loan_date") @db.Date
+  expectedReturnDate DateTime? @map("expected_return_date") @db.Date
+  note               String?
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  book               Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@map("book_loan_info")
+}
+
+model Tag {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  name           String
+  normalizedName String    @map("normalized_name")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books          BookTag[]
+
+  @@unique([userId, normalizedName])
+  @@index([userId])
+  @@map("tags")
+}
+
+model BookTag {
+  bookId String @map("book_id") @db.Uuid
+  tagId  String @map("tag_id") @db.Uuid
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([bookId, tagId])
+  @@index([tagId])
+  @@map("book_tags")
+}
+
+model BookList {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  name           String
+  normalizedName String         @map("normalized_name")
+  description    String?
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items          BookListItem[]
+
+  @@unique([userId, normalizedName])
+  @@index([userId])
+  @@map("book_lists")
+}
+
+model BookListItem {
+  listId String   @map("list_id") @db.Uuid
+  bookId String   @map("book_id") @db.Uuid
+  list   BookList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  book   Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@id([listId, bookId])
+  @@index([bookId])
+  @@map("book_list_items")
 }
 
 model UserProfileSettings {
