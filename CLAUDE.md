@@ -21,7 +21,7 @@ A teaching fullstack monorepo. The user is a working frontend developer learning
 
 ## 2. Stack
 
-- **Workspace**: pnpm workspaces (Node 20, pnpm 10), Turborepo for caching, shared TS config in `tsconfig.base.json`
+- **Workspace**: pnpm workspaces (Node 24, pnpm 10), Turborepo for caching, shared TS config in `tsconfig.base.json`
 - **Frontend** (`apps/web`): **Next.js 16 (App Router, RSC/SSR)** + React 19 + TS strict, **next-intl** locale-routing (`/[locale]/`, ru/en/uk) for multilingual SEO, TanStack Query v5 (SSR-safe), Zustand, RHF + Zod, shadcn/ui, Tailwind v4 (PostCSS), next-themes, Vitest + RTL + happy-dom + user-event, web-vitals, react-scan. File-based routing under `src/app/`; locale middleware in `src/proxy.ts`. (Migrated off Vite + React Router for SSR/SEO.)
 - **Backend** (`apps/api`): **NestJS 11 + Prisma 7 (engineless, `@prisma/adapter-pg` driver adapter) + PostgreSQL** + TS strict (ESM). Feature-sliced layered modules (`api / application / domain / infrastructure`), nestjs-zod + Zod validation pipes, @nestjs/swagger, pino logger (pretty dev / JSON prod), helmet, compression, @nestjs/throttler, jose (JWT), bcryptjs, OpenTelemetry + prom-client, graceful shutdown, request-id correlation, global `HttpErrorFilter`, Zod-validated env. Hot-reload via `@swc-node/register --watch` (**not** `tsx` — it strips the decorator metadata Nest DI needs). Schema in `prisma/schema.prisma`, client generated to `src/generated/prisma`, schema changes via `prisma migrate`.
 - **Shared** (`packages/shared`): DTOs and API contracts imported as `@app/shared`. **Single source of truth for FE/BE type alignment.**
