@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import { hasLocale, NextIntlClientProvider } from "next-intl";
@@ -35,6 +35,13 @@ export async function generateMetadata({ params }: Omit<Props, "children">): Pro
     },
   };
 }
+
+export const viewport: Viewport = {
+  themeColor: [
+    { color: "#F6F0E7", media: "(prefers-color-scheme: light)" },
+    { color: "#17120E", media: "(prefers-color-scheme: dark)" },
+  ],
+};
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
