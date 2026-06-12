@@ -1139,9 +1139,13 @@ export type LoanInfoView = {
 };
 
 export type PublisherView = {
+  countryCode: null | string;
+  foundedYear: null | number;
   id: string;
   isCustom: boolean;
+  logoUrl: null | string;
   name: string;
+  websiteUrl: null | string;
 };
 
 export type PurchaseInfoView = {

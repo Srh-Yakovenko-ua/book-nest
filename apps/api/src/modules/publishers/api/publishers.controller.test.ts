@@ -151,3 +151,101 @@ describe("GET /api/publishers", () => {
     expect(secondPage.body.items).toHaveLength(1);
   });
 });
+
+describe("GET /api/publishers catalog fields", () => {
+  it("returns the enriched fields for a global seeded publisher", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await prisma.publisher.create({
+      data: {
+        countryCode: "UA",
+        foundedYear: 2001,
+        logoUrl: "https://example.org/stary-lev.svg",
+        name: "Vydavnytstvo Stary Lev",
+        normalizedName: "vydavnytstvo stary lev",
+        userId: null,
+        websiteUrl: "https://starylev.com.ua",
+        wikidataId: "Q12345",
+      },
+    });
+
+    const res = await searchPublishers(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.items[0]).toEqual({
+      countryCode: "UA",
+      foundedYear: 2001,
+      id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/),
+      isCustom: false,
+      logoUrl: "https://example.org/stary-lev.svg",
+      name: "Vydavnytstvo Stary Lev",
+      websiteUrl: "https://starylev.com.ua",
+    });
+  });
+
+  it("returns null catalog fields for a custom publisher created without enrichment", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await prisma.publisher.create({
+      data: { name: "My Press", normalizedName: "my press", userId },
+    });
+
+    const res = await searchPublishers(accessToken);
+
+    expect(res.body.items[0]).toEqual({
+      countryCode: null,
+      foundedYear: null,
+      id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/),
+      isCustom: true,
+      logoUrl: null,
+      name: "My Press",
+      websiteUrl: null,
+    });
+  });
+
+  it("does not expose the wikidata id or timestamps in the view", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await prisma.publisher.create({
+      data: {
+        name: "Vintage",
+        normalizedName: "vintage",
+        userId: null,
+        wikidataId: "Q67890",
+      },
+    });
+
+    const res = await searchPublishers(accessToken);
+
+    expect(res.body.items[0]).not.toHaveProperty("wikidataId");
+    expect(res.body.items[0]).not.toHaveProperty("normalizedName");
+    expect(res.body.items[0]).not.toHaveProperty("createdAt");
+    expect(res.body.items[0]).not.toHaveProperty("userId");
+  });
+
+  it("marks a global publisher with rich fields as not custom and a user publisher as custom", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await prisma.publisher.create({
+      data: {
+        countryCode: "GB",
+        foundedYear: 1935,
+        name: "Penguin",
+        normalizedName: "penguin",
+        userId: null,
+      },
+    });
+    await prisma.publisher.create({
+      data: { countryCode: "UA", name: "My Press", normalizedName: "my press", userId },
+    });
+
+    const res = await searchPublishers(accessToken);
+
+    const byName = new Map(
+      res.body.items.map(
+        (publisher: { countryCode: null | string; isCustom: boolean; name: string }) => [
+          publisher.name,
+          publisher,
+        ],
+      ),
+    );
+    expect(byName.get("Penguin")).toMatchObject({ countryCode: "GB", isCustom: false });
+    expect(byName.get("My Press")).toMatchObject({ countryCode: "UA", isCustom: true });
+  });
+});
