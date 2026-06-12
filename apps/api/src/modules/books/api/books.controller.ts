@@ -1,6 +1,6 @@
 import type { BookView, Paginator } from "@app/shared";
 
-import { CreateBookInputSchema, PaginationQuerySchema } from "@app/shared";
+import { CreateBookInputSchema, PaginationQuerySchema, UpdateBookInputSchema } from "@app/shared";
 import {
   Body,
   Controller,
@@ -9,6 +9,7 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -37,9 +38,12 @@ import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
 import { BooksService } from "../application/books.service.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { PaginationQueryDto } from "./input-dto/pagination-query.input-dto.js";
+import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
 
 const CREATE_BOOK_TTL_SECONDS = 60;
 const CREATE_BOOK_LIMIT = 30;
+const UPDATE_BOOK_TTL_SECONDS = 60;
+const UPDATE_BOOK_LIMIT = 60;
 
 @ApiTags("books")
 @Controller("api/books")
@@ -88,6 +92,24 @@ export class BooksController {
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<BookView> {
     return this.booksService.getById(user.id, id);
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBearerAuth()
+  @ApiBody({ type: UpdateBookInputDto })
+  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiOkResponse({ description: "The updated book" })
+  @ApiOperation({ summary: "Update a book in the current user library" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Patch(":id")
+  @Throttle({ default: { limit: UPDATE_BOOK_LIMIT, ttl: seconds(UPDATE_BOOK_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  update(
+    @CurrentUser() user: UserModel,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new ZodBodyPipe(UpdateBookInputSchema)) body: UpdateBookInputDto,
+  ): Promise<BookView> {
+    return this.booksService.update(user.id, id, body);
   }
 
   @ApiBearerAuth()

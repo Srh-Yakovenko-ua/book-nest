@@ -1,4 +1,4 @@
-import type { CreateBookInput } from "@app/shared";
+import type { CreateBookInput, UpdateBookInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -7,9 +7,13 @@ import type { ListsService } from "../../lists/application/lists.service.js";
 import type { PublishersService } from "../../publishers/application/publishers.service.js";
 import type { SeriesService } from "../../series/application/series.service.js";
 import type { TagsService } from "../../tags/application/tags.service.js";
-import type { BooksRepository, BookWithRelations } from "../infrastructure/books.repository.js";
+import type {
+  BooksRepository,
+  BookWithRelations,
+  UpdateBookData,
+} from "../infrastructure/books.repository.js";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { BooksService } from "./books.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -28,6 +32,7 @@ type Repository = {
   findOwnedById: ReturnType<typeof vi.fn>;
   listByUser: ReturnType<typeof vi.fn>;
   maxQueuePosition: ReturnType<typeof vi.fn>;
+  updateOwned: ReturnType<typeof vi.fn>;
 };
 
 function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations {
@@ -84,6 +89,7 @@ function buildService(
     publisherId?: null | string;
     seriesId?: string;
     tagIds?: string[];
+    updateOwned?: BookWithRelations;
   } = {},
 ): {
   authorsService: {
@@ -104,6 +110,7 @@ function buildService(
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
     listByUser: vi.fn().mockResolvedValue(overrides.listByUser ?? []),
     maxQueuePosition: vi.fn().mockResolvedValue(overrides.maxQueuePosition ?? 0),
+    updateOwned: vi.fn().mockResolvedValue(overrides.updateOwned ?? bookRow()),
   };
 
   const authorsService = {
@@ -141,6 +148,42 @@ function buildService(
     service,
     tagsService,
   };
+}
+
+function loanRow(
+  overrides: Partial<NonNullable<BookWithRelations["loanInfo"]>> = {},
+): BookWithRelations["loanInfo"] {
+  return {
+    bookId: BOOK_ID,
+    createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    expectedReturnDate: null,
+    id: "88888888-8888-4888-8888-888888888881",
+    loanDate: null,
+    note: null,
+    personName: "Olha",
+    updatedAt: new Date("2026-02-01T10:00:00.000Z"),
+    ...overrides,
+  } as BookWithRelations["loanInfo"];
+}
+
+function progressRow(
+  overrides: Partial<NonNullable<BookWithRelations["readingProgress"]>> = {},
+): BookWithRelations["readingProgress"] {
+  return {
+    abandonedAt: null,
+    bookId: BOOK_ID,
+    createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    currentPage: null,
+    finishedAt: null,
+    id: "88888888-8888-4888-8888-888888888882",
+    impression: null,
+    note: null,
+    pausedAt: null,
+    rating: null,
+    startedAt: null,
+    updatedAt: new Date("2026-02-01T10:00:00.000Z"),
+    ...overrides,
+  } as BookWithRelations["readingProgress"];
 }
 
 describe("BooksService.create", () => {
@@ -732,5 +775,342 @@ describe("BooksService.list", () => {
     });
     expect(page.items).toHaveLength(1);
     expect(page.items[0]?.id).toBe(BOOK_ID);
+  });
+});
+
+function updateDataFromFirstCall(repository: Repository): UpdateBookData {
+  const call = repository.updateOwned.mock.calls.at(0);
+  if (call === undefined) {
+    throw new Error("updateOwned was not called");
+  }
+  return call[2] as UpdateBookData;
+}
+
+describe("BooksService.update", () => {
+  it("throws NotFoundError when the book does not belong to the caller", async () => {
+    const { repository, service } = buildService({ findOwnedById: null });
+
+    await expect(service.update(OTHER_USER_ID, BOOK_ID, { title: "New" })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    expect(repository.updateOwned).not.toHaveBeenCalled();
+  });
+
+  it("assigns only the provided scalar fields and leaves the rest untouched", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { title: "Renamed" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ title: "Renamed" });
+  });
+
+  it("passes through an explicit null to clear a nullable scalar field", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { dedication: null });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ dedication: null });
+  });
+
+  it("resolves a custom author by name and connects it on the update fields", async () => {
+    const { authorsService, repository, service } = buildService({
+      authorId: AUTHOR_ID,
+      findOwnedById: bookRow(),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { author: { name: "Ursula K. Le Guin" } });
+
+    expect(authorsService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
+      name: "Ursula K. Le Guin",
+    });
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields.authorId).toBe(AUTHOR_ID);
+  });
+
+  it("materializes an open library author when the reference is a key", async () => {
+    const { authorsService, repository, service } = buildService({
+      authorId: AUTHOR_ID,
+      findOwnedById: bookRow(),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { author: { openLibraryKey: "OL23919A" } });
+
+    expect(authorsService.materializeFromOpenLibrary).toHaveBeenCalledWith("OL23919A");
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields.authorId).toBe(AUTHOR_ID);
+  });
+
+  it("disconnects the publisher when the resolver returns null", async () => {
+    const { publishersService, repository, service } = buildService({ findOwnedById: bookRow() });
+    publishersService.resolveOrCreate.mockResolvedValue(null);
+
+    await service.update(USER_ID, BOOK_ID, { publisherName: "Vivat" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields.publisherId).toBeNull();
+  });
+
+  it("connects the publisher when the resolver returns an id", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { publisherName: "Vivat" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields.publisherId).toBe(PUBLISHER_ID);
+  });
+
+  it("passes the resolved tag ids to the repository when tags are provided", async () => {
+    const { repository, service, tagsService } = buildService({
+      findOwnedById: bookRow(),
+      tagIds: [TAG_ID],
+    });
+
+    await service.update(USER_ID, BOOK_ID, { tags: ["dark academia"] });
+
+    expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(USER_ID, ["dark academia"]);
+    const data = updateDataFromFirstCall(repository);
+    expect(data.tagIds).toEqual([TAG_ID]);
+  });
+
+  it("leaves tagIds undefined so the repository keeps the existing tags when tags are absent", async () => {
+    const { repository, service, tagsService } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { title: "Renamed" });
+
+    expect(tagsService.resolveOrCreateMany).not.toHaveBeenCalled();
+    const data = updateDataFromFirstCall(repository);
+    expect(data.tagIds).toBeUndefined();
+  });
+
+  it("resolves the lists and passes the ids when listIds are provided", async () => {
+    const { listsService, repository, service } = buildService({
+      findOwnedById: bookRow(),
+      listIds: [LIST_ID],
+    });
+
+    await service.update(USER_ID, BOOK_ID, { listIds: [LIST_ID] });
+
+    expect(listsService.resolveListsForBook).toHaveBeenCalledWith(USER_ID, {
+      listIds: [LIST_ID],
+      newLists: undefined,
+    });
+    const data = updateDataFromFirstCall(repository);
+    expect(data.listIds).toEqual([LIST_ID]);
+  });
+
+  it("deletes the loan block when ownership moves away from a loan status", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ ownershipStatus: "borrowed_from_someone" }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { ownershipStatus: "owned" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.loanInfo).toEqual({ delete: true });
+  });
+
+  it("builds the purchase block when ownership becomes want_to_buy", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, {
+      ownershipStatus: "want_to_buy",
+      purchaseInfo: { storeName: "Yakaboo" },
+    });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.purchaseInfo).toEqual({
+      create: {
+        currency: null,
+        expectedPrice: null,
+        note: null,
+        storeName: "Yakaboo",
+        storeUrl: null,
+      },
+      update: {
+        currency: undefined,
+        expectedPrice: undefined,
+        note: undefined,
+        storeName: "Yakaboo",
+        storeUrl: undefined,
+      },
+    });
+  });
+
+  it("builds the reading-progress block when the status becomes reading", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, {
+      readingProgress: { currentPage: 30 },
+      readingStatus: "reading",
+    });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.readingProgress).toMatchObject({
+      create: { currentPage: 30 },
+      update: { currentPage: 30 },
+    });
+  });
+
+  it("uses the stored reading status when validating current page so a payload-only page is checked against the db pages", async () => {
+    const { service } = buildService({
+      findOwnedById: bookRow({ pagesCount: 100, readingStatus: "reading" }),
+    });
+
+    const input: UpdateBookInput = { readingProgress: { currentPage: 150 } };
+
+    await expect(service.update(USER_ID, BOOK_ID, input)).rejects.toBeInstanceOf(BadRequestError);
+  });
+
+  it("merges the payload page against the stored pages count for the cross-field check", async () => {
+    const { service } = buildService({
+      findOwnedById: bookRow({
+        pagesCount: 100,
+        readingProgress: {
+          abandonedAt: null,
+          bookId: BOOK_ID,
+          createdAt: new Date("2026-02-01T10:00:00.000Z"),
+          currentPage: 150,
+          finishedAt: null,
+          id: "88888888-8888-4888-8888-888888888888",
+          impression: null,
+          note: null,
+          pausedAt: null,
+          rating: null,
+          startedAt: null,
+          updatedAt: new Date("2026-02-01T10:00:00.000Z"),
+        } as BookWithRelations["readingProgress"],
+        readingStatus: "reading",
+      }),
+    });
+
+    await expect(service.update(USER_ID, BOOK_ID, { pagesCount: 120 })).rejects.toBeInstanceOf(
+      BadRequestError,
+    );
+  });
+
+  it("does not run the page check when the merged status does not use reading progress", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ pagesCount: 100, readingStatus: "not_started" }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { pagesCount: 50 });
+
+    expect(repository.updateOwned).toHaveBeenCalledTimes(1);
+  });
+
+  it("disconnects the series and clears the part number when the book becomes solo", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { bookType: "solo" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields.seriesId).toBeNull();
+    expect(data.fields.partNumber).toBeNull();
+  });
+
+  it("returns the mapped view from the reread row", async () => {
+    const { service } = buildService({
+      findOwnedById: bookRow(),
+      updateOwned: bookRow({ title: "Updated Title" }),
+    });
+
+    const view = await service.update(USER_ID, BOOK_ID, { title: "Updated Title" });
+
+    expect(view).toMatchObject({ id: BOOK_ID, title: "Updated Title" });
+  });
+
+  it("emits a partial loan update that omits absent sub-fields and carries only the provided one", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        loanInfo: loanRow({ note: null, personName: "Olha" }),
+        ownershipStatus: "borrowed_from_someone",
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { loanInfo: { note: "return next week" } });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.loanInfo).toEqual({
+      create: {
+        expectedReturnDate: null,
+        loanDate: null,
+        note: "return next week",
+        personName: "",
+      },
+      update: {
+        expectedReturnDate: undefined,
+        loanDate: undefined,
+        note: "return next week",
+        personName: undefined,
+      },
+    });
+  });
+
+  it("emits an explicit null in the partial loan update so a sub-field is cleared", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        loanInfo: loanRow({ note: "old note", personName: "Olha" }),
+        ownershipStatus: "borrowed_from_someone",
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { loanInfo: { note: null } });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.loanInfo).toMatchObject({ update: { note: null, personName: undefined } });
+  });
+
+  it("emits a partial reading-progress update that preserves untouched sub-fields", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        pagesCount: 400,
+        readingProgress: progressRow({ currentPage: 10, rating: 4 }),
+        readingStatus: "reading",
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { readingProgress: { currentPage: 50 } });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.readingProgress).toMatchObject({
+      update: { currentPage: 50, rating: undefined, startedAt: undefined },
+    });
+  });
+
+  it("allows a status-only switch between loan statuses when a loan row already has a person name", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        loanInfo: loanRow({ personName: "Olha" }),
+        ownershipStatus: "borrowed_from_someone",
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { ownershipStatus: "lent_to_someone" });
+
+    expect(repository.updateOwned).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a switch to a loan status when neither payload nor existing row has a person name", async () => {
+    const { service } = buildService({ findOwnedById: bookRow() });
+
+    await expect(
+      service.update(USER_ID, BOOK_ID, { ownershipStatus: "borrowed_from_someone" }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+  });
+
+  it("rejects lowering the page count below a stored current page", async () => {
+    const { service } = buildService({
+      findOwnedById: bookRow({
+        pagesCount: 300,
+        readingProgress: progressRow({ currentPage: 250 }),
+        readingStatus: "reading",
+      }),
+    });
+
+    await expect(service.update(USER_ID, BOOK_ID, { pagesCount: 200 })).rejects.toBeInstanceOf(
+      BadRequestError,
+    );
   });
 });

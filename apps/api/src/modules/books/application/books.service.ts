@@ -2,50 +2,51 @@ import type {
   BookAuthorReference,
   BookView,
   CreateBookInput,
-  DeliveryInfoInput,
-  LoanInfoInput,
   OwnershipStatus,
   PaginationQuery,
   Paginator,
-  PurchaseInfoInput,
   QueuePriority,
-  ReadingProgressInput,
   ReadingStatus,
+  UpdateBookInput,
 } from "@app/shared";
 
+import { OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
+  BlockUpsert,
   CreateDeliveryInfoData,
   CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
+  UpdateDeliveryInfoData,
+  UpdateLoanInfoData,
+  UpdatePurchaseInfoData,
+  UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { AuthorsService } from "../../authors/application/authors.service.js";
 import { ListsService } from "../../lists/application/lists.service.js";
 import { PublishersService } from "../../publishers/application/publishers.service.js";
 import { SeriesService } from "../../series/application/series.service.js";
 import { TagsService } from "../../tags/application/tags.service.js";
+import {
+  buildDeliveryInfoData,
+  buildDeliveryInfoUpdateData,
+  buildLoanInfoData,
+  buildLoanInfoUpdateData,
+  buildPurchaseInfoData,
+  buildPurchaseInfoUpdateData,
+  buildReadingProgressData,
+  buildReadingProgressUpdateData,
+  ownershipStatusUsesLoan,
+  readingStatusUsesProgress,
+} from "../domain/book-blocks.js";
 import { toBookView } from "../domain/book.mapper.js";
-import { BooksRepository } from "../infrastructure/books.repository.js";
-
-const STATUSES_WITH_READING_PROGRESS: ReadonlySet<ReadingStatus> = new Set([
-  "dnf",
-  "finished",
-  "paused",
-  "reading",
-  "rereading",
-]);
-
-const OWNERSHIP_STATUSES_WITH_LOAN: ReadonlySet<OwnershipStatus> = new Set([
-  "borrowed_from_someone",
-  "lent_to_someone",
-]);
-
-const DEFAULT_DELIVERY_STATUS = "ordered";
+import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
 
@@ -54,77 +55,121 @@ type QueuePlacement = {
   queuePriority: null | QueuePriority;
 };
 
-const toDate = (value: string | undefined): Date | null =>
-  value === undefined ? null : new Date(`${value}T00:00:00.000Z`);
-
-function buildDeliveryInfoData(
-  ownershipStatus: OwnershipStatus,
-  deliveryInfo: DeliveryInfoInput,
-): CreateDeliveryInfoData | null {
-  if (ownershipStatus !== "in_transit" || deliveryInfo === undefined) {
-    return null;
+function assignScalarFields(
+  fields: Prisma.BookUncheckedUpdateManyInput,
+  input: UpdateBookInput,
+): void {
+  if (input.ageCategory !== undefined) {
+    fields.ageCategory = input.ageCategory;
   }
+  if (input.dedication !== undefined) {
+    fields.dedication = input.dedication;
+  }
+  if (input.description !== undefined) {
+    fields.description = input.description;
+  }
+  if (input.formats !== undefined) {
+    fields.formats = input.formats;
+  }
+  if (input.genres !== undefined) {
+    fields.genres = input.genres;
+  }
+  if (input.illustrator !== undefined) {
+    fields.illustrator = input.illustrator;
+  }
+  if (input.isbn !== undefined) {
+    fields.isbn = input.isbn;
+  }
+  if (input.isFavorite !== undefined) {
+    fields.isFavorite = input.isFavorite;
+  }
+  if (input.language !== undefined) {
+    fields.language = input.language;
+  }
+  if (input.originalTitle !== undefined) {
+    fields.originalTitle = input.originalTitle;
+  }
+  if (input.ownershipStatus !== undefined) {
+    fields.ownershipStatus = input.ownershipStatus;
+  }
+  if (input.pagesCount !== undefined) {
+    fields.pagesCount = input.pagesCount;
+  }
+  if (input.publicationYear !== undefined) {
+    fields.publicationYear = input.publicationYear;
+  }
+  if (input.readingStatus !== undefined) {
+    fields.readingStatus = input.readingStatus;
+  }
+  if (input.title !== undefined) {
+    fields.title = input.title;
+  }
+  if (input.translator !== undefined) {
+    fields.translator = input.translator;
+  }
+}
 
+function resolveDeliveryBlock(
+  ownershipStatus: OwnershipStatus,
+  deliveryInfo: UpdateBookInput["deliveryInfo"],
+): BlockUpsert<CreateDeliveryInfoData, UpdateDeliveryInfoData> {
+  if (ownershipStatus !== "in_transit") {
+    return { delete: true };
+  }
+  if (deliveryInfo === undefined) {
+    return { skip: true };
+  }
   return {
-    deliveryStatus: deliveryInfo.deliveryStatus ?? DEFAULT_DELIVERY_STATUS,
-    expectedDeliveryDate: toDate(deliveryInfo.expectedDeliveryDate),
-    note: deliveryInfo.note ?? null,
-    orderDate: toDate(deliveryInfo.orderDate),
-    orderNumber: deliveryInfo.orderNumber ?? null,
-    storeName: deliveryInfo.storeName ?? null,
+    create: buildDeliveryInfoData(deliveryInfo),
+    update: buildDeliveryInfoUpdateData(deliveryInfo),
   };
 }
 
-function buildLoanInfoData(
+function resolveLoanBlock(
   ownershipStatus: OwnershipStatus,
-  loanInfo: LoanInfoInput,
-): CreateLoanInfoData | null {
-  if (!OWNERSHIP_STATUSES_WITH_LOAN.has(ownershipStatus) || loanInfo === undefined) {
-    return null;
+  loanInfo: UpdateBookInput["loanInfo"],
+): BlockUpsert<CreateLoanInfoData, UpdateLoanInfoData> {
+  if (!ownershipStatusUsesLoan(ownershipStatus)) {
+    return { delete: true };
   }
-
+  if (loanInfo === undefined) {
+    return { skip: true };
+  }
   return {
-    expectedReturnDate: toDate(loanInfo.expectedReturnDate),
-    loanDate: toDate(loanInfo.loanDate),
-    note: loanInfo.note ?? null,
-    personName: loanInfo.personName,
+    create: buildLoanInfoData(loanInfo),
+    update: buildLoanInfoUpdateData(loanInfo),
   };
 }
 
-function buildPurchaseInfoData(
+function resolvePurchaseBlock(
   ownershipStatus: OwnershipStatus,
-  purchaseInfo: PurchaseInfoInput,
-): CreatePurchaseInfoData | null {
-  if (ownershipStatus !== "want_to_buy" || purchaseInfo === undefined) {
-    return null;
+  purchaseInfo: UpdateBookInput["purchaseInfo"],
+): BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData> {
+  if (ownershipStatus !== "want_to_buy") {
+    return { delete: true };
   }
-
+  if (purchaseInfo === undefined) {
+    return { skip: true };
+  }
   return {
-    currency: purchaseInfo.currency ?? null,
-    expectedPrice: purchaseInfo.expectedPrice ?? null,
-    note: purchaseInfo.note ?? null,
-    storeName: purchaseInfo.storeName ?? null,
-    storeUrl: purchaseInfo.storeUrl ?? null,
+    create: buildPurchaseInfoData(purchaseInfo),
+    update: buildPurchaseInfoUpdateData(purchaseInfo),
   };
 }
 
-function buildReadingProgressData(
+function resolveReadingProgressBlock(
   readingStatus: ReadingStatus,
-  readingProgress: ReadingProgressInput,
-): CreateReadingProgressData | null {
-  if (readingProgress === undefined || !STATUSES_WITH_READING_PROGRESS.has(readingStatus)) {
-    return null;
+  readingProgress: UpdateBookInput["readingProgress"],
+): BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData> {
+  if (!readingStatusUsesProgress(readingStatus)) {
+    return { delete: true };
   }
-
+  if (readingProgress === undefined) {
+    return { skip: true };
+  }
   return {
-    abandonedAt: toDate(readingProgress.abandonedAt),
-    currentPage: readingProgress.currentPage ?? null,
-    finishedAt: toDate(readingProgress.finishedAt),
-    impression: readingProgress.impression ?? null,
-    note: readingProgress.note ?? null,
-    pausedAt: toDate(readingProgress.pausedAt),
-    rating: readingProgress.rating ?? null,
-    startedAt: toDate(readingProgress.startedAt),
+    create: buildReadingProgressData(readingProgress),
+    update: buildReadingProgressUpdateData(readingProgress),
   };
 }
 
@@ -165,11 +210,28 @@ export class BooksService {
         : null;
     const partNumber = input.bookType === "series_part" ? (input.partNumber ?? null) : null;
 
+    const deliveryInfo =
+      input.ownershipStatus === "in_transit" && input.deliveryInfo !== undefined
+        ? buildDeliveryInfoData(input.deliveryInfo)
+        : null;
+    const loanInfo =
+      ownershipStatusUsesLoan(input.ownershipStatus) && input.loanInfo !== undefined
+        ? buildLoanInfoData(input.loanInfo)
+        : null;
+    const purchaseInfo =
+      input.ownershipStatus === "want_to_buy" && input.purchaseInfo !== undefined
+        ? buildPurchaseInfoData(input.purchaseInfo)
+        : null;
+    const readingProgress =
+      readingStatusUsesProgress(input.readingStatus) && input.readingProgress !== undefined
+        ? buildReadingProgressData(input.readingProgress)
+        : null;
+
     const book = await this.booksRepository.create(userId, {
       ageCategory: input.ageCategory,
       authorId,
       dedication: input.dedication ?? null,
-      deliveryInfo: buildDeliveryInfoData(input.ownershipStatus, input.deliveryInfo),
+      deliveryInfo,
       description: input.description ?? null,
       formats: input.formats,
       genres: input.genres,
@@ -178,17 +240,17 @@ export class BooksService {
       isFavorite: input.isFavorite,
       language: input.language,
       listIds,
-      loanInfo: buildLoanInfoData(input.ownershipStatus, input.loanInfo),
+      loanInfo,
       originalTitle: input.originalTitle ?? null,
       ownershipStatus: input.ownershipStatus,
       pagesCount: input.pagesCount ?? null,
       partNumber,
       publicationYear: input.publicationYear ?? null,
       publisherId,
-      purchaseInfo: buildPurchaseInfoData(input.ownershipStatus, input.purchaseInfo),
+      purchaseInfo,
       queuePosition: queuePlacement.queuePosition,
       queuePriority: queuePlacement.queuePriority,
-      readingProgress: buildReadingProgressData(input.readingStatus, input.readingProgress),
+      readingProgress,
       readingStatus: input.readingStatus,
       seriesId,
       tagIds,
@@ -233,6 +295,129 @@ export class BooksService {
       pageNumber,
       pageSize,
       totalCount,
+    });
+  }
+
+  async update(userId: string, bookId: string, input: UpdateBookInput): Promise<BookView> {
+    const current = await this.booksRepository.findOwnedById(userId, bookId);
+    if (current === null) {
+      throw new NotFoundError("Book not found");
+    }
+
+    const readingStatus = input.readingStatus ?? ReadingStatusSchema.parse(current.readingStatus);
+    const ownershipStatus =
+      input.ownershipStatus ?? OwnershipStatusSchema.parse(current.ownershipStatus);
+
+    this.assertCurrentPageWithinPages(current, readingStatus, input);
+    this.assertLoanPersonNamePresent(current, ownershipStatus, input);
+
+    const fields: Prisma.BookUncheckedUpdateManyInput = {};
+
+    if (input.author !== undefined) {
+      fields.authorId = await this.resolveAuthorId(userId, input.author);
+    }
+
+    if (input.publisherId !== undefined || input.publisherName !== undefined) {
+      fields.publisherId = await this.publishersService.resolveOrCreate(userId, {
+        id: input.publisherId,
+        name: input.publisherName,
+      });
+    }
+
+    const tagIds =
+      input.tags === undefined
+        ? undefined
+        : await this.tagsService.resolveOrCreateMany(userId, input.tags);
+
+    const listIds =
+      input.listIds === undefined && input.newLists === undefined
+        ? undefined
+        : await this.listsService.resolveListsForBook(userId, {
+            listIds: input.listIds,
+            newLists: input.newLists,
+          });
+
+    await this.applySeriesFields(userId, fields, input);
+
+    assignScalarFields(fields, input);
+
+    const book = await this.booksRepository.updateOwned(userId, bookId, {
+      deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo),
+      fields,
+      listIds,
+      loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),
+      purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
+      readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
+      tagIds,
+    });
+
+    return toBookView(book);
+  }
+
+  private async applySeriesFields(
+    userId: string,
+    fields: Prisma.BookUncheckedUpdateManyInput,
+    input: UpdateBookInput,
+  ): Promise<void> {
+    if (input.bookType === undefined) {
+      return;
+    }
+
+    if (input.bookType === "solo") {
+      fields.seriesId = null;
+      fields.partNumber = null;
+      return;
+    }
+
+    fields.seriesId = await this.seriesService.resolveForBook(userId, {
+      newSeries: input.newSeries,
+      seriesId: input.seriesId,
+    });
+    fields.partNumber = input.partNumber ?? null;
+  }
+
+  private assertCurrentPageWithinPages(
+    current: BookWithRelations,
+    readingStatus: ReadingStatus,
+    input: UpdateBookInput,
+  ): void {
+    if (!readingStatusUsesProgress(readingStatus)) {
+      return;
+    }
+
+    const currentPage =
+      input.readingProgress?.currentPage ?? current.readingProgress?.currentPage ?? null;
+    const pagesCount = input.pagesCount === undefined ? current.pagesCount : input.pagesCount;
+
+    if (currentPage !== null && pagesCount !== null && currentPage > pagesCount) {
+      throw new BadRequestError("Current page cannot exceed the page count", {
+        fields: [
+          {
+            field: "readingProgress.currentPage",
+            message: "Current page cannot exceed the page count",
+          },
+        ],
+      });
+    }
+  }
+
+  private assertLoanPersonNamePresent(
+    current: BookWithRelations,
+    ownershipStatus: OwnershipStatus,
+    input: UpdateBookInput,
+  ): void {
+    if (!ownershipStatusUsesLoan(ownershipStatus)) {
+      return;
+    }
+
+    const payloadPersonName = input.loanInfo?.personName ?? "";
+    const existingPersonName = current.loanInfo?.personName ?? "";
+    if (payloadPersonName.length > 0 || existingPersonName.length > 0) {
+      return;
+    }
+
+    throw new BadRequestError("Enter the person's name", {
+      fields: [{ field: "loanInfo.personName", message: "Enter the person's name" }],
     });
   }
 
