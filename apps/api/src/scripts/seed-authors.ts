@@ -18,6 +18,8 @@ const ENRICH_BATCH_SIZE = 200;
 const UPSERT_BATCH_SIZE = 50;
 const TARGET_AUTHOR_CAP = 2000;
 const REQUEST_TIMEOUT_MS = 90_000;
+const MAX_ATTEMPTS = 5;
+const RETRY_BASE_DELAY_MS = 2_000;
 
 const ENTITY_URI_PREFIX = "http://www.wikidata.org/entity/";
 
@@ -164,6 +166,10 @@ function collectCore(
   }
 }
 
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 function entityIdFromUri(uri: string): string {
   return uri.startsWith(ENTITY_URI_PREFIX) ? uri.slice(ENTITY_URI_PREFIX.length) : uri;
 }
@@ -236,16 +242,32 @@ async function runSparql<Output>(query: string, schema: z.ZodType<Output>): Prom
   url.searchParams.set("format", "json");
   url.searchParams.set("query", query);
 
-  const response = await fetch(url, {
-    headers: { Accept: "application/sparql-results+json", "User-Agent": USER_AGENT },
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
+  let lastError: unknown;
 
-  if (!response.ok) {
-    throw new Error(`Wikidata responded with ${String(response.status)}`);
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/sparql-results+json", "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Wikidata responded with ${String(response.status)}`);
+      }
+
+      return schema.parse(await response.json());
+    } catch (error) {
+      lastError = error;
+      if (attempt === MAX_ATTEMPTS) {
+        break;
+      }
+      const backoff = RETRY_BASE_DELAY_MS * attempt;
+      logger.warn({ attempt, backoff, error: String(error) }, "sparql request failed, retrying");
+      await delay(backoff);
+    }
   }
 
-  return schema.parse(await response.json());
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 async function seedAuthors(): Promise<void> {
