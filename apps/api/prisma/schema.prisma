@@ -94,6 +94,11 @@ model Publisher {
   userId         String?  @map("user_id") @db.Uuid
   name           String
   normalizedName String   @map("normalized_name")
+  countryCode    String?  @map("country_code")
+  foundedYear    Int?     @map("founded_year")
+  websiteUrl     String?  @map("website_url")
+  logoUrl        String?  @map("logo_url")
+  wikidataId     String?  @unique @map("wikidata_id")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
   user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)

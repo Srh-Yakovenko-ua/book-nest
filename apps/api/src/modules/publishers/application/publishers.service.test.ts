@@ -57,12 +57,17 @@ function buildService(overrides: {
 
 function publisher(overrides: Partial<PublisherModel> = {}): PublisherModel {
   return {
+    countryCode: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    foundedYear: null,
     id: PUBLISHER_ID,
+    logoUrl: null,
     name: "Penguin",
     normalizedName: "penguin",
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),
     userId: USER_ID,
+    websiteUrl: null,
+    wikidataId: null,
     ...overrides,
   };
 }
@@ -179,8 +184,24 @@ describe("PublishersService.search", () => {
 
     expect(page).toEqual({
       items: [
-        { id: PUBLISHER_ID, isCustom: true, name: "My Press" },
-        { id: GLOBAL_ID, isCustom: false, name: "Vintage" },
+        {
+          countryCode: null,
+          foundedYear: null,
+          id: PUBLISHER_ID,
+          isCustom: true,
+          logoUrl: null,
+          name: "My Press",
+          websiteUrl: null,
+        },
+        {
+          countryCode: null,
+          foundedYear: null,
+          id: GLOBAL_ID,
+          isCustom: false,
+          logoUrl: null,
+          name: "Vintage",
+          websiteUrl: null,
+        },
       ],
       page: 1,
       pagesCount: 1,
