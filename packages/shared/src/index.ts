@@ -724,24 +724,26 @@ export const ReadingImpressionSchema = z
 
 export const ReadingProgressInputSchema = z
   .object({
-    abandonedAt: notInFutureDate("Abandoned date must not be in the future").optional(),
+    abandonedAt: notInFutureDate("Abandoned date must not be in the future").nullable().optional(),
     currentPage: z
       .number()
       .int()
       .min(READING_CURRENT_PAGE_MIN)
       .max(READING_CURRENT_PAGE_MAX)
+      .nullable()
       .optional(),
-    finishedAt: notInFutureDate("Finished date must not be in the future").optional(),
-    impression: ReadingImpressionSchema.optional(),
-    note: ReadingNoteSchema.optional(),
-    pausedAt: notInFutureDate("Paused date must not be in the future").optional(),
+    finishedAt: notInFutureDate("Finished date must not be in the future").nullable().optional(),
+    impression: ReadingImpressionSchema.nullable().optional(),
+    note: ReadingNoteSchema.nullable().optional(),
+    pausedAt: notInFutureDate("Paused date must not be in the future").nullable().optional(),
     rating: z
       .number()
       .int()
       .min(READING_RATING_MIN, "Rating must be from 1 to 5")
       .max(READING_RATING_MAX, "Rating must be from 1 to 5")
+      .nullable()
       .optional(),
-    startedAt: notInFutureDate("Start date must not be in the future").optional(),
+    startedAt: notInFutureDate("Start date must not be in the future").nullable().optional(),
   })
   .optional();
 
@@ -796,11 +798,11 @@ const OwnershipPriceSchema = z.number().min(OWNERSHIP_PRICE_MIN, "Price must be 
 
 export const PurchaseInfoInputSchema = z
   .object({
-    currency: CurrencySchema.optional(),
-    expectedPrice: OwnershipPriceSchema.optional(),
-    note: OwnershipNoteSchema.optional(),
-    storeName: OwnershipStoreNameSchema.optional(),
-    storeUrl: OwnershipStoreUrlSchema.optional(),
+    currency: CurrencySchema.nullable().optional(),
+    expectedPrice: OwnershipPriceSchema.nullable().optional(),
+    note: OwnershipNoteSchema.nullable().optional(),
+    storeName: OwnershipStoreNameSchema.nullable().optional(),
+    storeUrl: OwnershipStoreUrlSchema.nullable().optional(),
   })
   .optional();
 
@@ -809,16 +811,18 @@ export type PurchaseInfoInput = z.infer<typeof PurchaseInfoInputSchema>;
 export const DeliveryInfoInputSchema = z
   .object({
     deliveryStatus: DeliveryStatusSchema.optional(),
-    expectedDeliveryDate: z.iso.date().optional(),
-    note: OwnershipNoteSchema.optional(),
-    orderDate: notInFutureDate("Order date must not be in the future").optional(),
-    orderNumber: OwnershipOrderNumberSchema.optional(),
-    storeName: OwnershipStoreNameSchema.optional(),
+    expectedDeliveryDate: z.iso.date().nullable().optional(),
+    note: OwnershipNoteSchema.nullable().optional(),
+    orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
+    orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
+    storeName: OwnershipStoreNameSchema.nullable().optional(),
   })
   .refine(
     (value) =>
       value.orderDate === undefined ||
+      value.orderDate === null ||
       value.expectedDeliveryDate === undefined ||
+      value.expectedDeliveryDate === null ||
       value.expectedDeliveryDate >= value.orderDate,
     {
       error: "Expected delivery cannot be before the order date",
@@ -831,15 +835,17 @@ export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
 export const LoanInfoInputSchema = z
   .object({
-    expectedReturnDate: z.iso.date().optional(),
-    loanDate: notInFutureDate("Loan date must not be in the future").optional(),
-    note: OwnershipNoteSchema.optional(),
-    personName: OwnershipPersonNameSchema,
+    expectedReturnDate: z.iso.date().nullable().optional(),
+    loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
+    note: OwnershipNoteSchema.nullable().optional(),
+    personName: OwnershipPersonNameSchema.optional(),
   })
   .refine(
     (value) =>
       value.loanDate === undefined ||
+      value.loanDate === null ||
       value.expectedReturnDate === undefined ||
+      value.expectedReturnDate === null ||
       value.expectedReturnDate >= value.loanDate,
     {
       error: "Expected return cannot be before the loan date",
@@ -988,6 +994,7 @@ export const CreateBookInputSchema = z
     const pagesCount = value.pagesCount;
     if (
       currentPage !== undefined &&
+      currentPage !== null &&
       pagesCount !== undefined &&
       pagesCount !== null &&
       currentPage > pagesCount
@@ -999,11 +1006,102 @@ export const CreateBookInputSchema = z
       });
     }
 
-    if (OWNERSHIP_STATUSES_WITH_LOAN.has(value.ownershipStatus) && value.loanInfo === undefined) {
+    if (
+      OWNERSHIP_STATUSES_WITH_LOAN.has(value.ownershipStatus) &&
+      (value.loanInfo?.personName ?? "").length === 0
+    ) {
       context.addIssue({
         code: "custom",
         message: "Enter the person's name",
         path: ["loanInfo", "personName"],
+      });
+    }
+
+    if (value.bookType === "series_part") {
+      const hasExistingSeries = value.seriesId !== undefined;
+      const hasNewSeries = value.newSeries !== undefined;
+      if (hasExistingSeries === hasNewSeries) {
+        context.addIssue({
+          code: "custom",
+          message: "Choose an existing series or create a new one",
+          path: ["newSeries"],
+        });
+      }
+
+      if (value.partNumber === undefined) {
+        context.addIssue({
+          code: "custom",
+          message: "Enter the part number",
+          path: ["partNumber"],
+        });
+      }
+
+      const totalBooks = value.newSeries?.totalBooks;
+      if (
+        totalBooks !== undefined &&
+        value.partNumber !== undefined &&
+        totalBooks < value.partNumber
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Total books cannot be fewer than the part number",
+          path: ["newSeries", "totalBooks"],
+        });
+      }
+    }
+  });
+
+export const UpdateBookInputSchema = z
+  .object({
+    ageCategory: AgeCategorySchema.optional(),
+    author: BookAuthorReferenceSchema.optional(),
+    bookType: BookTypeSchema.optional(),
+    dedication: DedicationSchema.nullable().optional(),
+    deliveryInfo: DeliveryInfoInputSchema,
+    description: BookDescriptionSchema.nullable().optional(),
+    formats: BookFormatsSchema.optional(),
+    genres: BookGenresSchema.optional(),
+    illustrator: IllustratorSchema.nullable().optional(),
+    isbn: IsbnSchema.nullable().optional(),
+    isFavorite: z.boolean().optional(),
+    language: BookLanguageSchema.optional(),
+    listIds: z.array(z.uuid()).max(BOOK_LIST_IDS_MAX).optional(),
+    loanInfo: LoanInfoInputSchema,
+    newLists: z.array(NewListInputSchema).max(BOOK_NEW_LISTS_MAX).optional(),
+    newSeries: NewSeriesInputSchema.optional(),
+    originalTitle: OriginalTitleSchema.nullable().optional(),
+    ownershipStatus: OwnershipStatusSchema.optional(),
+    pagesCount: BookPagesCountSchema.nullable().optional(),
+    partNumber: BookPartNumberSchema.optional(),
+    publicationYear: BookPublicationYearSchema.nullable().optional(),
+    publisherId: z.uuid().optional(),
+    publisherName: TaxonomyNameSchema.optional(),
+    purchaseInfo: PurchaseInfoInputSchema,
+    readingProgress: ReadingProgressInputSchema,
+    readingStatus: ReadingStatusSchema.optional(),
+    seriesId: z.uuid().optional(),
+    tags: BookTagsInputSchema.optional(),
+    title: BookTitleSchema.optional(),
+    translator: TranslatorSchema.nullable().optional(),
+  })
+  .refine((value) => !(value.publisherId !== undefined && value.publisherName !== undefined), {
+    error: "Provide either an existing publisher or a custom publisher name",
+    path: ["publisherName"],
+  })
+  .superRefine((value, context) => {
+    const currentPage = value.readingProgress?.currentPage;
+    const pagesCount = value.pagesCount;
+    if (
+      currentPage !== undefined &&
+      currentPage !== null &&
+      pagesCount !== undefined &&
+      pagesCount !== null &&
+      currentPage > pagesCount
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Current page cannot exceed the page count",
+        path: ["readingProgress", "currentPage"],
       });
     }
 
@@ -1052,6 +1150,8 @@ export type AuthorView = {
   openLibraryKey: null | string;
   photoUrl: null | string;
 };
+
+export type UpdateBookInput = z.infer<typeof UpdateBookInputSchema>;
 
 export const AuthorLookupResultSchema = z.object({
   birthYear: z.number().int().nullable(),

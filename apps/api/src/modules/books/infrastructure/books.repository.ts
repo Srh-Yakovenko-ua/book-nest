@@ -3,6 +3,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 const withRelations = {
   author: true,
@@ -15,6 +16,11 @@ const withRelations = {
   series: true,
   tags: { include: { tag: true } },
 } satisfies Prisma.BookInclude;
+
+export type BlockUpsert<TCreate, TUpdate> =
+  | { create: TCreate; update: TUpdate }
+  | { delete: true }
+  | { skip: true };
 
 export type BookWithRelations = Prisma.BookGetPayload<{
   include: typeof withRelations;
@@ -55,6 +61,33 @@ export type CreateReadingProgressData = {
   startedAt: Date | null;
 };
 
+export type UpdateBookData = {
+  deliveryInfo: BlockUpsert<CreateDeliveryInfoData, UpdateDeliveryInfoData>;
+  fields: Prisma.BookUncheckedUpdateManyInput;
+  listIds?: string[];
+  loanInfo: BlockUpsert<CreateLoanInfoData, UpdateLoanInfoData>;
+  purchaseInfo: BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData>;
+  readingProgress: BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData>;
+  tagIds?: string[];
+};
+
+export type UpdateDeliveryInfoData = Partial<CreateDeliveryInfoData>;
+
+export type UpdateLoanInfoData = Partial<CreateLoanInfoData>;
+
+export type UpdatePurchaseInfoData = Partial<CreatePurchaseInfoData>;
+
+export type UpdateReadingProgressData = Partial<CreateReadingProgressData>;
+
+type BlockDelegate<TCreate, TUpdate> = {
+  deleteMany: (args: { where: { bookId: string } }) => Promise<{ count: number }>;
+  upsert: (args: {
+    create: TCreate & { bookId: string };
+    update: TUpdate;
+    where: { bookId: string };
+  }) => Promise<unknown>;
+};
+
 type CreateBookData = {
   ageCategory: string;
   authorId: string;
@@ -84,13 +117,6 @@ type CreateBookData = {
   tagIds: string[];
   title: string;
   translator: null | string;
-};
-
-type ListBooksInput = {
-  skip: number;
-  sortDirection: Prisma.SortOrder;
-  take: number;
-  userId: string;
 };
 
 @Injectable()
@@ -147,4 +173,69 @@ export class BooksRepository {
     });
     return result._max.queuePosition ?? 0;
   }
+
+  updateOwned(userId: string, bookId: string, data: UpdateBookData): Promise<BookWithRelations> {
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.book.updateMany({
+        data: data.fields,
+        where: { id: bookId, userId },
+      });
+      if (updated.count === 0) {
+        throw new NotFoundError("Book not found");
+      }
+
+      await applyBlockUpsert(tx.bookReadingProgress, bookId, data.readingProgress);
+      await applyBlockUpsert(tx.bookPurchaseInfo, bookId, data.purchaseInfo);
+      await applyBlockUpsert(tx.bookDeliveryInfo, bookId, data.deliveryInfo);
+      await applyBlockUpsert(tx.bookLoanInfo, bookId, data.loanInfo);
+
+      if (data.tagIds !== undefined) {
+        await tx.bookTag.deleteMany({ where: { bookId } });
+        if (data.tagIds.length > 0) {
+          await tx.bookTag.createMany({
+            data: data.tagIds.map((tagId) => ({ bookId, tagId })),
+          });
+        }
+      }
+
+      if (data.listIds !== undefined) {
+        await tx.bookListItem.deleteMany({ where: { bookId } });
+        if (data.listIds.length > 0) {
+          await tx.bookListItem.createMany({
+            data: data.listIds.map((listId) => ({ bookId, listId })),
+          });
+        }
+      }
+
+      return tx.book.findFirstOrThrow({ include: withRelations, where: { id: bookId, userId } });
+    });
+  }
+}
+
+type ListBooksInput = {
+  skip: number;
+  sortDirection: Prisma.SortOrder;
+  take: number;
+  userId: string;
+};
+
+async function applyBlockUpsert<TCreate, TUpdate>(
+  delegate: BlockDelegate<TCreate, TUpdate>,
+  bookId: string,
+  block: BlockUpsert<TCreate, TUpdate>,
+): Promise<void> {
+  if ("skip" in block) {
+    return;
+  }
+
+  if ("delete" in block) {
+    await delegate.deleteMany({ where: { bookId } });
+    return;
+  }
+
+  await delegate.upsert({
+    create: { ...block.create, bookId },
+    update: block.update,
+    where: { bookId },
+  });
 }
