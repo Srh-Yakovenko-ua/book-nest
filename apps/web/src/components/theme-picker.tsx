@@ -2,6 +2,7 @@
 
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,9 +23,19 @@ const OPTIONS: ReadonlyArray<{ Icon: typeof Sun; label: string; value: ThemeValu
 
 const THEME_VALUES: ReadonlySet<string> = new Set<ThemeValue>(["dark", "light", "system"]);
 
+const subscribeMounted = () => () => {};
+const getMountedClientSnapshot = () => true;
+const getMountedServerSnapshot = () => false;
+
 export function ThemePicker() {
   const { resolvedTheme, setTheme, theme } = useTheme();
-  const TriggerIcon = resolvedTheme === "dark" ? Moon : Sun;
+  const mounted = useSyncExternalStore(
+    subscribeMounted,
+    getMountedClientSnapshot,
+    getMountedServerSnapshot,
+  );
+
+  const TriggerIcon = mounted && resolvedTheme === "dark" ? Moon : Sun;
 
   function handleThemeSelect(event: Event) {
     const target = event.currentTarget;
@@ -41,6 +52,7 @@ export function ThemePicker() {
           aria-label="Change theme"
           className="size-9 rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground"
           size="icon"
+          suppressHydrationWarning
           variant="ghost"
         >
           <TriggerIcon className="size-[15px]" />

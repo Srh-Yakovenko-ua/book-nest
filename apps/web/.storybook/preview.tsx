@@ -1,7 +1,12 @@
 import type { Decorator, Preview } from "@storybook/react";
 
+import { QueryClientProvider } from "@tanstack/react-query";
+import { NextIntlClientProvider } from "next-intl";
 import React, { useEffect } from "react";
 
+import { TooltipProvider } from "../src/components/ui/tooltip";
+import { getQueryClient } from "../src/lib/query-client";
+import messages from "../src/messages/uk.json";
 import "../src/styles/globals.css";
 
 const ThemeDecorator: Decorator = (Story, context) => {
@@ -19,8 +24,18 @@ const ThemeDecorator: Decorator = (Story, context) => {
   return <Story />;
 };
 
+const ProvidersDecorator: Decorator = (Story) => (
+  <QueryClientProvider client={getQueryClient()}>
+    <NextIntlClientProvider locale="uk" messages={messages}>
+      <TooltipProvider>
+        <Story />
+      </TooltipProvider>
+    </NextIntlClientProvider>
+  </QueryClientProvider>
+);
+
 const preview: Preview = {
-  decorators: [ThemeDecorator],
+  decorators: [ProvidersDecorator, ThemeDecorator],
   globalTypes: {
     theme: {
       description: "Color scheme",
