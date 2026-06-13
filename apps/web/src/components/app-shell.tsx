@@ -136,7 +136,7 @@ function AppSidebar() {
 
 function ContentArea({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-screen flex-1 flex-col overflow-hidden bg-background text-foreground">
+    <div className="relative flex min-h-screen flex-1 flex-col overflow-x-clip bg-background text-foreground">
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0"
