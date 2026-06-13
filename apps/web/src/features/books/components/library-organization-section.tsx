@@ -1,0 +1,223 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { useId, useState } from "react";
+import {
+  type Control,
+  Controller,
+  type FieldErrors,
+  type UseFormSetValue,
+  useWatch,
+} from "react-hook-form";
+
+import { UiIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Multiselect } from "@/components/ui/multiselect";
+import { Switch } from "@/components/ui/switch";
+
+import type { BookFormMode } from "../model/book-form-mode";
+import type { CreateBookFormValues } from "../model/create-book-form";
+
+import { useListsSearch } from "../api/use-lists-search";
+import {
+  BOOK_LIST_IDS_MAX,
+  BOOK_NEW_LISTS_MAX,
+  type ListDraft,
+  QUEUE_PRIORITY_DEFAULT,
+  QUEUE_PRIORITY_OPTIONS,
+} from "../model/book-organization-fields";
+import { CreateListDialog } from "./create-list-dialog";
+import { FormSection } from "./form-section";
+import { StatusChipGroup } from "./status-chip-group";
+
+type LibraryOrganizationSectionProps = {
+  control: Control<CreateBookFormValues>;
+  errors: FieldErrors<CreateBookFormValues>;
+  mode: BookFormMode;
+  setValue: UseFormSetValue<CreateBookFormValues>;
+};
+
+export function LibraryOrganizationSection({
+  control,
+  errors,
+  mode,
+  setValue,
+}: LibraryOrganizationSectionProps) {
+  const t = useTranslations("books");
+  const favoriteSwitchId = useId();
+  const queueSwitchId = useId();
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const addToReadingQueue =
+    useWatch({ control, defaultValue: false, name: "addToReadingQueue" }) ?? false;
+  const listIds = useWatch({ control, defaultValue: [], name: "listIds" }) ?? [];
+  const newLists = useWatch({ control, defaultValue: [], name: "newLists" }) ?? [];
+
+  const { data: lists = [] } = useListsSearch("");
+
+  const selectedIds = listIds.filter((value): value is string => typeof value === "string");
+  const drafts = newLists.filter((draft): draft is ListDraft => typeof draft?.name === "string");
+  const atListsMax = selectedIds.length + drafts.length >= BOOK_LIST_IDS_MAX;
+  const atDraftsMax = drafts.length >= BOOK_NEW_LISTS_MAX;
+
+  const listsErrorMessage =
+    typeof errors.listIds?.message === "string" ? errors.listIds.message : undefined;
+
+  function handleQueueChange(checked: boolean) {
+    setValue("addToReadingQueue", checked, { shouldValidate: true });
+    setValue("queuePriority", checked ? QUEUE_PRIORITY_DEFAULT : undefined, {
+      shouldValidate: true,
+    });
+  }
+
+  function addDraft(draft: ListDraft) {
+    setValue("newLists", [...drafts, draft], { shouldValidate: true });
+  }
+
+  function removeDraft(index: number) {
+    setValue(
+      "newLists",
+      drafts.filter((_, position) => position !== index),
+      { shouldValidate: true },
+    );
+  }
+
+  return (
+    <FormSection
+      description={t("organization.description")}
+      icon="bookmark"
+      title={t("organization.title")}
+    >
+      <div className="flex items-center justify-between gap-4 rounded-md border border-border bg-secondary/40 px-4 py-3">
+        <Label className="cursor-pointer" htmlFor={favoriteSwitchId}>
+          <UiIcon className="text-primary" name="heart" size={18} />
+          {t("organization.favorite")}
+        </Label>
+        <Controller
+          control={control}
+          name="isFavorite"
+          render={({ field }) => (
+            <Switch
+              checked={field.value ?? false}
+              id={favoriteSwitchId}
+              onCheckedChange={field.onChange}
+            />
+          )}
+        />
+      </div>
+
+      {mode === "create" ? (
+        <div className="flex flex-col gap-4 rounded-md border border-border bg-secondary/40 px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <Label className="cursor-pointer" htmlFor={queueSwitchId}>
+              <UiIcon className="text-primary" name="bookmark" size={18} />
+              {t("organization.queue")}
+            </Label>
+            <Controller
+              control={control}
+              name="addToReadingQueue"
+              render={({ field }) => (
+                <Switch
+                  checked={field.value ?? false}
+                  id={queueSwitchId}
+                  onCheckedChange={handleQueueChange}
+                />
+              )}
+            />
+          </div>
+
+          {addToReadingQueue ? (
+            <div className="flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">
+              <Label>{t("organization.queuePriority")}</Label>
+              <Controller
+                control={control}
+                name="queuePriority"
+                render={({ field }) => (
+                  <StatusChipGroup
+                    label={t("organization.queuePriority")}
+                    onValueChange={field.onChange}
+                    options={QUEUE_PRIORITY_OPTIONS.map((value) => ({
+                      label: t(`organization.priorityLabels.${value}`),
+                      value,
+                    }))}
+                    value={field.value ?? QUEUE_PRIORITY_DEFAULT}
+                  />
+                )}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="book-lists">{t("organization.lists")}</Label>
+        <Controller
+          control={control}
+          name="listIds"
+          render={({ field }) => {
+            const selected = (field.value ?? []).filter(
+              (value): value is string => typeof value === "string",
+            );
+            return (
+              <Multiselect
+                emptyText={t("organization.listsEmpty")}
+                id="book-lists"
+                onValueChange={(next) => field.onChange(next.slice(0, BOOK_LIST_IDS_MAX))}
+                options={lists
+                  .filter((list) => !atListsMax || selected.includes(list.id))
+                  .map((list) => ({ label: list.name, value: list.id }))}
+                placeholder={t("organization.listsPlaceholder")}
+                searchPlaceholder={t("organization.listsSearch")}
+                value={selected}
+              />
+            );
+          }}
+        />
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">{t("organization.listsHint")}</p>
+          <Button
+            className="shrink-0"
+            disabled={atDraftsMax || atListsMax}
+            onClick={() => setDialogOpen(true)}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            <UiIcon name="plus" size={16} />
+            {t("organization.createList")}
+          </Button>
+        </div>
+        {listsErrorMessage ? (
+          <p className="text-xs text-destructive" id="book-lists-error" role="alert">
+            {listsErrorMessage}
+          </p>
+        ) : null}
+
+        {drafts.length > 0 ? (
+          <ul className="flex flex-wrap gap-2">
+            {drafts.map((draft, index) => (
+              <li
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 py-1 pr-1.5 pl-3 text-sm font-medium text-primary"
+                key={`${draft.name}-${index}`}
+              >
+                <UiIcon name="plus" size={14} />
+                <span className="truncate">{draft.name}</span>
+                <button
+                  aria-label={t("organization.removeDraft", { name: draft.name })}
+                  className="grid size-5 shrink-0 cursor-pointer place-items-center rounded-full text-primary transition-colors hover:bg-primary/20 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  onClick={() => removeDraft(index)}
+                  type="button"
+                >
+                  <UiIcon name="x" size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      <CreateListDialog onConfirm={addDraft} onOpenChange={setDialogOpen} open={dialogOpen} />
+    </FormSection>
+  );
+}

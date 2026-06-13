@@ -188,5 +188,335 @@
       "apple": "Apple",
       "continueWith": "Continue with {provider}"
     }
+  },
+  "books": {
+    "page": {
+      "metaTitle": "New book",
+      "eyebrow": "Library",
+      "title": "Add a book",
+      "subtitle": "Fill in the basics to add a book to your library. You can add the rest of the details later."
+    },
+    "basicInfo": {
+      "title": "Basic info",
+      "description": "Title and author are all you need to get started."
+    },
+    "readingStatus": {
+      "title": "Reading status",
+      "description": "Where are you with this book right now?",
+      "options": {
+        "not_started": "Not started",
+        "want_to_read": "Want to read",
+        "reading": "Reading",
+        "paused": "Paused",
+        "finished": "Finished",
+        "dnf": "Did not finish",
+        "rereading": "Rereading"
+      },
+      "fields": {
+        "currentPage": "Current page",
+        "rating": "Rating",
+        "startedAt": "Start date",
+        "finishedAt": "Finish date",
+        "pausedAt": "Paused date",
+        "abandonedAt": "Abandoned date",
+        "impression": "Impression",
+        "impressionPlaceholder": "What stayed with you about this book?",
+        "note": "Note",
+        "notePlaceholder": "A few thoughts for yourself…",
+        "datePlaceholder": "Pick a date"
+      }
+    },
+    "ownershipStatus": {
+      "title": "Ownership status",
+      "description": "Do you have the book yet, or is it on its way?",
+      "options": {
+        "none": "Not specified",
+        "want_to_buy": "Want to buy",
+        "in_transit": "In transit",
+        "owned": "Owned",
+        "borrowed_from_someone": "Borrowed from someone",
+        "lent_to_someone": "Lent to someone"
+      },
+      "fields": {
+        "note": "Note",
+        "notePlaceholder": "A few thoughts for yourself…",
+        "datePlaceholder": "Pick a date"
+      }
+    },
+    "purchaseInfo": {
+      "title": "Purchase details",
+      "fields": {
+        "storeName": "Store",
+        "storeNamePlaceholder": "e.g. Yakaboo",
+        "storeUrl": "Product link",
+        "storeUrlPlaceholder": "https://…",
+        "expectedPrice": "Expected price",
+        "currency": "Currency",
+        "currencyPlaceholder": "Currency"
+      }
+    },
+    "deliveryInfo": {
+      "title": "Delivery details",
+      "fields": {
+        "storeName": "Store",
+        "orderNumber": "Order number",
+        "orderNumberPlaceholder": "e.g. 100200300",
+        "orderDate": "Order date",
+        "expectedDeliveryDate": "Expected delivery",
+        "deliveryStatus": "Delivery status",
+        "deliveryStatusPlaceholder": "Pick a status"
+      },
+      "deliveryStatusOptions": {
+        "ordered": "Ordered",
+        "in_transit": "In transit",
+        "ready_for_pickup": "Ready for pickup",
+        "cancelled": "Cancelled"
+      }
+    },
+    "loanInfo": {
+      "title": "Loan details",
+      "fields": {
+        "personName": "Person's name",
+        "personNamePlaceholder": "From whom, or to whom?",
+        "loanDate": "Loan date",
+        "expectedReturnDate": "Expected return"
+      }
+    },
+    "format": {
+      "title": "Format",
+      "description": "Which format is this book? You can pick more than one.",
+      "options": {
+        "paper": "Paper",
+        "ebook": "Ebook",
+        "audiobook": "Audiobook"
+      }
+    },
+    "classification": {
+      "title": "Classification",
+      "description": "Genres, tags, age rating and language of the book.",
+      "genres": "Genres",
+      "genresPlaceholder": "Pick genres",
+      "genresSearch": "Search a genre…",
+      "genresEmpty": "No genres found.",
+      "genresHint": "You can pick up to {max} genres.",
+      "genreLabels": {
+        "fantasy": "Fantasy",
+        "science_fiction": "Science fiction",
+        "dystopia": "Dystopia",
+        "romance": "Romance",
+        "thriller": "Thriller",
+        "mystery": "Mystery",
+        "detective": "Detective",
+        "horror": "Horror",
+        "historical_fiction": "Historical fiction",
+        "literary_fiction": "Literary fiction",
+        "contemporary": "Contemporary",
+        "young_adult": "Young adult",
+        "childrens": "Children's",
+        "classics": "Classics",
+        "poetry": "Poetry",
+        "drama": "Drama",
+        "short_stories": "Short stories",
+        "nonfiction": "Nonfiction",
+        "biography": "Biography",
+        "memoir": "Memoir",
+        "self_help": "Self-help",
+        "psychology": "Psychology",
+        "philosophy": "Philosophy",
+        "history": "History",
+        "science": "Science",
+        "business": "Business",
+        "true_crime": "True crime",
+        "comics": "Comics",
+        "other": "Other"
+      },
+      "tags": "Tags",
+      "tagsPlaceholder": "Add a tag and press Enter…",
+      "tagsAtMax": "Tag limit reached",
+      "tagsHint": "Custom tags via Enter or comma, up to {max}.",
+      "tagsSuggestions": "Your tags",
+      "ageCategory": "Age rating",
+      "ageCategoryLabels": {
+        "not_specified": "Not specified",
+        "no_restrictions": "No restrictions",
+        "6_plus": "6+",
+        "12_plus": "12+",
+        "14_plus": "14+",
+        "16_plus": "16+",
+        "18_plus": "18+"
+      },
+      "language": "Language",
+      "languageLabels": {
+        "ukrainian": "Ukrainian",
+        "english": "English",
+        "polish": "Polish",
+        "german": "German",
+        "french": "French",
+        "spanish": "Spanish",
+        "other": "Other"
+      }
+    },
+    "bookType": {
+      "title": "Book type",
+      "description": "A standalone book or part of a series.",
+      "options": {
+        "solo": "Standalone",
+        "series_part": "Part of a series"
+      },
+      "series": "Series",
+      "seriesPlaceholder": "Start typing a series name…",
+      "seriesDraft": "A new series “{name}” will be created on save.",
+      "partNumber": "Part number"
+    },
+    "series": {
+      "searching": "Searching series…",
+      "empty": "No series found.",
+      "existingHeading": "Your series",
+      "createHeading": "Create new",
+      "createAction": "Create “{name}”",
+      "statusLabels": {
+        "unknown": "Unknown",
+        "ongoing": "Ongoing",
+        "completed": "Completed"
+      },
+      "create": {
+        "title": "New series",
+        "description": "The series will be created together with the book.",
+        "name": "Series name",
+        "namePlaceholder": "e.g. The Witcher",
+        "nameInvalid": "Enter a valid series name.",
+        "status": "Status",
+        "totalBooks": "Books in series",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "A short series description…",
+        "confirm": "Create series"
+      }
+    },
+    "editionDetails": {
+      "title": "Edition details",
+      "description": "Pages, year, ISBN and other data about this specific edition.",
+      "fields": {
+        "pagesCount": "Pages",
+        "pagesCountPlaceholder": "e.g. 320",
+        "publicationYear": "Publication year",
+        "publicationYearPlaceholder": "e.g. 2021",
+        "isbn": "ISBN",
+        "isbnPlaceholder": "e.g. 978-617-679-000-0",
+        "originalTitle": "Original title",
+        "originalTitlePlaceholder": "Title in the original language",
+        "translator": "Translator",
+        "translatorPlaceholder": "Translator name",
+        "illustrator": "Illustrator",
+        "illustratorPlaceholder": "Illustrator name",
+        "dedication": "Dedication",
+        "dedicationPlaceholder": "Who this book is dedicated to…"
+      }
+    },
+    "organization": {
+      "title": "Library organization",
+      "description": "Add the book to favorites, the reading queue and your own lists.",
+      "favorite": "Add to favorites",
+      "queue": "Add to reading queue",
+      "queuePriority": "Queue priority",
+      "priorityLabels": {
+        "low": "Low",
+        "normal": "Normal",
+        "high": "High"
+      },
+      "lists": "Lists",
+      "listsPlaceholder": "Pick your lists",
+      "listsSearch": "Search a list…",
+      "listsEmpty": "No lists found.",
+      "listsHint": "Pick existing lists or create a new one.",
+      "createList": "New list",
+      "removeDraft": "Remove “{name}”"
+    },
+    "list": {
+      "create": {
+        "title": "New list",
+        "description": "The list will be created together with the book.",
+        "name": "List name",
+        "namePlaceholder": "e.g. Summer reads",
+        "nameInvalid": "Enter a valid list name.",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "A short list description…",
+        "confirm": "Create list"
+      }
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "e.g. Shadows of Forgotten Ancestors",
+      "author": "Author",
+      "authorPlaceholder": "Start typing an author name…",
+      "authorHint": "Pick an author from the catalog or enter a custom name.",
+      "publisher": "Publisher",
+      "publisherPlaceholder": "e.g. Old Lion Publishing House",
+      "description": "Description",
+      "descriptionPlaceholder": "A short description of the book…",
+      "optional": "(optional)"
+    },
+    "author": {
+      "searching": "Searching authors…",
+      "empty": "No authors found.",
+      "catalogHeading": "From catalog",
+      "createHeading": "Add custom",
+      "customBadge": "custom",
+      "useCustom": "Use “{name}”"
+    },
+    "preview": {
+      "eyebrow": "Preview",
+      "subtitle": "This is how the book will look in your library.",
+      "titlePlaceholder": "Example title",
+      "authorPlaceholder": "Author not specified",
+      "coverInitial": "Book",
+      "formatsLabel": "Formats",
+      "genresMore": "+{count}",
+      "tagsMore": "+{count}",
+      "favorite": "Favorite",
+      "inQueue": "In reading queue"
+    },
+    "actions": {
+      "submit": "Add book",
+      "submitting": "Adding…",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "saving": "Saving…"
+    },
+    "submit": {
+      "success": "Book added to your library.",
+      "error": "Could not add the book. Check the fields and try again.",
+      "editSuccess": "Changes saved.",
+      "editError": "Could not save the changes. Check the fields and try again."
+    },
+    "editPage": {
+      "metaTitle": "Edit book",
+      "eyebrow": "Library",
+      "title": "Edit book",
+      "subtitle": "Update the book details. Changes are saved to your library right away."
+    },
+    "editConfirm": {
+      "confirm": "Yes, change it",
+      "cancel": "Keep as is",
+      "readingStatus": {
+        "title": "Change reading status?",
+        "description": "You entered data for the current status (rating, notes, or dates). Changing the status will clear that data."
+      },
+      "ownershipStatus": {
+        "title": "Change ownership status?",
+        "description": "You entered data for the current status (purchase, delivery, or loan). Changing the status will clear that data."
+      },
+      "series": {
+        "title": "Remove the book from its series?",
+        "description": "The book will no longer belong to the series, and its part number will be cleared."
+      }
+    },
+    "editState": {
+      "loading": "Loading the book…",
+      "notFoundTitle": "Book not found",
+      "notFoundDescription": "It may have been deleted, or the link is incorrect.",
+      "errorTitle": "Could not load the book",
+      "errorDescription": "Something went wrong. Try refreshing the page in a moment.",
+      "backToLibrary": "Back to library"
+    }
   }
 }
