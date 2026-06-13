@@ -59,7 +59,7 @@ function SignedIn({ email, name }: { email: string; name: string }) {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[14rem]">
+      <DropdownMenuContent align="end" className="min-w-56">
         <DropdownMenuLabel className="flex flex-col gap-0.5 py-1.5">
           <span className="truncate text-sm font-medium text-foreground">{name}</span>
           <span className="truncate text-xs font-normal text-muted-foreground">{email}</span>

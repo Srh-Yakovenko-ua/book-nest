@@ -59,7 +59,7 @@ export function DatePicker({
         aria-invalid={invalid === true || undefined}
         aria-label={t("triggerLabel")}
         className={cn(
-          "relative flex h-12 w-full cursor-pointer items-center rounded-[10px] border border-border bg-card pr-3.5 pl-[42px] text-left text-[0.94rem] transition-[border-color,box-shadow] duration-150 outline-none",
+          "relative flex h-12 w-full cursor-pointer items-center rounded-md border border-border bg-card pr-3.5 pl-11 text-left text-base transition-[border-color,box-shadow] duration-150 outline-none",
           "hover:border-accent-border",
           "focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-ring/20",
           "data-[state=open]:border-primary data-[state=open]:ring-4 data-[state=open]:ring-ring/20",
@@ -137,7 +137,7 @@ function CalendarDropdown({ options, value, onChange, "aria-label": ariaLabel }:
     <Select onValueChange={handleValueChange} value={value?.toString()}>
       <SelectTrigger
         aria-label={ariaLabel}
-        className="h-9 flex-1 gap-1 rounded-[8px] border-border bg-card px-2.5 font-medium"
+        className="h-9 flex-1 gap-1 rounded-sm border-border bg-card px-2.5 font-medium"
         size="sm"
       >
         <SelectValue />

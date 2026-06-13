@@ -70,7 +70,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         </FormBanner>
         <Button
           asChild
-          className="mt-6 h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
+          className="mt-6 h-12 w-full rounded-md text-base font-semibold"
           variant="secondary"
         >
           <Link href="/forgot-password">{t("reset.requestNewLink")}</Link>
@@ -86,10 +86,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <FormBanner className="mt-6" variant="success">
           {t("reset.success")}
         </FormBanner>
-        <Button
-          asChild
-          className="mt-6 h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
-        >
+        <Button asChild className="mt-6 h-12 w-full rounded-md text-base font-semibold">
           <Link href="/login">{t("reset.backToLogin")}</Link>
         </Button>
       </div>
@@ -103,9 +100,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
       <AuthHeading subtitle={t("reset.subtitle")} title={t("reset.title")} />
 
       <form noValidate onSubmit={onSubmit}>
-        <div className="mb-[15px]">
+        <div className="mb-4">
           <label
-            className="mb-[7px] flex items-center text-[0.86rem] leading-tight font-semibold text-foreground"
+            className="mb-2 flex items-center text-sm leading-tight font-semibold text-foreground"
             htmlFor="reset-password"
           >
             {t("fields.newPassword")}
@@ -125,9 +122,9 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
           <AuthFieldError error={errors.password} field="password" id="reset-password-error" />
         </div>
 
-        <div className="mb-[15px]">
+        <div className="mb-4">
           <label
-            className="mb-[7px] flex items-center text-[0.86rem] leading-tight font-semibold text-foreground"
+            className="mb-2 flex items-center text-sm leading-tight font-semibold text-foreground"
             htmlFor="reset-confirm"
           >
             {t("fields.confirmPassword")}
@@ -149,7 +146,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         </div>
 
         <Button
-          className="h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
+          className="h-12 w-full rounded-md text-base font-semibold"
           disabled={pending}
           loading={pending}
           type="submit"
@@ -158,7 +155,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         </Button>
       </form>
 
-      <p className="mt-[22px] text-center text-[0.88rem] text-muted-foreground">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         <Link className="font-semibold text-primary hover:underline" href="/login">
           {t("reset.backToLogin")}
         </Link>

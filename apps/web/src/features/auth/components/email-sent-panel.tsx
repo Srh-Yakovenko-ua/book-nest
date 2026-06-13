@@ -46,7 +46,7 @@ export function EmailSentPanel({
     <div>
       <span
         aria-hidden
-        className="mb-[18px] grid size-16 place-items-center rounded-full bg-accent text-primary"
+        className="mb-5 grid size-16 place-items-center rounded-full bg-accent text-primary"
       >
         <UiIcon name="mail" size={28} />
       </span>
@@ -54,7 +54,7 @@ export function EmailSentPanel({
       <AuthHeading subtitle={lead} title={title} />
 
       <Button
-        className="h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
+        className="h-12 w-full rounded-md text-base font-semibold"
         disabled={resendPending || cooldown > 0}
         loading={resendPending}
         onClick={handleResend}
@@ -63,9 +63,9 @@ export function EmailSentPanel({
         {resendPending ? t("common.loading") : resendLabel}
       </Button>
 
-      <p className="mt-[18px] text-center text-[0.88rem] text-muted-foreground">{hint}</p>
+      <p className="mt-5 text-center text-sm text-muted-foreground">{hint}</p>
 
-      <p className="mt-[22px] text-center text-[0.88rem]">
+      <p className="mt-6 text-center text-sm">
         <Link
           className="inline-flex cursor-pointer items-center gap-1.5 font-semibold text-primary hover:underline"
           href="/login"

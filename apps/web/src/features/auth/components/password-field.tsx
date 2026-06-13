@@ -29,7 +29,7 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
         />
         <input
           className={cn(
-            "h-12 w-full rounded-[10px] border border-border bg-card pr-12 pl-[42px] text-[0.94rem] text-foreground transition-[border-color,box-shadow] duration-150 outline-none",
+            "h-12 w-full rounded-md border border-border bg-card pr-12 pl-11 text-base text-foreground transition-[border-color,box-shadow] duration-150 outline-none",
             "placeholder:text-muted-foreground",
             "focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-ring/20",
             invalid === true &&
@@ -43,7 +43,7 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
         <button
           aria-label={visible ? t("hidePassword") : t("showPassword")}
           aria-pressed={visible}
-          className="absolute right-2 flex size-[34px] cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="absolute right-2 flex size-9 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           onClick={() => setVisible((current) => !current)}
           type="button"
         >

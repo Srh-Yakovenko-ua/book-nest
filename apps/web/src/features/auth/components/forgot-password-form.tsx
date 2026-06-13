@@ -67,7 +67,7 @@ export function ForgotPasswordForm() {
           <AuthHeading subtitle={t("forgot.subtitle")} title={t("forgot.title")} />
 
           <form noValidate onSubmit={onSubmit}>
-            <div className="mb-[15px]">
+            <div className="mb-4">
               <AuthTextField
                 aria-describedby={errors.email ? "forgot-email-error" : undefined}
                 aria-invalid={errors.email !== undefined}
@@ -86,7 +86,7 @@ export function ForgotPasswordForm() {
             </div>
 
             <Button
-              className="h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
+              className="h-12 w-full rounded-md text-base font-semibold"
               disabled={pending}
               loading={pending}
               type="submit"
@@ -95,7 +95,7 @@ export function ForgotPasswordForm() {
             </Button>
           </form>
 
-          <p className="mt-[22px] text-center text-[0.88rem] text-muted-foreground">
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             {t("forgot.rememberPrompt")}{" "}
             <Link className="font-semibold text-primary hover:underline" href="/login">
               {t("forgot.backToLogin")}

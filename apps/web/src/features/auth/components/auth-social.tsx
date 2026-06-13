@@ -15,7 +15,7 @@ export function AuthSocial() {
 
   return (
     <>
-      <div className="my-5 flex items-center gap-3.5 text-[0.8rem] text-muted-foreground">
+      <div className="my-5 flex items-center gap-3.5 text-xs text-muted-foreground">
         <span className="h-px flex-1 bg-border" />
         <span>{t("common.or")}</span>
         <span className="h-px flex-1 bg-border" />
@@ -24,7 +24,7 @@ export function AuthSocial() {
         {(["google", "apple"] as const).map((provider) => (
           <button
             aria-label={t("social.continueWith", { provider: t(`social.${provider}`) })}
-            className="flex h-12 cursor-pointer items-center justify-center gap-2.5 rounded-[10px] border border-border bg-card text-[0.88rem] font-semibold text-foreground transition-colors hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="flex h-12 cursor-pointer items-center justify-center gap-2.5 rounded-md border border-border bg-card text-sm font-semibold text-foreground transition-colors hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             key={provider}
             type="button"
           >
