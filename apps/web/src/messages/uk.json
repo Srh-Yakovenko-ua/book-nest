@@ -451,7 +451,8 @@
       "authorPlaceholder": "Почніть вводити імʼя автора…",
       "authorHint": "Оберіть автора з каталогу або введіть власне імʼя.",
       "publisher": "Видавництво",
-      "publisherPlaceholder": "Напр. Видавництво Старого Лева",
+      "publisherPlaceholder": "Почніть вводити назву видавництва…",
+      "publisherHint": "Оберіть видавництво з каталогу або введіть власну назву.",
       "description": "Опис",
       "descriptionPlaceholder": "Короткий опис книги…",
       "optional": "(необовʼязково)"
@@ -462,6 +463,14 @@
       "catalogHeading": "З каталогу",
       "createHeading": "Додати власного",
       "customBadge": "власний",
+      "useCustom": "Використати «{name}»"
+    },
+    "publisher": {
+      "searching": "Шукаємо видавництва…",
+      "empty": "Видавництв не знайдено.",
+      "catalogHeading": "З каталогу",
+      "createHeading": "Додати власне",
+      "customBadge": "власне",
       "useCustom": "Використати «{name}»"
     },
     "preview": {

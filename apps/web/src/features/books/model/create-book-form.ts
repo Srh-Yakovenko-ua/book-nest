@@ -16,6 +16,10 @@ export type CreateBookFormOutput = z.output<typeof CreateBookInputSchema>;
 
 export type CreateBookFormValues = z.input<typeof CreateBookInputSchema>;
 
+export type PublisherSelection =
+  | { id: string; kind: "catalog"; name: string }
+  | { kind: "custom"; name: string };
+
 export type SeriesSelection =
   | { draft: NewSeriesDraft; kind: "new"; name: string }
   | { id: string; kind: "existing"; name: string };
