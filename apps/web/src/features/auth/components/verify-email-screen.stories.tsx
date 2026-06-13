@@ -76,5 +76,9 @@ export const Success: Story = {
     await waitFor(async () => {
       await expect(canvas.getByText(/e-mail підтверджено|email has been verified/i)).toBeVisible();
     });
+    await expect(canvas.getByText(/перенаправимо|redirecting you/i)).toBeVisible();
+    await expect(
+      canvas.getByRole("button", { name: /продовжити зараз|continue now/i }),
+    ).toBeVisible();
   },
 };

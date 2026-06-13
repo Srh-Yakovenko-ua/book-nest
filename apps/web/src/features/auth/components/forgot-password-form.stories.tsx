@@ -58,7 +58,10 @@ export const NeutralSuccess: Story = {
     await expect(canvas.getByText(/такий акаунт існує|such an account exists/i)).toBeVisible();
     const emailStep = canvas.getByRole("button", { name: /пошта|email/i });
     await expect(emailStep).toHaveAttribute("aria-current", "step");
-    await expect(canvas.getByRole("button", { name: /ще раз|resend in/i })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: /ще раз|resend/i })).toBeVisible();
+    await expect(
+      canvas.getByRole("link", { name: /повернутися до входу|back to sign in/i }),
+    ).toBeVisible();
   },
 };
 

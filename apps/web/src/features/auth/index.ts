@@ -22,6 +22,7 @@ export { AuthLayout } from "./components/auth-layout";
 export { AuthSocial } from "./components/auth-social";
 export { AuthStepper } from "./components/auth-stepper";
 export { AuthTextField } from "./components/auth-text-field";
+export { EmailSentPanel } from "./components/email-sent-panel";
 export { ForgotPasswordForm } from "./components/forgot-password-form";
 export { FormBanner } from "./components/form-banner";
 export { GuardFallback } from "./components/guard-fallback";
