@@ -49,7 +49,7 @@ export function ResendVerificationForm({
     <FormBanner variant="success">{t("resend.success")}</FormBanner>
   ) : (
     <form noValidate onSubmit={onSubmit}>
-      <div className="mb-[15px]">
+      <div className="mb-4">
         <AuthTextField
           aria-describedby={errors.email ? "resend-email-error" : undefined}
           aria-invalid={errors.email !== undefined}
@@ -66,7 +66,7 @@ export function ResendVerificationForm({
       </div>
 
       <Button
-        className="h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
+        className="h-12 w-full rounded-md text-base font-semibold"
         disabled={pending}
         loading={pending}
         type="submit"

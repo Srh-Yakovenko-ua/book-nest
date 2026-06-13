@@ -21,7 +21,7 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
         {SEGMENTS.map((segment) => (
           <span
             className={cn(
-              "h-[5px] flex-1 rounded-full transition-colors duration-200",
+              "h-1.5 flex-1 rounded-full transition-colors duration-200",
               hasInput && segment < score ? fill : "bg-secondary",
             )}
             key={segment}
@@ -29,7 +29,7 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
         ))}
       </div>
       {hasInput ? (
-        <span className="mt-1.5 block text-[0.76rem] font-semibold text-muted-foreground">
+        <span className="mt-1.5 block text-xs font-semibold text-muted-foreground">
           {t(`level.${level}`)}
         </span>
       ) : null}

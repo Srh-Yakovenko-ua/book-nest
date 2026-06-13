@@ -96,13 +96,13 @@ export function RegisterForm() {
       <AuthHeading subtitle={t("register.subtitle")} title={t("register.title")} />
 
       {formMessageKey ? (
-        <FormBanner className="mb-[18px]" variant="error">
+        <FormBanner className="mb-5" variant="error">
           {t(formMessageKey)}
         </FormBanner>
       ) : null}
 
       <form noValidate onSubmit={onSubmit}>
-        <div className="mb-[15px]">
+        <div className="mb-4">
           <AuthTextField
             aria-describedby={errors.name ? "register-name-error" : undefined}
             aria-invalid={errors.name !== undefined}
@@ -117,7 +117,7 @@ export function RegisterForm() {
           />
         </div>
 
-        <div className="mb-[15px]">
+        <div className="mb-4">
           <AuthTextField
             aria-describedby={errors.email ? "register-email-error" : undefined}
             aria-invalid={errors.email !== undefined}
@@ -131,7 +131,7 @@ export function RegisterForm() {
             status={
               emailSuggestion !== null && errors.email === undefined ? (
                 <button
-                  className="mt-[7px] w-fit cursor-pointer text-left text-[0.78rem] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  className="mt-2 w-fit cursor-pointer text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
                   onClick={() =>
                     setValue("email", emailSuggestion, {
                       shouldDirty: true,
@@ -149,7 +149,7 @@ export function RegisterForm() {
           />
         </div>
 
-        <div className="mb-[15px]">
+        <div className="mb-4">
           <PasswordLabel htmlFor="register-password">
             <RequiredLabel>{t("fields.password")}</RequiredLabel>
           </PasswordLabel>
@@ -167,7 +167,7 @@ export function RegisterForm() {
           <AuthFieldError error={errors.password} field="password" id="register-password-error" />
         </div>
 
-        <div className="mb-[15px]">
+        <div className="mb-4">
           <PasswordLabel htmlFor="register-confirm">
             <RequiredLabel>{t("fields.confirmPassword")}</RequiredLabel>
           </PasswordLabel>
@@ -187,7 +187,7 @@ export function RegisterForm() {
           />
         </div>
 
-        <div className="mb-[15px]">
+        <div className="mb-4">
           <AuthTextField
             aria-describedby={errors.nickname ? "register-nickname-error" : undefined}
             aria-invalid={errors.nickname !== undefined}
@@ -219,13 +219,13 @@ export function RegisterForm() {
           control={control}
           name="dateOfBirth"
           render={({ field: dobField }) => (
-            <div className="mb-[15px] flex flex-col">
+            <div className="mb-4 flex flex-col">
               <label
-                className="mb-[7px] flex items-center gap-1.5 text-[0.86rem] leading-tight font-semibold text-foreground"
+                className="mb-2 flex items-center gap-1.5 text-sm leading-tight font-semibold text-foreground"
                 htmlFor="register-dob"
               >
                 {t("fields.dateOfBirth")}
-                <span className="text-[0.78rem] font-medium text-muted-foreground">
+                <span className="text-xs font-medium text-muted-foreground">
                   ({t("common.optional")})
                 </span>
               </label>
@@ -254,13 +254,13 @@ export function RegisterForm() {
           control={control}
           name="terms"
           render={({ field: termsField }) => (
-            <div className="mt-1.5 mb-[15px]">
-              <label className="flex cursor-pointer items-start gap-2.5 text-[0.86rem] text-foreground select-none">
+            <div className="mt-1.5 mb-4">
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm text-foreground select-none">
                 <Checkbox
                   aria-describedby={errors.terms ? "register-terms-error" : undefined}
                   aria-invalid={errors.terms !== undefined}
                   checked={termsField.value === true}
-                  className="mt-px size-5 rounded-[6px]"
+                  className="mt-px size-5 rounded-sm"
                   name={termsField.name}
                   onCheckedChange={(checked) => termsField.onChange(checked === true)}
                   ref={termsField.ref}
@@ -273,7 +273,7 @@ export function RegisterForm() {
         />
 
         <Button
-          className="h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
+          className="h-12 w-full rounded-md text-base font-semibold"
           disabled={pending}
           loading={pending}
           type="submit"
@@ -284,7 +284,7 @@ export function RegisterForm() {
 
       <AuthSocial />
 
-      <p className="mt-[22px] text-center text-[0.88rem] text-muted-foreground">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         {t("register.haveAccount")}{" "}
         <Link className="font-semibold text-primary hover:underline" href="/login">
           {t("register.signIn")}
@@ -314,7 +314,7 @@ function NicknameStatus({ nickname }: { nickname: string }) {
 
   if (isLoading) {
     return (
-      <p className="mt-[7px] flex items-center gap-1.5 text-[0.78rem] text-muted-foreground">
+      <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
         <UiIcon aria-hidden className="animate-spin" name="refresh" size={13} />
         {t("register.nicknameChecking")}
       </p>
@@ -326,7 +326,7 @@ function NicknameStatus({ nickname }: { nickname: string }) {
   return (
     <p
       className={cn(
-        "mt-[7px] flex items-center gap-1.5 text-[0.78rem]",
+        "mt-2 flex items-center gap-1.5 text-xs",
         data.available ? "text-success" : "text-destructive",
       )}
     >
@@ -345,7 +345,7 @@ function parseBirthDate(value: string | undefined): Date | undefined {
 function PasswordLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor: string }) {
   return (
     <label
-      className="mb-[7px] flex items-center gap-1.5 text-[0.86rem] leading-tight font-semibold text-foreground"
+      className="mb-2 flex items-center gap-1.5 text-sm leading-tight font-semibold text-foreground"
       htmlFor={htmlFor}
     >
       {children}

@@ -26,7 +26,7 @@ export function PasswordChecklist({ password }: { password: string }) {
       {rules.map((rule) => (
         <li
           className={cn(
-            "flex items-center gap-[7px] text-[0.78rem]",
+            "flex items-center gap-2 text-xs",
             rule.met ? "text-success" : "text-muted-foreground",
           )}
           key={rule.id}

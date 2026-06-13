@@ -19,7 +19,7 @@ type AuthStepperProps = {
 
 export function AuthStepper({ ariaLabel, current, onStepSelect, steps }: AuthStepperProps) {
   return (
-    <nav aria-label={ariaLabel} className="mb-[26px]">
+    <nav aria-label={ariaLabel} className="mb-6">
       <ol className="flex items-center gap-2">
         {steps.map((step, index) => {
           const active = index === current;
@@ -33,7 +33,7 @@ export function AuthStepper({ ariaLabel, current, onStepSelect, steps }: AuthSte
                 <button
                   aria-current={active ? "step" : undefined}
                   className={cn(
-                    "-my-2 flex items-center gap-2 bg-transparent py-2 text-[0.82rem] leading-none font-semibold transition-colors",
+                    "-my-2 flex items-center gap-2 bg-transparent py-2 text-sm leading-none font-semibold transition-colors",
                     active ? "text-ink" : done ? "text-ink" : "text-muted-foreground",
                     reachable ? "cursor-pointer" : "cursor-default",
                     "focus-visible:rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
@@ -45,7 +45,7 @@ export function AuthStepper({ ariaLabel, current, onStepSelect, steps }: AuthSte
                   <span
                     aria-hidden
                     className={cn(
-                      "grid size-7 place-items-center rounded-full border text-[0.8rem] transition-colors",
+                      "grid size-7 place-items-center rounded-full border text-xs transition-colors",
                       active
                         ? "border-transparent bg-primary text-primary-foreground"
                         : done

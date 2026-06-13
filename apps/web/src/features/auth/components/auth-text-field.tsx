@@ -39,14 +39,12 @@ export const AuthTextField = forwardRef<HTMLInputElement, AuthTextFieldProps>(
     return (
       <div className="flex flex-col">
         <label
-          className="mb-[7px] flex items-center gap-1.5 text-[0.86rem] leading-tight font-semibold text-foreground"
+          className="mb-2 flex items-center gap-1.5 text-sm leading-tight font-semibold text-foreground"
           htmlFor={id}
         >
           {label}
           {optionalLabel === undefined ? null : (
-            <span className="text-[0.78rem] font-medium text-muted-foreground">
-              {optionalLabel}
-            </span>
+            <span className="text-xs font-medium text-muted-foreground">{optionalLabel}</span>
           )}
         </label>
         <div className="relative flex items-center">
@@ -61,7 +59,7 @@ export const AuthTextField = forwardRef<HTMLInputElement, AuthTextFieldProps>(
           />
           <input
             className={cn(
-              "h-12 w-full rounded-[10px] border border-border bg-card pr-3.5 pl-[42px] text-[0.94rem] text-foreground transition-[border-color,box-shadow] duration-150 outline-none",
+              "h-12 w-full rounded-md border border-border bg-card pr-3.5 pl-11 text-base text-foreground transition-[border-color,box-shadow] duration-150 outline-none",
               "placeholder:text-muted-foreground",
               "focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-ring/20",
               invalid === true &&
@@ -78,7 +76,7 @@ export const AuthTextField = forwardRef<HTMLInputElement, AuthTextFieldProps>(
         {error}
         {status}
         {hint === undefined ? null : (
-          <p className="mt-[7px] text-[0.78rem] leading-snug text-muted-foreground">{hint}</p>
+          <p className="mt-2 text-xs leading-snug text-muted-foreground">{hint}</p>
         )}
       </div>
     );

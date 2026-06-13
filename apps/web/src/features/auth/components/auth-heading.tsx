@@ -12,9 +12,7 @@ export function AuthHeading({ subtitle, title }: AuthHeadingProps) {
         {title}
       </h1>
       {subtitle === undefined ? null : (
-        <p className="mt-2 mb-[22px] text-[0.96rem] leading-relaxed text-muted-foreground">
-          {subtitle}
-        </p>
+        <p className="mt-2 mb-6 text-base leading-relaxed text-muted-foreground">{subtitle}</p>
       )}
     </div>
   );

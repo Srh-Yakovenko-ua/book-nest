@@ -62,7 +62,7 @@ export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
           {t("errors.invalidToken")}
         </FormBanner>
         <div className="mt-6 flex flex-col gap-3">
-          <p className="text-[0.96rem] text-muted-foreground">{t("verify.resendPrompt")}</p>
+          <p className="text-base text-muted-foreground">{t("verify.resendPrompt")}</p>
           <ResendVerificationForm />
         </div>
       </div>
@@ -92,9 +92,7 @@ function BigIcon({
   tone: BigIconTone;
 }) {
   return (
-    <div
-      className={cn("mb-[18px] grid size-16 place-items-center rounded-full", TONE_STYLES[tone])}
-    >
+    <div className={cn("mb-5 grid size-16 place-items-center rounded-full", TONE_STYLES[tone])}>
       <UiIcon
         aria-hidden
         className={spinning === true ? "animate-spin" : undefined}
@@ -133,11 +131,11 @@ function VerifyEmailSuccess({ destination }: { destination: string }) {
     <div className="flex flex-col items-center text-center">
       <BigIcon name="check-circle" tone="success" />
       <AuthHeading title={t("verify.success")} />
-      <p aria-live="polite" className="mt-2 text-[0.96rem] text-muted-foreground">
+      <p aria-live="polite" className="mt-2 text-base text-muted-foreground">
         {t("verify.redirecting", { seconds })}
       </p>
       <Button
-        className="mt-6 h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
+        className="mt-6 h-12 w-full rounded-md text-base font-semibold"
         onClick={goNow}
         type="button"
       >

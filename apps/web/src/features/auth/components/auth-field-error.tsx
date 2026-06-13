@@ -21,12 +21,8 @@ export function AuthFieldError({ error, field, id }: AuthFieldErrorProps) {
   if (text === "") return null;
 
   return (
-    <p
-      className="mt-[7px] flex items-center gap-1.5 text-[0.8rem] text-destructive"
-      id={id}
-      role="alert"
-    >
-      <span aria-hidden className="size-[5px] shrink-0 rounded-full bg-destructive" />
+    <p className="mt-2 flex items-center gap-1.5 text-xs text-destructive" id={id} role="alert">
+      <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-destructive" />
       {text}
     </p>
   );

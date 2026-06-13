@@ -18,7 +18,7 @@ const meta = {
   component: AuthStepper,
   decorators: [
     (Story) => (
-      <div className="w-full max-w-[432px] p-8">
+      <div className="w-full max-w-md p-8">
         <Story />
       </div>
     ),
