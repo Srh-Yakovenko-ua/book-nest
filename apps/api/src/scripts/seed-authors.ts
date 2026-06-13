@@ -16,7 +16,9 @@ const UKRAINIAN_CITIZENSHIPS = ["Q212", "Q15180"];
 const GLOBAL_MIN_SITELINKS = 80;
 const UKRAINIAN_MIN_SITELINKS = 25;
 const ENRICH_BATCH_SIZE = 200;
-const UPSERT_BATCH_SIZE = 50;
+const UPSERT_BATCH_SIZE = 10;
+const UPSERT_TRANSACTION_TIMEOUT_MS = 30_000;
+const UPSERT_TRANSACTION_MAX_WAIT_MS = 10_000;
 const TARGET_AUTHOR_CAP = 2000;
 const REQUEST_TIMEOUT_MS = 90_000;
 const MAX_ATTEMPTS = 5;
@@ -363,55 +365,58 @@ async function upsertAuthors(prisma: PrismaClient, inputs: AuthorSeedInput[]): P
   let upserted = 0;
 
   for (const batch of chunk(inputs, UPSERT_BATCH_SIZE)) {
-    await prisma.$transaction(async (tx) => {
-      for (const input of batch) {
-        const author = await tx.author.upsert({
-          create: {
-            bio: input.bio,
-            birthYear: input.birthYear,
-            countryCode: input.countryCode,
-            deathYear: input.deathYear,
-            name: input.name,
-            normalizedName: input.normalizedName,
-            openLibraryKey: input.openLibraryKey,
-            photoAttribution: input.photoAttribution,
-            photoLicense: input.photoLicense,
-            photoLicenseUrl: input.photoLicenseUrl,
-            photoUrl: input.photoUrl,
-            searchText: input.searchText,
-            userId: input.userId,
-            wikidataId: input.wikidataId,
-          },
-          select: { id: true },
-          update: {
-            bio: input.bio,
-            birthYear: input.birthYear,
-            countryCode: input.countryCode,
-            deathYear: input.deathYear,
-            name: input.name,
-            normalizedName: input.normalizedName,
-            openLibraryKey: input.openLibraryKey,
-            photoAttribution: input.photoAttribution,
-            photoLicense: input.photoLicense,
-            photoLicenseUrl: input.photoLicenseUrl,
-            photoUrl: input.photoUrl,
-            searchText: input.searchText,
-          },
-          where: { wikidataId: input.wikidataId },
-        });
+    await prisma.$transaction(
+      async (tx) => {
+        for (const input of batch) {
+          const author = await tx.author.upsert({
+            create: {
+              bio: input.bio,
+              birthYear: input.birthYear,
+              countryCode: input.countryCode,
+              deathYear: input.deathYear,
+              name: input.name,
+              normalizedName: input.normalizedName,
+              openLibraryKey: input.openLibraryKey,
+              photoAttribution: input.photoAttribution,
+              photoLicense: input.photoLicense,
+              photoLicenseUrl: input.photoLicenseUrl,
+              photoUrl: input.photoUrl,
+              searchText: input.searchText,
+              userId: input.userId,
+              wikidataId: input.wikidataId,
+            },
+            select: { id: true },
+            update: {
+              bio: input.bio,
+              birthYear: input.birthYear,
+              countryCode: input.countryCode,
+              deathYear: input.deathYear,
+              name: input.name,
+              normalizedName: input.normalizedName,
+              openLibraryKey: input.openLibraryKey,
+              photoAttribution: input.photoAttribution,
+              photoLicense: input.photoLicense,
+              photoLicenseUrl: input.photoLicenseUrl,
+              photoUrl: input.photoUrl,
+              searchText: input.searchText,
+            },
+            where: { wikidataId: input.wikidataId },
+          });
 
-        await tx.authorName.deleteMany({ where: { authorId: author.id } });
-        await tx.authorName.createMany({
-          data: input.names.map((authorName) => ({
-            authorId: author.id,
-            isPrimary: authorName.isPrimary,
-            locale: authorName.locale,
-            name: authorName.name,
-            normalizedName: authorName.normalizedName,
-          })),
-        });
-      }
-    });
+          await tx.authorName.deleteMany({ where: { authorId: author.id } });
+          await tx.authorName.createMany({
+            data: input.names.map((authorName) => ({
+              authorId: author.id,
+              isPrimary: authorName.isPrimary,
+              locale: authorName.locale,
+              name: authorName.name,
+              normalizedName: authorName.normalizedName,
+            })),
+          });
+        }
+      },
+      { maxWait: UPSERT_TRANSACTION_MAX_WAIT_MS, timeout: UPSERT_TRANSACTION_TIMEOUT_MS },
+    );
     upserted += batch.length;
     logger.info({ total: inputs.length, upserted }, "upserted batch");
   }
