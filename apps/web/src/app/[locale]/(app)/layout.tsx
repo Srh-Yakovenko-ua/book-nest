@@ -1,12 +1,14 @@
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
-import { AuthGuard } from "@/features/auth";
+import { AuthGuard, GuardFallback } from "@/features/auth";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <AuthGuard>
-      <AppShell>{children}</AppShell>
-    </AuthGuard>
+    <Suspense fallback={<GuardFallback />}>
+      <AuthGuard>
+        <AppShell>{children}</AppShell>
+      </AuthGuard>
+    </Suspense>
   );
 }

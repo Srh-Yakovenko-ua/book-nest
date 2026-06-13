@@ -1,7 +1,11 @@
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 
-import { GuestGuard } from "@/features/auth";
+import { GuardFallback, GuestGuard } from "@/features/auth";
 
 export default function AuthAreaLayout({ children }: { children: ReactNode }) {
-  return <GuestGuard>{children}</GuestGuard>;
+  return (
+    <Suspense fallback={<GuardFallback />}>
+      <GuestGuard>{children}</GuestGuard>
+    </Suspense>
+  );
 }
