@@ -5,7 +5,8 @@
     "somethingWentWrong": "Something went wrong"
   },
   "nav": {
-    "home": "Home"
+    "home": "Home",
+    "addBook": "Add book"
   },
   "appShell": {
     "label": "Book Nest"

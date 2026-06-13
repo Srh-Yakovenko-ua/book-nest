@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { Home, Layers } from "lucide-react";
+import { BookPlus, Home, Layers } from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -30,11 +30,14 @@ import { cn } from "@/lib/utils";
 
 type NavItem = {
   icon: React.ElementType;
-  key: "home";
+  key: "addBook" | "home";
   to: string;
 };
 
-const NAV_ITEMS: NavItem[] = [{ icon: Home, key: "home", to: "/" }];
+const NAV_ITEMS: NavItem[] = [
+  { icon: Home, key: "home", to: "/" },
+  { icon: BookPlus, key: "addBook", to: "/books/new" },
+];
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
