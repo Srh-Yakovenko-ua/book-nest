@@ -5,7 +5,11 @@ import type {
   Paginator,
 } from "@app/shared";
 
-import { AuthorLookupQuerySchema, TaxonomySearchPaginationQuerySchema } from "@app/shared";
+import {
+  AuthorLocaleSchema,
+  AuthorLookupQuerySchema,
+  AuthorSearchPaginationQuerySchema,
+} from "@app/shared";
 import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -25,7 +29,7 @@ import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
 import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
 import { AuthorsService } from "../application/authors.service.js";
 import { AuthorLookupQueryDto } from "./input-dto/author-lookup-query.input-dto.js";
-import { TaxonomySearchPaginationQueryDto } from "./input-dto/taxonomy-search-query.input-dto.js";
+import { AuthorSearchPaginationQueryDto } from "./input-dto/author-search-query.input-dto.js";
 
 const LOOKUP_TTL_SECONDS = 60;
 const LOOKUP_LIMIT = 30;
@@ -71,13 +75,14 @@ export class AuthorsController {
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
+  @ApiQuery({ enum: AuthorLocaleSchema.options, name: "locale", required: false })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
   @UseGuards(JwtAccessGuard)
   search(
     @CurrentUser() user: UserModel,
-    @Query(new ZodQueryPipe(TaxonomySearchPaginationQuerySchema))
-    query: TaxonomySearchPaginationQueryDto,
+    @Query(new ZodQueryPipe(AuthorSearchPaginationQuerySchema))
+    query: AuthorSearchPaginationQueryDto,
   ): Promise<Paginator<AuthorView>> {
     return this.authorsService.search(user.id, query);
   }

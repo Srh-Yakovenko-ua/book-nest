@@ -1,8 +1,10 @@
-import type { AuthorView } from "@app/shared";
+import type { AuthorLocale, AuthorView } from "@app/shared";
 
-import type { AuthorModel } from "../../../generated/prisma/models.js";
+import type { AuthorWithPrimaryNames } from "../infrastructure/authors.repository.js";
 
-export function toAuthorView(author: AuthorModel): AuthorView {
+export function toAuthorView(author: AuthorWithPrimaryNames, locale: AuthorLocale): AuthorView {
+  const localized = author.names.find((authorName) => authorName.locale === locale);
+
   return {
     bio: author.bio,
     birthYear: author.birthYear,
@@ -10,7 +12,7 @@ export function toAuthorView(author: AuthorModel): AuthorView {
     deathYear: author.deathYear,
     id: author.id,
     isCustom: author.userId !== null,
-    name: author.name,
+    name: localized?.name ?? author.name,
     openLibraryKey: author.openLibraryKey,
     photoAttribution: author.photoAttribution,
     photoLicense: author.photoLicense,

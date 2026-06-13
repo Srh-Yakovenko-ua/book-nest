@@ -37,13 +37,17 @@ const CoreResponseSchema = z.object({
 });
 
 const EnrichBindingSchema = z.object({
+  aliasEn: SparqlValueSchema.optional(),
+  aliasRu: SparqlValueSchema.optional(),
+  aliasUk: SparqlValueSchema.optional(),
   author: SparqlValueSchema,
-  authorDescription: SparqlValueSchema.optional(),
-  authorLabel: SparqlValueSchema.optional(),
   birth: SparqlValueSchema.optional(),
   death: SparqlValueSchema.optional(),
+  descEn: SparqlValueSchema.optional(),
   image: SparqlValueSchema.optional(),
   iso: SparqlValueSchema.optional(),
+  labelEn: SparqlValueSchema.optional(),
+  labelUk: SparqlValueSchema.optional(),
   olid: SparqlValueSchema.optional(),
 });
 
@@ -58,26 +62,40 @@ type CoreCandidate = {
 };
 
 type EnrichedFields = {
-  authorDescription: null | string;
-  authorLabel: null | string;
+  aliasEn: null | string;
+  aliasRu: null | string;
+  aliasUk: null | string;
   birth: null | string;
   countryCode: null | string;
   death: null | string;
+  descEn: null | string;
   image: null | string;
+  labelEn: null | string;
+  labelUk: null | string;
   openLibraryKey: null | string;
 };
 
 function buildEnrichQuery(entityIds: string[]): string {
   const values = entityIds.map((id) => `wd:${id}`).join(" ");
-  return `SELECT ?author ?authorLabel ?authorDescription ?image ?iso ?birth ?death ?olid WHERE {
+  return `SELECT ?author ?labelEn ?labelUk ?descEn ?image ?iso ?birth ?death ?olid
+  (GROUP_CONCAT(DISTINCT ?altEnRaw; separator="|") AS ?aliasEn)
+  (GROUP_CONCAT(DISTINCT ?altUkRaw; separator="|") AS ?aliasUk)
+  (GROUP_CONCAT(DISTINCT ?altRuRaw; separator="|") AS ?aliasRu)
+WHERE {
   VALUES ?author { ${values} }
+  OPTIONAL { ?author rdfs:label ?labelEn . FILTER(LANG(?labelEn) = "en") }
+  OPTIONAL { ?author rdfs:label ?labelUk . FILTER(LANG(?labelUk) = "uk") }
+  OPTIONAL { ?author schema:description ?descEn . FILTER(LANG(?descEn) = "en") }
   OPTIONAL { ?author wdt:P18 ?image . }
   OPTIONAL { ?author wdt:P27 ?country . ?country wdt:P297 ?iso . }
   OPTIONAL { ?author wdt:P569 ?birth . }
   OPTIONAL { ?author wdt:P570 ?death . }
   OPTIONAL { ?author wdt:P648 ?olid . }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "uk,en,ru". }
-} LIMIT 10000`;
+  OPTIONAL { ?author skos:altLabel ?altEnRaw . FILTER(LANG(?altEnRaw) = "en") }
+  OPTIONAL { ?author skos:altLabel ?altUkRaw . FILTER(LANG(?altUkRaw) = "uk") }
+  OPTIONAL { ?author skos:altLabel ?altRuRaw . FILTER(LANG(?altRuRaw) = "ru") }
+}
+GROUP BY ?author ?labelEn ?labelUk ?descEn ?image ?iso ?birth ?death ?olid`;
 }
 
 function buildGlobalCoreQuery(occupation: string): string {
@@ -106,12 +124,16 @@ function buildSeedInputs(
     }
 
     const seedInput = mapWikidataAuthorRow({
-      authorDescription: fields.authorDescription,
-      authorLabel: fields.authorLabel,
+      aliasEn: fields.aliasEn,
+      aliasRu: fields.aliasRu,
+      aliasUk: fields.aliasUk,
+      authorDescription: fields.descEn,
       birth: fields.birth,
       countryCode: fields.countryCode,
       death: fields.death,
       image: fields.image,
+      labelEn: fields.labelEn,
+      labelUk: fields.labelUk,
       openLibraryKey: candidate.openLibraryKey ?? fields.openLibraryKey,
       wikidataId: candidate.wikidataId,
     });
@@ -248,22 +270,30 @@ function mergeEnrichment(
   for (const binding of bindings) {
     const wikidataId = entityIdFromUri(binding.author.value);
     const current = enriched.get(wikidataId) ?? {
-      authorDescription: null,
-      authorLabel: null,
+      aliasEn: null,
+      aliasRu: null,
+      aliasUk: null,
       birth: null,
       countryCode: null,
       death: null,
+      descEn: null,
       image: null,
+      labelEn: null,
+      labelUk: null,
       openLibraryKey: null,
     };
 
     enriched.set(wikidataId, {
-      authorDescription: current.authorDescription ?? binding.authorDescription?.value ?? null,
-      authorLabel: current.authorLabel ?? binding.authorLabel?.value ?? null,
+      aliasEn: current.aliasEn ?? toNullableAlias(binding.aliasEn?.value),
+      aliasRu: current.aliasRu ?? toNullableAlias(binding.aliasRu?.value),
+      aliasUk: current.aliasUk ?? toNullableAlias(binding.aliasUk?.value),
       birth: current.birth ?? binding.birth?.value ?? null,
       countryCode: current.countryCode ?? binding.iso?.value ?? null,
       death: current.death ?? binding.death?.value ?? null,
+      descEn: current.descEn ?? binding.descEn?.value ?? null,
       image: current.image ?? binding.image?.value ?? null,
+      labelEn: current.labelEn ?? binding.labelEn?.value ?? null,
+      labelUk: current.labelUk ?? binding.labelUk?.value ?? null,
       openLibraryKey: current.openLibraryKey ?? binding.olid?.value ?? null,
     });
   }
@@ -322,14 +352,37 @@ async function seedAuthors(): Promise<void> {
   }
 }
 
+function toNullableAlias(value: string | undefined): null | string {
+  if (value === undefined || value.length === 0) {
+    return null;
+  }
+  return value;
+}
+
 async function upsertAuthors(prisma: PrismaClient, inputs: AuthorSeedInput[]): Promise<number> {
   let upserted = 0;
 
   for (const batch of chunk(inputs, UPSERT_BATCH_SIZE)) {
-    await prisma.$transaction(
-      batch.map((input) =>
-        prisma.author.upsert({
-          create: input,
+    await prisma.$transaction(async (tx) => {
+      for (const input of batch) {
+        const author = await tx.author.upsert({
+          create: {
+            bio: input.bio,
+            birthYear: input.birthYear,
+            countryCode: input.countryCode,
+            deathYear: input.deathYear,
+            name: input.name,
+            normalizedName: input.normalizedName,
+            openLibraryKey: input.openLibraryKey,
+            photoAttribution: input.photoAttribution,
+            photoLicense: input.photoLicense,
+            photoLicenseUrl: input.photoLicenseUrl,
+            photoUrl: input.photoUrl,
+            searchText: input.searchText,
+            userId: input.userId,
+            wikidataId: input.wikidataId,
+          },
+          select: { id: true },
           update: {
             bio: input.bio,
             birthYear: input.birthYear,
@@ -342,11 +395,23 @@ async function upsertAuthors(prisma: PrismaClient, inputs: AuthorSeedInput[]): P
             photoLicense: input.photoLicense,
             photoLicenseUrl: input.photoLicenseUrl,
             photoUrl: input.photoUrl,
+            searchText: input.searchText,
           },
           where: { wikidataId: input.wikidataId },
-        }),
-      ),
-    );
+        });
+
+        await tx.authorName.deleteMany({ where: { authorId: author.id } });
+        await tx.authorName.createMany({
+          data: input.names.map((authorName) => ({
+            authorId: author.id,
+            isPrimary: authorName.isPrimary,
+            locale: authorName.locale,
+            name: authorName.name,
+            normalizedName: authorName.normalizedName,
+          })),
+        });
+      }
+    });
     upserted += batch.length;
     logger.info({ total: inputs.length, upserted }, "upserted batch");
   }

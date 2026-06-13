@@ -68,28 +68,45 @@ model Series {
 }
 
 model Author {
-  id               String   @id @default(uuid()) @db.Uuid
-  userId           String?  @map("user_id") @db.Uuid
+  id               String       @id @default(uuid()) @db.Uuid
+  userId           String?      @map("user_id") @db.Uuid
   name             String
-  normalizedName   String   @map("normalized_name")
+  normalizedName   String       @map("normalized_name")
+  searchText       String       @default("") @map("search_text")
   bio              String?
-  photoUrl         String?  @map("photo_url")
-  photoLicense     String?  @map("photo_license")
-  photoAttribution String?  @map("photo_attribution")
-  photoLicenseUrl  String?  @map("photo_license_url")
-  countryCode      String?  @map("country_code")
-  birthYear        Int?     @map("birth_year")
-  deathYear        Int?     @map("death_year")
-  wikidataId       String?  @unique @map("wikidata_id")
-  openLibraryKey   String?  @unique @map("open_library_key")
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photoUrl         String?      @map("photo_url")
+  photoLicense     String?      @map("photo_license")
+  photoAttribution String?      @map("photo_attribution")
+  photoLicenseUrl  String?      @map("photo_license_url")
+  countryCode      String?      @map("country_code")
+  birthYear        Int?         @map("birth_year")
+  deathYear        Int?         @map("death_year")
+  wikidataId       String?      @unique @map("wikidata_id")
+  openLibraryKey   String?      @unique @map("open_library_key")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  user             User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   books            Book[]
+  names            AuthorName[]
 
   @@unique([userId, normalizedName])
   @@index([normalizedName])
   @@map("authors")
+}
+
+model AuthorName {
+  id             String  @id @default(uuid()) @db.Uuid
+  authorId       String  @map("author_id") @db.Uuid
+  locale         String
+  name           String
+  normalizedName String  @map("normalized_name")
+  isPrimary      Boolean @default(false) @map("is_primary")
+  author         Author  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([authorId, locale, normalizedName])
+  @@index([authorId])
+  @@index([normalizedName])
+  @@map("author_names")
 }
 
 model Publisher {

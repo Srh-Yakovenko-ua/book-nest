@@ -38,6 +38,32 @@ function searchAuthors(accessToken: string, search?: string): request.Test {
   return request(app.getHttpServer()).get(path).set("Authorization", `Bearer ${accessToken}`);
 }
 
+async function seedAuthor(data: {
+  name: string;
+  normalizedName: string;
+  searchText?: string;
+  userId?: null | string;
+}): Promise<void> {
+  await prisma.author.create({
+    data: {
+      name: data.name,
+      names: {
+        create: [
+          {
+            isPrimary: true,
+            locale: "uk",
+            name: data.name,
+            normalizedName: data.normalizedName,
+          },
+        ],
+      },
+      normalizedName: data.normalizedName,
+      searchText: data.searchText ?? data.normalizedName,
+      userId: data.userId ?? null,
+    },
+  });
+}
+
 describe("GET /api/authors", () => {
   it("returns 401 when no Authorization header is present", async () => {
     const res = await request(app.getHttpServer()).get("/api/authors");
@@ -47,12 +73,8 @@ describe("GET /api/authors", () => {
 
   it("returns a paginator with global seeds and the caller's own custom authors", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
-    await prisma.author.create({
-      data: { name: "George Orwell", normalizedName: "george orwell", userId: null },
-    });
-    await prisma.author.create({
-      data: { name: "My Author", normalizedName: "my author", userId },
-    });
+    await seedAuthor({ name: "George Orwell", normalizedName: "george orwell", userId: null });
+    await seedAuthor({ name: "My Author", normalizedName: "my author", userId });
 
     const res = await searchAuthors(accessToken);
 
@@ -65,12 +87,8 @@ describe("GET /api/authors", () => {
 
   it("orders the caller's own custom authors before global seeds", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
-    await prisma.author.create({
-      data: { name: "George Orwell", normalizedName: "george orwell", userId: null },
-    });
-    await prisma.author.create({
-      data: { name: "My Author", normalizedName: "my author", userId },
-    });
+    await seedAuthor({ name: "George Orwell", normalizedName: "george orwell", userId: null });
+    await seedAuthor({ name: "My Author", normalizedName: "my author", userId });
 
     const res = await searchAuthors(accessToken);
 
@@ -80,12 +98,8 @@ describe("GET /api/authors", () => {
 
   it("marks own custom authors with isCustom true and global seeds with false", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
-    await prisma.author.create({
-      data: { name: "George Orwell", normalizedName: "george orwell", userId: null },
-    });
-    await prisma.author.create({
-      data: { name: "My Author", normalizedName: "my author", userId },
-    });
+    await seedAuthor({ name: "George Orwell", normalizedName: "george orwell", userId: null });
+    await seedAuthor({ name: "My Author", normalizedName: "my author", userId });
 
     const res = await searchAuthors(accessToken);
 
@@ -105,8 +119,10 @@ describe("GET /api/authors", () => {
       email: "stranger@example.com",
       nickname: "stranger",
     });
-    await prisma.author.create({
-      data: { name: "Secret Author", normalizedName: "secret author", userId: stranger.userId },
+    await seedAuthor({
+      name: "Secret Author",
+      normalizedName: "secret author",
+      userId: stranger.userId,
     });
 
     const res = await searchAuthors(owner.accessToken);
@@ -117,12 +133,8 @@ describe("GET /api/authors", () => {
 
   it("filters by a case-insensitive search term", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
-    await prisma.author.create({
-      data: { name: "George Orwell", normalizedName: "george orwell", userId: null },
-    });
-    await prisma.author.create({
-      data: { name: "Isaac Asimov", normalizedName: "isaac asimov", userId: null },
-    });
+    await seedAuthor({ name: "George Orwell", normalizedName: "george orwell", userId: null });
+    await seedAuthor({ name: "Isaac Asimov", normalizedName: "isaac asimov", userId: null });
 
     const res = await searchAuthors(accessToken, "orwell");
 
@@ -133,9 +145,7 @@ describe("GET /api/authors", () => {
   it("paginates results across pages", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     for (const name of ["Author A", "Author B", "Author C"]) {
-      await prisma.author.create({
-        data: { name, normalizedName: name.toLowerCase(), userId: null },
-      });
+      await seedAuthor({ name, normalizedName: name.toLowerCase(), userId: null });
     }
 
     const firstPage = await request(app.getHttpServer())
