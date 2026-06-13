@@ -401,7 +401,7 @@ export function BookForm(props: BookFormProps) {
         </div>
       </div>
 
-      <div className="motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:sticky lg:top-6">
+      <div className="motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:sticky lg:top-[calc(var(--shell-header-height)+theme(spacing.4))]">
         <BookPreview
           authorName={previewAuthorName}
           description={descriptionValue}
