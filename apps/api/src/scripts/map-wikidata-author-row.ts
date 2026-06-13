@@ -8,6 +8,9 @@ export type AuthorSeedInput = {
   name: string;
   normalizedName: string;
   openLibraryKey: null | string;
+  photoAttribution: null | string;
+  photoLicense: null | string;
+  photoLicenseUrl: null | string;
   photoUrl: null | string;
   userId: null;
   wikidataId: string;
@@ -41,6 +44,9 @@ export function mapWikidataAuthorRow(row: WikidataAuthorRow): AuthorSeedInput | 
     name,
     normalizedName: normalizeName(name),
     openLibraryKey: normalizeOpenLibraryKey(row.openLibraryKey),
+    photoAttribution: null,
+    photoLicense: null,
+    photoLicenseUrl: null,
     photoUrl: row.image,
     userId: null,
     wikidataId: row.wikidataId,

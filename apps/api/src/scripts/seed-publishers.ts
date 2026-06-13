@@ -4,6 +4,7 @@ import { z } from "zod";
 import { env } from "../config/env.js";
 import { createLogger } from "../core/logger.js";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { fetchCommonsImageLicenses } from "./fetch-commons-image-license.js";
 import { mapWikidataPublisherRow, type PublisherSeedInput } from "./map-wikidata-publisher-row.js";
 
 const logger = createLogger("seed.publishers");
@@ -158,6 +159,37 @@ function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+async function enrichLogoLicenses(inputs: PublisherSeedInput[]): Promise<void> {
+  const logoUrls = inputs
+    .map((input) => input.logoUrl)
+    .filter((logoUrl): logoUrl is string => logoUrl !== null);
+
+  if (logoUrls.length === 0) {
+    return;
+  }
+
+  const licenses = await fetchCommonsImageLicenses(logoUrls);
+
+  let withLicense = 0;
+  for (const input of inputs) {
+    if (input.logoUrl === null) {
+      continue;
+    }
+    const license = licenses.get(input.logoUrl);
+    if (license === undefined) {
+      continue;
+    }
+    input.logoAttribution = license.attribution;
+    input.logoLicense = license.license;
+    input.logoLicenseUrl = license.licenseUrl;
+    if (license.license !== null) {
+      withLicense += 1;
+    }
+  }
+
+  logger.info({ logos: logoUrls.length, withLicense }, "enriched publisher logo licenses");
+}
+
 function entityIdFromUri(uri: string): string {
   return uri.startsWith(ENTITY_URI_PREFIX) ? uri.slice(ENTITY_URI_PREFIX.length) : uri;
 }
@@ -263,6 +295,8 @@ async function seedPublishers(): Promise<void> {
       "built publisher seed inputs",
     );
 
+    await enrichLogoLicenses(inputs);
+
     const upserted = await upsertPublishers(prisma, inputs);
     logger.info({ upserted }, "publisher seed completed");
   } finally {
@@ -284,6 +318,9 @@ async function upsertPublishers(
           update: {
             countryCode: input.countryCode,
             foundedYear: input.foundedYear,
+            logoAttribution: input.logoAttribution,
+            logoLicense: input.logoLicense,
+            logoLicenseUrl: input.logoLicenseUrl,
             logoUrl: input.logoUrl,
             name: input.name,
             normalizedName: input.normalizedName,

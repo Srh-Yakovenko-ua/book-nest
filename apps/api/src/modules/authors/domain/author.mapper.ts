@@ -12,6 +12,9 @@ export function toAuthorView(author: AuthorModel): AuthorView {
     isCustom: author.userId !== null,
     name: author.name,
     openLibraryKey: author.openLibraryKey,
+    photoAttribution: author.photoAttribution,
+    photoLicense: author.photoLicense,
+    photoLicenseUrl: author.photoLicenseUrl,
     photoUrl: author.photoUrl,
   };
 }

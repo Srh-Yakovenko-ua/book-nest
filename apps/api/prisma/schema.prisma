@@ -18,21 +18,21 @@ enum Role {
 }
 
 model User {
-  id              String    @id @default(uuid()) @db.Uuid
-  name            String
-  email           String    @unique
-  passwordHash    String    @map("password_hash")
-  role            Role      @default(user) @map("role")
-  nickname        String?   @unique
-  lastName          String?  @map("last_name")
-  bio               String?  @map("bio")
-  avatarUrl         String?  @map("avatar_url")
-  favoriteBookQuote String?  @map("favorite_book_quote")
-  favoriteGenres    String[] @default([]) @map("favorite_genres")
-  dateOfBirth     DateTime? @map("date_of_birth") @db.Date
-  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  role              Role      @default(user) @map("role")
+  nickname          String?   @unique
+  lastName          String?   @map("last_name")
+  bio               String?   @map("bio")
+  avatarUrl         String?   @map("avatar_url")
+  favoriteBookQuote String?   @map("favorite_book_quote")
+  favoriteGenres    String[]  @default([]) @map("favorite_genres")
+  dateOfBirth       DateTime? @map("date_of_birth") @db.Date
+  emailVerifiedAt   DateTime? @map("email_verified_at") @db.Timestamptz
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   sessions                Session[]
   emailVerificationTokens EmailVerificationToken[]
@@ -68,21 +68,24 @@ model Series {
 }
 
 model Author {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String?  @map("user_id") @db.Uuid
-  name           String
-  normalizedName String   @map("normalized_name")
-  bio            String?
-  photoUrl       String?  @map("photo_url")
-  countryCode    String?  @map("country_code")
-  birthYear      Int?     @map("birth_year")
-  deathYear      Int?     @map("death_year")
-  wikidataId     String?  @unique @map("wikidata_id")
-  openLibraryKey String?  @unique @map("open_library_key")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  books          Book[]
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String?  @map("user_id") @db.Uuid
+  name             String
+  normalizedName   String   @map("normalized_name")
+  bio              String?
+  photoUrl         String?  @map("photo_url")
+  photoLicense     String?  @map("photo_license")
+  photoAttribution String?  @map("photo_attribution")
+  photoLicenseUrl  String?  @map("photo_license_url")
+  countryCode      String?  @map("country_code")
+  birthYear        Int?     @map("birth_year")
+  deathYear        Int?     @map("death_year")
+  wikidataId       String?  @unique @map("wikidata_id")
+  openLibraryKey   String?  @unique @map("open_library_key")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books            Book[]
 
   @@unique([userId, normalizedName])
   @@index([normalizedName])
@@ -90,19 +93,22 @@ model Author {
 }
 
 model Publisher {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String?  @map("user_id") @db.Uuid
-  name           String
-  normalizedName String   @map("normalized_name")
-  countryCode    String?  @map("country_code")
-  foundedYear    Int?     @map("founded_year")
-  websiteUrl     String?  @map("website_url")
-  logoUrl        String?  @map("logo_url")
-  wikidataId     String?  @unique @map("wikidata_id")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  books          Book[]
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String?  @map("user_id") @db.Uuid
+  name            String
+  normalizedName  String   @map("normalized_name")
+  countryCode     String?  @map("country_code")
+  foundedYear     Int?     @map("founded_year")
+  websiteUrl      String?  @map("website_url")
+  logoUrl         String?  @map("logo_url")
+  logoLicense     String?  @map("logo_license")
+  logoAttribution String?  @map("logo_attribution")
+  logoLicenseUrl  String?  @map("logo_license_url")
+  wikidataId      String?  @unique @map("wikidata_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books           Book[]
 
   @@unique([userId, normalizedName])
   @@index([normalizedName])
@@ -110,36 +116,36 @@ model Publisher {
 }
 
 model Book {
-  id              String     @id @default(uuid()) @db.Uuid
-  userId          String     @map("user_id") @db.Uuid
+  id              String               @id @default(uuid()) @db.Uuid
+  userId          String               @map("user_id") @db.Uuid
   title           String
-  authorId        String     @map("author_id") @db.Uuid
-  publisherId     String?    @map("publisher_id") @db.Uuid
+  authorId        String               @map("author_id") @db.Uuid
+  publisherId     String?              @map("publisher_id") @db.Uuid
   description     String?
-  genres          String[]   @default([])
-  formats         String[]   @default([])
-  language        String     @default("ukrainian")
-  ageCategory     String     @default("not_specified") @map("age_category")
-  readingStatus   String     @default("not_started") @map("reading_status")
-  ownershipStatus String     @default("none") @map("ownership_status")
-  isFavorite      Boolean    @default(false) @map("is_favorite")
-  pagesCount      Int?       @map("pages_count")
-  publicationYear Int?       @map("publication_year")
+  genres          String[]             @default([])
+  formats         String[]             @default([])
+  language        String               @default("ukrainian")
+  ageCategory     String               @default("not_specified") @map("age_category")
+  readingStatus   String               @default("not_started") @map("reading_status")
+  ownershipStatus String               @default("none") @map("ownership_status")
+  isFavorite      Boolean              @default(false) @map("is_favorite")
+  pagesCount      Int?                 @map("pages_count")
+  publicationYear Int?                 @map("publication_year")
   isbn            String?
-  originalTitle   String?    @map("original_title")
+  originalTitle   String?              @map("original_title")
   translator      String?
   illustrator     String?
   dedication      String?
-  seriesId        String?    @map("series_id") @db.Uuid
-  partNumber      Int?       @map("part_number")
-  queuePriority   String?    @map("queue_priority")
-  queuePosition   Int?       @map("queue_position")
-  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamptz
-  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  author          Author     @relation(fields: [authorId], references: [id])
-  publisher       Publisher? @relation(fields: [publisherId], references: [id])
-  series          Series?    @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  seriesId        String?              @map("series_id") @db.Uuid
+  partNumber      Int?                 @map("part_number")
+  queuePriority   String?              @map("queue_priority")
+  queuePosition   Int?                 @map("queue_position")
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  author          Author               @relation(fields: [authorId], references: [id])
+  publisher       Publisher?           @relation(fields: [publisherId], references: [id])
+  series          Series?              @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   tags            BookTag[]
   lists           BookListItem[]
   readingProgress BookReadingProgress?
@@ -332,8 +338,8 @@ model PasswordResetToken {
 }
 
 model Session {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
   refreshHash String    @unique @map("refresh_hash")
   expiresAt   DateTime  @map("expires_at") @db.Timestamptz
   rotatedAt   DateTime? @map("rotated_at") @db.Timestamptz
