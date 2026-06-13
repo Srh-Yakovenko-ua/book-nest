@@ -16,34 +16,27 @@
         "src/test-utils.tsx",
         "src/lib/api-errors.ts",
         "src/lib/format.ts",
-        "src/lib/gradient-from-string.ts",
-        "src/lib/http-client.ts"
+        "src/lib/gradient-from-string.ts"
       ],
       "ignoreDependencies": [
-        "@app/shared",
         "@fontsource-variable/geist-mono",
         "@fontsource-variable/manrope",
         "@fontsource-variable/playfair-display",
         "@hookform/devtools",
-        "@hookform/resolvers",
         "@tanstack/query-sync-storage-persister",
         "@tanstack/react-query-persist-client",
         "@tanstack/react-table",
         "@tanstack/react-virtual",
         "@testing-library/user-event",
-        "date-fns",
         "input-otp",
         "nanoid",
         "postcss",
-        "react-day-picker",
-        "react-hook-form",
         "shadcn",
         "superjson",
         "tailwindcss",
         "ts-pattern",
         "tw-animate-css",
-        "type-fest",
-        "zustand"
+        "type-fest"
       ]
     },
     "apps/api": {

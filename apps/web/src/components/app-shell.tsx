@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { LocalePicker } from "@/components/locale-picker";
+import { SessionMenu } from "@/components/session-menu";
 import { ThemePicker } from "@/components/theme-picker";
 import {
   Sidebar,
@@ -154,6 +155,7 @@ function ContentArea({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 flex h-[var(--shell-header-height)] shrink-0 items-center gap-4 border-b border-border/50 bg-background/80 px-4 backdrop-blur-xl backdrop-saturate-150">
         <div className="min-w-0 flex-1" />
         <div className="flex shrink-0 items-center gap-2">
+          <SessionMenu />
           <ThemePicker />
           <LocalePicker />
         </div>

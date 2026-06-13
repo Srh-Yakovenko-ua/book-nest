@@ -15,13 +15,11 @@ import { cn } from "@/lib/utils";
 
 const LOCALE_LABELS: Record<Locale, string> = {
   en: "English",
-  ru: "Русский",
   uk: "Українська",
 };
 
 const LOCALE_SHORT: Record<Locale, string> = {
   en: "EN",
-  ru: "RU",
   uk: "UK",
 };
 

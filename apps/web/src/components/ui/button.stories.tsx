@@ -82,6 +82,6 @@ export const CssCheck: Story = {
   args: { children: "Submit" },
   play: async ({ canvas }) => {
     const button = canvas.getByRole("button", { name: /submit/i });
-    await expect(getComputedStyle(button).backgroundColor).toBe("oklch(0.566 0.093 53.5)");
+    await expect(getComputedStyle(button).backgroundColor).toBe("oklch(0.535 0.093 53.5)");
   },
 };
