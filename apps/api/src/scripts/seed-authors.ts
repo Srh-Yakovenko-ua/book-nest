@@ -4,6 +4,7 @@ import { z } from "zod";
 import { env } from "../config/env.js";
 import { createLogger } from "../core/logger.js";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { fetchCommonsImageLicenses } from "./fetch-commons-image-license.js";
 import { type AuthorSeedInput, mapWikidataAuthorRow } from "./map-wikidata-author-row.js";
 
 const logger = createLogger("seed.authors");
@@ -170,6 +171,37 @@ function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+async function enrichPhotoLicenses(inputs: AuthorSeedInput[]): Promise<void> {
+  const photoUrls = inputs
+    .map((input) => input.photoUrl)
+    .filter((photoUrl): photoUrl is string => photoUrl !== null);
+
+  if (photoUrls.length === 0) {
+    return;
+  }
+
+  const licenses = await fetchCommonsImageLicenses(photoUrls);
+
+  let withLicense = 0;
+  for (const input of inputs) {
+    if (input.photoUrl === null) {
+      continue;
+    }
+    const license = licenses.get(input.photoUrl);
+    if (license === undefined) {
+      continue;
+    }
+    input.photoAttribution = license.attribution;
+    input.photoLicense = license.license;
+    input.photoLicenseUrl = license.licenseUrl;
+    if (license.license !== null) {
+      withLicense += 1;
+    }
+  }
+
+  logger.info({ photos: photoUrls.length, withLicense }, "enriched author photo licenses");
+}
+
 function entityIdFromUri(uri: string): string {
   return uri.startsWith(ENTITY_URI_PREFIX) ? uri.slice(ENTITY_URI_PREFIX.length) : uri;
 }
@@ -281,6 +313,8 @@ async function seedAuthors(): Promise<void> {
     const inputs = buildSeedInputs(candidates, enriched);
     logger.info({ candidates: candidates.size, inputs: inputs.length }, "built author seed inputs");
 
+    await enrichPhotoLicenses(inputs);
+
     const upserted = await upsertAuthors(prisma, inputs);
     logger.info({ upserted }, "author seed completed");
   } finally {
@@ -304,6 +338,9 @@ async function upsertAuthors(prisma: PrismaClient, inputs: AuthorSeedInput[]): P
             name: input.name,
             normalizedName: input.normalizedName,
             openLibraryKey: input.openLibraryKey,
+            photoAttribution: input.photoAttribution,
+            photoLicense: input.photoLicense,
+            photoLicenseUrl: input.photoLicenseUrl,
             photoUrl: input.photoUrl,
           },
           where: { wikidataId: input.wikidataId },

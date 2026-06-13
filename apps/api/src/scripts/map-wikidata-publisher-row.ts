@@ -3,6 +3,9 @@ import { normalizeName } from "../core/normalize-name.js";
 export type PublisherSeedInput = {
   countryCode: null | string;
   foundedYear: null | number;
+  logoAttribution: null | string;
+  logoLicense: null | string;
+  logoLicenseUrl: null | string;
   logoUrl: null | string;
   name: string;
   normalizedName: string;
@@ -31,6 +34,9 @@ export function mapWikidataPublisherRow(row: WikidataPublisherRow): null | Publi
   return {
     countryCode: row.countryCode === null ? null : row.countryCode.toUpperCase(),
     foundedYear: parseYear(row.inception),
+    logoAttribution: null,
+    logoLicense: null,
+    logoLicenseUrl: null,
     logoUrl: row.logo,
     name,
     normalizedName: normalizeName(name),

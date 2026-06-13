@@ -1148,6 +1148,9 @@ export type AuthorView = {
   isCustom: boolean;
   name: string;
   openLibraryKey: null | string;
+  photoAttribution: null | string;
+  photoLicense: null | string;
+  photoLicenseUrl: null | string;
   photoUrl: null | string;
 };
 
@@ -1243,6 +1246,9 @@ export type PublisherView = {
   foundedYear: null | number;
   id: string;
   isCustom: boolean;
+  logoAttribution: null | string;
+  logoLicense: null | string;
+  logoLicenseUrl: null | string;
   logoUrl: null | string;
   name: string;
   websiteUrl: null | string;

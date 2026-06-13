@@ -23,6 +23,9 @@ describe("mapWikidataPublisherRow", () => {
     expect(result).toEqual({
       countryCode: "UA",
       foundedYear: 1918,
+      logoAttribution: null,
+      logoLicense: null,
+      logoLicenseUrl: null,
       logoUrl: "https://example.org/logo.svg",
       name: "Vydavnytstvo",
       normalizedName: "vydavnytstvo",
