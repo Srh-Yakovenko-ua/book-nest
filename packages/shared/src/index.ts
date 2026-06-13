@@ -594,7 +594,9 @@ const ISBN_13_CHECK_MODULUS = 10;
 const ISBN_13_ODD_WEIGHT = 1;
 const ISBN_13_EVEN_WEIGHT = 3;
 
-const normalizeTagName = (name: string): string => name.trim().replace(/\s+/g, " ").toLowerCase();
+export function normalizeName(name: string): string {
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
+}
 
 export const BookTitleSchema = z
   .string()
@@ -634,7 +636,7 @@ export const BookTagsInputSchema = z
   .array(TagNameSchema)
   .max(BOOK_TAGS_MAX, "You can add at most 12 tags")
   .refine((tags) => {
-    const seen = new Set(tags.map(normalizeTagName));
+    const seen = new Set(tags.map(normalizeName));
     return seen.size === tags.length;
   }, "Tags must not contain duplicates");
 
@@ -919,6 +921,10 @@ const OWNERSHIP_STATUSES_WITH_LOAN: ReadonlySet<OwnershipStatus> = new Set<Owner
   "lent_to_someone",
 ]);
 
+export function ownershipStatusUsesLoan(ownershipStatus: OwnershipStatus): boolean {
+  return OWNERSHIP_STATUSES_WITH_LOAN.has(ownershipStatus);
+}
+
 export const ListNameSchema = z
   .string()
   .trim()
@@ -1019,7 +1025,7 @@ export const CreateBookInputSchema = z
     }
 
     if (
-      OWNERSHIP_STATUSES_WITH_LOAN.has(value.ownershipStatus) &&
+      ownershipStatusUsesLoan(value.ownershipStatus) &&
       (value.loanInfo?.personName ?? "").length === 0
     ) {
       context.addIssue({
@@ -1300,7 +1306,9 @@ export type TagView = {
   name: string;
 };
 
-export const TaxonomySearchPaginationQuerySchema = PaginationQuerySchema.extend({
+export const TaxonomySearchPaginationQuerySchema = z.object({
+  pageNumber: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(10),
   search: z.string().trim().max(TAXONOMY_NAME_MAX).optional(),
 });
 

@@ -18,6 +18,8 @@ import type {
   UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
 
+import { parseIsoDate } from "../../../core/iso-date.js";
+
 type DefinedDeliveryInfo = NonNullable<DeliveryInfoInput>;
 type DefinedLoanInfo = NonNullable<LoanInfoInput>;
 type DefinedPurchaseInfo = NonNullable<PurchaseInfoInput>;
@@ -31,18 +33,16 @@ const STATUSES_WITH_READING_PROGRESS: ReadonlySet<ReadingStatus> = new Set([
   "rereading",
 ]);
 
-const OWNERSHIP_STATUSES_WITH_LOAN: ReadonlySet<OwnershipStatus> = new Set([
-  "borrowed_from_someone",
-  "lent_to_someone",
-]);
+const OWNERSHIP_STATUS_IN_TRANSIT: OwnershipStatus = "in_transit";
+const OWNERSHIP_STATUS_WANT_TO_BUY: OwnershipStatus = "want_to_buy";
 
 const DEFAULT_DELIVERY_STATUS = "ordered";
 
 const toCreateDate = (value: null | string | undefined): Date | null =>
-  value === undefined || value === null ? null : new Date(`${value}T00:00:00.000Z`);
+  value === undefined || value === null ? null : parseIsoDate(value);
 
 const toUpdateDate = (value: null | string | undefined): Date | null | undefined =>
-  value === undefined || value === null ? value : new Date(`${value}T00:00:00.000Z`);
+  value === undefined || value === null ? value : parseIsoDate(value);
 
 export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryInfoData {
   return {
@@ -138,10 +138,16 @@ export function buildReadingProgressUpdateData(
   };
 }
 
-export function ownershipStatusUsesLoan(ownershipStatus: OwnershipStatus): boolean {
-  return OWNERSHIP_STATUSES_WITH_LOAN.has(ownershipStatus);
+export function ownershipStatusUsesDelivery(ownershipStatus: OwnershipStatus): boolean {
+  return ownershipStatus === OWNERSHIP_STATUS_IN_TRANSIT;
+}
+
+export function ownershipStatusUsesPurchase(ownershipStatus: OwnershipStatus): boolean {
+  return ownershipStatus === OWNERSHIP_STATUS_WANT_TO_BUY;
 }
 
 export function readingStatusUsesProgress(readingStatus: ReadingStatus): boolean {
   return STATUSES_WITH_READING_PROGRESS.has(readingStatus);
 }
+
+export { ownershipStatusUsesLoan } from "@app/shared";

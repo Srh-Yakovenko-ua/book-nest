@@ -10,6 +10,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserSocialLinkModel } from "../../../generated/prisma/models.js";
 
+import { PrismaService } from "../../../core/database/prisma.service.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { toSocialLinkView } from "../domain/social-link.mapper.js";
 import { SocialLinkRepository } from "../infrastructure/social-link.repository.js";
@@ -19,14 +20,13 @@ const OTHER_PLATFORM: SocialPlatform = "OTHER";
 
 @Injectable()
 export class SocialLinkService {
-  constructor(private readonly socialLinkRepository: SocialLinkRepository) {}
+  constructor(
+    private readonly socialLinkRepository: SocialLinkRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async create(userId: string, input: CreateSocialLinkInput): Promise<SocialLinkView> {
     const existing = await this.socialLinkRepository.listByUserId(userId);
-
-    if (existing.length >= MAX_SOCIAL_LINKS) {
-      throw new BadRequestError("Maximum of 10 social links");
-    }
 
     if (input.platform !== OTHER_PLATFORM && hasPlatform(existing, input.platform)) {
       throw new ConflictError("This platform is already linked");
@@ -36,11 +36,22 @@ export class SocialLinkService {
       throw new ConflictError("This link is already added");
     }
 
-    const created = await this.socialLinkRepository.create(userId, {
-      label: input.label ?? null,
-      platform: input.platform,
-      url: input.url ?? null,
-      username: input.username ?? null,
+    const created = await this.prisma.$transaction(async (tx) => {
+      const count = await this.socialLinkRepository.countByUserId(userId, tx);
+      if (count >= MAX_SOCIAL_LINKS) {
+        throw new BadRequestError("Maximum of 10 social links");
+      }
+
+      return this.socialLinkRepository.create(
+        userId,
+        {
+          label: input.label ?? null,
+          platform: input.platform,
+          url: input.url ?? null,
+          username: input.username ?? null,
+        },
+        tx,
+      );
     });
 
     return toSocialLinkView(created);

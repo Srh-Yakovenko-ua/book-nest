@@ -74,13 +74,14 @@ export class PasswordResetService {
   }
 
   private async issueToken(user: UserModel): Promise<string> {
-    await this.tokensRepository.deleteByUserId(user.id);
-
     const rawToken = this.tokenService.generatePasswordResetToken();
     const tokenHash = this.tokenService.hashPasswordResetToken(rawToken);
     const expiresAt = this.tokenService.passwordResetExpiry();
 
-    await this.tokensRepository.create({ expiresAt, tokenHash, userId: user.id });
+    await this.prisma.$transaction(async (tx) => {
+      await this.tokensRepository.deleteByUserId(user.id, tx);
+      await this.tokensRepository.create({ expiresAt, tokenHash, userId: user.id }, tx);
+    });
 
     return rawToken;
   }

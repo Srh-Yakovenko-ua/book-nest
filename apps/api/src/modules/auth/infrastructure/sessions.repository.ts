@@ -30,7 +30,7 @@ export class SessionsRepository {
   }
 
   async deleteById(id: string, client: Prisma.TransactionClient = this.prisma): Promise<void> {
-    await client.session.delete({ where: { id } });
+    await client.session.deleteMany({ where: { id } });
   }
 
   async deleteByRefreshHash(

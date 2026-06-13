@@ -3,8 +3,6 @@ import { NodeSDK, tracing } from "@opentelemetry/sdk-node";
 
 import { env } from "../config/env.js";
 
-const DEFAULT_SERVICE_NAME = "monorepo-api";
-
 let activeSdk: NodeSDK | undefined;
 
 export async function shutdownTracing(): Promise<void> {
@@ -22,7 +20,7 @@ export function startTracing(): void {
 
   const sdk = new NodeSDK({
     instrumentations: [getNodeAutoInstrumentations()],
-    serviceName: process.env.OTEL_SERVICE_NAME ?? DEFAULT_SERVICE_NAME,
+    serviceName: env.otelServiceName,
     spanProcessor: new tracing.SimpleSpanProcessor(new tracing.ConsoleSpanExporter()),
   });
 

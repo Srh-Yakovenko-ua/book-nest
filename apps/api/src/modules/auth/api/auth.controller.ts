@@ -2,6 +2,7 @@ import type {
   AuthResultView,
   ForgotPasswordResultView,
   LogoutResultView,
+  NicknameAvailabilityQuery,
   NicknameAvailabilityView,
   RegistrationResultView,
   ResetPasswordResultView,
@@ -49,7 +50,6 @@ import { CurrentUser } from "./guards/current-user.decorator.js";
 import { JwtAccessGuard } from "./guards/jwt-access.guard.js";
 import { ForgotPasswordInputDto } from "./input-dto/forgot-password.input-dto.js";
 import { LoginInputDto } from "./input-dto/login.input-dto.js";
-import { NicknameAvailabilityQueryDto } from "./input-dto/nickname-availability-query.input-dto.js";
 import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
 import { ResendVerificationInputDto } from "./input-dto/resend-verification.input-dto.js";
 import { ResetPasswordInputDto } from "./input-dto/reset-password.input-dto.js";
@@ -70,6 +70,8 @@ const RESET_PASSWORD_TTL_SECONDS = 60;
 const RESET_PASSWORD_LIMIT = 5;
 const NICKNAME_AVAILABILITY_TTL_SECONDS = 60;
 const NICKNAME_AVAILABILITY_LIMIT = 20;
+const NICKNAME_MIN_LENGTH = 3;
+const NICKNAME_MAX_LENGTH = 20;
 
 const VERIFICATION_SENT: RegistrationResultView["status"] = "verification_sent";
 const RESET_EMAIL_SENT: ForgotPasswordResultView["status"] = "reset_email_sent";
@@ -98,7 +100,11 @@ export class AuthController {
   @ApiBadRequestResponse({ description: "Malformed nickname" })
   @ApiOkResponse({ description: "Whether the nickname is free to claim" })
   @ApiOperation({ summary: "Check whether a nickname is available" })
-  @ApiQuery({ name: "nickname", required: true })
+  @ApiQuery({
+    name: "nickname",
+    required: true,
+    schema: { maxLength: NICKNAME_MAX_LENGTH, minLength: NICKNAME_MIN_LENGTH, type: "string" },
+  })
   @Get("nickname-available")
   @Throttle({
     default: {
@@ -107,7 +113,7 @@ export class AuthController {
     },
   })
   checkNicknameAvailability(
-    @Query(new ZodQueryPipe(NicknameAvailabilityQuerySchema)) query: NicknameAvailabilityQueryDto,
+    @Query(new ZodQueryPipe(NicknameAvailabilityQuerySchema)) query: NicknameAvailabilityQuery,
   ): Promise<NicknameAvailabilityView> {
     return this.authService.isNicknameAvailable(query.nickname);
   }

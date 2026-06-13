@@ -9,11 +9,16 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 export class SocialLinkRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  countByUserId(userId: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {
+    return client.userSocialLink.count({ where: { userId } });
+  }
+
   create(
     userId: string,
     data: Omit<Prisma.UserSocialLinkUncheckedCreateInput, "userId">,
+    client: Prisma.TransactionClient = this.prisma,
   ): Promise<UserSocialLinkModel> {
-    return this.prisma.userSocialLink.create({ data: { ...data, userId } });
+    return client.userSocialLink.create({ data: { ...data, userId } });
   }
 
   deleteById(id: string): Promise<UserSocialLinkModel> {

@@ -22,8 +22,8 @@ type SearchListsInput = {
 export class ListsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  countVisible(userId: string, query: string | undefined): Promise<number> {
-    return this.prisma.bookList.count({ where: buildVisibleWhere(userId, query) });
+  countOwned(userId: string, query: string | undefined): Promise<number> {
+    return this.prisma.bookList.count({ where: buildOwnedWhere(userId, query) });
   }
 
   create(userId: string, data: CreateBookListData): Promise<BookListModel> {
@@ -38,17 +38,17 @@ export class ListsRepository {
     return this.prisma.bookList.findMany({ where: { id: { in: ids }, userId } });
   }
 
-  searchVisible({ query, skip, take, userId }: SearchListsInput): Promise<BookListModel[]> {
+  searchOwned({ query, skip, take, userId }: SearchListsInput): Promise<BookListModel[]> {
     return this.prisma.bookList.findMany({
       orderBy: { name: "asc" },
       skip,
       take,
-      where: buildVisibleWhere(userId, query),
+      where: buildOwnedWhere(userId, query),
     });
   }
 }
 
-function buildVisibleWhere(userId: string, query: string | undefined): Prisma.BookListWhereInput {
+function buildOwnedWhere(userId: string, query: string | undefined): Prisma.BookListWhereInput {
   if (query === undefined || query.length === 0) {
     return { userId };
   }

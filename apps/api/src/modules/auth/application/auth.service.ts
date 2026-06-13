@@ -14,6 +14,7 @@ import {
   ForbiddenError,
   UnauthorizedError,
 } from "../../../core/exceptions/errors.js";
+import { parseIsoDate } from "../../../core/iso-date.js";
 import { toUserView } from "../domain/user.mapper.js";
 import { UsersRepository } from "../infrastructure/users.repository.js";
 import { EmailVerificationService } from "./email-verification.service.js";
@@ -90,7 +91,8 @@ export class AuthService {
 
       const created = await this.usersRepository.create(
         {
-          dateOfBirth: input.dateOfBirth === undefined ? undefined : new Date(input.dateOfBirth),
+          dateOfBirth:
+            input.dateOfBirth === undefined ? undefined : parseIsoDate(input.dateOfBirth),
           email: input.email,
           name: input.name,
           nickname: input.nickname,

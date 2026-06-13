@@ -1,3 +1,1 @@
-export function normalizeName(name: string): string {
-  return name.trim().replace(/\s+/g, " ").toLowerCase();
-}
+export { normalizeName } from "@app/shared";

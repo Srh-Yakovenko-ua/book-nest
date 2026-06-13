@@ -56,7 +56,7 @@ export class EmailVerificationService {
       if (elapsedSeconds < env.resendCooldownSeconds) return;
     }
 
-    const rawToken = await this.issueToken(user);
+    const rawToken = await this.prisma.$transaction((tx) => this.issueToken(user, tx));
 
     void this.sendVerification(user, rawToken);
   }

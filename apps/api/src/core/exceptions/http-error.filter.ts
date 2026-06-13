@@ -41,7 +41,7 @@ export class HttpErrorFilter implements ExceptionFilter {
       return;
     }
 
-    if (httpError.bodyless) {
+    if (httpError.bodyless && httpError.code === undefined) {
       response.status(httpError.status).end();
       return;
     }
