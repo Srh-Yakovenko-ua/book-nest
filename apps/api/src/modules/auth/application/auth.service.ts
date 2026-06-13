@@ -1,6 +1,7 @@
 import type {
   AuthResultView,
   LoginInput,
+  NicknameAvailabilityView,
   RegistrationInput,
   RegistrationResultView,
 } from "@app/shared";
@@ -29,7 +30,15 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async login(input: LoginInput): Promise<{ refreshToken: string; result: AuthResultView }> {
+  async isNicknameAvailable(nickname: string): Promise<NicknameAvailabilityView> {
+    const existing = await this.usersRepository.findByNickname(nickname);
+
+    return { available: existing === null };
+  }
+
+  async login(
+    input: LoginInput,
+  ): Promise<{ refreshToken: string; result: AuthResultView; ttlDays: number }> {
     const user = await this.usersRepository.findByEmail(input.email);
     if (user === null) {
       await this.passwordService.fakeCompare(input.password);
@@ -45,11 +54,12 @@ export class AuthService {
       throw new ForbiddenError("Email not verified", { code: "email_not_verified" });
     }
 
-    const session = await this.sessionService.issue(user);
+    const session = await this.sessionService.issue(user, { rememberMe: input.rememberMe });
 
     return {
       refreshToken: session.refreshToken,
       result: { accessToken: session.accessToken, user: toUserView(user) },
+      ttlDays: session.ttlDays,
     };
   }
 

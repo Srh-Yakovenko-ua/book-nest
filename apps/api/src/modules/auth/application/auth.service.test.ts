@@ -25,6 +25,7 @@ const baseInput: RegistrationInput = {
 const loginInput: LoginInput = {
   email: "reader@example.com",
   password: "supersecret",
+  rememberMe: false,
 };
 
 type Mocks = {
@@ -70,9 +71,13 @@ function buildService(overrides: {
   } as unknown as EmailVerificationService;
 
   const sessionService = {
-    issue: vi
-      .fn()
-      .mockResolvedValue({ accessToken: "access-token", refreshToken: "refresh-token" }),
+    issue: vi.fn().mockImplementation((_user: UserModel, options: { rememberMe?: boolean } = {}) =>
+      Promise.resolve({
+        accessToken: "access-token",
+        refreshToken: "refresh-token",
+        ttlDays: options.rememberMe === true ? 7 : 1,
+      }),
+    ),
   } as unknown as SessionService;
 
   const service = new AuthService(
@@ -288,7 +293,25 @@ describe("AuthService.login", () => {
 
     await service.login(loginInput);
 
-    expect(mocks.sessionService.issue).toHaveBeenCalledWith(verified);
+    expect(mocks.sessionService.issue).toHaveBeenCalledWith(verified, { rememberMe: false });
+  });
+
+  it("forwards rememberMe true to the session service and returns the long TTL", async () => {
+    const verified = verifiedUser();
+    const { mocks, service } = buildService({ compare: true, findByEmail: verified });
+
+    const output = await service.login({ ...loginInput, rememberMe: true });
+
+    expect(mocks.sessionService.issue).toHaveBeenCalledWith(verified, { rememberMe: true });
+    expect(output.ttlDays).toBe(7);
+  });
+
+  it("returns the short TTL chosen by the session service when rememberMe is false", async () => {
+    const { service } = buildService({ compare: true, findByEmail: verifiedUser() });
+
+    const output = await service.login({ ...loginInput, rememberMe: false });
+
+    expect(output.ttlDays).toBe(1);
   });
 
   it("throws an UnauthorizedError when no user matches the email", async () => {
@@ -354,5 +377,31 @@ describe("AuthService.login", () => {
     await service.login(loginInput).catch(() => undefined);
 
     expect(mocks.sessionService.issue).not.toHaveBeenCalled();
+  });
+});
+
+describe("AuthService.isNicknameAvailable", () => {
+  it("reports the nickname as available when no user holds it", async () => {
+    const { service } = buildService({ findByNickname: null });
+
+    const output = await service.isNicknameAvailable("freenick");
+
+    expect(output).toEqual({ available: true });
+  });
+
+  it("reports the nickname as taken when a user already holds it", async () => {
+    const { service } = buildService({ findByNickname: createdUser() });
+
+    const output = await service.isNicknameAvailable("reader");
+
+    expect(output).toEqual({ available: false });
+  });
+
+  it("looks the nickname up through the users repository", async () => {
+    const { mocks, service } = buildService({ findByNickname: null });
+
+    await service.isNicknameAvailable("freenick");
+
+    expect(mocks.usersRepository.findByNickname).toHaveBeenCalledWith("freenick");
   });
 });

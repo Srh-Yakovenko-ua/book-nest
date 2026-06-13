@@ -44,8 +44,8 @@ export class TokenService {
     return addMinutes(new Date(), env.passwordResetTtlMinutes);
   }
 
-  refreshExpiry(): Date {
-    return addDays(new Date(), env.refreshTokenTtlDays);
+  refreshExpiry(ttlDays: number = env.refreshTokenTtlDays): Date {
+    return addDays(new Date(), ttlDays);
   }
 
   signAccessToken(userId: string): Promise<string> {

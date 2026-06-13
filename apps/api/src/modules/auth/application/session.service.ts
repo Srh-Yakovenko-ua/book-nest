@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserModel } from "../../../generated/prisma/models.js";
 
+import { env } from "../../../config/env.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { toUserView } from "../domain/user.mapper.js";
@@ -15,9 +16,16 @@ import { TokenService } from "./token.service.js";
 type IssuedSession = {
   accessToken: string;
   refreshToken: string;
+  ttlDays: number;
+};
+
+type IssueSessionOptions = {
+  client?: Prisma.TransactionClient;
+  rememberMe?: boolean;
 };
 
 type RefreshResult = {
+  expiresAt: Date;
   refreshToken: string;
   result: AuthResultView;
 };
@@ -35,16 +43,22 @@ export class SessionService {
     private readonly prisma: PrismaService,
   ) {}
 
-  async issue(user: UserModel, client?: Prisma.TransactionClient): Promise<IssuedSession> {
+  async issue(user: UserModel, options: IssueSessionOptions = {}): Promise<IssuedSession> {
+    const rememberMe = options.rememberMe ?? true;
+    const ttlDays = rememberMe ? env.refreshTokenTtlDays : env.refreshTokenTtlDaysShort;
+
     const refreshToken = this.tokenService.generateRefreshToken();
     const refreshHash = this.tokenService.hashRefreshToken(refreshToken);
-    const expiresAt = this.tokenService.refreshExpiry();
+    const expiresAt = this.tokenService.refreshExpiry(ttlDays);
 
-    await this.sessionsRepository.create({ expiresAt, refreshHash, userId: user.id }, client);
+    await this.sessionsRepository.create(
+      { expiresAt, refreshHash, userId: user.id },
+      options.client,
+    );
 
     const accessToken = await this.tokenService.signAccessToken(user.id);
 
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, ttlDays };
   }
 
   async refresh(presentedToken: string): Promise<RefreshResult> {
@@ -73,7 +87,7 @@ export class SessionService {
 
     const refreshToken = this.tokenService.generateRefreshToken();
     const refreshHashNew = this.tokenService.hashRefreshToken(refreshToken);
-    const expiresAt = this.tokenService.refreshExpiry();
+    const expiresAt = session.expiresAt;
 
     await this.prisma.$transaction(async (tx) => {
       const rotated = await this.sessionsRepository.rotate(session.id, now, tx);
@@ -89,7 +103,7 @@ export class SessionService {
 
     const accessToken = await this.tokenService.signAccessToken(user.id);
 
-    return { refreshToken, result: { accessToken, user: toUserView(user) } };
+    return { expiresAt, refreshToken, result: { accessToken, user: toUserView(user) } };
   }
 
   async revoke(presentedToken: string): Promise<void> {
