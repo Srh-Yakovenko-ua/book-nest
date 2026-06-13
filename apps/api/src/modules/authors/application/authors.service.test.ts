@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { AuthorModel } from "../../../generated/prisma/models.js";
-import type { AuthorsRepository } from "../infrastructure/authors.repository.js";
+import type {
+  AuthorsRepository,
+  AuthorWithPrimaryNames,
+} from "../infrastructure/authors.repository.js";
 import type {
   OpenLibraryAuthorDetail,
   OpenLibraryClient,
@@ -31,6 +34,7 @@ function author(overrides: Partial<AuthorModel> = {}): AuthorModel {
     photoLicense: null,
     photoLicenseUrl: null,
     photoUrl: null,
+    searchText: "frank herbert",
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),
     userId: USER_ID,
     wikidataId: null,
@@ -38,12 +42,29 @@ function author(overrides: Partial<AuthorModel> = {}): AuthorModel {
   };
 }
 
+function authorWithNames(overrides: Partial<AuthorWithPrimaryNames> = {}): AuthorWithPrimaryNames {
+  const base = author(overrides);
+  return {
+    ...base,
+    names: overrides.names ?? [
+      {
+        authorId: base.id,
+        id: `${base.id}-name`,
+        isPrimary: true,
+        locale: "uk",
+        name: base.name,
+        normalizedName: base.normalizedName,
+      },
+    ],
+  };
+}
+
 function buildService(overrides: {
-  create?: AuthorModel | Error;
+  create?: AuthorWithPrimaryNames | Error;
   findByNormalized?: AuthorModel | null;
   findByNormalizedRetry?: AuthorModel | null;
   findVisibleById?: AuthorModel | null;
-  searchVisible?: AuthorModel[];
+  searchVisible?: AuthorWithPrimaryNames[];
 }): {
   repository: {
     countVisible: ReturnType<typeof vi.fn>;
@@ -58,7 +79,7 @@ function buildService(overrides: {
   if (overrides.create instanceof Error) {
     create.mockRejectedValue(overrides.create);
   } else {
-    create.mockResolvedValue(overrides.create ?? author());
+    create.mockResolvedValue(overrides.create ?? authorWithNames());
   }
 
   const findByNormalized = vi.fn().mockResolvedValue(overrides.findByNormalized ?? null);
@@ -150,13 +171,17 @@ describe("AuthorsService.resolveOrCreate by name", () => {
   });
 
   it("creates a custom author with the user id when no match exists", async () => {
-    const created = author({ id: AUTHOR_ID, userId: USER_ID });
+    const created = authorWithNames({ id: AUTHOR_ID, userId: USER_ID });
     const { repository, service } = buildService({ create: created, findByNormalized: null });
 
     const id = await service.resolveOrCreate(USER_ID, { name: "Frank Herbert" });
 
     expect(id).toBe(AUTHOR_ID);
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, "Frank Herbert", "frank herbert");
+    expect(repository.create).toHaveBeenCalledWith(USER_ID, {
+      locale: "uk",
+      name: "Frank Herbert",
+      normalizedName: "frank herbert",
+    });
   });
 
   it("resolves to the row a concurrent insert created when create hits a unique violation", async () => {
@@ -195,12 +220,13 @@ describe("AuthorsService.search", () => {
   it("returns a paginator whose items mark user rows custom and global rows not custom", async () => {
     const { service } = buildService({
       searchVisible: [
-        author({ id: AUTHOR_ID, name: "My Author", userId: USER_ID }),
-        author({ id: GLOBAL_ID, name: "George Orwell", userId: null }),
+        authorWithNames({ id: AUTHOR_ID, name: "My Author", userId: USER_ID }),
+        authorWithNames({ id: GLOBAL_ID, name: "George Orwell", userId: null }),
       ],
     });
 
     const page = await service.search(USER_ID, {
+      locale: "uk",
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
@@ -221,10 +247,57 @@ describe("AuthorsService.search", () => {
     ]);
   });
 
+  it("resolves the display name to the requested locale and falls back to the canonical name", async () => {
+    const { service } = buildService({
+      searchVisible: [
+        authorWithNames({
+          id: GLOBAL_ID,
+          name: "Taras Shevchenko",
+          names: [
+            {
+              authorId: GLOBAL_ID,
+              id: "name-en",
+              isPrimary: true,
+              locale: "en",
+              name: "Taras Shevchenko",
+              normalizedName: "taras shevchenko",
+            },
+            {
+              authorId: GLOBAL_ID,
+              id: "name-uk",
+              isPrimary: true,
+              locale: "uk",
+              name: "Тарас Шевченко",
+              normalizedName: "тарас шевченко",
+            },
+          ],
+          userId: null,
+        }),
+      ],
+    });
+
+    const ukrainian = await service.search(USER_ID, {
+      locale: "uk",
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+    const english = await service.search(USER_ID, {
+      locale: "en",
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(ukrainian.items[0]?.name).toBe("Тарас Шевченко");
+    expect(english.items[0]?.name).toBe("Taras Shevchenko");
+  });
+
   it("computes skip and take from the page coordinates", async () => {
     const { repository, service } = buildService({ searchVisible: [] });
 
     await service.search(USER_ID, {
+      locale: "uk",
       pageNumber: 3,
       pageSize: 20,
       search: "orwell",
@@ -343,8 +416,10 @@ describe("AuthorsService.materializeFromOpenLibrary", () => {
         name: "George Orwell",
         normalizedName: "george orwell",
         openLibraryKey: OPEN_LIBRARY_KEY,
+        searchText: "george orwell",
         wikidataId: "Q3335",
       }),
+      [{ isPrimary: true, locale: "en", name: "George Orwell", normalizedName: "george orwell" }],
     );
   });
 
@@ -356,7 +431,10 @@ describe("AuthorsService.materializeFromOpenLibrary", () => {
 
     await service.materializeFromOpenLibrary(OPEN_LIBRARY_KEY);
 
-    expect(createGlobal).toHaveBeenCalledWith(expect.objectContaining({ birthYear: 1903 }));
+    expect(createGlobal).toHaveBeenCalledWith(
+      expect.objectContaining({ birthYear: 1903 }),
+      expect.any(Array),
+    );
   });
 
   it("creates the global author with null country and years when wikidata returns nothing", async () => {
@@ -369,6 +447,7 @@ describe("AuthorsService.materializeFromOpenLibrary", () => {
 
     expect(createGlobal).toHaveBeenCalledWith(
       expect.objectContaining({ birthYear: null, countryCode: null, deathYear: null }),
+      expect.any(Array),
     );
   });
 

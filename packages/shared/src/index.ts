@@ -1314,6 +1314,16 @@ export const TaxonomySearchPaginationQuerySchema = z.object({
 
 export type TaxonomySearchPaginationQuery = z.infer<typeof TaxonomySearchPaginationQuerySchema>;
 
+export const AuthorLocaleSchema = z.enum(["en", "uk"]);
+
+export type AuthorLocale = z.infer<typeof AuthorLocaleSchema>;
+
+export const AuthorSearchPaginationQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  locale: AuthorLocaleSchema.default("uk"),
+});
+
+export type AuthorSearchPaginationQuery = z.infer<typeof AuthorSearchPaginationQuerySchema>;
+
 export const defaultUserProfileSettings: SettingsView = {
   accentColor: "brown",
   confirmBeforeDelete: true,

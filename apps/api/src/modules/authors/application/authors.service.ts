@@ -1,9 +1,9 @@
 import type {
   AuthorBookSuggestionView,
   AuthorLookupResult,
+  AuthorSearchPaginationQuery,
   AuthorView,
   Paginator,
-  TaxonomySearchPaginationQuery,
 } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
@@ -19,6 +19,8 @@ import { toAuthorView } from "../domain/author.mapper.js";
 import { AuthorsRepository } from "../infrastructure/authors.repository.js";
 import { OpenLibraryClient } from "../infrastructure/open-library.client.js";
 import { WikidataClient } from "../infrastructure/wikidata.client.js";
+
+const CUSTOM_AUTHOR_LOCALE = "uk";
 
 type FindExistingGlobalAuthorInput = {
   normalizedName: string;
@@ -109,17 +111,21 @@ export class AuthorsService {
         : await this.wikidataClient.getAuthorFactsByQid(detail.wikidataId);
 
     try {
-      return await this.authorsRepository.createGlobal({
-        bio: detail.bio,
-        birthYear: detail.birthYear ?? facts?.birthYear ?? null,
-        countryCode: facts?.countryCode ?? null,
-        deathYear: facts?.deathYear ?? null,
-        name: detail.name,
-        normalizedName,
-        openLibraryKey,
-        photoUrl: detail.photoUrl,
-        wikidataId: detail.wikidataId,
-      });
+      return await this.authorsRepository.createGlobal(
+        {
+          bio: detail.bio,
+          birthYear: detail.birthYear ?? facts?.birthYear ?? null,
+          countryCode: facts?.countryCode ?? null,
+          deathYear: facts?.deathYear ?? null,
+          name: detail.name,
+          normalizedName,
+          openLibraryKey,
+          photoUrl: detail.photoUrl,
+          searchText: normalizedName,
+          wikidataId: detail.wikidataId,
+        },
+        [{ isPrimary: true, locale: "en", name: detail.name, normalizedName }],
+      );
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
         throw error;
@@ -156,7 +162,11 @@ export class AuthorsService {
     }
 
     try {
-      const created = await this.authorsRepository.create(userId, input.name, normalizedName);
+      const created = await this.authorsRepository.create(userId, {
+        locale: CUSTOM_AUTHOR_LOCALE,
+        name: input.name,
+        normalizedName,
+      });
       return created.id;
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
@@ -170,11 +180,8 @@ export class AuthorsService {
     }
   }
 
-  async search(
-    userId: string,
-    query: TaxonomySearchPaginationQuery,
-  ): Promise<Paginator<AuthorView>> {
-    const { pageNumber, pageSize, search } = query;
+  async search(userId: string, query: AuthorSearchPaginationQuery): Promise<Paginator<AuthorView>> {
+    const { locale, pageNumber, pageSize, search } = query;
 
     const [authors, totalCount] = await Promise.all([
       this.authorsRepository.searchVisible({
@@ -187,7 +194,7 @@ export class AuthorsService {
     ]);
 
     return buildPaginator({
-      items: authors.map(toAuthorView),
+      items: authors.map((author) => toAuthorView(author, locale)),
       pageNumber,
       pageSize,
       totalCount,
