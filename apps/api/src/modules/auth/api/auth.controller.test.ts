@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { env } from "../../../config/env.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createTestApp } from "../../../test/create-test-app.js";
 import { truncateAllTables } from "../../../test/truncate.js";
@@ -80,18 +81,24 @@ afterAll(async () => {
   await app.close();
 });
 
+function cookieMaxAgeSeconds(cookie: string): number {
+  const match = /max-age=(\d+)/i.exec(cookie);
+  if (match?.[1] === undefined) throw new Error("refresh_token cookie has no Max-Age");
+  return Number(match[1]);
+}
+
 function cookieValue(cookie: string): string {
   const pair = cookie.split(";")[0];
   if (pair === undefined) throw new Error("empty cookie");
   return pair;
 }
 
-async function loginAndExtractCookie(): Promise<string> {
+async function loginAndExtractCookie(rememberMe?: boolean): Promise<string> {
   await seedVerifiedUser();
   await prisma.session.deleteMany();
   const res = await request(app.getHttpServer())
     .post("/api/auth/login")
-    .send({ email: validBody.email, password: validBody.password });
+    .send({ email: validBody.email, password: validBody.password, rememberMe });
   return readRefreshCookie(res.headers["set-cookie"]);
 }
 
@@ -375,6 +382,82 @@ describe("POST /api/auth/login", () => {
     expect(sessionCount).toBe(2);
   });
 
+  it("returns only the access token and user view in the body", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password, rememberMe: true });
+
+    expect(Object.keys(res.body).sort()).toEqual(["accessToken", "user"]);
+  });
+
+  it("sets the refresh cookie Max-Age to the short TTL when rememberMe is omitted", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password });
+
+    const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
+
+    expect(maxAge).toBe(env.refreshTokenTtlDaysShort * 24 * 60 * 60);
+  });
+
+  it("sets the refresh cookie Max-Age to the short TTL when rememberMe is false", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password, rememberMe: false });
+
+    const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
+
+    expect(maxAge).toBe(env.refreshTokenTtlDaysShort * 24 * 60 * 60);
+  });
+
+  it("sets the refresh cookie Max-Age to the long TTL when rememberMe is true", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password, rememberMe: true });
+
+    const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
+
+    expect(maxAge).toBe(env.refreshTokenTtlDays * 24 * 60 * 60);
+  });
+
+  it("persists a short-TTL session expiry when rememberMe is false", async () => {
+    await seedVerifiedUser();
+    await prisma.session.deleteMany();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password, rememberMe: false });
+
+    const session = await prisma.session.findFirstOrThrow();
+    const ttlDays = (session.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+
+    expect(ttlDays).toBeGreaterThan(env.refreshTokenTtlDaysShort - 0.1);
+    expect(ttlDays).toBeLessThanOrEqual(env.refreshTokenTtlDaysShort + 0.1);
+  });
+
+  it("persists a long-TTL session expiry when rememberMe is true", async () => {
+    await seedVerifiedUser();
+    await prisma.session.deleteMany();
+
+    await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email: validBody.email, password: validBody.password, rememberMe: true });
+
+    const session = await prisma.session.findFirstOrThrow();
+    const ttlDays = (session.expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+
+    expect(ttlDays).toBeGreaterThan(env.refreshTokenTtlDays - 0.1);
+    expect(ttlDays).toBeLessThanOrEqual(env.refreshTokenTtlDays + 0.1);
+  });
+
   it("returns 401 with an empty body for a wrong password", async () => {
     await seedVerifiedUser();
 
@@ -473,6 +556,59 @@ describe("POST /api/auth/refresh", () => {
 
     expect(tombstoned).toBe(1);
     expect(live).toBe(1);
+  });
+
+  it("carries the original absolute expiry forward instead of resetting it on rotation", async () => {
+    const cookie = await loginAndExtractCookie(false);
+    const before = await prisma.session.findFirstOrThrow({ where: { rotatedAt: null } });
+
+    await request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", cookieValue(cookie));
+
+    const after = await prisma.session.findFirstOrThrow({ where: { rotatedAt: null } });
+
+    expect(after.expiresAt.getTime()).toBe(before.expiresAt.getTime());
+  });
+
+  it("sets the rotated cookie Max-Age to the remaining short-session time, not the long TTL", async () => {
+    const cookie = await loginAndExtractCookie(false);
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Cookie", cookieValue(cookie));
+
+    const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
+    const shortTtlSeconds = env.refreshTokenTtlDaysShort * 24 * 60 * 60;
+    const longTtlSeconds = env.refreshTokenTtlDays * 24 * 60 * 60;
+
+    expect(maxAge).toBeLessThanOrEqual(shortTtlSeconds);
+    expect(maxAge).toBeGreaterThan(shortTtlSeconds - 60);
+    expect(maxAge).toBeLessThan(longTtlSeconds);
+  });
+
+  it("keeps a rememberMe:false session under one day even after refreshing", async () => {
+    const cookie = await loginAndExtractCookie(false);
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Cookie", cookieValue(cookie));
+
+    const maxAgeDays = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"])) / 86400;
+
+    expect(maxAgeDays).toBeLessThanOrEqual(env.refreshTokenTtlDaysShort);
+  });
+
+  it("caps the rotated cookie Max-Age below the full long TTL for a rememberMe:true session", async () => {
+    const cookie = await loginAndExtractCookie(true);
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Cookie", cookieValue(cookie));
+
+    const maxAge = cookieMaxAgeSeconds(readRefreshCookie(res.headers["set-cookie"]));
+    const longTtlSeconds = env.refreshTokenTtlDays * 24 * 60 * 60;
+
+    expect(maxAge).toBeLessThanOrEqual(longTtlSeconds);
+    expect(maxAge).toBeGreaterThan(longTtlSeconds - 60);
   });
 
   it("returns 401 and wipes every session when a pre-rotation cookie is replayed", async () => {
@@ -796,5 +932,66 @@ describe("GET /api/auth/me", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.role).toBe("super_admin");
+  });
+});
+
+describe("GET /api/auth/nickname-available", () => {
+  it("returns 200 with available true for a nickname nobody has claimed", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/nickname-available")
+      .query({ nickname: "freenick" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ available: true });
+  });
+
+  it("returns available false for a nickname an existing user already holds", async () => {
+    await seedVerifiedUser();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/nickname-available")
+      .query({ nickname: validBody.nickname });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ available: false });
+  });
+
+  it("returns 400 when the nickname is too short", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/nickname-available")
+      .query({ nickname: "ab" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "nickname" })]),
+    );
+  });
+
+  it("returns 400 when the nickname starts with an underscore", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/nickname-available")
+      .query({ nickname: "_bad" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "nickname" })]),
+    );
+  });
+
+  it("returns 400 when the nickname contains consecutive dots", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/auth/nickname-available")
+      .query({ nickname: "a..b" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "nickname" })]),
+    );
+  });
+
+  it("returns 400 when the nickname query parameter is missing", async () => {
+    const res = await request(app.getHttpServer()).get("/api/auth/nickname-available");
+
+    expect(res.status).toBe(400);
   });
 });

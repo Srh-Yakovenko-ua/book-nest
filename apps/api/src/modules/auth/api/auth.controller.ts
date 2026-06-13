@@ -2,6 +2,7 @@ import type {
   AuthResultView,
   ForgotPasswordResultView,
   LogoutResultView,
+  NicknameAvailabilityView,
   RegistrationResultView,
   ResetPasswordResultView,
   UserView,
@@ -11,12 +12,13 @@ import type { Request, Response } from "express";
 import {
   ForgotPasswordInputSchema,
   LoginInputSchema,
+  NicknameAvailabilityQuerySchema,
   RegistrationInputSchema,
   ResendVerificationSchema,
   ResetPasswordInputSchema,
   VerifyEmailSchema,
 } from "@app/shared";
-import { Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -25,6 +27,7 @@ import {
   ApiForbiddenResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
@@ -36,6 +39,7 @@ import { env } from "../../../config/env.js";
 import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
+import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { AuthService } from "../application/auth.service.js";
 import { EmailVerificationService } from "../application/email-verification.service.js";
 import { PasswordResetService } from "../application/password-reset.service.js";
@@ -45,6 +49,7 @@ import { CurrentUser } from "./guards/current-user.decorator.js";
 import { JwtAccessGuard } from "./guards/jwt-access.guard.js";
 import { ForgotPasswordInputDto } from "./input-dto/forgot-password.input-dto.js";
 import { LoginInputDto } from "./input-dto/login.input-dto.js";
+import { NicknameAvailabilityQueryDto } from "./input-dto/nickname-availability-query.input-dto.js";
 import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
 import { ResendVerificationInputDto } from "./input-dto/resend-verification.input-dto.js";
 import { ResetPasswordInputDto } from "./input-dto/reset-password.input-dto.js";
@@ -63,6 +68,8 @@ const FORGOT_PASSWORD_TTL_SECONDS = 60;
 const FORGOT_PASSWORD_LIMIT = 3;
 const RESET_PASSWORD_TTL_SECONDS = 60;
 const RESET_PASSWORD_LIMIT = 5;
+const NICKNAME_AVAILABILITY_TTL_SECONDS = 60;
+const NICKNAME_AVAILABILITY_LIMIT = 20;
 
 const VERIFICATION_SENT: RegistrationResultView["status"] = "verification_sent";
 const RESET_EMAIL_SENT: ForgotPasswordResultView["status"] = "reset_email_sent";
@@ -86,6 +93,23 @@ export class AuthController {
   @UseGuards(JwtAccessGuard)
   me(@CurrentUser() user: UserModel): UserView {
     return toUserView(user);
+  }
+
+  @ApiBadRequestResponse({ description: "Malformed nickname" })
+  @ApiOkResponse({ description: "Whether the nickname is free to claim" })
+  @ApiOperation({ summary: "Check whether a nickname is available" })
+  @ApiQuery({ name: "nickname", required: true })
+  @Get("nickname-available")
+  @Throttle({
+    default: {
+      limit: NICKNAME_AVAILABILITY_LIMIT,
+      ttl: seconds(NICKNAME_AVAILABILITY_TTL_SECONDS),
+    },
+  })
+  checkNicknameAvailability(
+    @Query(new ZodQueryPipe(NicknameAvailabilityQuerySchema)) query: NicknameAvailabilityQueryDto,
+  ): Promise<NicknameAvailabilityView> {
+    return this.authService.isNicknameAvailable(query.nickname);
   }
 
   @ApiBadRequestResponse({ description: "Validation failed or email/nickname already taken" })
@@ -130,9 +154,9 @@ export class AuthController {
     @Body(new ZodBodyPipe(LoginInputSchema)) body: LoginInputDto,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthResultView> {
-    const { refreshToken, result } = await this.authService.login(body);
+    const { refreshToken, result, ttlDays } = await this.authService.login(body);
 
-    this.setRefreshCookie(response, refreshToken);
+    this.setRefreshCookie(response, refreshToken, ttlDays * DAY_IN_MS);
 
     return result;
   }
@@ -153,9 +177,10 @@ export class AuthController {
       throw new UnauthorizedError("Missing refresh token");
     }
 
-    const { refreshToken, result } = await this.sessionService.refresh(presented);
+    const { expiresAt, refreshToken, result } = await this.sessionService.refresh(presented);
 
-    this.setRefreshCookie(response, refreshToken);
+    const remainingMs = Math.max(0, expiresAt.getTime() - Date.now());
+    this.setRefreshCookie(response, refreshToken, remainingMs);
 
     return result;
   }
@@ -226,10 +251,14 @@ export class AuthController {
     return this.passwordResetService.reset(body.token, body.password);
   }
 
-  private setRefreshCookie(response: Response, refreshToken: string): void {
+  private setRefreshCookie(
+    response: Response,
+    refreshToken: string,
+    maxAgeMs: number = env.refreshTokenTtlDays * DAY_IN_MS,
+  ): void {
     response.cookie(REFRESH_COOKIE_NAME, refreshToken, {
       httpOnly: true,
-      maxAge: env.refreshTokenTtlDays * DAY_IN_MS,
+      maxAge: maxAgeMs,
       path: REFRESH_COOKIE_PATH,
       sameSite: "lax",
       secure: env.cookieSecure,

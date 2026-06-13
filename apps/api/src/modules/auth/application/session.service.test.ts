@@ -6,6 +6,7 @@ import type { SessionsRepository } from "../infrastructure/sessions.repository.j
 import type { UsersRepository } from "../infrastructure/users.repository.js";
 import type { TokenService } from "./token.service.js";
 
+import { env } from "../../../config/env.js";
 import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { SessionService } from "./session.service.js";
 
@@ -90,6 +91,55 @@ function userModel(overrides: Partial<UserModel> = {}): UserModel {
   };
 }
 
+describe("SessionService.issue", () => {
+  it("uses the long TTL and reports it back when rememberMe is true", async () => {
+    const { mocks, service } = buildService({});
+
+    const issued = await service.issue(userModel(), { rememberMe: true });
+
+    expect(issued.ttlDays).toBe(env.refreshTokenTtlDays);
+    expect(mocks.tokenService.refreshExpiry).toHaveBeenCalledWith(env.refreshTokenTtlDays);
+  });
+
+  it("uses the short TTL and reports it back when rememberMe is false", async () => {
+    const { mocks, service } = buildService({});
+
+    const issued = await service.issue(userModel(), { rememberMe: false });
+
+    expect(issued.ttlDays).toBe(env.refreshTokenTtlDaysShort);
+    expect(mocks.tokenService.refreshExpiry).toHaveBeenCalledWith(env.refreshTokenTtlDaysShort);
+  });
+
+  it("defaults to the long TTL when no rememberMe option is supplied", async () => {
+    const { mocks, service } = buildService({});
+
+    const issued = await service.issue(userModel());
+
+    expect(issued.ttlDays).toBe(env.refreshTokenTtlDays);
+    expect(mocks.tokenService.refreshExpiry).toHaveBeenCalledWith(env.refreshTokenTtlDays);
+  });
+
+  it("persists a session for the user with the chosen expiry", async () => {
+    const { mocks, service } = buildService({});
+
+    await service.issue(userModel(), { rememberMe: false });
+
+    expect(mocks.sessionsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ expiresAt: FUTURE, userId: USER_ID }),
+      undefined,
+    );
+  });
+
+  it("returns a freshly signed access token and the generated refresh token", async () => {
+    const { service } = buildService({});
+
+    const issued = await service.issue(userModel(), { rememberMe: true });
+
+    expect(issued.accessToken).toBe("signed-access-token");
+    expect(issued.refreshToken).toBe("rotated-refresh-token");
+  });
+});
+
 describe("SessionService.refresh", () => {
   it("throws an UnauthorizedError for an unknown token without rotating or creating", async () => {
     const { mocks, service } = buildService({ findByRefreshHash: null });
@@ -140,6 +190,23 @@ describe("SessionService.refresh", () => {
     expect(result.accessToken).toBe("signed-access-token");
     expect(result.user.id).toBe(USER_ID);
     expect(result.user).not.toHaveProperty("passwordHash");
+  });
+
+  it("carries the original session expiry forward instead of minting a fresh one", async () => {
+    const originalExpiry = new Date("2030-06-01T00:00:00.000Z");
+    const { mocks, service } = buildService({
+      findByRefreshHash: sessionModel({ expiresAt: originalExpiry }),
+      rotate: 1,
+    });
+
+    const { expiresAt } = await service.refresh("presented-refresh-token");
+
+    expect(expiresAt).toEqual(originalExpiry);
+    expect(mocks.tokenService.refreshExpiry).not.toHaveBeenCalled();
+    expect(mocks.sessionsRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ expiresAt: originalExpiry, userId: USER_ID }),
+      { tx: true },
+    );
   });
 
   it("rejects with an UnauthorizedError without creating a session when it loses the rotation race", async () => {

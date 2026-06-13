@@ -61,6 +61,15 @@ const HTML_TAG = /<[^>]*>/;
 
 export const noHtmlTags = (value: string): boolean => !HTML_TAG.test(value);
 
+export const NicknameSchema = z
+  .string()
+  .trim()
+  .min(NICKNAME_MIN, "Nickname must be at least 3 characters long")
+  .max(NICKNAME_MAX, "Nickname must be at most 20 characters long")
+  .regex(NICKNAME_PATTERN, "Nickname may contain only Latin letters, digits, underscore and dot")
+  .regex(NICKNAME_EDGES, "Nickname must start and end with a letter or digit")
+  .regex(NICKNAME_NO_REPEAT, "Nickname must not contain consecutive dots or underscores");
+
 export const PasswordSchema = z
   .string()
   .min(PASSWORD_MIN, "Password must be at least 8 characters long")
@@ -85,15 +94,7 @@ export const RegistrationInputSchema = z.object({
         .regex(NAME_ALLOWED, "Name may contain only letters, spaces, apostrophes and hyphens")
         .regex(NAME_HAS_LETTER, "Name must contain at least one letter"),
     ),
-  nickname: z
-    .string()
-    .trim()
-    .min(NICKNAME_MIN, "Nickname must be at least 3 characters long")
-    .max(NICKNAME_MAX, "Nickname must be at most 20 characters long")
-    .regex(NICKNAME_PATTERN, "Nickname may contain only Latin letters, digits, underscore and dot")
-    .regex(NICKNAME_EDGES, "Nickname must start and end with a letter or digit")
-    .regex(NICKNAME_NO_REPEAT, "Nickname must not contain consecutive dots or underscores")
-    .optional(),
+  nickname: NicknameSchema.optional(),
   password: PasswordSchema,
 });
 
@@ -104,9 +105,20 @@ export type Role = z.infer<typeof RoleSchema>;
 export const LoginInputSchema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email()),
   password: z.string().min(1),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 export type LoginInput = z.infer<typeof LoginInputSchema>;
+
+export const NicknameAvailabilityQuerySchema = z.object({
+  nickname: NicknameSchema,
+});
+
+export type NicknameAvailabilityQuery = z.infer<typeof NicknameAvailabilityQuerySchema>;
+
+export type NicknameAvailabilityView = {
+  available: boolean;
+};
 
 export const VerifyEmailSchema = z.object({
   token: z.string().min(1),
@@ -902,7 +914,7 @@ export const NewSeriesInputSchema = z.object({
 
 export type NewSeriesInput = z.infer<typeof NewSeriesInputSchema>;
 
-const OWNERSHIP_STATUSES_WITH_LOAN: ReadonlySet<OwnershipStatus> = new Set([
+const OWNERSHIP_STATUSES_WITH_LOAN: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
   "borrowed_from_someone",
   "lent_to_someone",
 ]);

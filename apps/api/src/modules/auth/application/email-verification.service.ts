@@ -86,7 +86,7 @@ export class EmailVerificationService {
         new Date(),
         tx,
       );
-      const session = await this.sessionService.issue(updatedUser, tx);
+      const session = await this.sessionService.issue(updatedUser, { client: tx });
 
       return {
         refreshToken: session.refreshToken,
