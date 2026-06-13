@@ -21,8 +21,8 @@ type SearchTagsInput = {
 export class TagsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  countVisible({ query, userId }: CountTagsInput): Promise<number> {
-    return this.prisma.tag.count({ where: buildVisibleWhere(userId, query) });
+  countOwned({ query, userId }: CountTagsInput): Promise<number> {
+    return this.prisma.tag.count({ where: buildOwnedWhere(userId, query) });
   }
 
   create(userId: string, name: string, normalizedName: string): Promise<TagModel> {
@@ -33,17 +33,17 @@ export class TagsRepository {
     return this.prisma.tag.findFirst({ where: { normalizedName, userId } });
   }
 
-  searchVisible({ query, skip, take, userId }: SearchTagsInput): Promise<TagModel[]> {
+  searchOwned({ query, skip, take, userId }: SearchTagsInput): Promise<TagModel[]> {
     return this.prisma.tag.findMany({
       orderBy: { name: "asc" },
       skip,
       take,
-      where: buildVisibleWhere(userId, query),
+      where: buildOwnedWhere(userId, query),
     });
   }
 }
 
-function buildVisibleWhere(userId: string, query: string | undefined): Prisma.TagWhereInput {
+function buildOwnedWhere(userId: string, query: string | undefined): Prisma.TagWhereInput {
   const nameFilter: Prisma.TagWhereInput =
     query === undefined || query.length === 0
       ? {}

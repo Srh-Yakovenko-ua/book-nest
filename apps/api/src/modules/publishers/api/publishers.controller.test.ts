@@ -139,10 +139,10 @@ describe("GET /api/publishers", () => {
     }
 
     const firstPage = await request(app.getHttpServer())
-      .get("/api/publishers?pageSize=2&pageNumber=1&sortDirection=desc")
+      .get("/api/publishers?pageSize=2&pageNumber=1")
       .set("Authorization", `Bearer ${accessToken}`);
     const secondPage = await request(app.getHttpServer())
-      .get("/api/publishers?pageSize=2&pageNumber=2&sortDirection=desc")
+      .get("/api/publishers?pageSize=2&pageNumber=2")
       .set("Authorization", `Bearer ${accessToken}`);
 
     expect(firstPage.body.totalCount).toBe(3);

@@ -30,7 +30,6 @@ export class PublishersController {
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
-  @ApiQuery({ enum: ["asc", "desc"], name: "sortDirection", required: false })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
   @UseGuards(JwtAccessGuard)

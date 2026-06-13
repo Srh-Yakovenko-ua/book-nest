@@ -52,13 +52,13 @@ export class ListsService {
     const { pageNumber, pageSize, search } = query;
 
     const [lists, totalCount] = await Promise.all([
-      this.listsRepository.searchVisible({
+      this.listsRepository.searchOwned({
         query: search,
         skip: (pageNumber - 1) * pageSize,
         take: pageSize,
         userId,
       }),
-      this.listsRepository.countVisible(userId, search),
+      this.listsRepository.countOwned(userId, search),
     ]);
 
     return buildPaginator({

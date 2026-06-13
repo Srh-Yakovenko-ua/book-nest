@@ -37,6 +37,7 @@
     "compression": "catalog:",
     "cookie-parser": "catalog:",
     "date-fns": "catalog:",
+    "date-fns-tz": "catalog:",
     "dotenv": "catalog:",
     "helmet": "catalog:",
     "jose": "catalog:",

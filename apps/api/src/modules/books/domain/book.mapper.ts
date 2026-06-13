@@ -19,10 +19,11 @@ import {
 
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
+import { toIsoDate } from "../../../core/iso-date.js";
 import { toBookListView } from "../../lists/domain/book-list.mapper.js";
 
-const toIsoDate = (value: Date | null): null | string =>
-  value === null ? null : value.toISOString().slice(0, 10);
+const toNullableIsoDate = (value: Date | null): null | string =>
+  value === null ? null : toIsoDate(value);
 
 export function toBookView(book: BookWithRelations): BookView {
   return {
@@ -76,9 +77,9 @@ function toDeliveryInfoView(
       deliveryInfo.deliveryStatus === null
         ? null
         : DeliveryStatusSchema.parse(deliveryInfo.deliveryStatus),
-    expectedDeliveryDate: toIsoDate(deliveryInfo.expectedDeliveryDate),
+    expectedDeliveryDate: toNullableIsoDate(deliveryInfo.expectedDeliveryDate),
     note: deliveryInfo.note,
-    orderDate: toIsoDate(deliveryInfo.orderDate),
+    orderDate: toNullableIsoDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber,
     storeName: deliveryInfo.storeName,
   };
@@ -90,8 +91,8 @@ function toLoanInfoView(loanInfo: BookWithRelations["loanInfo"]): LoanInfoView |
   }
 
   return {
-    expectedReturnDate: toIsoDate(loanInfo.expectedReturnDate),
-    loanDate: toIsoDate(loanInfo.loanDate),
+    expectedReturnDate: toNullableIsoDate(loanInfo.expectedReturnDate),
+    loanDate: toNullableIsoDate(loanInfo.loanDate),
     note: loanInfo.note,
     personName: loanInfo.personName,
   };
@@ -122,14 +123,14 @@ function toReadingProgressView(
   }
 
   return {
-    abandonedAt: toIsoDate(readingProgress.abandonedAt),
+    abandonedAt: toNullableIsoDate(readingProgress.abandonedAt),
     currentPage: readingProgress.currentPage,
-    finishedAt: toIsoDate(readingProgress.finishedAt),
+    finishedAt: toNullableIsoDate(readingProgress.finishedAt),
     impression: readingProgress.impression,
     note: readingProgress.note,
-    pausedAt: toIsoDate(readingProgress.pausedAt),
+    pausedAt: toNullableIsoDate(readingProgress.pausedAt),
     rating: readingProgress.rating,
-    startedAt: toIsoDate(readingProgress.startedAt),
+    startedAt: toNullableIsoDate(readingProgress.startedAt),
   };
 }
 

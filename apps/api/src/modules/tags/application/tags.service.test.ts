@@ -12,18 +12,18 @@ const OTHER_TAG_ID = "33333333-3333-4333-8333-333333333333";
 
 function buildService(): {
   repository: {
-    countVisible: ReturnType<typeof vi.fn>;
+    countOwned: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
-    searchVisible: ReturnType<typeof vi.fn>;
+    searchOwned: ReturnType<typeof vi.fn>;
   };
   service: TagsService;
 } {
   const repository = {
-    countVisible: vi.fn().mockResolvedValue(0),
+    countOwned: vi.fn().mockResolvedValue(0),
     create: vi.fn(),
     findByNormalized: vi.fn().mockResolvedValue(null),
-    searchVisible: vi.fn().mockResolvedValue([]),
+    searchOwned: vi.fn().mockResolvedValue([]),
   };
 
   const service = new TagsService(repository as unknown as TagsRepository);
@@ -133,14 +133,13 @@ describe("TagsService.resolveOrCreateMany", () => {
 describe("TagsService.search", () => {
   it("maps the page to a Paginator of TagView with the search term and coordinates", async () => {
     const { repository, service } = buildService();
-    repository.searchVisible.mockResolvedValue([tag({ id: TAG_ID, name: "dark academia" })]);
-    repository.countVisible.mockResolvedValue(1);
+    repository.searchOwned.mockResolvedValue([tag({ id: TAG_ID, name: "dark academia" })]);
+    repository.countOwned.mockResolvedValue(1);
 
     const page = await service.search(USER_ID, {
       pageNumber: 1,
       pageSize: 10,
       search: "dark",
-      sortDirection: "asc",
     });
 
     expect(page).toEqual({
@@ -150,12 +149,12 @@ describe("TagsService.search", () => {
       pageSize: 10,
       totalCount: 1,
     });
-    expect(repository.searchVisible).toHaveBeenCalledWith({
+    expect(repository.searchOwned).toHaveBeenCalledWith({
       query: "dark",
       skip: 0,
       take: 10,
       userId: USER_ID,
     });
-    expect(repository.countVisible).toHaveBeenCalledWith({ query: "dark", userId: USER_ID });
+    expect(repository.countOwned).toHaveBeenCalledWith({ query: "dark", userId: USER_ID });
   });
 });

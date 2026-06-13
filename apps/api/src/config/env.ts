@@ -38,7 +38,6 @@ const envSchema = z
         return items;
       }),
     DATABASE_URL: z.string().url(),
-    DIRECT_URL: z.string().url().optional(),
     EMAIL_VERIFICATION_TTL_MINUTES: z.coerce.number().int().positive().default(60),
     ENABLE_SWAGGER: z
       .enum(["true", "false"])
@@ -49,6 +48,7 @@ const envSchema = z
     LOG_LEVEL: z.enum(["debug", "error", "info", "warn"]).default("info"),
     MAIL_FROM: z.string().default("BookNest <no-reply@book-nest.net>"),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+    OTEL_SERVICE_NAME: z.string().default("monorepo-api"),
     PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
     PORT: z.coerce.number().int().positive().default(4000),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
@@ -74,7 +74,6 @@ const envSchema = z
     cookieSecure: raw.COOKIE_SECURE,
     corsOrigins: raw.CORS_ORIGINS,
     databaseUrl: raw.DATABASE_URL,
-    directUrl: raw.DIRECT_URL,
     emailVerificationTtlMinutes: raw.EMAIL_VERIFICATION_TTL_MINUTES,
     enableSwagger: raw.ENABLE_SWAGGER,
     jwtAccessSecret: raw.JWT_ACCESS_SECRET,
@@ -82,6 +81,7 @@ const envSchema = z
     logLevel: raw.LOG_LEVEL,
     mailFrom: raw.MAIL_FROM,
     nodeEnv: raw.NODE_ENV,
+    otelServiceName: raw.OTEL_SERVICE_NAME,
     passwordResetTtlMinutes: raw.PASSWORD_RESET_TTL_MINUTES,
     port: raw.PORT,
     refreshTokenTtlDays: raw.REFRESH_TOKEN_TTL_DAYS,

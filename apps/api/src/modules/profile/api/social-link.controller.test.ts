@@ -285,7 +285,7 @@ describe("POST /api/profile/social-links", () => {
     expect(res.status).toBe(409);
   });
 
-  it("allows two OTHER links with different urls", async () => {
+  it("allows a second OTHER link", async () => {
     const accessToken = await registerVerifyAndLogin();
 
     const first = await request(app.getHttpServer())
@@ -301,21 +301,33 @@ describe("POST /api/profile/social-links", () => {
     expect(second.status).toBe(201);
   });
 
-  it("returns 400 when adding an eleventh link", async () => {
+  it("accepts one link for every distinct platform", async () => {
     const accessToken = await registerVerifyAndLogin();
-    for (let index = 0; index < 10; index += 1) {
-      await request(app.getHttpServer())
+    const platforms = [
+      "INSTAGRAM",
+      "TIKTOK",
+      "TWITTER",
+      "THREADS",
+      "YOUTUBE",
+      "GOODREADS",
+      "STORYGRAPH",
+      "TELEGRAM",
+      "WEBSITE",
+      "OTHER",
+    ];
+
+    for (const [index, platform] of platforms.entries()) {
+      const res = await request(app.getHttpServer())
         .post("/api/profile/social-links")
         .set("Authorization", `Bearer ${accessToken}`)
-        .send({ platform: "OTHER", url: `https://link-${index}.example.com` });
+        .send({ platform, url: `https://link-${index}.example.com` });
+      expect(res.status).toBe(201);
     }
 
-    const res = await request(app.getHttpServer())
-      .post("/api/profile/social-links")
-      .set("Authorization", `Bearer ${accessToken}`)
-      .send({ platform: "OTHER", url: "https://link-11.example.com" });
-
-    expect(res.status).toBe(400);
+    const profile = await request(app.getHttpServer())
+      .get("/api/profile")
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(profile.body.socialLinks).toHaveLength(platforms.length);
   });
 });
 

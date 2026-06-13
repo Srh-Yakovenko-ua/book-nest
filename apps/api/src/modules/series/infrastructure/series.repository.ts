@@ -24,8 +24,8 @@ type SearchSeriesInput = {
 export class SeriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  countVisible(userId: string, query: string | undefined): Promise<number> {
-    return this.prisma.series.count({ where: buildVisibleWhere(userId, query) });
+  countOwned(userId: string, query: string | undefined): Promise<number> {
+    return this.prisma.series.count({ where: buildOwnedWhere(userId, query) });
   }
 
   create(userId: string, data: CreateSeriesData): Promise<SeriesModel> {
@@ -40,17 +40,17 @@ export class SeriesRepository {
     return this.prisma.series.findFirst({ where: { id, userId } });
   }
 
-  searchVisible({ query, skip, take, userId }: SearchSeriesInput): Promise<SeriesModel[]> {
+  searchOwned({ query, skip, take, userId }: SearchSeriesInput): Promise<SeriesModel[]> {
     return this.prisma.series.findMany({
       orderBy: { name: "asc" },
       skip,
       take,
-      where: buildVisibleWhere(userId, query),
+      where: buildOwnedWhere(userId, query),
     });
   }
 }
 
-function buildVisibleWhere(userId: string, query: string | undefined): Prisma.SeriesWhereInput {
+function buildOwnedWhere(userId: string, query: string | undefined): Prisma.SeriesWhereInput {
   if (query === undefined || query.length === 0) {
     return { userId };
   }

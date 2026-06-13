@@ -487,7 +487,7 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 403 when the credentials are correct but the email is unverified", async () => {
+  it("returns 403 with an email_not_verified code when the email is unverified", async () => {
     await request(app.getHttpServer()).post("/api/auth/registration").send(validBody);
 
     const res = await request(app.getHttpServer())
@@ -495,6 +495,7 @@ describe("POST /api/auth/login", () => {
       .send({ email: validBody.email, password: validBody.password });
 
     expect(res.status).toBe(403);
+    expect(res.body.code).toBe("email_not_verified");
   });
 
   it("returns 400 with a password field error when the password is missing", async () => {

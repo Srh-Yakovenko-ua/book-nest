@@ -71,13 +71,13 @@ export class SeriesService {
     const { pageNumber, pageSize, search } = query;
 
     const [series, totalCount] = await Promise.all([
-      this.seriesRepository.searchVisible({
+      this.seriesRepository.searchOwned({
         query: search,
         skip: (pageNumber - 1) * pageSize,
         take: pageSize,
         userId,
       }),
-      this.seriesRepository.countVisible(userId, search),
+      this.seriesRepository.countOwned(userId, search),
     ]);
 
     return buildPaginator({

@@ -2,6 +2,7 @@ import type { CreateSocialLinkInput, UpdateSocialLinkInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { PrismaService } from "../../../core/database/prisma.service.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserSocialLinkModel } from "../../../generated/prisma/models.js";
 import type { SocialLinkRepository } from "../infrastructure/social-link.repository.js";
@@ -13,13 +14,17 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_USER_ID = "99999999-9999-4999-8999-999999999999";
 const LINK_ID = "22222222-2222-4222-8222-222222222222";
 
+const TRANSACTION_CLIENT = Symbol("transaction-client");
+
 function buildService(overrides: {
+  count?: number;
   create?: UserSocialLinkModel;
   findById?: null | UserSocialLinkModel;
   listByUserId?: UserSocialLinkModel[];
   update?: UserSocialLinkModel;
 }): {
   repository: {
+    countByUserId: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     deleteById: ReturnType<typeof vi.fn>;
     findById: ReturnType<typeof vi.fn>;
@@ -28,15 +33,26 @@ function buildService(overrides: {
   };
   service: SocialLinkService;
 } {
+  const listByUserId = overrides.listByUserId ?? [];
   const repository = {
+    countByUserId: vi.fn().mockResolvedValue(overrides.count ?? listByUserId.length),
     create: vi.fn().mockResolvedValue(overrides.create ?? socialLink()),
     deleteById: vi.fn().mockResolvedValue(socialLink()),
     findById: vi.fn().mockResolvedValue(overrides.findById ?? null),
-    listByUserId: vi.fn().mockResolvedValue(overrides.listByUserId ?? []),
+    listByUserId: vi.fn().mockResolvedValue(listByUserId),
     update: vi.fn().mockResolvedValue(overrides.update ?? socialLink()),
   };
 
-  const service = new SocialLinkService(repository as unknown as SocialLinkRepository);
+  const prisma = {
+    $transaction: vi.fn((callback: (client: unknown) => Promise<unknown>) =>
+      callback(TRANSACTION_CLIENT),
+    ),
+  };
+
+  const service = new SocialLinkService(
+    repository as unknown as SocialLinkRepository,
+    prisma as unknown as PrismaService,
+  );
 
   return { repository, service };
 }
@@ -84,28 +100,38 @@ describe("SocialLinkService.create", () => {
     });
   });
 
-  it("passes the normalized data to the repository create call", async () => {
+  it("passes the normalized data to the repository create call inside a transaction", async () => {
     const { repository, service } = buildService({ listByUserId: [] });
 
     await service.create(USER_ID, { platform: "INSTAGRAM", username: "reader" });
 
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, {
-      label: null,
-      platform: "INSTAGRAM",
-      url: null,
-      username: "reader",
-    });
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      {
+        label: null,
+        platform: "INSTAGRAM",
+        url: null,
+        username: "reader",
+      },
+      TRANSACTION_CLIENT,
+    );
   });
 
-  it("throws BadRequestError when the user already has 10 links", async () => {
-    const existing = Array.from({ length: 10 }, (_, index) =>
-      socialLink({ id: `id-${index}`, platform: "OTHER", url: `https://x${index}.com` }),
-    );
-    const { service } = buildService({ listByUserId: existing });
+  it("counts links inside the transaction with the transaction client", async () => {
+    const { repository, service } = buildService({ count: 0, listByUserId: [] });
+
+    await service.create(USER_ID, { platform: "INSTAGRAM", username: "reader" });
+
+    expect(repository.countByUserId).toHaveBeenCalledWith(USER_ID, TRANSACTION_CLIENT);
+  });
+
+  it("throws BadRequestError when the user already has 10 links and never inserts", async () => {
+    const { repository, service } = buildService({ count: 10, listByUserId: [] });
 
     await expect(
       service.create(USER_ID, { platform: "WEBSITE", url: "https://new.com" }),
     ).rejects.toBeInstanceOf(BadRequestError);
+    expect(repository.create).not.toHaveBeenCalled();
   });
 
   it("throws ConflictError when the non-OTHER platform is already linked", async () => {
@@ -118,7 +144,7 @@ describe("SocialLinkService.create", () => {
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
-  it("allows a second OTHER link without a conflict", async () => {
+  it("does not reject a second OTHER link", async () => {
     const { repository, service } = buildService({
       listByUserId: [socialLink({ platform: "OTHER", url: "https://first.com" })],
     });

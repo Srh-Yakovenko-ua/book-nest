@@ -42,7 +42,9 @@ import {
   buildPurchaseInfoUpdateData,
   buildReadingProgressData,
   buildReadingProgressUpdateData,
+  ownershipStatusUsesDelivery,
   ownershipStatusUsesLoan,
+  ownershipStatusUsesPurchase,
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
 import { toBookView } from "../domain/book.mapper.js";
@@ -55,57 +57,36 @@ type QueuePlacement = {
   queuePriority: null | QueuePriority;
 };
 
+type ScalarFieldKey = keyof Prisma.BookUncheckedUpdateManyInput & keyof UpdateBookInput;
+
+const SCALAR_KEYS = [
+  "ageCategory",
+  "dedication",
+  "description",
+  "formats",
+  "genres",
+  "illustrator",
+  "isbn",
+  "isFavorite",
+  "language",
+  "originalTitle",
+  "ownershipStatus",
+  "pagesCount",
+  "publicationYear",
+  "readingStatus",
+  "title",
+  "translator",
+] as const satisfies readonly ScalarFieldKey[];
+
 function assignScalarFields(
   fields: Prisma.BookUncheckedUpdateManyInput,
   input: UpdateBookInput,
 ): void {
-  if (input.ageCategory !== undefined) {
-    fields.ageCategory = input.ageCategory;
-  }
-  if (input.dedication !== undefined) {
-    fields.dedication = input.dedication;
-  }
-  if (input.description !== undefined) {
-    fields.description = input.description;
-  }
-  if (input.formats !== undefined) {
-    fields.formats = input.formats;
-  }
-  if (input.genres !== undefined) {
-    fields.genres = input.genres;
-  }
-  if (input.illustrator !== undefined) {
-    fields.illustrator = input.illustrator;
-  }
-  if (input.isbn !== undefined) {
-    fields.isbn = input.isbn;
-  }
-  if (input.isFavorite !== undefined) {
-    fields.isFavorite = input.isFavorite;
-  }
-  if (input.language !== undefined) {
-    fields.language = input.language;
-  }
-  if (input.originalTitle !== undefined) {
-    fields.originalTitle = input.originalTitle;
-  }
-  if (input.ownershipStatus !== undefined) {
-    fields.ownershipStatus = input.ownershipStatus;
-  }
-  if (input.pagesCount !== undefined) {
-    fields.pagesCount = input.pagesCount;
-  }
-  if (input.publicationYear !== undefined) {
-    fields.publicationYear = input.publicationYear;
-  }
-  if (input.readingStatus !== undefined) {
-    fields.readingStatus = input.readingStatus;
-  }
-  if (input.title !== undefined) {
-    fields.title = input.title;
-  }
-  if (input.translator !== undefined) {
-    fields.translator = input.translator;
+  for (const key of SCALAR_KEYS) {
+    const value = input[key];
+    if (value !== undefined) {
+      Object.assign(fields, { [key]: value });
+    }
   }
 }
 
@@ -113,7 +94,7 @@ function resolveDeliveryBlock(
   ownershipStatus: OwnershipStatus,
   deliveryInfo: UpdateBookInput["deliveryInfo"],
 ): BlockUpsert<CreateDeliveryInfoData, UpdateDeliveryInfoData> {
-  if (ownershipStatus !== "in_transit") {
+  if (!ownershipStatusUsesDelivery(ownershipStatus)) {
     return { delete: true };
   }
   if (deliveryInfo === undefined) {
@@ -145,7 +126,7 @@ function resolvePurchaseBlock(
   ownershipStatus: OwnershipStatus,
   purchaseInfo: UpdateBookInput["purchaseInfo"],
 ): BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData> {
-  if (ownershipStatus !== "want_to_buy") {
+  if (!ownershipStatusUsesPurchase(ownershipStatus)) {
     return { delete: true };
   }
   if (purchaseInfo === undefined) {
@@ -211,7 +192,7 @@ export class BooksService {
     const partNumber = input.bookType === "series_part" ? (input.partNumber ?? null) : null;
 
     const deliveryInfo =
-      input.ownershipStatus === "in_transit" && input.deliveryInfo !== undefined
+      ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
         ? buildDeliveryInfoData(input.deliveryInfo)
         : null;
     const loanInfo =
@@ -219,7 +200,7 @@ export class BooksService {
         ? buildLoanInfoData(input.loanInfo)
         : null;
     const purchaseInfo =
-      input.ownershipStatus === "want_to_buy" && input.purchaseInfo !== undefined
+      ownershipStatusUsesPurchase(input.ownershipStatus) && input.purchaseInfo !== undefined
         ? buildPurchaseInfoData(input.purchaseInfo)
         : null;
     const readingProgress =

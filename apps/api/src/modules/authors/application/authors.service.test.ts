@@ -204,7 +204,6 @@ describe("AuthorsService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
-      sortDirection: "desc",
     });
 
     expect(page.totalCount).toBe(2);
@@ -229,7 +228,6 @@ describe("AuthorsService.search", () => {
       pageNumber: 3,
       pageSize: 20,
       search: "orwell",
-      sortDirection: "desc",
     });
 
     expect(repository.searchVisible).toHaveBeenCalledWith({

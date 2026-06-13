@@ -16,14 +16,14 @@ function buildService(overrides: {
   findByNormalized?: null | SeriesModel;
   findByNormalizedRetry?: null | SeriesModel;
   findOwnedById?: null | SeriesModel;
-  searchVisible?: SeriesModel[];
+  searchOwned?: SeriesModel[];
 }): {
   repository: {
-    countVisible: ReturnType<typeof vi.fn>;
+    countOwned: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
     findOwnedById: ReturnType<typeof vi.fn>;
-    searchVisible: ReturnType<typeof vi.fn>;
+    searchOwned: ReturnType<typeof vi.fn>;
   };
   service: SeriesService;
 } {
@@ -41,13 +41,13 @@ function buildService(overrides: {
       .mockResolvedValueOnce(overrides.findByNormalizedRetry);
   }
 
-  const searchVisible = overrides.searchVisible ?? [];
+  const searchOwned = overrides.searchOwned ?? [];
   const repository = {
-    countVisible: vi.fn().mockResolvedValue(searchVisible.length),
+    countOwned: vi.fn().mockResolvedValue(searchOwned.length),
     create,
     findByNormalized,
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
-    searchVisible: vi.fn().mockResolvedValue(searchVisible),
+    searchOwned: vi.fn().mockResolvedValue(searchOwned),
   };
 
   const service = new SeriesService(repository as unknown as SeriesRepository);
@@ -184,7 +184,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
 describe("SeriesService.search", () => {
   it("returns a paginator of mapped series views", async () => {
     const { service } = buildService({
-      searchVisible: [
+      searchOwned: [
         series({ description: "saga", id: SERIES_ID, status: "ongoing", totalBooks: 3 }),
       ],
     });
@@ -193,7 +193,6 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
-      sortDirection: "desc",
     });
 
     expect(page).toEqual({
@@ -214,21 +213,20 @@ describe("SeriesService.search", () => {
   });
 
   it("computes skip and take from the page coordinates", async () => {
-    const { repository, service } = buildService({ searchVisible: [] });
+    const { repository, service } = buildService({ searchOwned: [] });
 
     await service.search(USER_ID, {
       pageNumber: 3,
       pageSize: 20,
       search: "throne",
-      sortDirection: "desc",
     });
 
-    expect(repository.searchVisible).toHaveBeenCalledWith({
+    expect(repository.searchOwned).toHaveBeenCalledWith({
       query: "throne",
       skip: 40,
       take: 20,
       userId: USER_ID,
     });
-    expect(repository.countVisible).toHaveBeenCalledWith(USER_ID, "throne");
+    expect(repository.countOwned).toHaveBeenCalledWith(USER_ID, "throne");
   });
 });

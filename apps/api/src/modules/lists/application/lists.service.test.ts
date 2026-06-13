@@ -14,20 +14,20 @@ const FOREIGN_LIST_ID = "44444444-4444-4444-8444-444444444444";
 
 function buildService(): {
   repository: {
-    countVisible: ReturnType<typeof vi.fn>;
+    countOwned: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
     findOwnedByIds: ReturnType<typeof vi.fn>;
-    searchVisible: ReturnType<typeof vi.fn>;
+    searchOwned: ReturnType<typeof vi.fn>;
   };
   service: ListsService;
 } {
   const repository = {
-    countVisible: vi.fn().mockResolvedValue(0),
+    countOwned: vi.fn().mockResolvedValue(0),
     create: vi.fn(),
     findByNormalized: vi.fn().mockResolvedValue(null),
     findOwnedByIds: vi.fn().mockResolvedValue([]),
-    searchVisible: vi.fn().mockResolvedValue([]),
+    searchOwned: vi.fn().mockResolvedValue([]),
   };
 
   const service = new ListsService(repository as unknown as ListsRepository);
@@ -159,16 +159,15 @@ describe("ListsService.resolveListsForBook", () => {
 describe("ListsService.search", () => {
   it("maps the page to a Paginator of BookListView with the search term and coordinates", async () => {
     const { repository, service } = buildService();
-    repository.searchVisible.mockResolvedValue([
+    repository.searchOwned.mockResolvedValue([
       list({ description: "cozy", id: LIST_ID, name: "Autumn reads" }),
     ]);
-    repository.countVisible.mockResolvedValue(1);
+    repository.countOwned.mockResolvedValue(1);
 
     const page = await service.search(USER_ID, {
       pageNumber: 1,
       pageSize: 10,
       search: "autumn",
-      sortDirection: "asc",
     });
 
     expect(page).toEqual({
@@ -178,12 +177,12 @@ describe("ListsService.search", () => {
       pageSize: 10,
       totalCount: 1,
     });
-    expect(repository.searchVisible).toHaveBeenCalledWith({
+    expect(repository.searchOwned).toHaveBeenCalledWith({
       query: "autumn",
       skip: 0,
       take: 10,
       userId: USER_ID,
     });
-    expect(repository.countVisible).toHaveBeenCalledWith(USER_ID, "autumn");
+    expect(repository.countOwned).toHaveBeenCalledWith(USER_ID, "autumn");
   });
 });

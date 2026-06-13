@@ -33,13 +33,13 @@ export class TagsService {
     const { pageNumber, pageSize, search } = query;
 
     const [tags, totalCount] = await Promise.all([
-      this.tagsRepository.searchVisible({
+      this.tagsRepository.searchOwned({
         query: search,
         skip: (pageNumber - 1) * pageSize,
         take: pageSize,
         userId,
       }),
-      this.tagsRepository.countVisible({ query: search, userId }),
+      this.tagsRepository.countOwned({ query: search, userId }),
     ]);
 
     return buildPaginator({

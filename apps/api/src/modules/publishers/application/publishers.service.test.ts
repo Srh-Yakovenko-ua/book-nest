@@ -182,7 +182,6 @@ describe("PublishersService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
-      sortDirection: "desc",
     });
 
     expect(page).toEqual({
@@ -226,7 +225,6 @@ describe("PublishersService.search", () => {
       pageNumber: 2,
       pageSize: 15,
       search: "penguin",
-      sortDirection: "desc",
     });
 
     expect(repository.searchVisible).toHaveBeenCalledWith({
