@@ -5,7 +5,8 @@
     "somethingWentWrong": "Щось пішло не так"
   },
   "nav": {
-    "home": "Головна"
+    "home": "Головна",
+    "addBook": "Додати книгу"
   },
   "appShell": {
     "label": "Book Nest"
