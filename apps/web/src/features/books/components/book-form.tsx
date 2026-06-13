@@ -36,6 +36,7 @@ import {
   type CreateBookFormOutput,
   type CreateBookFormValues,
   CreateBookInputSchema,
+  type PublisherSelection,
   UpdateBookInputSchema,
 } from "../model/create-book-form";
 import { AuthorAutocomplete } from "./author-autocomplete";
@@ -48,6 +49,7 @@ import { FormSection } from "./form-section";
 import { FormatSection } from "./format-section";
 import { LibraryOrganizationSection } from "./library-organization-section";
 import { OwnershipStatusSection } from "./ownership-status-section";
+import { PublisherAutocomplete } from "./publisher-autocomplete";
 import { ReadingStatusSection } from "./reading-status-section";
 
 const DESCRIPTION_MAX = 500;
@@ -83,6 +85,9 @@ export function BookForm(props: BookFormProps) {
   const [authorSelection, setAuthorSelection] = useState<AuthorSelection | null>(
     initial?.authorSelection ?? null,
   );
+  const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
+    initial?.publisherSelection ?? null,
+  );
   const [pendingDiscard, setPendingDiscard] = useState<null | PendingDiscard>(null);
 
   const resolver = (
@@ -105,7 +110,6 @@ export function BookForm(props: BookFormProps) {
   });
 
   const titleValue = useWatch({ control, defaultValue: "", name: "title" }) ?? "";
-  const publisherValue = useWatch({ control, defaultValue: "", name: "publisherName" }) ?? "";
   const descriptionValue = useWatch({ control, defaultValue: "", name: "description" }) ?? "";
   const readingStatusValue =
     useWatch({ control, defaultValue: "not_started", name: "readingStatus" }) ?? "not_started";
@@ -129,6 +133,7 @@ export function BookForm(props: BookFormProps) {
   const previewRating = typeof ratingValue === "number" ? ratingValue : undefined;
 
   const previewAuthorName = authorSelection?.name ?? "";
+  const previewPublisherName = publisherSelection?.name ?? "";
   const authorError = errors.author;
   const authorErrorMessage =
     typeof authorError?.message === "string" ? authorError.message : undefined;
@@ -279,14 +284,35 @@ export function BookForm(props: BookFormProps) {
                 {t("fields.optional")}
               </span>
             </Label>
-            <Input
-              aria-invalid={errors.publisherName !== undefined}
-              autoComplete="off"
-              className="h-10"
+            <PublisherAutocomplete
+              describedBy={errors.publisherName ? "book-publisher-error" : undefined}
               id="book-publisher"
+              invalid={errors.publisherName !== undefined}
+              onChange={(selection: null | PublisherSelection) => {
+                setPublisherSelection(selection);
+                if (selection === null) {
+                  setValue("publisherId", undefined, { shouldDirty: true, shouldValidate: true });
+                  setValue("publisherName", undefined, { shouldDirty: true, shouldValidate: true });
+                  return;
+                }
+                if (selection.kind === "catalog") {
+                  setValue("publisherName", undefined, { shouldDirty: true, shouldValidate: true });
+                  setValue("publisherId", selection.id, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                  return;
+                }
+                setValue("publisherId", undefined, { shouldDirty: true, shouldValidate: true });
+                setValue("publisherName", selection.name, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
               placeholder={t("fields.publisherPlaceholder")}
-              {...register("publisherName", { setValueAs: emptyToUndefined })}
+              value={publisherSelection}
             />
+            <p className="text-xs text-muted-foreground">{t("fields.publisherHint")}</p>
             <FieldError error={errors.publisherName} id="book-publisher-error" />
           </div>
 
@@ -384,7 +410,7 @@ export function BookForm(props: BookFormProps) {
           inQueue={inQueueValue}
           isFavorite={isFavoriteValue}
           ownershipStatus={ownershipStatusValue}
-          publisherName={publisherValue}
+          publisherName={previewPublisherName}
           rating={previewRating}
           readingStatus={readingStatusValue}
           tags={previewTags}

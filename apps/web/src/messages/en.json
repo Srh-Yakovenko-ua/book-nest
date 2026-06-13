@@ -451,7 +451,8 @@
       "authorPlaceholder": "Start typing an author name…",
       "authorHint": "Pick an author from the catalog or enter a custom name.",
       "publisher": "Publisher",
-      "publisherPlaceholder": "e.g. Old Lion Publishing House",
+      "publisherPlaceholder": "Start typing a publisher name…",
+      "publisherHint": "Pick a publisher from the catalog or enter a custom name.",
       "description": "Description",
       "descriptionPlaceholder": "A short description of the book…",
       "optional": "(optional)"
@@ -459,6 +460,14 @@
     "author": {
       "searching": "Searching authors…",
       "empty": "No authors found.",
+      "catalogHeading": "From catalog",
+      "createHeading": "Add custom",
+      "customBadge": "custom",
+      "useCustom": "Use “{name}”"
+    },
+    "publisher": {
+      "searching": "Searching publishers…",
+      "empty": "No publishers found.",
       "catalogHeading": "From catalog",
       "createHeading": "Add custom",
       "customBadge": "custom",

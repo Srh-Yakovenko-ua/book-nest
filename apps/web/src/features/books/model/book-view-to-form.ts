@@ -1,11 +1,17 @@
 import type { BookView } from "@app/shared";
 
-import type { AuthorSelection, CreateBookFormValues, SeriesSelection } from "./create-book-form";
+import type {
+  AuthorSelection,
+  CreateBookFormValues,
+  PublisherSelection,
+  SeriesSelection,
+} from "./create-book-form";
 
 import { createBookFormDefaults } from "./create-book-form";
 
 export type BookFormInitialState = {
   authorSelection: AuthorSelection;
+  publisherSelection: null | PublisherSelection;
   seriesSelection: null | SeriesSelection;
   values: CreateBookFormValues;
 };
@@ -16,6 +22,11 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
     kind: "catalog",
     name: book.author.name,
   };
+
+  const publisherSelection: null | PublisherSelection =
+    book.publisher === null
+      ? null
+      : { id: book.publisher.id, kind: "catalog", name: book.publisher.name };
 
   const seriesSelection: null | SeriesSelection =
     book.series === null ? null : { id: book.series.id, kind: "existing", name: book.series.name };
@@ -52,7 +63,7 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
 
   if (book.publisher !== null) values.publisherId = book.publisher.id;
 
-  return { authorSelection, seriesSelection, values };
+  return { authorSelection, publisherSelection, seriesSelection, values };
 }
 
 function deliveryToInput(book: BookView): CreateBookFormValues["deliveryInfo"] {
