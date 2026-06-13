@@ -19,6 +19,8 @@ import {
 import { cn } from "@/lib/utils";
 
 type DatePickerProps = {
+  allowFuture?: boolean;
+  ariaLabel?: string;
   defaultMonth?: Date;
   describedBy?: string;
   disabled?: boolean;
@@ -34,6 +36,8 @@ type DatePickerProps = {
 const DATE_FNS_LOCALES: Record<string, Locale> = { en: enUS, uk };
 
 export function DatePicker({
+  allowFuture = false,
+  ariaLabel,
   defaultMonth,
   describedBy,
   disabled,
@@ -57,7 +61,7 @@ export function DatePicker({
       <PopoverTrigger
         aria-describedby={describedBy}
         aria-invalid={invalid === true || undefined}
-        aria-label={t("triggerLabel")}
+        aria-label={ariaLabel ?? t("triggerLabel")}
         className={cn(
           "relative flex h-12 w-full cursor-pointer items-center rounded-md border border-border bg-card pr-3.5 pl-11 text-left text-base transition-[border-color,box-shadow] duration-150 outline-none",
           "hover:border-accent-border",
@@ -108,7 +112,7 @@ export function DatePicker({
           }}
           components={{ Dropdown: CalendarDropdown }}
           defaultMonth={value ?? defaultMonth}
-          disabled={{ after: today }}
+          disabled={allowFuture ? undefined : { after: today }}
           endMonth={endMonth}
           labels={{
             labelMonthDropdown: () => t("monthLabel"),

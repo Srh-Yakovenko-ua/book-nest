@@ -188,5 +188,335 @@
       "apple": "Apple",
       "continueWith": "Продовжити з {provider}"
     }
+  },
+  "books": {
+    "page": {
+      "metaTitle": "Нова книга",
+      "eyebrow": "Бібліотека",
+      "title": "Додати книгу",
+      "subtitle": "Заповніть основну інформацію, щоб додати книгу до вашої бібліотеки. Решту деталей можна додати згодом."
+    },
+    "basicInfo": {
+      "title": "Основна інформація",
+      "description": "Назва й автор — це все, що потрібно для початку."
+    },
+    "readingStatus": {
+      "title": "Статус читання",
+      "description": "Де ви зараз із цією книгою?",
+      "options": {
+        "not_started": "Не почато",
+        "want_to_read": "Хочу прочитати",
+        "reading": "Читаю",
+        "paused": "Призупинено",
+        "finished": "Прочитано",
+        "dnf": "Покинуто",
+        "rereading": "Перечитую"
+      },
+      "fields": {
+        "currentPage": "Сторінка зараз",
+        "rating": "Оцінка",
+        "startedAt": "Дата початку",
+        "finishedAt": "Дата завершення",
+        "pausedAt": "Дата паузи",
+        "abandonedAt": "Дата, коли покинули",
+        "impression": "Враження",
+        "impressionPlaceholder": "Що вам запамʼяталося в цій книзі?",
+        "note": "Нотатка",
+        "notePlaceholder": "Короткі думки для себе…",
+        "datePlaceholder": "Оберіть дату"
+      }
+    },
+    "ownershipStatus": {
+      "title": "Статус володіння",
+      "description": "Книга вже у вас чи ще в дорозі?",
+      "options": {
+        "none": "Не вказано",
+        "want_to_buy": "Хочу купити",
+        "in_transit": "У дорозі",
+        "owned": "У наявності",
+        "borrowed_from_someone": "Позичив у когось",
+        "lent_to_someone": "Позичив комусь"
+      },
+      "fields": {
+        "note": "Нотатка",
+        "notePlaceholder": "Короткі думки для себе…",
+        "datePlaceholder": "Оберіть дату"
+      }
+    },
+    "purchaseInfo": {
+      "title": "Деталі покупки",
+      "fields": {
+        "storeName": "Магазин",
+        "storeNamePlaceholder": "Напр. Yakaboo",
+        "storeUrl": "Посилання на товар",
+        "storeUrlPlaceholder": "https://…",
+        "expectedPrice": "Очікувана ціна",
+        "currency": "Валюта",
+        "currencyPlaceholder": "Валюта"
+      }
+    },
+    "deliveryInfo": {
+      "title": "Деталі доставки",
+      "fields": {
+        "storeName": "Магазин",
+        "orderNumber": "Номер замовлення",
+        "orderNumberPlaceholder": "Напр. 100200300",
+        "orderDate": "Дата замовлення",
+        "expectedDeliveryDate": "Очікувана доставка",
+        "deliveryStatus": "Статус доставки",
+        "deliveryStatusPlaceholder": "Оберіть статус"
+      },
+      "deliveryStatusOptions": {
+        "ordered": "Замовлено",
+        "in_transit": "У дорозі",
+        "ready_for_pickup": "Готово до отримання",
+        "cancelled": "Скасовано"
+      }
+    },
+    "loanInfo": {
+      "title": "Деталі позики",
+      "fields": {
+        "personName": "Імʼя людини",
+        "personNamePlaceholder": "У кого або кому?",
+        "loanDate": "Дата позики",
+        "expectedReturnDate": "Очікуване повернення"
+      }
+    },
+    "format": {
+      "title": "Формат",
+      "description": "У якому форматі ця книга? Можна обрати декілька.",
+      "options": {
+        "paper": "Паперова",
+        "ebook": "Електронна",
+        "audiobook": "Аудіокнига"
+      }
+    },
+    "classification": {
+      "title": "Класифікація",
+      "description": "Жанри, теги, вікова категорія та мова книги.",
+      "genres": "Жанри",
+      "genresPlaceholder": "Оберіть жанри",
+      "genresSearch": "Пошук жанру…",
+      "genresEmpty": "Жанрів не знайдено.",
+      "genresHint": "Можна обрати до {max} жанрів.",
+      "genreLabels": {
+        "fantasy": "Фентезі",
+        "science_fiction": "Наукова фантастика",
+        "dystopia": "Антиутопія",
+        "romance": "Романтика",
+        "thriller": "Трилер",
+        "mystery": "Містика",
+        "detective": "Детектив",
+        "horror": "Жахи",
+        "historical_fiction": "Історична проза",
+        "literary_fiction": "Сучасна проза",
+        "contemporary": "Сучасна література",
+        "young_adult": "Підліткова література",
+        "childrens": "Дитяча література",
+        "classics": "Класика",
+        "poetry": "Поезія",
+        "drama": "Драма",
+        "short_stories": "Оповідання",
+        "nonfiction": "Нон-фікшн",
+        "biography": "Біографія",
+        "memoir": "Мемуари",
+        "self_help": "Саморозвиток",
+        "psychology": "Психологія",
+        "philosophy": "Філософія",
+        "history": "Історія",
+        "science": "Наука",
+        "business": "Бізнес",
+        "true_crime": "Справжні злочини",
+        "comics": "Комікси",
+        "other": "Інше"
+      },
+      "tags": "Теги",
+      "tagsPlaceholder": "Додайте тег і натисніть Enter…",
+      "tagsAtMax": "Досягнуто межі тегів",
+      "tagsHint": "Власні теги через Enter або кому, до {max} штук.",
+      "tagsSuggestions": "Ваші теги",
+      "ageCategory": "Вікова категорія",
+      "ageCategoryLabels": {
+        "not_specified": "Не вказано",
+        "no_restrictions": "Без обмежень",
+        "6_plus": "6+",
+        "12_plus": "12+",
+        "14_plus": "14+",
+        "16_plus": "16+",
+        "18_plus": "18+"
+      },
+      "language": "Мова",
+      "languageLabels": {
+        "ukrainian": "Українська",
+        "english": "Англійська",
+        "polish": "Польська",
+        "german": "Німецька",
+        "french": "Французька",
+        "spanish": "Іспанська",
+        "other": "Інша"
+      }
+    },
+    "bookType": {
+      "title": "Тип книги",
+      "description": "Окрема книга чи частина серії.",
+      "options": {
+        "solo": "Окрема книга",
+        "series_part": "Частина серії"
+      },
+      "series": "Серія",
+      "seriesPlaceholder": "Почніть вводити назву серії…",
+      "seriesDraft": "Нова серія «{name}» буде створена при збереженні.",
+      "partNumber": "Номер у серії"
+    },
+    "series": {
+      "searching": "Шукаємо серії…",
+      "empty": "Серій не знайдено.",
+      "existingHeading": "Ваші серії",
+      "createHeading": "Створити нову",
+      "createAction": "Створити «{name}»",
+      "statusLabels": {
+        "unknown": "Невідомо",
+        "ongoing": "Триває",
+        "completed": "Завершено"
+      },
+      "create": {
+        "title": "Нова серія",
+        "description": "Серія буде створена разом із книгою.",
+        "name": "Назва серії",
+        "namePlaceholder": "Напр. Відьмак",
+        "nameInvalid": "Вкажіть коректну назву серії.",
+        "status": "Статус",
+        "totalBooks": "Книг у серії",
+        "descriptionLabel": "Опис",
+        "descriptionPlaceholder": "Короткий опис серії…",
+        "confirm": "Створити серію"
+      }
+    },
+    "editionDetails": {
+      "title": "Деталі видання",
+      "description": "Сторінки, рік, ISBN та інші дані конкретного видання.",
+      "fields": {
+        "pagesCount": "Сторінок",
+        "pagesCountPlaceholder": "Напр. 320",
+        "publicationYear": "Рік видання",
+        "publicationYearPlaceholder": "Напр. 2021",
+        "isbn": "ISBN",
+        "isbnPlaceholder": "Напр. 978-617-679-000-0",
+        "originalTitle": "Оригінальна назва",
+        "originalTitlePlaceholder": "Назва мовою оригіналу",
+        "translator": "Перекладач",
+        "translatorPlaceholder": "Імʼя перекладача",
+        "illustrator": "Ілюстратор",
+        "illustratorPlaceholder": "Імʼя ілюстратора",
+        "dedication": "Присвята",
+        "dedicationPlaceholder": "Кому присвячена ця книга…"
+      }
+    },
+    "organization": {
+      "title": "Організація бібліотеки",
+      "description": "Додайте книгу до улюблених, черги читання та власних списків.",
+      "favorite": "Додати до улюблених",
+      "queue": "Додати до черги читання",
+      "queuePriority": "Пріоритет у черзі",
+      "priorityLabels": {
+        "low": "Низький",
+        "normal": "Звичайний",
+        "high": "Високий"
+      },
+      "lists": "Списки",
+      "listsPlaceholder": "Оберіть свої списки",
+      "listsSearch": "Пошук списку…",
+      "listsEmpty": "Списків не знайдено.",
+      "listsHint": "Оберіть наявні списки або створіть новий.",
+      "createList": "Новий список",
+      "removeDraft": "Прибрати «{name}»"
+    },
+    "list": {
+      "create": {
+        "title": "Новий список",
+        "description": "Список буде створено разом із книгою.",
+        "name": "Назва списку",
+        "namePlaceholder": "Напр. Літнє читання",
+        "nameInvalid": "Вкажіть коректну назву списку.",
+        "descriptionLabel": "Опис",
+        "descriptionPlaceholder": "Короткий опис списку…",
+        "confirm": "Створити список"
+      }
+    },
+    "fields": {
+      "title": "Назва",
+      "titlePlaceholder": "Напр. Тіні забутих предків",
+      "author": "Автор",
+      "authorPlaceholder": "Почніть вводити імʼя автора…",
+      "authorHint": "Оберіть автора з каталогу або введіть власне імʼя.",
+      "publisher": "Видавництво",
+      "publisherPlaceholder": "Напр. Видавництво Старого Лева",
+      "description": "Опис",
+      "descriptionPlaceholder": "Короткий опис книги…",
+      "optional": "(необовʼязково)"
+    },
+    "author": {
+      "searching": "Шукаємо авторів…",
+      "empty": "Авторів не знайдено.",
+      "catalogHeading": "З каталогу",
+      "createHeading": "Додати власного",
+      "customBadge": "власний",
+      "useCustom": "Використати «{name}»"
+    },
+    "preview": {
+      "eyebrow": "Попередній перегляд",
+      "subtitle": "Так книга виглядатиме у вашій бібліотеці.",
+      "titlePlaceholder": "Приклад назви",
+      "authorPlaceholder": "Автора не вказано",
+      "coverInitial": "Книга",
+      "formatsLabel": "Формати",
+      "genresMore": "+{count}",
+      "tagsMore": "+{count}",
+      "favorite": "Улюблене",
+      "inQueue": "У черзі читання"
+    },
+    "actions": {
+      "submit": "Додати книгу",
+      "submitting": "Додаємо…",
+      "cancel": "Скасувати",
+      "save": "Зберегти зміни",
+      "saving": "Зберігаємо…"
+    },
+    "submit": {
+      "success": "Книгу додано до вашої бібліотеки.",
+      "error": "Не вдалося додати книгу. Перевірте поля й спробуйте ще раз.",
+      "editSuccess": "Зміни збережено.",
+      "editError": "Не вдалося зберегти зміни. Перевірте поля й спробуйте ще раз."
+    },
+    "editPage": {
+      "metaTitle": "Редагувати книгу",
+      "eyebrow": "Бібліотека",
+      "title": "Редагувати книгу",
+      "subtitle": "Оновіть інформацію про книгу. Зміни одразу збережуться у вашій бібліотеці."
+    },
+    "editConfirm": {
+      "confirm": "Так, змінити",
+      "cancel": "Залишити як є",
+      "readingStatus": {
+        "title": "Змінити статус читання?",
+        "description": "Ви ввели дані для поточного статусу (оцінку, нотатки чи дати). Якщо змінити статус, ці дані буде очищено."
+      },
+      "ownershipStatus": {
+        "title": "Змінити статус володіння?",
+        "description": "Ви ввели дані для поточного статусу (про купівлю, доставку чи позику). Якщо змінити статус, ці дані буде очищено."
+      },
+      "series": {
+        "title": "Прибрати книгу із серії?",
+        "description": "Книга більше не належатиме до серії, а номер у серії буде очищено."
+      }
+    },
+    "editState": {
+      "loading": "Завантажуємо книгу…",
+      "notFoundTitle": "Книгу не знайдено",
+      "notFoundDescription": "Можливо, її було видалено або посилання неправильне.",
+      "errorTitle": "Не вдалося завантажити книгу",
+      "errorDescription": "Сталася помилка. Спробуйте оновити сторінку трохи згодом.",
+      "backToLibrary": "До бібліотеки"
+    }
   }
 }

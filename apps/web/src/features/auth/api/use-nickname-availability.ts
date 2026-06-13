@@ -3,9 +3,9 @@ import type { NicknameAvailabilityView } from "@app/shared";
 import { NicknameSchema } from "@app/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { request } from "@/lib/http-client";
 
-import { useDebouncedValue } from "../hooks/use-debounced-value";
 import { NicknameAvailabilitySchema } from "./schemas";
 
 const DEBOUNCE_MS = 400;
