@@ -24,6 +24,7 @@ export { AuthStepper } from "./components/auth-stepper";
 export { AuthTextField } from "./components/auth-text-field";
 export { ForgotPasswordForm } from "./components/forgot-password-form";
 export { FormBanner } from "./components/form-banner";
+export { GuardFallback } from "./components/guard-fallback";
 export { GuestGuard } from "./components/guest-guard";
 export { LoginForm } from "./components/login-form";
 export { PasswordChecklist } from "./components/password-checklist";
