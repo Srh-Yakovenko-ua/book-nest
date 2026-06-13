@@ -27,7 +27,7 @@ const subscribeMounted = () => () => {};
 const getMountedClientSnapshot = () => true;
 const getMountedServerSnapshot = () => false;
 
-export function ThemePicker() {
+export function ThemePicker({ triggerClassName }: { triggerClassName?: string }) {
   const { resolvedTheme, setTheme, theme } = useTheme();
   const mounted = useSyncExternalStore(
     subscribeMounted,
@@ -50,7 +50,10 @@ export function ThemePicker() {
       <DropdownMenuTrigger asChild>
         <Button
           aria-label="Change theme"
-          className="size-9 rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground"
+          className={cn(
+            "size-9 rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-foreground",
+            triggerClassName,
+          )}
           size="icon"
           suppressHydrationWarning
           variant="ghost"

@@ -31,5 +31,159 @@
   },
   "localePicker": {
     "ariaLabel": "Language"
+  },
+  "auth": {
+    "common": {
+      "submit": "Continue",
+      "loading": "Please wait...",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "back": "Back",
+      "or": "or",
+      "optional": "optional"
+    },
+    "hero": {
+      "title": "Every book is a new story. Start collecting yours.",
+      "subtitle": "Join BookNest and gather your whole library in one cozy place."
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "What should we call you?",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "••••••••",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "••••••••",
+      "nickname": "Nickname",
+      "nicknamePlaceholder": "booklover",
+      "dateOfBirth": "Date of birth",
+      "rememberMe": "Remember me",
+      "terms": "I accept the terms of service and privacy policy"
+    },
+    "datePicker": {
+      "placeholder": "Pick a date",
+      "triggerLabel": "Pick your date of birth",
+      "monthLabel": "Month",
+      "yearLabel": "Year"
+    },
+    "errors": {
+      "required": "This field is required",
+      "emailRequired": "Enter your email",
+      "emailInvalid": "Invalid email format",
+      "passwordRequired": "Enter your password",
+      "passwordTooLong": "Password is too long (max 128 characters)",
+      "nameRequired": "Enter your name",
+      "nameTooShort": "Name must be at least 2 characters long",
+      "nameTooLong": "Name must be at most 50 characters long",
+      "nameInvalid": "Name may contain only letters, spaces, apostrophes and hyphens",
+      "nicknameTooShort": "Nickname must be at least 3 characters long",
+      "nicknameTooLong": "Nickname must be at most 20 characters long",
+      "nicknameInvalid": "Nickname may contain only Latin letters, digits, dot and underscore",
+      "nicknameTaken": "This nickname is already taken",
+      "emailTaken": "An account with this email already exists",
+      "passwordMismatch": "Passwords do not match",
+      "termsRequired": "You must accept the terms of service",
+      "invalidCredentials": "Invalid email or password",
+      "emailNotVerified": "Please verify your email first",
+      "tooManyAttempts": "Too many attempts. Please try again later",
+      "serviceUnavailable": "The service is temporarily unavailable. Please try again later",
+      "invalidToken": "This link is invalid or has expired",
+      "ageTooYoung": "You must be at least 13 years old to register",
+      "unknown": "Something went wrong. Please try again"
+    },
+    "password": {
+      "length": "At least 8 characters",
+      "case": "Upper and lower case letters",
+      "digit": "At least one digit",
+      "special": "At least one special character",
+      "strength": "Password strength",
+      "level": {
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong"
+      }
+    },
+    "login": {
+      "title": "Glad to see you again",
+      "subtitle": "Sign in to keep reading and tending your library.",
+      "cta": "Sign in",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account yet?",
+      "signUp": "Sign up",
+      "cover": "your cozy reading corner"
+    },
+    "register": {
+      "title": "Create your account",
+      "subtitle": "Join BookNest and gather your whole library in one cozy place.",
+      "cta": "Sign up",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "checkInbox": "Check your inbox",
+      "verificationSent": "We've sent a verification link to {email}. Follow it to finish signing up.",
+      "emailSuggestion": "Did you mean {email}?",
+      "nicknameChecking": "Checking availability…",
+      "nicknameAvailable": "Nickname is available",
+      "cover": "Every book is a new story. Start collecting yours.",
+      "nicknameHint": "Latin letters, digits, _ or . — 3–20 characters."
+    },
+    "stepper": {
+      "label": "Password reset steps",
+      "request": "Request",
+      "email": "Email"
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a link to set a new password.",
+      "cta": "Send instructions",
+      "success": "If an account with this email exists, we've sent a recovery link.",
+      "resend": "Resend",
+      "resendIn": "Resend in {seconds}s",
+      "backToLogin": "Sign in",
+      "backToSignIn": "Back to sign in",
+      "rememberPrompt": "Remember your password?",
+      "sentTitle": "Check your inbox",
+      "sentLead": "If such an account exists, we've sent an email to {email}. Open it to set a new password.",
+      "sentHint": "Didn't get the email? Check your spam folder or try another address.",
+      "cover": "Check your inbox"
+    },
+    "reset": {
+      "title": "New password",
+      "subtitle": "Create a new password for your account",
+      "cta": "Save new password",
+      "success": "Your password has been changed",
+      "requestNewLink": "Request a new link",
+      "backToLogin": "Go to sign in",
+      "cover": "Check your inbox"
+    },
+    "verify": {
+      "title": "Email verification",
+      "subtitle": "Verifying…",
+      "success": "Your email has been verified",
+      "error": "We couldn't verify your email",
+      "continue": "Continue",
+      "resendPrompt": "Didn't get the email?",
+      "cover": "Check your inbox"
+    },
+    "resend": {
+      "title": "Resend the email",
+      "subtitle": "Tell us which email to send a new confirmation to",
+      "cta": "Resend",
+      "success": "The confirmation email has been sent",
+      "cover": "Check your inbox"
+    },
+    "session": {
+      "accountMenu": "Account menu",
+      "checking": "Checking your session…",
+      "signOut": "Sign out",
+      "signingOut": "Signing out…"
+    },
+    "social": {
+      "google": "Google",
+      "apple": "Apple",
+      "continueWith": "Continue with {provider}"
+    }
   }
 }

@@ -5,9 +5,9 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
-import { AppShell } from "@/components/app-shell";
 import { Providers } from "@/components/providers";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SessionProvider } from "@/features/auth";
 import { routing } from "@/i18n/routing";
 import { env } from "@/lib/env";
 
@@ -58,7 +58,7 @@ export default async function LocaleLayout({ children, params }: Props) {
         <NextIntlClientProvider>
           <ThemeProvider>
             <Providers>
-              <AppShell>{children}</AppShell>
+              <SessionProvider>{children}</SessionProvider>
             </Providers>
           </ThemeProvider>
         </NextIntlClientProvider>

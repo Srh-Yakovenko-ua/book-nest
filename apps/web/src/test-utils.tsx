@@ -12,7 +12,7 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { type ReactElement, type ReactNode } from "react";
 
-import messages from "@/messages/ru.json";
+import messages from "@/messages/uk.json";
 
 type RenderProvidersOptions = Omit<RenderOptions, "wrapper"> & {
   queryClient?: QueryClient;
@@ -35,7 +35,7 @@ export function renderWithProviders(
 
   function Wrapper({ children }: { children: ReactNode }) {
     return (
-      <NextIntlClientProvider locale="ru" messages={messages}>
+      <NextIntlClientProvider locale="uk" messages={messages}>
         <QueryClientProvider client={client}>{children}</QueryClientProvider>
       </NextIntlClientProvider>
     );

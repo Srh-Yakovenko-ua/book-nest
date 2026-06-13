@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 export type UiIconName =
   | "alert-circle"
   | "alert-triangle"
+  | "apple"
   | "arrow-down"
   | "arrow-down-circle"
   | "arrow-left"
@@ -50,6 +51,7 @@ export type UiIconName =
   | "home"
   | "image"
   | "info"
+  | "key"
   | "layers"
   | "leaf"
   | "library"
