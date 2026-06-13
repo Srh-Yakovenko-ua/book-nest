@@ -1314,15 +1314,21 @@ export const TaxonomySearchPaginationQuerySchema = z.object({
 
 export type TaxonomySearchPaginationQuery = z.infer<typeof TaxonomySearchPaginationQuerySchema>;
 
-export const AuthorLocaleSchema = z.enum(["en", "uk"]);
+export const CatalogLocaleSchema = z.enum(["en", "uk"]);
 
-export type AuthorLocale = z.infer<typeof AuthorLocaleSchema>;
+export type CatalogLocale = z.infer<typeof CatalogLocaleSchema>;
 
 export const AuthorSearchPaginationQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
-  locale: AuthorLocaleSchema.default("uk"),
+  locale: CatalogLocaleSchema.default("uk"),
 });
 
 export type AuthorSearchPaginationQuery = z.infer<typeof AuthorSearchPaginationQuerySchema>;
+
+export const PublisherSearchPaginationQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  locale: CatalogLocaleSchema.default("uk"),
+});
+
+export type PublisherSearchPaginationQuery = z.infer<typeof PublisherSearchPaginationQuerySchema>;
 
 export const defaultUserProfileSettings: SettingsView = {
   accentColor: "brown",

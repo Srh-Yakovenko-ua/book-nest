@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { PublisherModel } from "../../../generated/prisma/models.js";
-import type { PublishersRepository } from "../infrastructure/publishers.repository.js";
+import type {
+  PublishersRepository,
+  PublisherWithPrimaryNames,
+} from "../infrastructure/publishers.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -12,11 +15,11 @@ const PUBLISHER_ID = "22222222-2222-4222-8222-222222222222";
 const GLOBAL_ID = "33333333-3333-4333-8333-333333333333";
 
 function buildService(overrides: {
-  create?: Error | PublisherModel;
+  create?: Error | PublisherWithPrimaryNames;
   findByNormalized?: null | PublisherModel;
   findByNormalizedRetry?: null | PublisherModel;
   findVisibleById?: null | PublisherModel;
-  searchVisible?: PublisherModel[];
+  searchVisible?: PublisherWithPrimaryNames[];
 }): {
   repository: {
     countVisible: ReturnType<typeof vi.fn>;
@@ -31,7 +34,7 @@ function buildService(overrides: {
   if (overrides.create instanceof Error) {
     create.mockRejectedValue(overrides.create);
   } else {
-    create.mockResolvedValue(overrides.create ?? publisher());
+    create.mockResolvedValue(overrides.create ?? publisherWithNames());
   }
 
   const findByNormalized = vi.fn().mockResolvedValue(overrides.findByNormalized ?? null);
@@ -67,11 +70,31 @@ function publisher(overrides: Partial<PublisherModel> = {}): PublisherModel {
     logoUrl: null,
     name: "Penguin",
     normalizedName: "penguin",
+    searchText: "penguin",
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),
     userId: USER_ID,
     websiteUrl: null,
     wikidataId: null,
     ...overrides,
+  };
+}
+
+function publisherWithNames(
+  overrides: Partial<PublisherWithPrimaryNames> = {},
+): PublisherWithPrimaryNames {
+  const base = publisher(overrides);
+  return {
+    ...base,
+    names: overrides.names ?? [
+      {
+        id: `${base.id}-name`,
+        isPrimary: true,
+        locale: "uk",
+        name: base.name,
+        normalizedName: base.normalizedName,
+        publisherId: base.id,
+      },
+    ],
   };
 }
 
@@ -123,13 +146,17 @@ describe("PublishersService.resolveOrCreate by name", () => {
   });
 
   it("creates a custom publisher with the user id when no match exists", async () => {
-    const created = publisher({ id: PUBLISHER_ID, userId: USER_ID });
+    const created = publisherWithNames({ id: PUBLISHER_ID, userId: USER_ID });
     const { repository, service } = buildService({ create: created, findByNormalized: null });
 
     const id = await service.resolveOrCreate(USER_ID, { name: "Penguin" });
 
     expect(id).toBe(PUBLISHER_ID);
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, "Penguin", "penguin");
+    expect(repository.create).toHaveBeenCalledWith(USER_ID, {
+      locale: "uk",
+      name: "Penguin",
+      normalizedName: "penguin",
+    });
   });
 
   it("resolves to the row a concurrent insert created when create hits a unique violation", async () => {
@@ -173,55 +200,115 @@ describe("PublishersService.search", () => {
   it("returns a paginator whose items mark user rows custom and global rows not custom", async () => {
     const { service } = buildService({
       searchVisible: [
-        publisher({ id: PUBLISHER_ID, name: "My Press", userId: USER_ID }),
-        publisher({ id: GLOBAL_ID, name: "Vintage", userId: null }),
+        publisherWithNames({ id: PUBLISHER_ID, name: "My Press", userId: USER_ID }),
+        publisherWithNames({ id: GLOBAL_ID, name: "Vintage", userId: null }),
       ],
     });
 
     const page = await service.search(USER_ID, {
+      locale: "uk",
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
     });
 
-    expect(page).toEqual({
-      items: [
-        {
-          countryCode: null,
-          foundedYear: null,
-          id: PUBLISHER_ID,
-          isCustom: true,
-          logoAttribution: null,
-          logoLicense: null,
-          logoLicenseUrl: null,
-          logoUrl: null,
-          name: "My Press",
-          websiteUrl: null,
-        },
-        {
-          countryCode: null,
-          foundedYear: null,
+    expect(page.totalCount).toBe(2);
+    expect(page.items).toEqual([
+      expect.objectContaining({
+        id: PUBLISHER_ID,
+        isCustom: true,
+        name: "My Press",
+      }),
+      expect.objectContaining({
+        id: GLOBAL_ID,
+        isCustom: false,
+        name: "Vintage",
+      }),
+    ]);
+  });
+
+  it("resolves the display name to the requested locale and falls back to the canonical name", async () => {
+    const { service } = buildService({
+      searchVisible: [
+        publisherWithNames({
           id: GLOBAL_ID,
-          isCustom: false,
-          logoAttribution: null,
-          logoLicense: null,
-          logoLicenseUrl: null,
-          logoUrl: null,
-          name: "Vintage",
-          websiteUrl: null,
-        },
+          name: "Vydavnytstvo Stary Lev",
+          names: [
+            {
+              id: "name-en",
+              isPrimary: true,
+              locale: "en",
+              name: "Vydavnytstvo Stary Lev",
+              normalizedName: "vydavnytstvo stary lev",
+              publisherId: GLOBAL_ID,
+            },
+            {
+              id: "name-uk",
+              isPrimary: true,
+              locale: "uk",
+              name: "Видавництво Старого Лева",
+              normalizedName: "видавництво старого лева",
+              publisherId: GLOBAL_ID,
+            },
+          ],
+          userId: null,
+        }),
       ],
-      page: 1,
-      pagesCount: 1,
-      pageSize: 10,
-      totalCount: 2,
     });
+
+    const ukrainian = await service.search(USER_ID, {
+      locale: "uk",
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+    const english = await service.search(USER_ID, {
+      locale: "en",
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(ukrainian.items[0]?.name).toBe("Видавництво Старого Лева");
+    expect(english.items[0]?.name).toBe("Vydavnytstvo Stary Lev");
+  });
+
+  it("falls back to the canonical name when no localized name exists", async () => {
+    const { service } = buildService({
+      searchVisible: [
+        publisherWithNames({
+          id: GLOBAL_ID,
+          name: "Penguin",
+          names: [
+            {
+              id: "name-en",
+              isPrimary: true,
+              locale: "en",
+              name: "Penguin",
+              normalizedName: "penguin",
+              publisherId: GLOBAL_ID,
+            },
+          ],
+          userId: null,
+        }),
+      ],
+    });
+
+    const ukrainian = await service.search(USER_ID, {
+      locale: "uk",
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(ukrainian.items[0]?.name).toBe("Penguin");
   });
 
   it("computes skip and take from the page coordinates", async () => {
     const { repository, service } = buildService({ searchVisible: [] });
 
     await service.search(USER_ID, {
+      locale: "uk",
       pageNumber: 2,
       pageSize: 15,
       search: "penguin",

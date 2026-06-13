@@ -1,8 +1,8 @@
-import type { AuthorLocale, AuthorView } from "@app/shared";
+import type { AuthorView, CatalogLocale } from "@app/shared";
 
 import type { AuthorWithPrimaryNames } from "../infrastructure/authors.repository.js";
 
-export function toAuthorView(author: AuthorWithPrimaryNames, locale: AuthorLocale): AuthorView {
+export function toAuthorView(author: AuthorWithPrimaryNames, locale: CatalogLocale): AuthorView {
   const localized = author.names.find((authorName) => authorName.locale === locale);
 
   return {

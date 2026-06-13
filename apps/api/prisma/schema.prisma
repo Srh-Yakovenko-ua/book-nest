@@ -110,26 +110,43 @@ model AuthorName {
 }
 
 model Publisher {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String?  @map("user_id") @db.Uuid
+  id              String          @id @default(uuid()) @db.Uuid
+  userId          String?         @map("user_id") @db.Uuid
   name            String
-  normalizedName  String   @map("normalized_name")
-  countryCode     String?  @map("country_code")
-  foundedYear     Int?     @map("founded_year")
-  websiteUrl      String?  @map("website_url")
-  logoUrl         String?  @map("logo_url")
-  logoLicense     String?  @map("logo_license")
-  logoAttribution String?  @map("logo_attribution")
-  logoLicenseUrl  String?  @map("logo_license_url")
-  wikidataId      String?  @unique @map("wikidata_id")
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  normalizedName  String          @map("normalized_name")
+  searchText      String          @default("") @map("search_text")
+  countryCode     String?         @map("country_code")
+  foundedYear     Int?            @map("founded_year")
+  websiteUrl      String?         @map("website_url")
+  logoUrl         String?         @map("logo_url")
+  logoLicense     String?         @map("logo_license")
+  logoAttribution String?         @map("logo_attribution")
+  logoLicenseUrl  String?         @map("logo_license_url")
+  wikidataId      String?         @unique @map("wikidata_id")
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
   books           Book[]
+  names           PublisherName[]
 
   @@unique([userId, normalizedName])
   @@index([normalizedName])
   @@map("publishers")
+}
+
+model PublisherName {
+  id             String    @id @default(uuid()) @db.Uuid
+  publisherId    String    @map("publisher_id") @db.Uuid
+  locale         String
+  name           String
+  normalizedName String    @map("normalized_name")
+  isPrimary      Boolean   @default(false) @map("is_primary")
+  publisher      Publisher @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+
+  @@unique([publisherId, locale, normalizedName])
+  @@index([publisherId])
+  @@index([normalizedName])
+  @@map("publisher_names")
 }
 
 model Book {

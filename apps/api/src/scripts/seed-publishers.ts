@@ -16,7 +16,9 @@ const UKRAINE_COUNTRY = "Q212";
 const GLOBAL_MIN_SITELINKS = 5;
 const UKRAINIAN_MIN_SITELINKS = 1;
 const ENRICH_BATCH_SIZE = 150;
-const UPSERT_BATCH_SIZE = 50;
+const UPSERT_BATCH_SIZE = 10;
+const UPSERT_TRANSACTION_TIMEOUT_MS = 30_000;
+const UPSERT_TRANSACTION_MAX_WAIT_MS = 10_000;
 const TARGET_PUBLISHER_CAP = 1500;
 const REQUEST_TIMEOUT_MS = 90_000;
 const MAX_ATTEMPTS = 5;
@@ -36,11 +38,15 @@ const CoreResponseSchema = z.object({
 });
 
 const EnrichBindingSchema = z.object({
+  aliasEn: SparqlValueSchema.optional(),
+  aliasRu: SparqlValueSchema.optional(),
+  aliasUk: SparqlValueSchema.optional(),
   inception: SparqlValueSchema.optional(),
   iso: SparqlValueSchema.optional(),
+  labelEn: SparqlValueSchema.optional(),
+  labelUk: SparqlValueSchema.optional(),
   logo: SparqlValueSchema.optional(),
   publisher: SparqlValueSchema,
-  publisherLabel: SparqlValueSchema.optional(),
   website: SparqlValueSchema.optional(),
 });
 
@@ -54,23 +60,36 @@ type CoreCandidate = {
 };
 
 type EnrichedFields = {
+  aliasEn: null | string;
+  aliasRu: null | string;
+  aliasUk: null | string;
   countryCode: null | string;
   inception: null | string;
+  labelEn: null | string;
+  labelUk: null | string;
   logo: null | string;
-  publisherLabel: null | string;
   website: null | string;
 };
 
 function buildEnrichQuery(entityIds: string[]): string {
   const values = entityIds.map((id) => `wd:${id}`).join(" ");
-  return `SELECT ?publisher ?publisherLabel ?iso ?inception ?website ?logo WHERE {
+  return `SELECT ?publisher ?labelEn ?labelUk ?iso ?inception ?website ?logo
+  (GROUP_CONCAT(DISTINCT ?altEnRaw; separator="|") AS ?aliasEn)
+  (GROUP_CONCAT(DISTINCT ?altUkRaw; separator="|") AS ?aliasUk)
+  (GROUP_CONCAT(DISTINCT ?altRuRaw; separator="|") AS ?aliasRu)
+WHERE {
   VALUES ?publisher { ${values} }
+  OPTIONAL { ?publisher rdfs:label ?labelEn . FILTER(LANG(?labelEn) = "en") }
+  OPTIONAL { ?publisher rdfs:label ?labelUk . FILTER(LANG(?labelUk) = "uk") }
   OPTIONAL { ?publisher wdt:P17 ?country . ?country wdt:P297 ?iso . }
   OPTIONAL { ?publisher wdt:P571 ?inception . }
   OPTIONAL { ?publisher wdt:P856 ?website . }
   OPTIONAL { ?publisher wdt:P154 ?logo . }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "uk,en,ru". }
-} LIMIT 10000`;
+  OPTIONAL { ?publisher skos:altLabel ?altEnRaw . FILTER(LANG(?altEnRaw) = "en") }
+  OPTIONAL { ?publisher skos:altLabel ?altUkRaw . FILTER(LANG(?altUkRaw) = "uk") }
+  OPTIONAL { ?publisher skos:altLabel ?altRuRaw . FILTER(LANG(?altRuRaw) = "ru") }
+}
+GROUP BY ?publisher ?labelEn ?labelUk ?iso ?inception ?website ?logo`;
 }
 
 function buildGlobalCoreQuery(): string {
@@ -100,10 +119,14 @@ function buildSeedInputs(
     }
 
     const seedInput = mapWikidataPublisherRow({
+      aliasEn: fields.aliasEn,
+      aliasRu: fields.aliasRu,
+      aliasUk: fields.aliasUk,
       countryCode: fields.countryCode,
       inception: fields.inception,
+      labelEn: fields.labelEn,
+      labelUk: fields.labelUk,
       logo: fields.logo,
-      publisherLabel: fields.publisherLabel,
       website: fields.website,
       wikidataId: candidate.wikidataId,
     });
@@ -231,18 +254,26 @@ function mergeEnrichment(
   for (const binding of bindings) {
     const wikidataId = entityIdFromUri(binding.publisher.value);
     const current = enriched.get(wikidataId) ?? {
+      aliasEn: null,
+      aliasRu: null,
+      aliasUk: null,
       countryCode: null,
       inception: null,
+      labelEn: null,
+      labelUk: null,
       logo: null,
-      publisherLabel: null,
       website: null,
     };
 
     enriched.set(wikidataId, {
+      aliasEn: current.aliasEn ?? toNullableAlias(binding.aliasEn?.value),
+      aliasRu: current.aliasRu ?? toNullableAlias(binding.aliasRu?.value),
+      aliasUk: current.aliasUk ?? toNullableAlias(binding.aliasUk?.value),
       countryCode: current.countryCode ?? binding.iso?.value ?? null,
       inception: current.inception ?? binding.inception?.value ?? null,
+      labelEn: current.labelEn ?? binding.labelEn?.value ?? null,
+      labelUk: current.labelUk ?? binding.labelUk?.value ?? null,
       logo: current.logo ?? binding.logo?.value ?? null,
-      publisherLabel: current.publisherLabel ?? binding.publisherLabel?.value ?? null,
       website: current.website ?? binding.website?.value ?? null,
     });
   }
@@ -304,6 +335,13 @@ async function seedPublishers(): Promise<void> {
   }
 }
 
+function toNullableAlias(value: string | undefined): null | string {
+  if (value === undefined || value.length === 0) {
+    return null;
+  }
+  return value;
+}
+
 async function upsertPublishers(
   prisma: PrismaClient,
   inputs: PublisherSeedInput[],
@@ -312,23 +350,52 @@ async function upsertPublishers(
 
   for (const batch of chunk(inputs, UPSERT_BATCH_SIZE)) {
     await prisma.$transaction(
-      batch.map((input) =>
-        prisma.publisher.upsert({
-          create: input,
-          update: {
-            countryCode: input.countryCode,
-            foundedYear: input.foundedYear,
-            logoAttribution: input.logoAttribution,
-            logoLicense: input.logoLicense,
-            logoLicenseUrl: input.logoLicenseUrl,
-            logoUrl: input.logoUrl,
-            name: input.name,
-            normalizedName: input.normalizedName,
-            websiteUrl: input.websiteUrl,
-          },
-          where: { wikidataId: input.wikidataId },
-        }),
-      ),
+      async (tx) => {
+        for (const input of batch) {
+          const publisher = await tx.publisher.upsert({
+            create: {
+              countryCode: input.countryCode,
+              foundedYear: input.foundedYear,
+              logoAttribution: input.logoAttribution,
+              logoLicense: input.logoLicense,
+              logoLicenseUrl: input.logoLicenseUrl,
+              logoUrl: input.logoUrl,
+              name: input.name,
+              normalizedName: input.normalizedName,
+              searchText: input.searchText,
+              userId: input.userId,
+              websiteUrl: input.websiteUrl,
+              wikidataId: input.wikidataId,
+            },
+            select: { id: true },
+            update: {
+              countryCode: input.countryCode,
+              foundedYear: input.foundedYear,
+              logoAttribution: input.logoAttribution,
+              logoLicense: input.logoLicense,
+              logoLicenseUrl: input.logoLicenseUrl,
+              logoUrl: input.logoUrl,
+              name: input.name,
+              normalizedName: input.normalizedName,
+              searchText: input.searchText,
+              websiteUrl: input.websiteUrl,
+            },
+            where: { wikidataId: input.wikidataId },
+          });
+
+          await tx.publisherName.deleteMany({ where: { publisherId: publisher.id } });
+          await tx.publisherName.createMany({
+            data: input.names.map((publisherName) => ({
+              isPrimary: publisherName.isPrimary,
+              locale: publisherName.locale,
+              name: publisherName.name,
+              normalizedName: publisherName.normalizedName,
+              publisherId: publisher.id,
+            })),
+          });
+        }
+      },
+      { maxWait: UPSERT_TRANSACTION_MAX_WAIT_MS, timeout: UPSERT_TRANSACTION_TIMEOUT_MS },
     );
     upserted += batch.length;
     logger.info({ total: inputs.length, upserted }, "upserted batch");
