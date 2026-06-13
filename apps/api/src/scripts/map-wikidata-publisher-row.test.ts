@@ -6,10 +6,14 @@ import { mapWikidataPublisherRow } from "./map-wikidata-publisher-row.js";
 
 function row(overrides: Partial<WikidataPublisherRow> = {}): WikidataPublisherRow {
   return {
+    aliasEn: null,
+    aliasRu: null,
+    aliasUk: null,
     countryCode: "ua",
     inception: "1918-01-01T00:00:00Z",
+    labelEn: "Vydavnytstvo Stary Lev",
+    labelUk: "Видавництво Старого Лева",
     logo: "https://example.org/logo.svg",
-    publisherLabel: "Vydavnytstvo",
     website: "https://example.org",
     wikidataId: "Q12345",
     ...overrides,
@@ -18,7 +22,7 @@ function row(overrides: Partial<WikidataPublisherRow> = {}): WikidataPublisherRo
 
 describe("mapWikidataPublisherRow", () => {
   it("maps a full row into a complete publisher seed input", () => {
-    const result = mapWikidataPublisherRow(row());
+    const result = mapWikidataPublisherRow(row({ aliasEn: "Stary Lev", aliasUk: "Старий Лев" }));
 
     expect(result).toEqual({
       countryCode: "UA",
@@ -27,24 +31,107 @@ describe("mapWikidataPublisherRow", () => {
       logoLicense: null,
       logoLicenseUrl: null,
       logoUrl: "https://example.org/logo.svg",
-      name: "Vydavnytstvo",
-      normalizedName: "vydavnytstvo",
+      name: "Vydavnytstvo Stary Lev",
+      names: [
+        {
+          isPrimary: true,
+          locale: "en",
+          name: "Vydavnytstvo Stary Lev",
+          normalizedName: "vydavnytstvo stary lev",
+        },
+        {
+          isPrimary: true,
+          locale: "uk",
+          name: "Видавництво Старого Лева",
+          normalizedName: "видавництво старого лева",
+        },
+        { isPrimary: false, locale: "en", name: "Stary Lev", normalizedName: "stary lev" },
+        { isPrimary: false, locale: "uk", name: "Старий Лев", normalizedName: "старий лев" },
+      ],
+      normalizedName: "vydavnytstvo stary lev",
+      searchText: "vydavnytstvo stary lev видавництво старого лева stary lev старий лев",
       userId: null,
       websiteUrl: "https://example.org",
       wikidataId: "Q12345",
     });
   });
 
-  it("returns null when the publisher label is missing", () => {
-    const result = mapWikidataPublisherRow(row({ publisherLabel: null }));
+  it("returns null when both english and ukrainian labels are missing", () => {
+    const result = mapWikidataPublisherRow(row({ labelEn: null, labelUk: null }));
 
     expect(result).toBeNull();
   });
 
-  it("returns null when the publisher label is only whitespace", () => {
-    const result = mapWikidataPublisherRow(row({ publisherLabel: "   " }));
+  it("returns null when both labels are only whitespace", () => {
+    const result = mapWikidataPublisherRow(row({ labelEn: "   ", labelUk: "  " }));
 
     expect(result).toBeNull();
+  });
+
+  it("falls back to the ukrainian label when the english label is missing", () => {
+    const result = mapWikidataPublisherRow(row({ labelEn: null }));
+
+    expect(result?.name).toBe("Видавництво Старого Лева");
+    expect(result?.normalizedName).toBe("видавництво старого лева");
+  });
+
+  it("builds a primary name row per available locale", () => {
+    const result = mapWikidataPublisherRow(row());
+
+    expect(result?.names).toEqual([
+      {
+        isPrimary: true,
+        locale: "en",
+        name: "Vydavnytstvo Stary Lev",
+        normalizedName: "vydavnytstvo stary lev",
+      },
+      {
+        isPrimary: true,
+        locale: "uk",
+        name: "Видавництво Старого Лева",
+        normalizedName: "видавництво старого лева",
+      },
+    ]);
+  });
+
+  it("splits pipe separated aliases into per-locale alias rows", () => {
+    const result = mapWikidataPublisherRow(
+      row({ aliasEn: "Stary Lev|VSL", aliasRu: "Издательство Старого Льва" }),
+    );
+
+    expect(result?.names).toEqual(
+      expect.arrayContaining([
+        { isPrimary: false, locale: "en", name: "Stary Lev", normalizedName: "stary lev" },
+        { isPrimary: false, locale: "en", name: "VSL", normalizedName: "vsl" },
+        {
+          isPrimary: false,
+          locale: "ru",
+          name: "Издательство Старого Льва",
+          normalizedName: "издательство старого льва",
+        },
+      ]),
+    );
+  });
+
+  it("drops an alias that duplicates a primary name in the same locale", () => {
+    const result = mapWikidataPublisherRow(row({ aliasEn: "Vydavnytstvo Stary Lev" }));
+
+    const englishNames =
+      result?.names.filter((publisherName) => publisherName.locale === "en") ?? [];
+    expect(englishNames).toEqual([
+      {
+        isPrimary: true,
+        locale: "en",
+        name: "Vydavnytstvo Stary Lev",
+        normalizedName: "vydavnytstvo stary lev",
+      },
+    ]);
+  });
+
+  it("builds search text from unique normalized name tokens", () => {
+    const result = mapWikidataPublisherRow(row({ aliasEn: "Stary Lev|Stary Lev" }));
+
+    expect(result?.searchText).toBe("vydavnytstvo stary lev видавництво старого лева stary lev");
   });
 
   it("maps missing optional fields to nulls", () => {
@@ -102,7 +189,7 @@ describe("mapWikidataPublisherRow", () => {
   });
 
   it("trims the name while collapsing inner whitespace only when normalizing", () => {
-    const result = mapWikidataPublisherRow(row({ publisherLabel: "  Vydavnytstvo   Stary Lev  " }));
+    const result = mapWikidataPublisherRow(row({ labelEn: "  Vydavnytstvo   Stary Lev  " }));
 
     expect(result?.name).toBe("Vydavnytstvo   Stary Lev");
     expect(result?.normalizedName).toBe("vydavnytstvo stary lev");

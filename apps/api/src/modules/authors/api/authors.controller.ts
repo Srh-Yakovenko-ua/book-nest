@@ -6,9 +6,9 @@ import type {
 } from "@app/shared";
 
 import {
-  AuthorLocaleSchema,
   AuthorLookupQuerySchema,
   AuthorSearchPaginationQuerySchema,
+  CatalogLocaleSchema,
 } from "@app/shared";
 import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
 import {
@@ -75,7 +75,7 @@ export class AuthorsController {
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
-  @ApiQuery({ enum: AuthorLocaleSchema.options, name: "locale", required: false })
+  @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
   @UseGuards(JwtAccessGuard)

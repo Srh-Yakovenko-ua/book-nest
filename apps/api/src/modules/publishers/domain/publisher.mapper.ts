@@ -1,8 +1,13 @@
-import type { PublisherView } from "@app/shared";
+import type { CatalogLocale, PublisherView } from "@app/shared";
 
-import type { PublisherModel } from "../../../generated/prisma/models.js";
+import type { PublisherWithPrimaryNames } from "../infrastructure/publishers.repository.js";
 
-export function toPublisherView(publisher: PublisherModel): PublisherView {
+export function toPublisherView(
+  publisher: PublisherWithPrimaryNames,
+  locale: CatalogLocale,
+): PublisherView {
+  const localized = publisher.names.find((publisherName) => publisherName.locale === locale);
+
   return {
     countryCode: publisher.countryCode,
     foundedYear: publisher.foundedYear,
@@ -12,7 +17,7 @@ export function toPublisherView(publisher: PublisherModel): PublisherView {
     logoLicense: publisher.logoLicense,
     logoLicenseUrl: publisher.logoLicenseUrl,
     logoUrl: publisher.logoUrl,
-    name: publisher.name,
+    name: localized?.name ?? publisher.name,
     websiteUrl: publisher.websiteUrl,
   };
 }

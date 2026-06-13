@@ -5,6 +5,39 @@ import type { PublisherModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
+const primaryNamesArgs = {
+  include: { names: { where: { isPrimary: true } } },
+} satisfies Prisma.PublisherDefaultArgs;
+
+export type CreateGlobalPublisherData = {
+  countryCode: null | string;
+  foundedYear: null | number;
+  logoAttribution: null | string;
+  logoLicense: null | string;
+  logoLicenseUrl: null | string;
+  logoUrl: null | string;
+  name: string;
+  normalizedName: string;
+  searchText: string;
+  websiteUrl: null | string;
+  wikidataId: null | string;
+};
+
+export type PublisherNameSeed = {
+  isPrimary: boolean;
+  locale: string;
+  name: string;
+  normalizedName: string;
+};
+
+export type PublisherWithPrimaryNames = Prisma.PublisherGetPayload<typeof primaryNamesArgs>;
+
+type CreateCustomPublisherInput = {
+  locale: string;
+  name: string;
+  normalizedName: string;
+};
+
 type SearchPublishersInput = {
   query: string | undefined;
   skip: number;
@@ -20,8 +53,35 @@ export class PublishersRepository {
     return this.prisma.publisher.count({ where: buildVisibleWhere(userId, query) });
   }
 
-  create(userId: string, name: string, normalizedName: string): Promise<PublisherModel> {
-    return this.prisma.publisher.create({ data: { name, normalizedName, userId } });
+  create(userId: string, input: CreateCustomPublisherInput): Promise<PublisherWithPrimaryNames> {
+    return this.prisma.publisher.create({
+      data: {
+        name: input.name,
+        names: {
+          create: [
+            {
+              isPrimary: true,
+              locale: input.locale,
+              name: input.name,
+              normalizedName: input.normalizedName,
+            },
+          ],
+        },
+        normalizedName: input.normalizedName,
+        searchText: input.normalizedName,
+        userId,
+      },
+      ...primaryNamesArgs,
+    });
+  }
+
+  createGlobal(
+    data: CreateGlobalPublisherData,
+    names: PublisherNameSeed[],
+  ): Promise<PublisherModel> {
+    return this.prisma.publisher.create({
+      data: { ...data, names: { create: names }, userId: null },
+    });
   }
 
   findByNormalized(userId: string, normalizedName: string): Promise<null | PublisherModel> {
@@ -36,21 +96,27 @@ export class PublishersRepository {
     });
   }
 
-  searchVisible({ query, skip, take, userId }: SearchPublishersInput): Promise<PublisherModel[]> {
+  searchVisible({
+    query,
+    skip,
+    take,
+    userId,
+  }: SearchPublishersInput): Promise<PublisherWithPrimaryNames[]> {
     return this.prisma.publisher.findMany({
       orderBy: [{ userId: { nulls: "last", sort: "desc" } }, { name: "asc" }],
       skip,
       take,
       where: buildVisibleWhere(userId, query),
+      ...primaryNamesArgs,
     });
   }
 }
 
 function buildVisibleWhere(userId: string, query: string | undefined): Prisma.PublisherWhereInput {
-  const nameFilter: Prisma.PublisherWhereInput =
+  const searchFilter: Prisma.PublisherWhereInput =
     query === undefined || query.length === 0
       ? {}
-      : { name: { contains: query, mode: "insensitive" } };
+      : { searchText: { contains: query, mode: "insensitive" } };
 
-  return { ...nameFilter, OR: [{ userId: null }, { userId }] };
+  return { ...searchFilter, OR: [{ userId: null }, { userId }] };
 }

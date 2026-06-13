@@ -1,4 +1,4 @@
-import type { Paginator, PublisherView, TaxonomySearchPaginationQuery } from "@app/shared";
+import type { Paginator, PublisherSearchPaginationQuery, PublisherView } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -8,6 +8,8 @@ import { buildPaginator } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { toPublisherView } from "../domain/publisher.mapper.js";
 import { PublishersRepository } from "../infrastructure/publishers.repository.js";
+
+const CUSTOM_PUBLISHER_LOCALE = "uk";
 
 type ResolvePublisherInput = {
   id?: string;
@@ -38,7 +40,11 @@ export class PublishersService {
     }
 
     try {
-      const created = await this.publishersRepository.create(userId, input.name, normalizedName);
+      const created = await this.publishersRepository.create(userId, {
+        locale: CUSTOM_PUBLISHER_LOCALE,
+        name: input.name,
+        normalizedName,
+      });
       return created.id;
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
@@ -54,9 +60,9 @@ export class PublishersService {
 
   async search(
     userId: string,
-    query: TaxonomySearchPaginationQuery,
+    query: PublisherSearchPaginationQuery,
   ): Promise<Paginator<PublisherView>> {
-    const { pageNumber, pageSize, search } = query;
+    const { locale, pageNumber, pageSize, search } = query;
 
     const [publishers, totalCount] = await Promise.all([
       this.publishersRepository.searchVisible({
@@ -69,7 +75,7 @@ export class PublishersService {
     ]);
 
     return buildPaginator({
-      items: publishers.map(toPublisherView),
+      items: publishers.map((publisher) => toPublisherView(publisher, locale)),
       pageNumber,
       pageSize,
       totalCount,
