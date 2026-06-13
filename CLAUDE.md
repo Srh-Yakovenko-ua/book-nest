@@ -103,7 +103,7 @@ Clean layer separation is non-negotiable: business logic stays independent of HT
 
 1. Add request/response Zod schema + types to `packages/shared/src/index.ts`
 2. Add a `model` to `apps/api/prisma/schema.prisma` (if a new entity)
-3. `pnpm --filter @app/api db:migrate` → review the generated `migration.sql` (loop in `migration-reviewer`; watch the rename trap)
+3. `pnpm --filter @app/api db:migrate` → review the generated `migration.sql` (loop in `migration-reviewer`; watch the rename trap). **Trigram-index trap:** the GIN trigram indexes `authors_search_text_trgm_idx` and `publishers_search_text_trgm_idx` live in raw SQL inside their migrations (Prisma can't express `gin_trgm_ops` in a `model`), so they exist in the DB but not in `schema.prisma`. Every generated migration will emit a spurious `DROP INDEX` for them — hand-strip those `DROP INDEX ..._search_text_trgm_idx` lines before applying, or cross-locale search silently degrades to a seq scan.
 4. Repository in `modules/<feature>/infrastructure/` — inject `PrismaService`, parameterized queries only
 5. Service in `modules/<feature>/application/` — business logic, throws `HttpError` subclasses, maps model → ViewModel, `$transaction` for multi-write
 6. Input DTO classes in `api/input-dto/` via `createZodDto(Schema)`
