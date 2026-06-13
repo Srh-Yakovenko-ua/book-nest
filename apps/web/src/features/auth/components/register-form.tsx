@@ -24,6 +24,7 @@ import { AuthFieldError } from "./auth-field-error";
 import { AuthHeading } from "./auth-heading";
 import { AuthSocial } from "./auth-social";
 import { AuthTextField } from "./auth-text-field";
+import { EmailSentPanel } from "./email-sent-panel";
 import { FormBanner } from "./form-banner";
 import { PasswordChecklist } from "./password-checklist";
 import { PasswordField } from "./password-field";
@@ -77,20 +78,13 @@ export function RegisterForm() {
   if (register.isSuccess) {
     return (
       <div className="flex flex-col">
-        <AuthHeading title={t("register.checkInbox")} />
-        <FormBanner className="mt-6" variant="success">
-          {t("register.verificationSent", { email: register.data.email })}
-        </FormBanner>
-        <Button
-          className="mt-6 h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
-          disabled={resend.isPending || resend.isSuccess}
-          loading={resend.isPending}
-          onClick={() => resend.mutate({ email: register.data.email })}
-          type="button"
-          variant="secondary"
-        >
-          {resend.isSuccess ? t("resend.success") : t("resend.cta")}
-        </Button>
+        <EmailSentPanel
+          hint={t("register.checkInboxHint")}
+          lead={t("register.verificationSent", { email: register.data.email })}
+          onResend={() => resend.mutate({ email: register.data.email })}
+          resendPending={resend.isPending}
+          title={t("register.checkInbox")}
+        />
       </div>
     );
   }

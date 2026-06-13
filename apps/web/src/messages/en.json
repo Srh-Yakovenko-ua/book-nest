@@ -123,6 +123,7 @@
       "signIn": "Sign in",
       "checkInbox": "Check your inbox",
       "verificationSent": "We've sent a verification link to {email}. Follow it to finish signing up.",
+      "checkInboxHint": "Didn't get the email? Check your spam folder or try another address.",
       "emailSuggestion": "Did you mean {email}?",
       "nicknameChecking": "Checking availability…",
       "nicknameAvailable": "Nickname is available",
@@ -139,8 +140,6 @@
       "subtitle": "Enter your email and we'll send you a link to set a new password.",
       "cta": "Send instructions",
       "success": "If an account with this email exists, we've sent a recovery link.",
-      "resend": "Resend",
-      "resendIn": "Resend in {seconds}s",
       "backToLogin": "Sign in",
       "backToSignIn": "Back to sign in",
       "rememberPrompt": "Remember your password?",
@@ -164,12 +163,16 @@
       "success": "Your email has been verified",
       "error": "We couldn't verify your email",
       "continue": "Continue",
+      "continueNow": "Continue now",
+      "redirecting": "Redirecting you in {seconds}s…",
       "resendPrompt": "Didn't get the email?",
       "cover": "Check your inbox"
     },
     "resend": {
       "title": "Resend the email",
       "subtitle": "Tell us which email to send a new confirmation to",
+      "again": "Resend",
+      "againIn": "Resend in {seconds}s",
       "cta": "Resend",
       "success": "The confirmation email has been sent",
       "cover": "Check your inbox"

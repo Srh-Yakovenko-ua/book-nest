@@ -2,11 +2,12 @@
 
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { cn } from "@/lib/utils";
 
 import { useVerifyEmail } from "../api/use-verify-email";
 import { safeInternalPath } from "../lib/safe-redirect";
@@ -18,11 +19,18 @@ type VerifyEmailScreenProps = {
   token: string;
 };
 
-const REDIRECT_DELAY_MS = 2000;
+const REDIRECT_COUNTDOWN_SECONDS = 5;
+
+type BigIconTone = "destructive" | "neutral" | "success";
+
+const TONE_STYLES = {
+  destructive: "bg-destructive/10 text-destructive",
+  neutral: "bg-accent text-primary",
+  success: "bg-success-soft text-success",
+} as const satisfies Record<BigIconTone, string>;
 
 export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
   const t = useTranslations("auth");
-  const router = useRouter();
   const searchParams = useSearchParams();
   const verify = useVerifyEmail();
   const triggered = useRef(false);
@@ -45,16 +53,10 @@ export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
   }, [token]);
 
-  useEffect(() => {
-    if (!verify.isSuccess) return;
-    const handle = setTimeout(() => router.replace(destination), REDIRECT_DELAY_MS);
-    return () => clearTimeout(handle);
-  }, [destination, router, verify.isSuccess]);
-
   if (!hasToken || verify.isError) {
     return (
       <div className="flex flex-col">
-        <BigIcon name="alert-triangle" />
+        <BigIcon name="alert-triangle" tone="destructive" />
         <AuthHeading title={t("verify.title")} />
         <FormBanner className="mt-6" variant="error">
           {t("errors.invalidToken")}
@@ -68,40 +70,79 @@ export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
   }
 
   if (verify.isSuccess) {
-    return (
-      <div className="flex flex-col">
-        <BigIcon name="check-circle" />
-        <AuthHeading title={t("verify.title")} />
-        <FormBanner className="mt-6" variant="success">
-          {t("verify.success")}
-        </FormBanner>
-        <Button
-          asChild
-          className="mt-6 h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
-        >
-          <Link href={destination}>{t("verify.continue")}</Link>
-        </Button>
-      </div>
-    );
+    return <VerifyEmailSuccess destination={destination} />;
   }
 
   return (
-    <div className="flex flex-col">
-      <BigIcon name="mail" spinning />
+    <div className="flex flex-col items-center text-center" role="status">
+      <BigIcon name="refresh" spinning tone="neutral" />
       <AuthHeading subtitle={t("verify.subtitle")} title={t("verify.title")} />
+      <span className="sr-only">{t("verify.subtitle")}</span>
     </div>
   );
 }
 
-function BigIcon({ name, spinning }: { name: UiIconName; spinning?: boolean }) {
+function BigIcon({
+  name,
+  spinning,
+  tone,
+}: {
+  name: UiIconName;
+  spinning?: boolean;
+  tone: BigIconTone;
+}) {
   return (
-    <div className="mb-[18px] grid size-16 place-items-center rounded-full bg-accent text-primary">
+    <div
+      className={cn("mb-[18px] grid size-16 place-items-center rounded-full", TONE_STYLES[tone])}
+    >
       <UiIcon
         aria-hidden
-        className={spinning === true ? "animate-pulse" : undefined}
+        className={spinning === true ? "animate-spin" : undefined}
         name={name}
         size={28}
       />
+    </div>
+  );
+}
+
+function VerifyEmailSuccess({ destination }: { destination: string }) {
+  const t = useTranslations("auth");
+  const router = useRouter();
+  const [seconds, setSeconds] = useState(REDIRECT_COUNTDOWN_SECONDS);
+  const navigated = useRef(false);
+
+  const goNow = useCallback(() => {
+    if (navigated.current) return;
+    navigated.current = true;
+    router.replace(destination);
+  }, [destination, router]);
+
+  useEffect(() => {
+    const handle = setInterval(() => {
+      setSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => clearInterval(handle);
+  }, []);
+
+  useEffect(() => {
+    if (seconds > 0) return;
+    goNow();
+  }, [seconds, goNow]);
+
+  return (
+    <div className="flex flex-col items-center text-center">
+      <BigIcon name="check-circle" tone="success" />
+      <AuthHeading title={t("verify.success")} />
+      <p aria-live="polite" className="mt-2 text-[0.96rem] text-muted-foreground">
+        {t("verify.redirecting", { seconds })}
+      </p>
+      <Button
+        className="mt-6 h-[50px] w-full rounded-[10px] text-[0.96rem] font-semibold"
+        onClick={goNow}
+        type="button"
+      >
+        {t("verify.continueNow")}
+      </Button>
     </div>
   );
 }

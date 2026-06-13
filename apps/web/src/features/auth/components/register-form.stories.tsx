@@ -84,7 +84,14 @@ export const VerificationSent: Story = {
     await userEvent.click(canvas.getByRole("checkbox"));
     await userEvent.click(canvas.getByRole("button", { name: /зареєструватися|sign up/i }));
     await waitFor(async () => {
-      await expect(canvas.getByText(/перевірте пошту|check your inbox/i)).toBeVisible();
+      await expect(
+        canvas.getByRole("heading", { name: /перевір пошту|check your inbox/i }),
+      ).toBeVisible();
     });
+    await expect(canvas.getByText(/reader@example\.com/)).toBeVisible();
+    await expect(canvas.getByRole("button", { name: /надіслати ще раз|resend/i })).toBeVisible();
+    await expect(
+      canvas.getByRole("link", { name: /повернутися до входу|back to sign in/i }),
+    ).toBeVisible();
   },
 };
