@@ -50,8 +50,8 @@ export const AuthorsControllerSearchQueryParams = zod.object({
     .min(1)
     .max(authorsControllerSearchQueryPageSizeMax)
     .default(authorsControllerSearchQueryPageSizeDefault),
-  sortDirection: zod.enum(["asc", "desc"]).optional(),
   search: zod.string().max(authorsControllerSearchQuerySearchMax).optional(),
+  locale: zod.enum(["en", "uk"]).optional(),
 });
 
 export const AuthorsControllerSearchResponse = zod.unknown();

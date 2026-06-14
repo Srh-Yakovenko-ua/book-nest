@@ -29,7 +29,6 @@ export const ListsControllerSearchQueryParams = zod.object({
     .min(1)
     .max(listsControllerSearchQueryPageSizeMax)
     .default(listsControllerSearchQueryPageSizeDefault),
-  sortDirection: zod.enum(["asc", "desc"]).optional(),
   search: zod.string().max(listsControllerSearchQuerySearchMax).optional(),
 });
 
