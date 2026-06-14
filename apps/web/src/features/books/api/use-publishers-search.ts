@@ -1,6 +1,8 @@
 import type { PublisherView } from "@app/shared";
 
+import { CatalogLocaleSchema } from "@app/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useLocale } from "next-intl";
 import { z } from "zod";
 
 import { publishersControllerSearch } from "@/shared/api/generated/endpoints/publishers/publishers";
@@ -32,18 +34,20 @@ const PUBLISHER_SEARCH_PAGE_SIZE = 8;
 export function usePublishersSearch(search: string) {
   const trimmed = search.trim();
   const enabled = trimmed.length >= PUBLISHER_SEARCH_MIN_LENGTH;
+  const locale = CatalogLocaleSchema.catch("uk").parse(useLocale());
 
   return useQuery({
     enabled,
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<PublisherView[]> => {
       const response = await publishersControllerSearch({
+        locale,
         pageSize: PUBLISHER_SEARCH_PAGE_SIZE,
         search: trimmed,
       });
       const parsed = publisherSearchResultSchema.parse(response);
       return parsed.items;
     },
-    queryKey: ["publishers", "search", trimmed],
+    queryKey: ["publishers", "search", trimmed, locale],
   });
 }

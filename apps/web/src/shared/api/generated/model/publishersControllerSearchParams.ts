@@ -5,7 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { PublishersControllerSearchSortDirection } from "./publishersControllerSearchSortDirection";
+import type { PublishersControllerSearchLocale } from "./publishersControllerSearchLocale";
 
 export type PublishersControllerSearchParams = {
   /**
@@ -18,9 +18,9 @@ export type PublishersControllerSearchParams = {
    * @maximum 100
    */
   pageSize?: number;
-  sortDirection?: PublishersControllerSearchSortDirection;
   /**
    * @maxLength 100
    */
   search?: string;
+  locale?: PublishersControllerSearchLocale;
 };

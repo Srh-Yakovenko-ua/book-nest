@@ -29,8 +29,8 @@ export const PublishersControllerSearchQueryParams = zod.object({
     .min(1)
     .max(publishersControllerSearchQueryPageSizeMax)
     .default(publishersControllerSearchQueryPageSizeDefault),
-  sortDirection: zod.enum(["asc", "desc"]).optional(),
   search: zod.string().max(publishersControllerSearchQuerySearchMax).optional(),
+  locale: zod.enum(["en", "uk"]).optional(),
 });
 
 export const PublishersControllerSearchResponse = zod.unknown();

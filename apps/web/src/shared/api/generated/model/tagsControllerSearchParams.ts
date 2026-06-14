@@ -5,7 +5,6 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { TagsControllerSearchSortDirection } from "./tagsControllerSearchSortDirection";
 
 export type TagsControllerSearchParams = {
   /**
@@ -18,7 +17,6 @@ export type TagsControllerSearchParams = {
    * @maximum 100
    */
   pageSize?: number;
-  sortDirection?: TagsControllerSearchSortDirection;
   /**
    * @maxLength 100
    */

@@ -29,7 +29,6 @@ export const TagsControllerSearchQueryParams = zod.object({
     .min(1)
     .max(tagsControllerSearchQueryPageSizeMax)
     .default(tagsControllerSearchQueryPageSizeDefault),
-  sortDirection: zod.enum(["asc", "desc"]).optional(),
   search: zod.string().max(tagsControllerSearchQuerySearchMax).optional(),
 });
 

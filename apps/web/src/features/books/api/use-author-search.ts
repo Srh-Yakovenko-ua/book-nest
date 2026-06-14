@@ -1,6 +1,8 @@
 import type { AuthorView } from "@app/shared";
 
+import { CatalogLocaleSchema } from "@app/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useLocale } from "next-intl";
 import { z } from "zod";
 
 import { authorsControllerSearch } from "@/shared/api/generated/endpoints/authors/authors";
@@ -34,18 +36,20 @@ const AUTHOR_SEARCH_PAGE_SIZE = 8;
 export function useAuthorSearch(search: string) {
   const trimmed = search.trim();
   const enabled = trimmed.length >= AUTHOR_SEARCH_MIN_LENGTH;
+  const locale = CatalogLocaleSchema.catch("uk").parse(useLocale());
 
   return useQuery({
     enabled,
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<AuthorView[]> => {
       const response = await authorsControllerSearch({
+        locale,
         pageSize: AUTHOR_SEARCH_PAGE_SIZE,
         search: trimmed,
       });
       const parsed = authorSearchResultSchema.parse(response);
       return parsed.items;
     },
-    queryKey: ["authors", "search", trimmed],
+    queryKey: ["authors", "search", trimmed, locale],
   });
 }

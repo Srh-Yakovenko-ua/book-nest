@@ -29,7 +29,6 @@ export const SeriesControllerSearchQueryParams = zod.object({
     .min(1)
     .max(seriesControllerSearchQueryPageSizeMax)
     .default(seriesControllerSearchQueryPageSizeDefault),
-  sortDirection: zod.enum(["asc", "desc"]).optional(),
   search: zod.string().max(seriesControllerSearchQuerySearchMax).optional(),
 });
 
