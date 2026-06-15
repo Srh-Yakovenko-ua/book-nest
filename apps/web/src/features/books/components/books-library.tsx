@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { EmptyStateEntry } from "@/lib/empty-states";
+
 import { Link, useRouter } from "@/i18n/navigation";
 import { readingStatuses, type StatusEntry } from "@/lib/book-status";
 
@@ -21,11 +23,20 @@ const PROGRESS_STATUSES: readonly BookView["readingStatus"][] = ["reading", "pau
 const FALLBACK_STATUS: StatusEntry =
   readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
 
+type LibraryBookLabels = {
+  progressAriaLabel: (current: number, total: number) => string;
+  progressUnit: string;
+  ratingLabel: (value: number) => string;
+  statusLabel: (value: BookView["readingStatus"]) => string;
+  translateGenre: ReturnType<typeof useTranslations<"books.classification.genreLabels">>;
+};
+
 export function BooksLibrary() {
   const t = useTranslations("books.library");
   const tConfirm = useTranslations("books.deleteConfirm");
   const tDelete = useTranslations("books.delete");
   const tGenre = useTranslations("books.classification.genreLabels");
+  const tStatus = useTranslations("books.readingStatus.options");
   const router = useRouter();
   const [sortDirection, setSortDirection] = useState<BooksSortDirection>("desc");
 
@@ -35,9 +46,33 @@ export function BooksLibrary() {
 
   const pages = data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
+  const progressUnit = t("progress.unit");
   const books: LibraryBook[] = pages
     .flatMap((page) => page.items)
-    .map((book) => toLibraryBook(book, tGenre));
+    .map((book) =>
+      toLibraryBook(book, {
+        progressAriaLabel: (current, total) => t("progress.ariaLabel", { current, total }),
+        progressUnit,
+        ratingLabel: (value) => t("rating.ariaLabel", { value }),
+        statusLabel: (value) => tStatus(value),
+        translateGenre: tGenre,
+      }),
+    );
+
+  const emptyState: EmptyStateEntry = {
+    desc: t("empty.description"),
+    illu: "empty-library",
+    primary: { icon: "plus", label: t("empty.cta") },
+    title: t("empty.title"),
+  };
+
+  const errorState: EmptyStateEntry = {
+    desc: t("error.description"),
+    illu: "error-generic",
+    primary: { icon: "refresh", label: t("error.retry") },
+    secondary: { icon: "plus", label: t("addBook") },
+    title: t("error.title"),
+  };
 
   return (
     <BooksLibraryView
@@ -51,6 +86,8 @@ export function BooksLibrary() {
         description: (title) => tConfirm("description", { title }),
         title: tConfirm("title"),
       }}
+      emptyState={emptyState}
+      errorState={errorState}
       hasNextPage={hasNextPage}
       isDeleting={deleteBook.isPending}
       isError={isError}
@@ -87,21 +124,29 @@ function resolveProgress(book: BookView): undefined | { current: number; total: 
   return { current: currentPage, total: book.pagesCount };
 }
 
-function toLibraryBook(
-  book: BookView,
-  tGenre: ReturnType<typeof useTranslations<"books.classification.genreLabels">>,
-): LibraryBook {
-  const status =
+function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
+  const baseStatus =
     readingStatuses.find((entry) => entry.value === book.readingStatus) ?? FALLBACK_STATUS;
+  const status: StatusEntry = { ...baseStatus, label: labels.statusLabel(book.readingStatus) };
   const firstGenre = book.genres[0];
+  const progress = resolveProgress(book);
+  const rating = book.readingProgress?.rating ?? undefined;
 
   return {
     author: book.author.name,
-    genre: firstGenre === undefined ? undefined : { label: tGenre(firstGenre) },
+    genre: firstGenre === undefined ? undefined : { label: labels.translateGenre(firstGenre) },
     href: `/books/${book.id}/edit`,
     id: book.id,
-    progress: resolveProgress(book),
-    rating: book.readingProgress?.rating ?? undefined,
+    progress:
+      progress === undefined
+        ? undefined
+        : {
+            ...progress,
+            ariaLabel: labels.progressAriaLabel(progress.current, progress.total),
+            unit: labels.progressUnit,
+          },
+    rating,
+    ratingLabel: rating === undefined ? undefined : labels.ratingLabel(rating),
     series: book.series === null ? undefined : book.series.name,
     status,
     title: book.title,

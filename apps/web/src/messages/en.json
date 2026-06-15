@@ -203,6 +203,23 @@
         "label": "Sort",
         "newest": "Newest first",
         "oldest": "Oldest first"
+      },
+      "progress": {
+        "unit": "pp.",
+        "ariaLabel": "Reading progress: {current} of {total}"
+      },
+      "rating": {
+        "ariaLabel": "Rating {value} of 5"
+      },
+      "empty": {
+        "title": "Your library is still empty",
+        "description": "Add your first book to start building a personal collection and tracking your reading journey.",
+        "cta": "Add book"
+      },
+      "error": {
+        "title": "Something went wrong",
+        "description": "We couldn't load your data. Try refreshing the page — and if that doesn't help, we're already looking into it.",
+        "retry": "Try again"
       }
     },
     "deleteConfirm": {

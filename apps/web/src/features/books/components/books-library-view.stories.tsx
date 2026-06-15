@@ -20,8 +20,14 @@ const books: LibraryBook[] = [
     genre: { label: "Фентезі" },
     href: "/books/1/edit",
     id: "1",
-    progress: { current: 312, total: 768 },
+    progress: {
+      ariaLabel: "Прогрес читання: 312 з 768",
+      current: 312,
+      total: 768,
+      unit: "стор.",
+    },
     rating: 4,
+    ratingLabel: "Рейтинг 4 з 5",
     series: "Двір шипів і троянд",
     status: reading,
     title: "Двір срібного полум'я",
@@ -65,12 +71,29 @@ const menuLabels = {
   menu: "Дії",
 };
 
+const emptyState = {
+  desc: "Додай свою першу книгу, щоб почати збирати особисту колекцію та відстежувати читацький шлях.",
+  illu: "empty-library",
+  primary: { icon: "plus", label: "Додати книгу" },
+  title: "Твоя бібліотека поки порожня",
+} as const;
+
+const errorState = {
+  desc: "Не вдалося завантажити дані. Спробуй оновити сторінку — а якщо не допоможе, ми вже розбираємося.",
+  illu: "error-generic",
+  primary: { icon: "refresh", label: "Спробувати ще раз" },
+  secondary: { icon: "plus", label: "Додати книгу" },
+  title: "Щось пішло не так",
+} as const;
+
 const meta = {
   args: {
     addBookLabel: "Додати книгу",
     books,
     count: "3 книги",
     deleteLabels,
+    emptyState,
+    errorState,
     hasNextPage: false,
     isDeleting: false,
     isError: false,
