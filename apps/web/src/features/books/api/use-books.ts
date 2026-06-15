@@ -1,5 +1,3 @@
-import type { BookView } from "@app/shared";
-
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
@@ -37,5 +35,3 @@ export function useBooks(sortDirection: BooksSortDirection = "desc") {
     queryKey: ["/api/books", "list", { sortDirection }],
   });
 }
-
-export type { BookView };
