@@ -203,9 +203,9 @@ export function BookForm(props: BookFormProps) {
     }
     createBook.mutate(payload, {
       onError: (error) => handleMutationError(error),
-      onSuccess: (created) => {
+      onSuccess: () => {
         toast.success(t("submit.success"));
-        router.push(`/books/${created.id}/edit`);
+        router.push("/books");
       },
     });
   });

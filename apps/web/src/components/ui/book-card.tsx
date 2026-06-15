@@ -12,11 +12,11 @@ import { type StatusEntry } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
 const bookCardVariants = cva(
-  "group/book-card relative flex flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color,transform] motion-reduce:transition-none",
+  "group/book-card relative flex h-full flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color] duration-200 ease-out motion-reduce:transition-none",
   {
     variants: {
       interactive: {
-        true: "cursor-pointer hover:-translate-y-0.5 hover:border-accent-border hover:shadow-hover focus-visible:border-accent-border focus-visible:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
+        true: "cursor-pointer hover:border-accent-border hover:shadow-hover focus-visible:border-accent-border focus-visible:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
         false: "",
       },
       selected: {
@@ -31,6 +31,12 @@ const bookCardVariants = cva(
   },
 );
 
+type BookCardLinkComponent = React.ComponentType<{
+  children?: React.ReactNode;
+  className?: string;
+  href: string;
+}>;
+
 type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
   VariantProps<typeof bookCardVariants> & {
     author: string;
@@ -38,6 +44,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     genre?: { icon?: GenreIconName; label: string };
     href?: string;
     kebab?: React.ReactNode;
+    linkComponent?: BookCardLinkComponent;
     progress?: { current: number; total: number; unit?: string };
     rating?: number;
     series?: string;
@@ -53,6 +60,7 @@ function BookCard({
   href,
   interactive,
   kebab,
+  linkComponent,
   progress,
   rating,
   selected,
@@ -62,6 +70,7 @@ function BookCard({
   ...props
 }: BookCardProps) {
   const isInteractive = interactive ?? href !== undefined;
+  const LinkComp: "a" | BookCardLinkComponent = linkComponent ?? "a";
 
   return (
     <article
@@ -78,12 +87,12 @@ function BookCard({
             {href === undefined ? (
               title
             ) : (
-              <a
-                className="font-bold text-ink no-underline after:absolute after:inset-0 hover:underline"
+              <LinkComp
+                className="font-bold text-ink no-underline transition-colors group-hover/book-card:text-primary after:absolute after:inset-0"
                 href={href}
               >
                 {title}
-              </a>
+              </LinkComp>
             )}
           </h3>
           <p className="text-[0.8125rem] text-muted-foreground">{author}</p>
@@ -102,11 +111,12 @@ function BookCard({
         <div className="flex flex-col gap-1.5">
           <Progress
             aria-label={`Прогрес читання: ${progress.current} з ${progress.total}`}
+            aria-valuetext={`${progress.current} / ${progress.total} ${progress.unit ?? "стор."}`}
             className="h-1.5"
             max={progress.total}
             value={progress.total <= 0 ? 0 : (progress.current / progress.total) * 100}
           />
-          <span className="self-end text-xs text-muted-foreground tabular-nums">
+          <span aria-hidden="true" className="self-end text-xs text-muted-foreground tabular-nums">
             {progress.current} / {progress.total} {progress.unit ?? "стор."}
           </span>
         </div>

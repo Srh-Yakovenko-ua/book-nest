@@ -6,7 +6,7 @@
   },
   "nav": {
     "home": "Головна",
-    "addBook": "Додати книгу"
+    "library": "Бібліотека"
   },
   "appShell": {
     "label": "Book Nest"
@@ -191,6 +191,31 @@
     }
   },
   "books": {
+    "library": {
+      "title": "Моя бібліотека",
+      "count": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+      "addBook": "Додати книгу",
+      "loadMore": "Показати ще",
+      "loading": "Завантаження книг…",
+      "menu": "Дії",
+      "delete": "Видалити",
+      "sort": {
+        "label": "Сортування",
+        "newest": "Спочатку нові",
+        "oldest": "Спочатку старі"
+      }
+    },
+    "deleteConfirm": {
+      "title": "Видалити книгу?",
+      "description": "Книга «{title}» буде видалена назавжди. Цю дію не можна скасувати.",
+      "confirm": "Видалити",
+      "cancel": "Скасувати",
+      "deleting": "Видалення…"
+    },
+    "delete": {
+      "success": "Книгу видалено",
+      "error": "Не вдалося видалити книгу"
+    },
     "page": {
       "metaTitle": "Нова книга",
       "eyebrow": "Бібліотека",

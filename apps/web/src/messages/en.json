@@ -6,7 +6,7 @@
   },
   "nav": {
     "home": "Home",
-    "addBook": "Add book"
+    "library": "Library"
   },
   "appShell": {
     "label": "Book Nest"
@@ -191,6 +191,31 @@
     }
   },
   "books": {
+    "library": {
+      "title": "My library",
+      "count": "{count, plural, one {# book} other {# books}}",
+      "addBook": "Add book",
+      "loadMore": "Load more",
+      "loading": "Loading books…",
+      "menu": "Actions",
+      "delete": "Delete",
+      "sort": {
+        "label": "Sort",
+        "newest": "Newest first",
+        "oldest": "Oldest first"
+      }
+    },
+    "deleteConfirm": {
+      "title": "Delete book?",
+      "description": "“{title}” will be deleted permanently. This action can’t be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel",
+      "deleting": "Deleting…"
+    },
+    "delete": {
+      "success": "Book deleted",
+      "error": "Couldn’t delete the book"
+    },
     "page": {
       "metaTitle": "New book",
       "eyebrow": "Library",
