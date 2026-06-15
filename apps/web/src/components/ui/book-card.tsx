@@ -45,8 +45,9 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     href?: string;
     kebab?: React.ReactNode;
     linkComponent?: BookCardLinkComponent;
-    progress?: { current: number; total: number; unit?: string };
+    progress?: { ariaLabel?: string; current: number; total: number; unit?: string };
     rating?: number;
+    ratingLabel?: string;
     series?: string;
     status: StatusEntry;
     title: string;
@@ -63,6 +64,7 @@ function BookCard({
   linkComponent,
   progress,
   rating,
+  ratingLabel,
   selected,
   series,
   status,
@@ -110,14 +112,14 @@ function BookCard({
       {progress === undefined ? null : (
         <div className="flex flex-col gap-1.5">
           <Progress
-            aria-label={`Прогрес читання: ${progress.current} з ${progress.total}`}
-            aria-valuetext={`${progress.current} / ${progress.total} ${progress.unit ?? "стор."}`}
+            aria-label={progress.ariaLabel}
+            aria-valuetext={`${progress.current} / ${progress.total} ${progress.unit ?? ""}`.trim()}
             className="h-1.5"
             max={progress.total}
             value={progress.total <= 0 ? 0 : (progress.current / progress.total) * 100}
           />
           <span aria-hidden="true" className="self-end text-xs text-muted-foreground tabular-nums">
-            {progress.current} / {progress.total} {progress.unit ?? "стор."}
+            {progress.current} / {progress.total} {progress.unit}
           </span>
         </div>
       )}
@@ -132,7 +134,9 @@ function BookCard({
               {genre.label}
             </span>
           )}
-          {rating === undefined ? null : <Rating className="ml-auto" size="sm" value={rating} />}
+          {rating === undefined ? null : (
+            <Rating className="ml-auto" label={ratingLabel} size="sm" value={rating} />
+          )}
         </div>
       )}
     </article>

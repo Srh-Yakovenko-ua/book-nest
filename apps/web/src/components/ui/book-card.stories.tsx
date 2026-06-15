@@ -48,7 +48,12 @@ export const Reading: Story = {
   args: {
     genre: { icon: "fentezi", label: "Фентезі" },
     kebab: <Kebab />,
-    progress: { current: 312, total: 768 },
+    progress: {
+      ariaLabel: "Прогрес читання: 312 з 768",
+      current: 312,
+      total: 768,
+      unit: "стор.",
+    },
     rating: 4,
     series: "Двір шипів і троянд · Книга 2 з 3",
   },
@@ -84,7 +89,12 @@ export const Selected: Story = {
   args: {
     author: "Роберт Джексон Беннетт",
     genre: { icon: "fentezi", label: "Фентезі" },
-    progress: { current: 87, total: 452 },
+    progress: {
+      ariaLabel: "Прогрес читання: 87 з 452",
+      current: 87,
+      total: 452,
+      unit: "стор.",
+    },
     rating: 3.5,
     selected: true,
     status: reading,
@@ -107,7 +117,12 @@ export const Grid: Story = {
         genre={{ icon: "fentezi", label: "Фентезі" }}
         href="#book"
         kebab={<Kebab />}
-        progress={{ current: 312, total: 768 }}
+        progress={{
+          ariaLabel: "Прогрес читання: 312 з 768",
+          current: 312,
+          total: 768,
+          unit: "стор.",
+        }}
         rating={4}
         series="Двір шипів і троянд · Книга 2 з 3"
         status={reading}

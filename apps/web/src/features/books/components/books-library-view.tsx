@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import type { GenreIconName } from "@/components/icons";
 import type { StatusEntry } from "@/lib/book-status";
+import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
@@ -29,8 +30,9 @@ export type LibraryBook = {
   genre?: { icon?: GenreIconName; label: string };
   href: string;
   id: string;
-  progress?: { current: number; total: number };
+  progress?: { ariaLabel: string; current: number; total: number; unit: string };
   rating?: number;
+  ratingLabel?: string;
   selected?: boolean;
   series?: string;
   status: StatusEntry;
@@ -48,6 +50,8 @@ type BooksLibraryViewProps = {
   books: LibraryBook[];
   count: string;
   deleteLabels: DeleteLabels;
+  emptyState: EmptyStateEntry;
+  errorState: EmptyStateEntry;
   hasNextPage: boolean;
   isDeleting: boolean;
   isError: boolean;
@@ -100,6 +104,8 @@ export function BooksLibraryView({
   books,
   count,
   deleteLabels,
+  emptyState,
+  errorState,
   hasNextPage,
   isDeleting,
   isError,
@@ -124,13 +130,13 @@ export function BooksLibraryView({
   if (isError) {
     return (
       <div aria-live="assertive" role="alert">
-        <EmptyState onPrimary={onRetry} onSecondary={onAddBook} stateKey="error_generic" />
+        <EmptyState onPrimary={onRetry} onSecondary={onAddBook} state={errorState} />
       </div>
     );
   }
 
   if (!isPending && books.length === 0) {
-    return <EmptyState onPrimary={onAddBook} stateKey="library" />;
+    return <EmptyState onPrimary={onAddBook} state={emptyState} />;
   }
 
   return (
@@ -207,6 +213,7 @@ export function BooksLibraryView({
                     linkComponent={linkComponent}
                     progress={book.progress}
                     rating={book.rating}
+                    ratingLabel={book.ratingLabel}
                     selected={book.selected}
                     series={book.series}
                     status={book.status}

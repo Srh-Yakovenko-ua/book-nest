@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect } from "react";
 
 import { registerAuthBridge } from "@/lib/auth-bridge";
 
@@ -17,12 +17,12 @@ registerAuthBridge({
   },
 });
 
-export function SessionProvider({ children }: { children: ReactNode }) {
-  const bootstrapped = useRef(false);
+let bootstrapped = false;
 
+export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
-    if (bootstrapped.current) return;
-    bootstrapped.current = true;
+    if (bootstrapped) return;
+    bootstrapped = true;
 
     const { clearSession, setSession, setStatus } = useAuthStore.getState();
     setStatus("loading");
