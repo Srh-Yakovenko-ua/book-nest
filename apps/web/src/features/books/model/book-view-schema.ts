@@ -51,6 +51,7 @@ const readingProgressViewSchema = z.object({
 });
 
 const seriesViewSchema = z.object({
+  booksInSeries: z.number(),
   description: z.string().nullable(),
   id: z.string(),
   name: z.string(),

@@ -784,6 +784,7 @@ describe("POST /api/books series handling", () => {
     expect(res.body.bookType).toBe("series_part");
     expect(res.body.partNumber).toBe(1);
     expect(res.body.series).toMatchObject({
+      booksInSeries: 1,
       name: "Throne of Glass",
       status: "ongoing",
       totalBooks: 3,
@@ -800,8 +801,20 @@ describe("POST /api/books series handling", () => {
 
   it("links a series_part to an existing series by id", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await prisma.author.create({
+      data: { name: "Sarah J. Maas", normalizedName: "sarah j maas", userId },
+    });
     const existing = await prisma.series.create({
       data: { name: "Throne of Glass", normalizedName: "throne of glass", userId },
+    });
+    await prisma.book.create({
+      data: {
+        authorId: author.id,
+        partNumber: 1,
+        seriesId: existing.id,
+        title: "Throne of Glass",
+        userId,
+      },
     });
 
     const res = await createBook(accessToken, {
@@ -814,6 +827,7 @@ describe("POST /api/books series handling", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.series.id).toBe(existing.id);
+    expect(res.body.series.booksInSeries).toBe(2);
     expect(res.body.partNumber).toBe(2);
     const seriesRows = await prisma.series.findMany({ where: { userId } });
     expect(seriesRows).toHaveLength(1);

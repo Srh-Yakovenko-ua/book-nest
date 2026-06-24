@@ -13,7 +13,7 @@ const withRelations = {
   publisher: true,
   purchaseInfo: true,
   readingProgress: true,
-  series: true,
+  series: { include: { _count: { select: { books: true } } } },
   tags: { include: { tag: true } },
 } satisfies Prisma.BookInclude;
 

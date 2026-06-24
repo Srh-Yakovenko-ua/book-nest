@@ -2,10 +2,11 @@ import type { SeriesView } from "@app/shared";
 
 import { SeriesStatusSchema } from "@app/shared";
 
-import type { SeriesModel } from "../../../generated/prisma/models.js";
+import type { SeriesWithBookCount } from "../infrastructure/series.repository.js";
 
-export function toSeriesView(series: SeriesModel): SeriesView {
+export function toSeriesView(series: SeriesWithBookCount): SeriesView {
   return {
+    booksInSeries: series._count.books,
     description: series.description,
     id: series.id,
     name: series.name,
