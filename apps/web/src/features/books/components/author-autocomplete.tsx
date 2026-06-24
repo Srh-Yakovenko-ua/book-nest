@@ -24,6 +24,7 @@ type AuthorAutocompleteProps = {
   invalid: boolean;
   onChange: (selection: AuthorSelection | null) => void;
   placeholder: string;
+  required?: boolean;
   value: AuthorSelection | null;
 };
 
@@ -36,6 +37,7 @@ export function AuthorAutocomplete({
   invalid,
   onChange,
   placeholder,
+  required = false,
   value,
 }: AuthorAutocompleteProps) {
   const t = useTranslations("books");
@@ -81,6 +83,7 @@ export function AuthorAutocomplete({
             aria-describedby={describedBy}
             aria-expanded={open}
             aria-invalid={invalid}
+            aria-required={required}
             autoComplete="off"
             className={cn(
               "h-10 w-full rounded-md border border-input bg-field pr-3 pl-10 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",

@@ -4,7 +4,7 @@ import type { BookFormat, BookView, OwnershipStatus, ReadingStatus } from "@app/
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, type Path, type Resolver, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -68,7 +68,13 @@ function emptyToUndefined(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-const SERVER_FIELD_PATHS = ["title", "author", "publisherName", "description"] as const;
+const SERVER_FIELD_PATHS = [
+  "title",
+  "author",
+  "publisherName",
+  "description",
+  "partNumber",
+] as const;
 
 export function BookForm(props: BookFormProps) {
   const t = useTranslations("books");
@@ -89,6 +95,8 @@ export function BookForm(props: BookFormProps) {
     initial?.publisherSelection ?? null,
   );
   const [pendingDiscard, setPendingDiscard] = useState<null | PendingDiscard>(null);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const resolver = (
     props.mode === "edit" ? zodResolver(UpdateBookInputSchema) : zodResolver(CreateBookInputSchema)
@@ -96,7 +104,7 @@ export function BookForm(props: BookFormProps) {
 
   const {
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
     getValues,
     handleSubmit,
     register,
@@ -189,6 +197,14 @@ export function BookForm(props: BookFormProps) {
     });
   }
 
+  function requestQueueRemoval(apply: () => void) {
+    setPendingDiscard({
+      apply,
+      description: t("editConfirm.queue.description"),
+      title: t("editConfirm.queue.title"),
+    });
+  }
+
   const onSubmit = handleSubmit((values) => {
     const payload = pruneStatusPayload(values);
     if (props.mode === "edit") {
@@ -221,12 +237,49 @@ export function BookForm(props: BookFormProps) {
   }
 
   const descriptionRemaining = DESCRIPTION_MAX - descriptionValue.length;
+  const cancelHref = bookId === null ? "/" : `/books/${bookId}/edit`;
+  const guardActive = isDirty && !isPending;
+
+  useEffect(() => {
+    if (!guardActive) return;
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [guardActive]);
+
+  useEffect(() => {
+    const form = formRef.current;
+    if (form === null) return;
+    function blockImplicitSubmit(event: KeyboardEvent) {
+      if (event.isComposing) return;
+      if (event.key !== "Enter" || event.defaultPrevented) return;
+      if (event.target instanceof HTMLInputElement) event.preventDefault();
+    }
+    form.addEventListener("keydown", blockImplicitSubmit);
+    return () => form.removeEventListener("keydown", blockImplicitSubmit);
+  }, []);
+
+  function navigateAway() {
+    router.push(cancelHref);
+  }
+
+  function handleCancel() {
+    if (isDirty) {
+      setCancelConfirmOpen(true);
+      return;
+    }
+    navigateAway();
+  }
 
   return (
     <form
       className="grid gap-6 pb-24 sm:pb-0 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start"
       noValidate
       onSubmit={onSubmit}
+      ref={formRef}
     >
       <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2">
         <FormSection
@@ -235,10 +288,16 @@ export function BookForm(props: BookFormProps) {
           title={t("basicInfo.title")}
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor="book-title">{t("fields.title")}</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="book-title">{t("fields.title")}</Label>
+              <span aria-hidden className="text-destructive">
+                *
+              </span>
+            </div>
             <Input
               aria-describedby={errors.title ? "book-title-error" : undefined}
               aria-invalid={errors.title !== undefined}
+              aria-required="true"
               autoComplete="off"
               className="h-10"
               id="book-title"
@@ -249,7 +308,12 @@ export function BookForm(props: BookFormProps) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="book-author">{t("fields.author")}</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="book-author">{t("fields.author")}</Label>
+              <span aria-hidden className="text-destructive">
+                *
+              </span>
+            </div>
             <Controller
               control={control}
               name="author"
@@ -265,6 +329,7 @@ export function BookForm(props: BookFormProps) {
                     );
                   }}
                   placeholder={t("fields.authorPlaceholder")}
+                  required
                   value={authorSelection}
                 />
               )}
@@ -279,7 +344,7 @@ export function BookForm(props: BookFormProps) {
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="book-publisher">
-              {t("fields.publisher")}
+              {t("fields.publisher")}{" "}
               <span className="text-xs font-normal text-muted-foreground">
                 {t("fields.optional")}
               </span>
@@ -318,7 +383,7 @@ export function BookForm(props: BookFormProps) {
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="book-description">
-              {t("fields.description")}
+              {t("fields.description")}{" "}
               <span className="text-xs font-normal text-muted-foreground">
                 {t("fields.optional")}
               </span>
@@ -366,6 +431,7 @@ export function BookForm(props: BookFormProps) {
           mode={mode}
           onRequestChange={mode === "edit" ? requestOwnershipStatusChange : undefined}
           register={register}
+          setValue={setValue}
         />
 
         <FormatSection control={control} />
@@ -375,7 +441,11 @@ export function BookForm(props: BookFormProps) {
         <LibraryOrganizationSection
           control={control}
           errors={errors}
-          mode={mode}
+          onRequestQueueRemoval={
+            mode === "edit" && initial?.values.addToReadingQueue === true
+              ? requestQueueRemoval
+              : undefined
+          }
           setValue={setValue}
         />
 
@@ -383,7 +453,7 @@ export function BookForm(props: BookFormProps) {
           <Button
             className="h-11 flex-1 sm:h-10 sm:flex-none"
             disabled={isPending}
-            onClick={() => router.push(bookId === null ? "/" : `/books/${bookId}/edit`)}
+            onClick={handleCancel}
             type="button"
             variant="secondary"
           >
@@ -429,6 +499,17 @@ export function BookForm(props: BookFormProps) {
         }}
         open={pendingDiscard !== null}
         title={pendingDiscard?.title ?? ""}
+      />
+
+      <DiscardConfirmDialog
+        description={t("cancelConfirm.description")}
+        onConfirm={() => {
+          setCancelConfirmOpen(false);
+          navigateAway();
+        }}
+        onOpenChange={setCancelConfirmOpen}
+        open={cancelConfirmOpen}
+        title={t("cancelConfirm.title")}
       />
     </form>
   );

@@ -8,9 +8,12 @@ import {
   Controller,
   type FieldErrors,
   type UseFormRegister,
+  type UseFormSetValue,
   useWatch,
 } from "react-hook-form";
 
+import { UiIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +61,7 @@ type OwnershipStatusSectionProps = {
   mode: BookFormMode;
   onRequestChange?: (next: OwnershipStatus, apply: () => void) => void;
   register: UseFormRegister<CreateBookFormValues>;
+  setValue: UseFormSetValue<CreateBookFormValues>;
 };
 
 export function OwnershipStatusSection({
@@ -66,9 +70,10 @@ export function OwnershipStatusSection({
   mode,
   onRequestChange,
   register,
+  setValue,
 }: OwnershipStatusSectionProps) {
   const t = useTranslations("books");
-  const status = useWatch({ control, defaultValue: "none", name: "ownershipStatus" }) ?? "none";
+  const status = useWatch({ control, name: "ownershipStatus" }) ?? "none";
   const deliveryStatusOptions =
     mode === "edit" ? EDIT_DELIVERY_STATUS_OPTIONS : CREATE_DELIVERY_STATUS_OPTIONS;
 
@@ -314,6 +319,20 @@ export function OwnershipStatusSection({
             placeholder={t("ownershipStatus.fields.notePlaceholder")}
             register={register}
           />
+
+          {mode === "edit" ? (
+            <Button
+              className="self-start"
+              onClick={() =>
+                setValue("ownershipStatus", "owned", { shouldDirty: true, shouldValidate: true })
+              }
+              type="button"
+              variant="secondary"
+            >
+              <UiIcon name="check" size={16} />
+              {t("deliveryInfo.markReceived")}
+            </Button>
+          ) : null}
         </div>
       ) : null}
 

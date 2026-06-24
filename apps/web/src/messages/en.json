@@ -314,7 +314,8 @@
         "in_transit": "In transit",
         "ready_for_pickup": "Ready for pickup",
         "cancelled": "Cancelled"
-      }
+      },
+      "markReceived": "Mark as received"
     },
     "loanInfo": {
       "title": "Loan details",
@@ -378,6 +379,10 @@
       "tagsAtMax": "Tag limit reached",
       "tagsHint": "Custom tags via Enter or comma, up to {max}.",
       "tagsSuggestions": "Your tags",
+      "tagsNoSaved": "You don't have any saved tags yet. Type a new tag and press Enter.",
+      "tagsTooShort": "A tag must be at least 2 characters long.",
+      "tagsTooLong": "A tag can be at most 30 characters long.",
+      "tagsInvalidChars": "Only letters, digits, spaces, hyphens and apostrophes are allowed.",
       "ageCategory": "Age rating",
       "ageCategoryLabels": {
         "not_specified": "Not specified",
@@ -430,6 +435,7 @@
         "nameInvalid": "Enter a valid series name.",
         "status": "Status",
         "totalBooks": "Books in series",
+        "totalBooksPlaceholder": "e.g. 5",
         "descriptionLabel": "Description",
         "descriptionPlaceholder": "A short series description…",
         "confirm": "Create series"
@@ -453,7 +459,8 @@
         "illustratorPlaceholder": "Illustrator name",
         "dedication": "Dedication",
         "dedicationPlaceholder": "Who this book is dedicated to…"
-      }
+      },
+      "currentPageWarning": "Your current page is higher than the new page count. Update your reading progress."
     },
     "organization": {
       "title": "Library organization",
@@ -560,7 +567,15 @@
       "series": {
         "title": "Remove the book from its series?",
         "description": "The book will no longer belong to the series, and its part number will be cleared."
+      },
+      "queue": {
+        "title": "Remove the book from the queue?",
+        "description": "The book will no longer appear in your reading queue. You can add it back later."
       }
+    },
+    "cancelConfirm": {
+      "title": "Discard changes?",
+      "description": "You have unsaved changes. If you leave now, they will be lost."
     },
     "editState": {
       "loading": "Loading the book…",
