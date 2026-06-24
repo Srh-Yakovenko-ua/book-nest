@@ -72,7 +72,7 @@ export function isEmailNotVerified(error: unknown): boolean {
 }
 
 export function isInvalidToken(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 400;
+  return error instanceof ApiError && error.status === 400 && error.fieldErrors === undefined;
 }
 
 export function resolveFieldMessage(field: string, message: string | undefined): ResolvedMessage {

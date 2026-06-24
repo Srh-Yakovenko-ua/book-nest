@@ -27,11 +27,18 @@ export const AuthResultSchema = z.object({
 });
 
 export const RegistrationResultSchema = z.object({
+  cooldownSeconds: z.number().optional(),
   email: z.string(),
   status: z.literal("verification_sent"),
 });
 
+export const ResendVerificationResultSchema = z.object({
+  cooldownSeconds: z.number().optional(),
+  status: z.literal("verification_sent"),
+});
+
 export const ForgotPasswordResultSchema = z.object({
+  cooldownSeconds: z.number().optional(),
   status: z.literal("reset_email_sent"),
 });
 

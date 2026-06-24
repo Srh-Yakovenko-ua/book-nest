@@ -18,7 +18,7 @@ export function AuthLayout({ children, cover, tagline }: AuthLayoutProps) {
           <ThemePicker triggerClassName="size-11 rounded-full border border-border bg-card text-foreground hover:bg-secondary [&_svg]:size-4.5" />
         </header>
 
-        <div className="flex flex-1 flex-col items-center justify-center py-4">
+        <div className="flex flex-1 flex-col items-center justify-start pt-[8vh] pb-4 min-[900px]:pt-[12vh]">
           <div className="w-full max-w-md">{children}</div>
         </div>
       </main>

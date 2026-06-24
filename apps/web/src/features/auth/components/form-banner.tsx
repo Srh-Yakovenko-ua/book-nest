@@ -19,7 +19,7 @@ const VARIANT_STYLES = {
 
 export function FormBanner({ children, className, variant }: FormBannerProps) {
   return (
-    <Alert className={cn(VARIANT_STYLES[variant], className)} role="alert">
+    <Alert className={cn(VARIANT_STYLES[variant], className)}>
       <UiIcon name={variant === "success" ? "check-circle" : "alert-circle"} size={16} />
       <AlertDescription className="text-current">{children}</AlertDescription>
     </Alert>

@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { expect, fn, userEvent, waitFor } from "storybook/test";
+import { expect, fn } from "storybook/test";
 
 import { AuthLayout } from "./auth-layout";
 import { EmailSentPanel } from "./email-sent-panel";
 
 const meta = {
   args: {
+    cooldownSeconds: 0,
     hint: "Не отримав(ла) лист? Перевір теку „Спам“ або спробуй інший e-mail.",
     lead: "Якщо такий акаунт існує, ми надіслали лист на reader@example.com.",
     onResend: fn(),
@@ -42,14 +43,12 @@ export const Default: Story = {
   },
 };
 
-export const CooldownAfterResend: Story = {
-  play: async ({ args, canvas }) => {
-    const resend = canvas.getByRole("button", { name: /надіслати ще раз/i });
-    await userEvent.click(resend);
-    await expect(args.onResend).toHaveBeenCalledOnce();
-    await waitFor(async () => {
-      await expect(canvas.getByRole("button", { name: /через \d+ с/i })).toBeDisabled();
-    });
+export const SeededCooldownOnMount: Story = {
+  args: { cooldownSeconds: 45 },
+  play: async ({ canvas }) => {
+    const resend = canvas.getByRole("button", { name: /через 45 с|in 45s/i });
+    await expect(resend).toHaveAttribute("aria-disabled", "true");
+    await expect(resend).toBeEnabled();
   },
 };
 

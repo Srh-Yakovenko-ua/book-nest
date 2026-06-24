@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,8 @@ import { Link } from "@/i18n/navigation";
 
 import { AuthHeading } from "./auth-heading";
 
-const RESEND_COOLDOWN_SECONDS = 60;
-
 type EmailSentPanelProps = {
+  cooldownSeconds: number;
   hint: string;
   lead: ReactNode;
   onResend: () => void;
@@ -20,6 +19,7 @@ type EmailSentPanelProps = {
 };
 
 export function EmailSentPanel({
+  cooldownSeconds,
   hint,
   lead,
   onResend,
@@ -27,7 +27,12 @@ export function EmailSentPanel({
   title,
 }: EmailSentPanelProps) {
   const t = useTranslations("auth");
-  const [cooldown, setCooldown] = useState(0);
+  const [cooldown, setCooldown] = useState(cooldownSeconds);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -35,12 +40,15 @@ export function EmailSentPanel({
     return () => clearTimeout(handle);
   }, [cooldown]);
 
+  const cooling = cooldown > 0;
+
   const handleResend = () => {
+    if (cooling || resendPending) return;
     onResend();
-    setCooldown(RESEND_COOLDOWN_SECONDS);
+    setCooldown(cooldownSeconds);
   };
 
-  const resendLabel = cooldown > 0 ? t("resend.againIn", { seconds: cooldown }) : t("resend.again");
+  const resendLabel = cooling ? t("resend.againIn", { seconds: cooldown }) : t("resend.again");
 
   return (
     <div>
@@ -51,11 +59,11 @@ export function EmailSentPanel({
         <UiIcon name="mail" size={28} />
       </span>
 
-      <AuthHeading subtitle={lead} title={title} />
+      <AuthHeading ref={headingRef} subtitle={lead} tabIndex={-1} title={title} />
 
       <Button
+        aria-disabled={cooling || undefined}
         className="h-12 w-full rounded-md text-base font-semibold"
-        disabled={resendPending || cooldown > 0}
         loading={resendPending}
         onClick={handleResend}
         type="button"

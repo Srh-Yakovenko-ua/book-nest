@@ -8,14 +8,18 @@ import type { UserModel } from "../../../generated/prisma/models.js";
 import { env } from "../../../config/env.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
+import { createLogger } from "../../../core/logger.js";
 import { MailService } from "../../mail/application/mail.service.js";
 import { PasswordResetTokensRepository } from "../infrastructure/password-reset-tokens.repository.js";
 import { SessionsRepository } from "../infrastructure/sessions.repository.js";
 import { UsersRepository } from "../infrastructure/users.repository.js";
+import { EmailVerificationService } from "./email-verification.service.js";
 import { PasswordService } from "./password.service.js";
 import { TokenService } from "./token.service.js";
 
 const INVALID_LINK_MESSAGE = "Invalid or expired reset link";
+
+const logger = createLogger("password-reset");
 
 @Injectable()
 export class PasswordResetService {
@@ -25,18 +29,42 @@ export class PasswordResetService {
     private readonly sessionsRepository: SessionsRepository,
     private readonly tokenService: TokenService,
     private readonly passwordService: PasswordService,
+    private readonly emailVerificationService: EmailVerificationService,
     private readonly mailService: MailService,
     private readonly prisma: PrismaService,
   ) {}
 
   async requestReset(email: string): Promise<void> {
     const user = await this.usersRepository.findByEmail(email);
-    if (user === null || user.emailVerifiedAt === null) return;
+    if (user === null) {
+      logger.info({ reason: "no_user" }, "password reset requested, nothing sent");
+      return;
+    }
+
+    if (user.emailVerifiedAt === null) {
+      void this.emailVerificationService.resend(user.email).catch((error: unknown) => {
+        logger.error(
+          { error, reason: "resend_verification_failed", userId: user.id },
+          "failed to resend verification email during password reset",
+        );
+      });
+      logger.info(
+        { reason: "unverified_resent_verification", userId: user.id },
+        "password reset requested for unverified user, verification resent",
+      );
+      return;
+    }
 
     const latestToken = await this.tokensRepository.findLatestByUserId(user.id);
     if (latestToken !== null) {
       const elapsedSeconds = differenceInSeconds(new Date(), latestToken.createdAt);
-      if (elapsedSeconds < env.resendCooldownSeconds) return;
+      if (elapsedSeconds < env.resendCooldownSeconds) {
+        logger.info(
+          { reason: "cooldown_active", userId: user.id },
+          "password reset requested within cooldown, nothing sent",
+        );
+        return;
+      }
     }
 
     const rawToken = await this.issueToken(user);
@@ -46,6 +74,8 @@ export class PasswordResetService {
       to: user.email,
       userName: user.name,
     });
+
+    logger.info({ reason: "reset_email_issued", userId: user.id }, "password reset email issued");
   }
 
   async reset(token: string, newPassword: string): Promise<ResetPasswordResultView> {
