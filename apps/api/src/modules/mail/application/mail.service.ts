@@ -127,7 +127,7 @@ export class MailService {
   async sendWelcomeEmail({ to, userName }: { to: string; userName: string }): Promise<void> {
     const safeUserName = userName.trim().length === 0 ? DEFAULT_USER_NAME : userName.trim();
     const dashboardUrl = `${env.webBaseUrl}/dashboard`;
-    const addBookUrl = `${env.webBaseUrl}/books/create`;
+    const addBookUrl = `${env.webBaseUrl}/books/new`;
     const settingsUrl = `${env.webBaseUrl}/settings`;
 
     const { html, subject, text } = renderWelcomeEmail({

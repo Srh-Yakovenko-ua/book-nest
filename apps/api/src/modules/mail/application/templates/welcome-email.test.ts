@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { renderWelcomeEmail } from "./welcome-email.js";
 
 const baseVars = {
-  addBookUrl: "http://localhost:3000/books/create",
+  addBookUrl: "http://localhost:3000/books/new",
   dashboardUrl: "http://localhost:3000/dashboard",
   settingsUrl: "http://localhost:3000/settings",
   userName: "Марина",
