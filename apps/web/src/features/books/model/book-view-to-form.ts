@@ -33,6 +33,7 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
 
   const values: CreateBookFormValues = {
     ...createBookFormDefaults,
+    addToReadingQueue: book.isInReadingQueue,
     ageCategory: book.ageCategory,
     author: { id: book.author.id },
     bookType: book.bookType,
@@ -53,6 +54,7 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
     partNumber: book.series === null ? undefined : (book.partNumber ?? undefined),
     publicationYear: book.publicationYear ?? undefined,
     purchaseInfo: purchaseToInput(book),
+    queuePriority: book.queuePriority ?? undefined,
     readingProgress: readingProgressToInput(book),
     readingStatus: book.readingStatus,
     seriesId: book.series?.id,

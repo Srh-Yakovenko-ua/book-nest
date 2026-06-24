@@ -127,7 +127,7 @@ export const PrefilledFromBookView: Story = {
     await expect(canvas.getByLabelText("Автор")).toHaveValue("Ліна Костенко");
     await expect(canvas.getByRole("radio", { checked: true, name: "Прочитано" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: /Зберегти зміни/ })).toBeVisible();
-    await expect(canvas.queryByRole("switch", { name: "Додати до черги читання" })).toBeNull();
+    await expect(canvas.getByRole("switch", { name: "Додати до черги читання" })).toBeVisible();
   },
 };
 
@@ -220,6 +220,83 @@ export const EditSubmitSendsPatch: StoryObj<typeof BookForm> = {
       isFavorite: true,
       readingStatus: "finished",
       title: "Маруся Чурай (виправлено)",
+    });
+  },
+  render: () => <BookForm book={makeBook()} mode="edit" />,
+};
+
+export const QueuePrefilledAndRemovalConfirms: StoryObj<typeof BookForm> = {
+  play: async ({ canvas }) => {
+    mockFetch(taxonomyHandler());
+    const surface = within(document.body);
+
+    const queueSwitch = canvas.getByRole("switch", { name: "Додати до черги читання" });
+    await waitFor(async () => {
+      await expect(queueSwitch).toBeChecked();
+    });
+    await expect(canvas.getByRole("radio", { checked: true, name: "Високий" })).toBeVisible();
+
+    await userEvent.click(queueSwitch);
+
+    await waitFor(async () => {
+      await expect(surface.getByText("Прибрати книгу з черги?")).toBeVisible();
+    });
+    await userEvent.click(await surface.findByRole("button", { name: "Так, змінити" }));
+
+    await waitFor(() => expect(surface.queryByRole("alertdialog")).toBeNull());
+    await expect(canvas.queryByRole("radio", { name: "Високий" })).toBeNull();
+  },
+  render: () => (
+    <BookForm book={makeBook({ isInReadingQueue: true, queuePriority: "high" })} mode="edit" />
+  ),
+};
+
+export const MarkAsReceivedSetsOwned: StoryObj<typeof BookForm> = {
+  play: async ({ canvas }) => {
+    mockFetch(taxonomyHandler());
+
+    await waitFor(async () => {
+      await expect(canvas.getByRole("radio", { checked: true, name: "У дорозі" })).toBeVisible();
+    });
+
+    const receivedButton = canvas.getByRole("button", { name: "Позначити як отриману" });
+    await expect(receivedButton).toBeVisible();
+
+    await userEvent.click(receivedButton);
+
+    await expect(canvas.getByRole("radio", { checked: true, name: "У наявності" })).toBeVisible();
+    await expect(canvas.queryByRole("button", { name: "Позначити як отриману" })).toBeNull();
+  },
+  render: () => (
+    <BookForm
+      book={makeBook({
+        deliveryInfo: {
+          deliveryStatus: "in_transit",
+          expectedDeliveryDate: null,
+          note: null,
+          orderDate: null,
+          orderNumber: "100200300",
+          storeName: "Yakaboo",
+        },
+        ownershipStatus: "in_transit",
+      })}
+      mode="edit"
+    />
+  ),
+};
+
+export const CancelWithDirtyFormConfirms: StoryObj<typeof BookForm> = {
+  play: async ({ canvas }) => {
+    mockFetch(taxonomyHandler());
+    const surface = within(document.body);
+
+    const titleInput = canvas.getByLabelText("Назва");
+    await userEvent.type(titleInput, " (чернетка)");
+
+    await userEvent.click(canvas.getByRole("button", { name: "Скасувати" }));
+
+    await waitFor(async () => {
+      await expect(surface.getByText("Скасувати зміни?")).toBeVisible();
     });
   },
   render: () => <BookForm book={makeBook()} mode="edit" />,

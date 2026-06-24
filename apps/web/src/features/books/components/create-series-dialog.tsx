@@ -14,20 +14,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NumberStepper } from "@/components/ui/number-stepper";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 import type { SeriesSelection } from "../model/create-book-form";
 
 import { SERIES_STATUS_OPTIONS } from "../model/book-classification-fields";
 import { NewSeriesInputSchema } from "../model/create-book-form";
+import { StatusChipGroup } from "./status-chip-group";
 
 const NAME_MAX = 120;
 const DESCRIPTION_MAX = 300;
@@ -63,17 +56,15 @@ export function CreateSeriesDialog({
           <DialogTitle>{t("series.create.title")}</DialogTitle>
           <DialogDescription>{t("series.create.description")}</DialogDescription>
         </DialogHeader>
-        {open ? (
-          <CreateSeriesForm
-            initialName={initialName}
-            key={initialName}
-            onCancel={() => onOpenChange(false)}
-            onConfirm={(selection) => {
-              onConfirm(selection);
-              onOpenChange(false);
-            }}
-          />
-        ) : null}
+        <CreateSeriesForm
+          initialName={initialName}
+          key={initialName}
+          onCancel={() => onOpenChange(false)}
+          onConfirm={(selection) => {
+            onConfirm(selection);
+            onOpenChange(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -83,18 +74,19 @@ function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesForm
   const t = useTranslations("books");
   const [name, setName] = useState(initialName);
   const [status, setStatus] = useState<SeriesStatusValue>("unknown");
-  const [totalBooks, setTotalBooks] = useState(0);
+  const [totalBooks, setTotalBooks] = useState<number | undefined>(undefined);
   const [description, setDescription] = useState("");
   const [nameError, setNameError] = useState<string | undefined>(undefined);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    event.stopPropagation();
     const trimmedDescription = description.trim();
     const parsed = NewSeriesInputSchema.safeParse({
       description: trimmedDescription.length > 0 ? trimmedDescription : undefined,
       name,
       status,
-      totalBooks: totalBooks > 0 ? totalBooks : undefined,
+      totalBooks: totalBooks !== undefined && totalBooks > 0 ? totalBooks : undefined,
     });
 
     if (!parsed.success) {
@@ -131,39 +123,42 @@ function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesForm
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="flex flex-1 flex-col gap-2">
-          <Label htmlFor="new-series-status">{t("series.create.status")}</Label>
-          <Select onValueChange={(value) => setStatus(value as SeriesStatusValue)} value={status}>
-            <SelectTrigger className="h-10 w-full" id="new-series-status">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SERIES_STATUS_OPTIONS.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {t(`series.statusLabels.${value}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="flex flex-col gap-2">
+        <Label>{t("series.create.status")}</Label>
+        <StatusChipGroup
+          label={t("series.create.status")}
+          onValueChange={(value) => setStatus(value as SeriesStatusValue)}
+          options={SERIES_STATUS_OPTIONS.map((value) => ({
+            label: t(`series.statusLabels.${value}`),
+            value,
+          }))}
+          value={status}
+        />
+      </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="new-series-total-books">{t("series.create.totalBooks")}</Label>
-          <NumberStepper
-            ariaLabel={t("series.create.totalBooks")}
-            max={TOTAL_BOOKS_MAX}
-            min={0}
-            onValueChange={setTotalBooks}
-            size="sm"
-            value={totalBooks}
-          />
-        </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="new-series-total-books">
+          {t("series.create.totalBooks")}{" "}
+          <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
+        </Label>
+        <Input
+          autoComplete="off"
+          className="h-10 sm:w-40"
+          id="new-series-total-books"
+          inputMode="numeric"
+          max={TOTAL_BOOKS_MAX}
+          min={1}
+          onChange={(event) => setTotalBooks(emptyToInteger(event.target.value))}
+          placeholder={t("series.create.totalBooksPlaceholder")}
+          step={1}
+          type="number"
+          value={totalBooks ?? ""}
+        />
       </div>
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="new-series-description">
-          {t("series.create.descriptionLabel")}
+          {t("series.create.descriptionLabel")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
         </Label>
         <Textarea
@@ -190,4 +185,11 @@ function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesForm
       </DialogFooter>
     </form>
   );
+}
+
+function emptyToInteger(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isInteger(parsed) ? parsed : undefined;
 }

@@ -44,15 +44,13 @@ export function CreateListDialog({ onConfirm, onOpenChange, open }: CreateListDi
           <DialogTitle>{t("list.create.title")}</DialogTitle>
           <DialogDescription>{t("list.create.description")}</DialogDescription>
         </DialogHeader>
-        {open ? (
-          <CreateListForm
-            onCancel={() => onOpenChange(false)}
-            onConfirm={(draft) => {
-              onConfirm(draft);
-              onOpenChange(false);
-            }}
-          />
-        ) : null}
+        <CreateListForm
+          onCancel={() => onOpenChange(false)}
+          onConfirm={(draft) => {
+            onConfirm(draft);
+            onOpenChange(false);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -66,6 +64,7 @@ function CreateListForm({ onCancel, onConfirm }: CreateListFormProps) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    event.stopPropagation();
     const trimmedDescription = description.trim();
     const parsed = NewListInputSchema.safeParse({
       description: trimmedDescription.length > 0 ? trimmedDescription : undefined,
@@ -108,7 +107,7 @@ function CreateListForm({ onCancel, onConfirm }: CreateListFormProps) {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="new-list-description">
-          {t("list.create.descriptionLabel")}
+          {t("list.create.descriptionLabel")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
         </Label>
         <Textarea

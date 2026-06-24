@@ -285,6 +285,39 @@ export const TagSuggestionAddsExisting: Story = {
   },
 };
 
+export const TagShorterThanTwoCharsRejected: Story = {
+  play: async ({ canvas }) => {
+    mockFetch(taxonomyHandler());
+
+    const tagsInput = canvas.getByLabelText("Теги");
+    await userEvent.type(tagsInput, "a{enter}");
+
+    await waitFor(async () => {
+      await expect(canvas.getByText("Тег має містити щонайменше 2 символи.")).toBeVisible();
+    });
+    await expect(canvas.queryByRole("button", { name: /^Видалити тег/ })).toBeNull();
+  },
+};
+
+export const SeriesModalStatusIsChipGroup: Story = {
+  play: async ({ canvas }) => {
+    mockFetch(taxonomyHandler());
+    const surface = within(document.body);
+
+    await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
+
+    const seriesInput = canvas.getByLabelText("Серія");
+    await userEvent.click(seriesInput);
+    await userEvent.type(seriesInput, "Відьмак");
+    await userEvent.click(await surface.findByText(/Створити «Відьмак»/));
+
+    const dialog = within(await surface.findByRole("dialog"));
+    await expect(dialog.getByRole("radio", { checked: true, name: "Невідомо" })).toBeVisible();
+    await userEvent.click(dialog.getByRole("radio", { name: "Завершено" }));
+    await expect(dialog.getByRole("radio", { checked: true, name: "Завершено" })).toBeVisible();
+  },
+};
+
 export const SeriesPartRevealsFields: Story = {
   play: async ({ canvas }) => {
     mockFetch(taxonomyHandler());
@@ -579,5 +612,121 @@ export const CreateListModalAddsDraft: Story = {
     await waitFor(() => expect(createPayload).not.toBeNull());
     const payload = createPayload as { newLists?: { name: string }[] };
     await expect(payload.newLists?.[0]?.name).toBe("Українська проза");
+  },
+};
+
+export const ListDialogSubmitDoesNotSubmitBookForm: Story = {
+  play: async ({ canvas }) => {
+    let createPayload: unknown = null;
+    mockFetch(
+      taxonomyHandler((path, init) => {
+        if (path.includes("/api/books") && init?.method === "POST") {
+          createPayload = JSON.parse(String(init.body));
+          return jsonResponse(201, {});
+        }
+        return emptyAuthorSearch;
+      }),
+    );
+    const surface = within(document.body);
+
+    await userEvent.type(canvas.getByLabelText("Назва"), "Лісова пісня");
+    const authorInput = canvas.getByLabelText("Автор");
+    await userEvent.click(authorInput);
+    await userEvent.type(authorInput, "Леся Українка");
+    await userEvent.click(await surface.findByText(/Використати/));
+
+    await userEvent.click(canvas.getByRole("button", { name: "Новий список" }));
+
+    const dialog = within(await surface.findByRole("dialog"));
+    await userEvent.type(dialog.getByLabelText("Назва списку"), "Класика");
+    await userEvent.click(dialog.getByRole("button", { name: "Створити список" }));
+
+    await waitFor(() => expect(surface.queryByRole("dialog")).toBeNull());
+    await expect(canvas.getByText("Класика")).toBeVisible();
+    await expect(createPayload).toBeNull();
+  },
+};
+
+export const SeriesDialogSubmitDoesNotSubmitBookForm: Story = {
+  play: async ({ canvas }) => {
+    let createPayload: unknown = null;
+    mockFetch(
+      taxonomyHandler((path, init) => {
+        if (path.includes("/api/books") && init?.method === "POST") {
+          createPayload = JSON.parse(String(init.body));
+          return jsonResponse(201, {});
+        }
+        return emptyAuthorSearch;
+      }),
+    );
+    const surface = within(document.body);
+
+    await userEvent.type(canvas.getByLabelText("Назва"), "Чорна рада");
+    const authorInput = canvas.getByLabelText("Автор");
+    await userEvent.click(authorInput);
+    await userEvent.type(authorInput, "Пантелеймон Куліш");
+    await userEvent.click(await surface.findByText(/Використати/));
+
+    await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
+
+    const seriesInput = canvas.getByLabelText("Серія");
+    await userEvent.click(seriesInput);
+    await userEvent.type(seriesInput, "Хроніки");
+    await userEvent.click(await surface.findByText(/Створити «Хроніки»/));
+
+    const dialog = within(await surface.findByRole("dialog"));
+    await userEvent.click(dialog.getByRole("button", { name: "Створити серію" }));
+
+    await waitFor(() => expect(surface.queryByRole("dialog")).toBeNull());
+    await expect(await surface.findByText(/Нова серія «Хроніки»/)).toBeVisible();
+    await expect(createPayload).toBeNull();
+  },
+};
+
+export const ListDialogResetsAfterCancel: Story = {
+  play: async ({ canvas }) => {
+    mockFetch(taxonomyHandler());
+    const surface = within(document.body);
+
+    await userEvent.click(canvas.getByRole("button", { name: "Новий список" }));
+    const firstOpen = within(await surface.findByRole("dialog"));
+    await userEvent.type(firstOpen.getByLabelText("Назва списку"), "Чернетка");
+    await userEvent.click(firstOpen.getByRole("button", { name: "Скасувати" }));
+    await waitFor(() => expect(surface.queryByRole("dialog")).toBeNull());
+
+    await userEvent.click(canvas.getByRole("button", { name: "Новий список" }));
+    const secondOpen = within(await surface.findByRole("dialog"));
+    await expect(secondOpen.getByLabelText("Назва списку")).toHaveValue("");
+  },
+};
+
+export const EnterInTitleDoesNotSubmit: Story = {
+  play: async ({ canvas }) => {
+    let createPayload: unknown = null;
+    mockFetch(
+      taxonomyHandler((path, init) => {
+        if (path.includes("/api/books") && init?.method === "POST") {
+          createPayload = JSON.parse(String(init.body));
+          return jsonResponse(201, {});
+        }
+        return emptyAuthorSearch;
+      }),
+    );
+    const surface = within(document.body);
+
+    await userEvent.type(canvas.getByLabelText("Назва"), "Енеїда");
+    const authorInput = canvas.getByLabelText("Автор");
+    await userEvent.click(authorInput);
+    await userEvent.type(authorInput, "Іван Котляревський");
+    await userEvent.click(await surface.findByText(/Використати/));
+
+    const titleInput = canvas.getByLabelText("Назва");
+    await userEvent.click(titleInput);
+    await userEvent.keyboard("{Enter}");
+
+    await expect(createPayload).toBeNull();
+
+    await userEvent.click(canvas.getByRole("button", { name: /Додати книгу/ }));
+    await waitFor(() => expect(createPayload).not.toBeNull());
   },
 };

@@ -156,6 +156,7 @@ function Multiselect({
                   const selected = value.includes(option.value);
                   return (
                     <CommandItem
+                      className="cursor-pointer"
                       key={option.value}
                       keywords={[option.label]}
                       onSelect={() => toggle(option.value)}

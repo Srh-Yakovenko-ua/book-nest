@@ -28,6 +28,13 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
   const dedicationValue = useWatch({ control, defaultValue: undefined, name: "dedication" }) ?? "";
   const dedicationLength = typeof dedicationValue === "string" ? dedicationValue.length : 0;
 
+  const pagesCountValue = useWatch({ control, name: "pagesCount" });
+  const currentPageValue = useWatch({ control, name: "readingProgress.currentPage" });
+  const showCurrentPageWarning =
+    typeof pagesCountValue === "number" &&
+    typeof currentPageValue === "number" &&
+    currentPageValue > pagesCountValue;
+
   return (
     <FormSection
       description={t("editionDetails.description")}
@@ -37,7 +44,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="flex flex-1 flex-col gap-2">
           <Label htmlFor="book-pages-count">
-            {t("editionDetails.fields.pagesCount")}
+            {t("editionDetails.fields.pagesCount")}{" "}
             <span className="text-xs font-normal text-muted-foreground">
               {t("fields.optional")}
             </span>
@@ -56,11 +63,16 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
             {...register("pagesCount", { setValueAs: emptyToInteger })}
           />
           <FieldError error={errors.pagesCount} id="book-pages-count-error" />
+          {showCurrentPageWarning ? (
+            <p className="text-xs text-warning" role="status">
+              {t("editionDetails.currentPageWarning")}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-1 flex-col gap-2">
           <Label htmlFor="book-publication-year">
-            {t("editionDetails.fields.publicationYear")}
+            {t("editionDetails.fields.publicationYear")}{" "}
             <span className="text-xs font-normal text-muted-foreground">
               {t("fields.optional")}
             </span>
@@ -83,7 +95,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="book-isbn">
-          {t("editionDetails.fields.isbn")}
+          {t("editionDetails.fields.isbn")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
         </Label>
         <Input
@@ -100,7 +112,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="book-original-title">
-          {t("editionDetails.fields.originalTitle")}
+          {t("editionDetails.fields.originalTitle")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
         </Label>
         <Input
@@ -118,7 +130,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="flex flex-1 flex-col gap-2">
           <Label htmlFor="book-translator">
-            {t("editionDetails.fields.translator")}
+            {t("editionDetails.fields.translator")}{" "}
             <span className="text-xs font-normal text-muted-foreground">
               {t("fields.optional")}
             </span>
@@ -137,7 +149,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
 
         <div className="flex flex-1 flex-col gap-2">
           <Label htmlFor="book-illustrator">
-            {t("editionDetails.fields.illustrator")}
+            {t("editionDetails.fields.illustrator")}{" "}
             <span className="text-xs font-normal text-muted-foreground">
               {t("fields.optional")}
             </span>
@@ -157,7 +169,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="book-dedication">
-          {t("editionDetails.fields.dedication")}
+          {t("editionDetails.fields.dedication")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
         </Label>
         <Textarea

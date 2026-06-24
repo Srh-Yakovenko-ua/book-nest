@@ -16,7 +16,6 @@ import { Label } from "@/components/ui/label";
 import { Multiselect } from "@/components/ui/multiselect";
 import { Switch } from "@/components/ui/switch";
 
-import type { BookFormMode } from "../model/book-form-mode";
 import type { CreateBookFormValues } from "../model/create-book-form";
 
 import { useListsSearch } from "../api/use-lists-search";
@@ -34,14 +33,14 @@ import { StatusChipGroup } from "./status-chip-group";
 type LibraryOrganizationSectionProps = {
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
-  mode: BookFormMode;
+  onRequestQueueRemoval?: (apply: () => void) => void;
   setValue: UseFormSetValue<CreateBookFormValues>;
 };
 
 export function LibraryOrganizationSection({
   control,
   errors,
-  mode,
+  onRequestQueueRemoval,
   setValue,
 }: LibraryOrganizationSectionProps) {
   const t = useTranslations("books");
@@ -49,10 +48,9 @@ export function LibraryOrganizationSection({
   const queueSwitchId = useId();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const addToReadingQueue =
-    useWatch({ control, defaultValue: false, name: "addToReadingQueue" }) ?? false;
-  const listIds = useWatch({ control, defaultValue: [], name: "listIds" }) ?? [];
-  const newLists = useWatch({ control, defaultValue: [], name: "newLists" }) ?? [];
+  const addToReadingQueue = useWatch({ control, name: "addToReadingQueue" }) ?? false;
+  const listIds = useWatch({ control, name: "listIds" }) ?? [];
+  const newLists = useWatch({ control, name: "newLists" }) ?? [];
 
   const { data: lists = [] } = useListsSearch("");
 
@@ -64,11 +62,19 @@ export function LibraryOrganizationSection({
   const listsErrorMessage =
     typeof errors.listIds?.message === "string" ? errors.listIds.message : undefined;
 
-  function handleQueueChange(checked: boolean) {
+  function applyQueueChange(checked: boolean) {
     setValue("addToReadingQueue", checked, { shouldValidate: true });
     setValue("queuePriority", checked ? QUEUE_PRIORITY_DEFAULT : undefined, {
       shouldValidate: true,
     });
+  }
+
+  function handleQueueChange(checked: boolean) {
+    if (!checked && onRequestQueueRemoval) {
+      onRequestQueueRemoval(() => applyQueueChange(false));
+      return;
+    }
+    applyQueueChange(checked);
   }
 
   function addDraft(draft: ListDraft) {
@@ -107,48 +113,46 @@ export function LibraryOrganizationSection({
         />
       </div>
 
-      {mode === "create" ? (
-        <div className="flex flex-col gap-4 rounded-md border border-border bg-secondary/40 px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <Label className="cursor-pointer" htmlFor={queueSwitchId}>
-              <UiIcon className="text-primary" name="bookmark" size={18} />
-              {t("organization.queue")}
-            </Label>
+      <div className="flex flex-col gap-4 rounded-md border border-border bg-secondary/40 px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          <Label className="cursor-pointer" htmlFor={queueSwitchId}>
+            <UiIcon className="text-primary" name="bookmark" size={18} />
+            {t("organization.queue")}
+          </Label>
+          <Controller
+            control={control}
+            name="addToReadingQueue"
+            render={({ field }) => (
+              <Switch
+                checked={field.value ?? false}
+                id={queueSwitchId}
+                onCheckedChange={handleQueueChange}
+              />
+            )}
+          />
+        </div>
+
+        {addToReadingQueue ? (
+          <div className="flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">
+            <Label>{t("organization.queuePriority")}</Label>
             <Controller
               control={control}
-              name="addToReadingQueue"
+              name="queuePriority"
               render={({ field }) => (
-                <Switch
-                  checked={field.value ?? false}
-                  id={queueSwitchId}
-                  onCheckedChange={handleQueueChange}
+                <StatusChipGroup
+                  label={t("organization.queuePriority")}
+                  onValueChange={field.onChange}
+                  options={QUEUE_PRIORITY_OPTIONS.map((value) => ({
+                    label: t(`organization.priorityLabels.${value}`),
+                    value,
+                  }))}
+                  value={field.value ?? QUEUE_PRIORITY_DEFAULT}
                 />
               )}
             />
           </div>
-
-          {addToReadingQueue ? (
-            <div className="flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">
-              <Label>{t("organization.queuePriority")}</Label>
-              <Controller
-                control={control}
-                name="queuePriority"
-                render={({ field }) => (
-                  <StatusChipGroup
-                    label={t("organization.queuePriority")}
-                    onValueChange={field.onChange}
-                    options={QUEUE_PRIORITY_OPTIONS.map((value) => ({
-                      label: t(`organization.priorityLabels.${value}`),
-                      value,
-                    }))}
-                    value={field.value ?? QUEUE_PRIORITY_DEFAULT}
-                  />
-                )}
-              />
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="book-lists">{t("organization.lists")}</Label>
