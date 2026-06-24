@@ -81,3 +81,17 @@ export const BackToRequestStep: Story = {
     });
   },
 };
+
+export const RateLimited: Story = {
+  beforeEach: () => {
+    mockFetch(429, { message: "Too many requests", requestId: "test" });
+  },
+  play: async ({ canvas }) => {
+    await userEvent.type(canvas.getByLabelText(/пошта|email/i), "reader@example.com");
+    await userEvent.click(canvas.getByRole("button", { name: /надіслати інструкції|send/i }));
+    await waitFor(async () => {
+      await expect(canvas.getByText(/забагато спроб|too many attempts/i)).toBeVisible();
+    });
+    await expect(canvas.queryByText(/перевір свою пошту|check your inbox/i)).toBeNull();
+  },
+};

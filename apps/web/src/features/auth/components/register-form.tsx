@@ -19,6 +19,7 @@ import { useRegister } from "../api/use-register";
 import { useResendVerification } from "../api/use-resend-verification";
 import { type AuthErrorKey, resolveServerError } from "../lib/auth-error-messages";
 import { suggestEmailDomain } from "../lib/email-suggestion";
+import { DEFAULT_RESEND_COOLDOWN_SECONDS } from "../lib/resend-cooldown";
 import { RegisterFormSchema, type RegisterFormValues } from "../model/form-schemas";
 import { AuthFieldError } from "./auth-field-error";
 import { AuthHeading } from "./auth-heading";
@@ -79,6 +80,7 @@ export function RegisterForm() {
     return (
       <div className="flex flex-col">
         <EmailSentPanel
+          cooldownSeconds={register.data.cooldownSeconds ?? DEFAULT_RESEND_COOLDOWN_SECONDS}
           hint={t("register.checkInboxHint")}
           lead={t("register.verificationSent", { email: register.data.email })}
           onResend={() => resend.mutate({ email: register.data.email })}

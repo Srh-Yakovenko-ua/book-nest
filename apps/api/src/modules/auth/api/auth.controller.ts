@@ -125,10 +125,12 @@ export class AuthController {
   @HttpCode(HTTP_STATUS.CREATED)
   @Post("registration")
   @Throttle({ default: { limit: REGISTRATION_LIMIT, ttl: seconds(REGISTRATION_TTL_SECONDS) } })
-  register(
+  async register(
     @Body(new ZodBodyPipe(RegistrationInputSchema)) body: RegistrationInputDto,
   ): Promise<RegistrationResultView> {
-    return this.authService.register(body);
+    const result = await this.authService.register(body);
+
+    return { ...result, cooldownSeconds: env.resendCooldownSeconds };
   }
 
   @ApiBadRequestResponse({ description: "Invalid or expired verification link" })
@@ -222,10 +224,10 @@ export class AuthController {
   @Throttle({ default: { limit: RESEND_LIMIT, ttl: seconds(RESEND_TTL_SECONDS) } })
   async resendVerification(
     @Body(new ZodBodyPipe(ResendVerificationSchema)) body: ResendVerificationInputDto,
-  ): Promise<{ status: RegistrationResultView["status"] }> {
+  ): Promise<{ cooldownSeconds: number; status: RegistrationResultView["status"] }> {
     await this.emailVerificationService.resend(body.email);
 
-    return { status: VERIFICATION_SENT };
+    return { cooldownSeconds: env.resendCooldownSeconds, status: VERIFICATION_SENT };
   }
 
   @ApiBody({ type: ForgotPasswordInputDto })
@@ -241,7 +243,7 @@ export class AuthController {
   ): Promise<ForgotPasswordResultView> {
     await this.passwordResetService.requestReset(body.email);
 
-    return { status: RESET_EMAIL_SENT };
+    return { cooldownSeconds: env.resendCooldownSeconds, status: RESET_EMAIL_SENT };
   }
 
   @ApiBadRequestResponse({ description: "Invalid or expired reset link" })

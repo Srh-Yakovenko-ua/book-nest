@@ -6,6 +6,7 @@ import type { MailService } from "../../mail/application/mail.service.js";
 import type { PasswordResetTokensRepository } from "../infrastructure/password-reset-tokens.repository.js";
 import type { SessionsRepository } from "../infrastructure/sessions.repository.js";
 import type { UsersRepository } from "../infrastructure/users.repository.js";
+import type { EmailVerificationService } from "./email-verification.service.js";
 import type { PasswordService } from "./password.service.js";
 import type { TokenService } from "./token.service.js";
 
@@ -13,6 +14,7 @@ import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { PasswordResetService } from "./password-reset.service.js";
 
 type Mocks = {
+  emailVerificationService: EmailVerificationService;
   mailService: MailService;
   passwordService: PasswordService;
   prisma: PrismaService;
@@ -57,6 +59,10 @@ function buildService(overrides: {
     hash: vi.fn().mockResolvedValue("new-password-hash"),
   } as unknown as PasswordService;
 
+  const emailVerificationService = {
+    resend: vi.fn().mockResolvedValue(undefined),
+  } as unknown as EmailVerificationService;
+
   const mailService = {
     sendPasswordChangedEmail: vi.fn().mockResolvedValue(undefined),
     sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
@@ -74,12 +80,14 @@ function buildService(overrides: {
     sessionsRepository,
     tokenService,
     passwordService,
+    emailVerificationService,
     mailService,
     prisma,
   );
 
   return {
     mocks: {
+      emailVerificationService,
       mailService,
       passwordService,
       prisma,
@@ -161,15 +169,25 @@ describe("PasswordResetService.requestReset", () => {
     expect(mocks.mailService.sendPasswordResetEmail).not.toHaveBeenCalled();
   });
 
-  it("does nothing for a known but unverified user", async () => {
+  it("resends a verification email and sends no reset email for a known unverified user", async () => {
     const { mocks, service } = buildService({
       findByEmail: userModel({ emailVerifiedAt: null }),
     });
 
     await service.requestReset("reader@example.com");
 
+    expect(mocks.emailVerificationService.resend).toHaveBeenCalledTimes(1);
+    expect(mocks.emailVerificationService.resend).toHaveBeenCalledWith("reader@example.com");
     expect(mocks.tokensRepository.create).not.toHaveBeenCalled();
     expect(mocks.mailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+
+  it("does not resend verification for a verified user", async () => {
+    const { mocks, service } = buildService({ findByEmail: userModel() });
+
+    await service.requestReset("reader@example.com");
+
+    expect(mocks.emailVerificationService.resend).not.toHaveBeenCalled();
   });
 
   it("skips issuing and sends nothing when the latest token is younger than the cooldown", async () => {

@@ -77,7 +77,6 @@ export function VerifyEmailScreen({ token }: VerifyEmailScreenProps) {
     <div className="flex flex-col items-center text-center" role="status">
       <BigIcon name="refresh" spinning tone="neutral" />
       <AuthHeading subtitle={t("verify.subtitle")} title={t("verify.title")} />
-      <span className="sr-only">{t("verify.subtitle")}</span>
     </div>
   );
 }
@@ -129,11 +128,11 @@ function VerifyEmailSuccess({ destination }: { destination: string }) {
 
   return (
     <div className="flex flex-col items-center text-center">
-      <BigIcon name="check-circle" tone="success" />
-      <AuthHeading title={t("verify.success")} />
-      <p aria-live="polite" className="mt-2 text-base text-muted-foreground">
-        {t("verify.redirecting", { seconds })}
-      </p>
+      <div className="flex flex-col items-center" role="status">
+        <BigIcon name="check-circle" tone="success" />
+        <AuthHeading title={t("verify.success")} />
+      </div>
+      <p className="mt-2 text-base text-muted-foreground">{t("verify.redirecting", { seconds })}</p>
       <Button
         className="mt-6 h-12 w-full rounded-md text-base font-semibold"
         onClick={goNow}

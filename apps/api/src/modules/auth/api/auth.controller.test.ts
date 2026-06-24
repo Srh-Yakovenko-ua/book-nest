@@ -151,7 +151,11 @@ describe("POST /api/auth/registration", () => {
     const res = await request(app.getHttpServer()).post("/api/auth/registration").send(validBody);
 
     expect(res.status).toBe(201);
-    expect(res.body).toEqual({ email: "reader@example.com", status: "verification_sent" });
+    expect(res.body).toEqual({
+      cooldownSeconds: env.resendCooldownSeconds,
+      email: "reader@example.com",
+      status: "verification_sent",
+    });
     expect(res.body).not.toHaveProperty("accessToken");
   });
 
@@ -255,7 +259,11 @@ describe("POST /api/auth/registration", () => {
       .send({ ...validBody, name: "Second Reader" });
 
     expect(res.status).toBe(201);
-    expect(res.body).toEqual({ email: "reader@example.com", status: "verification_sent" });
+    expect(res.body).toEqual({
+      cooldownSeconds: env.resendCooldownSeconds,
+      email: "reader@example.com",
+      status: "verification_sent",
+    });
 
     const userCount = await prisma.user.count();
     const user = await prisma.user.findFirstOrThrow();
@@ -690,7 +698,10 @@ describe("POST /api/auth/resend-verification", () => {
       .send({ email: validBody.email });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: "verification_sent" });
+    expect(res.body).toEqual({
+      cooldownSeconds: env.resendCooldownSeconds,
+      status: "verification_sent",
+    });
   });
 
   it("returns 200 with the same generic status for an unknown email and sends nothing", async () => {
@@ -699,7 +710,10 @@ describe("POST /api/auth/resend-verification", () => {
       .send({ email: "ghost@example.com" });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: "verification_sent" });
+    expect(res.body).toEqual({
+      cooldownSeconds: env.resendCooldownSeconds,
+      status: "verification_sent",
+    });
     expect(sentVerifications).toHaveLength(0);
   });
 
@@ -714,14 +728,20 @@ describe("POST /api/auth/resend-verification", () => {
       .post("/api/auth/resend-verification")
       .send({ email: validBody.email });
 
-    expect(first.body).toEqual({ status: "verification_sent" });
-    expect(second.body).toEqual({ status: "verification_sent" });
+    expect(first.body).toEqual({
+      cooldownSeconds: env.resendCooldownSeconds,
+      status: "verification_sent",
+    });
+    expect(second.body).toEqual({
+      cooldownSeconds: env.resendCooldownSeconds,
+      status: "verification_sent",
+    });
     expect(sentVerifications).toHaveLength(0);
   });
 });
 
 describe("POST /api/auth/forgot-password", () => {
-  it("returns 200 with a generic reset_email_sent status for a verified user", async () => {
+  it("returns 200 with a generic reset_email_sent status and the server cooldown for a verified user", async () => {
     await seedVerifiedUser();
 
     const res = await request(app.getHttpServer())
@@ -729,7 +749,23 @@ describe("POST /api/auth/forgot-password", () => {
       .send({ email: validBody.email });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: "reset_email_sent" });
+    expect(res.body).toEqual({
+      cooldownSeconds: env.resendCooldownSeconds,
+      status: "reset_email_sent",
+    });
+  });
+
+  it("sends the reset email and not a verification email for a verified user", async () => {
+    await seedVerifiedUser();
+    sentResets.length = 0;
+    sentVerifications.length = 0;
+
+    await request(app.getHttpServer())
+      .post("/api/auth/forgot-password")
+      .send({ email: validBody.email });
+
+    expect(sentResets).toHaveLength(1);
+    expect(sentVerifications).toHaveLength(0);
   });
 
   it("creates exactly one password reset token row for a verified user", async () => {
@@ -752,8 +788,34 @@ describe("POST /api/auth/forgot-password", () => {
     const tokenCount = await prisma.passwordResetToken.count();
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ status: "reset_email_sent" });
+    expect(res.body).toEqual({
+      cooldownSeconds: env.resendCooldownSeconds,
+      status: "reset_email_sent",
+    });
     expect(tokenCount).toBe(0);
+  });
+
+  it("resends a verification email and creates no reset token for an unverified user", async () => {
+    await request(app.getHttpServer()).post("/api/auth/registration").send(validBody);
+    await prisma.emailVerificationToken.deleteMany();
+    sentVerifications.length = 0;
+    sentResets.length = 0;
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/forgot-password")
+      .send({ email: validBody.email });
+
+    const resetTokenCount = await prisma.passwordResetToken.count();
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      cooldownSeconds: env.resendCooldownSeconds,
+      status: "reset_email_sent",
+    });
+    expect(sentVerifications).toHaveLength(1);
+    expect(sentVerifications.at(-1)?.to).toBe(validBody.email);
+    expect(sentResets).toHaveLength(0);
+    expect(resetTokenCount).toBe(0);
   });
 });
 
