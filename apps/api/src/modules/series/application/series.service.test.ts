@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { SeriesModel } from "../../../generated/prisma/models.js";
-import type { SeriesRepository } from "../infrastructure/series.repository.js";
+import type { SeriesRepository, SeriesWithBookCount } from "../infrastructure/series.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -16,7 +16,7 @@ function buildService(overrides: {
   findByNormalized?: null | SeriesModel;
   findByNormalizedRetry?: null | SeriesModel;
   findOwnedById?: null | SeriesModel;
-  searchOwned?: SeriesModel[];
+  searchOwned?: SeriesWithBookCount[];
 }): {
   repository: {
     countOwned: ReturnType<typeof vi.fn>;
@@ -68,6 +68,13 @@ function series(overrides: Partial<SeriesModel> = {}): SeriesModel {
     userId: USER_ID,
     ...overrides,
   };
+}
+
+function seriesWithCount(
+  booksInSeries: number,
+  overrides: Partial<SeriesModel> = {},
+): SeriesWithBookCount {
+  return { ...series(overrides), _count: { books: booksInSeries } };
 }
 
 function uniqueConstraintError(): Prisma.PrismaClientKnownRequestError {
@@ -185,7 +192,12 @@ describe("SeriesService.search", () => {
   it("returns a paginator of mapped series views", async () => {
     const { service } = buildService({
       searchOwned: [
-        series({ description: "saga", id: SERIES_ID, status: "ongoing", totalBooks: 3 }),
+        seriesWithCount(2, {
+          description: "saga",
+          id: SERIES_ID,
+          status: "ongoing",
+          totalBooks: 3,
+        }),
       ],
     });
 
@@ -198,6 +210,7 @@ describe("SeriesService.search", () => {
     expect(page).toEqual({
       items: [
         {
+          booksInSeries: 2,
           description: "saga",
           id: SERIES_ID,
           name: "Throne of Glass",
@@ -210,6 +223,30 @@ describe("SeriesService.search", () => {
       pageSize: 10,
       totalCount: 1,
     });
+  });
+
+  it("maps the live linked-book count onto booksInSeries", async () => {
+    const { service } = buildService({ searchOwned: [seriesWithCount(4)] });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items).toEqual([expect.objectContaining({ booksInSeries: 4 })]);
+  });
+
+  it("maps a series with no linked books to a zero count", async () => {
+    const { service } = buildService({ searchOwned: [seriesWithCount(0)] });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items).toEqual([expect.objectContaining({ booksInSeries: 0 })]);
   });
 
   it("computes skip and take from the page coordinates", async () => {

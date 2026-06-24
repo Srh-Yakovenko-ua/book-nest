@@ -690,6 +690,7 @@ describe("BooksService.create series handling", () => {
       create: bookRow({
         partNumber: 1,
         series: {
+          _count: { books: 2 },
           createdAt: new Date("2026-02-01T10:00:00.000Z"),
           description: "YA fantasy saga",
           id: SERIES_ID,
@@ -715,6 +716,7 @@ describe("BooksService.create series handling", () => {
     expect(view.bookType).toBe("series_part");
     expect(view.partNumber).toBe(1);
     expect(view.series).toEqual({
+      booksInSeries: 2,
       description: "YA fantasy saga",
       id: SERIES_ID,
       name: "Throne of Glass",

@@ -1294,6 +1294,7 @@ export type ReadingProgressView = {
 };
 
 export type SeriesView = {
+  booksInSeries: number;
   description: null | string;
   id: string;
   name: string;

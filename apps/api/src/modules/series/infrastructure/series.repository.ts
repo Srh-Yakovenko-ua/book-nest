@@ -13,6 +13,12 @@ export type CreateSeriesData = {
   totalBooks: null | number;
 };
 
+const seriesWithBookCountArgs = {
+  include: { _count: { select: { books: true } } },
+} satisfies Prisma.SeriesDefaultArgs;
+
+export type SeriesWithBookCount = Prisma.SeriesGetPayload<typeof seriesWithBookCountArgs>;
+
 type SearchSeriesInput = {
   query: string | undefined;
   skip: number;
@@ -40,12 +46,13 @@ export class SeriesRepository {
     return this.prisma.series.findFirst({ where: { id, userId } });
   }
 
-  searchOwned({ query, skip, take, userId }: SearchSeriesInput): Promise<SeriesModel[]> {
+  searchOwned({ query, skip, take, userId }: SearchSeriesInput): Promise<SeriesWithBookCount[]> {
     return this.prisma.series.findMany({
       orderBy: { name: "asc" },
       skip,
       take,
       where: buildOwnedWhere(userId, query),
+      ...seriesWithBookCountArgs,
     });
   }
 }

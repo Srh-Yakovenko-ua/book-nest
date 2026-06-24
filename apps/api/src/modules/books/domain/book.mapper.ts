@@ -140,6 +140,7 @@ function toSeriesView(series: BookWithRelations["series"]): null | SeriesView {
   }
 
   return {
+    booksInSeries: series._count.books,
     description: series.description,
     id: series.id,
     name: series.name,

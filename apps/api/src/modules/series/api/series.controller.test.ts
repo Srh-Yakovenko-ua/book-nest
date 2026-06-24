@@ -55,7 +55,54 @@ describe("GET /api/series", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.totalCount).toBe(1);
-    expect(res.body.items[0]).toMatchObject({ name: "Throne of Glass", status: "unknown" });
+    expect(res.body.items[0]).toMatchObject({
+      booksInSeries: 0,
+      name: "Throne of Glass",
+      status: "unknown",
+    });
+  });
+
+  it("computes booksInSeries live from the linked books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await prisma.author.create({
+      data: { name: "Sarah J. Maas", normalizedName: "sarah j maas", userId },
+    });
+    const linked = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", userId },
+    });
+    const empty = await prisma.series.create({
+      data: { name: "A Court of Thorns", normalizedName: "a court of thorns", userId },
+    });
+    await prisma.book.createMany({
+      data: [
+        {
+          authorId: author.id,
+          partNumber: 1,
+          seriesId: linked.id,
+          title: "Throne of Glass",
+          userId,
+        },
+        {
+          authorId: author.id,
+          partNumber: 2,
+          seriesId: linked.id,
+          title: "Crown of Midnight",
+          userId,
+        },
+      ],
+    });
+
+    const res = await searchSeries(accessToken);
+
+    expect(res.status).toBe(200);
+    const byId = new Map<string, number>(
+      res.body.items.map((item: { booksInSeries: number; id: string }) => [
+        item.id,
+        item.booksInSeries,
+      ]),
+    );
+    expect(byId.get(linked.id)).toBe(2);
+    expect(byId.get(empty.id)).toBe(0);
   });
 
   it("does not return another user's series", async () => {

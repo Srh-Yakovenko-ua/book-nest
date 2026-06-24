@@ -6,6 +6,7 @@ import { z } from "zod";
 import { seriesControllerSearch } from "@/shared/api/generated/endpoints/series/series";
 
 const seriesViewSchema = z.object({
+  booksInSeries: z.number(),
   description: z.string().nullable(),
   id: z.string(),
   name: z.string(),
