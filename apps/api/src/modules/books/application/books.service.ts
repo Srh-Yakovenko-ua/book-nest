@@ -51,6 +51,7 @@ import { toBookView } from "../domain/book.mapper.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
+const DUPLICATE_PART_NUMBER_MESSAGE = "A book with this part number already exists in this series";
 
 type QueuePlacement = {
   queuePosition: null | number;
@@ -58,6 +59,11 @@ type QueuePlacement = {
 };
 
 type ScalarFieldKey = keyof Prisma.BookUncheckedUpdateManyInput & keyof UpdateBookInput;
+
+type SeriesPlacement = {
+  partNumber: null | number;
+  seriesId: null | string;
+};
 
 const SCALAR_KEYS = [
   "ageCategory",
@@ -191,6 +197,8 @@ export class BooksService {
         : null;
     const partNumber = input.bookType === "series_part" ? (input.partNumber ?? null) : null;
 
+    await this.assertSeriesPartNumberUnique(userId, null, { partNumber, seriesId });
+
     const deliveryInfo =
       ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
         ? buildDeliveryInfoData(input.deliveryInfo)
@@ -318,7 +326,9 @@ export class BooksService {
             newLists: input.newLists,
           });
 
-    await this.applySeriesFields(userId, fields, input);
+    const seriesPlacement = await this.applySeriesFields(userId, fields, input, current);
+    await this.applyQueueFields(userId, current, fields, input);
+    await this.assertSeriesPartNumberUnique(userId, bookId, seriesPlacement);
 
     assignScalarFields(fields, input);
 
@@ -335,26 +345,60 @@ export class BooksService {
     return toBookView(book);
   }
 
+  private async applyQueueFields(
+    userId: string,
+    current: BookWithRelations,
+    fields: Prisma.BookUncheckedUpdateManyInput,
+    input: UpdateBookInput,
+  ): Promise<void> {
+    const isQueued = current.queuePosition !== null;
+
+    if (input.addToReadingQueue === false) {
+      fields.queuePosition = null;
+      fields.queuePriority = null;
+      return;
+    }
+
+    if (input.addToReadingQueue === true && !isQueued) {
+      const lastPosition = await this.booksRepository.maxQueuePosition(userId);
+      fields.queuePosition = lastPosition + 1;
+      fields.queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
+      return;
+    }
+
+    if (isQueued && input.queuePriority !== undefined) {
+      fields.queuePriority = input.queuePriority;
+    }
+  }
+
   private async applySeriesFields(
     userId: string,
     fields: Prisma.BookUncheckedUpdateManyInput,
     input: UpdateBookInput,
-  ): Promise<void> {
+    current: BookWithRelations,
+  ): Promise<SeriesPlacement> {
     if (input.bookType === undefined) {
-      return;
+      if (current.seriesId !== null && input.partNumber !== undefined) {
+        fields.partNumber = input.partNumber;
+        return { partNumber: input.partNumber, seriesId: current.seriesId };
+      }
+      return { partNumber: current.partNumber, seriesId: current.seriesId };
     }
 
     if (input.bookType === "solo") {
       fields.seriesId = null;
       fields.partNumber = null;
-      return;
+      return { partNumber: null, seriesId: null };
     }
 
-    fields.seriesId = await this.seriesService.resolveForBook(userId, {
+    const seriesId = await this.seriesService.resolveForBook(userId, {
       newSeries: input.newSeries,
       seriesId: input.seriesId,
     });
-    fields.partNumber = input.partNumber ?? null;
+    const partNumber = input.partNumber ?? null;
+    fields.seriesId = seriesId;
+    fields.partNumber = partNumber;
+    return { partNumber, seriesId };
   }
 
   private assertCurrentPageWithinPages(
@@ -400,6 +444,27 @@ export class BooksService {
     throw new BadRequestError("Enter the person's name", {
       fields: [{ field: "loanInfo.personName", message: "Enter the person's name" }],
     });
+  }
+
+  private async assertSeriesPartNumberUnique(
+    userId: string,
+    excludeBookId: null | string,
+    placement: SeriesPlacement,
+  ): Promise<void> {
+    if (placement.seriesId === null || placement.partNumber === null) {
+      return;
+    }
+
+    const conflictExists = await this.booksRepository.existsSeriesPartNumber(userId, {
+      excludeBookId,
+      partNumber: placement.partNumber,
+      seriesId: placement.seriesId,
+    });
+    if (conflictExists) {
+      throw new BadRequestError(DUPLICATE_PART_NUMBER_MESSAGE, {
+        fields: [{ field: "partNumber", message: DUPLICATE_PART_NUMBER_MESSAGE }],
+      });
+    }
   }
 
   private async resolveAuthorId(userId: string, author: BookAuthorReference): Promise<string> {

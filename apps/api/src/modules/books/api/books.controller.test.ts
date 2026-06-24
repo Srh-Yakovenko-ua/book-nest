@@ -74,6 +74,41 @@ describe("POST /api/books", () => {
     expect(res.body.ownershipStatus).toBe("none");
   });
 
+  it("collapses internal whitespace in the title and the custom author name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      author: { name: "Сара Дж.  Маас" },
+      description: "Line one\n\nLine   two",
+      title: "  The   Assassin's    Blade  ",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.title).toBe("The Assassin's Blade");
+    expect(res.body.author.name).toBe("Сара Дж. Маас");
+    expect(res.body.description).toBe("Line one\n\nLine two");
+  });
+
+  it("rejects a title containing an HTML tag but accepts a bare less-than sign", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const tagged = await createBook(accessToken, {
+      author: { name: "Frank Herbert" },
+      title: "Dune <script>alert(1)</script>",
+    });
+    expect(tagged.status).toBe(400);
+    expect(tagged.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "title" })]),
+    );
+
+    const bareLessThan = await createBook(accessToken, {
+      author: { name: "Frank Herbert" },
+      title: "Book <3 forever",
+    });
+    expect(bareLessThan.status).toBe(201);
+    expect(bareLessThan.body.title).toBe("Book <3 forever");
+  });
+
   it("creates a book with genres, a non-default language and age category and echoes them back", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
@@ -831,6 +866,50 @@ describe("POST /api/books series handling", () => {
     expect(res.body.partNumber).toBe(2);
     const seriesRows = await prisma.series.findMany({ where: { userId } });
     expect(seriesRows).toHaveLength(1);
+  });
+
+  it("rejects a second book reusing a part number already taken in the series", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await prisma.author.create({
+      data: { name: "Sarah J. Maas", normalizedName: "sarah j maas", userId },
+    });
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", userId },
+    });
+    await prisma.book.create({
+      data: {
+        authorId: author.id,
+        partNumber: 1,
+        seriesId: existing.id,
+        title: "Throne of Glass",
+        userId,
+      },
+    });
+
+    const duplicate = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      partNumber: 1,
+      seriesId: existing.id,
+      title: "Crown of Midnight",
+    });
+
+    expect(duplicate.status).toBe(400);
+    expect(duplicate.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
+    );
+    expect(await prisma.book.count({ where: { seriesId: existing.id } })).toBe(1);
+
+    const unique = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      partNumber: 2,
+      seriesId: existing.id,
+      title: "Crown of Midnight",
+    });
+
+    expect(unique.status).toBe(201);
+    expect(unique.body.partNumber).toBe(2);
   });
 
   it("returns 400 for a series_part without a part number", async () => {

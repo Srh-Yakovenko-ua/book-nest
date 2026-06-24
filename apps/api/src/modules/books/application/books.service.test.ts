@@ -29,6 +29,7 @@ type Repository = {
   countByUser: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteOwned: ReturnType<typeof vi.fn>;
+  existsSeriesPartNumber: ReturnType<typeof vi.fn>;
   findOwnedById: ReturnType<typeof vi.fn>;
   listByUser: ReturnType<typeof vi.fn>;
   maxQueuePosition: ReturnType<typeof vi.fn>;
@@ -82,6 +83,7 @@ function buildService(
     countByUser?: number;
     create?: BookWithRelations;
     deleteOwned?: number;
+    existsSeriesPartNumber?: boolean;
     findOwnedById?: BookWithRelations | null;
     listByUser?: BookWithRelations[];
     listIds?: string[];
@@ -107,6 +109,7 @@ function buildService(
     countByUser: vi.fn().mockResolvedValue(overrides.countByUser ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
+    existsSeriesPartNumber: vi.fn().mockResolvedValue(overrides.existsSeriesPartNumber ?? false),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
     listByUser: vi.fn().mockResolvedValue(overrides.listByUser ?? []),
     maxQueuePosition: vi.fn().mockResolvedValue(overrides.maxQueuePosition ?? 0),
@@ -724,6 +727,38 @@ describe("BooksService.create series handling", () => {
       totalBooks: 3,
     });
   });
+
+  it("checks the series for a duplicate part number excluding nothing on create", async () => {
+    const { repository, service } = buildService({ seriesId: SERIES_ID });
+
+    await service.create(USER_ID, seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }));
+
+    expect(repository.existsSeriesPartNumber).toHaveBeenCalledWith(USER_ID, {
+      excludeBookId: null,
+      partNumber: 2,
+      seriesId: SERIES_ID,
+    });
+  });
+
+  it("rejects creating a book whose part number is already used in the series", async () => {
+    const { repository, service } = buildService({
+      existsSeriesPartNumber: true,
+      seriesId: SERIES_ID,
+    });
+
+    await expect(
+      service.create(USER_ID, seriesPartInput({ partNumber: 2, seriesId: SERIES_ID })),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it("does not check the series for a solo book", async () => {
+    const { repository, service } = buildService();
+
+    await service.create(USER_ID, seriesPartInput({ bookType: "solo", partNumber: 1 }));
+
+    expect(repository.existsSeriesPartNumber).not.toHaveBeenCalled();
+  });
 });
 
 describe("BooksService.getById", () => {
@@ -1010,6 +1045,81 @@ describe("BooksService.update", () => {
     const data = updateDataFromFirstCall(repository);
     expect(data.fields.seriesId).toBeNull();
     expect(data.fields.partNumber).toBeNull();
+  });
+
+  it("checks the series for a duplicate part number excluding the current book on update", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ partNumber: 4, seriesId: SERIES_ID }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { partNumber: 4 } as UpdateBookInput);
+
+    expect(repository.existsSeriesPartNumber).toHaveBeenCalledWith(USER_ID, {
+      excludeBookId: BOOK_ID,
+      partNumber: 4,
+      seriesId: SERIES_ID,
+    });
+  });
+
+  it("rejects an update whose part number collides with another book in the series", async () => {
+    const { repository, service } = buildService({
+      existsSeriesPartNumber: true,
+      findOwnedById: bookRow({ partNumber: 2, seriesId: SERIES_ID }),
+    });
+
+    await expect(
+      service.update(USER_ID, BOOK_ID, { partNumber: 3 } as UpdateBookInput),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(repository.updateOwned).not.toHaveBeenCalled();
+  });
+
+  it("does not run the part-number check when the book is not in a series", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { title: "Solo" });
+
+    expect(repository.existsSeriesPartNumber).not.toHaveBeenCalled();
+  });
+
+  it("enqueues a book that was not in the queue and appends to the end with the chosen priority", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ queuePosition: null, queuePriority: null }),
+      maxQueuePosition: 4,
+    });
+
+    await service.update(USER_ID, BOOK_ID, {
+      addToReadingQueue: true,
+      queuePriority: "high",
+    } as UpdateBookInput);
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields.queuePosition).toBe(5);
+    expect(data.fields.queuePriority).toBe("high");
+  });
+
+  it("removes a book from the queue when addToReadingQueue is false", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ queuePosition: 2, queuePriority: "normal" }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { addToReadingQueue: false } as UpdateBookInput);
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields.queuePosition).toBeNull();
+    expect(data.fields.queuePriority).toBeNull();
+  });
+
+  it("updates only the priority of an already-queued book and keeps its position", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ queuePosition: 3, queuePriority: "low" }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { queuePriority: "high" } as UpdateBookInput);
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields.queuePosition).toBeUndefined();
+    expect(data.fields.queuePriority).toBe("high");
+    expect(repository.maxQueuePosition).not.toHaveBeenCalled();
   });
 
   it("returns the mapped view from the reread row", async () => {
