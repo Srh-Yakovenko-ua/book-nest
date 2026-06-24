@@ -149,6 +149,22 @@ export class BooksRepository {
     return this.prisma.book.deleteMany({ where: { id, userId } }).then((result) => result.count);
   }
 
+  async existsSeriesPartNumber(
+    userId: string,
+    { excludeBookId, partNumber, seriesId }: SeriesPartNumberQuery,
+  ): Promise<boolean> {
+    const conflict = await this.prisma.book.findFirst({
+      select: { id: true },
+      where: {
+        id: excludeBookId === null ? undefined : { not: excludeBookId },
+        partNumber,
+        seriesId,
+        userId,
+      },
+    });
+    return conflict !== null;
+  }
+
   findOwnedById(userId: string, id: string): Promise<BookWithRelations | null> {
     return this.prisma.book.findFirst({
       include: withRelations,
@@ -217,6 +233,12 @@ type ListBooksInput = {
   sortDirection: Prisma.SortOrder;
   take: number;
   userId: string;
+};
+
+type SeriesPartNumberQuery = {
+  excludeBookId: null | string;
+  partNumber: number;
+  seriesId: string;
 };
 
 async function applyBlockUpsert<TCreate, TUpdate>(

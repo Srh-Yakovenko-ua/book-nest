@@ -632,3 +632,83 @@ describe("PATCH /api/books/:id cross-field validation", () => {
     );
   });
 });
+
+describe("PATCH /api/books/:id series part number", () => {
+  it("rejects an update that reuses a part number held by another book in the series", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const first = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass" },
+      partNumber: 1,
+      title: "Throne of Glass",
+    });
+    const second = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      partNumber: 2,
+      seriesId: first.body.series.id,
+      title: "Crown of Midnight",
+    });
+
+    const res = await updateBook(accessToken, second.body.id, { partNumber: 1 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
+    );
+  });
+
+  it("allows a book to keep its own part number on an unrelated update", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass" },
+      partNumber: 1,
+      title: "Throne of Glass",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { title: "Throne of Glass (rev)" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.partNumber).toBe(1);
+    expect(res.body.title).toBe("Throne of Glass (rev)");
+  });
+});
+
+describe("PATCH /api/books/:id reading queue", () => {
+  it("adds the book to the queue and reflects membership in the returned view", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      author: { name: "Frank Herbert" },
+      title: "Dune",
+    });
+    expect(created.body.isInReadingQueue).toBe(false);
+
+    const res = await updateBook(accessToken, created.body.id, {
+      addToReadingQueue: true,
+      queuePriority: "high",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isInReadingQueue).toBe(true);
+    expect(res.body.queuePriority).toBe("high");
+  });
+
+  it("removes the book from the queue when toggled off", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      addToReadingQueue: true,
+      author: { name: "Frank Herbert" },
+      title: "Dune",
+    });
+    expect(created.body.isInReadingQueue).toBe(true);
+
+    const res = await updateBook(accessToken, created.body.id, { addToReadingQueue: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isInReadingQueue).toBe(false);
+    expect(res.body.queuePriority).toBeNull();
+  });
+});

@@ -57,9 +57,17 @@ const NICKNAME_PATTERN = /^[A-Za-z0-9._]+$/;
 const NICKNAME_EDGES = /^[A-Za-z0-9].*[A-Za-z0-9]$/;
 const NICKNAME_NO_REPEAT = /^(?!.*(?:\.\.|__))/;
 
-const HTML_TAG = /<[^>]*>/;
+const HTML_TAG = /<\/?[a-zA-Z][^>]*>|<!--|<!\w/;
 
 export const noHtmlTags = (value: string): boolean => !HTML_TAG.test(value);
+
+export function collapseHorizontalSpaces(value: string): string {
+  return value.replace(/[^\S\n]+/g, " ").trim();
+}
+
+export function collapseSpaces(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
 
 export const NicknameSchema = z
   .string()
@@ -555,10 +563,10 @@ const BOOK_TITLE_MAX = 150;
 const TAXONOMY_NAME_MIN = 2;
 const TAXONOMY_NAME_MAX = 100;
 const BOOK_DESCRIPTION_MAX = 500;
-const TAG_NAME_MIN = 2;
-const TAG_NAME_MAX = 30;
+export const TAG_NAME_MIN = 2;
+export const TAG_NAME_MAX = 30;
 const BOOK_TAGS_MAX = 12;
-const TAG_ALLOWED = /^[\p{L}\p{N} '’-]+$/u;
+export const TAG_NAME_ALLOWED_CHARS = /^[\p{L}\p{N} '’-]+$/u;
 
 const SERIES_NAME_MIN = 2;
 const SERIES_NAME_MAX = 120;
@@ -596,12 +604,12 @@ const ISBN_13_ODD_WEIGHT = 1;
 const ISBN_13_EVEN_WEIGHT = 3;
 
 export function normalizeName(name: string): string {
-  return name.trim().replace(/\s+/g, " ").toLowerCase();
+  return collapseSpaces(name).toLowerCase();
 }
 
 export const BookTitleSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.min(BOOK_TITLE_MIN, "Enter the book title").max(
       BOOK_TITLE_MAX,
@@ -611,7 +619,7 @@ export const BookTitleSchema = z
 
 export const TaxonomyNameSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.min(TAXONOMY_NAME_MIN, "Name must be at least 2 characters long").max(
       TAXONOMY_NAME_MAX,
@@ -621,16 +629,19 @@ export const TaxonomyNameSchema = z
 
 export const BookDescriptionSchema = z
   .string()
-  .trim()
+  .transform(collapseHorizontalSpaces)
   .pipe(NoHtmlString.max(BOOK_DESCRIPTION_MAX, "Description must be at most 500 characters long"));
 
 export const TagNameSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.min(TAG_NAME_MIN, "Tag must be at least 2 characters long")
       .max(TAG_NAME_MAX, "Tag must be at most 30 characters long")
-      .regex(TAG_ALLOWED, "Tag may contain only letters, digits, spaces, hyphens and apostrophes"),
+      .regex(
+        TAG_NAME_ALLOWED_CHARS,
+        "Tag may contain only letters, digits, spaces, hyphens and apostrophes",
+      ),
   );
 
 export const BookTagsInputSchema = z
@@ -703,38 +714,38 @@ export const IsbnSchema = z
 
 export const OriginalTitleSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.max(BOOK_ORIGINAL_TITLE_MAX, "Original title must be at most 200 characters long"),
   );
 
 export const TranslatorSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.max(BOOK_CONTRIBUTOR_NAME_MAX, "Translator must be at most 100 characters long"),
   );
 
 export const IllustratorSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.max(BOOK_CONTRIBUTOR_NAME_MAX, "Illustrator must be at most 100 characters long"),
   );
 
 export const DedicationSchema = z
   .string()
-  .trim()
+  .transform(collapseHorizontalSpaces)
   .pipe(NoHtmlString.max(BOOK_DEDICATION_MAX, "Dedication must be at most 300 characters long"));
 
 export const ReadingNoteSchema = z
   .string()
-  .trim()
+  .transform(collapseHorizontalSpaces)
   .pipe(NoHtmlString.max(READING_NOTE_MAX, "Note must be at most 300 characters long"));
 
 export const ReadingImpressionSchema = z
   .string()
-  .trim()
+  .transform(collapseHorizontalSpaces)
   .pipe(NoHtmlString.max(READING_IMPRESSION_MAX, "Impression must be at most 500 characters long"));
 
 export const ReadingProgressInputSchema = z
@@ -772,7 +783,7 @@ const OWNERSHIP_PRICE_MIN = 0;
 
 const OwnershipStoreNameSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.max(OWNERSHIP_STORE_NAME_MAX, "Store name must be at most 100 characters long"),
   );
@@ -786,7 +797,7 @@ const OwnershipStoreUrlSchema = z
 
 const OwnershipOrderNumberSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.max(
       OWNERSHIP_ORDER_NUMBER_MAX,
@@ -796,12 +807,12 @@ const OwnershipOrderNumberSchema = z
 
 const OwnershipNoteSchema = z
   .string()
-  .trim()
+  .transform(collapseHorizontalSpaces)
   .pipe(NoHtmlString.max(OWNERSHIP_NOTE_MAX, "Note must be at most 300 characters long"));
 
 const OwnershipPersonNameSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.min(OWNERSHIP_PERSON_NAME_MIN, "Name must be at least 2 characters long").max(
       OWNERSHIP_PERSON_NAME_MAX,
@@ -881,7 +892,7 @@ export type BookType = z.infer<typeof BookTypeSchema>;
 
 export const SeriesNameSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.min(SERIES_NAME_MIN, "Series name must be at least 2 characters long").max(
       SERIES_NAME_MAX,
@@ -891,7 +902,7 @@ export const SeriesNameSchema = z
 
 const SeriesDescriptionSchema = z
   .string()
-  .trim()
+  .transform(collapseHorizontalSpaces)
   .pipe(
     NoHtmlString.max(SERIES_DESCRIPTION_MAX, "Description must be at most 300 characters long"),
   );
@@ -928,7 +939,7 @@ export function ownershipStatusUsesLoan(ownershipStatus: OwnershipStatus): boole
 
 export const ListNameSchema = z
   .string()
-  .trim()
+  .transform(collapseSpaces)
   .pipe(
     NoHtmlString.min(LIST_NAME_MIN, "List name must be at least 2 characters long").max(
       LIST_NAME_MAX,
@@ -938,7 +949,7 @@ export const ListNameSchema = z
 
 export const ListDescriptionSchema = z
   .string()
-  .trim()
+  .transform(collapseHorizontalSpaces)
   .pipe(NoHtmlString.max(LIST_DESCRIPTION_MAX, "Description must be at most 300 characters long"));
 
 export const NewListInputSchema = z.object({
@@ -1072,6 +1083,7 @@ export const CreateBookInputSchema = z
 
 export const UpdateBookInputSchema = z
   .object({
+    addToReadingQueue: z.boolean().optional(),
     ageCategory: AgeCategorySchema.optional(),
     author: BookAuthorReferenceSchema.optional(),
     bookType: BookTypeSchema.optional(),
@@ -1096,6 +1108,7 @@ export const UpdateBookInputSchema = z
     publisherId: z.uuid().optional(),
     publisherName: TaxonomyNameSchema.optional(),
     purchaseInfo: PurchaseInfoInputSchema,
+    queuePriority: QueuePrioritySchema.optional(),
     readingProgress: ReadingProgressInputSchema,
     readingStatus: ReadingStatusSchema.optional(),
     seriesId: z.uuid().optional(),
