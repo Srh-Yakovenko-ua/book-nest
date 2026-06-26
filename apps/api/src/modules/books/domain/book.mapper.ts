@@ -8,6 +8,7 @@ import {
   type DeliveryInfoView,
   DeliveryStatusSchema,
   type LoanInfoView,
+  type MediaView,
   OwnershipStatusSchema,
   type PurchaseInfoView,
   QueuePrioritySchema,
@@ -25,11 +26,12 @@ import { toBookListView } from "../../lists/domain/book-list.mapper.js";
 const toNullableIsoDate = (value: Date | null): null | string =>
   value === null ? null : toIsoDate(value);
 
-export function toBookView(book: BookWithRelations): BookView {
+export function toBookView(book: BookWithRelations, cover: MediaView | null): BookView {
   return {
     ageCategory: AgeCategorySchema.parse(book.ageCategory),
     author: { id: book.author.id, name: book.author.name },
     bookType: book.series === null ? "solo" : "series_part",
+    cover,
     createdAt: book.createdAt.toISOString(),
     dedication: book.dedication,
     deliveryInfo: toDeliveryInfoView(book.deliveryInfo),

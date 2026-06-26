@@ -2,6 +2,7 @@ import type { ApiError, ApiErrorResult } from "@app/shared";
 import type { ArgumentsHost, ExceptionFilter } from "@nestjs/common";
 import type { Request, Response } from "express";
 
+import { MEDIA_MAX_UPLOAD_MB } from "@app/shared";
 import { Catch, HttpException } from "@nestjs/common";
 import { ZodError } from "zod";
 
@@ -72,6 +73,17 @@ function fromBodyParserError(
   return new BadRequestError(err.message);
 }
 
+function fromMulterError(err: Error & { code: string }): HttpError {
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return new HttpError(
+      HTTP_STATUS.PAYLOAD_TOO_LARGE,
+      `File size must not exceed ${MEDIA_MAX_UPLOAD_MB} MB`,
+      { code: "FILE_TOO_LARGE" },
+    );
+  }
+  return new BadRequestError("File upload failed", { code: err.code });
+}
+
 function isBodyParserError(
   err: unknown,
 ): err is Error & { message: string; status: number; type: string } {
@@ -80,9 +92,19 @@ function isBodyParserError(
   );
 }
 
+function isMulterError(err: unknown): err is Error & { code: string } {
+  return (
+    err instanceof Error &&
+    err.name === "MulterError" &&
+    "code" in err &&
+    typeof (err as { code: unknown }).code === "string"
+  );
+}
+
 function toHttpError(err: unknown): HttpError {
   if (err instanceof HttpError) return err;
   if (err instanceof ZodError) return new ValidationError(formatZodError(err));
+  if (isMulterError(err)) return fromMulterError(err);
   if (isBodyParserError(err)) return fromBodyParserError(err);
   if (err instanceof HttpException) {
     const status = err.getStatus();

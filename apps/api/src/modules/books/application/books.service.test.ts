@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AuthorsService } from "../../authors/application/authors.service.js";
 import type { GenresService } from "../../genres/application/genres.service.js";
 import type { ListsService } from "../../lists/application/lists.service.js";
+import type { MediaService } from "../../media/application/media.service.js";
 import type { PublishersService } from "../../publishers/application/publishers.service.js";
 import type { SeriesService } from "../../series/application/series.service.js";
 import type { TagsService } from "../../tags/application/tags.service.js";
@@ -25,6 +26,7 @@ const PUBLISHER_ID = "44444444-4444-4444-8444-444444444444";
 const TAG_ID = "55555555-5555-4555-8555-555555555555";
 const SERIES_ID = "66666666-6666-4666-8666-666666666666";
 const LIST_ID = "77777777-7777-4777-8777-777777777777";
+const MEDIA_ID = "88888888-8888-4888-8888-888888888801";
 
 type Repository = {
   countByUser: ReturnType<typeof vi.fn>;
@@ -42,6 +44,8 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     ageCategory: "not_specified",
     author: { id: AUTHOR_ID, name: "Frank Herbert", normalizedName: "frank herbert" },
     authorId: AUTHOR_ID,
+    coverMedia: null,
+    coverMediaId: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     dedication: null,
     deliveryInfo: null,
@@ -101,6 +105,11 @@ function buildService(
   };
   genresService: { assertGenresSelectable: ReturnType<typeof vi.fn> };
   listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
+  mediaService: {
+    assertOwned: ReturnType<typeof vi.fn>;
+    buildView: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+  };
   publishersService: { resolveOrCreate: ReturnType<typeof vi.fn> };
   repository: Repository;
   seriesService: { resolveForBook: ReturnType<typeof vi.fn> };
@@ -137,6 +146,11 @@ function buildService(
   const genresService = {
     assertGenresSelectable: vi.fn().mockResolvedValue(undefined),
   };
+  const mediaService = {
+    assertOwned: vi.fn().mockResolvedValue(undefined),
+    buildView: vi.fn(),
+    delete: vi.fn().mockResolvedValue(undefined),
+  };
 
   const service = new BooksService(
     repository as unknown as BooksRepository,
@@ -146,12 +160,14 @@ function buildService(
     seriesService as unknown as SeriesService,
     listsService as unknown as ListsService,
     genresService as unknown as GenresService,
+    mediaService as unknown as MediaService,
   );
 
   return {
     authorsService,
     genresService,
     listsService,
+    mediaService,
     publishersService,
     repository,
     seriesService,
@@ -267,6 +283,7 @@ describe("BooksService.create", () => {
       ageCategory: "not_specified",
       author: { id: AUTHOR_ID, name: "Frank Herbert" },
       bookType: "solo",
+      cover: null,
       createdAt: "2026-02-01T10:00:00.000Z",
       dedication: null,
       deliveryInfo: null,
@@ -330,6 +347,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(USER_ID, {
       ageCategory: "16_plus",
       authorId: AUTHOR_ID,
+      coverMediaId: null,
       dedication: null,
       deliveryInfo: null,
       description: null,
@@ -833,17 +851,79 @@ describe("BooksService.getById", () => {
 
 describe("BooksService.delete", () => {
   it("throws NotFoundError when no owned book matched the delete", async () => {
-    const { service } = buildService({ deleteOwned: 0 });
+    const { service } = buildService({ findOwnedById: null });
 
     await expect(service.delete(OTHER_USER_ID, BOOK_ID)).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("deletes the book scoped to the caller when it is owned", async () => {
-    const { repository, service } = buildService({ deleteOwned: 1 });
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
 
     await service.delete(USER_ID, BOOK_ID);
 
     expect(repository.deleteOwned).toHaveBeenCalledWith(USER_ID, BOOK_ID);
+  });
+
+  it("deletes the attached cover media when the deleted book had one", async () => {
+    const { mediaService, service } = buildService({
+      findOwnedById: bookRow({ coverMediaId: MEDIA_ID }),
+    });
+
+    await service.delete(USER_ID, BOOK_ID);
+
+    expect(mediaService.delete).toHaveBeenCalledWith(USER_ID, MEDIA_ID);
+  });
+});
+
+describe("BooksService cover", () => {
+  const minimalInput: CreateBookInput = {
+    addToReadingQueue: false,
+    ageCategory: "not_specified",
+    author: { name: "Frank Herbert" },
+    bookType: "solo",
+    formats: [],
+    genres: [],
+    isFavorite: false,
+    language: "ukrainian",
+    ownershipStatus: "none",
+    readingStatus: "not_started",
+    tags: [],
+    title: "Dune",
+  };
+
+  it("validates ownership of the cover media on create and passes it to the repository", async () => {
+    const { mediaService, repository, service } = buildService();
+
+    await service.create(USER_ID, { ...minimalInput, coverMediaId: MEDIA_ID });
+
+    expect(mediaService.assertOwned).toHaveBeenCalledWith(USER_ID, MEDIA_ID);
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ coverMediaId: MEDIA_ID }),
+    );
+  });
+
+  it("propagates NotFoundError when the cover media is not owned by the caller", async () => {
+    const { mediaService, repository, service } = buildService();
+    mediaService.assertOwned.mockRejectedValue(new NotFoundError("Cover media not found"));
+
+    await expect(
+      service.create(USER_ID, { ...minimalInput, coverMediaId: MEDIA_ID }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it("deletes the previous cover when it is replaced on update", async () => {
+    const previousCoverMediaId = "88888888-8888-4888-8888-888888888802";
+    const { mediaService, service } = buildService({
+      findOwnedById: bookRow({ coverMediaId: previousCoverMediaId }),
+      updateOwned: bookRow({ coverMediaId: MEDIA_ID }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { coverMediaId: MEDIA_ID });
+
+    expect(mediaService.assertOwned).toHaveBeenCalledWith(USER_ID, MEDIA_ID);
+    expect(mediaService.delete).toHaveBeenCalledWith(USER_ID, previousCoverMediaId);
   });
 });
 

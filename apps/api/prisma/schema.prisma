@@ -46,6 +46,7 @@ model User {
   series                  Series[]
   bookLists               BookList[]
   customGenres            Genre[]
+  mediaAssets             MediaAsset[]
 
   @@map("users")
 }
@@ -175,12 +176,14 @@ model Book {
   partNumber      Int?                 @map("part_number")
   queuePriority   String?              @map("queue_priority")
   queuePosition   Int?                 @map("queue_position")
+  coverMediaId    String?              @map("cover_media_id") @db.Uuid
   createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   author          Author               @relation(fields: [authorId], references: [id])
   publisher       Publisher?           @relation(fields: [publisherId], references: [id])
   series          Series?              @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  coverMedia      MediaAsset?          @relation(fields: [coverMediaId], references: [id], onDelete: SetNull)
   tags            BookTag[]
   lists           BookListItem[]
   readingProgress BookReadingProgress?
@@ -190,6 +193,7 @@ model Book {
 
   @@index([userId])
   @@index([seriesId])
+  @@index([coverMediaId])
   @@map("books")
 }
 
@@ -403,4 +407,22 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+model MediaAsset {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  kind         String
+  originalKey  String   @map("original_key")
+  derivatives  Json
+  contentType  String   @map("content_type")
+  width        Int
+  height       Int
+  sizeBytes    Int      @map("size_bytes")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverOfBooks Book[]
+
+  @@index([userId])
+  @@map("media_assets")
 }

@@ -22,6 +22,8 @@ export type FieldError = {
   message: string;
 };
 
+export type Nullable<T> = null | T;
+
 export type Paginator<T> = {
   items: T[];
   page: number;
@@ -29,6 +31,8 @@ export type Paginator<T> = {
   pageSize: number;
   totalCount: number;
 };
+
+export type ValueOf<T> = T[keyof T];
 
 export const LIST_PAGE_SIZE_MAX = 100;
 
@@ -958,6 +962,7 @@ export const CreateBookInputSchema = z
     ageCategory: AgeCategorySchema.default("not_specified"),
     author: BookAuthorReferenceSchema,
     bookType: BookTypeSchema.default("solo"),
+    coverMediaId: z.uuid().nullable().optional(),
     dedication: DedicationSchema.nullable().optional(),
     deliveryInfo: DeliveryInfoInputSchema,
     description: BookDescriptionSchema.nullable().optional(),
@@ -1059,6 +1064,7 @@ export const UpdateBookInputSchema = z
     ageCategory: AgeCategorySchema.optional(),
     author: BookAuthorReferenceSchema.optional(),
     bookType: BookTypeSchema.optional(),
+    coverMediaId: z.uuid().nullable().optional(),
     dedication: DedicationSchema.nullable().optional(),
     deliveryInfo: DeliveryInfoInputSchema,
     description: BookDescriptionSchema.nullable().optional(),
@@ -1195,6 +1201,7 @@ export type BookView = {
   ageCategory: AgeCategory;
   author: { id: string; name: string };
   bookType: BookType;
+  cover?: MediaView | null;
   createdAt: string;
   dedication: null | string;
   deliveryInfo: DeliveryInfoView | null;
@@ -1252,6 +1259,31 @@ export type LoanInfoView = {
   loanDate: null | string;
   note: null | string;
   personName: string;
+};
+
+export const MEDIA_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const MEDIA_MAX_UPLOAD_MB = MEDIA_MAX_UPLOAD_BYTES / (1024 * 1024);
+
+export const MEDIA_DERIVATIVES = ["thumb", "card", "full"] as const;
+export const MediaDerivativeSchema = z.enum(MEDIA_DERIVATIVES);
+export type MediaDerivative = (typeof MEDIA_DERIVATIVES)[number];
+export type MediaDerivativeUrls = Record<MediaDerivative, string>;
+
+export const MediaKindSchema = z.enum(["avatar", "book_cover", "series_cover"]);
+export type MediaKind = z.infer<typeof MediaKindSchema>;
+
+export const MediaUploadInputSchema = z.object({
+  kind: MediaKindSchema.default("book_cover"),
+});
+
+export type MediaUploadInput = z.infer<typeof MediaUploadInputSchema>;
+
+export type MediaView = {
+  height: number;
+  id: string;
+  kind: MediaKind;
+  urls: MediaDerivativeUrls;
+  width: number;
 };
 
 export type PublisherView = {

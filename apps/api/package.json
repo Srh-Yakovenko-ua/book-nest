@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@app/shared": "workspace:*",
+    "@aws-sdk/client-s3": "catalog:",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
     "@nestjs/platform-express": "catalog:",
@@ -40,6 +41,7 @@
     "date-fns": "catalog:",
     "date-fns-tz": "catalog:",
     "dotenv": "catalog:",
+    "file-type": "catalog:",
     "helmet": "catalog:",
     "jose": "catalog:",
     "nestjs-zod": "catalog:",
@@ -50,6 +52,7 @@
     "prom-client": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
+    "sharp": "catalog:",
     "ua-parser-js": "catalog:",
     "zod": "catalog:"
   },

@@ -23,6 +23,7 @@ If you reach for `any`, `!`, or `as`, re-read this doc first — there is almost
 | Branded types for IDs                                | Raw `string` for IDs across layers        |
 | `asserts val is NonNullable<T>`                      | Casts after a null check                  |
 | Utility types (Pick/Omit/Partial/...)                | Handwritten subset types                  |
+| `Nullable<T>` / `ValueOf<T>` from `@app/shared`      | `T \| null` by hand / `T[keyof T]` inline |
 | `unknown` catch variables                            | `any` catch (default is now `unknown`)    |
 
 ---
@@ -219,6 +220,8 @@ pick({ a: 1, b: 2, c: 3 }, ["z"]); // ❌ "z" not in keyof obj
 | `Parameters<F>`  | Function args tuple                                 |
 | `Extract<T, U>`  | Filter a union                                      |
 | `Exclude<T, U>`  | Remove from a union                                 |
+
+**Project utilities** — `@app/shared` ships `Nullable<T> = T | null` and `ValueOf<T> = T[keyof T]`. Prefer them over hand-repeating `T | null` or inlining `T[keyof T]`; both FE and BE import from `@app/shared`, so the convention is one source of truth. Reach for `type-fest` only when a built-in or these don't cover the case (install on demand, not speculatively).
 
 Derive, don't duplicate:
 

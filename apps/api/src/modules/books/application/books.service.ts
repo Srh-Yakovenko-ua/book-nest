@@ -2,6 +2,7 @@ import type {
   BookAuthorReference,
   BookView,
   CreateBookInput,
+  MediaView,
   OwnershipStatus,
   PaginationQuery,
   Paginator,
@@ -27,10 +28,12 @@ import type {
 } from "../infrastructure/books.repository.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { createLogger } from "../../../core/logger.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { AuthorsService } from "../../authors/application/authors.service.js";
 import { GenresService } from "../../genres/application/genres.service.js";
 import { ListsService } from "../../lists/application/lists.service.js";
+import { MediaService } from "../../media/application/media.service.js";
 import { PublishersService } from "../../publishers/application/publishers.service.js";
 import { SeriesService } from "../../series/application/series.service.js";
 import { TagsService } from "../../tags/application/tags.service.js";
@@ -53,6 +56,8 @@ import { BooksRepository, type BookWithRelations } from "../infrastructure/books
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
 const DUPLICATE_PART_NUMBER_MESSAGE = "A book with this part number already exists in this series";
+
+const log = createLogger("books");
 
 type QueuePlacement = {
   queuePosition: null | number;
@@ -171,6 +176,7 @@ export class BooksService {
     private readonly seriesService: SeriesService,
     private readonly listsService: ListsService,
     private readonly genresService: GenresService,
+    private readonly mediaService: MediaService,
   ) {}
 
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
@@ -202,6 +208,10 @@ export class BooksService {
     await this.assertSeriesPartNumberUnique(userId, null, { partNumber, seriesId });
     await this.genresService.assertGenresSelectable(userId, input.genres);
 
+    if (input.coverMediaId != null) {
+      await this.mediaService.assertOwned(userId, input.coverMediaId);
+    }
+
     const deliveryInfo =
       ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
         ? buildDeliveryInfoData(input.deliveryInfo)
@@ -222,6 +232,7 @@ export class BooksService {
     const book = await this.booksRepository.create(userId, {
       ageCategory: input.ageCategory,
       authorId,
+      coverMediaId: input.coverMediaId ?? null,
       dedication: input.dedication ?? null,
       deliveryInfo,
       description: input.description ?? null,
@@ -250,13 +261,17 @@ export class BooksService {
       translator: input.translator ?? null,
     });
 
-    return toBookView(book);
+    return toBookView(book, this.coverViewOf(book));
   }
 
   async delete(userId: string, bookId: string): Promise<void> {
-    const deletedCount = await this.booksRepository.deleteOwned(userId, bookId);
-    if (deletedCount === 0) {
+    const book = await this.booksRepository.findOwnedById(userId, bookId);
+    if (book === null) {
       throw new NotFoundError("Book not found");
+    }
+    await this.booksRepository.deleteOwned(userId, bookId);
+    if (book.coverMediaId !== null) {
+      await this.deleteCoverMedia(userId, book.coverMediaId);
     }
   }
 
@@ -266,7 +281,7 @@ export class BooksService {
       throw new NotFoundError("Book not found");
     }
 
-    return toBookView(book);
+    return toBookView(book, this.coverViewOf(book));
   }
 
   async list(userId: string, pagination: PaginationQuery): Promise<Paginator<BookView>> {
@@ -283,7 +298,7 @@ export class BooksService {
     ]);
 
     return buildPaginator({
-      items: books.map(toBookView),
+      items: books.map((book) => toBookView(book, this.coverViewOf(book))),
       pageNumber,
       pageSize,
       totalCount,
@@ -314,6 +329,13 @@ export class BooksService {
         id: input.publisherId,
         name: input.publisherName,
       });
+    }
+
+    if (input.coverMediaId !== undefined) {
+      if (input.coverMediaId !== null) {
+        await this.mediaService.assertOwned(userId, input.coverMediaId);
+      }
+      fields.coverMediaId = input.coverMediaId;
     }
 
     const tagIds =
@@ -349,7 +371,15 @@ export class BooksService {
       tagIds,
     });
 
-    return toBookView(book);
+    if (
+      input.coverMediaId !== undefined &&
+      current.coverMediaId !== null &&
+      current.coverMediaId !== input.coverMediaId
+    ) {
+      await this.deleteCoverMedia(userId, current.coverMediaId);
+    }
+
+    return toBookView(book, this.coverViewOf(book));
   }
 
   private async applyQueueFields(
@@ -471,6 +501,18 @@ export class BooksService {
       throw new BadRequestError(DUPLICATE_PART_NUMBER_MESSAGE, {
         fields: [{ field: "partNumber", message: DUPLICATE_PART_NUMBER_MESSAGE }],
       });
+    }
+  }
+
+  private coverViewOf(book: BookWithRelations): MediaView | null {
+    return book.coverMedia === null ? null : this.mediaService.buildView(book.coverMedia);
+  }
+
+  private async deleteCoverMedia(userId: string, mediaId: string): Promise<void> {
+    try {
+      await this.mediaService.delete(userId, mediaId);
+    } catch (error) {
+      log.warn({ err: error, mediaId }, "failed to delete cover media");
     }
   }
 
