@@ -29,6 +29,10 @@ export class TagsRepository {
     return this.prisma.tag.create({ data: { name, normalizedName, userId } });
   }
 
+  deleteOwned(userId: string, id: string): Promise<number> {
+    return this.prisma.tag.deleteMany({ where: { id, userId } }).then((result) => result.count);
+  }
+
   findByNormalized(userId: string, normalizedName: string): Promise<null | TagModel> {
     return this.prisma.tag.findFirst({ where: { normalizedName, userId } });
   }

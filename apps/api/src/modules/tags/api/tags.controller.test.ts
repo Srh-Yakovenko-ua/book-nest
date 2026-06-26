@@ -33,6 +33,14 @@ afterAll(async () => {
   await context.close();
 });
 
+const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
+
+function deleteTag(accessToken: string, id: string): request.Test {
+  return request(app.getHttpServer())
+    .delete(`/api/tags/${id}`)
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
 function searchTags(accessToken: string, search?: string): request.Test {
   const path = search === undefined ? "/api/tags" : `/api/tags?search=${search}`;
   return request(app.getHttpServer()).get(path).set("Authorization", `Bearer ${accessToken}`);
@@ -107,5 +115,69 @@ describe("GET /api/tags", () => {
     expect(firstPage.body.pagesCount).toBe(2);
     expect(firstPage.body.items).toHaveLength(2);
     expect(secondPage.body.items).toHaveLength(1);
+  });
+});
+
+describe("DELETE /api/tags/:id", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).delete(`/api/tags/${MISSING_UUID}`);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 204 and removes the tag", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const tag = await prisma.tag.create({
+      data: { name: "dark academia", normalizedName: "dark academia", userId },
+    });
+
+    const res = await deleteTag(accessToken, tag.id);
+
+    expect(res.status).toBe(204);
+    expect(await prisma.tag.count({ where: { id: tag.id } })).toBe(0);
+  });
+
+  it("cascades to book_tags but leaves the book when its tag is deleted", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await prisma.author.create({
+      data: { name: "Frank Herbert", normalizedName: "frank herbert", userId },
+    });
+    const book = await prisma.book.create({
+      data: { authorId: author.id, title: "Dune", userId },
+    });
+    const tag = await prisma.tag.create({
+      data: { name: "dark academia", normalizedName: "dark academia", userId },
+    });
+    await prisma.bookTag.create({ data: { bookId: book.id, tagId: tag.id } });
+
+    const res = await deleteTag(accessToken, tag.id);
+
+    expect(res.status).toBe(204);
+    expect(await prisma.bookTag.count({ where: { tagId: tag.id } })).toBe(0);
+    expect(await prisma.book.count({ where: { id: book.id } })).toBe(1);
+  });
+
+  it("returns 404 when the tag does not exist", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await deleteTag(accessToken, MISSING_UUID);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 and keeps the tag when deleting another user's tag", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const strangerTag = await prisma.tag.create({
+      data: { name: "secret tag", normalizedName: "secret tag", userId: stranger.userId },
+    });
+
+    const res = await deleteTag(owner.accessToken, strangerTag.id);
+
+    expect(res.status).toBe(404);
+    expect(await prisma.tag.count({ where: { id: strangerTag.id } })).toBe(1);
   });
 });

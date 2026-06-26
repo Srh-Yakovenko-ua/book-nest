@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { TagModel } from "../../../generated/prisma/models.js";
 import type { TagsRepository } from "../infrastructure/tags.repository.js";
 
+import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { TagsService } from "./tags.service.js";
 
@@ -14,6 +15,7 @@ function buildService(): {
   repository: {
     countOwned: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    deleteOwned: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
     searchOwned: ReturnType<typeof vi.fn>;
   };
@@ -22,6 +24,7 @@ function buildService(): {
   const repository = {
     countOwned: vi.fn().mockResolvedValue(0),
     create: vi.fn(),
+    deleteOwned: vi.fn().mockResolvedValue(0),
     findByNormalized: vi.fn().mockResolvedValue(null),
     searchOwned: vi.fn().mockResolvedValue([]),
   };
@@ -156,5 +159,22 @@ describe("TagsService.search", () => {
       userId: USER_ID,
     });
     expect(repository.countOwned).toHaveBeenCalledWith({ query: "dark", userId: USER_ID });
+  });
+});
+
+describe("TagsService.delete", () => {
+  it("deletes the owned tag when the repository removes a row", async () => {
+    const { repository, service } = buildService();
+    repository.deleteOwned.mockResolvedValue(1);
+
+    await expect(service.delete(USER_ID, TAG_ID)).resolves.toBeUndefined();
+    expect(repository.deleteOwned).toHaveBeenCalledWith(USER_ID, TAG_ID);
+  });
+
+  it("throws NotFoundError when no row is removed", async () => {
+    const { repository, service } = buildService();
+    repository.deleteOwned.mockResolvedValue(0);
+
+    await expect(service.delete(USER_ID, TAG_ID)).rejects.toThrow(NotFoundError);
   });
 });

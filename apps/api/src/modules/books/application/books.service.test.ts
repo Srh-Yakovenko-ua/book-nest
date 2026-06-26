@@ -3,6 +3,7 @@ import type { CreateBookInput, UpdateBookInput } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { AuthorsService } from "../../authors/application/authors.service.js";
+import type { GenresService } from "../../genres/application/genres.service.js";
 import type { ListsService } from "../../lists/application/lists.service.js";
 import type { PublishersService } from "../../publishers/application/publishers.service.js";
 import type { SeriesService } from "../../series/application/series.service.js";
@@ -98,6 +99,7 @@ function buildService(
     materializeFromOpenLibrary: ReturnType<typeof vi.fn>;
     resolveOrCreate: ReturnType<typeof vi.fn>;
   };
+  genresService: { assertGenresSelectable: ReturnType<typeof vi.fn> };
   listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
   publishersService: { resolveOrCreate: ReturnType<typeof vi.fn> };
   repository: Repository;
@@ -132,6 +134,9 @@ function buildService(
   const listsService = {
     resolveListsForBook: vi.fn().mockResolvedValue(overrides.listIds ?? []),
   };
+  const genresService = {
+    assertGenresSelectable: vi.fn().mockResolvedValue(undefined),
+  };
 
   const service = new BooksService(
     repository as unknown as BooksRepository,
@@ -140,10 +145,12 @@ function buildService(
     tagsService as unknown as TagsService,
     seriesService as unknown as SeriesService,
     listsService as unknown as ListsService,
+    genresService as unknown as GenresService,
   );
 
   return {
     authorsService,
+    genresService,
     listsService,
     publishersService,
     repository,
@@ -305,7 +312,7 @@ describe("BooksService.create", () => {
       author: { name: "Frank Herbert" },
       bookType: "solo",
       formats: ["paper", "ebook"],
-      genres: ["fantasy", "science_fiction"],
+      genres: ["fentezi", "naukova-fantastyka"],
       isFavorite: true,
       language: "english",
       ownershipStatus: "owned",
@@ -327,7 +334,7 @@ describe("BooksService.create", () => {
       deliveryInfo: null,
       description: null,
       formats: ["paper", "ebook"],
-      genres: ["fantasy", "science_fiction"],
+      genres: ["fentezi", "naukova-fantastyka"],
       illustrator: null,
       isbn: null,
       isFavorite: true,
@@ -521,6 +528,53 @@ describe("BooksService.create", () => {
         purchaseInfo: null,
       }),
     );
+  });
+
+  it("asserts the genres are selectable for the caller before creating the book", async () => {
+    const { genresService, service } = buildService();
+    const input: CreateBookInput = {
+      addToReadingQueue: false,
+      ageCategory: "not_specified",
+      author: { name: "Frank Herbert" },
+      bookType: "solo",
+      formats: [],
+      genres: ["fentezi", "romantyka"],
+      isFavorite: false,
+      language: "ukrainian",
+      ownershipStatus: "none",
+      readingStatus: "not_started",
+      tags: [],
+      title: "Dune",
+    };
+
+    await service.create(USER_ID, input);
+
+    expect(genresService.assertGenresSelectable).toHaveBeenCalledWith(USER_ID, [
+      "fentezi",
+      "romantyka",
+    ]);
+  });
+
+  it("propagates a genres validation rejection and does not create the book", async () => {
+    const { genresService, repository, service } = buildService();
+    genresService.assertGenresSelectable.mockRejectedValue(new BadRequestError("Invalid genres"));
+    const input: CreateBookInput = {
+      addToReadingQueue: false,
+      ageCategory: "not_specified",
+      author: { name: "Frank Herbert" },
+      bookType: "solo",
+      formats: [],
+      genres: ["not-a-real-genre"],
+      isFavorite: false,
+      language: "ukrainian",
+      ownershipStatus: "none",
+      readingStatus: "not_started",
+      tags: [],
+      title: "Dune",
+    };
+
+    await expect(service.create(USER_ID, input)).rejects.toBeInstanceOf(BadRequestError);
+    expect(repository.create).not.toHaveBeenCalled();
   });
 });
 
@@ -1224,5 +1278,34 @@ describe("BooksService.update", () => {
     await expect(service.update(USER_ID, BOOK_ID, { pagesCount: 200 })).rejects.toBeInstanceOf(
       BadRequestError,
     );
+  });
+
+  it("asserts the genres are selectable for the caller when genres are provided", async () => {
+    const { genresService, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { genres: ["fentezi", "romantyka"] });
+
+    expect(genresService.assertGenresSelectable).toHaveBeenCalledWith(USER_ID, [
+      "fentezi",
+      "romantyka",
+    ]);
+  });
+
+  it("does not assert genres when the genres field is absent", async () => {
+    const { genresService, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { title: "Renamed" });
+
+    expect(genresService.assertGenresSelectable).not.toHaveBeenCalled();
+  });
+
+  it("propagates a genres validation rejection and does not update the book", async () => {
+    const { genresService, repository, service } = buildService({ findOwnedById: bookRow() });
+    genresService.assertGenresSelectable.mockRejectedValue(new BadRequestError("Invalid genres"));
+
+    await expect(
+      service.update(USER_ID, BOOK_ID, { genres: ["not-a-real-genre"] }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(repository.updateOwned).not.toHaveBeenCalled();
   });
 });

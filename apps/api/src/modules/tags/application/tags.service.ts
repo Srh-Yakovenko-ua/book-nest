@@ -2,6 +2,7 @@ import type { Paginator, TagView, TaxonomySearchPaginationQuery } from "@app/sha
 
 import { Injectable } from "@nestjs/common";
 
+import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
@@ -11,6 +12,13 @@ import { TagsRepository } from "../infrastructure/tags.repository.js";
 @Injectable()
 export class TagsService {
   constructor(private readonly tagsRepository: TagsRepository) {}
+
+  async delete(userId: string, tagId: string): Promise<void> {
+    const deletedCount = await this.tagsRepository.deleteOwned(userId, tagId);
+    if (deletedCount === 0) {
+      throw new NotFoundError("Tag not found");
+    }
+  }
 
   async resolveOrCreateMany(userId: string, names: string[]): Promise<string[]> {
     const uniqueNames = new Map<string, string>();

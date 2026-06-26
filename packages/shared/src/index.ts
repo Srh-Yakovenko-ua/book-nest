@@ -482,44 +482,13 @@ export const DeliveryStatusSchema = z.enum([
 
 export type DeliveryStatus = z.infer<typeof DeliveryStatusSchema>;
 
-export const BookGenreSchema = z.enum([
-  "fantasy",
-  "science_fiction",
-  "dystopia",
-  "romance",
-  "thriller",
-  "mystery",
-  "detective",
-  "horror",
-  "historical_fiction",
-  "literary_fiction",
-  "contemporary",
-  "young_adult",
-  "childrens",
-  "classics",
-  "poetry",
-  "drama",
-  "short_stories",
-  "nonfiction",
-  "biography",
-  "memoir",
-  "self_help",
-  "psychology",
-  "philosophy",
-  "history",
-  "science",
-  "business",
-  "true_crime",
-  "comics",
-  "other",
-]);
-
-export type BookGenre = z.infer<typeof BookGenreSchema>;
-
 const BOOK_GENRES_MAX = 5;
+const GENRE_KEY_MAX = 64;
+
+export const GenreKeySchema = z.string().trim().min(1).max(GENRE_KEY_MAX);
 
 export const BookGenresSchema = z
-  .array(BookGenreSchema)
+  .array(GenreKeySchema)
   .max(BOOK_GENRES_MAX, "You can select at most 5 genres")
   .refine((genres) => new Set(genres).size === genres.length, "Genres must not contain duplicates");
 
@@ -562,7 +531,7 @@ const BOOK_TITLE_MIN = 1;
 const BOOK_TITLE_MAX = 150;
 const TAXONOMY_NAME_MIN = 2;
 const TAXONOMY_NAME_MAX = 100;
-const BOOK_DESCRIPTION_MAX = 500;
+export const BOOK_DESCRIPTION_MAX = 5000;
 export const TAG_NAME_MIN = 2;
 export const TAG_NAME_MAX = 30;
 const BOOK_TAGS_MAX = 12;
@@ -627,10 +596,13 @@ export const TaxonomyNameSchema = z
     ),
   );
 
+export const CreateGenreSchema = z.object({ name: TaxonomyNameSchema });
+export type CreateGenreInput = z.infer<typeof CreateGenreSchema>;
+
 export const BookDescriptionSchema = z
   .string()
   .transform(collapseHorizontalSpaces)
-  .pipe(NoHtmlString.max(BOOK_DESCRIPTION_MAX, "Description must be at most 500 characters long"));
+  .pipe(NoHtmlString.max(BOOK_DESCRIPTION_MAX, "Description must be at most 5000 characters long"));
 
 export const TagNameSchema = z
   .string()
@@ -1228,7 +1200,7 @@ export type BookView = {
   deliveryInfo: DeliveryInfoView | null;
   description: null | string;
   formats: BookFormat[];
-  genres: BookGenre[];
+  genres: string[];
   id: string;
   illustrator: null | string;
   isbn: null | string;
@@ -1264,6 +1236,15 @@ export type DeliveryInfoView = {
   orderDate: null | string;
   orderNumber: null | string;
   storeName: null | string;
+};
+
+export type GenreView = {
+  groupKey: string;
+  groupName: string;
+  id: string;
+  isDefault: boolean;
+  key: string;
+  name: string;
 };
 
 export type LoanInfoView = {
