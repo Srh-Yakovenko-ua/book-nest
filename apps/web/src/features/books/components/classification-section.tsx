@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { type Control, Controller, type FieldErrors } from "react-hook-form";
 
 import { Label } from "@/components/ui/label";
-import { Multiselect } from "@/components/ui/multiselect";
+import { Multiselect, type MultiselectOption } from "@/components/ui/multiselect";
 import {
   Select,
   SelectContent,
@@ -15,12 +15,11 @@ import {
 
 import type { CreateBookFormValues } from "../model/create-book-form";
 
+import { useGenres } from "../api/use-genres";
 import {
   AGE_CATEGORY_OPTIONS,
-  BOOK_GENRE_OPTIONS,
   BOOK_GENRES_MAX,
   BOOK_LANGUAGE_OPTIONS,
-  isBookGenre,
 } from "../model/book-classification-fields";
 import { FormSection } from "./form-section";
 import { TagsField } from "./tags-field";
@@ -32,8 +31,12 @@ type ClassificationSectionProps = {
 
 export function ClassificationSection({ control, errors }: ClassificationSectionProps) {
   const t = useTranslations("books");
+  const genres = useGenres();
   const genresErrorMessage =
     typeof errors.genres?.message === "string" ? errors.genres.message : undefined;
+
+  const genreList = genres.data ?? [];
+  const genreNameByKey = new Map(genreList.map((genre) => [genre.key, genre.name]));
 
   return (
     <FormSection
@@ -47,22 +50,32 @@ export function ClassificationSection({ control, errors }: ClassificationSection
           control={control}
           name="genres"
           render={({ field }) => {
-            const selected = (field.value ?? []).filter(isBookGenre);
+            const selected = field.value ?? [];
             const atMax = selected.length >= BOOK_GENRES_MAX;
+            const options: MultiselectOption[] = genreList
+              .filter((genre) => !atMax || selected.includes(genre.key))
+              .map((genre) => ({
+                group: genre.groupName,
+                label: genre.name,
+                value: genre.key,
+              }));
+            for (const key of selected) {
+              if (options.some((option) => option.value === key)) continue;
+              options.push({ label: genreNameByKey.get(key) ?? key, value: key });
+            }
             return (
               <Multiselect
-                emptyText={t("classification.genresEmpty")}
+                disabled={genres.isPending}
+                emptyText={
+                  genres.isPending
+                    ? t("classification.genresLoading")
+                    : t("classification.genresEmpty")
+                }
                 id="book-genres"
                 onValueChange={(next) => {
-                  const genres = next.filter(isBookGenre);
-                  field.onChange(genres.slice(0, BOOK_GENRES_MAX));
+                  field.onChange(next.slice(0, BOOK_GENRES_MAX));
                 }}
-                options={BOOK_GENRE_OPTIONS.filter(
-                  (value) => !atMax || selected.includes(value),
-                ).map((value) => ({
-                  label: t(`classification.genreLabels.${value}`),
-                  value,
-                }))}
+                options={options}
                 placeholder={t("classification.genresPlaceholder")}
                 searchPlaceholder={t("classification.genresSearch")}
                 value={selected}

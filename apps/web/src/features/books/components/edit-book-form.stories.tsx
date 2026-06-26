@@ -74,8 +74,21 @@ function mockFetch(handler: Handler) {
   }) as typeof fetch;
 }
 
+const GENRES_FIXTURE = [
+  { groupKey: "fiction", groupName: "Художня література", key: "poetry", name: "Поезія" },
+  {
+    groupKey: "fiction",
+    groupName: "Художня література",
+    key: "historical_fiction",
+    name: "Історична проза",
+  },
+].map((genre, index) => ({ ...genre, id: `genre-${index}`, isDefault: true }));
+
 function taxonomyHandler(extra?: Handler): Handler {
   return (path, init) => {
+    if (path.includes("/api/genres") && (init?.method ?? "GET") === "GET") {
+      return jsonResponse(200, GENRES_FIXTURE);
+    }
     if (path.includes("/api/tags")) return emptyPage(20);
     if (path.includes("/api/series") && init?.method !== "POST") return emptyPage(8);
     if (path.includes("/api/lists") && init?.method !== "POST") return emptyPage(50);

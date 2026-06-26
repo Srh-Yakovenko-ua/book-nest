@@ -39,7 +39,7 @@ export function BookTypeSection({
   setValue,
 }: BookTypeSectionProps) {
   const t = useTranslations("books");
-  const bookType = useWatch({ control, defaultValue: "solo", name: "bookType" }) ?? "solo";
+  const bookType = useWatch({ control, name: "bookType" }) ?? "solo";
   const [seriesSelection, setSeriesSelection] = useState<null | SeriesSelection>(initialSeries);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");

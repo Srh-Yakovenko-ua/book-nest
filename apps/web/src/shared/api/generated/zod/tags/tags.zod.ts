@@ -33,3 +33,12 @@ export const TagsControllerSearchQueryParams = zod.object({
 });
 
 export const TagsControllerSearchResponse = zod.unknown();
+
+/**
+ * @summary Delete a tag of the current user
+ */
+export const TagsControllerDeleteParams = zod.object({
+  id: zod.string(),
+});
+
+export const TagsControllerDeleteResponse = zod.void();

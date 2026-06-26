@@ -16,6 +16,7 @@ import type { LibraryBook } from "./books-library-view";
 
 import { useBooks } from "../api/use-books";
 import { useDeleteBook } from "../api/use-delete-book";
+import { useGenres } from "../api/use-genres";
 import { BooksLibraryView } from "./books-library-view";
 
 const PROGRESS_STATUSES: readonly BookView["readingStatus"][] = ["reading", "paused", "rereading"];
@@ -24,18 +25,17 @@ const FALLBACK_STATUS: StatusEntry =
   readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
 
 type LibraryBookLabels = {
+  genreName: (key: string) => string;
   progressAriaLabel: (current: number, total: number) => string;
   progressUnit: string;
   ratingLabel: (value: number) => string;
   statusLabel: (value: BookView["readingStatus"]) => string;
-  translateGenre: ReturnType<typeof useTranslations<"books.classification.genreLabels">>;
 };
 
 export function BooksLibrary() {
   const t = useTranslations("books.library");
   const tConfirm = useTranslations("books.deleteConfirm");
   const tDelete = useTranslations("books.delete");
-  const tGenre = useTranslations("books.classification.genreLabels");
   const tStatus = useTranslations("books.readingStatus.options");
   const router = useRouter();
   const [sortDirection, setSortDirection] = useState<BooksSortDirection>("desc");
@@ -43,6 +43,9 @@ export function BooksLibrary() {
   const { data, fetchNextPage, hasNextPage, isError, isFetchingNextPage, isPending, refetch } =
     useBooks(sortDirection);
   const deleteBook = useDeleteBook();
+  const genres = useGenres();
+
+  const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
 
   const pages = data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
@@ -51,11 +54,11 @@ export function BooksLibrary() {
     .flatMap((page) => page.items)
     .map((book) =>
       toLibraryBook(book, {
+        genreName: (key) => genreNameByKey.get(key) ?? key,
         progressAriaLabel: (current, total) => t("progress.ariaLabel", { current, total }),
         progressUnit,
         ratingLabel: (value) => t("rating.ariaLabel", { value }),
         statusLabel: (value) => tStatus(value),
-        translateGenre: tGenre,
       }),
     );
 
@@ -134,7 +137,7 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
 
   return {
     author: book.author.name,
-    genre: firstGenre === undefined ? undefined : { label: labels.translateGenre(firstGenre) },
+    genre: firstGenre === undefined ? undefined : { label: labels.genreName(firstGenre) },
     href: `/books/${book.id}/edit`,
     id: book.id,
     progress:

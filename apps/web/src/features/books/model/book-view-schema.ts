@@ -3,7 +3,6 @@ import type { BookView } from "@app/shared";
 import {
   AgeCategorySchema,
   BookFormatSchema,
-  BookGenreSchema,
   BookLanguageSchema,
   BookTypeSchema,
   CurrencySchema,
@@ -68,7 +67,7 @@ export const bookViewSchema = z.object({
   deliveryInfo: deliveryInfoViewSchema.nullable(),
   description: z.string().nullable(),
   formats: z.array(BookFormatSchema),
-  genres: z.array(BookGenreSchema),
+  genres: z.array(z.string()),
   id: z.string(),
   illustrator: z.string().nullable(),
   isbn: z.string().nullable(),

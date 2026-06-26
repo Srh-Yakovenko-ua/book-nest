@@ -17,10 +17,12 @@ import type { UpdateBookInputDtoNewListsItem } from "./updateBookInputDtoNewList
 import type { UpdateBookInputDtoNewSeries } from "./updateBookInputDtoNewSeries";
 import type { UpdateBookInputDtoOwnershipStatus } from "./updateBookInputDtoOwnershipStatus";
 import type { UpdateBookInputDtoPurchaseInfo } from "./updateBookInputDtoPurchaseInfo";
+import type { UpdateBookInputDtoQueuePriority } from "./updateBookInputDtoQueuePriority";
 import type { UpdateBookInputDtoReadingProgress } from "./updateBookInputDtoReadingProgress";
 import type { UpdateBookInputDtoReadingStatus } from "./updateBookInputDtoReadingStatus";
 
 export interface UpdateBookInputDto {
+  addToReadingQueue?: boolean;
   ageCategory?: UpdateBookInputDtoAgeCategory;
   author?: UpdateBookInputDtoAuthor;
   bookType?: UpdateBookInputDtoBookType;
@@ -71,6 +73,7 @@ export interface UpdateBookInputDto {
   publisherId?: string;
   publisherName?: string;
   purchaseInfo?: UpdateBookInputDtoPurchaseInfo;
+  queuePriority?: UpdateBookInputDtoQueuePriority;
   readingProgress?: UpdateBookInputDtoReadingProgress;
   readingStatus?: UpdateBookInputDtoReadingStatus;
   /** @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$ */

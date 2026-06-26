@@ -1,36 +1,4 @@
-import type { AgeCategory, BookGenre, BookLanguage, SeriesStatus } from "@app/shared";
-
-export const BOOK_GENRE_OPTIONS = [
-  "fantasy",
-  "science_fiction",
-  "dystopia",
-  "romance",
-  "thriller",
-  "mystery",
-  "detective",
-  "horror",
-  "historical_fiction",
-  "literary_fiction",
-  "contemporary",
-  "young_adult",
-  "childrens",
-  "classics",
-  "poetry",
-  "drama",
-  "short_stories",
-  "nonfiction",
-  "biography",
-  "memoir",
-  "self_help",
-  "psychology",
-  "philosophy",
-  "history",
-  "science",
-  "business",
-  "true_crime",
-  "comics",
-  "other",
-] as const satisfies readonly BookGenre[];
+import type { AgeCategory, BookLanguage, SeriesStatus } from "@app/shared";
 
 export const AGE_CATEGORY_OPTIONS = [
   "not_specified",
@@ -59,7 +27,3 @@ export const SERIES_STATUS_OPTIONS = [
 ] as const satisfies readonly SeriesStatus[];
 
 export const BOOK_GENRES_MAX = 5;
-
-export function isBookGenre(value: string): value is BookGenre {
-  return (BOOK_GENRE_OPTIONS as readonly string[]).includes(value);
-}

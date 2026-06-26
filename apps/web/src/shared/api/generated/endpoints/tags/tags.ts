@@ -187,3 +187,168 @@ export function useTagsControllerSearch<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+export type tagsControllerDeleteResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type tagsControllerDeleteResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type tagsControllerDeleteResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type tagsControllerDeleteResponseSuccess = tagsControllerDeleteResponse204 & {
+  headers: Headers;
+};
+export type tagsControllerDeleteResponseError = (
+  | tagsControllerDeleteResponse401
+  | tagsControllerDeleteResponse404
+) & {
+  headers: Headers;
+};
+
+export type tagsControllerDeleteResponse =
+  | tagsControllerDeleteResponseSuccess
+  | tagsControllerDeleteResponseError;
+
+export const getTagsControllerDeleteUrl = (id: string) => {
+  return `/api/tags/${id}`;
+};
+
+/**
+ * @summary Delete a tag of the current user
+ */
+export const tagsControllerDelete = async (
+  id: string,
+  options?: RequestInit,
+): Promise<tagsControllerDeleteResponse> => {
+  return customInstance<tagsControllerDeleteResponse>(getTagsControllerDeleteUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getTagsControllerDeleteQueryKey = (id: string) => {
+  return ["DELETE", `/api/tags/${id}`] as const;
+};
+
+export const getTagsControllerDeleteQueryOptions = <
+  TData = Awaited<ReturnType<typeof tagsControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDelete>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getTagsControllerDeleteQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof tagsControllerDelete>>> = ({ signal }) =>
+    tagsControllerDelete(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDelete>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type TagsControllerDeleteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof tagsControllerDelete>>
+>;
+export type TagsControllerDeleteQueryError = void;
+
+export function useTagsControllerDelete<
+  TData = Awaited<ReturnType<typeof tagsControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDelete>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerDelete>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerDelete>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerDelete<
+  TData = Awaited<ReturnType<typeof tagsControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDelete>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerDelete>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerDelete>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerDelete<
+  TData = Awaited<ReturnType<typeof tagsControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDelete>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Delete a tag of the current user
+ */
+
+export function useTagsControllerDelete<
+  TData = Awaited<ReturnType<typeof tagsControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerDelete>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTagsControllerDeleteQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
