@@ -37,11 +37,27 @@ afterAll(async () => {
   await context.close();
 });
 
+type SeedGenre = { isDefault?: boolean; key: string; name: string; userId?: null | string };
+
 function createBook(accessToken: string, body: Record<string, unknown>): request.Test {
   return request(app.getHttpServer())
     .post("/api/books")
     .set("Authorization", `Bearer ${accessToken}`)
     .send(body);
+}
+
+function seedGenres(genres: SeedGenre[]): Promise<unknown> {
+  return prisma.genre.createMany({
+    data: genres.map((genre) => ({
+      groupKey: "fiction",
+      groupName: "Fiction",
+      isDefault: genre.isDefault ?? true,
+      key: genre.key,
+      name: genre.name,
+      normalizedName: genre.name.toLowerCase(),
+      userId: genre.userId ?? null,
+    })),
+  });
 }
 
 describe("POST /api/books", () => {
@@ -111,17 +127,21 @@ describe("POST /api/books", () => {
 
   it("creates a book with genres, a non-default language and age category and echoes them back", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([
+      { key: "fentezi", name: "Фентезі" },
+      { key: "romantyka", name: "Романтика" },
+    ]);
 
     const res = await createBook(accessToken, {
       ageCategory: "16_plus",
       author: { name: "Frank Herbert" },
-      genres: ["fantasy", "romance"],
+      genres: ["fentezi", "romantyka"],
       language: "english",
       title: "Dune",
     });
 
     expect(res.status).toBe(201);
-    expect(res.body.genres).toEqual(["fantasy", "romance"]);
+    expect(res.body.genres).toEqual(["fentezi", "romantyka"]);
     expect(res.body.language).toBe("english");
     expect(res.body.ageCategory).toBe("16_plus");
   });
@@ -183,6 +203,7 @@ describe("POST /api/books", () => {
 
   it("returns 400 for an unknown genre value", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([{ key: "fentezi", name: "Фентезі" }]);
 
     const res = await createBook(accessToken, {
       author: { name: "Frank Herbert" },
@@ -194,6 +215,63 @@ describe("POST /api/books", () => {
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "genres.0" })]),
     );
+  });
+
+  it("returns 400 pointing at the offending index when a valid and an invalid genre are mixed", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([{ key: "fentezi", name: "Фентезі" }]);
+
+    const res = await createBook(accessToken, {
+      author: { name: "Frank Herbert" },
+      genres: ["fentezi", "not_a_real_genre"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "genres.1" })]),
+    );
+  });
+
+  it("rejects a book using another user's custom genre", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    await seedGenres([
+      {
+        isDefault: false,
+        key: "stranger-secret",
+        name: "Stranger Secret",
+        userId: stranger.userId,
+      },
+    ]);
+
+    const res = await createBook(owner.accessToken, {
+      author: { name: "Frank Herbert" },
+      genres: ["stranger-secret"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "genres.0" })]),
+    );
+  });
+
+  it("accepts a book using the caller's own custom genre", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedGenres([{ isDefault: false, key: "comfort-reads", name: "Comfort Reads", userId }]);
+
+    const res = await createBook(accessToken, {
+      author: { name: "Frank Herbert" },
+      genres: ["comfort-reads"],
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.genres).toEqual(["comfort-reads"]);
   });
 
   it("reuses the same author row when the name is given in a different case and spacing", async () => {
@@ -1247,6 +1325,49 @@ describe("GET /api/books/:id", () => {
       .set("Authorization", `Bearer ${stranger.accessToken}`);
 
     expect(res.status).toBe(404);
+  });
+});
+
+describe("PATCH /api/books/:id genres", () => {
+  function updateBook(
+    accessToken: string,
+    bookId: string,
+    body: Record<string, unknown>,
+  ): request.Test {
+    return request(app.getHttpServer())
+      .patch(`/api/books/${bookId}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(body);
+  }
+
+  it("updates a book with a valid seeded genre and echoes it back", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([{ key: "fentezi", name: "Фентезі" }]);
+    const created = await createBook(accessToken, {
+      author: { name: "Frank Herbert" },
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { genres: ["fentezi"] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.genres).toEqual(["fentezi"]);
+  });
+
+  it("returns 400 when updating a book with an unknown genre", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([{ key: "fentezi", name: "Фентезі" }]);
+    const created = await createBook(accessToken, {
+      author: { name: "Frank Herbert" },
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { genres: ["not_a_real_genre"] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "genres.0" })]),
+    );
   });
 });
 

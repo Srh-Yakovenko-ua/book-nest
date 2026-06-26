@@ -29,6 +29,7 @@ import type {
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { AuthorsService } from "../../authors/application/authors.service.js";
+import { GenresService } from "../../genres/application/genres.service.js";
 import { ListsService } from "../../lists/application/lists.service.js";
 import { PublishersService } from "../../publishers/application/publishers.service.js";
 import { SeriesService } from "../../series/application/series.service.js";
@@ -169,6 +170,7 @@ export class BooksService {
     private readonly tagsService: TagsService,
     private readonly seriesService: SeriesService,
     private readonly listsService: ListsService,
+    private readonly genresService: GenresService,
   ) {}
 
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
@@ -198,6 +200,7 @@ export class BooksService {
     const partNumber = input.bookType === "series_part" ? (input.partNumber ?? null) : null;
 
     await this.assertSeriesPartNumberUnique(userId, null, { partNumber, seriesId });
+    await this.genresService.assertGenresSelectable(userId, input.genres);
 
     const deliveryInfo =
       ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
@@ -329,6 +332,10 @@ export class BooksService {
     const seriesPlacement = await this.applySeriesFields(userId, fields, input, current);
     await this.applyQueueFields(userId, current, fields, input);
     await this.assertSeriesPartNumberUnique(userId, bookId, seriesPlacement);
+
+    if (input.genres !== undefined) {
+      await this.genresService.assertGenresSelectable(userId, input.genres);
+    }
 
     assignScalarFields(fields, input);
 

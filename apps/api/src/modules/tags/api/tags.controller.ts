@@ -1,9 +1,20 @@
 import type { Paginator, TagView } from "@app/shared";
 
 import { TaxonomySearchPaginationQuerySchema } from "@app/shared";
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import {
   ApiBearerAuth,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
@@ -13,6 +24,7 @@ import {
 
 import type { UserModel } from "../../../generated/prisma/models.js";
 
+import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
 import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
@@ -39,5 +51,17 @@ export class TagsController {
     query: TaxonomySearchPaginationQueryDto,
   ): Promise<Paginator<TagView>> {
     return this.tagsService.search(user.id, query);
+  }
+
+  @ApiBearerAuth()
+  @ApiNoContentResponse({ description: "The tag was deleted" })
+  @ApiNotFoundResponse({ description: "Tag not found" })
+  @ApiOperation({ summary: "Delete a tag of the current user" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Delete(":id")
+  @HttpCode(HTTP_STATUS.NO_CONTENT)
+  @UseGuards(JwtAccessGuard)
+  delete(@CurrentUser() user: UserModel, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
+    return this.tagsService.delete(user.id, id);
   }
 }

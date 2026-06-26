@@ -45,6 +45,7 @@ model User {
   tags                    Tag[]
   series                  Series[]
   bookLists               BookList[]
+  customGenres            Genre[]
 
   @@map("users")
 }
@@ -279,6 +280,26 @@ model BookTag {
   @@id([bookId, tagId])
   @@index([tagId])
   @@map("book_tags")
+}
+
+model Genre {
+  id             String   @id @default(uuid()) @db.Uuid
+  key            String   @map("key")
+  name           String   @map("name")
+  normalizedName String   @map("normalized_name")
+  groupKey       String   @map("group_key")
+  groupName      String   @map("group_name")
+  isDefault      Boolean  @default(false) @map("is_default")
+  sortOrder      Int      @default(0) @map("sort_order")
+  userId         String?  @map("user_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, normalizedName])
+  @@index([key])
+  @@index([userId])
+  @@map("genres")
 }
 
 model BookList {
