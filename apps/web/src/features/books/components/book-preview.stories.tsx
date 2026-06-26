@@ -67,7 +67,7 @@ export const Rich: Story = {
     description:
       "Перша збірка оповідань про відьмака Геральта з Рівії — мисливця на чудовиськ у світі, де люди небезпечніші за монстрів.",
     formats: ["paper", "ebook", "audiobook"],
-    genres: ["fantasy", "drama", "classics", "thriller", "horror"],
+    genres: ["Фентезі", "Драма", "Класика", "Трилер", "Жахи"],
     inQueue: true,
     isFavorite: true,
     ownershipStatus: "owned",

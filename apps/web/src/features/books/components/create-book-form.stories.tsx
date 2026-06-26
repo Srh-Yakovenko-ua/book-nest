@@ -32,9 +32,26 @@ function mockFetch(handler: Handler) {
 
 const emptyAuthorSearch = emptyPage(8);
 
+const GENRES_FIXTURE = [
+  { groupKey: "fiction", groupName: "Художня література", key: "fantasy", name: "Фентезі" },
+  {
+    groupKey: "fiction",
+    groupName: "Художня література",
+    key: "science_fiction",
+    name: "Наукова фантастика",
+  },
+  { groupKey: "fiction", groupName: "Художня література", key: "romance", name: "Романтика" },
+  { groupKey: "fiction", groupName: "Художня література", key: "thriller", name: "Трилер" },
+  { groupKey: "fiction", groupName: "Художня література", key: "detective", name: "Детектив" },
+  { groupKey: "fiction", groupName: "Художня література", key: "horror", name: "Жахи" },
+].map((genre, index) => ({ ...genre, id: `genre-${index}`, isDefault: true }));
+
 function taxonomyHandler(extra?: Handler): Handler {
   return (path, init) => {
-    if (path.includes("/api/tags")) {
+    if (path.includes("/api/genres") && (init?.method ?? "GET") === "GET") {
+      return jsonResponse(200, GENRES_FIXTURE);
+    }
+    if (path.includes("/api/tags") && (init?.method ?? "GET") === "GET") {
       return jsonResponse(200, {
         items: [
           { id: "tag-1", name: "улюблене" },
@@ -65,6 +82,9 @@ function taxonomyHandler(extra?: Handler): Handler {
 }
 
 const meta = {
+  beforeEach: () => {
+    mockFetch(taxonomyHandler());
+  },
   component: CreateBookForm,
   decorators: [
     (Story) => (
@@ -282,6 +302,35 @@ export const TagSuggestionAddsExisting: Story = {
     await waitFor(async () => {
       await expect(canvas.getByRole("button", { name: "Видалити тег «улюблене»" })).toBeVisible();
     });
+  },
+};
+
+export const DeleteSavedTagFromSuggestions: Story = {
+  play: async ({ canvas }) => {
+    let deletedTagPath: null | string = null;
+    mockFetch(
+      taxonomyHandler((path, init) => {
+        if (path.includes("/api/tags/") && init?.method === "DELETE") {
+          deletedTagPath = path;
+          return jsonResponse(204, null);
+        }
+        return emptyAuthorSearch;
+      }),
+    );
+    const surface = within(document.body);
+
+    const deleteControl = await canvas.findByRole("button", {
+      name: "Видалити збережений тег «улюблене»",
+    });
+    await userEvent.click(deleteControl);
+
+    const dialog = within(await surface.findByRole("alertdialog"));
+    await expect(dialog.getByText("Видалити тег?")).toBeVisible();
+
+    await userEvent.click(dialog.getByRole("button", { name: "Видалити тег" }));
+
+    await waitFor(() => expect(deletedTagPath).not.toBeNull());
+    await expect(deletedTagPath).toContain("/api/tags/tag-1");
   },
 };
 

@@ -25,7 +25,7 @@ type EditionDetailsSectionProps = {
 
 export function EditionDetailsSection({ control, errors, register }: EditionDetailsSectionProps) {
   const t = useTranslations("books");
-  const dedicationValue = useWatch({ control, defaultValue: undefined, name: "dedication" }) ?? "";
+  const dedicationValue = useWatch({ control, name: "dedication" }) ?? "";
   const dedicationLength = typeof dedicationValue === "string" ? dedicationValue.length : 0;
 
   const pagesCountValue = useWatch({ control, name: "pagesCount" });

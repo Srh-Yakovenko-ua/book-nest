@@ -63,7 +63,7 @@ export function ReadingStatusSection({
   onRequestChange,
 }: ReadingStatusSectionProps) {
   const t = useTranslations("books");
-  const status = useWatch({ control, defaultValue: "not_started", name: "readingStatus" });
+  const status = useWatch({ control, name: "readingStatus" });
   const fields = new Set(readingProgressFieldsFor(status ?? "not_started"));
   const progressErrors = errors.readingProgress;
 

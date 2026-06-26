@@ -2,6 +2,7 @@
 
 import type { BookFormat, BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
 
+import { BOOK_DESCRIPTION_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -20,8 +21,8 @@ import { ApiError } from "@/lib/http-client";
 import type { BookFormMode } from "../model/book-form-mode";
 
 import { useCreateBook } from "../api/use-create-book";
+import { useGenres } from "../api/use-genres";
 import { useUpdateBook } from "../api/use-update-book";
-import { isBookGenre } from "../model/book-classification-fields";
 import {
   FORMAT_OPTIONS,
   ownershipBlockHasData,
@@ -51,8 +52,6 @@ import { LibraryOrganizationSection } from "./library-organization-section";
 import { OwnershipStatusSection } from "./ownership-status-section";
 import { PublisherAutocomplete } from "./publisher-autocomplete";
 import { ReadingStatusSection } from "./reading-status-section";
-
-const DESCRIPTION_MAX = 500;
 
 type BookFormProps = { book: BookView; mode: "edit" } | { mode: "create" };
 
@@ -86,6 +85,7 @@ export function BookForm(props: BookFormProps) {
 
   const createBook = useCreateBook();
   const updateBook = useUpdateBook(bookId ?? "");
+  const genres = useGenres();
   const isPending = createBook.isPending || updateBook.isPending;
 
   const [authorSelection, setAuthorSelection] = useState<AuthorSelection | null>(
@@ -117,25 +117,19 @@ export function BookForm(props: BookFormProps) {
     reValidateMode: "onChange",
   });
 
-  const titleValue = useWatch({ control, defaultValue: "", name: "title" }) ?? "";
-  const descriptionValue = useWatch({ control, defaultValue: "", name: "description" }) ?? "";
-  const readingStatusValue =
-    useWatch({ control, defaultValue: "not_started", name: "readingStatus" }) ?? "not_started";
-  const ownershipStatusValue =
-    useWatch({ control, defaultValue: "none", name: "ownershipStatus" }) ?? "none";
-  const genresValue = useWatch({ control, defaultValue: [], name: "genres" }) ?? [];
-  const tagsValue = useWatch({ control, defaultValue: [], name: "tags" }) ?? [];
-  const formatsValue = useWatch({ control, defaultValue: [], name: "formats" }) ?? [];
-  const isFavoriteValue = useWatch({ control, defaultValue: false, name: "isFavorite" }) ?? false;
-  const inQueueValue =
-    useWatch({ control, defaultValue: false, name: "addToReadingQueue" }) ?? false;
-  const ratingValue = useWatch({
-    control,
-    defaultValue: undefined,
-    name: "readingProgress.rating",
-  });
+  const titleValue = useWatch({ control, name: "title" }) ?? "";
+  const descriptionValue = useWatch({ control, name: "description" }) ?? "";
+  const readingStatusValue = useWatch({ control, name: "readingStatus" }) ?? "not_started";
+  const ownershipStatusValue = useWatch({ control, name: "ownershipStatus" }) ?? "none";
+  const genresValue = useWatch({ control, name: "genres" }) ?? [];
+  const tagsValue = useWatch({ control, name: "tags" }) ?? [];
+  const formatsValue = useWatch({ control, name: "formats" }) ?? [];
+  const isFavoriteValue = useWatch({ control, name: "isFavorite" }) ?? false;
+  const inQueueValue = useWatch({ control, name: "addToReadingQueue" }) ?? false;
+  const ratingValue = useWatch({ control, name: "readingProgress.rating" });
 
-  const previewGenres = genresValue.filter(isBookGenre);
+  const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
+  const previewGenres = genresValue.map((key) => genreNameByKey.get(key) ?? key);
   const previewTags = tagsValue.filter((value): value is string => typeof value === "string");
   const previewFormats = formatsValue.filter(isBookFormat);
   const previewRating = typeof ratingValue === "number" ? ratingValue : undefined;
@@ -212,7 +206,7 @@ export function BookForm(props: BookFormProps) {
         onError: (error) => handleMutationError(error),
         onSuccess: () => {
           toast.success(t("submit.editSuccess"));
-          router.push(`/books/${props.book.id}/edit`);
+          router.push("/books");
         },
       });
       return;
@@ -236,7 +230,7 @@ export function BookForm(props: BookFormProps) {
     toast.error(mode === "edit" ? t("submit.editError") : t("submit.error"));
   }
 
-  const descriptionRemaining = DESCRIPTION_MAX - descriptionValue.length;
+  const descriptionRemaining = BOOK_DESCRIPTION_MAX - descriptionValue.length;
   const cancelHref = bookId === null ? "/" : `/books/${bookId}/edit`;
   const guardActive = isDirty && !isPending;
 
@@ -392,7 +386,7 @@ export function BookForm(props: BookFormProps) {
               aria-describedby="book-description-counter"
               aria-invalid={errors.description !== undefined}
               id="book-description"
-              maxLength={DESCRIPTION_MAX}
+              maxLength={BOOK_DESCRIPTION_MAX}
               placeholder={t("fields.descriptionPlaceholder")}
               {...register("description", { setValueAs: emptyToUndefined })}
             />
@@ -403,7 +397,7 @@ export function BookForm(props: BookFormProps) {
                 data-low={descriptionRemaining < 0}
                 id="book-description-counter"
               >
-                {descriptionValue.length}/{DESCRIPTION_MAX}
+                {descriptionValue.length}/{BOOK_DESCRIPTION_MAX}
               </span>
             </div>
           </div>

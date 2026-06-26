@@ -59,6 +59,7 @@ export * from "./updateBookInputDtoNewSeriesStatus";
 export * from "./updateBookInputDtoOwnershipStatus";
 export * from "./updateBookInputDtoPurchaseInfo";
 export * from "./updateBookInputDtoPurchaseInfoCurrency";
+export * from "./updateBookInputDtoQueuePriority";
 export * from "./updateBookInputDtoReadingProgress";
 export * from "./updateBookInputDtoReadingStatus";
 export * from "./updateProfileInputDto";

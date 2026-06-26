@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookFormat, BookGenre, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookFormat, OwnershipStatus, ReadingStatus } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
@@ -15,7 +15,7 @@ type BookPreviewProps = {
   authorName: string;
   description: string;
   formats?: readonly BookFormat[];
-  genres?: readonly BookGenre[];
+  genres?: readonly string[];
   inQueue?: boolean;
   isFavorite?: boolean;
   ownershipStatus?: OwnershipStatus;
@@ -159,7 +159,7 @@ export function BookPreview({
       {visibleGenres.length > 0 ? (
         <ChipRow>
           {visibleGenres.map((value) => (
-            <ChipPill key={value}>{t(`classification.genreLabels.${value}`)}</ChipPill>
+            <ChipPill key={value}>{value}</ChipPill>
           ))}
           {genresOverflow > 0 ? (
             <ChipPill muted>{t("preview.genresMore", { count: genresOverflow })}</ChipPill>

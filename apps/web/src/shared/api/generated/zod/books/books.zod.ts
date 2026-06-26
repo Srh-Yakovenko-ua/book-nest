@@ -81,7 +81,6 @@ export const booksControllerCreateBodyReadingStatusDefault = `not_started`;
 export const booksControllerCreateBodySeriesIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerCreateBodyTagsDefault = [];
 export const booksControllerCreateBodyTagsMax = 12;
 
 export const BooksControllerCreateBody = zod.object({
@@ -277,10 +276,7 @@ export const BooksControllerCreateBody = zod.object({
     .enum(["not_started", "want_to_read", "reading", "paused", "finished", "dnf", "rereading"])
     .default(booksControllerCreateBodyReadingStatusDefault),
   seriesId: zod.uuid().regex(booksControllerCreateBodySeriesIdRegExp).optional(),
-  tags: zod
-    .array(zod.string())
-    .max(booksControllerCreateBodyTagsMax)
-    .default(booksControllerCreateBodyTagsDefault),
+  tags: zod.array(zod.string()).max(booksControllerCreateBodyTagsMax).optional(),
   title: zod.string(),
   translator: zod.string().nullish(),
 });
@@ -395,6 +391,7 @@ export const booksControllerUpdateBodySeriesIdRegExp = new RegExp(
 export const booksControllerUpdateBodyTagsMax = 12;
 
 export const BooksControllerUpdateBody = zod.object({
+  addToReadingQueue: zod.boolean().optional(),
   ageCategory: zod
     .enum([
       "not_specified",
@@ -553,6 +550,7 @@ export const BooksControllerUpdateBody = zod.object({
       storeUrl: zod.string().max(booksControllerUpdateBodyPurchaseInfoStoreUrlMax).nullish(),
     })
     .optional(),
+  queuePriority: zod.enum(["low", "normal", "high"]).optional(),
   readingProgress: zod
     .object({
       abandonedAt: zod.iso

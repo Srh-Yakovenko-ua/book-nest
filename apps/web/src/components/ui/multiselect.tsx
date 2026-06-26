@@ -14,7 +14,14 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 
+type MultiselectGroup = {
+  heading?: string;
+  key: string;
+  options: MultiselectOption[];
+};
+
 type MultiselectOption = {
+  group?: string;
   label: string;
   value: string;
 };
@@ -31,6 +38,25 @@ type MultiselectProps = {
   searchPlaceholder?: string;
   value: string[];
 };
+
+function groupOptions(options: MultiselectOption[]): MultiselectGroup[] {
+  const groups: MultiselectGroup[] = [];
+  const byKey = new Map<string, MultiselectGroup>();
+
+  for (const option of options) {
+    const heading = option.group;
+    const key = heading ?? "";
+    let group = byKey.get(key);
+    if (group === undefined) {
+      group = { heading, key, options: [] };
+      byKey.set(key, group);
+      groups.push(group);
+    }
+    group.options.push(option);
+  }
+
+  return groups;
+}
 
 function Multiselect({
   className,
@@ -92,7 +118,7 @@ function Multiselect({
           </PopoverPrimitive.Trigger>
           {selectedOptions.map((option) => (
             <span
-              className="relative z-10 inline-flex max-w-full items-center gap-1.5 rounded-sm bg-tag py-1 pr-1.5 pl-2.5 text-[0.8125rem] font-medium text-tag-foreground"
+              className="relative z-10 inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-tag py-1 pr-1.5 pl-2.5 text-[0.8125rem] font-medium text-tag-foreground"
               data-slot="multiselect-chip"
               key={option.value}
             >
@@ -151,37 +177,39 @@ function Multiselect({
             />
             <CommandList>
               <CommandEmpty>{emptyText}</CommandEmpty>
-              <CommandGroup>
-                {options.map((option) => {
-                  const selected = value.includes(option.value);
-                  return (
-                    <CommandItem
-                      className="cursor-pointer"
-                      key={option.value}
-                      keywords={[option.label]}
-                      onSelect={() => toggle(option.value)}
-                      value={option.value}
-                    >
-                      <span
-                        className={cn(
-                          "grid size-[18px] shrink-0 place-items-center rounded-[6px] border-[1.5px] border-border bg-card transition-colors",
-                          selected && "border-primary bg-primary",
-                        )}
+              {groupOptions(options).map((group) => (
+                <CommandGroup heading={group.heading} key={group.key}>
+                  {group.options.map((option) => {
+                    const selected = value.includes(option.value);
+                    return (
+                      <CommandItem
+                        className="cursor-pointer"
+                        key={option.value}
+                        keywords={[option.label]}
+                        onSelect={() => toggle(option.value)}
+                        value={option.value}
                       >
-                        <UiIcon
+                        <span
                           className={cn(
-                            "size-3 text-primary-foreground opacity-0",
-                            selected && "opacity-100",
+                            "grid size-[18px] shrink-0 place-items-center rounded-[6px] border-[1.5px] border-border bg-card transition-colors",
+                            selected && "border-primary bg-primary",
                           )}
-                          name="check"
-                          size={12}
-                        />
-                      </span>
-                      <span className="truncate font-medium">{option.label}</span>
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
+                        >
+                          <UiIcon
+                            className={cn(
+                              "size-3 text-primary-foreground opacity-0",
+                              selected && "opacity-100",
+                            )}
+                            name="check"
+                            size={12}
+                          />
+                        </span>
+                        <span className="truncate font-medium">{option.label}</span>
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              ))}
             </CommandList>
           </Command>
         </PopoverPrimitive.Content>
