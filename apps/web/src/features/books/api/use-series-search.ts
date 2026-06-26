@@ -8,6 +8,7 @@ import { seriesControllerSearch } from "@/shared/api/generated/endpoints/series/
 const seriesViewSchema = z.object({
   booksInSeries: z.number(),
   description: z.string().nullable(),
+  finishedInSeries: z.number(),
   id: z.string(),
   name: z.string(),
   status: z.enum(["completed", "ongoing", "unknown"]),

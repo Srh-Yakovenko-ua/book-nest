@@ -142,6 +142,7 @@ function toSeriesView(series: BookWithRelations["series"]): null | SeriesView {
   return {
     booksInSeries: series._count.books,
     description: series.description,
+    finishedInSeries: series.books.length,
     id: series.id,
     name: series.name,
     status: SeriesStatusSchema.parse(series.status),

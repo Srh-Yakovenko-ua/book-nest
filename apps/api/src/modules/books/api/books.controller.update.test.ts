@@ -712,3 +712,75 @@ describe("PATCH /api/books/:id reading queue", () => {
     expect(res.body.queuePriority).toBeNull();
   });
 });
+
+describe("PATCH /api/books/:id series progress recompute", () => {
+  function searchSeries(accessToken: string): request.Test {
+    return request(app.getHttpServer())
+      .get("/api/series")
+      .set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  it("drops booksInSeries and finishedInSeries when a finished book is detached to solo", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass" },
+      partNumber: 1,
+      readingProgress: { finishedAt: "2026-02-05" },
+      readingStatus: "finished",
+      title: "Throne of Glass",
+    });
+    const seriesId = created.body.series.id;
+
+    const res = await updateBook(accessToken, created.body.id, { bookType: "solo" });
+    expect(res.status).toBe(200);
+    expect(res.body.series).toBeNull();
+
+    const after = await searchSeries(accessToken);
+    const series = after.body.items.find((item: { id: string }) => item.id === seriesId);
+    expect(series).toMatchObject({ booksInSeries: 0, finishedInSeries: 0 });
+  });
+
+  it("moves the finished book's contribution to the target series when reassigned", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const source = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass" },
+      partNumber: 1,
+      readingProgress: { finishedAt: "2026-02-05" },
+      readingStatus: "finished",
+      title: "Throne of Glass",
+    });
+    const sourceSeriesId = source.body.series.id;
+    const targetAnchor = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      newSeries: { name: "A Court of Thorns" },
+      partNumber: 1,
+      title: "A Court of Thorns and Roses",
+    });
+    const targetSeriesId = targetAnchor.body.series.id;
+
+    const res = await updateBook(accessToken, source.body.id, {
+      bookType: "series_part",
+      partNumber: 2,
+      seriesId: targetSeriesId,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.series.id).toBe(targetSeriesId);
+
+    const search = await searchSeries(accessToken);
+    const byId = new Map<string, { booksInSeries: number; finishedInSeries: number }>(
+      search.body.items.map(
+        (item: { booksInSeries: number; finishedInSeries: number; id: string }) => [
+          item.id,
+          { booksInSeries: item.booksInSeries, finishedInSeries: item.finishedInSeries },
+        ],
+      ),
+    );
+    expect(byId.get(sourceSeriesId)).toEqual({ booksInSeries: 0, finishedInSeries: 0 });
+    expect(byId.get(targetSeriesId)).toEqual({ booksInSeries: 2, finishedInSeries: 1 });
+  });
+});
