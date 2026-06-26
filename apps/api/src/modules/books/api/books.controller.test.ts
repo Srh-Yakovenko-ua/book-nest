@@ -946,6 +946,38 @@ describe("POST /api/books series handling", () => {
     expect(seriesRows).toHaveLength(1);
   });
 
+  it("reports finishedInSeries live across the series search and the embedded book series", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const first = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
+      partNumber: 1,
+      readingProgress: { finishedAt: "2026-02-05" },
+      readingStatus: "finished",
+      title: "Throne of Glass",
+    });
+    const seriesId = first.body.series.id;
+    expect(first.body.series).toMatchObject({ booksInSeries: 1, finishedInSeries: 1 });
+
+    await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      partNumber: 2,
+      readingStatus: "reading",
+      seriesId,
+      title: "Crown of Midnight",
+    });
+
+    const search = await searchSeries(accessToken, "throne");
+    expect(search.body.items[0]).toMatchObject({ booksInSeries: 2, finishedInSeries: 1 });
+
+    const read = await request(app.getHttpServer())
+      .get(`/api/books/${first.body.id}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(read.body.series).toMatchObject({ booksInSeries: 2, finishedInSeries: 1 });
+  });
+
   it("rejects a second book reusing a part number already taken in the series", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await prisma.author.create({
@@ -1412,5 +1444,30 @@ describe("DELETE /api/books/:id", () => {
       .get(`/api/books/${created.body.id}`)
       .set("Authorization", `Bearer ${accessToken}`);
     expect(readRes.status).toBe(404);
+  });
+
+  it("drops the series book count after the book is deleted", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass" },
+      partNumber: 1,
+      readingProgress: { finishedAt: "2026-02-05" },
+      readingStatus: "finished",
+      title: "Throne of Glass",
+    });
+    const seriesId = created.body.series.id;
+
+    const deleteRes = await request(app.getHttpServer())
+      .delete(`/api/books/${created.body.id}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(deleteRes.status).toBe(204);
+
+    const search = await request(app.getHttpServer())
+      .get("/api/series")
+      .set("Authorization", `Bearer ${accessToken}`);
+    const series = search.body.items.find((item: { id: string }) => item.id === seriesId);
+    expect(series).toMatchObject({ booksInSeries: 0, finishedInSeries: 0 });
   });
 });

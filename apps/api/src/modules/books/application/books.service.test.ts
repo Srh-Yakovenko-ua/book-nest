@@ -748,6 +748,7 @@ describe("BooksService.create series handling", () => {
         partNumber: 1,
         series: {
           _count: { books: 2 },
+          books: [{ id: "fin-1" }],
           createdAt: new Date("2026-02-01T10:00:00.000Z"),
           description: "YA fantasy saga",
           id: SERIES_ID,
@@ -775,6 +776,7 @@ describe("BooksService.create series handling", () => {
     expect(view.series).toEqual({
       booksInSeries: 2,
       description: "YA fantasy saga",
+      finishedInSeries: 1,
       id: SERIES_ID,
       name: "Throne of Glass",
       status: "ongoing",

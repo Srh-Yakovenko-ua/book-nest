@@ -73,8 +73,13 @@ function series(overrides: Partial<SeriesModel> = {}): SeriesModel {
 function seriesWithCount(
   booksInSeries: number,
   overrides: Partial<SeriesModel> = {},
+  finishedInSeries = 0,
 ): SeriesWithBookCount {
-  return { ...series(overrides), _count: { books: booksInSeries } };
+  return {
+    ...series(overrides),
+    _count: { books: booksInSeries },
+    books: Array.from({ length: finishedInSeries }, (unused, index) => ({ id: `b-${index}` })),
+  };
 }
 
 function uniqueConstraintError(): Prisma.PrismaClientKnownRequestError {
@@ -212,6 +217,7 @@ describe("SeriesService.search", () => {
         {
           booksInSeries: 2,
           description: "saga",
+          finishedInSeries: 0,
           id: SERIES_ID,
           name: "Throne of Glass",
           status: "ongoing",
@@ -237,6 +243,20 @@ describe("SeriesService.search", () => {
     expect(page.items).toEqual([expect.objectContaining({ booksInSeries: 4 })]);
   });
 
+  it("maps the loaded finished-book count onto finishedInSeries", async () => {
+    const { service } = buildService({ searchOwned: [seriesWithCount(4, {}, 2)] });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items).toEqual([
+      expect.objectContaining({ booksInSeries: 4, finishedInSeries: 2 }),
+    ]);
+  });
+
   it("maps a series with no linked books to a zero count", async () => {
     const { service } = buildService({ searchOwned: [seriesWithCount(0)] });
 
@@ -246,7 +266,9 @@ describe("SeriesService.search", () => {
       search: undefined,
     });
 
-    expect(page.items).toEqual([expect.objectContaining({ booksInSeries: 0 })]);
+    expect(page.items).toEqual([
+      expect.objectContaining({ booksInSeries: 0, finishedInSeries: 0 }),
+    ]);
   });
 
   it("computes skip and take from the page coordinates", async () => {

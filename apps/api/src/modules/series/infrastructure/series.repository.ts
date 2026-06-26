@@ -14,7 +14,10 @@ export type CreateSeriesData = {
 };
 
 const seriesWithBookCountArgs = {
-  include: { _count: { select: { books: true } } },
+  include: {
+    _count: { select: { books: true } },
+    books: { select: { id: true }, where: { readingStatus: "finished" } },
+  },
 } satisfies Prisma.SeriesDefaultArgs;
 
 export type SeriesWithBookCount = Prisma.SeriesGetPayload<typeof seriesWithBookCountArgs>;
