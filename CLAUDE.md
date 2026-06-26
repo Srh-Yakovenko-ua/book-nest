@@ -134,7 +134,7 @@ Clean layer separation is non-negotiable: business logic stays independent of HT
 ### Code style
 
 1. **No comments.** Write self-documenting code. No file headers, no inline narration, no JSDoc on internal functions. If a comment seems needed, **rename the symbol until the code explains itself**. Comments are tech debt.
-2. **No `any`, no `!` non-null assertion, minimal `as`.** Use Zod at boundaries and trust types inside.
+2. **No `any`, no `!` non-null assertion, minimal `as`.** Use Zod at boundaries and trust types inside. Prefer the shared type utilities `Nullable<T>` and `ValueOf<T>` (from `@app/shared`) over hand-written `T | null` / `T[keyof T]` — one source of truth for FE and BE. Full TS canon: [`docs/typescript-principles.md`](./docs/typescript-principles.md).
 3. **Zod at every boundary.** HTTP request bodies, env vars, localStorage reads, URL params, third-party API responses — parse with Zod first, then trust the type. Never trust unparsed input.
 4. **Never hardcode secrets.** API keys, tokens, passwords, PII live in env vars (`.env`, validated by `config/env.ts` or `lib/env.ts`). Never in source.
 5. **No wrapper libraries over standard tools.** Use RHF + Zod + shadcn directly. Do not invent custom `<Form>`, `<DataTable>`, `<Modal>` abstractions over libraries that already work at the right level. Same rule applies to any well-established library.

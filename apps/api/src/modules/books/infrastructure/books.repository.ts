@@ -7,6 +7,7 @@ import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 const withRelations = {
   author: true,
+  coverMedia: true,
   deliveryInfo: true,
   lists: { include: { list: true } },
   loanInfo: true,
@@ -96,6 +97,7 @@ type BlockDelegate<TCreate, TUpdate> = {
 type CreateBookData = {
   ageCategory: string;
   authorId: string;
+  coverMediaId: null | string;
   dedication: null | string;
   deliveryInfo: CreateDeliveryInfoData | null;
   description: null | string;

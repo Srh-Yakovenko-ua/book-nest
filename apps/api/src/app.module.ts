@@ -13,6 +13,7 @@ import { BooksModule } from "./modules/books/books.module.js";
 import { GenresModule } from "./modules/genres/genres.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { ListsModule } from "./modules/lists/lists.module.js";
+import { MediaModule } from "./modules/media/media.module.js";
 import { MetricsMiddleware } from "./modules/observability/metrics.middleware.js";
 import { MetricsModule } from "./modules/observability/metrics.module.js";
 import { ProfileModule } from "./modules/profile/profile.module.js";
@@ -40,6 +41,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     ListsModule,
     BooksModule,
     GenresModule,
+    MediaModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

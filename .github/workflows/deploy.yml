@@ -118,6 +118,10 @@ jobs:
           PROD_JWT_ACCESS_SECRET: ${{ secrets.PROD_JWT_ACCESS_SECRET }}
           PROD_JWT_REFRESH_SECRET: ${{ secrets.PROD_JWT_REFRESH_SECRET }}
           PROD_SMTP_PASS: ${{ secrets.PROD_SMTP_PASS }}
+          DEV_R2_ACCESS_KEY_ID: ${{ secrets.DEV_R2_ACCESS_KEY_ID }}
+          DEV_R2_SECRET_ACCESS_KEY: ${{ secrets.DEV_R2_SECRET_ACCESS_KEY }}
+          PROD_R2_ACCESS_KEY_ID: ${{ secrets.PROD_R2_ACCESS_KEY_ID }}
+          PROD_R2_SECRET_ACCESS_KEY: ${{ secrets.PROD_R2_SECRET_ACCESS_KEY }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ci
@@ -144,6 +148,10 @@ jobs:
             echo "PROD_JWT_ACCESS_SECRET=${PROD_JWT_ACCESS_SECRET}"
             echo "PROD_JWT_REFRESH_SECRET=${PROD_JWT_REFRESH_SECRET}"
             echo "PROD_SMTP_PASS=${PROD_SMTP_PASS}"
+            echo "DEV_R2_ACCESS_KEY_ID=${DEV_R2_ACCESS_KEY_ID}"
+            echo "DEV_R2_SECRET_ACCESS_KEY=${DEV_R2_SECRET_ACCESS_KEY}"
+            echo "PROD_R2_ACCESS_KEY_ID=${PROD_R2_ACCESS_KEY_ID}"
+            echo "PROD_R2_SECRET_ACCESS_KEY=${PROD_R2_SECRET_ACCESS_KEY}"
             echo "API_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-api"
             echo "WEB_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-web"
           } > /tmp/server.env
