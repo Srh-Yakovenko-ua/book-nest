@@ -41,10 +41,12 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
   VariantProps<typeof bookCardVariants> & {
     author: string;
     cover?: { alt?: string; src: string };
+    coverActivateLabel?: string;
     genre?: { icon?: GenreIconName; label: string };
     href?: string;
     kebab?: React.ReactNode;
     linkComponent?: BookCardLinkComponent;
+    onCoverActivate?: () => void;
     progress?: { ariaLabel?: string; current: number; total: number; unit?: string };
     rating?: number;
     ratingLabel?: string;
@@ -57,11 +59,13 @@ function BookCard({
   author,
   className,
   cover,
+  coverActivateLabel,
   genre,
   href,
   interactive,
   kebab,
   linkComponent,
+  onCoverActivate,
   progress,
   rating,
   ratingLabel,
@@ -83,7 +87,12 @@ function BookCard({
       {kebab === undefined ? null : <div className="absolute top-3 right-3 z-10">{kebab}</div>}
 
       <div className="flex gap-3.5">
-        <BookCover alt={cover?.alt ?? title} src={cover?.src} />
+        <BookCover
+          activateLabel={coverActivateLabel}
+          alt={cover?.alt ?? title}
+          onActivate={onCoverActivate}
+          src={cover?.src}
+        />
         <div className="flex min-w-0 flex-col gap-1.5 pr-6">
           <h3 className="font-heading text-[1.0625rem] leading-tight font-bold text-ink">
             {href === undefined ? (
@@ -143,7 +152,20 @@ function BookCard({
   );
 }
 
-function BookCover({ alt, src }: { alt: string; src?: string }) {
+const coverBoxClass =
+  "relative aspect-[3/4] w-[74px] shrink-0 overflow-hidden rounded-md bg-accent shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]";
+
+function BookCover({
+  activateLabel,
+  alt,
+  onActivate,
+  src,
+}: {
+  activateLabel?: string;
+  alt: string;
+  onActivate?: () => void;
+  src?: string;
+}) {
   if (src === undefined) {
     return (
       <div className="grid aspect-[3/4] w-[74px] shrink-0 place-items-center rounded-md bg-accent text-accent-foreground/70 shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]">
@@ -152,27 +174,55 @@ function BookCover({ alt, src }: { alt: string; src?: string }) {
     );
   }
 
-  return <BookCoverImage alt={alt} src={src} />;
+  return (
+    <BookCoverImage activateLabel={activateLabel} alt={alt} onActivate={onActivate} src={src} />
+  );
 }
 
-function BookCoverImage({ alt, src }: { alt: string; src: string }) {
+function BookCoverImage({
+  activateLabel,
+  alt,
+  onActivate,
+  src,
+}: {
+  activateLabel?: string;
+  alt: string;
+  onActivate?: () => void;
+  src: string;
+}) {
   const [loaded, setLoaded] = React.useState(false);
 
+  const image = (
+    <Image
+      alt={alt}
+      className={cn(
+        "object-cover transition-opacity duration-500 ease-out",
+        loaded ? "opacity-100" : "motion-safe:opacity-0",
+      )}
+      fill
+      onLoad={() => setLoaded(true)}
+      sizes="74px"
+      src={src}
+      unoptimized
+    />
+  );
+
+  if (onActivate === undefined) {
+    return <div className={coverBoxClass}>{image}</div>;
+  }
+
   return (
-    <div className="relative aspect-[3/4] w-[74px] shrink-0 overflow-hidden rounded-md bg-accent shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]">
-      <Image
-        alt={alt}
-        className={cn(
-          "object-cover transition-opacity duration-500 ease-out",
-          loaded ? "opacity-100" : "motion-safe:opacity-0",
-        )}
-        fill
-        onLoad={() => setLoaded(true)}
-        sizes="74px"
-        src={src}
-        unoptimized
-      />
-    </div>
+    <button
+      aria-label={activateLabel}
+      className={cn(
+        coverBoxClass,
+        "z-10 cursor-pointer transition-shadow duration-300 ease-out hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
+      )}
+      onClick={onActivate}
+      type="button"
+    >
+      {image}
+    </button>
   );
 }
 

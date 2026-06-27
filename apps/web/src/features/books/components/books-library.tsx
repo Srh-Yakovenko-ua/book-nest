@@ -35,6 +35,7 @@ type LibraryBookLabels = {
 export function BooksLibrary() {
   const t = useTranslations("books.library");
   const tConfirm = useTranslations("books.deleteConfirm");
+  const tCover = useTranslations("books.cover");
   const tDelete = useTranslations("books.delete");
   const tStatus = useTranslations("books.readingStatus.options");
   const router = useRouter();
@@ -82,6 +83,7 @@ export function BooksLibrary() {
       addBookLabel={t("addBook")}
       books={books}
       count={t("count", { count: totalCount })}
+      coverViewLabel={tCover("viewer.open")}
       deleteLabels={{
         cancel: tConfirm("cancel"),
         confirm: tConfirm("confirm"),
@@ -138,6 +140,7 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
   return {
     author: book.author.name,
     cover: book.cover ? { alt: book.title, src: book.cover.urls.thumb } : undefined,
+    coverMedia: book.cover ?? undefined,
     genre: firstGenre === undefined ? undefined : { label: labels.genreName(firstGenre) },
     href: `/books/${book.id}/edit`,
     id: book.id,

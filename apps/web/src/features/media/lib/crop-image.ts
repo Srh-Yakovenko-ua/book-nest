@@ -2,7 +2,7 @@ export type CropArea = { height: number; width: number; x: number; y: number };
 
 const OUTPUT_TYPE = "image/webp";
 const OUTPUT_QUALITY = 0.9;
-const OUTPUT_FILE_NAME = "cover.webp";
+const FALLBACK_FILE_NAME = "cover.webp";
 
 export class CropImageError extends Error {
   constructor(message: string) {
@@ -14,9 +14,11 @@ export class CropImageError extends Error {
 export async function cropImageToFile({
   area,
   imageSrc,
+  sourceName,
 }: {
   area: CropArea;
   imageSrc: string;
+  sourceName?: string;
 }): Promise<File> {
   const image = await loadImage(imageSrc);
   const canvas = document.createElement("canvas");
@@ -39,7 +41,7 @@ export async function cropImageToFile({
   );
 
   const blob = await canvasToBlob(canvas);
-  return new File([blob], OUTPUT_FILE_NAME, { type: OUTPUT_TYPE });
+  return new File([blob], toWebpName(sourceName), { type: OUTPUT_TYPE });
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
@@ -65,4 +67,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     image.addEventListener("error", () => reject(new CropImageError("Failed to load image")));
     image.src = src;
   });
+}
+
+function toWebpName(sourceName: string | undefined): string {
+  const base = sourceName?.replace(/\.[^.]+$/, "").trim();
+  return base ? `${base}.webp` : FALLBACK_FILE_NAME;
 }

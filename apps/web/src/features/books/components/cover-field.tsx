@@ -21,7 +21,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Upload } from "@/components/ui/upload";
-import { isHeicCandidate, normalizeImageFile } from "@/features/media";
+import {
+  ACCEPT_ATTR,
+  ACCEPTED_IMAGE_TYPES,
+  COVER_ASPECT,
+  isHeicCandidate,
+  normalizeImageFile,
+} from "@/features/media";
 import { cn } from "@/lib/utils";
 
 import type { CoverState } from "../model/cover-state";
@@ -44,10 +50,6 @@ type CoverFieldProps = {
   onChange: (next: CoverState) => void;
   state: CoverState;
 };
-
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const ACCEPT_ATTR = [...ACCEPTED_TYPES, "image/heic", "image/heif", ".heic", ".heif"].join(",");
-const COVER_ASPECT = 3 / 4;
 
 export function CoverField({
   disabled = false,
@@ -76,6 +78,13 @@ export function CoverField({
           .filter((part) => part !== null && part.length > 0)
           .join(" · ")
       : undefined;
+
+  const downloadName =
+    state.kind === "existing"
+      ? (state.media.name ?? undefined)
+      : state.kind === "selected"
+        ? state.file.name
+        : undefined;
 
   function restoreFocus() {
     const opener = openerRef.current;
@@ -106,7 +115,7 @@ export function CoverField({
       if (converting) setIsConverting(false);
     }
 
-    if (!ACCEPTED_TYPES.includes(normalized.type)) {
+    if (!ACCEPTED_IMAGE_TYPES.includes(normalized.type)) {
       toast.error(t("errors.type"));
       return;
     }
@@ -261,6 +270,8 @@ export function CoverField({
           alt={t("previewAlt")}
           caption={viewerCaption}
           deleteLabel={t("remove")}
+          downloadLabel={t("viewer.download")}
+          downloadName={downloadName}
           onDelete={() => {
             setPendingViewerAction("delete");
             setViewerOpen(false);

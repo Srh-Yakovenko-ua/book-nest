@@ -1,5 +1,7 @@
 "use client";
 
+import type { MediaView } from "@app/shared";
+
 import { motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
 
@@ -24,10 +26,12 @@ import type { BooksSortDirection } from "../api/use-books";
 
 import { BookCardMenu } from "./book-card-menu";
 import { DeleteBookDialog } from "./delete-book-dialog";
+import { LibraryCoverViewer } from "./library-cover-viewer";
 
 export type LibraryBook = {
   author: string;
   cover?: { alt?: string; src: string };
+  coverMedia?: MediaView;
   genre?: { icon?: GenreIconName; label: string };
   href: string;
   id: string;
@@ -50,6 +54,7 @@ type BooksLibraryViewProps = {
   addBookLabel: string;
   books: LibraryBook[];
   count: string;
+  coverViewLabel: string;
   deleteLabels: DeleteLabels;
   emptyState: EmptyStateEntry;
   errorState: EmptyStateEntry;
@@ -104,6 +109,7 @@ export function BooksLibraryView({
   addBookLabel,
   books,
   count,
+  coverViewLabel,
   deleteLabels,
   emptyState,
   errorState,
@@ -126,6 +132,11 @@ export function BooksLibraryView({
   title,
 }: BooksLibraryViewProps) {
   const [pendingDeleteBook, setPendingDeleteBook] = useState<null | PendingDeleteBook>(null);
+  const [activeCover, setActiveCover] = useState<null | {
+    bookId: string;
+    media: MediaView;
+    title: string;
+  }>(null);
   const prefersReducedMotion = useReducedMotion();
 
   if (isError) {
@@ -189,41 +200,55 @@ export function BooksLibraryView({
       ) : (
         <>
           <BooksGrid>
-            {books.map((book, index) => (
-              <div
-                className="grid motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
-                key={book.id}
-                style={{ animationDelay: staggerDelay(index) }}
-              >
-                <motion.div
-                  className="grid h-full"
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  whileHover={prefersReducedMotion ? undefined : { y: -4 }}
+            {books.map((book, index) => {
+              const coverMedia = book.coverMedia;
+              return (
+                <div
+                  className="grid motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
+                  key={book.id}
+                  style={{ animationDelay: staggerDelay(index) }}
                 >
-                  <BookCard
-                    author={book.author}
-                    cover={book.cover}
-                    genre={book.genre}
-                    href={book.href}
-                    kebab={
-                      <BookCardMenu
-                        deleteLabel={menuLabels.delete}
-                        menuLabel={menuLabels.menu}
-                        onDelete={() => setPendingDeleteBook({ id: book.id, title: book.title })}
-                      />
-                    }
-                    linkComponent={linkComponent}
-                    progress={book.progress}
-                    rating={book.rating}
-                    ratingLabel={book.ratingLabel}
-                    selected={book.selected}
-                    series={book.series}
-                    status={book.status}
-                    title={book.title}
-                  />
-                </motion.div>
-              </div>
-            ))}
+                  <motion.div
+                    className="grid h-full"
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    whileHover={prefersReducedMotion ? undefined : { y: -4 }}
+                  >
+                    <BookCard
+                      author={book.author}
+                      cover={book.cover}
+                      coverActivateLabel={coverViewLabel}
+                      genre={book.genre}
+                      href={book.href}
+                      kebab={
+                        <BookCardMenu
+                          deleteLabel={menuLabels.delete}
+                          menuLabel={menuLabels.menu}
+                          onDelete={() => setPendingDeleteBook({ id: book.id, title: book.title })}
+                        />
+                      }
+                      linkComponent={linkComponent}
+                      onCoverActivate={
+                        coverMedia
+                          ? () =>
+                              setActiveCover({
+                                bookId: book.id,
+                                media: coverMedia,
+                                title: book.title,
+                              })
+                          : undefined
+                      }
+                      progress={book.progress}
+                      rating={book.rating}
+                      ratingLabel={book.ratingLabel}
+                      selected={book.selected}
+                      series={book.series}
+                      status={book.status}
+                      title={book.title}
+                    />
+                  </motion.div>
+                </div>
+              );
+            })}
           </BooksGrid>
 
           {hasNextPage ? (
@@ -239,6 +264,16 @@ export function BooksLibraryView({
             </div>
           ) : null}
         </>
+      )}
+
+      {activeCover && (
+        <LibraryCoverViewer
+          bookId={activeCover.bookId}
+          key={activeCover.bookId}
+          media={activeCover.media}
+          onClose={() => setActiveCover(null)}
+          title={activeCover.title}
+        />
       )}
 
       <DeleteBookDialog

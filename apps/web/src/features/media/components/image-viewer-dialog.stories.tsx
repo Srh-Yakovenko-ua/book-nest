@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { useState } from "react";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, spyOn, userEvent, waitFor, within } from "storybook/test";
 
 import { ImageViewerDialog } from "./image-viewer-dialog";
 
@@ -53,6 +53,23 @@ function ViewerWithActions() {
         title="Book cover"
       />
       <p data-slot="action-log">{log.join(",")}</p>
+    </div>
+  );
+}
+
+function ViewerWithDownload() {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="w-[420px]">
+      <ImageViewerDialog
+        alt="Sample cover"
+        downloadLabel="Download"
+        downloadName="cover.png"
+        onOpenChange={setOpen}
+        open={open}
+        src={makeCoverDataUrl("#a96e47")}
+        title="Book cover"
+      />
     </div>
   );
 }
@@ -121,4 +138,23 @@ export const WithReplaceAndDeleteActions: Story = {
     await waitFor(() => expect(canvas.getByText("replace,delete")).toBeVisible());
   },
   render: () => <ViewerWithActions />,
+};
+
+export const WithDownloadAction: Story = {
+  play: async () => {
+    const surface = within(document.body);
+    const dialog = within(await surface.findByRole("dialog"));
+
+    const download = dialog.getByRole("button", { name: "Download" });
+    await waitFor(() => expect(download).toBeVisible());
+
+    const clickSpy = spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      await userEvent.click(download);
+      await waitFor(() => expect(clickSpy).toHaveBeenCalled());
+    } finally {
+      clickSpy.mockRestore();
+    }
+  },
+  render: () => <ViewerWithDownload />,
 };

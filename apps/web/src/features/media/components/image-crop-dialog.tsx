@@ -69,7 +69,7 @@ export function ImageCropDialog({
     if (imageSrc === null || area === null) return;
     setIsProcessing(true);
     try {
-      const cropped = await cropImageToFile({ area, imageSrc });
+      const cropped = await cropImageToFile({ area, imageSrc, sourceName: file?.name });
       onCropped(cropped);
       onOpenChange(false);
     } catch (error) {
