@@ -16,7 +16,7 @@ import { SharpImageProcessor } from "./infrastructure/sharp-image.processor.js";
   providers: [
     MediaRepository,
     MediaService,
-    { provide: ImageProcessorPort, useClass: SharpImageProcessor },
+    { provide: ImageProcessorPort, useFactory: () => new SharpImageProcessor() },
     { provide: StoragePort, useClass: S3StorageAdapter },
   ],
 })

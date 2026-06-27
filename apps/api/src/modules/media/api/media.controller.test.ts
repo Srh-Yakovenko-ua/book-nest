@@ -16,7 +16,17 @@ import { MediaModule } from "../media.module.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
-const MEDIA_VIEW_KEYS = ["height", "id", "kind", "urls", "width"];
+const MEDIA_VIEW_KEYS = [
+  "contentType",
+  "createdAt",
+  "height",
+  "id",
+  "kind",
+  "name",
+  "sizeBytes",
+  "urls",
+  "width",
+];
 
 const storedKeys = new Set<string>();
 const deletedBatches: string[][] = [];
@@ -82,7 +92,7 @@ describe("POST /api/media", () => {
     expect(res.status).toBe(401);
   });
 
-  it("uploads an image, stores original plus three derivatives, and returns a MediaView", async () => {
+  it("uploads an image, stores a single object, and returns a MediaView with metadata", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const res = await uploadMedia(accessToken).attach("file", pngBuffer, {
@@ -96,14 +106,19 @@ describe("POST /api/media", () => {
     expect(res.body.kind).toBe("book_cover");
     expect(res.body.width).toBe(60);
     expect(res.body.height).toBe(90);
-    expect(res.body.urls.full).toMatch(/\/full\.webp$/);
-    expect(res.body.urls.card).toMatch(/\/card\.webp$/);
-    expect(res.body.urls.thumb).toMatch(/\/thumb\.webp$/);
-    expect(storedKeys.size).toBe(4);
+    expect(res.body.name).toBe("cover.png");
+    expect(res.body.contentType).toBe("image/webp");
+    expect(typeof res.body.sizeBytes).toBe("number");
+    expect(typeof res.body.createdAt).toBe("string");
+    expect(res.body.urls.full).toMatch(/\/image\.webp$/);
+    expect(res.body.urls.card).toBe(res.body.urls.full);
+    expect(res.body.urls.thumb).toBe(res.body.urls.full);
+    expect(storedKeys.size).toBe(1);
 
     const row = await prisma.mediaAsset.findUnique({ where: { id: res.body.id } });
     expect(row?.userId).toBe(userId);
     expect(row?.kind).toBe("book_cover");
+    expect(row?.originalName).toBe("cover.png");
   });
 
   it("accepts an explicit kind field", async () => {
@@ -162,7 +177,7 @@ describe("DELETE /api/media/:id", () => {
       contentType: "image/png",
       filename: "cover.png",
     });
-    expect(storedKeys.size).toBe(4);
+    expect(storedKeys.size).toBe(1);
 
     const res = await request(app.getHttpServer())
       .delete(`/api/media/${created.body.id}`)
@@ -171,7 +186,7 @@ describe("DELETE /api/media/:id", () => {
     expect(res.status).toBe(204);
     expect(storedKeys.size).toBe(0);
     expect(deletedBatches).toHaveLength(1);
-    expect(deletedBatches[0]).toHaveLength(4);
+    expect(deletedBatches[0]).toHaveLength(1);
     const row = await prisma.mediaAsset.findUnique({ where: { id: created.body.id } });
     expect(row).toBeNull();
   });

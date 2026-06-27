@@ -1261,13 +1261,11 @@ export type LoanInfoView = {
   personName: string;
 };
 
-export const MEDIA_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const MEDIA_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 export const MEDIA_MAX_UPLOAD_MB = MEDIA_MAX_UPLOAD_BYTES / (1024 * 1024);
 
 export const MEDIA_DERIVATIVES = ["thumb", "card", "full"] as const;
-export const MediaDerivativeSchema = z.enum(MEDIA_DERIVATIVES);
 export type MediaDerivative = (typeof MEDIA_DERIVATIVES)[number];
-export type MediaDerivativeUrls = Record<MediaDerivative, string>;
 
 export const MediaKindSchema = z.enum(["avatar", "book_cover", "series_cover"]);
 export type MediaKind = z.infer<typeof MediaKindSchema>;
@@ -1278,13 +1276,23 @@ export const MediaUploadInputSchema = z.object({
 
 export type MediaUploadInput = z.infer<typeof MediaUploadInputSchema>;
 
-export type MediaView = {
-  height: number;
-  id: string;
-  kind: MediaKind;
-  urls: MediaDerivativeUrls;
-  width: number;
-};
+export const MediaViewSchema = z.object({
+  contentType: z.string(),
+  createdAt: z.string(),
+  height: z.number(),
+  id: z.string(),
+  kind: MediaKindSchema,
+  name: z.string().nullable(),
+  sizeBytes: z.number(),
+  urls: z.object({
+    card: z.string(),
+    full: z.string(),
+    thumb: z.string(),
+  }),
+  width: z.number(),
+});
+
+export type MediaView = z.infer<typeof MediaViewSchema>;
 
 export type PublisherView = {
   countryCode: null | string;

@@ -12,34 +12,38 @@ function solidPng(width: number, height: number): Promise<Buffer> {
 }
 
 describe("SharpImageProcessor", () => {
-  it("produces three webp derivatives plus a stripped original with source dimensions", async () => {
+  it("produces a single webp image preserving source dimensions when within the cap", async () => {
     const png = await solidPng(60, 90);
 
     const result = await processor.process(png);
 
     expect(result.contentType).toBe("image/webp");
-    expect(result.derivatives.map((derivative) => derivative.name).sort()).toEqual([
-      "card",
-      "full",
-      "thumb",
-    ]);
     expect(result.width).toBe(60);
     expect(result.height).toBe(90);
-    expect(result.original.length).toBeGreaterThan(0);
+    expect(result.body.length).toBeGreaterThan(0);
   });
 
-  it("does not upscale a source smaller than a derivative width", async () => {
+  it("does not upscale a source smaller than the output edge cap", async () => {
     const png = await solidPng(60, 90);
 
     const result = await processor.process(png);
-    const full = result.derivatives.find((derivative) => derivative.name === "full");
 
-    expect(full?.width).toBe(60);
+    expect(result.width).toBe(60);
+  });
+
+  it("downscales a large source to the output edge cap", async () => {
+    const png = await solidPng(3000, 2000);
+
+    const result = await processor.process(png);
+
+    expect(result.width).toBe(1280);
+    expect(result.height).toBe(853);
   });
 
   it("rejects an image whose pixel count exceeds the cap (decompression-bomb guard)", async () => {
-    const huge = await solidPng(6000, 6000);
+    const cappedProcessor = new SharpImageProcessor(100);
+    const overCap = await solidPng(20, 20);
 
-    await expect(processor.process(huge)).rejects.toThrow();
+    await expect(cappedProcessor.process(overCap)).rejects.toThrow();
   });
 });
