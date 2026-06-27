@@ -571,12 +571,14 @@
         "recommended": "Recommended size: 1200 × 1600"
       },
       "replace": "Replace cover",
+      "replaceSuccess": "Cover updated",
       "remove": "Remove cover",
       "converting": "Converting…",
       "previewAlt": "Book cover",
       "viewer": {
         "open": "View the cover at full size",
-        "title": "Book cover"
+        "title": "Book cover",
+        "download": "Download"
       },
       "removeConfirm": {
         "title": "Remove the cover?",

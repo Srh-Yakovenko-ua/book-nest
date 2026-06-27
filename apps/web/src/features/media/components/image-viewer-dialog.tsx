@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 
 type ImageViewerDialogProps = {
   alt: string;
   caption?: string;
   deleteLabel?: string;
+  downloadLabel?: string;
+  downloadName?: string;
   onDelete?: () => void;
   onOpenChange: (open: boolean) => void;
   onReplace?: () => void;
@@ -31,6 +32,8 @@ export function ImageViewerDialog({
   alt,
   caption,
   deleteLabel,
+  downloadLabel,
+  downloadName,
   onDelete,
   onOpenChange,
   onReplace,
@@ -40,7 +43,6 @@ export function ImageViewerDialog({
   title,
 }: ImageViewerDialogProps) {
   const openerRef = useRef<HTMLElement | null>(null);
-  const [loaded, setLoaded] = useState(false);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -56,7 +58,25 @@ export function ImageViewerDialog({
     }
   }
 
-  const showFooter = onReplace !== undefined || onDelete !== undefined;
+  async function handleDownload() {
+    try {
+      const res = await fetch(src);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = downloadName ?? "cover";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(src, "_blank", "noopener");
+    }
+  }
+
+  const showFooter =
+    onReplace !== undefined || onDelete !== undefined || downloadLabel !== undefined;
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -75,12 +95,8 @@ export function ImageViewerDialog({
         <div className="relative h-[70vh] w-full overflow-hidden rounded-lg bg-muted">
           <Image
             alt={alt}
-            className={cn(
-              "object-contain transition-opacity duration-500 ease-out",
-              loaded ? "opacity-100" : "motion-safe:opacity-0",
-            )}
+            className="object-contain"
             fill
-            onLoad={() => setLoaded(true)}
             sizes="(min-width: 640px) 42rem, 90vw"
             src={src}
             unoptimized
@@ -95,6 +111,12 @@ export function ImageViewerDialog({
               <Button onClick={onReplace} type="button" variant="secondary">
                 <UiIcon name="swap" size={16} />
                 {replaceLabel}
+              </Button>
+            )}
+            {downloadLabel === undefined ? null : (
+              <Button onClick={() => void handleDownload()} type="button" variant="secondary">
+                <UiIcon name="download" size={16} />
+                {downloadLabel}
               </Button>
             )}
             {onDelete === undefined ? null : (

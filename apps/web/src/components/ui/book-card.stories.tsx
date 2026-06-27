@@ -1,12 +1,24 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { expect } from "storybook/test";
+import { expect, fn, userEvent, waitFor } from "storybook/test";
 
 import { UiIcon } from "@/components/icons";
 import { readingStatuses } from "@/lib/book-status";
 
 import { BookCard } from "./book-card";
 import { Button } from "./button";
+
+function makeCoverDataUrl(fill: string) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 300;
+  canvas.height = 400;
+  const context = canvas.getContext("2d");
+  if (context) {
+    context.fillStyle = fill;
+    context.fillRect(0, 0, 300, 400);
+  }
+  return canvas.toDataURL("image/png");
+}
 
 const reading = readingStatuses.find((status) => status.value === "reading") ?? readingStatuses[0];
 const finished =
@@ -99,6 +111,24 @@ export const Selected: Story = {
     selected: true,
     status: reading,
     title: "Місто драбин",
+  },
+};
+
+export const ClickableCover: Story = {
+  args: {
+    cover: { alt: "Двір срібного полум'я", src: makeCoverDataUrl("#a96e47") },
+    coverActivateLabel: "View cover",
+    genre: { icon: "fentezi", label: "Фентезі" },
+    kebab: <Kebab />,
+    onCoverActivate: fn(),
+    rating: 4,
+    status: reading,
+  },
+  play: async ({ args, canvas }) => {
+    const cover = canvas.getByRole("button", { name: "View cover" });
+    await expect(cover).toBeVisible();
+    await userEvent.click(cover);
+    await waitFor(() => expect(args.onCoverActivate).toHaveBeenCalledTimes(1));
   },
 };
 

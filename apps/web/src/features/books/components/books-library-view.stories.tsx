@@ -91,6 +91,7 @@ const meta = {
     addBookLabel: "Додати книгу",
     books,
     count: "3 книги",
+    coverViewLabel: "Переглянути обкладинку у повному розмірі",
     deleteLabels,
     emptyState,
     errorState,
