@@ -93,9 +93,17 @@ describe("SeriesService.resolveForBook by id", () => {
   it("returns the id when an owned series is found", async () => {
     const { service } = buildService({ findOwnedById: series({ id: SERIES_ID }) });
 
-    const id = await service.resolveForBook(USER_ID, { seriesId: SERIES_ID });
+    const resolved = await service.resolveForBook(USER_ID, { seriesId: SERIES_ID });
 
-    expect(id).toBe(SERIES_ID);
+    expect(resolved.id).toBe(SERIES_ID);
+  });
+
+  it("returns the total books when an owned series is found", async () => {
+    const { service } = buildService({ findOwnedById: series({ id: SERIES_ID, totalBooks: 3 }) });
+
+    const resolved = await service.resolveForBook(USER_ID, { seriesId: SERIES_ID });
+
+    expect(resolved.totalBooks).toBe(3);
   });
 
   it("throws NotFoundError when the id is not owned by the user", async () => {
@@ -121,11 +129,11 @@ describe("SeriesService.resolveForBook by newSeries", () => {
       findByNormalized: series({ id: OTHER_ID }),
     });
 
-    const id = await service.resolveForBook(USER_ID, {
+    const resolved = await service.resolveForBook(USER_ID, {
       newSeries: { name: "Throne of Glass", status: "completed", totalBooks: 8 },
     });
 
-    expect(id).toBe(OTHER_ID);
+    expect(resolved.id).toBe(OTHER_ID);
     expect(repository.create).not.toHaveBeenCalled();
   });
 
@@ -143,11 +151,11 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     const created = series({ id: SERIES_ID });
     const { repository, service } = buildService({ create: created, findByNormalized: null });
 
-    const id = await service.resolveForBook(USER_ID, {
+    const resolved = await service.resolveForBook(USER_ID, {
       newSeries: { description: "saga", name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
     });
 
-    expect(id).toBe(SERIES_ID);
+    expect(resolved.id).toBe(SERIES_ID);
     expect(repository.create).toHaveBeenCalledWith(USER_ID, {
       description: "saga",
       name: "Throne of Glass",
@@ -165,11 +173,11 @@ describe("SeriesService.resolveForBook by newSeries", () => {
       findByNormalizedRetry: winner,
     });
 
-    const id = await service.resolveForBook(USER_ID, {
+    const resolved = await service.resolveForBook(USER_ID, {
       newSeries: { name: "Throne of Glass", status: "unknown" },
     });
 
-    expect(id).toBe(OTHER_ID);
+    expect(resolved.id).toBe(OTHER_ID);
     expect(repository.findByNormalized).toHaveBeenCalledTimes(2);
   });
 

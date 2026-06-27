@@ -17,7 +17,7 @@ const wantToRead =
 const books: LibraryBook[] = [
   {
     author: "Сара Дж. Маас",
-    genre: { label: "Фентезі" },
+    genres: [{ label: "Фентезі" }, { label: "Темне фентезі" }, { label: "Романтика" }],
     href: "/books/1/edit",
     id: "1",
     progress: {
@@ -34,7 +34,7 @@ const books: LibraryBook[] = [
   },
   {
     author: "Лі Бардуго",
-    genre: { label: "Фентезі" },
+    genres: [{ label: "Фентезі" }],
     href: "/books/2/edit",
     id: "2",
     rating: 4.5,
@@ -43,7 +43,7 @@ const books: LibraryBook[] = [
   },
   {
     author: "Медлін Міллер",
-    genre: { label: "Історична проза" },
+    genres: [{ label: "Історична проза" }],
     href: "/books/3/edit",
     id: "3",
     status: wantToRead,

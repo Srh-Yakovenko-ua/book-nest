@@ -543,7 +543,7 @@ export const TAG_NAME_ALLOWED_CHARS = /^[\p{L}\p{N} '’-]+$/u;
 
 const SERIES_NAME_MIN = 2;
 const SERIES_NAME_MAX = 120;
-const SERIES_DESCRIPTION_MAX = 300;
+export const SERIES_DESCRIPTION_MAX = 5000;
 const SERIES_TOTAL_BOOKS_MIN = 1;
 const SERIES_TOTAL_BOOKS_MAX = 999;
 const BOOK_PART_NUMBER_MIN = 1;
@@ -796,7 +796,7 @@ const OwnershipPersonNameSchema = z
     ),
   );
 
-const OwnershipPriceSchema = z.number().min(OWNERSHIP_PRICE_MIN, "Price must be at least 0");
+const OwnershipPriceSchema = z.number().gt(OWNERSHIP_PRICE_MIN, "Price must be greater than 0");
 
 export const PurchaseInfoInputSchema = z
   .object({
@@ -880,7 +880,7 @@ const SeriesDescriptionSchema = z
   .string()
   .transform(collapseHorizontalSpaces)
   .pipe(
-    NoHtmlString.max(SERIES_DESCRIPTION_MAX, "Description must be at most 300 characters long"),
+    NoHtmlString.max(SERIES_DESCRIPTION_MAX, "Description must be at most 5000 characters long"),
   );
 
 const SeriesTotalBooksSchema = z
@@ -894,6 +894,9 @@ const BookPartNumberSchema = z
   .int()
   .min(BOOK_PART_NUMBER_MIN, "Part number must be from 1 to 999")
   .max(BOOK_PART_NUMBER_MAX, "Part number must be from 1 to 999");
+
+export const BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE =
+  "Part number can't be greater than the total books in the series";
 
 export const NewSeriesInputSchema = z.object({
   description: SeriesDescriptionSchema.optional(),
@@ -1051,8 +1054,8 @@ export const CreateBookInputSchema = z
       ) {
         context.addIssue({
           code: "custom",
-          message: "Total books cannot be fewer than the part number",
-          path: ["newSeries", "totalBooks"],
+          message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+          path: ["partNumber"],
         });
       }
     }
@@ -1142,8 +1145,8 @@ export const UpdateBookInputSchema = z
       ) {
         context.addIssue({
           code: "custom",
-          message: "Total books cannot be fewer than the part number",
-          path: ["newSeries", "totalBooks"],
+          message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+          path: ["partNumber"],
         });
       }
     }

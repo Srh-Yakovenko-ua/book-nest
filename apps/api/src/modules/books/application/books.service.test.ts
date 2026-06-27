@@ -97,6 +97,7 @@ function buildService(
     maxQueuePosition?: number;
     publisherId?: null | string;
     seriesId?: string;
+    seriesTotalBooks?: null | number;
     tagIds?: string[];
     updateOwned?: BookWithRelations;
   } = {},
@@ -141,7 +142,10 @@ function buildService(
     resolveOrCreateMany: vi.fn().mockResolvedValue(overrides.tagIds ?? []),
   };
   const seriesService = {
-    resolveForBook: vi.fn().mockResolvedValue(overrides.seriesId ?? SERIES_ID),
+    resolveForBook: vi.fn().mockResolvedValue({
+      id: overrides.seriesId ?? SERIES_ID,
+      totalBooks: overrides.seriesTotalBooks ?? null,
+    }),
   };
   const listsService = {
     resolveListsForBook: vi.fn().mockResolvedValue(overrides.listIds ?? []),
@@ -835,6 +839,26 @@ describe("BooksService.create series handling", () => {
     await service.create(USER_ID, seriesPartInput({ bookType: "solo", partNumber: 1 }));
 
     expect(repository.existsSeriesPartNumber).not.toHaveBeenCalled();
+  });
+
+  it("rejects creating a book whose part number exceeds the existing series total books", async () => {
+    const { repository, service } = buildService({ seriesId: SERIES_ID, seriesTotalBooks: 2 });
+
+    await expect(
+      service.create(USER_ID, seriesPartInput({ partNumber: 3, seriesId: SERIES_ID })),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it("accepts creating a book whose part number equals the existing series total books", async () => {
+    const { repository, service } = buildService({ seriesId: SERIES_ID, seriesTotalBooks: 2 });
+
+    await service.create(USER_ID, seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }));
+
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ partNumber: 2, seriesId: SERIES_ID }),
+    );
   });
 });
 

@@ -349,6 +349,10 @@
       "tagsAtMax": "Tag limit reached",
       "tagsHint": "Custom tags via Enter or comma, up to {max}.",
       "tagsSuggestions": "Your tags",
+      "tagsSearching": "Searching tags…",
+      "tagsEmpty": "No tags found.",
+      "tagsCreateHeading": "Create new",
+      "tagsCreate": "Create “{name}”",
       "tagsNoSaved": "You don't have any saved tags yet. Type a new tag and press Enter.",
       "tagsTooShort": "A tag must be at least 2 characters long.",
       "tagsTooLong": "A tag can be at most 30 characters long.",
@@ -391,13 +395,15 @@
       "series": "Series",
       "seriesPlaceholder": "Start typing a series name…",
       "seriesDraft": "A new series “{name}” will be created on save.",
-      "partNumber": "Part number"
+      "partNumber": "Part number",
+      "partNumberHint": "This series has {total} books, so parts 1–{total} are available."
     },
     "series": {
       "searching": "Searching series…",
       "empty": "No series found.",
       "existingHeading": "Your series",
       "createHeading": "Create new",
+      "createNew": "Create new series",
       "createAction": "Create “{name}”",
       "statusLabels": {
         "unknown": "Unknown",
@@ -413,6 +419,7 @@
         "status": "Status",
         "totalBooks": "Books in series",
         "totalBooksPlaceholder": "e.g. 5",
+        "totalBooksInvalid": "Books in series must be greater than 0.",
         "descriptionLabel": "Description",
         "descriptionPlaceholder": "A short series description…",
         "confirm": "Create series"

@@ -58,7 +58,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Reading: Story = {
   args: {
-    genre: { icon: "fentezi", label: "Фентезі" },
+    genres: [
+      { icon: "fentezi", label: "Фентезі" },
+      { label: "Темне фентезі" },
+      { label: "Романтика" },
+    ],
     kebab: <Kebab />,
     progress: {
       ariaLabel: "Прогрес читання: 312 з 768",
@@ -79,7 +83,7 @@ export const Reading: Story = {
 export const Finished: Story = {
   args: {
     author: "Лі Бардуго",
-    genre: { icon: "fentezi", label: "Фентезі" },
+    genres: [{ icon: "fentezi", label: "Фентезі" }],
     kebab: <Kebab />,
     rating: 4.5,
     status: finished,
@@ -90,7 +94,7 @@ export const Finished: Story = {
 export const WantToRead: Story = {
   args: {
     author: "Медлін Міллер",
-    genre: { icon: "istorychnyy-roman", label: "Історична проза" },
+    genres: [{ icon: "istorychnyy-roman", label: "Історична проза" }],
     kebab: <Kebab />,
     status: wantToRead,
     title: "Пісня Ахілла",
@@ -100,7 +104,7 @@ export const WantToRead: Story = {
 export const Selected: Story = {
   args: {
     author: "Роберт Джексон Беннетт",
-    genre: { icon: "fentezi", label: "Фентезі" },
+    genres: [{ icon: "fentezi", label: "Фентезі" }],
     progress: {
       ariaLabel: "Прогрес читання: 87 з 452",
       current: 87,
@@ -118,7 +122,7 @@ export const ClickableCover: Story = {
   args: {
     cover: { alt: "Двір срібного полум'я", src: makeCoverDataUrl("#a96e47") },
     coverActivateLabel: "View cover",
-    genre: { icon: "fentezi", label: "Фентезі" },
+    genres: [{ icon: "fentezi", label: "Фентезі" }],
     kebab: <Kebab />,
     onCoverActivate: fn(),
     rating: 4,
@@ -144,7 +148,7 @@ export const Grid: Story = {
     <div className="grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-[18px]">
       <BookCard
         author="Сара Дж. Маас"
-        genre={{ icon: "fentezi", label: "Фентезі" }}
+        genres={[{ icon: "fentezi", label: "Фентезі" }]}
         href="#book"
         kebab={<Kebab />}
         progress={{
@@ -160,7 +164,7 @@ export const Grid: Story = {
       />
       <BookCard
         author="Лі Бардуго"
-        genre={{ icon: "fentezi", label: "Фентезі" }}
+        genres={[{ icon: "fentezi", label: "Фентезі" }]}
         href="#book"
         kebab={<Kebab />}
         rating={4.5}
@@ -169,7 +173,7 @@ export const Grid: Story = {
       />
       <BookCard
         author="Медлін Міллер"
-        genre={{ icon: "istorychnyy-roman", label: "Історична проза" }}
+        genres={[{ icon: "istorychnyy-roman", label: "Історична проза" }]}
         href="#book"
         kebab={<Kebab />}
         status={wantToRead}
