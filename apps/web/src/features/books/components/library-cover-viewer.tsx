@@ -105,13 +105,15 @@ export function LibraryCoverViewer({ bookId, media, onClose, title }: LibraryCov
 
       <ImageViewerDialog
         alt={title}
+        busy={isBusy}
+        busyLabel={t("replacing")}
         caption={caption}
         downloadLabel={t("viewer.download")}
         downloadName={mediaDownloadName({ contentType: media.contentType, name: media.name })}
         onOpenChange={(open) => {
           if (!open) onClose();
         }}
-        onReplace={isBusy ? undefined : () => fileInputRef.current?.click()}
+        onReplace={() => fileInputRef.current?.click()}
         open
         replaceLabel={t("replace")}
         src={media.urls.full}

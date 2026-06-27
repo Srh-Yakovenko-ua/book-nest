@@ -36,6 +36,29 @@ function ViewerExample({ initialOpen }: { initialOpen: boolean }) {
   );
 }
 
+function ViewerReplacing() {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="w-[420px]">
+      <ImageViewerDialog
+        alt="Sample cover"
+        busy
+        busyLabel="Replacing cover…"
+        caption="cover.webp · 1066 × 1600"
+        deleteLabel="Delete"
+        downloadLabel="Download"
+        onDelete={() => {}}
+        onOpenChange={setOpen}
+        onReplace={() => {}}
+        open={open}
+        replaceLabel="Replace"
+        src={makeCoverDataUrl("#a96e47")}
+        title="Book cover"
+      />
+    </div>
+  );
+}
+
 function ViewerWithActions() {
   const [open, setOpen] = useState(true);
   const [log, setLog] = useState<string[]>([]);
@@ -138,6 +161,23 @@ export const WithReplaceAndDeleteActions: Story = {
     await waitFor(() => expect(canvas.getByText("replace,delete")).toBeVisible());
   },
   render: () => <ViewerWithActions />,
+};
+
+export const Replacing: Story = {
+  play: async () => {
+    const surface = within(document.body);
+    const dialog = within(await surface.findByRole("dialog"));
+
+    const status = dialog.getByRole("status");
+    await waitFor(() => expect(status).toBeVisible());
+    await expect(status).toHaveTextContent("Replacing cover…");
+
+    await expect(dialog.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    await expect(dialog.getByRole("button", { name: "Replace" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Download" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "Delete" })).toBeDisabled();
+  },
+  render: () => <ViewerReplacing />,
 };
 
 export const WithDownloadAction: Story = {

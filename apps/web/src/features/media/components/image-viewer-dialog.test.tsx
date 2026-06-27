@@ -53,6 +53,26 @@ describe("ImageViewerDialog", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("shows a busy status overlay, hides the close button, and disables actions while busy", () => {
+    renderWithProviders(
+      <ImageViewerDialog
+        alt="Book cover full size"
+        busy
+        busyLabel="Replacing cover…"
+        onOpenChange={() => {}}
+        onReplace={() => {}}
+        open
+        replaceLabel="Replace"
+        src="/cover-full.webp"
+        title="Book cover"
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Replacing cover…");
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Replace" })).toBeDisabled();
+  });
+
   it("opens the source in a new tab instead of downloading an error body", async () => {
     const fetchMock = vi.fn().mockResolvedValue({ blob: vi.fn(), ok: false, status: 403 });
     const openMock = vi.fn();
