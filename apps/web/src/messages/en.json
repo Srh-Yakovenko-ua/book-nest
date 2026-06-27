@@ -572,6 +572,7 @@
       },
       "replace": "Replace cover",
       "replaceSuccess": "Cover updated",
+      "replacing": "Replacing cover…",
       "remove": "Remove cover",
       "converting": "Converting…",
       "previewAlt": "Book cover",

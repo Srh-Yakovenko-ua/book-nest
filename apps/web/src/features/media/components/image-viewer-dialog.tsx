@@ -15,6 +15,8 @@ import {
 
 type ImageViewerDialogProps = {
   alt: string;
+  busy?: boolean;
+  busyLabel?: string;
   caption?: string;
   deleteLabel?: string;
   downloadLabel?: string;
@@ -30,6 +32,8 @@ type ImageViewerDialogProps = {
 
 export function ImageViewerDialog({
   alt,
+  busy = false,
+  busyLabel,
   caption,
   deleteLabel,
   downloadLabel,
@@ -80,11 +84,24 @@ export function ImageViewerDialog({
     onReplace !== undefined || onDelete !== undefined || downloadLabel !== undefined;
 
   return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
+    <Dialog
+      onOpenChange={(next) => {
+        if (busy && !next) return;
+        onOpenChange(next);
+      }}
+      open={open}
+    >
       <DialogContent
         aria-describedby={undefined}
         className="max-w-[90vw] gap-4 sm:max-w-2xl"
         onCloseAutoFocus={restoreFocus}
+        onEscapeKeyDown={(event) => {
+          if (busy) event.preventDefault();
+        }}
+        onInteractOutside={(event) => {
+          if (busy) event.preventDefault();
+        }}
+        showCloseButton={!busy}
       >
         {title === undefined ? (
           <DialogTitle className="sr-only">{alt}</DialogTitle>
@@ -102,6 +119,18 @@ export function ImageViewerDialog({
             src={src}
             unoptimized
           />
+          {busy && (
+            <div
+              aria-busy
+              className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-card/70 backdrop-blur-sm"
+              role="status"
+            >
+              <UiIcon className="animate-spin text-muted-foreground" name="refresh" size={24} />
+              {busyLabel === undefined ? null : (
+                <p className="text-sm text-muted-foreground">{busyLabel}</p>
+              )}
+            </div>
+          )}
         </div>
         {caption === undefined ? null : (
           <p className="text-center text-sm text-muted-foreground">{caption}</p>
@@ -109,19 +138,24 @@ export function ImageViewerDialog({
         {showFooter && (
           <DialogFooter className="sm:justify-center">
             {onReplace === undefined ? null : (
-              <Button onClick={onReplace} type="button" variant="secondary">
+              <Button disabled={busy} onClick={onReplace} type="button" variant="secondary">
                 <UiIcon name="swap" size={16} />
                 {replaceLabel}
               </Button>
             )}
             {downloadLabel === undefined ? null : (
-              <Button onClick={() => void handleDownload()} type="button" variant="secondary">
+              <Button
+                disabled={busy}
+                onClick={() => void handleDownload()}
+                type="button"
+                variant="secondary"
+              >
                 <UiIcon name="download" size={16} />
                 {downloadLabel}
               </Button>
             )}
             {onDelete === undefined ? null : (
-              <Button onClick={onDelete} type="button" variant="ghost">
+              <Button disabled={busy} onClick={onDelete} type="button" variant="ghost">
                 <UiIcon name="trash" size={16} />
                 {deleteLabel}
               </Button>
