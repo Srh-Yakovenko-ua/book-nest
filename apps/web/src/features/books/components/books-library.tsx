@@ -137,6 +137,7 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
 
   return {
     author: book.author.name,
+    cover: book.cover ? { alt: book.title, src: book.cover.urls.thumb } : undefined,
     genre: firstGenre === undefined ? undefined : { label: labels.genreName(firstGenre) },
     href: `/books/${book.id}/edit`,
     id: book.id,

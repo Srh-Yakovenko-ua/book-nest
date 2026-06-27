@@ -17,6 +17,9 @@ export const booksControllerCreateBodyAuthorOneIdRegExp = new RegExp(
 );
 export const booksControllerCreateBodyAuthorTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
 export const booksControllerCreateBodyBookTypeDefault = `solo`;
+export const booksControllerCreateBodyCoverMediaIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const booksControllerCreateBodyDeliveryInfoExpectedDeliveryDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -24,6 +27,8 @@ export const booksControllerCreateBodyDeliveryInfoOrderDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerCreateBodyFormatsDefault = [];
+export const booksControllerCreateBodyGenresItemMax = 64;
+
 export const booksControllerCreateBodyGenresDefault = [];
 export const booksControllerCreateBodyGenresMax = 5;
 
@@ -108,6 +113,7 @@ export const BooksControllerCreateBody = zod.object({
     }),
   ]),
   bookType: zod.enum(["solo", "series_part"]).default(booksControllerCreateBodyBookTypeDefault),
+  coverMediaId: zod.uuid().regex(booksControllerCreateBodyCoverMediaIdRegExp).nullish(),
   dedication: zod.string().nullish(),
   deliveryInfo: zod
     .object({
@@ -132,39 +138,7 @@ export const BooksControllerCreateBody = zod.object({
     .array(zod.enum(["paper", "ebook", "audiobook"]))
     .default(booksControllerCreateBodyFormatsDefault),
   genres: zod
-    .array(
-      zod.enum([
-        "fantasy",
-        "science_fiction",
-        "dystopia",
-        "romance",
-        "thriller",
-        "mystery",
-        "detective",
-        "horror",
-        "historical_fiction",
-        "literary_fiction",
-        "contemporary",
-        "young_adult",
-        "childrens",
-        "classics",
-        "poetry",
-        "drama",
-        "short_stories",
-        "nonfiction",
-        "biography",
-        "memoir",
-        "self_help",
-        "psychology",
-        "philosophy",
-        "history",
-        "science",
-        "business",
-        "true_crime",
-        "comics",
-        "other",
-      ]),
-    )
+    .array(zod.string().min(1).max(booksControllerCreateBodyGenresItemMax))
     .max(booksControllerCreateBodyGenresMax)
     .default(booksControllerCreateBodyGenresDefault),
   illustrator: zod.string().nullish(),
@@ -330,12 +304,17 @@ export const booksControllerUpdateBodyAuthorOneIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
 export const booksControllerUpdateBodyAuthorTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const booksControllerUpdateBodyCoverMediaIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const booksControllerUpdateBodyDeliveryInfoExpectedDeliveryDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerUpdateBodyDeliveryInfoOrderDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const booksControllerUpdateBodyGenresItemMax = 64;
+
 export const booksControllerUpdateBodyGenresMax = 5;
 
 export const booksControllerUpdateBodyListIdsItemRegExp = new RegExp(
@@ -417,6 +396,7 @@ export const BooksControllerUpdateBody = zod.object({
     ])
     .optional(),
   bookType: zod.enum(["solo", "series_part"]).optional(),
+  coverMediaId: zod.uuid().regex(booksControllerUpdateBodyCoverMediaIdRegExp).nullish(),
   dedication: zod.string().nullish(),
   deliveryInfo: zod
     .object({
@@ -439,39 +419,7 @@ export const BooksControllerUpdateBody = zod.object({
   description: zod.string().nullish(),
   formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])).optional(),
   genres: zod
-    .array(
-      zod.enum([
-        "fantasy",
-        "science_fiction",
-        "dystopia",
-        "romance",
-        "thriller",
-        "mystery",
-        "detective",
-        "horror",
-        "historical_fiction",
-        "literary_fiction",
-        "contemporary",
-        "young_adult",
-        "childrens",
-        "classics",
-        "poetry",
-        "drama",
-        "short_stories",
-        "nonfiction",
-        "biography",
-        "memoir",
-        "self_help",
-        "psychology",
-        "philosophy",
-        "history",
-        "science",
-        "business",
-        "true_crime",
-        "comics",
-        "other",
-      ]),
-    )
+    .array(zod.string().min(1).max(booksControllerUpdateBodyGenresItemMax))
     .max(booksControllerUpdateBodyGenresMax)
     .optional(),
   illustrator: zod.string().nullish(),

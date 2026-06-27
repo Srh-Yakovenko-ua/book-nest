@@ -15,6 +15,7 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useUploadMedia } from "@/features/media";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/http-client";
 
@@ -30,6 +31,7 @@ import {
   readingProgressHasData,
 } from "../model/book-status-fields";
 import { bookViewToFormState } from "../model/book-view-to-form";
+import { coverPreviewSrc, type CoverState } from "../model/cover-state";
 import {
   type AuthorSelection,
   authorSelectionToReference,
@@ -44,6 +46,7 @@ import { AuthorAutocomplete } from "./author-autocomplete";
 import { BookPreview } from "./book-preview";
 import { BookTypeSection } from "./book-type-section";
 import { ClassificationSection } from "./classification-section";
+import { CoverField } from "./cover-field";
 import { DiscardConfirmDialog } from "./discard-confirm-dialog";
 import { EditionDetailsSection } from "./edition-details-section";
 import { FormSection } from "./form-section";
@@ -85,8 +88,11 @@ export function BookForm(props: BookFormProps) {
 
   const createBook = useCreateBook();
   const updateBook = useUpdateBook(bookId ?? "");
+  const uploadMedia = useUploadMedia();
   const genres = useGenres();
-  const isPending = createBook.isPending || updateBook.isPending;
+  const isPending = createBook.isPending || updateBook.isPending || uploadMedia.isPending;
+
+  const initialCover = initial?.cover ?? null;
 
   const [authorSelection, setAuthorSelection] = useState<AuthorSelection | null>(
     initial?.authorSelection ?? null,
@@ -94,9 +100,24 @@ export function BookForm(props: BookFormProps) {
   const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
     initial?.publisherSelection ?? null,
   );
+  const [coverState, setCoverState] = useState<CoverState>(
+    initialCover === null ? { kind: "empty" } : { kind: "existing", media: initialCover },
+  );
+  const [coverDirty, setCoverDirty] = useState(false);
   const [pendingDiscard, setPendingDiscard] = useState<null | PendingDiscard>(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (coverState.kind !== "selected") return;
+    const url = coverState.previewUrl;
+    return () => URL.revokeObjectURL(url);
+  }, [coverState]);
+
+  function handleCoverChange(next: CoverState) {
+    setCoverState(next);
+    setCoverDirty(true);
+  }
 
   const resolver = (
     props.mode === "edit" ? zodResolver(UpdateBookInputSchema) : zodResolver(CreateBookInputSchema)
@@ -199,8 +220,21 @@ export function BookForm(props: BookFormProps) {
     });
   }
 
-  const onSubmit = handleSubmit((values) => {
+  const onSubmit = handleSubmit(async (values) => {
     const payload = pruneStatusPayload(values);
+
+    if (coverState.kind === "selected") {
+      try {
+        const media = await uploadMedia.mutateAsync({ file: coverState.file });
+        payload.coverMediaId = media.id;
+      } catch {
+        toast.error(t("cover.errors.upload"));
+        return;
+      }
+    } else if (coverState.kind === "removed") {
+      payload.coverMediaId = null;
+    }
+
     if (props.mode === "edit") {
       updateBook.mutate(payload, {
         onError: (error) => handleMutationError(error),
@@ -231,8 +265,9 @@ export function BookForm(props: BookFormProps) {
   }
 
   const descriptionRemaining = BOOK_DESCRIPTION_MAX - descriptionValue.length;
-  const cancelHref = bookId === null ? "/" : `/books/${bookId}/edit`;
-  const guardActive = isDirty && !isPending;
+  const cancelHref = bookId === null ? "/" : "/books";
+  const formDirty = isDirty || coverDirty;
+  const guardActive = formDirty && !isPending;
 
   useEffect(() => {
     if (!guardActive) return;
@@ -261,7 +296,7 @@ export function BookForm(props: BookFormProps) {
   }
 
   function handleCancel() {
-    if (isDirty) {
+    if (formDirty) {
       setCancelConfirmOpen(true);
       return;
     }
@@ -465,9 +500,16 @@ export function BookForm(props: BookFormProps) {
         </div>
       </div>
 
-      <div className="motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:sticky lg:top-[calc(var(--shell-header-height)+theme(spacing.4))]">
+      <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2 lg:sticky lg:top-[calc(var(--shell-header-height)+theme(spacing.4))]">
+        <CoverField
+          disabled={isPending}
+          hadInitialCover={initialCover !== null}
+          onChange={handleCoverChange}
+          state={coverState}
+        />
         <BookPreview
           authorName={previewAuthorName}
+          coverSrc={coverPreviewSrc(coverState)}
           description={descriptionValue}
           formats={previewFormats}
           genres={previewGenres}

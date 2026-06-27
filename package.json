@@ -94,6 +94,9 @@
       "prisma",
       "unrs-resolver",
       "@swc/core"
-    ]
+    ],
+    "overrides": {
+      "multer": ">=2.2.0"
+    }
   }
 }

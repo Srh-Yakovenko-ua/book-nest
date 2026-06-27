@@ -146,15 +146,32 @@ function BookCard({
 function BookCover({ alt, src }: { alt: string; src?: string }) {
   if (src === undefined) {
     return (
-      <div className="grid h-[108px] w-[74px] shrink-0 place-items-center rounded-md bg-accent text-accent-foreground/70 shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]">
+      <div className="grid aspect-[3/4] w-[74px] shrink-0 place-items-center rounded-md bg-accent text-accent-foreground/70 shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]">
         <UiIcon name="book" size={24} />
       </div>
     );
   }
 
+  return <BookCoverImage alt={alt} src={src} />;
+}
+
+function BookCoverImage({ alt, src }: { alt: string; src: string }) {
+  const [loaded, setLoaded] = React.useState(false);
+
   return (
-    <div className="relative h-[108px] w-[74px] shrink-0 overflow-hidden rounded-md bg-accent shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]">
-      <Image alt={alt} className="object-cover" fill sizes="74px" src={src} />
+    <div className="relative aspect-[3/4] w-[74px] shrink-0 overflow-hidden rounded-md bg-accent shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]">
+      <Image
+        alt={alt}
+        className={cn(
+          "object-cover transition-opacity duration-500 ease-out",
+          loaded ? "opacity-100" : "motion-safe:opacity-0",
+        )}
+        fill
+        onLoad={() => setLoaded(true)}
+        sizes="74px"
+        src={src}
+        unoptimized
+      />
     </div>
   );
 }

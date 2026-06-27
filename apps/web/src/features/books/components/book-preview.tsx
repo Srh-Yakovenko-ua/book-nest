@@ -1,9 +1,10 @@
 "use client";
 
 import type { BookFormat, OwnershipStatus, ReadingStatus } from "@app/shared";
-import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
+import { type ReactNode, useState } from "react";
 
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { Rating } from "@/components/ui/rating";
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
 
 type BookPreviewProps = {
   authorName: string;
+  coverSrc?: string;
   description: string;
   formats?: readonly BookFormat[];
   genres?: readonly string[];
@@ -37,6 +39,7 @@ const FORMAT_ICONS: Record<BookFormat, UiIconName> = {
 
 export function BookPreview({
   authorName,
+  coverSrc,
   description,
   formats = [],
   genres = [],
@@ -50,6 +53,7 @@ export function BookPreview({
   title,
 }: BookPreviewProps) {
   const t = useTranslations("books");
+  const [coverLoaded, setCoverLoaded] = useState(false);
   const hasTitle = title.trim().length > 0;
   const hasAuthor = authorName.trim().length > 0;
   const hasPublisher = publisherName.trim().length > 0;
@@ -71,24 +75,37 @@ export function BookPreview({
       aria-label={t("preview.eyebrow")}
       className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5 text-card-foreground shadow-card md:p-6"
     >
-      <div className="flex flex-col gap-1">
-        <p className="font-mono text-[10px] tracking-[0.22em] text-muted-foreground uppercase">
-          {t("preview.eyebrow")}
-        </p>
-        <p className="text-xs text-muted-foreground">{t("preview.subtitle")}</p>
+      <div className="flex items-center gap-2.5">
+        <UiIcon className="text-primary" name="sparkles" size={20} />
+        <h2 className="font-heading text-lg text-ink">{t("preview.eyebrow")}</h2>
       </div>
 
       <div className="flex gap-4">
-        <div className="relative aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-md bg-accent shadow-soft">
-          <div className="grid h-full w-full place-items-center text-accent-foreground">
-            {coverInitial === null ? (
-              <UiIcon name="book" size={28} />
-            ) : (
-              <span className="font-heading text-3xl leading-none font-semibold">
-                {coverInitial}
-              </span>
-            )}
-          </div>
+        <div className="relative aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-md bg-accent shadow-soft">
+          {coverSrc === undefined ? (
+            <div className="grid h-full w-full place-items-center text-accent-foreground">
+              {coverInitial === null ? (
+                <UiIcon name="book" size={28} />
+              ) : (
+                <span className="font-heading text-3xl leading-none font-semibold">
+                  {coverInitial}
+                </span>
+              )}
+            </div>
+          ) : (
+            <Image
+              alt={t("preview.coverAlt")}
+              className={cn(
+                "object-cover transition-opacity duration-500 ease-out",
+                coverLoaded ? "opacity-100" : "motion-safe:opacity-0",
+              )}
+              fill
+              onLoad={() => setCoverLoaded(true)}
+              sizes="96px"
+              src={coverSrc}
+              unoptimized
+            />
+          )}
           {isFavorite ? (
             <span
               aria-hidden
