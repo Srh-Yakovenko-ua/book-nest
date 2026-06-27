@@ -1,5 +1,7 @@
 "use client";
 
+import type { MediaCrop } from "@app/shared";
+
 import { MEDIA_MAX_UPLOAD_BYTES, MEDIA_MAX_UPLOAD_MB } from "@app/shared";
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
@@ -25,7 +27,9 @@ import {
   ACCEPT_ATTR,
   ACCEPTED_IMAGE_TYPES,
   COVER_ASPECT,
+  cropImagePreview,
   isHeicCandidate,
+  mediaDownloadName,
   normalizeImageFile,
 } from "@/features/media";
 import { cn } from "@/lib/utils";
@@ -81,7 +85,7 @@ export function CoverField({
 
   const downloadName =
     state.kind === "existing"
-      ? (state.media.name ?? undefined)
+      ? mediaDownloadName({ contentType: state.media.contentType, name: state.media.name })
       : state.kind === "selected"
         ? state.file.name
         : undefined;
@@ -124,9 +128,9 @@ export function CoverField({
     setPendingFile(normalized);
   }
 
-  function handleCropped(file: File) {
-    onChange({ file, kind: "selected", previewUrl: URL.createObjectURL(file) });
+  async function handleCropped({ crop, file }: { crop: MediaCrop; file: File }) {
     setPendingFile(null);
+    onChange({ crop, file, kind: "selected", previewUrl: await previewUrlFor({ crop, file }) });
   }
 
   function handleRemoveClick() {
@@ -296,7 +300,7 @@ export function CoverField({
             event.preventDefault();
             restoreFocus();
           }}
-          onCropped={handleCropped}
+          onCropped={(result) => void handleCropped(result)}
           onOpenChange={(open) => {
             if (!open) setPendingFile(null);
           }}
@@ -337,4 +341,13 @@ function captureOpener(ref: RefObject<HTMLElement | null>) {
     active instanceof HTMLElement && active !== document.body && active.tabIndex !== -1
       ? active
       : null;
+}
+
+async function previewUrlFor({ crop, file }: { crop: MediaCrop; file: File }): Promise<string> {
+  try {
+    const preview = await cropImagePreview({ crop, file });
+    return preview.url;
+  } catch {
+    return URL.createObjectURL(file);
+  }
 }

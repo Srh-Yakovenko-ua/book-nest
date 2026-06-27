@@ -106,6 +106,7 @@ export function BookForm(props: BookFormProps) {
   const [coverDirty, setCoverDirty] = useState(false);
   const [pendingDiscard, setPendingDiscard] = useState<null | PendingDiscard>(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [uploadedCover, setUploadedCover] = useState<null | { file: File; mediaId: string }>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -225,8 +226,16 @@ export function BookForm(props: BookFormProps) {
 
     if (coverState.kind === "selected") {
       try {
-        const media = await uploadMedia.mutateAsync({ file: coverState.file });
-        payload.coverMediaId = media.id;
+        if (uploadedCover !== null && uploadedCover.file === coverState.file) {
+          payload.coverMediaId = uploadedCover.mediaId;
+        } else {
+          const media = await uploadMedia.mutateAsync({
+            crop: coverState.crop,
+            file: coverState.file,
+          });
+          setUploadedCover({ file: coverState.file, mediaId: media.id });
+          payload.coverMediaId = media.id;
+        }
       } catch {
         toast.error(t("cover.errors.upload"));
         return;

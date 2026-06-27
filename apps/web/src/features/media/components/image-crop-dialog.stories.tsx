@@ -17,7 +17,9 @@ function CropExample() {
       <ImageCropDialog
         aspect={COVER_ASPECT}
         file={file}
-        onCropped={(next) => setCroppedLabel(`${next.name} · ${next.type} · ${next.size}b`)}
+        onCropped={({ crop, file: cropped }) =>
+          setCroppedLabel(`${cropped.name} · ${crop.width}×${crop.height}`)
+        }
         onOpenChange={setOpen}
         open={open}
       />
@@ -109,7 +111,7 @@ export const AppliesCrop: Story = {
     await userEvent.click(apply);
 
     await waitFor(() => expect(surface.queryByRole("dialog")).not.toBeInTheDocument());
-    await expect(await surface.findByText(/image\/webp/)).toBeVisible();
+    await expect(await surface.findByText(/cover\.png/)).toBeVisible();
   },
   render: () => <CropExample />,
 };

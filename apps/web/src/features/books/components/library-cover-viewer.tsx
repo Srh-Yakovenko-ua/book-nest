@@ -1,6 +1,6 @@
 "use client";
 
-import type { MediaView } from "@app/shared";
+import type { MediaCrop, MediaView } from "@app/shared";
 
 import { MEDIA_MAX_UPLOAD_BYTES, MEDIA_MAX_UPLOAD_MB } from "@app/shared";
 import { useTranslations } from "next-intl";
@@ -14,6 +14,7 @@ import {
   COVER_ASPECT,
   ImageViewerDialog,
   isHeicCandidate,
+  mediaDownloadName,
   normalizeImageFile,
   useUploadMedia,
 } from "@/features/media";
@@ -74,9 +75,9 @@ export function LibraryCoverViewer({ bookId, media, onClose, title }: LibraryCov
     setPendingFile(normalized);
   }
 
-  async function handleCropped(file: File) {
+  async function handleCropped({ crop, file }: { crop: MediaCrop; file: File }) {
     try {
-      const uploaded = await uploadMedia.mutateAsync({ file });
+      const uploaded = await uploadMedia.mutateAsync({ crop, file });
       await updateBook.mutateAsync({ coverMediaId: uploaded.id });
       toast.success(t("replaceSuccess"));
       setPendingFile(null);
@@ -106,7 +107,7 @@ export function LibraryCoverViewer({ bookId, media, onClose, title }: LibraryCov
         alt={title}
         caption={caption}
         downloadLabel={t("viewer.download")}
-        downloadName={media.name ?? undefined}
+        downloadName={mediaDownloadName({ contentType: media.contentType, name: media.name })}
         onOpenChange={(open) => {
           if (!open) onClose();
         }}
@@ -121,7 +122,7 @@ export function LibraryCoverViewer({ bookId, media, onClose, title }: LibraryCov
         <ImageCropDialog
           aspect={COVER_ASPECT}
           file={pendingFile}
-          onCropped={(file) => void handleCropped(file)}
+          onCropped={(result) => void handleCropped(result)}
           onOpenChange={(open) => {
             if (!open) setPendingFile(null);
           }}

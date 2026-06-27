@@ -90,6 +90,34 @@ describe("useUploadMedia", () => {
     expect(result.current.data).toEqual(validView);
   });
 
+  it("appends the crop as a JSON string when provided", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(validView, 201));
+    const crop = { height: 1600, width: 1200, x: 0, y: 0 };
+
+    const { result } = renderHook(() => useUploadMedia(), { wrapper: createWrapper() });
+    act(() => {
+      result.current.mutate({ crop, file: coverFile() });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const [, init] = fetchMock.mock.lastCall as [string, RequestInit];
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).get("crop")).toBe(JSON.stringify(crop));
+  });
+
+  it("omits the crop field when no crop is provided", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(validView, 201));
+
+    const { result } = renderHook(() => useUploadMedia(), { wrapper: createWrapper() });
+    act(() => {
+      result.current.mutate({ file: coverFile() });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    const [, init] = fetchMock.mock.lastCall as [string, RequestInit];
+    expect((init.body as FormData).has("crop")).toBe(false);
+  });
+
   it("sends the requested kind when provided", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ ...validView, kind: "avatar" }, 201));
 

@@ -1,9 +1,13 @@
 import "@testing-library/jest-dom/vitest";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { ImageViewerDialog } from "./image-viewer-dialog";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("ImageViewerDialog", () => {
   it("shows the image with its alt, the title, and the caption when open", () => {
@@ -47,5 +51,33 @@ describe("ImageViewerDialog", () => {
     );
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens the source in a new tab instead of downloading an error body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ blob: vi.fn(), ok: false, status: 403 });
+    const openMock = vi.fn();
+    const clickMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("open", openMock);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(clickMock);
+
+    renderWithProviders(
+      <ImageViewerDialog
+        alt="Book cover full size"
+        downloadLabel="Download"
+        downloadName="cover.webp"
+        onOpenChange={() => {}}
+        open
+        src="/cover-full.webp"
+        title="Book cover"
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+
+    await waitFor(() =>
+      expect(openMock).toHaveBeenCalledWith("/cover-full.webp", "_blank", "noopener"),
+    );
+    expect(clickMock).not.toHaveBeenCalled();
   });
 });

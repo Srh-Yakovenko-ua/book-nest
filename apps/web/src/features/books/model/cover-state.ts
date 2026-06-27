@@ -1,7 +1,7 @@
-import type { MediaView } from "@app/shared";
+import type { MediaCrop, MediaView } from "@app/shared";
 
 export type CoverState =
-  | { file: File; kind: "selected"; previewUrl: string }
+  | { crop: MediaCrop; file: File; kind: "selected"; previewUrl: string }
   | { kind: "empty" }
   | { kind: "existing"; media: MediaView }
   | { kind: "removed" };

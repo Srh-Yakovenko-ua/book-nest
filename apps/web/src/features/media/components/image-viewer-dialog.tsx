@@ -61,6 +61,7 @@ export function ImageViewerDialog({
   async function handleDownload() {
     try {
       const res = await fetch(src);
+      if (!res.ok) throw new Error(`Download failed with status ${res.status}`);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
