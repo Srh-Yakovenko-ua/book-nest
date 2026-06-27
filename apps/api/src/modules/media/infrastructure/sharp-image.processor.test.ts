@@ -36,8 +36,8 @@ describe("SharpImageProcessor", () => {
 
     const result = await processor.process(png);
 
-    expect(result.width).toBe(1280);
-    expect(result.height).toBe(853);
+    expect(result.width).toBe(1600);
+    expect(result.height).toBe(1067);
   });
 
   it("rejects an image whose pixel count exceeds the cap (decompression-bomb guard)", async () => {
