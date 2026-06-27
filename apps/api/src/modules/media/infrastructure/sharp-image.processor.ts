@@ -1,9 +1,15 @@
+import type { MediaCrop } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 import sharp from "sharp";
 
-import type { ProcessedImage } from "../domain/image-processor.port.js";
+import type { ProcessedImage, ProcessImageOptions } from "../domain/image-processor.port.js";
 
-import { ImageProcessorPort } from "../domain/image-processor.port.js";
+import {
+  CropOutOfBoundsError,
+  ImageProcessorPort,
+  ImageTooLargeError,
+} from "../domain/image-processor.port.js";
 
 const OUTPUT_CONTENT_TYPE = "image/webp";
 const WEBP_EFFORT = 6;
@@ -11,23 +17,63 @@ const WEBP_QUALITY = 88;
 const MAX_OUTPUT_EDGE = 1600;
 const DEFAULT_MAX_INPUT_PIXELS = 80_000_000;
 
+const ORIENTATIONS_WITH_SWAPPED_AXES = new Set([5, 6, 7, 8]);
+
+function assertCropWithinBounds({
+  crop,
+  orientedHeight,
+  orientedWidth,
+}: {
+  crop: MediaCrop;
+  orientedHeight: number;
+  orientedWidth: number;
+}): void {
+  const fitsHorizontally = crop.x >= 0 && crop.width > 0 && crop.x + crop.width <= orientedWidth;
+  const fitsVertically = crop.y >= 0 && crop.height > 0 && crop.y + crop.height <= orientedHeight;
+  if (!fitsHorizontally || !fitsVertically) {
+    throw new CropOutOfBoundsError();
+  }
+}
+
+function orientImageDimensions(input: {
+  height: number;
+  orientation: number | undefined;
+  width: number;
+}): { height: number; width: number } {
+  if (input.orientation !== undefined && ORIENTATIONS_WITH_SWAPPED_AXES.has(input.orientation)) {
+    return { height: input.width, width: input.height };
+  }
+  return { height: input.height, width: input.width };
+}
+
 @Injectable()
 export class SharpImageProcessor extends ImageProcessorPort {
   constructor(private readonly maxInputPixels: number = DEFAULT_MAX_INPUT_PIXELS) {
     super();
   }
 
-  async process(input: Buffer): Promise<ProcessedImage> {
-    const metadata = await sharp(input, { limitInputPixels: this.maxInputPixels }).metadata();
+  async process({ crop, input }: ProcessImageOptions): Promise<ProcessedImage> {
+    const metadata = await sharp(input, { limitInputPixels: false }).metadata();
     if (metadata.width === undefined || metadata.height === undefined) {
       throw new Error("Image metadata is missing dimensions");
     }
     if (metadata.width * metadata.height > this.maxInputPixels) {
-      throw new Error("Image exceeds the maximum allowed pixel count");
+      throw new ImageTooLargeError();
     }
 
-    const { data, info } = await sharp(input, { limitInputPixels: this.maxInputPixels })
-      .rotate()
+    const pipeline = sharp(input, { limitInputPixels: this.maxInputPixels }).rotate();
+
+    if (crop !== undefined) {
+      const { height: orientedHeight, width: orientedWidth } = orientImageDimensions({
+        height: metadata.height,
+        orientation: metadata.orientation,
+        width: metadata.width,
+      });
+      assertCropWithinBounds({ crop, orientedHeight, orientedWidth });
+      pipeline.extract({ height: crop.height, left: crop.x, top: crop.y, width: crop.width });
+    }
+
+    const { data, info } = await pipeline
       .resize({
         fit: "inside",
         height: MAX_OUTPUT_EDGE,

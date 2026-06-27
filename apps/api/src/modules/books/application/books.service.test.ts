@@ -875,7 +875,7 @@ describe("BooksService.delete", () => {
 
     await service.delete(USER_ID, BOOK_ID);
 
-    expect(mediaService.delete).toHaveBeenCalledWith(USER_ID, MEDIA_ID);
+    expect(mediaService.delete).toHaveBeenCalledWith({ id: MEDIA_ID, userId: USER_ID });
   });
 
   it("keeps the cover media when another book still references it", async () => {
@@ -911,7 +911,7 @@ describe("BooksService cover", () => {
 
     await service.create(USER_ID, { ...minimalInput, coverMediaId: MEDIA_ID });
 
-    expect(mediaService.assertOwned).toHaveBeenCalledWith(USER_ID, MEDIA_ID);
+    expect(mediaService.assertOwned).toHaveBeenCalledWith({ id: MEDIA_ID, userId: USER_ID });
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ coverMediaId: MEDIA_ID }),
@@ -937,8 +937,8 @@ describe("BooksService cover", () => {
 
     await service.update(USER_ID, BOOK_ID, { coverMediaId: MEDIA_ID });
 
-    expect(mediaService.assertOwned).toHaveBeenCalledWith(USER_ID, MEDIA_ID);
-    expect(mediaService.delete).toHaveBeenCalledWith(USER_ID, previousCoverMediaId);
+    expect(mediaService.assertOwned).toHaveBeenCalledWith({ id: MEDIA_ID, userId: USER_ID });
+    expect(mediaService.delete).toHaveBeenCalledWith({ id: previousCoverMediaId, userId: USER_ID });
   });
 
   it("keeps the previous cover on update when another book still references it", async () => {
