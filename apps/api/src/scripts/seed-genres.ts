@@ -36,22 +36,23 @@ async function seedGenres(): Promise<void> {
   try {
     const items = await loadGenreItems();
 
-    const deleted = await prisma.genre.deleteMany({ where: { userId: null } });
+    const [deleted, created] = await prisma.$transaction([
+      prisma.genre.deleteMany({ where: { userId: null } }),
+      prisma.genre.createMany({
+        data: items.map((item, index) => ({
+          groupKey: item.group,
+          groupName: item.groupName,
+          isDefault: true,
+          key: item.id,
+          name: item.name,
+          normalizedName: normalizeName(item.name),
+          sortOrder: index,
+          userId: null,
+        })),
+      }),
+    ]);
+
     logger.info({ deleted: deleted.count }, "cleared existing default genres");
-
-    const created = await prisma.genre.createMany({
-      data: items.map((item, index) => ({
-        groupKey: item.group,
-        groupName: item.groupName,
-        isDefault: true,
-        key: item.id,
-        name: item.name,
-        normalizedName: normalizeName(item.name),
-        sortOrder: index,
-        userId: null,
-      })),
-    });
-
     logger.info({ created: created.count }, "genre seed completed");
   } finally {
     await prisma.$disconnect();
