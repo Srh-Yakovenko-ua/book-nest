@@ -77,7 +77,7 @@ describe("Book cover integration", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.cover.id).toBe(media.body.id);
-    expect(res.body.cover.urls.full).toMatch(/\/full\.webp$/);
+    expect(res.body.cover.urls.full).toMatch(/\/image\.webp$/);
     expect(res.body.cover.width).toBe(60);
   });
 

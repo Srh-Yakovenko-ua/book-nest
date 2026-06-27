@@ -1,17 +1,7 @@
-import type { MediaDerivative } from "@app/shared";
-
-export type ProcessedDerivative = {
-  body: Buffer;
-  height: number;
-  name: MediaDerivative;
-  width: number;
-};
-
 export type ProcessedImage = {
+  body: Buffer;
   contentType: string;
-  derivatives: ProcessedDerivative[];
   height: number;
-  original: Buffer;
   width: number;
 };
 

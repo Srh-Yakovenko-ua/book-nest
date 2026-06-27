@@ -505,11 +505,23 @@ export class BooksService {
   }
 
   private coverViewOf(book: BookWithRelations): MediaView | null {
-    return book.coverMedia === null ? null : this.mediaService.buildView(book.coverMedia);
+    if (book.coverMedia === null) {
+      return null;
+    }
+    try {
+      return this.mediaService.buildView(book.coverMedia);
+    } catch (error) {
+      log.warn({ bookId: book.id, err: error }, "failed to build cover view");
+      return null;
+    }
   }
 
   private async deleteCoverMedia(userId: string, mediaId: string): Promise<void> {
     try {
+      const referencingBooks = await this.booksRepository.countByCoverMediaId(mediaId);
+      if (referencingBooks > 0) {
+        return;
+      }
       await this.mediaService.delete(userId, mediaId);
     } catch (error) {
       log.warn({ err: error, mediaId }, "failed to delete cover media");

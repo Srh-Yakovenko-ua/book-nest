@@ -130,6 +130,10 @@ type CreateBookData = {
 export class BooksRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  countByCoverMediaId(coverMediaId: string): Promise<number> {
+    return this.prisma.book.count({ where: { coverMediaId } });
+  }
+
   countByUser(userId: string): Promise<number> {
     return this.prisma.book.count({ where: { userId } });
   }

@@ -29,6 +29,7 @@ const LIST_ID = "77777777-7777-4777-8777-777777777777";
 const MEDIA_ID = "88888888-8888-4888-8888-888888888801";
 
 type Repository = {
+  countByCoverMediaId: ReturnType<typeof vi.fn>;
   countByUser: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteOwned: ReturnType<typeof vi.fn>;
@@ -85,6 +86,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
 function buildService(
   overrides: {
     authorId?: string;
+    countByCoverMediaId?: number;
     countByUser?: number;
     create?: BookWithRelations;
     deleteOwned?: number;
@@ -117,6 +119,7 @@ function buildService(
   tagsService: { resolveOrCreateMany: ReturnType<typeof vi.fn> };
 } {
   const repository: Repository = {
+    countByCoverMediaId: vi.fn().mockResolvedValue(overrides.countByCoverMediaId ?? 0),
     countByUser: vi.fn().mockResolvedValue(overrides.countByUser ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
@@ -866,12 +869,24 @@ describe("BooksService.delete", () => {
 
   it("deletes the attached cover media when the deleted book had one", async () => {
     const { mediaService, service } = buildService({
+      countByCoverMediaId: 0,
       findOwnedById: bookRow({ coverMediaId: MEDIA_ID }),
     });
 
     await service.delete(USER_ID, BOOK_ID);
 
     expect(mediaService.delete).toHaveBeenCalledWith(USER_ID, MEDIA_ID);
+  });
+
+  it("keeps the cover media when another book still references it", async () => {
+    const { mediaService, service } = buildService({
+      countByCoverMediaId: 1,
+      findOwnedById: bookRow({ coverMediaId: MEDIA_ID }),
+    });
+
+    await service.delete(USER_ID, BOOK_ID);
+
+    expect(mediaService.delete).not.toHaveBeenCalled();
   });
 });
 
@@ -924,6 +939,19 @@ describe("BooksService cover", () => {
 
     expect(mediaService.assertOwned).toHaveBeenCalledWith(USER_ID, MEDIA_ID);
     expect(mediaService.delete).toHaveBeenCalledWith(USER_ID, previousCoverMediaId);
+  });
+
+  it("keeps the previous cover on update when another book still references it", async () => {
+    const previousCoverMediaId = "88888888-8888-4888-8888-888888888802";
+    const { mediaService, service } = buildService({
+      countByCoverMediaId: 1,
+      findOwnedById: bookRow({ coverMediaId: previousCoverMediaId }),
+      updateOwned: bookRow({ coverMediaId: MEDIA_ID }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { coverMediaId: MEDIA_ID });
+
+    expect(mediaService.delete).not.toHaveBeenCalled();
   });
 });
 

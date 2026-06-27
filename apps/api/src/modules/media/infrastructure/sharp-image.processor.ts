@@ -1,51 +1,47 @@
-import { MEDIA_DERIVATIVES, type MediaDerivative } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import sharp from "sharp";
 
-import type { ProcessedDerivative, ProcessedImage } from "../domain/image-processor.port.js";
+import type { ProcessedImage } from "../domain/image-processor.port.js";
 
 import { ImageProcessorPort } from "../domain/image-processor.port.js";
 
 const OUTPUT_CONTENT_TYPE = "image/webp";
 const WEBP_EFFORT = 5;
-const MAX_INPUT_PIXELS = 24_000_000;
-
-const DERIVATIVE_SPECS = {
-  card: { quality: 78, width: 400 },
-  full: { quality: 80, width: 800 },
-  thumb: { quality: 70, width: 200 },
-} satisfies Record<MediaDerivative, { quality: number; width: number }>;
+const WEBP_QUALITY = 82;
+const MAX_OUTPUT_EDGE = 1280;
+const DEFAULT_MAX_INPUT_PIXELS = 80_000_000;
 
 @Injectable()
 export class SharpImageProcessor extends ImageProcessorPort {
+  constructor(private readonly maxInputPixels: number = DEFAULT_MAX_INPUT_PIXELS) {
+    super();
+  }
+
   async process(input: Buffer): Promise<ProcessedImage> {
-    const metadata = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).metadata();
+    const metadata = await sharp(input, { limitInputPixels: this.maxInputPixels }).metadata();
     if (metadata.width === undefined || metadata.height === undefined) {
       throw new Error("Image metadata is missing dimensions");
     }
-    if (metadata.width * metadata.height > MAX_INPUT_PIXELS) {
+    if (metadata.width * metadata.height > this.maxInputPixels) {
       throw new Error("Image exceeds the maximum allowed pixel count");
     }
 
-    const original = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS }).rotate().toBuffer();
-
-    const derivatives: ProcessedDerivative[] = [];
-    for (const name of MEDIA_DERIVATIVES) {
-      const { quality, width } = DERIVATIVE_SPECS[name];
-      const { data, info } = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS })
-        .rotate()
-        .resize({ width, withoutEnlargement: true })
-        .webp({ effort: WEBP_EFFORT, quality })
-        .toBuffer({ resolveWithObject: true });
-      derivatives.push({ body: data, height: info.height, name, width: info.width });
-    }
+    const { data, info } = await sharp(input, { limitInputPixels: this.maxInputPixels })
+      .rotate()
+      .resize({
+        fit: "inside",
+        height: MAX_OUTPUT_EDGE,
+        width: MAX_OUTPUT_EDGE,
+        withoutEnlargement: true,
+      })
+      .webp({ effort: WEBP_EFFORT, quality: WEBP_QUALITY })
+      .toBuffer({ resolveWithObject: true });
 
     return {
+      body: data,
       contentType: OUTPUT_CONTENT_TYPE,
-      derivatives,
-      height: metadata.height,
-      original,
-      width: metadata.width,
+      height: info.height,
+      width: info.width,
     };
   }
 }
