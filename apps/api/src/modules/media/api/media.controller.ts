@@ -60,13 +60,18 @@ export class MediaController {
   @Delete(":id")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
   delete(@CurrentUser() user: UserModel, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
-    return this.mediaService.delete(user.id, id);
+    return this.mediaService.delete({ id, userId: user.id });
   }
 
   @ApiBearerAuth()
   @ApiBody({
     schema: {
       properties: {
+        crop: {
+          description:
+            'JSON-encoded crop rectangle in oriented pixels, e.g. {"x":0,"y":0,"width":1200,"height":1600}',
+          type: "string",
+        },
         file: { format: "binary", type: "string" },
         kind: { enum: ["avatar", "book_cover", "series_cover"], type: "string" },
       },
@@ -90,10 +95,15 @@ export class MediaController {
     if (file === undefined) {
       throw mediaError("File is required", MEDIA_ERROR_CODES.fileRequired);
     }
-    return this.mediaService.upload(user.id, body.kind, {
-      buffer: file.buffer,
-      originalName: file.originalname,
-      size: file.size,
+    return this.mediaService.upload({
+      crop: body.crop,
+      file: {
+        buffer: file.buffer,
+        originalName: file.originalname,
+        size: file.size,
+      },
+      kind: body.kind,
+      userId: user.id,
     });
   }
 }

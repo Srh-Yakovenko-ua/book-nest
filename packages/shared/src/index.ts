@@ -1270,7 +1270,28 @@ export type MediaDerivative = (typeof MEDIA_DERIVATIVES)[number];
 export const MediaKindSchema = z.enum(["avatar", "book_cover", "series_cover"]);
 export type MediaKind = z.infer<typeof MediaKindSchema>;
 
+export const MediaCropSchema = z.object({
+  height: z.number().int().positive(),
+  width: z.number().int().positive(),
+  x: z.number().int().nonnegative(),
+  y: z.number().int().nonnegative(),
+});
+
+export type MediaCrop = z.infer<typeof MediaCropSchema>;
+
+const parseCropJson = (value: unknown): unknown => {
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+};
+
 export const MediaUploadInputSchema = z.object({
+  crop: z.preprocess(parseCropJson, MediaCropSchema).optional(),
   kind: MediaKindSchema.default("book_cover"),
 });
 

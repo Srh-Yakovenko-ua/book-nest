@@ -209,7 +209,7 @@ export class BooksService {
     await this.genresService.assertGenresSelectable(userId, input.genres);
 
     if (input.coverMediaId != null) {
-      await this.mediaService.assertOwned(userId, input.coverMediaId);
+      await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
     }
 
     const deliveryInfo =
@@ -333,7 +333,7 @@ export class BooksService {
 
     if (input.coverMediaId !== undefined) {
       if (input.coverMediaId !== null) {
-        await this.mediaService.assertOwned(userId, input.coverMediaId);
+        await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
       }
       fields.coverMediaId = input.coverMediaId;
     }
@@ -522,7 +522,7 @@ export class BooksService {
       if (referencingBooks > 0) {
         return;
       }
-      await this.mediaService.delete(userId, mediaId);
+      await this.mediaService.delete({ id: mediaId, userId });
     } catch (error) {
       log.warn({ err: error, mediaId }, "failed to delete cover media");
     }

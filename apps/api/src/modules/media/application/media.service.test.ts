@@ -8,6 +8,7 @@ import type { StoragePort } from "../domain/storage.port.js";
 import type { MediaRepository } from "../infrastructure/media.repository.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { CropOutOfBoundsError, ImageTooLargeError } from "../domain/image-processor.port.js";
 import { MediaService } from "./media.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -75,10 +76,14 @@ describe("MediaService.upload", () => {
     const { repository, service, storage } = buildService();
     const processedSize = processedImage().body.length;
 
-    const result = await service.upload(USER_ID, "book_cover", {
-      buffer: pngBuffer,
-      originalName: "My Cover.PNG",
-      size: pngBuffer.length,
+    const result = await service.upload({
+      file: {
+        buffer: pngBuffer,
+        originalName: "My Cover.PNG",
+        size: pngBuffer.length,
+      },
+      kind: "book_cover",
+      userId: USER_ID,
     });
 
     expect(storage.put).toHaveBeenCalledTimes(1);
@@ -106,13 +111,60 @@ describe("MediaService.upload", () => {
     expect(result.urls.thumb).toBe(result.urls.full);
   });
 
+  it("forwards the crop rectangle to the image processor", async () => {
+    const { imageProcessor, service } = buildService();
+    const crop = { height: 1600, width: 1200, x: 0, y: 0 };
+
+    await service.upload({
+      crop,
+      file: { buffer: pngBuffer, originalName: "cover.png", size: pngBuffer.length },
+      kind: "book_cover",
+      userId: USER_ID,
+    });
+
+    expect(imageProcessor.process).toHaveBeenCalledWith({ crop, input: pngBuffer });
+  });
+
+  it("maps a crop-out-of-bounds failure to a BadRequestError", async () => {
+    const { imageProcessor, service, storage } = buildService();
+    imageProcessor.process.mockRejectedValue(new CropOutOfBoundsError());
+
+    await expect(
+      service.upload({
+        crop: { height: 9000, width: 9000, x: 0, y: 0 },
+        file: { buffer: pngBuffer, originalName: "cover.png", size: pngBuffer.length },
+        kind: "book_cover",
+        userId: USER_ID,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(storage.put).not.toHaveBeenCalled();
+  });
+
+  it("maps an image-too-large failure to a BadRequestError without storing", async () => {
+    const { imageProcessor, service, storage } = buildService();
+    imageProcessor.process.mockRejectedValue(new ImageTooLargeError());
+
+    await expect(
+      service.upload({
+        file: { buffer: pngBuffer, originalName: "huge.png", size: pngBuffer.length },
+        kind: "book_cover",
+        userId: USER_ID,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(storage.put).not.toHaveBeenCalled();
+  });
+
   it("normalizes a missing original filename to null", async () => {
     const { repository, service } = buildService();
 
-    const result = await service.upload(USER_ID, "book_cover", {
-      buffer: pngBuffer,
-      originalName: "   ",
-      size: pngBuffer.length,
+    const result = await service.upload({
+      file: {
+        buffer: pngBuffer,
+        originalName: "   ",
+        size: pngBuffer.length,
+      },
+      kind: "book_cover",
+      userId: USER_ID,
     });
 
     expect(result.name).toBeNull();
@@ -123,10 +175,14 @@ describe("MediaService.upload", () => {
     const { service } = buildService();
     const messyName = `cover${String.fromCharCode(1, 13, 10)}.png`;
 
-    const result = await service.upload(USER_ID, "book_cover", {
-      buffer: pngBuffer,
-      originalName: messyName,
-      size: pngBuffer.length,
+    const result = await service.upload({
+      file: {
+        buffer: pngBuffer,
+        originalName: messyName,
+        size: pngBuffer.length,
+      },
+      kind: "book_cover",
+      userId: USER_ID,
     });
 
     expect(result.name).toBe("cover.png");
@@ -137,10 +193,14 @@ describe("MediaService.upload", () => {
     repository.create.mockRejectedValue(new Error("db down"));
 
     await expect(
-      service.upload(USER_ID, "book_cover", {
-        buffer: pngBuffer,
-        originalName: "cover.png",
-        size: pngBuffer.length,
+      service.upload({
+        file: {
+          buffer: pngBuffer,
+          originalName: "cover.png",
+          size: pngBuffer.length,
+        },
+        kind: "book_cover",
+        userId: USER_ID,
       }),
     ).rejects.toThrow("db down");
 
@@ -154,10 +214,14 @@ describe("MediaService.upload", () => {
     const { imageProcessor, service } = buildService();
 
     await expect(
-      service.upload(USER_ID, "book_cover", {
-        buffer: Buffer.alloc(1),
-        originalName: "huge.png",
-        size: MEDIA_MAX_UPLOAD_BYTES + 1,
+      service.upload({
+        file: {
+          buffer: Buffer.alloc(1),
+          originalName: "huge.png",
+          size: MEDIA_MAX_UPLOAD_BYTES + 1,
+        },
+        kind: "book_cover",
+        userId: USER_ID,
       }),
     ).rejects.toBeInstanceOf(BadRequestError);
     expect(imageProcessor.process).not.toHaveBeenCalled();
@@ -168,10 +232,14 @@ describe("MediaService.upload", () => {
     const notAnImage = Buffer.from("this is plain text, not an image");
 
     await expect(
-      service.upload(USER_ID, "book_cover", {
-        buffer: notAnImage,
-        originalName: "note.txt",
-        size: notAnImage.length,
+      service.upload({
+        file: {
+          buffer: notAnImage,
+          originalName: "note.txt",
+          size: notAnImage.length,
+        },
+        kind: "book_cover",
+        userId: USER_ID,
       }),
     ).rejects.toBeInstanceOf(BadRequestError);
     expect(imageProcessor.process).not.toHaveBeenCalled();
@@ -182,10 +250,14 @@ describe("MediaService.upload", () => {
     imageProcessor.process.mockRejectedValue(new Error("sharp blew up"));
 
     await expect(
-      service.upload(USER_ID, "book_cover", {
-        buffer: pngBuffer,
-        originalName: "cover.png",
-        size: pngBuffer.length,
+      service.upload({
+        file: {
+          buffer: pngBuffer,
+          originalName: "cover.png",
+          size: pngBuffer.length,
+        },
+        kind: "book_cover",
+        userId: USER_ID,
       }),
     ).rejects.toBeInstanceOf(BadRequestError);
     expect(storage.put).not.toHaveBeenCalled();
@@ -198,17 +270,19 @@ describe("MediaService.delete", () => {
     const key = "media/book_cover/x/image.webp";
     repository.findOwnedById.mockResolvedValue({ storageKey: key });
 
-    await service.delete(USER_ID, ASSET_ID);
+    await service.delete({ id: ASSET_ID, userId: USER_ID });
 
     expect(storage.delete).toHaveBeenCalledWith([key]);
-    expect(repository.deleteOwned).toHaveBeenCalledWith(USER_ID, ASSET_ID);
+    expect(repository.deleteOwned).toHaveBeenCalledWith({ id: ASSET_ID, userId: USER_ID });
   });
 
   it("throws NotFoundError when the asset is not owned", async () => {
     const { repository, service, storage } = buildService();
     repository.findOwnedById.mockResolvedValue(null);
 
-    await expect(service.delete(USER_ID, ASSET_ID)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.delete({ id: ASSET_ID, userId: USER_ID })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
     expect(storage.delete).not.toHaveBeenCalled();
   });
 });
