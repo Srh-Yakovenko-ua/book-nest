@@ -126,21 +126,6 @@
       "mcp__claude-in-chrome__read_console_messages",
       "mcp__claude-in-chrome__key"
     ],
-    "ask": [
-      "Bash(pnpm --filter @app/api db:migrate)",
-      "Bash(pnpm --filter @app/api db:migrate:*)",
-      "Bash(pnpm --filter @app/api exec prisma migrate:*)",
-      "Bash(pnpm --filter @app/api exec prisma db push:*)",
-      "Bash(pnpm --filter @app/api exec prisma db execute:*)",
-      "Bash(pnpm exec prisma migrate:*)",
-      "Bash(pnpm exec prisma db push:*)",
-      "Bash(pnpm exec prisma db execute:*)",
-      "Bash(prisma migrate:*)",
-      "Bash(prisma db push:*)",
-      "Bash(prisma db execute:*)",
-      "Bash(npx prisma migrate:*)",
-      "Bash(npx prisma db push:*)"
-    ],
     "deny": [
       "Bash(rm -rf:*)",
       "Bash(rm -fr:*)",
@@ -159,12 +144,22 @@
       "Bash(mongo --eval:*)",
       "Bash(pnpm publish:*)",
       "Bash(npm publish:*)"
+    ],
+    "ask": [
+      "Bash(pnpm --filter @app/api db:migrate)",
+      "Bash(pnpm --filter @app/api db:migrate:*)",
+      "Bash(pnpm --filter @app/api exec prisma migrate:*)",
+      "Bash(pnpm --filter @app/api exec prisma db push:*)",
+      "Bash(pnpm --filter @app/api exec prisma db execute:*)",
+      "Bash(pnpm exec prisma migrate:*)",
+      "Bash(pnpm exec prisma db push:*)",
+      "Bash(pnpm exec prisma db execute:*)",
+      "Bash(prisma migrate:*)",
+      "Bash(prisma db push:*)",
+      "Bash(prisma db execute:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(npx prisma db push:*)"
     ]
-  },
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
-    "chrome-devtools-mcp@claude-plugins-official": true,
-    "playwright@claude-plugins-official": true
   },
   "hooks": {
     "PreToolUse": [
@@ -205,5 +200,10 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true
   }
 }

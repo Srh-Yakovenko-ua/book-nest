@@ -1,4 +1,4 @@
-import type { BookView } from "@app/shared";
+import type { BookView, MediaView, Nullable } from "@app/shared";
 
 import type {
   AuthorSelection,
@@ -11,6 +11,7 @@ import { createBookFormDefaults } from "./create-book-form";
 
 export type BookFormInitialState = {
   authorSelection: AuthorSelection;
+  cover: Nullable<MediaView>;
   publisherSelection: null | PublisherSelection;
   seriesSelection: null | SeriesSelection;
   values: CreateBookFormValues;
@@ -65,7 +66,13 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
 
   if (book.publisher !== null) values.publisherId = book.publisher.id;
 
-  return { authorSelection, publisherSelection, seriesSelection, values };
+  return {
+    authorSelection,
+    cover: book.cover ?? null,
+    publisherSelection,
+    seriesSelection,
+    values,
+  };
 }
 
 function deliveryToInput(book: BookView): CreateBookFormValues["deliveryInfo"] {

@@ -69,6 +69,9 @@ async function buildRequest(
   path: string,
   init?: RequestOptions,
 ): Promise<{ init: RequestInit; url: string }> {
+  const jsonContentType: Record<string, string> =
+    init?.body instanceof FormData ? {} : { "Content-Type": "application/json" };
+
   if (isServer) {
     const base = process.env.API_BASE_URL ?? "http://localhost:4000";
     const { cookies } = await import("next/headers");
@@ -77,7 +80,7 @@ async function buildRequest(
       init: {
         ...init,
         headers: {
-          "Content-Type": "application/json",
+          ...jsonContentType,
           ...(cookieHeader ? { cookie: cookieHeader } : {}),
           ...init?.headers,
         },
@@ -93,7 +96,7 @@ async function buildRequest(
       ...init,
       credentials: "include",
       headers: {
-        "Content-Type": "application/json",
+        ...jsonContentType,
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...init?.headers,
       },

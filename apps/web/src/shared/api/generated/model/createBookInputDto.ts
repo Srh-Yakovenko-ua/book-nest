@@ -10,7 +10,6 @@ import type { CreateBookInputDtoAuthor } from "./createBookInputDtoAuthor";
 import type { CreateBookInputDtoBookType } from "./createBookInputDtoBookType";
 import type { CreateBookInputDtoDeliveryInfo } from "./createBookInputDtoDeliveryInfo";
 import type { CreateBookInputDtoFormatsItem } from "./createBookInputDtoFormatsItem";
-import type { CreateBookInputDtoGenresItem } from "./createBookInputDtoGenresItem";
 import type { CreateBookInputDtoLanguage } from "./createBookInputDtoLanguage";
 import type { CreateBookInputDtoLoanInfo } from "./createBookInputDtoLoanInfo";
 import type { CreateBookInputDtoNewListsItem } from "./createBookInputDtoNewListsItem";
@@ -26,14 +25,23 @@ export interface CreateBookInputDto {
   ageCategory?: CreateBookInputDtoAgeCategory;
   author: CreateBookInputDtoAuthor;
   bookType?: CreateBookInputDtoBookType;
+  /**
+   * @nullable
+   * @pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+   */
+  coverMediaId?: string | null;
   /** @nullable */
   dedication?: string | null;
   deliveryInfo?: CreateBookInputDtoDeliveryInfo;
   /** @nullable */
   description?: string | null;
   formats?: CreateBookInputDtoFormatsItem[];
-  /** @maxItems 5 */
-  genres?: CreateBookInputDtoGenresItem[];
+  /**
+   * @maxItems 5
+   * @items.minLength 1
+   * @items.maxLength 64
+   */
+  genres?: string[];
   /** @nullable */
   illustrator?: string | null;
   /** @nullable */

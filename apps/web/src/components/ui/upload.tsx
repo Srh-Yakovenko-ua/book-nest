@@ -12,8 +12,9 @@ type UploadProps = {
   className?: string;
   disabled?: boolean;
   files: File[];
-  hint?: string;
+  hint?: React.ReactNode;
   id?: string;
+  media?: React.ReactNode;
   multiple?: boolean;
   onFilesChange: (files: File[]) => void;
   title?: string;
@@ -32,6 +33,7 @@ function Upload({
   files,
   hint,
   id,
+  media,
   multiple = false,
   onFilesChange,
   title = "Перетягніть файл сюди",
@@ -59,9 +61,8 @@ function Upload({
   return (
     <div className={cn("flex flex-col gap-3", className)} data-slot="upload">
       <button
-        aria-label={browseLabel}
         className={cn(
-          "relative flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-input bg-field px-6 py-8 text-center transition-[border-color,background-color,box-shadow] outline-none hover:not-disabled:border-accent-border hover:not-disabled:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-secondary disabled:opacity-60",
+          "relative flex w-full cursor-pointer flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-input bg-field px-6 py-8 text-center transition-[border-color,background-color,box-shadow] duration-200 ease-out outline-none hover:not-disabled:border-accent-border hover:not-disabled:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-secondary disabled:opacity-60",
           dragOver &&
             "border-solid border-accent-border bg-accent/40 ring-4 ring-ring/50 hover:not-disabled:border-accent-border hover:not-disabled:bg-accent/40",
         )}
@@ -91,15 +92,22 @@ function Upload({
         }}
         type="button"
       >
-        <span className={cn("mb-1 text-icon", dragOver && "text-primary")}>
-          <UiIcon name="cloud-up" size={54} />
-        </span>
-        <span className="text-base font-semibold text-ink" id={titleId}>
+        {media ?? (
+          <span
+            className={cn(
+              "mb-1 text-icon transition-colors duration-200 ease-out",
+              dragOver && "text-primary",
+            )}
+          >
+            <UiIcon name="cloud-up" size={54} />
+          </span>
+        )}
+        <span className="text-sm font-bold text-ink" id={titleId}>
           {dragOver ? "Відпустіть, щоб завантажити" : title}
         </span>
         <span className="text-sm text-muted-foreground">або</span>
-        <span className="mt-1 inline-flex">
-          <Button asChild tabIndex={-1}>
+        <span className="mt-1 flex w-full">
+          <Button asChild className="h-11 w-full" tabIndex={-1}>
             <span>
               <UiIcon name="upload" size={18} />
               {browseLabel}
@@ -124,7 +132,7 @@ function Upload({
       />
 
       {hint === undefined ? null : (
-        <p className="text-xs leading-snug text-muted-foreground">{hint}</p>
+        <div className="text-center text-xs leading-snug text-muted-foreground">{hint}</div>
       )}
 
       {files.length === 0 ? null : (

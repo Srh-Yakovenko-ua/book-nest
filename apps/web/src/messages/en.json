@@ -501,7 +501,6 @@
     },
     "preview": {
       "eyebrow": "Preview",
-      "subtitle": "This is how the book will look in your library.",
       "titlePlaceholder": "Example title",
       "authorPlaceholder": "Author not specified",
       "coverInitial": "Book",
@@ -509,7 +508,8 @@
       "genresMore": "+{count}",
       "tagsMore": "+{count}",
       "favorite": "Favorite",
-      "inQueue": "In reading queue"
+      "inQueue": "In reading queue",
+      "coverAlt": "Book cover"
     },
     "actions": {
       "submit": "Add book",
@@ -561,6 +561,44 @@
       "errorTitle": "Could not load the book",
       "errorDescription": "Something went wrong. Try refreshing the page in a moment.",
       "backToLibrary": "Back to library"
+    },
+    "cover": {
+      "title": "Book cover",
+      "upload": {
+        "title": "Drag an image here",
+        "browse": "Upload a cover",
+        "formats": "Format: JPG, PNG · Max {max} MB",
+        "recommended": "Recommended size: 1200 × 1600"
+      },
+      "replace": "Replace cover",
+      "remove": "Remove cover",
+      "converting": "Converting…",
+      "previewAlt": "Book cover",
+      "viewer": {
+        "open": "View the cover at full size",
+        "title": "Book cover"
+      },
+      "removeConfirm": {
+        "title": "Remove the cover?",
+        "description": "The cover will be removed after you save your changes. You can add a new cover later.",
+        "confirm": "Remove",
+        "cancel": "Cancel"
+      },
+      "crop": {
+        "title": "Crop the cover",
+        "description": "Position and zoom the image to a 3:4 format.",
+        "region": "Cover crop area",
+        "zoom": "Zoom",
+        "confirm": "Apply",
+        "cancel": "Cancel",
+        "error": "Could not process the image"
+      },
+      "errors": {
+        "type": "The file must be in JPG, PNG, or WEBP format",
+        "size": "The file size cannot exceed {max} MB",
+        "heic": "Could not convert the HEIC image. Try a different file.",
+        "upload": "Could not upload the cover"
+      }
     }
   }
 }

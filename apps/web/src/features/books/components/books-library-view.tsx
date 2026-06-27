@@ -27,6 +27,7 @@ import { DeleteBookDialog } from "./delete-book-dialog";
 
 export type LibraryBook = {
   author: string;
+  cover?: { alt?: string; src: string };
   genre?: { icon?: GenreIconName; label: string };
   href: string;
   id: string;
@@ -201,6 +202,7 @@ export function BooksLibraryView({
                 >
                   <BookCard
                     author={book.author}
+                    cover={book.cover}
                     genre={book.genre}
                     href={book.href}
                     kebab={
