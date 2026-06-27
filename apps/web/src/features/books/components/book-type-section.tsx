@@ -26,26 +26,29 @@ const PART_NUMBER_MAX = 999;
 type BookTypeSectionProps = {
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
-  initialSeries?: null | SeriesSelection;
   onRequestSoloChange?: (apply: () => void) => void;
+  onSeriesSelectionChange: (selection: null | SeriesSelection) => void;
+  seriesSelection: null | SeriesSelection;
   setValue: UseFormSetValue<CreateBookFormValues>;
 };
 
 export function BookTypeSection({
   control,
   errors,
-  initialSeries = null,
   onRequestSoloChange,
+  onSeriesSelectionChange,
+  seriesSelection,
   setValue,
 }: BookTypeSectionProps) {
   const t = useTranslations("books");
   const bookType = useWatch({ control, name: "bookType" }) ?? "solo";
-  const [seriesSelection, setSeriesSelection] = useState<null | SeriesSelection>(initialSeries);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
 
+  const selectedTotalBooks = seriesTotalBooks(seriesSelection);
+
   function applySelection(selection: null | SeriesSelection) {
-    setSeriesSelection(selection);
+    onSeriesSelectionChange(selection);
     if (selection === null) {
       setValue("seriesId", undefined);
       setValue("newSeries", undefined, { shouldValidate: true });
@@ -62,7 +65,7 @@ export function BookTypeSection({
 
   function applySolo() {
     setValue("bookType", "solo");
-    setSeriesSelection(null);
+    onSeriesSelectionChange(null);
     setValue("seriesId", undefined);
     setValue("newSeries", undefined);
     setValue("partNumber", undefined);
@@ -147,6 +150,11 @@ export function BookTypeSection({
                 />
               )}
             />
+            {selectedTotalBooks !== undefined ? (
+              <p className="text-xs text-muted-foreground">
+                {t("bookType.partNumberHint", { total: selectedTotalBooks })}
+              </p>
+            ) : null}
             <FieldError error={errors.partNumber} id="book-part-number-error" />
           </div>
         </div>
@@ -160,4 +168,10 @@ export function BookTypeSection({
       />
     </FormSection>
   );
+}
+
+function seriesTotalBooks(selection: null | SeriesSelection): number | undefined {
+  if (selection === null) return undefined;
+  if (selection.kind === "new") return selection.draft.totalBooks;
+  return selection.totalBooks;
 }

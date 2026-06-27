@@ -23,20 +23,17 @@ const seriesSearchResultSchema = z.object({
   totalCount: z.number(),
 });
 
-const SERIES_SEARCH_MIN_LENGTH = 2;
 const SERIES_SEARCH_PAGE_SIZE = 8;
 
 export function useSeriesSearch(search: string) {
   const trimmed = search.trim();
-  const enabled = trimmed.length >= SERIES_SEARCH_MIN_LENGTH;
 
   return useQuery({
-    enabled,
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<SeriesView[]> => {
       const response = await seriesControllerSearch({
         pageSize: SERIES_SEARCH_PAGE_SIZE,
-        search: trimmed,
+        search: trimmed.length > 0 ? trimmed : undefined,
       });
       const parsed = seriesSearchResultSchema.parse(response);
       return parsed.items;

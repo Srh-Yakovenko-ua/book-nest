@@ -1,5 +1,6 @@
 "use client";
 
+import { SERIES_DESCRIPTION_MAX } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
 
@@ -23,7 +24,8 @@ import { NewSeriesInputSchema } from "../model/create-book-form";
 import { StatusChipGroup } from "./status-chip-group";
 
 const NAME_MAX = 120;
-const DESCRIPTION_MAX = 300;
+const DESCRIPTION_MAX = SERIES_DESCRIPTION_MAX;
+const TOTAL_BOOKS_MIN = 1;
 const TOTAL_BOOKS_MAX = 999;
 
 type CreateSeriesDialogProps = {
@@ -77,21 +79,32 @@ function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesForm
   const [totalBooks, setTotalBooks] = useState<number | undefined>(undefined);
   const [description, setDescription] = useState("");
   const [nameError, setNameError] = useState<string | undefined>(undefined);
+  const [totalBooksError, setTotalBooksError] = useState<string | undefined>(undefined);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
+
+    if (totalBooks !== undefined && totalBooks < TOTAL_BOOKS_MIN) {
+      setTotalBooksError(t("series.create.totalBooksInvalid"));
+      return;
+    }
+
     const trimmedDescription = description.trim();
     const parsed = NewSeriesInputSchema.safeParse({
       description: trimmedDescription.length > 0 ? trimmedDescription : undefined,
       name,
       status,
-      totalBooks: totalBooks !== undefined && totalBooks > 0 ? totalBooks : undefined,
+      totalBooks,
     });
 
     if (!parsed.success) {
       const nameIssue = parsed.error.issues.find((issue) => issue.path[0] === "name");
-      setNameError(nameIssue?.message ?? t("series.create.nameInvalid"));
+      const totalIssue = parsed.error.issues.find((issue) => issue.path[0] === "totalBooks");
+      if (totalIssue) setTotalBooksError(totalIssue.message);
+      if (nameIssue || !totalIssue) {
+        setNameError(nameIssue?.message ?? t("series.create.nameInvalid"));
+      }
       return;
     }
 
@@ -142,18 +155,28 @@ function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesForm
           <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
         </Label>
         <Input
+          aria-describedby={totalBooksError ? "new-series-total-books-error" : undefined}
+          aria-invalid={totalBooksError !== undefined}
           autoComplete="off"
           className="h-10 sm:w-40"
           id="new-series-total-books"
           inputMode="numeric"
           max={TOTAL_BOOKS_MAX}
-          min={1}
-          onChange={(event) => setTotalBooks(emptyToInteger(event.target.value))}
+          min={TOTAL_BOOKS_MIN}
+          onChange={(event) => {
+            setTotalBooks(emptyToInteger(event.target.value));
+            if (totalBooksError) setTotalBooksError(undefined);
+          }}
           placeholder={t("series.create.totalBooksPlaceholder")}
           step={1}
           type="number"
           value={totalBooks ?? ""}
         />
+        {totalBooksError ? (
+          <p className="text-xs text-destructive" id="new-series-total-books-error" role="alert">
+            {totalBooksError}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-2">

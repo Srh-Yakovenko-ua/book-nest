@@ -2,9 +2,9 @@
 
 import type { BookFormat, BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
 
-import { BOOK_DESCRIPTION_MAX } from "@app/shared";
+import { BOOK_DESCRIPTION_MAX, BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { Controller, type Path, type Resolver, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import type { BookFormMode } from "../model/book-form-mode";
 import { useCreateBook } from "../api/use-create-book";
 import { useGenres } from "../api/use-genres";
 import { useUpdateBook } from "../api/use-update-book";
+import { readBookFormDraft } from "../model/book-form-draft";
 import {
   FORMAT_OPTIONS,
   ownershipBlockHasData,
@@ -40,6 +41,7 @@ import {
   type CreateBookFormValues,
   CreateBookInputSchema,
   type PublisherSelection,
+  type SeriesSelection,
   UpdateBookInputSchema,
 } from "../model/create-book-form";
 import { AuthorAutocomplete } from "./author-autocomplete";
@@ -86,6 +88,10 @@ export function BookForm(props: BookFormProps) {
   const bookId = props.mode === "edit" ? props.book.id : null;
   const initial = props.mode === "edit" ? bookViewToFormState(props.book) : null;
 
+  const locale = useLocale();
+  const draftKey = bookId === null ? "book-form-draft:create" : `book-form-draft:edit:${bookId}`;
+  const [restoredDraft] = useState(() => readBookFormDraft(draftKey, locale));
+
   const createBook = useCreateBook();
   const updateBook = useUpdateBook(bookId ?? "");
   const uploadMedia = useUploadMedia();
@@ -95,10 +101,13 @@ export function BookForm(props: BookFormProps) {
   const initialCover = initial?.cover ?? null;
 
   const [authorSelection, setAuthorSelection] = useState<AuthorSelection | null>(
-    initial?.authorSelection ?? null,
+    restoredDraft?.authorSelection ?? initial?.authorSelection ?? null,
   );
   const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
-    initial?.publisherSelection ?? null,
+    restoredDraft?.publisherSelection ?? initial?.publisherSelection ?? null,
+  );
+  const [seriesSelection, setSeriesSelection] = useState<null | SeriesSelection>(
+    restoredDraft?.seriesSelection ?? initial?.seriesSelection ?? null,
   );
   const [coverState, setCoverState] = useState<CoverState>(
     initialCover === null ? { kind: "empty" } : { kind: "existing", media: initialCover },
@@ -125,6 +134,7 @@ export function BookForm(props: BookFormProps) {
   ) as Resolver<CreateBookFormValues, unknown, CreateBookFormOutput>;
 
   const {
+    clearErrors,
     control,
     formState: { errors, isDirty },
     getValues,
@@ -132,12 +142,53 @@ export function BookForm(props: BookFormProps) {
     register,
     setError,
     setValue,
+    subscribe,
   } = useForm<CreateBookFormValues, unknown, CreateBookFormOutput>({
-    defaultValues: initial?.values ?? createBookFormDefaults,
+    defaultValues: restoredDraft
+      ? { ...(initial?.values ?? createBookFormDefaults), ...restoredDraft.values }
+      : (initial?.values ?? createBookFormDefaults),
     mode: "onTouched",
     resolver,
     reValidateMode: "onChange",
   });
+
+  function clearDraft() {
+    try {
+      sessionStorage.removeItem(draftKey);
+    } catch {
+      return;
+    }
+  }
+
+  useEffect(() => {
+    function persist() {
+      try {
+        sessionStorage.setItem(
+          draftKey,
+          JSON.stringify({
+            authorSelection,
+            locale,
+            publisherSelection,
+            seriesSelection,
+            values: getValues(),
+          }),
+        );
+      } catch {
+        return;
+      }
+    }
+    persist();
+    const unsubscribe = subscribe({ callback: persist, formState: { values: true } });
+    return unsubscribe;
+  }, [
+    authorSelection,
+    draftKey,
+    getValues,
+    locale,
+    publisherSelection,
+    seriesSelection,
+    subscribe,
+  ]);
 
   const titleValue = useWatch({ control, name: "title" }) ?? "";
   const descriptionValue = useWatch({ control, name: "description" }) ?? "";
@@ -149,6 +200,17 @@ export function BookForm(props: BookFormProps) {
   const isFavoriteValue = useWatch({ control, name: "isFavorite" }) ?? false;
   const inQueueValue = useWatch({ control, name: "addToReadingQueue" }) ?? false;
   const ratingValue = useWatch({ control, name: "readingProgress.rating" });
+  const partNumberValue = useWatch({ control, name: "partNumber" });
+
+  useEffect(() => {
+    if (seriesSelection?.kind !== "existing" || seriesSelection.totalBooks === undefined) return;
+    if (typeof partNumberValue !== "number") return;
+    if (partNumberValue > seriesSelection.totalBooks) {
+      setError("partNumber", { message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE });
+    } else {
+      clearErrors("partNumber");
+    }
+  }, [clearErrors, partNumberValue, seriesSelection, setError]);
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
   const previewGenres = genresValue.map((key) => genreNameByKey.get(key) ?? key);
@@ -222,6 +284,16 @@ export function BookForm(props: BookFormProps) {
   }
 
   const onSubmit = handleSubmit(async (values) => {
+    if (
+      seriesSelection?.kind === "existing" &&
+      seriesSelection.totalBooks !== undefined &&
+      typeof values.partNumber === "number" &&
+      values.partNumber > seriesSelection.totalBooks
+    ) {
+      setError("partNumber", { message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE });
+      return;
+    }
+
     const payload = pruneStatusPayload(values);
 
     if (coverState.kind === "selected") {
@@ -248,6 +320,7 @@ export function BookForm(props: BookFormProps) {
       updateBook.mutate(payload, {
         onError: (error) => handleMutationError(error),
         onSuccess: () => {
+          clearDraft();
           toast.success(t("submit.editSuccess"));
           router.push("/books");
         },
@@ -257,6 +330,7 @@ export function BookForm(props: BookFormProps) {
     createBook.mutate(payload, {
       onError: (error) => handleMutationError(error),
       onSuccess: () => {
+        sessionStorage.removeItem(draftKey);
         toast.success(t("submit.success"));
         router.push("/books");
       },
@@ -452,8 +526,9 @@ export function BookForm(props: BookFormProps) {
         <BookTypeSection
           control={control}
           errors={errors}
-          initialSeries={initial?.seriesSelection ?? null}
           onRequestSoloChange={mode === "edit" ? requestSoloChange : undefined}
+          onSeriesSelectionChange={setSeriesSelection}
+          seriesSelection={seriesSelection}
           setValue={setValue}
         />
 

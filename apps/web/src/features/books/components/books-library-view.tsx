@@ -32,7 +32,7 @@ export type LibraryBook = {
   author: string;
   cover?: { alt?: string; src: string };
   coverMedia?: MediaView;
-  genre?: { icon?: GenreIconName; label: string };
+  genres?: { icon?: GenreIconName; label: string }[];
   href: string;
   id: string;
   progress?: { ariaLabel: string; current: number; total: number; unit: string };
@@ -217,7 +217,7 @@ export function BooksLibraryView({
                       author={book.author}
                       cover={book.cover}
                       coverActivateLabel={coverViewLabel}
-                      genre={book.genre}
+                      genres={book.genres}
                       href={book.href}
                       kebab={
                         <BookCardMenu

@@ -1,5 +1,7 @@
 "use client";
 
+import type { SeriesView } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 import { useId, useState } from "react";
 
@@ -30,7 +32,6 @@ type SeriesAutocompleteProps = {
 };
 
 const SEARCH_DEBOUNCE_MS = 250;
-const MIN_QUERY_LENGTH = 2;
 
 export function SeriesAutocomplete({
   describedBy,
@@ -49,12 +50,18 @@ export function SeriesAutocomplete({
   const { data: series = [], isFetching } = useSeriesSearch(debouncedQuery);
 
   const trimmedQuery = query.trim();
-  const showCreateOption =
-    trimmedQuery.length >= MIN_QUERY_LENGTH &&
-    !series.some((item) => item.name.toLowerCase() === trimmedQuery.toLowerCase());
+  const hasExactMatch = series.some(
+    (item) => item.name.toLowerCase() === trimmedQuery.toLowerCase(),
+  );
+  const showCreateOption = !hasExactMatch;
 
-  function pickExisting(item: { id: string; name: string }) {
-    onChange({ id: item.id, kind: "existing", name: item.name });
+  function pickExisting(item: SeriesView) {
+    onChange({
+      id: item.id,
+      kind: "existing",
+      name: item.name,
+      totalBooks: item.totalBooks ?? undefined,
+    });
     setQuery(item.name);
     setOpen(false);
   }
@@ -91,14 +98,12 @@ export function SeriesAutocomplete({
             )}
             id={id}
             onChange={(event) => {
-              const next = event.target.value;
-              setQuery(next);
-              setOpen(next.trim().length >= MIN_QUERY_LENGTH);
+              setQuery(event.target.value);
+              setOpen(true);
               if (value !== null) onChange(null);
             }}
-            onFocus={() => {
-              if (trimmedQuery.length >= MIN_QUERY_LENGTH) setOpen(true);
-            }}
+            onClick={() => setOpen(true)}
+            onFocus={() => setOpen(true)}
             placeholder={placeholder}
             role="combobox"
             type="text"
@@ -140,14 +145,12 @@ export function SeriesAutocomplete({
             ) : null}
             {showCreateOption ? (
               <CommandGroup heading={t("series.createHeading")}>
-                <CommandItem
-                  className="cursor-pointer"
-                  onSelect={requestCreate}
-                  value={`create-${trimmedQuery}`}
-                >
+                <CommandItem className="cursor-pointer" onSelect={requestCreate} value="__create__">
                   <UiIcon className="text-primary" name="plus" size={16} />
                   <span className="min-w-0 truncate">
-                    {t("series.createAction", { name: trimmedQuery })}
+                    {trimmedQuery.length > 0
+                      ? t("series.createAction", { name: trimmedQuery })
+                      : t("series.createNew")}
                   </span>
                 </CommandItem>
               </CommandGroup>

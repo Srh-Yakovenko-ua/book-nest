@@ -295,8 +295,10 @@ export const TagsDedupeCaseInsensitive: Story = {
 export const TagSuggestionAddsExisting: Story = {
   play: async ({ canvas }) => {
     mockFetch(taxonomyHandler());
+    const surface = within(document.body);
 
-    const suggestion = await canvas.findByRole("button", { name: "улюблене" });
+    await userEvent.click(canvas.getByLabelText("Теги"));
+    const suggestion = await surface.findByRole("option", { name: /улюблене/ });
     await userEvent.click(suggestion);
 
     await waitFor(async () => {
@@ -319,7 +321,8 @@ export const DeleteSavedTagFromSuggestions: Story = {
     );
     const surface = within(document.body);
 
-    const deleteControl = await canvas.findByRole("button", {
+    await userEvent.click(canvas.getByLabelText("Теги"));
+    const deleteControl = await surface.findByRole("button", {
       name: "Видалити збережений тег «улюблене»",
     });
     await userEvent.click(deleteControl);

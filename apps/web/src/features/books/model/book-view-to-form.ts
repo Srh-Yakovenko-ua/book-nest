@@ -30,7 +30,14 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
       : { id: book.publisher.id, kind: "catalog", name: book.publisher.name };
 
   const seriesSelection: null | SeriesSelection =
-    book.series === null ? null : { id: book.series.id, kind: "existing", name: book.series.name };
+    book.series === null
+      ? null
+      : {
+          id: book.series.id,
+          kind: "existing",
+          name: book.series.name,
+          totalBooks: book.series.totalBooks ?? undefined,
+        };
 
   const values: CreateBookFormValues = {
     ...createBookFormDefaults,

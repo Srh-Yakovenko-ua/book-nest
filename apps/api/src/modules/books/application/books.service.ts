@@ -11,7 +11,11 @@ import type {
   UpdateBookInput,
 } from "@app/shared";
 
-import { OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
+import {
+  BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+  OwnershipStatusSchema,
+  ReadingStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -196,15 +200,19 @@ export class BooksService {
 
     const queuePlacement = await this.resolveQueuePlacement(userId, input);
 
-    const seriesId =
+    const series =
       input.bookType === "series_part"
         ? await this.seriesService.resolveForBook(userId, {
             newSeries: input.newSeries,
             seriesId: input.seriesId,
           })
         : null;
+    const seriesId = series?.id ?? null;
     const partNumber = input.bookType === "series_part" ? (input.partNumber ?? null) : null;
 
+    if (input.seriesId !== undefined && series !== null) {
+      this.assertPartNumberWithinSeriesTotal({ partNumber, totalBooks: series.totalBooks });
+    }
     await this.assertSeriesPartNumberUnique(userId, null, { partNumber, seriesId });
     await this.genresService.assertGenresSelectable(userId, input.genres);
 
@@ -416,6 +424,10 @@ export class BooksService {
   ): Promise<SeriesPlacement> {
     if (input.bookType === undefined) {
       if (current.seriesId !== null && input.partNumber !== undefined) {
+        this.assertPartNumberWithinSeriesTotal({
+          partNumber: input.partNumber,
+          totalBooks: current.series?.totalBooks ?? null,
+        });
         fields.partNumber = input.partNumber;
         return { partNumber: input.partNumber, seriesId: current.seriesId };
       }
@@ -428,14 +440,17 @@ export class BooksService {
       return { partNumber: null, seriesId: null };
     }
 
-    const seriesId = await this.seriesService.resolveForBook(userId, {
+    const series = await this.seriesService.resolveForBook(userId, {
       newSeries: input.newSeries,
       seriesId: input.seriesId,
     });
     const partNumber = input.partNumber ?? null;
-    fields.seriesId = seriesId;
+    if (input.seriesId !== undefined) {
+      this.assertPartNumberWithinSeriesTotal({ partNumber, totalBooks: series.totalBooks });
+    }
+    fields.seriesId = series.id;
     fields.partNumber = partNumber;
-    return { partNumber, seriesId };
+    return { partNumber, seriesId: series.id };
   }
 
   private assertCurrentPageWithinPages(
@@ -481,6 +496,23 @@ export class BooksService {
     throw new BadRequestError("Enter the person's name", {
       fields: [{ field: "loanInfo.personName", message: "Enter the person's name" }],
     });
+  }
+
+  private assertPartNumberWithinSeriesTotal({
+    partNumber,
+    totalBooks,
+  }: {
+    partNumber: null | number;
+    totalBooks: null | number;
+  }): void {
+    if (totalBooks === null || partNumber === null) {
+      return;
+    }
+    if (partNumber > totalBooks) {
+      throw new BadRequestError(BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE, {
+        fields: [{ field: "partNumber", message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE }],
+      });
+    }
   }
 
   private async assertSeriesPartNumberUnique(

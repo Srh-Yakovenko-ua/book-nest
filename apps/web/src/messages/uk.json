@@ -349,6 +349,10 @@
       "tagsAtMax": "Досягнуто межі тегів",
       "tagsHint": "Власні теги через Enter або кому, до {max} штук.",
       "tagsSuggestions": "Ваші теги",
+      "tagsSearching": "Шукаємо теги…",
+      "tagsEmpty": "Тегів не знайдено.",
+      "tagsCreateHeading": "Створити новий",
+      "tagsCreate": "Створити «{name}»",
       "tagsNoSaved": "У вас ще немає збережених тегів. Введіть новий тег і натисніть Enter.",
       "tagsTooShort": "Тег має містити щонайменше 2 символи.",
       "tagsTooLong": "Тег не може бути довшим за 30 символів.",
@@ -391,13 +395,15 @@
       "series": "Серія",
       "seriesPlaceholder": "Почніть вводити назву серії…",
       "seriesDraft": "Нова серія «{name}» буде створена при збереженні.",
-      "partNumber": "Номер у серії"
+      "partNumber": "Номер у серії",
+      "partNumberHint": "У серії {total} книг, тож доступні частини 1–{total}."
     },
     "series": {
       "searching": "Шукаємо серії…",
       "empty": "Серій не знайдено.",
       "existingHeading": "Ваші серії",
       "createHeading": "Створити нову",
+      "createNew": "Створити нову серію",
       "createAction": "Створити «{name}»",
       "statusLabels": {
         "unknown": "Невідомо",
@@ -413,6 +419,7 @@
         "status": "Статус",
         "totalBooks": "Книг у серії",
         "totalBooksPlaceholder": "Напр. 5",
+        "totalBooksInvalid": "Кількість книг у серії має бути більшою за 0.",
         "descriptionLabel": "Опис",
         "descriptionPlaceholder": "Короткий опис серії…",
         "confirm": "Створити серію"

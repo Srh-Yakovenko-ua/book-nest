@@ -1075,7 +1075,7 @@ describe("POST /api/books series handling", () => {
     );
   });
 
-  it("returns 400 when the new series total books is fewer than the part number", async () => {
+  it("returns 400 when the part number is greater than the new series total books", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
@@ -1088,8 +1088,48 @@ describe("POST /api/books series handling", () => {
 
     expect(res.status).toBe(400);
     expect(res.body.errorsMessages).toEqual(
-      expect.arrayContaining([expect.objectContaining({ field: "newSeries.totalBooks" })]),
+      expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
     );
+  });
+
+  it("returns 400 when the part number exceeds the existing series total books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
+    });
+
+    const res = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      partNumber: 3,
+      seriesId: existing.id,
+      title: "Heir of Fire",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
+    );
+    expect(await prisma.book.count({ where: { seriesId: existing.id } })).toBe(0);
+  });
+
+  it("accepts a part number equal to the existing series total books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
+    });
+
+    const res = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      partNumber: 2,
+      seriesId: existing.id,
+      title: "Crown of Midnight",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.partNumber).toBe(2);
+    expect(res.body.series.id).toBe(existing.id);
   });
 
   it("returns 404 when linking to a series owned by another user", async () => {
@@ -1400,6 +1440,102 @@ describe("PATCH /api/books/:id genres", () => {
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "genres.0" })]),
     );
+  });
+});
+
+describe("PATCH /api/books/:id series", () => {
+  function updateBook(
+    accessToken: string,
+    bookId: string,
+    body: Record<string, unknown>,
+  ): request.Test {
+    return request(app.getHttpServer())
+      .patch(`/api/books/${bookId}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send(body);
+  }
+
+  it("returns 400 when the part number exceeds the existing series total books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
+    });
+    const created = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      title: "Heir of Fire",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      bookType: "series_part",
+      partNumber: 3,
+      seriesId: existing.id,
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
+    );
+  });
+
+  it("accepts a part number equal to the existing series total books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
+    });
+    const created = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      title: "Crown of Midnight",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      bookType: "series_part",
+      partNumber: 2,
+      seriesId: existing.id,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.partNumber).toBe(2);
+    expect(res.body.series.id).toBe(existing.id);
+  });
+
+  it("returns 400 when bumping only the part number above the current series total books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
+    });
+    const created = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      partNumber: 1,
+      seriesId: existing.id,
+      title: "Throne of Glass",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { partNumber: 3 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
+    );
+  });
+
+  it("accepts bumping only the part number to the current series total books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const existing = await prisma.series.create({
+      data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
+    });
+    const created = await createBook(accessToken, {
+      author: { name: "Sarah J. Maas" },
+      bookType: "series_part",
+      partNumber: 1,
+      seriesId: existing.id,
+      title: "Throne of Glass",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { partNumber: 2 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.partNumber).toBe(2);
   });
 });
 

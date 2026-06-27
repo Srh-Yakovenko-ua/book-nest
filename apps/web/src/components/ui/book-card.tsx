@@ -42,7 +42,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     author: string;
     cover?: { alt?: string; src: string };
     coverActivateLabel?: string;
-    genre?: { icon?: GenreIconName; label: string };
+    genres?: { icon?: GenreIconName; label: string }[];
     href?: string;
     kebab?: React.ReactNode;
     linkComponent?: BookCardLinkComponent;
@@ -60,7 +60,7 @@ function BookCard({
   className,
   cover,
   coverActivateLabel,
-  genre,
+  genres,
   href,
   interactive,
   kebab,
@@ -133,16 +133,19 @@ function BookCard({
         </div>
       )}
 
-      {genre === undefined && rating === undefined ? null : (
+      {(genres === undefined || genres.length === 0) && rating === undefined ? null : (
         <div className="flex flex-wrap items-center gap-2">
-          {genre === undefined ? null : (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-tag px-2.5 py-0.5 text-xs font-medium text-tag-foreground">
+          {genres?.map((genre) => (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-tag px-2.5 py-0.5 text-xs font-medium text-tag-foreground"
+              key={genre.label}
+            >
               {genre.icon === undefined ? null : (
                 <GenreIcon className="shrink-0 text-icon" name={genre.icon} size={14} />
               )}
               {genre.label}
             </span>
-          )}
+          ))}
           {rating === undefined ? null : (
             <Rating className="ml-auto" label={ratingLabel} size="sm" value={rating} />
           )}

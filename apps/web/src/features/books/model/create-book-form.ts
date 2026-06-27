@@ -22,7 +22,7 @@ export type PublisherSelection =
 
 export type SeriesSelection =
   | { draft: NewSeriesDraft; kind: "new"; name: string }
-  | { id: string; kind: "existing"; name: string };
+  | { id: string; kind: "existing"; name: string; totalBooks?: number };
 
 type NewSeriesDraft = {
   description?: string;

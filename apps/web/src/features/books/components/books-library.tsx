@@ -133,7 +133,7 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
   const baseStatus =
     readingStatuses.find((entry) => entry.value === book.readingStatus) ?? FALLBACK_STATUS;
   const status: StatusEntry = { ...baseStatus, label: labels.statusLabel(book.readingStatus) };
-  const firstGenre = book.genres[0];
+  const genres = book.genres.map((key) => ({ label: labels.genreName(key) }));
   const progress = resolveProgress(book);
   const rating = book.readingProgress?.rating ?? undefined;
 
@@ -141,7 +141,7 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
     author: book.author.name,
     cover: book.cover ? { alt: book.title, src: book.cover.urls.thumb } : undefined,
     coverMedia: book.cover ?? undefined,
-    genre: firstGenre === undefined ? undefined : { label: labels.genreName(firstGenre) },
+    genres,
     href: `/books/${book.id}/edit`,
     id: book.id,
     progress:
