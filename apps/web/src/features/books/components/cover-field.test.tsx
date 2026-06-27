@@ -11,13 +11,6 @@ import type { CoverState } from "../model/cover-state";
 
 import { CoverField } from "./cover-field";
 
-vi.mock("@/features/media/lib/crop-image", () => ({
-  CropImageError: class CropImageError extends Error {},
-  cropImageToFile: vi.fn(() =>
-    Promise.resolve(new File(["cropped"], "cover.webp", { type: "image/webp" })),
-  ),
-}));
-
 vi.mock("react-easy-crop", () => ({
   default: ({
     onCropComplete,
@@ -70,6 +63,7 @@ function pngFile() {
 
 function selectedState(): CoverState {
   return {
+    crop: { height: 1600, width: 1200, x: 0, y: 0 },
     file: new File(["bytes"], "cover.webp", { type: "image/webp" }),
     kind: "selected",
     previewUrl: "blob:selected-cover",

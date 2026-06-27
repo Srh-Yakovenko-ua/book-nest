@@ -1,16 +1,31 @@
 import "@testing-library/jest-dom/vitest";
-import { describe, expect, it, vi } from "vitest";
+import { toast } from "sonner";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
 
 import { ImageCropDialog } from "./image-crop-dialog";
 
-vi.mock("@/features/media/lib/crop-image", () => ({
-  CropImageError: class CropImageError extends Error {},
-  cropImageToFile: vi.fn(() =>
-    Promise.resolve(new File(["cropped"], "cover.webp", { type: "image/webp" })),
-  ),
-}));
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.mocked(toast.error).mockClear();
+});
+
+class ErroringFileReader {
+  readonly result: null | string = null;
+  private listeners: Record<string, Array<() => void>> = {};
+  abort() {}
+  addEventListener(type: string, callback: () => void) {
+    (this.listeners[type] ??= []).push(callback);
+  }
+  readAsDataURL() {
+    queueMicrotask(() => {
+      for (const callback of this.listeners.error ?? []) callback();
+    });
+  }
+}
 
 vi.mock("react-easy-crop", () => ({
   default: ({
@@ -110,13 +125,34 @@ describe("ImageCropDialog", () => {
     expect(onCropped).not.toHaveBeenCalled();
   });
 
-  it("emits a webp file through onCropped after applying the crop", async () => {
-    const onCropped = vi.fn();
+  it("toasts and closes when the file cannot be read", async () => {
     const onOpenChange = vi.fn();
+    vi.stubGlobal("FileReader", ErroringFileReader);
+
     renderWithProviders(
       <ImageCropDialog
         aspect={COVER_ASPECT}
         file={sourceFile()}
+        onCropped={vi.fn()}
+        onOpenChange={onOpenChange}
+        open
+      />,
+    );
+
+    await waitFor(() =>
+      expect(vi.mocked(toast.error)).toHaveBeenCalledWith("Не вдалося обробити зображення"),
+    );
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("emits the original file and rounded crop through onCropped after applying", async () => {
+    const onCropped = vi.fn();
+    const onOpenChange = vi.fn();
+    const file = sourceFile();
+    renderWithProviders(
+      <ImageCropDialog
+        aspect={COVER_ASPECT}
+        file={file}
         onCropped={onCropped}
         onOpenChange={onOpenChange}
         open
@@ -130,10 +166,10 @@ describe("ImageCropDialog", () => {
     await userEvent.click(apply);
 
     await waitFor(() => expect(onCropped).toHaveBeenCalledTimes(1));
-    const [firstCall] = onCropped.mock.calls;
-    const file = firstCall?.[0] as File | undefined;
-    expect(file).toBeInstanceOf(File);
-    expect(file?.type).toBe("image/webp");
+    expect(onCropped).toHaveBeenCalledWith({
+      crop: { height: 150, width: 100, x: 0, y: 0 },
+      file,
+    });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
