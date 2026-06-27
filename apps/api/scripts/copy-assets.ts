@@ -1,6 +1,6 @@
 import { cp } from "node:fs/promises";
 
-const assetDirs = ["modules/mail/assets"];
+const assetDirs = ["modules/mail/assets", "scripts/data"];
 
 async function copyAssets(): Promise<void> {
   for (const dir of assetDirs) {
