@@ -6,9 +6,9 @@ import type { ProcessedImage } from "../domain/image-processor.port.js";
 import { ImageProcessorPort } from "../domain/image-processor.port.js";
 
 const OUTPUT_CONTENT_TYPE = "image/webp";
-const WEBP_EFFORT = 5;
-const WEBP_QUALITY = 82;
-const MAX_OUTPUT_EDGE = 1280;
+const WEBP_EFFORT = 6;
+const WEBP_QUALITY = 88;
+const MAX_OUTPUT_EDGE = 1600;
 const DEFAULT_MAX_INPUT_PIXELS = 80_000_000;
 
 @Injectable()
