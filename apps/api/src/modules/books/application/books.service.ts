@@ -2,9 +2,10 @@ import type {
   BookAuthorReference,
   BookView,
   CreateBookInput,
+  LibraryBooksQuery,
+  LibraryOverviewView,
   MediaView,
   OwnershipStatus,
-  PaginationQuery,
   Paginator,
   QueuePriority,
   ReadingStatus,
@@ -13,6 +14,7 @@ import type {
 
 import {
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+  collapseSpaces,
   OwnershipStatusSchema,
   ReadingStatusSchema,
 } from "@app/shared";
@@ -25,6 +27,7 @@ import type {
   CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
+  LibraryFilter,
   UpdateDeliveryInfoData,
   UpdateLoanInfoData,
   UpdatePurchaseInfoData,
@@ -61,6 +64,11 @@ import { BooksRepository, type BookWithRelations } from "../infrastructure/books
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
 const DUPLICATE_PART_NUMBER_MESSAGE = "A book with this part number already exists in this series";
 
+const OVERVIEW_TOP_LIMIT = 3;
+const OVERVIEW_RECENT_LIMIT = 3;
+const READING_IN_PROGRESS_STATUSES: ReadingStatus[] = ["reading", "rereading"];
+const FINISHED_STATUSES: ReadingStatus[] = ["finished"];
+
 const log = createLogger("books");
 
 type QueuePlacement = {
@@ -74,6 +82,27 @@ type SeriesPlacement = {
   partNumber: null | number;
   seriesId: null | string;
 };
+
+const MIN_SEARCH_LENGTH = 2;
+const ISBN_FRAGMENT_PATTERN = /^\d+$/;
+
+function isIsbnFragment(value: string): boolean {
+  return ISBN_FRAGMENT_PATTERN.test(value.replace(/[\s-]/g, ""));
+}
+
+function normalizeSearchQuery(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const collapsed = collapseSpaces(value);
+  if (collapsed.length === 0) {
+    return undefined;
+  }
+  if (collapsed.length < MIN_SEARCH_LENGTH && !isIsbnFragment(collapsed)) {
+    return undefined;
+  }
+  return collapsed;
+}
 
 const SCALAR_KEYS = [
   "ageCategory",
@@ -292,17 +321,46 @@ export class BooksService {
     return toBookView(book, this.coverViewOf(book));
   }
 
-  async list(userId: string, pagination: PaginationQuery): Promise<Paginator<BookView>> {
-    const { pageNumber, pageSize, sortDirection } = pagination;
+  async list(userId: string, query: LibraryBooksQuery): Promise<Paginator<BookView>> {
+    const { pageNumber, pageSize, sort } = query;
+    const search = normalizeSearchQuery(query.q);
+    const searchGenreKeys =
+      search === undefined
+        ? undefined
+        : await this.genresService.searchKeys({ query: search, userId });
+
+    const filter: LibraryFilter = {
+      ageCategories: query.ageCategory,
+      authorIds: query.author,
+      bookType: query.bookType,
+      formats: query.format,
+      genreKeys: query.genre,
+      hasCover: query.hasCover,
+      isFavorite: query.isFavorite,
+      languages: query.language,
+      ownershipStatuses: query.owner,
+      pagesMax: query.pagesMax,
+      pagesMin: query.pagesMin,
+      publisherIds: query.publisher,
+      ratingMax: query.ratingMax,
+      ratingMin: query.ratingMin,
+      readingStatuses: query.status,
+      search,
+      searchGenreKeys,
+      tagIds: query.tag,
+      userId,
+      yearMax: query.yearMax,
+      yearMin: query.yearMin,
+    };
 
     const [books, totalCount] = await Promise.all([
-      this.booksRepository.listByUser({
+      this.booksRepository.listForLibrary({
+        filter,
         skip: (pageNumber - 1) * pageSize,
-        sortDirection,
+        sort,
         take: pageSize,
-        userId,
       }),
-      this.booksRepository.countByUser(userId),
+      this.booksRepository.countForLibrary({ filter }),
     ]);
 
     return buildPaginator({
@@ -311,6 +369,40 @@ export class BooksService {
       pageSize,
       totalCount,
     });
+  }
+
+  async overview(userId: string): Promise<LibraryOverviewView> {
+    const [total, reading, finished, favorites, topGenreKeys, topTags, recentBooks] =
+      await Promise.all([
+        this.booksRepository.countByUser(userId),
+        this.booksRepository.countByReadingStatuses({
+          statuses: READING_IN_PROGRESS_STATUSES,
+          userId,
+        }),
+        this.booksRepository.countByReadingStatuses({ statuses: FINISHED_STATUSES, userId }),
+        this.booksRepository.countFavorites(userId),
+        this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, userId }),
+        this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, userId }),
+        this.booksRepository.listRecentlyAdded({ take: OVERVIEW_RECENT_LIMIT, userId }),
+      ]);
+
+    const genreNames = await this.genresService.findNamesByKeys({
+      keys: topGenreKeys.map((genre) => genre.key),
+      userId,
+    });
+    const nameByKey = new Map(genreNames.map((genre) => [genre.key, genre.name]));
+    const topGenres = topGenreKeys.map((genre) => ({
+      count: genre.count,
+      key: genre.key,
+      name: nameByKey.get(genre.key) ?? genre.key,
+    }));
+
+    return {
+      recentlyAdded: recentBooks.map((book) => toBookView(book, this.coverViewOf(book))),
+      summary: { favorites, finished, reading, total },
+      topGenres,
+      topTags,
+    };
   }
 
   async update(userId: string, bookId: string, input: UpdateBookInput): Promise<BookView> {

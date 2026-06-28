@@ -1,3 +1,13 @@
+import type {
+  AgeCategory,
+  BookFormat,
+  BookLanguage,
+  BookType,
+  LibrarySort,
+  OwnershipStatus,
+  ReadingStatus,
+} from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -67,6 +77,30 @@ export type CreateReadingProgressData = {
   startedAt: Date | null;
 };
 
+export type LibraryFilter = {
+  ageCategories?: AgeCategory[];
+  authorIds?: string[];
+  bookType?: BookType;
+  formats?: BookFormat[];
+  genreKeys?: string[];
+  hasCover?: boolean;
+  isFavorite?: boolean;
+  languages?: BookLanguage[];
+  ownershipStatuses?: OwnershipStatus[];
+  pagesMax?: number;
+  pagesMin?: number;
+  publisherIds?: string[];
+  ratingMax?: number;
+  ratingMin?: number;
+  readingStatuses?: ReadingStatus[];
+  search?: string;
+  searchGenreKeys?: string[];
+  tagIds?: string[];
+  userId: string;
+  yearMax?: number;
+  yearMin?: number;
+};
+
 export type UpdateBookData = {
   deliveryInfo: BlockUpsert<CreateDeliveryInfoData, UpdateDeliveryInfoData>;
   fields: Prisma.BookUncheckedUpdateManyInput;
@@ -134,8 +168,26 @@ export class BooksRepository {
     return this.prisma.book.count({ where: { coverMediaId } });
   }
 
+  countByReadingStatuses({
+    statuses,
+    userId,
+  }: {
+    statuses: ReadingStatus[];
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.book.count({ where: { readingStatus: { in: statuses }, userId } });
+  }
+
   countByUser(userId: string): Promise<number> {
     return this.prisma.book.count({ where: { userId } });
+  }
+
+  countFavorites(userId: string): Promise<number> {
+    return this.prisma.book.count({ where: { isFavorite: true, userId } });
+  }
+
+  countForLibrary({ filter }: { filter: LibraryFilter }): Promise<number> {
+    return this.prisma.book.count({ where: buildLibraryWhere(filter) });
   }
 
   create(userId: string, data: CreateBookData): Promise<BookWithRelations> {
@@ -183,11 +235,26 @@ export class BooksRepository {
     });
   }
 
-  listByUser({ skip, sortDirection, take, userId }: ListBooksInput): Promise<BookWithRelations[]> {
+  listForLibrary({ filter, skip, sort, take }: ListForLibraryInput): Promise<BookWithRelations[]> {
     return this.prisma.book.findMany({
       include: withRelations,
-      orderBy: { createdAt: sortDirection },
+      orderBy: LIBRARY_ORDER_BY[sort],
       skip,
+      take,
+      where: buildLibraryWhere(filter),
+    });
+  }
+
+  listRecentlyAdded({
+    take,
+    userId,
+  }: {
+    take: number;
+    userId: string;
+  }): Promise<BookWithRelations[]> {
+    return this.prisma.book.findMany({
+      include: withRelations,
+      orderBy: { createdAt: "desc" },
       take,
       where: { userId },
     });
@@ -199,6 +266,52 @@ export class BooksRepository {
       where: { userId },
     });
     return result._max.queuePosition ?? 0;
+  }
+
+  async topGenreKeys({
+    limit,
+    userId,
+  }: {
+    limit: number;
+    userId: string;
+  }): Promise<{ count: number; key: string }[]> {
+    const rows = await this.prisma.$queryRaw<{ count: bigint; key: string }[]>`
+      SELECT unnest(genres) AS key, count(*) AS count
+      FROM books
+      WHERE user_id = ${userId}::uuid
+      GROUP BY key
+      ORDER BY count DESC, key ASC
+      LIMIT ${limit}
+    `;
+    return rows.map((row) => ({ count: Number(row.count), key: row.key }));
+  }
+
+  async topTags({
+    limit,
+    userId,
+  }: {
+    limit: number;
+    userId: string;
+  }): Promise<{ count: number; id: string; name: string }[]> {
+    const grouped = await this.prisma.bookTag.groupBy({
+      _count: { tagId: true },
+      by: ["tagId"],
+      orderBy: { _count: { tagId: "desc" } },
+      take: limit,
+      where: { book: { userId } },
+    });
+    if (grouped.length === 0) {
+      return [];
+    }
+    const tags = await this.prisma.tag.findMany({
+      select: { id: true, name: true },
+      where: { id: { in: grouped.map((entry) => entry.tagId) } },
+    });
+    const nameById = new Map(tags.map((tag) => [tag.id, tag.name]));
+    return grouped.flatMap((entry) => {
+      const name = nameById.get(entry.tagId);
+      return name === undefined ? [] : [{ count: entry._count.tagId, id: entry.tagId, name }];
+    });
   }
 
   updateOwned(userId: string, bookId: string, data: UpdateBookData): Promise<BookWithRelations> {
@@ -239,17 +352,57 @@ export class BooksRepository {
   }
 }
 
-type ListBooksInput = {
+type ListForLibraryInput = {
+  filter: LibraryFilter;
   skip: number;
-  sortDirection: Prisma.SortOrder;
+  sort: LibrarySort;
   take: number;
-  userId: string;
 };
 
 type SeriesPartNumberQuery = {
   excludeBookId: null | string;
   partNumber: number;
   seriesId: string;
+};
+
+const CREATED_AT_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { createdAt: "desc" };
+
+const ID_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { id: "asc" };
+
+const LIBRARY_ORDER_BY: Record<LibrarySort, Prisma.BookOrderByWithRelationInput[]> = {
+  author_asc: [{ author: { name: "asc" } }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  author_desc: [{ author: { name: "desc" } }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  created_asc: [{ createdAt: "asc" }, ID_TIEBREAKER],
+  created_desc: [{ createdAt: "desc" }, ID_TIEBREAKER],
+  pages_asc: [{ pagesCount: { nulls: "last", sort: "asc" } }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  pages_desc: [
+    { pagesCount: { nulls: "last", sort: "desc" } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
+  rating_asc: [
+    { readingProgress: { rating: { nulls: "last", sort: "asc" } } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
+  rating_desc: [
+    { readingProgress: { rating: { nulls: "last", sort: "desc" } } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
+  title_asc: [{ title: "asc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  title_desc: [{ title: "desc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  updated_desc: [{ updatedAt: "desc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  year_asc: [
+    { publicationYear: { nulls: "last", sort: "asc" } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
+  year_desc: [
+    { publicationYear: { nulls: "last", sort: "desc" } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
 };
 
 async function applyBlockUpsert<TCreate, TUpdate>(
@@ -271,4 +424,120 @@ async function applyBlockUpsert<TCreate, TUpdate>(
     update: block.update,
     where: { bookId },
   });
+}
+
+function buildIntRange({
+  max,
+  min,
+}: {
+  max?: number;
+  min?: number;
+}): undefined | { gte?: number; lte?: number } {
+  if (min === undefined && max === undefined) {
+    return undefined;
+  }
+  const range: { gte?: number; lte?: number } = {};
+  if (min !== undefined) {
+    range.gte = min;
+  }
+  if (max !== undefined) {
+    range.lte = max;
+  }
+  return range;
+}
+
+function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
+  const where: Prisma.BookWhereInput = { userId: filter.userId };
+
+  if (filter.readingStatuses !== undefined) {
+    where.readingStatus = { in: filter.readingStatuses };
+  }
+  if (filter.ownershipStatuses !== undefined) {
+    where.ownershipStatus = { in: filter.ownershipStatuses };
+  }
+  if (filter.formats !== undefined) {
+    where.formats = { hasSome: filter.formats };
+  }
+  if (filter.genreKeys !== undefined) {
+    where.genres = { hasSome: filter.genreKeys };
+  }
+  if (filter.tagIds !== undefined) {
+    where.tags = { some: { tagId: { in: filter.tagIds } } };
+  }
+  if (filter.authorIds !== undefined) {
+    where.authorId = { in: filter.authorIds };
+  }
+  if (filter.publisherIds !== undefined) {
+    where.publisherId = { in: filter.publisherIds };
+  }
+  if (filter.ageCategories !== undefined) {
+    where.ageCategory = { in: filter.ageCategories };
+  }
+  if (filter.languages !== undefined) {
+    where.language = { in: filter.languages };
+  }
+  if (filter.bookType === "solo") {
+    where.seriesId = null;
+  }
+  if (filter.bookType === "series_part") {
+    where.seriesId = { not: null };
+  }
+  if (filter.isFavorite !== undefined) {
+    where.isFavorite = filter.isFavorite;
+  }
+  if (filter.hasCover === true) {
+    where.coverMediaId = { not: null };
+  }
+  if (filter.hasCover === false) {
+    where.coverMediaId = null;
+  }
+
+  const rating = buildIntRange({ max: filter.ratingMax, min: filter.ratingMin });
+  if (rating !== undefined) {
+    where.readingProgress = { rating };
+  }
+  const publicationYear = buildIntRange({ max: filter.yearMax, min: filter.yearMin });
+  if (publicationYear !== undefined) {
+    where.publicationYear = publicationYear;
+  }
+  const pagesCount = buildIntRange({ max: filter.pagesMax, min: filter.pagesMin });
+  if (pagesCount !== undefined) {
+    where.pagesCount = pagesCount;
+  }
+
+  const searchConditions = buildSearchConditions(filter);
+  if (searchConditions !== undefined) {
+    where.OR = searchConditions;
+  }
+
+  return where;
+}
+
+function buildSearchConditions(filter: LibraryFilter): Prisma.BookWhereInput[] | undefined {
+  if (filter.search === undefined) {
+    return undefined;
+  }
+  const contains = filter.search;
+  const conditions: Prisma.BookWhereInput[] = [
+    { title: { contains, mode: "insensitive" } },
+    { originalTitle: { contains, mode: "insensitive" } },
+    { author: { name: { contains, mode: "insensitive" } } },
+    { author: { names: { some: { name: { contains, mode: "insensitive" } } } } },
+    { series: { name: { contains, mode: "insensitive" } } },
+    { publisher: { name: { contains, mode: "insensitive" } } },
+    { publisher: { names: { some: { name: { contains, mode: "insensitive" } } } } },
+    { tags: { some: { tag: { name: { contains, mode: "insensitive" } } } } },
+    { translator: { contains, mode: "insensitive" } },
+    { illustrator: { contains, mode: "insensitive" } },
+  ];
+
+  const isbnQuery = filter.search.replace(/[\s-]/g, "");
+  if (isbnQuery.length > 0) {
+    conditions.push({ isbn: { contains: isbnQuery, mode: "insensitive" } });
+  }
+  if (filter.searchGenreKeys !== undefined && filter.searchGenreKeys.length > 0) {
+    conditions.push({ genres: { hasSome: filter.searchGenreKeys } });
+  }
+
+  return conditions;
 }

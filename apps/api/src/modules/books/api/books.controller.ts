@@ -1,6 +1,6 @@
-import type { BookView, Paginator } from "@app/shared";
+import type { BookView, LibraryOverviewView, Paginator } from "@app/shared";
 
-import { CreateBookInputSchema, PaginationQuerySchema, UpdateBookInputSchema } from "@app/shared";
+import { CreateBookInputSchema, LibraryBooksQuerySchema, UpdateBookInputSchema } from "@app/shared";
 import {
   Body,
   Controller,
@@ -37,7 +37,7 @@ import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
 import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
 import { BooksService } from "../application/books.service.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
-import { PaginationQueryDto } from "./input-dto/pagination-query.input-dto.js";
+import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
 
 const CREATE_BOOK_TTL_SECONDS = 60;
@@ -69,15 +69,25 @@ export class BooksController {
 
   @ApiBearerAuth()
   @ApiOkResponse({ description: "A page of the current user books" })
-  @ApiOperation({ summary: "List the current user books" })
+  @ApiOperation({ summary: "List and filter the current user library" })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
   @UseGuards(JwtAccessGuard)
   list(
     @CurrentUser() user: UserModel,
-    @Query(new ZodQueryPipe(PaginationQuerySchema)) query: PaginationQueryDto,
+    @Query(new ZodQueryPipe(LibraryBooksQuerySchema)) query: LibraryBooksQueryDto,
   ): Promise<Paginator<BookView>> {
     return this.booksService.list(user.id, query);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Library overview for the current user" })
+  @ApiOperation({ summary: "Get the current user library overview" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("overview")
+  @UseGuards(JwtAccessGuard)
+  overview(@CurrentUser() user: UserModel): Promise<LibraryOverviewView> {
+    return this.booksService.overview(user.id);
   }
 
   @ApiBearerAuth()

@@ -36,14 +36,6 @@ export type ValueOf<T> = T[keyof T];
 
 export const LIST_PAGE_SIZE_MAX = 100;
 
-export const PaginationQuerySchema = z.object({
-  pageNumber: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(10),
-  sortDirection: z.enum(["asc", "desc"]).default("desc"),
-});
-
-export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
-
 const NAME_MIN = 2;
 const NAME_MAX = 50;
 const NAME_ALLOWED = /^[\p{L}\p{M} '’-]+$/u;
@@ -1156,6 +1148,51 @@ export type AuthorView = {
 
 export type UpdateBookInput = z.infer<typeof UpdateBookInputSchema>;
 
+const BULK_BOOK_IDS_MAX = LIST_PAGE_SIZE_MAX;
+
+export const BulkBookIdsSchema = z.object({
+  bookIds: z.array(z.uuid()).min(1).max(BULK_BOOK_IDS_MAX),
+});
+
+export type BulkBookIds = z.infer<typeof BulkBookIdsSchema>;
+
+export const BulkFavoriteInputSchema = BulkBookIdsSchema.extend({
+  isFavorite: z.boolean(),
+});
+
+export type BulkFavoriteInput = z.infer<typeof BulkFavoriteInputSchema>;
+
+export const BulkReadingStatusInputSchema = BulkBookIdsSchema.extend({
+  readingStatus: ReadingStatusSchema,
+});
+
+export type BulkReadingStatusInput = z.infer<typeof BulkReadingStatusInputSchema>;
+
+export const BulkOwnershipStatusInputSchema = BulkBookIdsSchema.extend({
+  ownershipStatus: OwnershipStatusSchema,
+});
+
+export type BulkOwnershipStatusInput = z.infer<typeof BulkOwnershipStatusInputSchema>;
+
+export const BulkTagsInputSchema = BulkBookIdsSchema.extend({
+  tags: BookTagsInputSchema,
+});
+
+export type BulkTagsInput = z.infer<typeof BulkTagsInputSchema>;
+
+export const BulkListsInputSchema = BulkBookIdsSchema.extend({
+  listIds: z.array(z.uuid()).max(BOOK_LIST_IDS_MAX).optional(),
+  newLists: z.array(NewListInputSchema).max(BOOK_NEW_LISTS_MAX).optional(),
+});
+
+export type BulkListsInput = z.infer<typeof BulkListsInputSchema>;
+
+export const BulkActionResultSchema = z.object({
+  affected: z.number().int().nonnegative(),
+});
+
+export type BulkActionResult = z.infer<typeof BulkActionResultSchema>;
+
 export const AuthorLookupResultSchema = z.object({
   birthYear: z.number().int().nullable(),
   inDb: z.boolean(),
@@ -1377,6 +1414,126 @@ export const PublisherSearchPaginationQuerySchema = TaxonomySearchPaginationQuer
 });
 
 export type PublisherSearchPaginationQuery = z.infer<typeof PublisherSearchPaginationQuerySchema>;
+
+const LIBRARY_PAGE_SIZE_DEFAULT = 24;
+const LIBRARY_SEARCH_MAX = 200;
+const LIBRARY_RATING_MIN = 1;
+const LIBRARY_RATING_MAX = 5;
+
+export const LibrarySortSchema = z.enum([
+  "created_desc",
+  "created_asc",
+  "updated_desc",
+  "title_asc",
+  "title_desc",
+  "author_asc",
+  "author_desc",
+  "rating_desc",
+  "rating_asc",
+  "year_desc",
+  "year_asc",
+  "pages_desc",
+  "pages_asc",
+]);
+
+export type LibrarySort = z.infer<typeof LibrarySortSchema>;
+
+const coerceQueryStringArray = (value: unknown): unknown => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  const entries = Array.isArray(value) ? value : [value];
+  const parts = entries.flatMap((entry) => (typeof entry === "string" ? entry.split(",") : entry));
+  const cleaned = parts
+    .map((entry) => (typeof entry === "string" ? entry.trim() : entry))
+    .filter((entry) => entry !== "");
+  return cleaned.length === 0 ? undefined : cleaned;
+};
+
+const queryStringArray = <Schema extends z.ZodType>(schema: Schema) =>
+  z.preprocess(coerceQueryStringArray, z.array(schema).max(LIST_PAGE_SIZE_MAX).optional());
+
+export const LibraryBooksQuerySchema = z
+  .object({
+    ageCategory: queryStringArray(AgeCategorySchema),
+    author: queryStringArray(z.uuid()),
+    bookType: BookTypeSchema.optional(),
+    format: queryStringArray(BookFormatSchema),
+    genre: queryStringArray(GenreKeySchema),
+    hasCover: z.stringbool().optional(),
+    isFavorite: z.stringbool().optional(),
+    language: queryStringArray(BookLanguageSchema),
+    owner: queryStringArray(OwnershipStatusSchema),
+    pageNumber: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(LIST_PAGE_SIZE_MAX)
+      .default(LIBRARY_PAGE_SIZE_DEFAULT),
+    pagesMax: z.coerce.number().int().optional(),
+    pagesMin: z.coerce.number().int().optional(),
+    publisher: queryStringArray(z.uuid()),
+    q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
+    ratingMax: z.coerce.number().int().min(LIBRARY_RATING_MIN).max(LIBRARY_RATING_MAX).optional(),
+    ratingMin: z.coerce.number().int().min(LIBRARY_RATING_MIN).max(LIBRARY_RATING_MAX).optional(),
+    sort: LibrarySortSchema.default("created_desc"),
+    status: queryStringArray(ReadingStatusSchema),
+    tag: queryStringArray(z.uuid()),
+    yearMax: z.coerce.number().int().optional(),
+    yearMin: z.coerce.number().int().optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.ratingMin !== undefined &&
+      value.ratingMax !== undefined &&
+      value.ratingMin > value.ratingMax
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "ratingMin must not exceed ratingMax",
+        path: ["ratingMin"],
+      });
+    }
+
+    if (
+      value.yearMin !== undefined &&
+      value.yearMax !== undefined &&
+      value.yearMin > value.yearMax
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "yearMin must not exceed yearMax",
+        path: ["yearMin"],
+      });
+    }
+
+    if (
+      value.pagesMin !== undefined &&
+      value.pagesMax !== undefined &&
+      value.pagesMin > value.pagesMax
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "pagesMin must not exceed pagesMax",
+        path: ["pagesMin"],
+      });
+    }
+  });
+
+export type LibraryBooksQuery = z.infer<typeof LibraryBooksQuerySchema>;
+
+export type LibraryOverviewView = {
+  recentlyAdded: BookView[];
+  summary: {
+    favorites: number;
+    finished: number;
+    reading: number;
+    total: number;
+  };
+  topGenres: { count: number; key: string; name: string }[];
+  topTags: { count: number; id: string; name: string }[];
+};
 
 export const defaultUserProfileSettings: SettingsView = {
   accentColor: "brown",

@@ -31,11 +31,12 @@ const MEDIA_ID = "88888888-8888-4888-8888-888888888801";
 type Repository = {
   countByCoverMediaId: ReturnType<typeof vi.fn>;
   countByUser: ReturnType<typeof vi.fn>;
+  countForLibrary: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteOwned: ReturnType<typeof vi.fn>;
   existsSeriesPartNumber: ReturnType<typeof vi.fn>;
   findOwnedById: ReturnType<typeof vi.fn>;
-  listByUser: ReturnType<typeof vi.fn>;
+  listForLibrary: ReturnType<typeof vi.fn>;
   maxQueuePosition: ReturnType<typeof vi.fn>;
   updateOwned: ReturnType<typeof vi.fn>;
 };
@@ -88,11 +89,12 @@ function buildService(
     authorId?: string;
     countByCoverMediaId?: number;
     countByUser?: number;
+    countForLibrary?: number;
     create?: BookWithRelations;
     deleteOwned?: number;
     existsSeriesPartNumber?: boolean;
     findOwnedById?: BookWithRelations | null;
-    listByUser?: BookWithRelations[];
+    listForLibrary?: BookWithRelations[];
     listIds?: string[];
     maxQueuePosition?: number;
     publisherId?: null | string;
@@ -106,7 +108,10 @@ function buildService(
     materializeFromOpenLibrary: ReturnType<typeof vi.fn>;
     resolveOrCreate: ReturnType<typeof vi.fn>;
   };
-  genresService: { assertGenresSelectable: ReturnType<typeof vi.fn> };
+  genresService: {
+    assertGenresSelectable: ReturnType<typeof vi.fn>;
+    searchKeys: ReturnType<typeof vi.fn>;
+  };
   listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
   mediaService: {
     assertOwned: ReturnType<typeof vi.fn>;
@@ -122,11 +127,12 @@ function buildService(
   const repository: Repository = {
     countByCoverMediaId: vi.fn().mockResolvedValue(overrides.countByCoverMediaId ?? 0),
     countByUser: vi.fn().mockResolvedValue(overrides.countByUser ?? 0),
+    countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
     existsSeriesPartNumber: vi.fn().mockResolvedValue(overrides.existsSeriesPartNumber ?? false),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
-    listByUser: vi.fn().mockResolvedValue(overrides.listByUser ?? []),
+    listForLibrary: vi.fn().mockResolvedValue(overrides.listForLibrary ?? []),
     maxQueuePosition: vi.fn().mockResolvedValue(overrides.maxQueuePosition ?? 0),
     updateOwned: vi.fn().mockResolvedValue(overrides.updateOwned ?? bookRow()),
   };
@@ -152,6 +158,7 @@ function buildService(
   };
   const genresService = {
     assertGenresSelectable: vi.fn().mockResolvedValue(undefined),
+    searchKeys: vi.fn().mockResolvedValue([]),
   };
   const mediaService = {
     assertOwned: vi.fn().mockResolvedValue(undefined),
@@ -982,14 +989,14 @@ describe("BooksService cover", () => {
 describe("BooksService.list", () => {
   it("maps the page to a Paginator of BookView with the correct counts", async () => {
     const { service } = buildService({
-      countByUser: 3,
-      listByUser: [bookRow({ id: BOOK_ID })],
+      countForLibrary: 3,
+      listForLibrary: [bookRow({ id: BOOK_ID })],
     });
 
     const page = await service.list(USER_ID, {
       pageNumber: 1,
       pageSize: 2,
-      sortDirection: "desc",
+      sort: "created_desc",
     });
 
     expect(page).toMatchObject({
@@ -1000,6 +1007,39 @@ describe("BooksService.list", () => {
     });
     expect(page.items).toHaveLength(1);
     expect(page.items[0]?.id).toBe(BOOK_ID);
+  });
+
+  it("ignores a single-character query and runs no search", async () => {
+    const { genresService, repository, service } = buildService({ listForLibrary: [bookRow()] });
+
+    await service.list(USER_ID, { pageNumber: 1, pageSize: 20, q: "a", sort: "created_desc" });
+
+    expect(genresService.searchKeys).not.toHaveBeenCalled();
+    expect(repository.listForLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: expect.objectContaining({ search: undefined }) }),
+    );
+  });
+
+  it("keeps a single-digit query so the ISBN search still applies", async () => {
+    const { genresService, repository, service } = buildService({ listForLibrary: [bookRow()] });
+
+    await service.list(USER_ID, { pageNumber: 1, pageSize: 20, q: "9", sort: "created_desc" });
+
+    expect(genresService.searchKeys).toHaveBeenCalledWith({ query: "9", userId: USER_ID });
+    expect(repository.listForLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: expect.objectContaining({ search: "9" }) }),
+    );
+  });
+
+  it("applies the search for a query of at least two characters", async () => {
+    const { genresService, repository, service } = buildService({ listForLibrary: [bookRow()] });
+
+    await service.list(USER_ID, { pageNumber: 1, pageSize: 20, q: "ab", sort: "created_desc" });
+
+    expect(genresService.searchKeys).toHaveBeenCalledWith({ query: "ab", userId: USER_ID });
+    expect(repository.listForLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: expect.objectContaining({ search: "ab" }) }),
+    );
   });
 });
 

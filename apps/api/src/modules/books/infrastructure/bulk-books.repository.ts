@@ -1,0 +1,223 @@
+import type { OwnershipStatus, QueuePriority, ReadingStatus } from "@app/shared";
+
+import { Injectable } from "@nestjs/common";
+
+import { PrismaService } from "../../../core/database/prisma.service.js";
+
+export type BulkDeleteResult = {
+  affected: number;
+  coverMediaIds: string[];
+};
+
+@Injectable()
+export class BulkBooksRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  addTags({
+    bookIds,
+    tagIds,
+    userId,
+  }: {
+    bookIds: string[];
+    tagIds: string[];
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      const ownedBooks = await tx.book.findMany({
+        select: { id: true },
+        where: { id: { in: bookIds }, userId },
+      });
+      if (ownedBooks.length === 0) {
+        return 0;
+      }
+      await tx.bookTag.createMany({
+        data: ownedBooks.flatMap((book) => tagIds.map((tagId) => ({ bookId: book.id, tagId }))),
+        skipDuplicates: true,
+      });
+      return ownedBooks.length;
+    });
+  }
+
+  addToLists({
+    bookIds,
+    listIds,
+    userId,
+  }: {
+    bookIds: string[];
+    listIds: string[];
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      const ownedBooks = await tx.book.findMany({
+        select: { id: true },
+        where: { id: { in: bookIds }, userId },
+      });
+      if (ownedBooks.length === 0) {
+        return 0;
+      }
+      await tx.bookListItem.createMany({
+        data: ownedBooks.flatMap((book) => listIds.map((listId) => ({ bookId: book.id, listId }))),
+        skipDuplicates: true,
+      });
+      return ownedBooks.length;
+    });
+  }
+
+  addToReadingQueue({
+    bookIds,
+    queuePriority,
+    userId,
+  }: {
+    bookIds: string[];
+    queuePriority: QueuePriority;
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      const ownedUnqueued = await tx.book.findMany({
+        select: { id: true },
+        where: { id: { in: bookIds }, queuePosition: null, userId },
+      });
+      if (ownedUnqueued.length === 0) {
+        return 0;
+      }
+
+      const inputOrder = new Map(bookIds.map((bookId, index) => [bookId, index]));
+      const ordered = [...ownedUnqueued].sort(
+        (left, right) => (inputOrder.get(left.id) ?? 0) - (inputOrder.get(right.id) ?? 0),
+      );
+
+      const aggregate = await tx.book.aggregate({
+        _max: { queuePosition: true },
+        where: { userId },
+      });
+      const basePosition = aggregate._max.queuePosition ?? 0;
+
+      let offset = 0;
+      for (const book of ordered) {
+        offset += 1;
+        await tx.book.updateMany({
+          data: { queuePosition: basePosition + offset, queuePriority },
+          where: { id: book.id, userId },
+        });
+      }
+
+      return ordered.length;
+    });
+  }
+
+  deleteOwned({
+    bookIds,
+    userId,
+  }: {
+    bookIds: string[];
+    userId: string;
+  }): Promise<BulkDeleteResult> {
+    return this.prisma.$transaction(async (tx) => {
+      const books = await tx.book.findMany({
+        select: { coverMediaId: true },
+        where: { id: { in: bookIds }, userId },
+      });
+      if (books.length === 0) {
+        return { affected: 0, coverMediaIds: [] };
+      }
+      const deleted = await tx.book.deleteMany({ where: { id: { in: bookIds }, userId } });
+      const coverMediaIds = [
+        ...new Set(
+          books.flatMap((book) => (book.coverMediaId === null ? [] : [book.coverMediaId])),
+        ),
+      ];
+      return { affected: deleted.count, coverMediaIds };
+    });
+  }
+
+  async findOwnedIds({
+    bookIds,
+    userId,
+  }: {
+    bookIds: string[];
+    userId: string;
+  }): Promise<string[]> {
+    const ownedBooks = await this.prisma.book.findMany({
+      select: { id: true },
+      where: { id: { in: bookIds }, userId },
+    });
+    return ownedBooks.map((book) => book.id);
+  }
+
+  async setFavorite({
+    bookIds,
+    isFavorite,
+    userId,
+  }: {
+    bookIds: string[];
+    isFavorite: boolean;
+    userId: string;
+  }): Promise<number> {
+    const updated = await this.prisma.book.updateMany({
+      data: { isFavorite },
+      where: { id: { in: bookIds }, userId },
+    });
+    return updated.count;
+  }
+
+  setOwnershipStatus({
+    bookIds,
+    clearDelivery,
+    clearLoan,
+    clearPurchase,
+    ownershipStatus,
+    userId,
+  }: {
+    bookIds: string[];
+    clearDelivery: boolean;
+    clearLoan: boolean;
+    clearPurchase: boolean;
+    ownershipStatus: OwnershipStatus;
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.book.updateMany({
+        data: { ownershipStatus },
+        where: { id: { in: bookIds }, userId },
+      });
+      if (updated.count === 0) {
+        return 0;
+      }
+      if (clearDelivery) {
+        await tx.bookDeliveryInfo.deleteMany({ where: { book: { id: { in: bookIds }, userId } } });
+      }
+      if (clearLoan) {
+        await tx.bookLoanInfo.deleteMany({ where: { book: { id: { in: bookIds }, userId } } });
+      }
+      if (clearPurchase) {
+        await tx.bookPurchaseInfo.deleteMany({ where: { book: { id: { in: bookIds }, userId } } });
+      }
+      return updated.count;
+    });
+  }
+
+  setReadingStatus({
+    bookIds,
+    clearProgress,
+    readingStatus,
+    userId,
+  }: {
+    bookIds: string[];
+    clearProgress: boolean;
+    readingStatus: ReadingStatus;
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.book.updateMany({
+        data: { readingStatus },
+        where: { id: { in: bookIds }, userId },
+      });
+      if (clearProgress && updated.count > 0) {
+        await tx.bookReadingProgress.deleteMany({
+          where: { book: { id: { in: bookIds }, userId } },
+        });
+      }
+      return updated.count;
+    });
+  }
+}

@@ -55,8 +55,19 @@ export class GenresService {
     if (deletedCount === 0) throw new NotFoundError("Genre not found");
   }
 
+  findNamesByKeys(input: {
+    keys: string[];
+    userId: string;
+  }): Promise<{ key: string; name: string }[]> {
+    return this.genresRepository.findNamesByKeys(input);
+  }
+
   async list(userId: string): Promise<GenreView[]> {
     const genres = await this.genresRepository.listAvailable(userId);
     return genres.map(toGenreView);
+  }
+
+  searchKeys(input: { query: string; userId: string }): Promise<string[]> {
+    return this.genresRepository.findKeysByName(input);
   }
 }
