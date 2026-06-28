@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { useState } from "react";
+import { expect } from "storybook/test";
 
 import { Upload } from "./upload";
 
@@ -63,4 +64,21 @@ export const Disabled: Story = {
       />
     </div>
   ),
+};
+
+export const PasteImage: Story = {
+  render: () => <Example initial={[]} />,
+  play: async ({ canvas }) => {
+    const zone = canvas.getByRole("button");
+    zone.focus();
+
+    const file = new File(["paste"], "pasted.png", { type: "image/png" });
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    window.dispatchEvent(
+      new ClipboardEvent("paste", { bubbles: true, clipboardData: dataTransfer }),
+    );
+
+    await expect(await canvas.findByText("pasted.png")).toBeVisible();
+  },
 };

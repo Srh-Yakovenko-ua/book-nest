@@ -434,7 +434,7 @@
         "publicationYear": "Publication year",
         "publicationYearPlaceholder": "e.g. 2021",
         "isbn": "ISBN",
-        "isbnPlaceholder": "e.g. 978-617-679-000-0",
+        "isbnPlaceholder": "e.g. 9786176790006",
         "originalTitle": "Original title",
         "originalTitlePlaceholder": "Title in the original language",
         "translator": "Translator",
@@ -575,7 +575,8 @@
         "title": "Drag an image here",
         "browse": "Upload a cover",
         "formats": "Format: JPG, PNG · Max {max} MB",
-        "recommended": "Recommended size: 1200 × 1600"
+        "recommended": "Recommended size: 1200 × 1600",
+        "paste": "or paste an image from the clipboard (Ctrl/Cmd+V)"
       },
       "replace": "Replace cover",
       "replaceSuccess": "Cover updated",

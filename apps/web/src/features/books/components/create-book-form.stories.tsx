@@ -508,7 +508,7 @@ export const EditionDetailsSubmitsNumbers: Story = {
 
     await userEvent.type(canvas.getByLabelText("Сторінок", { exact: false }), "320");
     await userEvent.type(canvas.getByLabelText("Рік видання", { exact: false }), "2021");
-    await userEvent.type(canvas.getByLabelText("ISBN", { exact: false }), "978-617-679-000-6");
+    await userEvent.type(canvas.getByLabelText("ISBN", { exact: false }), "9786176790006");
     await userEvent.type(canvas.getByLabelText("Оригінальна назва", { exact: false }), "Kobzar");
     await userEvent.type(canvas.getByLabelText("Присвята", { exact: false }), "Україні");
 
@@ -517,7 +517,7 @@ export const EditionDetailsSubmitsNumbers: Story = {
     await waitFor(() => expect(createPayload).not.toBeNull());
     await expect(createPayload).toMatchObject({
       dedication: "Україні",
-      isbn: "978-617-679-000-6",
+      isbn: "9786176790006",
       originalTitle: "Kobzar",
       pagesCount: 320,
       publicationYear: 2021,

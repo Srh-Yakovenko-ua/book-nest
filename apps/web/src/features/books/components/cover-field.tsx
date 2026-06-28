@@ -228,6 +228,7 @@ export function CoverField({
               <>
                 <p>{t("upload.formats", { max: MEDIA_MAX_UPLOAD_MB })}</p>
                 <p>{t("upload.recommended")}</p>
+                <p>{t("upload.paste")}</p>
               </>
             }
             media={
