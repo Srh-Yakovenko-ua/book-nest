@@ -471,7 +471,20 @@ describe("POST /api/books", () => {
     });
   });
 
-  it("accepts a valid hyphenated ISBN-10", async () => {
+  it("accepts a valid digits-only ISBN-10", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      author: { name: "Frank Herbert" },
+      isbn: "0306406152",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.isbn).toBe("0306406152");
+  });
+
+  it("returns 400 for an ISBN that contains non-digit characters", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
@@ -480,8 +493,10 @@ describe("POST /api/books", () => {
       title: "Dune",
     });
 
-    expect(res.status).toBe(201);
-    expect(res.body.isbn).toBe("0-306-40615-2");
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "isbn" })]),
+    );
   });
 
   it("returns all edition details as null when they are omitted", async () => {

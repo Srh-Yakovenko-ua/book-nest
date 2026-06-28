@@ -39,6 +39,7 @@ function Upload({
   title = "Перетягніть файл сюди",
 }: UploadProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
   const [dragOver, setDragOver] = React.useState(false);
   const depth = React.useRef(0);
   const titleId = React.useId();
@@ -48,11 +49,41 @@ function Upload({
     inputRef.current?.click();
   };
 
-  const addFiles = (incoming: FileList | null) => {
+  const addFiles = (incoming: File[] | FileList | null) => {
     if (!incoming || incoming.length === 0) return;
     const next = Array.from(incoming);
     onFilesChange(multiple ? [...files, ...next] : next.slice(0, 1));
   };
+
+  const pasteHandlerRef = React.useRef<(event: ClipboardEvent) => void>(() => undefined);
+
+  React.useEffect(() => {
+    pasteHandlerRef.current = (event) => {
+      if (disabled) return;
+      const clipboard = event.clipboardData;
+      if (clipboard === null) return;
+
+      const images = Array.from(clipboard.files).filter((file) => file.type.startsWith("image/"));
+      if (images.length === 0) return;
+
+      const active = document.activeElement;
+      const isEditingField =
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement ||
+        (active instanceof HTMLElement && active.isContentEditable);
+      if (active !== buttonRef.current && isEditingField) return;
+
+      event.preventDefault();
+      addFiles(images);
+    };
+  });
+
+  React.useEffect(() => {
+    const onWindowPaste = (event: ClipboardEvent) => pasteHandlerRef.current(event);
+    window.addEventListener("paste", onWindowPaste);
+    return () => window.removeEventListener("paste", onWindowPaste);
+  }, []);
 
   const removeAt = (index: number) => {
     onFilesChange(files.filter((_, current) => current !== index));
@@ -90,6 +121,7 @@ function Upload({
           if (disabled) return;
           addFiles(event.dataTransfer.files);
         }}
+        ref={buttonRef}
         type="button"
       >
         {media ?? (
