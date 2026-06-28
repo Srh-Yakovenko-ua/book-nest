@@ -8,6 +8,8 @@
 import type { MediaControllerUploadBodyKind } from "./mediaControllerUploadBodyKind";
 
 export type MediaControllerUploadBody = {
+  /** JSON-encoded crop rectangle in oriented pixels, e.g. {"x":0,"y":0,"width":1200,"height":1600} */
+  crop?: string;
   file: Blob;
   kind?: MediaControllerUploadBodyKind;
 };

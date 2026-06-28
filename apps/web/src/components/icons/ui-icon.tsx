@@ -47,6 +47,7 @@ export type UiIconName =
   | "hash"
   | "headphones"
   | "heart"
+  | "heart-fill"
   | "help-circle"
   | "home"
   | "image"

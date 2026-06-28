@@ -13,6 +13,7 @@ function Harness() {
       <AuthorAutocomplete
         id="author"
         invalid={false}
+        label="Автор"
         onChange={setValue}
         placeholder="Почніть вводити імʼя автора…"
         value={value}
@@ -59,6 +60,7 @@ const meta = {
   args: {
     id: "author",
     invalid: false,
+    label: "Автор",
     onChange: () => undefined,
     placeholder: "Почніть вводити імʼя автора…",
     value: null,
@@ -107,6 +109,35 @@ export const CreateCustom: Story = {
 
     await waitFor(() =>
       expect(canvas.getByTestId("selection")).toHaveTextContent("custom:Невідомий Автор"),
+    );
+  },
+  render: () => <Harness />,
+};
+
+export const AccessibleName: Story = {
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("combobox", { name: "Автор" })).toBeVisible();
+  },
+  render: () => <Harness />,
+};
+
+export const KeyboardSelect: Story = {
+  play: async ({ canvas }) => {
+    mockAuthorSearch([
+      { id: "11111111-1111-1111-1111-111111111111", name: "Михайло Коцюбинський" },
+      { id: "22222222-2222-2222-2222-222222222222", name: "Михайло Старицький" },
+    ]);
+    const surface = within(document.body);
+
+    const input = canvas.getByRole("combobox", { name: "Автор" });
+    await userEvent.click(input);
+    await userEvent.type(input, "Михайло Коцюбинський");
+
+    await waitFor(() => expect(surface.getByText("Михайло Старицький")).toBeVisible());
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+
+    await waitFor(() =>
+      expect(canvas.getByTestId("selection")).toHaveTextContent("catalog:Михайло Старицький"),
     );
   },
   render: () => <Harness />,

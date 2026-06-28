@@ -1,0 +1,32 @@
+import type { MediaView, OwnershipStatus, ReadingStatus } from "@app/shared";
+
+import type { GenreIconName } from "@/components/icons";
+import type { StatusEntry } from "@/lib/book-status";
+
+export type LibraryBook = {
+  author: string;
+  cover?: { alt?: string; src: string };
+  coverMedia?: MediaView;
+  genres?: { icon?: GenreIconName; label: string }[];
+  href: string;
+  id: string;
+  isFavorite: boolean;
+  isInReadingQueue: boolean;
+  ownershipStatus: OwnershipStatus;
+  pagesText?: string;
+  progress?: { ariaLabel: string; current: number; total: number; unit: string };
+  rating?: number;
+  ratingLabel?: string;
+  readingStatus: ReadingStatus;
+  selected?: boolean;
+  series?: string;
+  status: StatusEntry;
+  title: string;
+  year?: number;
+};
+
+export type LibraryBookLinkComponent = React.ComponentType<{
+  children?: React.ReactNode;
+  className?: string;
+  href: string;
+}>;

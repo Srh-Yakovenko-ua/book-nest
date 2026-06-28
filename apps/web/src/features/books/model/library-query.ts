@@ -1,0 +1,141 @@
+import {
+  type inferParserType,
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs";
+
+import type { BooksControllerListParams } from "@/shared/api/generated/model";
+
+import {
+  BooksControllerListAgeCategoryItem,
+  BooksControllerListBookType,
+  BooksControllerListFormatItem,
+  BooksControllerListLanguageItem,
+  BooksControllerListOwnerItem,
+  BooksControllerListSort,
+  BooksControllerListStatusItem,
+} from "@/shared/api/generated/model";
+
+export const LIBRARY_PAGE_SIZE = 24;
+export const LIBRARY_SORT_DEFAULT = BooksControllerListSort.created_desc;
+export const LIBRARY_VIEW_DEFAULT = "grid";
+
+export const LIBRARY_VIEW_MODES = ["grid", "list"] as const;
+export type LibraryViewMode = (typeof LIBRARY_VIEW_MODES)[number];
+
+export const LIBRARY_SORT_ORDER = Object.values(BooksControllerListSort);
+
+export const LIBRARY_STATUS_VALUES = Object.values(BooksControllerListStatusItem);
+export const LIBRARY_OWNER_VALUES = Object.values(BooksControllerListOwnerItem);
+export const LIBRARY_FORMAT_VALUES = Object.values(BooksControllerListFormatItem);
+export const LIBRARY_AGE_CATEGORY_VALUES = Object.values(BooksControllerListAgeCategoryItem);
+export const LIBRARY_LANGUAGE_VALUES = Object.values(BooksControllerListLanguageItem);
+export const LIBRARY_BOOK_TYPE_VALUES = Object.values(BooksControllerListBookType);
+const sortValues = Object.values(BooksControllerListSort);
+
+export const libraryQueryParsers = {
+  ageCategory: parseAsArrayOf(parseAsStringLiteral(LIBRARY_AGE_CATEGORY_VALUES)).withDefault([]),
+  author: parseAsArrayOf(parseAsString).withDefault([]),
+  bookType: parseAsStringLiteral(LIBRARY_BOOK_TYPE_VALUES),
+  format: parseAsArrayOf(parseAsStringLiteral(LIBRARY_FORMAT_VALUES)).withDefault([]),
+  genre: parseAsArrayOf(parseAsString).withDefault([]),
+  hasCover: parseAsBoolean,
+  isFavorite: parseAsBoolean,
+  language: parseAsArrayOf(parseAsStringLiteral(LIBRARY_LANGUAGE_VALUES)).withDefault([]),
+  owner: parseAsArrayOf(parseAsStringLiteral(LIBRARY_OWNER_VALUES)).withDefault([]),
+  pagesMax: parseAsInteger,
+  pagesMin: parseAsInteger,
+  publisher: parseAsArrayOf(parseAsString).withDefault([]),
+  q: parseAsString.withDefault(""),
+  ratingMax: parseAsInteger,
+  ratingMin: parseAsInteger,
+  sort: parseAsStringLiteral(sortValues).withDefault(LIBRARY_SORT_DEFAULT),
+  status: parseAsArrayOf(parseAsStringLiteral(LIBRARY_STATUS_VALUES)).withDefault([]),
+  tag: parseAsArrayOf(parseAsString).withDefault([]),
+  view: parseAsStringLiteral(LIBRARY_VIEW_MODES).withDefault(LIBRARY_VIEW_DEFAULT),
+  yearMax: parseAsInteger,
+  yearMin: parseAsInteger,
+};
+
+export type LibraryListParams = Omit<BooksControllerListParams, "pageNumber">;
+
+export type LibraryQueryState = inferParserType<typeof libraryQueryParsers>;
+
+export function hasActiveLibraryFilters(state: LibraryQueryState): boolean {
+  return (
+    state.status.length > 0 ||
+    state.owner.length > 0 ||
+    state.format.length > 0 ||
+    state.genre.length > 0 ||
+    state.tag.length > 0 ||
+    state.author.length > 0 ||
+    state.publisher.length > 0 ||
+    state.ageCategory.length > 0 ||
+    state.language.length > 0 ||
+    state.bookType !== null ||
+    state.isFavorite !== null ||
+    state.hasCover !== null ||
+    state.ratingMin !== null ||
+    state.ratingMax !== null ||
+    state.yearMin !== null ||
+    state.yearMax !== null ||
+    state.pagesMin !== null ||
+    state.pagesMax !== null
+  );
+}
+
+export function hasActiveLibrarySearch(state: LibraryQueryState): boolean {
+  return state.q.trim() !== "";
+}
+
+export function toLibraryListParams(state: LibraryQueryState): LibraryListParams {
+  const search = state.q.trim();
+
+  return {
+    ageCategory: state.ageCategory,
+    author: state.author,
+    format: state.format,
+    genre: state.genre,
+    language: state.language,
+    owner: state.owner,
+    pageSize: LIBRARY_PAGE_SIZE,
+    publisher: state.publisher,
+    sort: state.sort,
+    status: state.status,
+    tag: state.tag,
+    ...(search === "" ? {} : { q: search }),
+    ...(state.bookType === null ? {} : { bookType: state.bookType }),
+    ...(state.isFavorite === null ? {} : { isFavorite: String(state.isFavorite) }),
+    ...(state.hasCover === null ? {} : { hasCover: String(state.hasCover) }),
+    ...(state.ratingMin === null ? {} : { ratingMin: state.ratingMin }),
+    ...(state.ratingMax === null ? {} : { ratingMax: state.ratingMax }),
+    ...(state.yearMin === null ? {} : { yearMin: state.yearMin }),
+    ...(state.yearMax === null ? {} : { yearMax: state.yearMax }),
+    ...(state.pagesMin === null ? {} : { pagesMin: state.pagesMin }),
+    ...(state.pagesMax === null ? {} : { pagesMax: state.pagesMax }),
+  };
+}
+
+export const LIBRARY_FILTERS_RESET = {
+  ageCategory: null,
+  author: null,
+  bookType: null,
+  format: null,
+  genre: null,
+  hasCover: null,
+  isFavorite: null,
+  language: null,
+  owner: null,
+  pagesMax: null,
+  pagesMin: null,
+  publisher: null,
+  ratingMax: null,
+  ratingMin: null,
+  status: null,
+  tag: null,
+  yearMax: null,
+  yearMin: null,
+} satisfies Partial<Record<keyof LibraryQueryState, null>>;

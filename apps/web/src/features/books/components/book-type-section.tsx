@@ -114,6 +114,7 @@ export function BookTypeSection({
               describedBy={seriesErrorMessage ? "book-series-error" : undefined}
               id="book-series"
               invalid={seriesErrorMessage !== undefined}
+              label={t("bookType.series")}
               onChange={applySelection}
               onCreateRequest={(name) => {
                 setPendingName(name);

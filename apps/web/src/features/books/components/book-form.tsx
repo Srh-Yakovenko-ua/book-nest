@@ -434,6 +434,7 @@ export function BookForm(props: BookFormProps) {
                   describedBy={errors.author ? "book-author-error" : undefined}
                   id="book-author"
                   invalid={errors.author !== undefined}
+                  label={t("fields.author")}
                   onChange={(selection: AuthorSelection | null) => {
                     setAuthorSelection(selection);
                     field.onChange(
@@ -465,6 +466,7 @@ export function BookForm(props: BookFormProps) {
               describedBy={errors.publisherName ? "book-publisher-error" : undefined}
               id="book-publisher"
               invalid={errors.publisherName !== undefined}
+              label={t("fields.publisher")}
               onChange={(selection: null | PublisherSelection) => {
                 setPublisherSelection(selection);
                 if (selection === null) {

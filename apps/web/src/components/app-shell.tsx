@@ -136,7 +136,7 @@ function AppSidebar() {
 
 function ContentArea({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-screen flex-1 flex-col overflow-x-clip bg-background text-foreground">
+    <div className="relative flex min-h-screen min-w-0 flex-1 flex-col overflow-x-clip bg-background text-foreground">
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0"
@@ -156,7 +156,9 @@ function ContentArea({ children }: { children: ReactNode }) {
         }}
       />
       <header className="sticky top-0 z-30 flex h-[var(--shell-header-height)] shrink-0 items-center gap-4 border-b border-border/50 bg-background/80 px-4 backdrop-blur-xl backdrop-saturate-150">
-        <div className="min-w-0 flex-1" />
+        <div className="flex min-w-0 flex-1 items-center">
+          <SidebarTrigger className="size-8 cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-foreground lg:hidden" />
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           <SessionMenu />
           <ThemePicker />

@@ -93,7 +93,7 @@ function BookCard({
           onActivate={onCoverActivate}
           src={cover?.src}
         />
-        <div className="flex min-w-0 flex-col gap-1.5 pr-6">
+        <div className="flex min-w-0 flex-col gap-1.5 pr-16">
           <h3 className="font-heading text-[1.0625rem] leading-tight font-bold text-ink">
             {href === undefined ? (
               title

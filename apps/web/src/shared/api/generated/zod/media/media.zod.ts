@@ -20,6 +20,12 @@ export const MediaControllerDeleteResponse = zod.void();
  * @summary Upload an image and get the processed media asset
  */
 export const MediaControllerUploadBody = zod.object({
+  crop: zod
+    .string()
+    .optional()
+    .describe(
+      'JSON-encoded crop rectangle in oriented pixels, e.g. {\"x\":0,\"y\":0,\"width\":1200,\"height\":1600}',
+    ),
   file: zod.instanceof(File),
   kind: zod.enum(["avatar", "book_cover", "series_cover"]).optional(),
 });
