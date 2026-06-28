@@ -21,15 +21,15 @@ Add a book to a personal library through one `POST /api/books` request that also
 
 ### Form blocks (spec §6–§12)
 
-| Spec block          | Capability                                                                                                                  | FE section component                |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| §6 Basic info       | Title (required), author (catalog / Open Library / custom, required), publisher (optional), description                     | `book-form.tsx` basic-info block    |
-| §7 Classification   | Genres (max 5), tags (per-user combobox, max 12), age category, language                                                   | `classification-section.tsx`, `tags-field.tsx` |
-| §8 Status           | Reading status + progress block; ownership status + purchase / delivery / loan blocks; formats                             | `reading-status-section.tsx`, `ownership-status-section.tsx`, `format-section.tsx` |
-| §9 Series           | `solo` or `series_part`; existing `seriesId` or `newSeries` draft + `partNumber`                                           | `book-type-section.tsx`, `series-autocomplete.tsx`, `create-series-dialog.tsx` |
-| §10 Edition details | Pages, year, ISBN (checksum), original title, translator, illustrator, dedication                                          | `edition-details-section.tsx`       |
-| §11 Organization    | Favorite, reading queue + priority, lists (existing + new drafts)                                                          | `library-organization-section.tsx`  |
-| §12 Cover           | Upload + crop, preview, replace, remove                                                                                     | `cover-field.tsx`, `library-cover-viewer.tsx` |
+| Spec block          | Capability                                                                                              | FE section component                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| §6 Basic info       | Title (required), author (catalog / Open Library / custom, required), publisher (optional), description | `book-form.tsx` basic-info block                                                   |
+| §7 Classification   | Genres (max 5), tags (per-user combobox, max 12), age category, language                                | `classification-section.tsx`, `tags-field.tsx`                                     |
+| §8 Status           | Reading status + progress block; ownership status + purchase / delivery / loan blocks; formats          | `reading-status-section.tsx`, `ownership-status-section.tsx`, `format-section.tsx` |
+| §9 Series           | `solo` or `series_part`; existing `seriesId` or `newSeries` draft + `partNumber`                        | `book-type-section.tsx`, `series-autocomplete.tsx`, `create-series-dialog.tsx`     |
+| §10 Edition details | Pages, year, ISBN (checksum), original title, translator, illustrator, dedication                       | `edition-details-section.tsx`                                                      |
+| §11 Organization    | Favorite, reading queue + priority, lists (existing + new drafts)                                       | `library-organization-section.tsx`                                                 |
+| §12 Cover           | Upload + crop, preview, replace, remove                                                                 | `cover-field.tsx`, `library-cover-viewer.tsx`                                      |
 
 ## End-to-end data flow
 
@@ -68,26 +68,26 @@ Controller: `apps/api/src/modules/books/api/books.controller.ts` — `create` (`
 
 Taxonomy endpoints (paginated "global seeds + own custom" search; tags/series/lists are own-only):
 
-| Method | Path                      | Success | Notes                                                                 |
-| ------ | ------------------------- | ------- | --------------------------------------------------------------------- |
-| GET    | `/api/authors?search=`    | 200     | `Paginator<AuthorView>`                                                |
-| GET    | `/api/publishers?search=` | 200     | `Paginator<PublisherView>`                                            |
-| GET    | `/api/tags?search=`       | 200     | `Paginator<TagView>`; empty `search` returns the user's tags          |
-| DELETE | `/api/tags/:id`           | 204     | `apps/api/src/modules/tags/api/tags.controller.ts:61-66`              |
-| GET    | `/api/series?search=`     | 200     | `Paginator<SeriesView>`; empty `search` returns the user's series     |
-| GET    | `/api/lists?search=`      | 200     | `Paginator<BookListView>`                                            |
+| Method | Path                      | Success | Notes                                                             |
+| ------ | ------------------------- | ------- | ----------------------------------------------------------------- |
+| GET    | `/api/authors?search=`    | 200     | `Paginator<AuthorView>`                                           |
+| GET    | `/api/publishers?search=` | 200     | `Paginator<PublisherView>`                                        |
+| GET    | `/api/tags?search=`       | 200     | `Paginator<TagView>`; empty `search` returns the user's tags      |
+| DELETE | `/api/tags/:id`           | 204     | `apps/api/src/modules/tags/api/tags.controller.ts:61-66`          |
+| GET    | `/api/series?search=`     | 200     | `Paginator<SeriesView>`; empty `search` returns the user's series |
+| GET    | `/api/lists?search=`      | 200     | `Paginator<BookListView>`                                         |
 
 ## Conditional-block business rule (§8)
 
 `readingStatus` / `ownershipStatus` decide which child table gets a row. The status sets live in `apps/api/src/modules/books/domain/book-blocks.ts` (`readingStatusUsesProgress`, `ownershipStatusUsesPurchase`/`Delivery`/`Loan`); the loan set is also in shared (`ownershipStatusUsesLoan`, `packages/shared/src/index.ts:910-917`). A child is created only when the status matches and the matching input object is present.
 
-| Trigger status                                                          | Child table             | Required sub-field                              |
-| ----------------------------------------------------------------------- | ----------------------- | ----------------------------------------------- |
-| `readingStatus` ∈ {`reading`, `paused`, `finished`, `dnf`, `rereading`} | `book_reading_progress` | none                                            |
-| `ownershipStatus` = `want_to_buy`                                       | `book_purchase_info`    | none                                            |
-| `ownershipStatus` = `in_transit`                                        | `book_delivery_info`    | `deliveryStatus` defaults to `ordered`          |
+| Trigger status                                                          | Child table             | Required sub-field                               |
+| ----------------------------------------------------------------------- | ----------------------- | ------------------------------------------------ |
+| `readingStatus` ∈ {`reading`, `paused`, `finished`, `dnf`, `rereading`} | `book_reading_progress` | none                                             |
+| `ownershipStatus` = `want_to_buy`                                       | `book_purchase_info`    | none                                             |
+| `ownershipStatus` = `in_transit`                                        | `book_delivery_info`    | `deliveryStatus` defaults to `ordered`           |
 | `ownershipStatus` ∈ {`borrowed_from_someone`, `lent_to_someone`}        | `book_loan_info`        | `personName` (required — `superRefine` + server) |
-| `ownershipStatus` ∈ {`none`, `owned`}                                   | none                    | —                                               |
+| `ownershipStatus` ∈ {`none`, `owned`}                                   | none                    | —                                                |
 
 On `PATCH`, a status that no longer needs its block deletes the existing child row (`resolve*Block` returns `{ delete: true }`). Queue placement is a parallel conditional (§11): `addToReadingQueue` controls `queuePosition` / `queuePriority` on the `books` row itself.
 
@@ -230,5 +230,5 @@ Frontend (Vitest browser-mode / Storybook): `cover-field.test.tsx`, plus stories
 - Architecture overview: `docs/architecture.md`
 - Canonical backend workflow: `.claude/agents/backend-engineer.md`, `docs/code-principles.md`
 - Feature index: `docs/features/README.md`
-</content>
-</invoke>
+  </content>
+  </invoke>
