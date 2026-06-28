@@ -7,6 +7,10 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  blockNegativeNumberKeys,
+  blockNegativeNumberPaste,
+} from "@/lib/block-negative-number-keys";
 
 import type { CreateBookFormValues } from "../model/create-book-form";
 
@@ -57,6 +61,8 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
             inputMode="numeric"
             max={PAGES_MAX}
             min={PAGES_MIN}
+            onKeyDown={blockNegativeNumberKeys}
+            onPaste={blockNegativeNumberPaste}
             placeholder={t("editionDetails.fields.pagesCountPlaceholder")}
             step={1}
             type="number"
@@ -84,6 +90,8 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
             id="book-publication-year"
             inputMode="numeric"
             max={PUBLICATION_YEAR_MAX}
+            onKeyDown={blockNegativeNumberKeys}
+            onPaste={blockNegativeNumberPaste}
             placeholder={t("editionDetails.fields.publicationYearPlaceholder")}
             step={1}
             type="number"

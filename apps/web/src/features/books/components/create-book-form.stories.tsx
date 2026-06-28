@@ -526,6 +526,26 @@ export const EditionDetailsSubmitsNumbers: Story = {
   },
 };
 
+export const NegativeKeysBlockedInNumericFields: Story = {
+  play: async ({ canvas }) => {
+    mockFetch(taxonomyHandler());
+
+    const pagesInput = canvas.getByLabelText("Сторінок", { exact: false });
+    await userEvent.type(pagesInput, "-320");
+    await expect(pagesInput).toHaveValue(320);
+
+    const yearInput = canvas.getByLabelText("Рік видання", { exact: false });
+    await userEvent.type(yearInput, "-2021");
+    await expect(yearInput).toHaveValue(2021);
+
+    await userEvent.click(canvas.getByRole("radio", { name: "Читаю" }));
+    const currentPage = canvas.getByRole("spinbutton", { name: "Сторінка зараз" });
+    await userEvent.click(currentPage);
+    await userEvent.keyboard("-");
+    await expect(currentPage).toHaveValue("0");
+  },
+};
+
 export const CurrentPageCannotExceedPages: Story = {
   play: async ({ canvas }) => {
     mockFetch(taxonomyHandler());
