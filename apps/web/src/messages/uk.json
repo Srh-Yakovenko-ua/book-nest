@@ -434,7 +434,7 @@
         "publicationYear": "Рік видання",
         "publicationYearPlaceholder": "Напр. 2021",
         "isbn": "ISBN",
-        "isbnPlaceholder": "Напр. 978-617-679-000-0",
+        "isbnPlaceholder": "Напр. 9786176790006",
         "originalTitle": "Оригінальна назва",
         "originalTitlePlaceholder": "Назва мовою оригіналу",
         "translator": "Перекладач",
@@ -575,7 +575,8 @@
         "title": "Перетягніть зображення сюди",
         "browse": "Завантажити обкладинку",
         "formats": "Формат: JPG, PNG · Макс. {max} МБ",
-        "recommended": "Рекомендований розмір: 1200 × 1600"
+        "recommended": "Рекомендований розмір: 1200 × 1600",
+        "paste": "або вставте зображення з буфера (Ctrl/Cmd+V)"
       },
       "replace": "Замінити обкладинку",
       "replaceSuccess": "Обкладинку оновлено",

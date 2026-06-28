@@ -27,8 +27,11 @@ type EditionDetailsSectionProps = {
   register: UseFormRegister<CreateBookFormValues>;
 };
 
+const ISBN_MAX_LENGTH = 13;
+
 export function EditionDetailsSection({ control, errors, register }: EditionDetailsSectionProps) {
   const t = useTranslations("books");
+  const isbnField = register("isbn", { setValueAs: emptyToUndefined });
   const dedicationValue = useWatch({ control, name: "dedication" }) ?? "";
   const dedicationLength = typeof dedicationValue === "string" ? dedicationValue.length : 0;
 
@@ -112,8 +115,14 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
           autoComplete="off"
           className="h-10"
           id="book-isbn"
+          inputMode="numeric"
+          maxLength={ISBN_MAX_LENGTH}
           placeholder={t("editionDetails.fields.isbnPlaceholder")}
-          {...register("isbn", { setValueAs: emptyToUndefined })}
+          {...isbnField}
+          onChange={(event) => {
+            event.target.value = event.target.value.replace(/\D/g, "");
+            return isbnField.onChange(event);
+          }}
         />
         <FieldError error={errors.isbn} id="book-isbn-error" />
       </div>

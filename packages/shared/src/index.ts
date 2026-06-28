@@ -567,11 +567,10 @@ const READING_RATING_MIN = 1;
 const READING_RATING_MAX = 5;
 const READING_NOTE_MAX = 300;
 const READING_IMPRESSION_MAX = 500;
-const ISBN_INPUT_PATTERN = /^[0-9Xx\s-]+$/;
+const ISBN_DIGITS_PATTERN = /^\d+$/;
 const ISBN_10_LENGTH = 10;
 const ISBN_13_LENGTH = 13;
 const ISBN_10_CHECK_MODULUS = 11;
-const ISBN_10_CHECK_X_VALUE = 10;
 const ISBN_13_CHECK_MODULUS = 10;
 const ISBN_13_ODD_WEIGHT = 1;
 const ISBN_13_EVEN_WEIGHT = 3;
@@ -628,28 +627,15 @@ export const BookTagsInputSchema = z
     return seen.size === tags.length;
   }, "Tags must not contain duplicates");
 
-const normalizeIsbn = (value: string): string => value.replace(/[\s-]/g, "").toUpperCase();
-
 const isValidIsbn10 = (digits: string): boolean => {
   let sum = 0;
   for (let position = 0; position < ISBN_10_LENGTH; position += 1) {
-    const character = digits[position] ?? "";
-    if (position === ISBN_10_LENGTH - 1 && character === "X") {
-      sum += ISBN_10_CHECK_X_VALUE * (ISBN_10_LENGTH - position);
-      continue;
-    }
-    if (character < "0" || character > "9") {
-      return false;
-    }
-    sum += Number(character) * (ISBN_10_LENGTH - position);
+    sum += Number(digits[position]) * (ISBN_10_LENGTH - position);
   }
   return sum % ISBN_10_CHECK_MODULUS === 0;
 };
 
 const isValidIsbn13 = (digits: string): boolean => {
-  if (!/^\d{13}$/.test(digits)) {
-    return false;
-  }
   let sum = 0;
   for (let position = 0; position < ISBN_13_LENGTH; position += 1) {
     const weight = position % 2 === 0 ? ISBN_13_ODD_WEIGHT : ISBN_13_EVEN_WEIGHT;
@@ -659,12 +645,14 @@ const isValidIsbn13 = (digits: string): boolean => {
 };
 
 export const isValidIsbn = (value: string): boolean => {
-  const normalized = normalizeIsbn(value);
-  if (normalized.length === ISBN_10_LENGTH) {
-    return isValidIsbn10(normalized);
+  if (!ISBN_DIGITS_PATTERN.test(value)) {
+    return false;
   }
-  if (normalized.length === ISBN_13_LENGTH) {
-    return isValidIsbn13(normalized);
+  if (value.length === ISBN_10_LENGTH) {
+    return isValidIsbn10(value);
+  }
+  if (value.length === ISBN_13_LENGTH) {
+    return isValidIsbn13(value);
   }
   return false;
 };
@@ -684,8 +672,7 @@ export const BookPublicationYearSchema = z
 export const IsbnSchema = z
   .string()
   .trim()
-  .refine(noHtmlTags, "HTML tags are not allowed")
-  .refine((value) => ISBN_INPUT_PATTERN.test(value), "Enter a valid ISBN-10 or ISBN-13")
+  .refine((value) => ISBN_DIGITS_PATTERN.test(value), "ISBN must contain digits only")
   .refine(isValidIsbn, "Enter a valid ISBN-10 or ISBN-13");
 
 export const OriginalTitleSchema = z
