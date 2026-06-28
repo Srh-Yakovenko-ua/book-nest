@@ -4,6 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 import { UiIcon } from "@/components/icons";
+import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
 import { cn } from "@/lib/utils";
 
 const stepperVariants = cva(
@@ -93,6 +94,7 @@ function NumberStepper({
   }
 
   function handleKeyDown(event: React.KeyboardEvent) {
+    blockNegativeNumberKeys(event);
     if (event.key === "ArrowUp") {
       event.preventDefault();
       commit(value + step);

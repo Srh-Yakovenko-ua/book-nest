@@ -25,6 +25,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  blockNegativeNumberKeys,
+  blockNegativeNumberPaste,
+} from "@/lib/block-negative-number-keys";
 
 import type { BookFormMode } from "../model/book-form-mode";
 import type { CreateBookFormValues } from "../model/create-book-form";
@@ -148,6 +152,8 @@ export function OwnershipStatusSection({
                 id="purchase-expected-price"
                 inputMode="decimal"
                 min={0}
+                onKeyDown={blockNegativeNumberKeys}
+                onPaste={blockNegativeNumberPaste}
                 placeholder="0"
                 step="0.01"
                 type="number"

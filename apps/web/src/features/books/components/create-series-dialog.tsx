@@ -16,6 +16,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  blockNegativeNumberKeys,
+  blockNegativeNumberPaste,
+} from "@/lib/block-negative-number-keys";
 
 import type { SeriesSelection } from "../model/create-book-form";
 
@@ -167,6 +171,8 @@ function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesForm
             setTotalBooks(emptyToInteger(event.target.value));
             if (totalBooksError) setTotalBooksError(undefined);
           }}
+          onKeyDown={blockNegativeNumberKeys}
+          onPaste={blockNegativeNumberPaste}
           placeholder={t("series.create.totalBooksPlaceholder")}
           step={1}
           type="number"
