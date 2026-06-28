@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:dev": "dotenv -e .env.dev -- next dev",
+    "dev:prod": "dotenv -e .env.prod -- next dev",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -78,6 +80,7 @@
     "@vitest/browser-playwright": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "catalog:",
+    "dotenv-cli": "catalog:",
     "happy-dom": "catalog:",
     "orval": "catalog:",
     "playwright": "catalog:",
