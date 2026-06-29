@@ -672,6 +672,7 @@
         "dedication": "Dedication",
         "dedicationPlaceholder": "Who this book is dedicated to…"
       },
+      "advancedDetails": "Advanced details",
       "currentPageWarning": "Your current page is higher than the new page count. Update your reading progress."
     },
     "organization": {
@@ -729,10 +730,16 @@
     "publisher": {
       "searching": "Searching publishers…",
       "empty": "No publishers found.",
-      "catalogHeading": "From catalog",
+      "recentHeading": "Recently used",
+      "allHeading": "All publishers",
       "createHeading": "Add custom",
       "customBadge": "custom",
       "useCustom": "Use “{name}”"
+    },
+    "store": {
+      "recentHeading": "Recently used",
+      "empty": "No stores found",
+      "createNew": "Create “{name}”"
     },
     "preview": {
       "eyebrow": "Preview",

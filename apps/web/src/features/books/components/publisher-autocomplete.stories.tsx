@@ -1,10 +1,15 @@
+import type { PublisherView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
+import { getQueryClient } from "@/lib/query-client";
+
 import { type PublisherSelection } from "../model/create-book-form";
 import { PublisherAutocomplete } from "./publisher-autocomplete";
+
+type PublisherSeed = { id: string; isCustom?: boolean; name: string };
 
 function Harness() {
   const [value, setValue] = useState<null | PublisherSelection>(null);
@@ -30,28 +35,44 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
-function mockPublisherSearch(items: { id: string; isCustom?: boolean; name: string }[]) {
-  globalThis.fetch = (() =>
-    Promise.resolve(
+function mockPublishers({
+  recent = [],
+  search = [],
+}: {
+  recent?: PublisherSeed[];
+  search?: PublisherSeed[];
+}) {
+  getQueryClient().clear();
+  globalThis.fetch = ((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/api/publishers/recent")) {
+      return Promise.resolve(jsonResponse(200, recent.map(toPublisherView)));
+    }
+    return Promise.resolve(
       jsonResponse(200, {
-        items: items.map((item) => ({
-          countryCode: null,
-          foundedYear: null,
-          id: item.id,
-          isCustom: item.isCustom ?? false,
-          logoAttribution: null,
-          logoLicense: null,
-          logoLicenseUrl: null,
-          logoUrl: null,
-          name: item.name,
-          websiteUrl: null,
-        })),
+        items: search.map(toPublisherView),
         page: 1,
         pagesCount: 1,
-        pageSize: 8,
-        totalCount: items.length,
+        pageSize: 20,
+        totalCount: search.length,
       }),
-    )) as typeof fetch;
+    );
+  }) as typeof fetch;
+}
+
+function toPublisherView(item: PublisherSeed): PublisherView {
+  return {
+    countryCode: null,
+    foundedYear: null,
+    id: item.id,
+    isCustom: item.isCustom ?? false,
+    logoAttribution: null,
+    logoLicense: null,
+    logoLicenseUrl: null,
+    logoUrl: null,
+    name: item.name,
+    websiteUrl: null,
+  };
 }
 
 const meta = {
@@ -62,6 +83,9 @@ const meta = {
     onChange: () => undefined,
     placeholder: "Почніть вводити назву видавництва…",
     value: null,
+  },
+  beforeEach: () => {
+    mockPublishers({});
   },
   component: PublisherAutocomplete,
   tags: ["ai-generated"],
@@ -74,9 +98,9 @@ type Story = StoryObj<typeof meta>;
 
 export const PickFromCatalog: Story = {
   play: async ({ canvas }) => {
-    mockPublisherSearch([
-      { id: "22222222-2222-2222-2222-222222222222", name: "Видавництво Старого Лева" },
-    ]);
+    mockPublishers({
+      search: [{ id: "22222222-2222-2222-2222-222222222222", name: "Видавництво Старого Лева" }],
+    });
     const surface = within(document.body);
 
     const input = canvas.getByPlaceholderText("Почніть вводити назву видавництва…");
@@ -93,9 +117,42 @@ export const PickFromCatalog: Story = {
   render: () => <Harness />,
 };
 
+export const OpensOnClickShowsRecent: Story = {
+  beforeEach: () => {
+    mockPublishers({
+      recent: [
+        { id: "r1", name: "Видавництво Старого Лева" },
+        { id: "r2", name: "Наш Формат" },
+      ],
+      search: [
+        { id: "r1", name: "Видавництво Старого Лева" },
+        { id: "s1", name: "Ранок" },
+      ],
+    });
+  },
+  play: async ({ canvas }) => {
+    const surface = within(document.body);
+
+    const input = canvas.getByRole("combobox", { name: "Видавництво" });
+    await userEvent.click(input);
+
+    await waitFor(() => expect(surface.getByText("Раніше використані")).toBeVisible());
+    await expect(surface.getByText("Усі видавництва")).toBeVisible();
+    await expect(surface.getByText("Наш Формат")).toBeVisible();
+    await expect(surface.getByText("Ранок")).toBeVisible();
+    await waitFor(() => expect(surface.getAllByText("Видавництво Старого Лева")).toHaveLength(1));
+
+    await userEvent.click(surface.getByText("Наш Формат"));
+    await waitFor(() =>
+      expect(canvas.getByTestId("selection")).toHaveTextContent("catalog:Наш Формат"),
+    );
+  },
+  render: () => <Harness />,
+};
+
 export const CreateCustom: Story = {
   play: async ({ canvas }) => {
-    mockPublisherSearch([]);
+    mockPublishers({});
     const surface = within(document.body);
 
     const input = canvas.getByPlaceholderText("Почніть вводити назву видавництва…");
@@ -121,10 +178,12 @@ export const AccessibleName: Story = {
 
 export const KeyboardSelect: Story = {
   play: async ({ canvas }) => {
-    mockPublisherSearch([
-      { id: "22222222-2222-2222-2222-222222222222", name: "Видавництво Старого Лева" },
-      { id: "33333333-3333-3333-3333-333333333333", name: "Видавництво Ранок" },
-    ]);
+    mockPublishers({
+      search: [
+        { id: "22222222-2222-2222-2222-222222222222", name: "Видавництво Старого Лева" },
+        { id: "33333333-3333-3333-3333-333333333333", name: "Видавництво Ранок" },
+      ],
+    });
     const surface = within(document.body);
 
     const input = canvas.getByRole("combobox", { name: "Видавництво" });

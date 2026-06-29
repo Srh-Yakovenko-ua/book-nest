@@ -1,5 +1,7 @@
 "use client";
 
+import type { PublisherView } from "@app/shared";
+
 import { Command as CommandPrimitive } from "cmdk";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -11,6 +13,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/lib/utils";
 
 import { usePublishersSearch } from "../api/use-publishers-search";
+import { useRecentPublishers } from "../api/use-recent-publishers";
 import { type PublisherSelection } from "../model/create-book-form";
 
 type PublisherAutocompleteProps = {
@@ -26,6 +29,11 @@ type PublisherAutocompleteProps = {
 const SEARCH_DEBOUNCE_MS = 250;
 const MIN_QUERY_LENGTH = 2;
 
+type PublisherOptionProps = {
+  onSelect: () => void;
+  publisher: PublisherView;
+};
+
 export function PublisherAutocomplete({
   describedBy,
   id,
@@ -40,13 +48,28 @@ export function PublisherAutocomplete({
   const [open, setOpen] = useState(false);
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const { data: publishers = [], isFetching } = usePublishersSearch(debouncedQuery);
+  const { data: recentPublishers = [] } = useRecentPublishers();
 
   const trimmedQuery = query.trim();
+  const normalizedQuery = trimmedQuery.toLowerCase();
+  const filteredRecent =
+    normalizedQuery.length === 0
+      ? recentPublishers
+      : recentPublishers.filter((publisher) =>
+          publisher.name.toLowerCase().includes(normalizedQuery),
+        );
+  const recentIds = new Set(filteredRecent.map((publisher) => publisher.id));
+  const catalogResults = publishers.filter((publisher) => !recentIds.has(publisher.id));
+
   const showCustomOption =
     trimmedQuery.length >= MIN_QUERY_LENGTH &&
-    !publishers.some((publisher) => publisher.name.toLowerCase() === trimmedQuery.toLowerCase());
+    ![...publishers, ...recentPublishers].some(
+      (publisher) => publisher.name.toLowerCase() === normalizedQuery,
+    );
 
-  function pickCatalog(publisher: { id: string; name: string }) {
+  const hasResults = filteredRecent.length > 0 || catalogResults.length > 0;
+
+  function pickCatalog(publisher: PublisherView) {
     onChange({ id: publisher.id, kind: "catalog", name: publisher.name });
     setQuery(publisher.name);
     setOpen(false);
@@ -82,12 +105,11 @@ export function PublisherAutocomplete({
                   "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20",
               )}
               id={id}
-              onFocus={() => {
-                if (trimmedQuery.length >= MIN_QUERY_LENGTH) setOpen(true);
-              }}
+              onClick={() => setOpen(true)}
+              onFocus={() => setOpen(true)}
               onValueChange={(next) => {
                 setQuery(next);
-                setOpen(next.trim().length >= MIN_QUERY_LENGTH);
+                setOpen(true);
                 if (value !== null) onChange(null);
               }}
               placeholder={placeholder}
@@ -102,29 +124,31 @@ export function PublisherAutocomplete({
           sideOffset={6}
         >
           <CommandList>
-            {isFetching && publishers.length === 0 ? (
+            {isFetching && !hasResults ? (
               <CommandEmpty>{t("publisher.searching")}</CommandEmpty>
             ) : null}
-            {!isFetching && publishers.length === 0 && !showCustomOption ? (
+            {!isFetching && !hasResults && !showCustomOption ? (
               <CommandEmpty>{t("publisher.empty")}</CommandEmpty>
             ) : null}
-            {publishers.length > 0 ? (
-              <CommandGroup heading={t("publisher.catalogHeading")}>
-                {publishers.map((publisher) => (
-                  <CommandItem
-                    className="cursor-pointer"
+            {filteredRecent.length > 0 ? (
+              <CommandGroup heading={t("publisher.recentHeading")}>
+                {filteredRecent.map((publisher) => (
+                  <PublisherOption
                     key={publisher.id}
                     onSelect={() => pickCatalog(publisher)}
-                    value={publisher.id}
-                  >
-                    <UiIcon className="text-muted-foreground" name="building" size={16} />
-                    <span className="min-w-0 truncate">{publisher.name}</span>
-                    {publisher.isCustom ? (
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {t("publisher.customBadge")}
-                      </span>
-                    ) : null}
-                  </CommandItem>
+                    publisher={publisher}
+                  />
+                ))}
+              </CommandGroup>
+            ) : null}
+            {catalogResults.length > 0 ? (
+              <CommandGroup heading={t("publisher.allHeading")}>
+                {catalogResults.map((publisher) => (
+                  <PublisherOption
+                    key={publisher.id}
+                    onSelect={() => pickCatalog(publisher)}
+                    publisher={publisher}
+                  />
                 ))}
               </CommandGroup>
             ) : null}
@@ -146,5 +170,18 @@ export function PublisherAutocomplete({
         </PopoverContent>
       </Popover>
     </CommandPrimitive>
+  );
+}
+
+function PublisherOption({ onSelect, publisher }: PublisherOptionProps) {
+  const t = useTranslations("books");
+  return (
+    <CommandItem className="cursor-pointer" onSelect={onSelect} value={publisher.id}>
+      <UiIcon className="text-muted-foreground" name="building" size={16} />
+      <span className="min-w-0 truncate">{publisher.name}</span>
+      {publisher.isCustom ? (
+        <span className="ml-auto text-xs text-muted-foreground">{t("publisher.customBadge")}</span>
+      ) : null}
+    </CommandItem>
   );
 }

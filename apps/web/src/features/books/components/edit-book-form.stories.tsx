@@ -86,6 +86,8 @@ const GENRES_FIXTURE = [
 
 function taxonomyHandler(extra?: Handler): Handler {
   return (path, init) => {
+    if (path.includes("/api/publishers/recent")) return jsonResponse(200, []);
+    if (path.includes("/api/books/purchase-stores")) return jsonResponse(200, []);
     if (path.includes("/api/genres") && (init?.method ?? "GET") === "GET") {
       return jsonResponse(200, GENRES_FIXTURE);
     }

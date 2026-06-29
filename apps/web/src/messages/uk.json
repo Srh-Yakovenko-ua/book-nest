@@ -672,6 +672,7 @@
         "dedication": "Присвята",
         "dedicationPlaceholder": "Кому присвячена ця книга…"
       },
+      "advancedDetails": "Додаткові деталі",
       "currentPageWarning": "Поточна сторінка більша за нову кількість сторінок. Оновіть прогрес читання."
     },
     "organization": {
@@ -729,10 +730,16 @@
     "publisher": {
       "searching": "Шукаємо видавництва…",
       "empty": "Видавництв не знайдено.",
-      "catalogHeading": "З каталогу",
+      "recentHeading": "Раніше використані",
+      "allHeading": "Усі видавництва",
       "createHeading": "Додати власне",
       "customBadge": "власне",
       "useCustom": "Використати «{name}»"
+    },
+    "store": {
+      "recentHeading": "Раніше використані",
+      "empty": "Магазинів не знайдено",
+      "createNew": "Створити «{name}»"
     },
     "preview": {
       "eyebrow": "Попередній перегляд",

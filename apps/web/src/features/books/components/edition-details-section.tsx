@@ -1,8 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { type Control, type FieldErrors, type UseFormRegister, useWatch } from "react-hook-form";
 
+import { UiIcon } from "@/components/icons";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +22,7 @@ import { FormSection } from "./form-section";
 const PAGES_MIN = 1;
 const PAGES_MAX = 10000;
 const PUBLICATION_YEAR_MAX = new Date().getUTCFullYear() + 1;
-const DEDICATION_MAX = 300;
+const DEDICATION_MAX = 1000;
 
 type EditionDetailsSectionProps = {
   control: Control<CreateBookFormValues>;
@@ -41,6 +44,13 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
     typeof pagesCountValue === "number" &&
     typeof currentPageValue === "number" &&
     currentPageValue > pagesCountValue;
+
+  const initialIsbn = useWatch({ control, name: "isbn" });
+  const initialTranslator = useWatch({ control, name: "translator" });
+  const initialIllustrator = useWatch({ control, name: "illustrator" });
+  const [advancedOpen, setAdvancedOpen] = useState(
+    Boolean(initialIsbn) || Boolean(initialTranslator) || Boolean(initialIllustrator),
+  );
 
   return (
     <FormSection
@@ -105,29 +115,6 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="book-isbn">
-          {t("editionDetails.fields.isbn")}{" "}
-          <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
-        </Label>
-        <Input
-          aria-describedby={errors.isbn ? "book-isbn-error" : undefined}
-          aria-invalid={errors.isbn !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id="book-isbn"
-          inputMode="numeric"
-          maxLength={ISBN_MAX_LENGTH}
-          placeholder={t("editionDetails.fields.isbnPlaceholder")}
-          {...isbnField}
-          onChange={(event) => {
-            event.target.value = event.target.value.replace(/\D/g, "");
-            return isbnField.onChange(event);
-          }}
-        />
-        <FieldError error={errors.isbn} id="book-isbn-error" />
-      </div>
-
-      <div className="flex flex-col gap-2">
         <Label htmlFor="book-original-title">
           {t("editionDetails.fields.originalTitle")}{" "}
           <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
@@ -144,45 +131,86 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
         <FieldError error={errors.originalTitle} id="book-original-title-error" />
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="flex flex-1 flex-col gap-2">
-          <Label htmlFor="book-translator">
-            {t("editionDetails.fields.translator")}{" "}
-            <span className="text-xs font-normal text-muted-foreground">
-              {t("fields.optional")}
-            </span>
-          </Label>
-          <Input
-            aria-describedby={errors.translator ? "book-translator-error" : undefined}
-            aria-invalid={errors.translator !== undefined}
-            autoComplete="off"
-            className="h-10"
-            id="book-translator"
-            placeholder={t("editionDetails.fields.translatorPlaceholder")}
-            {...register("translator", { setValueAs: emptyToUndefined })}
+      <Collapsible
+        className="flex flex-col gap-4"
+        onOpenChange={setAdvancedOpen}
+        open={advancedOpen}
+      >
+        <CollapsibleTrigger className="group flex cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm font-medium text-ink transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+          {t("editionDetails.advancedDetails")}
+          <UiIcon
+            className="text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180"
+            name="chevron-down"
+            size={16}
           />
-          <FieldError error={errors.translator} id="book-translator-error" />
-        </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="book-isbn">
+              {t("editionDetails.fields.isbn")}{" "}
+              <span className="text-xs font-normal text-muted-foreground">
+                {t("fields.optional")}
+              </span>
+            </Label>
+            <Input
+              aria-describedby={errors.isbn ? "book-isbn-error" : undefined}
+              aria-invalid={errors.isbn !== undefined}
+              autoComplete="off"
+              className="h-10"
+              id="book-isbn"
+              inputMode="numeric"
+              maxLength={ISBN_MAX_LENGTH}
+              placeholder={t("editionDetails.fields.isbnPlaceholder")}
+              {...isbnField}
+              onChange={(event) => {
+                event.target.value = event.target.value.replace(/\D/g, "");
+                return isbnField.onChange(event);
+              }}
+            />
+            <FieldError error={errors.isbn} id="book-isbn-error" />
+          </div>
 
-        <div className="flex flex-1 flex-col gap-2">
-          <Label htmlFor="book-illustrator">
-            {t("editionDetails.fields.illustrator")}{" "}
-            <span className="text-xs font-normal text-muted-foreground">
-              {t("fields.optional")}
-            </span>
-          </Label>
-          <Input
-            aria-describedby={errors.illustrator ? "book-illustrator-error" : undefined}
-            aria-invalid={errors.illustrator !== undefined}
-            autoComplete="off"
-            className="h-10"
-            id="book-illustrator"
-            placeholder={t("editionDetails.fields.illustratorPlaceholder")}
-            {...register("illustrator", { setValueAs: emptyToUndefined })}
-          />
-          <FieldError error={errors.illustrator} id="book-illustrator-error" />
-        </div>
-      </div>
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="book-translator">
+                {t("editionDetails.fields.translator")}{" "}
+                <span className="text-xs font-normal text-muted-foreground">
+                  {t("fields.optional")}
+                </span>
+              </Label>
+              <Input
+                aria-describedby={errors.translator ? "book-translator-error" : undefined}
+                aria-invalid={errors.translator !== undefined}
+                autoComplete="off"
+                className="h-10"
+                id="book-translator"
+                placeholder={t("editionDetails.fields.translatorPlaceholder")}
+                {...register("translator", { setValueAs: emptyToUndefined })}
+              />
+              <FieldError error={errors.translator} id="book-translator-error" />
+            </div>
+
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="book-illustrator">
+                {t("editionDetails.fields.illustrator")}{" "}
+                <span className="text-xs font-normal text-muted-foreground">
+                  {t("fields.optional")}
+                </span>
+              </Label>
+              <Input
+                aria-describedby={errors.illustrator ? "book-illustrator-error" : undefined}
+                aria-invalid={errors.illustrator !== undefined}
+                autoComplete="off"
+                className="h-10"
+                id="book-illustrator"
+                placeholder={t("editionDetails.fields.illustratorPlaceholder")}
+                {...register("illustrator", { setValueAs: emptyToUndefined })}
+              />
+              <FieldError error={errors.illustrator} id="book-illustrator-error" />
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="book-dedication">

@@ -48,6 +48,8 @@ const GENRES_FIXTURE = [
 
 function taxonomyHandler(extra?: Handler): Handler {
   return (path, init) => {
+    if (path.includes("/api/publishers/recent")) return jsonResponse(200, []);
+    if (path.includes("/api/books/purchase-stores")) return jsonResponse(200, []);
     if (path.includes("/api/genres") && (init?.method ?? "GET") === "GET") {
       return jsonResponse(200, GENRES_FIXTURE);
     }
@@ -246,13 +248,13 @@ export const FormatMultiSelect: Story = {
   play: async ({ canvas }) => {
     mockFetch(taxonomyHandler());
 
-    const paper = canvas.getByRole("button", { name: "Паперова", pressed: false });
+    const paper = canvas.getByRole("button", { name: "Паперова", pressed: true });
     const audiobook = canvas.getByRole("button", { name: "Аудіокнига", pressed: false });
 
-    await userEvent.click(paper);
     await userEvent.click(audiobook);
+    await userEvent.click(paper);
 
-    await expect(canvas.getByRole("button", { name: "Паперова", pressed: true })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Паперова", pressed: false })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Аудіокнига", pressed: true })).toBeVisible();
   },
 };
@@ -508,8 +510,11 @@ export const EditionDetailsSubmitsNumbers: Story = {
 
     await userEvent.type(canvas.getByLabelText("Сторінок", { exact: false }), "320");
     await userEvent.type(canvas.getByLabelText("Рік видання", { exact: false }), "2021");
-    await userEvent.type(canvas.getByLabelText("ISBN", { exact: false }), "9786176790006");
     await userEvent.type(canvas.getByLabelText("Оригінальна назва", { exact: false }), "Kobzar");
+
+    await userEvent.click(canvas.getByRole("button", { name: /Додаткові деталі/ }));
+    await userEvent.type(canvas.getByLabelText("ISBN", { exact: false }), "9786176790006");
+
     await userEvent.type(canvas.getByLabelText("Присвята", { exact: false }), "Україні");
 
     await userEvent.click(canvas.getByRole("button", { name: /Додати книгу/ }));
