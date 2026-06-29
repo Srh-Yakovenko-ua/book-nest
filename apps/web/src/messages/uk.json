@@ -428,7 +428,6 @@
         "search": "Пошук списку…",
         "empty": "Списків не знайдено.",
         "createList": "Новий список",
-        "removeDraft": "Прибрати «{name}»",
         "confirm": "Додати",
         "cancel": "Скасувати"
       },
@@ -695,8 +694,7 @@
       "listsSearch": "Пошук списку…",
       "listsEmpty": "Списків не знайдено.",
       "listsHint": "Оберіть наявні списки або створіть новий.",
-      "createList": "Новий список",
-      "removeDraft": "Прибрати «{name}»"
+      "createList": "Новий список"
     },
     "list": {
       "create": {

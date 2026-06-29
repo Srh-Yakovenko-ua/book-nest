@@ -428,7 +428,6 @@
         "search": "Search lists…",
         "empty": "No lists found.",
         "createList": "New list",
-        "removeDraft": "Remove “{name}”",
         "confirm": "Add",
         "cancel": "Cancel"
       },
@@ -695,8 +694,7 @@
       "listsSearch": "Search a list…",
       "listsEmpty": "No lists found.",
       "listsHint": "Pick existing lists or create a new one.",
-      "createList": "New list",
-      "removeDraft": "Remove “{name}”"
+      "createList": "New list"
     },
     "list": {
       "create": {

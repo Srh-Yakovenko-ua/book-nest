@@ -22,9 +22,11 @@ import { useListsSearch } from "../api/use-lists-search";
 import {
   BOOK_LIST_IDS_MAX,
   BOOK_NEW_LISTS_MAX,
+  draftListValue,
   type ListDraft,
   QUEUE_PRIORITY_DEFAULT,
   QUEUE_PRIORITY_OPTIONS,
+  splitListSelection,
 } from "../model/book-organization-fields";
 import { CreateListDialog } from "./create-list-dialog";
 import { FormSection } from "./form-section";
@@ -79,14 +81,6 @@ export function LibraryOrganizationSection({
 
   function addDraft(draft: ListDraft) {
     setValue("newLists", [...drafts, draft], { shouldValidate: true });
-  }
-
-  function removeDraft(index: number) {
-    setValue(
-      "newLists",
-      drafts.filter((_, position) => position !== index),
-      { shouldValidate: true },
-    );
   }
 
   return (
@@ -167,13 +161,23 @@ export function LibraryOrganizationSection({
               <Multiselect
                 emptyText={t("organization.listsEmpty")}
                 id="book-lists"
-                onValueChange={(next) => field.onChange(next.slice(0, BOOK_LIST_IDS_MAX))}
-                options={lists
-                  .filter((list) => !atListsMax || selected.includes(list.id))
-                  .map((list) => ({ label: list.name, value: list.id }))}
+                onValueChange={(next) => {
+                  const result = splitListSelection({ drafts, selection: next });
+                  field.onChange(result.listIds.slice(0, BOOK_LIST_IDS_MAX));
+                  setValue("newLists", result.newLists, { shouldValidate: true });
+                }}
+                options={[
+                  ...lists
+                    .filter((list) => !atListsMax || selected.includes(list.id))
+                    .map((list) => ({ label: list.name, value: list.id })),
+                  ...drafts.map((draft) => ({
+                    label: draft.name,
+                    value: draftListValue(draft.name),
+                  })),
+                ]}
                 placeholder={t("organization.listsPlaceholder")}
                 searchPlaceholder={t("organization.listsSearch")}
-                value={selected}
+                value={[...selected, ...drafts.map((draft) => draftListValue(draft.name))]}
               />
             );
           }}
@@ -196,28 +200,6 @@ export function LibraryOrganizationSection({
           <p className="text-xs text-destructive" id="book-lists-error" role="alert">
             {listsErrorMessage}
           </p>
-        ) : null}
-
-        {drafts.length > 0 ? (
-          <ul className="flex flex-wrap gap-2">
-            {drafts.map((draft, index) => (
-              <li
-                className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 py-1 pr-1.5 pl-3 text-sm font-medium text-primary"
-                key={`${draft.name}-${index}`}
-              >
-                <UiIcon name="plus" size={14} />
-                <span className="truncate">{draft.name}</span>
-                <button
-                  aria-label={t("organization.removeDraft", { name: draft.name })}
-                  className="grid size-5 shrink-0 cursor-pointer place-items-center rounded-full text-primary transition-colors hover:bg-primary/20 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                  onClick={() => removeDraft(index)}
-                  type="button"
-                >
-                  <UiIcon name="x" size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
         ) : null}
       </div>
 

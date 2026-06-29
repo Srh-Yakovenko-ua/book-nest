@@ -742,6 +742,24 @@ export const CreateListModalAddsDraft: Story = {
   },
 };
 
+export const CreateListSelectsInsideMultiselect: Story = {
+  play: async ({ canvas }) => {
+    mockFetch(taxonomyHandler());
+    const surface = within(document.body);
+
+    await userEvent.click(canvas.getByRole("button", { name: "Новий список" }));
+    const dialog = within(await surface.findByRole("dialog"));
+    await userEvent.type(dialog.getByLabelText("Назва списку"), "Українська проза");
+    await userEvent.click(dialog.getByRole("button", { name: "Створити список" }));
+    await waitFor(() => expect(surface.queryByRole("dialog")).toBeNull());
+
+    await expect(canvas.getByRole("button", { name: "Прибрати Українська проза" })).toBeVisible();
+
+    await userEvent.click(canvas.getByRole("button", { name: "Прибрати Українська проза" }));
+    await expect(canvas.queryByText("Українська проза")).toBeNull();
+  },
+};
+
 export const ListDialogSubmitDoesNotSubmitBookForm: Story = {
   play: async ({ canvas }) => {
     let createPayload: unknown = null;

@@ -18,6 +18,7 @@ export function useCreateBook() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["/api/books"] });
+      void queryClient.invalidateQueries({ queryKey: ["lists"] });
     },
   });
 }
