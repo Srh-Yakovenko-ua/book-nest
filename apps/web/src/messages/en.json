@@ -623,7 +623,11 @@
       "seriesPlaceholder": "Start typing a series name…",
       "seriesDraft": "A new series “{name}” will be created on save.",
       "partNumber": "Part number",
-      "partNumberHint": "This series has {total} books, so parts 1–{total} are available."
+      "partNumberHint": "This series has {total} books, so parts 1–{total} are available.",
+      "errors": {
+        "exceedsTotal": "Part number can't be greater than the total books in the series.",
+        "partNumberTaken": "Part number {number} is already used by “{title}”. <link>Open book</link>"
+      }
     },
     "series": {
       "searching": "Searching series…",

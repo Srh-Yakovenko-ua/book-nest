@@ -18,8 +18,10 @@ export type ApiHealth = {
 };
 
 export type FieldError = {
+  code?: string;
   field: string;
   message: string;
+  meta?: Record<string, string>;
 };
 
 export type Nullable<T> = null | T;
@@ -877,6 +879,8 @@ const BookPartNumberSchema = z
 
 export const BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE =
   "Part number can't be greater than the total books in the series";
+
+export const BOOK_SERIES_PART_NUMBER_TAKEN_CODE = "book_series_part_number_taken";
 
 export const NewSeriesInputSchema = z.object({
   description: SeriesDescriptionSchema.optional(),

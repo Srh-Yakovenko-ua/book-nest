@@ -2,7 +2,11 @@
 
 import type { BookFormat, BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
 
-import { BOOK_DESCRIPTION_MAX, BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE } from "@app/shared";
+import {
+  BOOK_DESCRIPTION_MAX,
+  BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+  BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+} from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -17,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useUploadMedia } from "@/features/media";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/lib/http-client";
+import { ApiError, type FieldError as ApiFieldError } from "@/lib/http-client";
 
 import type { BookFormMode } from "../model/book-form-mode";
 
@@ -41,6 +45,7 @@ import {
   type CreateBookFormValues,
   CreateBookInputSchema,
   type PublisherSelection,
+  type SeriesPartNumberConflict,
   type SeriesSelection,
   UpdateBookInputSchema,
 } from "../model/create-book-form";
@@ -116,6 +121,7 @@ export function BookForm(props: BookFormProps) {
   const [pendingDiscard, setPendingDiscard] = useState<null | PendingDiscard>(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [uploadedCover, setUploadedCover] = useState<null | { file: File; mediaId: string }>(null);
+  const [seriesConflict, setSeriesConflict] = useState<null | SeriesPartNumberConflict>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -202,6 +208,11 @@ export function BookForm(props: BookFormProps) {
   const ratingValue = useWatch({ control, name: "readingProgress.rating" });
   const partNumberValue = useWatch({ control, name: "partNumber" });
 
+  function handleSeriesSelectionChange(selection: null | SeriesSelection) {
+    setSeriesConflict(null);
+    setSeriesSelection(selection);
+  }
+
   useEffect(() => {
     if (seriesSelection?.kind !== "existing" || seriesSelection.totalBooks === undefined) return;
     if (typeof partNumberValue !== "number") return;
@@ -284,6 +295,7 @@ export function BookForm(props: BookFormProps) {
   }
 
   const onSubmit = handleSubmit(async (values) => {
+    setSeriesConflict(null);
     if (
       seriesSelection?.kind === "existing" &&
       seriesSelection.totalBooks !== undefined &&
@@ -340,6 +352,11 @@ export function BookForm(props: BookFormProps) {
   function handleMutationError(error: unknown) {
     if (error instanceof ApiError && error.fieldErrors) {
       for (const fieldError of error.fieldErrors) {
+        const conflict = toSeriesPartNumberConflict(fieldError);
+        if (conflict) {
+          setSeriesConflict(conflict);
+          continue;
+        }
         const path = resolveFieldPath(fieldError.field);
         if (path) setError(path, { message: fieldError.message });
       }
@@ -529,7 +546,8 @@ export function BookForm(props: BookFormProps) {
           control={control}
           errors={errors}
           onRequestSoloChange={mode === "edit" ? requestSoloChange : undefined}
-          onSeriesSelectionChange={setSeriesSelection}
+          onSeriesSelectionChange={handleSeriesSelectionChange}
+          seriesConflict={seriesConflict}
           seriesSelection={seriesSelection}
           setValue={setValue}
         />
@@ -657,4 +675,15 @@ function submitLabel({
 }): string {
   if (mode === "edit") return isPending ? t("actions.saving") : t("actions.save");
   return isPending ? t("actions.submitting") : t("actions.submit");
+}
+
+function toSeriesPartNumberConflict(fieldError: ApiFieldError): null | SeriesPartNumberConflict {
+  if (fieldError.code !== BOOK_SERIES_PART_NUMBER_TAKEN_CODE) return null;
+  const meta = fieldError.meta;
+  if (!meta) return null;
+  const { bookId, bookTitle, partNumber } = meta;
+  if (!bookId || !bookTitle || !partNumber) return null;
+  const parsed = Number(partNumber);
+  if (!Number.isFinite(parsed)) return null;
+  return { bookId, bookTitle, partNumber: parsed };
 }

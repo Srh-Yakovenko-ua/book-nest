@@ -623,7 +623,11 @@
       "seriesPlaceholder": "Почніть вводити назву серії…",
       "seriesDraft": "Нова серія «{name}» буде створена при збереженні.",
       "partNumber": "Номер у серії",
-      "partNumberHint": "У серії {total} книг, тож доступні частини 1–{total}."
+      "partNumberHint": "У серії {total} книг, тож доступні частини 1–{total}.",
+      "errors": {
+        "exceedsTotal": "Номер частини не може бути більшим за загальну кількість книг у серії.",
+        "partNumberTaken": "Номер частини {number} уже зайнятий книгою «{title}». <link>Відкрити книгу</link>"
+      }
     },
     "series": {
       "searching": "Шукаємо серії…",

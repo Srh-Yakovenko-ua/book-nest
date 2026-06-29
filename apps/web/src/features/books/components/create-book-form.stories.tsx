@@ -437,6 +437,56 @@ export const CreateSeriesModalSetsNewSeries: Story = {
   },
 };
 
+export const SeriesPartNumberConflictShowsLink: Story = {
+  play: async ({ canvas }) => {
+    mockFetch(
+      taxonomyHandler((path, init) => {
+        if (path.includes("/api/books") && init?.method === "POST") {
+          return jsonResponse(400, {
+            errorsMessages: [
+              {
+                code: "book_series_part_number_taken",
+                field: "partNumber",
+                message: "A book with this part number already exists in this series",
+                meta: {
+                  bookId: "book-iron-flame",
+                  bookTitle: "Iron Flame",
+                  partNumber: "1",
+                },
+              },
+            ],
+          });
+        }
+        return emptyAuthorSearch;
+      }),
+    );
+    const surface = within(document.body);
+
+    await userEvent.type(canvas.getByLabelText("Назва"), "Залізне полум'я");
+
+    const authorInput = canvas.getByLabelText("Автор");
+    await userEvent.click(authorInput);
+    await userEvent.type(authorInput, "Ребекка Яррос");
+    await userEvent.click(await surface.findByText(/Використати/));
+
+    await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
+
+    const seriesInput = canvas.getByLabelText("Серія");
+    await userEvent.click(seriesInput);
+    await userEvent.type(seriesInput, "Емпіреї");
+    await userEvent.click(await surface.findByText(/Створити «Емпіреї»/));
+    const dialog = within(await surface.findByRole("dialog"));
+    await userEvent.click(dialog.getByRole("button", { name: "Створити серію" }));
+    await waitFor(() => expect(surface.queryByRole("dialog")).toBeNull());
+
+    await userEvent.click(await surface.findByRole("button", { name: /Додати книгу/ }));
+
+    await expect(await surface.findByText(/уже зайнятий книгою «Iron Flame»/)).toBeVisible();
+    const link = await surface.findByRole("link", { name: "Відкрити книгу" });
+    await expect(link.getAttribute("href")).toContain("/books/book-iron-flame");
+  },
+};
+
 export const SoloClearsSeriesFields: Story = {
   play: async ({ canvas }) => {
     let createPayload: unknown = null;

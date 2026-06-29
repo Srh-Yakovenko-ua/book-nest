@@ -20,6 +20,12 @@ export type PublisherSelection =
   | { id: string; kind: "catalog"; name: string }
   | { kind: "custom"; name: string };
 
+export type SeriesPartNumberConflict = {
+  bookId: string;
+  bookTitle: string;
+  partNumber: number;
+};
+
 export type SeriesSelection =
   | { draft: NewSeriesDraft; kind: "new"; name: string }
   | { id: string; kind: "existing"; name: string; totalBooks?: number };

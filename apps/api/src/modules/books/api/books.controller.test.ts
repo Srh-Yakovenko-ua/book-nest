@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE } from "@app/shared";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -1017,7 +1018,7 @@ describe("POST /api/books series handling", () => {
     const existing = await prisma.series.create({
       data: { name: "Throne of Glass", normalizedName: "throne of glass", userId },
     });
-    await prisma.book.create({
+    const conflicting = await prisma.book.create({
       data: {
         authorId: author.id,
         partNumber: 1,
@@ -1037,7 +1038,13 @@ describe("POST /api/books series handling", () => {
 
     expect(duplicate.status).toBe(400);
     expect(duplicate.body.errorsMessages).toEqual(
-      expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+          field: "partNumber",
+          meta: { bookId: conflicting.id, bookTitle: "Throne of Glass", partNumber: "1" },
+        }),
+      ]),
     );
     expect(await prisma.book.count({ where: { seriesId: existing.id } })).toBe(1);
 

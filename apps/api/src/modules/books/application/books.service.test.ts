@@ -34,8 +34,8 @@ type Repository = {
   countForLibrary: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteOwned: ReturnType<typeof vi.fn>;
-  existsSeriesPartNumber: ReturnType<typeof vi.fn>;
   findOwnedById: ReturnType<typeof vi.fn>;
+  findSeriesPartNumberConflict: ReturnType<typeof vi.fn>;
   listForLibrary: ReturnType<typeof vi.fn>;
   maxQueuePosition: ReturnType<typeof vi.fn>;
   recentPurchaseStores: ReturnType<typeof vi.fn>;
@@ -93,8 +93,8 @@ function buildService(
     countForLibrary?: number;
     create?: BookWithRelations;
     deleteOwned?: number;
-    existsSeriesPartNumber?: boolean;
     findOwnedById?: BookWithRelations | null;
+    findSeriesPartNumberConflict?: null | { id: string; title: string };
     listForLibrary?: BookWithRelations[];
     listIds?: string[];
     maxQueuePosition?: number;
@@ -132,8 +132,10 @@ function buildService(
     countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
-    existsSeriesPartNumber: vi.fn().mockResolvedValue(overrides.existsSeriesPartNumber ?? false),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
+    findSeriesPartNumberConflict: vi
+      .fn()
+      .mockResolvedValue(overrides.findSeriesPartNumberConflict ?? null),
     listForLibrary: vi.fn().mockResolvedValue(overrides.listForLibrary ?? []),
     maxQueuePosition: vi.fn().mockResolvedValue(overrides.maxQueuePosition ?? 0),
     recentPurchaseStores: vi.fn().mockResolvedValue(overrides.recentPurchaseStores ?? []),
@@ -824,7 +826,7 @@ describe("BooksService.create series handling", () => {
 
     await service.create(USER_ID, seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }));
 
-    expect(repository.existsSeriesPartNumber).toHaveBeenCalledWith(USER_ID, {
+    expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(USER_ID, {
       excludeBookId: null,
       partNumber: 2,
       seriesId: SERIES_ID,
@@ -833,7 +835,7 @@ describe("BooksService.create series handling", () => {
 
   it("rejects creating a book whose part number is already used in the series", async () => {
     const { repository, service } = buildService({
-      existsSeriesPartNumber: true,
+      findSeriesPartNumberConflict: { id: BOOK_ID, title: "Iron Flame" },
       seriesId: SERIES_ID,
     });
 
@@ -848,7 +850,7 @@ describe("BooksService.create series handling", () => {
 
     await service.create(USER_ID, seriesPartInput({ bookType: "solo", partNumber: 1 }));
 
-    expect(repository.existsSeriesPartNumber).not.toHaveBeenCalled();
+    expect(repository.findSeriesPartNumberConflict).not.toHaveBeenCalled();
   });
 
   it("rejects creating a book whose part number exceeds the existing series total books", async () => {
@@ -1285,7 +1287,7 @@ describe("BooksService.update", () => {
 
     await service.update(USER_ID, BOOK_ID, { partNumber: 4 } as UpdateBookInput);
 
-    expect(repository.existsSeriesPartNumber).toHaveBeenCalledWith(USER_ID, {
+    expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(USER_ID, {
       excludeBookId: BOOK_ID,
       partNumber: 4,
       seriesId: SERIES_ID,
@@ -1294,8 +1296,8 @@ describe("BooksService.update", () => {
 
   it("rejects an update whose part number collides with another book in the series", async () => {
     const { repository, service } = buildService({
-      existsSeriesPartNumber: true,
       findOwnedById: bookRow({ partNumber: 2, seriesId: SERIES_ID }),
+      findSeriesPartNumberConflict: { id: BOOK_ID, title: "Iron Flame" },
     });
 
     await expect(
@@ -1309,7 +1311,7 @@ describe("BooksService.update", () => {
 
     await service.update(USER_ID, BOOK_ID, { title: "Solo" });
 
-    expect(repository.existsSeriesPartNumber).not.toHaveBeenCalled();
+    expect(repository.findSeriesPartNumberConflict).not.toHaveBeenCalled();
   });
 
   it("enqueues a book that was not in the queue and appends to the end with the chosen priority", async () => {

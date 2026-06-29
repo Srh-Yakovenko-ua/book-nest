@@ -15,6 +15,7 @@ import type {
 
 import {
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+  BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
   collapseSpaces,
   OwnershipStatusSchema,
   ReadingStatusSchema,
@@ -627,14 +628,25 @@ export class BooksService {
       return;
     }
 
-    const conflictExists = await this.booksRepository.existsSeriesPartNumber(userId, {
+    const conflict = await this.booksRepository.findSeriesPartNumberConflict(userId, {
       excludeBookId,
       partNumber: placement.partNumber,
       seriesId: placement.seriesId,
     });
-    if (conflictExists) {
+    if (conflict !== null) {
       throw new BadRequestError(DUPLICATE_PART_NUMBER_MESSAGE, {
-        fields: [{ field: "partNumber", message: DUPLICATE_PART_NUMBER_MESSAGE }],
+        fields: [
+          {
+            code: BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+            field: "partNumber",
+            message: DUPLICATE_PART_NUMBER_MESSAGE,
+            meta: {
+              bookId: conflict.id,
+              bookTitle: conflict.title,
+              partNumber: String(placement.partNumber),
+            },
+          },
+        ],
       });
     }
   }

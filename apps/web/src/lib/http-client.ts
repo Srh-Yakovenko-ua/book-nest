@@ -4,8 +4,10 @@ import { getAuthBridge } from "@/lib/auth-bridge";
 import { env } from "@/lib/env";
 
 const fieldErrorSchema = z.object({
+  code: z.string().optional(),
   field: z.string(),
   message: z.string(),
+  meta: z.record(z.string(), z.string()).optional(),
 });
 
 const apiErrorBodySchema = z.object({

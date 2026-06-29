@@ -1,5 +1,6 @@
 "use client";
 
+import { BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
@@ -14,8 +15,13 @@ import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { Segmented } from "@/components/ui/segmented";
+import { Link } from "@/i18n/navigation";
 
-import type { CreateBookFormValues, SeriesSelection } from "../model/create-book-form";
+import type {
+  CreateBookFormValues,
+  SeriesPartNumberConflict,
+  SeriesSelection,
+} from "../model/create-book-form";
 
 import { CreateSeriesDialog } from "./create-series-dialog";
 import { FormSection } from "./form-section";
@@ -28,6 +34,7 @@ type BookTypeSectionProps = {
   errors: FieldErrors<CreateBookFormValues>;
   onRequestSoloChange?: (apply: () => void) => void;
   onSeriesSelectionChange: (selection: null | SeriesSelection) => void;
+  seriesConflict: null | SeriesPartNumberConflict;
   seriesSelection: null | SeriesSelection;
   setValue: UseFormSetValue<CreateBookFormValues>;
 };
@@ -37,11 +44,13 @@ export function BookTypeSection({
   errors,
   onRequestSoloChange,
   onSeriesSelectionChange,
+  seriesConflict,
   seriesSelection,
   setValue,
 }: BookTypeSectionProps) {
   const t = useTranslations("books");
   const bookType = useWatch({ control, name: "bookType" }) ?? "solo";
+  const partNumberValue = useWatch({ control, name: "partNumber" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
 
@@ -86,6 +95,35 @@ export function BookTypeSection({
 
   const seriesErrorMessage =
     typeof errors.newSeries?.message === "string" ? errors.newSeries.message : undefined;
+
+  function renderPartNumberError() {
+    if (seriesConflict && seriesConflict.partNumber === partNumberValue) {
+      return (
+        <p className="text-xs text-destructive" id="book-part-number-error" role="alert">
+          {t.rich("bookType.errors.partNumberTaken", {
+            link: (chunks) => (
+              <Link
+                className="font-medium underline underline-offset-2"
+                href={`/books/${seriesConflict.bookId}`}
+              >
+                {chunks}
+              </Link>
+            ),
+            number: seriesConflict.partNumber,
+            title: seriesConflict.bookTitle,
+          })}
+        </p>
+      );
+    }
+    if (errors.partNumber?.message === BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE) {
+      return (
+        <p className="text-xs text-destructive" id="book-part-number-error" role="alert">
+          {t("bookType.errors.exceedsTotal")}
+        </p>
+      );
+    }
+    return <FieldError error={errors.partNumber} id="book-part-number-error" />;
+  }
 
   return (
     <FormSection description={t("bookType.description")} icon="layers" title={t("bookType.title")}>
@@ -156,7 +194,7 @@ export function BookTypeSection({
                 {t("bookType.partNumberHint", { total: selectedTotalBooks })}
               </p>
             ) : null}
-            <FieldError error={errors.partNumber} id="book-part-number-error" />
+            {renderPartNumberError()}
           </div>
         </div>
       ) : null}

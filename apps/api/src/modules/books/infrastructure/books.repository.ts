@@ -212,26 +212,25 @@ export class BooksRepository {
     return this.prisma.book.deleteMany({ where: { id, userId } }).then((result) => result.count);
   }
 
-  async existsSeriesPartNumber(
+  findOwnedById(userId: string, id: string): Promise<BookWithRelations | null> {
+    return this.prisma.book.findFirst({
+      include: withRelations,
+      where: { id, userId },
+    });
+  }
+
+  findSeriesPartNumberConflict(
     userId: string,
     { excludeBookId, partNumber, seriesId }: SeriesPartNumberQuery,
-  ): Promise<boolean> {
-    const conflict = await this.prisma.book.findFirst({
-      select: { id: true },
+  ): Promise<null | SeriesPartNumberConflict> {
+    return this.prisma.book.findFirst({
+      select: { id: true, title: true },
       where: {
         id: excludeBookId === null ? undefined : { not: excludeBookId },
         partNumber,
         seriesId,
         userId,
       },
-    });
-    return conflict !== null;
-  }
-
-  findOwnedById(userId: string, id: string): Promise<BookWithRelations | null> {
-    return this.prisma.book.findFirst({
-      include: withRelations,
-      where: { id, userId },
     });
   }
 
@@ -378,6 +377,11 @@ type ListForLibraryInput = {
   skip: number;
   sort: LibrarySort;
   take: number;
+};
+
+type SeriesPartNumberConflict = {
+  id: string;
+  title: string;
 };
 
 type SeriesPartNumberQuery = {
