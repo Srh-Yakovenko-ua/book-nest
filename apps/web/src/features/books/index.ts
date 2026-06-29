@@ -10,6 +10,7 @@ export { BooksLibraryView } from "./components/books-library-view";
 export { CreateBookForm } from "./components/create-book-form";
 export { EditBookForm } from "./components/edit-book-form";
 export { FormSection } from "./components/form-section";
+export { HomeDashboard } from "./components/home-dashboard";
 export {
   type AuthorSelection,
   authorSelectionToReference,

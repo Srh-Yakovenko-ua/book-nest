@@ -12,9 +12,25 @@
     "label": "Book Nest"
   },
   "home": {
-    "eyebrow": "Teaching project",
+    "eyebrow": "My library",
     "title": "Book Nest",
-    "description": "A clean monorepo skeleton. Frontend, backend and shared types are wired up — start building features."
+    "description": "Your personal book library — track your reading and organize your collection.",
+    "greeting": "Hi, {name}!",
+    "greetingFallback": "Welcome to Book Nest!",
+    "subtitle": "Here's a quick snapshot of your library.",
+    "progress": {
+      "title": "Reading progress",
+      "label": "{finished} of {total} read"
+    },
+    "actions": {
+      "addBook": "Add a book",
+      "library": "Open library"
+    },
+    "empty": {
+      "title": "Your library is empty",
+      "description": "Add your first book to see your stats here.",
+      "action": "Add your first book"
+    }
   },
   "notFound": {
     "eyebrow": "Error · 404",
