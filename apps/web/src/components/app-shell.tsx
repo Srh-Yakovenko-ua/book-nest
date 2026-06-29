@@ -6,6 +6,7 @@ import { Home, Layers, Library } from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { useEffect } from "react";
 
 import { LocalePicker } from "@/components/locale-picker";
 import { SessionMenu } from "@/components/session-menu";
@@ -54,8 +55,14 @@ function AppSidebar() {
   const tNav = useTranslations("nav");
   const tShell = useTranslations("appShell");
   const pathname = usePathname();
-  const { state } = useSidebar();
+  const { isMobile, setOpenMobile, state } = useSidebar();
   const collapsed = state === "collapsed";
+
+  useEffect(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }, [pathname, isMobile, setOpenMobile]);
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
