@@ -48,6 +48,13 @@ export function StoreAutocomplete({
     setOpen(false);
   }
 
+  function handleClear() {
+    onChange("");
+    setOpen(false);
+  }
+
+  const showClear = value.length > 0;
+
   return (
     <CommandPrimitive label={label} shouldFilter={false}>
       <Popover onOpenChange={setOpen} open={open}>
@@ -67,7 +74,8 @@ export function StoreAutocomplete({
               aria-invalid={invalid}
               autoComplete="off"
               className={cn(
-                "h-10 w-full rounded-md border border-input bg-field pr-3 pl-10 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",
+                "h-10 w-full rounded-md border border-input bg-field pl-10 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",
+                showClear ? "pr-10" : "pr-3",
                 invalid &&
                   "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20",
               )}
@@ -81,6 +89,16 @@ export function StoreAutocomplete({
               placeholder={placeholder}
               value={value}
             />
+            {showClear ? (
+              <button
+                aria-label={t("fields.clear")}
+                className="absolute right-2 grid size-6 cursor-pointer place-items-center rounded-md border border-transparent text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                onClick={handleClear}
+                type="button"
+              >
+                <UiIcon name="x" size={16} />
+              </button>
+            ) : null}
           </div>
         </PopoverAnchor>
         <PopoverContent

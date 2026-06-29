@@ -735,7 +735,8 @@
       "publisherHint": "Pick a publisher from the catalog or enter a custom name.",
       "description": "Description",
       "descriptionPlaceholder": "A short description of the book…",
-      "optional": "(optional)"
+      "optional": "(optional)",
+      "clear": "Clear"
     },
     "author": {
       "searching": "Searching authors…",

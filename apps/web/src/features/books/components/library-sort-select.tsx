@@ -8,6 +8,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { LIBRARY_SORT_DEFAULT } from "../model/library-query";
+
 export type LibrarySortOption = {
   label: string;
   value: BooksControllerListSort;
@@ -22,17 +24,24 @@ type LibrarySortSelectProps = {
 
 export function LibrarySortSelect({ label, onChange, options, value }: LibrarySortSelectProps) {
   return (
-    <Select onValueChange={(next) => onChange(next as BooksControllerListSort)} value={value}>
-      <SelectTrigger aria-label={label} className="h-10 w-52">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            {option.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="w-52">
+      <Select onValueChange={(next) => onChange(next as BooksControllerListSort)} value={value}>
+        <SelectTrigger
+          aria-label={label}
+          className="h-10 w-full"
+          isClearable={value !== LIBRARY_SORT_DEFAULT}
+          onClear={() => onChange(LIBRARY_SORT_DEFAULT)}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

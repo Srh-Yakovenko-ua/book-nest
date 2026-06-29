@@ -260,7 +260,12 @@ export function LibraryAdvancedFilters({
               }
               value={state.bookType ?? "all"}
             >
-              <SelectTrigger aria-label={t("sections.bookType")} className="h-10 w-full">
+              <SelectTrigger
+                aria-label={t("sections.bookType")}
+                className="h-10 w-full"
+                isClearable={state.bookType !== null}
+                onClear={() => void setState({ bookType: null })}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -279,7 +284,12 @@ export function LibraryAdvancedFilters({
                 }
                 value={ratingMinValue}
               >
-                <SelectTrigger aria-label={t("rating.min")} className="h-10 w-full">
+                <SelectTrigger
+                  aria-label={t("rating.min")}
+                  className="h-10 w-full"
+                  isClearable={state.ratingMin !== null}
+                  onClear={() => void setState({ ratingMin: null })}
+                >
                   <SelectValue placeholder={t("rating.min")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -297,7 +307,12 @@ export function LibraryAdvancedFilters({
                 }
                 value={ratingMaxValue}
               >
-                <SelectTrigger aria-label={t("rating.max")} className="h-10 w-full">
+                <SelectTrigger
+                  aria-label={t("rating.max")}
+                  className="h-10 w-full"
+                  isClearable={state.ratingMax !== null}
+                  onClear={() => void setState({ ratingMax: null })}
+                >
                   <SelectValue placeholder={t("rating.max")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -386,7 +401,12 @@ export function LibraryAdvancedFilters({
               }
               value={coverValue}
             >
-              <SelectTrigger aria-label={t("sections.cover")} className="h-10 w-full">
+              <SelectTrigger
+                aria-label={t("sections.cover")}
+                className="h-10 w-full"
+                isClearable={state.hasCover !== null}
+                onClear={() => void setState({ hasCover: null })}
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

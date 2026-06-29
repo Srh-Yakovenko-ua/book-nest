@@ -187,21 +187,28 @@ export function OwnershipStatusSection({
                 control={control}
                 name="purchaseInfo.currency"
                 render={({ field }) => (
-                  <Select
-                    onValueChange={field.onChange}
-                    value={typeof field.value === "string" ? field.value : undefined}
-                  >
-                    <SelectTrigger className="h-10 w-full sm:w-28" id="purchase-currency">
-                      <SelectValue placeholder={t("purchaseInfo.fields.currencyPlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CURRENCY_OPTIONS.map((currency) => (
-                        <SelectItem key={currency} value={currency}>
-                          {currency}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="w-full sm:w-28">
+                    <Select
+                      onValueChange={field.onChange}
+                      value={typeof field.value === "string" ? field.value : undefined}
+                    >
+                      <SelectTrigger
+                        className="h-10 w-full"
+                        id="purchase-currency"
+                        isClearable={typeof field.value === "string" && field.value !== "UAH"}
+                        onClear={() => field.onChange("UAH")}
+                      >
+                        <SelectValue placeholder={t("purchaseInfo.fields.currencyPlaceholder")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCY_OPTIONS.map((currency) => (
+                          <SelectItem key={currency} value={currency}>
+                            {currency}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               />
             </div>
@@ -321,7 +328,12 @@ export function OwnershipStatusSection({
                   onValueChange={field.onChange}
                   value={typeof field.value === "string" ? field.value : undefined}
                 >
-                  <SelectTrigger className="h-10 w-full" id="delivery-status">
+                  <SelectTrigger
+                    className="h-10 w-full"
+                    id="delivery-status"
+                    isClearable={typeof field.value === "string"}
+                    onClear={() => field.onChange(undefined)}
+                  >
                     <SelectValue placeholder={t("deliveryInfo.fields.deliveryStatusPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>

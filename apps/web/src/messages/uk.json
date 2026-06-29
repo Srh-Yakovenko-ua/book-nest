@@ -735,7 +735,8 @@
       "publisherHint": "Оберіть видавництво з каталогу або введіть власну назву.",
       "description": "Опис",
       "descriptionPlaceholder": "Короткий опис книги…",
-      "optional": "(необовʼязково)"
+      "optional": "(необовʼязково)",
+      "clear": "Очистити"
     },
     "author": {
       "searching": "Шукаємо авторів…",

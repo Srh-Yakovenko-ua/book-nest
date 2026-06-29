@@ -125,9 +125,14 @@ function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesForm
           autoComplete="off"
           className="h-10"
           id="new-series-name"
+          isClearable
           maxLength={NAME_MAX}
           onChange={(event) => {
             setName(event.target.value);
+            if (nameError) setNameError(undefined);
+          }}
+          onClear={() => {
+            setName("");
             if (nameError) setNameError(undefined);
           }}
           placeholder={t("series.create.namePlaceholder")}

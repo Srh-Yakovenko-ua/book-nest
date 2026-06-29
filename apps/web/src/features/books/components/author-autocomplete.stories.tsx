@@ -114,6 +114,35 @@ export const CreateCustom: Story = {
   render: () => <Harness />,
 };
 
+export const ClearSelection: Story = {
+  play: async ({ canvas }) => {
+    mockAuthorSearch([
+      { id: "11111111-1111-1111-1111-111111111111", name: "Михайло Коцюбинський" },
+    ]);
+    const surface = within(document.body);
+
+    const input = canvas.getByPlaceholderText("Почніть вводити імʼя автора…");
+    await userEvent.click(input);
+    await userEvent.type(input, "Коцюб");
+
+    const option = await surface.findByText("Михайло Коцюбинський");
+    await userEvent.click(option);
+
+    await waitFor(() =>
+      expect(canvas.getByTestId("selection")).toHaveTextContent("catalog:Михайло Коцюбинський"),
+    );
+
+    const clear = canvas.getByRole("button", { name: "Очистити" });
+    await expect(clear).toBeVisible();
+    await userEvent.click(clear);
+
+    await waitFor(() => expect(canvas.getByTestId("selection")).toHaveTextContent("none"));
+    await expect(input).toHaveValue("");
+    await expect(canvas.queryByRole("button", { name: "Очистити" })).toBeNull();
+  },
+  render: () => <Harness />,
+};
+
 export const AccessibleName: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("combobox", { name: "Автор" })).toBeVisible();
