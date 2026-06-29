@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
-import type { ImageProcessorPort, ProcessedImage } from "../domain/image-processor.port.js";
+import type { ImageProcessorPort, ProcessedImageSet } from "../domain/image-processor.port.js";
 import type { StoragePort } from "../domain/storage.port.js";
 import type { MediaRepository } from "../infrastructure/media.repository.js";
 
@@ -25,6 +25,23 @@ beforeAll(async () => {
     .toBuffer();
 });
 
+function assetModel(overrides: Partial<MediaAssetModel> = {}): MediaAssetModel {
+  return {
+    contentType: "image/webp",
+    createdAt: new Date("2026-06-26T10:00:00.000Z"),
+    height: 1200,
+    id: ASSET_ID,
+    kind: "book_cover",
+    originalName: "cover.png",
+    sizeBytes: 1234,
+    storageKey: "media/book_cover/abc/image.webp",
+    thumbGeneratedAt: null,
+    userId: USER_ID,
+    width: 800,
+    ...overrides,
+  };
+}
+
 function buildService(): {
   imageProcessor: { process: ReturnType<typeof vi.fn> };
   repository: {
@@ -39,7 +56,7 @@ function buildService(): {
     put: ReturnType<typeof vi.fn>;
   };
 } {
-  const imageProcessor = { process: vi.fn().mockResolvedValue(processedImage()) };
+  const imageProcessor = { process: vi.fn().mockResolvedValue(processedImages()) };
   const repository = {
     create: vi
       .fn()
@@ -62,19 +79,23 @@ function buildService(): {
   return { imageProcessor, repository, service, storage };
 }
 
-function processedImage(): ProcessedImage {
+function processedImages(): ProcessedImageSet {
   return {
-    body: Buffer.from("processed-webp-image"),
-    contentType: "image/webp",
-    height: 1200,
-    width: 800,
+    full: {
+      body: Buffer.from("full-webp-image"),
+      contentType: "image/webp",
+      height: 1200,
+      width: 800,
+    },
+    thumb: { body: Buffer.from("thumb-webp"), contentType: "image/webp", height: 300, width: 200 },
   };
 }
 
 describe("MediaService.upload", () => {
-  it("processes the image, stores a single object, and returns a MediaView with metadata", async () => {
+  it("processes the image, stores the image plus a thumb, and returns a MediaView with metadata", async () => {
     const { repository, service, storage } = buildService();
-    const processedSize = processedImage().body.length;
+    const images = processedImages();
+    const totalBytes = images.full.body.length + images.thumb.body.length;
 
     const result = await service.upload({
       file: {
@@ -86,14 +107,15 @@ describe("MediaService.upload", () => {
       userId: USER_ID,
     });
 
-    expect(storage.put).toHaveBeenCalledTimes(1);
+    expect(storage.put).toHaveBeenCalledTimes(2);
     expect(repository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         contentType: "image/webp",
         height: 1200,
         kind: "book_cover",
         originalName: "My Cover.PNG",
-        sizeBytes: processedSize,
+        sizeBytes: totalBytes,
+        thumbGeneratedAt: expect.any(Date),
         userId: USER_ID,
         width: 800,
       }),
@@ -104,11 +126,12 @@ describe("MediaService.upload", () => {
     expect(result.height).toBe(1200);
     expect(result.name).toBe("My Cover.PNG");
     expect(result.contentType).toBe("image/webp");
-    expect(result.sizeBytes).toBe(processedSize);
+    expect(result.sizeBytes).toBe(totalBytes);
     expect(typeof result.createdAt).toBe("string");
     expect(result.urls.full).toMatch(/^https:\/\/cdn\.test\/media\/book_cover\/.+\/image\.webp$/);
     expect(result.urls.card).toBe(result.urls.full);
-    expect(result.urls.thumb).toBe(result.urls.full);
+    expect(result.urls.thumb).toMatch(/^https:\/\/cdn\.test\/media\/book_cover\/.+\/thumb\.webp$/);
+    expect(result.urls.thumb).not.toBe(result.urls.full);
   });
 
   it("forwards the crop rectangle to the image processor", async () => {
@@ -188,7 +211,7 @@ describe("MediaService.upload", () => {
     expect(result.name).toBe("cover.png");
   });
 
-  it("removes the stored object when persisting the asset fails after upload", async () => {
+  it("removes every stored object when persisting the asset fails after upload", async () => {
     const { repository, service, storage } = buildService();
     repository.create.mockRejectedValue(new Error("db down"));
 
@@ -204,10 +227,13 @@ describe("MediaService.upload", () => {
       }),
     ).rejects.toThrow("db down");
 
-    expect(storage.put).toHaveBeenCalledTimes(1);
+    expect(storage.put).toHaveBeenCalledTimes(2);
     expect(storage.delete).toHaveBeenCalledTimes(1);
     const deletedKeys: unknown = storage.delete.mock.calls[0]?.[0];
-    expect(deletedKeys).toEqual([expect.stringMatching(/\/image\.webp$/)]);
+    expect(deletedKeys).toEqual([
+      expect.stringMatching(/\/image\.webp$/),
+      expect.stringMatching(/\/thumb\.webp$/),
+    ]);
   });
 
   it("rejects a file larger than the max upload size before processing", async () => {
@@ -264,16 +290,63 @@ describe("MediaService.upload", () => {
   });
 });
 
+describe("MediaService.buildView", () => {
+  it("returns the original image for every url when the asset has no generated thumb (legacy)", () => {
+    const { service } = buildService();
+    const asset = assetModel({ thumbGeneratedAt: null });
+
+    const view = service.buildView(asset);
+
+    const expected = `https://cdn.test/${asset.storageKey}`;
+    expect(view.urls.full).toBe(expected);
+    expect(view.urls.card).toBe(expected);
+    expect(view.urls.thumb).toBe(expected);
+  });
+
+  it("serves the sibling thumb object only for the thumb url when a thumb was generated", () => {
+    const { service } = buildService();
+    const asset = assetModel({
+      storageKey: "media/book_cover/abc/image.webp",
+      thumbGeneratedAt: new Date("2026-06-26T10:00:00.000Z"),
+    });
+
+    const view = service.buildView(asset);
+
+    expect(view.urls.full).toBe("https://cdn.test/media/book_cover/abc/image.webp");
+    expect(view.urls.card).toBe(view.urls.full);
+    expect(view.urls.thumb).toBe("https://cdn.test/media/book_cover/abc/thumb.webp");
+    expect(view.urls.thumb).not.toBe(view.urls.full);
+  });
+});
+
 describe("MediaService.delete", () => {
-  it("deletes the stored objects and the row when the asset is owned", async () => {
+  it("deletes the image and the thumb object for a modern asset", async () => {
     const { repository, service, storage } = buildService();
-    const key = "media/book_cover/x/image.webp";
-    repository.findOwnedById.mockResolvedValue({ storageKey: key });
+    repository.findOwnedById.mockResolvedValue(
+      assetModel({
+        storageKey: "media/book_cover/x/image.webp",
+        thumbGeneratedAt: new Date("2026-06-26T10:00:00.000Z"),
+      }),
+    );
 
     await service.delete({ id: ASSET_ID, userId: USER_ID });
 
-    expect(storage.delete).toHaveBeenCalledWith([key]);
+    expect(storage.delete).toHaveBeenCalledWith([
+      "media/book_cover/x/image.webp",
+      "media/book_cover/x/thumb.webp",
+    ]);
     expect(repository.deleteOwned).toHaveBeenCalledWith({ id: ASSET_ID, userId: USER_ID });
+  });
+
+  it("deletes only the image object for a legacy asset without a generated thumb", async () => {
+    const { repository, service, storage } = buildService();
+    repository.findOwnedById.mockResolvedValue(
+      assetModel({ storageKey: "media/book_cover/x/image.webp", thumbGeneratedAt: null }),
+    );
+
+    await service.delete({ id: ASSET_ID, userId: USER_ID });
+
+    expect(storage.delete).toHaveBeenCalledWith(["media/book_cover/x/image.webp"]);
   });
 
   it("throws NotFoundError when the asset is not owned", async () => {

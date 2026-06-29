@@ -419,6 +419,7 @@ model MediaAsset {
   width        Int
   height       Int
   sizeBytes    Int      @map("size_bytes")
+  thumbGeneratedAt DateTime? @map("thumb_generated_at") @db.Timestamptz
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   coverOfBooks Book[]

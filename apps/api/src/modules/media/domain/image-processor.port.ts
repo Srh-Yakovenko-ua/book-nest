@@ -7,6 +7,11 @@ export type ProcessedImage = {
   width: number;
 };
 
+export type ProcessedImageSet = {
+  full: ProcessedImage;
+  thumb: ProcessedImage;
+};
+
 export type ProcessImageOptions = {
   crop?: MediaCrop;
   input: Buffer;
@@ -20,7 +25,7 @@ export class CropOutOfBoundsError extends Error {
 }
 
 export abstract class ImageProcessorPort {
-  abstract process(options: ProcessImageOptions): Promise<ProcessedImage>;
+  abstract process(options: ProcessImageOptions): Promise<ProcessedImageSet>;
 }
 
 export class ImageTooLargeError extends Error {

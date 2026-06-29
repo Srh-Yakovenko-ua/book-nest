@@ -28,32 +28,39 @@ function solidPng(width: number, height: number): Promise<Buffer> {
 }
 
 describe("SharpImageProcessor", () => {
-  it("produces a single webp image preserving source dimensions when within the cap", async () => {
+  it("produces full and thumb webp derivatives preserving source dimensions when within the cap", async () => {
     const png = await solidPng(60, 90);
 
     const result = await processor.process({ input: png });
 
-    expect(result.contentType).toBe("image/webp");
-    expect(result.width).toBe(60);
-    expect(result.height).toBe(90);
-    expect(result.body.length).toBeGreaterThan(0);
+    expect(result.full.contentType).toBe("image/webp");
+    expect(result.full.width).toBe(60);
+    expect(result.full.height).toBe(90);
+    expect(result.thumb.contentType).toBe("image/webp");
+    expect(result.thumb.width).toBeLessThanOrEqual(result.full.width);
+    expect(result.full.body.length).toBeGreaterThan(0);
+    expect(result.thumb.body.length).toBeGreaterThan(0);
   });
 
-  it("does not upscale a source smaller than the output edge cap", async () => {
+  it("does not upscale either derivative for a source smaller than its edge cap", async () => {
     const png = await solidPng(60, 90);
 
     const result = await processor.process({ input: png });
 
-    expect(result.width).toBe(60);
+    expect(result.full.width).toBe(60);
+    expect(result.thumb.width).toBe(60);
   });
 
-  it("downscales a large source to the output edge cap", async () => {
+  it("downscales the full derivative to its edge cap and the thumb to a smaller cap", async () => {
     const png = await solidPng(3000, 2000);
 
     const result = await processor.process({ input: png });
 
-    expect(result.width).toBe(1600);
-    expect(result.height).toBe(1067);
+    expect(result.full.width).toBe(1600);
+    expect(result.full.height).toBe(1067);
+    expect(result.thumb.width).toBe(300);
+    expect(result.thumb.height).toBe(200);
+    expect(result.thumb.width).toBeLessThanOrEqual(result.full.width);
   });
 
   it("rejects an image whose pixel count exceeds the cap (decompression-bomb guard)", async () => {
@@ -65,7 +72,7 @@ describe("SharpImageProcessor", () => {
     );
   });
 
-  it("extracts the requested crop region and outputs its dimensions", async () => {
+  it("applies the requested crop to both derivatives", async () => {
     const png = await solidPng(1200, 1600);
 
     const result = await processor.process({
@@ -73,9 +80,10 @@ describe("SharpImageProcessor", () => {
       input: png,
     });
 
-    expect(result.width).toBe(600);
-    expect(result.height).toBe(800);
-    expect(result.contentType).toBe("image/webp");
+    expect(result.full.width).toBe(600);
+    expect(result.full.height).toBe(800);
+    expect(result.thumb.height).toBe(300);
+    expect(result.thumb.width).toBeLessThanOrEqual(result.full.width);
   });
 
   it("rejects a crop rectangle that extends beyond the image bounds", async () => {
@@ -94,8 +102,9 @@ describe("SharpImageProcessor", () => {
       input: jpeg,
     });
 
-    expect(result.width).toBe(80);
-    expect(result.height).toBe(50);
+    expect(result.full.width).toBe(80);
+    expect(result.full.height).toBe(50);
+    expect(result.thumb.width).toBeLessThanOrEqual(result.full.width);
   });
 
   it("rejects a crop valid only in stored space but out of bounds once oriented", async () => {
