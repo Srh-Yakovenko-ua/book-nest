@@ -441,6 +441,22 @@ export const BooksControllerListResponse = zod.unknown();
 export const BooksControllerOverviewResponse = zod.unknown();
 
 /**
+ * @summary List recently used purchase stores for the current user
+ */
+export const booksControllerPurchaseStoresQueryLimitDefault = 8;
+export const booksControllerPurchaseStoresQueryLimitMax = 20;
+
+export const BooksControllerPurchaseStoresQueryParams = zod.object({
+  limit: zod
+    .number()
+    .min(1)
+    .max(booksControllerPurchaseStoresQueryLimitMax)
+    .default(booksControllerPurchaseStoresQueryLimitDefault),
+});
+
+export const BooksControllerPurchaseStoresResponse = zod.unknown();
+
+/**
  * @summary Get a book by id
  */
 export const BooksControllerGetByIdParams = zod.object({

@@ -20,6 +20,7 @@ import type {
 
 import type {
   BooksControllerListParams,
+  BooksControllerPurchaseStoresParams,
   BulkActionResultDto,
   BulkBookIdsDto,
   BulkFavoriteInputDto,
@@ -508,6 +509,182 @@ export function useBooksControllerOverview<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerOverviewQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type booksControllerPurchaseStoresResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type booksControllerPurchaseStoresResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerPurchaseStoresResponseSuccess =
+  booksControllerPurchaseStoresResponse200 & {
+    headers: Headers;
+  };
+export type booksControllerPurchaseStoresResponseError =
+  booksControllerPurchaseStoresResponse401 & {
+    headers: Headers;
+  };
+
+export type booksControllerPurchaseStoresResponse =
+  | booksControllerPurchaseStoresResponseSuccess
+  | booksControllerPurchaseStoresResponseError;
+
+export const getBooksControllerPurchaseStoresUrl = (
+  params?: BooksControllerPurchaseStoresParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/purchase-stores?${stringifiedParams}`
+    : `/api/books/purchase-stores`;
+};
+
+/**
+ * @summary List recently used purchase stores for the current user
+ */
+export const booksControllerPurchaseStores = async (
+  params?: BooksControllerPurchaseStoresParams,
+  options?: RequestInit,
+): Promise<booksControllerPurchaseStoresResponse> => {
+  return customInstance<booksControllerPurchaseStoresResponse>(
+    getBooksControllerPurchaseStoresUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBooksControllerPurchaseStoresQueryKey = (
+  params?: BooksControllerPurchaseStoresParams,
+) => {
+  return [`/api/books/purchase-stores`, ...(params ? [params] : [])] as const;
+};
+
+export const getBooksControllerPurchaseStoresQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params?: BooksControllerPurchaseStoresParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerPurchaseStoresQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerPurchaseStores>>> = ({
+    signal,
+  }) => booksControllerPurchaseStores(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerPurchaseStoresQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerPurchaseStores>>
+>;
+export type BooksControllerPurchaseStoresQueryError = void;
+
+export function useBooksControllerPurchaseStores<
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params: undefined | BooksControllerPurchaseStoresParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerPurchaseStores>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerPurchaseStores<
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params?: BooksControllerPurchaseStoresParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerPurchaseStores>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerPurchaseStores<
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params?: BooksControllerPurchaseStoresParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List recently used purchase stores for the current user
+ */
+
+export function useBooksControllerPurchaseStores<
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params?: BooksControllerPurchaseStoresParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerPurchaseStoresQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

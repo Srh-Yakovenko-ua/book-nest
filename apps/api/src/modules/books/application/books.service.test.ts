@@ -38,6 +38,7 @@ type Repository = {
   findOwnedById: ReturnType<typeof vi.fn>;
   listForLibrary: ReturnType<typeof vi.fn>;
   maxQueuePosition: ReturnType<typeof vi.fn>;
+  recentPurchaseStores: ReturnType<typeof vi.fn>;
   updateOwned: ReturnType<typeof vi.fn>;
 };
 
@@ -98,6 +99,7 @@ function buildService(
     listIds?: string[];
     maxQueuePosition?: number;
     publisherId?: null | string;
+    recentPurchaseStores?: string[];
     seriesId?: string;
     seriesTotalBooks?: null | number;
     tagIds?: string[];
@@ -134,6 +136,7 @@ function buildService(
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
     listForLibrary: vi.fn().mockResolvedValue(overrides.listForLibrary ?? []),
     maxQueuePosition: vi.fn().mockResolvedValue(overrides.maxQueuePosition ?? 0),
+    recentPurchaseStores: vi.fn().mockResolvedValue(overrides.recentPurchaseStores ?? []),
     updateOwned: vi.fn().mockResolvedValue(overrides.updateOwned ?? bookRow()),
   };
 
@@ -1481,5 +1484,31 @@ describe("BooksService.update", () => {
       service.update(USER_ID, BOOK_ID, { genres: ["not-a-real-genre"] }),
     ).rejects.toBeInstanceOf(BadRequestError);
     expect(repository.updateOwned).not.toHaveBeenCalled();
+  });
+});
+
+describe("BooksService.recentPurchaseStores", () => {
+  it("returns the store names produced by the repository", async () => {
+    const { service } = buildService({ recentPurchaseStores: ["Yakaboo", "Knyharnya Ye"] });
+
+    const result = await service.recentPurchaseStores({ limit: 8, userId: USER_ID });
+
+    expect(result).toEqual(["Yakaboo", "Knyharnya Ye"]);
+  });
+
+  it("returns an empty array when the user has no purchase stores", async () => {
+    const { service } = buildService({ recentPurchaseStores: [] });
+
+    const result = await service.recentPurchaseStores({ limit: 8, userId: USER_ID });
+
+    expect(result).toEqual([]);
+  });
+
+  it("forwards the limit and user id to the repository", async () => {
+    const { repository, service } = buildService({});
+
+    await service.recentPurchaseStores({ limit: 5, userId: USER_ID });
+
+    expect(repository.recentPurchaseStores).toHaveBeenCalledWith({ limit: 5, userId: USER_ID });
   });
 });

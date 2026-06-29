@@ -9,6 +9,7 @@ import type {
   Paginator,
   QueuePriority,
   ReadingStatus,
+  RecentPurchaseStores,
   UpdateBookInput,
 } from "@app/shared";
 
@@ -403,6 +404,16 @@ export class BooksService {
       topGenres,
       topTags,
     };
+  }
+
+  recentPurchaseStores({
+    limit,
+    userId,
+  }: {
+    limit: number;
+    userId: string;
+  }): Promise<RecentPurchaseStores> {
+    return this.booksRepository.recentPurchaseStores({ limit, userId });
   }
 
   async update(userId: string, bookId: string, input: UpdateBookInput): Promise<BookView> {

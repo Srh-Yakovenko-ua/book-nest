@@ -1,6 +1,11 @@
-import type { BookView, LibraryOverviewView, Paginator } from "@app/shared";
+import type { BookView, LibraryOverviewView, Paginator, RecentPurchaseStores } from "@app/shared";
 
-import { CreateBookInputSchema, LibraryBooksQuerySchema, UpdateBookInputSchema } from "@app/shared";
+import {
+  CreateBookInputSchema,
+  LibraryBooksQuerySchema,
+  RecentPurchaseStoresQuerySchema,
+  UpdateBookInputSchema,
+} from "@app/shared";
 import {
   Body,
   Controller,
@@ -23,6 +28,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
@@ -38,6 +44,7 @@ import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
 import { BooksService } from "../application/books.service.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
+import { RecentPurchaseStoresQueryDto } from "./input-dto/recent-purchase-stores-query.input-dto.js";
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
 
 const CREATE_BOOK_TTL_SECONDS = 60;
@@ -88,6 +95,20 @@ export class BooksController {
   @UseGuards(JwtAccessGuard)
   overview(@CurrentUser() user: UserModel): Promise<LibraryOverviewView> {
     return this.booksService.overview(user.id);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Store names the current user recently used in purchase details" })
+  @ApiOperation({ summary: "List recently used purchase stores for the current user" })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("purchase-stores")
+  @UseGuards(JwtAccessGuard)
+  purchaseStores(
+    @CurrentUser() user: UserModel,
+    @Query(new ZodQueryPipe(RecentPurchaseStoresQuerySchema)) query: RecentPurchaseStoresQueryDto,
+  ): Promise<RecentPurchaseStores> {
+    return this.booksService.recentPurchaseStores({ limit: query.limit, userId: user.id });
   }
 
   @ApiBearerAuth()

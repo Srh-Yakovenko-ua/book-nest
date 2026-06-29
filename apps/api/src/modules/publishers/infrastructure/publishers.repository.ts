@@ -38,10 +38,20 @@ type CreateCustomPublisherInput = {
   normalizedName: string;
 };
 
+type RecentPublishersInput = {
+  limit: number;
+  userId: string;
+};
+
 type SearchPublishersInput = {
   query: string | undefined;
   skip: number;
   take: number;
+  userId: string;
+};
+
+type VisibleByIdsInput = {
+  ids: string[];
   userId: string;
 };
 
@@ -94,6 +104,25 @@ export class PublishersRepository {
     return this.prisma.publisher.findFirst({
       where: { id, OR: [{ userId: null }, { userId }] },
     });
+  }
+
+  findVisibleByIds({ ids, userId }: VisibleByIdsInput): Promise<PublisherWithPrimaryNames[]> {
+    return this.prisma.publisher.findMany({
+      where: { id: { in: ids }, OR: [{ userId: null }, { userId }] },
+      ...primaryNamesArgs,
+    });
+  }
+
+  async recentPublisherIds({ limit, userId }: RecentPublishersInput): Promise<string[]> {
+    const grouped = await this.prisma.book.groupBy({
+      _max: { createdAt: true },
+      by: ["publisherId"],
+      orderBy: { _max: { createdAt: "desc" } },
+      take: limit,
+      where: { publisherId: { not: null }, userId },
+    });
+
+    return grouped.flatMap((row) => (row.publisherId === null ? [] : [row.publisherId]));
   }
 
   searchVisible({

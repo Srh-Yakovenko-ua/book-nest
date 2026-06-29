@@ -552,7 +552,7 @@ const BOOK_PAGES_COUNT_MAX = 10000;
 const BOOK_PUBLICATION_YEAR_MIN = 1000;
 const BOOK_ORIGINAL_TITLE_MAX = 200;
 const BOOK_CONTRIBUTOR_NAME_MAX = 100;
-const BOOK_DEDICATION_MAX = 300;
+const BOOK_DEDICATION_MAX = 1000;
 const READING_CURRENT_PAGE_MIN = 0;
 const READING_CURRENT_PAGE_MAX = 100000;
 const READING_RATING_MIN = 0.5;
@@ -692,7 +692,7 @@ export const IllustratorSchema = z
 export const DedicationSchema = z
   .string()
   .transform(collapseHorizontalSpaces)
-  .pipe(NoHtmlString.max(BOOK_DEDICATION_MAX, "Dedication must be at most 300 characters long"));
+  .pipe(NoHtmlString.max(BOOK_DEDICATION_MAX, "Dedication must be at most 1000 characters long"));
 
 export const ReadingNoteSchema = z
   .string()
@@ -1416,6 +1416,21 @@ export const PublisherSearchPaginationQuerySchema = TaxonomySearchPaginationQuer
 
 export type PublisherSearchPaginationQuery = z.infer<typeof PublisherSearchPaginationQuerySchema>;
 
+const RECENT_USED_LIMIT_DEFAULT = 8;
+const RECENT_USED_LIMIT_MAX = 20;
+
+export const RecentPublishersQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(RECENT_USED_LIMIT_MAX)
+    .default(RECENT_USED_LIMIT_DEFAULT),
+  locale: CatalogLocaleSchema.default("uk"),
+});
+
+export type RecentPublishersQuery = z.infer<typeof RecentPublishersQuerySchema>;
+
 const LIBRARY_PAGE_SIZE_DEFAULT = 24;
 const LIBRARY_SEARCH_MAX = 200;
 const LIBRARY_RATING_MIN = 1;
@@ -1524,6 +1539,15 @@ export const LibraryBooksQuerySchema = z
 
 export type LibraryBooksQuery = z.infer<typeof LibraryBooksQuerySchema>;
 
+export const RecentPurchaseStoresQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(RECENT_USED_LIMIT_MAX)
+    .default(RECENT_USED_LIMIT_DEFAULT),
+});
+
 export type LibraryOverviewView = {
   recentlyAdded: BookView[];
   summary: {
@@ -1535,6 +1559,10 @@ export type LibraryOverviewView = {
   topGenres: { count: number; key: string; name: string }[];
   topTags: { count: number; id: string; name: string }[];
 };
+
+export type RecentPurchaseStores = string[];
+
+export type RecentPurchaseStoresQuery = z.infer<typeof RecentPurchaseStoresQuerySchema>;
 
 export const defaultUserProfileSettings: SettingsView = {
   accentColor: "brown",

@@ -268,6 +268,27 @@ export class BooksRepository {
     return result._max.queuePosition ?? 0;
   }
 
+  async recentPurchaseStores({
+    limit,
+    userId,
+  }: {
+    limit: number;
+    userId: string;
+  }): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<{ storeName: string }[]>`
+      SELECT purchase.store_name AS "storeName"
+      FROM book_purchase_info purchase
+      JOIN books book ON book.id = purchase.book_id
+      WHERE book.user_id = ${userId}::uuid
+        AND purchase.store_name IS NOT NULL
+        AND btrim(purchase.store_name) <> ''
+      GROUP BY purchase.store_name
+      ORDER BY max(book.created_at) DESC
+      LIMIT ${limit}
+    `;
+    return rows.map((row) => row.storeName);
+  }
+
   async topGenreKeys({
     limit,
     userId,

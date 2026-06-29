@@ -18,11 +18,186 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { PublishersControllerSearchParams } from "../../model";
+import type {
+  PublishersControllerRecentParams,
+  PublishersControllerSearchParams,
+} from "../../model";
 
 import { customInstance } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+export type publishersControllerRecentResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type publishersControllerRecentResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type publishersControllerRecentResponseSuccess = publishersControllerRecentResponse200 & {
+  headers: Headers;
+};
+export type publishersControllerRecentResponseError = publishersControllerRecentResponse401 & {
+  headers: Headers;
+};
+
+export type publishersControllerRecentResponse =
+  | publishersControllerRecentResponseSuccess
+  | publishersControllerRecentResponseError;
+
+export const getPublishersControllerRecentUrl = (params?: PublishersControllerRecentParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/publishers/recent?${stringifiedParams}`
+    : `/api/publishers/recent`;
+};
+
+/**
+ * @summary List recently used publishers for the current user
+ */
+export const publishersControllerRecent = async (
+  params?: PublishersControllerRecentParams,
+  options?: RequestInit,
+): Promise<publishersControllerRecentResponse> => {
+  return customInstance<publishersControllerRecentResponse>(
+    getPublishersControllerRecentUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getPublishersControllerRecentQueryKey = (
+  params?: PublishersControllerRecentParams,
+) => {
+  return [`/api/publishers/recent`, ...(params ? [params] : [])] as const;
+};
+
+export const getPublishersControllerRecentQueryOptions = <
+  TData = Awaited<ReturnType<typeof publishersControllerRecent>>,
+  TError = void,
+>(
+  params?: PublishersControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerRecent>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getPublishersControllerRecentQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof publishersControllerRecent>>> = ({
+    signal,
+  }) => publishersControllerRecent(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof publishersControllerRecent>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type PublishersControllerRecentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof publishersControllerRecent>>
+>;
+export type PublishersControllerRecentQueryError = void;
+
+export function usePublishersControllerRecent<
+  TData = Awaited<ReturnType<typeof publishersControllerRecent>>,
+  TError = void,
+>(
+  params: undefined | PublishersControllerRecentParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerRecent>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof publishersControllerRecent>>,
+          TError,
+          Awaited<ReturnType<typeof publishersControllerRecent>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function usePublishersControllerRecent<
+  TData = Awaited<ReturnType<typeof publishersControllerRecent>>,
+  TError = void,
+>(
+  params?: PublishersControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerRecent>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof publishersControllerRecent>>,
+          TError,
+          Awaited<ReturnType<typeof publishersControllerRecent>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function usePublishersControllerRecent<
+  TData = Awaited<ReturnType<typeof publishersControllerRecent>>,
+  TError = void,
+>(
+  params?: PublishersControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerRecent>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List recently used publishers for the current user
+ */
+
+export function usePublishersControllerRecent<
+  TData = Awaited<ReturnType<typeof publishersControllerRecent>>,
+  TError = void,
+>(
+  params?: PublishersControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof publishersControllerRecent>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getPublishersControllerRecentQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export type publishersControllerSearchResponse200 = {
   data: void;
