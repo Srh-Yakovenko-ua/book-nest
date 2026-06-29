@@ -2,13 +2,14 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, waitFor } from "storybook/test";
 
-import { readingStatuses } from "@/lib/book-status";
+import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 
 import type { LibraryBook } from "../model/library-book";
 
 import { BookRow } from "./book-row";
 
 const reading = readingStatuses.find((status) => status.value === "reading") ?? readingStatuses[0];
+const owned = ownershipStatuses.find((status) => status.value === "owned") ?? ownershipStatuses[0];
 
 const book: LibraryBook = {
   author: "Сара Дж. Маас",
@@ -16,12 +17,15 @@ const book: LibraryBook = {
   id: "1",
   isFavorite: false,
   isInReadingQueue: false,
+  ownership: { ...owned, label: "Маю" },
   ownershipStatus: "owned",
   pagesText: "768 стор.",
-  rating: 4,
-  ratingLabel: "Рейтинг 4 з 5",
+  publisher: "КСД",
+  rating: 8,
+  ratingLabel: "Рейтинг 8 з 10",
   readingStatus: "reading",
   status: reading,
+  tags: ["драматично", "романтика", "магія"],
   title: "Двір срібного полум'я",
   year: 2021,
 };

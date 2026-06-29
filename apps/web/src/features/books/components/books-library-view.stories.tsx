@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
-import { readingStatuses } from "@/lib/book-status";
+import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
@@ -12,6 +12,7 @@ import { BooksLibraryView } from "./books-library-view";
 import { LibrarySummarySidebar } from "./library-summary-sidebar";
 
 const reading = readingStatuses.find((status) => status.value === "reading") ?? readingStatuses[0];
+const owned = ownershipStatuses.find((status) => status.value === "owned") ?? ownershipStatuses[0];
 const finished =
   readingStatuses.find((status) => status.value === "finished") ?? readingStatuses[0];
 const wantToRead =
@@ -25,6 +26,7 @@ const books: LibraryBook[] = [
     id: "1",
     isFavorite: true,
     isInReadingQueue: false,
+    ownership: { ...owned, label: "Маю" },
     ownershipStatus: "owned",
     pagesText: "768 стор.",
     progress: {
@@ -33,11 +35,13 @@ const books: LibraryBook[] = [
       total: 768,
       unit: "стор.",
     },
-    rating: 4,
-    ratingLabel: "Рейтинг 4 з 5",
+    publisher: "КСД",
+    rating: 8,
+    ratingLabel: "Рейтинг 8 з 10",
     readingStatus: "reading",
     series: "Двір шипів і троянд",
     status: reading,
+    tags: ["драматично", "романтика", "магія", "вампіри", "інтриги"],
     title: "Двір срібного полум'я",
     year: 2021,
   },
@@ -50,7 +54,7 @@ const books: LibraryBook[] = [
     isInReadingQueue: true,
     ownershipStatus: "owned",
     pagesText: "496 стор.",
-    rating: 4.5,
+    rating: 9,
     readingStatus: "finished",
     status: finished,
     title: "Шістка воронів",

@@ -43,7 +43,13 @@ export function SeriesAutocomplete({
   const [query, setQuery] = useState(value?.name ?? "");
   const [open, setOpen] = useState(false);
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
-  const { data: series = [], isFetching } = useSeriesSearch(debouncedQuery);
+  const {
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    items: series,
+  } = useSeriesSearch(debouncedQuery);
 
   const trimmedQuery = query.trim();
   const hasExactMatch = series.some(
@@ -132,6 +138,21 @@ export function SeriesAutocomplete({
                     </span>
                   </CommandItem>
                 ))}
+                {hasNextPage ? (
+                  <CommandItem
+                    className="cursor-pointer justify-center text-sm text-muted-foreground"
+                    disabled={isFetchingNextPage}
+                    onSelect={() => void fetchNextPage()}
+                    value="__load_more__"
+                  >
+                    <UiIcon
+                      className={isFetchingNextPage ? "animate-spin" : undefined}
+                      name={isFetchingNextPage ? "refresh" : "chevron-down"}
+                      size={16}
+                    />
+                    {isFetchingNextPage ? t("series.searching") : t("series.loadMore")}
+                  </CommandItem>
+                ) : null}
               </CommandGroup>
             ) : null}
             {showCreateOption ? (

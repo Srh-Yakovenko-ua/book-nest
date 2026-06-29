@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookView } from "@app/shared";
+import type { BookView, OwnershipStatus } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { Link, useRouter } from "@/i18n/navigation";
-import { readingStatuses, type StatusEntry } from "@/lib/book-status";
+import { ownershipStatuses, readingStatuses, type StatusEntry } from "@/lib/book-status";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
@@ -48,6 +48,7 @@ const FALLBACK_STATUS: StatusEntry =
 
 type LibraryBookLabels = {
   genreName: (key: string) => string;
+  ownershipLabel: (value: OwnershipStatus) => string;
   pagesText: (value: number) => string;
   progressAriaLabel: (current: number, total: number) => string;
   progressUnit: string;
@@ -59,6 +60,7 @@ export function BooksLibrary() {
   const t = useTranslations("books.library");
   const tCover = useTranslations("books.cover");
   const tStatus = useTranslations("books.readingStatus.options");
+  const tOwnership = useTranslations("books.ownershipStatus.options");
   const tSortOptions = useTranslations("books.library.sort.options");
   const router = useRouter();
 
@@ -114,6 +116,7 @@ export function BooksLibrary() {
     .map((book) =>
       toLibraryBook(book, {
         genreName: (key) => genreNameByKey.get(key) ?? key,
+        ownershipLabel: (value) => tOwnership(value),
         pagesText: (value) => t("meta.pages", { value }),
         progressAriaLabel: (current, total) => t("progress.ariaLabel", { current, total }),
         progressUnit: t("progress.unit"),
@@ -309,6 +312,12 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
   const genres = book.genres.map((key) => ({ label: labels.genreName(key) }));
   const progress = resolveProgress(book);
   const rating = book.readingProgress?.rating ?? undefined;
+  const ownershipBase = ownershipStatuses.find((entry) => entry.value === book.ownershipStatus);
+  const ownership =
+    book.ownershipStatus === "none" || ownershipBase === undefined
+      ? undefined
+      : { ...ownershipBase, label: labels.ownershipLabel(book.ownershipStatus) };
+  const tags = book.tags.length === 0 ? undefined : book.tags.map((tag) => tag.name);
 
   return {
     author: book.author.name,
@@ -319,6 +328,7 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
     id: book.id,
     isFavorite: book.isFavorite,
     isInReadingQueue: book.isInReadingQueue,
+    ownership,
     ownershipStatus: book.ownershipStatus,
     pagesText: book.pagesCount === null ? undefined : labels.pagesText(book.pagesCount),
     progress:
@@ -329,11 +339,13 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
             ariaLabel: labels.progressAriaLabel(progress.current, progress.total),
             unit: labels.progressUnit,
           },
+    publisher: book.publisher === null ? undefined : book.publisher.name,
     rating,
     ratingLabel: rating === undefined ? undefined : labels.ratingLabel(rating),
     readingStatus: book.readingStatus,
     series: book.series === null ? undefined : book.series.name,
     status,
+    tags,
     title: book.title,
     year: book.publicationYear ?? undefined,
   };

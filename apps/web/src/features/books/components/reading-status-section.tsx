@@ -21,7 +21,7 @@ import { StatusChipGroup } from "./status-chip-group";
 const NOTE_MAX = 300;
 const IMPRESSION_MAX = 500;
 const CURRENT_PAGE_MAX = 100000;
-const RATING_MAX = 5;
+const RATING_MAX = 10;
 
 type ProgressDateFieldProps = {
   ariaLabel: string;
@@ -128,8 +128,9 @@ export function ReadingStatusSection({
                       errors.readingProgress?.rating ? "reading-rating-error" : undefined
                     }
                     label={t("readingStatus.fields.rating")}
+                    max={RATING_MAX}
                     onValueChange={(next) =>
-                      field.onChange(Math.max(1, Math.min(RATING_MAX, Math.round(next))))
+                      field.onChange(Math.max(0.5, Math.min(RATING_MAX, next)))
                     }
                     size="lg"
                     value={typeof field.value === "number" ? field.value : 0}

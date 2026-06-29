@@ -240,7 +240,7 @@
         "pages": "{value} стор."
       },
       "rating": {
-        "ariaLabel": "Рейтинг {value} з 5"
+        "ariaLabel": "Рейтинг {value} з 10"
       },
       "empty": {
         "title": "Твоя бібліотека поки порожня",
@@ -328,7 +328,8 @@
           "yearMin": "Рік від",
           "yearMax": "Рік до",
           "pagesMin": "Сторінок від",
-          "pagesMax": "Сторінок до"
+          "pagesMax": "Сторінок до",
+          "invalid": "Мінімум не може перевищувати максимум"
         },
         "genrePlaceholder": "Оберіть жанри",
         "genreSearch": "Пошук жанру…",
@@ -627,6 +628,7 @@
     "series": {
       "searching": "Шукаємо серії…",
       "empty": "Серій не знайдено.",
+      "loadMore": "Показати більше",
       "existingHeading": "Ваші серії",
       "createHeading": "Створити нову",
       "createNew": "Створити нову серію",

@@ -205,7 +205,7 @@ model BookReadingProgress {
   finishedAt  DateTime? @map("finished_at") @db.Date
   pausedAt    DateTime? @map("paused_at") @db.Date
   abandonedAt DateTime? @map("abandoned_at") @db.Date
-  rating      Int?
+  rating      Float?
   note        String?
   impression  String?
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz

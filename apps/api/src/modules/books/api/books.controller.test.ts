@@ -638,7 +638,7 @@ describe("POST /api/books", () => {
 
     const res = await createBook(accessToken, {
       author: { name: "Frank Herbert" },
-      readingProgress: { finishedAt: "2026-02-05", impression: "loved it", rating: 5 },
+      readingProgress: { finishedAt: "2026-02-05", impression: "loved it", rating: 8.5 },
       readingStatus: "finished",
       title: "Dune",
     });
@@ -651,7 +651,7 @@ describe("POST /api/books", () => {
       impression: "loved it",
       note: null,
       pausedAt: null,
-      rating: 5,
+      rating: 8.5,
       startedAt: null,
     });
   });
@@ -706,12 +706,28 @@ describe("POST /api/books", () => {
     );
   });
 
-  it("returns 400 when the rating is above 5", async () => {
+  it("returns 400 when the rating is above 10", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
       author: { name: "Frank Herbert" },
-      readingProgress: { rating: 6 },
+      readingProgress: { rating: 10.5 },
+      readingStatus: "finished",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "readingProgress.rating" })]),
+    );
+  });
+
+  it("returns 400 when the rating is not a multiple of 0.5", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      author: { name: "Frank Herbert" },
+      readingProgress: { rating: 8.3 },
       readingStatus: "finished",
       title: "Dune",
     });

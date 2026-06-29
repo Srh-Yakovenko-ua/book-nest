@@ -137,6 +137,17 @@ export const WithActiveFilters: Story = {
   render: () => renderWithParams("?status=finished&format=paper"),
 };
 
+export const InvertedYearRange: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: /Фільтри/ }));
+    const surface = within(document.body);
+    await waitFor(() =>
+      expect(surface.getByText("Мінімум не може перевищувати максимум")).toBeVisible(),
+    );
+  },
+  render: () => renderWithParams("?yearMin=1990&yearMax=199"),
+};
+
 export const ClearInsideSheet: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: /Фільтри/ }));

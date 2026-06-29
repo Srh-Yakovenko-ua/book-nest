@@ -41,6 +41,7 @@ import {
   LIBRARY_LANGUAGE_VALUES,
   LIBRARY_OWNER_VALUES,
   LIBRARY_STATUS_VALUES,
+  libraryRangeFlags,
 } from "../model/library-query";
 import { LibraryFilterCombobox } from "./library-filter-combobox";
 import { LibraryTagFilter } from "./library-tag-filter";
@@ -87,6 +88,7 @@ export function LibraryAdvancedFilters({
   const ratingMinValue = state.ratingMin === null ? "any" : String(state.ratingMin);
   const ratingMaxValue = state.ratingMax === null ? "any" : String(state.ratingMax);
   const coverValue = state.hasCover === null ? "all" : state.hasCover ? "with" : "without";
+  const rangeFlags = libraryRangeFlags(state);
 
   return (
     <Sheet onOpenChange={setOpen} open={open}>
@@ -308,6 +310,9 @@ export function LibraryAdvancedFilters({
                 </SelectContent>
               </Select>
             </div>
+            {rangeFlags.rating ? (
+              <p className="text-xs text-destructive">{t("range.invalid")}</p>
+            ) : null}
           </FilterSection>
 
           <FilterSection title={t("sections.year")}>
@@ -337,6 +342,9 @@ export function LibraryAdvancedFilters({
                 value={state.yearMax ?? ""}
               />
             </div>
+            {rangeFlags.year ? (
+              <p className="text-xs text-destructive">{t("range.invalid")}</p>
+            ) : null}
           </FilterSection>
 
           <FilterSection title={t("sections.pages")}>
@@ -366,6 +374,9 @@ export function LibraryAdvancedFilters({
                 value={state.pagesMax ?? ""}
               />
             </div>
+            {rangeFlags.pages ? (
+              <p className="text-xs text-destructive">{t("range.invalid")}</p>
+            ) : null}
           </FilterSection>
 
           <FilterSection title={t("sections.cover")}>

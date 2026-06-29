@@ -20,7 +20,7 @@ type Story = StoryObj<typeof meta>;
 
 export const ReadOnly: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole("img", { name: /4.5 з 5/ })).toBeVisible();
+    await expect(canvas.getByRole("img", { name: /4.5 з 10/ })).toBeVisible();
   },
 };
 
@@ -54,7 +54,7 @@ function InteractiveExample() {
     <div className="flex items-center gap-4 text-foreground">
       <Rating onValueChange={setValue} size="lg" value={value} />
       <span className="min-w-14 text-sm font-semibold tabular-nums">
-        {value ? `${value.toFixed(1)} / 5` : "—"}
+        {value ? `${value.toFixed(1)} / 10` : "—"}
       </span>
     </div>
   );

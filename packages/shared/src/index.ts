@@ -555,8 +555,9 @@ const BOOK_CONTRIBUTOR_NAME_MAX = 100;
 const BOOK_DEDICATION_MAX = 300;
 const READING_CURRENT_PAGE_MIN = 0;
 const READING_CURRENT_PAGE_MAX = 100000;
-const READING_RATING_MIN = 1;
-const READING_RATING_MAX = 5;
+const READING_RATING_MIN = 0.5;
+const READING_RATING_MAX = 10;
+const READING_RATING_STEP = 0.5;
 const READING_NOTE_MAX = 300;
 const READING_IMPRESSION_MAX = 500;
 const ISBN_DIGITS_PATTERN = /^\d+$/;
@@ -719,9 +720,9 @@ export const ReadingProgressInputSchema = z
     pausedAt: notInFutureDate("Paused date must not be in the future").nullable().optional(),
     rating: z
       .number()
-      .int()
-      .min(READING_RATING_MIN, "Rating must be from 1 to 5")
-      .max(READING_RATING_MAX, "Rating must be from 1 to 5")
+      .min(READING_RATING_MIN, "Rating must be from 0.5 to 10 in steps of 0.5")
+      .max(READING_RATING_MAX, "Rating must be from 0.5 to 10 in steps of 0.5")
+      .multipleOf(READING_RATING_STEP, "Rating must be from 0.5 to 10 in steps of 0.5")
       .nullable()
       .optional(),
     startedAt: notInFutureDate("Start date must not be in the future").nullable().optional(),
@@ -1418,7 +1419,7 @@ export type PublisherSearchPaginationQuery = z.infer<typeof PublisherSearchPagin
 const LIBRARY_PAGE_SIZE_DEFAULT = 24;
 const LIBRARY_SEARCH_MAX = 200;
 const LIBRARY_RATING_MIN = 1;
-const LIBRARY_RATING_MAX = 5;
+const LIBRARY_RATING_MAX = 10;
 
 export const LibrarySortSchema = z.enum([
   "created_desc",

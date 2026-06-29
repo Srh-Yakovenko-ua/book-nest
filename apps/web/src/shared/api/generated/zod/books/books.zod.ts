@@ -77,7 +77,9 @@ export const booksControllerCreateBodyReadingProgressFinishedAtRegExp = new RegE
 export const booksControllerCreateBodyReadingProgressPausedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
-export const booksControllerCreateBodyReadingProgressRatingMax = 5;
+export const booksControllerCreateBodyReadingProgressRatingMin = 0.5;
+export const booksControllerCreateBodyReadingProgressRatingMax = 10;
+export const booksControllerCreateBodyReadingProgressRatingMultipleOf = 0.5;
 
 export const booksControllerCreateBodyReadingProgressStartedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -239,7 +241,12 @@ export const BooksControllerCreateBody = zod.object({
         .date()
         .regex(booksControllerCreateBodyReadingProgressPausedAtRegExp)
         .nullish(),
-      rating: zod.number().min(1).max(booksControllerCreateBodyReadingProgressRatingMax).nullish(),
+      rating: zod
+        .number()
+        .min(booksControllerCreateBodyReadingProgressRatingMin)
+        .max(booksControllerCreateBodyReadingProgressRatingMax)
+        .multipleOf(booksControllerCreateBodyReadingProgressRatingMultipleOf)
+        .nullish(),
       startedAt: zod.iso
         .date()
         .regex(booksControllerCreateBodyReadingProgressStartedAtRegExp)
@@ -296,9 +303,9 @@ export const booksControllerListQueryPublisherMax = 100;
 
 export const booksControllerListQueryQMax = 200;
 
-export const booksControllerListQueryRatingMaxMax = 5;
+export const booksControllerListQueryRatingMaxMax = 10;
 
-export const booksControllerListQueryRatingMinMax = 5;
+export const booksControllerListQueryRatingMinMax = 10;
 
 export const booksControllerListQuerySortDefault = `created_desc`;
 export const booksControllerListQueryStatusMax = 100;
@@ -508,7 +515,9 @@ export const booksControllerUpdateBodyReadingProgressFinishedAtRegExp = new RegE
 export const booksControllerUpdateBodyReadingProgressPausedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
-export const booksControllerUpdateBodyReadingProgressRatingMax = 5;
+export const booksControllerUpdateBodyReadingProgressRatingMin = 0.5;
+export const booksControllerUpdateBodyReadingProgressRatingMax = 10;
+export const booksControllerUpdateBodyReadingProgressRatingMultipleOf = 0.5;
 
 export const booksControllerUpdateBodyReadingProgressStartedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -669,7 +678,12 @@ export const BooksControllerUpdateBody = zod.object({
         .date()
         .regex(booksControllerUpdateBodyReadingProgressPausedAtRegExp)
         .nullish(),
-      rating: zod.number().min(1).max(booksControllerUpdateBodyReadingProgressRatingMax).nullish(),
+      rating: zod
+        .number()
+        .min(booksControllerUpdateBodyReadingProgressRatingMin)
+        .max(booksControllerUpdateBodyReadingProgressRatingMax)
+        .multipleOf(booksControllerUpdateBodyReadingProgressRatingMultipleOf)
+        .nullish(),
       startedAt: zod.iso
         .date()
         .regex(booksControllerUpdateBodyReadingProgressStartedAtRegExp)

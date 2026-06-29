@@ -75,12 +75,12 @@ export type BooksControllerListParams = {
   q?: string;
   /**
    * @minimum 1
-   * @maximum 5
+   * @maximum 10
    */
   ratingMax?: number;
   /**
    * @minimum 1
-   * @maximum 5
+   * @maximum 10
    */
   ratingMin?: number;
   sort?: BooksControllerListSort;

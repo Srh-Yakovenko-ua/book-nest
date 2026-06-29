@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import {
   type inferParserType,
   parseAsArrayOf,
@@ -64,6 +66,26 @@ export type LibraryListParams = Omit<BooksControllerListParams, "pageNumber">;
 
 export type LibraryQueryState = inferParserType<typeof libraryQueryParsers>;
 
+export type LibraryRangeFlags = {
+  pages: boolean;
+  rating: boolean;
+  year: boolean;
+};
+
+type LibraryRange = {
+  max: Nullable<number> | undefined;
+  min: Nullable<number> | undefined;
+};
+
+type LibraryRangeSource = {
+  pagesMax?: Nullable<number>;
+  pagesMin?: Nullable<number>;
+  ratingMax?: Nullable<number>;
+  ratingMin?: Nullable<number>;
+  yearMax?: Nullable<number>;
+  yearMin?: Nullable<number>;
+};
+
 export function hasActiveLibraryFilters(state: LibraryQueryState): boolean {
   return (
     state.status.length > 0 ||
@@ -89,6 +111,19 @@ export function hasActiveLibraryFilters(state: LibraryQueryState): boolean {
 
 export function hasActiveLibrarySearch(state: LibraryQueryState): boolean {
   return state.q.trim() !== "";
+}
+
+export function isLibraryRangeValid(source: LibraryRangeSource): boolean {
+  const { pages, rating, year } = libraryRangeFlags(source);
+  return !pages && !rating && !year;
+}
+
+export function libraryRangeFlags(source: LibraryRangeSource): LibraryRangeFlags {
+  return {
+    pages: isInvertedRange({ max: source.pagesMax, min: source.pagesMin }),
+    rating: isInvertedRange({ max: source.ratingMax, min: source.ratingMin }),
+    year: isInvertedRange({ max: source.yearMax, min: source.yearMin }),
+  };
 }
 
 export function toLibraryListParams(state: LibraryQueryState): LibraryListParams {
@@ -117,6 +152,12 @@ export function toLibraryListParams(state: LibraryQueryState): LibraryListParams
     ...(state.pagesMin === null ? {} : { pagesMin: state.pagesMin }),
     ...(state.pagesMax === null ? {} : { pagesMax: state.pagesMax }),
   };
+}
+
+function isInvertedRange({ max, min }: LibraryRange): boolean {
+  if (min === null || min === undefined) return false;
+  if (max === null || max === undefined) return false;
+  return min > max;
 }
 
 export const LIBRARY_FILTERS_RESET = {

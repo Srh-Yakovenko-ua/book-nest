@@ -6,7 +6,7 @@ import * as React from "react";
 
 import { GenreIcon, type GenreIconName, UiIcon } from "@/components/icons";
 import { Progress } from "@/components/ui/progress";
-import { Rating } from "@/components/ui/rating";
+import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { type StatusEntry } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
@@ -47,11 +47,14 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     kebab?: React.ReactNode;
     linkComponent?: BookCardLinkComponent;
     onCoverActivate?: () => void;
+    ownership?: StatusEntry;
     progress?: { ariaLabel?: string; current: number; total: number; unit?: string };
+    publisher?: string;
     rating?: number;
     ratingLabel?: string;
     series?: string;
     status: StatusEntry;
+    tags?: string[];
     title: string;
   };
 
@@ -66,12 +69,15 @@ function BookCard({
   kebab,
   linkComponent,
   onCoverActivate,
+  ownership,
   progress,
+  publisher,
   rating,
   ratingLabel,
   selected,
   series,
   status,
+  tags,
   title,
   ...props
 }: BookCardProps) {
@@ -107,7 +113,10 @@ function BookCard({
             )}
           </h3>
           <p className="text-[0.8125rem] text-muted-foreground">{author}</p>
-          <StatusBadge className="mt-0.5 self-start" entry={status} />
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            <StatusBadge entry={status} />
+            {ownership === undefined ? null : <StatusBadge entry={ownership} />}
+          </div>
         </div>
       </div>
 
@@ -115,6 +124,13 @@ function BookCard({
         <p className="flex items-center gap-1.5 text-[0.8125rem] text-foreground/85">
           <UiIcon className="shrink-0 text-icon" name="layers" size={15} />
           <span className="min-w-0 truncate">{series}</span>
+        </p>
+      )}
+
+      {publisher === undefined ? null : (
+        <p className="flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
+          <UiIcon className="shrink-0 text-icon" name="building" size={15} />
+          <span className="min-w-0 truncate">{publisher}</span>
         </p>
       )}
 
@@ -147,13 +163,34 @@ function BookCard({
             </span>
           ))}
           {rating === undefined ? null : (
-            <Rating className="ml-auto" label={ratingLabel} size="sm" value={rating} />
+            <RatingScore className="ml-auto" label={ratingLabel} value={rating} />
           )}
+        </div>
+      )}
+
+      {tags === undefined || tags.length === 0 ? null : (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {tags.slice(0, TAGS_VISIBLE).map((tag) => (
+            <span
+              className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-xs font-medium text-foreground/80"
+              key={tag}
+            >
+              <UiIcon className="shrink-0 text-muted-foreground" name="hash" size={12} />
+              <span className="min-w-0 truncate">{tag}</span>
+            </span>
+          ))}
+          {tags.length > TAGS_VISIBLE ? (
+            <span className="text-xs font-medium text-muted-foreground">
+              +{tags.length - TAGS_VISIBLE}
+            </span>
+          ) : null}
         </div>
       )}
     </article>
   );
 }
+
+const TAGS_VISIBLE = 3;
 
 const coverBoxClass =
   "relative aspect-[3/4] w-[74px] shrink-0 overflow-hidden rounded-md bg-accent shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]";

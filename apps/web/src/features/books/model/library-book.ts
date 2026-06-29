@@ -12,15 +12,18 @@ export type LibraryBook = {
   id: string;
   isFavorite: boolean;
   isInReadingQueue: boolean;
+  ownership?: StatusEntry;
   ownershipStatus: OwnershipStatus;
   pagesText?: string;
   progress?: { ariaLabel: string; current: number; total: number; unit: string };
+  publisher?: string;
   rating?: number;
   ratingLabel?: string;
   readingStatus: ReadingStatus;
   selected?: boolean;
   series?: string;
   status: StatusEntry;
+  tags?: string[];
   title: string;
   year?: number;
 };

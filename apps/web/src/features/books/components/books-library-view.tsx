@@ -422,12 +422,15 @@ function LibraryGridCard({
               ? () => onActivateCover({ bookId: book.id, media: coverMedia, title: book.title })
               : undefined
           }
+          ownership={book.ownership}
           progress={book.progress}
+          publisher={book.publisher}
           rating={book.rating}
           ratingLabel={book.ratingLabel}
           selected={selected}
           series={book.series}
           status={book.status}
+          tags={book.tags}
           title={book.title}
         />
       </motion.div>

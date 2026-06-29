@@ -240,7 +240,7 @@
         "pages": "{value} pp."
       },
       "rating": {
-        "ariaLabel": "Rating {value} of 5"
+        "ariaLabel": "Rating {value} of 10"
       },
       "empty": {
         "title": "Your library is still empty",
@@ -328,7 +328,8 @@
           "yearMin": "Year from",
           "yearMax": "Year to",
           "pagesMin": "Pages from",
-          "pagesMax": "Pages to"
+          "pagesMax": "Pages to",
+          "invalid": "Minimum cannot exceed maximum"
         },
         "genrePlaceholder": "Select genres",
         "genreSearch": "Search genre…",
@@ -627,6 +628,7 @@
     "series": {
       "searching": "Searching series…",
       "empty": "No series found.",
+      "loadMore": "Show more",
       "existingHeading": "Your series",
       "createHeading": "Create new",
       "createNew": "Create new series",

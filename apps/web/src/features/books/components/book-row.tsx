@@ -3,7 +3,7 @@
 import Image from "next/image";
 
 import { UiIcon } from "@/components/icons";
-import { Rating } from "@/components/ui/rating";
+import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 
@@ -46,13 +46,14 @@ export function BookRow({ book, kebab, linkComponent, selected, selectionControl
         <p className="truncate text-xs text-muted-foreground">{book.author}</p>
       </div>
 
-      <div className="hidden w-36 shrink-0 @md/book-row:block">
+      <div className="hidden w-36 shrink-0 flex-col gap-1 @md/book-row:flex">
         <StatusBadge entry={book.status} />
+        {book.ownership === undefined ? null : <StatusBadge entry={book.ownership} />}
       </div>
 
       <div className="hidden h-5 w-24 shrink-0 items-center @xl/book-row:flex">
         {book.rating === undefined ? null : (
-          <Rating label={book.ratingLabel} size="sm" value={book.rating} />
+          <RatingScore label={book.ratingLabel} value={book.rating} />
         )}
       </div>
 
