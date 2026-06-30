@@ -1,0 +1,75 @@
+name: book-nest-local
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: booknest-local-db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: booknest
+      POSTGRES_PASSWORD: booknest_dev_2026
+      POSTGRES_DB: booknest_dev
+    volumes:
+      - booknest-local-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U booknest -d booknest_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: booknest-local-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    environment:
+      MP_DATABASE: /data/mailpit.db
+    volumes:
+      - booknest-local-mailpit:/data
+
+  minio:
+    image: minio/minio:latest
+    container_name: booknest-local-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9101:9001"
+    environment:
+      MINIO_ROOT_USER: booknest
+      MINIO_ROOT_PASSWORD: booknest_local_s3
+    volumes:
+      - booknest-local-minio:/data
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: booknest-local-minio-init
+    depends_on:
+      - minio
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "until mc alias set local http://minio:9000 booknest booknest_local_s3; do sleep 1; done; mc mb -p local/book-nest-dev; mc anonymous set download local/book-nest-dev; echo bucket ready"
+
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:25
+    container_name: booknest-local-cloudbeaver
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8978:8978"
+    environment:
+      CB_SERVER_NAME: BookNest Local
+      CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED: "true"
+      CLOUDBEAVER_FORCE_HTTPS: "false"
+    volumes:
+      - booknest-local-cloudbeaver:/opt/cloudbeaver/workspace
+
+volumes:
+  booknest-local-db:
+  booknest-local-mailpit:
+  booknest-local-minio:
+  booknest-local-cloudbeaver:

@@ -1,6 +1,6 @@
 # @app/web
 
-React 18 + Vite 5 + TypeScript frontend for the monorepo-fullstack project.
+Next.js 16 (App Router, SSR) + React 19 + TypeScript frontend for book-nest.
 
 ## Quick commands
 
@@ -8,7 +8,7 @@ From the monorepo root:
 
 ```
 pnpm dev              # start FE + BE in parallel
-pnpm dev:web          # start only the FE dev server on :5173
+pnpm dev:web          # start only the FE dev server on :3000
 pnpm typecheck        # turbo-cached type checking
 pnpm lint             # ESLint
 pnpm format           # Prettier write
@@ -19,8 +19,8 @@ pnpm knip             # dead code scanner
 Per-package:
 
 ```
-pnpm --filter @app/web build              # production build → dist/
-pnpm --filter @app/web preview            # preview prod build on :4173
+pnpm --filter @app/web build              # production build (.next)
+pnpm --filter @app/web start              # serve the production build
 pnpm --filter @app/web test:watch         # vitest watch mode
 pnpm --filter @app/web test:ui            # vitest interactive UI
 pnpm --filter @app/web test:coverage      # coverage report
@@ -39,7 +39,6 @@ Full documentation lives in the repository-level [`docs/`](../../docs/) folder:
 
 - [pnpm workspaces & catalogs](../../docs/tools/monorepo.md)
 - [Turborepo](../../docs/tools/turborepo.md)
-- [Vite](../../docs/tools/vite.md)
 - [TypeScript](../../docs/tools/typescript.md)
 - [ESLint](../../docs/tools/eslint.md)
 - [Prettier](../../docs/tools/prettier.md)

@@ -1,11 +1,18 @@
-import "dotenv/config";
+import { config } from "dotenv";
 import { z } from "zod";
+
+config({ path: `.env.${process.env.APP_ENV ?? "local"}` });
 
 const envSchema = z
   .object({
+    ACCESS_TOKEN_TTL: z.string().default("15m"),
+    COOKIE_SECURE: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
     CORS_ORIGINS: z
       .string()
-      .default("http://localhost:5173")
+      .default("http://localhost:3000")
       .transform((value, ctx) => {
         const items = value
           .split(",")
@@ -31,28 +38,80 @@ const envSchema = z
         return items;
       }),
     DATABASE_URL: z.string().url(),
-    DIRECT_URL: z.string().url().optional(),
+    EMAIL_VERIFICATION_TTL_MINUTES: z.coerce.number().int().positive().default(60),
     ENABLE_SWAGGER: z
       .enum(["true", "false"])
       .default("true")
       .transform((value) => value === "true"),
+    JWT_ACCESS_SECRET: z.string().min(32),
+    JWT_REFRESH_SECRET: z.string().min(32),
     LOG_LEVEL: z.enum(["debug", "error", "info", "warn"]).default("info"),
+    MAIL_FROM: z.string().default("BookNest <no-reply@book-nest.net>"),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+    OTEL_SERVICE_NAME: z.string().default("monorepo-api"),
+    PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
     PORT: z.coerce.number().int().positive().default(4000),
+    R2_ACCESS_KEY_ID: z.string().default("booknest"),
+    R2_BUCKET: z.string().default("book-nest-dev"),
+    R2_ENDPOINT: z.string().url().default("http://127.0.0.1:9000"),
+    R2_FORCE_PATH_STYLE: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((value) => value === "true"),
+    R2_PUBLIC_BASE_URL: z.string().url().default("http://127.0.0.1:9000/book-nest-dev"),
+    R2_REGION: z.string().default("auto"),
+    R2_SECRET_ACCESS_KEY: z.string().default("booknest_local_s3"),
+    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
+    REFRESH_TOKEN_TTL_DAYS_SHORT: z.coerce.number().int().positive().default(1),
+    RESEND_COOLDOWN_SECONDS: z.coerce.number().int().positive().default(60),
+    SMTP_HOST: z.string().default("localhost"),
+    SMTP_PASS: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().positive().default(1025),
+    SMTP_SECURE: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    SMTP_USER: z.string().optional(),
     TRACING_ENABLED: z
       .enum(["true", "false"])
       .default("false")
       .transform((value) => value === "true"),
+    WEB_BASE_URL: z.string().url().default("http://localhost:3000"),
+    WIKIDATA_CONTACT: z.string().default("book-nest/1.0 (+https://book-nest.net)"),
   })
   .transform((raw) => ({
+    accessTokenTtl: raw.ACCESS_TOKEN_TTL,
+    cookieSecure: raw.COOKIE_SECURE,
     corsOrigins: raw.CORS_ORIGINS,
     databaseUrl: raw.DATABASE_URL,
-    directUrl: raw.DIRECT_URL,
+    emailVerificationTtlMinutes: raw.EMAIL_VERIFICATION_TTL_MINUTES,
     enableSwagger: raw.ENABLE_SWAGGER,
+    jwtAccessSecret: raw.JWT_ACCESS_SECRET,
+    jwtRefreshSecret: raw.JWT_REFRESH_SECRET,
     logLevel: raw.LOG_LEVEL,
+    mailFrom: raw.MAIL_FROM,
     nodeEnv: raw.NODE_ENV,
+    otelServiceName: raw.OTEL_SERVICE_NAME,
+    passwordResetTtlMinutes: raw.PASSWORD_RESET_TTL_MINUTES,
     port: raw.PORT,
+    r2AccessKeyId: raw.R2_ACCESS_KEY_ID,
+    r2Bucket: raw.R2_BUCKET,
+    r2Endpoint: raw.R2_ENDPOINT,
+    r2ForcePathStyle: raw.R2_FORCE_PATH_STYLE,
+    r2PublicBaseUrl: raw.R2_PUBLIC_BASE_URL,
+    r2Region: raw.R2_REGION,
+    r2SecretAccessKey: raw.R2_SECRET_ACCESS_KEY,
+    refreshTokenTtlDays: raw.REFRESH_TOKEN_TTL_DAYS,
+    refreshTokenTtlDaysShort: raw.REFRESH_TOKEN_TTL_DAYS_SHORT,
+    resendCooldownSeconds: raw.RESEND_COOLDOWN_SECONDS,
+    smtpHost: raw.SMTP_HOST,
+    smtpPass: raw.SMTP_PASS,
+    smtpPort: raw.SMTP_PORT,
+    smtpSecure: raw.SMTP_SECURE,
+    smtpUser: raw.SMTP_USER,
     tracingEnabled: raw.TRACING_ENABLED,
+    webBaseUrl: raw.WEB_BASE_URL,
+    wikidataContact: raw.WIKIDATA_CONTACT,
   }));
 
 const parsed = envSchema.safeParse(process.env);

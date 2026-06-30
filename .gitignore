@@ -7,12 +7,23 @@ dist/
 build/
 *.tsbuildinfo
 
-# Env
+# turbo prune output (Docker build artifact)
+out/
+
+# Generated OpenAPI spec (run `pnpm --filter @app/api generate:openapi`)
+openapi.json
+
+# Prisma generated client (run `pnpm --filter @app/api db:generate`)
+apps/api/src/generated/
+
+# Env — real values are local/secret; only *.example files are committed
 .env
 .env.local
+.env.dev
+.env.prod
 .env.*.local
+.env.*.readonly
 .env.remotely
-
 # Logs
 *.log
 npm-debug.log*
@@ -23,8 +34,9 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 
-# Vite
-apps/web/.vite/
+# Next.js
+apps/web/.next/
+apps/web/next-env.d.ts
 
 # Playwright MCP — auto-generated snapshots/console logs from browser sessions
 .playwright-mcp/
@@ -32,15 +44,14 @@ apps/web/.vite/
 # Claude Code runtime locks
 .claude/*.lock
 
-# Vercel
-.vercel/
-
 # Storybook
 storybook-static/
 
 # Turborepo cache
 .turbo/
 
-# Agent screenshot artifacts in repo root (anchored — src/ and public/ PNGs safe)
+# Agent screenshot artifacts in repo root (anchored, src/ and public/ PNGs safe)
 /*.png
-.vercel
+
+# Local scratch notes / spec dumps (not part of the codebase)
+apps/api/md/

@@ -1,10 +1,13 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+
+import { expect } from "storybook/test";
 
 import { Button } from "./button";
 
 const meta = {
   title: "UI/Button",
   component: Button,
+  tags: ["ai-generated"],
   args: {
     children: "Button",
   },
@@ -73,4 +76,12 @@ export const Sizes: Story = {
 
 export const Disabled: Story = {
   args: { disabled: true },
+};
+
+export const CssCheck: Story = {
+  args: { children: "Submit" },
+  play: async ({ canvas }) => {
+    const button = canvas.getByRole("button", { name: /submit/i });
+    await expect(getComputedStyle(button).backgroundColor).toBe("oklch(0.535 0.093 53.5)");
+  },
 };

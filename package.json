@@ -1,5 +1,5 @@
 {
-  "name": "instagram-clone",
+  "name": "book-nest",
   "version": "0.0.1",
   "private": true,
   "packageManager": "pnpm@10.28.1",
@@ -9,10 +9,32 @@
   "scripts": {
     "dev": "pnpm kill-ports && turbo run dev",
     "dev:web": "pnpm kill-ports:web && turbo run dev --filter=@app/web",
+    "dev:web:dev": "pnpm kill-ports:web && pnpm --filter @app/web dev:dev",
+    "dev:web:prod": "pnpm kill-ports:web && pnpm --filter @app/web dev:prod",
     "dev:api": "pnpm kill-ports:api && turbo run dev --filter=@app/api",
+    "dev:api:dev": "pnpm kill-ports:api && APP_ENV=dev turbo run dev --filter=@app/api",
+    "dev:api:prod": "pnpm kill-ports:api && APP_ENV=prod turbo run dev --filter=@app/api",
     "kill-ports": "pnpm kill-ports:api && pnpm kill-ports:web",
     "kill-ports:api": "lsof -ti:4000 | xargs kill -9 2>/dev/null || true",
-    "kill-ports:web": "lsof -ti:5173 | xargs kill -9 2>/dev/null || true",
+    "kill-ports:web": "lsof -ti:3000 | xargs kill -9 2>/dev/null || true",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose stop db",
+    "mail:up": "docker compose up -d mailpit",
+    "mail:down": "docker compose stop mailpit",
+    "storage:up": "docker compose up -d minio minio-init",
+    "storage:down": "docker compose stop minio",
+    "dev:up": "docker compose up -d",
+    "dev:down": "docker compose down",
+    "db:copy:dev": "./scripts/copy-remote-db.sh dev",
+    "db:copy:prod": "./scripts/copy-remote-db.sh prod",
+    "db:size": "./scripts/db-size.sh",
+    "server:ps": "./scripts/server-ps.sh",
+    "server:stats": "./scripts/server-stats.sh",
+    "server:logs": "./scripts/server-logs.sh",
+    "server:health": "./scripts/server-health.sh",
+    "server:ssh": "ssh -i ~/.ssh/id_ed25519_hetzner deploy@46.224.83.71",
+    "tunnel:dev": "ssh -i ~/.ssh/id_ed25519_hetzner -N -L 5532:127.0.0.1:5432 deploy@46.224.83.71",
+    "tunnel:prod": "ssh -i ~/.ssh/id_ed25519_hetzner -N -L 5533:127.0.0.1:5433 deploy@46.224.83.71",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "lint": "eslint .",
@@ -22,6 +44,7 @@
     "test": "turbo run test",
     "knip": "knip",
     "knip:fix": "knip --fix",
+    "gen:api": "pnpm --filter @app/api generate:openapi && pnpm --filter @app/web gen:api",
     "clean": "turbo run clean && rm -rf node_modules .turbo",
     "storybook": "pnpm --filter @app/web storybook",
     "clean:cache": "rm -rf .turbo apps/*/.turbo packages/*/.turbo node_modules/.cache .playwright-mcp && find . -maxdepth 1 -name '*.png' -delete",
@@ -40,6 +63,7 @@
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@eslint/js": "catalog:",
+    "@next/eslint-plugin-next": "catalog:",
     "@vitest/eslint-plugin": "catalog:",
     "eslint": "catalog:",
     "eslint-config-prettier": "catalog:",
@@ -50,7 +74,6 @@
     "eslint-plugin-perfectionist": "catalog:",
     "eslint-plugin-react": "catalog:",
     "eslint-plugin-react-hooks": "catalog:",
-    "eslint-plugin-react-refresh": "catalog:",
     "eslint-plugin-testing-library": "catalog:",
     "globals": "catalog:",
     "husky": "catalog:",
@@ -65,12 +88,17 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
-      "mongodb-memory-server",
       "oxc-parser",
       "oxc-resolver",
       "@parcel/watcher",
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
       "unrs-resolver",
       "@swc/core"
-    ]
+    ],
+    "overrides": {
+      "multer": ">=2.2.0"
+    }
   }
 }

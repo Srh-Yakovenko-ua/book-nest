@@ -1,0 +1,878 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "retry": "Retry",
+    "somethingWentWrong": "Something went wrong"
+  },
+  "nav": {
+    "home": "Home",
+    "library": "Library"
+  },
+  "appShell": {
+    "label": "Book Nest"
+  },
+  "home": {
+    "eyebrow": "My library",
+    "title": "Book Nest",
+    "description": "Your personal book library — track your reading and organize your collection.",
+    "greeting": "Hi, {name}!",
+    "greetingFallback": "Welcome to Book Nest!",
+    "subtitle": "Here's a quick snapshot of your library.",
+    "progress": {
+      "title": "Reading progress",
+      "label": "{finished} of {total} read"
+    },
+    "actions": {
+      "addBook": "Add a book",
+      "library": "Open library"
+    },
+    "empty": {
+      "title": "Your library is empty",
+      "description": "Add your first book to see your stats here.",
+      "action": "Add your first book"
+    }
+  },
+  "notFound": {
+    "eyebrow": "Error · 404",
+    "headline": "Not found",
+    "description": "The page you tried to reach doesn't exist on this server. It may have moved, or you followed a stale link.",
+    "backHome": "Back home",
+    "footer": "Book Nest · teaching project"
+  },
+  "error": {
+    "eyebrow": "Error · Client",
+    "headline": "Something went wrong",
+    "description": "Something went wrong while rendering the page.",
+    "reload": "Reload page",
+    "backHome": "Back home"
+  },
+  "localePicker": {
+    "ariaLabel": "Language"
+  },
+  "auth": {
+    "common": {
+      "submit": "Continue",
+      "loading": "Please wait...",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "back": "Back",
+      "or": "or",
+      "optional": "optional"
+    },
+    "hero": {
+      "title": "Every book is a new story. Start collecting yours.",
+      "subtitle": "Join BookNest and gather your whole library in one cozy place."
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "What should we call you?",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "••••••••",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "••••••••",
+      "nickname": "Nickname",
+      "nicknamePlaceholder": "booklover",
+      "dateOfBirth": "Date of birth",
+      "rememberMe": "Remember me",
+      "terms": "I accept the terms of service and privacy policy"
+    },
+    "datePicker": {
+      "placeholder": "Pick a date",
+      "triggerLabel": "Pick your date of birth",
+      "monthLabel": "Month",
+      "yearLabel": "Year"
+    },
+    "errors": {
+      "required": "This field is required",
+      "emailRequired": "Enter your email",
+      "emailInvalid": "Invalid email format",
+      "passwordRequired": "Enter your password",
+      "passwordTooLong": "Password is too long (max 128 characters)",
+      "nameRequired": "Enter your name",
+      "nameTooShort": "Name must be at least 2 characters long",
+      "nameTooLong": "Name must be at most 50 characters long",
+      "nameInvalid": "Name may contain only letters, spaces, apostrophes and hyphens",
+      "nicknameTooShort": "Nickname must be at least 3 characters long",
+      "nicknameTooLong": "Nickname must be at most 20 characters long",
+      "nicknameInvalid": "Nickname may contain only Latin letters, digits, dot and underscore",
+      "nicknameTaken": "This nickname is already taken",
+      "emailTaken": "An account with this email already exists",
+      "passwordMismatch": "Passwords do not match",
+      "termsRequired": "You must accept the terms of service",
+      "invalidCredentials": "Invalid email or password",
+      "emailNotVerified": "Please verify your email first",
+      "tooManyAttempts": "Too many attempts. Please try again later",
+      "serviceUnavailable": "The service is temporarily unavailable. Please try again later",
+      "invalidToken": "This link is invalid or has expired",
+      "ageTooYoung": "You must be at least 13 years old to register",
+      "unknown": "Something went wrong. Please try again"
+    },
+    "password": {
+      "length": "At least 8 characters",
+      "case": "Upper and lower case letters",
+      "digit": "At least one digit",
+      "special": "At least one special character",
+      "strength": "Password strength",
+      "level": {
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong"
+      }
+    },
+    "login": {
+      "title": "Glad to see you again",
+      "subtitle": "Sign in to keep reading and tending your library.",
+      "cta": "Sign in",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account yet?",
+      "signUp": "Sign up",
+      "cover": "your cozy reading corner"
+    },
+    "register": {
+      "title": "Create your account",
+      "subtitle": "Join BookNest and gather your whole library in one cozy place.",
+      "cta": "Sign up",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "checkInbox": "Check your inbox",
+      "verificationSent": "We've sent a verification link to {email}. Follow it to finish signing up.",
+      "checkInboxHint": "Didn't get the email? Check your spam folder or try another address.",
+      "emailSuggestion": "Did you mean {email}?",
+      "nicknameChecking": "Checking availability…",
+      "nicknameAvailable": "Nickname is available",
+      "cover": "Every book is a new story. Start collecting yours.",
+      "nicknameHint": "Latin letters, digits, _ or . — 3–20 characters."
+    },
+    "stepper": {
+      "label": "Password reset steps",
+      "request": "Request",
+      "email": "Email"
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a link to set a new password.",
+      "cta": "Send instructions",
+      "success": "If an account with this email exists, we've sent a recovery link.",
+      "backToLogin": "Sign in",
+      "backToSignIn": "Back to sign in",
+      "rememberPrompt": "Remember your password?",
+      "sentTitle": "Check your inbox",
+      "sentLead": "If such an account exists, we've sent an email to {email}. Open it to set a new password.",
+      "sentHint": "Didn't get the email? Check your spam folder or try another address.",
+      "cover": "Check your inbox"
+    },
+    "reset": {
+      "title": "New password",
+      "subtitle": "Create a new password for your account",
+      "cta": "Save new password",
+      "success": "Your password has been changed",
+      "requestNewLink": "Request a new link",
+      "backToLogin": "Go to sign in",
+      "cover": "Check your inbox"
+    },
+    "verify": {
+      "title": "Email verification",
+      "subtitle": "Verifying…",
+      "success": "Your email has been verified",
+      "error": "We couldn't verify your email",
+      "continue": "Continue",
+      "continueNow": "Continue now",
+      "redirecting": "Redirecting you in {seconds}s…",
+      "resendPrompt": "Didn't get the email?",
+      "cover": "Check your inbox"
+    },
+    "resend": {
+      "title": "Resend the email",
+      "subtitle": "Tell us which email to send a new confirmation to",
+      "again": "Resend",
+      "againIn": "Resend in {seconds}s",
+      "cta": "Resend",
+      "success": "The confirmation email has been sent",
+      "cover": "Check your inbox"
+    },
+    "session": {
+      "accountMenu": "Account menu",
+      "checking": "Checking your session…",
+      "signOut": "Sign out",
+      "signingOut": "Signing out…"
+    },
+    "social": {
+      "google": "Google",
+      "apple": "Apple",
+      "continueWith": "Continue with {provider}"
+    }
+  },
+  "books": {
+    "library": {
+      "title": "My library",
+      "subtitle": "All your books in one cozy space",
+      "resultsTitle": "Book list",
+      "addBook": "Add book",
+      "loadMore": "Load more",
+      "loadMoreError": "Couldn't load more books",
+      "loading": "Loading books…",
+      "menu": "Actions",
+      "delete": "Delete",
+      "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
+      "allShown": "All books shown",
+      "summary": {
+        "total": "Total books",
+        "reading": "Reading",
+        "finished": "Finished",
+        "favorites": "Favorites"
+      },
+      "sort": {
+        "label": "Sort",
+        "options": {
+          "created_desc": "Recently added",
+          "created_asc": "Oldest added",
+          "updated_desc": "Recently updated",
+          "title_asc": "Title A–Z",
+          "title_desc": "Title Z–A",
+          "author_asc": "Author A–Z",
+          "author_desc": "Author Z–A",
+          "rating_desc": "Highest rating",
+          "rating_asc": "Lowest rating",
+          "year_desc": "Newer editions",
+          "year_asc": "Older editions",
+          "pages_desc": "More pages",
+          "pages_asc": "Fewer pages"
+        }
+      },
+      "view": {
+        "label": "View",
+        "grid": "Grid",
+        "list": "List"
+      },
+      "progress": {
+        "unit": "pp.",
+        "ariaLabel": "Reading progress: {current} of {total}"
+      },
+      "meta": {
+        "pages": "{value} pp."
+      },
+      "rating": {
+        "ariaLabel": "Rating {value} of 10"
+      },
+      "empty": {
+        "title": "Your library is still empty",
+        "description": "Add your first book to start building your reading collection.",
+        "cta": "Add book"
+      },
+      "noSearchResults": {
+        "title": "Nothing found",
+        "description": "Try changing your search query or clearing the search.",
+        "clearSearch": "Clear search"
+      },
+      "noFilteredResults": {
+        "title": "No books match the selected filters",
+        "description": "Try changing the filters or clearing them to see more books.",
+        "clearFilters": "Clear filters",
+        "clearAll": "Clear all"
+      },
+      "error": {
+        "title": "Couldn't load your library",
+        "description": "Try refreshing the page or repeating the request a bit later.",
+        "retry": "Try again"
+      },
+      "search": {
+        "label": "Search books",
+        "placeholder": "Search by title, author or series",
+        "clear": "Clear search"
+      },
+      "quickFilters": {
+        "label": "Quick filters",
+        "all": "All",
+        "reading": "Reading",
+        "want_to_read": "Want to read",
+        "finished": "Finished",
+        "favorites": "Favorites",
+        "want_to_buy": "To buy",
+        "in_transit": "In transit",
+        "borrowed": "Borrowed",
+        "series": "Series",
+        "solo": "Standalone"
+      },
+      "filters": {
+        "trigger": "Filters",
+        "title": "Filters",
+        "description": "Narrow your library by status, format, classification and edition details.",
+        "done": "Done",
+        "clear": "Clear filters",
+        "clearField": "Clear",
+        "customBadge": "Custom",
+        "sections": {
+          "readingStatus": "Reading status",
+          "ownershipStatus": "Ownership status",
+          "format": "Format",
+          "genre": "Genres",
+          "tag": "Tags",
+          "ageCategory": "Age category",
+          "language": "Language",
+          "author": "Author",
+          "publisher": "Publisher",
+          "bookType": "Book type",
+          "rating": "Rating",
+          "year": "Publication year",
+          "pages": "Page count",
+          "cover": "Cover"
+        },
+        "bookType": {
+          "all": "All",
+          "solo": "Standalone",
+          "series_part": "Part of a series"
+        },
+        "cover": {
+          "all": "All",
+          "with": "Has cover",
+          "without": "No cover"
+        },
+        "rating": {
+          "any": "Any",
+          "min": "From",
+          "max": "To",
+          "from": "From {value}",
+          "to": "To {value}"
+        },
+        "range": {
+          "min": "From",
+          "max": "To",
+          "yearMin": "Year from",
+          "yearMax": "Year to",
+          "pagesMin": "Pages from",
+          "pagesMax": "Pages to",
+          "invalid": "Minimum cannot exceed maximum"
+        },
+        "genrePlaceholder": "Select genres",
+        "genreSearch": "Search genre…",
+        "genreEmpty": "No genres found",
+        "tagPlaceholder": "Search tags…",
+        "tagSearching": "Searching tags…",
+        "tagEmpty": "No tags found",
+        "removeTag": "Remove tag {name}",
+        "authorPlaceholder": "Search author…",
+        "authorSearching": "Searching authors…",
+        "authorEmpty": "No authors found",
+        "publisherPlaceholder": "Search publisher…",
+        "publisherSearching": "Searching publishers…",
+        "publisherEmpty": "No publishers found"
+      },
+      "activeFilters": {
+        "label": "Active filters",
+        "clearAll": "Clear all",
+        "remove": "Remove filter {label}",
+        "search": "Search: {query}",
+        "author": "Author: {name}",
+        "publisher": "Publisher: {name}",
+        "unknown": "Untitled",
+        "favorite": "Favorites",
+        "coverWith": "Has cover",
+        "coverWithout": "No cover",
+        "ratingFrom": "Rating from {value}",
+        "ratingTo": "Rating up to {value}",
+        "ratingRange": "Rating {min}–{max}",
+        "yearFrom": "Year from {value}",
+        "yearTo": "Year up to {value}",
+        "yearRange": "{min}–{max}",
+        "pagesFrom": "From {value} pp.",
+        "pagesTo": "Up to {value} pp.",
+        "pagesRange": "{min}–{max} pp."
+      },
+      "actions": {
+        "favorite": "Add to favorites",
+        "unfavorite": "Remove from favorites",
+        "edit": "Edit",
+        "startReading": "Start reading",
+        "markFinished": "Mark as finished",
+        "addToQueue": "Add to reading queue",
+        "removeFromQueue": "Remove from reading queue",
+        "addToList": "Add to list",
+        "changeReadingStatus": "Change reading status",
+        "changeOwnership": "Change ownership status",
+        "delete": "Delete"
+      },
+      "toast": {
+        "favoriteAdded": "Added to favorites",
+        "favoriteRemoved": "Removed from favorites",
+        "queueAdded": "Added to reading queue",
+        "queueRemoved": "Removed from reading queue",
+        "readingStatusChanged": "Reading status updated",
+        "ownershipChanged": "Ownership status updated",
+        "addedToList": "Added to list",
+        "tagsAdded": "Tags added",
+        "deleted": "{count, plural, one {# book deleted} other {# books deleted}}",
+        "error": "Something went wrong. Please try again."
+      },
+      "bulk": {
+        "regionLabel": "Bulk actions",
+        "selected": "{count, plural, one {# book selected} other {# books selected}}",
+        "selectBook": "Select “{title}”",
+        "clear": "Clear selection",
+        "addToList": "Add to list",
+        "addToQueue": "Add to queue",
+        "changeReadingStatus": "Change status",
+        "more": "More",
+        "changeOwnership": "Change ownership status",
+        "addTags": "Add tags",
+        "addFavorite": "Add to favorites",
+        "removeFavorite": "Remove from favorites",
+        "delete": "Delete",
+        "deleteTitle": "Delete selected books?",
+        "deleteDescription": "{count, plural, one {# book} other {# books}} will be deleted permanently. This action can’t be undone."
+      },
+      "readingStatusDialog": {
+        "title": "Change reading status",
+        "description": "Choose a new status for {count, plural, one {# book} other {# books}}.",
+        "confirm": "Apply",
+        "cancel": "Cancel"
+      },
+      "ownershipDialog": {
+        "title": "Change ownership status",
+        "description": "Choose a new ownership status for {count, plural, one {# book} other {# books}}.",
+        "confirm": "Apply",
+        "cancel": "Cancel"
+      },
+      "listDialog": {
+        "title": "Add to list",
+        "description": "{count, plural, one {# book} other {# books}} will be added to the selected lists.",
+        "listsLabel": "Lists",
+        "placeholder": "Choose your lists",
+        "search": "Search lists…",
+        "empty": "No lists found.",
+        "createList": "New list",
+        "confirm": "Add",
+        "cancel": "Cancel"
+      },
+      "tagsDialog": {
+        "title": "Add tags",
+        "description": "Tags will be added to {count, plural, one {# book} other {# books}}.",
+        "removeTag": "Remove tag “{name}”",
+        "confirm": "Add",
+        "cancel": "Cancel"
+      },
+      "sidebar": {
+        "title": "Library overview",
+        "topGenres": "Top genres",
+        "topGenresEmpty": "No genres yet",
+        "topTags": "Top tags",
+        "topTagsEmpty": "No tags yet",
+        "recentlyAdded": "Recently added",
+        "recentlyAddedEmpty": "No books yet"
+      }
+    },
+    "deleteConfirm": {
+      "title": "Delete book?",
+      "description": "“{title}” will be deleted permanently. This action can’t be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel",
+      "deleting": "Deleting…"
+    },
+    "delete": {
+      "success": "Book deleted",
+      "error": "Couldn’t delete the book"
+    },
+    "page": {
+      "metaTitle": "New book",
+      "eyebrow": "Library",
+      "title": "Add a book",
+      "subtitle": "Fill in the basics to add a book to your library. You can add the rest of the details later."
+    },
+    "basicInfo": {
+      "title": "Basic info",
+      "description": "Title and author are all you need to get started."
+    },
+    "readingStatus": {
+      "title": "Reading status",
+      "description": "Where are you with this book right now?",
+      "options": {
+        "not_started": "Not started",
+        "want_to_read": "Want to read",
+        "reading": "Reading",
+        "paused": "Paused",
+        "finished": "Finished",
+        "dnf": "Did not finish",
+        "rereading": "Rereading"
+      },
+      "fields": {
+        "currentPage": "Current page",
+        "rating": "Rating",
+        "startedAt": "Start date",
+        "finishedAt": "Finish date",
+        "pausedAt": "Paused date",
+        "abandonedAt": "Abandoned date",
+        "impression": "Impression",
+        "impressionPlaceholder": "What stayed with you about this book?",
+        "note": "Note",
+        "notePlaceholder": "A few thoughts for yourself…",
+        "datePlaceholder": "Pick a date"
+      }
+    },
+    "ownershipStatus": {
+      "title": "Ownership status",
+      "description": "Do you have the book yet, or is it on its way?",
+      "options": {
+        "none": "Not specified",
+        "want_to_buy": "Want to buy",
+        "in_transit": "In transit",
+        "owned": "Owned",
+        "borrowed_from_someone": "Borrowed from someone",
+        "lent_to_someone": "Lent to someone"
+      },
+      "fields": {
+        "note": "Note",
+        "notePlaceholder": "A few thoughts for yourself…",
+        "datePlaceholder": "Pick a date"
+      }
+    },
+    "purchaseInfo": {
+      "title": "Purchase details",
+      "fields": {
+        "storeName": "Store",
+        "storeNamePlaceholder": "e.g. Yakaboo",
+        "storeUrl": "Product link",
+        "storeUrlPlaceholder": "https://…",
+        "expectedPrice": "Expected price",
+        "currency": "Currency",
+        "currencyPlaceholder": "Currency"
+      }
+    },
+    "deliveryInfo": {
+      "title": "Delivery details",
+      "fields": {
+        "storeName": "Store",
+        "orderNumber": "Order number",
+        "orderNumberPlaceholder": "e.g. 100200300",
+        "orderDate": "Order date",
+        "expectedDeliveryDate": "Expected delivery",
+        "deliveryStatus": "Delivery status",
+        "deliveryStatusPlaceholder": "Pick a status"
+      },
+      "deliveryStatusOptions": {
+        "ordered": "Ordered",
+        "in_transit": "In transit",
+        "ready_for_pickup": "Ready for pickup",
+        "cancelled": "Cancelled"
+      },
+      "markReceived": "Mark as received"
+    },
+    "loanInfo": {
+      "title": "Loan details",
+      "fields": {
+        "personName": "Person's name",
+        "personNamePlaceholder": "From whom, or to whom?",
+        "loanDate": "Loan date",
+        "expectedReturnDate": "Expected return"
+      }
+    },
+    "format": {
+      "title": "Format",
+      "description": "Which format is this book? You can pick more than one.",
+      "options": {
+        "paper": "Paper",
+        "ebook": "Ebook",
+        "audiobook": "Audiobook"
+      }
+    },
+    "classification": {
+      "title": "Classification",
+      "description": "Genres, tags, age rating and language of the book.",
+      "genres": "Genres",
+      "genresPlaceholder": "Pick genres",
+      "genresSearch": "Search a genre…",
+      "genresEmpty": "No genres found.",
+      "genresLoading": "Loading genres…",
+      "genresHint": "You can pick up to {max} genres.",
+      "tags": "Tags",
+      "tagsPlaceholder": "Add a tag and press Enter…",
+      "tagsAtMax": "Tag limit reached",
+      "tagsHint": "Custom tags via Enter or comma, up to {max}.",
+      "tagsSuggestions": "Your tags",
+      "tagsSearching": "Searching tags…",
+      "tagsEmpty": "No tags found.",
+      "tagsCreateHeading": "Create new",
+      "tagsCreate": "Create “{name}”",
+      "tagsNoSaved": "You don't have any saved tags yet. Type a new tag and press Enter.",
+      "tagsTooShort": "A tag must be at least 2 characters long.",
+      "tagsTooLong": "A tag can be at most 30 characters long.",
+      "tagsInvalidChars": "Only letters, digits, spaces, hyphens and apostrophes are allowed.",
+      "tagsDeleteSaved": "Delete saved tag “{name}”",
+      "tagsDeleteTitle": "Delete tag?",
+      "tagsDeleteDescription": "The tag “{name}” will be permanently deleted and removed from every book that uses it. This action cannot be undone.",
+      "tagsDeleteConfirm": "Delete tag",
+      "tagsDeleteCancel": "Cancel",
+      "tagsDeleteSuccess": "Tag deleted",
+      "tagsDeleteError": "Could not delete the tag",
+      "ageCategory": "Age rating",
+      "ageCategoryLabels": {
+        "not_specified": "Not specified",
+        "no_restrictions": "No restrictions",
+        "6_plus": "6+",
+        "12_plus": "12+",
+        "14_plus": "14+",
+        "16_plus": "16+",
+        "18_plus": "18+"
+      },
+      "language": "Language",
+      "languageLabels": {
+        "ukrainian": "Ukrainian",
+        "english": "English",
+        "polish": "Polish",
+        "german": "German",
+        "french": "French",
+        "spanish": "Spanish",
+        "other": "Other"
+      }
+    },
+    "bookType": {
+      "title": "Book type",
+      "description": "A standalone book or part of a series.",
+      "options": {
+        "solo": "Standalone",
+        "series_part": "Part of a series"
+      },
+      "series": "Series",
+      "seriesPlaceholder": "Start typing a series name…",
+      "seriesDraft": "A new series “{name}” will be created on save.",
+      "partNumber": "Part number",
+      "partNumberHint": "This series has {total} books, so parts 1–{total} are available.",
+      "errors": {
+        "exceedsTotal": "Part number can't be greater than the total books in the series.",
+        "partNumberTaken": "Part number {number} is already used by “{title}”. <link>Open book</link>",
+        "seriesClearedAfterAuthorChange": "After changing the authors, choose the series again.",
+        "seriesRequired": "Choose an existing series or create a new one."
+      }
+    },
+    "series": {
+      "searching": "Searching series…",
+      "empty": "No series found.",
+      "loadMore": "Show more",
+      "yourSeries": "Your series",
+      "authorHeading": "Series by {name}",
+      "noAuthorHeading": "Series without an author",
+      "createHeading": "Create new",
+      "createNew": "Create new series",
+      "createAction": "Create “{name}”",
+      "statusLabels": {
+        "unknown": "Unknown",
+        "ongoing": "Ongoing",
+        "completed": "Completed"
+      },
+      "create": {
+        "title": "New series",
+        "description": "The series will be created together with the book.",
+        "name": "Series name",
+        "namePlaceholder": "e.g. The Witcher",
+        "nameInvalid": "Enter a valid series name.",
+        "authors": "Series authors",
+        "status": "Status",
+        "totalBooks": "Books in series",
+        "totalBooksPlaceholder": "e.g. 5",
+        "totalBooksInvalid": "Books in series must be greater than 0.",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "A short series description…",
+        "confirm": "Create series"
+      }
+    },
+    "editionDetails": {
+      "title": "Edition details",
+      "description": "Pages, year, ISBN and other data about this specific edition.",
+      "fields": {
+        "pagesCount": "Pages",
+        "pagesCountPlaceholder": "e.g. 320",
+        "publicationYear": "Publication year",
+        "publicationYearPlaceholder": "e.g. 2021",
+        "isbn": "ISBN",
+        "isbnPlaceholder": "e.g. 9786176790006",
+        "originalTitle": "Original title",
+        "originalTitlePlaceholder": "Title in the original language",
+        "translator": "Translator",
+        "translatorPlaceholder": "Translator name",
+        "illustrator": "Illustrator",
+        "illustratorPlaceholder": "Illustrator name",
+        "dedication": "Dedication",
+        "dedicationPlaceholder": "Who this book is dedicated to…"
+      },
+      "advancedDetails": "Advanced details",
+      "currentPageWarning": "Your current page is higher than the new page count. Update your reading progress."
+    },
+    "organization": {
+      "title": "Library organization",
+      "description": "Add the book to favorites, the reading queue and your own lists.",
+      "favorite": "Add to favorites",
+      "queue": "Add to reading queue",
+      "queuePriority": "Queue priority",
+      "priorityLabels": {
+        "low": "Low",
+        "normal": "Normal",
+        "high": "High"
+      },
+      "lists": "Lists",
+      "listsPlaceholder": "Pick your lists",
+      "listsSearch": "Search a list…",
+      "listsEmpty": "No lists found.",
+      "listsHint": "Pick existing lists or create a new one.",
+      "createList": "New list"
+    },
+    "list": {
+      "create": {
+        "title": "New list",
+        "description": "The list will be created together with the book.",
+        "name": "List name",
+        "namePlaceholder": "e.g. Summer reads",
+        "nameInvalid": "Enter a valid list name.",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "A short list description…",
+        "confirm": "Create list"
+      }
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "e.g. Shadows of Forgotten Ancestors",
+      "author": "Author",
+      "authorPlaceholder": "Start typing an author name…",
+      "authorHint": "Add one or more authors from the catalog or enter custom names.",
+      "authorsRequired": "Pick or create the book's author.",
+      "authorsAtMax": "Maximum number of authors reached.",
+      "authorsRemove": "Remove author “{name}”",
+      "publisher": "Publisher",
+      "publisherPlaceholder": "Start typing a publisher name…",
+      "publisherHint": "Pick a publisher from the catalog or enter a custom name.",
+      "description": "Description",
+      "descriptionPlaceholder": "A short description of the book…",
+      "optional": "(optional)",
+      "clear": "Clear"
+    },
+    "author": {
+      "searching": "Searching authors…",
+      "empty": "No authors found.",
+      "recentHeading": "Recently used",
+      "allHeading": "All authors",
+      "createHeading": "Add custom",
+      "customBadge": "custom",
+      "create": "Create “{name}”"
+    },
+    "publisher": {
+      "searching": "Searching publishers…",
+      "empty": "No publishers found.",
+      "recentHeading": "Recently used",
+      "allHeading": "All publishers",
+      "createHeading": "Add custom",
+      "customBadge": "custom",
+      "useCustom": "Use “{name}”"
+    },
+    "store": {
+      "recentHeading": "Recently used",
+      "empty": "No stores found",
+      "createNew": "Create “{name}”"
+    },
+    "preview": {
+      "eyebrow": "Preview",
+      "titlePlaceholder": "Example title",
+      "authorPlaceholder": "Author not specified",
+      "coverInitial": "Book",
+      "formatsLabel": "Formats",
+      "genresMore": "+{count}",
+      "tagsMore": "+{count}",
+      "favorite": "Favorite",
+      "inQueue": "In reading queue",
+      "coverAlt": "Book cover"
+    },
+    "actions": {
+      "submit": "Add book",
+      "submitting": "Adding…",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "saving": "Saving…"
+    },
+    "submit": {
+      "success": "Book added to your library.",
+      "error": "Could not add the book. Check the fields and try again.",
+      "editSuccess": "Changes saved.",
+      "editError": "Could not save the changes. Check the fields and try again."
+    },
+    "editPage": {
+      "metaTitle": "Edit book",
+      "eyebrow": "Library",
+      "title": "Edit book",
+      "subtitle": "Update the book details. Changes are saved to your library right away."
+    },
+    "editConfirm": {
+      "confirm": "Yes, change it",
+      "cancel": "Keep as is",
+      "readingStatus": {
+        "title": "Change reading status?",
+        "description": "You entered data for the current status (rating, notes, or dates). Changing the status will clear that data."
+      },
+      "ownershipStatus": {
+        "title": "Change ownership status?",
+        "description": "You entered data for the current status (purchase, delivery, or loan). Changing the status will clear that data."
+      },
+      "series": {
+        "title": "Remove the book from its series?",
+        "description": "The book will no longer belong to the series, and its part number will be cleared."
+      },
+      "queue": {
+        "title": "Remove the book from the queue?",
+        "description": "The book will no longer appear in your reading queue. You can add it back later."
+      }
+    },
+    "cancelConfirm": {
+      "title": "Discard changes?",
+      "description": "You have unsaved changes. If you leave now, they will be lost."
+    },
+    "editState": {
+      "loading": "Loading the book…",
+      "notFoundTitle": "Book not found",
+      "notFoundDescription": "It may have been deleted, or the link is incorrect.",
+      "errorTitle": "Could not load the book",
+      "errorDescription": "Something went wrong. Try refreshing the page in a moment.",
+      "backToLibrary": "Back to library"
+    },
+    "cover": {
+      "title": "Book cover",
+      "upload": {
+        "title": "Drag an image here",
+        "browse": "Upload a cover",
+        "formats": "Format: JPG, PNG · Max {max} MB",
+        "recommended": "Recommended size: 1200 × 1600",
+        "paste": "or paste an image from the clipboard (Ctrl/Cmd+V)"
+      },
+      "replace": "Replace cover",
+      "replaceSuccess": "Cover updated",
+      "replacing": "Replacing cover…",
+      "remove": "Remove cover",
+      "converting": "Converting…",
+      "previewAlt": "Book cover",
+      "viewer": {
+        "open": "View the cover at full size",
+        "title": "Book cover",
+        "download": "Download"
+      },
+      "removeConfirm": {
+        "title": "Remove the cover?",
+        "description": "The cover will be removed after you save your changes. You can add a new cover later.",
+        "confirm": "Remove",
+        "cancel": "Cancel"
+      },
+      "crop": {
+        "title": "Crop the cover",
+        "description": "Position and zoom the image to a 3:4 format.",
+        "region": "Cover crop area",
+        "zoom": "Zoom",
+        "confirm": "Apply",
+        "cancel": "Cancel",
+        "error": "Could not process the image"
+      },
+      "errors": {
+        "type": "The file must be in JPG, PNG, or WEBP format",
+        "size": "The file size cannot exceed {max} MB",
+        "heic": "Could not convert the HEIC image. Try a different file.",
+        "upload": "Could not upload the cover"
+      }
+    }
+  }
+}

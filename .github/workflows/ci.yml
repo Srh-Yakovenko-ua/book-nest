@@ -1,10 +1,9 @@
 name: CI
 
 on:
-  push:
-    branches: [dev, stage, prod]
   pull_request:
     branches: [dev, stage, prod]
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -14,38 +13,23 @@ permissions:
   contents: read
 
 jobs:
-  ci:
-    name: Lint, typecheck, test, build
+  static:
+    name: Typecheck, lint, format, knip
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_USER: instagram
-          POSTGRES_PASSWORD: instagram_ci
-          POSTGRES_DB: instagram_clone_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    timeout-minutes: 10
 
     env:
-      DATABASE_URL: postgresql://instagram:instagram_ci@localhost:5432/instagram_clone_test
+      DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -54,7 +38,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Restore turbo cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .turbo
           key: turbo-${{ runner.os }}-${{ github.sha }}
@@ -73,11 +57,66 @@ jobs:
       - name: Dead code check (knip)
         run: pnpm knip
 
+  full:
+    name: Lint, typecheck, test, build
+    needs: [static]
+    if: >-
+      github.ref == 'refs/heads/stage' ||
+      github.ref == 'refs/heads/prod' ||
+      github.base_ref == 'stage' ||
+      github.base_ref == 'prod'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: booknest
+          POSTGRES_PASSWORD: booknest_ci
+          POSTGRES_DB: booknest_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://booknest:booknest_ci@localhost:5432/booknest_test
+      JWT_ACCESS_SECRET: ci-access-secret-0000000000000000000000000
+      JWT_REFRESH_SECRET: ci-refresh-secret-000000000000000000000000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore turbo cache
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
       - name: Build
         run: pnpm build
 
       - name: Apply migrations
-        run: pnpm --filter @app/api db:migration:run
+        run: pnpm --filter @app/api db:migrate:deploy
 
       - name: Test
         run: pnpm test

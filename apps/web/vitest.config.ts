@@ -1,16 +1,17 @@
+import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
 import react from "@vitejs/plugin-react-swc";
+import { playwright } from "@vitest/browser-playwright";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig({
-  define: {
-    __DEV__: JSON.stringify(true),
-    __PROD__: JSON.stringify(false),
-  },
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(dirname, "./src"),
     },
   },
   test: {
@@ -19,18 +20,40 @@ export default defineConfig({
         "src/**/*.d.ts",
         "src/**/*.test.{ts,tsx}",
         "src/**/*.spec.{ts,tsx}",
-        "src/main.tsx",
+        "src/app/**",
+        "src/middleware.ts",
         "src/components/ui/**",
       ],
       include: ["src/**/*.{ts,tsx}"],
       provider: "v8",
       reporter: ["text", "html"],
     },
-    css: false,
-    environment: "happy-dom",
-    exclude: ["node_modules", "dist", ".vite"],
-    globals: true,
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-    setupFiles: ["./vitest.setup.ts"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          css: false,
+          environment: "happy-dom",
+          exclude: ["node_modules", "dist", ".next"],
+          globals: true,
+          include: ["src/**/*.{test,spec}.{ts,tsx}"],
+          name: "unit",
+          setupFiles: ["./vitest.setup.ts"],
+        },
+      },
+      {
+        extends: true,
+        plugins: [storybookTest({ configDir: path.join(dirname, ".storybook") })],
+        test: {
+          browser: {
+            enabled: true,
+            headless: true,
+            instances: [{ browser: "chromium" }],
+            provider: playwright({}),
+          },
+          name: "storybook",
+        },
+      },
+    ],
   },
 });

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import type { INestApplication, ModuleMetadata } from "@nestjs/common";
+import type { INestApplication, InjectionToken, ModuleMetadata } from "@nestjs/common";
 
 import { type NestExpressApplication } from "@nestjs/platform-express";
 import { Test } from "@nestjs/testing";
@@ -12,12 +12,24 @@ import { RequestIdMiddleware } from "../core/middleware/request-id.middleware.js
 
 const JSON_BODY_LIMIT = "1mb";
 
+type ProviderOverride = {
+  provide: InjectionToken;
+  useValue: unknown;
+};
+
 export async function createTestApp(
   imports: NonNullable<ModuleMetadata["imports"]>,
+  overrides: ProviderOverride[] = [],
 ): Promise<INestApplication> {
-  const moduleRef = await Test.createTestingModule({
+  let builder = Test.createTestingModule({
     imports: [DatabaseModule, ...imports],
-  }).compile();
+  });
+
+  for (const override of overrides) {
+    builder = builder.overrideProvider(override.provide).useValue(override.useValue);
+  }
+
+  const moduleRef = await builder.compile();
 
   const app = moduleRef.createNestApplication<NestExpressApplication>();
 

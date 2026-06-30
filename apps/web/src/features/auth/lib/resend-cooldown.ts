@@ -1,0 +1,1 @@
+export const DEFAULT_RESEND_COOLDOWN_SECONDS = 60;

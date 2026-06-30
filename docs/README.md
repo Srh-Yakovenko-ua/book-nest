@@ -1,6 +1,6 @@
 # Documentation
 
-Project documentation for `monorepo-fullstack`.
+Project documentation for `book-nest`.
 
 ## Overview
 
@@ -19,7 +19,6 @@ One file per tool — "what is this, why do we have it, how to use it".
 
 - [pnpm workspaces & catalogs](./tools/monorepo.md)
 - [Turborepo](./tools/turborepo.md)
-- [Vite](./tools/vite.md)
 - [TypeScript](./tools/typescript.md)
 
 ### Code quality
@@ -44,6 +43,6 @@ One file per tool — "what is this, why do we have it, how to use it".
 
 ## Per-package READMEs
 
-- [`apps/web`](../apps/web/README.md) — FE package pointer
-- `apps/api` — BE package (phase 1, Express + Mongo)
-- `packages/shared` — shared types between FE and BE
+- [`apps/web`](../apps/web/README.md): Next.js frontend package
+- `apps/api`: NestJS + Prisma + Postgres backend package
+- `packages/shared`: shared types between frontend and backend

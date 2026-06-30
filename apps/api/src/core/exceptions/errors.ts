@@ -30,6 +30,13 @@ export class BadRequestError extends HttpError {
   }
 }
 
+export class ConflictError extends HttpError {
+  constructor(message = "Conflict", options?: { code?: string }) {
+    super(HTTP_STATUS.CONFLICT, message, { code: options?.code });
+    this.name = "ConflictError";
+  }
+}
+
 export class ForbiddenError extends HttpError {
   constructor(message = "Forbidden", options?: { code?: string }) {
     super(HTTP_STATUS.FORBIDDEN, message, { bodyless: true, code: options?.code });

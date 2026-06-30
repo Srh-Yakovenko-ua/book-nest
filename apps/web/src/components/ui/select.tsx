@@ -143,6 +143,9 @@ function SelectSeparator({
   );
 }
 
+const selectTriggerClassName =
+  "group/select-trigger flex w-full cursor-pointer items-center justify-between gap-1.5 rounded-lg border border-input bg-field py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:shrink-0";
+
 function SelectTrigger({
   className,
   size = "default",
@@ -155,42 +158,48 @@ function SelectTrigger({
   onClear?: () => void;
   size?: "default" | "sm";
 }) {
-  function handleClearPointerDown(event: React.PointerEvent<HTMLSpanElement>) {
-    event.stopPropagation();
-    event.preventDefault();
-    onClear?.();
+  if (!isClearable || !onClear) {
+    return (
+      <SelectPrimitive.Trigger
+        className={cn(selectTriggerClassName, "w-fit", className)}
+        data-size={size}
+        data-slot="select-trigger"
+        {...props}
+      >
+        {children}
+        <SelectPrimitive.Icon asChild>
+          <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+    );
   }
 
   return (
-    <SelectPrimitive.Trigger
-      className={cn(
-        "group/select-trigger flex w-fit cursor-pointer items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:shrink-0",
-        className,
-      )}
-      data-size={size}
-      data-slot="select-trigger"
-      {...props}
-    >
-      {children}
-      {isClearable && onClear && (
-        <span
-          aria-label="Clear"
-          className="ml-1 hidden size-4 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors group-not-data-placeholder/select-trigger:inline-flex hover:bg-muted hover:text-foreground"
-          onPointerDown={handleClearPointerDown}
-          role="button"
-        >
-          <XIcon className="size-3.5" />
-        </span>
-      )}
-      <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon
-          className={cn(
-            "pointer-events-none size-4 text-muted-foreground",
-            isClearable && "group-not-data-placeholder/select-trigger:hidden",
-          )}
-        />
-      </SelectPrimitive.Icon>
-    </SelectPrimitive.Trigger>
+    <div className="group/select-clear relative w-full">
+      <SelectPrimitive.Trigger
+        className={cn(selectTriggerClassName, "pr-9", className)}
+        data-size={size}
+        data-slot="select-trigger"
+        {...props}
+      >
+        {children}
+        <SelectPrimitive.Icon asChild>
+          <ChevronDownIcon className="pointer-events-none size-4 text-muted-foreground" />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+      <button
+        aria-label="Clear"
+        className="absolute top-1/2 right-7 hidden size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors group-not-has-data-placeholder/select-clear:flex hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        data-slot="select-clear"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClear();
+        }}
+        type="button"
+      >
+        <XIcon className="size-3.5" />
+      </button>
+    </div>
   );
 }
 

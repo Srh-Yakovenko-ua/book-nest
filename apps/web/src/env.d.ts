@@ -1,19 +1,11 @@
-/// <reference types="vite/client" />
-/// <reference types="vite-plugin-svgr/client" />
 import "@total-typescript/ts-reset";
 
-declare global {
-  const __APP_VERSION__: string;
-  const __DEV__: boolean;
-  const __PROD__: boolean;
+import type { routing } from "@/i18n/routing";
+import type messages from "@/messages/en.json";
 
-  interface ImportMeta {
-    readonly env: ImportMetaEnv;
-  }
-
-  interface ImportMetaEnv {
-    readonly VITE_API_BASE_URL: string;
+declare module "next-intl" {
+  interface AppConfig {
+    Locale: (typeof routing.locales)[number];
+    Messages: typeof messages;
   }
 }
-
-export {};

@@ -9,15 +9,13 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { NextIntlClientProvider } from "next-intl";
 import { type ReactElement, type ReactNode } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router";
+
+import messages from "@/messages/uk.json";
 
 type RenderProvidersOptions = Omit<RenderOptions, "wrapper"> & {
   queryClient?: QueryClient;
-};
-
-type RenderRouterOptions = RenderProvidersOptions & {
-  initialEntries?: string[];
 };
 
 export function createTestQueryClient(): QueryClient {
@@ -36,25 +34,14 @@ export function renderWithProviders(
   const client = queryClient ?? createTestQueryClient();
 
   function Wrapper({ children }: { children: ReactNode }) {
-    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+    return (
+      <NextIntlClientProvider locale="uk" messages={messages}>
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      </NextIntlClientProvider>
+    );
   }
 
   const result = render(ui, { wrapper: Wrapper, ...options });
-  return { ...result, queryClient: client };
-}
-
-export function renderWithRouter(
-  element: ReactElement,
-  { initialEntries = ["/"], queryClient }: RenderRouterOptions = {},
-): RenderResult & { queryClient: QueryClient } {
-  const client = queryClient ?? createTestQueryClient();
-  const router = createMemoryRouter([{ element, path: "/" }], { initialEntries });
-
-  const result = render(
-    <QueryClientProvider client={client}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>,
-  );
   return { ...result, queryClient: client };
 }
 

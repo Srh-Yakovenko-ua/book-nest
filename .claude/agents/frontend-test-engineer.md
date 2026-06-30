@@ -129,6 +129,7 @@ For mutations, return the expected response for the POST.
 3. **Use `userEvent`, never `fireEvent`.**
 4. **No implementation details.** Query by role/label/text, not by CSS class or component name.
 5. **No mocking React Query.** Mock at the fetch level.
+6. **Follow `docs/code-principles.md` §0.0.** The twelve levers govern test code too: one behavior per test (decompose), assert through the public surface never internals (modularity + isolation), reuse `renderWithProviders`/`renderWithRouter` instead of bespoke setup (standardize), no speculative test helper for a single caller (cut accidental complexity).
 
 # Workflow
 

@@ -1,0 +1,242 @@
+name: booknest
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - edge
+    mem_limit: 96m
+    depends_on:
+      - web-prod
+      - api-prod
+      - web-dev
+      - api-dev
+
+  db-prod:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_USER: ${PROD_POSTGRES_USER:-booknest}
+      POSTGRES_PASSWORD: ${PROD_POSTGRES_PASSWORD:?set PROD_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${PROD_POSTGRES_DB:-booknest}
+    volumes:
+      - db-prod-data:/var/lib/postgresql/data
+    networks:
+      - prod-internal
+    mem_limit: 512m
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${PROD_POSTGRES_USER:-booknest} -d ${PROD_POSTGRES_DB:-booknest}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api-prod:
+    image: ${API_IMAGE:-ghcr.io/srh-yakovenko-ua/booknest-api}:${PROD_TAG:-prod}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${PROD_POSTGRES_USER:-booknest}:${PROD_POSTGRES_PASSWORD}@db-prod:5432/${PROD_POSTGRES_DB:-booknest}
+      CORS_ORIGINS: https://book-nest.net
+      LOG_LEVEL: ${PROD_LOG_LEVEL:-info}
+      ENABLE_SWAGGER: ${PROD_ENABLE_SWAGGER:-false}
+      TRACING_ENABLED: "false"
+      JWT_ACCESS_SECRET: ${PROD_JWT_ACCESS_SECRET:?set PROD_JWT_ACCESS_SECRET in .env}
+      JWT_REFRESH_SECRET: ${PROD_JWT_REFRESH_SECRET:?set PROD_JWT_REFRESH_SECRET in .env}
+      ACCESS_TOKEN_TTL: "15m"
+      REFRESH_TOKEN_TTL_DAYS: "7"
+      COOKIE_SECURE: "true"
+      WEB_BASE_URL: https://book-nest.net
+      SMTP_HOST: ${PROD_SMTP_HOST:-live.smtp.mailtrap.io}
+      SMTP_PORT: ${PROD_SMTP_PORT:-587}
+      SMTP_SECURE: ${PROD_SMTP_SECURE:-false}
+      SMTP_USER: ${PROD_SMTP_USER:-api}
+      SMTP_PASS: ${PROD_SMTP_PASS:-}
+      MAIL_FROM: BookNest <no-reply@book-nest.net>
+      EMAIL_VERIFICATION_TTL_MINUTES: "60"
+      RESEND_COOLDOWN_SECONDS: "60"
+      R2_ENDPOINT: https://440b6e63826c7fd04d634fb176eb576f.r2.cloudflarestorage.com
+      R2_BUCKET: book-nest-prod
+      R2_PUBLIC_BASE_URL: https://media.book-nest.net
+      R2_REGION: auto
+      R2_FORCE_PATH_STYLE: "true"
+      R2_ACCESS_KEY_ID: ${PROD_R2_ACCESS_KEY_ID:?set PROD_R2_ACCESS_KEY_ID in .env}
+      R2_SECRET_ACCESS_KEY: ${PROD_R2_SECRET_ACCESS_KEY:?set PROD_R2_SECRET_ACCESS_KEY in .env}
+    networks:
+      - edge
+      - prod-internal
+    mem_limit: 384m
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      db-prod:
+        condition: service_healthy
+
+  web-prod:
+    image: ${WEB_IMAGE:-ghcr.io/srh-yakovenko-ua/booknest-web}:${PROD_TAG:-prod}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      API_BASE_URL: http://api-prod:4000
+    networks:
+      - edge
+    mem_limit: 384m
+    depends_on:
+      - api-prod
+
+  db-dev:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ${DEV_POSTGRES_USER:-booknest}
+      POSTGRES_PASSWORD: ${DEV_POSTGRES_PASSWORD:?set DEV_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${DEV_POSTGRES_DB:-booknest}
+    volumes:
+      - db-dev-data:/var/lib/postgresql/data
+    networks:
+      - dev-internal
+    mem_limit: 512m
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DEV_POSTGRES_USER:-booknest} -d ${DEV_POSTGRES_DB:-booknest}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api-dev:
+    image: ${API_IMAGE:-ghcr.io/srh-yakovenko-ua/booknest-api}:${DEV_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${DEV_POSTGRES_USER:-booknest}:${DEV_POSTGRES_PASSWORD}@db-dev:5432/${DEV_POSTGRES_DB:-booknest}
+      CORS_ORIGINS: https://dev.book-nest.net
+      LOG_LEVEL: ${DEV_LOG_LEVEL:-debug}
+      ENABLE_SWAGGER: ${DEV_ENABLE_SWAGGER:-true}
+      TRACING_ENABLED: "false"
+      JWT_ACCESS_SECRET: ${DEV_JWT_ACCESS_SECRET:?set DEV_JWT_ACCESS_SECRET in .env}
+      JWT_REFRESH_SECRET: ${DEV_JWT_REFRESH_SECRET:?set DEV_JWT_REFRESH_SECRET in .env}
+      ACCESS_TOKEN_TTL: "15m"
+      REFRESH_TOKEN_TTL_DAYS: "7"
+      COOKIE_SECURE: "true"
+      WEB_BASE_URL: https://dev.book-nest.net
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      MAIL_FROM: BookNest <no-reply@book-nest.net>
+      EMAIL_VERIFICATION_TTL_MINUTES: "60"
+      RESEND_COOLDOWN_SECONDS: "60"
+      R2_ENDPOINT: https://440b6e63826c7fd04d634fb176eb576f.r2.cloudflarestorage.com
+      R2_BUCKET: book-nest-dev
+      R2_PUBLIC_BASE_URL: https://media.dev.book-nest.net
+      R2_REGION: auto
+      R2_FORCE_PATH_STYLE: "true"
+      R2_ACCESS_KEY_ID: ${DEV_R2_ACCESS_KEY_ID:?set DEV_R2_ACCESS_KEY_ID in .env}
+      R2_SECRET_ACCESS_KEY: ${DEV_R2_SECRET_ACCESS_KEY:?set DEV_R2_SECRET_ACCESS_KEY in .env}
+    networks:
+      - edge
+      - dev-internal
+    mem_limit: 384m
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      db-dev:
+        condition: service_healthy
+
+  web-dev:
+    image: ${WEB_IMAGE:-ghcr.io/srh-yakovenko-ua/booknest-web}:${DEV_TAG:-dev}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      API_BASE_URL: http://api-dev:4000
+    networks:
+      - edge
+    mem_limit: 384m
+    depends_on:
+      - api-dev
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: "5000"
+    volumes:
+      - mailpit-data:/data
+    networks:
+      - edge
+      - dev-internal
+    mem_limit: 128m
+
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:25
+    restart: unless-stopped
+    environment:
+      CB_SERVER_NAME: BookNest DB
+      CB_SERVER_URL: https://db.book-nest.net
+      CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED: "false"
+      CLOUDBEAVER_FORCE_HTTPS: "false"
+      PROXY_TYPE: nginx
+    volumes:
+      - cloudbeaver-data:/opt/cloudbeaver/workspace
+    networks:
+      - edge
+      - dev-internal
+      - prod-internal
+    mem_limit: 512m
+
+networks:
+  edge:
+  prod-internal:
+  dev-internal:
+
+volumes:
+  caddy-data:
+  caddy-config:
+  db-prod-data:
+  db-dev-data:
+  mailpit-data:
+  cloudbeaver-data:

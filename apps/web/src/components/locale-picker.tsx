@@ -1,4 +1,6 @@
-import { useTranslation } from "react-i18next";
+"use client";
+
+import { useLocale, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -7,40 +9,43 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type Locale, LOCALES, LocaleSchema } from "@/lib/i18n/schema";
-import { useLocale } from "@/lib/i18n/use-locale";
+import { usePathname, useRouter } from "@/i18n/navigation";
+import { type Locale, LOCALES, routing } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 const LOCALE_LABELS: Record<Locale, string> = {
   en: "English",
-  ru: "Русский",
   uk: "Українська",
 };
 
 const LOCALE_SHORT: Record<Locale, string> = {
   en: "EN",
-  ru: "RU",
   uk: "UK",
 };
 
-export function LocalePicker() {
-  const { locale, setLocale } = useLocale();
-  const { t } = useTranslation();
+export function LocalePicker({ triggerClassName }: { triggerClassName?: string }) {
+  const locale = useLocale();
+  const t = useTranslations("localePicker");
+  const router = useRouter();
+  const pathname = usePathname();
 
   function handleLocaleSelect(event: Event) {
     const target = event.currentTarget;
     if (!(target instanceof HTMLElement)) return;
-    const parsed = LocaleSchema.safeParse(target.dataset.locale);
-    if (!parsed.success) return;
-    setLocale(parsed.data);
+    const value = target.dataset.locale;
+    if (!value || !isLocale(value)) return;
+    router.replace(pathname, { locale: value });
   }
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label={t("localePicker.ariaLabel")}
-          className="h-9 rounded-lg px-3 font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase transition-all duration-150 hover:bg-muted hover:text-foreground"
+          aria-label={t("ariaLabel")}
+          className={cn(
+            "h-9 rounded-lg px-3 font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase transition-all duration-150 hover:bg-muted hover:text-foreground",
+            triggerClassName,
+          )}
           variant="ghost"
         >
           {LOCALE_SHORT[locale]}
@@ -70,4 +75,8 @@ export function LocalePicker() {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+}
+
+function isLocale(value: string): value is Locale {
+  return (routing.locales as readonly string[]).includes(value);
 }

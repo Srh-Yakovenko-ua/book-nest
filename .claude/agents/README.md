@@ -22,37 +22,38 @@ Subagents are useful for:
 
 ### Implementation (can Write/Edit code)
 
-| Agent                                                   | Model  | When to use                                                                                                                 |
-| ------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------- |
-| [`frontend-engineer`](./frontend-engineer.md)           | sonnet | Writing, modifying, or debugging React code in `apps/web` — structure and logic                                             |
-| [`design-engineer`](./design-engineer.md)               | sonnet | Visual polish, typography, colors, motion, interaction states, responsive rhythm                                            |
-| [`backend-engineer`](./backend-engineer.md)             | opus   | Writing, modifying, or debugging NestJS + TypeORM code in `apps/api` (controllers, services, repositories, guards, modules) |
-| [`frontend-test-engineer`](./frontend-test-engineer.md) | sonnet | Vitest + React Testing Library tests for `apps/web`                                                                         |
-| [`backend-test-engineer`](./backend-test-engineer.md)   | opus   | Vitest + supertest tests for `apps/api` via `createTestApp([modules])` + `@nestjs/testing`                                  |
-| [`refactor-specialist`](./refactor-specialist.md)       | sonnet | Cleaning up messy code, removing dead code, simplifying — behavior-preserving                                               |
+| Agent                                                   | Model | When to use                                                                                                                |
+| ------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------- |
+| [`frontend-engineer`](./frontend-engineer.md)           | opus  | Writing, modifying, or debugging React code in `apps/web` — structure and logic                                            |
+| [`design-engineer`](./design-engineer.md)               | opus  | Visual polish, typography, colors, motion, interaction states, responsive rhythm                                           |
+| [`backend-engineer`](./backend-engineer.md)             | opus  | Writing, modifying, or debugging NestJS + Prisma code in `apps/api` (controllers, services, repositories, guards, modules) |
+| [`frontend-test-engineer`](./frontend-test-engineer.md) | opus  | Vitest + React Testing Library tests for `apps/web`                                                                        |
+| [`backend-test-engineer`](./backend-test-engineer.md)   | opus  | Vitest + supertest tests for `apps/api` via `createTestApp([modules])` + `@nestjs/testing`                                 |
+| [`refactor-specialist`](./refactor-specialist.md)       | opus  | Cleaning up messy code, removing dead code, simplifying — behavior-preserving                                              |
 
 ### Documentation (can Write/Edit `docs/features/**` only)
 
-| Agent                                                     | Model  | When to use                                                                                      |
-| --------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------ |
-| [`feature-context-curator`](./feature-context-curator.md) | sonnet | Writing or updating end-to-end feature docs in `docs/features/<name>.md` — FE↔shared↔BE full map |
+| Agent                                                     | Model | When to use                                                                                      |
+| --------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| [`feature-context-curator`](./feature-context-curator.md) | opus  | Writing or updating end-to-end feature docs in `docs/features/<name>.md` — FE↔shared↔BE full map |
 
 ### Investigation & review (read-only)
 
-| Agent                                                               | Model  | When to use                                                                                 |
-| ------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------- |
-| [`frontend-bug-hunter`](./frontend-bug-hunter.md)                   | opus   | Browser/UI bug — reproduce via Playwright, isolate, diagnose root cause                     |
-| [`backend-bug-hunter`](./backend-bug-hunter.md)                     | opus   | Server-side bug — reproduce via curl + pino logs, isolate, diagnose root cause              |
-| [`code-reviewer`](./code-reviewer.md)                               | opus   | Generalist diff review before commit — pattern compliance, correctness, cleanup             |
-| [`frontend-performance-auditor`](./frontend-performance-auditor.md) | sonnet | Bundle size, re-renders, web vitals, memory leaks, CLS/LCP issues                           |
-| [`accessibility-auditor`](./accessibility-auditor.md)               | sonnet | WCAG compliance, keyboard nav, ARIA, contrast, focus management                             |
-| [`security-reviewer`](./security-reviewer.md)                       | opus   | XSS, CSRF, secrets, SQL injection, cookies/CORS/headers, auth/authz, dep CVEs               |
-| [`migration-reviewer`](./migration-reviewer.md)                     | opus   | TypeORM/Postgres migration safety — data loss, destructive DDL, locks, down() reversibility |
+| Agent                                                               | Model | When to use                                                                                      |
+| ------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| [`frontend-bug-hunter`](./frontend-bug-hunter.md)                   | opus  | Browser/UI bug — reproduce via Playwright, isolate, diagnose root cause                          |
+| [`backend-bug-hunter`](./backend-bug-hunter.md)                     | opus  | Server-side bug — reproduce via curl + pino logs, isolate, diagnose root cause                   |
+| [`code-reviewer`](./code-reviewer.md)                               | opus  | Generalist diff review before commit — pattern compliance, correctness, cleanup                  |
+| [`frontend-performance-auditor`](./frontend-performance-auditor.md) | opus  | Bundle size, re-renders, web vitals, memory leaks, CLS/LCP issues                                |
+| [`accessibility-auditor`](./accessibility-auditor.md)               | opus  | WCAG compliance, keyboard nav, ARIA, contrast, focus management                                  |
+| [`seo-auditor`](./seo-auditor.md)                                   | opus  | SSR markup, per-route/locale metadata, hreflang, sitemap/robots, indexability                    |
+| [`security-reviewer`](./security-reviewer.md)                       | opus  | XSS, CSRF, secrets, SQL injection, cookies/CORS/headers, auth/authz, dep CVEs                    |
+| [`migration-reviewer`](./migration-reviewer.md)                     | opus  | Prisma/Postgres migration safety — data loss, destructive DDL, locks, forward-only reversibility |
 
-### Why opus for some, sonnet for others
+### Model policy
 
-- **opus** — deeper reasoning, slower. Used for the bug-hunters, code-reviewer, and security-reviewer because those are high-stakes tasks where missing something is expensive.
-- **sonnet** — faster, good enough for most work. Used for implementation and specialized audits.
+- **All agents run on opus** — by project choice, every subagent uses the deepest model regardless of task. Maximum reasoning quality is prioritized over speed and cost.
+- If cost becomes a concern, downgrade the lowest-stakes agents (tests, docs, read-only audits) to sonnet first — they tolerate it best.
 
 ### How to decide which agent to delegate to
 
@@ -60,7 +61,7 @@ Subagents are useful for:
 Writing new code?
 ├── Frontend structure/logic → frontend-engineer
 ├── Frontend visual polish / motion / typography → design-engineer
-├── Backend (NestJS + @nestjs/typeorm) → backend-engineer
+├── Backend (NestJS + Prisma) → backend-engineer
 ├── Frontend test (Vitest + RTL) → frontend-test-engineer
 ├── Backend test (Vitest + supertest + @nestjs/testing) → backend-test-engineer
 └── Cleanup → refactor-specialist
@@ -81,6 +82,7 @@ Reviewing a diff before commit?
 ├── General review → code-reviewer
 ├── FE performance concern → frontend-performance-auditor
 ├── A11y concern → accessibility-auditor
+├── SEO / SSR markup concern → seo-auditor
 ├── Security-sensitive change → security-reviewer
 └── Migration / schema change → migration-reviewer
 ```

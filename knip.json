@@ -4,61 +4,45 @@
   "ignoreBinaries": ["lsof"],
   "workspaces": {
     ".": {
-      "ignore": ["api/**"]
+      "ignore": ["api/**", ".claude/**"]
     },
     "apps/web": {
       "project": ["src/**/*.{ts,tsx}"],
+      "entry": ["orval.config.ts"],
       "ignore": [
         "src/components/ui/**",
+        "src/shared/api/generated/**",
+        "src/shared/api/mutator.ts",
         "src/test-utils.tsx",
         "src/lib/api-errors.ts",
-        "src/lib/env.ts",
         "src/lib/format.ts",
-        "src/lib/gradient-from-string.ts",
-        "src/lib/http-client.ts"
+        "src/lib/gradient-from-string.ts"
       ],
       "ignoreDependencies": [
-        "@app/shared",
+        "@fontsource-variable/geist-mono",
+        "@fontsource-variable/manrope",
+        "@fontsource-variable/playfair-display",
         "@hookform/devtools",
-        "@hookform/resolvers",
         "@tanstack/query-sync-storage-persister",
         "@tanstack/react-query-persist-client",
         "@tanstack/react-table",
         "@tanstack/react-virtual",
-        "@testing-library/user-event",
-        "cmdk",
-        "date-fns",
         "input-otp",
         "nanoid",
-        "react-day-picker",
-        "react-hook-form",
-        "recharts",
+        "postcss",
+        "shadcn",
         "superjson",
+        "tailwindcss",
         "ts-pattern",
-        "type-fest",
-        "vaul",
-        "zustand"
+        "tw-animate-css",
+        "type-fest"
       ]
     },
     "apps/api": {
-      "project": ["src/**/*.ts"],
-      "entry": [
-        "src/index.ts",
-        "src/core/database/data-source.ts",
-        "src/core/database/migrations/*.ts"
-      ],
-      "ignore": ["src/test/truncate.ts"],
-      "ignoreDependencies": [
-        "@nestjs/schedule",
-        "@nestjs/throttler",
-        "@types/nodemailer",
-        "bcryptjs",
-        "date-fns",
-        "jose",
-        "nodemailer",
-        "pino-pretty",
-        "ua-parser-js"
-      ]
+      "project": ["src/**/*.ts", "!src/generated/**"],
+      "entry": ["src/index.ts"],
+      "prisma": false,
+      "ignoreDependencies": ["@nestjs/schedule", "@prisma/client", "pino-pretty", "ua-parser-js"]
     },
     "packages/shared": {
       "project": ["src/**/*.ts"]

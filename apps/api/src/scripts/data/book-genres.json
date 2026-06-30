@@ -1,0 +1,624 @@
+{
+  "version": 1,
+  "entity": "book_genres",
+  "description": "Default predefined genres for BookNest autocomplete multi-select.",
+  "items": [
+    {
+      "id": "fentezi",
+      "name": "Фентезі",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "temne-fentezi",
+      "name": "Темне фентезі",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "miske-fentezi",
+      "name": "Міське фентезі",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "epichne-fentezi",
+      "name": "Епічне фентезі",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "cozy-fantasy",
+      "name": "Cozy fantasy",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "naukova-fantastyka",
+      "name": "Наукова фантастика",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "antyutopiia",
+      "name": "Антиутопія",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "postapokalipsys",
+      "name": "Постапокаліпсис",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "kiberpank",
+      "name": "Кіберпанк",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "stympank",
+      "name": "Стимпанк",
+      "group": "fantasy_sci_fi",
+      "groupName": "Фентезі та фантастика",
+      "isDefault": true
+    },
+    {
+      "id": "roman",
+      "name": "Роман",
+      "group": "fiction",
+      "groupName": "Художня проза",
+      "isDefault": true
+    },
+    {
+      "id": "suchasna-proza",
+      "name": "Сучасна проза",
+      "group": "fiction",
+      "groupName": "Художня проза",
+      "isDefault": true
+    },
+    {
+      "id": "klasychna-literatura",
+      "name": "Класична література",
+      "group": "fiction",
+      "groupName": "Художня проза",
+      "isDefault": true
+    },
+    {
+      "id": "istorychnyy-roman",
+      "name": "Історичний роман",
+      "group": "fiction",
+      "groupName": "Художня проза",
+      "isDefault": true
+    },
+    {
+      "id": "simeyna-saha",
+      "name": "Сімейна сага",
+      "group": "fiction",
+      "groupName": "Художня проза",
+      "isDefault": true
+    },
+    {
+      "id": "sotsialna-proza",
+      "name": "Соціальна проза",
+      "group": "fiction",
+      "groupName": "Художня проза",
+      "isDefault": true
+    },
+    {
+      "id": "psykholohichna-proza",
+      "name": "Психологічна проза",
+      "group": "fiction",
+      "groupName": "Художня проза",
+      "isDefault": true
+    },
+    {
+      "id": "romantyka",
+      "name": "Романтика",
+      "group": "romance",
+      "groupName": "Романтика",
+      "isDefault": true
+    },
+    {
+      "id": "suchasna-romantyka",
+      "name": "Сучасна романтика",
+      "group": "romance",
+      "groupName": "Романтика",
+      "isDefault": true
+    },
+    {
+      "id": "istorychna-romantyka",
+      "name": "Історична романтика",
+      "group": "romance",
+      "groupName": "Романтика",
+      "isDefault": true
+    },
+    {
+      "id": "fentezi-romantyka",
+      "name": "Фентезі-романтика",
+      "group": "romance",
+      "groupName": "Романтика",
+      "isDefault": true
+    },
+    {
+      "id": "paranormalna-romantyka",
+      "name": "Паранормальна романтика",
+      "group": "romance",
+      "groupName": "Романтика",
+      "isDefault": true
+    },
+    {
+      "id": "romantychna-komediia",
+      "name": "Романтична комедія",
+      "group": "romance",
+      "groupName": "Романтика",
+      "isDefault": true
+    },
+    {
+      "id": "detektyv",
+      "name": "Детектив",
+      "group": "mystery_thriller",
+      "groupName": "Детективи та трилери",
+      "isDefault": true
+    },
+    {
+      "id": "klasychnyy-detektyv",
+      "name": "Класичний детектив",
+      "group": "mystery_thriller",
+      "groupName": "Детективи та трилери",
+      "isDefault": true
+    },
+    {
+      "id": "psykholohichnyy-detektyv",
+      "name": "Психологічний детектив",
+      "group": "mystery_thriller",
+      "groupName": "Детективи та трилери",
+      "isDefault": true
+    },
+    {
+      "id": "politseyskyy-detektyv",
+      "name": "Поліцейський детектив",
+      "group": "mystery_thriller",
+      "groupName": "Детективи та трилери",
+      "isDefault": true
+    },
+    {
+      "id": "kryminalnyy-roman",
+      "name": "Кримінальний роман",
+      "group": "mystery_thriller",
+      "groupName": "Детективи та трилери",
+      "isDefault": true
+    },
+    {
+      "id": "tryler",
+      "name": "Трилер",
+      "group": "mystery_thriller",
+      "groupName": "Детективи та трилери",
+      "isDefault": true
+    },
+    {
+      "id": "psykholohichnyy-tryler",
+      "name": "Психологічний трилер",
+      "group": "mystery_thriller",
+      "groupName": "Детективи та трилери",
+      "isDefault": true
+    },
+    {
+      "id": "mistychnyy-tryler",
+      "name": "Містичний трилер",
+      "group": "mystery_thriller",
+      "groupName": "Детективи та трилери",
+      "isDefault": true
+    },
+    {
+      "id": "shpyhunskyy-tryler",
+      "name": "Шпигунський трилер",
+      "group": "mystery_thriller",
+      "groupName": "Детективи та трилери",
+      "isDefault": true
+    },
+    {
+      "id": "horor",
+      "name": "Горор",
+      "group": "horror_mystic",
+      "groupName": "Горор та містика",
+      "isDefault": true
+    },
+    {
+      "id": "mistyka",
+      "name": "Містика",
+      "group": "horror_mystic",
+      "groupName": "Горор та містика",
+      "isDefault": true
+    },
+    {
+      "id": "hotychnyy-roman",
+      "name": "Готичний роман",
+      "group": "horror_mystic",
+      "groupName": "Горор та містика",
+      "isDefault": true
+    },
+    {
+      "id": "paranormalne",
+      "name": "Паранормальне",
+      "group": "horror_mystic",
+      "groupName": "Горор та містика",
+      "isDefault": true
+    },
+    {
+      "id": "saspens",
+      "name": "Саспенс",
+      "group": "horror_mystic",
+      "groupName": "Горор та містика",
+      "isDefault": true
+    },
+    {
+      "id": "young-adult",
+      "name": "Young Adult",
+      "group": "young_readers",
+      "groupName": "Дитяча та підліткова література",
+      "isDefault": true
+    },
+    {
+      "id": "new-adult",
+      "name": "New Adult",
+      "group": "young_readers",
+      "groupName": "Дитяча та підліткова література",
+      "isDefault": true
+    },
+    {
+      "id": "pidlitkova-literatura",
+      "name": "Підліткова література",
+      "group": "young_readers",
+      "groupName": "Дитяча та підліткова література",
+      "isDefault": true
+    },
+    {
+      "id": "dytiacha-literatura",
+      "name": "Дитяча література",
+      "group": "young_readers",
+      "groupName": "Дитяча та підліткова література",
+      "isDefault": true
+    },
+    {
+      "id": "kazky",
+      "name": "Казки",
+      "group": "young_readers",
+      "groupName": "Дитяча та підліткова література",
+      "isDefault": true
+    },
+    {
+      "id": "pryhody",
+      "name": "Пригоди",
+      "group": "young_readers",
+      "groupName": "Дитяча та підліткова література",
+      "isDefault": true
+    },
+    {
+      "id": "komiksy",
+      "name": "Комікси",
+      "group": "young_readers",
+      "groupName": "Дитяча та підліткова література",
+      "isDefault": true
+    },
+    {
+      "id": "manga",
+      "name": "Манґа",
+      "group": "young_readers",
+      "groupName": "Дитяча та підліткова література",
+      "isDefault": true
+    },
+    {
+      "id": "hrafichnyy-roman",
+      "name": "Графічний роман",
+      "group": "young_readers",
+      "groupName": "Дитяча та підліткова література",
+      "isDefault": true
+    },
+    {
+      "id": "non-fikshn",
+      "name": "Нон-фікшн",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "biohrafiia",
+      "name": "Біографія",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "avtobiohrafiia",
+      "name": "Автобіографія",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "memuary",
+      "name": "Мемуари",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "eseistyka",
+      "name": "Есеїстика",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "publitsystyka",
+      "name": "Публіцистика",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "reportazhystyka",
+      "name": "Репортажистика",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "istoriia",
+      "name": "Історія",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "populiarna-nauka",
+      "name": "Популярна наука",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "psykholohiia",
+      "name": "Психологія",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "samorozvytok",
+      "name": "Саморозвиток",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "biznes",
+      "name": "Бізнес",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "menedzhment",
+      "name": "Менеджмент",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "marketynh",
+      "name": "Маркетинг",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "finansy",
+      "name": "Фінанси",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "ekonomika",
+      "name": "Економіка",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "polityka",
+      "name": "Політика",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "filosofiia",
+      "name": "Філософія",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "sotsiolohiia",
+      "name": "Соціологія",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "kultura",
+      "name": "Культура",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "mystetstvo",
+      "name": "Мистецтво",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "relihiia",
+      "name": "Релігія",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "dukhovnist",
+      "name": "Духовність",
+      "group": "non_fiction",
+      "groupName": "Нон-фікшн",
+      "isDefault": true
+    },
+    {
+      "id": "poeziia",
+      "name": "Поезія",
+      "group": "poetry_drama_humor",
+      "groupName": "Поезія, драма та гумор",
+      "isDefault": true
+    },
+    {
+      "id": "drama",
+      "name": "Драма",
+      "group": "poetry_drama_humor",
+      "groupName": "Поезія, драма та гумор",
+      "isDefault": true
+    },
+    {
+      "id": "piesa",
+      "name": "П’єса",
+      "group": "poetry_drama_humor",
+      "groupName": "Поезія, драма та гумор",
+      "isDefault": true
+    },
+    {
+      "id": "humor",
+      "name": "Гумор",
+      "group": "poetry_drama_humor",
+      "groupName": "Поезія, драма та гумор",
+      "isDefault": true
+    },
+    {
+      "id": "satyra",
+      "name": "Сатира",
+      "group": "poetry_drama_humor",
+      "groupName": "Поезія, драма та гумор",
+      "isDefault": true
+    },
+    {
+      "id": "navchalna-literatura",
+      "name": "Навчальна література",
+      "group": "education_professional",
+      "groupName": "Навчальна та професійна література",
+      "isDefault": true
+    },
+    {
+      "id": "profesiyna-literatura",
+      "name": "Професійна література",
+      "group": "education_professional",
+      "groupName": "Навчальна та професійна література",
+      "isDefault": true
+    },
+    {
+      "id": "it",
+      "name": "IT",
+      "group": "education_professional",
+      "groupName": "Навчальна та професійна література",
+      "isDefault": true
+    },
+    {
+      "id": "prohramuvannia",
+      "name": "Програмування",
+      "group": "education_professional",
+      "groupName": "Навчальна та професійна література",
+      "isDefault": true
+    },
+    {
+      "id": "medytsyna",
+      "name": "Медицина",
+      "group": "education_professional",
+      "groupName": "Навчальна та професійна література",
+      "isDefault": true
+    },
+    {
+      "id": "pravo",
+      "name": "Право",
+      "group": "education_professional",
+      "groupName": "Навчальна та професійна література",
+      "isDefault": true
+    },
+    {
+      "id": "osvita",
+      "name": "Освіта",
+      "group": "education_professional",
+      "groupName": "Навчальна та професійна література",
+      "isDefault": true
+    },
+    {
+      "id": "movy",
+      "name": "Мови",
+      "group": "education_professional",
+      "groupName": "Навчальна та професійна література",
+      "isDefault": true
+    },
+    {
+      "id": "pidruchnyk",
+      "name": "Підручник",
+      "group": "education_professional",
+      "groupName": "Навчальна та професійна література",
+      "isDefault": true
+    },
+    {
+      "id": "kulinariia",
+      "name": "Кулінарія",
+      "group": "lifestyle",
+      "groupName": "Lifestyle та хобі",
+      "isDefault": true
+    },
+    {
+      "id": "podorozhi",
+      "name": "Подорожі",
+      "group": "lifestyle",
+      "groupName": "Lifestyle та хобі",
+      "isDefault": true
+    },
+    {
+      "id": "sport",
+      "name": "Спорт",
+      "group": "lifestyle",
+      "groupName": "Lifestyle та хобі",
+      "isDefault": true
+    },
+    {
+      "id": "zdorovia",
+      "name": "Здоров’я",
+      "group": "lifestyle",
+      "groupName": "Lifestyle та хобі",
+      "isDefault": true
+    },
+    {
+      "id": "khobi",
+      "name": "Хобі",
+      "group": "lifestyle",
+      "groupName": "Lifestyle та хобі",
+      "isDefault": true
+    },
+    { "id": "inshe", "name": "Інше", "group": "other", "groupName": "Інше", "isDefault": true }
+  ]
+}

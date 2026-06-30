@@ -5,7 +5,7 @@ import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 
 import { MetricsService } from "./metrics.service.js";
 
-@ApiTags("Observability")
+@ApiTags("observability")
 @Controller("api/metrics")
 export class MetricsController {
   constructor(private readonly metricsService: MetricsService) {}
