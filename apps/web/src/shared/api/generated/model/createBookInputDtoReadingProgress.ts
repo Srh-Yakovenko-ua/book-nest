@@ -33,8 +33,8 @@ export type CreateBookInputDtoReadingProgress = {
    */
   pausedAt?: string | null;
   /**
-   * @minimum 1
-   * @maximum 5
+   * @minimum 0.5
+   * @maximum 10
    * @nullable
    */
   rating?: number | null;

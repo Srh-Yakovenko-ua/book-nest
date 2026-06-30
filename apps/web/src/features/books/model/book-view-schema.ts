@@ -51,6 +51,7 @@ const readingProgressViewSchema = z.object({
 });
 
 const seriesViewSchema = z.object({
+  authors: z.array(z.object({ id: z.string(), name: z.string() })),
   booksInSeries: z.number(),
   description: z.string().nullable(),
   finishedInSeries: z.number(),
@@ -62,7 +63,7 @@ const seriesViewSchema = z.object({
 
 export const bookViewSchema = z.object({
   ageCategory: AgeCategorySchema,
-  author: z.object({ id: z.string(), name: z.string() }),
+  authors: z.array(z.object({ id: z.string(), name: z.string() })),
   bookType: BookTypeSchema,
   cover: MediaViewSchema.nullish(),
   createdAt: z.string(),

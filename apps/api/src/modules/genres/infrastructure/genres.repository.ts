@@ -41,6 +41,41 @@ export class GenresRepository {
     return found !== null;
   }
 
+  async findKeysByName({ query, userId }: { query: string; userId: string }): Promise<string[]> {
+    const rows = await this.prisma.genre.findMany({
+      select: { key: true },
+      where: {
+        AND: [
+          { OR: [{ userId: null }, { userId }] },
+          {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { normalizedName: { contains: query, mode: "insensitive" } },
+            ],
+          },
+        ],
+      },
+    });
+    return [...new Set(rows.map((row) => row.key))];
+  }
+
+  findNamesByKeys({
+    keys,
+    userId,
+  }: {
+    keys: string[];
+    userId: string;
+  }): Promise<{ key: string; name: string }[]> {
+    if (keys.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.genre.findMany({
+      orderBy: { userId: { nulls: "first", sort: "asc" } },
+      select: { key: true, name: true },
+      where: { key: { in: keys }, OR: [{ userId: null }, { userId }] },
+    });
+  }
+
   async findSelectableKeys(userId: string, keys: string[]): Promise<string[]> {
     const rows = await this.prisma.genre.findMany({
       select: { key: true },

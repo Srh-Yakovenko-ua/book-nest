@@ -222,6 +222,9 @@ export const mediaControllerUpload = async (
   options?: RequestInit,
 ): Promise<mediaControllerUploadResponse> => {
   const formData = new FormData();
+  if (mediaControllerUploadBody.crop !== undefined) {
+    formData.append(`crop`, mediaControllerUploadBody.crop);
+  }
   formData.append(`file`, mediaControllerUploadBody.file);
   if (mediaControllerUploadBody.kind !== undefined) {
     formData.append(`kind`, mediaControllerUploadBody.kind);

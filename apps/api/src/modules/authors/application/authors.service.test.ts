@@ -535,3 +535,114 @@ describe("AuthorsService.materializeFromOpenLibrary", () => {
     );
   });
 });
+
+function buildReferencesService(overrides: {
+  findBaseByIds?: { id: string; name: string }[];
+  findByNormalized?: AuthorModel | null;
+  findGlobalByOpenLibraryKey?: AuthorModel | null;
+}): {
+  findBaseByIds: ReturnType<typeof vi.fn>;
+  service: AuthorsService;
+} {
+  const findBaseByIds = vi.fn().mockResolvedValue(overrides.findBaseByIds ?? []);
+  const repository = {
+    findBaseByIds,
+    findByNormalized: vi.fn().mockResolvedValue(overrides.findByNormalized ?? null),
+    findGlobalByOpenLibraryKey: vi
+      .fn()
+      .mockResolvedValue(overrides.findGlobalByOpenLibraryKey ?? null),
+    findVisibleById: vi.fn((unused: string, id: string) => Promise.resolve(author({ id }))),
+  } as unknown as AuthorsRepository;
+  const openLibraryClient = {} as unknown as OpenLibraryClient;
+  const wikidataClient = {} as unknown as WikidataClient;
+
+  const service = new AuthorsService(repository, openLibraryClient, wikidataClient);
+
+  return { findBaseByIds, service };
+}
+
+describe("AuthorsService.resolveReferences", () => {
+  it("resolves references in reference order and pairs them with names from a single batched fetch", async () => {
+    const { findBaseByIds, service } = buildReferencesService({
+      findBaseByIds: [
+        { id: GLOBAL_ID, name: "Neil Gaiman" },
+        { id: AUTHOR_ID, name: "Terry Pratchett" },
+      ],
+    });
+
+    const result = await service.resolveReferences({
+      references: [{ id: AUTHOR_ID }, { id: GLOBAL_ID }],
+      userId: USER_ID,
+    });
+
+    expect(result).toEqual([
+      { id: AUTHOR_ID, name: "Terry Pratchett" },
+      { id: GLOBAL_ID, name: "Neil Gaiman" },
+    ]);
+    expect(findBaseByIds).toHaveBeenCalledTimes(1);
+    expect(findBaseByIds).toHaveBeenCalledWith({ ids: [AUTHOR_ID, GLOBAL_ID], userId: USER_ID });
+  });
+
+  it("de-duplicates references that resolve to the same id keeping the first occurrence", async () => {
+    const { findBaseByIds, service } = buildReferencesService({
+      findBaseByIds: [{ id: AUTHOR_ID, name: "Terry Pratchett" }],
+    });
+
+    const result = await service.resolveReferences({
+      references: [{ id: AUTHOR_ID }, { id: AUTHOR_ID }],
+      userId: USER_ID,
+    });
+
+    expect(result).toEqual([{ id: AUTHOR_ID, name: "Terry Pratchett" }]);
+    expect(findBaseByIds).toHaveBeenCalledWith({ ids: [AUTHOR_ID], userId: USER_ID });
+  });
+
+  it("backfills an empty name when the batched fetch omits a resolved id", async () => {
+    const { service } = buildReferencesService({ findBaseByIds: [] });
+
+    const result = await service.resolveReferences({
+      references: [{ id: AUTHOR_ID }],
+      userId: USER_ID,
+    });
+
+    expect(result).toEqual([{ id: AUTHOR_ID, name: "" }]);
+  });
+
+  it("interprets a name reference through resolveOrCreate", async () => {
+    const { service } = buildReferencesService({
+      findBaseByIds: [{ id: GLOBAL_ID, name: "Frank Herbert" }],
+      findByNormalized: author({ id: GLOBAL_ID }),
+    });
+
+    const result = await service.resolveReferences({
+      references: [{ name: "Frank Herbert" }],
+      userId: USER_ID,
+    });
+
+    expect(result).toEqual([{ id: GLOBAL_ID, name: "Frank Herbert" }]);
+  });
+
+  it("interprets an open library key reference through materialize", async () => {
+    const existing = author({ id: GLOBAL_ID, openLibraryKey: OPEN_LIBRARY_KEY, userId: null });
+    const { service } = buildReferencesService({
+      findBaseByIds: [{ id: GLOBAL_ID, name: "George Orwell" }],
+      findGlobalByOpenLibraryKey: existing,
+    });
+
+    const result = await service.resolveReferences({
+      references: [{ openLibraryKey: OPEN_LIBRARY_KEY }],
+      userId: USER_ID,
+    });
+
+    expect(result).toEqual([{ id: GLOBAL_ID, name: "George Orwell" }]);
+  });
+
+  it("returns an empty list and skips the batched fetch when no references are given", async () => {
+    const { findBaseByIds, service } = buildReferencesService({});
+
+    const result = await service.resolveReferences({ references: [], userId: USER_ID });
+
+    expect(result).toEqual([]);
+    expect(findBaseByIds).not.toHaveBeenCalled();
+  });
+});

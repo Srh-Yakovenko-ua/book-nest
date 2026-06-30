@@ -1,5 +1,6 @@
 "use client";
 
+import { BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE, BOOK_SERIES_REQUIRED_MESSAGE } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
@@ -14,8 +15,14 @@ import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { Segmented } from "@/components/ui/segmented";
+import { Link } from "@/i18n/navigation";
 
-import type { CreateBookFormValues, SeriesSelection } from "../model/create-book-form";
+import type {
+  AuthorSelection,
+  CreateBookFormValues,
+  SeriesPartNumberConflict,
+  SeriesSelection,
+} from "../model/create-book-form";
 
 import { CreateSeriesDialog } from "./create-series-dialog";
 import { FormSection } from "./form-section";
@@ -24,24 +31,31 @@ import { SeriesAutocomplete } from "./series-autocomplete";
 const PART_NUMBER_MAX = 999;
 
 type BookTypeSectionProps = {
+  authorSelections: AuthorSelection[];
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
   onRequestSoloChange?: (apply: () => void) => void;
   onSeriesSelectionChange: (selection: null | SeriesSelection) => void;
+  seriesCleared: boolean;
+  seriesConflict: null | SeriesPartNumberConflict;
   seriesSelection: null | SeriesSelection;
   setValue: UseFormSetValue<CreateBookFormValues>;
 };
 
 export function BookTypeSection({
+  authorSelections,
   control,
   errors,
   onRequestSoloChange,
   onSeriesSelectionChange,
+  seriesCleared,
+  seriesConflict,
   seriesSelection,
   setValue,
 }: BookTypeSectionProps) {
   const t = useTranslations("books");
   const bookType = useWatch({ control, name: "bookType" }) ?? "solo";
+  const partNumberValue = useWatch({ control, name: "partNumber" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
 
@@ -84,8 +98,43 @@ export function BookTypeSection({
     applySolo();
   }
 
-  const seriesErrorMessage =
+  const rawSeriesError =
     typeof errors.newSeries?.message === "string" ? errors.newSeries.message : undefined;
+  const seriesRequired = rawSeriesError === BOOK_SERIES_REQUIRED_MESSAGE;
+  const seriesOtherError =
+    rawSeriesError !== undefined && !seriesRequired ? rawSeriesError : undefined;
+  const showSeriesError = !seriesCleared && (seriesRequired || seriesOtherError !== undefined);
+
+  function renderPartNumberError() {
+    if (seriesConflict && seriesConflict.partNumber === partNumberValue) {
+      return (
+        <p className="text-xs text-destructive" id="book-part-number-error" role="alert">
+          {t.rich("bookType.errors.partNumberTaken", {
+            link: (chunks) => (
+              <Link
+                className="font-medium underline underline-offset-2"
+                href={`/books/${seriesConflict.bookId}/edit`}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {chunks}
+              </Link>
+            ),
+            number: seriesConflict.partNumber,
+            title: seriesConflict.bookTitle,
+          })}
+        </p>
+      );
+    }
+    if (errors.partNumber?.message === BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE) {
+      return (
+        <p className="text-xs text-destructive" id="book-part-number-error" role="alert">
+          {t("bookType.errors.exceedsTotal")}
+        </p>
+      );
+    }
+    return <FieldError error={errors.partNumber} id="book-part-number-error" />;
+  }
 
   return (
     <FormSection description={t("bookType.description")} icon="layers" title={t("bookType.title")}>
@@ -111,9 +160,11 @@ export function BookTypeSection({
           <div className="flex flex-col gap-2">
             <Label htmlFor="book-series">{t("bookType.series")}</Label>
             <SeriesAutocomplete
-              describedBy={seriesErrorMessage ? "book-series-error" : undefined}
+              authorSelections={authorSelections}
+              describedBy={showSeriesError ? "book-series-error" : undefined}
               id="book-series"
-              invalid={seriesErrorMessage !== undefined}
+              invalid={showSeriesError}
+              label={t("bookType.series")}
               onChange={applySelection}
               onCreateRequest={(name) => {
                 setPendingName(name);
@@ -122,14 +173,21 @@ export function BookTypeSection({
               placeholder={t("bookType.seriesPlaceholder")}
               value={seriesSelection}
             />
-            {seriesSelection?.kind === "new" ? (
+            {seriesCleared ? (
+              <p className="text-xs text-warning" role="status">
+                {t("bookType.errors.seriesClearedAfterAuthorChange")}
+              </p>
+            ) : seriesSelection?.kind === "new" ? (
               <p className="flex items-center gap-1.5 text-xs text-primary">
                 {t("bookType.seriesDraft", { name: seriesSelection.name })}
               </p>
-            ) : null}
-            {seriesErrorMessage ? (
+            ) : seriesRequired ? (
               <p className="text-xs text-destructive" id="book-series-error" role="alert">
-                {seriesErrorMessage}
+                {t("bookType.errors.seriesRequired")}
+              </p>
+            ) : seriesOtherError ? (
+              <p className="text-xs text-destructive" id="book-series-error" role="alert">
+                {seriesOtherError}
               </p>
             ) : null}
           </div>
@@ -155,12 +213,13 @@ export function BookTypeSection({
                 {t("bookType.partNumberHint", { total: selectedTotalBooks })}
               </p>
             ) : null}
-            <FieldError error={errors.partNumber} id="book-part-number-error" />
+            {renderPartNumberError()}
           </div>
         </div>
       ) : null}
 
       <CreateSeriesDialog
+        authorSelections={authorSelections}
         initialName={pendingName}
         onConfirm={applySelection}
         onOpenChange={setDialogOpen}

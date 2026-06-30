@@ -7,7 +7,7 @@ import Image from "next/image";
 import { type ReactNode, useState } from "react";
 
 import { UiIcon, type UiIconName } from "@/components/icons";
-import { Rating } from "@/components/ui/rating";
+import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ownershipStatuses, readingStatuses, type StatusEntry } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
@@ -135,7 +135,7 @@ export function BookPreview({
               <span className="min-w-0 truncate">{publisherName}</span>
             </p>
           ) : null}
-          {showRating ? <Rating className="mt-0.5" size="sm" value={rating} /> : null}
+          {showRating ? <RatingScore className="mt-0.5" value={rating} /> : null}
         </div>
       </div>
 

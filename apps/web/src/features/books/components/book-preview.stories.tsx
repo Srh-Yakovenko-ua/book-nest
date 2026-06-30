@@ -72,7 +72,7 @@ export const Rich: Story = {
     isFavorite: true,
     ownershipStatus: "owned",
     publisherName: "Клуб Сімейного Дозвілля",
-    rating: 5,
+    rating: 9.5,
     readingStatus: "finished",
     tags: ["улюблене", "фентезі", "сапковський", "відьмак", "польська-проза", "магія"],
     title: "Останнє бажання",

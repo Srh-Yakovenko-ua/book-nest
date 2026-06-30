@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE } from "@app/shared";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -64,7 +65,7 @@ describe("POST /api/books", () => {
   it("returns 401 when no Authorization header is present", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/books")
-      .send({ author: { name: "Frank Herbert" }, title: "Dune" });
+      .send({ authors: [{ name: "Frank Herbert" }], title: "Dune" });
 
     expect(res.status).toBe(401);
   });
@@ -73,7 +74,7 @@ describe("POST /api/books", () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       publisherName: "Penguin",
       title: "Dune",
     });
@@ -82,8 +83,8 @@ describe("POST /api/books", () => {
     expect(res.body.id).toMatch(UUID);
     expect(res.body.title).toBe("Dune");
     expect(res.body.userId).toBe(userId);
-    expect(res.body.author).toMatchObject({ name: "Frank Herbert" });
-    expect(res.body.author.id).toMatch(UUID);
+    expect(res.body.authors[0]).toMatchObject({ name: "Frank Herbert" });
+    expect(res.body.authors[0].id).toMatch(UUID);
     expect(res.body.publisher).toMatchObject({ name: "Penguin" });
     expect(res.body.publisher.id).toMatch(UUID);
     expect(res.body.readingStatus).toBe("not_started");
@@ -94,14 +95,14 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Сара Дж.  Маас" },
+      authors: [{ name: "Сара Дж.  Маас" }],
       description: "Line one\n\nLine   two",
       title: "  The   Assassin's    Blade  ",
     });
 
     expect(res.status).toBe(201);
     expect(res.body.title).toBe("The Assassin's Blade");
-    expect(res.body.author.name).toBe("Сара Дж. Маас");
+    expect(res.body.authors[0].name).toBe("Сара Дж. Маас");
     expect(res.body.description).toBe("Line one\n\nLine two");
   });
 
@@ -109,7 +110,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const tagged = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune <script>alert(1)</script>",
     });
     expect(tagged.status).toBe(400);
@@ -118,7 +119,7 @@ describe("POST /api/books", () => {
     );
 
     const bareLessThan = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Book <3 forever",
     });
     expect(bareLessThan.status).toBe(201);
@@ -134,7 +135,7 @@ describe("POST /api/books", () => {
 
     const res = await createBook(accessToken, {
       ageCategory: "16_plus",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       genres: ["fentezi", "romantyka"],
       language: "english",
       title: "Dune",
@@ -149,7 +150,10 @@ describe("POST /api/books", () => {
   it("applies classification defaults when genres, language and age category are omitted", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const res = await createBook(accessToken, { author: { name: "Frank Herbert" }, title: "Dune" });
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.genres).toEqual([]);
@@ -162,7 +166,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       formats: ["paper", "ebook"],
       title: "Dune",
     });
@@ -175,7 +179,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       formats: ["paper", "paper"],
       title: "Dune",
     });
@@ -190,7 +194,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       formats: ["hardcover"],
       title: "Dune",
     });
@@ -206,7 +210,7 @@ describe("POST /api/books", () => {
     await seedGenres([{ key: "fentezi", name: "Фентезі" }]);
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       genres: ["not_a_real_genre"],
       title: "Dune",
     });
@@ -222,7 +226,7 @@ describe("POST /api/books", () => {
     await seedGenres([{ key: "fentezi", name: "Фентезі" }]);
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       genres: ["fentezi", "not_a_real_genre"],
       title: "Dune",
     });
@@ -249,7 +253,7 @@ describe("POST /api/books", () => {
     ]);
 
     const res = await createBook(owner.accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       genres: ["stranger-secret"],
       title: "Dune",
     });
@@ -265,7 +269,7 @@ describe("POST /api/books", () => {
     await seedGenres([{ isDefault: false, key: "comfort-reads", name: "Comfort Reads", userId }]);
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       genres: ["comfort-reads"],
       title: "Dune",
     });
@@ -278,15 +282,15 @@ describe("POST /api/books", () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const first = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     const second = await createBook(accessToken, {
-      author: { name: "  frank   HERBERT " },
+      authors: [{ name: "  frank   HERBERT " }],
       title: "Dune Messiah",
     });
 
-    expect(second.body.author.id).toBe(first.body.author.id);
+    expect(second.body.authors[0].id).toBe(first.body.authors[0].id);
     const authors = await prisma.author.findMany({ where: { userId } });
     expect(authors).toHaveLength(1);
   });
@@ -295,13 +299,13 @@ describe("POST /api/books", () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const [first, second] = await Promise.all([
-      createBook(accessToken, { author: { name: "Brand New Author" }, title: "Dune" }),
-      createBook(accessToken, { author: { name: "Brand New Author" }, title: "Dune Messiah" }),
+      createBook(accessToken, { authors: [{ name: "Brand New Author" }], title: "Dune" }),
+      createBook(accessToken, { authors: [{ name: "Brand New Author" }], title: "Dune Messiah" }),
     ]);
 
     expect(first.status).toBe(201);
     expect(second.status).toBe(201);
-    expect(second.body.author.id).toBe(first.body.author.id);
+    expect(second.body.authors[0].id).toBe(first.body.authors[0].id);
     const authors = await prisma.author.findMany({ where: { userId } });
     expect(authors).toHaveLength(1);
   });
@@ -318,7 +322,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { id: MISSING_UUID, name: "Frank Herbert" },
+      authors: [{ id: MISSING_UUID, name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -329,7 +333,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       readingStatus: "halfway",
       title: "Dune",
     });
@@ -344,7 +348,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { id: MISSING_UUID },
+      authors: [{ id: MISSING_UUID }],
       title: "Dune",
     });
 
@@ -355,7 +359,7 @@ describe("POST /api/books", () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags: ["dark academia", "slow burn"],
       title: "Dune",
     });
@@ -373,7 +377,10 @@ describe("POST /api/books", () => {
   it("applies an empty tags default when tags are omitted", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const res = await createBook(accessToken, { author: { name: "Frank Herbert" }, title: "Dune" });
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.tags).toEqual([]);
@@ -383,12 +390,12 @@ describe("POST /api/books", () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const first = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags: ["dark academia"],
       title: "Dune",
     });
     const second = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags: ["  Dark   Academia "],
       title: "Dune Messiah",
     });
@@ -403,7 +410,7 @@ describe("POST /api/books", () => {
     const tags = Array.from({ length: 13 }, (unused, index) => `tag ${index}`);
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags,
       title: "Dune",
     });
@@ -418,7 +425,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags: ["slow burn", "Slow Burn"],
       title: "Dune",
     });
@@ -433,7 +440,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags: ["a"],
       title: "Dune",
     });
@@ -448,7 +455,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Rebecca Yarros" },
+      authors: [{ name: "Rebecca Yarros" }],
       dedication: "To everyone who has been told they are too much",
       illustrator: "Jane Doe",
       isbn: "9780306406157",
@@ -475,7 +482,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       isbn: "0306406152",
       title: "Dune",
     });
@@ -488,7 +495,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       isbn: "0-306-40615-2",
       title: "Dune",
     });
@@ -502,7 +509,10 @@ describe("POST /api/books", () => {
   it("returns all edition details as null when they are omitted", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const res = await createBook(accessToken, { author: { name: "Frank Herbert" }, title: "Dune" });
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
 
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({
@@ -520,7 +530,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       isbn: "9780306406158",
       title: "Dune",
     });
@@ -535,7 +545,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       pagesCount: 0,
       title: "Dune",
     });
@@ -550,7 +560,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       pagesCount: 10001,
       title: "Dune",
     });
@@ -565,7 +575,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       publicationYear: new Date().getUTCFullYear() + 2,
       title: "Dune",
     });
@@ -584,12 +594,12 @@ describe("POST /api/books", () => {
     });
 
     const ownerBook = await createBook(owner.accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags: ["dark academia"],
       title: "Dune",
     });
     const strangerBook = await createBook(stranger.accessToken, {
-      author: { name: "Isaac Asimov" },
+      authors: [{ name: "Isaac Asimov" }],
       tags: ["dark academia"],
       title: "Foundation",
     });
@@ -604,7 +614,10 @@ describe("POST /api/books", () => {
   it("returns readingProgress as null when none is provided", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const res = await createBook(accessToken, { author: { name: "Frank Herbert" }, title: "Dune" });
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.readingProgress).toBeNull();
@@ -614,7 +627,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       readingProgress: { currentPage: 120, note: "great so far", startedAt: "2026-02-01" },
       readingStatus: "reading",
       title: "Dune",
@@ -637,8 +650,8 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
-      readingProgress: { finishedAt: "2026-02-05", impression: "loved it", rating: 5 },
+      authors: [{ name: "Frank Herbert" }],
+      readingProgress: { finishedAt: "2026-02-05", impression: "loved it", rating: 8.5 },
       readingStatus: "finished",
       title: "Dune",
     });
@@ -651,7 +664,7 @@ describe("POST /api/books", () => {
       impression: "loved it",
       note: null,
       pausedAt: null,
-      rating: 5,
+      rating: 8.5,
       startedAt: null,
     });
   });
@@ -660,7 +673,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       readingProgress: { currentPage: 50, startedAt: "2026-02-01" },
       readingStatus: "not_started",
       title: "Dune",
@@ -676,7 +689,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       pagesCount: 300,
       readingProgress: { currentPage: 301 },
       readingStatus: "reading",
@@ -694,7 +707,7 @@ describe("POST /api/books", () => {
     const nextYear = `${new Date().getUTCFullYear() + 1}-01-01`;
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       readingProgress: { startedAt: nextYear },
       readingStatus: "reading",
       title: "Dune",
@@ -706,12 +719,28 @@ describe("POST /api/books", () => {
     );
   });
 
-  it("returns 400 when the rating is above 5", async () => {
+  it("returns 400 when the rating is above 10", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
-      readingProgress: { rating: 6 },
+      authors: [{ name: "Frank Herbert" }],
+      readingProgress: { rating: 10.5 },
+      readingStatus: "finished",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "readingProgress.rating" })]),
+    );
+  });
+
+  it("returns 400 when the rating is not a multiple of 0.5", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      readingProgress: { rating: 8.3 },
       readingStatus: "finished",
       title: "Dune",
     });
@@ -726,7 +755,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       ownershipStatus: "owned",
       title: "Dune",
     });
@@ -741,7 +770,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       ownershipStatus: "want_to_buy",
       purchaseInfo: { currency: "UAH", expectedPrice: 299.99, storeName: "Yakaboo" },
       title: "Dune",
@@ -763,7 +792,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       loanInfo: { personName: "Olha" },
       ownershipStatus: "want_to_buy",
       purchaseInfo: { storeName: "Yakaboo" },
@@ -779,7 +808,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       deliveryInfo: { orderNumber: "TTN-1", storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
@@ -797,7 +826,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       deliveryInfo: { expectedDeliveryDate: "2026-02-01", orderDate: "2026-02-10" },
       ownershipStatus: "in_transit",
       title: "Dune",
@@ -815,7 +844,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       loanInfo: { loanDate: "2026-02-01", personName: "Olha" },
       ownershipStatus: "borrowed_from_someone",
       title: "Dune",
@@ -834,7 +863,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       loanInfo: { personName: "Olha" },
       ownershipStatus: "lent_to_someone",
       title: "Dune",
@@ -848,7 +877,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       ownershipStatus: "borrowed_from_someone",
       title: "Dune",
     });
@@ -863,7 +892,7 @@ describe("POST /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       loanInfo: { expectedReturnDate: "2026-02-01", loanDate: "2026-02-10", personName: "Olha" },
       ownershipStatus: "borrowed_from_someone",
       title: "Dune",
@@ -886,7 +915,7 @@ describe("POST /api/books series handling", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       title: "Dune",
     });
@@ -901,7 +930,7 @@ describe("POST /api/books series handling", () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
       partNumber: 1,
@@ -937,7 +966,7 @@ describe("POST /api/books series handling", () => {
     });
     await prisma.book.create({
       data: {
-        authorId: author.id,
+        authors: { create: [{ authorId: author.id, position: 0 }] },
         partNumber: 1,
         seriesId: existing.id,
         title: "Throne of Glass",
@@ -946,7 +975,7 @@ describe("POST /api/books series handling", () => {
     });
 
     const res = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 2,
       seriesId: existing.id,
@@ -964,7 +993,7 @@ describe("POST /api/books series handling", () => {
   it("reports finishedInSeries live across the series search and the embedded book series", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const first = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
       partNumber: 1,
@@ -976,7 +1005,7 @@ describe("POST /api/books series handling", () => {
     expect(first.body.series).toMatchObject({ booksInSeries: 1, finishedInSeries: 1 });
 
     await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 2,
       readingStatus: "reading",
@@ -1001,9 +1030,9 @@ describe("POST /api/books series handling", () => {
     const existing = await prisma.series.create({
       data: { name: "Throne of Glass", normalizedName: "throne of glass", userId },
     });
-    await prisma.book.create({
+    const conflicting = await prisma.book.create({
       data: {
-        authorId: author.id,
+        authors: { create: [{ authorId: author.id, position: 0 }] },
         partNumber: 1,
         seriesId: existing.id,
         title: "Throne of Glass",
@@ -1012,7 +1041,7 @@ describe("POST /api/books series handling", () => {
     });
 
     const duplicate = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 1,
       seriesId: existing.id,
@@ -1021,12 +1050,18 @@ describe("POST /api/books series handling", () => {
 
     expect(duplicate.status).toBe(400);
     expect(duplicate.body.errorsMessages).toEqual(
-      expect.arrayContaining([expect.objectContaining({ field: "partNumber" })]),
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+          field: "partNumber",
+          meta: { bookId: conflicting.id, bookTitle: "Throne of Glass", partNumber: "1" },
+        }),
+      ]),
     );
     expect(await prisma.book.count({ where: { seriesId: existing.id } })).toBe(1);
 
     const unique = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 2,
       seriesId: existing.id,
@@ -1041,7 +1076,7 @@ describe("POST /api/books series handling", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass" },
       title: "Throne of Glass",
@@ -1057,7 +1092,7 @@ describe("POST /api/books series handling", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 1,
       title: "Throne of Glass",
@@ -1076,7 +1111,7 @@ describe("POST /api/books series handling", () => {
     });
 
     const res = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass" },
       partNumber: 1,
@@ -1094,7 +1129,7 @@ describe("POST /api/books series handling", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass", totalBooks: 2 },
       partNumber: 3,
@@ -1114,7 +1149,7 @@ describe("POST /api/books series handling", () => {
     });
 
     const res = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 3,
       seriesId: existing.id,
@@ -1135,7 +1170,7 @@ describe("POST /api/books series handling", () => {
     });
 
     const res = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 2,
       seriesId: existing.id,
@@ -1158,7 +1193,7 @@ describe("POST /api/books series handling", () => {
     });
 
     const res = await createBook(stranger.accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 1,
       seriesId: ownerSeries.id,
@@ -1172,7 +1207,7 @@ describe("POST /api/books series handling", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       newSeries: { name: "Ignored" },
       partNumber: 9,
@@ -1195,7 +1230,10 @@ describe("POST /api/books organization", () => {
   it("does not add a book to the queue by default", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const res = await createBook(accessToken, { author: { name: "Frank Herbert" }, title: "Dune" });
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.isInReadingQueue).toBe(false);
@@ -1207,7 +1245,7 @@ describe("POST /api/books organization", () => {
 
     const res = await createBook(accessToken, {
       addToReadingQueue: true,
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -1221,7 +1259,7 @@ describe("POST /api/books organization", () => {
 
     const res = await createBook(accessToken, {
       addToReadingQueue: true,
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       queuePriority: "high",
       title: "Dune",
     });
@@ -1235,12 +1273,12 @@ describe("POST /api/books organization", () => {
 
     const first = await createBook(accessToken, {
       addToReadingQueue: true,
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     const second = await createBook(accessToken, {
       addToReadingQueue: true,
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       queuePriority: "high",
       title: "Dune Messiah",
     });
@@ -1262,7 +1300,7 @@ describe("POST /api/books organization", () => {
 
     const res = await createBook(accessToken, {
       addToReadingQueue: false,
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       readingStatus: "want_to_read",
       title: "Dune",
     });
@@ -1280,7 +1318,7 @@ describe("POST /api/books organization", () => {
     });
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       listIds: [existing.id],
       newLists: [{ description: "cozy", name: "Autumn reads" }],
       title: "Dune",
@@ -1309,7 +1347,7 @@ describe("POST /api/books organization", () => {
     });
 
     const res = await createBook(stranger.accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       listIds: [ownerList.id],
       title: "Dune",
     });
@@ -1324,7 +1362,7 @@ describe("POST /api/books organization", () => {
     });
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       listIds: [existing.id],
       newLists: [{ name: "  autumn   reads " }],
       title: "Dune",
@@ -1354,9 +1392,9 @@ describe("GET /api/books", () => {
       email: "stranger@example.com",
       nickname: "stranger",
     });
-    await createBook(owner.accessToken, { author: { name: "Frank Herbert" }, title: "Dune" });
+    await createBook(owner.accessToken, { authors: [{ name: "Frank Herbert" }], title: "Dune" });
     await createBook(stranger.accessToken, {
-      author: { name: "Isaac Asimov" },
+      authors: [{ name: "Isaac Asimov" }],
       title: "Foundation",
     });
 
@@ -1374,7 +1412,7 @@ describe("GET /api/books", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     for (let index = 0; index < 3; index += 1) {
       await createBook(accessToken, {
-        author: { name: `Author ${index}` },
+        authors: [{ name: `Author ${index}` }],
         title: `Book ${index}`,
       });
     }
@@ -1399,7 +1437,7 @@ describe("GET /api/books/:id", () => {
   it("returns 404 for a book owned by another user", async () => {
     const owner = await context.registerVerifyAndLogin();
     const created = await createBook(owner.accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     const stranger = await context.registerVerifyAndLogin({
@@ -1431,7 +1469,7 @@ describe("PATCH /api/books/:id genres", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await seedGenres([{ key: "fentezi", name: "Фентезі" }]);
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -1445,7 +1483,7 @@ describe("PATCH /api/books/:id genres", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await seedGenres([{ key: "fentezi", name: "Фентезі" }]);
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -1476,7 +1514,7 @@ describe("PATCH /api/books/:id series", () => {
       data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
     });
     const created = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       title: "Heir of Fire",
     });
 
@@ -1498,7 +1536,7 @@ describe("PATCH /api/books/:id series", () => {
       data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
     });
     const created = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       title: "Crown of Midnight",
     });
 
@@ -1519,7 +1557,7 @@ describe("PATCH /api/books/:id series", () => {
       data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
     });
     const created = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 1,
       seriesId: existing.id,
@@ -1540,7 +1578,7 @@ describe("PATCH /api/books/:id series", () => {
       data: { name: "Throne of Glass", normalizedName: "throne of glass", totalBooks: 2, userId },
     });
     const created = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 1,
       seriesId: existing.id,
@@ -1564,7 +1602,7 @@ describe("DELETE /api/books/:id", () => {
   it("returns 404 when deleting a book owned by another user", async () => {
     const owner = await context.registerVerifyAndLogin();
     const created = await createBook(owner.accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     const stranger = await context.registerVerifyAndLogin({
@@ -1582,7 +1620,7 @@ describe("DELETE /api/books/:id", () => {
   it("returns 204 on the owner's book and then 404 on a follow-up read", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -1600,7 +1638,7 @@ describe("DELETE /api/books/:id", () => {
   it("drops the series book count after the book is deleted", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass" },
       partNumber: 1,

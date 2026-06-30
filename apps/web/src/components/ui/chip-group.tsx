@@ -19,7 +19,7 @@ const chipGroupVariants = cva("flex flex-wrap", {
 });
 
 const chipVariants = cva(
-  "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-tag font-medium text-tag-foreground transition-[background-color,border-color,color,box-shadow] outline-none select-none hover:not-data-[state=on]:border-accent-border hover:not-data-[state=on]:bg-secondary focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-45 data-[state=on]:border-chip data-[state=on]:bg-chip data-[state=on]:text-chip-foreground [&_svg]:shrink-0",
+  "inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-border bg-tag font-medium whitespace-nowrap text-tag-foreground transition-[background-color,border-color,color,box-shadow] outline-none select-none hover:not-data-[state=on]:border-accent-border hover:not-data-[state=on]:bg-secondary focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-45 data-[state=on]:border-chip data-[state=on]:bg-chip data-[state=on]:text-chip-foreground [&_svg]:shrink-0",
   {
     variants: {
       size: {

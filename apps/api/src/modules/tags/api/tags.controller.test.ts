@@ -143,7 +143,11 @@ describe("DELETE /api/tags/:id", () => {
       data: { name: "Frank Herbert", normalizedName: "frank herbert", userId },
     });
     const book = await prisma.book.create({
-      data: { authorId: author.id, title: "Dune", userId },
+      data: {
+        authors: { create: [{ authorId: author.id, position: 0 }] },
+        title: "Dune",
+        userId,
+      },
     });
     const tag = await prisma.tag.create({
       data: { name: "dark academia", normalizedName: "dark academia", userId },

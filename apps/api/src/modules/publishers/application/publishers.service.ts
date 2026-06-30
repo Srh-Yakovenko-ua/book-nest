@@ -1,4 +1,9 @@
-import type { Paginator, PublisherSearchPaginationQuery, PublisherView } from "@app/shared";
+import type {
+  CatalogLocale,
+  Paginator,
+  PublisherSearchPaginationQuery,
+  PublisherView,
+} from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -11,6 +16,12 @@ import { PublishersRepository } from "../infrastructure/publishers.repository.js
 
 const CUSTOM_PUBLISHER_LOCALE = "uk";
 
+type RecentPublishersInput = {
+  limit: number;
+  locale: CatalogLocale;
+  userId: string;
+};
+
 type ResolvePublisherInput = {
   id?: string;
   name?: string;
@@ -19,6 +30,21 @@ type ResolvePublisherInput = {
 @Injectable()
 export class PublishersService {
   constructor(private readonly publishersRepository: PublishersRepository) {}
+
+  async recent({ limit, locale, userId }: RecentPublishersInput): Promise<PublisherView[]> {
+    const ids = await this.publishersRepository.recentPublisherIds({ limit, userId });
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const publishers = await this.publishersRepository.findVisibleByIds({ ids, userId });
+    const publisherById = new Map(publishers.map((publisher) => [publisher.id, publisher]));
+
+    return ids.flatMap((id) => {
+      const publisher = publisherById.get(id);
+      return publisher === undefined ? [] : [toPublisherView(publisher, locale)];
+    });
+  }
 
   async resolveOrCreate(userId: string, input: ResolvePublisherInput): Promise<null | string> {
     if (input.id !== undefined) {

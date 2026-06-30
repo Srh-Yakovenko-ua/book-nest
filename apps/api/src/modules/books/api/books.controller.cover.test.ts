@@ -70,7 +70,7 @@ describe("Book cover integration", () => {
     const media = await uploadCover(accessToken);
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       coverMediaId: media.body.id,
       title: "Dune",
     });
@@ -84,7 +84,10 @@ describe("Book cover integration", () => {
   it("returns null cover when none is attached", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const res = await createBook(accessToken, { author: { name: "Frank Herbert" }, title: "Dune" });
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.cover).toBeNull();
@@ -99,7 +102,7 @@ describe("Book cover integration", () => {
     const strangerMedia = await uploadCover(stranger.accessToken);
 
     const res = await createBook(owner.accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       coverMediaId: strangerMedia.body.id,
       title: "Dune",
     });
@@ -111,7 +114,7 @@ describe("Book cover integration", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       coverMediaId: MISSING_UUID,
       title: "Dune",
     });
@@ -123,7 +126,7 @@ describe("Book cover integration", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const media = await uploadCover(accessToken);
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     expect(created.body.cover).toBeNull();
@@ -147,7 +150,7 @@ describe("Book cover integration", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const media = await uploadCover(accessToken);
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       coverMediaId: media.body.id,
       title: "Dune",
     });

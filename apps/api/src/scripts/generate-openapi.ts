@@ -42,6 +42,7 @@ async function generateOpenApi(): Promise<void> {
 
   const document = buildOpenApiDocument(app);
   normalizeParameters(document);
+  normalizeExclusiveBounds(document);
   await writeFile(outputPath, `${JSON.stringify(document, null, 2)}\n`, "utf8");
 
   await app.close();
@@ -50,6 +51,33 @@ async function generateOpenApi(): Promise<void> {
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeExclusiveBounds(node: unknown): void {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      normalizeExclusiveBounds(item);
+    }
+    return;
+  }
+
+  if (!isRecord(node)) {
+    return;
+  }
+
+  if (typeof node.exclusiveMinimum === "number") {
+    node.minimum = node.exclusiveMinimum;
+    node.exclusiveMinimum = true;
+  }
+
+  if (typeof node.exclusiveMaximum === "number") {
+    node.maximum = node.exclusiveMaximum;
+    node.exclusiveMaximum = true;
+  }
+
+  for (const value of Object.values(node)) {
+    normalizeExclusiveBounds(value);
+  }
 }
 
 function normalizeParameters(document: OpenAPIObject): void {

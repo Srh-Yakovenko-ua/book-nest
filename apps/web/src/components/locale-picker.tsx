@@ -23,7 +23,7 @@ const LOCALE_SHORT: Record<Locale, string> = {
   uk: "UK",
 };
 
-export function LocalePicker() {
+export function LocalePicker({ triggerClassName }: { triggerClassName?: string }) {
   const locale = useLocale();
   const t = useTranslations("localePicker");
   const router = useRouter();
@@ -42,7 +42,10 @@ export function LocalePicker() {
       <DropdownMenuTrigger asChild>
         <Button
           aria-label={t("ariaLabel")}
-          className="h-9 rounded-lg px-3 font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase transition-all duration-150 hover:bg-muted hover:text-foreground"
+          className={cn(
+            "h-9 rounded-lg px-3 font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase transition-all duration-150 hover:bg-muted hover:text-foreground",
+            triggerClassName,
+          )}
           variant="ghost"
         >
           {LOCALE_SHORT[locale]}

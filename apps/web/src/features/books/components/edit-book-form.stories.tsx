@@ -22,7 +22,7 @@ function jsonResponse(status: number, body: unknown): Response {
 function makeBook(overrides: Partial<BookView> = {}): BookView {
   return {
     ageCategory: "16_plus",
-    author: { id: "11111111-1111-4111-8111-111111111111", name: "Ліна Костенко" },
+    authors: [{ id: "11111111-1111-4111-8111-111111111111", name: "Ліна Костенко" }],
     bookType: "solo",
     createdAt: "2026-01-01T00:00:00.000Z",
     dedication: null,
@@ -86,12 +86,15 @@ const GENRES_FIXTURE = [
 
 function taxonomyHandler(extra?: Handler): Handler {
   return (path, init) => {
+    if (path.includes("/api/publishers/recent")) return jsonResponse(200, []);
+    if (path.includes("/api/books/purchase-stores")) return jsonResponse(200, []);
     if (path.includes("/api/genres") && (init?.method ?? "GET") === "GET") {
       return jsonResponse(200, GENRES_FIXTURE);
     }
     if (path.includes("/api/tags")) return emptyPage(20);
     if (path.includes("/api/series") && init?.method !== "POST") return emptyPage(8);
     if (path.includes("/api/lists") && init?.method !== "POST") return emptyPage(50);
+    if (path.includes("/api/authors/recent")) return jsonResponse(200, []);
     if (path.includes("/api/authors")) return emptyPage(8);
     return extra?.(path, init) ?? emptyPage(8);
   };
@@ -137,7 +140,9 @@ export const PrefilledFromBookView: Story = {
     await waitFor(async () => {
       await expect(canvas.getByLabelText("Назва")).toHaveValue("Маруся Чурай");
     });
-    await expect(canvas.getByLabelText("Автор")).toHaveValue("Ліна Костенко");
+    await expect(
+      canvas.getByRole("button", { name: "Видалити автора «Ліна Костенко»" }),
+    ).toBeVisible();
     await expect(canvas.getByRole("radio", { checked: true, name: "Прочитано" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: /Зберегти зміни/ })).toBeVisible();
     await expect(canvas.getByRole("switch", { name: "Додати до черги читання" })).toBeVisible();
@@ -229,7 +234,7 @@ export const EditSubmitSendsPatch: StoryObj<typeof BookForm> = {
     await waitFor(() => expect(patchPayload).not.toBeNull());
     await expect(patchUrl).toContain("/api/books/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
     await expect(patchPayload).toMatchObject({
-      author: { id: "11111111-1111-4111-8111-111111111111" },
+      authors: [{ id: "11111111-1111-4111-8111-111111111111" }],
       isFavorite: true,
       readingStatus: "finished",
       title: "Маруся Чурай (виправлено)",

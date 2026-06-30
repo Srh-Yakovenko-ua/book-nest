@@ -8,6 +8,23 @@
 import * as zod from "zod";
 
 /**
+ * @summary List recently used publishers for the current user
+ */
+export const publishersControllerRecentQueryLimitDefault = 8;
+export const publishersControllerRecentQueryLimitMax = 20;
+
+export const PublishersControllerRecentQueryParams = zod.object({
+  limit: zod
+    .number()
+    .min(1)
+    .max(publishersControllerRecentQueryLimitMax)
+    .default(publishersControllerRecentQueryLimitDefault),
+  locale: zod.enum(["en", "uk"]).optional(),
+});
+
+export const PublishersControllerRecentResponse = zod.unknown();
+
+/**
  * @summary Search publishers (global seeds + own custom)
  */
 export const publishersControllerSearchQueryPageNumberDefault = 1;

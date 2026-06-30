@@ -20,16 +20,29 @@ export type PublisherSelection =
   | { id: string; kind: "catalog"; name: string }
   | { kind: "custom"; name: string };
 
+export type SeriesPartNumberConflict = {
+  bookId: string;
+  bookTitle: string;
+  partNumber: number;
+};
+
 export type SeriesSelection =
-  | { draft: NewSeriesDraft; kind: "new"; name: string }
-  | { id: string; kind: "existing"; name: string; totalBooks?: number };
+  | { authors: AuthorSelection[]; draft: NewSeriesDraft; kind: "new"; name: string }
+  | { authors: AuthorSelection[]; id: string; kind: "existing"; name: string; totalBooks?: number };
 
 type NewSeriesDraft = {
+  authors?: BookAuthorReference[];
   description?: string;
   name: string;
   status: "completed" | "ongoing" | "unknown";
   totalBooks?: number;
 };
+
+export function authorSelectionKey(selection: AuthorSelection): string {
+  return selection.kind === "catalog"
+    ? `id:${selection.id}`
+    : `name:${selection.name.trim().toLowerCase()}`;
+}
 
 export function authorSelectionToReference(selection: AuthorSelection): BookAuthorReference {
   if (selection.kind === "catalog") {
@@ -41,16 +54,16 @@ export function authorSelectionToReference(selection: AuthorSelection): BookAuth
 export const createBookFormDefaults = {
   addToReadingQueue: false,
   ageCategory: "not_specified",
-  author: { name: "" },
+  authors: [],
   bookType: "solo",
   deliveryInfo: {},
-  formats: [],
+  formats: ["paper"],
   genres: [],
   isFavorite: false,
   language: "ukrainian",
   loanInfo: {},
   ownershipStatus: "none",
-  purchaseInfo: {},
+  purchaseInfo: { currency: "UAH" },
   readingProgress: {},
   readingStatus: "not_started",
   tags: [],

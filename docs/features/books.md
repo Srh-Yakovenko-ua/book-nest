@@ -56,15 +56,30 @@ Add a book to a personal library through one `POST /api/books` request that also
 
 All endpoints require a valid access token (`JwtAccessGuard`).
 
-| Method | Path             | Success | Errors        | Request schema          | Response              |
-| ------ | ---------------- | ------- | ------------- | ----------------------- | --------------------- |
-| POST   | `/api/books`     | 201     | 400, 401, 404 | `CreateBookInputSchema` | `BookView`            |
-| GET    | `/api/books`     | 200     | 401           | `PaginationQuerySchema` | `Paginator<BookView>` |
-| GET    | `/api/books/:id` | 200     | 401, 404      | `:id` `ParseUUIDPipe`   | `BookView`            |
-| PATCH  | `/api/books/:id` | 200     | 400, 401, 404 | `UpdateBookInputSchema` | `BookView`            |
-| DELETE | `/api/books/:id` | 204     | 401, 404      | `:id` `ParseUUIDPipe`   | —                     |
+| Method | Path                  | Success | Errors        | Request schema            | Response              |
+| ------ | --------------------- | ------- | ------------- | ------------------------- | --------------------- |
+| POST   | `/api/books`          | 201     | 400, 401, 404 | `CreateBookInputSchema`   | `BookView`            |
+| GET    | `/api/books`          | 200     | 401           | `LibraryBooksQuerySchema` | `Paginator<BookView>` |
+| GET    | `/api/books/overview` | 200     | 401           | —                         | `LibraryOverviewView` |
+| GET    | `/api/books/:id`      | 200     | 401, 404      | `:id` `ParseUUIDPipe`     | `BookView`            |
+| PATCH  | `/api/books/:id`      | 200     | 400, 401, 404 | `UpdateBookInputSchema`   | `BookView`            |
+| DELETE | `/api/books/:id`      | 204     | 401, 404      | `:id` `ParseUUIDPipe`     | —                     |
 
-Controller: `apps/api/src/modules/books/api/books.controller.ts` — `create` (`:63`), `list` (`:76`), `getById` (`:90`), `update` (`:107`), `delete` (`:123`). `POST` and `PATCH` are rate-limited via `@Throttle` (`:43-46`, `:61`, `:105`).
+The `GET /api/books` library query supports search (`q`), multi-value filters (`status`/`owner`/`format`/`genre`/`tag`/`author`/`publisher`/`ageCategory`/`language`), range filters (`ratingMin/Max`, `yearMin/Max`, `pagesMin/Max`), `bookType`/`isFavorite`/`hasCover`, and 13 `sort` options. `GET /api/books/overview` returns summary counts + top genres/tags + recently added for the page chrome.
+
+Bulk actions (`bulk-books.controller.ts`, all `{ affected }` responses, user-scoped, `@Throttle`d):
+
+| Method | Path                               | Request schema                   |
+| ------ | ---------------------------------- | -------------------------------- |
+| PATCH  | `/api/books/bulk/favorite`         | `BulkFavoriteInputSchema`        |
+| PATCH  | `/api/books/bulk/reading-status`   | `BulkReadingStatusInputSchema`   |
+| PATCH  | `/api/books/bulk/ownership-status` | `BulkOwnershipStatusInputSchema` |
+| POST   | `/api/books/bulk/tags`             | `BulkTagsInputSchema`            |
+| POST   | `/api/books/bulk/lists`            | `BulkListsInputSchema`           |
+| POST   | `/api/books/bulk/reading-queue`    | `BulkBookIdsSchema`              |
+| POST   | `/api/books/bulk/delete`           | `BulkBookIdsSchema`              |
+
+Controllers: `apps/api/src/modules/books/api/books.controller.ts` — `create`, `list` (library query), `overview`, `getById`, `update`, `delete`; `bulk-books.controller.ts` — the seven `/api/books/bulk/*` actions. `POST`/`PATCH` routes are rate-limited via `@Throttle`.
 
 Taxonomy endpoints (paginated "global seeds + own custom" search; tags/series/lists are own-only):
 

@@ -12,8 +12,8 @@ export function useUpdateBook(id: string) {
   return useMutation({
     mutationFn: (input: UpdateBookInput) => booksControllerUpdate(id, input as UpdateBookInputDto),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: [`/api/books/${id}`] });
       void queryClient.invalidateQueries({ queryKey: ["/api/books"] });
+      void queryClient.invalidateQueries({ queryKey: ["lists"] });
     },
   });
 }

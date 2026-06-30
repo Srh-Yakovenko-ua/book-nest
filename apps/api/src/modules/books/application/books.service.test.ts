@@ -22,6 +22,8 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_USER_ID = "99999999-9999-4999-8999-999999999999";
 const BOOK_ID = "22222222-2222-4222-8222-222222222222";
 const AUTHOR_ID = "33333333-3333-4333-8333-333333333333";
+const AUTHOR_ID_B = "33333333-3333-4333-8333-333333333334";
+const AUTHOR_ID_C = "33333333-3333-4333-8333-333333333335";
 const PUBLISHER_ID = "44444444-4444-4444-8444-444444444444";
 const TAG_ID = "55555555-5555-4555-8555-555555555555";
 const SERIES_ID = "66666666-6666-4666-8666-666666666666";
@@ -31,26 +33,35 @@ const MEDIA_ID = "88888888-8888-4888-8888-888888888801";
 type Repository = {
   countByCoverMediaId: ReturnType<typeof vi.fn>;
   countByUser: ReturnType<typeof vi.fn>;
+  countForLibrary: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteOwned: ReturnType<typeof vi.fn>;
-  existsSeriesPartNumber: ReturnType<typeof vi.fn>;
   findOwnedById: ReturnType<typeof vi.fn>;
-  listByUser: ReturnType<typeof vi.fn>;
+  findSeriesPartNumberConflict: ReturnType<typeof vi.fn>;
+  listForLibrary: ReturnType<typeof vi.fn>;
   maxQueuePosition: ReturnType<typeof vi.fn>;
+  recentPurchaseStores: ReturnType<typeof vi.fn>;
   updateOwned: ReturnType<typeof vi.fn>;
 };
 
 function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations {
   return {
     ageCategory: "not_specified",
-    author: { id: AUTHOR_ID, name: "Frank Herbert", normalizedName: "frank herbert" },
-    authorId: AUTHOR_ID,
+    authors: [
+      {
+        author: { id: AUTHOR_ID, name: "Frank Herbert", normalizedName: "frank herbert" },
+        authorId: AUTHOR_ID,
+        bookId: BOOK_ID,
+        position: 0,
+      },
+    ] as BookWithRelations["authors"],
     coverMedia: null,
     coverMediaId: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     dedication: null,
     deliveryInfo: null,
     description: null,
+    firstAuthorName: "Frank Herbert",
     formats: [],
     genres: [],
     id: BOOK_ID,
@@ -88,14 +99,16 @@ function buildService(
     authorId?: string;
     countByCoverMediaId?: number;
     countByUser?: number;
+    countForLibrary?: number;
     create?: BookWithRelations;
     deleteOwned?: number;
-    existsSeriesPartNumber?: boolean;
     findOwnedById?: BookWithRelations | null;
-    listByUser?: BookWithRelations[];
+    findSeriesPartNumberConflict?: null | { id: string; title: string };
+    listForLibrary?: BookWithRelations[];
     listIds?: string[];
     maxQueuePosition?: number;
     publisherId?: null | string;
+    recentPurchaseStores?: string[];
     seriesId?: string;
     seriesTotalBooks?: null | number;
     tagIds?: string[];
@@ -103,10 +116,12 @@ function buildService(
   } = {},
 ): {
   authorsService: {
-    materializeFromOpenLibrary: ReturnType<typeof vi.fn>;
-    resolveOrCreate: ReturnType<typeof vi.fn>;
+    resolveReferences: ReturnType<typeof vi.fn>;
   };
-  genresService: { assertGenresSelectable: ReturnType<typeof vi.fn> };
+  genresService: {
+    assertGenresSelectable: ReturnType<typeof vi.fn>;
+    searchKeys: ReturnType<typeof vi.fn>;
+  };
   listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
   mediaService: {
     assertOwned: ReturnType<typeof vi.fn>;
@@ -122,18 +137,22 @@ function buildService(
   const repository: Repository = {
     countByCoverMediaId: vi.fn().mockResolvedValue(overrides.countByCoverMediaId ?? 0),
     countByUser: vi.fn().mockResolvedValue(overrides.countByUser ?? 0),
+    countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
-    existsSeriesPartNumber: vi.fn().mockResolvedValue(overrides.existsSeriesPartNumber ?? false),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
-    listByUser: vi.fn().mockResolvedValue(overrides.listByUser ?? []),
+    findSeriesPartNumberConflict: vi
+      .fn()
+      .mockResolvedValue(overrides.findSeriesPartNumberConflict ?? null),
+    listForLibrary: vi.fn().mockResolvedValue(overrides.listForLibrary ?? []),
     maxQueuePosition: vi.fn().mockResolvedValue(overrides.maxQueuePosition ?? 0),
+    recentPurchaseStores: vi.fn().mockResolvedValue(overrides.recentPurchaseStores ?? []),
     updateOwned: vi.fn().mockResolvedValue(overrides.updateOwned ?? bookRow()),
   };
 
+  const resolvedAuthorId = overrides.authorId ?? AUTHOR_ID;
   const authorsService = {
-    materializeFromOpenLibrary: vi.fn().mockResolvedValue({ id: overrides.authorId ?? AUTHOR_ID }),
-    resolveOrCreate: vi.fn().mockResolvedValue(overrides.authorId ?? AUTHOR_ID),
+    resolveReferences: vi.fn().mockResolvedValue([{ id: resolvedAuthorId, name: "Frank Herbert" }]),
   };
   const publishersService = {
     resolveOrCreate: vi.fn().mockResolvedValue(overrides.publisherId ?? PUBLISHER_ID),
@@ -152,6 +171,7 @@ function buildService(
   };
   const genresService = {
     assertGenresSelectable: vi.fn().mockResolvedValue(undefined),
+    searchKeys: vi.fn().mockResolvedValue([]),
   };
   const mediaService = {
     assertOwned: vi.fn().mockResolvedValue(undefined),
@@ -225,7 +245,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -240,8 +260,9 @@ describe("BooksService.create", () => {
 
     await service.create(USER_ID, input);
 
-    expect(authorsService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
-      name: "Frank Herbert",
+    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
+      references: [{ name: "Frank Herbert" }],
+      userId: USER_ID,
     });
     expect(publishersService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
       id: undefined,
@@ -271,7 +292,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -288,7 +309,7 @@ describe("BooksService.create", () => {
 
     expect(view).toEqual({
       ageCategory: "not_specified",
-      author: { id: AUTHOR_ID, name: "Frank Herbert" },
+      authors: [{ id: AUTHOR_ID, name: "Frank Herbert" }],
       bookType: "solo",
       cover: null,
       createdAt: "2026-02-01T10:00:00.000Z",
@@ -333,7 +354,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "16_plus",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: ["paper", "ebook"],
       genres: ["fentezi", "naukova-fantastyka"],
@@ -353,11 +374,12 @@ describe("BooksService.create", () => {
     ]);
     expect(repository.create).toHaveBeenCalledWith(USER_ID, {
       ageCategory: "16_plus",
-      authorId: AUTHOR_ID,
+      authorIds: [AUTHOR_ID],
       coverMediaId: null,
       dedication: null,
       deliveryInfo: null,
       description: null,
+      firstAuthorName: "Frank Herbert",
       formats: ["paper", "ebook"],
       genres: ["fentezi", "naukova-fantastyka"],
       illustrator: null,
@@ -389,7 +411,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -426,7 +448,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -452,7 +474,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       deliveryInfo: { storeName: "Should be ignored" },
       formats: [],
@@ -489,7 +511,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       deliveryInfo: { orderNumber: "TTN-1", storeName: "Yakaboo" },
       formats: [],
@@ -525,7 +547,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -560,7 +582,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: ["fentezi", "romantyka"],
@@ -586,7 +608,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: ["not-a-real-genre"],
@@ -603,12 +625,99 @@ describe("BooksService.create", () => {
   });
 });
 
+describe("BooksService.create multiple authors", () => {
+  function multiAuthorInput(authors: CreateBookInput["authors"]): CreateBookInput {
+    return {
+      addToReadingQueue: false,
+      ageCategory: "not_specified",
+      authors,
+      bookType: "solo",
+      formats: [],
+      genres: [],
+      isFavorite: false,
+      language: "ukrainian",
+      ownershipStatus: "none",
+      readingStatus: "not_started",
+      tags: [],
+      title: "Good Omens",
+    };
+  }
+
+  it("passes the resolved author ids to the repository in resolver order", async () => {
+    const { authorsService, repository, service } = buildService();
+    authorsService.resolveReferences.mockResolvedValue([
+      { id: AUTHOR_ID, name: "Terry Pratchett" },
+      { id: AUTHOR_ID_B, name: "Neil Gaiman" },
+    ]);
+
+    await service.create(
+      USER_ID,
+      multiAuthorInput([{ name: "Terry Pratchett" }, { name: "Neil Gaiman" }]),
+    );
+
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({
+        authorIds: [AUTHOR_ID, AUTHOR_ID_B],
+        firstAuthorName: "Terry Pratchett",
+      }),
+    );
+  });
+
+  it("forwards the author references to the resolver and links the returned ids in order", async () => {
+    const { authorsService, repository, service } = buildService();
+    authorsService.resolveReferences.mockResolvedValue([
+      { id: AUTHOR_ID, name: "George Orwell" },
+      { id: AUTHOR_ID_C, name: "Frank Herbert" },
+    ]);
+
+    await service.create(USER_ID, multiAuthorInput([{ id: AUTHOR_ID }, { name: "Frank Herbert" }]));
+
+    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
+      references: [{ id: AUTHOR_ID }, { name: "Frank Herbert" }],
+      userId: USER_ID,
+    });
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ authorIds: [AUTHOR_ID, AUTHOR_ID_C] }),
+    );
+  });
+});
+
+describe("BooksService.update multiple authors", () => {
+  it("replaces the author set and recomputes firstAuthorName from the new first author", async () => {
+    const { authorsService, repository, service } = buildService({ findOwnedById: bookRow() });
+    authorsService.resolveReferences.mockResolvedValue([
+      { id: AUTHOR_ID_B, name: "Ursula K. Le Guin" },
+      { id: AUTHOR_ID_C, name: "Octavia E. Butler" },
+    ]);
+
+    await service.update(USER_ID, BOOK_ID, {
+      authors: [{ name: "Ursula K. Le Guin" }, { name: "Octavia E. Butler" }],
+    });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.authorIds).toEqual([AUTHOR_ID_B, AUTHOR_ID_C]);
+    expect(data.fields.firstAuthorName).toBe("Ursula K. Le Guin");
+  });
+
+  it("leaves authorIds undefined so the repository keeps the existing authors when absent", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { title: "Renamed" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.authorIds).toBeUndefined();
+    expect(data.fields.firstAuthorName).toBeUndefined();
+  });
+});
+
 describe("BooksService.create organization", () => {
   function organizationInput(overrides: Partial<CreateBookInput> = {}): CreateBookInput {
     return {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -697,7 +806,7 @@ describe("BooksService.create series handling", () => {
     return {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       formats: [],
       genres: [],
@@ -742,9 +851,11 @@ describe("BooksService.create series handling", () => {
       }),
     );
 
-    expect(seriesService.resolveForBook).toHaveBeenCalledWith(USER_ID, {
+    expect(seriesService.resolveForBook).toHaveBeenCalledWith({
+      fallbackAuthorIds: [AUTHOR_ID],
       newSeries: { name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
       seriesId: undefined,
+      userId: USER_ID,
     });
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
@@ -757,9 +868,11 @@ describe("BooksService.create series handling", () => {
 
     await service.create(USER_ID, seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }));
 
-    expect(seriesService.resolveForBook).toHaveBeenCalledWith(USER_ID, {
+    expect(seriesService.resolveForBook).toHaveBeenCalledWith({
+      fallbackAuthorIds: [AUTHOR_ID],
       newSeries: undefined,
       seriesId: SERIES_ID,
+      userId: USER_ID,
     });
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
@@ -773,6 +886,7 @@ describe("BooksService.create series handling", () => {
         partNumber: 1,
         series: {
           _count: { books: 2 },
+          authors: [],
           books: [{ id: "fin-1" }],
           createdAt: new Date("2026-02-01T10:00:00.000Z"),
           description: "YA fantasy saga",
@@ -799,6 +913,7 @@ describe("BooksService.create series handling", () => {
     expect(view.bookType).toBe("series_part");
     expect(view.partNumber).toBe(1);
     expect(view.series).toEqual({
+      authors: [],
       booksInSeries: 2,
       description: "YA fantasy saga",
       finishedInSeries: 1,
@@ -814,7 +929,7 @@ describe("BooksService.create series handling", () => {
 
     await service.create(USER_ID, seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }));
 
-    expect(repository.existsSeriesPartNumber).toHaveBeenCalledWith(USER_ID, {
+    expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(USER_ID, {
       excludeBookId: null,
       partNumber: 2,
       seriesId: SERIES_ID,
@@ -823,7 +938,7 @@ describe("BooksService.create series handling", () => {
 
   it("rejects creating a book whose part number is already used in the series", async () => {
     const { repository, service } = buildService({
-      existsSeriesPartNumber: true,
+      findSeriesPartNumberConflict: { id: BOOK_ID, title: "Iron Flame" },
       seriesId: SERIES_ID,
     });
 
@@ -838,7 +953,7 @@ describe("BooksService.create series handling", () => {
 
     await service.create(USER_ID, seriesPartInput({ bookType: "solo", partNumber: 1 }));
 
-    expect(repository.existsSeriesPartNumber).not.toHaveBeenCalled();
+    expect(repository.findSeriesPartNumberConflict).not.toHaveBeenCalled();
   });
 
   it("rejects creating a book whose part number exceeds the existing series total books", async () => {
@@ -918,7 +1033,7 @@ describe("BooksService cover", () => {
   const minimalInput: CreateBookInput = {
     addToReadingQueue: false,
     ageCategory: "not_specified",
-    author: { name: "Frank Herbert" },
+    authors: [{ name: "Frank Herbert" }],
     bookType: "solo",
     formats: [],
     genres: [],
@@ -982,14 +1097,14 @@ describe("BooksService cover", () => {
 describe("BooksService.list", () => {
   it("maps the page to a Paginator of BookView with the correct counts", async () => {
     const { service } = buildService({
-      countByUser: 3,
-      listByUser: [bookRow({ id: BOOK_ID })],
+      countForLibrary: 3,
+      listForLibrary: [bookRow({ id: BOOK_ID })],
     });
 
     const page = await service.list(USER_ID, {
       pageNumber: 1,
       pageSize: 2,
-      sortDirection: "desc",
+      sort: "created_desc",
     });
 
     expect(page).toMatchObject({
@@ -1000,6 +1115,39 @@ describe("BooksService.list", () => {
     });
     expect(page.items).toHaveLength(1);
     expect(page.items[0]?.id).toBe(BOOK_ID);
+  });
+
+  it("ignores a single-character query and runs no search", async () => {
+    const { genresService, repository, service } = buildService({ listForLibrary: [bookRow()] });
+
+    await service.list(USER_ID, { pageNumber: 1, pageSize: 20, q: "a", sort: "created_desc" });
+
+    expect(genresService.searchKeys).not.toHaveBeenCalled();
+    expect(repository.listForLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: expect.objectContaining({ search: undefined }) }),
+    );
+  });
+
+  it("keeps a single-digit query so the ISBN search still applies", async () => {
+    const { genresService, repository, service } = buildService({ listForLibrary: [bookRow()] });
+
+    await service.list(USER_ID, { pageNumber: 1, pageSize: 20, q: "9", sort: "created_desc" });
+
+    expect(genresService.searchKeys).toHaveBeenCalledWith({ query: "9", userId: USER_ID });
+    expect(repository.listForLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: expect.objectContaining({ search: "9" }) }),
+    );
+  });
+
+  it("applies the search for a query of at least two characters", async () => {
+    const { genresService, repository, service } = buildService({ listForLibrary: [bookRow()] });
+
+    await service.list(USER_ID, { pageNumber: 1, pageSize: 20, q: "ab", sort: "created_desc" });
+
+    expect(genresService.searchKeys).toHaveBeenCalledWith({ query: "ab", userId: USER_ID });
+    expect(repository.listForLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: expect.objectContaining({ search: "ab" }) }),
+    );
   });
 });
 
@@ -1045,26 +1193,30 @@ describe("BooksService.update", () => {
       findOwnedById: bookRow(),
     });
 
-    await service.update(USER_ID, BOOK_ID, { author: { name: "Ursula K. Le Guin" } });
+    await service.update(USER_ID, BOOK_ID, { authors: [{ name: "Ursula K. Le Guin" }] });
 
-    expect(authorsService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
-      name: "Ursula K. Le Guin",
+    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
+      references: [{ name: "Ursula K. Le Guin" }],
+      userId: USER_ID,
     });
     const data = updateDataFromFirstCall(repository);
-    expect(data.fields.authorId).toBe(AUTHOR_ID);
+    expect(data.authorIds).toEqual([AUTHOR_ID]);
   });
 
-  it("materializes an open library author when the reference is a key", async () => {
+  it("forwards an open library key reference to the author resolver", async () => {
     const { authorsService, repository, service } = buildService({
       authorId: AUTHOR_ID,
       findOwnedById: bookRow(),
     });
 
-    await service.update(USER_ID, BOOK_ID, { author: { openLibraryKey: "OL23919A" } });
+    await service.update(USER_ID, BOOK_ID, { authors: [{ openLibraryKey: "OL23919A" }] });
 
-    expect(authorsService.materializeFromOpenLibrary).toHaveBeenCalledWith("OL23919A");
+    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
+      references: [{ openLibraryKey: "OL23919A" }],
+      userId: USER_ID,
+    });
     const data = updateDataFromFirstCall(repository);
-    expect(data.fields.authorId).toBe(AUTHOR_ID);
+    expect(data.authorIds).toEqual([AUTHOR_ID]);
   });
 
   it("disconnects the publisher when the resolver returns null", async () => {
@@ -1242,7 +1394,7 @@ describe("BooksService.update", () => {
 
     await service.update(USER_ID, BOOK_ID, { partNumber: 4 } as UpdateBookInput);
 
-    expect(repository.existsSeriesPartNumber).toHaveBeenCalledWith(USER_ID, {
+    expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(USER_ID, {
       excludeBookId: BOOK_ID,
       partNumber: 4,
       seriesId: SERIES_ID,
@@ -1251,8 +1403,8 @@ describe("BooksService.update", () => {
 
   it("rejects an update whose part number collides with another book in the series", async () => {
     const { repository, service } = buildService({
-      existsSeriesPartNumber: true,
       findOwnedById: bookRow({ partNumber: 2, seriesId: SERIES_ID }),
+      findSeriesPartNumberConflict: { id: BOOK_ID, title: "Iron Flame" },
     });
 
     await expect(
@@ -1266,7 +1418,7 @@ describe("BooksService.update", () => {
 
     await service.update(USER_ID, BOOK_ID, { title: "Solo" });
 
-    expect(repository.existsSeriesPartNumber).not.toHaveBeenCalled();
+    expect(repository.findSeriesPartNumberConflict).not.toHaveBeenCalled();
   });
 
   it("enqueues a book that was not in the queue and appends to the end with the chosen priority", async () => {
@@ -1441,5 +1593,31 @@ describe("BooksService.update", () => {
       service.update(USER_ID, BOOK_ID, { genres: ["not-a-real-genre"] }),
     ).rejects.toBeInstanceOf(BadRequestError);
     expect(repository.updateOwned).not.toHaveBeenCalled();
+  });
+});
+
+describe("BooksService.recentPurchaseStores", () => {
+  it("returns the store names produced by the repository", async () => {
+    const { service } = buildService({ recentPurchaseStores: ["Yakaboo", "Knyharnya Ye"] });
+
+    const result = await service.recentPurchaseStores({ limit: 8, userId: USER_ID });
+
+    expect(result).toEqual(["Yakaboo", "Knyharnya Ye"]);
+  });
+
+  it("returns an empty array when the user has no purchase stores", async () => {
+    const { service } = buildService({ recentPurchaseStores: [] });
+
+    const result = await service.recentPurchaseStores({ limit: 8, userId: USER_ID });
+
+    expect(result).toEqual([]);
+  });
+
+  it("forwards the limit and user id to the repository", async () => {
+    const { repository, service } = buildService({});
+
+    await service.recentPurchaseStores({ limit: 5, userId: USER_ID });
+
+    expect(repository.recentPurchaseStores).toHaveBeenCalledWith({ limit: 5, userId: USER_ID });
   });
 });

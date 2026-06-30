@@ -18,7 +18,11 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { AuthorsControllerLookupParams, AuthorsControllerSearchParams } from "../../model";
+import type {
+  AuthorsControllerLookupParams,
+  AuthorsControllerRecentParams,
+  AuthorsControllerSearchParams,
+} from "../../model";
 
 import { customInstance } from "../../../mutator";
 
@@ -183,6 +187,173 @@ export function useAuthorsControllerLookup<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getAuthorsControllerLookupQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type authorsControllerRecentResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type authorsControllerRecentResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type authorsControllerRecentResponseSuccess = authorsControllerRecentResponse200 & {
+  headers: Headers;
+};
+export type authorsControllerRecentResponseError = authorsControllerRecentResponse401 & {
+  headers: Headers;
+};
+
+export type authorsControllerRecentResponse =
+  | authorsControllerRecentResponseSuccess
+  | authorsControllerRecentResponseError;
+
+export const getAuthorsControllerRecentUrl = (params?: AuthorsControllerRecentParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/authors/recent?${stringifiedParams}`
+    : `/api/authors/recent`;
+};
+
+/**
+ * @summary List recently used authors for the current user
+ */
+export const authorsControllerRecent = async (
+  params?: AuthorsControllerRecentParams,
+  options?: RequestInit,
+): Promise<authorsControllerRecentResponse> => {
+  return customInstance<authorsControllerRecentResponse>(getAuthorsControllerRecentUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getAuthorsControllerRecentQueryKey = (params?: AuthorsControllerRecentParams) => {
+  return [`/api/authors/recent`, ...(params ? [params] : [])] as const;
+};
+
+export const getAuthorsControllerRecentQueryOptions = <
+  TData = Awaited<ReturnType<typeof authorsControllerRecent>>,
+  TError = void,
+>(
+  params?: AuthorsControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof authorsControllerRecent>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getAuthorsControllerRecentQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof authorsControllerRecent>>> = ({
+    signal,
+  }) => authorsControllerRecent(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof authorsControllerRecent>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type AuthorsControllerRecentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof authorsControllerRecent>>
+>;
+export type AuthorsControllerRecentQueryError = void;
+
+export function useAuthorsControllerRecent<
+  TData = Awaited<ReturnType<typeof authorsControllerRecent>>,
+  TError = void,
+>(
+  params: undefined | AuthorsControllerRecentParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof authorsControllerRecent>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof authorsControllerRecent>>,
+          TError,
+          Awaited<ReturnType<typeof authorsControllerRecent>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useAuthorsControllerRecent<
+  TData = Awaited<ReturnType<typeof authorsControllerRecent>>,
+  TError = void,
+>(
+  params?: AuthorsControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof authorsControllerRecent>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof authorsControllerRecent>>,
+          TError,
+          Awaited<ReturnType<typeof authorsControllerRecent>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useAuthorsControllerRecent<
+  TData = Awaited<ReturnType<typeof authorsControllerRecent>>,
+  TError = void,
+>(
+  params?: AuthorsControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof authorsControllerRecent>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List recently used authors for the current user
+ */
+
+export function useAuthorsControllerRecent<
+  TData = Awaited<ReturnType<typeof authorsControllerRecent>>,
+  TError = void,
+>(
+  params?: AuthorsControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof authorsControllerRecent>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getAuthorsControllerRecentQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

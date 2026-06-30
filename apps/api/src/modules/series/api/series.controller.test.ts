@@ -65,9 +65,6 @@ describe("GET /api/series", () => {
 
   it("computes booksInSeries live from the linked books", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
-    const author = await prisma.author.create({
-      data: { name: "Sarah J. Maas", normalizedName: "sarah j maas", userId },
-    });
     const linked = await prisma.series.create({
       data: { name: "Throne of Glass", normalizedName: "throne of glass", userId },
     });
@@ -77,14 +74,12 @@ describe("GET /api/series", () => {
     await prisma.book.createMany({
       data: [
         {
-          authorId: author.id,
           partNumber: 1,
           seriesId: linked.id,
           title: "Throne of Glass",
           userId,
         },
         {
-          authorId: author.id,
           partNumber: 2,
           seriesId: linked.id,
           title: "Crown of Midnight",
@@ -108,16 +103,12 @@ describe("GET /api/series", () => {
 
   it("computes finishedInSeries live from the books with a finished reading status", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
-    const author = await prisma.author.create({
-      data: { name: "Sarah J. Maas", normalizedName: "sarah j maas", userId },
-    });
     const linked = await prisma.series.create({
       data: { name: "Throne of Glass", normalizedName: "throne of glass", userId },
     });
     await prisma.book.createMany({
       data: [
         {
-          authorId: author.id,
           partNumber: 1,
           readingStatus: "finished",
           seriesId: linked.id,
@@ -125,7 +116,6 @@ describe("GET /api/series", () => {
           userId,
         },
         {
-          authorId: author.id,
           partNumber: 2,
           readingStatus: "finished",
           seriesId: linked.id,
@@ -133,7 +123,6 @@ describe("GET /api/series", () => {
           userId,
         },
         {
-          authorId: author.id,
           partNumber: 3,
           readingStatus: "reading",
           seriesId: linked.id,

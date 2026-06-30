@@ -92,7 +92,7 @@ describe("POST /api/media", () => {
     expect(res.status).toBe(401);
   });
 
-  it("uploads an image, stores a single object, and returns a MediaView with metadata", async () => {
+  it("uploads an image, stores the image plus a thumb, and returns a MediaView with metadata", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const res = await uploadMedia(accessToken).attach("file", pngBuffer, {
@@ -112,13 +112,15 @@ describe("POST /api/media", () => {
     expect(typeof res.body.createdAt).toBe("string");
     expect(res.body.urls.full).toMatch(/\/image\.webp$/);
     expect(res.body.urls.card).toBe(res.body.urls.full);
-    expect(res.body.urls.thumb).toBe(res.body.urls.full);
-    expect(storedKeys.size).toBe(1);
+    expect(res.body.urls.thumb).toMatch(/\/thumb\.webp$/);
+    expect(res.body.urls.thumb).not.toBe(res.body.urls.full);
+    expect(storedKeys.size).toBe(2);
 
     const row = await prisma.mediaAsset.findUnique({ where: { id: res.body.id } });
     expect(row?.userId).toBe(userId);
     expect(row?.kind).toBe("book_cover");
     expect(row?.originalName).toBe("cover.png");
+    expect(row?.thumbGeneratedAt).not.toBeNull();
   });
 
   it("accepts an explicit kind field", async () => {
@@ -177,7 +179,7 @@ describe("DELETE /api/media/:id", () => {
       contentType: "image/png",
       filename: "cover.png",
     });
-    expect(storedKeys.size).toBe(1);
+    expect(storedKeys.size).toBe(2);
 
     const res = await request(app.getHttpServer())
       .delete(`/api/media/${created.body.id}`)
@@ -186,7 +188,7 @@ describe("DELETE /api/media/:id", () => {
     expect(res.status).toBe(204);
     expect(storedKeys.size).toBe(0);
     expect(deletedBatches).toHaveLength(1);
-    expect(deletedBatches[0]).toHaveLength(1);
+    expect(deletedBatches[0]).toHaveLength(2);
     const row = await prisma.mediaAsset.findUnique({ where: { id: created.body.id } });
     expect(row).toBeNull();
   });

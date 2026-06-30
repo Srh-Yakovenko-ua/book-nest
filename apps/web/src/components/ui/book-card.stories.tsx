@@ -36,7 +36,7 @@ function Kebab() {
 
 const meta = {
   args: {
-    author: "Сара Дж. Маас",
+    authors: ["Сара Дж. Маас"],
     status: reading,
     title: "Двір срібного полум'я",
   },
@@ -82,7 +82,7 @@ export const Reading: Story = {
 
 export const Finished: Story = {
   args: {
-    author: "Лі Бардуго",
+    authors: ["Лі Бардуго"],
     genres: [{ icon: "fentezi", label: "Фентезі" }],
     kebab: <Kebab />,
     rating: 4.5,
@@ -93,7 +93,7 @@ export const Finished: Story = {
 
 export const WantToRead: Story = {
   args: {
-    author: "Медлін Міллер",
+    authors: ["Медлін Міллер"],
     genres: [{ icon: "istorychnyy-roman", label: "Історична проза" }],
     kebab: <Kebab />,
     status: wantToRead,
@@ -103,7 +103,7 @@ export const WantToRead: Story = {
 
 export const Selected: Story = {
   args: {
-    author: "Роберт Джексон Беннетт",
+    authors: ["Роберт Джексон Беннетт"],
     genres: [{ icon: "fentezi", label: "Фентезі" }],
     progress: {
       ariaLabel: "Прогрес читання: 87 з 452",
@@ -147,7 +147,7 @@ export const Grid: Story = {
   render: () => (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(290px,1fr))] gap-[18px]">
       <BookCard
-        author="Сара Дж. Маас"
+        authors={["Сара Дж. Маас"]}
         genres={[{ icon: "fentezi", label: "Фентезі" }]}
         href="#book"
         kebab={<Kebab />}
@@ -163,7 +163,7 @@ export const Grid: Story = {
         title="Двір срібного полум'я"
       />
       <BookCard
-        author="Лі Бардуго"
+        authors={["Лі Бардуго"]}
         genres={[{ icon: "fentezi", label: "Фентезі" }]}
         href="#book"
         kebab={<Kebab />}
@@ -172,7 +172,7 @@ export const Grid: Story = {
         title="Шістка воронів"
       />
       <BookCard
-        author="Медлін Міллер"
+        authors={["Медлін Міллер"]}
         genres={[{ icon: "istorychnyy-roman", label: "Історична проза" }]}
         href="#book"
         kebab={<Kebab />}

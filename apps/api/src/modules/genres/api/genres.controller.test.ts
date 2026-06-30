@@ -318,7 +318,7 @@ describe("DELETE /api/genres/:id", () => {
     const genreKey = created.body.key;
 
     const book = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       genres: [genreKey],
       title: "Dune",
     });

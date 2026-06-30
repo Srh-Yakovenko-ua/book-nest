@@ -7,7 +7,7 @@ import { z } from "zod";
 
 import { authorsControllerSearch } from "@/shared/api/generated/endpoints/authors/authors";
 
-const authorViewSchema = z.object({
+export const authorViewSchema = z.object({
   bio: z.string().nullable(),
   birthYear: z.number().nullable(),
   countryCode: z.string().nullable(),
@@ -22,7 +22,7 @@ const authorViewSchema = z.object({
   photoUrl: z.string().nullable(),
 }) satisfies z.ZodType<AuthorView>;
 
-const authorSearchResultSchema = z.object({
+export const authorSearchResultSchema = z.object({
   items: z.array(authorViewSchema),
   page: z.number(),
   pagesCount: z.number(),

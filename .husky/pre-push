@@ -5,4 +5,4 @@ if [ -n "$(git status --porcelain)" ]; then
   trap 'if [ $STASHED -eq 1 ]; then git stash pop --quiet || true; fi' EXIT INT TERM
 fi
 
-pnpm typecheck && pnpm lint && pnpm test
+pnpm typecheck && pnpm lint

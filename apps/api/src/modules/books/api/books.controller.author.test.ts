@@ -73,12 +73,12 @@ describe("POST /api/books author reference dispatch", () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
     expect(res.status).toBe(201);
-    expect(res.body.author.name).toBe("Frank Herbert");
+    expect(res.body.authors[0].name).toBe("Frank Herbert");
     const author = await prisma.author.findFirst({ where: { name: "Frank Herbert" } });
     expect(author?.userId).toBe(userId);
   });
@@ -90,12 +90,12 @@ describe("POST /api/books author reference dispatch", () => {
     });
 
     const res = await createBook(accessToken, {
-      author: { id: global.id },
+      authors: [{ id: global.id }],
       title: "1984",
     });
 
     expect(res.status).toBe(201);
-    expect(res.body.author).toEqual({ id: global.id, name: "George Orwell" });
+    expect(res.body.authors[0]).toEqual({ id: global.id, name: "George Orwell" });
   });
 
   it("returns 404 when the id references another user's custom author", async () => {
@@ -109,7 +109,7 @@ describe("POST /api/books author reference dispatch", () => {
     });
 
     const res = await createBook(stranger.accessToken, {
-      author: { id: ownerAuthor.id },
+      authors: [{ id: ownerAuthor.id }],
       title: "Dune",
     });
 
@@ -120,13 +120,13 @@ describe("POST /api/books author reference dispatch", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { openLibraryKey: OPEN_LIBRARY_KEY },
+      authors: [{ openLibraryKey: OPEN_LIBRARY_KEY }],
       title: "1984",
     });
 
     expect(res.status).toBe(201);
-    expect(res.body.author.id).toMatch(UUID);
-    expect(res.body.author.name).toBe("George Orwell");
+    expect(res.body.authors[0].id).toMatch(UUID);
+    expect(res.body.authors[0].name).toBe("George Orwell");
     const materialized = await prisma.author.findFirst({
       where: { openLibraryKey: OPEN_LIBRARY_KEY },
     });
@@ -138,17 +138,17 @@ describe("POST /api/books author reference dispatch", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const first = await createBook(accessToken, {
-      author: { openLibraryKey: OPEN_LIBRARY_KEY },
+      authors: [{ openLibraryKey: OPEN_LIBRARY_KEY }],
       title: "1984",
     });
     const second = await createBook(accessToken, {
-      author: { openLibraryKey: OPEN_LIBRARY_KEY },
+      authors: [{ openLibraryKey: OPEN_LIBRARY_KEY }],
       title: "Animal Farm",
     });
 
     expect(first.status).toBe(201);
     expect(second.status).toBe(201);
-    expect(second.body.author.id).toBe(first.body.author.id);
+    expect(second.body.authors[0].id).toBe(first.body.authors[0].id);
     const authors = await prisma.author.findMany({ where: { openLibraryKey: OPEN_LIBRARY_KEY } });
     expect(authors).toHaveLength(1);
   });
@@ -156,9 +156,12 @@ describe("POST /api/books author reference dispatch", () => {
   it("fetches open library only once across a deduped second materialization", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    await createBook(accessToken, { author: { openLibraryKey: OPEN_LIBRARY_KEY }, title: "1984" });
     await createBook(accessToken, {
-      author: { openLibraryKey: OPEN_LIBRARY_KEY },
+      authors: [{ openLibraryKey: OPEN_LIBRARY_KEY }],
+      title: "1984",
+    });
+    await createBook(accessToken, {
+      authors: [{ openLibraryKey: OPEN_LIBRARY_KEY }],
       title: "Animal Farm",
     });
 
@@ -173,7 +176,10 @@ describe("POST /api/books author reference dispatch", () => {
       deathYear: 1950,
     });
 
-    await createBook(accessToken, { author: { openLibraryKey: OPEN_LIBRARY_KEY }, title: "1984" });
+    await createBook(accessToken, {
+      authors: [{ openLibraryKey: OPEN_LIBRARY_KEY }],
+      title: "1984",
+    });
 
     const materialized = await prisma.author.findFirst({
       where: { openLibraryKey: OPEN_LIBRARY_KEY },
@@ -187,7 +193,7 @@ describe("POST /api/books author reference dispatch", () => {
     getAuthorByKey.mockResolvedValue(null);
 
     const res = await createBook(accessToken, {
-      author: { openLibraryKey: OPEN_LIBRARY_KEY },
+      authors: [{ openLibraryKey: OPEN_LIBRARY_KEY }],
       title: "1984",
     });
 
@@ -197,7 +203,7 @@ describe("POST /api/books author reference dispatch", () => {
   it("returns 400 when the author reference is an empty object", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const res = await createBook(accessToken, { author: {}, title: "Dune" });
+    const res = await createBook(accessToken, { authors: [{}], title: "Dune" });
 
     expect(res.status).toBe(400);
   });
@@ -206,7 +212,7 @@ describe("POST /api/books author reference dispatch", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await createBook(accessToken, {
-      author: { openLibraryKey: "not-a-key" },
+      authors: [{ openLibraryKey: "not-a-key" }],
       title: "Dune",
     });
 

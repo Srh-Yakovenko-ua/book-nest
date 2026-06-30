@@ -1,9 +1,14 @@
 import type { MediaCrop } from "@app/shared";
+import type { Sharp } from "sharp";
 
 import { Injectable } from "@nestjs/common";
 import sharp from "sharp";
 
-import type { ProcessedImage, ProcessImageOptions } from "../domain/image-processor.port.js";
+import type {
+  ProcessedImage,
+  ProcessedImageSet,
+  ProcessImageOptions,
+} from "../domain/image-processor.port.js";
 
 import {
   CropOutOfBoundsError,
@@ -13,9 +18,12 @@ import {
 
 const OUTPUT_CONTENT_TYPE = "image/webp";
 const WEBP_EFFORT = 6;
-const WEBP_QUALITY = 88;
-const MAX_OUTPUT_EDGE = 1600;
 const DEFAULT_MAX_INPUT_PIXELS = 80_000_000;
+
+const FULL_MAX_EDGE = 1600;
+const FULL_QUALITY = 88;
+const THUMB_MAX_EDGE = 300;
+const THUMB_QUALITY = 80;
 
 const ORIENTATIONS_WITH_SWAPPED_AXES = new Set([5, 6, 7, 8]);
 
@@ -52,7 +60,7 @@ export class SharpImageProcessor extends ImageProcessorPort {
     super();
   }
 
-  async process({ crop, input }: ProcessImageOptions): Promise<ProcessedImage> {
+  async process({ crop, input }: ProcessImageOptions): Promise<ProcessedImageSet> {
     const metadata = await sharp(input, { limitInputPixels: false }).metadata();
     if (metadata.width === undefined || metadata.height === undefined) {
       throw new Error("Image metadata is missing dimensions");
@@ -61,7 +69,7 @@ export class SharpImageProcessor extends ImageProcessorPort {
       throw new ImageTooLargeError();
     }
 
-    const pipeline = sharp(input, { limitInputPixels: this.maxInputPixels }).rotate();
+    const normalized = sharp(input, { limitInputPixels: this.maxInputPixels }).rotate();
 
     if (crop !== undefined) {
       const { height: orientedHeight, width: orientedWidth } = orientImageDimensions({
@@ -70,17 +78,33 @@ export class SharpImageProcessor extends ImageProcessorPort {
         width: metadata.width,
       });
       assertCropWithinBounds({ crop, orientedHeight, orientedWidth });
-      pipeline.extract({ height: crop.height, left: crop.x, top: crop.y, width: crop.width });
+      normalized.extract({ height: crop.height, left: crop.x, top: crop.y, width: crop.width });
     }
 
+    const [full, thumb] = await Promise.all([
+      this.encode({ maxEdge: FULL_MAX_EDGE, pipeline: normalized.clone(), quality: FULL_QUALITY }),
+      this.encode({
+        maxEdge: THUMB_MAX_EDGE,
+        pipeline: normalized.clone(),
+        quality: THUMB_QUALITY,
+      }),
+    ]);
+
+    return { full, thumb };
+  }
+
+  private async encode({
+    maxEdge,
+    pipeline,
+    quality,
+  }: {
+    maxEdge: number;
+    pipeline: Sharp;
+    quality: number;
+  }): Promise<ProcessedImage> {
     const { data, info } = await pipeline
-      .resize({
-        fit: "inside",
-        height: MAX_OUTPUT_EDGE,
-        width: MAX_OUTPUT_EDGE,
-        withoutEnlargement: true,
-      })
-      .webp({ effort: WEBP_EFFORT, quality: WEBP_QUALITY })
+      .resize({ fit: "inside", height: maxEdge, width: maxEdge, withoutEnlargement: true })
+      .webp({ effort: WEBP_EFFORT, quality })
       .toBuffer({ resolveWithObject: true });
 
     return {

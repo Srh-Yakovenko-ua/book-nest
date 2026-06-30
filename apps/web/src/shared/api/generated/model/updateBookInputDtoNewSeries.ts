@@ -5,9 +5,12 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { UpdateBookInputDtoNewSeriesAuthorsItem } from "./updateBookInputDtoNewSeriesAuthorsItem";
 import type { UpdateBookInputDtoNewSeriesStatus } from "./updateBookInputDtoNewSeriesStatus";
 
 export type UpdateBookInputDtoNewSeries = {
+  /** @maxItems 20 */
+  authors?: UpdateBookInputDtoNewSeriesAuthorsItem[];
   description?: string;
   name: string;
   status?: UpdateBookInputDtoNewSeriesStatus;

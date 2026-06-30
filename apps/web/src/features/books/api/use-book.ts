@@ -12,7 +12,7 @@ export function useBook(id: string) {
       const response = await booksControllerGetById(id);
       return bookViewSchema.parse(response);
     },
-    queryKey: [`/api/books/${id}`],
+    queryKey: ["/api/books", "detail", id],
     retry: false,
   });
 }

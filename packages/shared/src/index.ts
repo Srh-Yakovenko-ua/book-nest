@@ -18,8 +18,10 @@ export type ApiHealth = {
 };
 
 export type FieldError = {
+  code?: string;
   field: string;
   message: string;
+  meta?: Record<string, string>;
 };
 
 export type Nullable<T> = null | T;
@@ -35,14 +37,6 @@ export type Paginator<T> = {
 export type ValueOf<T> = T[keyof T];
 
 export const LIST_PAGE_SIZE_MAX = 100;
-
-export const PaginationQuerySchema = z.object({
-  pageNumber: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(10),
-  sortDirection: z.enum(["asc", "desc"]).default("desc"),
-});
-
-export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
 
 const NAME_MIN = 2;
 const NAME_MAX = 50;
@@ -560,11 +554,12 @@ const BOOK_PAGES_COUNT_MAX = 10000;
 const BOOK_PUBLICATION_YEAR_MIN = 1000;
 const BOOK_ORIGINAL_TITLE_MAX = 200;
 const BOOK_CONTRIBUTOR_NAME_MAX = 100;
-const BOOK_DEDICATION_MAX = 300;
+const BOOK_DEDICATION_MAX = 1000;
 const READING_CURRENT_PAGE_MIN = 0;
 const READING_CURRENT_PAGE_MAX = 100000;
-const READING_RATING_MIN = 1;
-const READING_RATING_MAX = 5;
+const READING_RATING_MIN = 0.5;
+const READING_RATING_MAX = 10;
+const READING_RATING_STEP = 0.5;
 const READING_NOTE_MAX = 300;
 const READING_IMPRESSION_MAX = 500;
 const ISBN_DIGITS_PATTERN = /^\d+$/;
@@ -699,7 +694,7 @@ export const IllustratorSchema = z
 export const DedicationSchema = z
   .string()
   .transform(collapseHorizontalSpaces)
-  .pipe(NoHtmlString.max(BOOK_DEDICATION_MAX, "Dedication must be at most 300 characters long"));
+  .pipe(NoHtmlString.max(BOOK_DEDICATION_MAX, "Dedication must be at most 1000 characters long"));
 
 export const ReadingNoteSchema = z
   .string()
@@ -727,9 +722,9 @@ export const ReadingProgressInputSchema = z
     pausedAt: notInFutureDate("Paused date must not be in the future").nullable().optional(),
     rating: z
       .number()
-      .int()
-      .min(READING_RATING_MIN, "Rating must be from 1 to 5")
-      .max(READING_RATING_MAX, "Rating must be from 1 to 5")
+      .min(READING_RATING_MIN, "Rating must be from 0.5 to 10 in steps of 0.5")
+      .max(READING_RATING_MAX, "Rating must be from 0.5 to 10 in steps of 0.5")
+      .multipleOf(READING_RATING_STEP, "Rating must be from 0.5 to 10 in steps of 0.5")
       .nullable()
       .optional(),
     startedAt: notInFutureDate("Start date must not be in the future").nullable().optional(),
@@ -885,14 +880,7 @@ const BookPartNumberSchema = z
 export const BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE =
   "Part number can't be greater than the total books in the series";
 
-export const NewSeriesInputSchema = z.object({
-  description: SeriesDescriptionSchema.optional(),
-  name: SeriesNameSchema,
-  status: SeriesStatusSchema.default("unknown"),
-  totalBooks: SeriesTotalBooksSchema.optional(),
-});
-
-export type NewSeriesInput = z.infer<typeof NewSeriesInputSchema>;
+export const BOOK_SERIES_PART_NUMBER_TAKEN_CODE = "book_series_part_number_taken";
 
 const OWNERSHIP_STATUSES_WITH_LOAN: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
   "borrowed_from_someone",
@@ -946,11 +934,34 @@ export const BookAuthorReferenceSchema = z.union([
 
 export type BookAuthorReference = z.infer<typeof BookAuthorReferenceSchema>;
 
+export const BOOK_AUTHORS_MAX = 20;
+
+export const BOOK_AUTHORS_REQUIRED_MESSAGE = "Add at least one author";
+export const BOOK_AUTHORS_MAX_MESSAGE = `A book can have at most ${BOOK_AUTHORS_MAX} authors`;
+export const BOOK_SERIES_REQUIRED_MESSAGE = "Choose an existing series or create a new one";
+
+export const BookAuthorsInputSchema = z
+  .array(BookAuthorReferenceSchema)
+  .min(1, BOOK_AUTHORS_REQUIRED_MESSAGE)
+  .max(BOOK_AUTHORS_MAX, BOOK_AUTHORS_MAX_MESSAGE);
+
+export type BookAuthorsInput = z.infer<typeof BookAuthorsInputSchema>;
+
+export const NewSeriesInputSchema = z.object({
+  authors: z.array(BookAuthorReferenceSchema).max(BOOK_AUTHORS_MAX).optional(),
+  description: SeriesDescriptionSchema.optional(),
+  name: SeriesNameSchema,
+  status: SeriesStatusSchema.default("unknown"),
+  totalBooks: SeriesTotalBooksSchema.optional(),
+});
+
+export type NewSeriesInput = z.infer<typeof NewSeriesInputSchema>;
+
 export const CreateBookInputSchema = z
   .object({
     addToReadingQueue: z.boolean().default(false),
     ageCategory: AgeCategorySchema.default("not_specified"),
-    author: BookAuthorReferenceSchema,
+    authors: BookAuthorsInputSchema,
     bookType: BookTypeSchema.default("solo"),
     coverMediaId: z.uuid().nullable().optional(),
     dedication: DedicationSchema.nullable().optional(),
@@ -1020,7 +1031,7 @@ export const CreateBookInputSchema = z
       if (hasExistingSeries === hasNewSeries) {
         context.addIssue({
           code: "custom",
-          message: "Choose an existing series or create a new one",
+          message: BOOK_SERIES_REQUIRED_MESSAGE,
           path: ["newSeries"],
         });
       }
@@ -1052,7 +1063,7 @@ export const UpdateBookInputSchema = z
   .object({
     addToReadingQueue: z.boolean().optional(),
     ageCategory: AgeCategorySchema.optional(),
-    author: BookAuthorReferenceSchema.optional(),
+    authors: BookAuthorsInputSchema.optional(),
     bookType: BookTypeSchema.optional(),
     coverMediaId: z.uuid().nullable().optional(),
     dedication: DedicationSchema.nullable().optional(),
@@ -1111,7 +1122,7 @@ export const UpdateBookInputSchema = z
       if (hasExistingSeries === hasNewSeries) {
         context.addIssue({
           code: "custom",
-          message: "Choose an existing series or create a new one",
+          message: BOOK_SERIES_REQUIRED_MESSAGE,
           path: ["newSeries"],
         });
       }
@@ -1156,6 +1167,51 @@ export type AuthorView = {
 
 export type UpdateBookInput = z.infer<typeof UpdateBookInputSchema>;
 
+const BULK_BOOK_IDS_MAX = LIST_PAGE_SIZE_MAX;
+
+export const BulkBookIdsSchema = z.object({
+  bookIds: z.array(z.uuid()).min(1).max(BULK_BOOK_IDS_MAX),
+});
+
+export type BulkBookIds = z.infer<typeof BulkBookIdsSchema>;
+
+export const BulkFavoriteInputSchema = BulkBookIdsSchema.extend({
+  isFavorite: z.boolean(),
+});
+
+export type BulkFavoriteInput = z.infer<typeof BulkFavoriteInputSchema>;
+
+export const BulkReadingStatusInputSchema = BulkBookIdsSchema.extend({
+  readingStatus: ReadingStatusSchema,
+});
+
+export type BulkReadingStatusInput = z.infer<typeof BulkReadingStatusInputSchema>;
+
+export const BulkOwnershipStatusInputSchema = BulkBookIdsSchema.extend({
+  ownershipStatus: OwnershipStatusSchema,
+});
+
+export type BulkOwnershipStatusInput = z.infer<typeof BulkOwnershipStatusInputSchema>;
+
+export const BulkTagsInputSchema = BulkBookIdsSchema.extend({
+  tags: BookTagsInputSchema,
+});
+
+export type BulkTagsInput = z.infer<typeof BulkTagsInputSchema>;
+
+export const BulkListsInputSchema = BulkBookIdsSchema.extend({
+  listIds: z.array(z.uuid()).max(BOOK_LIST_IDS_MAX).optional(),
+  newLists: z.array(NewListInputSchema).max(BOOK_NEW_LISTS_MAX).optional(),
+});
+
+export type BulkListsInput = z.infer<typeof BulkListsInputSchema>;
+
+export const BulkActionResultSchema = z.object({
+  affected: z.number().int().nonnegative(),
+});
+
+export type BulkActionResult = z.infer<typeof BulkActionResultSchema>;
+
 export const AuthorLookupResultSchema = z.object({
   birthYear: z.number().int().nullable(),
   inDb: z.boolean(),
@@ -1189,7 +1245,7 @@ export type AuthorLookupQuery = z.infer<typeof AuthorLookupQuerySchema>;
 
 export type BookView = {
   ageCategory: AgeCategory;
-  author: { id: string; name: string };
+  authors: { id: string; name: string }[];
   bookType: BookType;
   cover?: MediaView | null;
   createdAt: string;
@@ -1340,6 +1396,7 @@ export type ReadingProgressView = {
 };
 
 export type SeriesView = {
+  authors: { id: string; name: string }[];
   booksInSeries: number;
   description: null | string;
   finishedInSeries: number;
@@ -1377,6 +1434,172 @@ export const PublisherSearchPaginationQuerySchema = TaxonomySearchPaginationQuer
 });
 
 export type PublisherSearchPaginationQuery = z.infer<typeof PublisherSearchPaginationQuerySchema>;
+
+const RECENT_USED_LIMIT_DEFAULT = 8;
+const RECENT_USED_LIMIT_MAX = 20;
+
+export const RecentPublishersQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(RECENT_USED_LIMIT_MAX)
+    .default(RECENT_USED_LIMIT_DEFAULT),
+  locale: CatalogLocaleSchema.default("uk"),
+});
+
+export type RecentPublishersQuery = z.infer<typeof RecentPublishersQuerySchema>;
+
+export const RecentAuthorsQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(RECENT_USED_LIMIT_MAX)
+    .default(RECENT_USED_LIMIT_DEFAULT),
+  locale: CatalogLocaleSchema.default("uk"),
+});
+
+export type RecentAuthorsQuery = z.infer<typeof RecentAuthorsQuerySchema>;
+
+const LIBRARY_PAGE_SIZE_DEFAULT = 24;
+const LIBRARY_SEARCH_MAX = 200;
+const LIBRARY_RATING_MIN = 1;
+const LIBRARY_RATING_MAX = 10;
+
+export const LibrarySortSchema = z.enum([
+  "created_desc",
+  "created_asc",
+  "updated_desc",
+  "title_asc",
+  "title_desc",
+  "author_asc",
+  "author_desc",
+  "rating_desc",
+  "rating_asc",
+  "year_desc",
+  "year_asc",
+  "pages_desc",
+  "pages_asc",
+]);
+
+export type LibrarySort = z.infer<typeof LibrarySortSchema>;
+
+const coerceQueryStringArray = (value: unknown): unknown => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  const entries = Array.isArray(value) ? value : [value];
+  const parts = entries.flatMap((entry) => (typeof entry === "string" ? entry.split(",") : entry));
+  const cleaned = parts
+    .map((entry) => (typeof entry === "string" ? entry.trim() : entry))
+    .filter((entry) => entry !== "");
+  return cleaned.length === 0 ? undefined : cleaned;
+};
+
+const queryStringArray = <Schema extends z.ZodType>(schema: Schema) =>
+  z.preprocess(coerceQueryStringArray, z.array(schema).max(LIST_PAGE_SIZE_MAX).optional());
+
+export const LibraryBooksQuerySchema = z
+  .object({
+    ageCategory: queryStringArray(AgeCategorySchema),
+    author: queryStringArray(z.uuid()),
+    bookType: BookTypeSchema.optional(),
+    format: queryStringArray(BookFormatSchema),
+    genre: queryStringArray(GenreKeySchema),
+    hasCover: z.stringbool().optional(),
+    isFavorite: z.stringbool().optional(),
+    language: queryStringArray(BookLanguageSchema),
+    owner: queryStringArray(OwnershipStatusSchema),
+    pageNumber: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(LIST_PAGE_SIZE_MAX)
+      .default(LIBRARY_PAGE_SIZE_DEFAULT),
+    pagesMax: z.coerce.number().int().optional(),
+    pagesMin: z.coerce.number().int().optional(),
+    publisher: queryStringArray(z.uuid()),
+    q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
+    ratingMax: z.coerce.number().int().min(LIBRARY_RATING_MIN).max(LIBRARY_RATING_MAX).optional(),
+    ratingMin: z.coerce.number().int().min(LIBRARY_RATING_MIN).max(LIBRARY_RATING_MAX).optional(),
+    sort: LibrarySortSchema.default("created_desc"),
+    status: queryStringArray(ReadingStatusSchema),
+    tag: queryStringArray(z.uuid()),
+    yearMax: z.coerce.number().int().optional(),
+    yearMin: z.coerce.number().int().optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.ratingMin !== undefined &&
+      value.ratingMax !== undefined &&
+      value.ratingMin > value.ratingMax
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "ratingMin must not exceed ratingMax",
+        path: ["ratingMin"],
+      });
+    }
+
+    if (
+      value.yearMin !== undefined &&
+      value.yearMax !== undefined &&
+      value.yearMin > value.yearMax
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "yearMin must not exceed yearMax",
+        path: ["yearMin"],
+      });
+    }
+
+    if (
+      value.pagesMin !== undefined &&
+      value.pagesMax !== undefined &&
+      value.pagesMin > value.pagesMax
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "pagesMin must not exceed pagesMax",
+        path: ["pagesMin"],
+      });
+    }
+  });
+
+export type LibraryBooksQuery = z.infer<typeof LibraryBooksQuerySchema>;
+
+export const SeriesSearchQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  authorIds: queryStringArray(z.uuid()),
+});
+
+export type SeriesSearchQuery = z.infer<typeof SeriesSearchQuerySchema>;
+
+export const RecentPurchaseStoresQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(RECENT_USED_LIMIT_MAX)
+    .default(RECENT_USED_LIMIT_DEFAULT),
+});
+
+export type LibraryOverviewView = {
+  recentlyAdded: BookView[];
+  summary: {
+    favorites: number;
+    finished: number;
+    reading: number;
+    total: number;
+  };
+  topGenres: { count: number; key: string; name: string }[];
+  topTags: { count: number; id: string; name: string }[];
+};
+
+export type RecentPurchaseStores = string[];
+
+export type RecentPurchaseStoresQuery = z.infer<typeof RecentPurchaseStoresQuerySchema>;
 
 export const defaultUserProfileSettings: SettingsView = {
   accentColor: "brown",

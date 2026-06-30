@@ -2,7 +2,12 @@
 
 import type { BookFormat, BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
 
-import { BOOK_DESCRIPTION_MAX, BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE } from "@app/shared";
+import {
+  BOOK_AUTHORS_REQUIRED_MESSAGE,
+  BOOK_DESCRIPTION_MAX,
+  BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
+  BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+} from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -17,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useUploadMedia } from "@/features/media";
 import { useRouter } from "@/i18n/navigation";
-import { ApiError } from "@/lib/http-client";
+import { ApiError, type FieldError as ApiFieldError } from "@/lib/http-client";
 
 import type { BookFormMode } from "../model/book-form-mode";
 
@@ -35,16 +40,18 @@ import { bookViewToFormState } from "../model/book-view-to-form";
 import { coverPreviewSrc, type CoverState } from "../model/cover-state";
 import {
   type AuthorSelection,
+  authorSelectionKey,
   authorSelectionToReference,
   createBookFormDefaults,
   type CreateBookFormOutput,
   type CreateBookFormValues,
   CreateBookInputSchema,
   type PublisherSelection,
+  type SeriesPartNumberConflict,
   type SeriesSelection,
   UpdateBookInputSchema,
 } from "../model/create-book-form";
-import { AuthorAutocomplete } from "./author-autocomplete";
+import { AuthorsField } from "./authors-field";
 import { BookPreview } from "./book-preview";
 import { BookTypeSection } from "./book-type-section";
 import { ClassificationSection } from "./classification-section";
@@ -74,7 +81,7 @@ function emptyToUndefined(value: unknown): string | undefined {
 
 const SERVER_FIELD_PATHS = [
   "title",
-  "author",
+  "authors",
   "publisherName",
   "description",
   "partNumber",
@@ -100,8 +107,8 @@ export function BookForm(props: BookFormProps) {
 
   const initialCover = initial?.cover ?? null;
 
-  const [authorSelection, setAuthorSelection] = useState<AuthorSelection | null>(
-    restoredDraft?.authorSelection ?? initial?.authorSelection ?? null,
+  const [authorSelections, setAuthorSelections] = useState<AuthorSelection[]>(
+    restoredDraft?.authorSelections ?? initial?.authorSelections ?? [],
   );
   const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
     restoredDraft?.publisherSelection ?? initial?.publisherSelection ?? null,
@@ -116,6 +123,8 @@ export function BookForm(props: BookFormProps) {
   const [pendingDiscard, setPendingDiscard] = useState<null | PendingDiscard>(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [uploadedCover, setUploadedCover] = useState<null | { file: File; mediaId: string }>(null);
+  const [seriesConflict, setSeriesConflict] = useState<null | SeriesPartNumberConflict>(null);
+  const [seriesClearedByAuthors, setSeriesClearedByAuthors] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -166,7 +175,7 @@ export function BookForm(props: BookFormProps) {
         sessionStorage.setItem(
           draftKey,
           JSON.stringify({
-            authorSelection,
+            authorSelections,
             locale,
             publisherSelection,
             seriesSelection,
@@ -181,7 +190,7 @@ export function BookForm(props: BookFormProps) {
     const unsubscribe = subscribe({ callback: persist, formState: { values: true } });
     return unsubscribe;
   }, [
-    authorSelection,
+    authorSelections,
     draftKey,
     getValues,
     locale,
@@ -202,6 +211,48 @@ export function BookForm(props: BookFormProps) {
   const ratingValue = useWatch({ control, name: "readingProgress.rating" });
   const partNumberValue = useWatch({ control, name: "partNumber" });
 
+  function handleSeriesSelectionChange(selection: null | SeriesSelection) {
+    setSeriesConflict(null);
+    setSeriesClearedByAuthors(false);
+    setSeriesSelection(selection);
+    if (selection !== null && selection.authors.length > 0) {
+      setAuthorSelections(selection.authors);
+      setValue("authors", selection.authors.map(authorSelectionToReference), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+  }
+
+  function handleAuthorsChange(next: AuthorSelection[]) {
+    const series = seriesSelection;
+    let final = next;
+    let clearSeries = false;
+    if (series !== null && series.authors.length > 0) {
+      const seriesKeys = new Set(series.authors.map(authorSelectionKey));
+      const hasForeign = next.some((author) => !seriesKeys.has(authorSelectionKey(author)));
+      if (hasForeign) {
+        clearSeries = true;
+      } else {
+        const nextKeys = new Set(next.map(authorSelectionKey));
+        const complete = series.authors.every((author) => nextKeys.has(authorSelectionKey(author)));
+        if (!complete) final = series.authors;
+      }
+    }
+    setAuthorSelections(final);
+    setValue("authors", final.map(authorSelectionToReference), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    if (clearSeries) {
+      setSeriesSelection(null);
+      setValue("seriesId", undefined);
+      setValue("newSeries", undefined, { shouldValidate: true });
+      clearErrors(["partNumber", "seriesId", "newSeries"]);
+      setSeriesClearedByAuthors(true);
+    }
+  }
+
   useEffect(() => {
     if (seriesSelection?.kind !== "existing" || seriesSelection.totalBooks === undefined) return;
     if (typeof partNumberValue !== "number") return;
@@ -218,11 +269,16 @@ export function BookForm(props: BookFormProps) {
   const previewFormats = formatsValue.filter(isBookFormat);
   const previewRating = typeof ratingValue === "number" ? ratingValue : undefined;
 
-  const previewAuthorName = authorSelection?.name ?? "";
+  const previewAuthorName = authorSelections.map((selection) => selection.name).join(", ");
   const previewPublisherName = publisherSelection?.name ?? "";
-  const authorError = errors.author;
-  const authorErrorMessage =
-    typeof authorError?.message === "string" ? authorError.message : undefined;
+  const rawAuthorsError =
+    typeof errors.authors?.message === "string" ? errors.authors.message : undefined;
+  const authorsErrorMessage =
+    rawAuthorsError === undefined
+      ? undefined
+      : rawAuthorsError === BOOK_AUTHORS_REQUIRED_MESSAGE
+        ? t("fields.authorsRequired")
+        : rawAuthorsError;
 
   function requestReadingStatusChange(_next: ReadingStatus, apply: () => void) {
     const values = getValues();
@@ -284,6 +340,7 @@ export function BookForm(props: BookFormProps) {
   }
 
   const onSubmit = handleSubmit(async (values) => {
+    setSeriesConflict(null);
     if (
       seriesSelection?.kind === "existing" &&
       seriesSelection.totalBooks !== undefined &&
@@ -295,6 +352,7 @@ export function BookForm(props: BookFormProps) {
     }
 
     const payload = pruneStatusPayload(values);
+    payload.authors = authorSelections.map(authorSelectionToReference);
 
     if (coverState.kind === "selected") {
       try {
@@ -340,6 +398,11 @@ export function BookForm(props: BookFormProps) {
   function handleMutationError(error: unknown) {
     if (error instanceof ApiError && error.fieldErrors) {
       for (const fieldError of error.fieldErrors) {
+        const conflict = toSeriesPartNumberConflict(fieldError);
+        if (conflict) {
+          setSeriesConflict(conflict);
+          continue;
+        }
         const path = resolveFieldPath(fieldError.field);
         if (path) setError(path, { message: fieldError.message });
       }
@@ -428,28 +491,21 @@ export function BookForm(props: BookFormProps) {
             </div>
             <Controller
               control={control}
-              name="author"
-              render={({ field }) => (
-                <AuthorAutocomplete
-                  describedBy={errors.author ? "book-author-error" : undefined}
+              name="authors"
+              render={() => (
+                <AuthorsField
+                  describedBy={authorsErrorMessage === undefined ? undefined : "book-author-error"}
                   id="book-author"
-                  invalid={errors.author !== undefined}
-                  onChange={(selection: AuthorSelection | null) => {
-                    setAuthorSelection(selection);
-                    field.onChange(
-                      selection === null ? { name: "" } : authorSelectionToReference(selection),
-                    );
-                  }}
-                  placeholder={t("fields.authorPlaceholder")}
-                  required
-                  value={authorSelection}
+                  invalid={errors.authors !== undefined}
+                  onChange={handleAuthorsChange}
+                  value={authorSelections}
                 />
               )}
             />
             <p className="text-xs text-muted-foreground">{t("fields.authorHint")}</p>
-            {authorErrorMessage === undefined ? null : (
+            {authorsErrorMessage === undefined ? null : (
               <p className="text-xs text-destructive" id="book-author-error" role="alert">
-                {authorErrorMessage}
+                {authorsErrorMessage}
               </p>
             )}
           </div>
@@ -465,6 +521,7 @@ export function BookForm(props: BookFormProps) {
               describedBy={errors.publisherName ? "book-publisher-error" : undefined}
               id="book-publisher"
               invalid={errors.publisherName !== undefined}
+              label={t("fields.publisher")}
               onChange={(selection: null | PublisherSelection) => {
                 setPublisherSelection(selection);
                 if (selection === null) {
@@ -524,10 +581,13 @@ export function BookForm(props: BookFormProps) {
         <ClassificationSection control={control} errors={errors} />
 
         <BookTypeSection
+          authorSelections={authorSelections}
           control={control}
           errors={errors}
           onRequestSoloChange={mode === "edit" ? requestSoloChange : undefined}
-          onSeriesSelectionChange={setSeriesSelection}
+          onSeriesSelectionChange={handleSeriesSelectionChange}
+          seriesCleared={seriesClearedByAuthors}
+          seriesConflict={seriesConflict}
           seriesSelection={seriesSelection}
           setValue={setValue}
         />
@@ -562,7 +622,7 @@ export function BookForm(props: BookFormProps) {
           setValue={setValue}
         />
 
-        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-border bg-background/80 px-5 pt-3 safe-bottom backdrop-blur-xl backdrop-saturate-150 sm:static sm:z-auto sm:justify-end sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-0 sm:backdrop-blur-none">
+        <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 bg-background/80 px-5 pt-3 safe-bottom backdrop-blur-xl backdrop-saturate-150 sm:sticky sm:inset-x-auto sm:z-10 sm:-mx-1 sm:justify-end sm:rounded-t-xl sm:px-4 sm:py-3">
           <Button
             className="h-11 flex-1 sm:h-10 sm:flex-none"
             disabled={isPending}
@@ -655,4 +715,15 @@ function submitLabel({
 }): string {
   if (mode === "edit") return isPending ? t("actions.saving") : t("actions.save");
   return isPending ? t("actions.submitting") : t("actions.submit");
+}
+
+function toSeriesPartNumberConflict(fieldError: ApiFieldError): null | SeriesPartNumberConflict {
+  if (fieldError.code !== BOOK_SERIES_PART_NUMBER_TAKEN_CODE) return null;
+  const meta = fieldError.meta;
+  if (!meta) return null;
+  const { bookId, bookTitle, partNumber } = meta;
+  if (!bookId || !bookTitle || !partNumber) return null;
+  const parsed = Number(partNumber);
+  if (!Number.isFinite(parsed)) return null;
+  return { bookId, bookTitle, partNumber: parsed };
 }
