@@ -42,9 +42,14 @@ const newSeriesDraftSchema = z.object({
 });
 
 const seriesSelectionSchema = z.union([
-  z.object({ draft: newSeriesDraftSchema, kind: z.literal("new"), name: z.string() }),
   z.object({
-    authorIds: z.array(z.string()),
+    authors: z.array(authorSelectionSchema),
+    draft: newSeriesDraftSchema,
+    kind: z.literal("new"),
+    name: z.string(),
+  }),
+  z.object({
+    authors: z.array(authorSelectionSchema),
     id: z.string(),
     kind: z.literal("existing"),
     name: z.string(),

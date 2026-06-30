@@ -1,6 +1,6 @@
 "use client";
 
-import { BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE } from "@app/shared";
+import { BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE, BOOK_SERIES_REQUIRED_MESSAGE } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
@@ -31,24 +31,24 @@ import { SeriesAutocomplete } from "./series-autocomplete";
 const PART_NUMBER_MAX = 999;
 
 type BookTypeSectionProps = {
-  authorMismatch: boolean;
   authorSelections: AuthorSelection[];
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
   onRequestSoloChange?: (apply: () => void) => void;
   onSeriesSelectionChange: (selection: null | SeriesSelection) => void;
+  seriesCleared: boolean;
   seriesConflict: null | SeriesPartNumberConflict;
   seriesSelection: null | SeriesSelection;
   setValue: UseFormSetValue<CreateBookFormValues>;
 };
 
 export function BookTypeSection({
-  authorMismatch,
   authorSelections,
   control,
   errors,
   onRequestSoloChange,
   onSeriesSelectionChange,
+  seriesCleared,
   seriesConflict,
   seriesSelection,
   setValue,
@@ -98,8 +98,12 @@ export function BookTypeSection({
     applySolo();
   }
 
-  const seriesErrorMessage =
+  const rawSeriesError =
     typeof errors.newSeries?.message === "string" ? errors.newSeries.message : undefined;
+  const seriesRequired = rawSeriesError === BOOK_SERIES_REQUIRED_MESSAGE;
+  const seriesOtherError =
+    rawSeriesError !== undefined && !seriesRequired ? rawSeriesError : undefined;
+  const showSeriesError = !seriesCleared && (seriesRequired || seriesOtherError !== undefined);
 
   function renderPartNumberError() {
     if (seriesConflict && seriesConflict.partNumber === partNumberValue) {
@@ -157,9 +161,9 @@ export function BookTypeSection({
             <Label htmlFor="book-series">{t("bookType.series")}</Label>
             <SeriesAutocomplete
               authorSelections={authorSelections}
-              describedBy={seriesErrorMessage ? "book-series-error" : undefined}
+              describedBy={showSeriesError ? "book-series-error" : undefined}
               id="book-series"
-              invalid={seriesErrorMessage !== undefined}
+              invalid={showSeriesError}
               label={t("bookType.series")}
               onChange={applySelection}
               onCreateRequest={(name) => {
@@ -169,19 +173,21 @@ export function BookTypeSection({
               placeholder={t("bookType.seriesPlaceholder")}
               value={seriesSelection}
             />
-            {seriesSelection?.kind === "new" ? (
+            {seriesCleared ? (
+              <p className="text-xs text-warning" role="status">
+                {t("bookType.errors.seriesClearedAfterAuthorChange")}
+              </p>
+            ) : seriesSelection?.kind === "new" ? (
               <p className="flex items-center gap-1.5 text-xs text-primary">
                 {t("bookType.seriesDraft", { name: seriesSelection.name })}
               </p>
-            ) : null}
-            {authorMismatch ? (
-              <p className="text-xs text-warning" role="status">
-                {t("series.authorMismatch")}
-              </p>
-            ) : null}
-            {seriesErrorMessage ? (
+            ) : seriesRequired ? (
               <p className="text-xs text-destructive" id="book-series-error" role="alert">
-                {seriesErrorMessage}
+                {t("bookType.errors.seriesRequired")}
+              </p>
+            ) : seriesOtherError ? (
+              <p className="text-xs text-destructive" id="book-series-error" role="alert">
+                {seriesOtherError}
               </p>
             ) : null}
           </div>

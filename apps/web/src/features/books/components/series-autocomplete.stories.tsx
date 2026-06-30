@@ -21,7 +21,9 @@ const PLACEHOLDER = "Почніть вводити назву серії…";
 
 function describeSelection(value: null | SeriesSelection) {
   if (value === null) return "none";
-  if (value.kind === "existing") return `existing:${value.name}:${value.authorIds.join(",")}`;
+  if (value.kind === "existing") {
+    return `existing:${value.name}:${value.authors.map((author) => author.name).join(",")}`;
+  }
   return `new:${value.name}`;
 }
 
@@ -169,7 +171,7 @@ export const PickCapturesSeriesAuthors: Story = {
     await userEvent.click(await surface.findByText("Відьмак"));
 
     await waitFor(() =>
-      expect(canvas.getByTestId("selection")).toHaveTextContent("existing:Відьмак:author-1"),
+      expect(canvas.getByTestId("selection")).toHaveTextContent("existing:Відьмак:Сапковський"),
     );
   },
   render: () => <Harness authorSelections={[SAPKOWSKI]} />,

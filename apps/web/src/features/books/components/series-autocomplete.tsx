@@ -82,7 +82,11 @@ export function SeriesAutocomplete({
 
   function pickExisting(item: SeriesView) {
     onChange({
-      authorIds: item.authors.map((author) => author.id),
+      authors: item.authors.map((author) => ({
+        id: author.id,
+        kind: "catalog" as const,
+        name: author.name,
+      })),
       id: item.id,
       kind: "existing",
       name: item.name,
@@ -192,12 +196,12 @@ export function SeriesAutocomplete({
               <>
                 {authorSeries.length > 0 ? (
                   <CommandGroup heading={t("series.authorHeading", { name: selectedAuthorNames })}>
-                    {authorSeries.map((item) => seriesOption(item, { showAuthors: false }))}
+                    {authorSeries.map((item) => seriesOption(item, { showAuthors: true }))}
                   </CommandGroup>
                 ) : null}
                 {authorlessSeries.length > 0 ? (
                   <CommandGroup heading={t("series.noAuthorHeading")}>
-                    {authorlessSeries.map((item) => seriesOption(item, { showAuthors: false }))}
+                    {authorlessSeries.map((item) => seriesOption(item, { showAuthors: true }))}
                   </CommandGroup>
                 ) : null}
               </>

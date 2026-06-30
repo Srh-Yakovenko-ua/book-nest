@@ -33,7 +33,11 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
     book.series === null
       ? null
       : {
-          authorIds: book.series.authors.map((author) => author.id),
+          authors: book.series.authors.map((author) => ({
+            id: author.id,
+            kind: "catalog" as const,
+            name: author.name,
+          })),
           id: book.series.id,
           kind: "existing",
           name: book.series.name,

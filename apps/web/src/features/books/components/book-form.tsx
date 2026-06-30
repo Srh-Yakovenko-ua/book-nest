@@ -40,6 +40,7 @@ import { bookViewToFormState } from "../model/book-view-to-form";
 import { coverPreviewSrc, type CoverState } from "../model/cover-state";
 import {
   type AuthorSelection,
+  authorSelectionKey,
   authorSelectionToReference,
   createBookFormDefaults,
   type CreateBookFormOutput,
@@ -123,7 +124,7 @@ export function BookForm(props: BookFormProps) {
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [uploadedCover, setUploadedCover] = useState<null | { file: File; mediaId: string }>(null);
   const [seriesConflict, setSeriesConflict] = useState<null | SeriesPartNumberConflict>(null);
-  const [seriesAuthorMismatch, setSeriesAuthorMismatch] = useState(false);
+  const [seriesClearedByAuthors, setSeriesClearedByAuthors] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -212,24 +213,44 @@ export function BookForm(props: BookFormProps) {
 
   function handleSeriesSelectionChange(selection: null | SeriesSelection) {
     setSeriesConflict(null);
-    setSeriesAuthorMismatch(false);
+    setSeriesClearedByAuthors(false);
     setSeriesSelection(selection);
+    if (selection !== null && selection.authors.length > 0) {
+      setAuthorSelections(selection.authors);
+      setValue("authors", selection.authors.map(authorSelectionToReference), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
   }
 
-  function reconcileSeriesWithAuthors(nextAuthors: AuthorSelection[]) {
-    setSeriesAuthorMismatch(false);
-    if (seriesSelection?.kind !== "existing" || seriesSelection.authorIds.length === 0) return;
-    const catalogIds = new Set(
-      nextAuthors.flatMap((author) => (author.kind === "catalog" ? [author.id] : [])),
-    );
-    const stillBelongs = seriesSelection.authorIds.some((id) => catalogIds.has(id));
-    if (stillBelongs) return;
-    setSeriesSelection(null);
-    setSeriesConflict(null);
-    setValue("seriesId", undefined);
-    setValue("newSeries", undefined, { shouldValidate: true });
-    clearErrors(["partNumber", "seriesId", "newSeries"]);
-    setSeriesAuthorMismatch(true);
+  function handleAuthorsChange(next: AuthorSelection[]) {
+    const series = seriesSelection;
+    let final = next;
+    let clearSeries = false;
+    if (series !== null && series.authors.length > 0) {
+      const seriesKeys = new Set(series.authors.map(authorSelectionKey));
+      const hasForeign = next.some((author) => !seriesKeys.has(authorSelectionKey(author)));
+      if (hasForeign) {
+        clearSeries = true;
+      } else {
+        const nextKeys = new Set(next.map(authorSelectionKey));
+        const complete = series.authors.every((author) => nextKeys.has(authorSelectionKey(author)));
+        if (!complete) final = series.authors;
+      }
+    }
+    setAuthorSelections(final);
+    setValue("authors", final.map(authorSelectionToReference), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    if (clearSeries) {
+      setSeriesSelection(null);
+      setValue("seriesId", undefined);
+      setValue("newSeries", undefined, { shouldValidate: true });
+      clearErrors(["partNumber", "seriesId", "newSeries"]);
+      setSeriesClearedByAuthors(true);
+    }
   }
 
   useEffect(() => {
@@ -471,16 +492,12 @@ export function BookForm(props: BookFormProps) {
             <Controller
               control={control}
               name="authors"
-              render={({ field }) => (
+              render={() => (
                 <AuthorsField
                   describedBy={authorsErrorMessage === undefined ? undefined : "book-author-error"}
                   id="book-author"
                   invalid={errors.authors !== undefined}
-                  onChange={(next: AuthorSelection[]) => {
-                    setAuthorSelections(next);
-                    field.onChange(next.map(authorSelectionToReference));
-                    reconcileSeriesWithAuthors(next);
-                  }}
+                  onChange={handleAuthorsChange}
                   value={authorSelections}
                 />
               )}
@@ -564,12 +581,12 @@ export function BookForm(props: BookFormProps) {
         <ClassificationSection control={control} errors={errors} />
 
         <BookTypeSection
-          authorMismatch={seriesAuthorMismatch}
           authorSelections={authorSelections}
           control={control}
           errors={errors}
           onRequestSoloChange={mode === "edit" ? requestSoloChange : undefined}
           onSeriesSelectionChange={handleSeriesSelectionChange}
+          seriesCleared={seriesClearedByAuthors}
           seriesConflict={seriesConflict}
           seriesSelection={seriesSelection}
           setValue={setValue}

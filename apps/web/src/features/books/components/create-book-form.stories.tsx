@@ -887,30 +887,32 @@ function seriesView(seed: {
 
 const SAPKOWSKI = { id: "11111111-1111-4111-8111-111111111111", name: "Анджей Сапковський" };
 
-export const AuthorChangeClearsMismatchedSeries: Story = {
-  beforeEach: () => {
-    getQueryClient().clear();
-    const witcher = seriesView({ authors: [SAPKOWSKI], id: "series-witcher", name: "Відьмак" });
-    const base = taxonomyHandler();
-    mockFetch((path, init) => {
-      if (path.includes("/api/authors/recent")) {
-        return jsonResponse(200, [authorView(SAPKOWSKI)]);
+function mockWitcherSeries() {
+  getQueryClient().clear();
+  const witcher = seriesView({ authors: [SAPKOWSKI], id: "series-witcher", name: "Відьмак" });
+  const base = taxonomyHandler();
+  mockFetch((path, init) => {
+    if (path.includes("/api/authors/recent")) {
+      return jsonResponse(200, [authorView(SAPKOWSKI)]);
+    }
+    if (path.includes("/api/series") && init?.method !== "POST") {
+      if (path.includes("authorIds")) {
+        return jsonResponse(200, {
+          items: [witcher],
+          page: 1,
+          pagesCount: 1,
+          pageSize: 20,
+          totalCount: 1,
+        });
       }
-      if (path.includes("/api/series") && init?.method !== "POST") {
-        if (path.includes("authorIds")) {
-          return jsonResponse(200, {
-            items: [witcher],
-            page: 1,
-            pagesCount: 1,
-            pageSize: 20,
-            totalCount: 1,
-          });
-        }
-        return emptyPage(20);
-      }
-      return base(path, init);
-    });
-  },
+      return emptyPage(20);
+    }
+    return base(path, init);
+  });
+}
+
+export const SeriesPickSyncsAuthorsAndSubsetRestores: Story = {
+  beforeEach: mockWitcherSeries,
   play: async ({ canvas }) => {
     const surface = within(document.body);
 
@@ -931,15 +933,40 @@ export const AuthorChangeClearsMismatchedSeries: Story = {
       canvas.getByRole("button", { name: "Видалити автора «Анджей Сапковський»" }),
     );
 
-    await expect(await canvas.findByText(/Обрана серія належить іншому автору/)).toBeVisible();
-    await waitFor(() => expect(canvas.getByLabelText("Серія")).toHaveValue(""));
+    await waitFor(() =>
+      expect(
+        canvas.getByRole("button", { name: "Видалити автора «Анджей Сапковський»" }),
+      ).toBeVisible(),
+    );
+    await expect(canvas.getByLabelText("Серія")).toHaveValue("Відьмак");
+    await expect(canvas.queryByText(/повторно обрати серію/)).toBeNull();
+  },
+};
 
+export const ForeignAuthorClearsSeries: Story = {
+  beforeEach: mockWitcherSeries,
+  play: async ({ canvas }) => {
+    const surface = within(document.body);
+
+    await userEvent.type(canvas.getByLabelText("Назва"), "Меч призначення");
+
+    const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.click(await surface.findByText("Анджей Сапковський"));
 
-    await waitFor(() =>
-      expect(canvas.queryByText(/Обрана серія належить іншому автору/)).toBeNull(),
-    );
+    await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
+
+    const seriesInput = canvas.getByLabelText("Серія");
+    await userEvent.click(seriesInput);
+    await userEvent.click(await surface.findByText("Відьмак"));
+    await waitFor(() => expect(canvas.getByLabelText("Серія")).toHaveValue("Відьмак"));
+
+    await userEvent.click(authorInput);
+    await userEvent.type(authorInput, "Стівен Кінг");
+    await userEvent.click(await surface.findByText(/^Створити «/));
+
+    await expect(await canvas.findByText(/повторно обрати серію/)).toBeVisible();
+    await waitFor(() => expect(canvas.getByLabelText("Серія")).toHaveValue(""));
   },
 };
 

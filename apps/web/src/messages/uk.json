@@ -641,7 +641,9 @@
       "partNumberHint": "У серії {total} книг, тож доступні частини 1–{total}.",
       "errors": {
         "exceedsTotal": "Номер частини не може бути більшим за загальну кількість книг у серії.",
-        "partNumberTaken": "Номер частини {number} уже зайнятий книгою «{title}». <link>Відкрити книгу</link>"
+        "partNumberTaken": "Номер частини {number} уже зайнятий книгою «{title}». <link>Відкрити книгу</link>",
+        "seriesClearedAfterAuthorChange": "Після зміни авторів потрібно повторно обрати серію.",
+        "seriesRequired": "Оберіть наявну серію або створіть нову."
       }
     },
     "series": {
@@ -651,7 +653,6 @@
       "yourSeries": "Ваші серії",
       "authorHeading": "Серії автора {name}",
       "noAuthorHeading": "Серії без автора",
-      "authorMismatch": "Обрана серія належить іншому автору. Перевірте, чи правильно вибрано серію.",
       "createHeading": "Створити нову",
       "createNew": "Створити нову серію",
       "createAction": "Створити «{name}»",

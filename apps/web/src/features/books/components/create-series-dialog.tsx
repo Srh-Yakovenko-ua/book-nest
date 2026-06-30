@@ -124,7 +124,7 @@ function CreateSeriesForm({
       return;
     }
 
-    onConfirm({ draft: parsed.data, kind: "new", name: parsed.data.name });
+    onConfirm({ authors, draft: parsed.data, kind: "new", name: parsed.data.name });
   }
 
   return (

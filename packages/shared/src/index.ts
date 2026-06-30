@@ -938,6 +938,7 @@ export const BOOK_AUTHORS_MAX = 20;
 
 export const BOOK_AUTHORS_REQUIRED_MESSAGE = "Add at least one author";
 export const BOOK_AUTHORS_MAX_MESSAGE = `A book can have at most ${BOOK_AUTHORS_MAX} authors`;
+export const BOOK_SERIES_REQUIRED_MESSAGE = "Choose an existing series or create a new one";
 
 export const BookAuthorsInputSchema = z
   .array(BookAuthorReferenceSchema)
@@ -1030,7 +1031,7 @@ export const CreateBookInputSchema = z
       if (hasExistingSeries === hasNewSeries) {
         context.addIssue({
           code: "custom",
-          message: "Choose an existing series or create a new one",
+          message: BOOK_SERIES_REQUIRED_MESSAGE,
           path: ["newSeries"],
         });
       }
@@ -1121,7 +1122,7 @@ export const UpdateBookInputSchema = z
       if (hasExistingSeries === hasNewSeries) {
         context.addIssue({
           code: "custom",
-          message: "Choose an existing series or create a new one",
+          message: BOOK_SERIES_REQUIRED_MESSAGE,
           path: ["newSeries"],
         });
       }

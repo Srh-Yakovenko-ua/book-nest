@@ -641,7 +641,9 @@
       "partNumberHint": "This series has {total} books, so parts 1–{total} are available.",
       "errors": {
         "exceedsTotal": "Part number can't be greater than the total books in the series.",
-        "partNumberTaken": "Part number {number} is already used by “{title}”. <link>Open book</link>"
+        "partNumberTaken": "Part number {number} is already used by “{title}”. <link>Open book</link>",
+        "seriesClearedAfterAuthorChange": "After changing the authors, choose the series again.",
+        "seriesRequired": "Choose an existing series or create a new one."
       }
     },
     "series": {
@@ -651,7 +653,6 @@
       "yourSeries": "Your series",
       "authorHeading": "Series by {name}",
       "noAuthorHeading": "Series without an author",
-      "authorMismatch": "The selected series belongs to a different author. Check whether the series is chosen correctly.",
       "createHeading": "Create new",
       "createNew": "Create new series",
       "createAction": "Create “{name}”",
