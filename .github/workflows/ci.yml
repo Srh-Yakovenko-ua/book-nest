@@ -55,7 +55,7 @@ jobs:
         run: pnpm knip
 
   full:
-    name: Build, migrate, test, smoke
+    name: Lint, typecheck, test, build
     needs: [static]
     if: >-
       github.ref == 'refs/heads/stage' ||
