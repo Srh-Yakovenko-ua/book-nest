@@ -109,7 +109,9 @@ export function BookTypeSection({
             link: (chunks) => (
               <Link
                 className="font-medium underline underline-offset-2"
-                href={`/books/${seriesConflict.bookId}`}
+                href={`/books/${seriesConflict.bookId}/edit`}
+                rel="noopener noreferrer"
+                target="_blank"
               >
                 {chunks}
               </Link>

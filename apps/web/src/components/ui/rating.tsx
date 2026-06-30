@@ -112,13 +112,7 @@ function InteractiveRating({
       role="slider"
       tabIndex={disabled ? -1 : 0}
     >
-      <StarRow count={max} filled={false} />
-      <span
-        className="pointer-events-none absolute top-0 left-0 overflow-hidden whitespace-nowrap motion-safe:transition-[width]"
-        style={{ width: `${(shown / max) * 100}%` }}
-      >
-        <StarRow count={max} filled />
-      </span>
+      <StarRow count={max} value={shown} />
     </span>
   );
 }
@@ -140,26 +134,31 @@ function ReadOnlyRating({ className, label, max = DEFAULT_MAX, size, value }: Re
       data-slot="rating"
       role="img"
     >
-      <StarRow count={max} filled={false} />
+      <StarRow count={max} value={clamped} />
+    </span>
+  );
+}
+
+function Star({ fill }: { fill: number }) {
+  return (
+    <span className="relative inline-flex">
+      <UiIcon className="text-accent-border" name="star" />
       <span
-        className="absolute top-0 left-0 overflow-hidden whitespace-nowrap motion-safe:transition-[width]"
-        style={{ width: `${(clamped / max) * 100}%` }}
+        className="pointer-events-none absolute top-0 left-0 overflow-hidden whitespace-nowrap motion-safe:transition-[width]"
+        style={{ width: `${fill * 100}%` }}
       >
-        <StarRow count={max} filled />
+        <UiIcon className="text-warning" name="star-fill" />
       </span>
     </span>
   );
 }
 
-function StarRow({ count, filled }: { count: number; filled: boolean }) {
+function StarRow({ count, value }: { count: number; value: number }) {
+  const stepped = Math.round(value * 2) / 2;
   return (
     <span className="inline-flex gap-0.5">
       {Array.from({ length: count }, (_, index) => (
-        <UiIcon
-          className={filled ? "text-warning" : "text-accent-border"}
-          key={index}
-          name={filled ? "star-fill" : "star"}
-        />
+        <Star fill={Math.max(0, Math.min(1, stepped - index))} key={index} />
       ))}
     </span>
   );

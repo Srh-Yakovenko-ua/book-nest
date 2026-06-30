@@ -487,7 +487,9 @@ export const SeriesPartNumberConflictShowsLink: Story = {
 
     await expect(await surface.findByText(/уже зайнятий книгою «Iron Flame»/)).toBeVisible();
     const link = await surface.findByRole("link", { name: "Відкрити книгу" });
-    await expect(link.getAttribute("href")).toContain("/books/book-iron-flame");
+    await expect(link.getAttribute("href")).toContain("/books/book-iron-flame/edit");
+    await expect(link.getAttribute("target")).toBe("_blank");
+    await expect(link.getAttribute("rel")).toContain("noopener");
   },
 };
 
