@@ -3,10 +3,12 @@ import type { MediaCrop, MediaKind, MediaView, Nullable } from "@app/shared";
 import { MEDIA_MAX_UPLOAD_BYTES, MEDIA_MAX_UPLOAD_MB, MediaKindSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
+import { posix as posixPath } from "node:path";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
-import type { ProcessedImage } from "../domain/image-processor.port.js";
+import type { ProcessedImageSet } from "../domain/image-processor.port.js";
+import type { StoredObject } from "../domain/storage.port.js";
 import type { MediaOwnerRef } from "../infrastructure/media.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
@@ -36,6 +38,7 @@ export type UploadFile = {
 };
 
 const MAX_ORIGINAL_NAME_LENGTH = 255;
+const THUMB_FILE_NAME = "thumb.webp";
 
 const log = createLogger("media");
 
@@ -57,6 +60,10 @@ function normalizeOriginalName(name: Nullable<string>): Nullable<string> {
   return Array.from(trimmed).slice(0, MAX_ORIGINAL_NAME_LENGTH).join("");
 }
 
+function thumbKey(storageKey: string): string {
+  return `${posixPath.dirname(storageKey)}/${THUMB_FILE_NAME}`;
+}
+
 @Injectable()
 export class MediaService {
   constructor(
@@ -73,7 +80,11 @@ export class MediaService {
   }
 
   buildView(asset: MediaAssetModel): MediaView {
-    const url = this.storage.publicUrl(asset.storageKey);
+    const fullUrl = this.storage.publicUrl(asset.storageKey);
+    const thumbUrl =
+      asset.thumbGeneratedAt === null
+        ? fullUrl
+        : this.storage.publicUrl(thumbKey(asset.storageKey));
     return {
       contentType: asset.contentType,
       createdAt: asset.createdAt.toISOString(),
@@ -82,7 +93,7 @@ export class MediaService {
       kind: MediaKindSchema.parse(asset.kind),
       name: asset.originalName,
       sizeBytes: asset.sizeBytes,
-      urls: buildDerivativeRecord(() => url),
+      urls: buildDerivativeRecord((derivative) => (derivative === "thumb" ? thumbUrl : fullUrl)),
       width: asset.width,
     };
   }
@@ -93,7 +104,11 @@ export class MediaService {
       throw new NotFoundError("Media not found");
     }
     await this.mediaRepository.deleteOwned({ id, userId });
-    await this.removeObjects([asset.storageKey]);
+    const keys =
+      asset.thumbGeneratedAt === null
+        ? [asset.storageKey]
+        : [asset.storageKey, thumbKey(asset.storageKey)];
+    await this.removeObjects(keys);
   }
 
   async upload({ crop, file, kind, userId }: UploadCommand): Promise<MediaView> {
@@ -112,22 +127,32 @@ export class MediaService {
     const processed = await this.processImage({ buffer: file.buffer, crop });
 
     const assetId = randomUUID();
-    const key = `media/${kind}/${assetId}/image.webp`;
-    await this.storage.put({ body: processed.body, contentType: processed.contentType, key });
+    const storageKey = `media/${kind}/${assetId}/image.webp`;
+    const thumbStorageKey = thumbKey(storageKey);
+
+    await this.storeObjects([
+      { body: processed.full.body, contentType: processed.full.contentType, key: storageKey },
+      {
+        body: processed.thumb.body,
+        contentType: processed.thumb.contentType,
+        key: thumbStorageKey,
+      },
+    ]);
 
     const asset = await this.createAssetOrCleanup({
       data: {
-        contentType: processed.contentType,
-        height: processed.height,
+        contentType: processed.full.contentType,
+        height: processed.full.height,
         id: assetId,
         kind,
         originalName: normalizeOriginalName(file.originalName),
-        sizeBytes: processed.body.length,
-        storageKey: key,
+        sizeBytes: processed.full.body.length + processed.thumb.body.length,
+        storageKey,
+        thumbGeneratedAt: new Date(),
         userId,
-        width: processed.width,
+        width: processed.full.width,
       },
-      key,
+      keys: [storageKey, thumbStorageKey],
     });
 
     return this.buildView(asset);
@@ -135,15 +160,15 @@ export class MediaService {
 
   private async createAssetOrCleanup({
     data,
-    key,
+    keys,
   }: {
     data: Prisma.MediaAssetUncheckedCreateInput;
-    key: string;
+    keys: string[];
   }): Promise<MediaAssetModel> {
     try {
       return await this.mediaRepository.create(data);
     } catch (error) {
-      await this.removeObjects([key]);
+      await this.removeObjects(keys);
       throw error;
     }
   }
@@ -154,7 +179,7 @@ export class MediaService {
   }: {
     buffer: Buffer;
     crop?: MediaCrop;
-  }): Promise<ProcessedImage> {
+  }): Promise<ProcessedImageSet> {
     try {
       return await this.imageProcessor.process({ crop, input: buffer });
     } catch (error) {
@@ -174,6 +199,19 @@ export class MediaService {
       await this.storage.delete(keys);
     } catch (error) {
       log.warn({ err: error }, "failed to delete media objects from storage");
+    }
+  }
+
+  private async storeObjects(objects: StoredObject[]): Promise<void> {
+    const writtenKeys: string[] = [];
+    try {
+      for (const object of objects) {
+        await this.storage.put(object);
+        writtenKeys.push(object.key);
+      }
+    } catch (error) {
+      await this.removeObjects(writtenKeys);
+      throw error;
     }
   }
 }

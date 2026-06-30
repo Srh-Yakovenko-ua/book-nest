@@ -44,6 +44,7 @@ import {
 import { BookDateField } from "./book-date-field";
 import { FormSection } from "./form-section";
 import { StatusChipGroup } from "./status-chip-group";
+import { StoreAutocomplete } from "./store-autocomplete";
 
 const CURRENCY_OPTIONS = ["UAH", "EUR", "USD"] as const;
 const PRICE_MAX = 1000000;
@@ -113,13 +114,22 @@ export function OwnershipStatusSection({
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="purchase-store-name">{t("purchaseInfo.fields.storeName")}</Label>
-            <Input
-              aria-invalid={errors.purchaseInfo?.storeName !== undefined}
-              autoComplete="off"
-              className="h-10"
-              id="purchase-store-name"
-              placeholder={t("purchaseInfo.fields.storeNamePlaceholder")}
-              {...register("purchaseInfo.storeName", { setValueAs: emptyToUndefined })}
+            <Controller
+              control={control}
+              name="purchaseInfo.storeName"
+              render={({ field }) => (
+                <StoreAutocomplete
+                  describedBy={
+                    errors.purchaseInfo?.storeName ? "purchase-store-name-error" : undefined
+                  }
+                  id="purchase-store-name"
+                  invalid={errors.purchaseInfo?.storeName !== undefined}
+                  label={t("purchaseInfo.fields.storeName")}
+                  onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
+                  placeholder={t("purchaseInfo.fields.storeNamePlaceholder")}
+                  value={typeof field.value === "string" ? field.value : ""}
+                />
+              )}
             />
             <FieldError error={errors.purchaseInfo?.storeName} id="purchase-store-name-error" />
           </div>
@@ -177,21 +187,28 @@ export function OwnershipStatusSection({
                 control={control}
                 name="purchaseInfo.currency"
                 render={({ field }) => (
-                  <Select
-                    onValueChange={field.onChange}
-                    value={typeof field.value === "string" ? field.value : undefined}
-                  >
-                    <SelectTrigger className="h-10 w-full sm:w-28" id="purchase-currency">
-                      <SelectValue placeholder={t("purchaseInfo.fields.currencyPlaceholder")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CURRENCY_OPTIONS.map((currency) => (
-                        <SelectItem key={currency} value={currency}>
-                          {currency}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="w-full sm:w-28">
+                    <Select
+                      onValueChange={field.onChange}
+                      value={typeof field.value === "string" ? field.value : undefined}
+                    >
+                      <SelectTrigger
+                        className="h-10 w-full"
+                        id="purchase-currency"
+                        isClearable={typeof field.value === "string" && field.value !== "UAH"}
+                        onClear={() => field.onChange("UAH")}
+                      >
+                        <SelectValue placeholder={t("purchaseInfo.fields.currencyPlaceholder")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCY_OPTIONS.map((currency) => (
+                          <SelectItem key={currency} value={currency}>
+                            {currency}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               />
             </div>
@@ -214,13 +231,22 @@ export function OwnershipStatusSection({
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="delivery-store-name">{t("deliveryInfo.fields.storeName")}</Label>
-            <Input
-              aria-invalid={errors.deliveryInfo?.storeName !== undefined}
-              autoComplete="off"
-              className="h-10"
-              id="delivery-store-name"
-              placeholder={t("purchaseInfo.fields.storeNamePlaceholder")}
-              {...register("deliveryInfo.storeName", { setValueAs: emptyToUndefined })}
+            <Controller
+              control={control}
+              name="deliveryInfo.storeName"
+              render={({ field }) => (
+                <StoreAutocomplete
+                  describedBy={
+                    errors.deliveryInfo?.storeName ? "delivery-store-name-error" : undefined
+                  }
+                  id="delivery-store-name"
+                  invalid={errors.deliveryInfo?.storeName !== undefined}
+                  label={t("deliveryInfo.fields.storeName")}
+                  onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
+                  placeholder={t("purchaseInfo.fields.storeNamePlaceholder")}
+                  value={typeof field.value === "string" ? field.value : ""}
+                />
+              )}
             />
             <FieldError error={errors.deliveryInfo?.storeName} id="delivery-store-name-error" />
           </div>
@@ -302,7 +328,12 @@ export function OwnershipStatusSection({
                   onValueChange={field.onChange}
                   value={typeof field.value === "string" ? field.value : undefined}
                 >
-                  <SelectTrigger className="h-10 w-full" id="delivery-status">
+                  <SelectTrigger
+                    className="h-10 w-full"
+                    id="delivery-status"
+                    isClearable={typeof field.value === "string"}
+                    onClear={() => field.onChange(undefined)}
+                  >
                     <SelectValue placeholder={t("deliveryInfo.fields.deliveryStatusPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>

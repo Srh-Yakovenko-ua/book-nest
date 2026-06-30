@@ -175,7 +175,7 @@ function SelectTrigger({
   }
 
   return (
-    <div className="group/select-clear relative w-fit">
+    <div className="group/select-clear relative w-full">
       <SelectPrimitive.Trigger
         className={cn(selectTriggerClassName, "pr-9", className)}
         data-size={size}

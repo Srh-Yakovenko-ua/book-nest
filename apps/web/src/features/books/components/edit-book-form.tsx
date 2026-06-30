@@ -62,5 +62,5 @@ export function EditBookForm({ id }: EditBookFormProps) {
     );
   }
 
-  return <BookForm book={book} mode="edit" />;
+  return <BookForm book={book} key={book.updatedAt} mode="edit" />;
 }

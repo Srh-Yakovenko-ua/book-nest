@@ -11,7 +11,7 @@ export type CreateBookInputDtoPurchaseInfo = {
   /** @nullable */
   currency?: CreateBookInputDtoPurchaseInfoCurrency;
   /**
-   * @minimum 0
+   * @exclusiveMinimum 0
    * @nullable
    */
   expectedPrice?: number | null;

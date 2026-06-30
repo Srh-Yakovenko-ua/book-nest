@@ -90,9 +90,14 @@ function CreateListForm({ onCancel, onConfirm }: CreateListFormProps) {
           autoComplete="off"
           className="h-10"
           id="new-list-name"
+          isClearable
           maxLength={LIST_NAME_MAX}
           onChange={(event) => {
             setName(event.target.value);
+            if (nameError) setNameError(undefined);
+          }}
+          onClear={() => {
+            setName("");
             if (nameError) setNameError(undefined);
           }}
           placeholder={t("list.create.namePlaceholder")}

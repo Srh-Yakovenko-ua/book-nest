@@ -3,6 +3,8 @@ import type {
   AuthorLookupResult,
   AuthorSearchPaginationQuery,
   AuthorView,
+  BookAuthorReference,
+  CatalogLocale,
   Paginator,
 } from "@app/shared";
 
@@ -28,9 +30,30 @@ type FindExistingGlobalAuthorInput = {
   wikidataId: null | string;
 };
 
+type RecentAuthorsInput = {
+  limit: number;
+  locale: CatalogLocale;
+  userId: string;
+};
+
 type ResolveAuthorInput = {
   id?: string;
   name?: string;
+};
+
+type ResolveReferenceIdInput = {
+  reference: BookAuthorReference;
+  userId: string;
+};
+
+type ResolveReferencesInput = {
+  references: BookAuthorReference[];
+  userId: string;
+};
+
+type VisibleByIdsInput = {
+  ids: string[];
+  userId: string;
 };
 
 @Injectable()
@@ -142,6 +165,21 @@ export class AuthorsService {
     }
   }
 
+  async recent({ limit, locale, userId }: RecentAuthorsInput): Promise<AuthorView[]> {
+    const ids = await this.authorsRepository.recentAuthorIds({ limit, userId });
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const authors = await this.authorsRepository.findVisibleByIdsWithNames({ ids, userId });
+    const authorById = new Map(authors.map((author) => [author.id, author]));
+
+    return ids.flatMap((id) => {
+      const author = authorById.get(id);
+      return author === undefined ? [] : [toAuthorView(author, locale)];
+    });
+  }
+
   async resolveOrCreate(userId: string, input: ResolveAuthorInput): Promise<string> {
     if (input.id !== undefined) {
       const author = await this.authorsRepository.findVisibleById(userId, input.id);
@@ -178,6 +216,25 @@ export class AuthorsService {
       }
       return winner.id;
     }
+  }
+
+  async resolveReferences({
+    references,
+    userId,
+  }: ResolveReferencesInput): Promise<{ id: string; name: string }[]> {
+    const orderedIds: string[] = [];
+    const seen = new Set<string>();
+    for (const reference of references) {
+      const authorId = await this.resolveReferenceId({ reference, userId });
+      if (!seen.has(authorId)) {
+        seen.add(authorId);
+        orderedIds.push(authorId);
+      }
+    }
+
+    const authors = await this.findVisibleByIds({ ids: orderedIds, userId });
+    const nameById = new Map(authors.map((author) => [author.id, author.name]));
+    return orderedIds.map((id) => ({ id, name: nameById.get(id) ?? "" }));
   }
 
   async search(userId: string, query: AuthorSearchPaginationQuery): Promise<Paginator<AuthorView>> {
@@ -219,5 +276,31 @@ export class AuthorsService {
     }
 
     return this.authorsRepository.findGlobalByNormalizedName(normalizedName);
+  }
+
+  private findVisibleByIds({
+    ids,
+    userId,
+  }: VisibleByIdsInput): Promise<{ id: string; name: string }[]> {
+    if (ids.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.authorsRepository.findBaseByIds({ ids, userId });
+  }
+
+  private async resolveReferenceId({
+    reference,
+    userId,
+  }: ResolveReferenceIdInput): Promise<string> {
+    if ("id" in reference) {
+      return this.resolveOrCreate(userId, { id: reference.id });
+    }
+
+    if ("openLibraryKey" in reference) {
+      const materialized = await this.materializeFromOpenLibrary(reference.openLibraryKey);
+      return materialized.id;
+    }
+
+    return this.resolveOrCreate(userId, { name: reference.name });
   }
 }

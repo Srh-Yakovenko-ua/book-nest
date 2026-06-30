@@ -12,9 +12,25 @@
     "label": "Book Nest"
   },
   "home": {
-    "eyebrow": "Навчальний проєкт",
+    "eyebrow": "Моя бібліотека",
     "title": "Book Nest",
-    "description": "Чистий каркас монорепозиторію. Фронтенд, бекенд і спільні типи готові — починайте будувати фічі."
+    "description": "Ваша особиста бібліотека: стежте за читанням і впорядковуйте колекцію книг.",
+    "greeting": "Привіт, {name}!",
+    "greetingFallback": "Вітаємо у Book Nest!",
+    "subtitle": "Ось коротке зведення вашої бібліотеки.",
+    "progress": {
+      "title": "Прогрес читання",
+      "label": "Прочитано {finished} з {total}"
+    },
+    "actions": {
+      "addBook": "Додати книгу",
+      "library": "До бібліотеки"
+    },
+    "empty": {
+      "title": "Бібліотека поки порожня",
+      "description": "Додайте першу книгу, щоб побачити статистику тут.",
+      "action": "Додати першу книгу"
+    }
   },
   "notFound": {
     "eyebrow": "Помилка · 404",
@@ -193,33 +209,259 @@
   "books": {
     "library": {
       "title": "Моя бібліотека",
-      "count": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книги}}",
+      "subtitle": "Усі твої книги в одному затишному просторі",
+      "resultsTitle": "Список книг",
       "addBook": "Додати книгу",
       "loadMore": "Показати ще",
+      "loadMoreError": "Не вдалося завантажити ще книги",
       "loading": "Завантаження книг…",
       "menu": "Дії",
       "delete": "Видалити",
+      "counter": "Показано {shown} з {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}}",
+      "allShown": "Усі книги показано",
+      "summary": {
+        "total": "Усього книг",
+        "reading": "Читаю",
+        "finished": "Прочитано",
+        "favorites": "Улюблених"
+      },
       "sort": {
         "label": "Сортування",
-        "newest": "Спочатку нові",
-        "oldest": "Спочатку старі"
+        "options": {
+          "created_desc": "Нещодавно додані",
+          "created_asc": "Давно додані",
+          "updated_desc": "Нещодавно оновлені",
+          "title_asc": "Назва А–Я",
+          "title_desc": "Назва Я–А",
+          "author_asc": "Автор А–Я",
+          "author_desc": "Автор Я–А",
+          "rating_desc": "Найвищий рейтинг",
+          "rating_asc": "Найнижчий рейтинг",
+          "year_desc": "Новіші видання",
+          "year_asc": "Старіші видання",
+          "pages_desc": "Більше сторінок",
+          "pages_asc": "Менше сторінок"
+        }
+      },
+      "view": {
+        "label": "Вигляд",
+        "grid": "Сітка",
+        "list": "Список"
       },
       "progress": {
         "unit": "стор.",
         "ariaLabel": "Прогрес читання: {current} з {total}"
       },
+      "meta": {
+        "pages": "{value} стор."
+      },
       "rating": {
-        "ariaLabel": "Рейтинг {value} з 5"
+        "ariaLabel": "Рейтинг {value} з 10"
       },
       "empty": {
         "title": "Твоя бібліотека поки порожня",
-        "description": "Додай свою першу книгу, щоб почати збирати особисту колекцію та відстежувати читацький шлях.",
+        "description": "Додай першу книгу, щоб почати збирати свою читацьку колекцію.",
         "cta": "Додати книгу"
       },
+      "noSearchResults": {
+        "title": "Нічого не знайдено",
+        "description": "Спробуй змінити пошуковий запит або очистити пошук.",
+        "clearSearch": "Очистити пошук"
+      },
+      "noFilteredResults": {
+        "title": "Немає книг за вибраними фільтрами",
+        "description": "Спробуй змінити фільтри або очистити їх, щоб побачити більше книг.",
+        "clearFilters": "Очистити фільтри",
+        "clearAll": "Очистити все"
+      },
       "error": {
-        "title": "Щось пішло не так",
-        "description": "Не вдалося завантажити дані. Спробуй оновити сторінку — а якщо не допоможе, ми вже розбираємося.",
+        "title": "Не вдалося завантажити бібліотеку",
+        "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
         "retry": "Спробувати ще раз"
+      },
+      "search": {
+        "label": "Пошук книг",
+        "placeholder": "Пошук за назвою, автором або серією",
+        "clear": "Очистити пошук"
+      },
+      "quickFilters": {
+        "label": "Швидкі фільтри",
+        "all": "Усі",
+        "reading": "Читаю",
+        "want_to_read": "Хочу прочитати",
+        "finished": "Прочитано",
+        "favorites": "Улюблені",
+        "want_to_buy": "До покупки",
+        "in_transit": "В дорозі",
+        "borrowed": "Позичені",
+        "series": "Серії",
+        "solo": "Соло"
+      },
+      "filters": {
+        "trigger": "Фільтри",
+        "title": "Фільтри",
+        "description": "Звузьте бібліотеку за статусом, форматом, класифікацією та деталями видання.",
+        "done": "Готово",
+        "clear": "Очистити фільтри",
+        "clearField": "Очистити",
+        "customBadge": "Власний",
+        "sections": {
+          "readingStatus": "Статус читання",
+          "ownershipStatus": "Статус володіння",
+          "format": "Формат книги",
+          "genre": "Жанри",
+          "tag": "Теги",
+          "ageCategory": "Вікова категорія",
+          "language": "Мова книги",
+          "author": "Автор",
+          "publisher": "Видавництво",
+          "bookType": "Тип книги",
+          "rating": "Рейтинг",
+          "year": "Рік видання",
+          "pages": "Кількість сторінок",
+          "cover": "Обкладинка"
+        },
+        "bookType": {
+          "all": "Усі",
+          "solo": "Соло книги",
+          "series_part": "Частина серії"
+        },
+        "cover": {
+          "all": "Усі",
+          "with": "Є обкладинка",
+          "without": "Немає обкладинки"
+        },
+        "rating": {
+          "any": "Будь-який",
+          "min": "Від",
+          "max": "До",
+          "from": "Від {value}",
+          "to": "До {value}"
+        },
+        "range": {
+          "min": "Від",
+          "max": "До",
+          "yearMin": "Рік від",
+          "yearMax": "Рік до",
+          "pagesMin": "Сторінок від",
+          "pagesMax": "Сторінок до",
+          "invalid": "Мінімум не може перевищувати максимум"
+        },
+        "genrePlaceholder": "Оберіть жанри",
+        "genreSearch": "Пошук жанру…",
+        "genreEmpty": "Жанрів не знайдено",
+        "tagPlaceholder": "Пошук тегів…",
+        "tagSearching": "Шукаємо теги…",
+        "tagEmpty": "Тегів не знайдено",
+        "removeTag": "Прибрати тег {name}",
+        "authorPlaceholder": "Пошук автора…",
+        "authorSearching": "Шукаємо авторів…",
+        "authorEmpty": "Авторів не знайдено",
+        "publisherPlaceholder": "Пошук видавництва…",
+        "publisherSearching": "Шукаємо видавництва…",
+        "publisherEmpty": "Видавництв не знайдено"
+      },
+      "activeFilters": {
+        "label": "Активні фільтри",
+        "clearAll": "Очистити все",
+        "remove": "Прибрати фільтр {label}",
+        "search": "Пошук: {query}",
+        "author": "Автор: {name}",
+        "publisher": "Видавництво: {name}",
+        "unknown": "Без назви",
+        "favorite": "Улюблені",
+        "coverWith": "Є обкладинка",
+        "coverWithout": "Немає обкладинки",
+        "ratingFrom": "Рейтинг від {value}",
+        "ratingTo": "Рейтинг до {value}",
+        "ratingRange": "Рейтинг {min}–{max}",
+        "yearFrom": "Рік від {value}",
+        "yearTo": "Рік до {value}",
+        "yearRange": "{min}–{max}",
+        "pagesFrom": "Від {value} стор.",
+        "pagesTo": "До {value} стор.",
+        "pagesRange": "{min}–{max} стор."
+      },
+      "actions": {
+        "favorite": "Додати до улюблених",
+        "unfavorite": "Прибрати з улюблених",
+        "edit": "Редагувати",
+        "startReading": "Почати читати",
+        "markFinished": "Позначити як прочитану",
+        "addToQueue": "Додати в чергу читання",
+        "removeFromQueue": "Прибрати з черги читання",
+        "addToList": "Додати до списку",
+        "changeReadingStatus": "Змінити статус читання",
+        "changeOwnership": "Змінити статус володіння",
+        "delete": "Видалити"
+      },
+      "toast": {
+        "favoriteAdded": "Додано до улюблених",
+        "favoriteRemoved": "Прибрано з улюблених",
+        "queueAdded": "Додано в чергу читання",
+        "queueRemoved": "Прибрано з черги читання",
+        "readingStatusChanged": "Статус читання оновлено",
+        "ownershipChanged": "Статус володіння оновлено",
+        "addedToList": "Додано до списку",
+        "tagsAdded": "Теги додано",
+        "deleted": "{count, plural, one {# книгу видалено} few {# книги видалено} many {# книг видалено} other {# книг видалено}}",
+        "error": "Щось пішло не так. Спробуйте ще раз."
+      },
+      "bulk": {
+        "regionLabel": "Масові дії",
+        "selected": "Обрано {count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}}",
+        "selectBook": "Вибрати книгу «{title}»",
+        "clear": "Очистити вибір",
+        "addToList": "Додати до списку",
+        "addToQueue": "Додати в чергу",
+        "changeReadingStatus": "Змінити статус",
+        "more": "Ще",
+        "changeOwnership": "Змінити статус володіння",
+        "addTags": "Додати теги",
+        "addFavorite": "Додати в улюблені",
+        "removeFavorite": "Прибрати з улюблених",
+        "delete": "Видалити",
+        "deleteTitle": "Видалити вибрані книги?",
+        "deleteDescription": "{count, plural, one {# книгу буде видалено назавжди} few {# книги буде видалено назавжди} many {# книг буде видалено назавжди} other {# книг буде видалено назавжди}}. Цю дію не можна скасувати."
+      },
+      "readingStatusDialog": {
+        "title": "Змінити статус читання",
+        "description": "Оберіть новий статус для {count, plural, one {# книги} few {# книг} many {# книг} other {# книг}}.",
+        "confirm": "Застосувати",
+        "cancel": "Скасувати"
+      },
+      "ownershipDialog": {
+        "title": "Змінити статус володіння",
+        "description": "Оберіть новий статус володіння для {count, plural, one {# книги} few {# книг} many {# книг} other {# книг}}.",
+        "confirm": "Застосувати",
+        "cancel": "Скасувати"
+      },
+      "listDialog": {
+        "title": "Додати до списку",
+        "description": "{count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}} буде додано до вибраних списків.",
+        "listsLabel": "Списки",
+        "placeholder": "Оберіть свої списки",
+        "search": "Пошук списку…",
+        "empty": "Списків не знайдено.",
+        "createList": "Новий список",
+        "confirm": "Додати",
+        "cancel": "Скасувати"
+      },
+      "tagsDialog": {
+        "title": "Додати теги",
+        "description": "Теги буде додано до {count, plural, one {# книги} few {# книг} many {# книг} other {# книг}}.",
+        "removeTag": "Прибрати тег «{name}»",
+        "confirm": "Додати",
+        "cancel": "Скасувати"
+      },
+      "sidebar": {
+        "title": "Огляд бібліотеки",
+        "topGenres": "Топ жанрів",
+        "topGenresEmpty": "Жанри ще не додані",
+        "topTags": "Топ тегів",
+        "topTagsEmpty": "Теги ще не додані",
+        "recentlyAdded": "Нещодавно додані",
+        "recentlyAddedEmpty": "Книг ще немає"
       }
     },
     "deleteConfirm": {
@@ -396,12 +638,21 @@
       "seriesPlaceholder": "Почніть вводити назву серії…",
       "seriesDraft": "Нова серія «{name}» буде створена при збереженні.",
       "partNumber": "Номер у серії",
-      "partNumberHint": "У серії {total} книг, тож доступні частини 1–{total}."
+      "partNumberHint": "У серії {total} книг, тож доступні частини 1–{total}.",
+      "errors": {
+        "exceedsTotal": "Номер частини не може бути більшим за загальну кількість книг у серії.",
+        "partNumberTaken": "Номер частини {number} уже зайнятий книгою «{title}». <link>Відкрити книгу</link>",
+        "seriesClearedAfterAuthorChange": "Після зміни авторів потрібно повторно обрати серію.",
+        "seriesRequired": "Оберіть наявну серію або створіть нову."
+      }
     },
     "series": {
       "searching": "Шукаємо серії…",
       "empty": "Серій не знайдено.",
-      "existingHeading": "Ваші серії",
+      "loadMore": "Показати більше",
+      "yourSeries": "Ваші серії",
+      "authorHeading": "Серії автора {name}",
+      "noAuthorHeading": "Серії без автора",
       "createHeading": "Створити нову",
       "createNew": "Створити нову серію",
       "createAction": "Створити «{name}»",
@@ -416,6 +667,7 @@
         "name": "Назва серії",
         "namePlaceholder": "Напр. Відьмак",
         "nameInvalid": "Вкажіть коректну назву серії.",
+        "authors": "Автори серії",
         "status": "Статус",
         "totalBooks": "Книг у серії",
         "totalBooksPlaceholder": "Напр. 5",
@@ -444,6 +696,7 @@
         "dedication": "Присвята",
         "dedicationPlaceholder": "Кому присвячена ця книга…"
       },
+      "advancedDetails": "Додаткові деталі",
       "currentPageWarning": "Поточна сторінка більша за нову кількість сторінок. Оновіть прогрес читання."
     },
     "organization": {
@@ -462,8 +715,7 @@
       "listsSearch": "Пошук списку…",
       "listsEmpty": "Списків не знайдено.",
       "listsHint": "Оберіть наявні списки або створіть новий.",
-      "createList": "Новий список",
-      "removeDraft": "Прибрати «{name}»"
+      "createList": "Новий список"
     },
     "list": {
       "create": {
@@ -482,29 +734,40 @@
       "titlePlaceholder": "Напр. Тіні забутих предків",
       "author": "Автор",
       "authorPlaceholder": "Почніть вводити імʼя автора…",
-      "authorHint": "Оберіть автора з каталогу або введіть власне імʼя.",
+      "authorHint": "Додайте одного або кількох авторів з каталогу або введіть власні імена.",
+      "authorsRequired": "Оберіть або створіть автора книги.",
+      "authorsAtMax": "Досягнуто максимум авторів.",
+      "authorsRemove": "Видалити автора «{name}»",
       "publisher": "Видавництво",
       "publisherPlaceholder": "Почніть вводити назву видавництва…",
       "publisherHint": "Оберіть видавництво з каталогу або введіть власну назву.",
       "description": "Опис",
       "descriptionPlaceholder": "Короткий опис книги…",
-      "optional": "(необовʼязково)"
+      "optional": "(необовʼязково)",
+      "clear": "Очистити"
     },
     "author": {
       "searching": "Шукаємо авторів…",
       "empty": "Авторів не знайдено.",
-      "catalogHeading": "З каталогу",
+      "recentHeading": "Раніше використані",
+      "allHeading": "Усі автори",
       "createHeading": "Додати власного",
       "customBadge": "власний",
-      "useCustom": "Використати «{name}»"
+      "create": "Створити «{name}»"
     },
     "publisher": {
       "searching": "Шукаємо видавництва…",
       "empty": "Видавництв не знайдено.",
-      "catalogHeading": "З каталогу",
+      "recentHeading": "Раніше використані",
+      "allHeading": "Усі видавництва",
       "createHeading": "Додати власне",
       "customBadge": "власне",
       "useCustom": "Використати «{name}»"
+    },
+    "store": {
+      "recentHeading": "Раніше використані",
+      "empty": "Магазинів не знайдено",
+      "createNew": "Створити «{name}»"
     },
     "preview": {
       "eyebrow": "Попередній перегляд",

@@ -5,9 +5,45 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { BooksControllerListSortDirection } from "./booksControllerListSortDirection";
+import type { BooksControllerListAgeCategoryItem } from "./booksControllerListAgeCategoryItem";
+import type { BooksControllerListBookType } from "./booksControllerListBookType";
+import type { BooksControllerListFormatItem } from "./booksControllerListFormatItem";
+import type { BooksControllerListLanguageItem } from "./booksControllerListLanguageItem";
+import type { BooksControllerListOwnerItem } from "./booksControllerListOwnerItem";
+import type { BooksControllerListSort } from "./booksControllerListSort";
+import type { BooksControllerListStatusItem } from "./booksControllerListStatusItem";
 
 export type BooksControllerListParams = {
+  /**
+   * @maxItems 100
+   */
+  ageCategory: BooksControllerListAgeCategoryItem[];
+  /**
+   * @maxItems 100
+   * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+   */
+  author: string[];
+  bookType?: BooksControllerListBookType;
+  /**
+   * @maxItems 100
+   */
+  format: BooksControllerListFormatItem[];
+  /**
+   * @maxItems 100
+   * @items.minLength 1
+   * @items.maxLength 64
+   */
+  genre: string[];
+  hasCover?: string;
+  isFavorite?: string;
+  /**
+   * @maxItems 100
+   */
+  language: BooksControllerListLanguageItem[];
+  /**
+   * @maxItems 100
+   */
+  owner: BooksControllerListOwnerItem[];
   /**
    * @minimum 1
    * @maximum 9007199254740991
@@ -18,5 +54,53 @@ export type BooksControllerListParams = {
    * @maximum 100
    */
   pageSize?: number;
-  sortDirection?: BooksControllerListSortDirection;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  pagesMax?: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  pagesMin?: number;
+  /**
+   * @maxItems 100
+   * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+   */
+  publisher: string[];
+  /**
+   * @maxLength 200
+   */
+  q?: string;
+  /**
+   * @minimum 1
+   * @maximum 10
+   */
+  ratingMax?: number;
+  /**
+   * @minimum 1
+   * @maximum 10
+   */
+  ratingMin?: number;
+  sort?: BooksControllerListSort;
+  /**
+   * @maxItems 100
+   */
+  status: BooksControllerListStatusItem[];
+  /**
+   * @maxItems 100
+   * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+   */
+  tag: string[];
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  yearMax?: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  yearMin?: number;
 };

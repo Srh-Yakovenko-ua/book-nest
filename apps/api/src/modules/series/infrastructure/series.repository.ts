@@ -13,16 +13,36 @@ export type CreateSeriesData = {
   totalBooks: null | number;
 };
 
+type CreateSeriesInput = {
+  authorIds: string[];
+  data: CreateSeriesData;
+  userId: string;
+};
+
 const seriesWithBookCountArgs = {
   include: {
     _count: { select: { books: true } },
+    authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
     books: { select: { id: true }, where: { readingStatus: "finished" } },
   },
 } satisfies Prisma.SeriesDefaultArgs;
 
 export type SeriesWithBookCount = Prisma.SeriesGetPayload<typeof seriesWithBookCountArgs>;
 
+type CountSeriesInput = {
+  authorIds: string[] | undefined;
+  query: string | undefined;
+  userId: string;
+};
+
+type OwnedWhereInput = {
+  authorIds: string[] | undefined;
+  query: string | undefined;
+  userId: string;
+};
+
 type SearchSeriesInput = {
+  authorIds: string[] | undefined;
   query: string | undefined;
   skip: number;
   take: number;
@@ -33,12 +53,18 @@ type SearchSeriesInput = {
 export class SeriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  countOwned(userId: string, query: string | undefined): Promise<number> {
-    return this.prisma.series.count({ where: buildOwnedWhere(userId, query) });
+  countOwned({ authorIds, query, userId }: CountSeriesInput): Promise<number> {
+    return this.prisma.series.count({ where: buildOwnedWhere({ authorIds, query, userId }) });
   }
 
-  create(userId: string, data: CreateSeriesData): Promise<SeriesModel> {
-    return this.prisma.series.create({ data: { ...data, userId } });
+  create({ authorIds, data, userId }: CreateSeriesInput): Promise<SeriesModel> {
+    return this.prisma.series.create({
+      data: {
+        ...data,
+        authors: { create: authorIds.map((authorId) => ({ authorId })) },
+        userId,
+      },
+    });
   }
 
   findByNormalized(userId: string, normalizedName: string): Promise<null | SeriesModel> {
@@ -49,21 +75,33 @@ export class SeriesRepository {
     return this.prisma.series.findFirst({ where: { id, userId } });
   }
 
-  searchOwned({ query, skip, take, userId }: SearchSeriesInput): Promise<SeriesWithBookCount[]> {
+  searchOwned({
+    authorIds,
+    query,
+    skip,
+    take,
+    userId,
+  }: SearchSeriesInput): Promise<SeriesWithBookCount[]> {
     return this.prisma.series.findMany({
       orderBy: { name: "asc" },
       skip,
       take,
-      where: buildOwnedWhere(userId, query),
+      where: buildOwnedWhere({ authorIds, query, userId }),
       ...seriesWithBookCountArgs,
     });
   }
 }
 
-function buildOwnedWhere(userId: string, query: string | undefined): Prisma.SeriesWhereInput {
-  if (query === undefined || query.length === 0) {
-    return { userId };
+function buildOwnedWhere({ authorIds, query, userId }: OwnedWhereInput): Prisma.SeriesWhereInput {
+  const where: Prisma.SeriesWhereInput = { userId };
+
+  if (query !== undefined && query.length > 0) {
+    where.name = { contains: query, mode: "insensitive" };
   }
 
-  return { name: { contains: query, mode: "insensitive" }, userId };
+  if (authorIds !== undefined && authorIds.length > 0) {
+    where.OR = [{ authors: { some: { authorId: { in: authorIds } } } }, { authors: { none: {} } }];
+  }
+
+  return where;
 }

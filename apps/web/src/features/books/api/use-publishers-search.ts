@@ -7,18 +7,7 @@ import { z } from "zod";
 
 import { publishersControllerSearch } from "@/shared/api/generated/endpoints/publishers/publishers";
 
-const publisherViewSchema = z.object({
-  countryCode: z.string().nullable(),
-  foundedYear: z.number().nullable(),
-  id: z.string(),
-  isCustom: z.boolean(),
-  logoAttribution: z.string().nullable(),
-  logoLicense: z.string().nullable(),
-  logoLicenseUrl: z.string().nullable(),
-  logoUrl: z.string().nullable(),
-  name: z.string(),
-  websiteUrl: z.string().nullable(),
-}) satisfies z.ZodType<PublisherView>;
+import { publisherViewSchema } from "../model/publisher-view-schema";
 
 const publisherSearchResultSchema = z.object({
   items: z.array(publisherViewSchema),
@@ -28,22 +17,19 @@ const publisherSearchResultSchema = z.object({
   totalCount: z.number(),
 });
 
-const PUBLISHER_SEARCH_MIN_LENGTH = 2;
-const PUBLISHER_SEARCH_PAGE_SIZE = 8;
+const PUBLISHER_SEARCH_PAGE_SIZE = 20;
 
 export function usePublishersSearch(search: string) {
   const trimmed = search.trim();
-  const enabled = trimmed.length >= PUBLISHER_SEARCH_MIN_LENGTH;
   const locale = CatalogLocaleSchema.catch("uk").parse(useLocale());
 
   return useQuery({
-    enabled,
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<PublisherView[]> => {
       const response = await publishersControllerSearch({
         locale,
         pageSize: PUBLISHER_SEARCH_PAGE_SIZE,
-        search: trimmed,
+        search: trimmed.length > 0 ? trimmed : undefined,
       });
       const parsed = publisherSearchResultSchema.parse(response);
       return parsed.items;

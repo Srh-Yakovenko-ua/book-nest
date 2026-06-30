@@ -104,20 +104,28 @@ export function ClassificationSection({ control, errors }: ClassificationSection
           <Controller
             control={control}
             name="ageCategory"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value ?? "not_specified"}>
-                <SelectTrigger className="h-10 w-full" id="book-age-category">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {AGE_CATEGORY_OPTIONS.map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {t(`classification.ageCategoryLabels.${value}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            render={({ field }) => {
+              const value = field.value ?? "not_specified";
+              return (
+                <Select onValueChange={field.onChange} value={value}>
+                  <SelectTrigger
+                    className="h-10 w-full"
+                    id="book-age-category"
+                    isClearable={value !== "not_specified"}
+                    onClear={() => field.onChange("not_specified")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AGE_CATEGORY_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {t(`classification.ageCategoryLabels.${option}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            }}
           />
         </div>
 
@@ -126,20 +134,28 @@ export function ClassificationSection({ control, errors }: ClassificationSection
           <Controller
             control={control}
             name="language"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value ?? "ukrainian"}>
-                <SelectTrigger className="h-10 w-full" id="book-language">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BOOK_LANGUAGE_OPTIONS.map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {t(`classification.languageLabels.${value}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            render={({ field }) => {
+              const value = field.value ?? "ukrainian";
+              return (
+                <Select onValueChange={field.onChange} value={value}>
+                  <SelectTrigger
+                    className="h-10 w-full"
+                    id="book-language"
+                    isClearable={value !== "ukrainian"}
+                    onClear={() => field.onChange("ukrainian")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BOOK_LANGUAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {t(`classification.languageLabels.${option}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            }}
           />
         </div>
       </div>

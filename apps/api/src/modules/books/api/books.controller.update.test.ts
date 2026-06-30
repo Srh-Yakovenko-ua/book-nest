@@ -96,7 +96,7 @@ describe("PATCH /api/books/:id authorization and input", () => {
   it("returns 404 when updating a book owned by another user", async () => {
     const owner = await context.registerVerifyAndLogin();
     const created = await createBook(owner.accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     const stranger = await context.registerVerifyAndLogin({
@@ -120,7 +120,7 @@ describe("PATCH /api/books/:id authorization and input", () => {
   it("returns 200 and leaves the book unchanged for an empty body", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -135,7 +135,7 @@ describe("PATCH /api/books/:id scalar fields", () => {
   it("updates only the title and leaves the other scalars untouched", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       description: "A desert epic",
       pagesCount: 412,
       title: "Dune",
@@ -152,7 +152,7 @@ describe("PATCH /api/books/:id scalar fields", () => {
   it("clears a nullable field when an explicit null is sent", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       dedication: "For my family",
       title: "Dune",
     });
@@ -166,7 +166,7 @@ describe("PATCH /api/books/:id scalar fields", () => {
   it("leaves an absent nullable field as-is", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       dedication: "For my family",
       title: "Dune",
     });
@@ -180,7 +180,7 @@ describe("PATCH /api/books/:id scalar fields", () => {
   it("toggles the favorite flag", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -195,7 +195,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
   it("creates a reading-progress row when the status moves to reading", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       readingStatus: "not_started",
       title: "Dune",
     });
@@ -214,7 +214,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
   it("keeps a finished reading-progress row with rating and impression", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       readingStatus: "reading",
       title: "Dune",
     });
@@ -235,7 +235,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
   it("deletes the reading-progress row when the status moves back to not_started", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       readingProgress: { currentPage: 80 },
       readingStatus: "reading",
       title: "Dune",
@@ -252,7 +252,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
   it("deletes the loan row when ownership moves away from borrowed", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       loanInfo: { personName: "Olha" },
       ownershipStatus: "borrowed_from_someone",
       title: "Dune",
@@ -269,7 +269,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
   it("creates a purchase row when ownership moves to want_to_buy", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       ownershipStatus: "owned",
       title: "Dune",
     });
@@ -292,7 +292,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
   it("swaps a delivery block for a loan block when ownership moves from in_transit to lent", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       deliveryInfo: { storeName: "Yakaboo" },
       ownershipStatus: "in_transit",
       title: "Dune",
@@ -317,17 +317,17 @@ describe("PATCH /api/books/:id relation re-resolution", () => {
   it("repoints the book to a new custom author resolved by name", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
     const res = await updateBook(accessToken, created.body.id, {
-      author: { name: "Ursula K. Le Guin" },
+      authors: [{ name: "Ursula K. Le Guin" }],
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.author.name).toBe("Ursula K. Le Guin");
-    expect(res.body.author.id).toMatch(UUID);
+    expect(res.body.authors[0].name).toBe("Ursula K. Le Guin");
+    expect(res.body.authors[0].id).toMatch(UUID);
     const author = await prisma.author.findFirst({
       where: { name: "Ursula K. Le Guin", userId },
     });
@@ -337,32 +337,32 @@ describe("PATCH /api/books/:id relation re-resolution", () => {
   it("repoints the book to a seeded global author referenced by id", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     const global = await prisma.author.create({
       data: { name: "George Orwell", normalizedName: "george orwell", userId: null },
     });
 
-    const res = await updateBook(accessToken, created.body.id, { author: { id: global.id } });
+    const res = await updateBook(accessToken, created.body.id, { authors: [{ id: global.id }] });
 
     expect(res.status).toBe(200);
-    expect(res.body.author).toEqual({ id: global.id, name: "George Orwell" });
+    expect(res.body.authors[0]).toEqual({ id: global.id, name: "George Orwell" });
   });
 
   it("materializes a global author from open library and repoints the book", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
     const res = await updateBook(accessToken, created.body.id, {
-      author: { openLibraryKey: OPEN_LIBRARY_KEY },
+      authors: [{ openLibraryKey: OPEN_LIBRARY_KEY }],
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.author.name).toBe("George Orwell");
+    expect(res.body.authors[0].name).toBe("George Orwell");
     const materialized = await prisma.author.findFirst({
       where: { openLibraryKey: OPEN_LIBRARY_KEY },
     });
@@ -376,7 +376,7 @@ describe("PATCH /api/books/:id relation re-resolution", () => {
       nickname: "stranger",
     });
     const created = await createBook(stranger.accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     const ownerAuthor = await prisma.author.create({
@@ -384,7 +384,7 @@ describe("PATCH /api/books/:id relation re-resolution", () => {
     });
 
     const res = await updateBook(stranger.accessToken, created.body.id, {
-      author: { id: ownerAuthor.id },
+      authors: [{ id: ownerAuthor.id }],
     });
 
     expect(res.status).toBe(404);
@@ -393,7 +393,7 @@ describe("PATCH /api/books/:id relation re-resolution", () => {
   it("replaces the tag set with the provided one", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags: ["dark academia", "slow burn"],
       title: "Dune",
     });
@@ -410,7 +410,7 @@ describe("PATCH /api/books/:id relation re-resolution", () => {
   it("clears all tags when an empty tag set is provided", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags: ["dark academia"],
       title: "Dune",
     });
@@ -426,7 +426,7 @@ describe("PATCH /api/books/:id relation re-resolution", () => {
   it("leaves the existing tags in place when tags are absent from the payload", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       tags: ["dark academia"],
       title: "Dune",
     });
@@ -447,7 +447,7 @@ describe("PATCH /api/books/:id relation re-resolution", () => {
       data: { name: "Autumn reads", normalizedName: "autumn reads", userId },
     });
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       listIds: [first.id],
       title: "Dune",
     });
@@ -466,7 +466,7 @@ describe("PATCH /api/books/:id partial block merge", () => {
   it("updates only the provided loan sub-field and preserves the siblings", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       loanInfo: { loanDate: "2026-02-01", personName: "Olha" },
       ownershipStatus: "borrowed_from_someone",
       title: "Dune",
@@ -490,7 +490,7 @@ describe("PATCH /api/books/:id partial block merge", () => {
   it("preserves stored rating and started date when only the current page is patched", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       pagesCount: 400,
       readingProgress: { currentPage: 10, rating: 4, startedAt: "2026-02-01" },
       readingStatus: "reading",
@@ -512,7 +512,7 @@ describe("PATCH /api/books/:id partial block merge", () => {
   it("clears a loan sub-field when an explicit null is sent", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       loanInfo: { note: "old note", personName: "Olha" },
       ownershipStatus: "borrowed_from_someone",
       title: "Dune",
@@ -529,7 +529,7 @@ describe("PATCH /api/books/:id cross-field validation", () => {
   it("returns 400 when the payload current page exceeds the payload page count", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -548,7 +548,7 @@ describe("PATCH /api/books/:id cross-field validation", () => {
   it("returns 400 when a payload-only current page exceeds the stored page count", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       pagesCount: 300,
       readingStatus: "reading",
       title: "Dune",
@@ -567,7 +567,7 @@ describe("PATCH /api/books/:id cross-field validation", () => {
   it("returns 400 when a payload-only page count drops below the stored current page", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       pagesCount: 300,
       readingProgress: { currentPage: 250 },
       readingStatus: "reading",
@@ -585,7 +585,7 @@ describe("PATCH /api/books/:id cross-field validation", () => {
   it("returns 400 when ownership is set to borrowed without loan info", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -602,7 +602,7 @@ describe("PATCH /api/books/:id cross-field validation", () => {
   it("allows a status-only switch between loan statuses when the existing row has a person name", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       loanInfo: { personName: "Olha" },
       ownershipStatus: "borrowed_from_someone",
       title: "Dune",
@@ -620,7 +620,7 @@ describe("PATCH /api/books/:id cross-field validation", () => {
   it("returns 400 for an unknown reading status", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
 
@@ -637,14 +637,14 @@ describe("PATCH /api/books/:id series part number", () => {
   it("rejects an update that reuses a part number held by another book in the series", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const first = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass" },
       partNumber: 1,
       title: "Throne of Glass",
     });
     const second = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       partNumber: 2,
       seriesId: first.body.series.id,
@@ -662,7 +662,7 @@ describe("PATCH /api/books/:id series part number", () => {
   it("allows a book to keep its own part number on an unrelated update", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass" },
       partNumber: 1,
@@ -681,7 +681,7 @@ describe("PATCH /api/books/:id reading queue", () => {
   it("adds the book to the queue and reflects membership in the returned view", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     expect(created.body.isInReadingQueue).toBe(false);
@@ -700,7 +700,7 @@ describe("PATCH /api/books/:id reading queue", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       addToReadingQueue: true,
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       title: "Dune",
     });
     expect(created.body.isInReadingQueue).toBe(true);
@@ -723,7 +723,7 @@ describe("PATCH /api/books/:id series progress recompute", () => {
   it("drops booksInSeries and finishedInSeries when a finished book is detached to solo", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass" },
       partNumber: 1,
@@ -745,7 +745,7 @@ describe("PATCH /api/books/:id series progress recompute", () => {
   it("moves the finished book's contribution to the target series when reassigned", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const source = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "Throne of Glass" },
       partNumber: 1,
@@ -755,7 +755,7 @@ describe("PATCH /api/books/:id series progress recompute", () => {
     });
     const sourceSeriesId = source.body.series.id;
     const targetAnchor = await createBook(accessToken, {
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       newSeries: { name: "A Court of Thorns" },
       partNumber: 1,

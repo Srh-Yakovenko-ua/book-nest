@@ -13,7 +13,7 @@ const statCardVariants = cva(
     variants: {
       size: {
         default: "px-[22px] py-5",
-        compact: "gap-3 px-4 py-[14px]",
+        compact: "gap-2.5 px-3 py-3 sm:gap-3 sm:px-4 sm:py-3.5",
       },
       interactive: {
         true: "cursor-pointer transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-accent-border hover:shadow-hover motion-reduce:transition-none motion-reduce:hover:translate-y-0",
@@ -33,7 +33,7 @@ const iconBadgeVariants = cva(
     variants: {
       size: {
         default: "size-[54px]",
-        compact: "size-11 [&_svg]:size-[21px]",
+        compact: "size-10 sm:size-11 [&_svg]:size-5",
       },
       tone: {
         primary: "text-primary",

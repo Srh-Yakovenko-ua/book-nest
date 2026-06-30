@@ -10,7 +10,7 @@ import type {
 import { createBookFormDefaults } from "./create-book-form";
 
 export type BookFormInitialState = {
-  authorSelection: AuthorSelection;
+  authorSelections: AuthorSelection[];
   cover: Nullable<MediaView>;
   publisherSelection: null | PublisherSelection;
   seriesSelection: null | SeriesSelection;
@@ -18,11 +18,11 @@ export type BookFormInitialState = {
 };
 
 export function bookViewToFormState(book: BookView): BookFormInitialState {
-  const authorSelection: AuthorSelection = {
-    id: book.author.id,
+  const authorSelections: AuthorSelection[] = book.authors.map((author) => ({
+    id: author.id,
     kind: "catalog",
-    name: book.author.name,
-  };
+    name: author.name,
+  }));
 
   const publisherSelection: null | PublisherSelection =
     book.publisher === null
@@ -33,6 +33,11 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
     book.series === null
       ? null
       : {
+          authors: book.series.authors.map((author) => ({
+            id: author.id,
+            kind: "catalog" as const,
+            name: author.name,
+          })),
           id: book.series.id,
           kind: "existing",
           name: book.series.name,
@@ -43,7 +48,7 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
     ...createBookFormDefaults,
     addToReadingQueue: book.isInReadingQueue,
     ageCategory: book.ageCategory,
-    author: { id: book.author.id },
+    authors: book.authors.map((author) => ({ id: author.id })),
     bookType: book.bookType,
     dedication: book.dedication ?? undefined,
     deliveryInfo: deliveryToInput(book),
@@ -74,7 +79,7 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
   if (book.publisher !== null) values.publisherId = book.publisher.id;
 
   return {
-    authorSelection,
+    authorSelections,
     cover: book.cover ?? null,
     publisherSelection,
     seriesSelection,

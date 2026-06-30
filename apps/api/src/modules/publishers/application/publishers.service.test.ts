@@ -19,6 +19,8 @@ function buildService(overrides: {
   findByNormalized?: null | PublisherModel;
   findByNormalizedRetry?: null | PublisherModel;
   findVisibleById?: null | PublisherModel;
+  findVisibleByIds?: PublisherWithPrimaryNames[];
+  recentPublisherIds?: string[];
   searchVisible?: PublisherWithPrimaryNames[];
 }): {
   repository: {
@@ -26,6 +28,8 @@ function buildService(overrides: {
     create: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
     findVisibleById: ReturnType<typeof vi.fn>;
+    findVisibleByIds: ReturnType<typeof vi.fn>;
+    recentPublisherIds: ReturnType<typeof vi.fn>;
     searchVisible: ReturnType<typeof vi.fn>;
   };
   service: PublishersService;
@@ -50,6 +54,8 @@ function buildService(overrides: {
     create,
     findByNormalized,
     findVisibleById: vi.fn().mockResolvedValue(overrides.findVisibleById ?? null),
+    findVisibleByIds: vi.fn().mockResolvedValue(overrides.findVisibleByIds ?? []),
+    recentPublisherIds: vi.fn().mockResolvedValue(overrides.recentPublisherIds ?? []),
     searchVisible: vi.fn().mockResolvedValue(searchVisible),
   };
 
@@ -193,6 +199,88 @@ describe("PublishersService.resolveOrCreate without input", () => {
 
     expect(id).toBeNull();
     expect(repository.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("PublishersService.recent", () => {
+  it("returns an empty array and skips the lookup when the user has no recent publishers", async () => {
+    const { repository, service } = buildService({ recentPublisherIds: [] });
+
+    const result = await service.recent({ limit: 8, locale: "uk", userId: USER_ID });
+
+    expect(result).toEqual([]);
+    expect(repository.findVisibleByIds).not.toHaveBeenCalled();
+  });
+
+  it("maps rows to views and preserves the recency order returned by the repository", async () => {
+    const { service } = buildService({
+      findVisibleByIds: [
+        publisherWithNames({ id: GLOBAL_ID, name: "Vintage", userId: null }),
+        publisherWithNames({ id: PUBLISHER_ID, name: "My Press", userId: USER_ID }),
+      ],
+      recentPublisherIds: [PUBLISHER_ID, GLOBAL_ID],
+    });
+
+    const result = await service.recent({ limit: 8, locale: "uk", userId: USER_ID });
+
+    expect(result.map((publisher) => publisher.id)).toEqual([PUBLISHER_ID, GLOBAL_ID]);
+    expect(result.map((publisher) => publisher.name)).toEqual(["My Press", "Vintage"]);
+  });
+
+  it("drops ids whose publisher row is no longer visible", async () => {
+    const { service } = buildService({
+      findVisibleByIds: [
+        publisherWithNames({ id: PUBLISHER_ID, name: "My Press", userId: USER_ID }),
+      ],
+      recentPublisherIds: [PUBLISHER_ID, GLOBAL_ID],
+    });
+
+    const result = await service.recent({ limit: 8, locale: "uk", userId: USER_ID });
+
+    expect(result.map((publisher) => publisher.id)).toEqual([PUBLISHER_ID]);
+  });
+
+  it("resolves the display name to the requested locale", async () => {
+    const { service } = buildService({
+      findVisibleByIds: [
+        publisherWithNames({
+          id: GLOBAL_ID,
+          name: "Vydavnytstvo Stary Lev",
+          names: [
+            {
+              id: "name-en",
+              isPrimary: true,
+              locale: "en",
+              name: "Vydavnytstvo Stary Lev",
+              normalizedName: "vydavnytstvo stary lev",
+              publisherId: GLOBAL_ID,
+            },
+            {
+              id: "name-uk",
+              isPrimary: true,
+              locale: "uk",
+              name: "Видавництво Старого Лева",
+              normalizedName: "видавництво старого лева",
+              publisherId: GLOBAL_ID,
+            },
+          ],
+          userId: null,
+        }),
+      ],
+      recentPublisherIds: [GLOBAL_ID],
+    });
+
+    const english = await service.recent({ limit: 8, locale: "en", userId: USER_ID });
+
+    expect(english[0]?.name).toBe("Vydavnytstvo Stary Lev");
+  });
+
+  it("forwards the limit to the repository", async () => {
+    const { repository, service } = buildService({ recentPublisherIds: [] });
+
+    await service.recent({ limit: 5, locale: "uk", userId: USER_ID });
+
+    expect(repository.recentPublisherIds).toHaveBeenCalledWith({ limit: 5, userId: USER_ID });
   });
 });
 

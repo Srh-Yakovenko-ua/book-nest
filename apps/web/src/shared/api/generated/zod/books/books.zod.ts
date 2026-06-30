@@ -12,10 +12,12 @@ import * as zod from "zod";
  */
 export const booksControllerCreateBodyAddToReadingQueueDefault = false;
 export const booksControllerCreateBodyAgeCategoryDefault = `not_specified`;
-export const booksControllerCreateBodyAuthorOneIdRegExp = new RegExp(
+export const booksControllerCreateBodyAuthorsItemOneIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerCreateBodyAuthorTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const booksControllerCreateBodyAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const booksControllerCreateBodyAuthorsMax = 20;
+
 export const booksControllerCreateBodyBookTypeDefault = `solo`;
 export const booksControllerCreateBodyCoverMediaIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -47,6 +49,14 @@ export const booksControllerCreateBodyLoanInfoLoanDateRegExp = new RegExp(
 );
 export const booksControllerCreateBodyNewListsMax = 20;
 
+export const booksControllerCreateBodyNewSeriesAuthorsItemOneIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerCreateBodyNewSeriesAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp(
+  "^OL\\d+A$",
+);
+export const booksControllerCreateBodyNewSeriesAuthorsMax = 20;
+
 export const booksControllerCreateBodyNewSeriesStatusDefault = `unknown`;
 export const booksControllerCreateBodyNewSeriesTotalBooksMax = 999;
 
@@ -61,7 +71,7 @@ export const booksControllerCreateBodyPublicationYearMax = 2027;
 export const booksControllerCreateBodyPublisherIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerCreateBodyPurchaseInfoExpectedPriceMin = 0;
+export const booksControllerCreateBodyPurchaseInfoExpectedPriceExclusiveMin = 0;
 
 export const booksControllerCreateBodyPurchaseInfoStoreUrlMax = 300;
 
@@ -77,7 +87,9 @@ export const booksControllerCreateBodyReadingProgressFinishedAtRegExp = new RegE
 export const booksControllerCreateBodyReadingProgressPausedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
-export const booksControllerCreateBodyReadingProgressRatingMax = 5;
+export const booksControllerCreateBodyReadingProgressRatingMin = 0.5;
+export const booksControllerCreateBodyReadingProgressRatingMax = 10;
+export const booksControllerCreateBodyReadingProgressRatingMultipleOf = 0.5;
 
 export const booksControllerCreateBodyReadingProgressStartedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -101,17 +113,24 @@ export const BooksControllerCreateBody = zod.object({
       "18_plus",
     ])
     .default(booksControllerCreateBodyAgeCategoryDefault),
-  author: zod.union([
-    zod.object({
-      id: zod.uuid().regex(booksControllerCreateBodyAuthorOneIdRegExp),
-    }),
-    zod.object({
-      openLibraryKey: zod.string().regex(booksControllerCreateBodyAuthorTwoOpenLibraryKeyRegExp),
-    }),
-    zod.object({
-      name: zod.string(),
-    }),
-  ]),
+  authors: zod
+    .array(
+      zod.union([
+        zod.object({
+          id: zod.uuid().regex(booksControllerCreateBodyAuthorsItemOneIdRegExp),
+        }),
+        zod.object({
+          openLibraryKey: zod
+            .string()
+            .regex(booksControllerCreateBodyAuthorsItemTwoOpenLibraryKeyRegExp),
+        }),
+        zod.object({
+          name: zod.string(),
+        }),
+      ]),
+    )
+    .min(1)
+    .max(booksControllerCreateBodyAuthorsMax),
   bookType: zod.enum(["solo", "series_part"]).default(booksControllerCreateBodyBookTypeDefault),
   coverMediaId: zod.uuid().regex(booksControllerCreateBodyCoverMediaIdRegExp).nullish(),
   dedication: zod.string().nullish(),
@@ -173,6 +192,24 @@ export const BooksControllerCreateBody = zod.object({
     .optional(),
   newSeries: zod
     .object({
+      authors: zod
+        .array(
+          zod.union([
+            zod.object({
+              id: zod.uuid().regex(booksControllerCreateBodyNewSeriesAuthorsItemOneIdRegExp),
+            }),
+            zod.object({
+              openLibraryKey: zod
+                .string()
+                .regex(booksControllerCreateBodyNewSeriesAuthorsItemTwoOpenLibraryKeyRegExp),
+            }),
+            zod.object({
+              name: zod.string(),
+            }),
+          ]),
+        )
+        .max(booksControllerCreateBodyNewSeriesAuthorsMax)
+        .optional(),
       description: zod.string().optional(),
       name: zod.string(),
       status: zod
@@ -210,7 +247,7 @@ export const BooksControllerCreateBody = zod.object({
       currency: zod.enum(["UAH", "EUR", "USD"]).nullish(),
       expectedPrice: zod
         .number()
-        .min(booksControllerCreateBodyPurchaseInfoExpectedPriceMin)
+        .gt(booksControllerCreateBodyPurchaseInfoExpectedPriceExclusiveMin)
         .nullish(),
       note: zod.string().nullish(),
       storeName: zod.string().nullish(),
@@ -239,7 +276,12 @@ export const BooksControllerCreateBody = zod.object({
         .date()
         .regex(booksControllerCreateBodyReadingProgressPausedAtRegExp)
         .nullish(),
-      rating: zod.number().min(1).max(booksControllerCreateBodyReadingProgressRatingMax).nullish(),
+      rating: zod
+        .number()
+        .min(booksControllerCreateBodyReadingProgressRatingMin)
+        .max(booksControllerCreateBodyReadingProgressRatingMax)
+        .multipleOf(booksControllerCreateBodyReadingProgressRatingMultipleOf)
+        .nullish(),
       startedAt: zod.iso
         .date()
         .regex(booksControllerCreateBodyReadingProgressStartedAtRegExp)
@@ -258,17 +300,103 @@ export const BooksControllerCreateBody = zod.object({
 export const BooksControllerCreateResponse = zod.void();
 
 /**
- * @summary List the current user books
+ * @summary List and filter the current user library
  */
+export const booksControllerListQueryAgeCategoryMax = 100;
+
+export const booksControllerListQueryAuthorItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerListQueryAuthorMax = 100;
+
+export const booksControllerListQueryFormatMax = 100;
+
+export const booksControllerListQueryGenreItemMax = 64;
+
+export const booksControllerListQueryGenreMax = 100;
+
+export const booksControllerListQueryLanguageMax = 100;
+
+export const booksControllerListQueryOwnerMax = 100;
+
 export const booksControllerListQueryPageNumberDefault = 1;
 export const booksControllerListQueryPageNumberMax = 9007199254740991;
 
-export const booksControllerListQueryPageSizeDefault = 10;
+export const booksControllerListQueryPageSizeDefault = 24;
 export const booksControllerListQueryPageSizeMax = 100;
 
-export const booksControllerListQuerySortDirectionDefault = `desc`;
+export const booksControllerListQueryPagesMaxMin = -9007199254740991;
+export const booksControllerListQueryPagesMaxMax = 9007199254740991;
+
+export const booksControllerListQueryPagesMinMin = -9007199254740991;
+export const booksControllerListQueryPagesMinMax = 9007199254740991;
+
+export const booksControllerListQueryPublisherItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerListQueryPublisherMax = 100;
+
+export const booksControllerListQueryQMax = 200;
+
+export const booksControllerListQueryRatingMaxMax = 10;
+
+export const booksControllerListQueryRatingMinMax = 10;
+
+export const booksControllerListQuerySortDefault = `created_desc`;
+export const booksControllerListQueryStatusMax = 100;
+
+export const booksControllerListQueryTagItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerListQueryTagMax = 100;
+
+export const booksControllerListQueryYearMaxMin = -9007199254740991;
+export const booksControllerListQueryYearMaxMax = 9007199254740991;
+
+export const booksControllerListQueryYearMinMin = -9007199254740991;
+export const booksControllerListQueryYearMinMax = 9007199254740991;
 
 export const BooksControllerListQueryParams = zod.object({
+  ageCategory: zod
+    .array(
+      zod.enum([
+        "not_specified",
+        "no_restrictions",
+        "6_plus",
+        "12_plus",
+        "14_plus",
+        "16_plus",
+        "18_plus",
+      ]),
+    )
+    .max(booksControllerListQueryAgeCategoryMax),
+  author: zod
+    .array(zod.uuid().regex(booksControllerListQueryAuthorItemRegExp))
+    .max(booksControllerListQueryAuthorMax),
+  bookType: zod.enum(["solo", "series_part"]).optional(),
+  format: zod
+    .array(zod.enum(["paper", "ebook", "audiobook"]))
+    .max(booksControllerListQueryFormatMax),
+  genre: zod
+    .array(zod.string().min(1).max(booksControllerListQueryGenreItemMax))
+    .max(booksControllerListQueryGenreMax),
+  hasCover: zod.string().optional(),
+  isFavorite: zod.string().optional(),
+  language: zod
+    .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
+    .max(booksControllerListQueryLanguageMax),
+  owner: zod
+    .array(
+      zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+    )
+    .max(booksControllerListQueryOwnerMax),
   pageNumber: zod
     .number()
     .min(1)
@@ -279,10 +407,89 @@ export const BooksControllerListQueryParams = zod.object({
     .min(1)
     .max(booksControllerListQueryPageSizeMax)
     .default(booksControllerListQueryPageSizeDefault),
-  sortDirection: zod.enum(["asc", "desc"]).default(booksControllerListQuerySortDirectionDefault),
+  pagesMax: zod
+    .number()
+    .min(booksControllerListQueryPagesMaxMin)
+    .max(booksControllerListQueryPagesMaxMax)
+    .optional(),
+  pagesMin: zod
+    .number()
+    .min(booksControllerListQueryPagesMinMin)
+    .max(booksControllerListQueryPagesMinMax)
+    .optional(),
+  publisher: zod
+    .array(zod.uuid().regex(booksControllerListQueryPublisherItemRegExp))
+    .max(booksControllerListQueryPublisherMax),
+  q: zod.string().max(booksControllerListQueryQMax).optional(),
+  ratingMax: zod.number().min(1).max(booksControllerListQueryRatingMaxMax).optional(),
+  ratingMin: zod.number().min(1).max(booksControllerListQueryRatingMinMax).optional(),
+  sort: zod
+    .enum([
+      "created_desc",
+      "created_asc",
+      "updated_desc",
+      "title_asc",
+      "title_desc",
+      "author_asc",
+      "author_desc",
+      "rating_desc",
+      "rating_asc",
+      "year_desc",
+      "year_asc",
+      "pages_desc",
+      "pages_asc",
+    ])
+    .default(booksControllerListQuerySortDefault),
+  status: zod
+    .array(
+      zod.enum([
+        "not_started",
+        "want_to_read",
+        "reading",
+        "paused",
+        "finished",
+        "dnf",
+        "rereading",
+      ]),
+    )
+    .max(booksControllerListQueryStatusMax),
+  tag: zod
+    .array(zod.uuid().regex(booksControllerListQueryTagItemRegExp))
+    .max(booksControllerListQueryTagMax),
+  yearMax: zod
+    .number()
+    .min(booksControllerListQueryYearMaxMin)
+    .max(booksControllerListQueryYearMaxMax)
+    .optional(),
+  yearMin: zod
+    .number()
+    .min(booksControllerListQueryYearMinMin)
+    .max(booksControllerListQueryYearMinMax)
+    .optional(),
 });
 
 export const BooksControllerListResponse = zod.unknown();
+
+/**
+ * @summary Get the current user library overview
+ */
+export const BooksControllerOverviewResponse = zod.unknown();
+
+/**
+ * @summary List recently used purchase stores for the current user
+ */
+export const booksControllerPurchaseStoresQueryLimitDefault = 8;
+export const booksControllerPurchaseStoresQueryLimitMax = 20;
+
+export const BooksControllerPurchaseStoresQueryParams = zod.object({
+  limit: zod
+    .number()
+    .min(1)
+    .max(booksControllerPurchaseStoresQueryLimitMax)
+    .default(booksControllerPurchaseStoresQueryLimitDefault),
+});
+
+export const BooksControllerPurchaseStoresResponse = zod.unknown();
 
 /**
  * @summary Get a book by id
@@ -300,10 +507,12 @@ export const BooksControllerUpdateParams = zod.object({
   id: zod.string(),
 });
 
-export const booksControllerUpdateBodyAuthorOneIdRegExp = new RegExp(
+export const booksControllerUpdateBodyAuthorsItemOneIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerUpdateBodyAuthorTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const booksControllerUpdateBodyAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const booksControllerUpdateBodyAuthorsMax = 20;
+
 export const booksControllerUpdateBodyCoverMediaIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
@@ -330,6 +539,14 @@ export const booksControllerUpdateBodyLoanInfoLoanDateRegExp = new RegExp(
 );
 export const booksControllerUpdateBodyNewListsMax = 20;
 
+export const booksControllerUpdateBodyNewSeriesAuthorsItemOneIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerUpdateBodyNewSeriesAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp(
+  "^OL\\d+A$",
+);
+export const booksControllerUpdateBodyNewSeriesAuthorsMax = 20;
+
 export const booksControllerUpdateBodyNewSeriesStatusDefault = `unknown`;
 export const booksControllerUpdateBodyNewSeriesTotalBooksMax = 999;
 
@@ -343,7 +560,7 @@ export const booksControllerUpdateBodyPublicationYearMax = 2027;
 export const booksControllerUpdateBodyPublisherIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerUpdateBodyPurchaseInfoExpectedPriceMin = 0;
+export const booksControllerUpdateBodyPurchaseInfoExpectedPriceExclusiveMin = 0;
 
 export const booksControllerUpdateBodyPurchaseInfoStoreUrlMax = 300;
 
@@ -359,7 +576,9 @@ export const booksControllerUpdateBodyReadingProgressFinishedAtRegExp = new RegE
 export const booksControllerUpdateBodyReadingProgressPausedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
-export const booksControllerUpdateBodyReadingProgressRatingMax = 5;
+export const booksControllerUpdateBodyReadingProgressRatingMin = 0.5;
+export const booksControllerUpdateBodyReadingProgressRatingMax = 10;
+export const booksControllerUpdateBodyReadingProgressRatingMultipleOf = 0.5;
 
 export const booksControllerUpdateBodyReadingProgressStartedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -382,18 +601,24 @@ export const BooksControllerUpdateBody = zod.object({
       "18_plus",
     ])
     .optional(),
-  author: zod
-    .union([
-      zod.object({
-        id: zod.uuid().regex(booksControllerUpdateBodyAuthorOneIdRegExp),
-      }),
-      zod.object({
-        openLibraryKey: zod.string().regex(booksControllerUpdateBodyAuthorTwoOpenLibraryKeyRegExp),
-      }),
-      zod.object({
-        name: zod.string(),
-      }),
-    ])
+  authors: zod
+    .array(
+      zod.union([
+        zod.object({
+          id: zod.uuid().regex(booksControllerUpdateBodyAuthorsItemOneIdRegExp),
+        }),
+        zod.object({
+          openLibraryKey: zod
+            .string()
+            .regex(booksControllerUpdateBodyAuthorsItemTwoOpenLibraryKeyRegExp),
+        }),
+        zod.object({
+          name: zod.string(),
+        }),
+      ]),
+    )
+    .min(1)
+    .max(booksControllerUpdateBodyAuthorsMax)
     .optional(),
   bookType: zod.enum(["solo", "series_part"]).optional(),
   coverMediaId: zod.uuid().regex(booksControllerUpdateBodyCoverMediaIdRegExp).nullish(),
@@ -454,6 +679,24 @@ export const BooksControllerUpdateBody = zod.object({
     .optional(),
   newSeries: zod
     .object({
+      authors: zod
+        .array(
+          zod.union([
+            zod.object({
+              id: zod.uuid().regex(booksControllerUpdateBodyNewSeriesAuthorsItemOneIdRegExp),
+            }),
+            zod.object({
+              openLibraryKey: zod
+                .string()
+                .regex(booksControllerUpdateBodyNewSeriesAuthorsItemTwoOpenLibraryKeyRegExp),
+            }),
+            zod.object({
+              name: zod.string(),
+            }),
+          ]),
+        )
+        .max(booksControllerUpdateBodyNewSeriesAuthorsMax)
+        .optional(),
       description: zod.string().optional(),
       name: zod.string(),
       status: zod
@@ -491,7 +734,7 @@ export const BooksControllerUpdateBody = zod.object({
       currency: zod.enum(["UAH", "EUR", "USD"]).nullish(),
       expectedPrice: zod
         .number()
-        .min(booksControllerUpdateBodyPurchaseInfoExpectedPriceMin)
+        .gt(booksControllerUpdateBodyPurchaseInfoExpectedPriceExclusiveMin)
         .nullish(),
       note: zod.string().nullish(),
       storeName: zod.string().nullish(),
@@ -520,7 +763,12 @@ export const BooksControllerUpdateBody = zod.object({
         .date()
         .regex(booksControllerUpdateBodyReadingProgressPausedAtRegExp)
         .nullish(),
-      rating: zod.number().min(1).max(booksControllerUpdateBodyReadingProgressRatingMax).nullish(),
+      rating: zod
+        .number()
+        .min(booksControllerUpdateBodyReadingProgressRatingMin)
+        .max(booksControllerUpdateBodyReadingProgressRatingMax)
+        .multipleOf(booksControllerUpdateBodyReadingProgressRatingMultipleOf)
+        .nullish(),
       startedAt: zod.iso
         .date()
         .regex(booksControllerUpdateBodyReadingProgressStartedAtRegExp)
@@ -546,3 +794,219 @@ export const BooksControllerDeleteParams = zod.object({
 });
 
 export const BooksControllerDeleteResponse = zod.void();
+
+/**
+ * @summary Set the favorite flag on the selected books
+ */
+export const bulkBooksControllerFavoriteBodyBookIdsItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bulkBooksControllerFavoriteBodyBookIdsMax = 100;
+
+export const BulkBooksControllerFavoriteBody = zod.object({
+  bookIds: zod
+    .array(zod.uuid().regex(bulkBooksControllerFavoriteBodyBookIdsItemRegExp))
+    .min(1)
+    .max(bulkBooksControllerFavoriteBodyBookIdsMax),
+  isFavorite: zod.boolean(),
+});
+
+export const bulkBooksControllerFavoriteResponseAffectedMin = 0;
+export const bulkBooksControllerFavoriteResponseAffectedMax = 9007199254740991;
+
+export const BulkBooksControllerFavoriteResponse = zod.object({
+  affected: zod
+    .number()
+    .min(bulkBooksControllerFavoriteResponseAffectedMin)
+    .max(bulkBooksControllerFavoriteResponseAffectedMax),
+});
+
+/**
+ * @summary Change the reading status of the selected books
+ */
+export const bulkBooksControllerReadingStatusBodyBookIdsItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bulkBooksControllerReadingStatusBodyBookIdsMax = 100;
+
+export const BulkBooksControllerReadingStatusBody = zod.object({
+  bookIds: zod
+    .array(zod.uuid().regex(bulkBooksControllerReadingStatusBodyBookIdsItemRegExp))
+    .min(1)
+    .max(bulkBooksControllerReadingStatusBodyBookIdsMax),
+  readingStatus: zod.enum([
+    "not_started",
+    "want_to_read",
+    "reading",
+    "paused",
+    "finished",
+    "dnf",
+    "rereading",
+  ]),
+});
+
+export const bulkBooksControllerReadingStatusResponseAffectedMin = 0;
+export const bulkBooksControllerReadingStatusResponseAffectedMax = 9007199254740991;
+
+export const BulkBooksControllerReadingStatusResponse = zod.object({
+  affected: zod
+    .number()
+    .min(bulkBooksControllerReadingStatusResponseAffectedMin)
+    .max(bulkBooksControllerReadingStatusResponseAffectedMax),
+});
+
+/**
+ * @summary Change the ownership status of the selected books
+ */
+export const bulkBooksControllerOwnershipStatusBodyBookIdsItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bulkBooksControllerOwnershipStatusBodyBookIdsMax = 100;
+
+export const BulkBooksControllerOwnershipStatusBody = zod.object({
+  bookIds: zod
+    .array(zod.uuid().regex(bulkBooksControllerOwnershipStatusBodyBookIdsItemRegExp))
+    .min(1)
+    .max(bulkBooksControllerOwnershipStatusBodyBookIdsMax),
+  ownershipStatus: zod.enum([
+    "none",
+    "want_to_buy",
+    "in_transit",
+    "owned",
+    "borrowed_from_someone",
+    "lent_to_someone",
+  ]),
+});
+
+export const bulkBooksControllerOwnershipStatusResponseAffectedMin = 0;
+export const bulkBooksControllerOwnershipStatusResponseAffectedMax = 9007199254740991;
+
+export const BulkBooksControllerOwnershipStatusResponse = zod.object({
+  affected: zod
+    .number()
+    .min(bulkBooksControllerOwnershipStatusResponseAffectedMin)
+    .max(bulkBooksControllerOwnershipStatusResponseAffectedMax),
+});
+
+/**
+ * @summary Add tags to the selected books
+ */
+export const bulkBooksControllerTagsBodyBookIdsItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bulkBooksControllerTagsBodyBookIdsMax = 100;
+
+export const bulkBooksControllerTagsBodyTagsMax = 12;
+
+export const BulkBooksControllerTagsBody = zod.object({
+  bookIds: zod
+    .array(zod.uuid().regex(bulkBooksControllerTagsBodyBookIdsItemRegExp))
+    .min(1)
+    .max(bulkBooksControllerTagsBodyBookIdsMax),
+  tags: zod.array(zod.string()).max(bulkBooksControllerTagsBodyTagsMax),
+});
+
+export const bulkBooksControllerTagsResponseAffectedMin = 0;
+export const bulkBooksControllerTagsResponseAffectedMax = 9007199254740991;
+
+export const BulkBooksControllerTagsResponse = zod.object({
+  affected: zod
+    .number()
+    .min(bulkBooksControllerTagsResponseAffectedMin)
+    .max(bulkBooksControllerTagsResponseAffectedMax),
+});
+
+/**
+ * @summary Add the selected books to custom lists
+ */
+export const bulkBooksControllerListsBodyBookIdsItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bulkBooksControllerListsBodyBookIdsMax = 100;
+
+export const bulkBooksControllerListsBodyListIdsItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bulkBooksControllerListsBodyListIdsMax = 50;
+
+export const bulkBooksControllerListsBodyNewListsMax = 20;
+
+export const BulkBooksControllerListsBody = zod.object({
+  bookIds: zod
+    .array(zod.uuid().regex(bulkBooksControllerListsBodyBookIdsItemRegExp))
+    .min(1)
+    .max(bulkBooksControllerListsBodyBookIdsMax),
+  listIds: zod
+    .array(zod.uuid().regex(bulkBooksControllerListsBodyListIdsItemRegExp))
+    .max(bulkBooksControllerListsBodyListIdsMax)
+    .optional(),
+  newLists: zod
+    .array(
+      zod.object({
+        description: zod.string().optional(),
+        name: zod.string(),
+      }),
+    )
+    .max(bulkBooksControllerListsBodyNewListsMax)
+    .optional(),
+});
+
+export const bulkBooksControllerListsResponseAffectedMin = 0;
+export const bulkBooksControllerListsResponseAffectedMax = 9007199254740991;
+
+export const BulkBooksControllerListsResponse = zod.object({
+  affected: zod
+    .number()
+    .min(bulkBooksControllerListsResponseAffectedMin)
+    .max(bulkBooksControllerListsResponseAffectedMax),
+});
+
+/**
+ * @summary Add the selected books to the reading queue
+ */
+export const bulkBooksControllerReadingQueueBodyBookIdsItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bulkBooksControllerReadingQueueBodyBookIdsMax = 100;
+
+export const BulkBooksControllerReadingQueueBody = zod.object({
+  bookIds: zod
+    .array(zod.uuid().regex(bulkBooksControllerReadingQueueBodyBookIdsItemRegExp))
+    .min(1)
+    .max(bulkBooksControllerReadingQueueBodyBookIdsMax),
+});
+
+export const bulkBooksControllerReadingQueueResponseAffectedMin = 0;
+export const bulkBooksControllerReadingQueueResponseAffectedMax = 9007199254740991;
+
+export const BulkBooksControllerReadingQueueResponse = zod.object({
+  affected: zod
+    .number()
+    .min(bulkBooksControllerReadingQueueResponseAffectedMin)
+    .max(bulkBooksControllerReadingQueueResponseAffectedMax),
+});
+
+/**
+ * @summary Delete the selected books
+ */
+export const bulkBooksControllerDeleteBodyBookIdsItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const bulkBooksControllerDeleteBodyBookIdsMax = 100;
+
+export const BulkBooksControllerDeleteBody = zod.object({
+  bookIds: zod
+    .array(zod.uuid().regex(bulkBooksControllerDeleteBodyBookIdsItemRegExp))
+    .min(1)
+    .max(bulkBooksControllerDeleteBodyBookIdsMax),
+});
+
+export const bulkBooksControllerDeleteResponseAffectedMin = 0;
+export const bulkBooksControllerDeleteResponseAffectedMax = 9007199254740991;
+
+export const BulkBooksControllerDeleteResponse = zod.object({
+  affected: zod
+    .number()
+    .min(bulkBooksControllerDeleteResponseAffectedMin)
+    .max(bulkBooksControllerDeleteResponseAffectedMax),
+});

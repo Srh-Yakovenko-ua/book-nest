@@ -6,7 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { CreateBookInputDtoAgeCategory } from "./createBookInputDtoAgeCategory";
-import type { CreateBookInputDtoAuthor } from "./createBookInputDtoAuthor";
+import type { CreateBookInputDtoAuthorsItem } from "./createBookInputDtoAuthorsItem";
 import type { CreateBookInputDtoBookType } from "./createBookInputDtoBookType";
 import type { CreateBookInputDtoDeliveryInfo } from "./createBookInputDtoDeliveryInfo";
 import type { CreateBookInputDtoFormatsItem } from "./createBookInputDtoFormatsItem";
@@ -23,7 +23,11 @@ import type { CreateBookInputDtoReadingStatus } from "./createBookInputDtoReadin
 export interface CreateBookInputDto {
   addToReadingQueue?: boolean;
   ageCategory?: CreateBookInputDtoAgeCategory;
-  author: CreateBookInputDtoAuthor;
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  authors: CreateBookInputDtoAuthorsItem[];
   bookType?: CreateBookInputDtoBookType;
   /**
    * @nullable

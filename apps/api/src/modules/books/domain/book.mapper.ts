@@ -29,7 +29,10 @@ const toNullableIsoDate = (value: Date | null): null | string =>
 export function toBookView(book: BookWithRelations, cover: MediaView | null): BookView {
   return {
     ageCategory: AgeCategorySchema.parse(book.ageCategory),
-    author: { id: book.author.id, name: book.author.name },
+    authors: book.authors.map((bookAuthor) => ({
+      id: bookAuthor.author.id,
+      name: bookAuthor.author.name,
+    })),
     bookType: book.series === null ? "solo" : "series_part",
     cover,
     createdAt: book.createdAt.toISOString(),
@@ -142,6 +145,10 @@ function toSeriesView(series: BookWithRelations["series"]): null | SeriesView {
   }
 
   return {
+    authors: series.authors.map((seriesAuthor) => ({
+      id: seriesAuthor.author.id,
+      name: seriesAuthor.author.name,
+    })),
     booksInSeries: series._count.books,
     description: series.description,
     finishedInSeries: series.books.length,

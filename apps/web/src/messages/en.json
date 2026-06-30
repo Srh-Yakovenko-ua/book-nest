@@ -12,9 +12,25 @@
     "label": "Book Nest"
   },
   "home": {
-    "eyebrow": "Teaching project",
+    "eyebrow": "My library",
     "title": "Book Nest",
-    "description": "A clean monorepo skeleton. Frontend, backend and shared types are wired up — start building features."
+    "description": "Your personal book library — track your reading and organize your collection.",
+    "greeting": "Hi, {name}!",
+    "greetingFallback": "Welcome to Book Nest!",
+    "subtitle": "Here's a quick snapshot of your library.",
+    "progress": {
+      "title": "Reading progress",
+      "label": "{finished} of {total} read"
+    },
+    "actions": {
+      "addBook": "Add a book",
+      "library": "Open library"
+    },
+    "empty": {
+      "title": "Your library is empty",
+      "description": "Add your first book to see your stats here.",
+      "action": "Add your first book"
+    }
   },
   "notFound": {
     "eyebrow": "Error · 404",
@@ -193,33 +209,259 @@
   "books": {
     "library": {
       "title": "My library",
-      "count": "{count, plural, one {# book} other {# books}}",
+      "subtitle": "All your books in one cozy space",
+      "resultsTitle": "Book list",
       "addBook": "Add book",
       "loadMore": "Load more",
+      "loadMoreError": "Couldn't load more books",
       "loading": "Loading books…",
       "menu": "Actions",
       "delete": "Delete",
+      "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
+      "allShown": "All books shown",
+      "summary": {
+        "total": "Total books",
+        "reading": "Reading",
+        "finished": "Finished",
+        "favorites": "Favorites"
+      },
       "sort": {
         "label": "Sort",
-        "newest": "Newest first",
-        "oldest": "Oldest first"
+        "options": {
+          "created_desc": "Recently added",
+          "created_asc": "Oldest added",
+          "updated_desc": "Recently updated",
+          "title_asc": "Title A–Z",
+          "title_desc": "Title Z–A",
+          "author_asc": "Author A–Z",
+          "author_desc": "Author Z–A",
+          "rating_desc": "Highest rating",
+          "rating_asc": "Lowest rating",
+          "year_desc": "Newer editions",
+          "year_asc": "Older editions",
+          "pages_desc": "More pages",
+          "pages_asc": "Fewer pages"
+        }
+      },
+      "view": {
+        "label": "View",
+        "grid": "Grid",
+        "list": "List"
       },
       "progress": {
         "unit": "pp.",
         "ariaLabel": "Reading progress: {current} of {total}"
       },
+      "meta": {
+        "pages": "{value} pp."
+      },
       "rating": {
-        "ariaLabel": "Rating {value} of 5"
+        "ariaLabel": "Rating {value} of 10"
       },
       "empty": {
         "title": "Your library is still empty",
-        "description": "Add your first book to start building a personal collection and tracking your reading journey.",
+        "description": "Add your first book to start building your reading collection.",
         "cta": "Add book"
       },
+      "noSearchResults": {
+        "title": "Nothing found",
+        "description": "Try changing your search query or clearing the search.",
+        "clearSearch": "Clear search"
+      },
+      "noFilteredResults": {
+        "title": "No books match the selected filters",
+        "description": "Try changing the filters or clearing them to see more books.",
+        "clearFilters": "Clear filters",
+        "clearAll": "Clear all"
+      },
       "error": {
-        "title": "Something went wrong",
-        "description": "We couldn't load your data. Try refreshing the page — and if that doesn't help, we're already looking into it.",
+        "title": "Couldn't load your library",
+        "description": "Try refreshing the page or repeating the request a bit later.",
         "retry": "Try again"
+      },
+      "search": {
+        "label": "Search books",
+        "placeholder": "Search by title, author or series",
+        "clear": "Clear search"
+      },
+      "quickFilters": {
+        "label": "Quick filters",
+        "all": "All",
+        "reading": "Reading",
+        "want_to_read": "Want to read",
+        "finished": "Finished",
+        "favorites": "Favorites",
+        "want_to_buy": "To buy",
+        "in_transit": "In transit",
+        "borrowed": "Borrowed",
+        "series": "Series",
+        "solo": "Standalone"
+      },
+      "filters": {
+        "trigger": "Filters",
+        "title": "Filters",
+        "description": "Narrow your library by status, format, classification and edition details.",
+        "done": "Done",
+        "clear": "Clear filters",
+        "clearField": "Clear",
+        "customBadge": "Custom",
+        "sections": {
+          "readingStatus": "Reading status",
+          "ownershipStatus": "Ownership status",
+          "format": "Format",
+          "genre": "Genres",
+          "tag": "Tags",
+          "ageCategory": "Age category",
+          "language": "Language",
+          "author": "Author",
+          "publisher": "Publisher",
+          "bookType": "Book type",
+          "rating": "Rating",
+          "year": "Publication year",
+          "pages": "Page count",
+          "cover": "Cover"
+        },
+        "bookType": {
+          "all": "All",
+          "solo": "Standalone",
+          "series_part": "Part of a series"
+        },
+        "cover": {
+          "all": "All",
+          "with": "Has cover",
+          "without": "No cover"
+        },
+        "rating": {
+          "any": "Any",
+          "min": "From",
+          "max": "To",
+          "from": "From {value}",
+          "to": "To {value}"
+        },
+        "range": {
+          "min": "From",
+          "max": "To",
+          "yearMin": "Year from",
+          "yearMax": "Year to",
+          "pagesMin": "Pages from",
+          "pagesMax": "Pages to",
+          "invalid": "Minimum cannot exceed maximum"
+        },
+        "genrePlaceholder": "Select genres",
+        "genreSearch": "Search genre…",
+        "genreEmpty": "No genres found",
+        "tagPlaceholder": "Search tags…",
+        "tagSearching": "Searching tags…",
+        "tagEmpty": "No tags found",
+        "removeTag": "Remove tag {name}",
+        "authorPlaceholder": "Search author…",
+        "authorSearching": "Searching authors…",
+        "authorEmpty": "No authors found",
+        "publisherPlaceholder": "Search publisher…",
+        "publisherSearching": "Searching publishers…",
+        "publisherEmpty": "No publishers found"
+      },
+      "activeFilters": {
+        "label": "Active filters",
+        "clearAll": "Clear all",
+        "remove": "Remove filter {label}",
+        "search": "Search: {query}",
+        "author": "Author: {name}",
+        "publisher": "Publisher: {name}",
+        "unknown": "Untitled",
+        "favorite": "Favorites",
+        "coverWith": "Has cover",
+        "coverWithout": "No cover",
+        "ratingFrom": "Rating from {value}",
+        "ratingTo": "Rating up to {value}",
+        "ratingRange": "Rating {min}–{max}",
+        "yearFrom": "Year from {value}",
+        "yearTo": "Year up to {value}",
+        "yearRange": "{min}–{max}",
+        "pagesFrom": "From {value} pp.",
+        "pagesTo": "Up to {value} pp.",
+        "pagesRange": "{min}–{max} pp."
+      },
+      "actions": {
+        "favorite": "Add to favorites",
+        "unfavorite": "Remove from favorites",
+        "edit": "Edit",
+        "startReading": "Start reading",
+        "markFinished": "Mark as finished",
+        "addToQueue": "Add to reading queue",
+        "removeFromQueue": "Remove from reading queue",
+        "addToList": "Add to list",
+        "changeReadingStatus": "Change reading status",
+        "changeOwnership": "Change ownership status",
+        "delete": "Delete"
+      },
+      "toast": {
+        "favoriteAdded": "Added to favorites",
+        "favoriteRemoved": "Removed from favorites",
+        "queueAdded": "Added to reading queue",
+        "queueRemoved": "Removed from reading queue",
+        "readingStatusChanged": "Reading status updated",
+        "ownershipChanged": "Ownership status updated",
+        "addedToList": "Added to list",
+        "tagsAdded": "Tags added",
+        "deleted": "{count, plural, one {# book deleted} other {# books deleted}}",
+        "error": "Something went wrong. Please try again."
+      },
+      "bulk": {
+        "regionLabel": "Bulk actions",
+        "selected": "{count, plural, one {# book selected} other {# books selected}}",
+        "selectBook": "Select “{title}”",
+        "clear": "Clear selection",
+        "addToList": "Add to list",
+        "addToQueue": "Add to queue",
+        "changeReadingStatus": "Change status",
+        "more": "More",
+        "changeOwnership": "Change ownership status",
+        "addTags": "Add tags",
+        "addFavorite": "Add to favorites",
+        "removeFavorite": "Remove from favorites",
+        "delete": "Delete",
+        "deleteTitle": "Delete selected books?",
+        "deleteDescription": "{count, plural, one {# book} other {# books}} will be deleted permanently. This action can’t be undone."
+      },
+      "readingStatusDialog": {
+        "title": "Change reading status",
+        "description": "Choose a new status for {count, plural, one {# book} other {# books}}.",
+        "confirm": "Apply",
+        "cancel": "Cancel"
+      },
+      "ownershipDialog": {
+        "title": "Change ownership status",
+        "description": "Choose a new ownership status for {count, plural, one {# book} other {# books}}.",
+        "confirm": "Apply",
+        "cancel": "Cancel"
+      },
+      "listDialog": {
+        "title": "Add to list",
+        "description": "{count, plural, one {# book} other {# books}} will be added to the selected lists.",
+        "listsLabel": "Lists",
+        "placeholder": "Choose your lists",
+        "search": "Search lists…",
+        "empty": "No lists found.",
+        "createList": "New list",
+        "confirm": "Add",
+        "cancel": "Cancel"
+      },
+      "tagsDialog": {
+        "title": "Add tags",
+        "description": "Tags will be added to {count, plural, one {# book} other {# books}}.",
+        "removeTag": "Remove tag “{name}”",
+        "confirm": "Add",
+        "cancel": "Cancel"
+      },
+      "sidebar": {
+        "title": "Library overview",
+        "topGenres": "Top genres",
+        "topGenresEmpty": "No genres yet",
+        "topTags": "Top tags",
+        "topTagsEmpty": "No tags yet",
+        "recentlyAdded": "Recently added",
+        "recentlyAddedEmpty": "No books yet"
       }
     },
     "deleteConfirm": {
@@ -396,12 +638,21 @@
       "seriesPlaceholder": "Start typing a series name…",
       "seriesDraft": "A new series “{name}” will be created on save.",
       "partNumber": "Part number",
-      "partNumberHint": "This series has {total} books, so parts 1–{total} are available."
+      "partNumberHint": "This series has {total} books, so parts 1–{total} are available.",
+      "errors": {
+        "exceedsTotal": "Part number can't be greater than the total books in the series.",
+        "partNumberTaken": "Part number {number} is already used by “{title}”. <link>Open book</link>",
+        "seriesClearedAfterAuthorChange": "After changing the authors, choose the series again.",
+        "seriesRequired": "Choose an existing series or create a new one."
+      }
     },
     "series": {
       "searching": "Searching series…",
       "empty": "No series found.",
-      "existingHeading": "Your series",
+      "loadMore": "Show more",
+      "yourSeries": "Your series",
+      "authorHeading": "Series by {name}",
+      "noAuthorHeading": "Series without an author",
       "createHeading": "Create new",
       "createNew": "Create new series",
       "createAction": "Create “{name}”",
@@ -416,6 +667,7 @@
         "name": "Series name",
         "namePlaceholder": "e.g. The Witcher",
         "nameInvalid": "Enter a valid series name.",
+        "authors": "Series authors",
         "status": "Status",
         "totalBooks": "Books in series",
         "totalBooksPlaceholder": "e.g. 5",
@@ -444,6 +696,7 @@
         "dedication": "Dedication",
         "dedicationPlaceholder": "Who this book is dedicated to…"
       },
+      "advancedDetails": "Advanced details",
       "currentPageWarning": "Your current page is higher than the new page count. Update your reading progress."
     },
     "organization": {
@@ -462,8 +715,7 @@
       "listsSearch": "Search a list…",
       "listsEmpty": "No lists found.",
       "listsHint": "Pick existing lists or create a new one.",
-      "createList": "New list",
-      "removeDraft": "Remove “{name}”"
+      "createList": "New list"
     },
     "list": {
       "create": {
@@ -482,29 +734,40 @@
       "titlePlaceholder": "e.g. Shadows of Forgotten Ancestors",
       "author": "Author",
       "authorPlaceholder": "Start typing an author name…",
-      "authorHint": "Pick an author from the catalog or enter a custom name.",
+      "authorHint": "Add one or more authors from the catalog or enter custom names.",
+      "authorsRequired": "Pick or create the book's author.",
+      "authorsAtMax": "Maximum number of authors reached.",
+      "authorsRemove": "Remove author “{name}”",
       "publisher": "Publisher",
       "publisherPlaceholder": "Start typing a publisher name…",
       "publisherHint": "Pick a publisher from the catalog or enter a custom name.",
       "description": "Description",
       "descriptionPlaceholder": "A short description of the book…",
-      "optional": "(optional)"
+      "optional": "(optional)",
+      "clear": "Clear"
     },
     "author": {
       "searching": "Searching authors…",
       "empty": "No authors found.",
-      "catalogHeading": "From catalog",
+      "recentHeading": "Recently used",
+      "allHeading": "All authors",
       "createHeading": "Add custom",
       "customBadge": "custom",
-      "useCustom": "Use “{name}”"
+      "create": "Create “{name}”"
     },
     "publisher": {
       "searching": "Searching publishers…",
       "empty": "No publishers found.",
-      "catalogHeading": "From catalog",
+      "recentHeading": "Recently used",
+      "allHeading": "All publishers",
       "createHeading": "Add custom",
       "customBadge": "custom",
       "useCustom": "Use “{name}”"
+    },
+    "store": {
+      "recentHeading": "Recently used",
+      "empty": "No stores found",
+      "createNew": "Create “{name}”"
     },
     "preview": {
       "eyebrow": "Preview",

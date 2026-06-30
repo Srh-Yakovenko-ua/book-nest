@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookView } from "@app/shared";
+import type { BookView, OwnershipStatus } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -9,15 +9,37 @@ import { toast } from "sonner";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { Link, useRouter } from "@/i18n/navigation";
-import { readingStatuses, type StatusEntry } from "@/lib/book-status";
+import { ownershipStatuses, readingStatuses, type StatusEntry } from "@/lib/book-status";
 
-import type { BooksSortDirection } from "../api/use-books";
-import type { LibraryBook } from "./books-library-view";
+import type { LibraryActions } from "../model/book-card-actions";
+import type { LibraryBook } from "../model/library-book";
 
-import { useBooks } from "../api/use-books";
-import { useDeleteBook } from "../api/use-delete-book";
+import {
+  useBulkAddTags,
+  useBulkAddToList,
+  useBulkAddToReadingQueue,
+  useBulkDeleteBooks,
+  useBulkOwnershipStatus,
+  useBulkReadingStatus,
+  useBulkSetFavorite,
+  useRemoveFromReadingQueue,
+  useToggleFavorite,
+} from "../api/use-book-actions";
+import { useLibraryBooks } from "../api/use-books";
 import { useGenres } from "../api/use-genres";
+import { useLibraryOverview } from "../api/use-library-overview";
+import { useTagsSearch } from "../api/use-tags-search";
+import { LIBRARY_SORT_ORDER } from "../model/library-query";
+import { activeQuickFilter, quickFilterPatch } from "../model/library-quick-filters";
+import { useLibraryFilterChips } from "../model/use-library-filter-chips";
+import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
+import { LibraryActiveFilters } from "./library-active-filters";
+import { LibraryAdvancedFilters } from "./library-advanced-filters";
+import { LibraryQuickFilters } from "./library-quick-filters";
+import { LibrarySearchInput } from "./library-search-input";
+import { type LibrarySummaryCard } from "./library-summary-cards";
+import { LibrarySummarySidebar } from "./library-summary-sidebar";
 
 const PROGRESS_STATUSES: readonly BookView["readingStatus"][] = ["reading", "paused", "rereading"];
 
@@ -26,6 +48,8 @@ const FALLBACK_STATUS: StatusEntry =
 
 type LibraryBookLabels = {
   genreName: (key: string) => string;
+  ownershipLabel: (value: OwnershipStatus) => string;
+  pagesText: (value: number) => string;
   progressAriaLabel: (current: number, total: number) => string;
   progressUnit: string;
   ratingLabel: (value: number) => string;
@@ -34,34 +58,126 @@ type LibraryBookLabels = {
 
 export function BooksLibrary() {
   const t = useTranslations("books.library");
-  const tConfirm = useTranslations("books.deleteConfirm");
   const tCover = useTranslations("books.cover");
-  const tDelete = useTranslations("books.delete");
   const tStatus = useTranslations("books.readingStatus.options");
+  const tOwnership = useTranslations("books.ownershipStatus.options");
+  const tSortOptions = useTranslations("books.library.sort.options");
   const router = useRouter();
-  const [sortDirection, setSortDirection] = useState<BooksSortDirection>("desc");
 
-  const { data, fetchNextPage, hasNextPage, isError, isFetchingNextPage, isPending, refetch } =
-    useBooks(sortDirection);
-  const deleteBook = useDeleteBook();
+  const library = useLibraryQuery();
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isError,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    isPending,
+    refetch,
+  } = useLibraryBooks(library.listParams);
+  const overview = useLibraryOverview();
   const genres = useGenres();
+  const tags = useTagsSearch("");
+  const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
+
+  const toggleFavorite = useToggleFavorite();
+  const setFavorite = useBulkSetFavorite();
+  const changeReadingStatus = useBulkReadingStatus();
+  const changeOwnership = useBulkOwnershipStatus();
+  const addToList = useBulkAddToList();
+  const addTags = useBulkAddTags();
+  const addToQueue = useBulkAddToReadingQueue();
+  const removeFromQueue = useRemoveFromReadingQueue();
+  const deleteBooks = useBulkDeleteBooks();
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
+  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
+
+  function rememberEntity(id: string, name: string) {
+    setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
+  }
+
+  function resolveEntityName(id: string): string | undefined {
+    return entityLabels[id] ?? tagNameById.get(id);
+  }
+
+  const filterChips = useLibraryFilterChips({
+    genreName: (key) => genreNameByKey.get(key) ?? key,
+    resolveEntityName,
+    setState: library.setState,
+    state: library.state,
+  });
+  const advancedFiltersCount = filterChips.filter((chip) => chip.key !== "q").length;
 
   const pages = data?.pages ?? [];
   const totalCount = pages[0]?.totalCount ?? 0;
-  const progressUnit = t("progress.unit");
   const books: LibraryBook[] = pages
     .flatMap((page) => page.items)
     .map((book) =>
       toLibraryBook(book, {
         genreName: (key) => genreNameByKey.get(key) ?? key,
+        ownershipLabel: (value) => tOwnership(value),
+        pagesText: (value) => t("meta.pages", { value }),
         progressAriaLabel: (current, total) => t("progress.ariaLabel", { current, total }),
-        progressUnit,
+        progressUnit: t("progress.unit"),
         ratingLabel: (value) => t("rating.ariaLabel", { value }),
         statusLabel: (value) => tStatus(value),
       }),
     );
+
+  const summary = overview.data?.summary;
+  const summaryCards: LibrarySummaryCard[] = [
+    { icon: "library", label: t("summary.total"), value: summary?.total ?? 0 },
+    { icon: "book", label: t("summary.reading"), value: summary?.reading ?? 0 },
+    { icon: "check-circle", label: t("summary.finished"), value: summary?.finished ?? 0 },
+    { icon: "heart", label: t("summary.favorites"), value: summary?.favorites ?? 0 },
+  ];
+
+  const sortOptions = LIBRARY_SORT_ORDER.map((value) => ({ label: tSortOptions(value), value }));
+
+  async function runWithToast(action: () => Promise<unknown>, successMessage: string) {
+    try {
+      await action();
+      toast.success(successMessage);
+    } catch (error) {
+      toast.error(t("toast.error"));
+      throw error;
+    }
+  }
+
+  const actions: LibraryActions = {
+    onAddTags: (input) => runWithToast(() => addTags.mutateAsync(input), t("toast.tagsAdded")),
+    onAddToList: (input) =>
+      runWithToast(() => addToList.mutateAsync(input), t("toast.addedToList")),
+    onAddToQueue: (bookIds) =>
+      runWithToast(() => addToQueue.mutateAsync(bookIds), t("toast.queueAdded")),
+    onChangeOwnership: (input) =>
+      runWithToast(() => changeOwnership.mutateAsync(input), t("toast.ownershipChanged")),
+    onChangeReadingStatus: (input) =>
+      runWithToast(() => changeReadingStatus.mutateAsync(input), t("toast.readingStatusChanged")),
+    onDelete: (bookIds) =>
+      runWithToast(
+        () => deleteBooks.mutateAsync(bookIds),
+        t("toast.deleted", { count: bookIds.length }),
+      ),
+    onEdit: (bookId) => router.push(`/books/${bookId}/edit`),
+    onRemoveFromQueue: (id) =>
+      runWithToast(() => removeFromQueue.mutateAsync(id), t("toast.queueRemoved")),
+    onSetFavorite: (input) =>
+      runWithToast(
+        () => setFavorite.mutateAsync(input),
+        input.isFavorite ? t("toast.favoriteAdded") : t("toast.favoriteRemoved"),
+      ),
+    onToggleFavorite: ({ id, isFavorite }) =>
+      toggleFavorite.mutate(
+        { id, isFavorite },
+        {
+          onError: () => toast.error(t("toast.error")),
+          onSuccess: () =>
+            toast.success(isFavorite ? t("toast.favoriteAdded") : t("toast.favoriteRemoved")),
+        },
+      ),
+  };
 
   const emptyState: EmptyStateEntry = {
     desc: t("empty.description"),
@@ -74,48 +190,108 @@ export function BooksLibrary() {
     desc: t("error.description"),
     illu: "error-generic",
     primary: { icon: "refresh", label: t("error.retry") },
-    secondary: { icon: "plus", label: t("addBook") },
     title: t("error.title"),
   };
 
+  const noSearchResultsState: EmptyStateEntry = {
+    desc: t("noSearchResults.description"),
+    illu: "empty-search",
+    primary: { icon: "x", label: t("noSearchResults.clearSearch") },
+    title: t("noSearchResults.title"),
+  };
+
+  const noFilteredResultsState: EmptyStateEntry = {
+    desc: t("noFilteredResults.description"),
+    illu: "empty-search",
+    primary: { icon: "x", label: t("noFilteredResults.clearFilters") },
+    secondary: { icon: "refresh", label: t("noFilteredResults.clearAll") },
+    title: t("noFilteredResults.title"),
+  };
+
+  const sidebar = (
+    <LibrarySummarySidebar
+      isLoading={overview.isPending}
+      linkComponent={Link}
+      recentlyAdded={(overview.data?.recentlyAdded ?? []).map((book) => ({
+        author: book.authors.map((author) => author.name).join(", "),
+        href: `/books/${book.id}/edit`,
+        id: book.id,
+        title: book.title,
+      }))}
+      topGenres={(overview.data?.topGenres ?? []).map((genre) => ({
+        key: genre.key,
+        name: genreNameByKey.get(genre.key) ?? genre.name,
+      }))}
+      topTags={(overview.data?.topTags ?? []).map((tag) => ({ id: tag.id, name: tag.name }))}
+    />
+  );
+
   return (
     <BooksLibraryView
+      actions={actions}
+      activeFilters={<LibraryActiveFilters chips={filterChips} onClearAll={library.clearAll} />}
       addBookLabel={t("addBook")}
+      advancedFilters={
+        <LibraryAdvancedFilters
+          activeCount={advancedFiltersCount}
+          onClearFilters={library.clearFilters}
+          onRememberEntity={rememberEntity}
+          resolveEntityName={resolveEntityName}
+          setState={library.setState}
+          state={library.state}
+        />
+      }
+      allShownLabel={t("allShown")}
       books={books}
-      count={t("count", { count: totalCount })}
+      counterLabel={t("counter", { shown: books.length, total: totalCount })}
       coverViewLabel={tCover("viewer.open")}
-      deleteLabels={{
-        cancel: tConfirm("cancel"),
-        confirm: tConfirm("confirm"),
-        deleting: tConfirm("deleting"),
-        description: (title) => tConfirm("description", { title }),
-        title: tConfirm("title"),
-      }}
       emptyState={emptyState}
       errorState={errorState}
+      hasActiveFilters={library.hasActiveFilters}
+      hasActiveSearch={library.hasActiveSearch}
       hasNextPage={hasNextPage}
-      isDeleting={deleteBook.isPending}
       isError={isError}
       isFetchingNextPage={isFetchingNextPage}
+      isLoadMoreError={isFetchNextPageError}
       isPending={isPending}
+      libraryTotal={summary?.total ?? 0}
       linkComponent={Link}
       loadingLabel={t("loading")}
+      loadMoreErrorLabel={t("loadMoreError")}
       loadMoreLabel={t("loadMore")}
-      menuLabels={{ delete: t("delete"), menu: t("menu") }}
+      noFilteredResultsState={noFilteredResultsState}
+      noSearchResultsState={noSearchResultsState}
       onAddBook={() => router.push("/books/new")}
-      onDeleteBook={(id, onSettled) =>
-        deleteBook.mutate(id, {
-          onError: () => toast.error(tDelete("error")),
-          onSettled,
-          onSuccess: () => toast.success(tDelete("success")),
-        })
-      }
+      onClearAll={library.clearAll}
+      onClearFilters={library.clearFilters}
+      onClearSearch={library.clearSearch}
       onLoadMore={() => void fetchNextPage()}
       onRetry={() => void refetch()}
-      onSortChange={setSortDirection}
-      sortDirection={sortDirection}
-      sortLabels={{ label: t("sort.label"), newest: t("sort.newest"), oldest: t("sort.oldest") }}
+      onSortChange={library.setSort}
+      onViewChange={library.setView}
+      quickFilters={
+        <LibraryQuickFilters
+          onSelect={(key) => void library.setState(quickFilterPatch(key))}
+          value={activeQuickFilter(library.state)}
+        />
+      }
+      searchControl={
+        <LibrarySearchInput
+          onClear={library.clearSearch}
+          onSearch={library.setSearch}
+          value={library.state.q}
+        />
+      }
+      sidebar={sidebar}
+      sort={library.sort}
+      sortLabel={t("sort.label")}
+      sortOptions={sortOptions}
+      subtitle={t("subtitle")}
+      summaryCards={summaryCards}
+      summaryLoading={overview.isPending}
       title={t("title")}
+      view={library.view}
+      viewLabels={{ grid: t("view.grid"), label: t("view.label"), list: t("view.list") }}
     />
   );
 }
@@ -136,14 +312,25 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
   const genres = book.genres.map((key) => ({ label: labels.genreName(key) }));
   const progress = resolveProgress(book);
   const rating = book.readingProgress?.rating ?? undefined;
+  const ownershipBase = ownershipStatuses.find((entry) => entry.value === book.ownershipStatus);
+  const ownership =
+    book.ownershipStatus === "none" || ownershipBase === undefined
+      ? undefined
+      : { ...ownershipBase, label: labels.ownershipLabel(book.ownershipStatus) };
+  const tags = book.tags.length === 0 ? undefined : book.tags.map((tag) => tag.name);
 
   return {
-    author: book.author.name,
+    authors: book.authors.map((author) => author.name),
     cover: book.cover ? { alt: book.title, src: book.cover.urls.thumb } : undefined,
     coverMedia: book.cover ?? undefined,
     genres,
     href: `/books/${book.id}/edit`,
     id: book.id,
+    isFavorite: book.isFavorite,
+    isInReadingQueue: book.isInReadingQueue,
+    ownership,
+    ownershipStatus: book.ownershipStatus,
+    pagesText: book.pagesCount === null ? undefined : labels.pagesText(book.pagesCount),
     progress:
       progress === undefined
         ? undefined
@@ -152,10 +339,14 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
             ariaLabel: labels.progressAriaLabel(progress.current, progress.total),
             unit: labels.progressUnit,
           },
+    publisher: book.publisher === null ? undefined : book.publisher.name,
     rating,
     ratingLabel: rating === undefined ? undefined : labels.ratingLabel(rating),
+    readingStatus: book.readingStatus,
     series: book.series === null ? undefined : book.series.name,
     status,
+    tags,
     title: book.title,
+    year: book.publicationYear ?? undefined,
   };
 }

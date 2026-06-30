@@ -1,6 +1,10 @@
 import type { Paginator, PublisherView } from "@app/shared";
 
-import { CatalogLocaleSchema, PublisherSearchPaginationQuerySchema } from "@app/shared";
+import {
+  CatalogLocaleSchema,
+  PublisherSearchPaginationQuerySchema,
+  RecentPublishersQuerySchema,
+} from "@app/shared";
 import { Controller, Get, Query, UseGuards } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -18,11 +22,31 @@ import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
 import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
 import { PublishersService } from "../application/publishers.service.js";
 import { PublisherSearchPaginationQueryDto } from "./input-dto/publisher-search-query.input-dto.js";
+import { RecentPublishersQueryDto } from "./input-dto/recent-publishers-query.input-dto.js";
 
 @ApiTags("publishers")
 @Controller("api/publishers")
 export class PublishersController {
   constructor(private readonly publishersService: PublishersService) {}
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Publishers the current user recently used in their own books" })
+  @ApiOperation({ summary: "List recently used publishers for the current user" })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("recent")
+  @UseGuards(JwtAccessGuard)
+  recent(
+    @CurrentUser() user: UserModel,
+    @Query(new ZodQueryPipe(RecentPublishersQuerySchema)) query: RecentPublishersQueryDto,
+  ): Promise<PublisherView[]> {
+    return this.publishersService.recent({
+      limit: query.limit,
+      locale: query.locale,
+      userId: user.id,
+    });
+  }
 
   @ApiBearerAuth()
   @ApiOkResponse({ description: "A page of publishers visible to the current user" })

@@ -12,6 +12,7 @@ const meta = {
   component: AuthLayout,
   parameters: {
     layout: "fullscreen",
+    nextjs: { appDirectory: true },
   },
   tags: ["ai-generated"],
   title: "Auth/AuthLayout",
@@ -46,5 +47,6 @@ export const Default: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("main")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Sign in" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Мова" })).toBeVisible();
   },
 };

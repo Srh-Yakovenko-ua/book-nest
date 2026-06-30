@@ -20,6 +20,14 @@ import type {
 
 import type {
   BooksControllerListParams,
+  BooksControllerPurchaseStoresParams,
+  BulkActionResultDto,
+  BulkBookIdsDto,
+  BulkFavoriteInputDto,
+  BulkListsInputDto,
+  BulkOwnershipStatusInputDto,
+  BulkReadingStatusInputDto,
+  BulkTagsInputDto,
   CreateBookInputDto,
   UpdateBookInputDto,
 } from "../../model";
@@ -219,7 +227,7 @@ export type booksControllerListResponse =
   | booksControllerListResponseSuccess
   | booksControllerListResponseError;
 
-export const getBooksControllerListUrl = (params?: BooksControllerListParams) => {
+export const getBooksControllerListUrl = (params: BooksControllerListParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -234,10 +242,10 @@ export const getBooksControllerListUrl = (params?: BooksControllerListParams) =>
 };
 
 /**
- * @summary List the current user books
+ * @summary List and filter the current user library
  */
 export const booksControllerList = async (
-  params?: BooksControllerListParams,
+  params: BooksControllerListParams,
   options?: RequestInit,
 ): Promise<booksControllerListResponse> => {
   return customInstance<booksControllerListResponse>(getBooksControllerListUrl(params), {
@@ -254,7 +262,7 @@ export const getBooksControllerListQueryOptions = <
   TData = Awaited<ReturnType<typeof booksControllerList>>,
   TError = void,
 >(
-  params?: BooksControllerListParams,
+  params: BooksControllerListParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerList>>, TError, TData>
@@ -285,7 +293,7 @@ export function useBooksControllerList<
   TData = Awaited<ReturnType<typeof booksControllerList>>,
   TError = void,
 >(
-  params: undefined | BooksControllerListParams,
+  params: BooksControllerListParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerList>>, TError, TData>
@@ -306,7 +314,7 @@ export function useBooksControllerList<
   TData = Awaited<ReturnType<typeof booksControllerList>>,
   TError = void,
 >(
-  params?: BooksControllerListParams,
+  params: BooksControllerListParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerList>>, TError, TData>
@@ -327,7 +335,7 @@ export function useBooksControllerList<
   TData = Awaited<ReturnType<typeof booksControllerList>>,
   TError = void,
 >(
-  params?: BooksControllerListParams,
+  params: BooksControllerListParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerList>>, TError, TData>
@@ -337,14 +345,14 @@ export function useBooksControllerList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary List the current user books
+ * @summary List and filter the current user library
  */
 
 export function useBooksControllerList<
   TData = Awaited<ReturnType<typeof booksControllerList>>,
   TError = void,
 >(
-  params?: BooksControllerListParams,
+  params: BooksControllerListParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerList>>, TError, TData>
@@ -354,6 +362,329 @@ export function useBooksControllerList<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerListQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type booksControllerOverviewResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type booksControllerOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerOverviewResponseSuccess = booksControllerOverviewResponse200 & {
+  headers: Headers;
+};
+export type booksControllerOverviewResponseError = booksControllerOverviewResponse401 & {
+  headers: Headers;
+};
+
+export type booksControllerOverviewResponse =
+  | booksControllerOverviewResponseSuccess
+  | booksControllerOverviewResponseError;
+
+export const getBooksControllerOverviewUrl = () => {
+  return `/api/books/overview`;
+};
+
+/**
+ * @summary Get the current user library overview
+ */
+export const booksControllerOverview = async (
+  options?: RequestInit,
+): Promise<booksControllerOverviewResponse> => {
+  return customInstance<booksControllerOverviewResponse>(getBooksControllerOverviewUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getBooksControllerOverviewQueryKey = () => {
+  return [`/api/books/overview`] as const;
+};
+
+export const getBooksControllerOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerOverview>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerOverviewQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerOverview>>> = ({
+    signal,
+  }) => booksControllerOverview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerOverview>>
+>;
+export type BooksControllerOverviewQueryError = void;
+
+export function useBooksControllerOverview<
+  TData = Awaited<ReturnType<typeof booksControllerOverview>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerOverview<
+  TData = Awaited<ReturnType<typeof booksControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerOverview<
+  TData = Awaited<ReturnType<typeof booksControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the current user library overview
+ */
+
+export function useBooksControllerOverview<
+  TData = Awaited<ReturnType<typeof booksControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerOverviewQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type booksControllerPurchaseStoresResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type booksControllerPurchaseStoresResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerPurchaseStoresResponseSuccess =
+  booksControllerPurchaseStoresResponse200 & {
+    headers: Headers;
+  };
+export type booksControllerPurchaseStoresResponseError =
+  booksControllerPurchaseStoresResponse401 & {
+    headers: Headers;
+  };
+
+export type booksControllerPurchaseStoresResponse =
+  | booksControllerPurchaseStoresResponseSuccess
+  | booksControllerPurchaseStoresResponseError;
+
+export const getBooksControllerPurchaseStoresUrl = (
+  params?: BooksControllerPurchaseStoresParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/purchase-stores?${stringifiedParams}`
+    : `/api/books/purchase-stores`;
+};
+
+/**
+ * @summary List recently used purchase stores for the current user
+ */
+export const booksControllerPurchaseStores = async (
+  params?: BooksControllerPurchaseStoresParams,
+  options?: RequestInit,
+): Promise<booksControllerPurchaseStoresResponse> => {
+  return customInstance<booksControllerPurchaseStoresResponse>(
+    getBooksControllerPurchaseStoresUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBooksControllerPurchaseStoresQueryKey = (
+  params?: BooksControllerPurchaseStoresParams,
+) => {
+  return [`/api/books/purchase-stores`, ...(params ? [params] : [])] as const;
+};
+
+export const getBooksControllerPurchaseStoresQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params?: BooksControllerPurchaseStoresParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerPurchaseStoresQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerPurchaseStores>>> = ({
+    signal,
+  }) => booksControllerPurchaseStores(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerPurchaseStoresQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerPurchaseStores>>
+>;
+export type BooksControllerPurchaseStoresQueryError = void;
+
+export function useBooksControllerPurchaseStores<
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params: undefined | BooksControllerPurchaseStoresParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerPurchaseStores>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerPurchaseStores<
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params?: BooksControllerPurchaseStoresParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerPurchaseStores>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerPurchaseStores<
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params?: BooksControllerPurchaseStoresParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List recently used purchase stores for the current user
+ */
+
+export function useBooksControllerPurchaseStores<
+  TData = Awaited<ReturnType<typeof booksControllerPurchaseStores>>,
+  TError = void,
+>(
+  params?: BooksControllerPurchaseStoresParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerPurchaseStores>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerPurchaseStoresQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -867,6 +1198,1198 @@ export function useBooksControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerDeleteQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bulkBooksControllerFavoriteResponse200 = {
+  data: BulkActionResultDto;
+  status: 200;
+};
+
+export type bulkBooksControllerFavoriteResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bulkBooksControllerFavoriteResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bulkBooksControllerFavoriteResponseSuccess = bulkBooksControllerFavoriteResponse200 & {
+  headers: Headers;
+};
+export type bulkBooksControllerFavoriteResponseError = (
+  | bulkBooksControllerFavoriteResponse400
+  | bulkBooksControllerFavoriteResponse401
+) & {
+  headers: Headers;
+};
+
+export type bulkBooksControllerFavoriteResponse =
+  | bulkBooksControllerFavoriteResponseSuccess
+  | bulkBooksControllerFavoriteResponseError;
+
+export const getBulkBooksControllerFavoriteUrl = () => {
+  return `/api/books/bulk/favorite`;
+};
+
+/**
+ * @summary Set the favorite flag on the selected books
+ */
+export const bulkBooksControllerFavorite = async (
+  bulkFavoriteInputDto: BulkFavoriteInputDto,
+  options?: RequestInit,
+): Promise<bulkBooksControllerFavoriteResponse> => {
+  return customInstance<bulkBooksControllerFavoriteResponse>(getBulkBooksControllerFavoriteUrl(), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkFavoriteInputDto),
+  });
+};
+
+export const getBulkBooksControllerFavoriteQueryKey = (
+  bulkFavoriteInputDto?: BulkFavoriteInputDto,
+) => {
+  return ["PATCH", `/api/books/bulk/favorite`, bulkFavoriteInputDto] as const;
+};
+
+export const getBulkBooksControllerFavoriteQueryOptions = <
+  TData = Awaited<ReturnType<typeof bulkBooksControllerFavorite>>,
+  TError = void,
+>(
+  bulkFavoriteInputDto: BulkFavoriteInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerFavorite>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getBulkBooksControllerFavoriteQueryKey(bulkFavoriteInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bulkBooksControllerFavorite>>> = ({
+    signal,
+  }) => bulkBooksControllerFavorite(bulkFavoriteInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof bulkBooksControllerFavorite>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BulkBooksControllerFavoriteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bulkBooksControllerFavorite>>
+>;
+export type BulkBooksControllerFavoriteQueryError = void;
+
+export function useBulkBooksControllerFavorite<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerFavorite>>,
+  TError = void,
+>(
+  bulkFavoriteInputDto: BulkFavoriteInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerFavorite>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerFavorite>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerFavorite>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerFavorite<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerFavorite>>,
+  TError = void,
+>(
+  bulkFavoriteInputDto: BulkFavoriteInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerFavorite>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerFavorite>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerFavorite>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerFavorite<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerFavorite>>,
+  TError = void,
+>(
+  bulkFavoriteInputDto: BulkFavoriteInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerFavorite>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Set the favorite flag on the selected books
+ */
+
+export function useBulkBooksControllerFavorite<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerFavorite>>,
+  TError = void,
+>(
+  bulkFavoriteInputDto: BulkFavoriteInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerFavorite>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBulkBooksControllerFavoriteQueryOptions(bulkFavoriteInputDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bulkBooksControllerReadingStatusResponse200 = {
+  data: BulkActionResultDto;
+  status: 200;
+};
+
+export type bulkBooksControllerReadingStatusResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bulkBooksControllerReadingStatusResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bulkBooksControllerReadingStatusResponseSuccess =
+  bulkBooksControllerReadingStatusResponse200 & {
+    headers: Headers;
+  };
+export type bulkBooksControllerReadingStatusResponseError = (
+  | bulkBooksControllerReadingStatusResponse400
+  | bulkBooksControllerReadingStatusResponse401
+) & {
+  headers: Headers;
+};
+
+export type bulkBooksControllerReadingStatusResponse =
+  | bulkBooksControllerReadingStatusResponseSuccess
+  | bulkBooksControllerReadingStatusResponseError;
+
+export const getBulkBooksControllerReadingStatusUrl = () => {
+  return `/api/books/bulk/reading-status`;
+};
+
+/**
+ * @summary Change the reading status of the selected books
+ */
+export const bulkBooksControllerReadingStatus = async (
+  bulkReadingStatusInputDto: BulkReadingStatusInputDto,
+  options?: RequestInit,
+): Promise<bulkBooksControllerReadingStatusResponse> => {
+  return customInstance<bulkBooksControllerReadingStatusResponse>(
+    getBulkBooksControllerReadingStatusUrl(),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(bulkReadingStatusInputDto),
+    },
+  );
+};
+
+export const getBulkBooksControllerReadingStatusQueryKey = (
+  bulkReadingStatusInputDto?: BulkReadingStatusInputDto,
+) => {
+  return ["PATCH", `/api/books/bulk/reading-status`, bulkReadingStatusInputDto] as const;
+};
+
+export const getBulkBooksControllerReadingStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>,
+  TError = void,
+>(
+  bulkReadingStatusInputDto: BulkReadingStatusInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getBulkBooksControllerReadingStatusQueryKey(bulkReadingStatusInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>> = ({
+    signal,
+  }) => bulkBooksControllerReadingStatus(bulkReadingStatusInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BulkBooksControllerReadingStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>
+>;
+export type BulkBooksControllerReadingStatusQueryError = void;
+
+export function useBulkBooksControllerReadingStatus<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>,
+  TError = void,
+>(
+  bulkReadingStatusInputDto: BulkReadingStatusInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerReadingStatus<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>,
+  TError = void,
+>(
+  bulkReadingStatusInputDto: BulkReadingStatusInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerReadingStatus<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>,
+  TError = void,
+>(
+  bulkReadingStatusInputDto: BulkReadingStatusInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Change the reading status of the selected books
+ */
+
+export function useBulkBooksControllerReadingStatus<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>,
+  TError = void,
+>(
+  bulkReadingStatusInputDto: BulkReadingStatusInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingStatus>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBulkBooksControllerReadingStatusQueryOptions(
+    bulkReadingStatusInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bulkBooksControllerOwnershipStatusResponse200 = {
+  data: BulkActionResultDto;
+  status: 200;
+};
+
+export type bulkBooksControllerOwnershipStatusResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bulkBooksControllerOwnershipStatusResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bulkBooksControllerOwnershipStatusResponseSuccess =
+  bulkBooksControllerOwnershipStatusResponse200 & {
+    headers: Headers;
+  };
+export type bulkBooksControllerOwnershipStatusResponseError = (
+  | bulkBooksControllerOwnershipStatusResponse400
+  | bulkBooksControllerOwnershipStatusResponse401
+) & {
+  headers: Headers;
+};
+
+export type bulkBooksControllerOwnershipStatusResponse =
+  | bulkBooksControllerOwnershipStatusResponseSuccess
+  | bulkBooksControllerOwnershipStatusResponseError;
+
+export const getBulkBooksControllerOwnershipStatusUrl = () => {
+  return `/api/books/bulk/ownership-status`;
+};
+
+/**
+ * @summary Change the ownership status of the selected books
+ */
+export const bulkBooksControllerOwnershipStatus = async (
+  bulkOwnershipStatusInputDto: BulkOwnershipStatusInputDto,
+  options?: RequestInit,
+): Promise<bulkBooksControllerOwnershipStatusResponse> => {
+  return customInstance<bulkBooksControllerOwnershipStatusResponse>(
+    getBulkBooksControllerOwnershipStatusUrl(),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(bulkOwnershipStatusInputDto),
+    },
+  );
+};
+
+export const getBulkBooksControllerOwnershipStatusQueryKey = (
+  bulkOwnershipStatusInputDto?: BulkOwnershipStatusInputDto,
+) => {
+  return ["PATCH", `/api/books/bulk/ownership-status`, bulkOwnershipStatusInputDto] as const;
+};
+
+export const getBulkBooksControllerOwnershipStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>,
+  TError = void,
+>(
+  bulkOwnershipStatusInputDto: BulkOwnershipStatusInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getBulkBooksControllerOwnershipStatusQueryKey(bulkOwnershipStatusInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>> = ({
+    signal,
+  }) =>
+    bulkBooksControllerOwnershipStatus(bulkOwnershipStatusInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BulkBooksControllerOwnershipStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>
+>;
+export type BulkBooksControllerOwnershipStatusQueryError = void;
+
+export function useBulkBooksControllerOwnershipStatus<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>,
+  TError = void,
+>(
+  bulkOwnershipStatusInputDto: BulkOwnershipStatusInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerOwnershipStatus<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>,
+  TError = void,
+>(
+  bulkOwnershipStatusInputDto: BulkOwnershipStatusInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerOwnershipStatus<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>,
+  TError = void,
+>(
+  bulkOwnershipStatusInputDto: BulkOwnershipStatusInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Change the ownership status of the selected books
+ */
+
+export function useBulkBooksControllerOwnershipStatus<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>,
+  TError = void,
+>(
+  bulkOwnershipStatusInputDto: BulkOwnershipStatusInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerOwnershipStatus>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBulkBooksControllerOwnershipStatusQueryOptions(
+    bulkOwnershipStatusInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bulkBooksControllerTagsResponse200 = {
+  data: BulkActionResultDto;
+  status: 200;
+};
+
+export type bulkBooksControllerTagsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bulkBooksControllerTagsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bulkBooksControllerTagsResponseSuccess = bulkBooksControllerTagsResponse200 & {
+  headers: Headers;
+};
+export type bulkBooksControllerTagsResponseError = (
+  | bulkBooksControllerTagsResponse400
+  | bulkBooksControllerTagsResponse401
+) & {
+  headers: Headers;
+};
+
+export type bulkBooksControllerTagsResponse =
+  | bulkBooksControllerTagsResponseSuccess
+  | bulkBooksControllerTagsResponseError;
+
+export const getBulkBooksControllerTagsUrl = () => {
+  return `/api/books/bulk/tags`;
+};
+
+/**
+ * @summary Add tags to the selected books
+ */
+export const bulkBooksControllerTags = async (
+  bulkTagsInputDto: BulkTagsInputDto,
+  options?: RequestInit,
+): Promise<bulkBooksControllerTagsResponse> => {
+  return customInstance<bulkBooksControllerTagsResponse>(getBulkBooksControllerTagsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkTagsInputDto),
+  });
+};
+
+export const getBulkBooksControllerTagsQueryKey = (bulkTagsInputDto?: BulkTagsInputDto) => {
+  return ["POST", `/api/books/bulk/tags`, bulkTagsInputDto] as const;
+};
+
+export const getBulkBooksControllerTagsQueryOptions = <
+  TData = Awaited<ReturnType<typeof bulkBooksControllerTags>>,
+  TError = void,
+>(
+  bulkTagsInputDto: BulkTagsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerTags>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBulkBooksControllerTagsQueryKey(bulkTagsInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bulkBooksControllerTags>>> = ({
+    signal,
+  }) => bulkBooksControllerTags(bulkTagsInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof bulkBooksControllerTags>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BulkBooksControllerTagsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bulkBooksControllerTags>>
+>;
+export type BulkBooksControllerTagsQueryError = void;
+
+export function useBulkBooksControllerTags<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerTags>>,
+  TError = void,
+>(
+  bulkTagsInputDto: BulkTagsInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerTags>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerTags>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerTags>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerTags<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerTags>>,
+  TError = void,
+>(
+  bulkTagsInputDto: BulkTagsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerTags>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerTags>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerTags>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerTags<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerTags>>,
+  TError = void,
+>(
+  bulkTagsInputDto: BulkTagsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerTags>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Add tags to the selected books
+ */
+
+export function useBulkBooksControllerTags<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerTags>>,
+  TError = void,
+>(
+  bulkTagsInputDto: BulkTagsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerTags>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBulkBooksControllerTagsQueryOptions(bulkTagsInputDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bulkBooksControllerListsResponse200 = {
+  data: BulkActionResultDto;
+  status: 200;
+};
+
+export type bulkBooksControllerListsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bulkBooksControllerListsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bulkBooksControllerListsResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bulkBooksControllerListsResponseSuccess = bulkBooksControllerListsResponse200 & {
+  headers: Headers;
+};
+export type bulkBooksControllerListsResponseError = (
+  | bulkBooksControllerListsResponse400
+  | bulkBooksControllerListsResponse401
+  | bulkBooksControllerListsResponse404
+) & {
+  headers: Headers;
+};
+
+export type bulkBooksControllerListsResponse =
+  | bulkBooksControllerListsResponseSuccess
+  | bulkBooksControllerListsResponseError;
+
+export const getBulkBooksControllerListsUrl = () => {
+  return `/api/books/bulk/lists`;
+};
+
+/**
+ * @summary Add the selected books to custom lists
+ */
+export const bulkBooksControllerLists = async (
+  bulkListsInputDto: BulkListsInputDto,
+  options?: RequestInit,
+): Promise<bulkBooksControllerListsResponse> => {
+  return customInstance<bulkBooksControllerListsResponse>(getBulkBooksControllerListsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkListsInputDto),
+  });
+};
+
+export const getBulkBooksControllerListsQueryKey = (bulkListsInputDto?: BulkListsInputDto) => {
+  return ["POST", `/api/books/bulk/lists`, bulkListsInputDto] as const;
+};
+
+export const getBulkBooksControllerListsQueryOptions = <
+  TData = Awaited<ReturnType<typeof bulkBooksControllerLists>>,
+  TError = void,
+>(
+  bulkListsInputDto: BulkListsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerLists>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBulkBooksControllerListsQueryKey(bulkListsInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bulkBooksControllerLists>>> = ({
+    signal,
+  }) => bulkBooksControllerLists(bulkListsInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof bulkBooksControllerLists>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BulkBooksControllerListsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bulkBooksControllerLists>>
+>;
+export type BulkBooksControllerListsQueryError = void;
+
+export function useBulkBooksControllerLists<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerLists>>,
+  TError = void,
+>(
+  bulkListsInputDto: BulkListsInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerLists>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerLists>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerLists>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerLists<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerLists>>,
+  TError = void,
+>(
+  bulkListsInputDto: BulkListsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerLists>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerLists>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerLists>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerLists<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerLists>>,
+  TError = void,
+>(
+  bulkListsInputDto: BulkListsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerLists>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Add the selected books to custom lists
+ */
+
+export function useBulkBooksControllerLists<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerLists>>,
+  TError = void,
+>(
+  bulkListsInputDto: BulkListsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerLists>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBulkBooksControllerListsQueryOptions(bulkListsInputDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bulkBooksControllerReadingQueueResponse200 = {
+  data: BulkActionResultDto;
+  status: 200;
+};
+
+export type bulkBooksControllerReadingQueueResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bulkBooksControllerReadingQueueResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bulkBooksControllerReadingQueueResponseSuccess =
+  bulkBooksControllerReadingQueueResponse200 & {
+    headers: Headers;
+  };
+export type bulkBooksControllerReadingQueueResponseError = (
+  | bulkBooksControllerReadingQueueResponse400
+  | bulkBooksControllerReadingQueueResponse401
+) & {
+  headers: Headers;
+};
+
+export type bulkBooksControllerReadingQueueResponse =
+  | bulkBooksControllerReadingQueueResponseSuccess
+  | bulkBooksControllerReadingQueueResponseError;
+
+export const getBulkBooksControllerReadingQueueUrl = () => {
+  return `/api/books/bulk/reading-queue`;
+};
+
+/**
+ * @summary Add the selected books to the reading queue
+ */
+export const bulkBooksControllerReadingQueue = async (
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: RequestInit,
+): Promise<bulkBooksControllerReadingQueueResponse> => {
+  return customInstance<bulkBooksControllerReadingQueueResponse>(
+    getBulkBooksControllerReadingQueueUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(bulkBookIdsDto),
+    },
+  );
+};
+
+export const getBulkBooksControllerReadingQueueQueryKey = (bulkBookIdsDto?: BulkBookIdsDto) => {
+  return ["POST", `/api/books/bulk/reading-queue`, bulkBookIdsDto] as const;
+};
+
+export const getBulkBooksControllerReadingQueueQueryOptions = <
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getBulkBooksControllerReadingQueueQueryKey(bulkBookIdsDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>> = ({
+    signal,
+  }) => bulkBooksControllerReadingQueue(bulkBookIdsDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BulkBooksControllerReadingQueueQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>
+>;
+export type BulkBooksControllerReadingQueueQueryError = void;
+
+export function useBulkBooksControllerReadingQueue<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerReadingQueue<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerReadingQueue<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Add the selected books to the reading queue
+ */
+
+export function useBulkBooksControllerReadingQueue<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerReadingQueue>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBulkBooksControllerReadingQueueQueryOptions(bulkBookIdsDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bulkBooksControllerDeleteResponse200 = {
+  data: BulkActionResultDto;
+  status: 200;
+};
+
+export type bulkBooksControllerDeleteResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bulkBooksControllerDeleteResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bulkBooksControllerDeleteResponseSuccess = bulkBooksControllerDeleteResponse200 & {
+  headers: Headers;
+};
+export type bulkBooksControllerDeleteResponseError = (
+  | bulkBooksControllerDeleteResponse400
+  | bulkBooksControllerDeleteResponse401
+) & {
+  headers: Headers;
+};
+
+export type bulkBooksControllerDeleteResponse =
+  | bulkBooksControllerDeleteResponseSuccess
+  | bulkBooksControllerDeleteResponseError;
+
+export const getBulkBooksControllerDeleteUrl = () => {
+  return `/api/books/bulk/delete`;
+};
+
+/**
+ * @summary Delete the selected books
+ */
+export const bulkBooksControllerDelete = async (
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: RequestInit,
+): Promise<bulkBooksControllerDeleteResponse> => {
+  return customInstance<bulkBooksControllerDeleteResponse>(getBulkBooksControllerDeleteUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bulkBookIdsDto),
+  });
+};
+
+export const getBulkBooksControllerDeleteQueryKey = (bulkBookIdsDto?: BulkBookIdsDto) => {
+  return ["POST", `/api/books/bulk/delete`, bulkBookIdsDto] as const;
+};
+
+export const getBulkBooksControllerDeleteQueryOptions = <
+  TData = Awaited<ReturnType<typeof bulkBooksControllerDelete>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerDelete>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBulkBooksControllerDeleteQueryKey(bulkBookIdsDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bulkBooksControllerDelete>>> = ({
+    signal,
+  }) => bulkBooksControllerDelete(bulkBookIdsDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof bulkBooksControllerDelete>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BulkBooksControllerDeleteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bulkBooksControllerDelete>>
+>;
+export type BulkBooksControllerDeleteQueryError = void;
+
+export function useBulkBooksControllerDelete<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerDelete>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerDelete>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerDelete>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerDelete>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerDelete<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerDelete>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerDelete>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bulkBooksControllerDelete>>,
+          TError,
+          Awaited<ReturnType<typeof bulkBooksControllerDelete>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBulkBooksControllerDelete<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerDelete>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerDelete>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Delete the selected books
+ */
+
+export function useBulkBooksControllerDelete<
+  TData = Awaited<ReturnType<typeof bulkBooksControllerDelete>>,
+  TError = void,
+>(
+  bulkBookIdsDto: BulkBookIdsDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bulkBooksControllerDelete>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBulkBooksControllerDeleteQueryOptions(bulkBookIdsDto, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

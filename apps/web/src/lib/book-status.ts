@@ -37,7 +37,7 @@ export const readingStatuses = [
 export const ownershipStatuses = [
   { icon: "circle-slash", isDefault: true, label: "Немає", tone: "neutral", value: "none" },
   { icon: "cart", label: "Хочу купити", tone: "accent", value: "want_to_buy" },
-  { icon: "truck", label: "В дорозі", tone: "info", value: "ordered" },
+  { icon: "truck", label: "В дорозі", tone: "info", value: "in_transit" },
   { icon: "check-circle", label: "Маю", tone: "success", value: "owned" },
   {
     icon: "arrow-down-circle",
