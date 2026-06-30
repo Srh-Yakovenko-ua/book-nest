@@ -13,7 +13,7 @@ const ratingVariants = cva("relative inline-flex align-middle leading-none", {
     size: {
       sm: "[&_svg]:size-4",
       md: "[&_svg]:size-5",
-      lg: "[&_svg]:size-[1.875rem]",
+      lg: "[&_svg]:size-6 sm:[&_svg]:size-[1.875rem]",
     },
   },
   defaultVariants: {

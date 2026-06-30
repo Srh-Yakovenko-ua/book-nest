@@ -22,6 +22,8 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_USER_ID = "99999999-9999-4999-8999-999999999999";
 const BOOK_ID = "22222222-2222-4222-8222-222222222222";
 const AUTHOR_ID = "33333333-3333-4333-8333-333333333333";
+const AUTHOR_ID_B = "33333333-3333-4333-8333-333333333334";
+const AUTHOR_ID_C = "33333333-3333-4333-8333-333333333335";
 const PUBLISHER_ID = "44444444-4444-4444-8444-444444444444";
 const TAG_ID = "55555555-5555-4555-8555-555555555555";
 const SERIES_ID = "66666666-6666-4666-8666-666666666666";
@@ -45,14 +47,21 @@ type Repository = {
 function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations {
   return {
     ageCategory: "not_specified",
-    author: { id: AUTHOR_ID, name: "Frank Herbert", normalizedName: "frank herbert" },
-    authorId: AUTHOR_ID,
+    authors: [
+      {
+        author: { id: AUTHOR_ID, name: "Frank Herbert", normalizedName: "frank herbert" },
+        authorId: AUTHOR_ID,
+        bookId: BOOK_ID,
+        position: 0,
+      },
+    ] as BookWithRelations["authors"],
     coverMedia: null,
     coverMediaId: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     dedication: null,
     deliveryInfo: null,
     description: null,
+    firstAuthorName: "Frank Herbert",
     formats: [],
     genres: [],
     id: BOOK_ID,
@@ -107,8 +116,7 @@ function buildService(
   } = {},
 ): {
   authorsService: {
-    materializeFromOpenLibrary: ReturnType<typeof vi.fn>;
-    resolveOrCreate: ReturnType<typeof vi.fn>;
+    resolveReferences: ReturnType<typeof vi.fn>;
   };
   genresService: {
     assertGenresSelectable: ReturnType<typeof vi.fn>;
@@ -142,9 +150,9 @@ function buildService(
     updateOwned: vi.fn().mockResolvedValue(overrides.updateOwned ?? bookRow()),
   };
 
+  const resolvedAuthorId = overrides.authorId ?? AUTHOR_ID;
   const authorsService = {
-    materializeFromOpenLibrary: vi.fn().mockResolvedValue({ id: overrides.authorId ?? AUTHOR_ID }),
-    resolveOrCreate: vi.fn().mockResolvedValue(overrides.authorId ?? AUTHOR_ID),
+    resolveReferences: vi.fn().mockResolvedValue([{ id: resolvedAuthorId, name: "Frank Herbert" }]),
   };
   const publishersService = {
     resolveOrCreate: vi.fn().mockResolvedValue(overrides.publisherId ?? PUBLISHER_ID),
@@ -237,7 +245,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -252,8 +260,9 @@ describe("BooksService.create", () => {
 
     await service.create(USER_ID, input);
 
-    expect(authorsService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
-      name: "Frank Herbert",
+    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
+      references: [{ name: "Frank Herbert" }],
+      userId: USER_ID,
     });
     expect(publishersService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
       id: undefined,
@@ -283,7 +292,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -300,7 +309,7 @@ describe("BooksService.create", () => {
 
     expect(view).toEqual({
       ageCategory: "not_specified",
-      author: { id: AUTHOR_ID, name: "Frank Herbert" },
+      authors: [{ id: AUTHOR_ID, name: "Frank Herbert" }],
       bookType: "solo",
       cover: null,
       createdAt: "2026-02-01T10:00:00.000Z",
@@ -345,7 +354,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "16_plus",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: ["paper", "ebook"],
       genres: ["fentezi", "naukova-fantastyka"],
@@ -365,11 +374,12 @@ describe("BooksService.create", () => {
     ]);
     expect(repository.create).toHaveBeenCalledWith(USER_ID, {
       ageCategory: "16_plus",
-      authorId: AUTHOR_ID,
+      authorIds: [AUTHOR_ID],
       coverMediaId: null,
       dedication: null,
       deliveryInfo: null,
       description: null,
+      firstAuthorName: "Frank Herbert",
       formats: ["paper", "ebook"],
       genres: ["fentezi", "naukova-fantastyka"],
       illustrator: null,
@@ -401,7 +411,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -438,7 +448,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -464,7 +474,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       deliveryInfo: { storeName: "Should be ignored" },
       formats: [],
@@ -501,7 +511,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       deliveryInfo: { orderNumber: "TTN-1", storeName: "Yakaboo" },
       formats: [],
@@ -537,7 +547,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -572,7 +582,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: ["fentezi", "romantyka"],
@@ -598,7 +608,7 @@ describe("BooksService.create", () => {
     const input: CreateBookInput = {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: ["not-a-real-genre"],
@@ -615,12 +625,99 @@ describe("BooksService.create", () => {
   });
 });
 
+describe("BooksService.create multiple authors", () => {
+  function multiAuthorInput(authors: CreateBookInput["authors"]): CreateBookInput {
+    return {
+      addToReadingQueue: false,
+      ageCategory: "not_specified",
+      authors,
+      bookType: "solo",
+      formats: [],
+      genres: [],
+      isFavorite: false,
+      language: "ukrainian",
+      ownershipStatus: "none",
+      readingStatus: "not_started",
+      tags: [],
+      title: "Good Omens",
+    };
+  }
+
+  it("passes the resolved author ids to the repository in resolver order", async () => {
+    const { authorsService, repository, service } = buildService();
+    authorsService.resolveReferences.mockResolvedValue([
+      { id: AUTHOR_ID, name: "Terry Pratchett" },
+      { id: AUTHOR_ID_B, name: "Neil Gaiman" },
+    ]);
+
+    await service.create(
+      USER_ID,
+      multiAuthorInput([{ name: "Terry Pratchett" }, { name: "Neil Gaiman" }]),
+    );
+
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({
+        authorIds: [AUTHOR_ID, AUTHOR_ID_B],
+        firstAuthorName: "Terry Pratchett",
+      }),
+    );
+  });
+
+  it("forwards the author references to the resolver and links the returned ids in order", async () => {
+    const { authorsService, repository, service } = buildService();
+    authorsService.resolveReferences.mockResolvedValue([
+      { id: AUTHOR_ID, name: "George Orwell" },
+      { id: AUTHOR_ID_C, name: "Frank Herbert" },
+    ]);
+
+    await service.create(USER_ID, multiAuthorInput([{ id: AUTHOR_ID }, { name: "Frank Herbert" }]));
+
+    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
+      references: [{ id: AUTHOR_ID }, { name: "Frank Herbert" }],
+      userId: USER_ID,
+    });
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ authorIds: [AUTHOR_ID, AUTHOR_ID_C] }),
+    );
+  });
+});
+
+describe("BooksService.update multiple authors", () => {
+  it("replaces the author set and recomputes firstAuthorName from the new first author", async () => {
+    const { authorsService, repository, service } = buildService({ findOwnedById: bookRow() });
+    authorsService.resolveReferences.mockResolvedValue([
+      { id: AUTHOR_ID_B, name: "Ursula K. Le Guin" },
+      { id: AUTHOR_ID_C, name: "Octavia E. Butler" },
+    ]);
+
+    await service.update(USER_ID, BOOK_ID, {
+      authors: [{ name: "Ursula K. Le Guin" }, { name: "Octavia E. Butler" }],
+    });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.authorIds).toEqual([AUTHOR_ID_B, AUTHOR_ID_C]);
+    expect(data.fields.firstAuthorName).toBe("Ursula K. Le Guin");
+  });
+
+  it("leaves authorIds undefined so the repository keeps the existing authors when absent", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { title: "Renamed" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.authorIds).toBeUndefined();
+    expect(data.fields.firstAuthorName).toBeUndefined();
+  });
+});
+
 describe("BooksService.create organization", () => {
   function organizationInput(overrides: Partial<CreateBookInput> = {}): CreateBookInput {
     return {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Frank Herbert" },
+      authors: [{ name: "Frank Herbert" }],
       bookType: "solo",
       formats: [],
       genres: [],
@@ -709,7 +806,7 @@ describe("BooksService.create series handling", () => {
     return {
       addToReadingQueue: false,
       ageCategory: "not_specified",
-      author: { name: "Sarah J. Maas" },
+      authors: [{ name: "Sarah J. Maas" }],
       bookType: "series_part",
       formats: [],
       genres: [],
@@ -754,9 +851,11 @@ describe("BooksService.create series handling", () => {
       }),
     );
 
-    expect(seriesService.resolveForBook).toHaveBeenCalledWith(USER_ID, {
+    expect(seriesService.resolveForBook).toHaveBeenCalledWith({
+      fallbackAuthorIds: [AUTHOR_ID],
       newSeries: { name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
       seriesId: undefined,
+      userId: USER_ID,
     });
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
@@ -769,9 +868,11 @@ describe("BooksService.create series handling", () => {
 
     await service.create(USER_ID, seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }));
 
-    expect(seriesService.resolveForBook).toHaveBeenCalledWith(USER_ID, {
+    expect(seriesService.resolveForBook).toHaveBeenCalledWith({
+      fallbackAuthorIds: [AUTHOR_ID],
       newSeries: undefined,
       seriesId: SERIES_ID,
+      userId: USER_ID,
     });
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
@@ -785,6 +886,7 @@ describe("BooksService.create series handling", () => {
         partNumber: 1,
         series: {
           _count: { books: 2 },
+          authors: [],
           books: [{ id: "fin-1" }],
           createdAt: new Date("2026-02-01T10:00:00.000Z"),
           description: "YA fantasy saga",
@@ -811,6 +913,7 @@ describe("BooksService.create series handling", () => {
     expect(view.bookType).toBe("series_part");
     expect(view.partNumber).toBe(1);
     expect(view.series).toEqual({
+      authors: [],
       booksInSeries: 2,
       description: "YA fantasy saga",
       finishedInSeries: 1,
@@ -930,7 +1033,7 @@ describe("BooksService cover", () => {
   const minimalInput: CreateBookInput = {
     addToReadingQueue: false,
     ageCategory: "not_specified",
-    author: { name: "Frank Herbert" },
+    authors: [{ name: "Frank Herbert" }],
     bookType: "solo",
     formats: [],
     genres: [],
@@ -1090,26 +1193,30 @@ describe("BooksService.update", () => {
       findOwnedById: bookRow(),
     });
 
-    await service.update(USER_ID, BOOK_ID, { author: { name: "Ursula K. Le Guin" } });
+    await service.update(USER_ID, BOOK_ID, { authors: [{ name: "Ursula K. Le Guin" }] });
 
-    expect(authorsService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
-      name: "Ursula K. Le Guin",
+    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
+      references: [{ name: "Ursula K. Le Guin" }],
+      userId: USER_ID,
     });
     const data = updateDataFromFirstCall(repository);
-    expect(data.fields.authorId).toBe(AUTHOR_ID);
+    expect(data.authorIds).toEqual([AUTHOR_ID]);
   });
 
-  it("materializes an open library author when the reference is a key", async () => {
+  it("forwards an open library key reference to the author resolver", async () => {
     const { authorsService, repository, service } = buildService({
       authorId: AUTHOR_ID,
       findOwnedById: bookRow(),
     });
 
-    await service.update(USER_ID, BOOK_ID, { author: { openLibraryKey: "OL23919A" } });
+    await service.update(USER_ID, BOOK_ID, { authors: [{ openLibraryKey: "OL23919A" }] });
 
-    expect(authorsService.materializeFromOpenLibrary).toHaveBeenCalledWith("OL23919A");
+    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
+      references: [{ openLibraryKey: "OL23919A" }],
+      userId: USER_ID,
+    });
     const data = updateDataFromFirstCall(repository);
-    expect(data.fields.authorId).toBe(AUTHOR_ID);
+    expect(data.authorIds).toEqual([AUTHOR_ID]);
   });
 
   it("disconnects the publisher when the resolver returns null", async () => {

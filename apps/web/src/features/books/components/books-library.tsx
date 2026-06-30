@@ -213,7 +213,7 @@ export function BooksLibrary() {
       isLoading={overview.isPending}
       linkComponent={Link}
       recentlyAdded={(overview.data?.recentlyAdded ?? []).map((book) => ({
-        author: book.author.name,
+        author: book.authors.map((author) => author.name).join(", "),
         href: `/books/${book.id}/edit`,
         id: book.id,
         title: book.title,
@@ -320,7 +320,7 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
   const tags = book.tags.length === 0 ? undefined : book.tags.map((tag) => tag.name);
 
   return {
-    author: book.author.name,
+    authors: book.authors.map((author) => author.name),
     cover: book.cover ? { alt: book.title, src: book.cover.urls.thumb } : undefined,
     coverMedia: book.cover ?? undefined,
     genres,

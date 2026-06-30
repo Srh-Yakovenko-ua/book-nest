@@ -12,7 +12,7 @@ const reading = readingStatuses.find((status) => status.value === "reading") ?? 
 const owned = ownershipStatuses.find((status) => status.value === "owned") ?? ownershipStatuses[0];
 
 const book: LibraryBook = {
-  author: "Сара Дж. Маас",
+  authors: ["Сара Дж. Маас"],
   href: "/books/1/edit",
   id: "1",
   isFavorite: false,

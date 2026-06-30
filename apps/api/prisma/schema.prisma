@@ -61,8 +61,9 @@ model Series {
   description    String?
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   books          Book[]
+  authors        SeriesAuthor[]
 
   @@unique([userId, normalizedName])
   @@index([userId])
@@ -87,9 +88,10 @@ model Author {
   openLibraryKey   String?      @unique @map("open_library_key")
   createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz
-  user             User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  books            Book[]
+  user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookAuthors      BookAuthor[]
   names            AuthorName[]
+  seriesAuthors    SeriesAuthor[]
 
   @@unique([userId, normalizedName])
   @@index([normalizedName])
@@ -155,7 +157,7 @@ model Book {
   id              String               @id @default(uuid()) @db.Uuid
   userId          String               @map("user_id") @db.Uuid
   title           String
-  authorId        String               @map("author_id") @db.Uuid
+  firstAuthorName String               @default("") @map("first_author_name")
   publisherId     String?              @map("publisher_id") @db.Uuid
   description     String?
   genres          String[]             @default([])
@@ -180,7 +182,7 @@ model Book {
   createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  author          Author               @relation(fields: [authorId], references: [id])
+  authors         BookAuthor[]
   publisher       Publisher?           @relation(fields: [publisherId], references: [id])
   series          Series?              @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   coverMedia      MediaAsset?          @relation(fields: [coverMediaId], references: [id], onDelete: SetNull)
@@ -192,9 +194,33 @@ model Book {
   loanInfo        BookLoanInfo?
 
   @@index([userId])
+  @@index([userId, firstAuthorName])
   @@index([seriesId])
   @@index([coverMediaId])
   @@map("books")
+}
+
+model BookAuthor {
+  bookId   String @map("book_id") @db.Uuid
+  authorId String @map("author_id") @db.Uuid
+  position Int    @default(0)
+  book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  author   Author @relation(fields: [authorId], references: [id])
+
+  @@id([bookId, authorId])
+  @@index([authorId])
+  @@map("book_authors")
+}
+
+model SeriesAuthor {
+  seriesId String @map("series_id") @db.Uuid
+  authorId String @map("author_id") @db.Uuid
+  series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  author   Author @relation(fields: [authorId], references: [id])
+
+  @@id([seriesId, authorId])
+  @@index([authorId])
+  @@map("series_authors")
 }
 
 model BookReadingProgress {

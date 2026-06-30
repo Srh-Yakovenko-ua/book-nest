@@ -6,6 +6,7 @@ import { z } from "zod";
 import { seriesControllerSearch } from "@/shared/api/generated/endpoints/series/series";
 
 const seriesViewSchema = z.object({
+  authors: z.array(z.object({ id: z.string(), name: z.string() })),
   booksInSeries: z.number(),
   description: z.string().nullable(),
   finishedInSeries: z.number(),
@@ -27,8 +28,14 @@ type SeriesSearchPage = z.infer<typeof seriesSearchPageSchema>;
 
 const SERIES_SEARCH_PAGE_SIZE = 20;
 
-export function useSeriesSearch(search: string) {
+type UseSeriesSearchOptions = {
+  authorIds?: string[];
+  search: string;
+};
+
+export function useSeriesSearch({ authorIds, search }: UseSeriesSearchOptions) {
   const trimmed = search.trim();
+  const scopedAuthorIds = authorIds && authorIds.length > 0 ? [...authorIds].sort() : undefined;
 
   const query = useInfiniteQuery({
     getNextPageParam: (lastPage: SeriesSearchPage) =>
@@ -37,13 +44,14 @@ export function useSeriesSearch(search: string) {
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }): Promise<SeriesSearchPage> => {
       const response = await seriesControllerSearch({
+        ...(scopedAuthorIds ? { authorIds: scopedAuthorIds } : {}),
         pageNumber: pageParam,
         pageSize: SERIES_SEARCH_PAGE_SIZE,
         search: trimmed.length > 0 ? trimmed : undefined,
       });
       return seriesSearchPageSchema.parse(response);
     },
-    queryKey: ["series", "search", trimmed],
+    queryKey: ["series", "search", trimmed, scopedAuthorIds ?? []],
   });
 
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];

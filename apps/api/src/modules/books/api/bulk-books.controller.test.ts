@@ -82,7 +82,7 @@ function seedAuthor(input: { name: string; userId: string }): Promise<{ id: stri
 function seedBook(input: SeedBookInput): Promise<{ id: string }> {
   return prisma.book.create({
     data: {
-      authorId: input.authorId,
+      authors: { create: [{ authorId: input.authorId, position: 0 }] },
       coverMediaId: input.coverMediaId ?? null,
       isFavorite: input.isFavorite ?? false,
       ownershipStatus: input.ownershipStatus ?? "none",
@@ -327,7 +327,7 @@ describe("POST /api/books/bulk/tags", () => {
     const existing = await seedTag({ name: "dragons", userId });
     const book = await prisma.book.create({
       data: {
-        authorId: author.id,
+        authors: { create: [{ authorId: author.id, position: 0 }] },
         tags: { create: [{ tagId: existing.id }] },
         title: "A",
         userId,
@@ -385,7 +385,7 @@ describe("POST /api/books/bulk/lists", () => {
     const listB = await seedList({ name: "Autumn", userId });
     const book = await prisma.book.create({
       data: {
-        authorId: author.id,
+        authors: { create: [{ authorId: author.id, position: 0 }] },
         lists: { create: [{ listId: listA.id }] },
         title: "A",
         userId,

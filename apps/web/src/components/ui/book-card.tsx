@@ -39,7 +39,7 @@ type BookCardLinkComponent = React.ComponentType<{
 
 type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
   VariantProps<typeof bookCardVariants> & {
-    author: string;
+    authors: string[];
     cover?: { alt?: string; src: string };
     coverActivateLabel?: string;
     genres?: { icon?: GenreIconName; label: string }[];
@@ -59,7 +59,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
   };
 
 function BookCard({
-  author,
+  authors,
   className,
   cover,
   coverActivateLabel,
@@ -112,7 +112,7 @@ function BookCard({
               </LinkComp>
             )}
           </h3>
-          <p className="text-[0.8125rem] text-muted-foreground">{author}</p>
+          <p className="text-[0.8125rem] text-muted-foreground">{authors.join(", ")}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
             <StatusBadge entry={status} />
             {ownership === undefined ? null : <StatusBadge entry={ownership} />}

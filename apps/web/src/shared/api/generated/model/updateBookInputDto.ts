@@ -6,7 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { UpdateBookInputDtoAgeCategory } from "./updateBookInputDtoAgeCategory";
-import type { UpdateBookInputDtoAuthor } from "./updateBookInputDtoAuthor";
+import type { UpdateBookInputDtoAuthorsItem } from "./updateBookInputDtoAuthorsItem";
 import type { UpdateBookInputDtoBookType } from "./updateBookInputDtoBookType";
 import type { UpdateBookInputDtoDeliveryInfo } from "./updateBookInputDtoDeliveryInfo";
 import type { UpdateBookInputDtoFormatsItem } from "./updateBookInputDtoFormatsItem";
@@ -23,7 +23,11 @@ import type { UpdateBookInputDtoReadingStatus } from "./updateBookInputDtoReadin
 export interface UpdateBookInputDto {
   addToReadingQueue?: boolean;
   ageCategory?: UpdateBookInputDtoAgeCategory;
-  author?: UpdateBookInputDtoAuthor;
+  /**
+   * @minItems 1
+   * @maxItems 20
+   */
+  authors?: UpdateBookInputDtoAuthorsItem[];
   bookType?: UpdateBookInputDtoBookType;
   /**
    * @nullable

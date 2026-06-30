@@ -38,8 +38,10 @@ type SeedAuthorName = { locale: string; name: string };
 type SeedBookInput = {
   ageCategory?: string;
   authorId: string;
+  coAuthorIds?: string[];
   coverMediaId?: null | string;
   createdAt?: Date;
+  firstAuthorName?: string;
   formats?: string[];
   genres?: string[];
   illustrator?: null | string;
@@ -61,6 +63,13 @@ type SeedBookInput = {
   userId: string;
 };
 
+function authorJoinCreate(
+  authorId: string,
+  coAuthorIds: string[] | undefined,
+): { authorId: string; position: number }[] {
+  return [authorId, ...(coAuthorIds ?? [])].map((id, position) => ({ authorId: id, position }));
+}
+
 function listBooks(accessToken: string, query = ""): request.Test {
   const path = query === "" ? "/api/books" : `/api/books?${query}`;
   return request(app.getHttpServer()).get(path).set("Authorization", `Bearer ${accessToken}`);
@@ -70,7 +79,7 @@ function seedAuthor(input: {
   name: string;
   names?: SeedAuthorName[];
   userId: string;
-}): Promise<{ id: string }> {
+}): Promise<{ id: string; name: string }> {
   return prisma.author.create({
     data: {
       name: input.name,
@@ -87,7 +96,7 @@ function seedAuthor(input: {
       normalizedName: input.name.toLowerCase(),
       userId: input.userId,
     },
-    select: { id: true },
+    select: { id: true, name: true },
   });
 }
 
@@ -95,9 +104,10 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
   return prisma.book.create({
     data: {
       ageCategory: input.ageCategory ?? "not_specified",
-      authorId: input.authorId,
+      authors: { create: authorJoinCreate(input.authorId, input.coAuthorIds) },
       coverMediaId: input.coverMediaId ?? null,
       createdAt: input.createdAt,
+      firstAuthorName: input.firstAuthorName ?? "",
       formats: input.formats ?? [],
       genres: input.genres ?? [],
       illustrator: input.illustrator ?? null,
@@ -252,6 +262,20 @@ describe("GET /api/books search", () => {
     await seedBook({ authorId: author.id, title: "Dune", userId });
 
     const res = await listBooks(accessToken, `q=${encodeURIComponent("Герберт")}`);
+
+    expect(res.body.totalCount).toBe(1);
+    expect(titlesOf(res.body)).toEqual(["Dune"]);
+  });
+
+  it("matches a co-author who is not the first listed author", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const main = await seedAuthor({ name: "Frank Herbert", userId });
+    const coAuthor = await seedAuthor({ name: "Brian Sanderson", userId });
+    const other = await seedAuthor({ name: "Isaac Asimov", userId });
+    await seedBook({ authorId: main.id, coAuthorIds: [coAuthor.id], title: "Dune", userId });
+    await seedBook({ authorId: other.id, title: "Foundation", userId });
+
+    const res = await listBooks(accessToken, `q=${encodeURIComponent("Sanderson")}`);
 
     expect(res.body.totalCount).toBe(1);
     expect(titlesOf(res.body)).toEqual(["Dune"]);
@@ -536,6 +560,20 @@ describe("GET /api/books filters", () => {
     expect(titlesOf(res.body)).toEqual(["Dune"]);
   });
 
+  it("matches a book whose filtered author is a non-first co-author", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const main = await seedAuthor({ name: "Frank Herbert", userId });
+    const wanted = await seedAuthor({ name: "Kevin J. Anderson", userId });
+    const other = await seedAuthor({ name: "Isaac Asimov", userId });
+    await seedBook({ authorId: main.id, coAuthorIds: [wanted.id], title: "Dune", userId });
+    await seedBook({ authorId: other.id, title: "Foundation", userId });
+
+    const res = await listBooks(accessToken, `author=${wanted.id}`);
+
+    expect(res.body.totalCount).toBe(1);
+    expect(titlesOf(res.body)).toEqual(["Dune"]);
+  });
+
   it("filters by publisher id", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
@@ -791,23 +829,19 @@ describe("GET /api/books sorting", () => {
     const alpha = await seedAuthor({ name: "Alpha Writer", userId });
     const bravo = await seedAuthor({ name: "Bravo Writer", userId });
     const charlie = await seedAuthor({ name: "Charlie Writer", userId });
-    await seedBook({ authorId: bravo.id, title: "B", userId });
-    await seedBook({ authorId: alpha.id, title: "A", userId });
-    await seedBook({ authorId: charlie.id, title: "C", userId });
+    await seedBook({ authorId: bravo.id, firstAuthorName: bravo.name, title: "B", userId });
+    await seedBook({ authorId: alpha.id, firstAuthorName: alpha.name, title: "A", userId });
+    await seedBook({ authorId: charlie.id, firstAuthorName: charlie.name, title: "C", userId });
 
     const asc = await listBooks(accessToken, "sort=author_asc");
-    expect(asc.body.items.map((item: { author: { name: string } }) => item.author.name)).toEqual([
-      "Alpha Writer",
-      "Bravo Writer",
-      "Charlie Writer",
-    ]);
+    expect(
+      asc.body.items.map((item: { authors: { name: string }[] }) => item.authors[0]?.name),
+    ).toEqual(["Alpha Writer", "Bravo Writer", "Charlie Writer"]);
 
     const desc = await listBooks(accessToken, "sort=author_desc");
-    expect(desc.body.items.map((item: { author: { name: string } }) => item.author.name)).toEqual([
-      "Charlie Writer",
-      "Bravo Writer",
-      "Alpha Writer",
-    ]);
+    expect(
+      desc.body.items.map((item: { authors: { name: string }[] }) => item.authors[0]?.name),
+    ).toEqual(["Charlie Writer", "Bravo Writer", "Alpha Writer"]);
   });
 
   it("sorts by most recently updated first", async () => {

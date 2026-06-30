@@ -1,3 +1,5 @@
+import type { BookAuthorReference } from "@app/shared";
+
 import { z } from "zod";
 
 import type {
@@ -8,7 +10,7 @@ import type {
 } from "./create-book-form";
 
 type BookFormDraft = {
-  authorSelection: AuthorSelection | null;
+  authorSelections: AuthorSelection[];
   locale: string;
   publisherSelection: null | PublisherSelection;
   seriesSelection: null | SeriesSelection;
@@ -25,7 +27,14 @@ const publisherSelectionSchema = z.union([
   z.object({ kind: z.literal("custom"), name: z.string() }),
 ]) satisfies z.ZodType<PublisherSelection>;
 
+const authorReferenceSchema = z.union([
+  z.object({ id: z.string() }),
+  z.object({ openLibraryKey: z.string() }),
+  z.object({ name: z.string() }),
+]) satisfies z.ZodType<BookAuthorReference>;
+
 const newSeriesDraftSchema = z.object({
+  authors: z.array(authorReferenceSchema).optional(),
   description: z.string().optional(),
   name: z.string(),
   status: z.enum(["completed", "ongoing", "unknown"]),
@@ -35,6 +44,7 @@ const newSeriesDraftSchema = z.object({
 const seriesSelectionSchema = z.union([
   z.object({ draft: newSeriesDraftSchema, kind: z.literal("new"), name: z.string() }),
   z.object({
+    authorIds: z.array(z.string()),
     id: z.string(),
     kind: z.literal("existing"),
     name: z.string(),
@@ -43,7 +53,7 @@ const seriesSelectionSchema = z.union([
 ]) satisfies z.ZodType<SeriesSelection>;
 
 const draftSchema = z.object({
-  authorSelection: authorSelectionSchema.nullable(),
+  authorSelections: z.array(authorSelectionSchema),
   locale: z.string(),
   publisherSelection: publisherSelectionSchema.nullable(),
   seriesSelection: seriesSelectionSchema.nullable(),
@@ -71,7 +81,7 @@ function parseBookFormDraft(raw: string): BookFormDraft | null {
   if (!parsed.success) return null;
 
   return {
-    authorSelection: parsed.data.authorSelection,
+    authorSelections: parsed.data.authorSelections,
     locale: parsed.data.locale,
     publisherSelection: parsed.data.publisherSelection,
     seriesSelection: parsed.data.seriesSelection,

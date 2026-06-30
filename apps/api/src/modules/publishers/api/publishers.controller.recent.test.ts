@@ -53,7 +53,7 @@ function seedBook(input: {
 }): Promise<{ id: string }> {
   return prisma.book.create({
     data: {
-      authorId: input.authorId,
+      authors: { create: [{ authorId: input.authorId, position: 0 }] },
       createdAt: input.createdAt,
       publisherId: input.publisherId,
       title: "Untitled",

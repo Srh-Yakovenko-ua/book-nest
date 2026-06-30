@@ -410,7 +410,7 @@ function LibraryGridCard({
         whileHover={prefersReducedMotion ? undefined : { y: -4 }}
       >
         <BookCard
-          author={book.author}
+          authors={book.authors}
           cover={book.cover}
           coverActivateLabel={coverViewLabel}
           genres={book.genres}
@@ -559,13 +559,13 @@ function LibraryToolbar({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         {searchControl ? <div className="lg:flex-1">{searchControl}</div> : null}
         <div className="flex flex-wrap items-center gap-2.5">
-          {advancedFilters}
           <LibrarySortSelect
             label={sortLabel}
             onChange={onSortChange}
             options={sortOptions}
             value={sort}
           />
+          {advancedFilters}
           <Segmented
             label={viewLabels.label}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}

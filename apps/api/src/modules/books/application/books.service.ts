@@ -1,5 +1,4 @@
 import type {
-  BookAuthorReference,
   BookView,
   CreateBookInput,
   LibraryBooksQuery,
@@ -215,7 +214,10 @@ export class BooksService {
   ) {}
 
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
-    const authorId = await this.resolveAuthorId(userId, input.author);
+    const authors = await this.authorsService.resolveReferences({
+      references: input.authors,
+      userId,
+    });
 
     const publisherId = await this.publishersService.resolveOrCreate(userId, {
       id: input.publisherId,
@@ -233,9 +235,11 @@ export class BooksService {
 
     const series =
       input.bookType === "series_part"
-        ? await this.seriesService.resolveForBook(userId, {
+        ? await this.seriesService.resolveForBook({
+            fallbackAuthorIds: authors.map((author) => author.id),
             newSeries: input.newSeries,
             seriesId: input.seriesId,
+            userId,
           })
         : null;
     const seriesId = series?.id ?? null;
@@ -270,11 +274,12 @@ export class BooksService {
 
     const book = await this.booksRepository.create(userId, {
       ageCategory: input.ageCategory,
-      authorId,
+      authorIds: authors.map((author) => author.id),
       coverMediaId: input.coverMediaId ?? null,
       dedication: input.dedication ?? null,
       deliveryInfo,
       description: input.description ?? null,
+      firstAuthorName: authors[0]?.name ?? "",
       formats: input.formats,
       genres: input.genres,
       illustrator: input.illustrator ?? null,
@@ -432,8 +437,14 @@ export class BooksService {
 
     const fields: Prisma.BookUncheckedUpdateManyInput = {};
 
-    if (input.author !== undefined) {
-      fields.authorId = await this.resolveAuthorId(userId, input.author);
+    let authorIds: string[] | undefined;
+    if (input.authors !== undefined) {
+      const authors = await this.authorsService.resolveReferences({
+        references: input.authors,
+        userId,
+      });
+      authorIds = authors.map((author) => author.id);
+      fields.firstAuthorName = authors[0]?.name ?? "";
     }
 
     if (input.publisherId !== undefined || input.publisherName !== undefined) {
@@ -463,7 +474,13 @@ export class BooksService {
             newLists: input.newLists,
           });
 
-    const seriesPlacement = await this.applySeriesFields(userId, fields, input, current);
+    const seriesPlacement = await this.applySeriesFields({
+      current,
+      fallbackAuthorIds: authorIds ?? current.authors.map((bookAuthor) => bookAuthor.authorId),
+      fields,
+      input,
+      userId,
+    });
     await this.applyQueueFields(userId, current, fields, input);
     await this.assertSeriesPartNumberUnique(userId, bookId, seriesPlacement);
 
@@ -474,6 +491,7 @@ export class BooksService {
     assignScalarFields(fields, input);
 
     const book = await this.booksRepository.updateOwned(userId, bookId, {
+      authorIds,
       deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo),
       fields,
       listIds,
@@ -520,12 +538,19 @@ export class BooksService {
     }
   }
 
-  private async applySeriesFields(
-    userId: string,
-    fields: Prisma.BookUncheckedUpdateManyInput,
-    input: UpdateBookInput,
-    current: BookWithRelations,
-  ): Promise<SeriesPlacement> {
+  private async applySeriesFields({
+    current,
+    fallbackAuthorIds,
+    fields,
+    input,
+    userId,
+  }: {
+    current: BookWithRelations;
+    fallbackAuthorIds: string[];
+    fields: Prisma.BookUncheckedUpdateManyInput;
+    input: UpdateBookInput;
+    userId: string;
+  }): Promise<SeriesPlacement> {
     if (input.bookType === undefined) {
       if (current.seriesId !== null && input.partNumber !== undefined) {
         this.assertPartNumberWithinSeriesTotal({
@@ -544,9 +569,11 @@ export class BooksService {
       return { partNumber: null, seriesId: null };
     }
 
-    const series = await this.seriesService.resolveForBook(userId, {
+    const series = await this.seriesService.resolveForBook({
+      fallbackAuthorIds,
       newSeries: input.newSeries,
       seriesId: input.seriesId,
+      userId,
     });
     const partNumber = input.partNumber ?? null;
     if (input.seriesId !== undefined) {
@@ -673,21 +700,6 @@ export class BooksService {
     } catch (error) {
       log.warn({ err: error, mediaId }, "failed to delete cover media");
     }
-  }
-
-  private async resolveAuthorId(userId: string, author: BookAuthorReference): Promise<string> {
-    if ("id" in author) {
-      return this.authorsService.resolveOrCreate(userId, { id: author.id });
-    }
-
-    if ("openLibraryKey" in author) {
-      const materialized = await this.authorsService.materializeFromOpenLibrary(
-        author.openLibraryKey,
-      );
-      return materialized.id;
-    }
-
-    return this.authorsService.resolveOrCreate(userId, { name: author.name });
   }
 
   private async resolveQueuePlacement(

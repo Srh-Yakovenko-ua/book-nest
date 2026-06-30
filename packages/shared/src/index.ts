@@ -882,15 +882,6 @@ export const BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE =
 
 export const BOOK_SERIES_PART_NUMBER_TAKEN_CODE = "book_series_part_number_taken";
 
-export const NewSeriesInputSchema = z.object({
-  description: SeriesDescriptionSchema.optional(),
-  name: SeriesNameSchema,
-  status: SeriesStatusSchema.default("unknown"),
-  totalBooks: SeriesTotalBooksSchema.optional(),
-});
-
-export type NewSeriesInput = z.infer<typeof NewSeriesInputSchema>;
-
 const OWNERSHIP_STATUSES_WITH_LOAN: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
   "borrowed_from_someone",
   "lent_to_someone",
@@ -943,11 +934,33 @@ export const BookAuthorReferenceSchema = z.union([
 
 export type BookAuthorReference = z.infer<typeof BookAuthorReferenceSchema>;
 
+export const BOOK_AUTHORS_MAX = 20;
+
+export const BOOK_AUTHORS_REQUIRED_MESSAGE = "Add at least one author";
+export const BOOK_AUTHORS_MAX_MESSAGE = `A book can have at most ${BOOK_AUTHORS_MAX} authors`;
+
+export const BookAuthorsInputSchema = z
+  .array(BookAuthorReferenceSchema)
+  .min(1, BOOK_AUTHORS_REQUIRED_MESSAGE)
+  .max(BOOK_AUTHORS_MAX, BOOK_AUTHORS_MAX_MESSAGE);
+
+export type BookAuthorsInput = z.infer<typeof BookAuthorsInputSchema>;
+
+export const NewSeriesInputSchema = z.object({
+  authors: z.array(BookAuthorReferenceSchema).max(BOOK_AUTHORS_MAX).optional(),
+  description: SeriesDescriptionSchema.optional(),
+  name: SeriesNameSchema,
+  status: SeriesStatusSchema.default("unknown"),
+  totalBooks: SeriesTotalBooksSchema.optional(),
+});
+
+export type NewSeriesInput = z.infer<typeof NewSeriesInputSchema>;
+
 export const CreateBookInputSchema = z
   .object({
     addToReadingQueue: z.boolean().default(false),
     ageCategory: AgeCategorySchema.default("not_specified"),
-    author: BookAuthorReferenceSchema,
+    authors: BookAuthorsInputSchema,
     bookType: BookTypeSchema.default("solo"),
     coverMediaId: z.uuid().nullable().optional(),
     dedication: DedicationSchema.nullable().optional(),
@@ -1049,7 +1062,7 @@ export const UpdateBookInputSchema = z
   .object({
     addToReadingQueue: z.boolean().optional(),
     ageCategory: AgeCategorySchema.optional(),
-    author: BookAuthorReferenceSchema.optional(),
+    authors: BookAuthorsInputSchema.optional(),
     bookType: BookTypeSchema.optional(),
     coverMediaId: z.uuid().nullable().optional(),
     dedication: DedicationSchema.nullable().optional(),
@@ -1231,7 +1244,7 @@ export type AuthorLookupQuery = z.infer<typeof AuthorLookupQuerySchema>;
 
 export type BookView = {
   ageCategory: AgeCategory;
-  author: { id: string; name: string };
+  authors: { id: string; name: string }[];
   bookType: BookType;
   cover?: MediaView | null;
   createdAt: string;
@@ -1382,6 +1395,7 @@ export type ReadingProgressView = {
 };
 
 export type SeriesView = {
+  authors: { id: string; name: string }[];
   booksInSeries: number;
   description: null | string;
   finishedInSeries: number;
@@ -1434,6 +1448,18 @@ export const RecentPublishersQuerySchema = z.object({
 });
 
 export type RecentPublishersQuery = z.infer<typeof RecentPublishersQuerySchema>;
+
+export const RecentAuthorsQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(RECENT_USED_LIMIT_MAX)
+    .default(RECENT_USED_LIMIT_DEFAULT),
+  locale: CatalogLocaleSchema.default("uk"),
+});
+
+export type RecentAuthorsQuery = z.infer<typeof RecentAuthorsQuerySchema>;
 
 const LIBRARY_PAGE_SIZE_DEFAULT = 24;
 const LIBRARY_SEARCH_MAX = 200;
@@ -1542,6 +1568,12 @@ export const LibraryBooksQuerySchema = z
   });
 
 export type LibraryBooksQuery = z.infer<typeof LibraryBooksQuerySchema>;
+
+export const SeriesSearchQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  authorIds: queryStringArray(z.uuid()),
+});
+
+export type SeriesSearchQuery = z.infer<typeof SeriesSearchQuerySchema>;
 
 export const RecentPurchaseStoresQuerySchema = z.object({
   limit: z.coerce

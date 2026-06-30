@@ -1,6 +1,9 @@
+import type { AuthorView, SeriesView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, userEvent, waitFor, within } from "storybook/test";
+
+import { getQueryClient } from "@/lib/query-client";
 
 import { CreateBookForm } from "./create-book-form";
 
@@ -65,6 +68,7 @@ function taxonomyHandler(extra?: Handler): Handler {
         totalCount: 2,
       });
     }
+    if (path.includes("/api/authors/recent")) return jsonResponse(200, []);
     if (path.includes("/api/series") && init?.method !== "POST") return emptyPage(8);
     if (path.includes("/api/lists") && init?.method !== "POST") {
       return jsonResponse(200, {
@@ -156,14 +160,14 @@ export const SuccessfulCreate: Story = {
     await userEvent.type(authorInput, "Михайло Коцюбинський");
 
     const surface = within(document.body);
-    const custom = await surface.findByText(/Використати/);
+    const custom = await surface.findByText(/^Створити «/);
     await userEvent.click(custom);
 
     await userEvent.click(canvas.getByRole("button", { name: /Додати книгу/ }));
 
     await waitFor(() => expect(createPayload).not.toBeNull());
     await expect(createPayload).toMatchObject({
-      author: { name: "Михайло Коцюбинський" },
+      authors: [{ name: "Михайло Коцюбинський" }],
       deliveryInfo: {},
       loanInfo: {},
       purchaseInfo: {},
@@ -221,7 +225,7 @@ export const SwitchingStatusPrunesPayload: Story = {
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Олександр Довженко");
     const surface = within(document.body);
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.click(canvas.getByRole("radio", { name: "Прочитано" }));
     await userEvent.click(canvas.getByRole("slider", { name: "Оцінка" }));
@@ -404,7 +408,7 @@ export const CreateSeriesModalSetsNewSeries: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Анджей Сапковський");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
 
@@ -467,7 +471,7 @@ export const SeriesPartNumberConflictShowsLink: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Ребекка Яррос");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
 
@@ -506,7 +510,7 @@ export const SoloClearsSeriesFields: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Анджей Сапковський");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
     const seriesInput = canvas.getByLabelText("Серія");
@@ -556,7 +560,7 @@ export const EditionDetailsSubmitsNumbers: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Тарас Шевченко");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.type(canvas.getByLabelText("Сторінок", { exact: false }), "320");
     await userEvent.type(canvas.getByLabelText("Рік видання", { exact: false }), "2021");
@@ -645,7 +649,7 @@ export const QueueToggleRevealsAndClearsPriority: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Валер'ян Підмогильний");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await expect(canvas.queryByRole("radio", { name: "Високий" })).toBeNull();
 
@@ -688,7 +692,7 @@ export const FavoriteAndQueuePrioritySubmit: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Іван Багряний");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.click(canvas.getByRole("switch", { name: "Додати до улюблених" }));
     await userEvent.click(canvas.getByRole("switch", { name: "Додати до черги читання" }));
@@ -723,7 +727,7 @@ export const CreateListModalAddsDraft: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Оксана Забужко");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.click(canvas.getByRole("button", { name: "Новий список" }));
 
@@ -778,7 +782,7 @@ export const ListDialogSubmitDoesNotSubmitBookForm: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Леся Українка");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.click(canvas.getByRole("button", { name: "Новий список" }));
 
@@ -810,7 +814,7 @@ export const SeriesDialogSubmitDoesNotSubmitBookForm: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Пантелеймон Куліш");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
 
@@ -845,6 +849,98 @@ export const ListDialogResetsAfterCancel: Story = {
   },
 };
 
+function authorView(seed: { id: string; name: string }): AuthorView {
+  return {
+    bio: null,
+    birthYear: null,
+    countryCode: null,
+    deathYear: null,
+    id: seed.id,
+    isCustom: false,
+    name: seed.name,
+    openLibraryKey: null,
+    photoAttribution: null,
+    photoLicense: null,
+    photoLicenseUrl: null,
+    photoUrl: null,
+  };
+}
+
+function seriesView(seed: {
+  authors: { id: string; name: string }[];
+  id: string;
+  name: string;
+}): SeriesView {
+  return {
+    authors: seed.authors,
+    booksInSeries: 0,
+    description: null,
+    finishedInSeries: 0,
+    id: seed.id,
+    name: seed.name,
+    status: "ongoing",
+    totalBooks: null,
+  };
+}
+
+const SAPKOWSKI = { id: "11111111-1111-4111-8111-111111111111", name: "Анджей Сапковський" };
+
+export const AuthorChangeClearsMismatchedSeries: Story = {
+  beforeEach: () => {
+    getQueryClient().clear();
+    const witcher = seriesView({ authors: [SAPKOWSKI], id: "series-witcher", name: "Відьмак" });
+    const base = taxonomyHandler();
+    mockFetch((path, init) => {
+      if (path.includes("/api/authors/recent")) {
+        return jsonResponse(200, [authorView(SAPKOWSKI)]);
+      }
+      if (path.includes("/api/series") && init?.method !== "POST") {
+        if (path.includes("authorIds")) {
+          return jsonResponse(200, {
+            items: [witcher],
+            page: 1,
+            pagesCount: 1,
+            pageSize: 20,
+            totalCount: 1,
+          });
+        }
+        return emptyPage(20);
+      }
+      return base(path, init);
+    });
+  },
+  play: async ({ canvas }) => {
+    const surface = within(document.body);
+
+    await userEvent.type(canvas.getByLabelText("Назва"), "Меч призначення");
+
+    const authorInput = canvas.getByLabelText("Автор");
+    await userEvent.click(authorInput);
+    await userEvent.click(await surface.findByText("Анджей Сапковський"));
+
+    await userEvent.click(canvas.getByRole("radio", { name: "Частина серії" }));
+
+    const seriesInput = canvas.getByLabelText("Серія");
+    await userEvent.click(seriesInput);
+    await userEvent.click(await surface.findByText("Відьмак"));
+    await waitFor(() => expect(canvas.getByLabelText("Серія")).toHaveValue("Відьмак"));
+
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Видалити автора «Анджей Сапковський»" }),
+    );
+
+    await expect(await canvas.findByText(/Обрана серія належить іншому автору/)).toBeVisible();
+    await waitFor(() => expect(canvas.getByLabelText("Серія")).toHaveValue(""));
+
+    await userEvent.click(authorInput);
+    await userEvent.click(await surface.findByText("Анджей Сапковський"));
+
+    await waitFor(() =>
+      expect(canvas.queryByText(/Обрана серія належить іншому автору/)).toBeNull(),
+    );
+  },
+};
+
 export const EnterInTitleDoesNotSubmit: Story = {
   play: async ({ canvas }) => {
     let createPayload: unknown = null;
@@ -863,7 +959,7 @@ export const EnterInTitleDoesNotSubmit: Story = {
     const authorInput = canvas.getByLabelText("Автор");
     await userEvent.click(authorInput);
     await userEvent.type(authorInput, "Іван Котляревський");
-    await userEvent.click(await surface.findByText(/Використати/));
+    await userEvent.click(await surface.findByText(/^Створити «/));
 
     const titleInput = canvas.getByLabelText("Назва");
     await userEvent.click(titleInput);

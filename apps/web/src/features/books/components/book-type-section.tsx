@@ -18,6 +18,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Link } from "@/i18n/navigation";
 
 import type {
+  AuthorSelection,
   CreateBookFormValues,
   SeriesPartNumberConflict,
   SeriesSelection,
@@ -30,6 +31,8 @@ import { SeriesAutocomplete } from "./series-autocomplete";
 const PART_NUMBER_MAX = 999;
 
 type BookTypeSectionProps = {
+  authorMismatch: boolean;
+  authorSelections: AuthorSelection[];
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
   onRequestSoloChange?: (apply: () => void) => void;
@@ -40,6 +43,8 @@ type BookTypeSectionProps = {
 };
 
 export function BookTypeSection({
+  authorMismatch,
+  authorSelections,
   control,
   errors,
   onRequestSoloChange,
@@ -149,6 +154,7 @@ export function BookTypeSection({
           <div className="flex flex-col gap-2">
             <Label htmlFor="book-series">{t("bookType.series")}</Label>
             <SeriesAutocomplete
+              authorSelections={authorSelections}
               describedBy={seriesErrorMessage ? "book-series-error" : undefined}
               id="book-series"
               invalid={seriesErrorMessage !== undefined}
@@ -164,6 +170,11 @@ export function BookTypeSection({
             {seriesSelection?.kind === "new" ? (
               <p className="flex items-center gap-1.5 text-xs text-primary">
                 {t("bookType.seriesDraft", { name: seriesSelection.name })}
+              </p>
+            ) : null}
+            {authorMismatch ? (
+              <p className="text-xs text-warning" role="status">
+                {t("series.authorMismatch")}
               </p>
             ) : null}
             {seriesErrorMessage ? (
@@ -200,6 +211,7 @@ export function BookTypeSection({
       ) : null}
 
       <CreateSeriesDialog
+        authorSelections={authorSelections}
         initialName={pendingName}
         onConfirm={applySelection}
         onOpenChange={setDialogOpen}

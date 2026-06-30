@@ -20,7 +20,7 @@ const wantToRead =
 
 const books: LibraryBook[] = [
   {
-    author: "Сара Дж. Маас",
+    authors: ["Сара Дж. Маас"],
     genres: [{ label: "Фентезі" }, { label: "Темне фентезі" }, { label: "Романтика" }],
     href: "/books/1/edit",
     id: "1",
@@ -46,7 +46,7 @@ const books: LibraryBook[] = [
     year: 2021,
   },
   {
-    author: "Лі Бардуго",
+    authors: ["Лі Бардуго"],
     genres: [{ label: "Фентезі" }],
     href: "/books/2/edit",
     id: "2",
@@ -61,7 +61,7 @@ const books: LibraryBook[] = [
     year: 2015,
   },
   {
-    author: "Медлін Міллер",
+    authors: ["Медлін Міллер"],
     genres: [{ label: "Історична проза" }],
     href: "/books/3/edit",
     id: "3",

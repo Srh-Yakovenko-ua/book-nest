@@ -21,10 +21,11 @@ import {
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 
-import type { SeriesSelection } from "../model/create-book-form";
+import type { AuthorSelection, SeriesSelection } from "../model/create-book-form";
 
 import { SERIES_STATUS_OPTIONS } from "../model/book-classification-fields";
-import { NewSeriesInputSchema } from "../model/create-book-form";
+import { authorSelectionToReference, NewSeriesInputSchema } from "../model/create-book-form";
+import { AuthorsField } from "./authors-field";
 import { StatusChipGroup } from "./status-chip-group";
 
 const NAME_MAX = 120;
@@ -33,6 +34,7 @@ const TOTAL_BOOKS_MIN = 1;
 const TOTAL_BOOKS_MAX = 999;
 
 type CreateSeriesDialogProps = {
+  authorSelections: AuthorSelection[];
   initialName: string;
   onConfirm: (selection: Extract<SeriesSelection, { kind: "new" }>) => void;
   onOpenChange: (open: boolean) => void;
@@ -40,6 +42,7 @@ type CreateSeriesDialogProps = {
 };
 
 type CreateSeriesFormProps = {
+  initialAuthors: AuthorSelection[];
   initialName: string;
   onCancel: () => void;
   onConfirm: (selection: Extract<SeriesSelection, { kind: "new" }>) => void;
@@ -48,6 +51,7 @@ type CreateSeriesFormProps = {
 type SeriesStatusValue = (typeof SERIES_STATUS_OPTIONS)[number];
 
 export function CreateSeriesDialog({
+  authorSelections,
   initialName,
   onConfirm,
   onOpenChange,
@@ -63,6 +67,7 @@ export function CreateSeriesDialog({
           <DialogDescription>{t("series.create.description")}</DialogDescription>
         </DialogHeader>
         <CreateSeriesForm
+          initialAuthors={authorSelections}
           initialName={initialName}
           key={initialName}
           onCancel={() => onOpenChange(false)}
@@ -76,9 +81,15 @@ export function CreateSeriesDialog({
   );
 }
 
-function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesFormProps) {
+function CreateSeriesForm({
+  initialAuthors,
+  initialName,
+  onCancel,
+  onConfirm,
+}: CreateSeriesFormProps) {
   const t = useTranslations("books");
   const [name, setName] = useState(initialName);
+  const [authors, setAuthors] = useState<AuthorSelection[]>(initialAuthors);
   const [status, setStatus] = useState<SeriesStatusValue>("unknown");
   const [totalBooks, setTotalBooks] = useState<number | undefined>(undefined);
   const [description, setDescription] = useState("");
@@ -96,6 +107,7 @@ function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesForm
 
     const trimmedDescription = description.trim();
     const parsed = NewSeriesInputSchema.safeParse({
+      authors: authors.map(authorSelectionToReference),
       description: trimmedDescription.length > 0 ? trimmedDescription : undefined,
       name,
       status,
@@ -143,6 +155,19 @@ function CreateSeriesForm({ initialName, onCancel, onConfirm }: CreateSeriesForm
             {nameError}
           </p>
         ) : null}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="new-series-authors">
+          {t("series.create.authors")}{" "}
+          <span className="text-xs font-normal text-muted-foreground">{t("fields.optional")}</span>
+        </Label>
+        <AuthorsField
+          id="new-series-authors"
+          invalid={false}
+          onChange={setAuthors}
+          value={authors}
+        />
       </div>
 
       <div className="flex flex-col gap-2">

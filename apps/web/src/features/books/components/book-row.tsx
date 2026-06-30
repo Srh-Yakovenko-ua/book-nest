@@ -43,7 +43,7 @@ export function BookRow({ book, kebab, linkComponent, selected, selectionControl
             {book.title}
           </LinkComp>
         </h3>
-        <p className="truncate text-xs text-muted-foreground">{book.author}</p>
+        <p className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</p>
       </div>
 
       <div className="hidden w-36 shrink-0 flex-col gap-1 @md/book-row:flex">

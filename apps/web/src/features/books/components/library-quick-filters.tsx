@@ -19,7 +19,7 @@ export function LibraryQuickFilters({ onSelect, value }: LibraryQuickFiltersProp
   const options = LIBRARY_QUICK_FILTER_KEYS.map((key) => ({ label: t(key), value: key }));
 
   return (
-    <div className="-mx-1 overflow-x-auto px-1 pb-1">
+    <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
       <ChipGroup
         className="flex-nowrap"
         label={t("label")}

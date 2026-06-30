@@ -16,7 +16,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 const withRelations = {
-  author: true,
+  authors: { include: { author: true }, orderBy: { position: "asc" } },
   coverMedia: true,
   deliveryInfo: true,
   lists: { include: { list: true } },
@@ -27,6 +27,7 @@ const withRelations = {
   series: {
     include: {
       _count: { select: { books: true } },
+      authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
       books: { select: { id: true }, where: { readingStatus: "finished" } },
     },
   },
@@ -102,6 +103,7 @@ export type LibraryFilter = {
 };
 
 export type UpdateBookData = {
+  authorIds?: string[];
   deliveryInfo: BlockUpsert<CreateDeliveryInfoData, UpdateDeliveryInfoData>;
   fields: Prisma.BookUncheckedUpdateManyInput;
   listIds?: string[];
@@ -130,11 +132,12 @@ type BlockDelegate<TCreate, TUpdate> = {
 
 type CreateBookData = {
   ageCategory: string;
-  authorId: string;
+  authorIds: string[];
   coverMediaId: null | string;
   dedication: null | string;
   deliveryInfo: CreateDeliveryInfoData | null;
   description: null | string;
+  firstAuthorName: string;
   formats: string[];
   genres: string[];
   illustrator: null | string;
@@ -191,11 +194,22 @@ export class BooksRepository {
   }
 
   create(userId: string, data: CreateBookData): Promise<BookWithRelations> {
-    const { deliveryInfo, listIds, loanInfo, purchaseInfo, readingProgress, tagIds, ...bookData } =
-      data;
+    const {
+      authorIds,
+      deliveryInfo,
+      listIds,
+      loanInfo,
+      purchaseInfo,
+      readingProgress,
+      tagIds,
+      ...bookData
+    } = data;
     return this.prisma.book.create({
       data: {
         ...bookData,
+        authors: {
+          create: authorIds.map((authorId, position) => ({ authorId, position })),
+        },
         deliveryInfo: deliveryInfo === null ? undefined : { create: deliveryInfo },
         lists: { create: listIds.map((listId) => ({ listId })) },
         loanInfo: loanInfo === null ? undefined : { create: loanInfo },
@@ -349,6 +363,13 @@ export class BooksRepository {
       await applyBlockUpsert(tx.bookDeliveryInfo, bookId, data.deliveryInfo);
       await applyBlockUpsert(tx.bookLoanInfo, bookId, data.loanInfo);
 
+      if (data.authorIds !== undefined) {
+        await tx.bookAuthor.deleteMany({ where: { bookId } });
+        await tx.bookAuthor.createMany({
+          data: data.authorIds.map((authorId, position) => ({ authorId, bookId, position })),
+        });
+      }
+
       if (data.tagIds !== undefined) {
         await tx.bookTag.deleteMany({ where: { bookId } });
         if (data.tagIds.length > 0) {
@@ -395,8 +416,8 @@ const CREATED_AT_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { createdAt: 
 const ID_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { id: "asc" };
 
 const LIBRARY_ORDER_BY: Record<LibrarySort, Prisma.BookOrderByWithRelationInput[]> = {
-  author_asc: [{ author: { name: "asc" } }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
-  author_desc: [{ author: { name: "desc" } }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  author_asc: [{ firstAuthorName: "asc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  author_desc: [{ firstAuthorName: "desc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
   created_asc: [{ createdAt: "asc" }, ID_TIEBREAKER],
   created_desc: [{ createdAt: "desc" }, ID_TIEBREAKER],
   pages_asc: [{ pagesCount: { nulls: "last", sort: "asc" } }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
@@ -490,7 +511,7 @@ function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
     where.tags = { some: { tagId: { in: filter.tagIds } } };
   }
   if (filter.authorIds !== undefined) {
-    where.authorId = { in: filter.authorIds };
+    where.authors = { some: { authorId: { in: filter.authorIds } } };
   }
   if (filter.publisherIds !== undefined) {
     where.publisherId = { in: filter.publisherIds };
@@ -546,8 +567,12 @@ function buildSearchConditions(filter: LibraryFilter): Prisma.BookWhereInput[] |
   const conditions: Prisma.BookWhereInput[] = [
     { title: { contains, mode: "insensitive" } },
     { originalTitle: { contains, mode: "insensitive" } },
-    { author: { name: { contains, mode: "insensitive" } } },
-    { author: { names: { some: { name: { contains, mode: "insensitive" } } } } },
+    { authors: { some: { author: { name: { contains, mode: "insensitive" } } } } },
+    {
+      authors: {
+        some: { author: { names: { some: { name: { contains, mode: "insensitive" } } } } },
+      },
+    },
     { series: { name: { contains, mode: "insensitive" } } },
     { publisher: { name: { contains, mode: "insensitive" } } },
     { publisher: { names: { some: { name: { contains, mode: "insensitive" } } } } },

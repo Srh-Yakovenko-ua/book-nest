@@ -27,10 +27,11 @@ export type SeriesPartNumberConflict = {
 };
 
 export type SeriesSelection =
-  | { draft: NewSeriesDraft; kind: "new"; name: string }
-  | { id: string; kind: "existing"; name: string; totalBooks?: number };
+  | { authorIds: string[]; id: string; kind: "existing"; name: string; totalBooks?: number }
+  | { draft: NewSeriesDraft; kind: "new"; name: string };
 
 type NewSeriesDraft = {
+  authors?: BookAuthorReference[];
   description?: string;
   name: string;
   status: "completed" | "ongoing" | "unknown";
@@ -47,7 +48,7 @@ export function authorSelectionToReference(selection: AuthorSelection): BookAuth
 export const createBookFormDefaults = {
   addToReadingQueue: false,
   ageCategory: "not_specified",
-  author: { name: "" },
+  authors: [],
   bookType: "solo",
   deliveryInfo: {},
   formats: ["paper"],

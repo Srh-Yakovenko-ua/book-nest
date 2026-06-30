@@ -12,11 +12,12 @@ import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/lib/utils";
 
-import type { SeriesSelection } from "../model/create-book-form";
+import type { AuthorSelection, SeriesSelection } from "../model/create-book-form";
 
 import { useSeriesSearch } from "../api/use-series-search";
 
 type SeriesAutocompleteProps = {
+  authorSelections: AuthorSelection[];
   describedBy?: string;
   id: string;
   invalid: boolean;
@@ -30,6 +31,7 @@ type SeriesAutocompleteProps = {
 const SEARCH_DEBOUNCE_MS = 250;
 
 export function SeriesAutocomplete({
+  authorSelections,
   describedBy,
   id,
   invalid,
@@ -42,14 +44,35 @@ export function SeriesAutocomplete({
   const t = useTranslations("books");
   const [query, setQuery] = useState(value?.name ?? "");
   const [open, setOpen] = useState(false);
+  const [trackedValue, setTrackedValue] = useState(value);
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
+
+  if (value !== trackedValue) {
+    setTrackedValue(value);
+    if (trackedValue !== null && value === null && query === trackedValue.name) {
+      setQuery("");
+    }
+  }
+
+  const catalogAuthorIds = authorSelections.flatMap((author) =>
+    author.kind === "catalog" ? [author.id] : [],
+  );
+  const selectedAuthorNames = authorSelections
+    .filter((author) => author.kind === "catalog")
+    .map((author) => author.name)
+    .join(", ");
+  const hasAuthorFilter = catalogAuthorIds.length > 0;
+
   const {
     fetchNextPage,
     hasNextPage,
     isFetching,
     isFetchingNextPage,
     items: series,
-  } = useSeriesSearch(debouncedQuery);
+  } = useSeriesSearch({ authorIds: catalogAuthorIds, search: debouncedQuery });
+
+  const authorSeries = series.filter((item) => item.authors.length > 0);
+  const authorlessSeries = series.filter((item) => item.authors.length === 0);
 
   const trimmedQuery = query.trim();
   const hasExactMatch = series.some(
@@ -59,6 +82,7 @@ export function SeriesAutocomplete({
 
   function pickExisting(item: SeriesView) {
     onChange({
+      authorIds: item.authors.map((author) => author.id),
       id: item.id,
       kind: "existing",
       name: item.name,
@@ -66,6 +90,29 @@ export function SeriesAutocomplete({
     });
     setQuery(item.name);
     setOpen(false);
+  }
+
+  function seriesOption(item: SeriesView, options: { showAuthors: boolean }) {
+    const authorNames = item.authors.map((author) => author.name).join(", ");
+    return (
+      <CommandItem
+        className="cursor-pointer"
+        key={item.id}
+        onSelect={() => pickExisting(item)}
+        value={item.id}
+      >
+        <UiIcon className="shrink-0 text-muted-foreground" name="library" size={16} />
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate">{item.name}</span>
+          {options.showAuthors && authorNames.length > 0 ? (
+            <span className="truncate text-xs text-muted-foreground">{authorNames}</span>
+          ) : null}
+        </span>
+        <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+          {t(`series.statusLabels.${item.status}`)}
+        </span>
+      </CommandItem>
+    );
   }
 
   function requestCreate() {
@@ -141,37 +188,39 @@ export function SeriesAutocomplete({
             {!isFetching && series.length === 0 && !showCreateOption ? (
               <CommandEmpty>{t("series.empty")}</CommandEmpty>
             ) : null}
-            {series.length > 0 ? (
-              <CommandGroup heading={t("series.existingHeading")}>
-                {series.map((item) => (
-                  <CommandItem
-                    className="cursor-pointer"
-                    key={item.id}
-                    onSelect={() => pickExisting(item)}
-                    value={item.id}
-                  >
-                    <UiIcon className="text-muted-foreground" name="library" size={16} />
-                    <span className="min-w-0 truncate">{item.name}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {t(`series.statusLabels.${item.status}`)}
-                    </span>
-                  </CommandItem>
-                ))}
-                {hasNextPage ? (
-                  <CommandItem
-                    className="cursor-pointer justify-center text-sm text-muted-foreground"
-                    disabled={isFetchingNextPage}
-                    onSelect={() => void fetchNextPage()}
-                    value="__load_more__"
-                  >
-                    <UiIcon
-                      className={isFetchingNextPage ? "animate-spin" : undefined}
-                      name={isFetchingNextPage ? "refresh" : "chevron-down"}
-                      size={16}
-                    />
-                    {isFetchingNextPage ? t("series.searching") : t("series.loadMore")}
-                  </CommandItem>
+            {hasAuthorFilter ? (
+              <>
+                {authorSeries.length > 0 ? (
+                  <CommandGroup heading={t("series.authorHeading", { name: selectedAuthorNames })}>
+                    {authorSeries.map((item) => seriesOption(item, { showAuthors: false }))}
+                  </CommandGroup>
                 ) : null}
+                {authorlessSeries.length > 0 ? (
+                  <CommandGroup heading={t("series.noAuthorHeading")}>
+                    {authorlessSeries.map((item) => seriesOption(item, { showAuthors: false }))}
+                  </CommandGroup>
+                ) : null}
+              </>
+            ) : series.length > 0 ? (
+              <CommandGroup heading={t("series.yourSeries")}>
+                {series.map((item) => seriesOption(item, { showAuthors: true }))}
+              </CommandGroup>
+            ) : null}
+            {hasNextPage ? (
+              <CommandGroup>
+                <CommandItem
+                  className="cursor-pointer justify-center text-sm text-muted-foreground"
+                  disabled={isFetchingNextPage}
+                  onSelect={() => void fetchNextPage()}
+                  value="__load_more__"
+                >
+                  <UiIcon
+                    className={isFetchingNextPage ? "animate-spin" : undefined}
+                    name={isFetchingNextPage ? "refresh" : "chevron-down"}
+                    size={16}
+                  />
+                  {isFetchingNextPage ? t("series.searching") : t("series.loadMore")}
+                </CommandItem>
               </CommandGroup>
             ) : null}
             {showCreateOption ? (

@@ -9,6 +9,7 @@ import {
   AuthorLookupQuerySchema,
   AuthorSearchPaginationQuerySchema,
   CatalogLocaleSchema,
+  RecentAuthorsQuerySchema,
 } from "@app/shared";
 import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
 import {
@@ -30,6 +31,7 @@ import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
 import { AuthorsService } from "../application/authors.service.js";
 import { AuthorLookupQueryDto } from "./input-dto/author-lookup-query.input-dto.js";
 import { AuthorSearchPaginationQueryDto } from "./input-dto/author-search-query.input-dto.js";
+import { RecentAuthorsQueryDto } from "./input-dto/recent-authors-query.input-dto.js";
 
 const LOOKUP_TTL_SECONDS = 60;
 const LOOKUP_LIMIT = 30;
@@ -52,6 +54,25 @@ export class AuthorsController {
     @Query(new ZodQueryPipe(AuthorLookupQuerySchema)) query: AuthorLookupQueryDto,
   ): Promise<AuthorLookupResult[]> {
     return this.authorsService.lookup(user.id, query.q);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Authors the current user recently used in their own books" })
+  @ApiOperation({ summary: "List recently used authors for the current user" })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("recent")
+  @UseGuards(JwtAccessGuard)
+  recent(
+    @CurrentUser() user: UserModel,
+    @Query(new ZodQueryPipe(RecentAuthorsQuerySchema)) query: RecentAuthorsQueryDto,
+  ): Promise<AuthorView[]> {
+    return this.authorsService.recent({
+      limit: query.limit,
+      locale: query.locale,
+      userId: user.id,
+    });
   }
 
   @ApiBearerAuth()

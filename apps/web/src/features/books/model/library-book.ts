@@ -4,7 +4,7 @@ import type { GenreIconName } from "@/components/icons";
 import type { StatusEntry } from "@/lib/book-status";
 
 export type LibraryBook = {
-  author: string;
+  authors: string[];
   cover?: { alt?: string; src: string };
   coverMedia?: MediaView;
   genres?: { icon?: GenreIconName; label: string }[];

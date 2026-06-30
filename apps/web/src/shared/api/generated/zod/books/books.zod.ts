@@ -12,10 +12,12 @@ import * as zod from "zod";
  */
 export const booksControllerCreateBodyAddToReadingQueueDefault = false;
 export const booksControllerCreateBodyAgeCategoryDefault = `not_specified`;
-export const booksControllerCreateBodyAuthorOneIdRegExp = new RegExp(
+export const booksControllerCreateBodyAuthorsItemOneIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerCreateBodyAuthorTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const booksControllerCreateBodyAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const booksControllerCreateBodyAuthorsMax = 20;
+
 export const booksControllerCreateBodyBookTypeDefault = `solo`;
 export const booksControllerCreateBodyCoverMediaIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -46,6 +48,14 @@ export const booksControllerCreateBodyLoanInfoLoanDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerCreateBodyNewListsMax = 20;
+
+export const booksControllerCreateBodyNewSeriesAuthorsItemOneIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerCreateBodyNewSeriesAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp(
+  "^OL\\d+A$",
+);
+export const booksControllerCreateBodyNewSeriesAuthorsMax = 20;
 
 export const booksControllerCreateBodyNewSeriesStatusDefault = `unknown`;
 export const booksControllerCreateBodyNewSeriesTotalBooksMax = 999;
@@ -103,17 +113,24 @@ export const BooksControllerCreateBody = zod.object({
       "18_plus",
     ])
     .default(booksControllerCreateBodyAgeCategoryDefault),
-  author: zod.union([
-    zod.object({
-      id: zod.uuid().regex(booksControllerCreateBodyAuthorOneIdRegExp),
-    }),
-    zod.object({
-      openLibraryKey: zod.string().regex(booksControllerCreateBodyAuthorTwoOpenLibraryKeyRegExp),
-    }),
-    zod.object({
-      name: zod.string(),
-    }),
-  ]),
+  authors: zod
+    .array(
+      zod.union([
+        zod.object({
+          id: zod.uuid().regex(booksControllerCreateBodyAuthorsItemOneIdRegExp),
+        }),
+        zod.object({
+          openLibraryKey: zod
+            .string()
+            .regex(booksControllerCreateBodyAuthorsItemTwoOpenLibraryKeyRegExp),
+        }),
+        zod.object({
+          name: zod.string(),
+        }),
+      ]),
+    )
+    .min(1)
+    .max(booksControllerCreateBodyAuthorsMax),
   bookType: zod.enum(["solo", "series_part"]).default(booksControllerCreateBodyBookTypeDefault),
   coverMediaId: zod.uuid().regex(booksControllerCreateBodyCoverMediaIdRegExp).nullish(),
   dedication: zod.string().nullish(),
@@ -175,6 +192,24 @@ export const BooksControllerCreateBody = zod.object({
     .optional(),
   newSeries: zod
     .object({
+      authors: zod
+        .array(
+          zod.union([
+            zod.object({
+              id: zod.uuid().regex(booksControllerCreateBodyNewSeriesAuthorsItemOneIdRegExp),
+            }),
+            zod.object({
+              openLibraryKey: zod
+                .string()
+                .regex(booksControllerCreateBodyNewSeriesAuthorsItemTwoOpenLibraryKeyRegExp),
+            }),
+            zod.object({
+              name: zod.string(),
+            }),
+          ]),
+        )
+        .max(booksControllerCreateBodyNewSeriesAuthorsMax)
+        .optional(),
       description: zod.string().optional(),
       name: zod.string(),
       status: zod
@@ -472,10 +507,12 @@ export const BooksControllerUpdateParams = zod.object({
   id: zod.string(),
 });
 
-export const booksControllerUpdateBodyAuthorOneIdRegExp = new RegExp(
+export const booksControllerUpdateBodyAuthorsItemOneIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerUpdateBodyAuthorTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const booksControllerUpdateBodyAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const booksControllerUpdateBodyAuthorsMax = 20;
+
 export const booksControllerUpdateBodyCoverMediaIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
@@ -501,6 +538,14 @@ export const booksControllerUpdateBodyLoanInfoLoanDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
 export const booksControllerUpdateBodyNewListsMax = 20;
+
+export const booksControllerUpdateBodyNewSeriesAuthorsItemOneIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerUpdateBodyNewSeriesAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp(
+  "^OL\\d+A$",
+);
+export const booksControllerUpdateBodyNewSeriesAuthorsMax = 20;
 
 export const booksControllerUpdateBodyNewSeriesStatusDefault = `unknown`;
 export const booksControllerUpdateBodyNewSeriesTotalBooksMax = 999;
@@ -556,18 +601,24 @@ export const BooksControllerUpdateBody = zod.object({
       "18_plus",
     ])
     .optional(),
-  author: zod
-    .union([
-      zod.object({
-        id: zod.uuid().regex(booksControllerUpdateBodyAuthorOneIdRegExp),
-      }),
-      zod.object({
-        openLibraryKey: zod.string().regex(booksControllerUpdateBodyAuthorTwoOpenLibraryKeyRegExp),
-      }),
-      zod.object({
-        name: zod.string(),
-      }),
-    ])
+  authors: zod
+    .array(
+      zod.union([
+        zod.object({
+          id: zod.uuid().regex(booksControllerUpdateBodyAuthorsItemOneIdRegExp),
+        }),
+        zod.object({
+          openLibraryKey: zod
+            .string()
+            .regex(booksControllerUpdateBodyAuthorsItemTwoOpenLibraryKeyRegExp),
+        }),
+        zod.object({
+          name: zod.string(),
+        }),
+      ]),
+    )
+    .min(1)
+    .max(booksControllerUpdateBodyAuthorsMax)
     .optional(),
   bookType: zod.enum(["solo", "series_part"]).optional(),
   coverMediaId: zod.uuid().regex(booksControllerUpdateBodyCoverMediaIdRegExp).nullish(),
@@ -628,6 +679,24 @@ export const BooksControllerUpdateBody = zod.object({
     .optional(),
   newSeries: zod
     .object({
+      authors: zod
+        .array(
+          zod.union([
+            zod.object({
+              id: zod.uuid().regex(booksControllerUpdateBodyNewSeriesAuthorsItemOneIdRegExp),
+            }),
+            zod.object({
+              openLibraryKey: zod
+                .string()
+                .regex(booksControllerUpdateBodyNewSeriesAuthorsItemTwoOpenLibraryKeyRegExp),
+            }),
+            zod.object({
+              name: zod.string(),
+            }),
+          ]),
+        )
+        .max(booksControllerUpdateBodyNewSeriesAuthorsMax)
+        .optional(),
       description: zod.string().optional(),
       name: zod.string(),
       status: zod

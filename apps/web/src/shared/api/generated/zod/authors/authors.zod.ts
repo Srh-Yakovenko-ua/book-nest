@@ -20,6 +20,23 @@ export const AuthorsControllerLookupQueryParams = zod.object({
 export const AuthorsControllerLookupResponse = zod.unknown();
 
 /**
+ * @summary List recently used authors for the current user
+ */
+export const authorsControllerRecentQueryLimitDefault = 8;
+export const authorsControllerRecentQueryLimitMax = 20;
+
+export const AuthorsControllerRecentQueryParams = zod.object({
+  limit: zod
+    .number()
+    .min(1)
+    .max(authorsControllerRecentQueryLimitMax)
+    .default(authorsControllerRecentQueryLimitDefault),
+  locale: zod.enum(["en", "uk"]).optional(),
+});
+
+export const AuthorsControllerRecentResponse = zod.unknown();
+
+/**
  * @summary List an author's books from Open Library
  */
 export const AuthorsControllerListBooksParams = zod.object({

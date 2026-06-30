@@ -48,10 +48,20 @@ type FindExistingByLookupInput = {
   userId: string;
 };
 
+type RecentAuthorsInput = {
+  limit: number;
+  userId: string;
+};
+
 type SearchAuthorsInput = {
   query: string | undefined;
   skip: number;
   take: number;
+  userId: string;
+};
+
+type VisibleByIdsInput = {
+  ids: string[];
   userId: string;
 };
 
@@ -88,6 +98,13 @@ export class AuthorsRepository {
   createGlobal(data: CreateGlobalAuthorData, names: AuthorNameSeed[]): Promise<AuthorModel> {
     return this.prisma.author.create({
       data: { ...data, names: { create: names }, userId: null },
+    });
+  }
+
+  findBaseByIds({ ids, userId }: VisibleByIdsInput): Promise<{ id: string; name: string }[]> {
+    return this.prisma.author.findMany({
+      select: { id: true, name: true },
+      where: { id: { in: ids }, OR: [{ userId: null }, { userId }] },
     });
   }
 
@@ -132,11 +149,31 @@ export class AuthorsRepository {
     });
   }
 
+  findVisibleByIdsWithNames({ ids, userId }: VisibleByIdsInput): Promise<AuthorWithPrimaryNames[]> {
+    return this.prisma.author.findMany({
+      where: { id: { in: ids }, OR: [{ userId: null }, { userId }] },
+      ...primaryNamesArgs,
+    });
+  }
+
   findVisibleByIdWithNames(userId: string, id: string): Promise<AuthorWithPrimaryNames | null> {
     return this.prisma.author.findFirst({
       where: { id, OR: [{ userId: null }, { userId }] },
       ...primaryNamesArgs,
     });
+  }
+
+  async recentAuthorIds({ limit, userId }: RecentAuthorsInput): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<{ authorId: string }[]>`
+      SELECT book_author.author_id AS "authorId"
+      FROM book_authors book_author
+      JOIN books book ON book.id = book_author.book_id
+      WHERE book.user_id = ${userId}::uuid
+      GROUP BY book_author.author_id
+      ORDER BY max(book.created_at) DESC
+      LIMIT ${limit}
+    `;
+    return rows.map((row) => row.authorId);
   }
 
   searchVisible({
