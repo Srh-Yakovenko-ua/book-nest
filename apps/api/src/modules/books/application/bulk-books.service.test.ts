@@ -255,7 +255,7 @@ describe("BulkBooksService.setReadingStatus", () => {
 describe("BulkBooksService.setOwnershipStatus", () => {
   it("clears every conditional block when the new status uses none of them", async () => {
     const { bulkBooksRepository, service } = buildService({ setOwnershipStatus: 1 });
-    const input: BulkOwnershipStatusInput = { bookIds: [BOOK_A], ownershipStatus: "owned" };
+    const input: BulkOwnershipStatusInput = { bookIds: [BOOK_A], ownershipStatus: "none" };
 
     await service.setOwnershipStatus({ input, userId: USER_ID });
 
@@ -264,9 +264,20 @@ describe("BulkBooksService.setOwnershipStatus", () => {
       clearDelivery: true,
       clearLoan: true,
       clearPurchase: true,
-      ownershipStatus: "owned",
+      ownershipStatus: "none",
       userId: USER_ID,
     });
+  });
+
+  it("keeps the purchase block when the new status is owned", async () => {
+    const { bulkBooksRepository, service } = buildService({ setOwnershipStatus: 1 });
+    const input: BulkOwnershipStatusInput = { bookIds: [BOOK_A], ownershipStatus: "owned" };
+
+    await service.setOwnershipStatus({ input, userId: USER_ID });
+
+    expect(bulkBooksRepository.setOwnershipStatus).toHaveBeenCalledWith(
+      expect.objectContaining({ clearDelivery: true, clearLoan: true, clearPurchase: false }),
+    );
   });
 
   it("keeps the delivery block when the new status is in_transit", async () => {

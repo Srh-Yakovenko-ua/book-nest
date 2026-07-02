@@ -4,7 +4,13 @@ import { SeriesStatusSchema } from "@app/shared";
 
 import type { SeriesWithBookCount } from "../infrastructure/series.repository.js";
 
+import { summarizeSeriesBooks, toSeriesBookPreview } from "./series-preview.js";
+
 export function toSeriesView(series: SeriesWithBookCount): SeriesView {
+  const { finishedInSeries, nextBook } = summarizeSeriesBooks(
+    series.books.map(toSeriesBookPreview),
+  );
+
   return {
     authors: series.authors.map((seriesAuthor) => ({
       id: seriesAuthor.author.id,
@@ -12,9 +18,10 @@ export function toSeriesView(series: SeriesWithBookCount): SeriesView {
     })),
     booksInSeries: series._count.books,
     description: series.description,
-    finishedInSeries: series.books.length,
+    finishedInSeries,
     id: series.id,
     name: series.name,
+    nextBook,
     status: SeriesStatusSchema.parse(series.status),
     totalBooks: series.totalBooks,
   };

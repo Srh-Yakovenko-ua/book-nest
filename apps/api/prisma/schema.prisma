@@ -47,6 +47,7 @@ model User {
   bookLists               BookList[]
   customGenres            Genre[]
   mediaAssets             MediaAsset[]
+  bookDeliveries          BookDelivery[]
 
   @@map("users")
 }
@@ -190,7 +191,7 @@ model Book {
   lists           BookListItem[]
   readingProgress BookReadingProgress?
   purchaseInfo    BookPurchaseInfo?
-  deliveryInfo    BookDeliveryInfo?
+  deliveries      BookDelivery[]
   loanInfo        BookLoanInfo?
 
   @@index([userId])
@@ -224,52 +225,65 @@ model SeriesAuthor {
 }
 
 model BookReadingProgress {
-  id          String    @id @default(uuid()) @db.Uuid
-  bookId      String    @unique @map("book_id") @db.Uuid
-  currentPage Int?      @map("current_page")
-  startedAt   DateTime? @map("started_at") @db.Date
-  finishedAt  DateTime? @map("finished_at") @db.Date
-  pausedAt    DateTime? @map("paused_at") @db.Date
-  abandonedAt DateTime? @map("abandoned_at") @db.Date
-  rating      Float?
-  note        String?
-  impression  String?
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(uuid()) @db.Uuid
+  bookId               String    @unique @map("book_id") @db.Uuid
+  currentPage          Int?      @map("current_page")
+  startedAt            DateTime? @map("started_at") @db.Date
+  finishedAt           DateTime? @map("finished_at") @db.Date
+  pausedAt             DateTime? @map("paused_at") @db.Date
+  abandonedAt          DateTime? @map("abandoned_at") @db.Date
+  rating               Float?
+  note                 String?
+  impression           String?
+  lastProgressUpdateAt DateTime? @map("last_progress_update_at") @db.Date
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  book                 Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@map("book_reading_progress")
 }
 
 model BookPurchaseInfo {
-  id            String   @id @default(uuid()) @db.Uuid
-  bookId        String   @unique @map("book_id") @db.Uuid
-  storeName     String?  @map("store_name")
-  storeUrl      String?  @map("store_url")
-  expectedPrice Decimal? @map("expected_price") @db.Decimal(10, 2)
+  id            String    @id @default(uuid()) @db.Uuid
+  bookId        String    @unique @map("book_id") @db.Uuid
+  storeName     String?   @map("store_name")
+  storeUrl      String?   @map("store_url")
+  expectedPrice Decimal?  @map("expected_price") @db.Decimal(10, 2)
   currency      String?
   note          String?
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  book          Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  purchasedAt   DateTime? @map("purchased_at") @db.Date
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  book          Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@map("book_purchase_info")
 }
 
-model BookDeliveryInfo {
+model BookDelivery {
   id                   String    @id @default(uuid()) @db.Uuid
-  bookId               String    @unique @map("book_id") @db.Uuid
+  userId               String    @map("user_id") @db.Uuid
+  bookId               String    @map("book_id") @db.Uuid
   storeName            String?   @map("store_name")
-  orderNumber          String?   @map("order_number")
   orderDate            DateTime? @map("order_date") @db.Date
   expectedDeliveryDate DateTime? @map("expected_delivery_date") @db.Date
-  deliveryStatus       String?   @map("delivery_status")
+  orderNumber          String?   @map("order_number")
+  trackingUrl          String?   @map("tracking_url")
+  trackingNumber       String?   @map("tracking_number")
+  deliveryService      String?   @map("delivery_service")
+  price                Decimal?  @db.Decimal(10, 2)
+  currency             String?
   note                 String?
+  status               String    @default("ordered")
+  receivedAt           DateTime? @map("received_at") @db.Timestamptz
+  cancelledAt          DateTime? @map("cancelled_at") @db.Timestamptz
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   book                 Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
-  @@map("book_delivery_info")
+  @@index([bookId])
+  @@index([userId])
+  @@map("book_deliveries")
 }
 
 model BookLoanInfo {
@@ -278,6 +292,8 @@ model BookLoanInfo {
   personName         String    @map("person_name")
   loanDate           DateTime? @map("loan_date") @db.Date
   expectedReturnDate DateTime? @map("expected_return_date") @db.Date
+  contact            String?   @map("contact")
+  remindToReturn     Boolean   @default(false) @map("remind_to_return")
   note               String?
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz

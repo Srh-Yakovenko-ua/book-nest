@@ -8,9 +8,11 @@ import type {
   ReadingStatus,
 } from "@app/shared";
 
+import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.repository.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
@@ -18,7 +20,7 @@ import { NotFoundError } from "../../../core/exceptions/errors.js";
 const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
   coverMedia: true,
-  deliveryInfo: true,
+  deliveries: { orderBy: { createdAt: "desc" } },
   lists: { include: { list: true } },
   loanInfo: true,
   publisher: true,
@@ -28,7 +30,15 @@ const withRelations = {
     include: {
       _count: { select: { books: true } },
       authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
-      books: { select: { id: true }, where: { readingStatus: "finished" } },
+      books: {
+        select: {
+          createdAt: true,
+          id: true,
+          partNumber: true,
+          readingStatus: true,
+          title: true,
+        },
+      },
     },
   },
   tags: { include: { tag: true } },
@@ -43,20 +53,13 @@ export type BookWithRelations = Prisma.BookGetPayload<{
   include: typeof withRelations;
 }>;
 
-export type CreateDeliveryInfoData = {
-  deliveryStatus: null | string;
-  expectedDeliveryDate: Date | null;
-  note: null | string;
-  orderDate: Date | null;
-  orderNumber: null | string;
-  storeName: null | string;
-};
-
 export type CreateLoanInfoData = {
+  contact: null | string;
   expectedReturnDate: Date | null;
   loanDate: Date | null;
   note: null | string;
   personName: string;
+  remindToReturn: boolean;
 };
 
 export type CreatePurchaseInfoData = {
@@ -72,11 +75,17 @@ export type CreateReadingProgressData = {
   currentPage: null | number;
   finishedAt: Date | null;
   impression: null | string;
+  lastProgressUpdateAt: Date | null;
   note: null | string;
   pausedAt: Date | null;
   rating: null | number;
   startedAt: Date | null;
 };
+
+export type DeliveryBlockChange =
+  | { cancelledAt: Date; kind: "cancel" }
+  | { create: CreateDeliveryData; kind: "upsertActive"; update: UpdateDeliveryData }
+  | { kind: "skip" };
 
 export type LibraryFilter = {
   ageCategories?: AgeCategory[];
@@ -102,9 +111,28 @@ export type LibraryFilter = {
   yearMin?: number;
 };
 
+export type LoanChangePatch = {
+  book: { ownershipStatus?: OwnershipStatus };
+  loanInfo?: "delete" | CreateLoanInfoData;
+};
+
+export type OwnershipChangePatch = {
+  book: { ownershipStatus?: OwnershipStatus };
+  purchaseInfo?: "delete" | OwnershipPurchaseInfoPatch;
+};
+
+export type OwnershipPurchaseInfoPatch = Partial<CreatePurchaseInfoData> & {
+  purchasedAt?: Date | null;
+};
+
+export type ReadingChangePatch = {
+  book: { readingStatus?: ReadingStatus };
+  progress: Partial<CreateReadingProgressData>;
+};
+
 export type UpdateBookData = {
   authorIds?: string[];
-  deliveryInfo: BlockUpsert<CreateDeliveryInfoData, UpdateDeliveryInfoData>;
+  deliveryInfo: DeliveryBlockChange;
   fields: Prisma.BookUncheckedUpdateManyInput;
   listIds?: string[];
   loanInfo: BlockUpsert<CreateLoanInfoData, UpdateLoanInfoData>;
@@ -112,8 +140,6 @@ export type UpdateBookData = {
   readingProgress: BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData>;
   tagIds?: string[];
 };
-
-export type UpdateDeliveryInfoData = Partial<CreateDeliveryInfoData>;
 
 export type UpdateLoanInfoData = Partial<CreateLoanInfoData>;
 
@@ -135,7 +161,7 @@ type CreateBookData = {
   authorIds: string[];
   coverMediaId: null | string;
   dedication: null | string;
-  deliveryInfo: CreateDeliveryInfoData | null;
+  deliveryInfo: CreateDeliveryData | null;
   description: null | string;
   firstAuthorName: string;
   formats: string[];
@@ -166,6 +192,93 @@ type CreateBookData = {
 @Injectable()
 export class BooksRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async applyLoanChange(userId: string, bookId: string, patch: LoanChangePatch): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const owned = await tx.book.findFirst({
+        select: { id: true },
+        where: { id: bookId, userId },
+      });
+      if (owned === null) {
+        throw new NotFoundError("Book not found");
+      }
+
+      if (Object.keys(patch.book).length > 0) {
+        await tx.book.update({ data: patch.book, where: { id: bookId } });
+      }
+
+      if (patch.loanInfo === "delete") {
+        await tx.bookLoanInfo.deleteMany({ where: { bookId } });
+        return;
+      }
+
+      if (patch.loanInfo !== undefined) {
+        await tx.bookLoanInfo.upsert({
+          create: { ...patch.loanInfo, bookId },
+          update: patch.loanInfo,
+          where: { bookId },
+        });
+      }
+    });
+  }
+
+  async applyOwnershipChange(
+    userId: string,
+    bookId: string,
+    patch: OwnershipChangePatch,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const owned = await tx.book.findFirst({
+        select: { id: true },
+        where: { id: bookId, userId },
+      });
+      if (owned === null) {
+        throw new NotFoundError("Book not found");
+      }
+
+      if (Object.keys(patch.book).length > 0) {
+        await tx.book.update({ data: patch.book, where: { id: bookId } });
+      }
+
+      if (patch.purchaseInfo === "delete") {
+        await tx.bookPurchaseInfo.deleteMany({ where: { bookId } });
+      } else if (patch.purchaseInfo !== undefined && Object.keys(patch.purchaseInfo).length > 0) {
+        await tx.bookPurchaseInfo.upsert({
+          create: { ...patch.purchaseInfo, bookId },
+          update: patch.purchaseInfo,
+          where: { bookId },
+        });
+      }
+    });
+  }
+
+  async applyReadingChange(
+    userId: string,
+    bookId: string,
+    patch: ReadingChangePatch,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const owned = await tx.book.findFirst({
+        select: { id: true },
+        where: { id: bookId, userId },
+      });
+      if (owned === null) {
+        throw new NotFoundError("Book not found");
+      }
+
+      if (Object.keys(patch.book).length > 0) {
+        await tx.book.update({ data: patch.book, where: { id: bookId } });
+      }
+
+      if (Object.keys(patch.progress).length > 0) {
+        await tx.bookReadingProgress.upsert({
+          create: { ...patch.progress, bookId },
+          update: patch.progress,
+          where: { bookId },
+        });
+      }
+    });
+  }
 
   countByCoverMediaId(coverMediaId: string): Promise<number> {
     return this.prisma.book.count({ where: { coverMediaId } });
@@ -210,7 +323,7 @@ export class BooksRepository {
         authors: {
           create: authorIds.map((authorId, position) => ({ authorId, position })),
         },
-        deliveryInfo: deliveryInfo === null ? undefined : { create: deliveryInfo },
+        deliveries: deliveryInfo === null ? undefined : { create: { ...deliveryInfo, userId } },
         lists: { create: listIds.map((listId) => ({ listId })) },
         loanInfo: loanInfo === null ? undefined : { create: loanInfo },
         purchaseInfo: purchaseInfo === null ? undefined : { create: purchaseInfo },
@@ -231,6 +344,15 @@ export class BooksRepository {
       include: withRelations,
       where: { id, userId },
     });
+  }
+
+  async findOwnedByIdOrThrow(userId: string, id: string): Promise<BookWithRelations> {
+    const book = await this.findOwnedById(userId, id);
+    if (book === null) {
+      throw new NotFoundError("Book not found");
+    }
+
+    return book;
   }
 
   findSeriesPartNumberConflict(
@@ -360,7 +482,7 @@ export class BooksRepository {
 
       await applyBlockUpsert(tx.bookReadingProgress, bookId, data.readingProgress);
       await applyBlockUpsert(tx.bookPurchaseInfo, bookId, data.purchaseInfo);
-      await applyBlockUpsert(tx.bookDeliveryInfo, bookId, data.deliveryInfo);
+      await applyDeliveryBlock(tx, bookId, userId, data.deliveryInfo);
       await applyBlockUpsert(tx.bookLoanInfo, bookId, data.loanInfo);
 
       if (data.authorIds !== undefined) {
@@ -470,6 +592,36 @@ async function applyBlockUpsert<TCreate, TUpdate>(
     update: block.update,
     where: { bookId },
   });
+}
+
+async function applyDeliveryBlock(
+  tx: Prisma.TransactionClient,
+  bookId: string,
+  userId: string,
+  change: DeliveryBlockChange,
+): Promise<void> {
+  if (change.kind === "skip") {
+    return;
+  }
+
+  if (change.kind === "cancel") {
+    await tx.bookDelivery.updateMany({
+      data: { cancelledAt: change.cancelledAt, status: "cancelled" },
+      where: { bookId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
+    });
+    return;
+  }
+
+  const active = await tx.bookDelivery.findFirst({
+    select: { id: true },
+    where: { bookId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
+  });
+  if (active === null) {
+    await tx.bookDelivery.create({ data: { ...change.create, bookId, userId } });
+    return;
+  }
+
+  await tx.bookDelivery.update({ data: change.update, where: { id: active.id } });
 }
 
 function buildIntRange({

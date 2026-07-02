@@ -639,6 +639,7 @@ describe("POST /api/books", () => {
       currentPage: 120,
       finishedAt: null,
       impression: null,
+      lastProgressUpdateAt: null,
       note: "great so far",
       pausedAt: null,
       rating: null,
@@ -662,6 +663,7 @@ describe("POST /api/books", () => {
       currentPage: null,
       finishedAt: "2026-02-05",
       impression: "loved it",
+      lastProgressUpdateAt: null,
       note: null,
       pausedAt: null,
       rating: 8.5,
@@ -762,8 +764,26 @@ describe("POST /api/books", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.purchaseInfo).toBeNull();
-    expect(res.body.deliveryInfo).toBeNull();
+    expect(res.body.delivery.active).toBeNull();
     expect(res.body.loanInfo).toBeNull();
+  });
+
+  it("stores the purchase info for an owned book created with purchase details", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "owned",
+      purchaseInfo: { currency: "UAH", expectedPrice: 299.99, storeName: "Yakaboo" },
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.purchaseInfo).toMatchObject({
+      currency: "UAH",
+      expectedPrice: 299.99,
+      storeName: "Yakaboo",
+    });
   });
 
   it("creates a want_to_buy book with purchase info and echoes the price as a number", async () => {
@@ -781,10 +801,11 @@ describe("POST /api/books", () => {
       currency: "UAH",
       expectedPrice: 299.99,
       note: null,
+      purchasedAt: null,
       storeName: "Yakaboo",
       storeUrl: null,
     });
-    expect(res.body.deliveryInfo).toBeNull();
+    expect(res.body.delivery.active).toBeNull();
     expect(res.body.loanInfo).toBeNull();
   });
 
@@ -815,9 +836,9 @@ describe("POST /api/books", () => {
     });
 
     expect(res.status).toBe(201);
-    expect(res.body.deliveryInfo).toMatchObject({
-      deliveryStatus: "ordered",
+    expect(res.body.delivery.active).toMatchObject({
       orderNumber: "TTN-1",
+      status: "ordered",
       storeName: "Yakaboo",
     });
   });
@@ -852,10 +873,12 @@ describe("POST /api/books", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.loanInfo).toEqual({
+      contact: null,
       expectedReturnDate: null,
       loanDate: "2026-02-01",
       note: null,
       personName: "Olha",
+      remindToReturn: false,
     });
   });
 

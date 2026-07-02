@@ -475,10 +475,23 @@ export const DeliveryStatusSchema = z.enum([
   "ordered",
   "in_transit",
   "ready_for_pickup",
+  "received",
   "cancelled",
 ]);
 
 export type DeliveryStatus = z.infer<typeof DeliveryStatusSchema>;
+
+export const DELIVERY_ACTIVE_STATUSES = ["ordered", "in_transit", "ready_for_pickup"] as const;
+
+const DELIVERY_ACTIVE_STATUS_SET: ReadonlySet<DeliveryStatus> = new Set(DELIVERY_ACTIVE_STATUSES);
+
+export const ActiveDeliveryStatusSchema = z.enum(DELIVERY_ACTIVE_STATUSES);
+
+export type ActiveDeliveryStatus = z.infer<typeof ActiveDeliveryStatusSchema>;
+
+export function isActiveDeliveryStatus(status: DeliveryStatus): status is ActiveDeliveryStatus {
+  return DELIVERY_ACTIVE_STATUS_SET.has(status);
+}
 
 const BOOK_GENRES_MAX = 5;
 const GENRE_KEY_MAX = 64;
@@ -706,30 +719,45 @@ export const ReadingImpressionSchema = z
   .transform(collapseHorizontalSpaces)
   .pipe(NoHtmlString.max(READING_IMPRESSION_MAX, "Impression must be at most 500 characters long"));
 
+const ReadingCurrentPageSchema = z
+  .number()
+  .int()
+  .min(READING_CURRENT_PAGE_MIN)
+  .max(READING_CURRENT_PAGE_MAX);
+
+const ReadingRatingSchema = z
+  .number()
+  .min(READING_RATING_MIN, "Rating must be from 0.5 to 10 in steps of 0.5")
+  .max(READING_RATING_MAX, "Rating must be from 0.5 to 10 in steps of 0.5")
+  .multipleOf(READING_RATING_STEP, "Rating must be from 0.5 to 10 in steps of 0.5");
+
 export const ReadingProgressInputSchema = z
   .object({
     abandonedAt: notInFutureDate("Abandoned date must not be in the future").nullable().optional(),
-    currentPage: z
-      .number()
-      .int()
-      .min(READING_CURRENT_PAGE_MIN)
-      .max(READING_CURRENT_PAGE_MAX)
-      .nullable()
-      .optional(),
+    currentPage: ReadingCurrentPageSchema.nullable().optional(),
     finishedAt: notInFutureDate("Finished date must not be in the future").nullable().optional(),
     impression: ReadingImpressionSchema.nullable().optional(),
     note: ReadingNoteSchema.nullable().optional(),
     pausedAt: notInFutureDate("Paused date must not be in the future").nullable().optional(),
-    rating: z
-      .number()
-      .min(READING_RATING_MIN, "Rating must be from 0.5 to 10 in steps of 0.5")
-      .max(READING_RATING_MAX, "Rating must be from 0.5 to 10 in steps of 0.5")
-      .multipleOf(READING_RATING_STEP, "Rating must be from 0.5 to 10 in steps of 0.5")
-      .nullable()
-      .optional(),
+    rating: ReadingRatingSchema.nullable().optional(),
     startedAt: notInFutureDate("Start date must not be in the future").nullable().optional(),
   })
   .optional();
+
+export const ChangeReadingStatusInputSchema = z.object({
+  currentPage: ReadingCurrentPageSchema.optional(),
+  date: notInFutureDate("Date must not be in the future").optional(),
+  note: ReadingNoteSchema.nullable().optional(),
+  rating: ReadingRatingSchema.nullable().optional(),
+  resetProgress: z.boolean().optional(),
+  status: ReadingStatusSchema,
+});
+
+export const UpdateReadingProgressInputSchema = z.object({
+  currentPage: ReadingCurrentPageSchema,
+  markAsFinished: z.boolean().optional(),
+  updateDate: notInFutureDate("Update date must not be in the future").optional(),
+});
 
 const OWNERSHIP_STORE_NAME_MAX = 100;
 const OWNERSHIP_STORE_URL_MAX = 300;
@@ -737,7 +765,9 @@ const OWNERSHIP_ORDER_NUMBER_MAX = 100;
 const OWNERSHIP_NOTE_MAX = 300;
 const OWNERSHIP_PERSON_NAME_MIN = 2;
 const OWNERSHIP_PERSON_NAME_MAX = 100;
+const OWNERSHIP_CONTACT_MAX = 100;
 const OWNERSHIP_PRICE_MIN = 0;
+const OWNERSHIP_PRICE_MAX = 99999999.99;
 
 const OwnershipStoreNameSchema = z
   .string()
@@ -778,67 +808,184 @@ const OwnershipPersonNameSchema = z
     ),
   );
 
-const OwnershipPriceSchema = z.number().gt(OWNERSHIP_PRICE_MIN, "Price must be greater than 0");
+const OwnershipContactSchema = z
+  .string()
+  .transform(collapseSpaces)
+  .pipe(NoHtmlString.max(OWNERSHIP_CONTACT_MAX, "Contact must be at most 100 characters long"));
 
-export const PurchaseInfoInputSchema = z
-  .object({
-    currency: CurrencySchema.nullable().optional(),
-    expectedPrice: OwnershipPriceSchema.nullable().optional(),
-    note: OwnershipNoteSchema.nullable().optional(),
-    storeName: OwnershipStoreNameSchema.nullable().optional(),
-    storeUrl: OwnershipStoreUrlSchema.nullable().optional(),
-  })
-  .optional();
+const OwnershipPriceSchema = z
+  .number()
+  .gt(OWNERSHIP_PRICE_MIN, "Price must be greater than 0")
+  .max(OWNERSHIP_PRICE_MAX, "Price must be at most 99999999.99");
+
+const PurchaseInfoFieldsSchema = z.object({
+  currency: CurrencySchema.nullable().optional(),
+  expectedPrice: OwnershipPriceSchema.nullable().optional(),
+  note: OwnershipNoteSchema.nullable().optional(),
+  storeName: OwnershipStoreNameSchema.nullable().optional(),
+  storeUrl: OwnershipStoreUrlSchema.nullable().optional(),
+});
+
+export const PurchaseInfoInputSchema = PurchaseInfoFieldsSchema.optional();
 
 export type PurchaseInfoInput = z.infer<typeof PurchaseInfoInputSchema>;
 
+export const WantToBuyInputSchema = PurchaseInfoFieldsSchema;
+
+export type WantToBuyInput = z.infer<typeof WantToBuyInputSchema>;
+
+const DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE = "Expected delivery cannot be before the order date";
+
+const isExpectedNotBeforeOrder = (value: {
+  expectedDeliveryDate?: null | string;
+  orderDate?: null | string;
+}): boolean =>
+  value.orderDate === undefined ||
+  value.orderDate === null ||
+  value.expectedDeliveryDate === undefined ||
+  value.expectedDeliveryDate === null ||
+  value.expectedDeliveryDate >= value.orderDate;
+
 export const DeliveryInfoInputSchema = z
   .object({
-    deliveryStatus: DeliveryStatusSchema.optional(),
+    deliveryStatus: ActiveDeliveryStatusSchema.optional(),
     expectedDeliveryDate: z.iso.date().nullable().optional(),
     note: OwnershipNoteSchema.nullable().optional(),
     orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
     orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
     storeName: OwnershipStoreNameSchema.nullable().optional(),
   })
-  .refine(
-    (value) =>
-      value.orderDate === undefined ||
-      value.orderDate === null ||
-      value.expectedDeliveryDate === undefined ||
-      value.expectedDeliveryDate === null ||
-      value.expectedDeliveryDate >= value.orderDate,
-    {
-      error: "Expected delivery cannot be before the order date",
-      path: ["expectedDeliveryDate"],
-    },
-  )
+  .refine(isExpectedNotBeforeOrder, {
+    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
+    path: ["expectedDeliveryDate"],
+  })
   .optional();
 
 export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
-export const LoanInfoInputSchema = z
+const DELIVERY_TRACKING_NUMBER_MAX = 100;
+const DELIVERY_SERVICE_MAX = 100;
+
+const DeliveryTrackingNumberSchema = z
+  .string()
+  .transform(collapseSpaces)
+  .pipe(
+    NoHtmlString.max(
+      DELIVERY_TRACKING_NUMBER_MAX,
+      "Tracking number must be at most 100 characters long",
+    ),
+  );
+
+const DeliveryServiceSchema = z
+  .string()
+  .transform(collapseSpaces)
+  .pipe(
+    NoHtmlString.max(DELIVERY_SERVICE_MAX, "Delivery service must be at most 100 characters long"),
+  );
+
+export const CreateDeliveryInputSchema = z
   .object({
+    currency: CurrencySchema.optional(),
+    deliveryService: DeliveryServiceSchema.optional(),
+    expectedDeliveryDate: z.iso.date().optional(),
+    note: OwnershipNoteSchema.optional(),
+    orderDate: notInFutureDate("Order date must not be in the future"),
+    orderNumber: OwnershipOrderNumberSchema.optional(),
+    price: OwnershipPriceSchema.optional(),
+    storeName: OwnershipStoreNameSchema,
+    trackingNumber: DeliveryTrackingNumberSchema.optional(),
+    trackingUrl: OwnershipStoreUrlSchema.optional(),
+  })
+  .refine(isExpectedNotBeforeOrder, {
+    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
+    path: ["expectedDeliveryDate"],
+  });
+
+export type CreateDeliveryInput = z.infer<typeof CreateDeliveryInputSchema>;
+
+export const UpdateDeliveryInputSchema = z
+  .object({
+    currency: CurrencySchema.nullable().optional(),
+    deliveryService: DeliveryServiceSchema.nullable().optional(),
+    expectedDeliveryDate: z.iso.date().nullable().optional(),
+    note: OwnershipNoteSchema.nullable().optional(),
+    orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
+    orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
+    price: OwnershipPriceSchema.nullable().optional(),
+    status: ActiveDeliveryStatusSchema.optional(),
+    storeName: OwnershipStoreNameSchema.nullable().optional(),
+    trackingNumber: DeliveryTrackingNumberSchema.nullable().optional(),
+    trackingUrl: OwnershipStoreUrlSchema.nullable().optional(),
+  })
+  .refine(isExpectedNotBeforeOrder, {
+    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
+    path: ["expectedDeliveryDate"],
+  });
+
+export type UpdateDeliveryInput = z.infer<typeof UpdateDeliveryInputSchema>;
+
+export const CancelDeliveryInputSchema = z.object({
+  keepAsWantToBuy: z.boolean().default(true),
+});
+
+export type CancelDeliveryInput = z.infer<typeof CancelDeliveryInputSchema>;
+
+const RETURN_BEFORE_LOAN_MESSAGE = "Expected return cannot be before the loan date";
+const REMINDER_NEEDS_RETURN_DATE_MESSAGE = "Select a return date for the reminder";
+
+const isReturnNotBeforeLoan = (value: {
+  expectedReturnDate?: null | string;
+  loanDate?: null | string;
+}): boolean =>
+  value.loanDate === undefined ||
+  value.loanDate === null ||
+  value.expectedReturnDate === undefined ||
+  value.expectedReturnDate === null ||
+  value.expectedReturnDate >= value.loanDate;
+
+const LoanInfoFieldsSchema = z.object({
+  expectedReturnDate: z.iso.date().nullable().optional(),
+  loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
+  note: OwnershipNoteSchema.nullable().optional(),
+  personName: OwnershipPersonNameSchema.optional(),
+});
+
+export const LoanInfoInputSchema = LoanInfoFieldsSchema.refine(isReturnNotBeforeLoan, {
+  error: RETURN_BEFORE_LOAN_MESSAGE,
+  path: ["expectedReturnDate"],
+}).optional();
+
+export type LoanInfoInput = z.infer<typeof LoanInfoInputSchema>;
+
+export const LoanDirectionSchema = z.enum(["borrowed", "lent"]);
+
+export type LoanDirection = z.infer<typeof LoanDirectionSchema>;
+
+export const CreateLoanInputSchema = z
+  .object({
+    contact: OwnershipContactSchema.nullable().optional(),
+    direction: LoanDirectionSchema,
     expectedReturnDate: z.iso.date().nullable().optional(),
     loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
     note: OwnershipNoteSchema.nullable().optional(),
-    personName: OwnershipPersonNameSchema.optional(),
+    personName: OwnershipPersonNameSchema,
+    remindToReturn: z.boolean().optional(),
+  })
+  .refine(isReturnNotBeforeLoan, {
+    error: RETURN_BEFORE_LOAN_MESSAGE,
+    path: ["expectedReturnDate"],
   })
   .refine(
     (value) =>
-      value.loanDate === undefined ||
-      value.loanDate === null ||
-      value.expectedReturnDate === undefined ||
-      value.expectedReturnDate === null ||
-      value.expectedReturnDate >= value.loanDate,
+      value.remindToReturn !== true ||
+      (value.expectedReturnDate !== undefined && value.expectedReturnDate !== null),
     {
-      error: "Expected return cannot be before the loan date",
+      error: REMINDER_NEEDS_RETURN_DATE_MESSAGE,
       path: ["expectedReturnDate"],
     },
-  )
-  .optional();
+  );
 
-export type LoanInfoInput = z.infer<typeof LoanInfoInputSchema>;
+export type CreateLoanInput = z.infer<typeof CreateLoanInputSchema>;
 
 export const SeriesStatusSchema = z.enum(["completed", "ongoing", "unknown"]);
 
@@ -891,6 +1038,15 @@ export function ownershipStatusUsesLoan(ownershipStatus: OwnershipStatus): boole
   return OWNERSHIP_STATUSES_WITH_LOAN.has(ownershipStatus);
 }
 
+const OWNERSHIP_STATUSES_WITH_PURCHASE: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
+  "owned",
+  "want_to_buy",
+]);
+
+export function ownershipStatusKeepsPurchase(ownershipStatus: OwnershipStatus): boolean {
+  return OWNERSHIP_STATUSES_WITH_PURCHASE.has(ownershipStatus);
+}
+
 export const ListNameSchema = z
   .string()
   .transform(collapseSpaces)
@@ -910,12 +1066,6 @@ export const NewListInputSchema = z.object({
   description: ListDescriptionSchema.optional(),
   name: ListNameSchema,
 });
-
-export type BookListView = {
-  description: null | string;
-  id: string;
-  name: string;
-};
 
 export type NewListInput = z.infer<typeof NewListInputSchema>;
 
@@ -1243,53 +1393,7 @@ export type AuthorBookSuggestionView = {
 
 export type AuthorLookupQuery = z.infer<typeof AuthorLookupQuerySchema>;
 
-export type BookView = {
-  ageCategory: AgeCategory;
-  authors: { id: string; name: string }[];
-  bookType: BookType;
-  cover?: MediaView | null;
-  createdAt: string;
-  dedication: null | string;
-  deliveryInfo: DeliveryInfoView | null;
-  description: null | string;
-  formats: BookFormat[];
-  genres: string[];
-  id: string;
-  illustrator: null | string;
-  isbn: null | string;
-  isFavorite: boolean;
-  isInReadingQueue: boolean;
-  language: BookLanguage;
-  lists: BookListView[];
-  loanInfo: LoanInfoView | null;
-  originalTitle: null | string;
-  ownershipStatus: OwnershipStatus;
-  pagesCount: null | number;
-  partNumber: null | number;
-  publicationYear: null | number;
-  publisher: null | { id: string; name: string };
-  purchaseInfo: null | PurchaseInfoView;
-  queuePriority: null | QueuePriority;
-  readingProgress: null | ReadingProgressView;
-  readingStatus: ReadingStatus;
-  series: null | SeriesView;
-  tags: TagView[];
-  title: string;
-  translator: null | string;
-  updatedAt: string;
-  userId: string;
-};
-
 export type CreateBookInput = z.infer<typeof CreateBookInputSchema>;
-
-export type DeliveryInfoView = {
-  deliveryStatus: DeliveryStatus | null;
-  expectedDeliveryDate: null | string;
-  note: null | string;
-  orderDate: null | string;
-  orderNumber: null | string;
-  storeName: null | string;
-};
 
 export type GenreView = {
   groupKey: string;
@@ -1298,13 +1402,6 @@ export type GenreView = {
   isDefault: boolean;
   key: string;
   name: string;
-};
-
-export type LoanInfoView = {
-  expectedReturnDate: null | string;
-  loanDate: null | string;
-  note: null | string;
-  personName: string;
 };
 
 export const MEDIA_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
@@ -1359,6 +1456,8 @@ export const MediaViewSchema = z.object({
   width: z.number(),
 });
 
+export type ChangeReadingStatusInput = z.infer<typeof ChangeReadingStatusInputSchema>;
+
 export type MediaView = z.infer<typeof MediaViewSchema>;
 
 export type PublisherView = {
@@ -1374,42 +1473,9 @@ export type PublisherView = {
   websiteUrl: null | string;
 };
 
-export type PurchaseInfoView = {
-  currency: Currency | null;
-  expectedPrice: null | number;
-  note: null | string;
-  storeName: null | string;
-  storeUrl: null | string;
-};
-
 export type ReadingProgressInput = z.infer<typeof ReadingProgressInputSchema>;
 
-export type ReadingProgressView = {
-  abandonedAt: null | string;
-  currentPage: null | number;
-  finishedAt: null | string;
-  impression: null | string;
-  note: null | string;
-  pausedAt: null | string;
-  rating: null | number;
-  startedAt: null | string;
-};
-
-export type SeriesView = {
-  authors: { id: string; name: string }[];
-  booksInSeries: number;
-  description: null | string;
-  finishedInSeries: number;
-  id: string;
-  name: string;
-  status: SeriesStatus;
-  totalBooks: null | number;
-};
-
-export type TagView = {
-  id: string;
-  name: string;
-};
+export type UpdateReadingProgressInput = z.infer<typeof UpdateReadingProgressInputSchema>;
 
 export const TaxonomySearchPaginationQuerySchema = z.object({
   pageNumber: z.coerce.number().int().min(1).default(1),
@@ -1585,18 +1651,6 @@ export const RecentPurchaseStoresQuerySchema = z.object({
     .default(RECENT_USED_LIMIT_DEFAULT),
 });
 
-export type LibraryOverviewView = {
-  recentlyAdded: BookView[];
-  summary: {
-    favorites: number;
-    finished: number;
-    reading: number;
-    total: number;
-  };
-  topGenres: { count: number; key: string; name: string }[];
-  topTags: { count: number; id: string; name: string }[];
-};
-
 export type RecentPurchaseStores = string[];
 
 export type RecentPurchaseStoresQuery = z.infer<typeof RecentPurchaseStoresQuerySchema>;
@@ -1619,3 +1673,193 @@ export const defaultUserProfileSettings: SettingsView = {
   timezone: "Europe/Kyiv",
   weekStartDay: "monday",
 };
+
+export const BookAuthorRefSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+export const BookPublisherRefSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+export const TagViewSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+export type TagView = z.infer<typeof TagViewSchema>;
+
+export const BookListViewSchema = z.object({
+  description: z.string().nullable(),
+  id: z.string(),
+  name: z.string(),
+});
+
+export type BookListView = z.infer<typeof BookListViewSchema>;
+
+export const LoanInfoViewSchema = z.object({
+  contact: z.string().nullable(),
+  expectedReturnDate: z.string().nullable(),
+  loanDate: z.string().nullable(),
+  note: z.string().nullable(),
+  personName: z.string(),
+  remindToReturn: z.boolean(),
+});
+
+export type LoanInfoView = z.infer<typeof LoanInfoViewSchema>;
+
+export const PurchaseInfoViewSchema = z.object({
+  currency: CurrencySchema.nullable(),
+  expectedPrice: z.number().nullable(),
+  note: z.string().nullable(),
+  purchasedAt: z.string().nullable(),
+  storeName: z.string().nullable(),
+  storeUrl: z.string().nullable(),
+});
+
+export type PurchaseInfoView = z.infer<typeof PurchaseInfoViewSchema>;
+
+export const ReadingProgressViewSchema = z.object({
+  abandonedAt: z.string().nullable(),
+  currentPage: z.number().nullable(),
+  finishedAt: z.string().nullable(),
+  impression: z.string().nullable(),
+  lastProgressUpdateAt: z.string().nullable(),
+  note: z.string().nullable(),
+  pausedAt: z.string().nullable(),
+  rating: z.number().nullable(),
+  startedAt: z.string().nullable(),
+});
+
+export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
+
+export const DeliveryViewSchema = z.object({
+  cancelledAt: z.string().nullable(),
+  createdAt: z.string(),
+  currency: CurrencySchema.nullable(),
+  deliveryService: z.string().nullable(),
+  expectedDeliveryDate: z.string().nullable(),
+  id: z.string(),
+  note: z.string().nullable(),
+  orderDate: z.string().nullable(),
+  orderNumber: z.string().nullable(),
+  price: z.number().nullable(),
+  receivedAt: z.string().nullable(),
+  status: DeliveryStatusSchema,
+  storeName: z.string().nullable(),
+  trackingNumber: z.string().nullable(),
+  trackingUrl: z.string().nullable(),
+});
+
+export type DeliveryView = z.infer<typeof DeliveryViewSchema>;
+
+export const DeliverySummaryViewSchema = z.object({
+  active: DeliveryViewSchema.nullable(),
+  latest: DeliveryViewSchema.nullable(),
+  totalCount: z.number(),
+});
+
+export type DeliverySummaryView = z.infer<typeof DeliverySummaryViewSchema>;
+
+export const SeriesNextBookSchema = z.object({
+  id: z.string(),
+  partNumber: z.number().nullable(),
+  title: z.string(),
+});
+
+export type SeriesNextBook = z.infer<typeof SeriesNextBookSchema>;
+
+export const SeriesViewSchema = z.object({
+  authors: z.array(BookAuthorRefSchema),
+  booksInSeries: z.number(),
+  description: z.string().nullable(),
+  finishedInSeries: z.number(),
+  id: z.string(),
+  name: z.string(),
+  nextBook: SeriesNextBookSchema.nullable(),
+  status: SeriesStatusSchema,
+  totalBooks: z.number().nullable(),
+});
+
+export type SeriesView = z.infer<typeof SeriesViewSchema>;
+
+export const BookViewSchema = z.object({
+  ageCategory: AgeCategorySchema,
+  authors: z.array(BookAuthorRefSchema),
+  bookType: BookTypeSchema,
+  cover: MediaViewSchema.nullable().optional(),
+  createdAt: z.string(),
+  dedication: z.string().nullable(),
+  delivery: DeliverySummaryViewSchema,
+  description: z.string().nullable(),
+  formats: z.array(BookFormatSchema),
+  genres: z.array(z.string()),
+  hasUnreadEarlierSeriesParts: z.boolean().nullable(),
+  id: z.string(),
+  illustrator: z.string().nullable(),
+  isbn: z.string().nullable(),
+  isFavorite: z.boolean(),
+  isInReadingQueue: z.boolean(),
+  language: BookLanguageSchema,
+  lists: z.array(BookListViewSchema),
+  loanInfo: LoanInfoViewSchema.nullable(),
+  originalTitle: z.string().nullable(),
+  ownershipStatus: OwnershipStatusSchema,
+  pagesCount: z.number().nullable(),
+  partNumber: z.number().nullable(),
+  publicationYear: z.number().nullable(),
+  publisher: BookPublisherRefSchema.nullable(),
+  purchaseInfo: PurchaseInfoViewSchema.nullable(),
+  queuePriority: QueuePrioritySchema.nullable(),
+  readingProgress: ReadingProgressViewSchema.nullable(),
+  readingStatus: ReadingStatusSchema,
+  series: SeriesViewSchema.nullable(),
+  tags: z.array(TagViewSchema),
+  title: z.string(),
+  translator: z.string().nullable(),
+  updatedAt: z.string(),
+  userId: z.string(),
+});
+
+export type BookView = z.infer<typeof BookViewSchema>;
+
+export const LibraryOverviewViewSchema = z.object({
+  recentlyAdded: z.array(BookViewSchema),
+  summary: z.object({
+    favorites: z.number(),
+    finished: z.number(),
+    reading: z.number(),
+    total: z.number(),
+  }),
+  topGenres: z.array(
+    z.object({
+      count: z.number(),
+      key: z.string(),
+      name: z.string(),
+    }),
+  ),
+  topTags: z.array(
+    z.object({
+      count: z.number(),
+      id: z.string(),
+      name: z.string(),
+    }),
+  ),
+});
+
+export type LibraryOverviewView = z.infer<typeof LibraryOverviewViewSchema>;
+
+export const createPaginatedSchema = <ItemSchema extends z.ZodType>(item: ItemSchema) =>
+  z.object({
+    items: z.array(item),
+    page: z.number().int(),
+    pagesCount: z.number().int(),
+    pageSize: z.number().int(),
+    totalCount: z.number().int(),
+  });
+
+export const PaginatedBooksSchema = createPaginatedSchema(BookViewSchema);
+
+export const PaginatedSeriesSchema = createPaginatedSchema(SeriesViewSchema);

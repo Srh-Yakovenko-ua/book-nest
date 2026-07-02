@@ -90,7 +90,13 @@ function seriesWithCount(
     ...series(overrides),
     _count: { books: booksInSeries },
     authors: [],
-    books: Array.from({ length: finishedInSeries }, (unused, index) => ({ id: `b-${index}` })),
+    books: Array.from({ length: finishedInSeries }, (unused, index) => ({
+      createdAt: new Date("2026-02-01T10:00:00.000Z"),
+      id: `b-${index}`,
+      partNumber: index + 1,
+      readingStatus: "finished",
+      title: `Book ${index}`,
+    })),
   };
 }
 
@@ -336,6 +342,7 @@ describe("SeriesService.search", () => {
           finishedInSeries: 0,
           id: SERIES_ID,
           name: "Throne of Glass",
+          nextBook: null,
           status: "ongoing",
           totalBooks: 3,
         },

@@ -1,5 +1,6 @@
 import type { OwnershipStatus, QueuePriority, ReadingStatus } from "@app/shared";
 
+import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -184,7 +185,13 @@ export class BulkBooksRepository {
         return 0;
       }
       if (clearDelivery) {
-        await tx.bookDeliveryInfo.deleteMany({ where: { book: { id: { in: bookIds }, userId } } });
+        await tx.bookDelivery.updateMany({
+          data: { cancelledAt: new Date(), status: "cancelled" },
+          where: {
+            book: { id: { in: bookIds }, userId },
+            status: { in: [...DELIVERY_ACTIVE_STATUSES] },
+          },
+        });
       }
       if (clearLoan) {
         await tx.bookLoanInfo.deleteMany({ where: { book: { id: { in: bookIds }, userId } } });

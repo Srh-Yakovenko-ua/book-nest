@@ -16,9 +16,9 @@ import { ListsService } from "../../lists/application/lists.service.js";
 import { MediaService } from "../../media/application/media.service.js";
 import { TagsService } from "../../tags/application/tags.service.js";
 import {
+  ownershipStatusKeepsPurchase,
   ownershipStatusUsesDelivery,
   ownershipStatusUsesLoan,
-  ownershipStatusUsesPurchase,
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
@@ -149,7 +149,7 @@ export class BulkBooksService {
       bookIds: input.bookIds,
       clearDelivery: !ownershipStatusUsesDelivery(input.ownershipStatus),
       clearLoan: !ownershipStatusUsesLoan(input.ownershipStatus),
-      clearPurchase: !ownershipStatusUsesPurchase(input.ownershipStatus),
+      clearPurchase: !ownershipStatusKeepsPurchase(input.ownershipStatus),
       ownershipStatus: input.ownershipStatus,
       userId,
     });

@@ -24,12 +24,11 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
   BlockUpsert,
-  CreateDeliveryInfoData,
   CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
+  DeliveryBlockChange,
   LibraryFilter,
-  UpdateDeliveryInfoData,
   UpdateLoanInfoData,
   UpdatePurchaseInfoData,
   UpdateReadingProgressData,
@@ -54,9 +53,9 @@ import {
   buildPurchaseInfoUpdateData,
   buildReadingProgressData,
   buildReadingProgressUpdateData,
+  ownershipStatusKeepsPurchase,
   ownershipStatusUsesDelivery,
   ownershipStatusUsesLoan,
-  ownershipStatusUsesPurchase,
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
 import { toBookView } from "../domain/book.mapper.js";
@@ -139,15 +138,17 @@ function assignScalarFields(
 function resolveDeliveryBlock(
   ownershipStatus: OwnershipStatus,
   deliveryInfo: UpdateBookInput["deliveryInfo"],
-): BlockUpsert<CreateDeliveryInfoData, UpdateDeliveryInfoData> {
+  now: Date,
+): DeliveryBlockChange {
   if (!ownershipStatusUsesDelivery(ownershipStatus)) {
-    return { delete: true };
+    return { cancelledAt: now, kind: "cancel" };
   }
   if (deliveryInfo === undefined) {
-    return { skip: true };
+    return { kind: "skip" };
   }
   return {
     create: buildDeliveryInfoData(deliveryInfo),
+    kind: "upsertActive",
     update: buildDeliveryInfoUpdateData(deliveryInfo),
   };
 }
@@ -172,7 +173,7 @@ function resolvePurchaseBlock(
   ownershipStatus: OwnershipStatus,
   purchaseInfo: UpdateBookInput["purchaseInfo"],
 ): BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData> {
-  if (!ownershipStatusUsesPurchase(ownershipStatus)) {
+  if (!ownershipStatusKeepsPurchase(ownershipStatus)) {
     return { delete: true };
   }
   if (purchaseInfo === undefined) {
@@ -264,7 +265,7 @@ export class BooksService {
         ? buildLoanInfoData(input.loanInfo)
         : null;
     const purchaseInfo =
-      ownershipStatusUsesPurchase(input.ownershipStatus) && input.purchaseInfo !== undefined
+      ownershipStatusKeepsPurchase(input.ownershipStatus) && input.purchaseInfo !== undefined
         ? buildPurchaseInfoData(input.purchaseInfo)
         : null;
     const readingProgress =
@@ -492,7 +493,7 @@ export class BooksService {
 
     const book = await this.booksRepository.updateOwned(userId, bookId, {
       authorIds,
-      deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo),
+      deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, new Date()),
       fields,
       listIds,
       loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),

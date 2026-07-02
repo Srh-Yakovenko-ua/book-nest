@@ -59,7 +59,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     coverMediaId: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     dedication: null,
-    deliveryInfo: null,
+    deliveries: [],
     description: null,
     firstAuthorName: "Frank Herbert",
     formats: [],
@@ -208,12 +208,14 @@ function loanRow(
 ): BookWithRelations["loanInfo"] {
   return {
     bookId: BOOK_ID,
+    contact: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     expectedReturnDate: null,
     id: "88888888-8888-4888-8888-888888888881",
     loanDate: null,
     note: null,
     personName: "Olha",
+    remindToReturn: false,
     updatedAt: new Date("2026-02-01T10:00:00.000Z"),
     ...overrides,
   } as BookWithRelations["loanInfo"];
@@ -230,6 +232,7 @@ function progressRow(
     finishedAt: null,
     id: "88888888-8888-4888-8888-888888888882",
     impression: null,
+    lastProgressUpdateAt: null,
     note: null,
     pausedAt: null,
     rating: null,
@@ -314,10 +317,11 @@ describe("BooksService.create", () => {
       cover: null,
       createdAt: "2026-02-01T10:00:00.000Z",
       dedication: null,
-      deliveryInfo: null,
+      delivery: { active: null, latest: null, totalCount: 0 },
       description: null,
       formats: [],
       genres: [],
+      hasUnreadEarlierSeriesParts: null,
       id: BOOK_ID,
       illustrator: null,
       isbn: null,
@@ -434,6 +438,7 @@ describe("BooksService.create", () => {
           currentPage: 42,
           finishedAt: null,
           impression: null,
+          lastProgressUpdateAt: null,
           note: "great so far",
           pausedAt: null,
           rating: null,
@@ -530,12 +535,17 @@ describe("BooksService.create", () => {
       USER_ID,
       expect.objectContaining({
         deliveryInfo: {
-          deliveryStatus: "ordered",
+          currency: null,
+          deliveryService: null,
           expectedDeliveryDate: null,
           note: null,
           orderDate: null,
           orderNumber: "TTN-1",
+          price: null,
+          status: "ordered",
           storeName: "Yakaboo",
+          trackingNumber: null,
+          trackingUrl: null,
         },
         purchaseInfo: null,
       }),
@@ -567,10 +577,12 @@ describe("BooksService.create", () => {
       expect.objectContaining({
         deliveryInfo: null,
         loanInfo: {
+          contact: null,
           expectedReturnDate: null,
           loanDate: new Date("2026-02-01T00:00:00.000Z"),
           note: null,
           personName: "Olha",
+          remindToReturn: false,
         },
         purchaseInfo: null,
       }),
@@ -887,7 +899,15 @@ describe("BooksService.create series handling", () => {
         series: {
           _count: { books: 2 },
           authors: [],
-          books: [{ id: "fin-1" }],
+          books: [
+            {
+              createdAt: new Date("2026-02-01T10:00:00.000Z"),
+              id: "fin-1",
+              partNumber: 1,
+              readingStatus: "finished",
+              title: "Throne of Glass",
+            },
+          ],
           createdAt: new Date("2026-02-01T10:00:00.000Z"),
           description: "YA fantasy saga",
           id: SERIES_ID,
@@ -919,6 +939,7 @@ describe("BooksService.create series handling", () => {
       finishedInSeries: 1,
       id: SERIES_ID,
       name: "Throne of Glass",
+      nextBook: null,
       status: "ongoing",
       totalBooks: 3,
     });
@@ -1486,10 +1507,12 @@ describe("BooksService.update", () => {
     const data = updateDataFromFirstCall(repository);
     expect(data.loanInfo).toEqual({
       create: {
+        contact: null,
         expectedReturnDate: null,
         loanDate: null,
         note: "return next week",
         personName: "",
+        remindToReturn: false,
       },
       update: {
         expectedReturnDate: undefined,

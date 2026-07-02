@@ -23,7 +23,15 @@ const seriesWithBookCountArgs = {
   include: {
     _count: { select: { books: true } },
     authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
-    books: { select: { id: true }, where: { readingStatus: "finished" } },
+    books: {
+      select: {
+        createdAt: true,
+        id: true,
+        partNumber: true,
+        readingStatus: true,
+        title: true,
+      },
+    },
   },
 } satisfies Prisma.SeriesDefaultArgs;
 

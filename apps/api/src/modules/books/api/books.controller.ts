@@ -46,6 +46,9 @@ import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
 import { RecentPurchaseStoresQueryDto } from "./input-dto/recent-purchase-stores-query.input-dto.js";
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
+import { BookViewDto } from "./view-dto/book.view-dto.js";
+import { LibraryOverviewViewDto } from "./view-dto/library-overview.view-dto.js";
+import { PaginatedBooksDto } from "./view-dto/paginated-books.view-dto.js";
 
 const CREATE_BOOK_TTL_SECONDS = 60;
 const CREATE_BOOK_LIMIT = 30;
@@ -60,7 +63,7 @@ export class BooksController {
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBearerAuth()
   @ApiBody({ type: CreateBookInputDto })
-  @ApiCreatedResponse({ description: "The created book" })
+  @ApiCreatedResponse({ description: "The created book", type: BookViewDto })
   @ApiNotFoundResponse({ description: "Author or publisher not found" })
   @ApiOperation({ summary: "Create a book in the current user library" })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
@@ -75,7 +78,7 @@ export class BooksController {
   }
 
   @ApiBearerAuth()
-  @ApiOkResponse({ description: "A page of the current user books" })
+  @ApiOkResponse({ description: "A page of the current user books", type: PaginatedBooksDto })
   @ApiOperation({ summary: "List and filter the current user library" })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
@@ -88,7 +91,10 @@ export class BooksController {
   }
 
   @ApiBearerAuth()
-  @ApiOkResponse({ description: "Library overview for the current user" })
+  @ApiOkResponse({
+    description: "Library overview for the current user",
+    type: LibraryOverviewViewDto,
+  })
   @ApiOperation({ summary: "Get the current user library overview" })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("overview")
@@ -98,7 +104,10 @@ export class BooksController {
   }
 
   @ApiBearerAuth()
-  @ApiOkResponse({ description: "Store names the current user recently used in purchase details" })
+  @ApiOkResponse({
+    description: "Store names the current user recently used in purchase details",
+    type: [String],
+  })
   @ApiOperation({ summary: "List recently used purchase stores for the current user" })
   @ApiQuery({ name: "limit", required: false })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
@@ -113,7 +122,7 @@ export class BooksController {
 
   @ApiBearerAuth()
   @ApiNotFoundResponse({ description: "Book not found" })
-  @ApiOkResponse({ description: "The requested book" })
+  @ApiOkResponse({ description: "The requested book", type: BookViewDto })
   @ApiOperation({ summary: "Get a book by id" })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get(":id")
@@ -129,7 +138,7 @@ export class BooksController {
   @ApiBearerAuth()
   @ApiBody({ type: UpdateBookInputDto })
   @ApiNotFoundResponse({ description: "Book not found" })
-  @ApiOkResponse({ description: "The updated book" })
+  @ApiOkResponse({ description: "The updated book", type: BookViewDto })
   @ApiOperation({ summary: "Update a book in the current user library" })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Patch(":id")
