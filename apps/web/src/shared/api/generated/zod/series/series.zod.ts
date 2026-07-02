@@ -41,4 +41,57 @@ export const SeriesControllerSearchQueryParams = zod.object({
     .optional(),
 });
 
-export const SeriesControllerSearchResponse = zod.unknown();
+export const seriesControllerSearchResponsePageMin = -9007199254740991;
+export const seriesControllerSearchResponsePageMax = 9007199254740991;
+
+export const seriesControllerSearchResponsePagesCountMin = -9007199254740991;
+export const seriesControllerSearchResponsePagesCountMax = 9007199254740991;
+
+export const seriesControllerSearchResponsePageSizeMin = -9007199254740991;
+export const seriesControllerSearchResponsePageSizeMax = 9007199254740991;
+
+export const seriesControllerSearchResponseTotalCountMin = -9007199254740991;
+export const seriesControllerSearchResponseTotalCountMax = 9007199254740991;
+
+export const SeriesControllerSearchResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      booksInSeries: zod.number(),
+      description: zod.string().nullable(),
+      finishedInSeries: zod.number(),
+      id: zod.string(),
+      name: zod.string(),
+      nextBook: zod
+        .object({
+          id: zod.string(),
+          partNumber: zod.number().nullable(),
+          title: zod.string(),
+        })
+        .nullable(),
+      status: zod.enum(["completed", "ongoing", "unknown"]),
+      totalBooks: zod.number().nullable(),
+    }),
+  ),
+  page: zod
+    .number()
+    .min(seriesControllerSearchResponsePageMin)
+    .max(seriesControllerSearchResponsePageMax),
+  pagesCount: zod
+    .number()
+    .min(seriesControllerSearchResponsePagesCountMin)
+    .max(seriesControllerSearchResponsePagesCountMax),
+  pageSize: zod
+    .number()
+    .min(seriesControllerSearchResponsePageSizeMin)
+    .max(seriesControllerSearchResponsePageSizeMax),
+  totalCount: zod
+    .number()
+    .min(seriesControllerSearchResponseTotalCountMin)
+    .max(seriesControllerSearchResponseTotalCountMax),
+});

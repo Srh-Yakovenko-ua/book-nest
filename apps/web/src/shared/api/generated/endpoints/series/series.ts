@@ -18,14 +18,14 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { SeriesControllerSearchParams } from "../../model";
+import type { PaginatedSeriesDto, SeriesControllerSearchParams } from "../../model";
 
 import { customInstance } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 export type seriesControllerSearchResponse200 = {
-  data: void;
+  data: PaginatedSeriesDto;
   status: 200;
 };
 

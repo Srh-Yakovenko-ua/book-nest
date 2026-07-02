@@ -880,6 +880,7 @@ function seriesView(seed: {
     finishedInSeries: 0,
     id: seed.id,
     name: seed.name,
+    nextBook: null,
     status: "ongoing",
     totalBooks: null,
   };

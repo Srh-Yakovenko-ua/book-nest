@@ -2,7 +2,11 @@
   "common": {
     "loading": "Loading...",
     "retry": "Retry",
-    "somethingWentWrong": "Something went wrong"
+    "somethingWentWrong": "Something went wrong",
+    "decrement": "Decrease",
+    "increment": "Increase",
+    "opensInNewTab": "(opens in a new tab)",
+    "ratingValueText": "{value} of {max}"
   },
   "nav": {
     "home": "Home",
@@ -872,6 +876,319 @@
         "size": "The file size cannot exceed {max} MB",
         "heic": "Could not convert the HEIC image. Try a different file.",
         "upload": "Could not upload the cover"
+      }
+    },
+    "details": {
+      "metaTitle": "Book details",
+      "backToLibrary": "Back to library",
+      "edit": "Edit",
+      "coverAlt": "Cover of “{title}”",
+      "addedOn": "Added {date}",
+      "progress": "{current} of {total} pp. · {percent}%",
+      "seriesPartWithNumber": "{series} · part {number}",
+      "lists": "Lists",
+      "series": {
+        "title": "Series",
+        "progressLabel": "Series progress",
+        "statusLabels": {
+          "completed": "Series completed",
+          "ongoing": "Series ongoing",
+          "unknown": "Series status unknown"
+        },
+        "partWithTotal": "Part {number} of {total}",
+        "partAdded": "Part {number} ({count} added)",
+        "partUnknown": "Part number not set",
+        "progressWithTotal": "Read {finished} of {total} · {percent}%",
+        "progressAdded": "Read {finished} of {count} · added · {percent}%",
+        "progressUnavailable": "Series progress is not available yet",
+        "state": {
+          "finished": "You have already read this book",
+          "reading": "You are reading this book now",
+          "rereading": "You are rereading this book",
+          "isNext": "This is the next book in the series",
+          "unreadEarlier": "There are unread earlier parts before this book",
+          "seriesFinished": "You have finished the series"
+        },
+        "next": "Next: {title}",
+        "nextWithPart": "Next: {title} · part {number}"
+      },
+      "actions": {
+        "menu": "Book actions",
+        "updateProgress": "Update progress",
+        "changeReadingStatus": "Change reading status",
+        "addToQueue": "Add to reading queue",
+        "removeFromQueue": "Remove from reading queue",
+        "addToList": "Add to list",
+        "delete": "Delete",
+        "toast": {
+          "queueAdded": "Added to reading queue",
+          "queueRemoved": "Removed from reading queue",
+          "addedToList": "Added to list",
+          "deleted": "Book deleted",
+          "error": "Something went wrong. Please try again."
+        }
+      },
+      "favorite": {
+        "add": "Add to favorites",
+        "remove": "Remove from favorites"
+      },
+      "about": {
+        "title": "About",
+        "empty": "No description yet."
+      },
+      "edition": {
+        "empty": "No edition details yet."
+      },
+      "quickInfo": {
+        "title": "Quick information",
+        "addedOn": "Added"
+      },
+      "statuses": {
+        "title": "Statuses",
+        "none": "—"
+      },
+      "states": {
+        "loading": "Loading book…",
+        "errorTitle": "Couldn’t load the book",
+        "errorDescription": "Please try refreshing the page.",
+        "notFoundTitle": "Book not found",
+        "notFoundDescription": "It may have been deleted or belongs to another user."
+      },
+      "reading": {
+        "title": "Reading progress",
+        "progressLabel": "Reading progress",
+        "empty": "You haven’t started this book yet.",
+        "startCta": "Start reading",
+        "updateCta": "Update progress",
+        "changeStatusCta": "Change status",
+        "lastUpdate": "Last updated",
+        "pagesOnly": "Page {current}",
+        "updateDialog": {
+          "title": "Update progress",
+          "description": "Mark how many pages you’ve read.",
+          "updateDate": "Update date",
+          "markAsFinished": "Mark as finished",
+          "pagesSince": "{count, plural, one {+# page since last time} other {+# pages since last time}}",
+          "submit": "Save"
+        },
+        "statusDialog": {
+          "title": "Change reading status",
+          "description": "Choose where you are with this book.",
+          "statusLabel": "Reading status",
+          "date": "Date",
+          "stopPage": "Stopped at page",
+          "reason": "Reason",
+          "reasonPlaceholder": "Why did you decide to stop?",
+          "resetProgress": "Reset reading progress",
+          "notStartedWarning": "This moves the book back to “Not started”.",
+          "submit": "Save"
+        },
+        "errors": {
+          "pageBelowSaved": "Progress can’t go below {saved} pp.",
+          "pageOverTotal": "No more than {total} pp.",
+          "dateFuture": "The date can’t be in the future.",
+          "dateInvalid": "Pick a valid date.",
+          "noteMax": "No more than {max} characters.",
+          "generic": "Couldn’t save. Please try again."
+        }
+      },
+      "ownership": {
+        "title": "Ownership",
+        "statusLabel": "Status",
+        "actions": {
+          "markOwned": "I own this book",
+          "wantToBuy": "Want to buy",
+          "loanBorrowed": "Borrowed from someone",
+          "removeOwned": "Remove from mine",
+          "loanLent": "Lend to someone",
+          "markBought": "Bought it",
+          "return": "Mark as returned",
+          "startDelivery": "Ordered — in transit"
+        },
+        "purchase": {
+          "title": "Purchase details",
+          "store": "Store",
+          "link": "Product link",
+          "price": "Price",
+          "note": "Note",
+          "purchasedAt": "Purchased"
+        },
+        "toast": {
+          "updated": "Ownership status updated",
+          "error": "Couldn’t update. Please try again."
+        },
+        "buyDialog": {
+          "title": "Want to buy",
+          "description": "Add purchase details — all fields are optional.",
+          "storeName": "Store",
+          "storeNamePlaceholder": "e.g. Yakaboo",
+          "storeUrl": "Product link",
+          "storeUrlPlaceholder": "https://…",
+          "expectedPrice": "Expected price",
+          "currency": "Currency",
+          "currencyPlaceholder": "Currency",
+          "note": "Note",
+          "notePlaceholder": "A few thoughts for yourself…",
+          "submit": "Save"
+        },
+        "errors": {
+          "storeUrl": "Enter a valid https link.",
+          "storeUrlMax": "No more than {max} characters.",
+          "price": "Price must be greater than 0.",
+          "priceMax": "Too large. Maximum 99999999.99.",
+          "storeNameMax": "No more than {max} characters.",
+          "noteMax": "No more than {max} characters.",
+          "generic": "Couldn’t save. Please try again."
+        }
+      },
+      "loan": {
+        "info": {
+          "title": "Loan details",
+          "borrowedFrom": "Borrowed from",
+          "lentTo": "Lent to",
+          "loanDate": "Loan date",
+          "returnDate": "Expected return",
+          "overdue": "Overdue",
+          "contact": "Contact",
+          "note": "Note",
+          "reminderOn": "We’ll remind you to return it"
+        },
+        "borrowed": {
+          "title": "Mark as borrowed",
+          "description": "Note down who you borrowed this book from.",
+          "personName": "Borrowed from",
+          "personNamePlaceholder": "Person's name",
+          "loanDate": "Loan date"
+        },
+        "lent": {
+          "title": "Lend to someone",
+          "description": "Note down who you lent this book to.",
+          "personName": "Lent to",
+          "personNamePlaceholder": "Person's name",
+          "loanDate": "Handover date"
+        },
+        "fields": {
+          "returnDate": "Expected return",
+          "contact": "Contact",
+          "contactPlaceholder": "Phone, e-mail or @handle",
+          "note": "Note",
+          "notePlaceholder": "A few thoughts for yourself…",
+          "remindToReturn": "Remind me to return",
+          "datePlaceholder": "Pick a date"
+        },
+        "submit": "Save",
+        "errors": {
+          "personNameMin": "Name must be at least {min} characters.",
+          "personNameMax": "No more than {max} characters.",
+          "dateInvalid": "Pick a valid date.",
+          "loanDateFuture": "The date can’t be in the future.",
+          "returnBeforeLoan": "Return can’t be before the loan date.",
+          "reminderNeedsDate": "Pick a return date for the reminder.",
+          "contactMax": "No more than {max} characters.",
+          "noteMax": "No more than {max} characters.",
+          "generic": "Couldn’t save. Please try again."
+        }
+      },
+      "delivery": {
+        "title": "Delivery",
+        "statusLabels": {
+          "ordered": "Ordered",
+          "in_transit": "In transit",
+          "ready_for_pickup": "Ready for pickup",
+          "received": "Received",
+          "cancelled": "Cancelled"
+        },
+        "hints": {
+          "delayed": "Delayed",
+          "noDate": "No delivery date set"
+        },
+        "fields": {
+          "store": "Store",
+          "orderDate": "Order date",
+          "expectedDeliveryDate": "Expected delivery",
+          "orderNumber": "Order number",
+          "deliveryService": "Delivery service",
+          "trackingNumber": "Tracking number",
+          "trackingUrl": "Tracking",
+          "price": "Price",
+          "note": "Note",
+          "receivedAt": "Received",
+          "cancelledAt": "Cancelled"
+        },
+        "actions": {
+          "edit": "Edit",
+          "receive": "Received",
+          "cancel": "Cancel"
+        },
+        "history": {
+          "count": "Orders in history: {count}",
+          "show": "Show history",
+          "hide": "Hide history",
+          "loading": "Loading history…",
+          "error": "Couldn’t load the history."
+        },
+        "repair": {
+          "text": "This book is marked as in transit, but there’s no delivery record. Add the order details.",
+          "add": "Add delivery details"
+        },
+        "toast": {
+          "received": "Book marked as received",
+          "error": "Couldn’t update. Please try again."
+        },
+        "createDialog": {
+          "title": "New delivery",
+          "description": "Record the order details. The book will move to “In transit”."
+        },
+        "editDialog": {
+          "title": "Edit delivery",
+          "description": "Update the order details.",
+          "status": "Delivery status"
+        },
+        "form": {
+          "storeName": "Store",
+          "storeNamePlaceholder": "e.g. Book Nest Store",
+          "orderDate": "Order date",
+          "expectedDeliveryDate": "Expected delivery",
+          "deliveryService": "Delivery service",
+          "deliveryServicePlaceholder": "e.g. Nova Poshta",
+          "orderNumber": "Order number",
+          "orderNumberPlaceholder": "e.g. 100500",
+          "trackingNumber": "Tracking number",
+          "trackingNumberPlaceholder": "e.g. 20450000000000",
+          "trackingUrl": "Tracking link",
+          "trackingUrlPlaceholder": "https://…",
+          "price": "Price",
+          "currency": "Currency",
+          "currencyPlaceholder": "Currency",
+          "note": "Note",
+          "notePlaceholder": "Short thoughts for yourself…",
+          "datePlaceholder": "Pick a date",
+          "createSubmit": "Order",
+          "saveSubmit": "Save"
+        },
+        "cancelDialog": {
+          "title": "Cancel delivery",
+          "description": "Mark this order as cancelled? The order data stays in the history.",
+          "keepAsWantToBuy": "Keep in the “Want to buy” list",
+          "confirm": "Cancel delivery"
+        },
+        "errors": {
+          "storeNameRequired": "Enter a store.",
+          "storeNameMax": "No more than {max} characters.",
+          "orderDateRequired": "Pick an order date.",
+          "orderDateFuture": "The date can’t be in the future.",
+          "dateInvalid": "Pick a valid date.",
+          "expectedBeforeOrder": "Delivery can’t be before the order date.",
+          "orderNumberMax": "No more than {max} characters.",
+          "serviceMax": "No more than {max} characters.",
+          "trackingNumberMax": "No more than {max} characters.",
+          "trackingUrl": "Enter a valid https link.",
+          "trackingUrlMax": "No more than {max} characters.",
+          "price": "Price must be greater than 0.",
+          "priceMax": "Too large. Maximum 99999999.99.",
+          "noteMax": "No more than {max} characters.",
+          "generic": "Couldn’t save. Please try again."
+        }
       }
     }
   }

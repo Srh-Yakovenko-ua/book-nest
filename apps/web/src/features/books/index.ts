@@ -2,6 +2,7 @@ export { useAuthorSearch } from "./api/use-author-search";
 export { useBook } from "./api/use-book";
 export { useCreateBook } from "./api/use-create-book";
 export { useUpdateBook } from "./api/use-update-book";
+export { BookDetails } from "./components/book-details";
 export { BookForm } from "./components/book-form";
 export { BookPreview } from "./components/book-preview";
 export { BooksLibrary } from "./components/books-library";

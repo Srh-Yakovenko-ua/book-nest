@@ -83,6 +83,7 @@ function seriesView(seed: SeriesSeed): SeriesView {
     finishedInSeries: 0,
     id: seed.id,
     name: seed.name,
+    nextBook: null,
     status: seed.status ?? "ongoing",
     totalBooks: seed.totalBooks ?? null,
   };

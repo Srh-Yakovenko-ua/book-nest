@@ -54,6 +54,7 @@ export function BookTypeSection({
   setValue,
 }: BookTypeSectionProps) {
   const t = useTranslations("books");
+  const tCommon = useTranslations("common");
   const bookType = useWatch({ control, name: "bookType" }) ?? "solo";
   const partNumberValue = useWatch({ control, name: "partNumber" });
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -200,6 +201,8 @@ export function BookTypeSection({
               render={({ field }) => (
                 <NumberStepper
                   ariaLabel={t("bookType.partNumber")}
+                  decrementLabel={tCommon("decrement")}
+                  incrementLabel={tCommon("increment")}
                   max={PART_NUMBER_MAX}
                   min={1}
                   onValueChange={field.onChange}

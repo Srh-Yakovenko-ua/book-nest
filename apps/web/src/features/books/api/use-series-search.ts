@@ -1,30 +1,10 @@
-import type { SeriesView } from "@app/shared";
-
+import { PaginatedSeriesSchema } from "@app/shared";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { seriesControllerSearch } from "@/shared/api/generated/endpoints/series/series";
 
-const seriesViewSchema = z.object({
-  authors: z.array(z.object({ id: z.string(), name: z.string() })),
-  booksInSeries: z.number(),
-  description: z.string().nullable(),
-  finishedInSeries: z.number(),
-  id: z.string(),
-  name: z.string(),
-  status: z.enum(["completed", "ongoing", "unknown"]),
-  totalBooks: z.number().nullable(),
-}) satisfies z.ZodType<SeriesView>;
-
-const seriesSearchPageSchema = z.object({
-  items: z.array(seriesViewSchema),
-  page: z.number(),
-  pagesCount: z.number(),
-  pageSize: z.number(),
-  totalCount: z.number(),
-});
-
-type SeriesSearchPage = z.infer<typeof seriesSearchPageSchema>;
+type SeriesSearchPage = z.infer<typeof PaginatedSeriesSchema>;
 
 const SERIES_SEARCH_PAGE_SIZE = 20;
 
@@ -49,7 +29,7 @@ export function useSeriesSearch({ authorIds, search }: UseSeriesSearchOptions) {
         pageSize: SERIES_SEARCH_PAGE_SIZE,
         search: trimmed.length > 0 ? trimmed : undefined,
       });
-      return seriesSearchPageSchema.parse(response);
+      return PaginatedSeriesSchema.parse(response);
     },
     queryKey: ["series", "search", trimmed, scopedAuthorIds ?? []],
   });

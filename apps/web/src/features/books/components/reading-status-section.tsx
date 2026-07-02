@@ -63,6 +63,7 @@ export function ReadingStatusSection({
   onRequestChange,
 }: ReadingStatusSectionProps) {
   const t = useTranslations("books");
+  const tCommon = useTranslations("common");
   const status = useWatch({ control, name: "readingStatus" });
   const fields = new Set(readingProgressFieldsFor(status ?? "not_started"));
   const progressErrors = errors.readingProgress;
@@ -104,6 +105,8 @@ export function ReadingStatusSection({
                 render={({ field }) => (
                   <NumberStepper
                     ariaLabel={t("readingStatus.fields.currentPage")}
+                    decrementLabel={tCommon("decrement")}
+                    incrementLabel={tCommon("increment")}
                     max={CURRENT_PAGE_MAX}
                     min={0}
                     onValueChange={field.onChange}
