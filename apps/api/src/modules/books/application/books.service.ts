@@ -37,6 +37,7 @@ import type {
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { buildPaginator } from "../../../core/paginator.js";
+import { isUniqueConstraintErrorOn } from "../../../core/prisma-errors.js";
 import { AuthorsService } from "../../authors/application/authors.service.js";
 import { GenresService } from "../../genres/application/genres.service.js";
 import { ListsService } from "../../lists/application/lists.service.js";
@@ -63,6 +64,7 @@ import { BooksRepository, type BookWithRelations } from "../infrastructure/books
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
 const DUPLICATE_PART_NUMBER_MESSAGE = "A book with this part number already exists in this series";
+const BOOK_SERIES_PART_NUMBER_UNIQUE_CONSTRAINT = "books_series_id_part_number_key";
 
 const OVERVIEW_TOP_LIMIT = 3;
 const OVERVIEW_RECENT_LIMIT = 3;
@@ -246,7 +248,7 @@ export class BooksService {
     const seriesId = series?.id ?? null;
     const partNumber = input.bookType === "series_part" ? (input.partNumber ?? null) : null;
 
-    if (input.seriesId !== undefined && series !== null) {
+    if (series !== null) {
       this.assertPartNumberWithinSeriesTotal({ partNumber, totalBooks: series.totalBooks });
     }
     await this.assertSeriesPartNumberUnique(userId, null, { partNumber, seriesId });
@@ -273,38 +275,43 @@ export class BooksService {
         ? buildReadingProgressData(input.readingProgress)
         : null;
 
-    const book = await this.booksRepository.create(userId, {
-      ageCategory: input.ageCategory,
-      authorIds: authors.map((author) => author.id),
-      coverMediaId: input.coverMediaId ?? null,
-      dedication: input.dedication ?? null,
-      deliveryInfo,
-      description: input.description ?? null,
-      firstAuthorName: authors[0]?.name ?? "",
-      formats: input.formats,
-      genres: input.genres,
-      illustrator: input.illustrator ?? null,
-      isbn: input.isbn ?? null,
-      isFavorite: input.isFavorite,
-      language: input.language,
-      listIds,
-      loanInfo,
-      originalTitle: input.originalTitle ?? null,
-      ownershipStatus: input.ownershipStatus,
-      pagesCount: input.pagesCount ?? null,
-      partNumber,
-      publicationYear: input.publicationYear ?? null,
-      publisherId,
-      purchaseInfo,
-      queuePosition: queuePlacement.queuePosition,
-      queuePriority: queuePlacement.queuePriority,
-      readingProgress,
-      readingStatus: input.readingStatus,
-      seriesId,
-      tagIds,
-      title: input.title,
-      translator: input.translator ?? null,
-    });
+    let book: BookWithRelations;
+    try {
+      book = await this.booksRepository.create(userId, {
+        ageCategory: input.ageCategory,
+        authorIds: authors.map((author) => author.id),
+        coverMediaId: input.coverMediaId ?? null,
+        dedication: input.dedication ?? null,
+        deliveryInfo,
+        description: input.description ?? null,
+        firstAuthorName: authors[0]?.name ?? "",
+        formats: input.formats,
+        genres: input.genres,
+        illustrator: input.illustrator ?? null,
+        isbn: input.isbn ?? null,
+        isFavorite: input.isFavorite,
+        language: input.language,
+        listIds,
+        loanInfo,
+        originalTitle: input.originalTitle ?? null,
+        ownershipStatus: input.ownershipStatus,
+        pagesCount: input.pagesCount ?? null,
+        partNumber,
+        publicationYear: input.publicationYear ?? null,
+        publisherId,
+        purchaseInfo,
+        queuePosition: queuePlacement.queuePosition,
+        queuePriority: queuePlacement.queuePriority,
+        readingProgress,
+        readingStatus: input.readingStatus,
+        seriesId,
+        tagIds,
+        title: input.title,
+        translator: input.translator ?? null,
+      });
+    } catch (error) {
+      throw await this.mapSeriesPartNumberWriteError(error, userId, null, { partNumber, seriesId });
+    }
 
     return toBookView(book, this.coverViewOf(book));
   }
@@ -491,16 +498,21 @@ export class BooksService {
 
     assignScalarFields(fields, input);
 
-    const book = await this.booksRepository.updateOwned(userId, bookId, {
-      authorIds,
-      deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, new Date()),
-      fields,
-      listIds,
-      loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),
-      purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
-      readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
-      tagIds,
-    });
+    let book: BookWithRelations;
+    try {
+      book = await this.booksRepository.updateOwned(userId, bookId, {
+        authorIds,
+        deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, new Date()),
+        fields,
+        listIds,
+        loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),
+        purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
+        readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
+        tagIds,
+      });
+    } catch (error) {
+      throw await this.mapSeriesPartNumberWriteError(error, userId, bookId, seriesPlacement);
+    }
 
     if (
       input.coverMediaId !== undefined &&
@@ -577,9 +589,7 @@ export class BooksService {
       userId,
     });
     const partNumber = input.partNumber ?? null;
-    if (input.seriesId !== undefined) {
-      this.assertPartNumberWithinSeriesTotal({ partNumber, totalBooks: series.totalBooks });
-    }
+    this.assertPartNumberWithinSeriesTotal({ partNumber, totalBooks: series.totalBooks });
     fields.seriesId = series.id;
     fields.partNumber = partNumber;
     return { partNumber, seriesId: series.id };
@@ -662,20 +672,7 @@ export class BooksService {
       seriesId: placement.seriesId,
     });
     if (conflict !== null) {
-      throw new BadRequestError(DUPLICATE_PART_NUMBER_MESSAGE, {
-        fields: [
-          {
-            code: BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
-            field: "partNumber",
-            message: DUPLICATE_PART_NUMBER_MESSAGE,
-            meta: {
-              bookId: conflict.id,
-              bookTitle: conflict.title,
-              partNumber: String(placement.partNumber),
-            },
-          },
-        ],
-      });
+      throw this.seriesPartNumberTakenError(placement.partNumber, conflict);
     }
   }
 
@@ -703,6 +700,28 @@ export class BooksService {
     }
   }
 
+  private async mapSeriesPartNumberWriteError(
+    error: unknown,
+    userId: string,
+    excludeBookId: null | string,
+    placement: SeriesPlacement,
+  ): Promise<unknown> {
+    if (
+      placement.seriesId === null ||
+      placement.partNumber === null ||
+      !isUniqueConstraintErrorOn(error, BOOK_SERIES_PART_NUMBER_UNIQUE_CONSTRAINT)
+    ) {
+      return error;
+    }
+
+    const conflict = await this.booksRepository.findSeriesPartNumberConflict(userId, {
+      excludeBookId,
+      partNumber: placement.partNumber,
+      seriesId: placement.seriesId,
+    });
+    return this.seriesPartNumberTakenError(placement.partNumber, conflict);
+  }
+
   private async resolveQueuePlacement(
     userId: string,
     input: CreateBookInput,
@@ -716,5 +735,28 @@ export class BooksService {
       queuePosition: lastPosition + 1,
       queuePriority: input.queuePriority ?? DEFAULT_QUEUE_PRIORITY,
     };
+  }
+
+  private seriesPartNumberTakenError(
+    partNumber: number,
+    conflict: null | { id: string; title: string },
+  ): BadRequestError {
+    return new BadRequestError(DUPLICATE_PART_NUMBER_MESSAGE, {
+      fields: [
+        {
+          code: BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+          field: "partNumber",
+          message: DUPLICATE_PART_NUMBER_MESSAGE,
+          meta:
+            conflict === null
+              ? undefined
+              : {
+                  bookId: conflict.id,
+                  bookTitle: conflict.title,
+                  partNumber: String(partNumber),
+                },
+        },
+      ],
+    });
   }
 }

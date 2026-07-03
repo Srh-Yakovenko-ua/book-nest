@@ -1,5 +1,6 @@
 import type { CreateBookInput, UpdateBookInput } from "@app/shared";
 
+import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { AuthorsService } from "../../authors/application/authors.service.js";
@@ -16,6 +17,7 @@ import type {
 } from "../infrastructure/books.repository.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { Prisma } from "../../../generated/prisma/client.js";
 import { BooksService } from "./books.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -240,6 +242,14 @@ function progressRow(
     updatedAt: new Date("2026-02-01T10:00:00.000Z"),
     ...overrides,
   } as BookWithRelations["readingProgress"];
+}
+
+function uniqueConstraintError(target: string): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+    clientVersion: "test",
+    code: "P2002",
+    meta: { target },
+  });
 }
 
 describe("BooksService.create", () => {
@@ -906,6 +916,7 @@ describe("BooksService.create series handling", () => {
               partNumber: 1,
               readingStatus: "finished",
               title: "Throne of Glass",
+              updatedAt: new Date("2026-02-01T10:00:00.000Z"),
             },
           ],
           createdAt: new Date("2026-02-01T10:00:00.000Z"),
@@ -935,11 +946,14 @@ describe("BooksService.create series handling", () => {
     expect(view.series).toEqual({
       authors: [],
       booksInSeries: 2,
+      createdAt: "2026-02-01T10:00:00.000Z",
       description: "YA fantasy saga",
       finishedInSeries: 1,
       id: SERIES_ID,
+      lastActivityAt: "2026-02-02T11:00:00.000Z",
       name: "Throne of Glass",
       nextBook: null,
+      readingInSeries: 0,
       status: "ongoing",
       totalBooks: 3,
     });
@@ -995,6 +1009,147 @@ describe("BooksService.create series handling", () => {
       USER_ID,
       expect.objectContaining({ partNumber: 2, seriesId: SERIES_ID }),
     );
+  });
+
+  it("rejects creating a book when a newSeries name resolves to an existing series whose total books is exceeded", async () => {
+    const { repository, seriesService, service } = buildService({
+      seriesId: SERIES_ID,
+      seriesTotalBooks: 2,
+    });
+
+    await expect(
+      service.create(
+        USER_ID,
+        seriesPartInput({
+          newSeries: { name: "Throne of Glass", status: "ongoing" },
+          partNumber: 99,
+        }),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(seriesService.resolveForBook).toHaveBeenCalled();
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it("accepts creating a book when a newSeries name resolves to an existing series with room for the part number", async () => {
+    const { repository, service } = buildService({ seriesId: SERIES_ID, seriesTotalBooks: 3 });
+
+    await service.create(
+      USER_ID,
+      seriesPartInput({ newSeries: { name: "Throne of Glass", status: "ongoing" }, partNumber: 2 }),
+    );
+
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ partNumber: 2, seriesId: SERIES_ID }),
+    );
+  });
+});
+
+describe("BooksService series part-number race", () => {
+  function seriesPartInput(overrides: Partial<CreateBookInput> = {}): CreateBookInput {
+    return {
+      addToReadingQueue: false,
+      ageCategory: "not_specified",
+      authors: [{ name: "Rebecca Yarros" }],
+      bookType: "series_part",
+      formats: [],
+      genres: [],
+      isFavorite: false,
+      language: "ukrainian",
+      ownershipStatus: "none",
+      partNumber: 2,
+      readingStatus: "not_started",
+      seriesId: SERIES_ID,
+      tags: [],
+      title: "Iron Flame",
+      ...overrides,
+    };
+  }
+
+  it("maps a part-number unique violation on create to the pre-check BadRequestError with re-run meta", async () => {
+    const { repository, service } = buildService({ seriesId: SERIES_ID });
+    repository.create.mockRejectedValue(uniqueConstraintError("books_series_id_part_number_key"));
+    repository.findSeriesPartNumberConflict
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: BOOK_ID, title: "Iron Flame" });
+
+    const thrown = await service
+      .create(USER_ID, seriesPartInput())
+      .catch((error: unknown) => error);
+
+    expect(thrown).toBeInstanceOf(BadRequestError);
+    if (!(thrown instanceof BadRequestError)) {
+      throw new Error("expected BadRequestError");
+    }
+    expect(thrown.fields?.[0]?.code).toBe(BOOK_SERIES_PART_NUMBER_TAKEN_CODE);
+    expect(thrown.fields?.[0]?.meta).toEqual({
+      bookId: BOOK_ID,
+      bookTitle: "Iron Flame",
+      partNumber: "2",
+    });
+  });
+
+  it("falls back to a metaless field error on create when the conflicting book cannot be re-read", async () => {
+    const { repository, service } = buildService({ seriesId: SERIES_ID });
+    repository.create.mockRejectedValue(uniqueConstraintError("books_series_id_part_number_key"));
+
+    const thrown = await service
+      .create(USER_ID, seriesPartInput())
+      .catch((error: unknown) => error);
+
+    expect(thrown).toBeInstanceOf(BadRequestError);
+    if (!(thrown instanceof BadRequestError)) {
+      throw new Error("expected BadRequestError");
+    }
+    expect(thrown.fields?.[0]?.code).toBe(BOOK_SERIES_PART_NUMBER_TAKEN_CODE);
+    expect(thrown.fields?.[0]?.meta).toBeUndefined();
+  });
+
+  it("rethrows a unique violation on create that targets a different constraint", async () => {
+    const { repository, service } = buildService({ seriesId: SERIES_ID });
+    const originalError = uniqueConstraintError("books_isbn_key");
+    repository.create.mockRejectedValue(originalError);
+
+    await expect(service.create(USER_ID, seriesPartInput())).rejects.toBe(originalError);
+  });
+
+  it("maps a part-number unique violation on update to the pre-check BadRequestError with re-run meta", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ partNumber: 3, seriesId: SERIES_ID }),
+    });
+    repository.updateOwned.mockRejectedValue(
+      uniqueConstraintError("books_series_id_part_number_key"),
+    );
+    repository.findSeriesPartNumberConflict
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: BOOK_ID, title: "Iron Flame" });
+
+    const thrown = await service
+      .update(USER_ID, BOOK_ID, { partNumber: 2 } as UpdateBookInput)
+      .catch((error: unknown) => error);
+
+    expect(thrown).toBeInstanceOf(BadRequestError);
+    if (!(thrown instanceof BadRequestError)) {
+      throw new Error("expected BadRequestError");
+    }
+    expect(thrown.fields?.[0]?.code).toBe(BOOK_SERIES_PART_NUMBER_TAKEN_CODE);
+    expect(thrown.fields?.[0]?.meta).toEqual({
+      bookId: BOOK_ID,
+      bookTitle: "Iron Flame",
+      partNumber: "2",
+    });
+  });
+
+  it("rethrows a unique violation on update that targets a different constraint", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ partNumber: 3, seriesId: SERIES_ID }),
+    });
+    const originalError = uniqueConstraintError("books_isbn_key");
+    repository.updateOwned.mockRejectedValue(originalError);
+
+    await expect(
+      service.update(USER_ID, BOOK_ID, { partNumber: 2 } as UpdateBookInput),
+    ).rejects.toBe(originalError);
   });
 });
 
@@ -1440,6 +1595,42 @@ describe("BooksService.update", () => {
     await service.update(USER_ID, BOOK_ID, { title: "Solo" });
 
     expect(repository.findSeriesPartNumberConflict).not.toHaveBeenCalled();
+  });
+
+  it("rejects an update when a newSeries name resolves to an existing series whose total books is exceeded", async () => {
+    const { repository, seriesService, service } = buildService({
+      findOwnedById: bookRow(),
+      seriesId: SERIES_ID,
+      seriesTotalBooks: 2,
+    });
+
+    await expect(
+      service.update(USER_ID, BOOK_ID, {
+        bookType: "series_part",
+        newSeries: { name: "Throne of Glass", status: "ongoing" },
+        partNumber: 99,
+      } as UpdateBookInput),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(seriesService.resolveForBook).toHaveBeenCalled();
+    expect(repository.updateOwned).not.toHaveBeenCalled();
+  });
+
+  it("accepts an update when a newSeries name resolves to an existing series with room for the part number", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow(),
+      seriesId: SERIES_ID,
+      seriesTotalBooks: 3,
+    });
+
+    await service.update(USER_ID, BOOK_ID, {
+      bookType: "series_part",
+      newSeries: { name: "Throne of Glass", status: "ongoing" },
+      partNumber: 2,
+    } as UpdateBookInput);
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields.seriesId).toBe(SERIES_ID);
+    expect(data.fields.partNumber).toBe(2);
   });
 
   it("enqueues a book that was not in the queue and appends to the end with the chosen priority", async () => {

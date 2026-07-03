@@ -11,6 +11,7 @@ function makeBook(overrides: Partial<SeriesBookPreview> = {}): SeriesBookPreview
     partNumber: 1,
     readingStatus: "not_started",
     title: "Untitled",
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     ...overrides,
   };
 }
@@ -65,6 +66,34 @@ describe("summarizeSeriesBooks nextBook", () => {
     expect(summary.nextBook?.id).toBe("part-2");
   });
 
+  it("prefers a reading part over a not-started part with a lower part number", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1, readingStatus: "not_started" }),
+      makeBook({ id: "part-2", partNumber: 2, readingStatus: "reading" }),
+    ]);
+
+    expect(summary.nextBook?.id).toBe("part-2");
+  });
+
+  it("treats a rereading part the same as a reading part when picking next", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1, readingStatus: "not_started" }),
+      makeBook({ id: "part-2", partNumber: 2, readingStatus: "rereading" }),
+    ]);
+
+    expect(summary.nextBook?.id).toBe("part-2");
+  });
+
+  it("picks the lowest part number among multiple in-progress parts", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-3", partNumber: 3, readingStatus: "reading" }),
+      makeBook({ id: "part-1", partNumber: 1, readingStatus: "reading" }),
+      makeBook({ id: "part-2", partNumber: 2, readingStatus: "not_started" }),
+    ]);
+
+    expect(summary.nextBook?.id).toBe("part-1");
+  });
+
   it("treats a dnf part as unfinished and eligible to be next", () => {
     const summary = summarizeSeriesBooks([
       makeBook({ id: "part-1", partNumber: 1, readingStatus: "dnf" }),
@@ -96,6 +125,23 @@ describe("summarizeSeriesBooks finishedInSeries", () => {
 
   it("returns zero for an empty series", () => {
     expect(summarizeSeriesBooks([]).finishedInSeries).toBe(0);
+  });
+});
+
+describe("summarizeSeriesBooks readingInSeries", () => {
+  it("counts parts with a reading or rereading status", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1, readingStatus: "reading" }),
+      makeBook({ id: "part-2", partNumber: 2, readingStatus: "rereading" }),
+      makeBook({ id: "part-3", partNumber: 3, readingStatus: "finished" }),
+      makeBook({ id: "part-4", partNumber: 4, readingStatus: "not_started" }),
+    ]);
+
+    expect(summary.readingInSeries).toBe(2);
+  });
+
+  it("returns zero for an empty series", () => {
+    expect(summarizeSeriesBooks([]).readingInSeries).toBe(0);
   });
 });
 

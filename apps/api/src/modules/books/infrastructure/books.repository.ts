@@ -37,6 +37,7 @@ const withRelations = {
           partNumber: true,
           readingStatus: true,
           title: true,
+          updatedAt: true,
         },
       },
     },

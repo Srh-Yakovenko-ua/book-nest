@@ -135,7 +135,11 @@ describe("GET /api/series", () => {
     const res = await searchSeries(accessToken);
 
     expect(res.status).toBe(200);
-    expect(res.body.items[0]).toMatchObject({ booksInSeries: 3, finishedInSeries: 2 });
+    expect(res.body.items[0]).toMatchObject({
+      booksInSeries: 3,
+      finishedInSeries: 2,
+      readingInSeries: 1,
+    });
   });
 
   it("does not return another user's series", async () => {

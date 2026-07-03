@@ -12,8 +12,6 @@ import {
   QueuePrioritySchema,
   type ReadingProgressView,
   ReadingStatusSchema,
-  SeriesStatusSchema,
-  type SeriesView,
 } from "@app/shared";
 
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
@@ -22,9 +20,9 @@ import { toIsoDate } from "../../../core/iso-date.js";
 import { toBookListView } from "../../lists/domain/book-list.mapper.js";
 import {
   computeHasUnreadEarlierParts,
-  summarizeSeriesBooks,
   toSeriesBookPreview,
 } from "../../series/domain/series-preview.js";
+import { toSeriesView } from "../../series/domain/series.mapper.js";
 import { toDeliverySummaryView } from "./delivery.mapper.js";
 
 const toNullableIsoDate = (value: Date | null): null | string =>
@@ -72,7 +70,7 @@ export function toBookView(book: BookWithRelations, cover: MediaView | null): Bo
       book.queuePriority === null ? null : QueuePrioritySchema.parse(book.queuePriority),
     readingProgress: toReadingProgressView(book.readingProgress),
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
-    series: toSeriesView(book.series),
+    series: book.series === null ? null : toSeriesView(book.series),
     tags: book.tags.map((bookTag) => ({ id: bookTag.tag.id, name: bookTag.tag.name })),
     title: book.title,
     translator: book.translator,
@@ -131,30 +129,5 @@ function toReadingProgressView(
     pausedAt: toNullableIsoDate(readingProgress.pausedAt),
     rating: readingProgress.rating,
     startedAt: toNullableIsoDate(readingProgress.startedAt),
-  };
-}
-
-function toSeriesView(series: BookWithRelations["series"]): null | SeriesView {
-  if (series === null) {
-    return null;
-  }
-
-  const { finishedInSeries, nextBook } = summarizeSeriesBooks(
-    series.books.map(toSeriesBookPreview),
-  );
-
-  return {
-    authors: series.authors.map((seriesAuthor) => ({
-      id: seriesAuthor.author.id,
-      name: seriesAuthor.author.name,
-    })),
-    booksInSeries: series._count.books,
-    description: series.description,
-    finishedInSeries,
-    id: series.id,
-    name: series.name,
-    nextBook,
-    status: SeriesStatusSchema.parse(series.status),
-    totalBooks: series.totalBooks,
   };
 }

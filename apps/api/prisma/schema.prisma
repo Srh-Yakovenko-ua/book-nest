@@ -194,6 +194,7 @@ model Book {
   deliveries      BookDelivery[]
   loanInfo        BookLoanInfo?
 
+  @@unique([seriesId, partNumber])
   @@index([userId])
   @@index([userId, firstAuthorName])
   @@index([seriesId])

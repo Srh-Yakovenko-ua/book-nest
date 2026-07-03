@@ -226,10 +226,13 @@ const ProfileQuoteSchema = z
   .trim()
   .pipe(NoHtmlString.max(PROFILE_QUOTE_MAX, "Quote must be at most 200 characters long"));
 
+const TIMEZONE_SKEW_TOLERANCE_MS = 24 * 60 * 60 * 1000;
+
 const isNotInFuture = (value: string): boolean => {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
-  return new Date(`${value}T00:00:00.000Z`) <= today;
+  const todayUtc = new Date();
+  todayUtc.setUTCHours(0, 0, 0, 0);
+  const latestAcceptable = todayUtc.getTime() + TIMEZONE_SKEW_TOLERANCE_MS;
+  return new Date(`${value}T00:00:00.000Z`).getTime() <= latestAcceptable;
 };
 
 const notInFutureDate = (message: string) => z.iso.date().refine(isNotInFuture, message);
@@ -1107,6 +1110,16 @@ export const NewSeriesInputSchema = z.object({
 
 export type NewSeriesInput = z.infer<typeof NewSeriesInputSchema>;
 
+export const UpdateSeriesInputSchema = z.object({
+  authors: z.array(BookAuthorReferenceSchema).max(BOOK_AUTHORS_MAX).optional(),
+  description: SeriesDescriptionSchema.nullable().optional(),
+  name: SeriesNameSchema.optional(),
+  status: SeriesStatusSchema.optional(),
+  totalBooks: SeriesTotalBooksSchema.nullable().optional(),
+});
+
+export type UpdateSeriesInput = z.infer<typeof UpdateSeriesInputSchema>;
+
 export const CreateBookInputSchema = z
   .object({
     addToReadingQueue: z.boolean().default(false),
@@ -1774,16 +1787,69 @@ export type SeriesNextBook = z.infer<typeof SeriesNextBookSchema>;
 export const SeriesViewSchema = z.object({
   authors: z.array(BookAuthorRefSchema),
   booksInSeries: z.number(),
+  createdAt: z.string(),
   description: z.string().nullable(),
   finishedInSeries: z.number(),
   id: z.string(),
+  lastActivityAt: z.string(),
   name: z.string(),
   nextBook: SeriesNextBookSchema.nullable(),
+  readingInSeries: z.number(),
   status: SeriesStatusSchema,
   totalBooks: z.number().nullable(),
 });
 
 export type SeriesView = z.infer<typeof SeriesViewSchema>;
+
+export const SeriesBookViewSchema = z.object({
+  authors: z.array(BookAuthorRefSchema),
+  createdAt: z.string(),
+  currentPage: z.number().nullable(),
+  id: z.string(),
+  isFavorite: z.boolean(),
+  originalTitle: z.string().nullable(),
+  ownershipStatus: OwnershipStatusSchema,
+  pagesCount: z.number().nullable(),
+  partNumber: z.number().nullable(),
+  rating: z.number().nullable(),
+  readingStatus: ReadingStatusSchema,
+  title: z.string(),
+});
+
+export type SeriesBookView = z.infer<typeof SeriesBookViewSchema>;
+
+export const SeriesStatsViewSchema = z.object({
+  averageRating: z.number().nullable(),
+  booksCount: z.number(),
+  finishedCount: z.number(),
+  pagesCount: z.number().nullable(),
+  readingCount: z.number(),
+  unreadCount: z.number(),
+});
+
+export type SeriesStatsView = z.infer<typeof SeriesStatsViewSchema>;
+
+export const SeriesDetailsViewSchema = SeriesViewSchema.extend({
+  books: z.array(SeriesBookViewSchema),
+  stats: SeriesStatsViewSchema,
+});
+
+export type SeriesDetailsView = z.infer<typeof SeriesDetailsViewSchema>;
+
+export const SeriesOverviewViewSchema = z.object({
+  booksInSeries: z.number(),
+  fullyReadSeries: z.number(),
+  statusCounts: z.object({
+    completed: z.number(),
+    ongoing: z.number(),
+    unknown: z.number(),
+  }),
+  topUnfinished: z.array(SeriesViewSchema),
+  totalSeries: z.number(),
+  unfinishedSeries: z.number(),
+});
+
+export type SeriesOverviewView = z.infer<typeof SeriesOverviewViewSchema>;
 
 export const BookViewSchema = z.object({
   ageCategory: AgeCategorySchema,

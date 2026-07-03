@@ -125,11 +125,19 @@ export default tseslint.config(
   {
     files: ["**/*.{test,spec}.{ts,tsx}"],
     plugins: {
-      "testing-library": testingLibrary,
       vitest,
     },
     rules: {
       ...vitest.configs.recommended.rules,
+    },
+  },
+
+  {
+    files: ["apps/web/**/*.{test,spec}.{ts,tsx}"],
+    plugins: {
+      "testing-library": testingLibrary,
+    },
+    rules: {
       ...testingLibrary.configs["flat/react"].rules,
     },
   },

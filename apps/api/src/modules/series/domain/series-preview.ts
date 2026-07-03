@@ -8,22 +8,49 @@ export type SeriesBookPreview = {
   partNumber: null | number;
   readingStatus: ReadingStatus;
   title: string;
+  updatedAt: Date;
 };
 
-export type SeriesBooksSummary = {
-  finishedInSeries: number;
-  nextBook: null | SeriesNextBook;
-};
-
-type SeriesBookRow = {
+export type SeriesBookRow = {
   createdAt: Date;
   id: string;
   partNumber: null | number;
   readingStatus: string;
   title: string;
+  updatedAt: Date;
+};
+
+export type SeriesBooksSummary = {
+  finishedInSeries: number;
+  nextBook: null | SeriesNextBook;
+  readingInSeries: number;
+};
+
+type PartOrderedBook = {
+  createdAt: Date;
+  partNumber: null | number;
 };
 
 const FINISHED_READING_STATUS: ReadingStatus = "finished";
+
+const IN_PROGRESS_READING_STATUSES: ReadonlySet<ReadingStatus> = new Set<ReadingStatus>([
+  "reading",
+  "rereading",
+]);
+
+export function compareByPartThenCreated(first: PartOrderedBook, second: PartOrderedBook): number {
+  if (first.partNumber !== second.partNumber) {
+    if (first.partNumber === null) {
+      return 1;
+    }
+    if (second.partNumber === null) {
+      return -1;
+    }
+    return first.partNumber - second.partNumber;
+  }
+
+  return first.createdAt.getTime() - second.createdAt.getTime();
+}
 
 export function computeHasUnreadEarlierParts({
   books,
@@ -44,21 +71,33 @@ export function computeHasUnreadEarlierParts({
   );
 }
 
-export function summarizeSeriesBooks(books: SeriesBookPreview[]): SeriesBooksSummary {
-  const finishedInSeries = books.filter(
-    (book) => book.readingStatus === FINISHED_READING_STATUS,
-  ).length;
+export function computeSeriesLastActivityAt({
+  books,
+  seriesUpdatedAt,
+}: {
+  books: SeriesBookPreview[];
+  seriesUpdatedAt: Date;
+}): Date {
+  return books.reduce(
+    (latest, book) => (book.updatedAt > latest ? book.updatedAt : latest),
+    seriesUpdatedAt,
+  );
+}
 
-  const nextBook = [...books]
-    .sort(compareByPartThenCreated)
-    .find((book) => book.readingStatus !== FINISHED_READING_STATUS);
+export function countFinishedBooks(books: SeriesBookPreview[]): number {
+  return books.filter((book) => book.readingStatus === FINISHED_READING_STATUS).length;
+}
+
+export function summarizeSeriesBooks(books: SeriesBookPreview[]): SeriesBooksSummary {
+  const nextBook = selectNextBook(books);
 
   return {
-    finishedInSeries,
+    finishedInSeries: countFinishedBooks(books),
     nextBook:
       nextBook === undefined
         ? null
         : { id: nextBook.id, partNumber: nextBook.partNumber, title: nextBook.title },
+    readingInSeries: countReadingBooks(books),
   };
 }
 
@@ -66,16 +105,16 @@ export function toSeriesBookPreview(book: SeriesBookRow): SeriesBookPreview {
   return { ...book, readingStatus: ReadingStatusSchema.parse(book.readingStatus) };
 }
 
-function compareByPartThenCreated(first: SeriesBookPreview, second: SeriesBookPreview): number {
-  if (first.partNumber !== second.partNumber) {
-    if (first.partNumber === null) {
-      return 1;
-    }
-    if (second.partNumber === null) {
-      return -1;
-    }
-    return first.partNumber - second.partNumber;
+function countReadingBooks(books: SeriesBookPreview[]): number {
+  return books.filter((book) => IN_PROGRESS_READING_STATUSES.has(book.readingStatus)).length;
+}
+
+function selectNextBook(books: SeriesBookPreview[]): SeriesBookPreview | undefined {
+  const ordered = [...books].sort(compareByPartThenCreated);
+  const inProgress = ordered.find((book) => IN_PROGRESS_READING_STATUSES.has(book.readingStatus));
+  if (inProgress !== undefined) {
+    return inProgress;
   }
 
-  return first.createdAt.getTime() - second.createdAt.getTime();
+  return ordered.find((book) => book.readingStatus !== FINISHED_READING_STATUS);
 }
