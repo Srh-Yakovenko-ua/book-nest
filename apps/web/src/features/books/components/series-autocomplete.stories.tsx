@@ -79,11 +79,14 @@ function seriesView(seed: SeriesSeed): SeriesView {
   return {
     authors: seed.authors ?? [],
     booksInSeries: 0,
+    createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
     finishedInSeries: 0,
     id: seed.id,
+    lastActivityAt: "2026-01-01T00:00:00.000Z",
     name: seed.name,
     nextBook: null,
+    readingInSeries: 0,
     status: seed.status ?? "ongoing",
     totalBooks: seed.totalBooks ?? null,
   };

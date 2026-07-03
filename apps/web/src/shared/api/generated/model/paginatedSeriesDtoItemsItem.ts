@@ -12,13 +12,16 @@ import type { PaginatedSeriesDtoItemsItemStatus } from "./paginatedSeriesDtoItem
 export type PaginatedSeriesDtoItemsItem = {
   authors: PaginatedSeriesDtoItemsItemAuthorsItem[];
   booksInSeries: number;
+  createdAt: string;
   /** @nullable */
   description: string | null;
   finishedInSeries: number;
   id: string;
+  lastActivityAt: string;
   name: string;
   /** @nullable */
   nextBook: PaginatedSeriesDtoItemsItemNextBook;
+  readingInSeries: number;
   status: PaginatedSeriesDtoItemsItemStatus;
   /** @nullable */
   totalBooks: number | null;

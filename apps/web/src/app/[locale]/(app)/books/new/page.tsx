@@ -3,13 +3,18 @@ import type { Metadata } from "next";
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { z } from "zod";
 
 import { CreateBookForm } from "@/features/books";
 import { routing } from "@/i18n/routing";
 
 type Props = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+const seriesIdParam = z.uuid();
+const partNumberParam = z.coerce.number().int().min(1).max(999);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
@@ -18,11 +23,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: t("page.metaTitle") };
 }
 
-export default async function NewBookPage({ params }: Props) {
+export default async function NewBookPage({ params, searchParams }: Props) {
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) notFound();
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "books" });
+
+  const query = await searchParams;
+  const seriesId = seriesIdParam.safeParse(query.seriesId).data;
+  const partNumber = partNumberParam.safeParse(query.partNumber).data;
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
@@ -38,7 +47,7 @@ export default async function NewBookPage({ params }: Props) {
         </p>
       </header>
 
-      <CreateBookForm />
+      <CreateBookForm partNumber={partNumber} seriesId={seriesId} />
     </main>
   );
 }

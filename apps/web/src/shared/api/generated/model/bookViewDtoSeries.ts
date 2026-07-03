@@ -15,10 +15,12 @@ export type BookViewDtoSeries = {
     name: string;
   }[];
   booksInSeries: number;
+  createdAt: string;
   /** @nullable */
   description: string | null;
   finishedInSeries: number;
   id: string;
+  lastActivityAt: string;
   name: string;
   /** @nullable */
   nextBook: {
@@ -27,6 +29,7 @@ export type BookViewDtoSeries = {
     partNumber: number | null;
     title: string;
   } | null;
+  readingInSeries: number;
   status: "completed" | "ongoing" | "unknown";
   /** @nullable */
   totalBooks: number | null;

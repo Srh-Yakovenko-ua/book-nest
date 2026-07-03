@@ -6,11 +6,13 @@
     "decrement": "Зменшити",
     "increment": "Збільшити",
     "opensInNewTab": "(відкриється в новій вкладці)",
-    "ratingValueText": "{value} з {max}"
+    "ratingValueText": "{value} з {max}",
+    "clear": "Очистити"
   },
   "nav": {
     "home": "Головна",
-    "library": "Бібліотека"
+    "library": "Бібліотека",
+    "series": "Серії"
   },
   "appShell": {
     "label": "Book Nest"
@@ -1190,6 +1192,263 @@
           "generic": "Не вдалося зберегти. Спробуйте ще раз."
         }
       }
+    }
+  },
+  "series": {
+    "page": {
+      "metaTitle": "Серії",
+      "title": "Серії",
+      "subtitle": "Усі книжкові цикли твоєї бібліотеки — з прогресом і наступними томами",
+      "count": "{count, plural, one {# серія} few {# серії} many {# серій} other {# серій}}",
+      "resultsTitle": "Список серій",
+      "create": "Створити серію",
+      "addBook": "Додати книгу"
+    },
+    "summary": {
+      "total": "Усього серій",
+      "fullyRead": "Прочитано",
+      "unfinished": "Недочитані",
+      "booksInSeries": "Книг у серіях"
+    },
+    "tabs": {
+      "all": "Усі серії",
+      "unfinished": "Недочитані"
+    },
+    "toolbar": {
+      "searchLabel": "Пошук серій",
+      "searchPlaceholder": "Пошук за назвою або автором",
+      "searchClear": "Очистити пошук",
+      "statusLabel": "Статус циклу",
+      "readingLabel": "Стан читання",
+      "sortLabel": "Сортування"
+    },
+    "statusFilter": {
+      "all": "Усі статуси",
+      "completed": "Завершена",
+      "ongoing": "Ще виходить",
+      "unknown": "Невідомо"
+    },
+    "readingFilter": {
+      "all": "Будь-який стан",
+      "not_started": "Не почато",
+      "in_progress": "У процесі",
+      "completed": "Прочитано повністю",
+      "empty": "Без книг"
+    },
+    "sort": {
+      "name_asc": "Назва А–Я",
+      "name_desc": "Назва Я–А",
+      "progress_desc": "Найбільший прогрес",
+      "progress_asc": "Найменший прогрес",
+      "books_desc": "Найбільше книг",
+      "activity_desc": "Нещодавно оновлені"
+    },
+    "status": {
+      "completed": "Завершена",
+      "ongoing": "Ще виходить",
+      "unknown": "Невідомо"
+    },
+    "card": {
+      "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "progressWithTotal": "Прочитано {finished} з {total}",
+      "progressAdded": "Прочитано {finished} з {count} доданих",
+      "allRead": "Усі книги прочитані",
+      "noBooks": "Книги ще не додані",
+      "next": "Наступна: {title}",
+      "nextWithPart": "Наступна: {title} · Книга {number}",
+      "nextAllRead": "Усю серію прочитано",
+      "view": "Переглянути серію",
+      "addBook": "Додати книгу",
+      "coverAlt": "Обкладинка серії {name}",
+      "authorsUnknown": "Автор невідомий"
+    },
+    "sidebar": {
+      "quickActions": "Швидкі дії",
+      "createSeries": "Створити серію",
+      "addBook": "Додати книгу",
+      "goToUnfinished": "Перейти до недочитаних",
+      "continueTitle": "Продовжити серію",
+      "continueEmpty": "Немає недочитаних серій",
+      "progress": "{finished} з {total} · {percent}%",
+      "next": "Наступна: {title}",
+      "openSeries": "Відкрити серію",
+      "closestTitle": "Найближчі до завершення",
+      "closestEmpty": "Поки що немає прогресу",
+      "statusTitle": "Статус циклів",
+      "statusCompleted": "Завершені автором",
+      "statusOngoing": "Ще виходять",
+      "statusUnknown": "Невідомо"
+    },
+    "dialog": {
+      "title": "Нова серія",
+      "description": "Створіть книжкову серію, щоб відстежувати її прогрес.",
+      "name": "Назва серії",
+      "namePlaceholder": "Напр. Відьмак",
+      "status": "Статус",
+      "totalBooks": "Книг у серії",
+      "totalBooksPlaceholder": "Напр. 5",
+      "descriptionLabel": "Опис",
+      "descriptionPlaceholder": "Короткий опис серії…",
+      "optional": "(необовʼязково)",
+      "submit": "Створити серію",
+      "cancel": "Скасувати",
+      "duplicate": "Серія з такою назвою вже існує",
+      "genericError": "Не вдалося створити серію. Спробуйте ще раз."
+    },
+    "toast": {
+      "created": "Серію створено",
+      "updated": "Серію оновлено",
+      "deleted": "Серію видалено",
+      "bookAdded": "Книгу додано до серії",
+      "bookRemoved": "Книгу прибрано з серії",
+      "error": "Щось пішло не так. Спробуйте ще раз."
+    },
+    "states": {
+      "loading": "Завантаження серій…",
+      "empty": {
+        "title": "У вас ще немає серій",
+        "description": "Створіть серію або додайте книгу, що входить до циклу, щоб почати відстежувати прогрес.",
+        "create": "Створити серію",
+        "addBook": "Додати книгу"
+      },
+      "emptyUnfinished": {
+        "title": "Немає недочитаних серій",
+        "description": "Щойно ви почнете читати цикл, він зʼявиться тут.",
+        "showAll": "Показати всі серії"
+      },
+      "noResults": {
+        "title": "Серій не знайдено",
+        "description": "Спробуйте змінити пошук або скинути фільтри.",
+        "clear": "Скинути фільтри"
+      },
+      "error": {
+        "title": "Не вдалося завантажити серії",
+        "description": "Спробуйте оновити сторінку або повторити запит трохи пізніше.",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "details": {
+      "metaTitle": "Серія",
+      "back": "Серії",
+      "coverAlt": "Обкладинка серії {name}",
+      "authorsUnknown": "Автор невідомий",
+      "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "booksWithTotal": "{count} з {total} додано",
+      "edit": "Редагувати серію",
+      "addBook": "Додати книгу",
+      "delete": "Видалити серію",
+      "menu": "Дії із серією",
+      "addBookInline": "Додати книгу в цю серію",
+      "booksHeading": "Книги серії",
+      "tabs": {
+        "books": "Книги серії",
+        "about": "Про серію"
+      },
+      "booksEmpty": {
+        "title": "У цій серії ще немає книг",
+        "action": "Додати книгу"
+      },
+      "readingOrder": {
+        "title": "Порядок читання"
+      },
+      "row": {
+        "menu": "Дії з книгою",
+        "view": "Переглянути книгу",
+        "remove": "Прибрати з серії",
+        "progress": "стор. {current} з {total}",
+        "authorsUnknown": "Автор невідомий"
+      },
+      "progress": {
+        "title": "Ваш прогрес у серії",
+        "booksOfTotal": "{finished} з {total} книг",
+        "booksAdded": "{finished} з {count} доданих",
+        "finished": "Прочитано {count}",
+        "reading": "Читаю {count}",
+        "unread": "Ще не прочитано {count}",
+        "unavailable": "Прогрес ще недоступний",
+        "completed": "Серію прочитано"
+      },
+      "next": {
+        "title": "Наступна книга",
+        "book": "Книга {number}",
+        "cta": "Перейти до книги",
+        "allRead": "Усі книги прочитані",
+        "empty": "Додайте першу книгу"
+      },
+      "stats": {
+        "title": "Статистика серії",
+        "total": "Усього книг",
+        "finished": "Прочитано",
+        "reading": "Читаю",
+        "unread": "Ще не прочитано",
+        "averageRating": "Середній рейтинг",
+        "pages": "Сторінок у серії"
+      },
+      "actions": {
+        "title": "Дії",
+        "edit": "Редагувати серію",
+        "addBook": "Додати книгу в серію",
+        "delete": "Видалити серію"
+      },
+      "about": {
+        "title": "Про серію",
+        "description": "Опис",
+        "descriptionEmpty": "Опис ще не додано.",
+        "status": "Статус циклу",
+        "authors": "Автори",
+        "totalBooks": "Загалом книг",
+        "createdAt": "Додано",
+        "unknown": "—"
+      },
+      "states": {
+        "loading": "Завантаження серії…",
+        "notFoundTitle": "Серію не знайдено",
+        "notFoundDescription": "Можливо, її було видалено або вона належить іншому користувачеві.",
+        "errorTitle": "Не вдалося завантажити серію",
+        "errorDescription": "Спробуйте оновити сторінку.",
+        "back": "Повернутися до серій"
+      }
+    },
+    "editDialog": {
+      "title": "Редагувати серію",
+      "description": "Оновіть інформацію про серію.",
+      "submit": "Зберегти зміни",
+      "duplicate": "Серія з такою назвою вже існує",
+      "totalBooksTooLow": "Загальна кількість книг не може бути меншою за кількість уже доданих книг у серію",
+      "genericError": "Не вдалося оновити серію. Спробуйте ще раз."
+    },
+    "deleteDialog": {
+      "title": "Видалити серію?",
+      "bodyWithBooks": "У цій серії є книги. Серію буде видалено, але книги залишаться у вашій бібліотеці без прив'язки до серії.",
+      "bodyEmpty": "Цю серію буде видалено з вашої бібліотеки.",
+      "booksCount": "Книг у серії: {count}",
+      "confirm": "Видалити серію",
+      "cancel": "Скасувати",
+      "deleting": "Видалення…"
+    },
+    "removeBookDialog": {
+      "title": "Прибрати книгу з серії?",
+      "body": "Книга залишиться у вашій бібліотеці, але більше не буде відображатися в цій серії.",
+      "confirm": "Прибрати з серії",
+      "cancel": "Скасувати",
+      "removing": "Прибирання…"
+    },
+    "addBookDialog": {
+      "title": "Додати книгу в серію",
+      "description": "Оберіть книгу з бібліотеки та вкажіть номер частини.",
+      "searchLabel": "Пошук книг",
+      "searchPlaceholder": "Пошук за назвою…",
+      "searching": "Пошук…",
+      "empty": "Немає книг для додавання",
+      "emptyHint": "Усі книги вже належать до серій або відсутні.",
+      "createNew": "Створити нову книгу",
+      "partNumber": "Номер частини",
+      "selectBook": "Оберіть книгу",
+      "submit": "Додати книгу",
+      "cancel": "Скасувати",
+      "partNumberTaken": "У цій серії вже є книга з таким номером частини",
+      "partNumberExceedsTotal": "Номер частини більший за загальну кількість книг у серії",
+      "genericError": "Не вдалося додати книгу. Спробуйте ще раз."
     }
   }
 }

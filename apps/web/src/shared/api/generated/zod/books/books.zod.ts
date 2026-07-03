@@ -666,9 +666,11 @@ export const BooksControllerListResponse = zod.object({
             }),
           ),
           booksInSeries: zod.number(),
+          createdAt: zod.string(),
           description: zod.string().nullable(),
           finishedInSeries: zod.number(),
           id: zod.string(),
+          lastActivityAt: zod.string(),
           name: zod.string(),
           nextBook: zod
             .object({
@@ -677,6 +679,7 @@ export const BooksControllerListResponse = zod.object({
               title: zod.string(),
             })
             .nullable(),
+          readingInSeries: zod.number(),
           status: zod.enum(["completed", "ongoing", "unknown"]),
           totalBooks: zod.number().nullable(),
         })
@@ -900,9 +903,11 @@ export const BooksControllerOverviewResponse = zod.object({
             }),
           ),
           booksInSeries: zod.number(),
+          createdAt: zod.string(),
           description: zod.string().nullable(),
           finishedInSeries: zod.number(),
           id: zod.string(),
+          lastActivityAt: zod.string(),
           name: zod.string(),
           nextBook: zod
             .object({
@@ -911,6 +916,7 @@ export const BooksControllerOverviewResponse = zod.object({
               title: zod.string(),
             })
             .nullable(),
+          readingInSeries: zod.number(),
           status: zod.enum(["completed", "ongoing", "unknown"]),
           totalBooks: zod.number().nullable(),
         })
@@ -1139,9 +1145,11 @@ export const BooksControllerGetByIdResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -1150,6 +1158,7 @@ export const BooksControllerGetByIdResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -1614,9 +1623,11 @@ export const BooksControllerUpdateResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -1625,6 +1636,7 @@ export const BooksControllerUpdateResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -1857,9 +1869,11 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -1868,6 +1882,7 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -2074,9 +2089,11 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -2085,6 +2102,7 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -2272,9 +2290,11 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -2283,6 +2303,7 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -2470,9 +2491,11 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -2481,6 +2504,7 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -2685,9 +2709,11 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -2696,6 +2722,7 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -2883,9 +2910,11 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -2894,6 +2923,7 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -3101,9 +3131,11 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -3112,6 +3144,7 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -3299,9 +3332,11 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -3310,6 +3345,7 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -3528,9 +3564,11 @@ export const BookDeliveryControllerCreateResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -3539,6 +3577,7 @@ export const BookDeliveryControllerCreateResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -3787,9 +3826,11 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -3798,6 +3839,7 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -3986,9 +4028,11 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -3997,6 +4041,7 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })
@@ -4191,9 +4236,11 @@ export const BookDeliveryControllerCancelResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -4202,6 +4249,7 @@ export const BookDeliveryControllerCancelResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     })

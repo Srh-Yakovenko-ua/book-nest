@@ -12,11 +12,14 @@ function makeSeries(overrides: Partial<SeriesView> = {}): SeriesView {
   return {
     authors: [{ id: "s-author-1", name: "Ребекка Яррос" }],
     booksInSeries: 3,
+    createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
     finishedInSeries: 1,
     id: "series-1",
+    lastActivityAt: "2026-01-05T00:00:00.000Z",
     name: "Емпіреї",
     nextBook: { id: "next-book-1", partNumber: 2, title: "Ковадло зірок" },
+    readingInSeries: 1,
     status: "ongoing",
     totalBooks: 5,
     ...overrides,
@@ -98,7 +101,8 @@ export const IsNextBook: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Це наступна книга у серії")).toBeVisible();
-    await expect(canvas.queryByRole("link")).toBeNull();
+    await expect(canvas.getByRole("link", { name: "Емпіреї" })).toBeVisible();
+    await expect(canvas.queryByRole("link", { name: /Наступна/ })).toBeNull();
   },
 };
 

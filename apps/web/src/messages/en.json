@@ -6,11 +6,13 @@
     "decrement": "Decrease",
     "increment": "Increase",
     "opensInNewTab": "(opens in a new tab)",
-    "ratingValueText": "{value} of {max}"
+    "ratingValueText": "{value} of {max}",
+    "clear": "Clear"
   },
   "nav": {
     "home": "Home",
-    "library": "Library"
+    "library": "Library",
+    "series": "Series"
   },
   "appShell": {
     "label": "Book Nest"
@@ -1190,6 +1192,263 @@
           "generic": "Couldn’t save. Please try again."
         }
       }
+    }
+  },
+  "series": {
+    "page": {
+      "metaTitle": "Series",
+      "title": "Series",
+      "subtitle": "All the book cycles in your library — with progress and upcoming volumes",
+      "count": "{count, plural, one {# series} other {# series}}",
+      "resultsTitle": "Series list",
+      "create": "Create series",
+      "addBook": "Add book"
+    },
+    "summary": {
+      "total": "Total series",
+      "fullyRead": "Fully read",
+      "unfinished": "Unfinished",
+      "booksInSeries": "Books in series"
+    },
+    "tabs": {
+      "all": "All series",
+      "unfinished": "Unfinished"
+    },
+    "toolbar": {
+      "searchLabel": "Search series",
+      "searchPlaceholder": "Search by name or author",
+      "searchClear": "Clear search",
+      "statusLabel": "Cycle status",
+      "readingLabel": "Reading state",
+      "sortLabel": "Sort"
+    },
+    "statusFilter": {
+      "all": "All statuses",
+      "completed": "Completed",
+      "ongoing": "Ongoing",
+      "unknown": "Unknown"
+    },
+    "readingFilter": {
+      "all": "Any state",
+      "not_started": "Not started",
+      "in_progress": "In progress",
+      "completed": "Fully read",
+      "empty": "No books"
+    },
+    "sort": {
+      "name_asc": "Name A–Z",
+      "name_desc": "Name Z–A",
+      "progress_desc": "Most progress",
+      "progress_asc": "Least progress",
+      "books_desc": "Most books",
+      "activity_desc": "Recently updated"
+    },
+    "status": {
+      "completed": "Completed",
+      "ongoing": "Ongoing",
+      "unknown": "Unknown"
+    },
+    "card": {
+      "books": "{count, plural, one {# book} other {# books}}",
+      "progressWithTotal": "Read {finished} of {total}",
+      "progressAdded": "Read {finished} of {count} added",
+      "allRead": "All books read",
+      "noBooks": "No books added yet",
+      "next": "Next: {title}",
+      "nextWithPart": "Next: {title} · Book {number}",
+      "nextAllRead": "Whole series read",
+      "view": "View series",
+      "addBook": "Add book",
+      "coverAlt": "Cover of series {name}",
+      "authorsUnknown": "Unknown author"
+    },
+    "sidebar": {
+      "quickActions": "Quick actions",
+      "createSeries": "Create series",
+      "addBook": "Add book",
+      "goToUnfinished": "Go to unfinished",
+      "continueTitle": "Continue a series",
+      "continueEmpty": "No unfinished series",
+      "progress": "{finished} of {total} · {percent}%",
+      "next": "Next: {title}",
+      "openSeries": "Open series",
+      "closestTitle": "Closest to finishing",
+      "closestEmpty": "No progress yet",
+      "statusTitle": "Cycle status",
+      "statusCompleted": "Completed by author",
+      "statusOngoing": "Still ongoing",
+      "statusUnknown": "Unknown"
+    },
+    "dialog": {
+      "title": "New series",
+      "description": "Create a book series to track its progress.",
+      "name": "Series name",
+      "namePlaceholder": "e.g. The Witcher",
+      "status": "Status",
+      "totalBooks": "Books in series",
+      "totalBooksPlaceholder": "e.g. 5",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "A short series description…",
+      "optional": "(optional)",
+      "submit": "Create series",
+      "cancel": "Cancel",
+      "duplicate": "A series with this name already exists",
+      "genericError": "Could not create the series. Please try again."
+    },
+    "toast": {
+      "created": "Series created",
+      "updated": "Series updated",
+      "deleted": "Series deleted",
+      "bookAdded": "Book added to the series",
+      "bookRemoved": "Book removed from the series",
+      "error": "Something went wrong. Please try again."
+    },
+    "states": {
+      "loading": "Loading series…",
+      "empty": {
+        "title": "You have no series yet",
+        "description": "Create a series or add a book that belongs to a cycle to start tracking progress.",
+        "create": "Create series",
+        "addBook": "Add book"
+      },
+      "emptyUnfinished": {
+        "title": "No unfinished series",
+        "description": "As soon as you start reading a cycle, it will show up here.",
+        "showAll": "Show all series"
+      },
+      "noResults": {
+        "title": "No series found",
+        "description": "Try changing your search or resetting the filters.",
+        "clear": "Reset filters"
+      },
+      "error": {
+        "title": "Could not load series",
+        "description": "Try refreshing the page or retry a little later.",
+        "retry": "Try again"
+      }
+    },
+    "details": {
+      "metaTitle": "Series details",
+      "back": "Series",
+      "coverAlt": "Cover of series {name}",
+      "authorsUnknown": "Unknown author",
+      "books": "{count, plural, one {# book} other {# books}}",
+      "booksWithTotal": "{count} of {total} added",
+      "edit": "Edit series",
+      "addBook": "Add book",
+      "delete": "Delete series",
+      "menu": "Series actions",
+      "addBookInline": "Add a book to this series",
+      "booksHeading": "Series books",
+      "tabs": {
+        "books": "Books in series",
+        "about": "About the series"
+      },
+      "booksEmpty": {
+        "title": "This series has no books yet",
+        "action": "Add book"
+      },
+      "readingOrder": {
+        "title": "Reading order"
+      },
+      "row": {
+        "menu": "Book actions",
+        "view": "View book",
+        "remove": "Remove from series",
+        "progress": "p. {current} of {total}",
+        "authorsUnknown": "Unknown author"
+      },
+      "progress": {
+        "title": "Your progress in the series",
+        "booksOfTotal": "{finished} of {total} books",
+        "booksAdded": "{finished} of {count} added",
+        "finished": "Read {count}",
+        "reading": "Reading {count}",
+        "unread": "Not read {count}",
+        "unavailable": "Progress not available yet",
+        "completed": "Series completed"
+      },
+      "next": {
+        "title": "Next book",
+        "book": "Book {number}",
+        "cta": "Go to book",
+        "allRead": "All books read",
+        "empty": "Add the first book"
+      },
+      "stats": {
+        "title": "Series statistics",
+        "total": "Total books",
+        "finished": "Read",
+        "reading": "Reading",
+        "unread": "Not read",
+        "averageRating": "Average rating",
+        "pages": "Pages in series"
+      },
+      "actions": {
+        "title": "Actions",
+        "edit": "Edit series",
+        "addBook": "Add a book to the series",
+        "delete": "Delete series"
+      },
+      "about": {
+        "title": "About the series",
+        "description": "Description",
+        "descriptionEmpty": "No description added yet.",
+        "status": "Cycle status",
+        "authors": "Authors",
+        "totalBooks": "Total books",
+        "createdAt": "Added",
+        "unknown": "—"
+      },
+      "states": {
+        "loading": "Loading series…",
+        "notFoundTitle": "Series not found",
+        "notFoundDescription": "It may have been deleted or belongs to another user.",
+        "errorTitle": "Could not load the series",
+        "errorDescription": "Try refreshing the page.",
+        "back": "Back to series"
+      }
+    },
+    "editDialog": {
+      "title": "Edit series",
+      "description": "Update the series information.",
+      "submit": "Save changes",
+      "duplicate": "A series with this name already exists",
+      "totalBooksTooLow": "Total books can't be fewer than the books already added to the series",
+      "genericError": "Could not update the series. Please try again."
+    },
+    "deleteDialog": {
+      "title": "Delete series?",
+      "bodyWithBooks": "This series has books. The series will be deleted, but the books will stay in your library without a series link.",
+      "bodyEmpty": "This series will be deleted from your library.",
+      "booksCount": "Books in series: {count}",
+      "confirm": "Delete series",
+      "cancel": "Cancel",
+      "deleting": "Deleting…"
+    },
+    "removeBookDialog": {
+      "title": "Remove book from series?",
+      "body": "The book will stay in your library but will no longer appear in this series.",
+      "confirm": "Remove from series",
+      "cancel": "Cancel",
+      "removing": "Removing…"
+    },
+    "addBookDialog": {
+      "title": "Add a book to the series",
+      "description": "Pick a book from your library and set its part number.",
+      "searchLabel": "Search books",
+      "searchPlaceholder": "Search by title…",
+      "searching": "Searching…",
+      "empty": "No books to add",
+      "emptyHint": "All books already belong to series or none are available.",
+      "createNew": "Create a new book",
+      "partNumber": "Part number",
+      "selectBook": "Select a book",
+      "submit": "Add book",
+      "cancel": "Cancel",
+      "partNumberTaken": "This series already has a book with this part number",
+      "partNumberExceedsTotal": "Part number is greater than the total books in the series",
+      "genericError": "Could not add the book. Please try again."
     }
   }
 }

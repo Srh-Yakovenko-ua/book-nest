@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { CreateBookInputDto } from "@/shared/api/generated/model";
 
+import { seriesKeys } from "@/features/series/api/series-keys";
 import { booksControllerCreate } from "@/shared/api/generated/endpoints/books/books";
 
 export function useCreateBook() {
@@ -18,6 +19,7 @@ export function useCreateBook() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["/api/books"] });
       void queryClient.invalidateQueries({ queryKey: ["lists"] });
+      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
     },
   });
 }

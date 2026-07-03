@@ -8,6 +8,47 @@
 import * as zod from "zod";
 
 /**
+ * @summary Create a series in the current user library
+ */
+export const seriesControllerCreateBodyAuthorsItemOneIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const seriesControllerCreateBodyAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const seriesControllerCreateBodyAuthorsMax = 20;
+
+export const seriesControllerCreateBodyStatusDefault = `unknown`;
+export const seriesControllerCreateBodyTotalBooksMax = 999;
+
+export const SeriesControllerCreateBody = zod.object({
+  authors: zod
+    .array(
+      zod.union([
+        zod.object({
+          id: zod.uuid().regex(seriesControllerCreateBodyAuthorsItemOneIdRegExp),
+        }),
+        zod.object({
+          openLibraryKey: zod
+            .string()
+            .regex(seriesControllerCreateBodyAuthorsItemTwoOpenLibraryKeyRegExp),
+        }),
+        zod.object({
+          name: zod.string(),
+        }),
+      ]),
+    )
+    .max(seriesControllerCreateBodyAuthorsMax)
+    .optional(),
+  description: zod.string().optional(),
+  name: zod.string(),
+  status: zod
+    .enum(["completed", "ongoing", "unknown"])
+    .default(seriesControllerCreateBodyStatusDefault),
+  totalBooks: zod.number().min(1).max(seriesControllerCreateBodyTotalBooksMax).optional(),
+});
+
+export const SeriesControllerCreateResponse = zod.void();
+
+/**
  * @summary Search the current user series
  */
 export const seriesControllerSearchQueryPageNumberDefault = 1;
@@ -63,9 +104,11 @@ export const SeriesControllerSearchResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
       id: zod.string(),
+      lastActivityAt: zod.string(),
       name: zod.string(),
       nextBook: zod
         .object({
@@ -74,6 +117,7 @@ export const SeriesControllerSearchResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
+      readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       totalBooks: zod.number().nullable(),
     }),
@@ -95,3 +139,197 @@ export const SeriesControllerSearchResponse = zod.object({
     .min(seriesControllerSearchResponseTotalCountMin)
     .max(seriesControllerSearchResponseTotalCountMax),
 });
+
+/**
+ * @summary Get the current user series overview
+ */
+export const SeriesControllerOverviewResponse = zod.object({
+  booksInSeries: zod.number(),
+  fullyReadSeries: zod.number(),
+  statusCounts: zod.object({
+    completed: zod.number(),
+    ongoing: zod.number(),
+    unknown: zod.number(),
+  }),
+  topUnfinished: zod.array(
+    zod.object({
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      booksInSeries: zod.number(),
+      createdAt: zod.string(),
+      description: zod.string().nullable(),
+      finishedInSeries: zod.number(),
+      id: zod.string(),
+      lastActivityAt: zod.string(),
+      name: zod.string(),
+      nextBook: zod
+        .object({
+          id: zod.string(),
+          partNumber: zod.number().nullable(),
+          title: zod.string(),
+        })
+        .nullable(),
+      readingInSeries: zod.number(),
+      status: zod.enum(["completed", "ongoing", "unknown"]),
+      totalBooks: zod.number().nullable(),
+    }),
+  ),
+  totalSeries: zod.number(),
+  unfinishedSeries: zod.number(),
+});
+
+/**
+ * @summary Get a series by id
+ */
+export const SeriesControllerGetByIdParams = zod.object({
+  id: zod.string(),
+});
+
+export const SeriesControllerGetByIdResponse = zod.object({
+  authors: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  booksInSeries: zod.number(),
+  createdAt: zod.string(),
+  description: zod.string().nullable(),
+  finishedInSeries: zod.number(),
+  id: zod.string(),
+  lastActivityAt: zod.string(),
+  name: zod.string(),
+  nextBook: zod
+    .object({
+      id: zod.string(),
+      partNumber: zod.number().nullable(),
+      title: zod.string(),
+    })
+    .nullable(),
+  readingInSeries: zod.number(),
+  status: zod.enum(["completed", "ongoing", "unknown"]),
+  totalBooks: zod.number().nullable(),
+  books: zod.array(
+    zod.object({
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      createdAt: zod.string(),
+      currentPage: zod.number().nullable(),
+      id: zod.string(),
+      isFavorite: zod.boolean(),
+      originalTitle: zod.string().nullable(),
+      ownershipStatus: zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+      pagesCount: zod.number().nullable(),
+      partNumber: zod.number().nullable(),
+      rating: zod.number().nullable(),
+      readingStatus: zod.enum([
+        "not_started",
+        "want_to_read",
+        "reading",
+        "paused",
+        "finished",
+        "dnf",
+        "rereading",
+      ]),
+      title: zod.string(),
+    }),
+  ),
+  stats: zod.object({
+    averageRating: zod.number().nullable(),
+    booksCount: zod.number(),
+    finishedCount: zod.number(),
+    pagesCount: zod.number().nullable(),
+    readingCount: zod.number(),
+    unreadCount: zod.number(),
+  }),
+});
+
+/**
+ * @summary Update a series in the current user library
+ */
+export const SeriesControllerUpdateParams = zod.object({
+  id: zod.string(),
+});
+
+export const seriesControllerUpdateBodyAuthorsItemOneIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const seriesControllerUpdateBodyAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
+export const seriesControllerUpdateBodyAuthorsMax = 20;
+
+export const seriesControllerUpdateBodyTotalBooksMax = 999;
+
+export const SeriesControllerUpdateBody = zod.object({
+  authors: zod
+    .array(
+      zod.union([
+        zod.object({
+          id: zod.uuid().regex(seriesControllerUpdateBodyAuthorsItemOneIdRegExp),
+        }),
+        zod.object({
+          openLibraryKey: zod
+            .string()
+            .regex(seriesControllerUpdateBodyAuthorsItemTwoOpenLibraryKeyRegExp),
+        }),
+        zod.object({
+          name: zod.string(),
+        }),
+      ]),
+    )
+    .max(seriesControllerUpdateBodyAuthorsMax)
+    .optional(),
+  description: zod.string().nullish(),
+  name: zod.string().optional(),
+  status: zod.enum(["completed", "ongoing", "unknown"]).optional(),
+  totalBooks: zod.number().min(1).max(seriesControllerUpdateBodyTotalBooksMax).nullish(),
+});
+
+export const SeriesControllerUpdateResponse = zod.object({
+  authors: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  booksInSeries: zod.number(),
+  createdAt: zod.string(),
+  description: zod.string().nullable(),
+  finishedInSeries: zod.number(),
+  id: zod.string(),
+  lastActivityAt: zod.string(),
+  name: zod.string(),
+  nextBook: zod
+    .object({
+      id: zod.string(),
+      partNumber: zod.number().nullable(),
+      title: zod.string(),
+    })
+    .nullable(),
+  readingInSeries: zod.number(),
+  status: zod.enum(["completed", "ongoing", "unknown"]),
+  totalBooks: zod.number().nullable(),
+});
+
+/**
+ * @summary Delete a series by id
+ */
+export const SeriesControllerDeleteParams = zod.object({
+  id: zod.string(),
+});
+
+export const SeriesControllerDeleteResponse = zod.void();

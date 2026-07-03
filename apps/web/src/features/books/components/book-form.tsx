@@ -42,6 +42,7 @@ import {
   type AuthorSelection,
   authorSelectionKey,
   authorSelectionToReference,
+  type BookFormInitialSeries,
   createBookFormDefaults,
   type CreateBookFormOutput,
   type CreateBookFormValues,
@@ -65,7 +66,9 @@ import { OwnershipStatusSection } from "./ownership-status-section";
 import { PublisherAutocomplete } from "./publisher-autocomplete";
 import { ReadingStatusSection } from "./reading-status-section";
 
-type BookFormProps = { book: BookView; mode: "edit" } | { mode: "create" };
+type BookFormProps =
+  | { book: BookView; mode: "edit" }
+  | { initialSeries?: BookFormInitialSeries; mode: "create" };
 
 type PendingDiscard = {
   apply: () => void;
@@ -94,6 +97,16 @@ export function BookForm(props: BookFormProps) {
 
   const bookId = props.mode === "edit" ? props.book.id : null;
   const initial = props.mode === "edit" ? bookViewToFormState(props.book) : null;
+  const initialSeries = props.mode === "create" ? (props.initialSeries ?? null) : null;
+  const createDefaults = initialSeries
+    ? ({
+        ...createBookFormDefaults,
+        authors: initialSeries.selection.authors.map(authorSelectionToReference),
+        bookType: "series_part",
+        partNumber: initialSeries.partNumber,
+        seriesId: initialSeries.selection.id,
+      } satisfies Partial<CreateBookFormValues>)
+    : createBookFormDefaults;
 
   const locale = useLocale();
   const draftKey = bookId === null ? "book-form-draft:create" : `book-form-draft:edit:${bookId}`;
@@ -108,13 +121,16 @@ export function BookForm(props: BookFormProps) {
   const initialCover = initial?.cover ?? null;
 
   const [authorSelections, setAuthorSelections] = useState<AuthorSelection[]>(
-    restoredDraft?.authorSelections ?? initial?.authorSelections ?? [],
+    restoredDraft?.authorSelections ??
+      initial?.authorSelections ??
+      initialSeries?.selection.authors ??
+      [],
   );
   const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
     restoredDraft?.publisherSelection ?? initial?.publisherSelection ?? null,
   );
   const [seriesSelection, setSeriesSelection] = useState<null | SeriesSelection>(
-    restoredDraft?.seriesSelection ?? initial?.seriesSelection ?? null,
+    restoredDraft?.seriesSelection ?? initial?.seriesSelection ?? initialSeries?.selection ?? null,
   );
   const [coverState, setCoverState] = useState<CoverState>(
     initialCover === null ? { kind: "empty" } : { kind: "existing", media: initialCover },
@@ -154,8 +170,8 @@ export function BookForm(props: BookFormProps) {
     subscribe,
   } = useForm<CreateBookFormValues, unknown, CreateBookFormOutput>({
     defaultValues: restoredDraft
-      ? { ...(initial?.values ?? createBookFormDefaults), ...restoredDraft.values }
-      : (initial?.values ?? createBookFormDefaults),
+      ? { ...(initial?.values ?? createDefaults), ...restoredDraft.values }
+      : (initial?.values ?? createDefaults),
     mode: "onTouched",
     resolver,
     reValidateMode: "onChange",

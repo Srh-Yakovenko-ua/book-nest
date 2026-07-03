@@ -47,7 +47,12 @@ export function SeriesPreviewBlock({ book }: SeriesPreviewBlockProps) {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <p className="font-heading text-base leading-snug font-medium text-ink">{series.name}</p>
+          <Link
+            className="font-heading text-base leading-snug font-medium text-ink no-underline transition-colors outline-none hover:text-primary hover:underline focus-visible:text-primary"
+            href={`/series/${series.id}`}
+          >
+            {series.name}
+          </Link>
           {statusBase === undefined ? null : (
             <StatusBadge
               className="self-start"

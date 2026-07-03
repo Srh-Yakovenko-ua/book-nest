@@ -58,6 +58,7 @@ type NumberStepperProps = VariantProps<typeof stepperVariants> & {
   decrementLabel?: string;
   describedBy?: string;
   disabled?: boolean;
+  id?: string;
   incrementLabel?: string;
   max?: number;
   min?: number;
@@ -77,6 +78,7 @@ function NumberStepper({
   decrementLabel = "Зменшити",
   describedBy,
   disabled = false,
+  id,
   incrementLabel = "Збільшити",
   max = Number.POSITIVE_INFINITY,
   min = Number.NEGATIVE_INFINITY,
@@ -130,6 +132,7 @@ function NumberStepper({
           aria-valuenow={value}
           className={cn(stepperInputVariants({ size }))}
           disabled={disabled}
+          id={id}
           inputMode="numeric"
           onChange={handleInput}
           onKeyDown={handleKeyDown}

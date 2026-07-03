@@ -18,11 +18,189 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { PaginatedSeriesDto, SeriesControllerSearchParams } from "../../model";
+import type {
+  NewSeriesInputDto,
+  PaginatedSeriesDto,
+  SeriesControllerSearchParams,
+  SeriesDetailsViewDto,
+  SeriesOverviewViewDto,
+  SeriesViewDto,
+  UpdateSeriesInputDto,
+} from "../../model";
 
 import { customInstance } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+export type seriesControllerCreateResponse201 = {
+  data: SeriesViewDto;
+  status: 201;
+};
+
+export type seriesControllerCreateResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type seriesControllerCreateResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesControllerCreateResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type seriesControllerCreateResponseSuccess = seriesControllerCreateResponse201 & {
+  headers: Headers;
+};
+export type seriesControllerCreateResponseError = (
+  | seriesControllerCreateResponse400
+  | seriesControllerCreateResponse401
+  | seriesControllerCreateResponse409
+) & {
+  headers: Headers;
+};
+
+export type seriesControllerCreateResponse =
+  | seriesControllerCreateResponseSuccess
+  | seriesControllerCreateResponseError;
+
+export const getSeriesControllerCreateUrl = () => {
+  return `/api/series`;
+};
+
+/**
+ * @summary Create a series in the current user library
+ */
+export const seriesControllerCreate = async (
+  newSeriesInputDto: NewSeriesInputDto,
+  options?: RequestInit,
+): Promise<seriesControllerCreateResponse> => {
+  return customInstance<seriesControllerCreateResponse>(getSeriesControllerCreateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(newSeriesInputDto),
+  });
+};
+
+export const getSeriesControllerCreateQueryKey = (newSeriesInputDto?: NewSeriesInputDto) => {
+  return ["POST", `/api/series`, newSeriesInputDto] as const;
+};
+
+export const getSeriesControllerCreateQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesControllerCreate>>,
+  TError = void,
+>(
+  newSeriesInputDto: NewSeriesInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSeriesControllerCreateQueryKey(newSeriesInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof seriesControllerCreate>>> = ({ signal }) =>
+    seriesControllerCreate(newSeriesInputDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesControllerCreate>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesControllerCreateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesControllerCreate>>
+>;
+export type SeriesControllerCreateQueryError = void;
+
+export function useSeriesControllerCreate<
+  TData = Awaited<ReturnType<typeof seriesControllerCreate>>,
+  TError = void,
+>(
+  newSeriesInputDto: NewSeriesInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerCreate>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerCreate>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerCreate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerCreate<
+  TData = Awaited<ReturnType<typeof seriesControllerCreate>>,
+  TError = void,
+>(
+  newSeriesInputDto: NewSeriesInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerCreate>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerCreate>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerCreate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerCreate<
+  TData = Awaited<ReturnType<typeof seriesControllerCreate>>,
+  TError = void,
+>(
+  newSeriesInputDto: NewSeriesInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Create a series in the current user library
+ */
+
+export function useSeriesControllerCreate<
+  TData = Awaited<ReturnType<typeof seriesControllerCreate>>,
+  TError = void,
+>(
+  newSeriesInputDto: NewSeriesInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesControllerCreateQueryOptions(newSeriesInputDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export type seriesControllerSearchResponse200 = {
   data: PaginatedSeriesDto;
@@ -180,6 +358,679 @@ export function useSeriesControllerSearch<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getSeriesControllerSearchQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesControllerOverviewResponse200 = {
+  data: SeriesOverviewViewDto;
+  status: 200;
+};
+
+export type seriesControllerOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesControllerOverviewResponseSuccess = seriesControllerOverviewResponse200 & {
+  headers: Headers;
+};
+export type seriesControllerOverviewResponseError = seriesControllerOverviewResponse401 & {
+  headers: Headers;
+};
+
+export type seriesControllerOverviewResponse =
+  | seriesControllerOverviewResponseSuccess
+  | seriesControllerOverviewResponseError;
+
+export const getSeriesControllerOverviewUrl = () => {
+  return `/api/series/overview`;
+};
+
+/**
+ * @summary Get the current user series overview
+ */
+export const seriesControllerOverview = async (
+  options?: RequestInit,
+): Promise<seriesControllerOverviewResponse> => {
+  return customInstance<seriesControllerOverviewResponse>(getSeriesControllerOverviewUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSeriesControllerOverviewQueryKey = () => {
+  return [`/api/series/overview`] as const;
+};
+
+export const getSeriesControllerOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesControllerOverview>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof seriesControllerOverview>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSeriesControllerOverviewQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof seriesControllerOverview>>> = ({
+    signal,
+  }) => seriesControllerOverview({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesControllerOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesControllerOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesControllerOverview>>
+>;
+export type SeriesControllerOverviewQueryError = void;
+
+export function useSeriesControllerOverview<
+  TData = Awaited<ReturnType<typeof seriesControllerOverview>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerOverview<
+  TData = Awaited<ReturnType<typeof seriesControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerOverview<
+  TData = Awaited<ReturnType<typeof seriesControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the current user series overview
+ */
+
+export function useSeriesControllerOverview<
+  TData = Awaited<ReturnType<typeof seriesControllerOverview>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesControllerOverviewQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesControllerGetByIdResponse200 = {
+  data: SeriesDetailsViewDto;
+  status: 200;
+};
+
+export type seriesControllerGetByIdResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesControllerGetByIdResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type seriesControllerGetByIdResponseSuccess = seriesControllerGetByIdResponse200 & {
+  headers: Headers;
+};
+export type seriesControllerGetByIdResponseError = (
+  | seriesControllerGetByIdResponse401
+  | seriesControllerGetByIdResponse404
+) & {
+  headers: Headers;
+};
+
+export type seriesControllerGetByIdResponse =
+  | seriesControllerGetByIdResponseSuccess
+  | seriesControllerGetByIdResponseError;
+
+export const getSeriesControllerGetByIdUrl = (id: string) => {
+  return `/api/series/${id}`;
+};
+
+/**
+ * @summary Get a series by id
+ */
+export const seriesControllerGetById = async (
+  id: string,
+  options?: RequestInit,
+): Promise<seriesControllerGetByIdResponse> => {
+  return customInstance<seriesControllerGetByIdResponse>(getSeriesControllerGetByIdUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSeriesControllerGetByIdQueryKey = (id: string) => {
+  return [`/api/series/${id}`] as const;
+};
+
+export const getSeriesControllerGetByIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesControllerGetById>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerGetById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSeriesControllerGetByIdQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof seriesControllerGetById>>> = ({
+    signal,
+  }) => seriesControllerGetById(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof seriesControllerGetById>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type SeriesControllerGetByIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesControllerGetById>>
+>;
+export type SeriesControllerGetByIdQueryError = void;
+
+export function useSeriesControllerGetById<
+  TData = Awaited<ReturnType<typeof seriesControllerGetById>>,
+  TError = void,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerGetById>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerGetById>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerGetById>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerGetById<
+  TData = Awaited<ReturnType<typeof seriesControllerGetById>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerGetById>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerGetById>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerGetById>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerGetById<
+  TData = Awaited<ReturnType<typeof seriesControllerGetById>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerGetById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get a series by id
+ */
+
+export function useSeriesControllerGetById<
+  TData = Awaited<ReturnType<typeof seriesControllerGetById>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerGetById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesControllerGetByIdQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesControllerUpdateResponse200 = {
+  data: SeriesViewDto;
+  status: 200;
+};
+
+export type seriesControllerUpdateResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type seriesControllerUpdateResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesControllerUpdateResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type seriesControllerUpdateResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type seriesControllerUpdateResponse422 = {
+  data: void;
+  status: 422;
+};
+
+export type seriesControllerUpdateResponseSuccess = seriesControllerUpdateResponse200 & {
+  headers: Headers;
+};
+export type seriesControllerUpdateResponseError = (
+  | seriesControllerUpdateResponse400
+  | seriesControllerUpdateResponse401
+  | seriesControllerUpdateResponse404
+  | seriesControllerUpdateResponse409
+  | seriesControllerUpdateResponse422
+) & {
+  headers: Headers;
+};
+
+export type seriesControllerUpdateResponse =
+  | seriesControllerUpdateResponseSuccess
+  | seriesControllerUpdateResponseError;
+
+export const getSeriesControllerUpdateUrl = (id: string) => {
+  return `/api/series/${id}`;
+};
+
+/**
+ * @summary Update a series in the current user library
+ */
+export const seriesControllerUpdate = async (
+  id: string,
+  updateSeriesInputDto: UpdateSeriesInputDto,
+  options?: RequestInit,
+): Promise<seriesControllerUpdateResponse> => {
+  return customInstance<seriesControllerUpdateResponse>(getSeriesControllerUpdateUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateSeriesInputDto),
+  });
+};
+
+export const getSeriesControllerUpdateQueryKey = (
+  id: string,
+  updateSeriesInputDto?: UpdateSeriesInputDto,
+) => {
+  return ["PATCH", `/api/series/${id}`, updateSeriesInputDto] as const;
+};
+
+export const getSeriesControllerUpdateQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateSeriesInputDto: UpdateSeriesInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSeriesControllerUpdateQueryKey(id, updateSeriesInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof seriesControllerUpdate>>> = ({ signal }) =>
+    seriesControllerUpdate(id, updateSeriesInputDto, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof seriesControllerUpdate>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type SeriesControllerUpdateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesControllerUpdate>>
+>;
+export type SeriesControllerUpdateQueryError = void;
+
+export function useSeriesControllerUpdate<
+  TData = Awaited<ReturnType<typeof seriesControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateSeriesInputDto: UpdateSeriesInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerUpdate>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerUpdate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerUpdate<
+  TData = Awaited<ReturnType<typeof seriesControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateSeriesInputDto: UpdateSeriesInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerUpdate>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerUpdate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerUpdate<
+  TData = Awaited<ReturnType<typeof seriesControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateSeriesInputDto: UpdateSeriesInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Update a series in the current user library
+ */
+
+export function useSeriesControllerUpdate<
+  TData = Awaited<ReturnType<typeof seriesControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateSeriesInputDto: UpdateSeriesInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesControllerUpdateQueryOptions(id, updateSeriesInputDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesControllerDeleteResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type seriesControllerDeleteResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesControllerDeleteResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type seriesControllerDeleteResponseSuccess = seriesControllerDeleteResponse204 & {
+  headers: Headers;
+};
+export type seriesControllerDeleteResponseError = (
+  | seriesControllerDeleteResponse401
+  | seriesControllerDeleteResponse404
+) & {
+  headers: Headers;
+};
+
+export type seriesControllerDeleteResponse =
+  | seriesControllerDeleteResponseSuccess
+  | seriesControllerDeleteResponseError;
+
+export const getSeriesControllerDeleteUrl = (id: string) => {
+  return `/api/series/${id}`;
+};
+
+/**
+ * @summary Delete a series by id
+ */
+export const seriesControllerDelete = async (
+  id: string,
+  options?: RequestInit,
+): Promise<seriesControllerDeleteResponse> => {
+  return customInstance<seriesControllerDeleteResponse>(getSeriesControllerDeleteUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getSeriesControllerDeleteQueryKey = (id: string) => {
+  return ["DELETE", `/api/series/${id}`] as const;
+};
+
+export const getSeriesControllerDeleteQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerDelete>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSeriesControllerDeleteQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof seriesControllerDelete>>> = ({ signal }) =>
+    seriesControllerDelete(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof seriesControllerDelete>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type SeriesControllerDeleteQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesControllerDelete>>
+>;
+export type SeriesControllerDeleteQueryError = void;
+
+export function useSeriesControllerDelete<
+  TData = Awaited<ReturnType<typeof seriesControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerDelete>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerDelete>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerDelete>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerDelete<
+  TData = Awaited<ReturnType<typeof seriesControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerDelete>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerDelete>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerDelete>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerDelete<
+  TData = Awaited<ReturnType<typeof seriesControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerDelete>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Delete a series by id
+ */
+
+export function useSeriesControllerDelete<
+  TData = Awaited<ReturnType<typeof seriesControllerDelete>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerDelete>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesControllerDeleteQueryOptions(id, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
