@@ -1541,6 +1541,17 @@ export const RecentAuthorsQuerySchema = z.object({
 
 export type RecentAuthorsQuery = z.infer<typeof RecentAuthorsQuerySchema>;
 
+export const RecentGenresQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(RECENT_USED_LIMIT_MAX)
+    .default(RECENT_USED_LIMIT_DEFAULT),
+});
+
+export type RecentGenresQuery = z.infer<typeof RecentGenresQuerySchema>;
+
 const LIBRARY_PAGE_SIZE_DEFAULT = 24;
 const LIBRARY_SEARCH_MAX = 200;
 const LIBRARY_RATING_MIN = 1;
