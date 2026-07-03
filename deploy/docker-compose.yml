@@ -141,7 +141,7 @@ services:
       NODE_ENV: production
       PORT: 4000
       DATABASE_URL: postgresql://${DEV_POSTGRES_USER:-booknest}:${DEV_POSTGRES_PASSWORD}@db-dev:5432/${DEV_POSTGRES_DB:-booknest}
-      CORS_ORIGINS: https://dev.book-nest.net
+      CORS_ORIGINS: https://dev.book-nest.net,http://localhost:3000
       LOG_LEVEL: ${DEV_LOG_LEVEL:-debug}
       ENABLE_SWAGGER: ${DEV_ENABLE_SWAGGER:-true}
       TRACING_ENABLED: "false"
