@@ -17,7 +17,7 @@ describe("computeReadingProgressChange plain update", () => {
     });
 
     expect(patch).toEqual({
-      book: {},
+      book: null,
       progress: { currentPage: 120, lastProgressUpdateAt: PARSED_DATE },
     });
   });
@@ -31,7 +31,7 @@ describe("computeReadingProgressChange plain update", () => {
       updateDate: DATE,
     });
 
-    expect(patch.book).toEqual({});
+    expect(patch.book).toBeNull();
   });
 
   it("never auto-changes a dnf book on a plain progress update", () => {
@@ -43,7 +43,7 @@ describe("computeReadingProgressChange plain update", () => {
       updateDate: DATE,
     });
 
-    expect(patch.book).toEqual({});
+    expect(patch.book).toBeNull();
   });
 
   it("never auto-changes a finished book on a plain progress update", () => {
@@ -55,7 +55,7 @@ describe("computeReadingProgressChange plain update", () => {
       updateDate: DATE,
     });
 
-    expect(patch.book).toEqual({});
+    expect(patch.book).toBeNull();
   });
 });
 
@@ -108,7 +108,7 @@ describe("computeReadingProgressChange auto start", () => {
       updateDate: DATE,
     });
 
-    expect(patch.book).toEqual({});
+    expect(patch.book).toBeNull();
     expect(patch.progress).toEqual({ currentPage: 0, lastProgressUpdateAt: PARSED_DATE });
   });
 });

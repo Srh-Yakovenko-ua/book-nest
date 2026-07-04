@@ -4,6 +4,7 @@ import type {
   BookLanguage,
   BookType,
   LibrarySort,
+  Nullable,
   OwnershipStatus,
   ReadingStatus,
 } from "@app/shared";
@@ -127,7 +128,7 @@ export type OwnershipPurchaseInfoPatch = Partial<CreatePurchaseInfoData> & {
 };
 
 export type ReadingChangePatch = {
-  book: { readingStatus?: ReadingStatus };
+  book: Nullable<{ readingStatus?: ReadingStatus }>;
   progress: Partial<CreateReadingProgressData>;
 };
 
@@ -267,7 +268,7 @@ export class BooksRepository {
         throw new NotFoundError("Book not found");
       }
 
-      if (Object.keys(patch.book).length > 0) {
+      if (patch.book !== null) {
         await tx.book.update({ data: patch.book, where: { id: bookId } });
       }
 

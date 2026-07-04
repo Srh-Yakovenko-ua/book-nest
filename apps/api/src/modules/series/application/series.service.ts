@@ -12,6 +12,7 @@ import type {
 
 import { SeriesStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { differenceInMilliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { SeriesBookPreview } from "../domain/series-preview.js";
@@ -21,7 +22,7 @@ import { ConflictError, NotFoundError, ValidationError } from "../../../core/exc
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
-import { AuthorsService } from "../../authors/application/authors.service.js";
+import { AuthorsService } from "../../authors/index.js";
 import { computeSeriesLastActivityAt, toSeriesBookPreview } from "../domain/series-preview.js";
 import {
   computeSeriesProgress,
@@ -332,14 +333,14 @@ function compareByUnfinishedRank(first: DecoratedSeries, second: DecoratedSeries
     return progressDiff;
   }
 
-  return (
+  return differenceInMilliseconds(
     computeSeriesLastActivityAt({
       books: second.books,
       seriesUpdatedAt: second.series.updatedAt,
-    }).getTime() -
+    }),
     computeSeriesLastActivityAt({
       books: first.books,
       seriesUpdatedAt: first.series.updatedAt,
-    }).getTime()
+    }),
   );
 }

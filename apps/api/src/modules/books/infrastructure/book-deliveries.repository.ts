@@ -1,4 +1,4 @@
-import type { Currency, DeliveryStatus, OwnershipStatus } from "@app/shared";
+import type { Currency, DeliveryStatus, Nullable, OwnershipStatus } from "@app/shared";
 
 import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
@@ -6,9 +6,6 @@ import { Injectable } from "@nestjs/common";
 import type { BookDeliveryModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-
-const DELIVERY_NOT_ACTIVE_MESSAGE = "This delivery is no longer active";
 
 export type CreateDeliveryData = {
   currency: Currency | null;
@@ -24,13 +21,17 @@ export type CreateDeliveryData = {
   trackingUrl: null | string;
 };
 
+export type CreateDeliveryOutcome = "book-not-found" | "created";
+
 export type CreateDeliveryTransition = {
   book: DeliveryBookPatch;
   delivery: CreateDeliveryData;
 };
 
+export type RecordDeliveryOutcome = "applied" | "not-active" | "not-found";
+
 export type RecordDeliveryTransition = {
-  book: DeliveryBookPatch;
+  book: Nullable<DeliveryBookPatch>;
   delivery: UpdateDeliveryData;
 };
 
@@ -56,18 +57,18 @@ type DeliveryBookPatch = { ownershipStatus?: OwnershipStatus };
 export class BookDeliveriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async applyCreate(
+  applyCreate(
     userId: string,
     bookId: string,
     transition: CreateDeliveryTransition,
-  ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+  ): Promise<CreateDeliveryOutcome> {
+    return this.prisma.$transaction(async (tx) => {
       const owned = await tx.book.findFirst({
         select: { id: true },
         where: { id: bookId, userId },
       });
       if (owned === null) {
-        throw new NotFoundError("Book not found");
+        return "book-not-found";
       }
 
       await tx.bookDelivery.create({ data: { ...transition.delivery, bookId, userId } });
@@ -75,22 +76,24 @@ export class BookDeliveriesRepository {
       if (Object.keys(transition.book).length > 0) {
         await tx.book.update({ data: transition.book, where: { id: bookId } });
       }
+
+      return "created";
     });
   }
 
-  async applyRecordChange(
+  applyRecordChange(
     userId: string,
     bookId: string,
     deliveryId: string,
     transition: RecordDeliveryTransition,
-  ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+  ): Promise<RecordDeliveryOutcome> {
+    return this.prisma.$transaction(async (tx) => {
       const record = await tx.bookDelivery.findFirst({
         select: { id: true },
         where: { book: { userId }, bookId, id: deliveryId },
       });
       if (record === null) {
-        throw new NotFoundError("Delivery not found");
+        return "not-found";
       }
 
       const updated = await tx.bookDelivery.updateMany({
@@ -98,12 +101,14 @@ export class BookDeliveriesRepository {
         where: { id: deliveryId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
       });
       if (updated.count === 0) {
-        throw new ConflictError(DELIVERY_NOT_ACTIVE_MESSAGE);
+        return "not-active";
       }
 
-      if (Object.keys(transition.book).length > 0) {
+      if (transition.book !== null) {
         await tx.book.update({ data: transition.book, where: { id: bookId } });
       }
+
+      return "applied";
     });
   }
 

@@ -1,6 +1,7 @@
 import type { ReadingStatus, SeriesNextBook } from "@app/shared";
 
 import { ReadingStatusSchema } from "@app/shared";
+import { compareAsc } from "date-fns";
 
 export type SeriesBookPreview = {
   createdAt: Date;
@@ -49,7 +50,7 @@ export function compareByPartThenCreated(first: PartOrderedBook, second: PartOrd
     return first.partNumber - second.partNumber;
   }
 
-  return first.createdAt.getTime() - second.createdAt.getTime();
+  return compareAsc(first.createdAt, second.createdAt);
 }
 
 export function computeHasUnreadEarlierParts({

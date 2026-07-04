@@ -104,7 +104,7 @@ describe("computeUpdateDelivery", () => {
   it("leaves the book ownership untouched", () => {
     const patch = computeUpdateDelivery({ storeName: "New Store" });
 
-    expect(patch.book).toEqual({});
+    expect(patch.book).toBeNull();
   });
 
   it("maps only the provided fields and leaves omitted ones undefined", () => {

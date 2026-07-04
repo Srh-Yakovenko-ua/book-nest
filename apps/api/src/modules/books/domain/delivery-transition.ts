@@ -50,7 +50,7 @@ export function computeReceiveDelivery(now: Date): RecordDeliveryTransition {
 
 export function computeUpdateDelivery(fields: UpdateDeliveryInput): RecordDeliveryTransition {
   return {
-    book: {},
+    book: null,
     delivery: {
       currency: fields.currency,
       deliveryService: fields.deliveryService,

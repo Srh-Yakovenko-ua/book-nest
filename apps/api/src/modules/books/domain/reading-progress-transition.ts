@@ -1,4 +1,4 @@
-import type { ReadingStatus } from "@app/shared";
+import type { Nullable, ReadingStatus } from "@app/shared";
 
 import type {
   CreateReadingProgressData,
@@ -34,17 +34,17 @@ export function computeReadingProgressChange(
     currentPage: resolvedPage,
     lastProgressUpdateAt: date,
   };
-  const book: ReadingChangePatch["book"] = {};
+  let readingStatus: Nullable<ReadingStatus> = null;
 
   if (STATUSES_STARTED_BY_PROGRESS.has(input.currentStatus) && resolvedPage > 0) {
-    book.readingStatus = "reading";
+    readingStatus = "reading";
     progress.startedAt = input.existingStartedAt ?? date;
   }
 
   if (input.markAsFinished === true) {
-    book.readingStatus = "finished";
+    readingStatus = "finished";
     progress.finishedAt = date;
   }
 
-  return { book, progress };
+  return { book: readingStatus === null ? null : { readingStatus }, progress };
 }

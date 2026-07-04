@@ -6,7 +6,6 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -684,7 +683,7 @@ describe("concurrent delivery creation", () => {
 });
 
 describe("applyRecordChange active-status guard", () => {
-  it("rejects a transition on a terminal delivery with a ConflictError", async () => {
+  it("reports not-active for a transition on a terminal delivery", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -703,13 +702,13 @@ describe("applyRecordChange active-status guard", () => {
 
     await expect(
       repository.applyRecordChange(userId, created.body.id, seeded.id, {
-        book: {},
+        book: null,
         delivery: { note: "guard" },
       }),
-    ).rejects.toBeInstanceOf(ConflictError);
+    ).resolves.toBe("not-active");
   });
 
-  it("still rejects a missing delivery with a NotFoundError", async () => {
+  it("reports not-found for a missing delivery", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -719,9 +718,9 @@ describe("applyRecordChange active-status guard", () => {
 
     await expect(
       repository.applyRecordChange(userId, created.body.id, MISSING_UUID, {
-        book: {},
+        book: null,
         delivery: { note: "guard" },
       }),
-    ).rejects.toBeInstanceOf(NotFoundError);
+    ).resolves.toBe("not-found");
   });
 });

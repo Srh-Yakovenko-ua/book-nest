@@ -10,6 +10,11 @@ import type {
 import { DeliveryStatusSchema, isActiveDeliveryStatus, OwnershipStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type {
+  CreateDeliveryOutcome,
+  RecordDeliveryOutcome,
+} from "../infrastructure/book-deliveries.repository.js";
+
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import {
@@ -19,9 +24,12 @@ import {
   computeUpdateDelivery,
 } from "../domain/delivery-transition.js";
 import { toDeliveryView } from "../domain/delivery.mapper.js";
-import { BookDeliveriesRepository } from "../infrastructure/book-deliveries.repository.js";
+import {
+  BookDeliveriesRepository,
+  type CreateDeliveryTransition,
+} from "../infrastructure/book-deliveries.repository.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
-import { BooksService } from "./books.service.js";
+import { BookViewAssembler } from "./book-view-assembler.js";
 
 const ACTIVE_DELIVERY_EXISTS_MESSAGE = "This book already has an active delivery";
 const START_DELIVERY_MESSAGE = "A delivery can only be started for a book you do not yet own";
@@ -38,7 +46,7 @@ export class BookDeliveryService {
   constructor(
     private readonly booksRepository: BooksRepository,
     private readonly bookDeliveriesRepository: BookDeliveriesRepository,
-    private readonly booksService: BooksService,
+    private readonly viewAssembler: BookViewAssembler,
   ) {}
 
   async cancel(
@@ -54,9 +62,15 @@ export class BookDeliveryService {
       keepAsWantToBuy: input.keepAsWantToBuy,
       now: new Date(),
     });
-    await this.bookDeliveriesRepository.applyRecordChange(userId, bookId, deliveryId, transition);
+    const outcome = await this.bookDeliveriesRepository.applyRecordChange(
+      userId,
+      bookId,
+      deliveryId,
+      transition,
+    );
+    this.ensureRecordChangeApplied(outcome);
 
-    return this.booksService.getById(userId, bookId);
+    return this.viewAssembler.loadView({ bookId, userId });
   }
 
   async create(userId: string, bookId: string, input: CreateDeliveryInput): Promise<BookView> {
@@ -65,16 +79,12 @@ export class BookDeliveryService {
     this.assertCanStartDelivery(book);
 
     const transition = computeCreateDelivery(input);
-    try {
-      await this.bookDeliveriesRepository.applyCreate(userId, bookId, transition);
-    } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError(ACTIVE_DELIVERY_EXISTS_MESSAGE);
-      }
-      throw error;
+    const outcome = await this.applyCreate({ bookId, transition, userId });
+    if (outcome === "book-not-found") {
+      throw new NotFoundError("Book not found");
     }
 
-    return this.booksService.getById(userId, bookId);
+    return this.viewAssembler.loadView({ bookId, userId });
   }
 
   async listHistory(userId: string, bookId: string): Promise<DeliveryView[]> {
@@ -91,9 +101,15 @@ export class BookDeliveryService {
     this.assertActiveRecord(book, deliveryId);
 
     const transition = computeReceiveDelivery(new Date());
-    await this.bookDeliveriesRepository.applyRecordChange(userId, bookId, deliveryId, transition);
+    const outcome = await this.bookDeliveriesRepository.applyRecordChange(
+      userId,
+      bookId,
+      deliveryId,
+      transition,
+    );
+    this.ensureRecordChangeApplied(outcome);
 
-    return this.booksService.getById(userId, bookId);
+    return this.viewAssembler.loadView({ bookId, userId });
   }
 
   async update(
@@ -106,9 +122,34 @@ export class BookDeliveryService {
     this.assertActiveRecord(book, deliveryId);
 
     const transition = computeUpdateDelivery(input);
-    await this.bookDeliveriesRepository.applyRecordChange(userId, bookId, deliveryId, transition);
+    const outcome = await this.bookDeliveriesRepository.applyRecordChange(
+      userId,
+      bookId,
+      deliveryId,
+      transition,
+    );
+    this.ensureRecordChangeApplied(outcome);
 
-    return this.booksService.getById(userId, bookId);
+    return this.viewAssembler.loadView({ bookId, userId });
+  }
+
+  private async applyCreate({
+    bookId,
+    transition,
+    userId,
+  }: {
+    bookId: string;
+    transition: CreateDeliveryTransition;
+    userId: string;
+  }): Promise<CreateDeliveryOutcome> {
+    try {
+      return await this.bookDeliveriesRepository.applyCreate(userId, bookId, transition);
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictError(ACTIVE_DELIVERY_EXISTS_MESSAGE);
+      }
+      throw error;
+    }
   }
 
   private assertActiveRecord(book: BookWithRelations, deliveryId: string): void {
@@ -134,6 +175,15 @@ export class BookDeliveryService {
     );
     if (active !== undefined) {
       throw new ConflictError(ACTIVE_DELIVERY_EXISTS_MESSAGE);
+    }
+  }
+
+  private ensureRecordChangeApplied(outcome: RecordDeliveryOutcome): void {
+    if (outcome === "not-found") {
+      throw new NotFoundError("Delivery not found");
+    }
+    if (outcome === "not-active") {
+      throw new ConflictError(DELIVERY_NOT_ACTIVE_MESSAGE);
     }
   }
 }
