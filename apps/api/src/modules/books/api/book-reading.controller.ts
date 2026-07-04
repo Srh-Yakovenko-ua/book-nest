@@ -15,12 +15,11 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BookReadingService } from "../application/book-reading.service.js";
 import { ChangeReadingStatusInputDto } from "./input-dto/change-reading-status.input-dto.js";
 import { UpdateReadingProgressInputDto } from "./input-dto/update-reading-progress.input-dto.js";
@@ -49,7 +48,7 @@ export class BookReadingController {
   @Throttle({ default: { limit: READING_ACTION_LIMIT, ttl: seconds(READING_ACTION_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   changeReadingStatus(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodBodyPipe(ChangeReadingStatusInputSchema)) body: ChangeReadingStatusInputDto,
   ): Promise<BookView> {
@@ -71,7 +70,7 @@ export class BookReadingController {
   @Throttle({ default: { limit: READING_ACTION_LIMIT, ttl: seconds(READING_ACTION_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   updateReadingProgress(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodBodyPipe(UpdateReadingProgressInputSchema)) body: UpdateReadingProgressInputDto,
   ): Promise<BookView> {

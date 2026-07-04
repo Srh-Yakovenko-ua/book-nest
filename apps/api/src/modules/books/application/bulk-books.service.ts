@@ -11,31 +11,26 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
-import { createLogger } from "../../../core/logger.js";
-import { ListsService } from "../../lists/application/lists.service.js";
-import { MediaService } from "../../media/application/media.service.js";
-import { TagsService } from "../../tags/application/tags.service.js";
+import { ListsService } from "../../lists/index.js";
+import { TagsService } from "../../tags/index.js";
 import {
   ownershipStatusKeepsPurchase,
   ownershipStatusUsesDelivery,
   ownershipStatusUsesLoan,
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
-import { BooksRepository } from "../infrastructure/books.repository.js";
 import { BulkBooksRepository } from "../infrastructure/bulk-books.repository.js";
+import { BookCoverCleanup } from "./book-cover-cleanup.js";
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
-
-const log = createLogger("books.bulk");
 
 @Injectable()
 export class BulkBooksService {
   constructor(
     private readonly bulkBooksRepository: BulkBooksRepository,
-    private readonly booksRepository: BooksRepository,
     private readonly tagsService: TagsService,
     private readonly listsService: ListsService,
-    private readonly mediaService: MediaService,
+    private readonly coverCleanup: BookCoverCleanup,
   ) {}
 
   async addTags({
@@ -180,15 +175,7 @@ export class BulkBooksService {
     userId: string;
   }): Promise<void> {
     for (const mediaId of coverMediaIds) {
-      try {
-        const referencingBooks = await this.booksRepository.countByCoverMediaId(mediaId);
-        if (referencingBooks > 0) {
-          continue;
-        }
-        await this.mediaService.delete({ id: mediaId, userId });
-      } catch (error) {
-        log.warn({ err: error, mediaId }, "failed to delete cover media");
-      }
+      await this.coverCleanup.deleteIfOrphaned({ mediaId, userId });
     }
   }
 }

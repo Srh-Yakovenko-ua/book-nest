@@ -34,13 +34,12 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BooksService } from "../application/books.service.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
@@ -71,7 +70,7 @@ export class BooksController {
   @Throttle({ default: { limit: CREATE_BOOK_LIMIT, ttl: seconds(CREATE_BOOK_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   create(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(CreateBookInputSchema)) body: CreateBookInputDto,
   ): Promise<BookView> {
     return this.booksService.create(user.id, body);
@@ -84,7 +83,7 @@ export class BooksController {
   @Get()
   @UseGuards(JwtAccessGuard)
   list(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(LibraryBooksQuerySchema)) query: LibraryBooksQueryDto,
   ): Promise<Paginator<BookView>> {
     return this.booksService.list(user.id, query);
@@ -99,7 +98,7 @@ export class BooksController {
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("overview")
   @UseGuards(JwtAccessGuard)
-  overview(@CurrentUser() user: UserModel): Promise<LibraryOverviewView> {
+  overview(@CurrentUser() user: AuthenticatedUser): Promise<LibraryOverviewView> {
     return this.booksService.overview(user.id);
   }
 
@@ -114,7 +113,7 @@ export class BooksController {
   @Get("purchase-stores")
   @UseGuards(JwtAccessGuard)
   purchaseStores(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(RecentPurchaseStoresQuerySchema)) query: RecentPurchaseStoresQueryDto,
   ): Promise<RecentPurchaseStores> {
     return this.booksService.recentPurchaseStores({ limit: query.limit, userId: user.id });
@@ -128,7 +127,7 @@ export class BooksController {
   @Get(":id")
   @UseGuards(JwtAccessGuard)
   getById(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<BookView> {
     return this.booksService.getById(user.id, id);
@@ -145,7 +144,7 @@ export class BooksController {
   @Throttle({ default: { limit: UPDATE_BOOK_LIMIT, ttl: seconds(UPDATE_BOOK_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   update(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodBodyPipe(UpdateBookInputSchema)) body: UpdateBookInputDto,
   ): Promise<BookView> {
@@ -160,7 +159,10 @@ export class BooksController {
   @Delete(":id")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
   @UseGuards(JwtAccessGuard)
-  delete(@CurrentUser() user: UserModel, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<void> {
     return this.booksService.delete(user.id, id);
   }
 }

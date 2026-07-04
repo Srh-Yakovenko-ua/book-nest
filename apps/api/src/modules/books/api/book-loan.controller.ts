@@ -15,12 +15,11 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BookLoanService } from "../application/book-loan.service.js";
 import { CreateLoanInputDto } from "./input-dto/create-loan.input-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
@@ -46,7 +45,7 @@ export class BookLoanController {
   @Throttle({ default: { limit: LOAN_ACTION_LIMIT, ttl: seconds(LOAN_ACTION_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   createLoan(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodBodyPipe(CreateLoanInputSchema)) body: CreateLoanInputDto,
   ): Promise<BookView> {
@@ -64,7 +63,7 @@ export class BookLoanController {
   @Throttle({ default: { limit: LOAN_ACTION_LIMIT, ttl: seconds(LOAN_ACTION_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   returnLoan(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<BookView> {
     return this.bookLoanService.returnLoan(user.id, id);

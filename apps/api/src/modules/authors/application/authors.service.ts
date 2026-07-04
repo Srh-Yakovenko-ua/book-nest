@@ -12,8 +12,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { AuthorModel } from "../../../generated/prisma/models.js";
 
-import { HttpError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { HTTP_STATUS } from "../../../core/http-status.js";
+import { BadGatewayError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
@@ -112,7 +111,7 @@ export class AuthorsService {
 
     const detail = await this.openLibraryClient.getAuthorByKey(openLibraryKey);
     if (detail === null) {
-      throw new HttpError(HTTP_STATUS.BAD_GATEWAY, "Could not fetch author from Open Library", {
+      throw new BadGatewayError("Could not fetch author from Open Library", {
         code: "open_library_unavailable",
       });
     }

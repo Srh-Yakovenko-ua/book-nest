@@ -29,12 +29,11 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BookDeliveryService } from "../application/book-delivery.service.js";
 import { CancelDeliveryInputDto } from "./input-dto/cancel-delivery.input-dto.js";
 import { CreateDeliveryInputDto } from "./input-dto/create-delivery.input-dto.js";
@@ -67,7 +66,7 @@ export class BookDeliveryController {
   })
   @UseGuards(JwtAccessGuard)
   create(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodBodyPipe(CreateDeliveryInputSchema)) body: CreateDeliveryInputDto,
   ): Promise<BookView> {
@@ -85,7 +84,7 @@ export class BookDeliveryController {
   @Get(":id/deliveries")
   @UseGuards(JwtAccessGuard)
   listHistory(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<DeliveryView[]> {
     return this.bookDeliveryService.listHistory(user.id, id);
@@ -106,7 +105,7 @@ export class BookDeliveryController {
   })
   @UseGuards(JwtAccessGuard)
   update(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Param("deliveryId", ParseUUIDPipe) deliveryId: string,
     @Body(new ZodBodyPipe(UpdateDeliveryInputSchema)) body: UpdateDeliveryInputDto,
@@ -130,7 +129,7 @@ export class BookDeliveryController {
   })
   @UseGuards(JwtAccessGuard)
   receive(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Param("deliveryId", ParseUUIDPipe) deliveryId: string,
   ): Promise<BookView> {
@@ -152,7 +151,7 @@ export class BookDeliveryController {
   })
   @UseGuards(JwtAccessGuard)
   cancel(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Param("deliveryId", ParseUUIDPipe) deliveryId: string,
     @Body(new ZodBodyPipe(CancelDeliveryInputSchema)) body: CancelDeliveryInputDto,

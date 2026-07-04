@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 
-import { AuthModule } from "../auth/auth.module.js";
+import { AuthModule } from "../auth/index.js";
 import { MediaController } from "./api/media.controller.js";
 import { MediaService } from "./application/media.service.js";
 import { ImageProcessorPort } from "./domain/image-processor.port.js";

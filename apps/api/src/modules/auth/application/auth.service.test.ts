@@ -2,7 +2,7 @@ import type { LoginInput, RegistrationInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { PrismaService } from "../../../core/database/prisma.service.js";
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { UserModel } from "../../../generated/prisma/models.js";
 import type { UsersRepository } from "../infrastructure/users.repository.js";
 import type { EmailVerificationService } from "./email-verification.service.js";
@@ -31,8 +31,8 @@ const loginInput: LoginInput = {
 type Mocks = {
   emailVerificationService: EmailVerificationService;
   passwordService: PasswordService;
-  prisma: PrismaService;
   sessionService: SessionService;
+  transactionRunner: TransactionRunner;
   usersRepository: UsersRepository;
 };
 
@@ -59,11 +59,9 @@ function buildService(overrides: {
     hash: vi.fn().mockResolvedValue("hashed-password"),
   } as unknown as PasswordService;
 
-  const prisma = {
-    $transaction: vi
-      .fn()
-      .mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
-  } as unknown as PrismaService;
+  const transactionRunner = {
+    run: vi.fn().mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
+  } as unknown as TransactionRunner;
 
   const emailVerificationService = {
     issueToken: vi.fn().mockResolvedValue("raw-verification-token"),
@@ -85,15 +83,15 @@ function buildService(overrides: {
     passwordService,
     emailVerificationService,
     sessionService,
-    prisma,
+    transactionRunner,
   );
 
   return {
     mocks: {
       emailVerificationService,
       passwordService,
-      prisma,
       sessionService,
+      transactionRunner,
       usersRepository,
     },
     service,
@@ -152,7 +150,7 @@ describe("AuthService.register", () => {
 
     await service.register(baseInput);
 
-    expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.transactionRunner.run).toHaveBeenCalledTimes(1);
     expect(mocks.emailVerificationService.issueToken).toHaveBeenCalledWith(
       expect.objectContaining({ email: "reader@example.com" }),
       expect.anything(),

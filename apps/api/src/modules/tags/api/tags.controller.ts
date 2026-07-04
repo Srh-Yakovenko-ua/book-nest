@@ -22,12 +22,11 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { TagsService } from "../application/tags.service.js";
 import { TaxonomySearchPaginationQueryDto } from "./input-dto/taxonomy-search-query.input-dto.js";
 
@@ -46,7 +45,7 @@ export class TagsController {
   @Get()
   @UseGuards(JwtAccessGuard)
   search(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(TaxonomySearchPaginationQuerySchema))
     query: TaxonomySearchPaginationQueryDto,
   ): Promise<Paginator<TagView>> {
@@ -61,7 +60,10 @@ export class TagsController {
   @Delete(":id")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
   @UseGuards(JwtAccessGuard)
-  delete(@CurrentUser() user: UserModel, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<void> {
     return this.tagsService.delete(user.id, id);
   }
 }

@@ -10,7 +10,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserSocialLinkModel } from "../../../generated/prisma/models.js";
 
-import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { toSocialLinkView } from "../domain/social-link.mapper.js";
 import { SocialLinkRepository } from "../infrastructure/social-link.repository.js";
@@ -22,7 +22,7 @@ const OTHER_PLATFORM: SocialPlatform = "OTHER";
 export class SocialLinkService {
   constructor(
     private readonly socialLinkRepository: SocialLinkRepository,
-    private readonly prisma: PrismaService,
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async create(userId: string, input: CreateSocialLinkInput): Promise<SocialLinkView> {
@@ -36,7 +36,7 @@ export class SocialLinkService {
       throw new ConflictError("This link is already added");
     }
 
-    const created = await this.prisma.$transaction(async (tx) => {
+    const created = await this.transactionRunner.run(async (tx) => {
       const count = await this.socialLinkRepository.countByUserId(userId, tx);
       if (count >= MAX_SOCIAL_LINKS) {
         throw new BadRequestError("Maximum of 10 social links");

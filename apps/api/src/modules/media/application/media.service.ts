@@ -19,6 +19,7 @@ import {
   CropOutOfBoundsError,
   ImageProcessorPort,
   ImageTooLargeError,
+  InvalidImageError,
 } from "../domain/image-processor.port.js";
 import { MEDIA_ERROR_CODES, mediaError } from "../domain/media-error-code.js";
 import { StoragePort } from "../domain/storage.port.js";
@@ -188,6 +189,9 @@ export class MediaService {
       }
       if (error instanceof CropOutOfBoundsError) {
         throw mediaError("Crop area is out of image bounds", MEDIA_ERROR_CODES.invalidCrop);
+      }
+      if (error instanceof InvalidImageError) {
+        throw mediaError("Image is corrupted or unsupported", MEDIA_ERROR_CODES.corruptedImage);
       }
       log.warn({ err: error }, "image processing failed");
       throw mediaError("Image is corrupted or unsupported", MEDIA_ERROR_CODES.corruptedImage);

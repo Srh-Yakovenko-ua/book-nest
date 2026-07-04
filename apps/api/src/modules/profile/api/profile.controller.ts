@@ -14,12 +14,11 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { ProfileService } from "../application/profile.service.js";
 import { UpdateProfileInputDto } from "./input-dto/update-profile.input-dto.js";
 
@@ -35,7 +34,7 @@ export class ProfileController {
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
   @UseGuards(JwtAccessGuard)
-  getProfile(@CurrentUser() user: UserModel): Promise<ProfileView> {
+  getProfile(@CurrentUser() user: AuthenticatedUser): Promise<ProfileView> {
     return this.profileService.getProfile(user.id);
   }
 
@@ -50,7 +49,7 @@ export class ProfileController {
   @Patch()
   @UseGuards(JwtAccessGuard)
   updateProfile(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(UpdateProfileInputSchema)) body: UpdateProfileInputDto,
   ): Promise<ProfileView> {
     return this.profileService.updateProfile(user.id, body);

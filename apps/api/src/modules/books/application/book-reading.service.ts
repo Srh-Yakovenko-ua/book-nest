@@ -8,7 +8,7 @@ import { toIsoDate } from "../../../core/iso-date.js";
 import { computeReadingProgressChange } from "../domain/reading-progress-transition.js";
 import { computeReadingStatusChange } from "../domain/reading-status-transition.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
-import { BooksService } from "./books.service.js";
+import { BookViewAssembler } from "./book-view-assembler.js";
 
 const PAGE_EXCEEDS_PAGES_MESSAGE = "Current page cannot exceed the page count";
 const PAGE_BELOW_PROGRESS_MESSAGE = "Current page cannot be lower than the saved progress";
@@ -17,7 +17,7 @@ const PAGE_BELOW_PROGRESS_MESSAGE = "Current page cannot be lower than the saved
 export class BookReadingService {
   constructor(
     private readonly booksRepository: BooksRepository,
-    private readonly booksService: BooksService,
+    private readonly viewAssembler: BookViewAssembler,
   ) {}
 
   async changeReadingStatus(
@@ -49,7 +49,7 @@ export class BookReadingService {
 
     await this.booksRepository.applyReadingChange(userId, bookId, patch);
 
-    return this.booksService.getById(userId, bookId);
+    return this.viewAssembler.loadView({ bookId, userId });
   }
 
   async updateReadingProgress(
@@ -79,7 +79,7 @@ export class BookReadingService {
 
     await this.booksRepository.applyReadingChange(userId, bookId, patch);
 
-    return this.booksService.getById(userId, bookId);
+    return this.viewAssembler.loadView({ bookId, userId });
   }
 
   private todayIso(): string {

@@ -17,12 +17,12 @@ import {
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { toIsoDate } from "../../../core/iso-date.js";
-import { toBookListView } from "../../lists/domain/book-list.mapper.js";
+import { toBookListView } from "../../lists/index.js";
 import {
   computeHasUnreadEarlierParts,
   toSeriesBookPreview,
-} from "../../series/domain/series-preview.js";
-import { toSeriesView } from "../../series/domain/series.mapper.js";
+  toSeriesView,
+} from "../../series/index.js";
 import { toDeliverySummaryView } from "./delivery.mapper.js";
 
 const toNullableIsoDate = (value: Date | null): null | string =>

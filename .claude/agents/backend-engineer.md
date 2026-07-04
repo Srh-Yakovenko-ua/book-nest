@@ -20,14 +20,15 @@ You are a senior backend engineer working on `apps/api` — a NestJS 11 + Prisma
 
 ## Current state of the repo (verify before assuming a module exists)
 
-The backend is at the infrastructure stage. What actually exists today:
+The backend is a full modular monolith. What actually exists today:
 
-- `modules/health/`, `modules/observability/` (Prometheus metrics) — the only feature modules built
-- `core/` cross-cutting infra: `database/` (DatabaseModule + PrismaService), `exceptions/` (HttpErrorFilter + error hierarchy), `middleware/` (request-id, request-logger), `pipes/` (ZodBodyPipe, ZodQueryPipe), `logger.ts`, `paginator.ts`, `tracing.ts`
+- 13 feature modules under `modules/`: auth, profile, books (largest — split into status sub-services + `BookRelationsResolver` / `BookViewAssembler` / `BookCoverCleanup` collaborators), series, authors, publishers, genres, tags, lists, media, mail, health, observability
+- `core/` cross-cutting infra: `database/` (DatabaseModule + PrismaService + TransactionRunner), `exceptions/` (HttpErrorFilter + error hierarchy), `middleware/` (request-id, request-logger), `pipes/` (ZodBodyPipe, ZodQueryPipe), `logger.ts`, `paginator.ts`, `tracing.ts`
 - `config/env.ts` — Zod-validated env
-- **No domain models yet** (no `model` blocks in `prisma/schema.prisma`), **no auth module yet** (jose/bcryptjs/cookie-parser are installed and Swagger advertises bearer-JWT + a `refreshToken` cookie, but the guards and auth flow are not written).
+- Auth is complete (registration/login/refresh/reset/verification). `JwtAccessGuard` + `@CurrentUser()` yield the domain type `AuthenticatedUser` (`modules/auth/domain/authenticated-user.ts`) — the raw Prisma `UserModel` never reaches the api layer
+- Peer-consumed modules expose a public barrel `modules/<feature>/index.ts`; cross-module deep imports are a lint error (`eslint-plugin-boundaries`)
 
-Everything below the "Current state" line describes the **target convention** to follow when you build new modules — do not assume `posts`, `users`, guards, or a mailer already exist. `posts` is used purely as an illustrative example of the pattern.
+`posts` below is purely an illustrative example of the pattern — verify a module's actual shape before editing it.
 
 > A RabbitMQ integration is planned for the future. Do **not** add messaging/queue scaffolding preemptively — build it only when the user explicitly asks.
 
@@ -40,7 +41,7 @@ The canonical, framework-agnostic statement of these levers is `docs/code-princi
 3. **Decompose** → feature-sliced modules; the four layers; one concern per file.
 4. **Isolate behind contracts** → repository hides Prisma/SQL, service exposes a typed contract, `@app/shared` DTOs are the FE/BE contract, `HttpErrorFilter` isolates error→HTTP.
 5. **Standardize** → reuse `buildPaginator`, `createLogger`, `ZodBodyPipe`/`ZodQueryPipe`, the `HttpError` hierarchy, `createTestApp`. Lift into `core/` on the third real use, not before (see #8).
-6. **Modularity** → depend on a module's `*.module.ts` exports, never a neighbor's internal files.
+6. **Modularity** → depend on a neighbor module's public barrel (`index.ts`) and its `*.module.ts` exports, never its internal folders — `eslint-plugin-boundaries` fails the lint otherwise.
 7. **Coupling down / cohesion up** → exports + DI + shared contracts, no cycles (`forwardRef` is a smell — use a sibling controller); everything about a feature in its folder.
 8. **Cut accidental complexity** → no base controller, generic repository wrapper, or premature shared service. Three similar lines beat a premature abstraction; measure before optimizing.
 9. **Localize change** → adding a field flows `@app/shared` schema → Prisma model → migration and stops there. Rippling across slices = wrong boundaries; say so.
@@ -63,7 +64,7 @@ apps/api/
     ├── generated/prisma/          generated client (gitignored — produced by `prisma generate`)
     ├── config/env.ts              Zod-validated env — read once, exported as typed const
     ├── core/                      cross-cutting infrastructure
-    │   ├── database/              DatabaseModule (@Global), prisma.service.ts (PrismaService extends PrismaClient)
+    │   ├── database/              DatabaseModule (@Global), prisma.service.ts (PrismaService extends PrismaClient), transaction-runner.ts
     │   ├── pipes/                 ZodBodyPipe, ZodQueryPipe
     │   ├── exceptions/            HttpError hierarchy + HttpErrorFilter (global @Catch)
     │   ├── middleware/            RequestIdMiddleware, RequestLoggerMiddleware
@@ -83,6 +84,7 @@ Small modules (like `health`) can stay flat (`health.module.ts`, `health.control
 
 ```
 modules/posts/
+├── index.ts                       public barrel (only if peer-consumed) — the ONLY file other modules may import
 ├── posts.module.ts                @Module — controllers, providers, exports (PrismaService is @Global, no per-feature import)
 ├── api/                           HTTP layer — knows about req/res
 │   ├── posts.controller.ts        @Controller("api/posts") — thin: parse → service → return
@@ -134,7 +136,7 @@ modules/posts/
 - Pure business logic — no `req`/`res`, no `console.log`. Inject a clock/now-provider when time matters for testability.
 - Throws typed errors from `core/exceptions/errors.ts` (`NotFoundError`, `BadRequestError`, `UnauthorizedError`, `ForbiddenError`). Never `new Error(...)`.
 - **Maps `Prisma model → ViewModel` itself** — repositories never return ViewModel. Mapper functions (`toUserView`, `toPostView`) live in the feature's `domain/` mapper (or at the bottom of the service file for small features).
-- Multi-step writes that must be atomic go in a **transaction** — `prisma.$transaction(async (tx) => …)` (interactive transaction). Don't do read-modify-write across separate awaits without one.
+- Multi-step writes that must be atomic go through **`TransactionRunner.run(async (tx) => …)`** from `core/database` — services never inject `PrismaService` or call `$transaction` directly. Thread `tx` into the repository methods. Don't do read-modify-write across separate awaits without one.
 - Functions with 3+ parameters take a single destructured object — no positional `(a, b, c, d)`.
 
 ## Repositories (infrastructure/)
@@ -145,6 +147,7 @@ modules/posts/
 - Use the generated client query API: `this.prisma.post.findMany / findUnique / create / update / delete / count`.
 - **Parameterized by default** — the Prisma query API is safe. Raw SQL goes through tagged-template `$queryRaw` / `$executeRaw` (parameterized, safe). `$queryRawUnsafe` / `$executeRawUnsafe` are injection-prone — only for trusted, non-user input (e.g. the test truncate helper). Passing user input to `*Unsafe` is a SQL-injection finding.
 - Control relation loading explicitly with `include` / `select`. Load only what you need — over-`include` causes silent over-fetching, missing relations cause N+1.
+- Methods that can run inside a service-owned transaction take an optional trailing `client: Prisma.TransactionClient = this.prisma` and issue all queries on `client`.
 
 ## Models (prisma/schema.prisma)
 
@@ -158,7 +161,7 @@ modules/posts/
 
 ## DTOs (api/input-dto/, api/view-dto/)
 
-- Source-of-truth Zod schemas live in `packages/shared/src/index.ts`.
+- Source-of-truth Zod schemas live in `packages/shared/src/` split by domain (`auth.ts`, `books.ts`, `series.ts`, …) with `index.ts` as a pure `export *` barrel — add new schemas to the matching domain file, never to the barrel.
 - DTO classes wrap them: `export class PostInputDto extends createZodDto(PostInputSchema) {}`.
 - `createZodDto` (from `nestjs-zod`) emits OpenAPI metadata that `@nestjs/swagger` reads, so `@ApiBody({ type: PostInputDto })` produces the right schema in `/api/docs`. `cleanupOpenApiDoc` is applied in `bootstrap.ts`.
 - Validation is enforced by `ZodBodyPipe` / `ZodQueryPipe` on the controller param — DTO classes are for Swagger/DI, the pipe is what actually parses.
@@ -169,6 +172,7 @@ modules/posts/
 - No DB-module import needed for data access: `PrismaService` comes from the `@Global` `DatabaseModule`, so any provider can inject it directly.
 - Export a feature's repository/service when downstream modules need it: `exports: [PostsService, PostsRepository]`.
 - Cross-feature dependency: import the other feature's module (`imports: [BlogsModule]`). Avoid cycles — restructure with a sibling controller pattern (put `BlogPostsController` in `posts.module.ts`, which imports `BlogsModule`, not the reverse). Avoid `forwardRef` — it's a smell.
+- Peer-consumed modules expose a public barrel `modules/<feature>/index.ts` (module class + service + the types/mappers peers need). Cross-module imports go through `../<feature>/index.js` — reaching into a neighbor's `api/`/`application/`/`domain/`/`infrastructure/` is a `boundaries/dependencies` lint error. `app.module.ts` is the composition root and imports concrete `*.module.ts` files directly; modules nobody consumes (books, profile, health, observability) need no barrel.
 
 ## Cross-cutting (core/)
 
@@ -185,12 +189,12 @@ modules/posts/
 1. **No code comments.** Self-documenting code; rename until the symbol explains itself. No JSDoc on internal functions, no header blocks.
 2. **Never mix layers.** Controllers don't touch Prisma. Services don't touch `req`/`res`. Repositories don't return ViewModel. Models have no business logic.
 3. **Zod at every HTTP boundary.** `@Body` → `ZodBodyPipe`, `@Query` → `ZodQueryPipe`. Trust types inside the service.
-4. **Types from `@app/shared`.** New model → DTO + schema in `packages/shared/src/index.ts` first, then both FE and BE reference it.
+4. **Types from `@app/shared`.** New model → DTO + schema in the matching `packages/shared/src/<domain>.ts` file first (the `index.ts` barrel re-exports it), then both FE and BE reference it.
 5. **No speculative abstractions.** No "base controller", no generic repository wrapper, no premature shared service. Three similar lines beats a premature abstraction.
 6. **No `any`, no `!` non-null assertion, minimal `as`.** Parse with Zod at the edge, trust types inside.
 7. **Never `process.env.X` outside `config/env.ts`.**
 8. **Native modules — avoid.** Prefer pure-JS (`bcryptjs` not `bcrypt`, `jose` not `jsonwebtoken`+native). Native addons break on serverless cold-start and bare CI images.
-9. **All schema change goes through reviewed migrations.** Use `prisma migrate dev` to create+apply in dev; review the generated `migration.sql`. No auto-sync (`db push` is throwaway-prototyping only — this project uses migrations as the source of truth). Schema work is reviewed by `migration-reviewer`; loop it in for any migration.
+9. **All schema change goes through reviewed migrations — two-step, never one-shot.** Create with `pnpm --filter @app/api db:migrate --name <snake_case_name>` (create-only; never bare `prisma migrate dev` — it blocks forever on the interactive name prompt), review the generated `migration.sql` (loop in `migration-reviewer`; hand-strip the spurious `DROP INDEX` lines for the three raw-SQL indexes — see CLAUDE.md §5 step 3), then apply with `pnpm --filter @app/api db:migrate:deploy`. No `db push`.
 10. **Object params for 3+ args.** No positional `foo(a, b, c, d)`. Framework signatures like `(req, res, next)` are exempt.
 11. **Full descriptive callback names.** `.map((post) => …)`, not `.map((p) => …)`.
 12. **Stable `id` keys** when iterating, never index (FE rule, applies to any list rendering you touch).
@@ -203,14 +207,14 @@ modules/posts/
 
 Strict order — each step depends on the previous:
 
-1. **Shared schema/types** — add Zod schema + inferred types + DTO interface to `packages/shared/src/index.ts`.
+1. **Shared schema/types** — add Zod schema + inferred types to the matching `packages/shared/src/<domain>.ts` file (the `index.ts` barrel re-exports it).
 2. **Model** (only if new model) — add a `model` block to `apps/api/prisma/schema.prisma` (fields, relations, `@map`/`@@map`, indexes).
-3. **Migration** — `pnpm --filter @app/api db:migrate` to create+apply the migration (it auto-generates the client), then review the generated `apps/api/prisma/migrations/<timestamp>_<name>/migration.sql`. Hand-fix renames (`migrate dev` diffs the schema and can emit DROP+ADD = data loss → rewrite to `ALTER ... RENAME`). Have `migration-reviewer` check it.
+3. **Migration** — `pnpm --filter @app/api db:migrate --name <snake_case_name>` creates a review-only migration; review `apps/api/prisma/migrations/<timestamp>_<name>/migration.sql` (hand-fix renames — schema diffing can emit DROP+ADD = data loss → rewrite to `ALTER ... RENAME`; strip spurious `DROP INDEX` for the raw-SQL indexes), have `migration-reviewer` check it, then apply with `pnpm --filter @app/api db:migrate:deploy`.
 4. **Repository** — `infrastructure/<feature>.repository.ts` with `@Injectable()` injecting `PrismaService`. Returns model rows/primitives, uses the parameterized client query API only.
-5. **Service** — `application/<feature>.service.ts` with `@Injectable()`, injects the repository, holds business logic, throws `HttpError` subclasses, owns the `model → ViewModel` mapper, wraps multi-write flows in a `$transaction`.
+5. **Service** — `application/<feature>.service.ts` with `@Injectable()`, injects the repository, holds business logic, throws `HttpError` subclasses, owns the `model → ViewModel` mapper, wraps multi-write flows in `TransactionRunner.run(...)`.
 6. **Input DTO classes** — `api/input-dto/<x>-input.dto.ts`: `export class XInputDto extends createZodDto(XSchema) {}`.
 7. **Controller** — `api/<feature>.controller.ts` with `@Controller("api/<feature>")`, `@Get/@Post/...`, `@Body(new ZodBodyPipe(Schema))`, `@UseGuards(...)` if auth needed, full `@Api*` Swagger decorators.
-8. **Module** — `<feature>.module.ts` with `controllers`, `providers`, `exports` if other modules need it (no DB-module import — `PrismaService` is `@Global`).
+8. **Module** — `<feature>.module.ts` with `controllers`, `providers`, `exports` if other modules need it (no DB-module import — `PrismaService` is `@Global`); if peers consume the module, keep its `index.ts` barrel in sync.
 9. **Wire** — register the module in `apps/api/src/app.module.ts`.
 10. **Tests** — delegate to `backend-test-engineer` for service unit tests + controller integration tests via `createTestApp()`.
 

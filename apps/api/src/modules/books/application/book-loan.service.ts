@@ -7,7 +7,7 @@ import { ConflictError } from "../../../core/exceptions/errors.js";
 import { toIsoDate } from "../../../core/iso-date.js";
 import { computeLoanChange } from "../domain/loan-transition.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
-import { BooksService } from "./books.service.js";
+import { BookViewAssembler } from "./book-view-assembler.js";
 
 const BORROW_REQUIRES_NONE_MESSAGE = 'Book must have ownership status "none" to be borrowed';
 const LEND_REQUIRES_OWNED_MESSAGE = 'Book must have ownership status "owned" to be lent';
@@ -17,7 +17,7 @@ const RETURN_REQUIRES_LOAN_MESSAGE = "Book must be borrowed or lent to be return
 export class BookLoanService {
   constructor(
     private readonly booksRepository: BooksRepository,
-    private readonly booksService: BooksService,
+    private readonly viewAssembler: BookViewAssembler,
   ) {}
 
   async createLoan(userId: string, bookId: string, input: CreateLoanInput): Promise<BookView> {
@@ -27,7 +27,7 @@ export class BookLoanService {
     const patch = computeLoanChange({ fields: input, kind: "create", today: this.todayIso() });
     await this.booksRepository.applyLoanChange(userId, bookId, patch);
 
-    return this.booksService.getById(userId, bookId);
+    return this.viewAssembler.loadView({ bookId, userId });
   }
 
   async returnLoan(userId: string, bookId: string): Promise<BookView> {
@@ -40,7 +40,7 @@ export class BookLoanService {
     const patch = computeLoanChange({ kind: "return", ownershipStatus });
     await this.booksRepository.applyLoanChange(userId, bookId, patch);
 
-    return this.booksService.getById(userId, bookId);
+    return this.viewAssembler.loadView({ bookId, userId });
   }
 
   private assertLoanPrecondition(book: BookWithRelations, direction: LoanDirection): void {

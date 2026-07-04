@@ -3,6 +3,7 @@ import nextPlugin from "@next/eslint-plugin-next";
 import vitest from "@vitest/eslint-plugin";
 import prettier from "eslint-config-prettier";
 import betterTailwindcss from "eslint-plugin-better-tailwindcss";
+import boundaries from "eslint-plugin-boundaries";
 import importX from "eslint-plugin-import-x";
 import jsxA11y from "eslint-plugin-jsx-a11y";
 import perfectionist from "eslint-plugin-perfectionist";
@@ -100,6 +101,46 @@ export default tseslint.config(
     files: ["apps/api/**/*.ts"],
     languageOptions: {
       globals: { ...globals.node },
+    },
+  },
+
+  {
+    files: ["apps/api/src/modules/**/*.ts"],
+    ignores: ["apps/api/src/modules/**/*.{test,spec}.ts"],
+    plugins: {
+      boundaries,
+    },
+    rules: {
+      "boundaries/dependencies": [
+        "error",
+        {
+          default: "allow",
+          rules: [
+            {
+              disallow: { to: [{ internalPath: "!index.ts", type: ["module"] }] },
+              from: { type: ["module"] },
+              message:
+                "Cross-module imports must go through the module public API barrel (index.ts), not its internal folders (api/application/domain/infrastructure).",
+            },
+          ],
+        },
+      ],
+    },
+    settings: {
+      "boundaries/elements": [
+        {
+          capture: ["moduleName"],
+          mode: "folder",
+          pattern: "apps/api/src/modules/*",
+          type: "module",
+        },
+      ],
+      "import/resolver": {
+        typescript: {
+          alwaysTryTypes: true,
+          project: ["apps/api/tsconfig.json"],
+        },
+      },
     },
   },
 

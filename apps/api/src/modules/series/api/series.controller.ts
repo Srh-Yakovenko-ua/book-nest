@@ -35,13 +35,12 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { SeriesService } from "../application/series.service.js";
 import { NewSeriesInputDto } from "./input-dto/new-series.input-dto.js";
 import { SeriesSearchQueryDto } from "./input-dto/series-search-query.input-dto.js";
@@ -72,7 +71,7 @@ export class SeriesController {
   @Throttle({ default: { limit: CREATE_SERIES_LIMIT, ttl: seconds(CREATE_SERIES_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   create(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(NewSeriesInputSchema)) body: NewSeriesInputDto,
   ): Promise<SeriesView> {
     return this.seriesService.create(user.id, body);
@@ -89,7 +88,7 @@ export class SeriesController {
   @Get()
   @UseGuards(JwtAccessGuard)
   search(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(SeriesSearchQuerySchema))
     query: SeriesSearchQueryDto,
   ): Promise<Paginator<SeriesView>> {
@@ -105,7 +104,7 @@ export class SeriesController {
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("overview")
   @UseGuards(JwtAccessGuard)
-  overview(@CurrentUser() user: UserModel): Promise<SeriesOverviewView> {
+  overview(@CurrentUser() user: AuthenticatedUser): Promise<SeriesOverviewView> {
     return this.seriesService.overview(user.id);
   }
 
@@ -117,7 +116,7 @@ export class SeriesController {
   @Get(":id")
   @UseGuards(JwtAccessGuard)
   getById(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<SeriesDetailsView> {
     return this.seriesService.getById(user.id, id);
@@ -136,7 +135,7 @@ export class SeriesController {
   @Throttle({ default: { limit: UPDATE_SERIES_LIMIT, ttl: seconds(UPDATE_SERIES_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   update(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodBodyPipe(UpdateSeriesInputSchema)) body: UpdateSeriesInputDto,
   ): Promise<SeriesView> {
@@ -152,7 +151,10 @@ export class SeriesController {
   @HttpCode(HTTP_STATUS.NO_CONTENT)
   @Throttle({ default: { limit: UPDATE_SERIES_LIMIT, ttl: seconds(UPDATE_SERIES_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
-  delete(@CurrentUser() user: UserModel, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<void> {
     return this.seriesService.delete(user.id, id);
   }
 }
