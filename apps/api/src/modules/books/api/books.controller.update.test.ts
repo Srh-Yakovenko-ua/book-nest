@@ -563,7 +563,8 @@ describe("PATCH /api/books/:id partial block merge", () => {
     });
     await request(app.getHttpServer())
       .post(`/api/books/${created.body.id}/ownership/mark-bought`)
-      .set("Authorization", `Bearer ${accessToken}`);
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({});
 
     const res = await updateBook(accessToken, created.body.id, { title: "Dune Reborn" });
 

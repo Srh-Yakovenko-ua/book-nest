@@ -1,4 +1,4 @@
-import type { WantToBuyInput } from "@app/shared";
+import type { MarkBoughtInput, WantToBuyInput } from "@app/shared";
 
 import type {
   OwnershipChangePatch,
@@ -8,7 +8,7 @@ import type {
 import { parseIsoDate } from "../../../core/iso-date.js";
 
 export type OwnershipTransitionInput =
-  | { date: string; kind: "mark-bought" }
+  | { date: string; fields: MarkBoughtInput; kind: "mark-bought" }
   | { fields: WantToBuyInput; kind: "want-to-buy" }
   | { kind: "mark-owned" }
   | { kind: "remove-owned" };
@@ -18,7 +18,7 @@ export function computeOwnershipChange(input: OwnershipTransitionInput): Ownersh
     case "mark-bought":
       return {
         book: { ownershipStatus: "owned" },
-        purchaseInfo: { purchasedAt: parseIsoDate(input.date) },
+        purchaseInfo: buildMarkBoughtPatch(input),
       };
     case "mark-owned":
       return { book: { ownershipStatus: "owned" }, purchaseInfo: "delete" };
@@ -35,6 +35,26 @@ export function computeOwnershipChange(input: OwnershipTransitionInput): Ownersh
       return _exhaustiveCheck;
     }
   }
+}
+
+function buildMarkBoughtPatch({
+  date,
+  fields,
+}: {
+  date: string;
+  fields: MarkBoughtInput;
+}): OwnershipPurchaseInfoPatch {
+  const patch: OwnershipPurchaseInfoPatch = { purchasedAt: parseIsoDate(date) };
+  if (fields.storeName !== undefined) {
+    patch.storeName = fields.storeName;
+  }
+  if (fields.expectedPrice !== undefined) {
+    patch.expectedPrice = fields.expectedPrice;
+  }
+  if (fields.currency !== undefined) {
+    patch.currency = fields.currency;
+  }
+  return patch;
 }
 
 function buildWantToBuyOverwrite(fields: WantToBuyInput): OwnershipPurchaseInfoPatch | undefined {

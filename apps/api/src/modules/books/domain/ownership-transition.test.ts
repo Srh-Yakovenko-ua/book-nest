@@ -23,12 +23,52 @@ describe("computeOwnershipChange remove-owned", () => {
 
 describe("computeOwnershipChange mark-bought", () => {
   it("sets ownership to owned and stamps the purchase date without touching other fields", () => {
-    const patch = computeOwnershipChange({ date: DATE, kind: "mark-bought" });
+    const patch = computeOwnershipChange({ date: DATE, fields: {}, kind: "mark-bought" });
 
     expect(patch).toEqual({
       book: { ownershipStatus: "owned" },
       purchaseInfo: { purchasedAt: PARSED_DATE },
     });
+  });
+
+  it("carries store, price, and currency alongside the purchase date and no other keys", () => {
+    const patch = computeOwnershipChange({
+      date: DATE,
+      fields: { currency: "UAH", expectedPrice: 249.5, storeName: "Yakaboo" },
+      kind: "mark-bought",
+    });
+
+    expect(patch.purchaseInfo).toEqual({
+      currency: "UAH",
+      expectedPrice: 249.5,
+      purchasedAt: PARSED_DATE,
+      storeName: "Yakaboo",
+    });
+  });
+
+  it("propagates explicit nulls for the provided fields", () => {
+    const patch = computeOwnershipChange({
+      date: DATE,
+      fields: { currency: null, expectedPrice: null, storeName: null },
+      kind: "mark-bought",
+    });
+
+    expect(patch.purchaseInfo).toEqual({
+      currency: null,
+      expectedPrice: null,
+      purchasedAt: PARSED_DATE,
+      storeName: null,
+    });
+  });
+
+  it("includes only the single provided field next to the purchase date", () => {
+    const patch = computeOwnershipChange({
+      date: DATE,
+      fields: { currency: "EUR" },
+      kind: "mark-bought",
+    });
+
+    expect(patch.purchaseInfo).toEqual({ currency: "EUR", purchasedAt: PARSED_DATE });
   });
 });
 

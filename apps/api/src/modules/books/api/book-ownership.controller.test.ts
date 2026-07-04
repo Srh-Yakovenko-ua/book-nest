@@ -13,6 +13,8 @@ import { BooksModule } from "../books.module.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
 const TODAY = new Date().toISOString().slice(0, 10);
+const PAST_PURCHASE_DATE = "2025-01-15";
+const FUTURE_PURCHASE_DATE = "2999-12-31";
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -107,6 +109,22 @@ describe("POST /api/books/:id/ownership/mark-owned", () => {
     expect(res.body.ownershipStatus).toBe("owned");
   });
 
+  it("marks a want-to-buy book as owned and clears its planned purchase info", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      purchaseInfo: { currency: "UAH", expectedPrice: 299.99, storeName: "Yakaboo" },
+      title: "Dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "mark-owned");
+
+    expect(res.status).toBe(200);
+    expect(res.body.ownershipStatus).toBe("owned");
+    expect(res.body.purchaseInfo).toBeNull();
+  });
+
   it("returns 409 when the book is already owned", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
@@ -173,7 +191,7 @@ describe("POST /api/books/:id/ownership/remove-owned", () => {
       title: "Dune",
     });
 
-    await ownershipAction(accessToken, created.body.id, "mark-bought");
+    await ownershipAction(accessToken, created.body.id, "mark-bought", {});
     const removed = await ownershipAction(accessToken, created.body.id, "remove-owned");
 
     expect(removed.status).toBe(200);
@@ -267,7 +285,7 @@ describe("POST /api/books/:id/ownership/mark-bought", () => {
       title: "Dune",
     });
 
-    const res = await ownershipAction(accessToken, created.body.id, "mark-bought");
+    const res = await ownershipAction(accessToken, created.body.id, "mark-bought", {});
 
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("owned");
@@ -279,6 +297,108 @@ describe("POST /api/books/:id/ownership/mark-bought", () => {
     });
   });
 
+  it("overrides store, price, and currency from the body and stamps the given past date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      purchaseInfo: {
+        currency: "UAH",
+        expectedPrice: 299.99,
+        note: "wishlist",
+        storeName: "Yakaboo",
+        storeUrl: "https://yakaboo.ua",
+      },
+      title: "Dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "mark-bought", {
+      currency: "EUR",
+      expectedPrice: 180.5,
+      purchasedAt: PAST_PURCHASE_DATE,
+      storeName: "Book Depository",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ownershipStatus).toBe("owned");
+    expect(res.body.purchaseInfo).toEqual({
+      currency: "EUR",
+      expectedPrice: 180.5,
+      note: "wishlist",
+      purchasedAt: PAST_PURCHASE_DATE,
+      storeName: "Book Depository",
+      storeUrl: "https://yakaboo.ua",
+    });
+  });
+
+  it("keeps the planned note and store url untouched when the body omits them", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      purchaseInfo: {
+        currency: "UAH",
+        expectedPrice: 299.99,
+        note: "wishlist",
+        storeName: "Yakaboo",
+        storeUrl: "https://yakaboo.ua",
+      },
+      title: "Dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "mark-bought", {});
+
+    expect(res.status).toBe(200);
+    expect(res.body.purchaseInfo).toEqual({
+      currency: "UAH",
+      expectedPrice: 299.99,
+      note: "wishlist",
+      purchasedAt: TODAY,
+      storeName: "Yakaboo",
+      storeUrl: "https://yakaboo.ua",
+    });
+  });
+
+  it("creates a purchase row with only the purchase date when the book had none", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      title: "Dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "mark-bought", {});
+
+    expect(res.status).toBe(200);
+    expect(res.body.ownershipStatus).toBe("owned");
+    expect(res.body.purchaseInfo).toEqual({
+      currency: null,
+      expectedPrice: null,
+      note: null,
+      purchasedAt: TODAY,
+      storeName: null,
+      storeUrl: null,
+    });
+  });
+
+  it("returns 400 with errorsMessages for a future purchase date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      title: "Dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "mark-bought", {
+      purchasedAt: FUTURE_PURCHASE_DATE,
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "purchasedAt" })]),
+    );
+  });
+
   it("returns 409 when the book is not in the want-to-buy state", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
@@ -287,7 +407,7 @@ describe("POST /api/books/:id/ownership/mark-bought", () => {
       title: "Dune",
     });
 
-    const res = await ownershipAction(accessToken, created.body.id, "mark-bought");
+    const res = await ownershipAction(accessToken, created.body.id, "mark-bought", {});
 
     expect(res.status).toBe(409);
   });

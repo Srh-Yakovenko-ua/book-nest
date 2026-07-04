@@ -287,6 +287,15 @@ export const WantToBuyInputSchema = PurchaseInfoFieldsSchema;
 
 export type WantToBuyInput = z.infer<typeof WantToBuyInputSchema>;
 
+export const MarkBoughtInputSchema = z.object({
+  currency: CurrencySchema.nullable().optional(),
+  expectedPrice: OwnershipPriceSchema.nullable().optional(),
+  purchasedAt: notInFutureDate("Purchase date must not be in the future").optional(),
+  storeName: OwnershipStoreNameSchema.nullable().optional(),
+});
+
+export type MarkBoughtInput = z.infer<typeof MarkBoughtInputSchema>;
+
 const DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE = "Expected delivery cannot be before the order date";
 
 const isExpectedNotBeforeOrder = (value: {

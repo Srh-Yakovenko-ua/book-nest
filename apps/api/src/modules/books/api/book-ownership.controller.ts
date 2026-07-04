@@ -1,6 +1,6 @@
 import type { BookView } from "@app/shared";
 
-import { WantToBuyInputSchema } from "@app/shared";
+import { MarkBoughtInputSchema, WantToBuyInputSchema } from "@app/shared";
 import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
@@ -15,13 +15,13 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BookOwnershipService } from "../application/book-ownership.service.js";
+import { MarkBoughtInputDto } from "./input-dto/mark-bought.input-dto.js";
 import { WantToBuyInputDto } from "./input-dto/want-to-buy.input-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
 
@@ -46,7 +46,7 @@ export class BookOwnershipController {
   })
   @UseGuards(JwtAccessGuard)
   markOwned(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<BookView> {
     return this.bookOwnershipService.markOwned(user.id, id);
@@ -65,7 +65,7 @@ export class BookOwnershipController {
   })
   @UseGuards(JwtAccessGuard)
   removeOwned(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<BookView> {
     return this.bookOwnershipService.removeOwned(user.id, id);
@@ -86,18 +86,20 @@ export class BookOwnershipController {
   })
   @UseGuards(JwtAccessGuard)
   wantToBuy(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodBodyPipe(WantToBuyInputSchema)) body: WantToBuyInputDto,
   ): Promise<BookView> {
     return this.bookOwnershipService.wantToBuy(user.id, id, body);
   }
 
+  @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBearerAuth()
+  @ApiBody({ type: MarkBoughtInputDto })
   @ApiConflictResponse({ description: "Book does not have the required ownership status" })
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({ description: "The book marked as bought", type: BookViewDto })
-  @ApiOperation({ summary: "Mark a want-to-buy book as bought, retaining purchase details" })
+  @ApiOperation({ summary: "Mark a want-to-buy book as bought with actual purchase details" })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @HttpCode(HTTP_STATUS.OK)
   @Post(":id/ownership/mark-bought")
@@ -106,9 +108,10 @@ export class BookOwnershipController {
   })
   @UseGuards(JwtAccessGuard)
   markBought(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
+    @Body(new ZodBodyPipe(MarkBoughtInputSchema)) body: MarkBoughtInputDto,
   ): Promise<BookView> {
-    return this.bookOwnershipService.markBought(user.id, id);
+    return this.bookOwnershipService.markBought(user.id, id, body);
   }
 }
