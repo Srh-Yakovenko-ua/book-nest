@@ -1,5 +1,7 @@
 import type { BookView, MediaView, Nullable } from "@app/shared";
 
+import { isActiveDeliveryStatus } from "@app/shared";
+
 import type {
   AuthorSelection,
   CreateBookFormValues,
@@ -88,10 +90,10 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
 }
 
 function deliveryToInput(book: BookView): CreateBookFormValues["deliveryInfo"] {
-  const info = book.deliveryInfo;
+  const info = book.delivery.active;
   if (info === null) return {};
   return {
-    deliveryStatus: info.deliveryStatus ?? undefined,
+    deliveryStatus: isActiveDeliveryStatus(info.status) ? info.status : undefined,
     expectedDeliveryDate: info.expectedDeliveryDate ?? undefined,
     note: info.note ?? undefined,
     orderDate: info.orderDate ?? undefined,

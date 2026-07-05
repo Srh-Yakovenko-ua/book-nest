@@ -304,12 +304,56 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.deliveryInfo).toBeNull();
+    expect(res.body.delivery.active).toBeNull();
     expect(res.body.loanInfo).toMatchObject({ personName: "Olha" });
-    const delivery = await prisma.bookDeliveryInfo.findMany({ where: { bookId: created.body.id } });
+    const delivery = await prisma.bookDelivery.findMany({ where: { bookId: created.body.id } });
     const loan = await prisma.bookLoanInfo.findMany({ where: { bookId: created.body.id } });
-    expect(delivery).toHaveLength(0);
+    expect(delivery).toHaveLength(1);
+    expect(delivery[0]?.status).toBe("cancelled");
     expect(loan).toHaveLength(1);
+  });
+
+  it("edits the active delivery row through the deliveryInfo block", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      deliveryInfo: { storeName: "Yakaboo" },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      deliveryInfo: { deliveryStatus: "in_transit", storeName: "Nova Poshta" },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.delivery.active).toMatchObject({
+      status: "in_transit",
+      storeName: "Nova Poshta",
+    });
+    expect(res.body.delivery.totalCount).toBe(1);
+    const rows = await prisma.bookDelivery.findMany({ where: { bookId: created.body.id } });
+    expect(rows).toHaveLength(1);
+  });
+
+  it("creates an active delivery row when ownership moves to in_transit without one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      deliveryInfo: { storeName: "Yakaboo" },
+      ownershipStatus: "in_transit",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ownershipStatus).toBe("in_transit");
+    expect(res.body.delivery.active).toMatchObject({ status: "ordered", storeName: "Yakaboo" });
+    expect(res.body.delivery.totalCount).toBe(1);
+    const rows = await prisma.bookDelivery.findMany({ where: { bookId: created.body.id } });
+    expect(rows).toHaveLength(1);
   });
 });
 
@@ -507,6 +551,33 @@ describe("PATCH /api/books/:id partial block merge", () => {
       rating: 4,
       startedAt: "2026-02-01",
     });
+  });
+
+  it("keeps the purchase info on an owned book when patching an unrelated field", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      purchaseInfo: { currency: "UAH", expectedPrice: 299.99, storeName: "Yakaboo" },
+      title: "Dune",
+    });
+    await request(app.getHttpServer())
+      .post(`/api/books/${created.body.id}/ownership/mark-bought`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({});
+
+    const res = await updateBook(accessToken, created.body.id, { title: "Dune Reborn" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe("Dune Reborn");
+    expect(res.body.ownershipStatus).toBe("owned");
+    expect(res.body.purchaseInfo).toMatchObject({
+      currency: "UAH",
+      expectedPrice: 299.99,
+      storeName: "Yakaboo",
+    });
+    const rows = await prisma.bookPurchaseInfo.findMany({ where: { bookId: created.body.id } });
+    expect(rows).toHaveLength(1);
   });
 
   it("clears a loan sub-field when an explicit null is sent", async () => {

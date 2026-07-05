@@ -1,10 +1,12 @@
-import type { OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
 import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 
 import { BulkActionResultSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { seriesKeys } from "@/features/series/api/series-keys";
 import {
+  booksControllerDelete,
   booksControllerUpdate,
   bulkBooksControllerDelete,
   bulkBooksControllerFavorite,
@@ -18,7 +20,8 @@ import {
 import type { ListDraft } from "../model/book-organization-fields";
 import type { LibraryBooksPage } from "./use-books";
 
-const BOOKS_KEY = ["/api/books"];
+import { bookKeys, matchesBooksExceptDetail } from "./book-keys";
+
 const LIST_KEY = ["/api/books", "list"];
 
 type FavoriteContext = {
@@ -32,7 +35,7 @@ export function useBulkAddTags() {
     mutationFn: async (input: { bookIds: string[]; tags: string[] }) =>
       BulkActionResultSchema.parse(await bulkBooksControllerTags(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: BOOKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
       void queryClient.invalidateQueries({ queryKey: ["tags"] });
     },
   });
@@ -51,7 +54,7 @@ export function useBulkAddToList() {
         }),
       ),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: BOOKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
       void queryClient.invalidateQueries({ queryKey: ["lists"] });
     },
   });
@@ -64,7 +67,7 @@ export function useBulkAddToReadingQueue() {
     mutationFn: async (bookIds: string[]) =>
       BulkActionResultSchema.parse(await bulkBooksControllerReadingQueue({ bookIds })),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: BOOKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
     },
   });
 }
@@ -76,7 +79,8 @@ export function useBulkDeleteBooks() {
     mutationFn: async (bookIds: string[]) =>
       BulkActionResultSchema.parse(await bulkBooksControllerDelete({ bookIds })),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: BOOKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
     },
   });
 }
@@ -88,7 +92,7 @@ export function useBulkOwnershipStatus() {
     mutationFn: async (input: { bookIds: string[]; ownershipStatus: OwnershipStatus }) =>
       BulkActionResultSchema.parse(await bulkBooksControllerOwnershipStatus(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: BOOKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
     },
   });
 }
@@ -100,7 +104,8 @@ export function useBulkReadingStatus() {
     mutationFn: async (input: { bookIds: string[]; readingStatus: ReadingStatus }) =>
       BulkActionResultSchema.parse(await bulkBooksControllerReadingStatus(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: BOOKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
     },
   });
 }
@@ -112,7 +117,19 @@ export function useBulkSetFavorite() {
     mutationFn: async (input: { bookIds: string[]; isFavorite: boolean }) =>
       BulkActionResultSchema.parse(await bulkBooksControllerFavorite(input)),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: BOOKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+    },
+  });
+}
+
+export function useDeleteBook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => booksControllerDelete(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
     },
   });
 }
@@ -123,7 +140,7 @@ export function useRemoveFromReadingQueue() {
   return useMutation({
     mutationFn: (id: string) => booksControllerUpdate(id, { addToReadingQueue: false }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: BOOKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
     },
   });
 }
@@ -153,8 +170,15 @@ export function useToggleFavorite() {
       }
       return { snapshot };
     },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: BOOKS_KEY });
+    onSettled: (_data, _error, { id }) => {
+      void queryClient.invalidateQueries({ predicate: matchesBooksExceptDetail(id) });
+    },
+    onSuccess: (_data, { id, isFavorite }) => {
+      const detailKey = bookKeys.detail(id);
+      const cached = queryClient.getQueryData<BookView>(detailKey);
+      if (cached !== undefined) {
+        queryClient.setQueryData<BookView>(detailKey, { ...cached, isFavorite });
+      }
     },
   });
 }

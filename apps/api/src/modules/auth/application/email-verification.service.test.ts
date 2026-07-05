@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { PrismaService } from "../../../core/database/prisma.service.js";
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { EmailVerificationTokenModel, UserModel } from "../../../generated/prisma/models.js";
 import type { MailService } from "../../mail/application/mail.service.js";
 import type { EmailVerificationTokensRepository } from "../infrastructure/email-verification-tokens.repository.js";
@@ -13,10 +13,10 @@ import { EmailVerificationService } from "./email-verification.service.js";
 
 type Mocks = {
   mailService: MailService;
-  prisma: PrismaService;
   sessionService: SessionService;
   tokenService: TokenService;
   tokensRepository: EmailVerificationTokensRepository;
+  transactionRunner: TransactionRunner;
   usersRepository: UsersRepository;
 };
 
@@ -58,11 +58,9 @@ function buildService(overrides: {
     sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
   } as unknown as MailService;
 
-  const prisma = {
-    $transaction: vi
-      .fn()
-      .mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
-  } as unknown as PrismaService;
+  const transactionRunner = {
+    run: vi.fn().mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
+  } as unknown as TransactionRunner;
 
   const service = new EmailVerificationService(
     usersRepository,
@@ -70,16 +68,16 @@ function buildService(overrides: {
     tokenService,
     sessionService,
     mailService,
-    prisma,
+    transactionRunner,
   );
 
   return {
     mocks: {
       mailService,
-      prisma,
       sessionService,
       tokenService,
       tokensRepository,
+      transactionRunner,
       usersRepository,
     },
     service,
@@ -141,7 +139,7 @@ describe("EmailVerificationService.verify", () => {
 
     await service.verify("raw-verification-token");
 
-    expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.transactionRunner.run).toHaveBeenCalledTimes(1);
     expect(mocks.tokensRepository.consume).toHaveBeenCalledWith(
       "hashed-verification-token",
       expect.any(Date),

@@ -3,9 +3,30 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getQueryClient } from "@/lib/query-client";
 
 import { StoreAutocomplete } from "./store-autocomplete";
+
+function DialogHarness() {
+  const [value, setValue] = useState("");
+  return (
+    <Dialog open>
+      <DialogContent aria-describedby={undefined} showCloseButton={false}>
+        <DialogTitle>Нова доставка</DialogTitle>
+        <StoreAutocomplete
+          id="store"
+          invalid={false}
+          label="Магазин"
+          onChange={setValue}
+          placeholder="Напр. Yakaboo"
+          value={value}
+        />
+        <p data-testid="value">{value === "" ? "empty" : value}</p>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function Harness() {
   const [value, setValue] = useState("");
@@ -90,6 +111,24 @@ export const CreateFromTyped: Story = {
     await waitFor(() => expect(canvas.getByTestId("value")).toHaveTextContent("Нова Книгарня"));
   },
   render: () => <Harness />,
+};
+
+export const StaysClosedWhenDialogAutofocuses: Story = {
+  beforeEach: () => {
+    mockStores(["Yakaboo", "Bookstore"]);
+  },
+  play: async () => {
+    const surface = within(document.body);
+
+    const input = surface.getByRole("combobox", { name: "Магазин" });
+    await waitFor(() => expect(input).toHaveFocus());
+    await expect(surface.queryByText("Раніше використані")).toBeNull();
+
+    await userEvent.click(input);
+    await waitFor(() => expect(surface.getByText("Раніше використані")).toBeVisible());
+    await expect(surface.getByText("Bookstore")).toBeVisible();
+  },
+  render: () => <DialogHarness />,
 };
 
 export const FiltersRecentByInput: Story = {

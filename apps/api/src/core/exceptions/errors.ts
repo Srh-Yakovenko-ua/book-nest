@@ -20,6 +20,13 @@ export class HttpError extends Error {
   }
 }
 
+export class BadGatewayError extends HttpError {
+  constructor(message = "Bad gateway", options?: { code?: string }) {
+    super(HTTP_STATUS.BAD_GATEWAY, message, { code: options?.code });
+    this.name = "BadGatewayError";
+  }
+}
+
 export class BadRequestError extends HttpError {
   readonly fields?: FieldError[];
 

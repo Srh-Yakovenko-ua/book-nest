@@ -2,14 +2,23 @@
   "common": {
     "loading": "Завантаження...",
     "retry": "Повторити",
-    "somethingWentWrong": "Щось пішло не так"
+    "somethingWentWrong": "Щось пішло не так",
+    "decrement": "Зменшити",
+    "increment": "Збільшити",
+    "opensInNewTab": "(відкриється в новій вкладці)",
+    "ratingValueText": "{value} з {max}",
+    "clear": "Очистити"
   },
   "nav": {
     "home": "Головна",
-    "library": "Бібліотека"
+    "library": "Бібліотека",
+    "buyList": "Книги до покупки",
+    "series": "Серії"
   },
   "appShell": {
-    "label": "Book Nest"
+    "label": "Book Nest",
+    "collapseSidebar": "Згорнути бічну панель",
+    "expandSidebar": "Розгорнути бічну панель"
   },
   "home": {
     "eyebrow": "Моя бібліотека",
@@ -509,7 +518,9 @@
         "note": "Нотатка",
         "notePlaceholder": "Короткі думки для себе…",
         "datePlaceholder": "Оберіть дату"
-      }
+      },
+      "currentPageExceeds": "Поточна сторінка не може перевищувати {total}",
+      "currentPageHint": "з {total}"
     },
     "ownershipStatus": {
       "title": "Статус володіння",
@@ -519,8 +530,8 @@
         "want_to_buy": "Хочу купити",
         "in_transit": "У дорозі",
         "owned": "У наявності",
-        "borrowed_from_someone": "Позичив у когось",
-        "lent_to_someone": "Позичив комусь"
+        "borrowed_from_someone": "Позичена у когось",
+        "lent_to_someone": "Видана комусь"
       },
       "fields": {
         "note": "Нотатка",
@@ -529,13 +540,15 @@
       }
     },
     "purchaseInfo": {
-      "title": "Деталі покупки",
+      "title": "Посилання на магазин",
+      "subtitle": "Збережіть, де і за скільки можна купити цю книгу",
+      "moreStoresHint": "Більше магазинів для порівняння цін можна буде додати на сторінці <link>Книги до покупки</link>.",
       "fields": {
         "storeName": "Магазин",
         "storeNamePlaceholder": "Напр. Yakaboo",
-        "storeUrl": "Посилання на товар",
+        "storeUrl": "Посилання",
         "storeUrlPlaceholder": "https://…",
-        "expectedPrice": "Очікувана ціна",
+        "expectedPrice": "Ціна",
         "currency": "Валюта",
         "currencyPlaceholder": "Валюта"
       }
@@ -551,13 +564,16 @@
         "deliveryStatus": "Статус доставки",
         "deliveryStatusPlaceholder": "Оберіть статус"
       },
-      "deliveryStatusOptions": {
-        "ordered": "Замовлено",
-        "in_transit": "У дорозі",
-        "ready_for_pickup": "Готово до отримання",
-        "cancelled": "Скасовано"
-      },
       "markReceived": "Позначити як отриману"
+    },
+    "deliveryStatus": {
+      "labels": {
+        "ordered": "Замовлена",
+        "in_transit": "В дорозі",
+        "ready_for_pickup": "Готова до отримання",
+        "received": "Отримана",
+        "cancelled": "Скасована"
+      }
     },
     "loanInfo": {
       "title": "Деталі позики",
@@ -586,9 +602,10 @@
       "genresEmpty": "Жанрів не знайдено.",
       "genresLoading": "Завантаження жанрів…",
       "genresHint": "Можна обрати до {max} жанрів.",
+      "genresRecentHeading": "Раніше використані",
       "tags": "Теги",
       "tagsPlaceholder": "Додайте тег і натисніть Enter…",
-      "tagsAtMax": "Досягнуто межі тегів",
+      "tagsAtMax": "Ліміт вичерпано — видаліть зайві теги",
       "tagsHint": "Власні теги через Enter або кому, до {max} штук.",
       "tagsSuggestions": "Ваші теги",
       "tagsSearching": "Шукаємо теги…",
@@ -696,8 +713,7 @@
         "dedication": "Присвята",
         "dedicationPlaceholder": "Кому присвячена ця книга…"
       },
-      "advancedDetails": "Додаткові деталі",
-      "currentPageWarning": "Поточна сторінка більша за нову кількість сторінок. Оновіть прогрес читання."
+      "advancedDetails": "Додаткові деталі"
     },
     "organization": {
       "title": "Організація бібліотеки",
@@ -769,6 +785,14 @@
       "empty": "Магазинів не знайдено",
       "createNew": "Створити «{name}»"
     },
+    "deliveryService": {
+      "searching": "Шукаємо служби…",
+      "empty": "Служб доставки не знайдено.",
+      "recentHeading": "Раніше використані",
+      "resultsHeading": "Усі служби доставки",
+      "createNew": "Створити «{name}»",
+      "customBadge": "власне"
+    },
     "preview": {
       "eyebrow": "Попередній перегляд",
       "titlePlaceholder": "Приклад назви",
@@ -792,7 +816,11 @@
       "success": "Книгу додано до вашої бібліотеки.",
       "error": "Не вдалося додати книгу. Перевірте поля й спробуйте ще раз.",
       "editSuccess": "Зміни збережено.",
-      "editError": "Не вдалося зберегти зміни. Перевірте поля й спробуйте ще раз."
+      "editError": "Не вдалося зберегти зміни. Перевірте поля й спробуйте ще раз.",
+      "wantToBuyAction": "Перейти до списку покупок"
+    },
+    "form": {
+      "sectionComplete": "розділ заповнено"
     },
     "editPage": {
       "metaTitle": "Редагувати книгу",
@@ -873,6 +901,598 @@
         "heic": "Не вдалося конвертувати HEIC-зображення. Спробуйте інший файл.",
         "upload": "Не вдалося завантажити обкладинку"
       }
+    },
+    "details": {
+      "metaTitle": "Деталі книги",
+      "backToLibrary": "До бібліотеки",
+      "edit": "Редагувати",
+      "coverAlt": "Обкладинка книги «{title}»",
+      "addedOn": "Додано {date}",
+      "progressPages": "Сторінка {current} з {total}",
+      "seriesPartWithNumber": "{series} · частина {number}",
+      "authorsShowAll": "Показати всіх авторів",
+      "authorsCollapse": "Згорнути",
+      "dedicationLabel": "Присвята автора",
+      "lists": "Списки",
+      "series": {
+        "title": "Серія",
+        "progressLabel": "Прогрес серії",
+        "statusLabels": {
+          "completed": "Серія завершена",
+          "ongoing": "Серія ще виходить",
+          "unknown": "Статус серії невідомий"
+        },
+        "partWithTotal": "Частина {number} з {total}",
+        "partAdded": "Частина {number} (додано {count})",
+        "partUnknown": "Номер частини не вказаний",
+        "progressWithTotal": "Прочитано {finished} з {total} · {percent}%",
+        "progressAdded": "Прочитано {finished} з {count} · доданих · {percent}%",
+        "progressUnavailable": "Прогрес серії ще недоступний",
+        "state": {
+          "finished": "Цю книгу вже прочитано",
+          "reading": "Ви читаєте цю книгу зараз",
+          "rereading": "Ви перечитуєте цю книгу",
+          "isNext": "Це наступна книга у серії",
+          "unreadEarlier": "Перед цією книгою є непрочитані частини",
+          "seriesFinished": "Серію прочитано"
+        },
+        "next": "Наступна: {title}",
+        "nextWithPart": "Наступна: {title} · частина {number}"
+      },
+      "actions": {
+        "menu": "Дії з книгою",
+        "changeReadingStatus": "Змінити статус читання",
+        "addToQueue": "Додати в чергу читання",
+        "removeFromQueue": "Прибрати з черги читання",
+        "addToList": "Додати до списку",
+        "delete": "Видалити",
+        "toast": {
+          "queueAdded": "Додано в чергу читання",
+          "queueRemoved": "Прибрано з черги читання",
+          "addedToList": "Додано до списку",
+          "deleted": "Книгу видалено",
+          "error": "Щось пішло не так. Спробуйте ще раз."
+        }
+      },
+      "favorite": {
+        "add": "Додати до улюблених",
+        "remove": "Прибрати з улюблених"
+      },
+      "about": {
+        "title": "Про книгу",
+        "empty": "Опис ще не додано.",
+        "showMore": "Показати більше",
+        "showLess": "Показати менше"
+      },
+      "quickInfo": {
+        "title": "Коротка інформація",
+        "addedOn": "Додано",
+        "formats": "Формати"
+      },
+      "statuses": {
+        "title": "Статуси",
+        "none": "—"
+      },
+      "states": {
+        "loading": "Завантаження книги…",
+        "errorTitle": "Не вдалося завантажити книгу",
+        "errorDescription": "Спробуйте оновити сторінку.",
+        "notFoundTitle": "Книгу не знайдено",
+        "notFoundDescription": "Можливо, її було видалено або вона належить іншому користувачеві."
+      },
+      "reading": {
+        "title": "Прогрес читання",
+        "progressLabel": "Прогрес читання",
+        "empty": "Ви ще не почали читати цю книгу.",
+        "startCta": "Почати читати",
+        "updateCta": "Оновити прогрес",
+        "changeStatusCta": "Змінити статус",
+        "lastUpdate": "Останнє оновлення",
+        "pagesOnly": "Сторінка {current}",
+        "updateDialog": {
+          "title": "Оновити прогрес",
+          "description": "Позначте, скільки сторінок ви вже прочитали.",
+          "updateDate": "Дата оновлення",
+          "markAsFinished": "Позначити як прочитану",
+          "pagesSince": "{count, plural, one {+# сторінка з минулого разу} few {+# сторінки з минулого разу} many {+# сторінок з минулого разу} other {+# сторінок з минулого разу}}",
+          "submit": "Зберегти"
+        },
+        "statusDialog": {
+          "title": "Змінити статус читання",
+          "description": "Оберіть, де ви зараз із цією книгою.",
+          "statusLabel": "Статус читання",
+          "date": "Дата",
+          "stopPage": "Сторінка зупинки",
+          "reason": "Причина",
+          "reasonPlaceholder": "Чому ви вирішили не дочитувати?",
+          "resetProgress": "Скинути прогрес читання",
+          "notStartedWarning": "Книга повернеться до стану «Не почато».",
+          "submit": "Зберегти"
+        },
+        "errors": {
+          "pageBelowSaved": "Не можна зменшити прогрес нижче {saved} стор.",
+          "pageOverTotal": "Не більше за {total} стор.",
+          "dateFuture": "Дата не може бути в майбутньому.",
+          "dateInvalid": "Оберіть коректну дату.",
+          "noteMax": "Не більше за {max} символів.",
+          "generic": "Не вдалося зберегти. Спробуйте ще раз."
+        }
+      },
+      "ownership": {
+        "title": "Володіння",
+        "statusLabel": "Статус",
+        "actions": {
+          "markOwned": "Маю цю книгу",
+          "wantToBuy": "Хочу купити",
+          "loanBorrowed": "Позичена у когось",
+          "removeOwned": "Прибрати з моїх",
+          "loanLent": "Дати комусь почитати",
+          "markBought": "Позначити купленою",
+          "markOrdered": "Позначити замовленою",
+          "return": "Позначити як повернуту",
+          "startDelivery": "Замовлена — в дорозі",
+          "alreadyOwn": "Вже маю цю книгу"
+        },
+        "purchase": {
+          "title": "Деталі покупки",
+          "acquisition": "Придбання",
+          "whereToBuy": "Де купити",
+          "goToStore": "Перейти до магазину",
+          "store": "Магазин",
+          "link": "Посилання на товар",
+          "price": "Ціна",
+          "note": "Нотатка",
+          "purchasedAt": "Придбано"
+        },
+        "toast": {
+          "updated": "Статус володіння оновлено",
+          "error": "Не вдалося оновити. Спробуйте ще раз."
+        },
+        "buyDialog": {
+          "title": "Хочу купити",
+          "description": "Додайте деталі покупки — усі поля необовʼязкові.",
+          "storeName": "Магазин",
+          "storeNamePlaceholder": "Напр. Yakaboo",
+          "storeUrl": "Посилання на товар",
+          "storeUrlPlaceholder": "https://…",
+          "expectedPrice": "Очікувана ціна",
+          "currency": "Валюта",
+          "currencyPlaceholder": "Валюта",
+          "note": "Нотатка",
+          "notePlaceholder": "Короткі думки для себе…",
+          "submit": "Зберегти"
+        },
+        "buyConfirm": {
+          "title": "Позначити книгу як куплену?",
+          "description": "Вкажіть, де ви придбали книгу — це може відрізнятися від запланованого",
+          "sourceOther": "Інше місце",
+          "price": "Ціна",
+          "date": "Дата покупки",
+          "submit": "Підтвердити"
+        },
+        "errors": {
+          "storeUrl": "Введіть коректне https-посилання.",
+          "storeUrlMax": "Не більше за {max} символів.",
+          "price": "Ціна має бути більшою за 0.",
+          "priceMax": "Забагато. Максимум 99999999.99.",
+          "storeNameMax": "Не більше за {max} символів.",
+          "noteMax": "Не більше за {max} символів.",
+          "purchaseDateRequired": "Вкажіть дату покупки.",
+          "purchaseDateFuture": "Дата не може бути в майбутньому.",
+          "generic": "Не вдалося зберегти. Спробуйте ще раз."
+        }
+      },
+      "loan": {
+        "info": {
+          "title": "Деталі позики",
+          "borrowedFrom": "У кого позичена",
+          "lentTo": "Кому передана",
+          "loanDate": "Дата позики",
+          "returnDate": "Очікуване повернення",
+          "overdue": "Прострочено",
+          "contact": "Контакт",
+          "note": "Нотатка",
+          "reminderOn": "Нагадаємо про повернення"
+        },
+        "borrowed": {
+          "title": "Позначити як позичену",
+          "description": "Запишіть, у кого ви позичили цю книгу.",
+          "personName": "У кого взяли",
+          "personNamePlaceholder": "Імʼя людини",
+          "loanDate": "Дата позики"
+        },
+        "lent": {
+          "title": "Дати комусь почитати",
+          "description": "Запишіть, кому ви передали цю книгу.",
+          "personName": "Кому даєте",
+          "personNamePlaceholder": "Імʼя людини",
+          "loanDate": "Дата передачі"
+        },
+        "fields": {
+          "returnDate": "Очікуване повернення",
+          "contact": "Контакт",
+          "contactPlaceholder": "Телефон, e-mail або @нік",
+          "note": "Нотатка",
+          "notePlaceholder": "Короткі думки для себе…",
+          "remindToReturn": "Нагадати повернути",
+          "datePlaceholder": "Оберіть дату"
+        },
+        "submit": "Зберегти",
+        "errors": {
+          "personNameMin": "Імʼя має містити щонайменше {min} символи.",
+          "personNameMax": "Не більше за {max} символів.",
+          "dateInvalid": "Оберіть коректну дату.",
+          "loanDateFuture": "Дата не може бути в майбутньому.",
+          "returnBeforeLoan": "Повернення не може бути раніше за дату позики.",
+          "reminderNeedsDate": "Оберіть дату повернення для нагадування.",
+          "contactMax": "Не більше за {max} символів.",
+          "noteMax": "Не більше за {max} символів.",
+          "generic": "Не вдалося зберегти. Спробуйте ще раз."
+        }
+      },
+      "delivery": {
+        "title": "Доставка",
+        "hints": {
+          "delayed": "Затримується",
+          "noDate": "Дата доставки не вказана"
+        },
+        "fields": {
+          "store": "Магазин",
+          "orderDate": "Дата замовлення",
+          "expectedDeliveryDate": "Очікувана доставка",
+          "orderNumber": "Номер замовлення",
+          "deliveryService": "Служба доставки",
+          "trackingNumber": "Трек-номер",
+          "trackingUrl": "Відстеження",
+          "price": "Вартість",
+          "note": "Нотатка",
+          "receivedAt": "Отримано",
+          "cancelledAt": "Скасовано"
+        },
+        "actions": {
+          "edit": "Редагувати",
+          "receive": "Отримана",
+          "cancel": "Скасувати"
+        },
+        "history": {
+          "count": "Замовлень в історії: {count}",
+          "show": "Показати історію",
+          "hide": "Сховати історію",
+          "loading": "Завантаження історії…",
+          "error": "Не вдалося завантажити історію."
+        },
+        "repair": {
+          "text": "Книга позначена як «В дорозі», але запис про доставку відсутній. Додайте деталі замовлення.",
+          "add": "Додати інформацію про доставку"
+        },
+        "toast": {
+          "received": "Книгу позначено як отриману",
+          "error": "Не вдалося оновити. Спробуйте ще раз."
+        },
+        "createDialog": {
+          "title": "Нова доставка",
+          "description": "Запишіть деталі замовлення. Книга перейде у стан «В дорозі»."
+        },
+        "editDialog": {
+          "title": "Редагувати доставку",
+          "description": "Оновіть деталі замовлення.",
+          "status": "Статус доставки"
+        },
+        "form": {
+          "storeName": "Магазин",
+          "storeNamePlaceholder": "Напр. Книгарня «Є»",
+          "orderDate": "Дата замовлення",
+          "expectedDeliveryDate": "Очікувана доставка",
+          "deliveryService": "Служба доставки",
+          "deliveryServicePlaceholder": "Напр. Нова пошта",
+          "orderNumber": "Номер замовлення",
+          "orderNumberPlaceholder": "Напр. 100500",
+          "trackingNumber": "Трек-номер",
+          "trackingNumberPlaceholder": "Напр. 20450000000000",
+          "price": "Вартість",
+          "currency": "Валюта",
+          "currencyPlaceholder": "Валюта",
+          "note": "Нотатка",
+          "notePlaceholder": "Короткі думки для себе…",
+          "datePlaceholder": "Оберіть дату",
+          "createSubmit": "Замовити",
+          "saveSubmit": "Зберегти"
+        },
+        "cancelDialog": {
+          "title": "Скасувати доставку",
+          "description": "Позначити це замовлення як скасоване? Дані замовлення залишаться в історії.",
+          "keepAsWantToBuy": "Залишити у списку «До покупки»",
+          "confirm": "Скасувати доставку"
+        },
+        "errors": {
+          "storeNameRequired": "Вкажіть магазин.",
+          "storeNameMax": "Не більше за {max} символів.",
+          "orderDateRequired": "Оберіть дату замовлення.",
+          "orderDateFuture": "Дата не може бути в майбутньому.",
+          "dateInvalid": "Оберіть коректну дату.",
+          "expectedBeforeOrder": "Доставка не може бути раніше за дату замовлення.",
+          "orderNumberMax": "Не більше за {max} символів.",
+          "serviceMax": "Не більше за {max} символів.",
+          "serviceMin": "Щонайменше {min} символи.",
+          "trackingNumberMax": "Не більше за {max} символів.",
+          "price": "Вартість має бути більшою за 0.",
+          "priceMax": "Забагато. Максимум 99999999.99.",
+          "noteMax": "Не більше за {max} символів.",
+          "generic": "Не вдалося зберегти. Спробуйте ще раз."
+        }
+      }
+    }
+  },
+  "booksToBuy": {
+    "metaTitle": "Книги до покупки",
+    "title": "Книги до покупки",
+    "subtitle": "Ваш список бажаних книг, які ви плануєте придбати",
+    "empty": {
+      "title": "Список покупок поки порожній",
+      "description": "Тут зʼявляться книги зі статусом «Хочу купити».",
+      "cta": "Додати книгу"
+    },
+    "error": {
+      "title": "Не вдалося завантажити",
+      "description": "Спробуйте оновити сторінку ще раз.",
+      "retry": "Спробувати ще раз"
+    }
+  },
+  "series": {
+    "page": {
+      "metaTitle": "Серії",
+      "title": "Серії",
+      "subtitle": "Усі книжкові цикли твоєї бібліотеки — з прогресом і наступними томами",
+      "count": "{count, plural, one {# серія} few {# серії} many {# серій} other {# серій}}",
+      "resultsTitle": "Список серій",
+      "create": "Створити серію",
+      "addBook": "Додати книгу"
+    },
+    "summary": {
+      "total": "Усього серій",
+      "fullyRead": "Прочитано",
+      "unfinished": "Недочитані",
+      "booksInSeries": "Книг у серіях"
+    },
+    "tabs": {
+      "all": "Усі серії",
+      "unfinished": "Недочитані"
+    },
+    "toolbar": {
+      "searchLabel": "Пошук серій",
+      "searchPlaceholder": "Пошук за назвою або автором",
+      "searchClear": "Очистити пошук",
+      "statusLabel": "Статус циклу",
+      "readingLabel": "Стан читання",
+      "sortLabel": "Сортування"
+    },
+    "statusFilter": {
+      "all": "Усі статуси",
+      "completed": "Завершена",
+      "ongoing": "Ще виходить",
+      "unknown": "Невідомо"
+    },
+    "readingFilter": {
+      "all": "Будь-який стан",
+      "not_started": "Не почато",
+      "in_progress": "У процесі",
+      "completed": "Прочитано повністю",
+      "empty": "Без книг"
+    },
+    "sort": {
+      "name_asc": "Назва А–Я",
+      "name_desc": "Назва Я–А",
+      "progress_desc": "Найбільший прогрес",
+      "progress_asc": "Найменший прогрес",
+      "books_desc": "Найбільше книг",
+      "activity_desc": "Нещодавно оновлені"
+    },
+    "status": {
+      "completed": "Завершена",
+      "ongoing": "Ще виходить",
+      "unknown": "Невідомо"
+    },
+    "card": {
+      "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "progressWithTotal": "Прочитано {finished} з {total}",
+      "progressAdded": "Прочитано {finished} з {count} доданих",
+      "allRead": "Усі книги прочитані",
+      "noBooks": "Книги ще не додані",
+      "next": "Наступна: {title}",
+      "nextWithPart": "Наступна: {title} · Книга {number}",
+      "nextAllRead": "Усю серію прочитано",
+      "view": "Переглянути серію",
+      "addBook": "Додати книгу",
+      "coverAlt": "Обкладинка серії {name}",
+      "authorsUnknown": "Автор невідомий"
+    },
+    "sidebar": {
+      "quickActions": "Швидкі дії",
+      "createSeries": "Створити серію",
+      "addBook": "Додати книгу",
+      "goToUnfinished": "Перейти до недочитаних",
+      "continueTitle": "Продовжити серію",
+      "continueEmpty": "Немає недочитаних серій",
+      "progress": "{finished} з {total} · {percent}%",
+      "next": "Наступна: {title}",
+      "openSeries": "Відкрити серію",
+      "closestTitle": "Найближчі до завершення",
+      "closestEmpty": "Поки що немає прогресу",
+      "statusTitle": "Статус циклів",
+      "statusCompleted": "Завершені автором",
+      "statusOngoing": "Ще виходять",
+      "statusUnknown": "Невідомо"
+    },
+    "dialog": {
+      "title": "Нова серія",
+      "description": "Створіть книжкову серію, щоб відстежувати її прогрес.",
+      "name": "Назва серії",
+      "namePlaceholder": "Напр. Відьмак",
+      "status": "Статус",
+      "totalBooks": "Книг у серії",
+      "totalBooksPlaceholder": "Напр. 5",
+      "descriptionLabel": "Опис",
+      "descriptionPlaceholder": "Короткий опис серії…",
+      "optional": "(необовʼязково)",
+      "submit": "Створити серію",
+      "cancel": "Скасувати",
+      "duplicate": "Серія з такою назвою вже існує",
+      "genericError": "Не вдалося створити серію. Спробуйте ще раз."
+    },
+    "toast": {
+      "created": "Серію створено",
+      "updated": "Серію оновлено",
+      "deleted": "Серію видалено",
+      "bookAdded": "Книгу додано до серії",
+      "bookRemoved": "Книгу прибрано з серії",
+      "error": "Щось пішло не так. Спробуйте ще раз."
+    },
+    "states": {
+      "loading": "Завантаження серій…",
+      "empty": {
+        "title": "У вас ще немає серій",
+        "description": "Створіть серію або додайте книгу, що входить до циклу, щоб почати відстежувати прогрес.",
+        "create": "Створити серію",
+        "addBook": "Додати книгу"
+      },
+      "emptyUnfinished": {
+        "title": "Немає недочитаних серій",
+        "description": "Щойно ви почнете читати цикл, він зʼявиться тут.",
+        "showAll": "Показати всі серії"
+      },
+      "noResults": {
+        "title": "Серій не знайдено",
+        "description": "Спробуйте змінити пошук або скинути фільтри.",
+        "clear": "Скинути фільтри"
+      },
+      "error": {
+        "title": "Не вдалося завантажити серії",
+        "description": "Спробуйте оновити сторінку або повторити запит трохи пізніше.",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "details": {
+      "metaTitle": "Серія",
+      "back": "Серії",
+      "coverAlt": "Обкладинка серії {name}",
+      "authorsUnknown": "Автор невідомий",
+      "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "booksWithTotal": "{count} з {total} додано",
+      "edit": "Редагувати серію",
+      "addBook": "Додати книгу",
+      "delete": "Видалити серію",
+      "menu": "Дії із серією",
+      "addBookInline": "Додати книгу в цю серію",
+      "booksHeading": "Книги серії",
+      "tabs": {
+        "books": "Книги серії",
+        "about": "Про серію"
+      },
+      "booksEmpty": {
+        "title": "У цій серії ще немає книг",
+        "action": "Додати книгу"
+      },
+      "readingOrder": {
+        "title": "Порядок читання"
+      },
+      "row": {
+        "menu": "Дії з книгою",
+        "view": "Переглянути книгу",
+        "remove": "Прибрати з серії",
+        "progress": "стор. {current} з {total}",
+        "authorsUnknown": "Автор невідомий"
+      },
+      "progress": {
+        "title": "Ваш прогрес у серії",
+        "booksOfTotal": "{finished} з {total} книг",
+        "booksAdded": "{finished} з {count} доданих",
+        "finished": "Прочитано {count}",
+        "reading": "Читаю {count}",
+        "unread": "Ще не прочитано {count}",
+        "unavailable": "Прогрес ще недоступний",
+        "completed": "Серію прочитано"
+      },
+      "next": {
+        "title": "Наступна книга",
+        "book": "Книга {number}",
+        "cta": "Перейти до книги",
+        "allRead": "Усі книги прочитані",
+        "empty": "Додайте першу книгу"
+      },
+      "stats": {
+        "title": "Статистика серії",
+        "total": "Усього книг",
+        "finished": "Прочитано",
+        "reading": "Читаю",
+        "unread": "Ще не прочитано",
+        "averageRating": "Середній рейтинг",
+        "pages": "Сторінок у серії"
+      },
+      "actions": {
+        "title": "Дії",
+        "edit": "Редагувати серію",
+        "addBook": "Додати книгу в серію",
+        "delete": "Видалити серію"
+      },
+      "about": {
+        "title": "Про серію",
+        "description": "Опис",
+        "descriptionEmpty": "Опис ще не додано.",
+        "status": "Статус циклу",
+        "authors": "Автори",
+        "totalBooks": "Загалом книг",
+        "createdAt": "Додано",
+        "unknown": "—"
+      },
+      "states": {
+        "loading": "Завантаження серії…",
+        "notFoundTitle": "Серію не знайдено",
+        "notFoundDescription": "Можливо, її було видалено або вона належить іншому користувачеві.",
+        "errorTitle": "Не вдалося завантажити серію",
+        "errorDescription": "Спробуйте оновити сторінку.",
+        "back": "Повернутися до серій"
+      }
+    },
+    "editDialog": {
+      "title": "Редагувати серію",
+      "description": "Оновіть інформацію про серію.",
+      "submit": "Зберегти зміни",
+      "duplicate": "Серія з такою назвою вже існує",
+      "totalBooksTooLow": "Загальна кількість книг не може бути меншою за кількість уже доданих книг у серію",
+      "genericError": "Не вдалося оновити серію. Спробуйте ще раз."
+    },
+    "deleteDialog": {
+      "title": "Видалити серію?",
+      "bodyWithBooks": "У цій серії є книги. Серію буде видалено, але книги залишаться у вашій бібліотеці без прив'язки до серії.",
+      "bodyEmpty": "Цю серію буде видалено з вашої бібліотеки.",
+      "booksCount": "Книг у серії: {count}",
+      "confirm": "Видалити серію",
+      "cancel": "Скасувати",
+      "deleting": "Видалення…"
+    },
+    "removeBookDialog": {
+      "title": "Прибрати книгу з серії?",
+      "body": "Книга залишиться у вашій бібліотеці, але більше не буде відображатися в цій серії.",
+      "confirm": "Прибрати з серії",
+      "cancel": "Скасувати",
+      "removing": "Прибирання…"
+    },
+    "addBookDialog": {
+      "title": "Додати книгу в серію",
+      "description": "Оберіть книгу з бібліотеки та вкажіть номер частини.",
+      "searchLabel": "Пошук книг",
+      "searchPlaceholder": "Пошук за назвою…",
+      "searching": "Пошук…",
+      "empty": "Немає книг для додавання",
+      "emptyHint": "Усі книги вже належать до серій або відсутні.",
+      "createNew": "Створити нову книгу",
+      "partNumber": "Номер частини",
+      "selectBook": "Оберіть книгу",
+      "submit": "Додати книгу",
+      "cancel": "Скасувати",
+      "partNumberTaken": "У цій серії вже є книга з таким номером частини",
+      "partNumberExceedsTotal": "Номер частини більший за загальну кількість книг у серії",
+      "genericError": "Не вдалося додати книгу. Спробуйте ще раз."
     }
   }
 }

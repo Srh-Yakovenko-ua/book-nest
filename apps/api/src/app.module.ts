@@ -10,6 +10,7 @@ import { RequestLoggerMiddleware } from "./core/middleware/request-logger.middle
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { AuthorsModule } from "./modules/authors/authors.module.js";
 import { BooksModule } from "./modules/books/books.module.js";
+import { DeliveryServicesModule } from "./modules/delivery-services/index.js";
 import { GenresModule } from "./modules/genres/genres.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { ListsModule } from "./modules/lists/lists.module.js";
@@ -42,6 +43,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     BooksModule,
     GenresModule,
     MediaModule,
+    DeliveryServicesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

@@ -5,23 +5,29 @@ import type { ReadingStatus } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { type Control, Controller, type FieldErrors, useWatch } from "react-hook-form";
 
+import { UiIcon } from "@/components/icons";
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
 import { Rating } from "@/components/ui/rating";
 import { Textarea } from "@/components/ui/textarea";
+import { readingStatuses } from "@/lib/book-status";
 
 import type { CreateBookFormValues } from "../model/create-book-form";
 
 import { READING_STATUS_OPTIONS, readingProgressFieldsFor } from "../model/book-status-fields";
+import { READING_STATUS_FIELDS } from "../model/section-completeness";
 import { BookDateField } from "./book-date-field";
 import { FormSection } from "./form-section";
 import { StatusChipGroup } from "./status-chip-group";
+import { useSectionCompletion } from "./use-section-completion";
 
 const NOTE_MAX = 300;
 const IMPRESSION_MAX = 500;
 const CURRENT_PAGE_MAX = 100000;
 const RATING_MAX = 10;
+
+const readingStatusIcon = new Map(readingStatuses.map((entry) => [entry.value, entry.icon]));
 
 type ProgressDateFieldProps = {
   ariaLabel: string;
@@ -54,21 +60,37 @@ type ProgressTextName = "readingProgress.impression" | "readingProgress.note";
 type ReadingStatusSectionProps = {
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
+  initialPagesCount?: number;
   onRequestChange?: (next: ReadingStatus, apply: () => void) => void;
 };
 
 export function ReadingStatusSection({
   control,
   errors,
+  initialPagesCount,
   onRequestChange,
 }: ReadingStatusSectionProps) {
   const t = useTranslations("books");
+  const tCommon = useTranslations("common");
   const status = useWatch({ control, name: "readingStatus" });
+  const pagesCountValue = useWatch({
+    control,
+    defaultValue: initialPagesCount,
+    name: "pagesCount",
+  });
+  const currentPageValue = useWatch({ control, name: "readingProgress.currentPage" });
+  const currentPageExceeds =
+    typeof pagesCountValue === "number" &&
+    typeof currentPageValue === "number" &&
+    currentPageValue > pagesCountValue;
   const fields = new Set(readingProgressFieldsFor(status ?? "not_started"));
   const progressErrors = errors.readingProgress;
+  const complete = useSectionCompletion(control, READING_STATUS_FIELDS);
 
   return (
     <FormSection
+      complete={complete}
+      completeLabel={t("form.sectionComplete")}
       description={t("readingStatus.description")}
       icon="bookmark"
       title={t("readingStatus.title")}
@@ -84,10 +106,14 @@ export function ReadingStatusSection({
               if (onRequestChange) onRequestChange(next as ReadingStatus, apply);
               else apply();
             }}
-            options={READING_STATUS_OPTIONS.map((value) => ({
-              label: t(`readingStatus.options.${value}`),
-              value,
-            }))}
+            options={READING_STATUS_OPTIONS.map((value) => {
+              const icon = readingStatusIcon.get(value);
+              return {
+                icon: icon ? <UiIcon name={icon} size={16} /> : undefined,
+                label: t(`readingStatus.options.${value}`),
+                value,
+              };
+            })}
             value={field.value ?? "not_started"}
           />
         )}
@@ -104,15 +130,37 @@ export function ReadingStatusSection({
                 render={({ field }) => (
                   <NumberStepper
                     ariaLabel={t("readingStatus.fields.currentPage")}
-                    max={CURRENT_PAGE_MAX}
+                    decrementLabel={tCommon("decrement")}
+                    describedBy={
+                      currentPageExceeds || progressErrors?.currentPage
+                        ? "reading-current-page-error"
+                        : undefined
+                    }
+                    incrementLabel={tCommon("increment")}
+                    max={typeof pagesCountValue === "number" ? pagesCountValue : CURRENT_PAGE_MAX}
                     min={0}
                     onValueChange={field.onChange}
                     size="sm"
+                    suffix={
+                      typeof pagesCountValue === "number"
+                        ? t("readingStatus.currentPageHint", { total: pagesCountValue })
+                        : undefined
+                    }
                     value={typeof field.value === "number" ? field.value : 0}
                   />
                 )}
               />
-              <FieldError error={progressErrors?.currentPage} id="reading-current-page-error" />
+              {currentPageExceeds ? (
+                <p
+                  className="text-xs text-destructive"
+                  id="reading-current-page-error"
+                  role="alert"
+                >
+                  {t("readingStatus.currentPageExceeds", { total: pagesCountValue ?? 0 })}
+                </p>
+              ) : (
+                <FieldError error={progressErrors?.currentPage} id="reading-current-page-error" />
+              )}
             </div>
           ) : null}
 

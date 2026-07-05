@@ -18,7 +18,7 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { CreateGenreDto } from "../../model";
+import type { CreateGenreDto, GenresControllerRecentParams } from "../../model";
 
 import { customInstance } from "../../../mutator";
 
@@ -330,6 +330,172 @@ export function useGenresControllerCreate<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGenresControllerCreateQueryOptions(createGenreDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type genresControllerRecentResponse200 = {
+  data: void;
+  status: 200;
+};
+
+export type genresControllerRecentResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type genresControllerRecentResponseSuccess = genresControllerRecentResponse200 & {
+  headers: Headers;
+};
+export type genresControllerRecentResponseError = genresControllerRecentResponse401 & {
+  headers: Headers;
+};
+
+export type genresControllerRecentResponse =
+  | genresControllerRecentResponseSuccess
+  | genresControllerRecentResponseError;
+
+export const getGenresControllerRecentUrl = (params?: GenresControllerRecentParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/genres/recent?${stringifiedParams}`
+    : `/api/genres/recent`;
+};
+
+/**
+ * @summary List recently used genres for the current user
+ */
+export const genresControllerRecent = async (
+  params?: GenresControllerRecentParams,
+  options?: RequestInit,
+): Promise<genresControllerRecentResponse> => {
+  return customInstance<genresControllerRecentResponse>(getGenresControllerRecentUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGenresControllerRecentQueryKey = (params?: GenresControllerRecentParams) => {
+  return [`/api/genres/recent`, ...(params ? [params] : [])] as const;
+};
+
+export const getGenresControllerRecentQueryOptions = <
+  TData = Awaited<ReturnType<typeof genresControllerRecent>>,
+  TError = void,
+>(
+  params?: GenresControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerRecent>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGenresControllerRecentQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof genresControllerRecent>>> = ({ signal }) =>
+    genresControllerRecent(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof genresControllerRecent>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GenresControllerRecentQueryResult = NonNullable<
+  Awaited<ReturnType<typeof genresControllerRecent>>
+>;
+export type GenresControllerRecentQueryError = void;
+
+export function useGenresControllerRecent<
+  TData = Awaited<ReturnType<typeof genresControllerRecent>>,
+  TError = void,
+>(
+  params: undefined | GenresControllerRecentParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerRecent>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof genresControllerRecent>>,
+          TError,
+          Awaited<ReturnType<typeof genresControllerRecent>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGenresControllerRecent<
+  TData = Awaited<ReturnType<typeof genresControllerRecent>>,
+  TError = void,
+>(
+  params?: GenresControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerRecent>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof genresControllerRecent>>,
+          TError,
+          Awaited<ReturnType<typeof genresControllerRecent>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGenresControllerRecent<
+  TData = Awaited<ReturnType<typeof genresControllerRecent>>,
+  TError = void,
+>(
+  params?: GenresControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerRecent>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List recently used genres for the current user
+ */
+
+export function useGenresControllerRecent<
+  TData = Awaited<ReturnType<typeof genresControllerRecent>>,
+  TError = void,
+>(
+  params?: GenresControllerRecentParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof genresControllerRecent>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGenresControllerRecentQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -27,12 +27,11 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { MediaService } from "../application/media.service.js";
 import { MEDIA_ERROR_CODES, mediaError } from "../domain/media-error-code.js";
 import { MediaViewDto } from "./output-dto/media-view.output-dto.js";
@@ -59,7 +58,10 @@ export class MediaController {
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Delete(":id")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  delete(@CurrentUser() user: UserModel, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<void> {
     return this.mediaService.delete({ id, userId: user.id });
   }
 
@@ -88,7 +90,7 @@ export class MediaController {
   @Throttle({ default: { limit: UPLOAD_LIMIT, ttl: seconds(UPLOAD_TTL_SECONDS) } })
   @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MEDIA_MAX_UPLOAD_BYTES } }))
   upload(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @UploadedFile() file: undefined | UploadedImage,
     @Body(new ZodBodyPipe(MediaUploadInputSchema)) body: MediaUploadInput,
   ): Promise<MediaView> {

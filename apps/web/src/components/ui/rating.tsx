@@ -28,6 +28,7 @@ type InteractiveRatingProps = VariantProps<typeof ratingVariants> & {
   max?: number;
   onValueChange: (value: number) => void;
   value: number;
+  valueText?: (value: number, max: number) => string;
 };
 
 type RatingProps = VariantProps<typeof ratingVariants> & {
@@ -37,6 +38,7 @@ type RatingProps = VariantProps<typeof ratingVariants> & {
   max?: number;
   onValueChange?: (value: number) => void;
   value: number;
+  valueText?: (value: number, max: number) => string;
 };
 
 type ReadOnlyRatingProps = VariantProps<typeof ratingVariants> & {
@@ -59,6 +61,7 @@ function InteractiveRating({
   onValueChange,
   size,
   value,
+  valueText,
 }: InteractiveRatingProps) {
   const [hovered, setHovered] = React.useState<null | number>(null);
   const ref = React.useRef<HTMLSpanElement>(null);
@@ -96,7 +99,7 @@ function InteractiveRating({
       aria-valuemax={max}
       aria-valuemin={0}
       aria-valuenow={value}
-      aria-valuetext={`${value} з ${max}`}
+      aria-valuetext={valueText ? valueText(value, max) : `${value} з ${max}`}
       className={cn(
         ratingVariants({ size }),
         "rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
@@ -117,9 +120,9 @@ function InteractiveRating({
   );
 }
 
-function Rating({ onValueChange, ...props }: RatingProps) {
+function Rating({ onValueChange, valueText, ...props }: RatingProps) {
   if (onValueChange) {
-    return <InteractiveRating onValueChange={onValueChange} {...props} />;
+    return <InteractiveRating onValueChange={onValueChange} valueText={valueText} {...props} />;
   }
   return <ReadOnlyRating {...props} />;
 }

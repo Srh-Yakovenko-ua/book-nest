@@ -44,7 +44,6 @@ export const EDIT_DELIVERY_STATUS_OPTIONS = [
   "ordered",
   "in_transit",
   "ready_for_pickup",
-  "cancelled",
 ] as const satisfies readonly DeliveryStatus[];
 
 type ReadingProgressField =

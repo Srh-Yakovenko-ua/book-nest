@@ -8,11 +8,13 @@ import type {
 } from "@app/shared";
 
 import type {
-  CreateDeliveryInfoData,
+  CreateDeliveryData,
+  UpdateDeliveryData,
+} from "../infrastructure/book-deliveries.repository.js";
+import type {
   CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
-  UpdateDeliveryInfoData,
   UpdateLoanInfoData,
   UpdatePurchaseInfoData,
   UpdateReadingProgressData,
@@ -34,46 +36,50 @@ const STATUSES_WITH_READING_PROGRESS: ReadonlySet<ReadingStatus> = new Set([
 ]);
 
 const OWNERSHIP_STATUS_IN_TRANSIT: OwnershipStatus = "in_transit";
-const OWNERSHIP_STATUS_WANT_TO_BUY: OwnershipStatus = "want_to_buy";
 
 const DEFAULT_DELIVERY_STATUS = "ordered";
 
-const toCreateDate = (value: null | string | undefined): Date | null =>
+export const toCreateDate = (value: null | string | undefined): Date | null =>
   value === undefined || value === null ? null : parseIsoDate(value);
 
-const toUpdateDate = (value: null | string | undefined): Date | null | undefined =>
+export const toUpdateDate = (value: null | string | undefined): Date | null | undefined =>
   value === undefined || value === null ? value : parseIsoDate(value);
 
-export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryInfoData {
+export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryData {
   return {
-    deliveryStatus: deliveryInfo.deliveryStatus ?? DEFAULT_DELIVERY_STATUS,
+    currency: null,
+    deliveryService: null,
     expectedDeliveryDate: toCreateDate(deliveryInfo.expectedDeliveryDate),
     note: deliveryInfo.note ?? null,
     orderDate: toCreateDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber ?? null,
+    price: null,
+    status: deliveryInfo.deliveryStatus ?? DEFAULT_DELIVERY_STATUS,
     storeName: deliveryInfo.storeName ?? null,
+    trackingNumber: null,
+    trackingUrl: null,
   };
 }
 
-export function buildDeliveryInfoUpdateData(
-  deliveryInfo: DefinedDeliveryInfo,
-): UpdateDeliveryInfoData {
+export function buildDeliveryInfoUpdateData(deliveryInfo: DefinedDeliveryInfo): UpdateDeliveryData {
   return {
-    deliveryStatus: deliveryInfo.deliveryStatus,
     expectedDeliveryDate: toUpdateDate(deliveryInfo.expectedDeliveryDate),
     note: deliveryInfo.note,
     orderDate: toUpdateDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber,
+    status: deliveryInfo.deliveryStatus,
     storeName: deliveryInfo.storeName,
   };
 }
 
 export function buildLoanInfoData(loanInfo: DefinedLoanInfo): CreateLoanInfoData {
   return {
+    contact: null,
     expectedReturnDate: toCreateDate(loanInfo.expectedReturnDate),
     loanDate: toCreateDate(loanInfo.loanDate),
     note: loanInfo.note ?? null,
     personName: loanInfo.personName ?? "",
+    remindToReturn: false,
   };
 }
 
@@ -116,6 +122,7 @@ export function buildReadingProgressData(
     currentPage: readingProgress.currentPage ?? null,
     finishedAt: toCreateDate(readingProgress.finishedAt),
     impression: readingProgress.impression ?? null,
+    lastProgressUpdateAt: null,
     note: readingProgress.note ?? null,
     pausedAt: toCreateDate(readingProgress.pausedAt),
     rating: readingProgress.rating ?? null,
@@ -142,12 +149,8 @@ export function ownershipStatusUsesDelivery(ownershipStatus: OwnershipStatus): b
   return ownershipStatus === OWNERSHIP_STATUS_IN_TRANSIT;
 }
 
-export function ownershipStatusUsesPurchase(ownershipStatus: OwnershipStatus): boolean {
-  return ownershipStatus === OWNERSHIP_STATUS_WANT_TO_BUY;
-}
-
 export function readingStatusUsesProgress(readingStatus: ReadingStatus): boolean {
   return STATUSES_WITH_READING_PROGRESS.has(readingStatus);
 }
 
-export { ownershipStatusUsesLoan } from "@app/shared";
+export { ownershipStatusKeepsPurchase, ownershipStatusUsesLoan } from "@app/shared";

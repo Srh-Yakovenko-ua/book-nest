@@ -61,11 +61,11 @@ export const seriesStatuses = [
 ] as const satisfies readonly StatusEntry[];
 
 export const deliveryStatuses = [
-  { icon: "package", isDefault: true, label: "Замовлено", tone: "neutral", value: "ordered" },
+  { icon: "package", isDefault: true, label: "Замовлена", tone: "neutral", value: "ordered" },
   { icon: "truck", label: "В дорозі", tone: "info", value: "in_transit" },
-  { icon: "clock", label: "Очікується скоро", tone: "accent", value: "arriving_soon" },
-  { icon: "alert-triangle", label: "Затримується", tone: "warning", value: "delayed" },
-  { icon: "check-circle", label: "Отримано", tone: "success", value: "received" },
+  { icon: "store", label: "Готова до отримання", tone: "accent", value: "ready_for_pickup" },
+  { icon: "check-circle", label: "Отримана", tone: "success", value: "received" },
+  { icon: "x-circle", label: "Скасована", tone: "neutral", value: "cancelled" },
 ] as const satisfies readonly StatusEntry[];
 
 export const loanDueStatuses = [

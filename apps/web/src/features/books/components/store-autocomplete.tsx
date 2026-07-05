@@ -2,7 +2,7 @@
 
 import { Command as CommandPrimitive } from "cmdk";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -32,6 +32,7 @@ export function StoreAutocomplete({
 }: StoreAutocompleteProps) {
   const t = useTranslations("books");
   const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const { data: recentStores = [] } = useRecentStores();
 
   const trimmed = value.trim();
@@ -59,7 +60,7 @@ export function StoreAutocomplete({
     <CommandPrimitive label={label} shouldFilter={false}>
       <Popover onOpenChange={setOpen} open={open}>
         <PopoverAnchor asChild>
-          <div className="relative flex items-center">
+          <div className="relative flex items-center" ref={anchorRef}>
             <UiIcon
               aria-hidden
               className={cn(
@@ -81,7 +82,6 @@ export function StoreAutocomplete({
               )}
               id={id}
               onClick={() => setOpen(true)}
-              onFocus={() => setOpen(true)}
               onValueChange={(next) => {
                 onChange(next);
                 setOpen(true);
@@ -104,6 +104,12 @@ export function StoreAutocomplete({
         <PopoverContent
           align="start"
           className="w-[--radix-popover-trigger-width] min-w-[var(--radix-popover-anchor-width)] p-1"
+          onInteractOutside={(event) => {
+            const target = event.detail.originalEvent.target;
+            if (target instanceof Node && anchorRef.current?.contains(target)) {
+              event.preventDefault();
+            }
+          }}
           onOpenAutoFocus={(event) => event.preventDefault()}
           sideOffset={6}
         >

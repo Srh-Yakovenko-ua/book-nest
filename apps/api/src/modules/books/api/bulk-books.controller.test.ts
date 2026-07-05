@@ -285,7 +285,7 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
     expect(loan).toBeNull();
   });
 
-  it("deletes the delivery block when ownership moves away from in_transit", async () => {
+  it("cancels the active delivery when ownership moves away from in_transit", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
     const book = await seedBook({
@@ -294,15 +294,18 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
       title: "A",
       userId,
     });
-    await prisma.bookDeliveryInfo.create({ data: { bookId: book.id, storeName: "Yakaboo" } });
+    await prisma.bookDelivery.create({
+      data: { bookId: book.id, status: "ordered", storeName: "Yakaboo", userId },
+    });
 
     await patch(accessToken, "ownership-status", { bookIds: [book.id], ownershipStatus: "owned" });
 
-    const delivery = await prisma.bookDeliveryInfo.findUnique({ where: { bookId: book.id } });
-    expect(delivery).toBeNull();
+    const deliveries = await prisma.bookDelivery.findMany({ where: { bookId: book.id } });
+    expect(deliveries).toHaveLength(1);
+    expect(deliveries[0]?.status).toBe("cancelled");
   });
 
-  it("deletes the purchase block when ownership moves away from want_to_buy", async () => {
+  it("keeps the purchase block when ownership moves from want_to_buy to owned", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
     const book = await seedBook({
@@ -314,6 +317,23 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
     await prisma.bookPurchaseInfo.create({ data: { bookId: book.id, storeName: "Yakaboo" } });
 
     await patch(accessToken, "ownership-status", { bookIds: [book.id], ownershipStatus: "owned" });
+
+    const purchase = await prisma.bookPurchaseInfo.findUnique({ where: { bookId: book.id } });
+    expect(purchase?.storeName).toBe("Yakaboo");
+  });
+
+  it("deletes the purchase block when ownership moves to a status without purchase", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedBook({
+      authorId: author.id,
+      ownershipStatus: "want_to_buy",
+      title: "A",
+      userId,
+    });
+    await prisma.bookPurchaseInfo.create({ data: { bookId: book.id, storeName: "Yakaboo" } });
+
+    await patch(accessToken, "ownership-status", { bookIds: [book.id], ownershipStatus: "none" });
 
     const purchase = await prisma.bookPurchaseInfo.findUnique({ where: { bookId: book.id } });
     expect(purchase).toBeNull();

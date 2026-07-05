@@ -14,6 +14,7 @@ import {
   CropOutOfBoundsError,
   ImageProcessorPort,
   ImageTooLargeError,
+  InvalidImageError,
 } from "../domain/image-processor.port.js";
 
 const OUTPUT_CONTENT_TYPE = "image/webp";
@@ -63,7 +64,7 @@ export class SharpImageProcessor extends ImageProcessorPort {
   async process({ crop, input }: ProcessImageOptions): Promise<ProcessedImageSet> {
     const metadata = await sharp(input, { limitInputPixels: false }).metadata();
     if (metadata.width === undefined || metadata.height === undefined) {
-      throw new Error("Image metadata is missing dimensions");
+      throw new InvalidImageError("Image metadata is missing dimensions");
     }
     if (metadata.width * metadata.height > this.maxInputPixels) {
       throw new ImageTooLargeError();

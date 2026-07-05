@@ -12,6 +12,11 @@ export type AuthorSelection =
   | { id: string; kind: "catalog"; name: string }
   | { kind: "custom"; name: string };
 
+export type BookFormInitialSeries = {
+  partNumber?: number;
+  selection: Extract<SeriesSelection, { kind: "existing" }>;
+};
+
 export type CreateBookFormOutput = z.output<typeof CreateBookInputSchema>;
 
 export type CreateBookFormValues = z.input<typeof CreateBookInputSchema>;
@@ -56,7 +61,7 @@ export const createBookFormDefaults = {
   ageCategory: "not_specified",
   authors: [],
   bookType: "solo",
-  deliveryInfo: {},
+  deliveryInfo: { deliveryStatus: "ordered" },
   formats: ["paper"],
   genres: [],
   isFavorite: false,

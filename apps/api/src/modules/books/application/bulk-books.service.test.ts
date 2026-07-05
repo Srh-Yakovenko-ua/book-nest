@@ -8,11 +8,10 @@ import type {
 import { describe, expect, it, vi } from "vitest";
 
 import type { ListsService } from "../../lists/application/lists.service.js";
-import type { MediaService } from "../../media/application/media.service.js";
 import type { TagsService } from "../../tags/application/tags.service.js";
-import type { BooksRepository } from "../infrastructure/books.repository.js";
 import type { BulkBooksRepository } from "../infrastructure/bulk-books.repository.js";
 
+import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BulkBooksService } from "./bulk-books.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -38,7 +37,6 @@ function buildService(
     addTags?: number;
     addToLists?: number;
     addToReadingQueue?: number;
-    countByCoverMediaId?: number;
     deleteAffected?: number;
     deleteCoverMediaIds?: string[];
     listIds?: string[];
@@ -49,10 +47,9 @@ function buildService(
     tagIds?: string[];
   } = {},
 ): {
-  booksRepository: { countByCoverMediaId: ReturnType<typeof vi.fn> };
   bulkBooksRepository: BulkRepository;
+  coverCleanup: { deleteIfOrphaned: ReturnType<typeof vi.fn> };
   listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
-  mediaService: { delete: ReturnType<typeof vi.fn> };
   service: BulkBooksService;
   tagsService: { resolveOrCreateMany: ReturnType<typeof vi.fn> };
 } {
@@ -69,28 +66,24 @@ function buildService(
     setOwnershipStatus: vi.fn().mockResolvedValue(overrides.setOwnershipStatus ?? 0),
     setReadingStatus: vi.fn().mockResolvedValue(overrides.setReadingStatus ?? 0),
   };
-  const booksRepository = {
-    countByCoverMediaId: vi.fn().mockResolvedValue(overrides.countByCoverMediaId ?? 0),
-  };
   const tagsService = {
     resolveOrCreateMany: vi.fn().mockResolvedValue(overrides.tagIds ?? []),
   };
   const listsService = {
     resolveListsForBook: vi.fn().mockResolvedValue(overrides.listIds ?? []),
   };
-  const mediaService = {
-    delete: vi.fn().mockResolvedValue(undefined),
+  const coverCleanup = {
+    deleteIfOrphaned: vi.fn().mockResolvedValue(undefined),
   };
 
   const service = new BulkBooksService(
     bulkBooksRepository as unknown as BulkBooksRepository,
-    booksRepository as unknown as BooksRepository,
     tagsService as unknown as TagsService,
     listsService as unknown as ListsService,
-    mediaService as unknown as MediaService,
+    coverCleanup as unknown as BookCoverCleanup,
   );
 
-  return { booksRepository, bulkBooksRepository, listsService, mediaService, service, tagsService };
+  return { bulkBooksRepository, coverCleanup, listsService, service, tagsService };
 }
 
 describe("BulkBooksService.addTags", () => {
@@ -255,7 +248,7 @@ describe("BulkBooksService.setReadingStatus", () => {
 describe("BulkBooksService.setOwnershipStatus", () => {
   it("clears every conditional block when the new status uses none of them", async () => {
     const { bulkBooksRepository, service } = buildService({ setOwnershipStatus: 1 });
-    const input: BulkOwnershipStatusInput = { bookIds: [BOOK_A], ownershipStatus: "owned" };
+    const input: BulkOwnershipStatusInput = { bookIds: [BOOK_A], ownershipStatus: "none" };
 
     await service.setOwnershipStatus({ input, userId: USER_ID });
 
@@ -264,9 +257,20 @@ describe("BulkBooksService.setOwnershipStatus", () => {
       clearDelivery: true,
       clearLoan: true,
       clearPurchase: true,
-      ownershipStatus: "owned",
+      ownershipStatus: "none",
       userId: USER_ID,
     });
+  });
+
+  it("keeps the purchase block when the new status is owned", async () => {
+    const { bulkBooksRepository, service } = buildService({ setOwnershipStatus: 1 });
+    const input: BulkOwnershipStatusInput = { bookIds: [BOOK_A], ownershipStatus: "owned" };
+
+    await service.setOwnershipStatus({ input, userId: USER_ID });
+
+    expect(bulkBooksRepository.setOwnershipStatus).toHaveBeenCalledWith(
+      expect.objectContaining({ clearDelivery: true, clearLoan: true, clearPurchase: false }),
+    );
   });
 
   it("keeps the delivery block when the new status is in_transit", async () => {
@@ -307,37 +311,30 @@ describe("BulkBooksService.setOwnershipStatus", () => {
 });
 
 describe("BulkBooksService.delete", () => {
-  it("deletes an orphaned cover whose only book was removed", async () => {
-    const { mediaService, service } = buildService({
-      countByCoverMediaId: 0,
+  it("delegates cover cleanup for each removed cover media id", async () => {
+    const { coverCleanup, service } = buildService({
       deleteAffected: 1,
       deleteCoverMediaIds: [MEDIA_ID],
     });
 
     const result = await service.delete({ input: { bookIds: [BOOK_A] }, userId: USER_ID });
 
-    expect(mediaService.delete).toHaveBeenCalledWith({ id: MEDIA_ID, userId: USER_ID });
+    expect(coverCleanup.deleteIfOrphaned).toHaveBeenCalledWith({
+      mediaId: MEDIA_ID,
+      userId: USER_ID,
+    });
     expect(result).toEqual({ affected: 1 });
   });
 
-  it("keeps a cover still referenced by another book", async () => {
-    const { mediaService, service } = buildService({
-      countByCoverMediaId: 1,
-      deleteAffected: 1,
-      deleteCoverMediaIds: [MEDIA_ID],
-    });
-
-    await service.delete({ input: { bookIds: [BOOK_A] }, userId: USER_ID });
-
-    expect(mediaService.delete).not.toHaveBeenCalled();
-  });
-
   it("returns the affected count and attempts no cover cleanup when nothing was deleted", async () => {
-    const { mediaService, service } = buildService({ deleteAffected: 0, deleteCoverMediaIds: [] });
+    const { coverCleanup, service } = buildService({
+      deleteAffected: 0,
+      deleteCoverMediaIds: [],
+    });
 
     const result = await service.delete({ input: { bookIds: [BOOK_A] }, userId: USER_ID });
 
     expect(result).toEqual({ affected: 0 });
-    expect(mediaService.delete).not.toHaveBeenCalled();
+    expect(coverCleanup.deleteIfOrphaned).not.toHaveBeenCalled();
   });
 });
