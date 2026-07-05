@@ -158,6 +158,7 @@ modules/posts/
 - Indexes: `@@index([authorId, createdAt])` at the model level. Unique constraints via `@unique` (field) or `@@unique([...])` (composite).
 - Prefer explicit FK fields + relations over deeply nested embedded structures — keeps the relational model clean and migrations honest.
 - **After editing the schema, regenerate the client**: run `pnpm --filter @app/api db:generate` (or `db:migrate`, which auto-generates) so the generated types in `src/generated/prisma` stay in sync. Forgetting this is the #1 reason of stale types / import errors.
+- Seed scripts live in `apps/api/src/scripts/seed-*.ts` (one per domain, idempotent, package.json script `seed:<domain>`). Small hand-curated data stays inline in the script (typed); large vendored datasets go to `apps/api/src/scripts/data/<domain>.dataset.json`, Zod-parsed on read. NULL-distinct trap: `@@unique([userId, normalizedName])` does not dedupe `userId IS NULL` rows — global-seed idempotency must be app-side (select existing normalized names, diff, insert missing), never `createMany({ skipDuplicates: true })` alone.
 
 ## DTOs (api/input-dto/, api/view-dto/)
 
