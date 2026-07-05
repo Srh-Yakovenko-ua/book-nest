@@ -92,7 +92,7 @@ Numbered list that walks from user action to rendered result. Every step names t
 
 - `apps/api/src/modules/<name>/application/<name>.service.ts:NN` — pure business logic
   - `createX({ … })` — validates invariants, calls the repository, maps the Prisma model → ViewModel DTO
-  - Multi-write flows wrapped in `prisma.$transaction(...)`
+  - Multi-write flows wrapped in `TransactionRunner.run(...)` (services never inject `PrismaService`)
   - Throws: `BadRequestError`, `NotFoundError`, `ForbiddenError` (`HttpError` subclasses)
 
 ### Repositories (`infrastructure/`)
@@ -115,7 +115,7 @@ Numbered list that walks from user action to rendered result. Every step names t
 
 ## Shared contracts
 
-Location: `packages/shared/src/index.ts`
+Location: `packages/shared/src/<domain>.ts` (re-exported by the `index.ts` barrel)
 
 - `CreateXBody` (request DTO)
 - `XResponse` (single item response DTO)

@@ -1,9 +1,9 @@
-import type { UserModel } from "../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../modules/auth/domain/authenticated-user.js";
 
 declare global {
   namespace Express {
     interface Request {
-      currentUser?: UserModel;
+      currentUser?: AuthenticatedUser;
       requestId: string;
     }
   }

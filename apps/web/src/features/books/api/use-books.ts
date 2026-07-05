@@ -1,3 +1,4 @@
+import { PaginatedBooksSchema } from "@app/shared";
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
@@ -5,18 +6,9 @@ import { booksControllerList } from "@/shared/api/generated/endpoints/books/book
 
 import type { LibraryListParams } from "../model/library-query";
 
-import { bookViewSchema } from "../model/book-view-schema";
 import { isLibraryRangeValid } from "../model/library-query";
 
-const libraryBooksPageSchema = z.object({
-  items: z.array(bookViewSchema),
-  page: z.number(),
-  pagesCount: z.number(),
-  pageSize: z.number(),
-  totalCount: z.number(),
-});
-
-export type LibraryBooksPage = z.infer<typeof libraryBooksPageSchema>;
+export type LibraryBooksPage = z.infer<typeof PaginatedBooksSchema>;
 
 const MAX_PAGES = 10;
 
@@ -32,7 +24,7 @@ export function useLibraryBooks(params: LibraryListParams) {
     placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }): Promise<LibraryBooksPage> => {
       const response = await booksControllerList({ ...params, pageNumber: pageParam });
-      return libraryBooksPageSchema.parse(response);
+      return PaginatedBooksSchema.parse(response);
     },
     queryKey: ["/api/books", "list", params],
   });

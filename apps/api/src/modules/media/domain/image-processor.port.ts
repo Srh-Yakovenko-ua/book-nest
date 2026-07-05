@@ -34,3 +34,10 @@ export class ImageTooLargeError extends Error {
     this.name = "ImageTooLargeError";
   }
 }
+
+export class InvalidImageError extends Error {
+  constructor(message = "Image is not a readable image") {
+    super(message);
+    this.name = "InvalidImageError";
+  }
+}

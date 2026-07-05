@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, useId } from "react";
+import { type KeyboardEvent, type ReactNode, useId } from "react";
 
 import { chipVariants } from "@/components/ui/chip-group";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ type SingleStatusChipGroupProps = {
 };
 
 type StatusOption = {
+  icon?: ReactNode;
   label: string;
   value: string;
 };
@@ -55,6 +56,7 @@ function MultiStatusChipGroup({ label, onValueChange, options, value }: MultiSta
             onClick={() => toggle(option.value)}
             type="button"
           >
+            {option.icon}
             {option.label}
           </button>
         );
@@ -99,6 +101,7 @@ function SingleStatusChipGroup({
             tabIndex={checked || (value === "" && index === 0) ? 0 : -1}
             type="button"
           >
+            {option.icon}
             {option.label}
           </button>
         );

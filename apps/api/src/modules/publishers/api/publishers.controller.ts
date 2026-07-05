@@ -15,11 +15,10 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { PublishersService } from "../application/publishers.service.js";
 import { PublisherSearchPaginationQueryDto } from "./input-dto/publisher-search-query.input-dto.js";
 import { RecentPublishersQueryDto } from "./input-dto/recent-publishers-query.input-dto.js";
@@ -38,7 +37,7 @@ export class PublishersController {
   @Get("recent")
   @UseGuards(JwtAccessGuard)
   recent(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(RecentPublishersQuerySchema)) query: RecentPublishersQueryDto,
   ): Promise<PublisherView[]> {
     return this.publishersService.recent({
@@ -59,7 +58,7 @@ export class PublishersController {
   @Get()
   @UseGuards(JwtAccessGuard)
   search(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(PublisherSearchPaginationQuerySchema))
     query: PublisherSearchPaginationQueryDto,
   ): Promise<Paginator<PublisherView>> {

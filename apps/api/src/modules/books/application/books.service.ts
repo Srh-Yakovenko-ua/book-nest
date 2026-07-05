@@ -3,48 +3,32 @@ import type {
   CreateBookInput,
   LibraryBooksQuery,
   LibraryOverviewView,
-  MediaView,
   OwnershipStatus,
   Paginator,
-  QueuePriority,
   ReadingStatus,
   RecentPurchaseStores,
   UpdateBookInput,
 } from "@app/shared";
 
-import {
-  BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
-  BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
-  collapseSpaces,
-  OwnershipStatusSchema,
-  ReadingStatusSchema,
-} from "@app/shared";
+import { collapseSpaces, OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
   BlockUpsert,
-  CreateDeliveryInfoData,
   CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
+  DeliveryBlockChange,
   LibraryFilter,
-  UpdateDeliveryInfoData,
   UpdateLoanInfoData,
   UpdatePurchaseInfoData,
   UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { createLogger } from "../../../core/logger.js";
 import { buildPaginator } from "../../../core/paginator.js";
-import { AuthorsService } from "../../authors/application/authors.service.js";
-import { GenresService } from "../../genres/application/genres.service.js";
-import { ListsService } from "../../lists/application/lists.service.js";
-import { MediaService } from "../../media/application/media.service.js";
-import { PublishersService } from "../../publishers/application/publishers.service.js";
-import { SeriesService } from "../../series/application/series.service.js";
-import { TagsService } from "../../tags/application/tags.service.js";
+import { GenresService } from "../../genres/index.js";
 import {
   buildDeliveryInfoData,
   buildDeliveryInfoUpdateData,
@@ -54,35 +38,22 @@ import {
   buildPurchaseInfoUpdateData,
   buildReadingProgressData,
   buildReadingProgressUpdateData,
+  ownershipStatusKeepsPurchase,
   ownershipStatusUsesDelivery,
   ownershipStatusUsesLoan,
-  ownershipStatusUsesPurchase,
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
-import { toBookView } from "../domain/book.mapper.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
-
-const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
-const DUPLICATE_PART_NUMBER_MESSAGE = "A book with this part number already exists in this series";
+import { BookCoverCleanup } from "./book-cover-cleanup.js";
+import { BookRelationsResolver } from "./book-relations-resolver.js";
+import { BookViewAssembler } from "./book-view-assembler.js";
 
 const OVERVIEW_TOP_LIMIT = 3;
 const OVERVIEW_RECENT_LIMIT = 3;
 const READING_IN_PROGRESS_STATUSES: ReadingStatus[] = ["reading", "rereading"];
 const FINISHED_STATUSES: ReadingStatus[] = ["finished"];
 
-const log = createLogger("books");
-
-type QueuePlacement = {
-  queuePosition: null | number;
-  queuePriority: null | QueuePriority;
-};
-
 type ScalarFieldKey = keyof Prisma.BookUncheckedUpdateManyInput & keyof UpdateBookInput;
-
-type SeriesPlacement = {
-  partNumber: null | number;
-  seriesId: null | string;
-};
 
 const MIN_SEARCH_LENGTH = 2;
 const ISBN_FRAGMENT_PATTERN = /^\d+$/;
@@ -139,15 +110,17 @@ function assignScalarFields(
 function resolveDeliveryBlock(
   ownershipStatus: OwnershipStatus,
   deliveryInfo: UpdateBookInput["deliveryInfo"],
-): BlockUpsert<CreateDeliveryInfoData, UpdateDeliveryInfoData> {
+  now: Date,
+): DeliveryBlockChange {
   if (!ownershipStatusUsesDelivery(ownershipStatus)) {
-    return { delete: true };
+    return { cancelledAt: now, kind: "cancel" };
   }
   if (deliveryInfo === undefined) {
-    return { skip: true };
+    return { kind: "skip" };
   }
   return {
     create: buildDeliveryInfoData(deliveryInfo),
+    kind: "upsertActive",
     update: buildDeliveryInfoUpdateData(deliveryInfo),
   };
 }
@@ -172,7 +145,7 @@ function resolvePurchaseBlock(
   ownershipStatus: OwnershipStatus,
   purchaseInfo: UpdateBookInput["purchaseInfo"],
 ): BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData> {
-  if (!ownershipStatusUsesPurchase(ownershipStatus)) {
+  if (!ownershipStatusKeepsPurchase(ownershipStatus)) {
     return { delete: true };
   }
   if (purchaseInfo === undefined) {
@@ -204,56 +177,14 @@ function resolveReadingProgressBlock(
 export class BooksService {
   constructor(
     private readonly booksRepository: BooksRepository,
-    private readonly authorsService: AuthorsService,
-    private readonly publishersService: PublishersService,
-    private readonly tagsService: TagsService,
-    private readonly seriesService: SeriesService,
-    private readonly listsService: ListsService,
+    private readonly relationsResolver: BookRelationsResolver,
+    private readonly viewAssembler: BookViewAssembler,
+    private readonly coverCleanup: BookCoverCleanup,
     private readonly genresService: GenresService,
-    private readonly mediaService: MediaService,
   ) {}
 
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
-    const authors = await this.authorsService.resolveReferences({
-      references: input.authors,
-      userId,
-    });
-
-    const publisherId = await this.publishersService.resolveOrCreate(userId, {
-      id: input.publisherId,
-      name: input.publisherName,
-    });
-
-    const tagIds = await this.tagsService.resolveOrCreateMany(userId, input.tags);
-
-    const listIds = await this.listsService.resolveListsForBook(userId, {
-      listIds: input.listIds,
-      newLists: input.newLists,
-    });
-
-    const queuePlacement = await this.resolveQueuePlacement(userId, input);
-
-    const series =
-      input.bookType === "series_part"
-        ? await this.seriesService.resolveForBook({
-            fallbackAuthorIds: authors.map((author) => author.id),
-            newSeries: input.newSeries,
-            seriesId: input.seriesId,
-            userId,
-          })
-        : null;
-    const seriesId = series?.id ?? null;
-    const partNumber = input.bookType === "series_part" ? (input.partNumber ?? null) : null;
-
-    if (input.seriesId !== undefined && series !== null) {
-      this.assertPartNumberWithinSeriesTotal({ partNumber, totalBooks: series.totalBooks });
-    }
-    await this.assertSeriesPartNumberUnique(userId, null, { partNumber, seriesId });
-    await this.genresService.assertGenresSelectable(userId, input.genres);
-
-    if (input.coverMediaId != null) {
-      await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
-    }
+    const resolved = await this.relationsResolver.resolveForCreate({ input, userId });
 
     const deliveryInfo =
       ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
@@ -264,7 +195,7 @@ export class BooksService {
         ? buildLoanInfoData(input.loanInfo)
         : null;
     const purchaseInfo =
-      ownershipStatusUsesPurchase(input.ownershipStatus) && input.purchaseInfo !== undefined
+      ownershipStatusKeepsPurchase(input.ownershipStatus) && input.purchaseInfo !== undefined
         ? buildPurchaseInfoData(input.purchaseInfo)
         : null;
     const readingProgress =
@@ -272,40 +203,50 @@ export class BooksService {
         ? buildReadingProgressData(input.readingProgress)
         : null;
 
-    const book = await this.booksRepository.create(userId, {
-      ageCategory: input.ageCategory,
-      authorIds: authors.map((author) => author.id),
-      coverMediaId: input.coverMediaId ?? null,
-      dedication: input.dedication ?? null,
-      deliveryInfo,
-      description: input.description ?? null,
-      firstAuthorName: authors[0]?.name ?? "",
-      formats: input.formats,
-      genres: input.genres,
-      illustrator: input.illustrator ?? null,
-      isbn: input.isbn ?? null,
-      isFavorite: input.isFavorite,
-      language: input.language,
-      listIds,
-      loanInfo,
-      originalTitle: input.originalTitle ?? null,
-      ownershipStatus: input.ownershipStatus,
-      pagesCount: input.pagesCount ?? null,
-      partNumber,
-      publicationYear: input.publicationYear ?? null,
-      publisherId,
-      purchaseInfo,
-      queuePosition: queuePlacement.queuePosition,
-      queuePriority: queuePlacement.queuePriority,
-      readingProgress,
-      readingStatus: input.readingStatus,
-      seriesId,
-      tagIds,
-      title: input.title,
-      translator: input.translator ?? null,
-    });
+    let book: BookWithRelations;
+    try {
+      book = await this.booksRepository.create(userId, {
+        ageCategory: input.ageCategory,
+        authorIds: resolved.authorIds,
+        coverMediaId: input.coverMediaId ?? null,
+        dedication: input.dedication ?? null,
+        deliveryInfo,
+        description: input.description ?? null,
+        firstAuthorName: resolved.firstAuthorName,
+        formats: input.formats,
+        genres: input.genres,
+        illustrator: input.illustrator ?? null,
+        isbn: input.isbn ?? null,
+        isFavorite: input.isFavorite,
+        language: input.language,
+        listIds: resolved.listIds,
+        loanInfo,
+        originalTitle: input.originalTitle ?? null,
+        ownershipStatus: input.ownershipStatus,
+        pagesCount: input.pagesCount ?? null,
+        partNumber: resolved.partNumber,
+        publicationYear: input.publicationYear ?? null,
+        publisherId: resolved.publisherId,
+        purchaseInfo,
+        queuePosition: resolved.queuePosition,
+        queuePriority: resolved.queuePriority,
+        readingProgress,
+        readingStatus: input.readingStatus,
+        seriesId: resolved.seriesId,
+        tagIds: resolved.tagIds,
+        title: input.title,
+        translator: input.translator ?? null,
+      });
+    } catch (error) {
+      throw await this.relationsResolver.mapSeriesPartNumberWriteError({
+        error,
+        excludeBookId: null,
+        placement: { partNumber: resolved.partNumber, seriesId: resolved.seriesId },
+        userId,
+      });
+    }
 
-    return toBookView(book, this.coverViewOf(book));
+    return this.viewAssembler.viewOf(book);
   }
 
   async delete(userId: string, bookId: string): Promise<void> {
@@ -315,7 +256,7 @@ export class BooksService {
     }
     await this.booksRepository.deleteOwned(userId, bookId);
     if (book.coverMediaId !== null) {
-      await this.deleteCoverMedia(userId, book.coverMediaId);
+      await this.coverCleanup.deleteIfOrphaned({ mediaId: book.coverMediaId, userId });
     }
   }
 
@@ -325,7 +266,7 @@ export class BooksService {
       throw new NotFoundError("Book not found");
     }
 
-    return toBookView(book, this.coverViewOf(book));
+    return this.viewAssembler.viewOf(book);
   }
 
   async list(userId: string, query: LibraryBooksQuery): Promise<Paginator<BookView>> {
@@ -371,7 +312,7 @@ export class BooksService {
     ]);
 
     return buildPaginator({
-      items: books.map((book) => toBookView(book, this.coverViewOf(book))),
+      items: books.map((book) => this.viewAssembler.viewOf(book)),
       pageNumber,
       pageSize,
       totalCount,
@@ -405,7 +346,7 @@ export class BooksService {
     }));
 
     return {
-      recentlyAdded: recentBooks.map((book) => toBookView(book, this.coverViewOf(book))),
+      recentlyAdded: recentBooks.map((book) => this.viewAssembler.viewOf(book)),
       summary: { favorites, finished, reading, total },
       topGenres,
       topTags,
@@ -432,163 +373,59 @@ export class BooksService {
     const ownershipStatus =
       input.ownershipStatus ?? OwnershipStatusSchema.parse(current.ownershipStatus);
 
-    this.assertCurrentPageWithinPages(current, readingStatus, input);
-    this.assertLoanPersonNamePresent(current, ownershipStatus, input);
+    this.assertCurrentPageWithinPages({ current, input, readingStatus });
+    this.assertLoanPersonNamePresent({ current, input, ownershipStatus });
 
-    const fields: Prisma.BookUncheckedUpdateManyInput = {};
-
-    let authorIds: string[] | undefined;
-    if (input.authors !== undefined) {
-      const authors = await this.authorsService.resolveReferences({
-        references: input.authors,
-        userId,
-      });
-      authorIds = authors.map((author) => author.id);
-      fields.firstAuthorName = authors[0]?.name ?? "";
-    }
-
-    if (input.publisherId !== undefined || input.publisherName !== undefined) {
-      fields.publisherId = await this.publishersService.resolveOrCreate(userId, {
-        id: input.publisherId,
-        name: input.publisherName,
-      });
-    }
-
-    if (input.coverMediaId !== undefined) {
-      if (input.coverMediaId !== null) {
-        await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
-      }
-      fields.coverMediaId = input.coverMediaId;
-    }
-
-    const tagIds =
-      input.tags === undefined
-        ? undefined
-        : await this.tagsService.resolveOrCreateMany(userId, input.tags);
-
-    const listIds =
-      input.listIds === undefined && input.newLists === undefined
-        ? undefined
-        : await this.listsService.resolveListsForBook(userId, {
-            listIds: input.listIds,
-            newLists: input.newLists,
-          });
-
-    const seriesPlacement = await this.applySeriesFields({
+    const resolved = await this.relationsResolver.resolveForUpdate({
+      bookId,
       current,
-      fallbackAuthorIds: authorIds ?? current.authors.map((bookAuthor) => bookAuthor.authorId),
-      fields,
       input,
       userId,
     });
-    await this.applyQueueFields(userId, current, fields, input);
-    await this.assertSeriesPartNumberUnique(userId, bookId, seriesPlacement);
-
-    if (input.genres !== undefined) {
-      await this.genresService.assertGenresSelectable(userId, input.genres);
-    }
-
+    const fields = resolved.fields;
     assignScalarFields(fields, input);
 
-    const book = await this.booksRepository.updateOwned(userId, bookId, {
-      authorIds,
-      deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo),
-      fields,
-      listIds,
-      loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),
-      purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
-      readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
-      tagIds,
-    });
+    let book: BookWithRelations;
+    try {
+      book = await this.booksRepository.updateOwned(userId, bookId, {
+        authorIds: resolved.authorIds,
+        deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, new Date()),
+        fields,
+        listIds: resolved.listIds,
+        loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),
+        purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
+        readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
+        tagIds: resolved.tagIds,
+      });
+    } catch (error) {
+      throw await this.relationsResolver.mapSeriesPartNumberWriteError({
+        error,
+        excludeBookId: bookId,
+        placement: resolved.seriesPlacement,
+        userId,
+      });
+    }
 
     if (
       input.coverMediaId !== undefined &&
       current.coverMediaId !== null &&
       current.coverMediaId !== input.coverMediaId
     ) {
-      await this.deleteCoverMedia(userId, current.coverMediaId);
+      await this.coverCleanup.deleteIfOrphaned({ mediaId: current.coverMediaId, userId });
     }
 
-    return toBookView(book, this.coverViewOf(book));
+    return this.viewAssembler.viewOf(book);
   }
 
-  private async applyQueueFields(
-    userId: string,
-    current: BookWithRelations,
-    fields: Prisma.BookUncheckedUpdateManyInput,
-    input: UpdateBookInput,
-  ): Promise<void> {
-    const isQueued = current.queuePosition !== null;
-
-    if (input.addToReadingQueue === false) {
-      fields.queuePosition = null;
-      fields.queuePriority = null;
-      return;
-    }
-
-    if (input.addToReadingQueue === true && !isQueued) {
-      const lastPosition = await this.booksRepository.maxQueuePosition(userId);
-      fields.queuePosition = lastPosition + 1;
-      fields.queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
-      return;
-    }
-
-    if (isQueued && input.queuePriority !== undefined) {
-      fields.queuePriority = input.queuePriority;
-    }
-  }
-
-  private async applySeriesFields({
+  private assertCurrentPageWithinPages({
     current,
-    fallbackAuthorIds,
-    fields,
     input,
-    userId,
+    readingStatus,
   }: {
     current: BookWithRelations;
-    fallbackAuthorIds: string[];
-    fields: Prisma.BookUncheckedUpdateManyInput;
     input: UpdateBookInput;
-    userId: string;
-  }): Promise<SeriesPlacement> {
-    if (input.bookType === undefined) {
-      if (current.seriesId !== null && input.partNumber !== undefined) {
-        this.assertPartNumberWithinSeriesTotal({
-          partNumber: input.partNumber,
-          totalBooks: current.series?.totalBooks ?? null,
-        });
-        fields.partNumber = input.partNumber;
-        return { partNumber: input.partNumber, seriesId: current.seriesId };
-      }
-      return { partNumber: current.partNumber, seriesId: current.seriesId };
-    }
-
-    if (input.bookType === "solo") {
-      fields.seriesId = null;
-      fields.partNumber = null;
-      return { partNumber: null, seriesId: null };
-    }
-
-    const series = await this.seriesService.resolveForBook({
-      fallbackAuthorIds,
-      newSeries: input.newSeries,
-      seriesId: input.seriesId,
-      userId,
-    });
-    const partNumber = input.partNumber ?? null;
-    if (input.seriesId !== undefined) {
-      this.assertPartNumberWithinSeriesTotal({ partNumber, totalBooks: series.totalBooks });
-    }
-    fields.seriesId = series.id;
-    fields.partNumber = partNumber;
-    return { partNumber, seriesId: series.id };
-  }
-
-  private assertCurrentPageWithinPages(
-    current: BookWithRelations,
-    readingStatus: ReadingStatus,
-    input: UpdateBookInput,
-  ): void {
+    readingStatus: ReadingStatus;
+  }): void {
     if (!readingStatusUsesProgress(readingStatus)) {
       return;
     }
@@ -609,11 +446,15 @@ export class BooksService {
     }
   }
 
-  private assertLoanPersonNamePresent(
-    current: BookWithRelations,
-    ownershipStatus: OwnershipStatus,
-    input: UpdateBookInput,
-  ): void {
+  private assertLoanPersonNamePresent({
+    current,
+    input,
+    ownershipStatus,
+  }: {
+    current: BookWithRelations;
+    input: UpdateBookInput;
+    ownershipStatus: OwnershipStatus;
+  }): void {
     if (!ownershipStatusUsesLoan(ownershipStatus)) {
       return;
     }
@@ -627,93 +468,5 @@ export class BooksService {
     throw new BadRequestError("Enter the person's name", {
       fields: [{ field: "loanInfo.personName", message: "Enter the person's name" }],
     });
-  }
-
-  private assertPartNumberWithinSeriesTotal({
-    partNumber,
-    totalBooks,
-  }: {
-    partNumber: null | number;
-    totalBooks: null | number;
-  }): void {
-    if (totalBooks === null || partNumber === null) {
-      return;
-    }
-    if (partNumber > totalBooks) {
-      throw new BadRequestError(BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE, {
-        fields: [{ field: "partNumber", message: BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE }],
-      });
-    }
-  }
-
-  private async assertSeriesPartNumberUnique(
-    userId: string,
-    excludeBookId: null | string,
-    placement: SeriesPlacement,
-  ): Promise<void> {
-    if (placement.seriesId === null || placement.partNumber === null) {
-      return;
-    }
-
-    const conflict = await this.booksRepository.findSeriesPartNumberConflict(userId, {
-      excludeBookId,
-      partNumber: placement.partNumber,
-      seriesId: placement.seriesId,
-    });
-    if (conflict !== null) {
-      throw new BadRequestError(DUPLICATE_PART_NUMBER_MESSAGE, {
-        fields: [
-          {
-            code: BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
-            field: "partNumber",
-            message: DUPLICATE_PART_NUMBER_MESSAGE,
-            meta: {
-              bookId: conflict.id,
-              bookTitle: conflict.title,
-              partNumber: String(placement.partNumber),
-            },
-          },
-        ],
-      });
-    }
-  }
-
-  private coverViewOf(book: BookWithRelations): MediaView | null {
-    if (book.coverMedia === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(book.coverMedia);
-    } catch (error) {
-      log.warn({ bookId: book.id, err: error }, "failed to build cover view");
-      return null;
-    }
-  }
-
-  private async deleteCoverMedia(userId: string, mediaId: string): Promise<void> {
-    try {
-      const referencingBooks = await this.booksRepository.countByCoverMediaId(mediaId);
-      if (referencingBooks > 0) {
-        return;
-      }
-      await this.mediaService.delete({ id: mediaId, userId });
-    } catch (error) {
-      log.warn({ err: error, mediaId }, "failed to delete cover media");
-    }
-  }
-
-  private async resolveQueuePlacement(
-    userId: string,
-    input: CreateBookInput,
-  ): Promise<QueuePlacement> {
-    if (!input.addToReadingQueue) {
-      return { queuePosition: null, queuePriority: null };
-    }
-
-    const lastPosition = await this.booksRepository.maxQueuePosition(userId);
-    return {
-      queuePosition: lastPosition + 1,
-      queuePriority: input.queuePriority ?? DEFAULT_QUEUE_PRIORITY,
-    };
   }
 }

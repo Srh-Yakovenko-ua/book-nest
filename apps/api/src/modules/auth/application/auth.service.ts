@@ -8,7 +8,7 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
-import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import {
   BadRequestError,
   ForbiddenError,
@@ -28,7 +28,7 @@ export class AuthService {
     private readonly passwordService: PasswordService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly sessionService: SessionService,
-    private readonly prisma: PrismaService,
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async isNicknameAvailable(nickname: string): Promise<NicknameAvailabilityView> {
@@ -75,7 +75,7 @@ export class AuthService {
     const staleUnverifiedUserId = existingByEmail === null ? null : existingByEmail.id;
     const passwordHash = await this.passwordService.hash(input.password);
 
-    const { rawToken, user } = await this.prisma.$transaction(async (tx) => {
+    const { rawToken, user } = await this.transactionRunner.run(async (tx) => {
       if (staleUnverifiedUserId !== null) {
         await this.usersRepository.deleteById(staleUnverifiedUserId, tx);
       }

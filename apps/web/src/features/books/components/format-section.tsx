@@ -8,8 +8,10 @@ import { type Control, Controller } from "react-hook-form";
 import type { CreateBookFormValues } from "../model/create-book-form";
 
 import { FORMAT_OPTIONS } from "../model/book-status-fields";
+import { FORMAT_FIELDS } from "../model/section-completeness";
 import { FormSection } from "./form-section";
 import { StatusChipGroup } from "./status-chip-group";
+import { useSectionCompletion } from "./use-section-completion";
 
 type FormatSectionProps = {
   control: Control<CreateBookFormValues>;
@@ -17,9 +19,16 @@ type FormatSectionProps = {
 
 export function FormatSection({ control }: FormatSectionProps) {
   const t = useTranslations("books");
+  const complete = useSectionCompletion(control, FORMAT_FIELDS);
 
   return (
-    <FormSection description={t("format.description")} icon="layers" title={t("format.title")}>
+    <FormSection
+      complete={complete}
+      completeLabel={t("form.sectionComplete")}
+      description={t("format.description")}
+      icon="layers"
+      title={t("format.title")}
+    >
       <Controller
         control={control}
         name="formats"

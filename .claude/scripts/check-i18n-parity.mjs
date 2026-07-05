@@ -1,7 +1,10 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 
 const dir = "apps/web/src/messages";
-const locales = ["ru", "en", "uk"];
+const locales = readdirSync(dir)
+  .filter((file) => file.endsWith(".json"))
+  .map((file) => file.slice(0, -".json".length))
+  .sort();
 
 function flattenKeys(value, prefix = "") {
   return Object.entries(value).flatMap(([key, child]) =>

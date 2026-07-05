@@ -1,0 +1,61 @@
+import type { BookView } from "@app/shared";
+
+export function makeBookView(overrides: Partial<BookView> = {}): BookView {
+  return {
+    ageCategory: "16_plus",
+    authors: [{ id: "11111111-1111-4111-8111-111111111111", name: "Анджей Сапковський" }],
+    bookType: "solo",
+    cover: null,
+    createdAt: "2026-01-15T10:00:00.000Z",
+    dedication: null,
+    delivery: { active: null, latest: null, totalCount: 0 },
+    description:
+      "Перша збірка оповідань про відьмака Геральта з Рівії — мисливця на чудовиськ у світі, де люди небезпечніші за монстрів.",
+    formats: ["paper", "ebook"],
+    genres: ["fantasy", "adventure"],
+    hasUnreadEarlierSeriesParts: null,
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    illustrator: null,
+    isbn: "9786176791393",
+    isFavorite: true,
+    isInReadingQueue: false,
+    language: "ukrainian",
+    lists: [],
+    loanInfo: null,
+    originalTitle: "Ostatnie życzenie",
+    ownershipStatus: "owned",
+    pagesCount: 336,
+    partNumber: null,
+    publicationYear: 2016,
+    publisher: { id: "22222222-2222-4222-8222-222222222222", name: "Клуб Сімейного Дозвілля" },
+    purchaseInfo: null,
+    queuePriority: null,
+    readingProgress: {
+      abandonedAt: null,
+      currentPage: null,
+      finishedAt: "2026-02-10",
+      impression: "Чудова збірка",
+      lastProgressUpdateAt: null,
+      note: null,
+      pausedAt: null,
+      rating: 9,
+      startedAt: null,
+    },
+    readingStatus: "finished",
+    series: null,
+    tags: [
+      { id: "tag-1", name: "фентезі" },
+      { id: "tag-2", name: "відьмак" },
+    ],
+    title: "Останнє бажання",
+    translator: "Сергій Легеза",
+    updatedAt: "2026-02-01T00:00:00.000Z",
+    userId: "user-1",
+    ...overrides,
+  };
+}
+
+export const DETAILS_GENRES_FIXTURE = [
+  { groupKey: "fiction", groupName: "Художня література", key: "fantasy", name: "Фентезі" },
+  { groupKey: "fiction", groupName: "Художня література", key: "adventure", name: "Пригоди" },
+].map((genre, index) => ({ ...genre, id: `genre-${index}`, isDefault: true }));

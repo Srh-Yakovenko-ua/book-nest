@@ -12,12 +12,11 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { SettingsService } from "../application/settings.service.js";
 import { UpdateSettingsInputDto } from "./input-dto/update-settings.input-dto.js";
 
@@ -32,7 +31,7 @@ export class SettingsController {
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
   @UseGuards(JwtAccessGuard)
-  getSettings(@CurrentUser() user: UserModel): Promise<SettingsView> {
+  getSettings(@CurrentUser() user: AuthenticatedUser): Promise<SettingsView> {
     return this.settingsService.getSettings(user.id);
   }
 
@@ -46,7 +45,7 @@ export class SettingsController {
   @Patch()
   @UseGuards(JwtAccessGuard)
   updateSettings(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(UpdateSettingsInputSchema)) body: UpdateSettingsInputDto,
   ): Promise<SettingsView> {
     return this.settingsService.updateSettings(user.id, body);

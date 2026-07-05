@@ -36,7 +36,6 @@ import { useDeleteTag } from "../api/use-delete-tag";
 import { useTagsSearch } from "../api/use-tags-search";
 
 const BOOK_TAGS_MAX = 12;
-const SUGGESTION_LIMIT = 8;
 const SEARCH_DEBOUNCE_MS = 250;
 
 type TagsFieldProps = {
@@ -51,7 +50,9 @@ export function TagsField({ control, errors }: TagsFieldProps) {
   const [open, setOpen] = useState(false);
   const [tagPendingDelete, setTagPendingDelete] = useState<null | TagView>(null);
   const debouncedDraft = useDebouncedValue(draft, SEARCH_DEBOUNCE_MS);
-  const { data: existingTags = [], isFetching } = useTagsSearch(debouncedDraft);
+  const tagsQuery = useTagsSearch(debouncedDraft);
+  const existingTags = tagsQuery.data ?? [];
+  const isFetching = tagsQuery.isFetching;
   const deleteTag = useDeleteTag();
 
   function confirmDeleteTag() {
@@ -78,9 +79,9 @@ export function TagsField({ control, errors }: TagsFieldProps) {
         const value = field.value ?? [];
         const atMax = value.length >= BOOK_TAGS_MAX;
         const normalizedSelected = new Set(value.map((tag) => tag.toLowerCase()));
-        const suggestions = existingTags
-          .filter((tag) => !normalizedSelected.has(tag.name.toLowerCase()))
-          .slice(0, SUGGESTION_LIMIT);
+        const suggestions = existingTags.filter(
+          (tag) => !normalizedSelected.has(tag.name.toLowerCase()),
+        );
         const trimmedDraft = draft.trim();
         const draftIsNewTag =
           trimmedDraft.length > 0 &&
@@ -111,7 +112,7 @@ export function TagsField({ control, errors }: TagsFieldProps) {
                     aria-describedby={tagsErrorMessage ? "book-tags-error" : undefined}
                     aria-expanded={open && !atMax}
                     aria-invalid={tagsErrorMessage !== undefined}
-                    disabled={atMax}
+                    atMax={atMax}
                     id="book-tags"
                     onFocus={() => setOpen(true)}
                     onInputChange={setDraft}
@@ -132,7 +133,18 @@ export function TagsField({ control, errors }: TagsFieldProps) {
                 sideOffset={6}
               >
                 <Command id={listId} shouldFilter={false}>
-                  <CommandList>
+                  <CommandList
+                    onScroll={(event) => {
+                      const list = event.currentTarget;
+                      if (
+                        tagsQuery.hasNextPage &&
+                        !tagsQuery.isFetchingNextPage &&
+                        list.scrollHeight - list.scrollTop - list.clientHeight < 48
+                      ) {
+                        void tagsQuery.fetchNextPage();
+                      }
+                    }}
+                  >
                     {isLoading ? (
                       <CommandEmpty>{t("classification.tagsSearching")}</CommandEmpty>
                     ) : null}
@@ -147,7 +159,7 @@ export function TagsField({ control, errors }: TagsFieldProps) {
                       <CommandGroup heading={t("classification.tagsSuggestions")}>
                         {suggestions.map((tag) => (
                           <CommandItem
-                            className="cursor-pointer"
+                            className="cursor-pointer [&>svg:last-child]:hidden"
                             key={tag.id}
                             onSelect={() => addTag(tag.name)}
                             value={tag.id}
@@ -183,6 +195,11 @@ export function TagsField({ control, errors }: TagsFieldProps) {
                           </span>
                         </CommandItem>
                       </CommandGroup>
+                    ) : null}
+                    {tagsQuery.isFetchingNextPage ? (
+                      <div className="px-3 py-2 text-center text-xs text-muted-foreground">
+                        {t("classification.tagsSearching")}
+                      </div>
                     ) : null}
                   </CommandList>
                 </Command>

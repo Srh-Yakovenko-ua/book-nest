@@ -1,6 +1,6 @@
 import type { GenreView } from "@app/shared";
 
-import { CreateGenreSchema } from "@app/shared";
+import { CreateGenreSchema, RecentGenresQuerySchema } from "@app/shared";
 import {
   Body,
   Controller,
@@ -10,6 +10,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -22,18 +23,20 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { GenresService } from "../application/genres.service.js";
 import { CreateGenreDto } from "./input-dto/create-genre.input-dto.js";
+import { RecentGenresQueryDto } from "./input-dto/recent-genres-query.input-dto.js";
 
 @ApiTags("genres")
 @Controller("api/genres")
@@ -46,7 +49,7 @@ export class GenresController {
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
   @UseGuards(JwtAccessGuard)
-  list(@CurrentUser() user: UserModel): Promise<GenreView[]> {
+  list(@CurrentUser() user: AuthenticatedUser): Promise<GenreView[]> {
     return this.genresService.list(user.id);
   }
 
@@ -61,10 +64,24 @@ export class GenresController {
   @Post()
   @UseGuards(JwtAccessGuard)
   create(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(CreateGenreSchema)) body: CreateGenreDto,
   ): Promise<GenreView> {
     return this.genresService.create(user.id, body);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({ description: "Genres the current user recently used in their own books" })
+  @ApiOperation({ summary: "List recently used genres for the current user" })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("recent")
+  @UseGuards(JwtAccessGuard)
+  recent(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(RecentGenresQuerySchema)) query: RecentGenresQueryDto,
+  ): Promise<GenreView[]> {
+    return this.genresService.recent({ limit: query.limit, userId: user.id });
   }
 
   @ApiBearerAuth()
@@ -75,7 +92,10 @@ export class GenresController {
   @Delete(":id")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
   @UseGuards(JwtAccessGuard)
-  delete(@CurrentUser() user: UserModel, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<void> {
     return this.genresService.delete(user.id, id);
   }
 }

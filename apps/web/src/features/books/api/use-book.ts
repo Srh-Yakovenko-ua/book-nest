@@ -1,18 +1,19 @@
 import type { BookView } from "@app/shared";
 
+import { BookViewSchema } from "@app/shared";
 import { useQuery } from "@tanstack/react-query";
 
 import { booksControllerGetById } from "@/shared/api/generated/endpoints/books/books";
 
-import { bookViewSchema } from "../model/book-view-schema";
+import { bookKeys } from "./book-keys";
 
 export function useBook(id: string) {
   return useQuery({
     queryFn: async (): Promise<BookView> => {
       const response = await booksControllerGetById(id);
-      return bookViewSchema.parse(response);
+      return BookViewSchema.parse(response);
     },
-    queryKey: ["/api/books", "detail", id],
+    queryKey: bookKeys.detail(id),
     retry: false,
   });
 }

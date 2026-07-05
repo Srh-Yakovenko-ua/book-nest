@@ -214,7 +214,7 @@ export function BooksLibrary() {
       linkComponent={Link}
       recentlyAdded={(overview.data?.recentlyAdded ?? []).map((book) => ({
         author: book.authors.map((author) => author.name).join(", "),
-        href: `/books/${book.id}/edit`,
+        href: `/books/${book.id}`,
         id: book.id,
         title: book.title,
       }))}
@@ -324,7 +324,7 @@ function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
     cover: book.cover ? { alt: book.title, src: book.cover.urls.thumb } : undefined,
     coverMedia: book.cover ?? undefined,
     genres,
-    href: `/books/${book.id}/edit`,
+    href: `/books/${book.id}`,
     id: book.id,
     isFavorite: book.isFavorite,
     isInReadingQueue: book.isInReadingQueue,

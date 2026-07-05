@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 
-import { AuthModule } from "../auth/auth.module.js";
+import { AuthModule } from "../auth/index.js";
 import { TagsController } from "./api/tags.controller.js";
 import { TagsService } from "./application/tags.service.js";
 import { TagsRepository } from "./infrastructure/tags.repository.js";

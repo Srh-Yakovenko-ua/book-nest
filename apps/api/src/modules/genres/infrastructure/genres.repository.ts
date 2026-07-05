@@ -84,10 +84,31 @@ export class GenresRepository {
     return rows.map((row) => row.key);
   }
 
+  findVisibleByKeys(userId: string, keys: string[]): Promise<GenreModel[]> {
+    if (keys.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.genre.findMany({
+      where: { key: { in: keys }, OR: [{ userId: null }, { userId }] },
+    });
+  }
+
   listAvailable(userId: string): Promise<GenreModel[]> {
     return this.prisma.genre.findMany({
       orderBy: [{ groupKey: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
       where: { OR: [{ userId: null }, { userId }] },
     });
+  }
+
+  async recentGenreKeys({ limit, userId }: { limit: number; userId: string }): Promise<string[]> {
+    const rows = await this.prisma.$queryRaw<{ key: string }[]>`
+      SELECT genre_key AS "key"
+      FROM books book, unnest(book.genres) AS genre_key
+      WHERE book.user_id = ${userId}::uuid
+      GROUP BY genre_key
+      ORDER BY max(book.created_at) DESC
+      LIMIT ${limit}
+    `;
+    return rows.map((row) => row.key);
   }
 }
