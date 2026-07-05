@@ -21,12 +21,11 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BulkBooksService } from "../application/bulk-books.service.js";
 import { BulkBookIdsDto } from "./input-dto/bulk-book-ids.input-dto.js";
 import { BulkFavoriteInputDto } from "./input-dto/bulk-favorite.input-dto.js";
@@ -54,7 +53,7 @@ export class BulkBooksController {
   @ApiOperation({ summary: "Set the favorite flag on the selected books" })
   @Patch("favorite")
   favorite(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(BulkFavoriteInputSchema)) body: BulkFavoriteInputDto,
   ): Promise<BulkActionResult> {
     return this.bulkBooksService.setFavorite({ input: body, userId: user.id });
@@ -66,7 +65,7 @@ export class BulkBooksController {
   @ApiOperation({ summary: "Change the reading status of the selected books" })
   @Patch("reading-status")
   readingStatus(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(BulkReadingStatusInputSchema)) body: BulkReadingStatusInputDto,
   ): Promise<BulkActionResult> {
     return this.bulkBooksService.setReadingStatus({ input: body, userId: user.id });
@@ -78,7 +77,7 @@ export class BulkBooksController {
   @ApiOperation({ summary: "Change the ownership status of the selected books" })
   @Patch("ownership-status")
   ownershipStatus(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(BulkOwnershipStatusInputSchema)) body: BulkOwnershipStatusInputDto,
   ): Promise<BulkActionResult> {
     return this.bulkBooksService.setOwnershipStatus({ input: body, userId: user.id });
@@ -91,7 +90,7 @@ export class BulkBooksController {
   @HttpCode(HTTP_STATUS.OK)
   @Post("tags")
   tags(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(BulkTagsInputSchema)) body: BulkTagsInputDto,
   ): Promise<BulkActionResult> {
     return this.bulkBooksService.addTags({ input: body, userId: user.id });
@@ -105,7 +104,7 @@ export class BulkBooksController {
   @HttpCode(HTTP_STATUS.OK)
   @Post("lists")
   lists(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(BulkListsInputSchema)) body: BulkListsInputDto,
   ): Promise<BulkActionResult> {
     return this.bulkBooksService.addToLists({ input: body, userId: user.id });
@@ -118,7 +117,7 @@ export class BulkBooksController {
   @HttpCode(HTTP_STATUS.OK)
   @Post("reading-queue")
   readingQueue(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(BulkBookIdsSchema)) body: BulkBookIdsDto,
   ): Promise<BulkActionResult> {
     return this.bulkBooksService.addToReadingQueue({ input: body, userId: user.id });
@@ -131,7 +130,7 @@ export class BulkBooksController {
   @HttpCode(HTTP_STATUS.OK)
   @Post("delete")
   delete(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(BulkBookIdsSchema)) body: BulkBookIdsDto,
   ): Promise<BulkActionResult> {
     return this.bulkBooksService.delete({ input: body, userId: user.id });

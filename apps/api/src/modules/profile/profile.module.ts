@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 
-import { AuthModule } from "../auth/auth.module.js";
+import { AuthModule } from "../auth/index.js";
 import { ProfileController } from "./api/profile.controller.js";
 import { SettingsController } from "./api/settings.controller.js";
 import { SocialLinkController } from "./api/social-link.controller.js";

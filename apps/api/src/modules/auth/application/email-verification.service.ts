@@ -7,9 +7,9 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserModel } from "../../../generated/prisma/models.js";
 
 import { env } from "../../../config/env.js";
-import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
-import { MailService } from "../../mail/application/mail.service.js";
+import { MailService } from "../../mail/index.js";
 import { toUserView } from "../domain/user.mapper.js";
 import { EmailVerificationTokensRepository } from "../infrastructure/email-verification-tokens.repository.js";
 import { UsersRepository } from "../infrastructure/users.repository.js";
@@ -31,7 +31,7 @@ export class EmailVerificationService {
     private readonly tokenService: TokenService,
     private readonly sessionService: SessionService,
     private readonly mailService: MailService,
-    private readonly prisma: PrismaService,
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async issueToken(user: UserModel, client?: Prisma.TransactionClient): Promise<string> {
@@ -56,7 +56,7 @@ export class EmailVerificationService {
       if (elapsedSeconds < env.resendCooldownSeconds) return;
     }
 
-    const rawToken = await this.prisma.$transaction((tx) => this.issueToken(user, tx));
+    const rawToken = await this.transactionRunner.run((tx) => this.issueToken(user, tx));
 
     void this.sendVerification(user, rawToken);
   }
@@ -75,7 +75,7 @@ export class EmailVerificationService {
   async verify(token: string): Promise<VerifyResult> {
     const tokenHash = this.tokenService.hashVerificationToken(token);
 
-    const { refreshToken, result, verifiedUser } = await this.prisma.$transaction(async (tx) => {
+    const { refreshToken, result, verifiedUser } = await this.transactionRunner.run(async (tx) => {
       const consumed = await this.tokensRepository.consume(tokenHash, new Date(), tx);
       if (consumed === null) {
         throw new BadRequestError(INVALID_LINK_MESSAGE);

@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 
-import { MailModule } from "../mail/mail.module.js";
+import { MailModule } from "../mail/index.js";
 import { AuthController } from "./api/auth.controller.js";
 import { JwtAccessGuard } from "./api/guards/jwt-access.guard.js";
 import { AuthService } from "./application/auth.service.js";

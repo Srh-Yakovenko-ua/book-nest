@@ -17,9 +17,11 @@ openapi.json
 apps/api/src/generated/
 
 # Env — real values are local/secret; only *.example files are committed
+# (exception: apps/web/.env.dev holds only public URLs, committed for zero-setup FE-only dev)
 .env
 .env.local
 .env.dev
+!apps/web/.env.dev
 .env.prod
 .env.*.local
 .env.*.readonly

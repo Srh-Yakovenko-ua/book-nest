@@ -6,10 +6,10 @@ import { differenceInSeconds } from "date-fns";
 import type { UserModel } from "../../../generated/prisma/models.js";
 
 import { env } from "../../../config/env.js";
-import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
-import { MailService } from "../../mail/application/mail.service.js";
+import { MailService } from "../../mail/index.js";
 import { PasswordResetTokensRepository } from "../infrastructure/password-reset-tokens.repository.js";
 import { SessionsRepository } from "../infrastructure/sessions.repository.js";
 import { UsersRepository } from "../infrastructure/users.repository.js";
@@ -31,7 +31,7 @@ export class PasswordResetService {
     private readonly passwordService: PasswordService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly mailService: MailService,
-    private readonly prisma: PrismaService,
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async requestReset(email: string): Promise<void> {
@@ -82,7 +82,7 @@ export class PasswordResetService {
     const tokenHash = this.tokenService.hashPasswordResetToken(token);
     const passwordHash = await this.passwordService.hash(newPassword);
 
-    const user = await this.prisma.$transaction(async (tx) => {
+    const user = await this.transactionRunner.run(async (tx) => {
       const consumed = await this.tokensRepository.consume(tokenHash, new Date(), tx);
       if (consumed === null) {
         throw new BadRequestError(INVALID_LINK_MESSAGE);
@@ -108,7 +108,7 @@ export class PasswordResetService {
     const tokenHash = this.tokenService.hashPasswordResetToken(rawToken);
     const expiresAt = this.tokenService.passwordResetExpiry();
 
-    await this.prisma.$transaction(async (tx) => {
+    await this.transactionRunner.run(async (tx) => {
       await this.tokensRepository.deleteByUserId(user.id, tx);
       await this.tokensRepository.create({ expiresAt, tokenHash, userId: user.id }, tx);
     });

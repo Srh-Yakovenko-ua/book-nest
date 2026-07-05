@@ -11,6 +11,7 @@ export type UpdateBookInputDtoPurchaseInfo = {
   /** @nullable */
   currency?: UpdateBookInputDtoPurchaseInfoCurrency;
   /**
+   * @maximum 99999999.99
    * @exclusiveMinimum 0
    * @nullable
    */

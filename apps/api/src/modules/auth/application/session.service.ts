@@ -6,7 +6,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserModel } from "../../../generated/prisma/models.js";
 
 import { env } from "../../../config/env.js";
-import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { toUserView } from "../domain/user.mapper.js";
 import { SessionsRepository } from "../infrastructure/sessions.repository.js";
@@ -40,7 +40,7 @@ export class SessionService {
     private readonly sessionsRepository: SessionsRepository,
     private readonly usersRepository: UsersRepository,
     private readonly tokenService: TokenService,
-    private readonly prisma: PrismaService,
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async issue(user: UserModel, options: IssueSessionOptions = {}): Promise<IssuedSession> {
@@ -89,7 +89,7 @@ export class SessionService {
     const refreshHashNew = this.tokenService.hashRefreshToken(refreshToken);
     const expiresAt = session.expiresAt;
 
-    await this.prisma.$transaction(async (tx) => {
+    await this.transactionRunner.run(async (tx) => {
       const rotated = await this.sessionsRepository.rotate(session.id, now, tx);
       if (rotated === 0) {
         throw new UnauthorizedError(SESSION_REUSE_MESSAGE);

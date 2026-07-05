@@ -82,6 +82,8 @@
   --shadow-hover: var(--elevation-hover);
   --shadow-btn: var(--elevation-btn);
   --shadow-glow-brand: 0 0 0 1px var(--brand), 0 0 32px -4px oklch(from var(--brand) l c h / 0.35);
+  --shadow-detail-cover: 0 14px 28px rgba(43, 36, 82, 0.35), 0 3px 8px rgba(43, 36, 82, 0.25);
+  --shadow-detail-block: 0 10px 30px rgba(96, 62, 40, 0.1), 0 2px 6px rgba(96, 62, 40, 0.06);
 }
 
 :root {
@@ -131,6 +133,10 @@
   --error-soft: oklch(0.951 0.024 23.8);
   --info: oklch(0.486 0.106 250.6);
   --info-soft: oklch(0.963 0.018 250.6);
+
+  --terracotta: #c05b3c;
+  --terracotta-dark: #9c4028;
+  --ink-soft: #4e4636;
 
   --chart-1: oklch(0.535 0.093 53.5);
   --chart-2: oklch(0.495 0.103 63.5);
@@ -255,6 +261,18 @@
   }
 }
 
+@keyframes heart-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -366,5 +384,46 @@
 
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@utility hero-title-branch {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 70%;
+    bottom: -80px;
+    width: 180px;
+    height: 150px;
+    background-image: url("/illustrations/hero-branch.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transform: translateX(-10%) rotate(-4deg);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+}
+
+@utility book-details-leaf {
+  & > [data-slot="card"] {
+    position: relative;
+  }
+
+  & > [data-slot="card"]::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 70px;
+    height: 70px;
+    background-image: url("/illustrations/leaf-2.png");
+    background-repeat: no-repeat;
+    background-position: top right;
+    background-size: contain;
+    opacity: 0.55;
+    pointer-events: none;
   }
 }

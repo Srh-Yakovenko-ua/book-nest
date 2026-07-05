@@ -1,3 +1,4 @@
+import { Slot } from "radix-ui";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
@@ -76,9 +77,14 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+function CardTitle({
+  asChild = false,
+  className,
+  ...props
+}: React.ComponentProps<"div"> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot.Root : "div";
   return (
-    <div
+    <Comp
       className={cn(
         "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
         className,

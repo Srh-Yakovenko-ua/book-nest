@@ -33,7 +33,7 @@ The twelve complexity levers in `docs/code-principles.md` §0.0 govern test code
 - **DTO source of truth**: `@app/shared` Zod schemas. Validation happens via `ZodBodyPipe` / `ZodQueryPipe` on controller params (not a global pipe). Invalid bodies return **400** with `errorsMessages: [{ field, message }]`.
 - **IDs are UUID strings** (Prisma `@id @default(uuid())`), not Mongo ObjectIds. Assert with a UUID regex, not a 24-hex regex.
 - **Logging**: pino, `LOG_LEVEL=error` in tests. Don't snapshot logs.
-- **Auth**: no auth module yet. When it lands, add a shared token-baking helper under `src/test/` and reference it — don't reinvent token minting per file.
+- **Auth**: complete. Use `createAuthTestContext(...)` from `src/test/auth-test-context.ts` for authenticated controller tests — don't reinvent token minting per file.
 
 # Test file location
 
@@ -171,7 +171,7 @@ describe("auth guard on PUT /api/posts/:id/like-status", () => {
 
 ## 4. Repository test (rare)
 
-Repositories are mostly thin wrappers over `PrismaService` delegates and are exercised by controller tests. Write a dedicated repository test only for non-trivial query logic — search filters, relation includes/joins, pagination, atomic updates inside a `$transaction`.
+Repositories are mostly thin wrappers over `PrismaService` delegates and are exercised by controller tests. Write a dedicated repository test only for non-trivial query logic — search filters, relation includes/joins, pagination, methods that thread a `Prisma.TransactionClient` param.
 
 ```ts
 beforeAll(async () => {
@@ -216,7 +216,7 @@ it("findPage combines login and email search terms", async () => {
 
    `createTestApp` doesn't expose override out of the box. If a test needs one, build the module ref manually (copy the helper's wiring: DatabaseModule import, RequestIdMiddleware, cookieParser, body parser, HttpErrorFilter) — or extend the helper if several tests need the same override.
 
-3. **`vi.fn()` repositories for service unit tests** — when you've decided it's a unit-level test (type #2). The repository wraps `PrismaService`, so mock the **repository**, never the Prisma client.
+3. **`vi.fn()` repositories for service unit tests** — when you've decided it's a unit-level test (type #2). The repository wraps `PrismaService`, so mock the **repository**, never the Prisma client. Services that use `TransactionRunner` get it mocked as pass-through: `{ run: vi.fn((fn) => fn(txStub)) }` — the callback runs immediately with a stub `tx`, and you assert the repository received it.
 4. **Never mock the Prisma client / generated delegates directly** — high cost, low fidelity, masks schema/SQL bugs. If you're stubbing `prisma.user.findUnique`, switch to a real-Postgres integration test; if you only need the service's branching, mock the repository in a service unit test instead.
 5. **Never mock supertest / Express / Nest internals.** Test through them, not around them.
 

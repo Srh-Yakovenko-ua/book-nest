@@ -1,2 +1,2 @@
-export { GenreIcon, type GenreIconName } from "./genre-icon";
+export { GenreIcon, type GenreIconName, isGenreIconName } from "./genre-icon";
 export { UiIcon, type UiIconName } from "./ui-icon";

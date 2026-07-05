@@ -5,8 +5,6 @@ import {
   BookLanguageSchema,
   type BookView,
   CurrencySchema,
-  type DeliveryInfoView,
-  DeliveryStatusSchema,
   type LoanInfoView,
   type MediaView,
   OwnershipStatusSchema,
@@ -14,14 +12,18 @@ import {
   QueuePrioritySchema,
   type ReadingProgressView,
   ReadingStatusSchema,
-  SeriesStatusSchema,
-  type SeriesView,
 } from "@app/shared";
 
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { toIsoDate } from "../../../core/iso-date.js";
-import { toBookListView } from "../../lists/domain/book-list.mapper.js";
+import { toBookListView } from "../../lists/index.js";
+import {
+  computeHasUnreadEarlierParts,
+  toSeriesBookPreview,
+  toSeriesView,
+} from "../../series/index.js";
+import { toDeliverySummaryView } from "./delivery.mapper.js";
 
 const toNullableIsoDate = (value: Date | null): null | string =>
   value === null ? null : toIsoDate(value);
@@ -37,10 +39,17 @@ export function toBookView(book: BookWithRelations, cover: MediaView | null): Bo
     cover,
     createdAt: book.createdAt.toISOString(),
     dedication: book.dedication,
-    deliveryInfo: toDeliveryInfoView(book.deliveryInfo),
+    delivery: toDeliverySummaryView(book.deliveries),
     description: book.description,
     formats: BookFormatsSchema.parse(book.formats),
     genres: BookGenresSchema.parse(book.genres),
+    hasUnreadEarlierSeriesParts:
+      book.series === null
+        ? null
+        : computeHasUnreadEarlierParts({
+            books: book.series.books.map(toSeriesBookPreview),
+            currentPartNumber: book.partNumber,
+          }),
     id: book.id,
     illustrator: book.illustrator,
     isbn: book.isbn,
@@ -61,32 +70,12 @@ export function toBookView(book: BookWithRelations, cover: MediaView | null): Bo
       book.queuePriority === null ? null : QueuePrioritySchema.parse(book.queuePriority),
     readingProgress: toReadingProgressView(book.readingProgress),
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
-    series: toSeriesView(book.series),
+    series: book.series === null ? null : toSeriesView(book.series),
     tags: book.tags.map((bookTag) => ({ id: bookTag.tag.id, name: bookTag.tag.name })),
     title: book.title,
     translator: book.translator,
     updatedAt: book.updatedAt.toISOString(),
     userId: book.userId,
-  };
-}
-
-function toDeliveryInfoView(
-  deliveryInfo: BookWithRelations["deliveryInfo"],
-): DeliveryInfoView | null {
-  if (deliveryInfo === null) {
-    return null;
-  }
-
-  return {
-    deliveryStatus:
-      deliveryInfo.deliveryStatus === null
-        ? null
-        : DeliveryStatusSchema.parse(deliveryInfo.deliveryStatus),
-    expectedDeliveryDate: toNullableIsoDate(deliveryInfo.expectedDeliveryDate),
-    note: deliveryInfo.note,
-    orderDate: toNullableIsoDate(deliveryInfo.orderDate),
-    orderNumber: deliveryInfo.orderNumber,
-    storeName: deliveryInfo.storeName,
   };
 }
 
@@ -96,10 +85,12 @@ function toLoanInfoView(loanInfo: BookWithRelations["loanInfo"]): LoanInfoView |
   }
 
   return {
+    contact: loanInfo.contact,
     expectedReturnDate: toNullableIsoDate(loanInfo.expectedReturnDate),
     loanDate: toNullableIsoDate(loanInfo.loanDate),
     note: loanInfo.note,
     personName: loanInfo.personName,
+    remindToReturn: loanInfo.remindToReturn,
   };
 }
 
@@ -115,6 +106,7 @@ function toPurchaseInfoView(
     expectedPrice:
       purchaseInfo.expectedPrice === null ? null : purchaseInfo.expectedPrice.toNumber(),
     note: purchaseInfo.note,
+    purchasedAt: toNullableIsoDate(purchaseInfo.purchasedAt),
     storeName: purchaseInfo.storeName,
     storeUrl: purchaseInfo.storeUrl,
   };
@@ -132,29 +124,10 @@ function toReadingProgressView(
     currentPage: readingProgress.currentPage,
     finishedAt: toNullableIsoDate(readingProgress.finishedAt),
     impression: readingProgress.impression,
+    lastProgressUpdateAt: toNullableIsoDate(readingProgress.lastProgressUpdateAt),
     note: readingProgress.note,
     pausedAt: toNullableIsoDate(readingProgress.pausedAt),
     rating: readingProgress.rating,
     startedAt: toNullableIsoDate(readingProgress.startedAt),
-  };
-}
-
-function toSeriesView(series: BookWithRelations["series"]): null | SeriesView {
-  if (series === null) {
-    return null;
-  }
-
-  return {
-    authors: series.authors.map((seriesAuthor) => ({
-      id: seriesAuthor.author.id,
-      name: seriesAuthor.author.name,
-    })),
-    booksInSeries: series._count.books,
-    description: series.description,
-    finishedInSeries: series.books.length,
-    id: series.id,
-    name: series.name,
-    status: SeriesStatusSchema.parse(series.status),
-    totalBooks: series.totalBooks,
   };
 }

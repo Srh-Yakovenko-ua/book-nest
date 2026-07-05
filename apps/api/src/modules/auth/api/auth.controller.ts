@@ -33,8 +33,9 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
+import { differenceInMilliseconds } from "date-fns";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../domain/authenticated-user.js";
 
 import { env } from "../../../config/env.js";
 import { UnauthorizedError } from "../../../core/exceptions/errors.js";
@@ -93,7 +94,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("me")
   @UseGuards(JwtAccessGuard)
-  me(@CurrentUser() user: UserModel): UserView {
+  me(@CurrentUser() user: AuthenticatedUser): UserView {
     return toUserView(user);
   }
 
@@ -187,7 +188,7 @@ export class AuthController {
 
     const { expiresAt, refreshToken, result } = await this.sessionService.refresh(presented);
 
-    const remainingMs = Math.max(0, expiresAt.getTime() - Date.now());
+    const remainingMs = Math.max(0, differenceInMilliseconds(expiresAt, new Date()));
     this.setRefreshCookie(response, refreshToken, remainingMs);
 
     return result;

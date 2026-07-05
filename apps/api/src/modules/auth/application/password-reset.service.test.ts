@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { PrismaService } from "../../../core/database/prisma.service.js";
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { PasswordResetTokenModel, UserModel } from "../../../generated/prisma/models.js";
 import type { MailService } from "../../mail/application/mail.service.js";
 import type { PasswordResetTokensRepository } from "../infrastructure/password-reset-tokens.repository.js";
@@ -17,10 +17,10 @@ type Mocks = {
   emailVerificationService: EmailVerificationService;
   mailService: MailService;
   passwordService: PasswordService;
-  prisma: PrismaService;
   sessionsRepository: SessionsRepository;
   tokenService: TokenService;
   tokensRepository: PasswordResetTokensRepository;
+  transactionRunner: TransactionRunner;
   usersRepository: UsersRepository;
 };
 
@@ -68,11 +68,9 @@ function buildService(overrides: {
     sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
   } as unknown as MailService;
 
-  const prisma = {
-    $transaction: vi
-      .fn()
-      .mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
-  } as unknown as PrismaService;
+  const transactionRunner = {
+    run: vi.fn().mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
+  } as unknown as TransactionRunner;
 
   const service = new PasswordResetService(
     usersRepository,
@@ -82,7 +80,7 @@ function buildService(overrides: {
     passwordService,
     emailVerificationService,
     mailService,
-    prisma,
+    transactionRunner,
   );
 
   return {
@@ -90,10 +88,10 @@ function buildService(overrides: {
       emailVerificationService,
       mailService,
       passwordService,
-      prisma,
       sessionsRepository,
       tokenService,
       tokensRepository,
+      transactionRunner,
       usersRepository,
     },
     service,

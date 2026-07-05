@@ -67,6 +67,21 @@ export class GenresService {
     return genres.map(toGenreView);
   }
 
+  async recent({ limit, userId }: { limit: number; userId: string }): Promise<GenreView[]> {
+    const keys = await this.genresRepository.recentGenreKeys({ limit, userId });
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const genres = await this.genresRepository.findVisibleByKeys(userId, keys);
+    const genreByKey = new Map(genres.map((genre) => [genre.key, genre]));
+
+    return keys.flatMap((key) => {
+      const genre = genreByKey.get(key);
+      return genre === undefined ? [] : [toGenreView(genre)];
+    });
+  }
+
   searchKeys(input: { query: string; userId: string }): Promise<string[]> {
     return this.genresRepository.findKeysByName(input);
   }

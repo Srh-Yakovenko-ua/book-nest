@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { PrismaService } from "../../../core/database/prisma.service.js";
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { SessionModel, UserModel } from "../../../generated/prisma/models.js";
 import type { SessionsRepository } from "../infrastructure/sessions.repository.js";
 import type { UsersRepository } from "../infrastructure/users.repository.js";
@@ -11,9 +11,9 @@ import { UnauthorizedError } from "../../../core/exceptions/errors.js";
 import { SessionService } from "./session.service.js";
 
 type Mocks = {
-  prisma: PrismaService;
   sessionsRepository: SessionsRepository;
   tokenService: TokenService;
+  transactionRunner: TransactionRunner;
   usersRepository: UsersRepository;
 };
 
@@ -47,15 +47,21 @@ function buildService(overrides: {
     signAccessToken: vi.fn().mockResolvedValue("signed-access-token"),
   } as unknown as TokenService;
 
-  const prisma = {
-    $transaction: vi
-      .fn()
-      .mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
-  } as unknown as PrismaService;
+  const transactionRunner = {
+    run: vi.fn().mockImplementation((callback: (tx: unknown) => unknown) => callback({ tx: true })),
+  } as unknown as TransactionRunner;
 
-  const service = new SessionService(sessionsRepository, usersRepository, tokenService, prisma);
+  const service = new SessionService(
+    sessionsRepository,
+    usersRepository,
+    tokenService,
+    transactionRunner,
+  );
 
-  return { mocks: { prisma, sessionsRepository, tokenService, usersRepository }, service };
+  return {
+    mocks: { sessionsRepository, tokenService, transactionRunner, usersRepository },
+    service,
+  };
 }
 
 function sessionModel(overrides: Partial<SessionModel> = {}): SessionModel {

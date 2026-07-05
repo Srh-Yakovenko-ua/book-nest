@@ -17,7 +17,9 @@ function buildService(): {
     deleteOwnedWithBookCleanup: ReturnType<typeof vi.fn>;
     existsSelectableName: ReturnType<typeof vi.fn>;
     findSelectableKeys: ReturnType<typeof vi.fn>;
+    findVisibleByKeys: ReturnType<typeof vi.fn>;
     listAvailable: ReturnType<typeof vi.fn>;
+    recentGenreKeys: ReturnType<typeof vi.fn>;
   };
   service: GenresService;
 } {
@@ -26,7 +28,9 @@ function buildService(): {
     deleteOwnedWithBookCleanup: vi.fn(),
     existsSelectableName: vi.fn().mockResolvedValue(false),
     findSelectableKeys: vi.fn().mockResolvedValue([]),
+    findVisibleByKeys: vi.fn().mockResolvedValue([]),
     listAvailable: vi.fn().mockResolvedValue([]),
+    recentGenreKeys: vi.fn().mockResolvedValue([]),
   };
   const service = new GenresService(repository as unknown as GenresRepository);
   return { repository, service };
@@ -170,5 +174,49 @@ describe("GenresService.delete", () => {
     repository.deleteOwnedWithBookCleanup.mockResolvedValue(0);
 
     await expect(service.delete(USER_ID, GENRE_ID)).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("GenresService.recent", () => {
+  it("returns an empty array without loading catalog rows when no keys are recent", async () => {
+    const { repository, service } = buildService();
+    repository.recentGenreKeys.mockResolvedValue([]);
+
+    const result = await service.recent({ limit: 8, userId: USER_ID });
+
+    expect(result).toEqual([]);
+    expect(repository.findVisibleByKeys).not.toHaveBeenCalled();
+  });
+
+  it("preserves the recency order of the keys regardless of the catalog row order", async () => {
+    const { repository, service } = buildService();
+    repository.recentGenreKeys.mockResolvedValue(["fantasy", "sci-fi", "history"]);
+    repository.findVisibleByKeys.mockResolvedValue([
+      genre({ id: GENRE_ID, key: "history", name: "History" }),
+      genre({ id: "33333333-3333-4333-8333-333333333333", key: "fantasy", name: "Fantasy" }),
+      genre({ id: "44444444-4444-4444-8444-444444444444", key: "sci-fi", name: "Science Fiction" }),
+    ]);
+
+    const result = await service.recent({ limit: 8, userId: USER_ID });
+
+    expect(result.map((view) => view.key)).toEqual(["fantasy", "sci-fi", "history"]);
+  });
+
+  it("drops a recent key that has no visible catalog row", async () => {
+    const { repository, service } = buildService();
+    repository.recentGenreKeys.mockResolvedValue(["fantasy", "ghost-genre"]);
+    repository.findVisibleByKeys.mockResolvedValue([genre({ key: "fantasy", name: "Fantasy" })]);
+
+    const result = await service.recent({ limit: 8, userId: USER_ID });
+
+    expect(result.map((view) => view.key)).toEqual(["fantasy"]);
+  });
+
+  it("passes the requested limit and user to the repository", async () => {
+    const { repository, service } = buildService();
+
+    await service.recent({ limit: 5, userId: USER_ID });
+
+    expect(repository.recentGenreKeys).toHaveBeenCalledWith({ limit: 5, userId: USER_ID });
   });
 });

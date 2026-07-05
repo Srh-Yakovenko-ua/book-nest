@@ -22,6 +22,22 @@ export const GenresControllerCreateBody = zod.object({
 export const GenresControllerCreateResponse = zod.void();
 
 /**
+ * @summary List recently used genres for the current user
+ */
+export const genresControllerRecentQueryLimitDefault = 8;
+export const genresControllerRecentQueryLimitMax = 20;
+
+export const GenresControllerRecentQueryParams = zod.object({
+  limit: zod
+    .number()
+    .min(1)
+    .max(genresControllerRecentQueryLimitMax)
+    .default(genresControllerRecentQueryLimitDefault),
+});
+
+export const GenresControllerRecentResponse = zod.unknown();
+
+/**
  * @summary Delete a custom genre of the current user
  */
 export const GenresControllerDeleteParams = zod.object({

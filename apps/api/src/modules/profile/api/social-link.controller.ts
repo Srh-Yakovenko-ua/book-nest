@@ -26,12 +26,11 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { SocialLinkService } from "../application/social-link.service.js";
 import { CreateSocialLinkInputDto } from "./input-dto/create-social-link.input-dto.js";
 import { UpdateSocialLinkInputDto } from "./input-dto/update-social-link.input-dto.js";
@@ -51,7 +50,7 @@ export class SocialLinkController {
   @Post()
   @UseGuards(JwtAccessGuard)
   create(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(CreateSocialLinkInputSchema)) body: CreateSocialLinkInputDto,
   ): Promise<SocialLinkView> {
     return this.socialLinkService.create(user.id, body);
@@ -69,7 +68,7 @@ export class SocialLinkController {
   @Patch(":id")
   @UseGuards(JwtAccessGuard)
   update(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Body(new ZodBodyPipe(UpdateSocialLinkInputSchema)) body: UpdateSocialLinkInputDto,
   ): Promise<SocialLinkView> {
@@ -84,7 +83,10 @@ export class SocialLinkController {
   @Delete(":id")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
   @UseGuards(JwtAccessGuard)
-  delete(@CurrentUser() user: UserModel, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
+  delete(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<void> {
     return this.socialLinkService.delete(user.id, id);
   }
 }
