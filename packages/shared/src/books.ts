@@ -64,7 +64,7 @@ const READING_RATING_MIN = 0.5;
 const READING_RATING_MAX = 10;
 const READING_RATING_STEP = 0.5;
 const READING_NOTE_MAX = 300;
-const READING_IMPRESSION_MAX = 500;
+const READING_IMPRESSION_MAX = 5000;
 
 const ISBN_DIGITS_PATTERN = /^\d+$/;
 const ISBN_10_LENGTH = 10;
@@ -171,7 +171,9 @@ export const ReadingNoteSchema = z
 export const ReadingImpressionSchema = z
   .string()
   .transform(collapseHorizontalSpaces)
-  .pipe(NoHtmlString.max(READING_IMPRESSION_MAX, "Impression must be at most 500 characters long"));
+  .pipe(
+    NoHtmlString.max(READING_IMPRESSION_MAX, "Impression must be at most 5000 characters long"),
+  );
 
 const ReadingCurrentPageSchema = z
   .number()
