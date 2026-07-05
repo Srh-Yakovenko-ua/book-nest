@@ -28,9 +28,11 @@ import {
   QUEUE_PRIORITY_OPTIONS,
   splitListSelection,
 } from "../model/book-organization-fields";
+import { LIBRARY_ORGANIZATION_FIELDS } from "../model/section-completeness";
 import { CreateListDialog } from "./create-list-dialog";
 import { FormSection } from "./form-section";
 import { StatusChipGroup } from "./status-chip-group";
+import { useSectionCompletion } from "./use-section-completion";
 
 type LibraryOrganizationSectionProps = {
   control: Control<CreateBookFormValues>;
@@ -60,6 +62,7 @@ export function LibraryOrganizationSection({
   const drafts = newLists.filter((draft): draft is ListDraft => typeof draft?.name === "string");
   const atListsMax = selectedIds.length + drafts.length >= BOOK_LIST_IDS_MAX;
   const atDraftsMax = drafts.length >= BOOK_NEW_LISTS_MAX;
+  const complete = useSectionCompletion(control, LIBRARY_ORGANIZATION_FIELDS);
 
   const listsErrorMessage =
     typeof errors.listIds?.message === "string" ? errors.listIds.message : undefined;
@@ -85,6 +88,8 @@ export function LibraryOrganizationSection({
 
   return (
     <FormSection
+      complete={complete}
+      completeLabel={t("form.sectionComplete")}
       description={t("organization.description")}
       icon="bookmark"
       title={t("organization.title")}

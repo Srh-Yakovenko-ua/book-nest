@@ -2,7 +2,7 @@ import type { CreateSocialLinkInput, UpdateSocialLinkInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { PrismaService } from "../../../core/database/prisma.service.js";
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserSocialLinkModel } from "../../../generated/prisma/models.js";
 import type { SocialLinkRepository } from "../infrastructure/social-link.repository.js";
@@ -43,15 +43,13 @@ function buildService(overrides: {
     update: vi.fn().mockResolvedValue(overrides.update ?? socialLink()),
   };
 
-  const prisma = {
-    $transaction: vi.fn((callback: (client: unknown) => Promise<unknown>) =>
-      callback(TRANSACTION_CLIENT),
-    ),
+  const transactionRunner = {
+    run: vi.fn((callback: (client: unknown) => Promise<unknown>) => callback(TRANSACTION_CLIENT)),
   };
 
   const service = new SocialLinkService(
     repository as unknown as SocialLinkRepository,
-    prisma as unknown as PrismaService,
+    transactionRunner as unknown as TransactionRunner,
   );
 
   return { repository, service };

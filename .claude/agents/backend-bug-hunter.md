@@ -32,7 +32,7 @@ The twelve complexity levers in `docs/code-principles.md` §0.0 are also a debug
 
 # Project layout you must know
 
-Stack: NestJS 11 + Prisma 7 (v7.8, engineless, `@prisma/adapter-pg` driver adapter) + PostgreSQL. **Current real modules are only `health` and `observability`** — there is no auth module or domain models yet (`prisma/schema.prisma` has no feature `model` blocks). Auth guards (`JwtAuthGuard` etc.) and feature modules described below are the _target_ pattern; verify a thing exists before blaming it.
+Stack: NestJS 11 + Prisma 7 (v7.8, engineless, `@prisma/adapter-pg` driver adapter) + PostgreSQL. **13 real feature modules exist** (auth, profile, books, series, authors, publishers, genres, tags, lists, media, mail, health, observability) with full domain models in `prisma/schema.prisma`. Auth is complete: `JwtAccessGuard` + `@CurrentUser()` yield the domain `AuthenticatedUser` (not the raw Prisma row); multi-write flows go through `TransactionRunner.run(...)` from `core/database` (services never inject `PrismaService`); cross-module imports go through the module's `index.ts` barrel (lint-enforced). Still: verify a thing exists before blaming it.
 
 ```
 apps/api/src/

@@ -9,6 +9,7 @@ From the monorepo root:
 ```
 pnpm dev              # start FE + BE in parallel
 pnpm dev:web          # start only the FE dev server on :3000
+pnpm dev:web:dev      # FE only, /api proxied to the DEV server — no local BE/Docker needed
 pnpm typecheck        # turbo-cached type checking
 pnpm lint             # ESLint
 pnpm format           # Prettier write

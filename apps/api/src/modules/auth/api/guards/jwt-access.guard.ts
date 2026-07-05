@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 
 import { UnauthorizedError } from "../../../../core/exceptions/errors.js";
 import { TokenService } from "../../application/token.service.js";
+import { toAuthenticatedUser } from "../../domain/authenticated-user.js";
 import { UsersRepository } from "../../infrastructure/users.repository.js";
 
 const BEARER_SCHEME = "bearer";
@@ -27,7 +28,7 @@ export class JwtAccessGuard implements CanActivate {
       throw new UnauthorizedError("User not found");
     }
 
-    request.currentUser = user;
+    request.currentUser = toAuthenticatedUser(user);
 
     return true;
   }

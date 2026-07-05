@@ -55,7 +55,11 @@ const stepperInputVariants = cva(
 type NumberStepperProps = VariantProps<typeof stepperVariants> & {
   ariaLabel?: string;
   className?: string;
+  decrementLabel?: string;
+  describedBy?: string;
   disabled?: boolean;
+  id?: string;
+  incrementLabel?: string;
   max?: number;
   min?: number;
   onValueChange: (value: number) => void;
@@ -71,7 +75,11 @@ function clamp(value: number, min: number, max: number) {
 function NumberStepper({
   ariaLabel,
   className,
+  decrementLabel = "Зменшити",
+  describedBy,
   disabled = false,
+  id,
+  incrementLabel = "Збільшити",
   max = Number.POSITIVE_INFINITY,
   min = Number.NEGATIVE_INFINITY,
   onValueChange,
@@ -108,7 +116,7 @@ function NumberStepper({
     <div className={cn("inline-flex items-center gap-2.5", className)} data-slot="number-stepper">
       <div className={cn(stepperVariants({ size }))} data-disabled={disabled || undefined}>
         <button
-          aria-label="Зменшити"
+          aria-label={decrementLabel}
           className={cn(stepperButtonVariants({ size }))}
           disabled={disabled || atMin}
           onClick={() => commit(value - step)}
@@ -117,12 +125,14 @@ function NumberStepper({
           <UiIcon name="minus" />
         </button>
         <input
+          aria-describedby={describedBy}
           aria-label={ariaLabel}
           aria-valuemax={Number.isFinite(max) ? max : undefined}
           aria-valuemin={Number.isFinite(min) ? min : undefined}
           aria-valuenow={value}
           className={cn(stepperInputVariants({ size }))}
           disabled={disabled}
+          id={id}
           inputMode="numeric"
           onChange={handleInput}
           onKeyDown={handleKeyDown}
@@ -131,7 +141,7 @@ function NumberStepper({
           value={value}
         />
         <button
-          aria-label="Збільшити"
+          aria-label={incrementLabel}
           className={cn(stepperButtonVariants({ size }))}
           disabled={disabled || atMax}
           onClick={() => commit(value + step)}

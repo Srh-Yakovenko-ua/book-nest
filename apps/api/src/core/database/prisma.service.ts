@@ -17,4 +17,8 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy, OnMo
   async onModuleInit(): Promise<void> {
     await this.$connect();
   }
+
+  async ping(): Promise<void> {
+    await this.$queryRaw`SELECT 1`;
+  }
 }

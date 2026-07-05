@@ -13,5 +13,4 @@ export const UpdateBookInputDtoDeliveryInfoDeliveryStatus = {
   ordered: "ordered",
   in_transit: "in_transit",
   ready_for_pickup: "ready_for_pickup",
-  cancelled: "cancelled",
 } as const;

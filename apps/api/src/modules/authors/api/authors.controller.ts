@@ -23,11 +23,10 @@ import {
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
-import type { UserModel } from "../../../generated/prisma/models.js";
+import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser } from "../../auth/api/guards/current-user.decorator.js";
-import { JwtAccessGuard } from "../../auth/api/guards/jwt-access.guard.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { AuthorsService } from "../application/authors.service.js";
 import { AuthorLookupQueryDto } from "./input-dto/author-lookup-query.input-dto.js";
 import { AuthorSearchPaginationQueryDto } from "./input-dto/author-search-query.input-dto.js";
@@ -50,7 +49,7 @@ export class AuthorsController {
   @Throttle({ default: { limit: LOOKUP_LIMIT, ttl: seconds(LOOKUP_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   lookup(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(AuthorLookupQuerySchema)) query: AuthorLookupQueryDto,
   ): Promise<AuthorLookupResult[]> {
     return this.authorsService.lookup(user.id, query.q);
@@ -65,7 +64,7 @@ export class AuthorsController {
   @Get("recent")
   @UseGuards(JwtAccessGuard)
   recent(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(RecentAuthorsQuerySchema)) query: RecentAuthorsQueryDto,
   ): Promise<AuthorView[]> {
     return this.authorsService.recent({
@@ -84,7 +83,7 @@ export class AuthorsController {
   @Throttle({ default: { limit: LOOKUP_LIMIT, ttl: seconds(LOOKUP_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   listBooks(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) authorId: string,
   ): Promise<AuthorBookSuggestionView[]> {
     return this.authorsService.listBookSuggestions(user.id, authorId);
@@ -101,7 +100,7 @@ export class AuthorsController {
   @Get()
   @UseGuards(JwtAccessGuard)
   search(
-    @CurrentUser() user: UserModel,
+    @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(AuthorSearchPaginationQuerySchema))
     query: AuthorSearchPaginationQueryDto,
   ): Promise<Paginator<AuthorView>> {

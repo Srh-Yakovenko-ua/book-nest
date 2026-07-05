@@ -1,6 +1,6 @@
 import type { TagView } from "@app/shared";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { tagsControllerSearch } from "@/shared/api/generated/endpoints/tags/tags";
@@ -18,21 +18,27 @@ const tagsSearchResultSchema = z.object({
   totalCount: z.number(),
 });
 
+type TagsSearchPage = z.infer<typeof tagsSearchResultSchema>;
+
 const TAGS_SEARCH_PAGE_SIZE = 20;
 
 export function useTagsSearch(search: string) {
   const trimmed = search.trim();
 
-  return useQuery({
+  return useInfiniteQuery({
+    getNextPageParam: (lastPage: TagsSearchPage) =>
+      lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
     placeholderData: keepPreviousData,
-    queryFn: async (): Promise<TagView[]> => {
+    queryFn: async ({ pageParam }): Promise<TagsSearchPage> => {
       const response = await tagsControllerSearch({
+        pageNumber: pageParam,
         pageSize: TAGS_SEARCH_PAGE_SIZE,
         search: trimmed.length > 0 ? trimmed : undefined,
       });
-      const parsed = tagsSearchResultSchema.parse(response);
-      return parsed.items;
+      return tagsSearchResultSchema.parse(response);
     },
     queryKey: ["tags", "search", trimmed],
+    select: (data) => data.pages.flatMap((page) => page.items),
   });
 }

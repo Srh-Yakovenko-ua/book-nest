@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import type { CoverState } from "../model/cover-state";
 
 import { coverFullSrc, coverPreviewSrc } from "../model/cover-state";
+import { SectionCompleteBadge } from "./section-complete-badge";
 
 const ImageCropDialog = dynamic(
   () => import("@/features/media/components/image-crop-dialog").then((m) => m.ImageCropDialog),
@@ -62,6 +63,7 @@ export function CoverField({
   state,
 }: CoverFieldProps) {
   const t = useTranslations("books.cover");
+  const tBooks = useTranslations("books");
   const containerRef = useRef<HTMLDivElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
@@ -164,8 +166,14 @@ export function CoverField({
       ref={containerRef}
     >
       <div className="flex items-center gap-2.5">
-        <UiIcon className="text-primary" name="image" size={20} />
-        <h2 className="font-heading text-lg text-ink">{t("title")}</h2>
+        <span className="relative inline-grid place-items-center">
+          <UiIcon className="text-primary" name="image" size={20} />
+          {hasCover ? <SectionCompleteBadge /> : null}
+        </span>
+        <h2 className="font-heading text-lg text-ink">
+          {t("title")}
+          {hasCover ? <span className="sr-only"> — {tBooks("form.sectionComplete")}</span> : null}
+        </h2>
       </div>
 
       <div
@@ -235,10 +243,10 @@ export function CoverField({
               <Image
                 alt=""
                 aria-hidden
-                className="h-auto w-24 select-none"
-                height={352}
-                src="/illustrations/empty-library.png"
-                width={352}
+                className="h-auto w-72 select-none"
+                height={500}
+                src="/illustrations/book-upload-2.png"
+                width={500}
               />
             }
             onFilesChange={(files) => void pickFile(files[0])}

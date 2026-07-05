@@ -24,9 +24,11 @@ import type {
   SeriesSelection,
 } from "../model/create-book-form";
 
+import { BOOK_TYPE_FIELDS } from "../model/section-completeness";
 import { CreateSeriesDialog } from "./create-series-dialog";
 import { FormSection } from "./form-section";
 import { SeriesAutocomplete } from "./series-autocomplete";
+import { useSectionCompletion } from "./use-section-completion";
 
 const PART_NUMBER_MAX = 999;
 
@@ -54,10 +56,12 @@ export function BookTypeSection({
   setValue,
 }: BookTypeSectionProps) {
   const t = useTranslations("books");
+  const tCommon = useTranslations("common");
   const bookType = useWatch({ control, name: "bookType" }) ?? "solo";
   const partNumberValue = useWatch({ control, name: "partNumber" });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
+  const complete = useSectionCompletion(control, BOOK_TYPE_FIELDS);
 
   const selectedTotalBooks = seriesTotalBooks(seriesSelection);
 
@@ -137,7 +141,13 @@ export function BookTypeSection({
   }
 
   return (
-    <FormSection description={t("bookType.description")} icon="layers" title={t("bookType.title")}>
+    <FormSection
+      complete={complete}
+      completeLabel={t("form.sectionComplete")}
+      description={t("bookType.description")}
+      icon="layers"
+      title={t("bookType.title")}
+    >
       <Controller
         control={control}
         name="bookType"
@@ -200,6 +210,8 @@ export function BookTypeSection({
               render={({ field }) => (
                 <NumberStepper
                   ariaLabel={t("bookType.partNumber")}
+                  decrementLabel={tCommon("decrement")}
+                  incrementLabel={tCommon("increment")}
                   max={PART_NUMBER_MAX}
                   min={1}
                   onValueChange={field.onChange}

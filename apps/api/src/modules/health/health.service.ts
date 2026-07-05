@@ -23,7 +23,7 @@ export class HealthService {
   private async pingPostgres(): Promise<"down" | "ok"> {
     let timeoutId: NodeJS.Timeout | undefined;
     try {
-      const queryPromise = this.prisma.$queryRaw`SELECT 1`;
+      const queryPromise = this.prisma.ping();
       const timeoutPromise = new Promise<never>((_resolve, reject) => {
         timeoutId = setTimeout(
           () => reject(new Error("postgres healthcheck timeout")),

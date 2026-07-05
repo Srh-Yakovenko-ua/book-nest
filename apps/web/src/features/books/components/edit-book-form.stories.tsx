@@ -1,4 +1,4 @@
-import type { BookView } from "@app/shared";
+import type { BookView, DeliveryView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, userEvent, waitFor, within } from "storybook/test";
@@ -7,6 +7,24 @@ import { BookForm } from "./book-form";
 import { EditBookForm } from "./edit-book-form";
 
 type Handler = (path: string, init?: RequestInit) => Promise<Response> | Response;
+
+const activeDeliveryFixture: DeliveryView = {
+  cancelledAt: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  currency: null,
+  deliveryService: null,
+  expectedDeliveryDate: null,
+  id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  note: null,
+  orderDate: null,
+  orderNumber: "100200300",
+  price: null,
+  receivedAt: null,
+  status: "in_transit",
+  storeName: "Yakaboo",
+  trackingNumber: null,
+  trackingUrl: null,
+};
 
 function emptyPage(pageSize: number) {
   return jsonResponse(200, { items: [], page: 1, pagesCount: 0, pageSize, totalCount: 0 });
@@ -26,10 +44,11 @@ function makeBook(overrides: Partial<BookView> = {}): BookView {
     bookType: "solo",
     createdAt: "2026-01-01T00:00:00.000Z",
     dedication: null,
-    deliveryInfo: null,
+    delivery: { active: null, latest: null, totalCount: 0 },
     description: "Роман у віршах.",
     formats: ["paper"],
     genres: ["poetry", "historical_fiction"],
+    hasUnreadEarlierSeriesParts: null,
     id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     illustrator: null,
     isbn: null,
@@ -51,6 +70,7 @@ function makeBook(overrides: Partial<BookView> = {}): BookView {
       currentPage: null,
       finishedAt: "2026-02-10",
       impression: "Прекрасно",
+      lastProgressUpdateAt: null,
       note: null,
       pausedAt: null,
       rating: 5,
@@ -288,13 +308,10 @@ export const MarkAsReceivedSetsOwned: StoryObj<typeof BookForm> = {
   render: () => (
     <BookForm
       book={makeBook({
-        deliveryInfo: {
-          deliveryStatus: "in_transit",
-          expectedDeliveryDate: null,
-          note: null,
-          orderDate: null,
-          orderNumber: "100200300",
-          storeName: "Yakaboo",
+        delivery: {
+          active: activeDeliveryFixture,
+          latest: activeDeliveryFixture,
+          totalCount: 1,
         },
         ownershipStatus: "in_transit",
       })}

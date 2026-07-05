@@ -34,7 +34,12 @@ export function BookCardActions({ actions, book, onOpenDialog }: BookCardActions
       <Button
         aria-label={favoriteLabel}
         aria-pressed={book.isFavorite}
-        className={cn("hover:text-primary", book.isFavorite ? "text-primary" : "text-icon")}
+        className={cn(
+          "rounded-lg border-[1.5px] transition-all duration-[180ms] ease-out",
+          book.isFavorite
+            ? "border-brand bg-brand text-white shadow-btn hover:border-primary-hover hover:bg-primary-hover hover:text-white dark:hover:bg-primary-hover [&_svg]:animate-[heart-pop_320ms_ease]"
+            : "border-border bg-card text-muted-foreground hover:border-brand hover:bg-accent hover:text-brand dark:hover:bg-accent",
+        )}
         onClick={() => actions.onToggleFavorite({ id: book.id, isFavorite: !book.isFavorite })}
         size="icon-sm"
         title={favoriteLabel}
@@ -47,7 +52,7 @@ export function BookCardActions({ actions, book, onOpenDialog }: BookCardActions
         <DropdownMenuTrigger asChild>
           <Button
             aria-label={t("menu")}
-            className="text-icon hover:text-foreground"
+            className="rounded-lg border-[1.5px] border-border bg-card text-muted-foreground transition-all duration-[180ms] ease-out hover:border-brand hover:bg-accent hover:text-brand dark:hover:bg-accent"
             size="icon-sm"
             variant="ghost"
           >
