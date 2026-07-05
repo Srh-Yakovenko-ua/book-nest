@@ -36,6 +36,7 @@ import type {
   CreateLoanInputDto,
   DeliveryViewDto,
   LibraryOverviewViewDto,
+  MarkBoughtInputDto,
   PaginatedBooksDto,
   UpdateBookInputDto,
   UpdateDeliveryInputDto,
@@ -2228,6 +2229,11 @@ export type bookOwnershipControllerMarkBoughtResponse200 = {
   status: 200;
 };
 
+export type bookOwnershipControllerMarkBoughtResponse400 = {
+  data: void;
+  status: 400;
+};
+
 export type bookOwnershipControllerMarkBoughtResponse401 = {
   data: void;
   status: 401;
@@ -2248,6 +2254,7 @@ export type bookOwnershipControllerMarkBoughtResponseSuccess =
     headers: Headers;
   };
 export type bookOwnershipControllerMarkBoughtResponseError = (
+  | bookOwnershipControllerMarkBoughtResponse400
   | bookOwnershipControllerMarkBoughtResponse401
   | bookOwnershipControllerMarkBoughtResponse404
   | bookOwnershipControllerMarkBoughtResponse409
@@ -2264,10 +2271,11 @@ export const getBookOwnershipControllerMarkBoughtUrl = (id: string) => {
 };
 
 /**
- * @summary Mark a want-to-buy book as bought, retaining purchase details
+ * @summary Mark a want-to-buy book as bought with actual purchase details
  */
 export const bookOwnershipControllerMarkBought = async (
   id: string,
+  markBoughtInputDto: MarkBoughtInputDto,
   options?: RequestInit,
 ): Promise<bookOwnershipControllerMarkBoughtResponse> => {
   return customInstance<bookOwnershipControllerMarkBoughtResponse>(
@@ -2275,12 +2283,17 @@ export const bookOwnershipControllerMarkBought = async (
     {
       ...options,
       method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(markBoughtInputDto),
     },
   );
 };
 
-export const getBookOwnershipControllerMarkBoughtQueryKey = (id: string) => {
-  return ["POST", `/api/books/${id}/ownership/mark-bought`] as const;
+export const getBookOwnershipControllerMarkBoughtQueryKey = (
+  id: string,
+  markBoughtInputDto?: MarkBoughtInputDto,
+) => {
+  return ["POST", `/api/books/${id}/ownership/mark-bought`, markBoughtInputDto] as const;
 };
 
 export const getBookOwnershipControllerMarkBoughtQueryOptions = <
@@ -2288,6 +2301,7 @@ export const getBookOwnershipControllerMarkBoughtQueryOptions = <
   TError = void,
 >(
   id: string,
+  markBoughtInputDto: MarkBoughtInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookOwnershipControllerMarkBought>>, TError, TData>
@@ -2297,11 +2311,12 @@ export const getBookOwnershipControllerMarkBoughtQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getBookOwnershipControllerMarkBoughtQueryKey(id);
+  const queryKey =
+    queryOptions?.queryKey ?? getBookOwnershipControllerMarkBoughtQueryKey(id, markBoughtInputDto);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof bookOwnershipControllerMarkBought>>> = ({
     signal,
-  }) => bookOwnershipControllerMarkBought(id, { signal, ...requestOptions });
+  }) => bookOwnershipControllerMarkBought(id, markBoughtInputDto, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -2325,6 +2340,7 @@ export function useBookOwnershipControllerMarkBought<
   TError = void,
 >(
   id: string,
+  markBoughtInputDto: MarkBoughtInputDto,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookOwnershipControllerMarkBought>>, TError, TData>
@@ -2346,6 +2362,7 @@ export function useBookOwnershipControllerMarkBought<
   TError = void,
 >(
   id: string,
+  markBoughtInputDto: MarkBoughtInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookOwnershipControllerMarkBought>>, TError, TData>
@@ -2367,6 +2384,7 @@ export function useBookOwnershipControllerMarkBought<
   TError = void,
 >(
   id: string,
+  markBoughtInputDto: MarkBoughtInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookOwnershipControllerMarkBought>>, TError, TData>
@@ -2376,7 +2394,7 @@ export function useBookOwnershipControllerMarkBought<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Mark a want-to-buy book as bought, retaining purchase details
+ * @summary Mark a want-to-buy book as bought with actual purchase details
  */
 
 export function useBookOwnershipControllerMarkBought<
@@ -2384,6 +2402,7 @@ export function useBookOwnershipControllerMarkBought<
   TError = void,
 >(
   id: string,
+  markBoughtInputDto: MarkBoughtInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookOwnershipControllerMarkBought>>, TError, TData>
@@ -2392,7 +2411,11 @@ export function useBookOwnershipControllerMarkBought<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getBookOwnershipControllerMarkBoughtQueryOptions(id, options);
+  const queryOptions = getBookOwnershipControllerMarkBoughtQueryOptions(
+    id,
+    markBoughtInputDto,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -61,7 +61,7 @@ export const createBookFormDefaults = {
   ageCategory: "not_specified",
   authors: [],
   bookType: "solo",
-  deliveryInfo: {},
+  deliveryInfo: { deliveryStatus: "ordered" },
   formats: ["paper"],
   genres: [],
   isFavorite: false,

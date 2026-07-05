@@ -6,6 +6,7 @@ import { UiIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 type TagInputProps = Omit<React.ComponentProps<"input">, "defaultValue" | "onChange" | "value"> & {
+  atMax?: boolean;
   inputClassName?: string;
   onInputChange?: (value: string) => void;
   onValueChange: (value: string[]) => void;
@@ -14,6 +15,7 @@ type TagInputProps = Omit<React.ComponentProps<"input">, "defaultValue" | "onCha
 };
 
 function TagInput({
+  atMax,
   className,
   disabled,
   id,
@@ -35,6 +37,7 @@ function TagInput({
   };
 
   const addTag = (raw: string) => {
+    if (atMax === true) return;
     const label = raw.trim();
     if (label === "") return;
     const exists = value.some((tag) => tag.toLowerCase() === label.toLowerCase());
@@ -80,10 +83,11 @@ function TagInput({
       >
         {value.map((tag) => (
           <span
-            className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-accent-border bg-accent py-0 pr-1.5 pl-3 text-[0.8125rem] font-medium whitespace-nowrap text-accent-foreground"
+            className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border border-accent-border bg-accent py-0 pr-1.5 pl-2.5 text-[0.8125rem] font-medium whitespace-nowrap text-accent-foreground"
             data-slot="tag-input-chip"
             key={tag}
           >
+            <UiIcon className="shrink-0 text-accent-foreground/70" name="tag" size={13} />
             <span className="overflow-hidden text-ellipsis">{tag}</span>
             {disabled ? null : (
               <button
@@ -102,7 +106,7 @@ function TagInput({
           aria-invalid={error !== undefined}
           autoComplete="off"
           className={cn(
-            "h-7 min-w-[90px] flex-1 border-0 bg-transparent text-[0.9375rem] text-ink outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed",
+            "h-7 min-w-[90px] flex-1 border-0 bg-transparent text-[0.9375rem] text-ink outline-none placeholder:text-muted-foreground read-only:cursor-not-allowed disabled:cursor-not-allowed",
             inputClassName,
           )}
           disabled={disabled}
@@ -110,6 +114,7 @@ function TagInput({
           onChange={(event) => updateDraft(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
+          readOnly={atMax}
           value={draft}
           {...props}
         />

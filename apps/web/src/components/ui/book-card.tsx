@@ -157,7 +157,7 @@ function BookCard({
               key={genre.label}
             >
               {genre.icon === undefined ? null : (
-                <GenreIcon className="shrink-0 text-icon" name={genre.icon} size={14} />
+                <GenreIcon className="shrink-0 text-brand/90" name={genre.icon} size={14} />
               )}
               {genre.label}
             </span>

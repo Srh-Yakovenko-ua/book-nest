@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookView, ReadingStatus } from "@app/shared";
+import type { BookView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 
 import type { ListDraft } from "../model/book-organization-fields";
 
@@ -28,9 +28,6 @@ import {
 import { BookListDialog } from "./book-list-dialog";
 import { ChangeReadingStatusDialog } from "./change-reading-status-dialog";
 import { DeleteBookDialog } from "./delete-book-dialog";
-import { UpdateReadingProgressDialog } from "./update-reading-progress-dialog";
-
-const UPDATABLE_STATUSES: readonly ReadingStatus[] = ["reading", "rereading", "paused"];
 
 type BookDetailsActionsMenuProps = {
   book: BookView;
@@ -38,6 +35,7 @@ type BookDetailsActionsMenuProps = {
 
 export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
   const t = useTranslations("books.details.actions");
+  const tDetails = useTranslations("books.details");
   const tConfirm = useTranslations("books.deleteConfirm");
   const router = useRouter();
 
@@ -46,12 +44,9 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
   const addToList = useBulkAddToList();
   const deleteBook = useDeleteBook();
 
-  const [updateOpen, setUpdateOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  const canUpdateProgress = UPDATABLE_STATUSES.includes(book.readingStatus);
 
   function onAddToQueue() {
     addToQueue.mutate([book.id], {
@@ -101,12 +96,14 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          {canUpdateProgress ? (
-            <DropdownMenuItem onSelect={() => setUpdateOpen(true)}>
+          <DropdownMenuItem asChild>
+            <Link href={`/books/${book.id}/edit`}>
               <UiIcon name="edit" size={16} />
-              {t("updateProgress")}
-            </DropdownMenuItem>
-          ) : null}
+              {tDetails("edit")}
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
 
           <DropdownMenuItem onSelect={() => setStatusOpen(true)}>
             <UiIcon name="swap" size={16} />
@@ -139,7 +136,6 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <UpdateReadingProgressDialog book={book} onOpenChange={setUpdateOpen} open={updateOpen} />
       <ChangeReadingStatusDialog book={book} onOpenChange={setStatusOpen} open={statusOpen} />
       <BookListDialog
         bookCount={1}

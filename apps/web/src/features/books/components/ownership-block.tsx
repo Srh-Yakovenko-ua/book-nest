@@ -23,10 +23,11 @@ import { isHttpsUrl } from "@/lib/is-https-url";
 import { cn } from "@/lib/utils";
 
 import { useReturnLoan } from "../api/use-loan";
-import { useMarkBought, useMarkOwned, useRemoveOwned } from "../api/use-ownership";
+import { useMarkOwned, useRemoveOwned } from "../api/use-ownership";
 import { todayIso } from "../model/reading-progress";
 import { DeliveryDialog } from "./delivery-dialog";
 import { LoanDialog } from "./loan-dialog";
+import { MarkBoughtDialog } from "./mark-bought-dialog";
 import { WantToBuyDialog } from "./want-to-buy-dialog";
 
 type ActionButton = {
@@ -46,9 +47,11 @@ type DirectMutation = {
 };
 
 type OwnershipActionLabels = {
+  alreadyOwn: string;
   loanBorrowed: string;
   loanLent: string;
   markBought: string;
+  markOrdered: string;
   markOwned: string;
   removeOwned: string;
   return: string;
@@ -66,10 +69,10 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
 
   const markOwned = useMarkOwned();
   const removeOwned = useRemoveOwned();
-  const markBought = useMarkBought();
   const returnLoan = useReturnLoan();
 
   const [buyOpen, setBuyOpen] = useState(false);
+  const [markBoughtOpen, setMarkBoughtOpen] = useState(false);
   const [deliveryOpen, setDeliveryOpen] = useState(false);
   const [loanOpen, setLoanOpen] = useState(false);
   const [loanDirection, setLoanDirection] = useState<LoanDirection>("borrowed");
@@ -90,18 +93,20 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
 
   const actions = buildActions({
     labels: {
+      alreadyOwn: t("actions.alreadyOwn"),
       loanBorrowed: t("actions.loanBorrowed"),
       loanLent: t("actions.loanLent"),
       markBought: t("actions.markBought"),
+      markOrdered: t("actions.markOrdered"),
       markOwned: t("actions.markOwned"),
       removeOwned: t("actions.removeOwned"),
       return: t("actions.return"),
       startDelivery: t("actions.startDelivery"),
       wantToBuy: t("actions.wantToBuy"),
     },
-    markBought,
     markOwned,
     onLoan: openLoan,
+    onMarkBought: () => setMarkBoughtOpen(true),
     onStartDelivery: () => setDeliveryOpen(true),
     onWantToBuy: () => setBuyOpen(true),
     removeOwned,
@@ -112,7 +117,7 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
 
   return (
     <>
-      <Card>
+      <Card className="shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
             <h2>{t("title")}</h2>
@@ -126,7 +131,12 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
             )}
           </div>
 
-          {book.purchaseInfo === null ? null : <PurchaseInfoBlock info={book.purchaseInfo} />}
+          {book.purchaseInfo !== null && book.ownershipStatus === "want_to_buy" ? (
+            <WantToBuyPurchaseBlock info={book.purchaseInfo} />
+          ) : null}
+          {book.purchaseInfo !== null && book.ownershipStatus === "owned" ? (
+            <AcquisitionBlock info={book.purchaseInfo} />
+          ) : null}
           {book.loanInfo === null ? null : <LoanInfoBlock book={book} info={book.loanInfo} />}
 
           {actions.length === 0 ? null : (
@@ -150,6 +160,7 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
       </Card>
 
       <WantToBuyDialog book={book} onOpenChange={setBuyOpen} open={buyOpen} />
+      <MarkBoughtDialog book={book} onOpenChange={setMarkBoughtOpen} open={markBoughtOpen} />
       <DeliveryDialog
         book={book}
         mode="create"
@@ -166,15 +177,37 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
   );
 }
 
+function AcquisitionBlock({ info }: { info: PurchaseInfoView }) {
+  const t = useTranslations("books.details.ownership.purchase");
+  const locale = useLocale();
+
+  const priceText = formatPrice(info.expectedPrice, info.currency, locale);
+  const hasContent = info.purchasedAt !== null || info.storeName !== null || priceText !== null;
+  if (!hasContent) return null;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-border bg-secondary/40 p-3.5">
+      <p className="text-sm font-medium text-foreground">{t("acquisition")}</p>
+      <dl className="flex flex-col gap-2">
+        {info.purchasedAt === null ? null : (
+          <InfoRow label={t("purchasedAt")} value={formatDate(info.purchasedAt, locale)} />
+        )}
+        {info.storeName === null ? null : <InfoRow label={t("store")} value={info.storeName} />}
+        {priceText === null ? null : <InfoRow label={t("price")} value={priceText} />}
+      </dl>
+    </div>
+  );
+}
+
 function assertNever(value: never): never {
   throw new Error(`Unhandled ownership status: ${String(value)}`);
 }
 
 function buildActions({
   labels,
-  markBought,
   markOwned,
   onLoan,
+  onMarkBought,
   onStartDelivery,
   onWantToBuy,
   removeOwned,
@@ -183,9 +216,9 @@ function buildActions({
   status,
 }: {
   labels: OwnershipActionLabels;
-  markBought: DirectMutation;
   markOwned: DirectMutation;
   onLoan: (direction: LoanDirection) => void;
+  onMarkBought: () => void;
   onStartDelivery: () => void;
   onWantToBuy: () => void;
   removeOwned: DirectMutation;
@@ -268,17 +301,25 @@ function buildActions({
           icon: "check-circle",
           key: "mark-bought",
           label: labels.markBought,
-          onClick: () => runDirect(markBought),
-          pending: markBought.isPending,
+          onClick: onMarkBought,
+          pending: false,
           variant: "default",
         },
         {
           icon: "truck",
           key: "start-delivery",
-          label: labels.startDelivery,
+          label: labels.markOrdered,
           onClick: onStartDelivery,
           pending: false,
           variant: "secondary",
+        },
+        {
+          icon: "library",
+          key: "already-own",
+          label: labels.alreadyOwn,
+          onClick: () => runDirect(markOwned),
+          pending: markOwned.isPending,
+          variant: "ghost",
         },
       ];
     default:
@@ -347,45 +388,52 @@ function LoanInfoBlock({ book, info }: { book: BookView; info: LoanInfoView }) {
   );
 }
 
-function PurchaseInfoBlock({ info }: { info: PurchaseInfoView }) {
+function WantToBuyPurchaseBlock({ info }: { info: PurchaseInfoView }) {
   const t = useTranslations("books.details.ownership.purchase");
   const tCommon = useTranslations("common");
   const locale = useLocale();
 
   const priceText = formatPrice(info.expectedPrice, info.currency, locale);
+  const storeLink = info.storeUrl !== null && isHttpsUrl(info.storeUrl) ? info.storeUrl : null;
+  const hasCard = info.storeName !== null || priceText !== null || storeLink !== null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-border bg-secondary/40 p-3.5">
-      <p className="text-sm font-medium text-foreground">{t("title")}</p>
-      <dl className="flex flex-col gap-2">
-        {info.storeName === null ? null : <InfoRow label={t("store")} value={info.storeName} />}
-        {info.storeUrl === null ? null : (
-          <div className="flex flex-col gap-1">
-            <dt className="text-xs text-muted-foreground">{t("link")}</dt>
-            <dd>
-              {isHttpsUrl(info.storeUrl) ? (
-                <a
-                  className="inline-flex items-center gap-1.5 rounded-sm text-sm break-all text-primary underline underline-offset-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  href={info.storeUrl}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  <UiIcon className="shrink-0" name="external" size={14} />
-                  {info.storeUrl}
-                  <span className="sr-only">{tCommon("opensInNewTab")}</span>
-                </a>
-              ) : (
-                <span className="text-sm break-all text-foreground/90">{info.storeUrl}</span>
+    <div className="flex flex-col gap-3">
+      <p className="text-sm font-medium text-foreground">{t("whereToBuy")}</p>
+      {hasCard ? (
+        <ul className="flex flex-col gap-3">
+          <li className="flex flex-col gap-2.5 rounded-md border border-border bg-secondary/40 p-3.5">
+            <div className="flex items-center justify-between gap-3">
+              {info.storeName === null ? null : (
+                <span className="inline-flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                  <UiIcon className="shrink-0 text-muted-foreground" name="store" size={16} />
+                  <span className="truncate">{info.storeName}</span>
+                </span>
               )}
-            </dd>
-          </div>
-        )}
-        {priceText === null ? null : <InfoRow label={t("price")} value={priceText} />}
-        {info.note === null ? null : <InfoRow label={t("note")} value={info.note} />}
-        {info.purchasedAt === null ? null : (
-          <InfoRow label={t("purchasedAt")} value={formatDate(info.purchasedAt, locale)} />
-        )}
-      </dl>
+              {priceText === null ? null : (
+                <span className="ml-auto shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary tabular-nums">
+                  {priceText}
+                </span>
+              )}
+            </div>
+            {storeLink === null ? null : (
+              <a
+                className="inline-flex items-center gap-1.5 self-start rounded-sm text-sm text-primary underline underline-offset-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                href={storeLink}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {t("goToStore")}
+                <UiIcon className="shrink-0" name="arrow-up-right" size={14} />
+                <span className="sr-only">{tCommon("opensInNewTab")}</span>
+              </a>
+            )}
+          </li>
+        </ul>
+      ) : null}
+      {info.note === null ? null : (
+        <p className="text-sm text-muted-foreground italic">{info.note}</p>
+      )}
     </div>
   );
 }

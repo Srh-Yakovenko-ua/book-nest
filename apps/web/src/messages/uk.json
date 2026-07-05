@@ -12,10 +12,13 @@
   "nav": {
     "home": "Головна",
     "library": "Бібліотека",
+    "buyList": "Книги до покупки",
     "series": "Серії"
   },
   "appShell": {
-    "label": "Book Nest"
+    "label": "Book Nest",
+    "collapseSidebar": "Згорнути бічну панель",
+    "expandSidebar": "Розгорнути бічну панель"
   },
   "home": {
     "eyebrow": "Моя бібліотека",
@@ -515,7 +518,9 @@
         "note": "Нотатка",
         "notePlaceholder": "Короткі думки для себе…",
         "datePlaceholder": "Оберіть дату"
-      }
+      },
+      "currentPageExceeds": "Поточна сторінка не може перевищувати {total}",
+      "currentPageHint": "з {total}"
     },
     "ownershipStatus": {
       "title": "Статус володіння",
@@ -525,8 +530,8 @@
         "want_to_buy": "Хочу купити",
         "in_transit": "У дорозі",
         "owned": "У наявності",
-        "borrowed_from_someone": "Позичив у когось",
-        "lent_to_someone": "Позичив комусь"
+        "borrowed_from_someone": "Позичена у когось",
+        "lent_to_someone": "Видана комусь"
       },
       "fields": {
         "note": "Нотатка",
@@ -535,13 +540,15 @@
       }
     },
     "purchaseInfo": {
-      "title": "Деталі покупки",
+      "title": "Посилання на магазин",
+      "subtitle": "Збережіть, де і за скільки можна купити цю книгу",
+      "moreStoresHint": "Більше магазинів для порівняння цін можна буде додати на сторінці <link>Книги до покупки</link>.",
       "fields": {
         "storeName": "Магазин",
         "storeNamePlaceholder": "Напр. Yakaboo",
-        "storeUrl": "Посилання на товар",
+        "storeUrl": "Посилання",
         "storeUrlPlaceholder": "https://…",
-        "expectedPrice": "Очікувана ціна",
+        "expectedPrice": "Ціна",
         "currency": "Валюта",
         "currencyPlaceholder": "Валюта"
       }
@@ -557,13 +564,16 @@
         "deliveryStatus": "Статус доставки",
         "deliveryStatusPlaceholder": "Оберіть статус"
       },
-      "deliveryStatusOptions": {
-        "ordered": "Замовлено",
-        "in_transit": "У дорозі",
-        "ready_for_pickup": "Готово до отримання",
-        "cancelled": "Скасовано"
-      },
       "markReceived": "Позначити як отриману"
+    },
+    "deliveryStatus": {
+      "labels": {
+        "ordered": "Замовлена",
+        "in_transit": "В дорозі",
+        "ready_for_pickup": "Готова до отримання",
+        "received": "Отримана",
+        "cancelled": "Скасована"
+      }
     },
     "loanInfo": {
       "title": "Деталі позики",
@@ -592,9 +602,10 @@
       "genresEmpty": "Жанрів не знайдено.",
       "genresLoading": "Завантаження жанрів…",
       "genresHint": "Можна обрати до {max} жанрів.",
+      "genresRecentHeading": "Раніше використані",
       "tags": "Теги",
       "tagsPlaceholder": "Додайте тег і натисніть Enter…",
-      "tagsAtMax": "Досягнуто межі тегів",
+      "tagsAtMax": "Ліміт вичерпано — видаліть зайві теги",
       "tagsHint": "Власні теги через Enter або кому, до {max} штук.",
       "tagsSuggestions": "Ваші теги",
       "tagsSearching": "Шукаємо теги…",
@@ -702,8 +713,7 @@
         "dedication": "Присвята",
         "dedicationPlaceholder": "Кому присвячена ця книга…"
       },
-      "advancedDetails": "Додаткові деталі",
-      "currentPageWarning": "Поточна сторінка більша за нову кількість сторінок. Оновіть прогрес читання."
+      "advancedDetails": "Додаткові деталі"
     },
     "organization": {
       "title": "Організація бібліотеки",
@@ -775,6 +785,14 @@
       "empty": "Магазинів не знайдено",
       "createNew": "Створити «{name}»"
     },
+    "deliveryService": {
+      "searching": "Шукаємо служби…",
+      "empty": "Служб доставки не знайдено.",
+      "recentHeading": "Раніше використані",
+      "resultsHeading": "Усі служби доставки",
+      "createNew": "Створити «{name}»",
+      "customBadge": "власне"
+    },
     "preview": {
       "eyebrow": "Попередній перегляд",
       "titlePlaceholder": "Приклад назви",
@@ -798,7 +816,11 @@
       "success": "Книгу додано до вашої бібліотеки.",
       "error": "Не вдалося додати книгу. Перевірте поля й спробуйте ще раз.",
       "editSuccess": "Зміни збережено.",
-      "editError": "Не вдалося зберегти зміни. Перевірте поля й спробуйте ще раз."
+      "editError": "Не вдалося зберегти зміни. Перевірте поля й спробуйте ще раз.",
+      "wantToBuyAction": "Перейти до списку покупок"
+    },
+    "form": {
+      "sectionComplete": "розділ заповнено"
     },
     "editPage": {
       "metaTitle": "Редагувати книгу",
@@ -886,8 +908,11 @@
       "edit": "Редагувати",
       "coverAlt": "Обкладинка книги «{title}»",
       "addedOn": "Додано {date}",
-      "progress": "{current} з {total} стор. · {percent}%",
+      "progressPages": "Сторінка {current} з {total}",
       "seriesPartWithNumber": "{series} · частина {number}",
+      "authorsShowAll": "Показати всіх авторів",
+      "authorsCollapse": "Згорнути",
+      "dedicationLabel": "Присвята автора",
       "lists": "Списки",
       "series": {
         "title": "Серія",
@@ -916,7 +941,6 @@
       },
       "actions": {
         "menu": "Дії з книгою",
-        "updateProgress": "Оновити прогрес",
         "changeReadingStatus": "Змінити статус читання",
         "addToQueue": "Додати в чергу читання",
         "removeFromQueue": "Прибрати з черги читання",
@@ -936,14 +960,14 @@
       },
       "about": {
         "title": "Про книгу",
-        "empty": "Опис ще не додано."
-      },
-      "edition": {
-        "empty": "Деталі видання ще не додані."
+        "empty": "Опис ще не додано.",
+        "showMore": "Показати більше",
+        "showLess": "Показати менше"
       },
       "quickInfo": {
         "title": "Коротка інформація",
-        "addedOn": "Додано"
+        "addedOn": "Додано",
+        "formats": "Формати"
       },
       "statuses": {
         "title": "Статуси",
@@ -1003,12 +1027,17 @@
           "loanBorrowed": "Позичена у когось",
           "removeOwned": "Прибрати з моїх",
           "loanLent": "Дати комусь почитати",
-          "markBought": "Куплена",
+          "markBought": "Позначити купленою",
+          "markOrdered": "Позначити замовленою",
           "return": "Позначити як повернуту",
-          "startDelivery": "Замовлена — в дорозі"
+          "startDelivery": "Замовлена — в дорозі",
+          "alreadyOwn": "Вже маю цю книгу"
         },
         "purchase": {
           "title": "Деталі покупки",
+          "acquisition": "Придбання",
+          "whereToBuy": "Де купити",
+          "goToStore": "Перейти до магазину",
           "store": "Магазин",
           "link": "Посилання на товар",
           "price": "Ціна",
@@ -1033,6 +1062,14 @@
           "notePlaceholder": "Короткі думки для себе…",
           "submit": "Зберегти"
         },
+        "buyConfirm": {
+          "title": "Позначити книгу як куплену?",
+          "description": "Вкажіть, де ви придбали книгу — це може відрізнятися від запланованого",
+          "sourceOther": "Інше місце",
+          "price": "Ціна",
+          "date": "Дата покупки",
+          "submit": "Підтвердити"
+        },
         "errors": {
           "storeUrl": "Введіть коректне https-посилання.",
           "storeUrlMax": "Не більше за {max} символів.",
@@ -1040,6 +1077,8 @@
           "priceMax": "Забагато. Максимум 99999999.99.",
           "storeNameMax": "Не більше за {max} символів.",
           "noteMax": "Не більше за {max} символів.",
+          "purchaseDateRequired": "Вкажіть дату покупки.",
+          "purchaseDateFuture": "Дата не може бути в майбутньому.",
           "generic": "Не вдалося зберегти. Спробуйте ще раз."
         }
       },
@@ -1093,13 +1132,6 @@
       },
       "delivery": {
         "title": "Доставка",
-        "statusLabels": {
-          "ordered": "Замовлена",
-          "in_transit": "В дорозі",
-          "ready_for_pickup": "Готова до отримання",
-          "received": "Отримана",
-          "cancelled": "Скасована"
-        },
         "hints": {
           "delayed": "Затримується",
           "noDate": "Дата доставки не вказана"
@@ -1157,8 +1189,6 @@
           "orderNumberPlaceholder": "Напр. 100500",
           "trackingNumber": "Трек-номер",
           "trackingNumberPlaceholder": "Напр. 20450000000000",
-          "trackingUrl": "Посилання на відстеження",
-          "trackingUrlPlaceholder": "https://…",
           "price": "Вартість",
           "currency": "Валюта",
           "currencyPlaceholder": "Валюта",
@@ -1183,15 +1213,29 @@
           "expectedBeforeOrder": "Доставка не може бути раніше за дату замовлення.",
           "orderNumberMax": "Не більше за {max} символів.",
           "serviceMax": "Не більше за {max} символів.",
+          "serviceMin": "Щонайменше {min} символи.",
           "trackingNumberMax": "Не більше за {max} символів.",
-          "trackingUrl": "Введіть коректне https-посилання.",
-          "trackingUrlMax": "Не більше за {max} символів.",
           "price": "Вартість має бути більшою за 0.",
           "priceMax": "Забагато. Максимум 99999999.99.",
           "noteMax": "Не більше за {max} символів.",
           "generic": "Не вдалося зберегти. Спробуйте ще раз."
         }
       }
+    }
+  },
+  "booksToBuy": {
+    "metaTitle": "Книги до покупки",
+    "title": "Книги до покупки",
+    "subtitle": "Ваш список бажаних книг, які ви плануєте придбати",
+    "empty": {
+      "title": "Список покупок поки порожній",
+      "description": "Тут зʼявляться книги зі статусом «Хочу купити».",
+      "cta": "Додати книгу"
+    },
+    "error": {
+      "title": "Не вдалося завантажити",
+      "description": "Спробуйте оновити сторінку ще раз.",
+      "retry": "Спробувати ще раз"
     }
   },
   "series": {

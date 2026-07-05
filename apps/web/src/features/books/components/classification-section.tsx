@@ -16,13 +16,16 @@ import {
 import type { CreateBookFormValues } from "../model/create-book-form";
 
 import { useGenres } from "../api/use-genres";
+import { useRecentGenres } from "../api/use-recent-genres";
 import {
   AGE_CATEGORY_OPTIONS,
   BOOK_GENRES_MAX,
   BOOK_LANGUAGE_OPTIONS,
 } from "../model/book-classification-fields";
+import { CLASSIFICATION_FIELDS } from "../model/section-completeness";
 import { FormSection } from "./form-section";
 import { TagsField } from "./tags-field";
+import { useSectionCompletion } from "./use-section-completion";
 
 type ClassificationSectionProps = {
   control: Control<CreateBookFormValues>;
@@ -32,14 +35,18 @@ type ClassificationSectionProps = {
 export function ClassificationSection({ control, errors }: ClassificationSectionProps) {
   const t = useTranslations("books");
   const genres = useGenres();
+  const recentGenres = useRecentGenres();
   const genresErrorMessage =
     typeof errors.genres?.message === "string" ? errors.genres.message : undefined;
 
   const genreList = genres.data ?? [];
   const genreNameByKey = new Map(genreList.map((genre) => [genre.key, genre.name]));
+  const complete = useSectionCompletion(control, CLASSIFICATION_FIELDS);
 
   return (
     <FormSection
+      complete={complete}
+      completeLabel={t("form.sectionComplete")}
       description={t("classification.description")}
       icon="tag"
       title={t("classification.title")}
@@ -52,13 +59,26 @@ export function ClassificationSection({ control, errors }: ClassificationSection
           render={({ field }) => {
             const selected = field.value ?? [];
             const atMax = selected.length >= BOOK_GENRES_MAX;
-            const options: MultiselectOption[] = genreList
+
+            const recentHeading = t("classification.genresRecentHeading");
+            const recentKeys = (recentGenres.data ?? [])
+              .map((genre) => genre.key)
+              .filter((key) => genreNameByKey.has(key))
+              .filter((key) => !atMax || selected.includes(key));
+            const recentKeySet = new Set(recentKeys);
+
+            const recentOptions: MultiselectOption[] = recentKeys.map((key) => ({
+              group: recentHeading,
+              label: genreNameByKey.get(key) ?? key,
+              value: key,
+            }));
+
+            const catalogOptions: MultiselectOption[] = genreList
+              .filter((genre) => !recentKeySet.has(genre.key))
               .filter((genre) => !atMax || selected.includes(genre.key))
-              .map((genre) => ({
-                group: genre.groupName,
-                label: genre.name,
-                value: genre.key,
-              }));
+              .map((genre) => ({ group: genre.groupName, label: genre.name, value: genre.key }));
+
+            const options: MultiselectOption[] = [...recentOptions, ...catalogOptions];
             for (const key of selected) {
               if (options.some((option) => option.value === key)) continue;
               options.push({ label: genreNameByKey.get(key) ?? key, value: key });

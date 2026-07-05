@@ -23,12 +23,10 @@ import {
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Rating } from "@/components/ui/rating";
 import { Textarea } from "@/components/ui/textarea";
 import { readingStatuses } from "@/lib/book-status";
 import { ApiError } from "@/lib/http-client";
-import { cn } from "@/lib/utils";
 
 import { useChangeReadingStatus } from "../api/use-reading-progress";
 import {
@@ -37,6 +35,7 @@ import {
   todayIso,
 } from "../model/reading-progress";
 import { BookDateField } from "./book-date-field";
+import { StatusChipGroup } from "./status-chip-group";
 
 const NOTE_MAX = 300;
 const RATING_MAX = 10;
@@ -166,8 +165,10 @@ function ChangeStatusForm({
   });
 
   const status = useWatch({ control, name: "status" });
-  const fields = fieldsFor(status);
-  const unchanged = status === book.readingStatus;
+  const resetProgress = useWatch({ control, name: "resetProgress" });
+  const hasSavedPage = (book.readingProgress?.currentPage ?? 0) > 0;
+  const fields = fieldsFor(status, hasSavedPage);
+  const unchanged = status === book.readingStatus && !(fields.resetProgress && resetProgress);
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
@@ -192,36 +193,16 @@ function ChangeStatusForm({
         control={control}
         name="status"
         render={({ field }) => (
-          <RadioGroup
-            aria-label={t("statusDialog.statusLabel")}
-            className="grid-cols-2 gap-2 sm:grid-cols-3"
+          <StatusChipGroup
+            label={t("statusDialog.statusLabel")}
             onValueChange={(next) => field.onChange(next as ReadingStatus)}
+            options={readingStatuses.map((entry) => ({
+              icon: <UiIcon name={entry.icon} size={16} />,
+              label: tOptions(entry.value),
+              value: entry.value,
+            }))}
             value={field.value}
-          >
-            {readingStatuses.map((entry) => {
-              const selected = field.value === entry.value;
-              return (
-                <Label
-                  className={cn(
-                    "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2.5 text-sm font-normal transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50",
-                    selected
-                      ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border bg-card text-muted-foreground hover:border-accent-border hover:text-foreground",
-                  )}
-                  htmlFor={`status-${entry.value}`}
-                  key={entry.value}
-                >
-                  <RadioGroupItem
-                    className="sr-only"
-                    id={`status-${entry.value}`}
-                    value={entry.value}
-                  />
-                  <UiIcon className="shrink-0" name={entry.icon} size={16} />
-                  <span className="min-w-0 truncate">{tOptions(entry.value)}</span>
-                </Label>
-              );
-            })}
-          </RadioGroup>
+          />
         )}
       />
 
@@ -369,7 +350,7 @@ function ChangeStatusForm({
   );
 }
 
-function fieldsFor(status: ReadingStatus): StatusFields {
+function fieldsFor(status: ReadingStatus, canResetProgress: boolean): StatusFields {
   const none: StatusFields = {
     currentPage: false,
     date: false,
@@ -384,7 +365,7 @@ function fieldsFor(status: ReadingStatus): StatusFields {
     case "finished":
       return { ...none, date: true, rating: true };
     case "not_started":
-      return { ...none, resetProgress: true };
+      return { ...none, resetProgress: canResetProgress };
     case "paused":
       return { ...none, currentPage: true, date: true, note: true };
     case "reading":

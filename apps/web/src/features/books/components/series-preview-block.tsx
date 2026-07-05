@@ -39,7 +39,7 @@ export function SeriesPreviewBlock({ book }: SeriesPreviewBlockProps) {
     series.nextBook !== null && series.nextBook.id !== book.id ? series.nextBook : null;
 
   return (
-    <Card>
+    <Card className="shadow-detail-block">
       <CardHeader>
         <CardTitle asChild>
           <h2>{t("title")}</h2>

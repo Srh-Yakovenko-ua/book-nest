@@ -7,6 +7,7 @@ export { BookForm } from "./components/book-form";
 export { BookPreview } from "./components/book-preview";
 export { BooksLibrary } from "./components/books-library";
 export { BooksLibraryView } from "./components/books-library-view";
+export { BooksToBuyView } from "./components/books-to-buy-view";
 export { CreateBookForm } from "./components/create-book-form";
 export { EditBookForm } from "./components/edit-book-form";
 export { FormSection } from "./components/form-section";

@@ -24,7 +24,7 @@ export default async function SeriesPage({ params }: Props) {
   setRequestLocale(locale);
 
   return (
-    <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
       <AllSeries />
     </main>
   );

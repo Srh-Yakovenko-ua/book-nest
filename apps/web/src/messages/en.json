@@ -12,10 +12,13 @@
   "nav": {
     "home": "Home",
     "library": "Library",
+    "buyList": "Books to buy",
     "series": "Series"
   },
   "appShell": {
-    "label": "Book Nest"
+    "label": "Book Nest",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
   },
   "home": {
     "eyebrow": "My library",
@@ -515,7 +518,9 @@
         "note": "Note",
         "notePlaceholder": "A few thoughts for yourself…",
         "datePlaceholder": "Pick a date"
-      }
+      },
+      "currentPageExceeds": "Current page can't exceed {total}",
+      "currentPageHint": "of {total}"
     },
     "ownershipStatus": {
       "title": "Ownership status",
@@ -535,13 +540,15 @@
       }
     },
     "purchaseInfo": {
-      "title": "Purchase details",
+      "title": "Store link",
+      "subtitle": "Save where and for how much you can buy this book",
+      "moreStoresHint": "You'll be able to add more stores for price comparison on the <link>Books to buy</link> page.",
       "fields": {
         "storeName": "Store",
         "storeNamePlaceholder": "e.g. Yakaboo",
-        "storeUrl": "Product link",
+        "storeUrl": "Link",
         "storeUrlPlaceholder": "https://…",
-        "expectedPrice": "Expected price",
+        "expectedPrice": "Price",
         "currency": "Currency",
         "currencyPlaceholder": "Currency"
       }
@@ -557,13 +564,16 @@
         "deliveryStatus": "Delivery status",
         "deliveryStatusPlaceholder": "Pick a status"
       },
-      "deliveryStatusOptions": {
+      "markReceived": "Mark as received"
+    },
+    "deliveryStatus": {
+      "labels": {
         "ordered": "Ordered",
         "in_transit": "In transit",
         "ready_for_pickup": "Ready for pickup",
+        "received": "Received",
         "cancelled": "Cancelled"
-      },
-      "markReceived": "Mark as received"
+      }
     },
     "loanInfo": {
       "title": "Loan details",
@@ -592,9 +602,10 @@
       "genresEmpty": "No genres found.",
       "genresLoading": "Loading genres…",
       "genresHint": "You can pick up to {max} genres.",
+      "genresRecentHeading": "Previously used",
       "tags": "Tags",
       "tagsPlaceholder": "Add a tag and press Enter…",
-      "tagsAtMax": "Tag limit reached",
+      "tagsAtMax": "Limit reached — remove a tag to add more",
       "tagsHint": "Custom tags via Enter or comma, up to {max}.",
       "tagsSuggestions": "Your tags",
       "tagsSearching": "Searching tags…",
@@ -702,8 +713,7 @@
         "dedication": "Dedication",
         "dedicationPlaceholder": "Who this book is dedicated to…"
       },
-      "advancedDetails": "Advanced details",
-      "currentPageWarning": "Your current page is higher than the new page count. Update your reading progress."
+      "advancedDetails": "Advanced details"
     },
     "organization": {
       "title": "Library organization",
@@ -775,6 +785,14 @@
       "empty": "No stores found",
       "createNew": "Create “{name}”"
     },
+    "deliveryService": {
+      "searching": "Searching services…",
+      "empty": "No services found.",
+      "recentHeading": "Recently used",
+      "resultsHeading": "All services",
+      "createNew": "Create “{name}”",
+      "customBadge": "custom"
+    },
     "preview": {
       "eyebrow": "Preview",
       "titlePlaceholder": "Example title",
@@ -798,7 +816,11 @@
       "success": "Book added to your library.",
       "error": "Could not add the book. Check the fields and try again.",
       "editSuccess": "Changes saved.",
-      "editError": "Could not save the changes. Check the fields and try again."
+      "editError": "Could not save the changes. Check the fields and try again.",
+      "wantToBuyAction": "Go to shopping list"
+    },
+    "form": {
+      "sectionComplete": "section complete"
     },
     "editPage": {
       "metaTitle": "Edit book",
@@ -886,8 +908,11 @@
       "edit": "Edit",
       "coverAlt": "Cover of “{title}”",
       "addedOn": "Added {date}",
-      "progress": "{current} of {total} pp. · {percent}%",
+      "progressPages": "Page {current} of {total}",
       "seriesPartWithNumber": "{series} · part {number}",
+      "authorsShowAll": "Show all authors",
+      "authorsCollapse": "Collapse",
+      "dedicationLabel": "Author's dedication",
       "lists": "Lists",
       "series": {
         "title": "Series",
@@ -916,7 +941,6 @@
       },
       "actions": {
         "menu": "Book actions",
-        "updateProgress": "Update progress",
         "changeReadingStatus": "Change reading status",
         "addToQueue": "Add to reading queue",
         "removeFromQueue": "Remove from reading queue",
@@ -936,14 +960,14 @@
       },
       "about": {
         "title": "About",
-        "empty": "No description yet."
-      },
-      "edition": {
-        "empty": "No edition details yet."
+        "empty": "No description yet.",
+        "showMore": "Show more",
+        "showLess": "Show less"
       },
       "quickInfo": {
         "title": "Quick information",
-        "addedOn": "Added"
+        "addedOn": "Added",
+        "formats": "Formats"
       },
       "statuses": {
         "title": "Statuses",
@@ -1003,12 +1027,17 @@
           "loanBorrowed": "Borrowed from someone",
           "removeOwned": "Remove from mine",
           "loanLent": "Lend to someone",
-          "markBought": "Bought it",
+          "markBought": "Mark as bought",
+          "markOrdered": "Mark as ordered",
           "return": "Mark as returned",
-          "startDelivery": "Ordered — in transit"
+          "startDelivery": "Ordered — in transit",
+          "alreadyOwn": "I already have this book"
         },
         "purchase": {
           "title": "Purchase details",
+          "acquisition": "Acquisition",
+          "whereToBuy": "Where to buy",
+          "goToStore": "Go to store",
           "store": "Store",
           "link": "Product link",
           "price": "Price",
@@ -1033,6 +1062,14 @@
           "notePlaceholder": "A few thoughts for yourself…",
           "submit": "Save"
         },
+        "buyConfirm": {
+          "title": "Mark this book as bought?",
+          "description": "Tell us where you bought it — it may differ from the plan",
+          "sourceOther": "Somewhere else",
+          "price": "Price",
+          "date": "Purchase date",
+          "submit": "Confirm"
+        },
         "errors": {
           "storeUrl": "Enter a valid https link.",
           "storeUrlMax": "No more than {max} characters.",
@@ -1040,6 +1077,8 @@
           "priceMax": "Too large. Maximum 99999999.99.",
           "storeNameMax": "No more than {max} characters.",
           "noteMax": "No more than {max} characters.",
+          "purchaseDateRequired": "Enter the purchase date.",
+          "purchaseDateFuture": "The date can’t be in the future.",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -1093,13 +1132,6 @@
       },
       "delivery": {
         "title": "Delivery",
-        "statusLabels": {
-          "ordered": "Ordered",
-          "in_transit": "In transit",
-          "ready_for_pickup": "Ready for pickup",
-          "received": "Received",
-          "cancelled": "Cancelled"
-        },
         "hints": {
           "delayed": "Delayed",
           "noDate": "No delivery date set"
@@ -1157,8 +1189,6 @@
           "orderNumberPlaceholder": "e.g. 100500",
           "trackingNumber": "Tracking number",
           "trackingNumberPlaceholder": "e.g. 20450000000000",
-          "trackingUrl": "Tracking link",
-          "trackingUrlPlaceholder": "https://…",
           "price": "Price",
           "currency": "Currency",
           "currencyPlaceholder": "Currency",
@@ -1183,15 +1213,29 @@
           "expectedBeforeOrder": "Delivery can’t be before the order date.",
           "orderNumberMax": "No more than {max} characters.",
           "serviceMax": "No more than {max} characters.",
+          "serviceMin": "At least {min} characters.",
           "trackingNumberMax": "No more than {max} characters.",
-          "trackingUrl": "Enter a valid https link.",
-          "trackingUrlMax": "No more than {max} characters.",
           "price": "Price must be greater than 0.",
           "priceMax": "Too large. Maximum 99999999.99.",
           "noteMax": "No more than {max} characters.",
           "generic": "Couldn’t save. Please try again."
         }
       }
+    }
+  },
+  "booksToBuy": {
+    "metaTitle": "Books to buy",
+    "title": "Books to buy",
+    "subtitle": "Your wishlist of books you plan to buy",
+    "empty": {
+      "title": "Your shopping list is empty",
+      "description": "Books with the «Want to buy» status will appear here.",
+      "cta": "Add book"
+    },
+    "error": {
+      "title": "Could not load",
+      "description": "Please try refreshing the page.",
+      "retry": "Try again"
     }
   },
   "series": {

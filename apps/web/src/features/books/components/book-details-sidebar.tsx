@@ -1,7 +1,9 @@
 "use client";
 
 import type { BookView } from "@app/shared";
+import type { LucideIcon } from "lucide-react";
 
+import { Building2, Calendar, Clock, FileText, Languages, Layers, User, Users } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode } from "react";
 
@@ -9,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import { DeliveryBlock } from "./delivery-block";
 import { OwnershipBlock } from "./ownership-block";
@@ -28,44 +31,63 @@ export function BookDetailsSidebar({ book }: BookDetailsSidebarProps) {
   const ownershipBase = ownershipStatuses.find((entry) => entry.value === book.ownershipStatus);
 
   return (
-    <aside className="flex flex-col gap-6">
-      <Card>
+    <aside className="book-details-leaf flex flex-col gap-6">
+      <Card className="shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
             <h2>{t("details.quickInfo.title")}</h2>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <dl className="flex flex-col gap-3">
+          <dl className="flex flex-col gap-0">
             {authorNames.length > 0 ? (
-              <InfoRow label={t("fields.author")} value={authorNames} />
+              <InfoRow icon={User} label={t("fields.author")} multiline value={authorNames} />
             ) : null}
             {book.publisher === null ? null : (
-              <InfoRow label={t("fields.publisher")} value={book.publisher.name} />
+              <InfoRow icon={Building2} label={t("fields.publisher")} value={book.publisher.name} />
             )}
             {book.publicationYear === null ? null : (
               <InfoRow
+                icon={Calendar}
                 label={t("editionDetails.fields.publicationYear")}
                 value={String(book.publicationYear)}
               />
             )}
             <InfoRow
+              icon={Languages}
               label={t("classification.language")}
               value={t(`classification.languageLabels.${book.language}`)}
             />
+            {book.formats.length > 0 ? (
+              <InfoRow icon={Layers} label={t("details.quickInfo.formats")}>
+                {book.formats.map((value) => {
+                  const base = bookFormats.find((entry) => entry.value === value);
+                  if (base === undefined) return null;
+                  return (
+                    <StatusBadge
+                      entry={{ ...base, label: t(`format.options.${value}`) }}
+                      key={value}
+                    />
+                  );
+                })}
+              </InfoRow>
+            ) : null}
             {book.pagesCount === null ? null : (
               <InfoRow
+                icon={FileText}
                 label={t("editionDetails.fields.pagesCount")}
                 value={String(book.pagesCount)}
               />
             )}
             {book.ageCategory === "not_specified" ? null : (
               <InfoRow
+                icon={Users}
                 label={t("classification.ageCategory")}
                 value={t(`classification.ageCategoryLabels.${book.ageCategory}`)}
               />
             )}
             <InfoRow
+              icon={Clock}
               label={t("details.quickInfo.addedOn")}
               value={formatDate(book.createdAt, locale)}
             />
@@ -73,7 +95,7 @@ export function BookDetailsSidebar({ book }: BookDetailsSidebarProps) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
             <h2>{t("details.statuses.title")}</h2>
@@ -101,24 +123,6 @@ export function BookDetailsSidebar({ book }: BookDetailsSidebarProps) {
                 />
               )}
             </StatusRow>
-            <StatusRow label={t("format.title")}>
-              {book.formats.length === 0 ? (
-                <span className="text-sm text-muted-foreground">{t("details.statuses.none")}</span>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {book.formats.map((value) => {
-                    const base = bookFormats.find((entry) => entry.value === value);
-                    if (base === undefined) return null;
-                    return (
-                      <StatusBadge
-                        entry={{ ...base, label: t(`format.options.${value}`) }}
-                        key={value}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </StatusRow>
           </dl>
         </CardContent>
       </Card>
@@ -134,11 +138,42 @@ export function BookDetailsSidebar({ book }: BookDetailsSidebarProps) {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({
+  children,
+  icon: Icon,
+  label,
+  multiline = false,
+  value,
+}: {
+  children?: ReactNode;
+  icon: LucideIcon;
+  label: string;
+  multiline?: boolean;
+  value?: string;
+}) {
   return (
-    <div className="flex items-baseline justify-between gap-4">
-      <dt className="shrink-0 text-xs text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 truncate text-right text-sm text-foreground/90">{value}</dd>
+    <div
+      className={cn(
+        "flex justify-between gap-4 border-b border-[color-mix(in_srgb,var(--border)_70%,transparent)] pt-2 pb-2 first:pt-0 last:border-0 last:pb-0",
+        multiline ? "items-start" : "items-center",
+      )}
+    >
+      <dt className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+        <Icon aria-hidden className="size-3.5 shrink-0" />
+        {label}
+      </dt>
+      {children === undefined ? (
+        <dd
+          className={cn(
+            "min-w-0 text-right text-xs font-medium text-foreground/90",
+            multiline ? "break-words" : "truncate",
+          )}
+        >
+          {value}
+        </dd>
+      ) : (
+        <dd className="flex min-w-0 flex-wrap justify-end gap-1.5">{children}</dd>
+      )}
     </div>
   );
 }

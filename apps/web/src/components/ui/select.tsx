@@ -191,7 +191,7 @@ function SelectTrigger({
       </SelectPrimitive.Trigger>
       <button
         aria-label={clearLabel}
-        className="absolute top-1/2 right-7 hidden size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors group-not-has-data-placeholder/select-clear:flex hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="absolute top-1/2 right-1.5 hidden size-5 -translate-y-1/2 cursor-pointer items-center justify-center rounded-sm text-muted-foreground transition-colors group-not-has-data-placeholder/select-clear:flex hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         data-slot="select-clear"
         onClick={(event) => {
           event.stopPropagation();

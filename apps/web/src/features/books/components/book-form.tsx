@@ -4,6 +4,7 @@ import type { BookFormat, BookView, OwnershipStatus, ReadingStatus } from "@app/
 
 import {
   BOOK_AUTHORS_REQUIRED_MESSAGE,
+  BOOK_DEDICATION_MAX,
   BOOK_DESCRIPTION_MAX,
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
@@ -11,7 +12,14 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
-import { Controller, type Path, type Resolver, useForm, useWatch } from "react-hook-form";
+import {
+  Controller,
+  type DefaultValues,
+  type Path,
+  type Resolver,
+  useForm,
+  useWatch,
+} from "react-hook-form";
 import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
@@ -52,6 +60,7 @@ import {
   type SeriesSelection,
   UpdateBookInputSchema,
 } from "../model/create-book-form";
+import { BASIC_INFO_FIELDS } from "../model/section-completeness";
 import { AuthorsField } from "./authors-field";
 import { BookPreview } from "./book-preview";
 import { BookTypeSection } from "./book-type-section";
@@ -65,6 +74,7 @@ import { LibraryOrganizationSection } from "./library-organization-section";
 import { OwnershipStatusSection } from "./ownership-status-section";
 import { PublisherAutocomplete } from "./publisher-autocomplete";
 import { ReadingStatusSection } from "./reading-status-section";
+import { useSectionCompletion } from "./use-section-completion";
 
 type BookFormProps =
   | { book: BookView; mode: "edit" }
@@ -88,6 +98,8 @@ const SERVER_FIELD_PATHS = [
   "publisherName",
   "description",
   "partNumber",
+  "readingProgress.currentPage",
+  "loanInfo.personName",
 ] as const;
 
 export function BookForm(props: BookFormProps) {
@@ -158,6 +170,12 @@ export function BookForm(props: BookFormProps) {
     props.mode === "edit" ? zodResolver(UpdateBookInputSchema) : zodResolver(CreateBookInputSchema)
   ) as Resolver<CreateBookFormValues, unknown, CreateBookFormOutput>;
 
+  const defaultFormValues: DefaultValues<CreateBookFormValues> = restoredDraft
+    ? { ...(initial?.values ?? createDefaults), ...restoredDraft.values }
+    : (initial?.values ?? createDefaults);
+  const initialPagesCount =
+    typeof defaultFormValues.pagesCount === "number" ? defaultFormValues.pagesCount : undefined;
+
   const {
     clearErrors,
     control,
@@ -169,9 +187,7 @@ export function BookForm(props: BookFormProps) {
     setValue,
     subscribe,
   } = useForm<CreateBookFormValues, unknown, CreateBookFormOutput>({
-    defaultValues: restoredDraft
-      ? { ...(initial?.values ?? createDefaults), ...restoredDraft.values }
-      : (initial?.values ?? createDefaults),
+    defaultValues: defaultFormValues,
     mode: "onTouched",
     resolver,
     reValidateMode: "onChange",
@@ -217,6 +233,7 @@ export function BookForm(props: BookFormProps) {
 
   const titleValue = useWatch({ control, name: "title" }) ?? "";
   const descriptionValue = useWatch({ control, name: "description" }) ?? "";
+  const dedicationValue = useWatch({ control, name: "dedication" }) ?? "";
   const readingStatusValue = useWatch({ control, name: "readingStatus" }) ?? "not_started";
   const ownershipStatusValue = useWatch({ control, name: "ownershipStatus" }) ?? "none";
   const genresValue = useWatch({ control, name: "genres" }) ?? [];
@@ -226,6 +243,7 @@ export function BookForm(props: BookFormProps) {
   const inQueueValue = useWatch({ control, name: "addToReadingQueue" }) ?? false;
   const ratingValue = useWatch({ control, name: "readingProgress.rating" });
   const partNumberValue = useWatch({ control, name: "partNumber" });
+  const basicInfoComplete = useSectionCompletion(control, BASIC_INFO_FIELDS);
 
   function handleSeriesSelectionChange(selection: null | SeriesSelection) {
     setSeriesConflict(null);
@@ -396,17 +414,26 @@ export function BookForm(props: BookFormProps) {
         onSuccess: () => {
           clearDraft();
           toast.success(t("submit.editSuccess"));
-          router.push("/books");
+          router.push(`/books/${bookId}`);
         },
       });
       return;
     }
     createBook.mutate(payload, {
       onError: (error) => handleMutationError(error),
-      onSuccess: () => {
+      onSuccess: (book) => {
         sessionStorage.removeItem(draftKey);
-        toast.success(t("submit.success"));
-        router.push("/books");
+        if (values.ownershipStatus === "want_to_buy") {
+          toast.success(t("submit.success"), {
+            action: {
+              label: t("submit.wantToBuyAction"),
+              onClick: () => router.push("/books-to-buy"),
+            },
+          });
+        } else {
+          toast.success(t("submit.success"));
+        }
+        router.push(`/books/${book.id}`);
       },
     });
   });
@@ -474,6 +501,8 @@ export function BookForm(props: BookFormProps) {
     >
       <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:slide-in-from-bottom-2">
         <FormSection
+          complete={basicInfoComplete}
+          completeLabel={t("form.sectionComplete")}
           description={t("basicInfo.description")}
           icon="book"
           title={t("basicInfo.title")}
@@ -496,6 +525,25 @@ export function BookForm(props: BookFormProps) {
               {...register("title")}
             />
             <FieldError error={errors.title} id="book-title-error" />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="book-original-title">
+              {t("editionDetails.fields.originalTitle")}{" "}
+              <span className="text-xs font-normal text-muted-foreground">
+                {t("fields.optional")}
+              </span>
+            </Label>
+            <Input
+              aria-describedby={errors.originalTitle ? "book-original-title-error" : undefined}
+              aria-invalid={errors.originalTitle !== undefined}
+              autoComplete="off"
+              className="h-10"
+              id="book-original-title"
+              placeholder={t("editionDetails.fields.originalTitlePlaceholder")}
+              {...register("originalTitle", { setValueAs: emptyToUndefined })}
+            />
+            <FieldError error={errors.originalTitle} id="book-original-title-error" />
           </div>
 
           <div className="flex flex-col gap-2">
@@ -592,9 +640,33 @@ export function BookForm(props: BookFormProps) {
               </span>
             </div>
           </div>
-        </FormSection>
 
-        <ClassificationSection control={control} errors={errors} />
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="book-dedication">
+              {t("editionDetails.fields.dedication")}{" "}
+              <span className="text-xs font-normal text-muted-foreground">
+                {t("fields.optional")}
+              </span>
+            </Label>
+            <Textarea
+              aria-describedby="book-dedication-counter"
+              aria-invalid={errors.dedication !== undefined}
+              id="book-dedication"
+              maxLength={BOOK_DEDICATION_MAX}
+              placeholder={t("editionDetails.fields.dedicationPlaceholder")}
+              {...register("dedication", { setValueAs: emptyToUndefined })}
+            />
+            <div className="flex items-center justify-between gap-2">
+              <FieldError error={errors.dedication} id="book-dedication-error" />
+              <span
+                className="ml-auto text-xs text-muted-foreground tabular-nums"
+                id="book-dedication-counter"
+              >
+                {dedicationValue.length}/{BOOK_DEDICATION_MAX}
+              </span>
+            </div>
+          </div>
+        </FormSection>
 
         <BookTypeSection
           authorSelections={authorSelections}
@@ -608,9 +680,12 @@ export function BookForm(props: BookFormProps) {
           setValue={setValue}
         />
 
+        <ClassificationSection control={control} errors={errors} />
+
         <ReadingStatusSection
           control={control}
           errors={errors}
+          initialPagesCount={initialPagesCount}
           onRequestChange={mode === "edit" ? requestReadingStatusChange : undefined}
         />
 

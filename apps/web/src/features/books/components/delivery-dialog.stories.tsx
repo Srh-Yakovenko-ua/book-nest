@@ -96,18 +96,6 @@ export const Create: Story = {
   render: () => <CreateHarness book={dialogBook()} />,
 };
 
-export const InvalidTrackingUrlShowsClientError: Story = {
-  play: async () => {
-    const body = within(document.body);
-    await userEvent.type(body.getByLabelText("Магазин"), "Yakaboo");
-    await userEvent.type(body.getByLabelText("Посилання на відстеження"), "not-a-url");
-    await userEvent.click(body.getByRole("button", { name: "Замовити" }));
-    await waitFor(() => expect(body.getByText("Введіть коректне https-посилання.")).toBeVisible());
-    await expect(body.getByTestId("open-state")).toHaveTextContent("open");
-  },
-  render: () => <CreateHarness book={dialogBook()} />,
-};
-
 export const ServerErrorKeepsOpen: Story = {
   play: async () => {
     mockFetch(409, { message: "У книги вже є активна доставка" });

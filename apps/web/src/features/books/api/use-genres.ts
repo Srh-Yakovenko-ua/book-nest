@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { request } from "@/lib/http-client";
 
-const genreViewSchema = z.object({
+export const genreViewSchema = z.object({
   groupKey: z.string(),
   groupName: z.string(),
   id: z.string(),

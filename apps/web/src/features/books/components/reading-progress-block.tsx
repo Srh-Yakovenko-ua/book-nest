@@ -41,7 +41,7 @@ export function ReadingProgressBlock({ book }: ReadingProgressBlockProps) {
 
   return (
     <>
-      <Card>
+      <Card className="shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
             <h2>{t("title")}</h2>
@@ -96,7 +96,6 @@ function NoteBlock({ label, value }: { label: string; value: string }) {
 
 function ProgressBody({ book }: { book: BookView }) {
   const t = useTranslations("books.details.reading");
-  const tDetails = useTranslations("books.details");
   const tFields = useTranslations("books.readingStatus.fields");
   const locale = useLocale();
 
@@ -118,13 +117,7 @@ function ProgressBody({ book }: { book: BookView }) {
       {status === "finished" && book.pagesCount !== null ? (
         <div className="flex flex-col gap-1.5">
           <Progress aria-label={t("progressLabel")} className="h-1.5" value={100} />
-          <p className="text-sm text-muted-foreground tabular-nums">
-            {tDetails("progress", {
-              current: book.pagesCount,
-              percent: 100,
-              total: book.pagesCount,
-            })}
-          </p>
+          <ProgressLine current={book.pagesCount} percent={100} total={book.pagesCount} />
         </div>
       ) : null}
 
@@ -135,9 +128,7 @@ function ProgressBody({ book }: { book: BookView }) {
             className={cn("h-1.5", status === "dnf" && "opacity-60")}
             value={summary.percent}
           />
-          <p className="text-sm text-muted-foreground tabular-nums">
-            {tDetails("progress", summary)}
-          </p>
+          <ProgressLine current={summary.current} percent={summary.percent} total={summary.total} />
         </div>
       ) : null}
 
@@ -171,6 +162,26 @@ function ProgressBody({ book }: { book: BookView }) {
       {rp?.impression == null ? null : (
         <NoteBlock label={tFields("impression")} value={rp.impression} />
       )}
+    </div>
+  );
+}
+
+function ProgressLine({
+  current,
+  percent,
+  total,
+}: {
+  current: number;
+  percent: number;
+  total: number;
+}) {
+  const tDetails = useTranslations("books.details");
+  return (
+    <div className="flex items-baseline justify-between gap-2 tabular-nums">
+      <span className="text-sm text-muted-foreground">
+        {tDetails("progressPages", { current, total })}
+      </span>
+      <span className="text-sm font-semibold text-primary">{percent}%</span>
     </div>
   );
 }

@@ -70,6 +70,31 @@ export const Owned: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("button", { name: "Дати комусь почитати" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Прибрати з моїх" })).toBeVisible();
+    await expect(canvas.queryByText("Придбання")).toBeNull();
+  },
+};
+
+export const OwnedWithAcquisition: Story = {
+  args: {
+    book: ownershipBook({
+      ownershipStatus: "owned",
+      purchaseInfo: {
+        currency: "UAH",
+        expectedPrice: 450,
+        note: "Прихована нотатка",
+        purchasedAt: "2026-06-15",
+        storeName: "Yakaboo",
+        storeUrl: "https://www.yakaboo.ua/ostannie-bazhannja.html",
+      },
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Придбання")).toBeVisible();
+    await expect(canvas.getByText("Придбано")).toBeVisible();
+    await expect(canvas.getByText("Yakaboo")).toBeVisible();
+    await expect(canvas.getByText("450 UAH")).toBeVisible();
+    await expect(canvas.queryByRole("link")).toBeNull();
+    await expect(canvas.queryByText("Прихована нотатка")).toBeNull();
   },
 };
 
@@ -88,10 +113,39 @@ export const WantToBuyWithPurchase: Story = {
     }),
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText("Деталі покупки")).toBeVisible();
+    await expect(canvas.getByText("Де купити")).toBeVisible();
     await expect(canvas.getByText("Yakaboo")).toBeVisible();
     await expect(canvas.getByText("450 UAH")).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "Куплена" })).toBeVisible();
+    await expect(canvas.getByRole("link", { name: /Перейти до магазину/ })).toBeVisible();
+    await expect(canvas.getByText("Дочекатися знижки")).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Позначити купленою" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Позначити замовленою" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Вже маю цю книгу" })).toBeVisible();
+  },
+};
+
+export const OpensMarkBoughtDialog: Story = {
+  args: {
+    book: ownershipBook({
+      ownershipStatus: "want_to_buy",
+      purchaseInfo: {
+        currency: "UAH",
+        expectedPrice: 450,
+        note: null,
+        purchasedAt: null,
+        storeName: "Yakaboo",
+        storeUrl: null,
+      },
+    }),
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Позначити купленою" }));
+    const body = within(document.body);
+    await waitFor(() =>
+      expect(body.getByRole("heading", { name: "Позначити книгу як куплену?" })).toBeVisible(),
+    );
+    await expect(body.getByText("Yakaboo — 450 UAH")).toBeVisible();
+    await expect(body.getByRole("radio", { name: "Інше місце" })).toBeVisible();
   },
 };
 

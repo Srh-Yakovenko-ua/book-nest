@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
@@ -34,14 +35,22 @@ export default async function NewBookPage({ params, searchParams }: Props) {
   const partNumber = partNumberParam.safeParse(query.partNumber).data;
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
       <header className="mb-8 flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1 md:mb-10">
-        <p className="font-mono text-[10px] tracking-[0.22em] text-muted-foreground uppercase">
-          {t("page.eyebrow")}
-        </p>
-        <h1 className="font-heading text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold text-ink">
-          {t("page.title")}
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="font-heading text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold text-ink">
+            {t("page.title")}
+          </h1>
+          <Image
+            alt=""
+            aria-hidden
+            className="h-auto w-14 shrink-0 select-none"
+            height={189}
+            src="/illustrations/leaf-1.png"
+            unoptimized
+            width={227}
+          />
+        </div>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
           {t("page.subtitle")}
         </p>

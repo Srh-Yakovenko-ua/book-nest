@@ -49,7 +49,7 @@ export function DeliveryBlock({ book }: DeliveryBlockProps) {
 
   return (
     <>
-      <Card>
+      <Card className="shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
             <h2>{t("title")}</h2>
@@ -209,7 +209,7 @@ function DeliveryDetails({ delivery }: { delivery: DeliveryView }) {
 }
 
 function DeliveryStatusBadge({ status }: { status: DeliveryStatus }) {
-  const tStatus = useTranslations("books.details.delivery.statusLabels");
+  const tStatus = useTranslations("books.deliveryStatus.labels");
   const base = deliveryStatuses.find((entry) => entry.value === status);
   if (base === undefined) return null;
   return <StatusBadge entry={{ ...base, label: tStatus(status) }} />;

@@ -41,18 +41,19 @@ import {
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
 import { ApiError } from "@/lib/http-client";
-import { isHttpsUrl } from "@/lib/is-https-url";
 
 import { useCreateDelivery, useUpdateDelivery } from "../api/use-delivery";
 import { ISO_DATE_PATTERN, todayIso } from "../model/reading-progress";
 import { BookDateField } from "./book-date-field";
+import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";
+import { StoreAutocomplete } from "./store-autocomplete";
 
 const CURRENCY_OPTIONS = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
 const STORE_NAME_MAX = 100;
 const ORDER_NUMBER_MAX = 100;
+const SERVICE_MIN = 2;
 const SERVICE_MAX = 100;
 const TRACKING_NUMBER_MAX = 100;
-const TRACKING_URL_MAX = 300;
 const NOTE_MAX = 300;
 const PRICE_MIN = 0;
 const PRICE_MAX = 99999999.99;
@@ -82,11 +83,10 @@ type DeliveryMessages = {
   price: string;
   priceMax: string;
   serviceMax: string;
+  serviceMin: string;
   storeNameMax: string;
   storeNameRequired: string;
   trackingNumberMax: string;
-  trackingUrl: string;
-  trackingUrlMax: string;
 };
 
 type DeliveryValues = {
@@ -100,7 +100,6 @@ type DeliveryValues = {
   status: ActiveDeliveryStatus;
   storeName: string;
   trackingNumber: string;
-  trackingUrl: string;
 };
 
 export function DeliveryDialog(props: DeliveryDialogProps) {
@@ -108,7 +107,10 @@ export function DeliveryDialog(props: DeliveryDialogProps) {
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-md">
+      <DialogContent
+        className="max-h-[88vh] overflow-y-auto sm:max-w-md"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         {open ? (
           props.mode === "edit" ? (
             <DeliveryForm
@@ -133,7 +135,6 @@ function buildCreatePayload(values: DeliveryValues): CreateDeliveryInput {
   const orderNumber = values.orderNumber.trim();
   const service = values.deliveryService.trim();
   const trackingNumber = values.trackingNumber.trim();
-  const trackingUrl = values.trackingUrl.trim();
   const note = values.note.trim();
   const price = Number(values.price);
 
@@ -142,7 +143,6 @@ function buildCreatePayload(values: DeliveryValues): CreateDeliveryInput {
   if (orderNumber.length > 0) payload.orderNumber = orderNumber;
   if (service.length > 0) payload.deliveryService = service;
   if (trackingNumber.length > 0) payload.trackingNumber = trackingNumber;
-  if (trackingUrl.length > 0) payload.trackingUrl = trackingUrl;
   if (values.price.trim().length > 0 && Number.isFinite(price)) payload.price = price;
   if (values.currency !== "") payload.currency = values.currency;
   if (note.length > 0) payload.note = note;
@@ -154,7 +154,13 @@ function buildSchema(messages: DeliveryMessages) {
   return z
     .object({
       currency: z.enum(["", "UAH", "EUR", "USD"]),
-      deliveryService: z.string().max(SERVICE_MAX, messages.serviceMax),
+      deliveryService: z
+        .string()
+        .max(SERVICE_MAX, messages.serviceMax)
+        .refine(
+          (value) => value.trim().length === 0 || value.trim().length >= SERVICE_MIN,
+          messages.serviceMin,
+        ),
       expectedDeliveryDate: z
         .string()
         .refine(
@@ -181,13 +187,6 @@ function buildSchema(messages: DeliveryMessages) {
         .refine((value) => value.trim().length > 0, messages.storeNameRequired)
         .refine((value) => value.trim().length <= STORE_NAME_MAX, messages.storeNameMax),
       trackingNumber: z.string().max(TRACKING_NUMBER_MAX, messages.trackingNumberMax),
-      trackingUrl: z
-        .string()
-        .refine(
-          (value) => value.trim().length === 0 || isHttpsUrl(value.trim()),
-          messages.trackingUrl,
-        )
-        .refine((value) => value.trim().length <= TRACKING_URL_MAX, messages.trackingUrlMax),
     })
     .refine(
       (value) =>
@@ -201,7 +200,6 @@ function buildSchema(messages: DeliveryMessages) {
 function buildUpdatePayload(values: DeliveryValues): UpdateDeliveryInput {
   const price = Number(values.price);
   const hasPrice = values.price.trim().length > 0 && Number.isFinite(price);
-  const trackingUrl = values.trackingUrl.trim();
 
   return {
     currency: values.currency === "" ? null : values.currency,
@@ -214,7 +212,6 @@ function buildUpdatePayload(values: DeliveryValues): UpdateDeliveryInput {
     status: values.status,
     storeName: values.storeName.trim(),
     trackingNumber: emptyToNull(values.trackingNumber.trim()),
-    trackingUrl: trackingUrl.length > 0 ? trackingUrl : null,
   };
 }
 
@@ -229,7 +226,7 @@ function DeliveryForm({
 }) {
   const t = useTranslations("books.details.delivery");
   const tErrors = useTranslations("books.details.delivery.errors");
-  const tStatus = useTranslations("books.details.delivery.statusLabels");
+  const tStatus = useTranslations("books.deliveryStatus.labels");
   const tActions = useTranslations("books.actions");
   const createDelivery = useCreateDelivery();
   const updateDelivery = useUpdateDelivery();
@@ -257,11 +254,10 @@ function DeliveryForm({
         price: tErrors("price"),
         priceMax: tErrors("priceMax"),
         serviceMax: tErrors("serviceMax", { max: SERVICE_MAX }),
+        serviceMin: tErrors("serviceMin", { min: SERVICE_MIN }),
         storeNameMax: tErrors("storeNameMax", { max: STORE_NAME_MAX }),
         storeNameRequired: tErrors("storeNameRequired"),
         trackingNumberMax: tErrors("trackingNumberMax", { max: TRACKING_NUMBER_MAX }),
-        trackingUrl: tErrors("trackingUrl"),
-        trackingUrlMax: tErrors("trackingUrlMax", { max: TRACKING_URL_MAX }),
       }),
     ),
   });
@@ -296,14 +292,20 @@ function DeliveryForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="delivery-store-name">{t("form.storeName")}</Label>
-        <Input
-          aria-describedby={errors.storeName ? "delivery-store-name-error" : undefined}
-          aria-invalid={errors.storeName !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id="delivery-store-name"
-          placeholder={t("form.storeNamePlaceholder")}
-          {...register("storeName")}
+        <Controller
+          control={control}
+          name="storeName"
+          render={({ field }) => (
+            <StoreAutocomplete
+              describedBy={errors.storeName ? "delivery-store-name-error" : undefined}
+              id="delivery-store-name"
+              invalid={errors.storeName !== undefined}
+              label={t("form.storeName")}
+              onChange={(next) => field.onChange(next)}
+              placeholder={t("form.storeNamePlaceholder")}
+              value={field.value}
+            />
+          )}
         />
         <FieldError error={errors.storeName} id="delivery-store-name-error" />
       </div>
@@ -361,7 +363,10 @@ function DeliveryForm({
             name="status"
             render={({ field }) => (
               <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger className="h-10 w-full" id="delivery-status">
+                <SelectTrigger
+                  className="h-10 w-full data-[size=default]:h-10"
+                  id="delivery-status"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -379,14 +384,20 @@ function DeliveryForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="delivery-service">{t("form.deliveryService")}</Label>
-        <Input
-          aria-describedby={errors.deliveryService ? "delivery-service-error" : undefined}
-          aria-invalid={errors.deliveryService !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id="delivery-service"
-          placeholder={t("form.deliveryServicePlaceholder")}
-          {...register("deliveryService")}
+        <Controller
+          control={control}
+          name="deliveryService"
+          render={({ field }) => (
+            <DeliveryServiceAutocomplete
+              describedBy={errors.deliveryService ? "delivery-service-error" : undefined}
+              id="delivery-service"
+              invalid={errors.deliveryService !== undefined}
+              label={t("form.deliveryService")}
+              onChange={field.onChange}
+              placeholder={t("form.deliveryServicePlaceholder")}
+              value={field.value}
+            />
+          )}
         />
         <FieldError error={errors.deliveryService} id="delivery-service-error" />
       </div>
@@ -421,21 +432,6 @@ function DeliveryForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="delivery-tracking-url">{t("form.trackingUrl")}</Label>
-        <Input
-          aria-describedby={errors.trackingUrl ? "delivery-tracking-url-error" : undefined}
-          aria-invalid={errors.trackingUrl !== undefined}
-          autoComplete="off"
-          className="h-10"
-          id="delivery-tracking-url"
-          inputMode="url"
-          placeholder={t("form.trackingUrlPlaceholder")}
-          {...register("trackingUrl")}
-        />
-        <FieldError error={errors.trackingUrl} id="delivery-tracking-url-error" />
-      </div>
-
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="flex flex-1 flex-col gap-2">
           <Label htmlFor="delivery-price">{t("form.price")}</Label>
@@ -468,7 +464,7 @@ function DeliveryForm({
                   value={field.value === "" ? undefined : field.value}
                 >
                   <SelectTrigger
-                    className="h-10 w-full"
+                    className="h-10 w-full data-[size=default]:h-10"
                     id="delivery-currency"
                     isClearable={field.value !== ""}
                     onClear={() => field.onChange("")}
@@ -547,7 +543,7 @@ function emptyToNull(value: string): null | string {
 
 function toDefaults(delivery: DeliveryView | undefined): DeliveryValues {
   return {
-    currency: delivery?.currency ?? "",
+    currency: delivery === undefined ? "UAH" : (delivery.currency ?? ""),
     deliveryService: delivery?.deliveryService ?? "",
     expectedDeliveryDate: delivery?.expectedDeliveryDate ?? "",
     note: delivery?.note ?? "",
@@ -560,6 +556,5 @@ function toDefaults(delivery: DeliveryView | undefined): DeliveryValues {
         : "ordered",
     storeName: delivery?.storeName ?? "",
     trackingNumber: delivery?.trackingNumber ?? "",
-    trackingUrl: delivery?.trackingUrl ?? "",
   };
 }

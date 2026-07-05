@@ -2,9 +2,18 @@
 
 import type { ReactNode } from "react";
 
-import { BookCopy, Home, Layers, Library } from "lucide-react";
+import {
+  BookCopy,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  Layers,
+  Library,
+  ShoppingBag,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { useEffect } from "react";
 
@@ -31,13 +40,14 @@ import { cn } from "@/lib/utils";
 
 type NavItem = {
   icon: React.ElementType;
-  key: "home" | "library" | "series";
+  key: "buyList" | "home" | "library" | "series";
   to: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, key: "home", to: "/" },
   { icon: Library, key: "library", to: "/books" },
+  { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
   { icon: BookCopy, key: "series", to: "/series" },
 ];
 
@@ -56,7 +66,7 @@ function AppSidebar() {
   const tNav = useTranslations("nav");
   const tShell = useTranslations("appShell");
   const pathname = usePathname();
-  const { isMobile, setOpenMobile, state } = useSidebar();
+  const { isMobile, setOpenMobile, state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
 
   useEffect(() => {
@@ -131,10 +141,27 @@ function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/60 px-3 py-3">
-        <div className="flex items-center justify-between gap-2 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:justify-center">
-          <SidebarTrigger className="size-8 cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-foreground" />
+      <SidebarFooter className="border-t border-border/60 p-0">
+        <div className="flex items-center justify-end gap-2 px-3 py-3 group-data-[state=collapsed]:flex-col group-data-[state=collapsed]:justify-center">
+          <button
+            aria-label={collapsed ? tShell("expandSidebar") : tShell("collapseSidebar")}
+            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:text-foreground"
+            onClick={toggleSidebar}
+            type="button"
+          >
+            {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          </button>
         </div>
+        {!collapsed && (
+          <Image
+            alt=""
+            className="h-auto w-full select-none"
+            height={500}
+            priority={false}
+            src="/illustrations/sidebar.png"
+            width={500}
+          />
+        )}
       </SidebarFooter>
 
       <SidebarRail />

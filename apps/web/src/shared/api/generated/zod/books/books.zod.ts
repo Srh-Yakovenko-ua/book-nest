@@ -2740,10 +2740,31 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
 });
 
 /**
- * @summary Mark a want-to-buy book as bought, retaining purchase details
+ * @summary Mark a want-to-buy book as bought with actual purchase details
  */
 export const BookOwnershipControllerMarkBoughtParams = zod.object({
   id: zod.string(),
+});
+
+export const bookOwnershipControllerMarkBoughtBodyExpectedPriceExclusiveMin = 0;
+export const bookOwnershipControllerMarkBoughtBodyExpectedPriceMax = 99999999.99;
+
+export const bookOwnershipControllerMarkBoughtBodyPurchasedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const BookOwnershipControllerMarkBoughtBody = zod.object({
+  currency: zod.enum(["UAH", "EUR", "USD"]).nullish(),
+  expectedPrice: zod
+    .number()
+    .gt(bookOwnershipControllerMarkBoughtBodyExpectedPriceExclusiveMin)
+    .max(bookOwnershipControllerMarkBoughtBodyExpectedPriceMax)
+    .nullish(),
+  purchasedAt: zod.iso
+    .date()
+    .regex(bookOwnershipControllerMarkBoughtBodyPurchasedAtRegExp)
+    .optional(),
+  storeName: zod.string().nullish(),
 });
 
 export const BookOwnershipControllerMarkBoughtResponse = zod.object({

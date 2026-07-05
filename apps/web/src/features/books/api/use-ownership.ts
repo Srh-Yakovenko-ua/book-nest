@@ -1,4 +1,4 @@
-import type { BookView, WantToBuyInput } from "@app/shared";
+import type { BookView, MarkBoughtInput, WantToBuyInput } from "@app/shared";
 
 import { BookViewSchema } from "@app/shared";
 import { useMutation } from "@tanstack/react-query";
@@ -16,8 +16,8 @@ export function useMarkBought() {
   const sync = useBookMutationSync();
 
   return useMutation({
-    mutationFn: async (id: string): Promise<BookView> =>
-      BookViewSchema.parse(await bookOwnershipControllerMarkBought(id)),
+    mutationFn: async (input: { id: string; payload: MarkBoughtInput }): Promise<BookView> =>
+      BookViewSchema.parse(await bookOwnershipControllerMarkBought(input.id, input.payload)),
     onSuccess: sync,
   });
 }
