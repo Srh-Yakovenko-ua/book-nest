@@ -3,20 +3,25 @@ import type {
   CancelDeliveryInput,
   CreateDeliveryInput,
   DeliveryView,
+  Nullable,
   OwnershipStatus,
   UpdateDeliveryInput,
 } from "@app/shared";
 
 import { DeliveryStatusSchema, isActiveDeliveryStatus, OwnershipStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
+import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
   CreateDeliveryOutcome,
   RecordDeliveryOutcome,
 } from "../infrastructure/book-deliveries.repository.js";
 
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { DeliveryServicesService } from "../../delivery-services/index.js";
 import {
   computeCancelDelivery,
   computeCreateDelivery,
@@ -32,8 +37,32 @@ import { BooksRepository, type BookWithRelations } from "../infrastructure/books
 import { BookViewAssembler } from "./book-view-assembler.js";
 
 const ACTIVE_DELIVERY_EXISTS_MESSAGE = "This book already has an active delivery";
+const ACTIVE_DELIVERY_CONFLICT_COLUMN = "book_id";
 const START_DELIVERY_MESSAGE = "A delivery can only be started for a book you do not yet own";
 const DELIVERY_NOT_ACTIVE_MESSAGE = "This delivery is no longer active";
+
+const uniqueViolationConstraintSchema = z.object({
+  meta: z.object({
+    driverAdapterError: z.object({
+      cause: z.object({
+        constraint: z.object({ fields: z.array(z.string()) }),
+      }),
+    }),
+  }),
+});
+
+function isActiveDeliveryConflict(error: unknown): boolean {
+  if (!isUniqueConstraintError(error)) {
+    return false;
+  }
+  const parsed = uniqueViolationConstraintSchema.safeParse(error);
+  return (
+    parsed.success &&
+    parsed.data.meta.driverAdapterError.cause.constraint.fields.includes(
+      ACTIVE_DELIVERY_CONFLICT_COLUMN,
+    )
+  );
+}
 
 const START_DELIVERY_STATUSES: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
   "in_transit",
@@ -47,6 +76,8 @@ export class BookDeliveryService {
     private readonly booksRepository: BooksRepository,
     private readonly bookDeliveriesRepository: BookDeliveriesRepository,
     private readonly viewAssembler: BookViewAssembler,
+    private readonly transactionRunner: TransactionRunner,
+    private readonly deliveryServicesService: DeliveryServicesService,
   ) {}
 
   async cancel(
@@ -79,7 +110,12 @@ export class BookDeliveryService {
     this.assertCanStartDelivery(book);
 
     const transition = computeCreateDelivery(input);
-    const outcome = await this.applyCreate({ bookId, transition, userId });
+    const outcome = await this.applyCreate({
+      bookId,
+      deliveryService: input.deliveryService ?? null,
+      transition,
+      userId,
+    });
     if (outcome === "book-not-found") {
       throw new NotFoundError("Book not found");
     }
@@ -122,12 +158,19 @@ export class BookDeliveryService {
     this.assertActiveRecord(book, deliveryId);
 
     const transition = computeUpdateDelivery(input);
-    const outcome = await this.bookDeliveriesRepository.applyRecordChange(
-      userId,
-      bookId,
-      deliveryId,
-      transition,
-    );
+    const outcome = await this.transactionRunner.run(async (tx) => {
+      await this.ensureCustomDeliveryService(
+        { deliveryService: input.deliveryService ?? null, userId },
+        tx,
+      );
+      return this.bookDeliveriesRepository.applyRecordChange(
+        userId,
+        bookId,
+        deliveryId,
+        transition,
+        tx,
+      );
+    });
     this.ensureRecordChangeApplied(outcome);
 
     return this.viewAssembler.loadView({ bookId, userId });
@@ -135,17 +178,22 @@ export class BookDeliveryService {
 
   private async applyCreate({
     bookId,
+    deliveryService,
     transition,
     userId,
   }: {
     bookId: string;
+    deliveryService: Nullable<string>;
     transition: CreateDeliveryTransition;
     userId: string;
   }): Promise<CreateDeliveryOutcome> {
     try {
-      return await this.bookDeliveriesRepository.applyCreate(userId, bookId, transition);
+      return await this.transactionRunner.run(async (tx) => {
+        await this.ensureCustomDeliveryService({ deliveryService, userId }, tx);
+        return this.bookDeliveriesRepository.applyCreate(userId, bookId, transition, tx);
+      });
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
+      if (isActiveDeliveryConflict(error)) {
         throw new ConflictError(ACTIVE_DELIVERY_EXISTS_MESSAGE);
       }
       throw error;
@@ -176,6 +224,19 @@ export class BookDeliveryService {
     if (active !== undefined) {
       throw new ConflictError(ACTIVE_DELIVERY_EXISTS_MESSAGE);
     }
+  }
+
+  private async ensureCustomDeliveryService(
+    { deliveryService, userId }: { deliveryService: Nullable<string>; userId: string },
+    client: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (deliveryService === null) {
+      return;
+    }
+    await this.deliveryServicesService.ensureCustomForName(
+      { name: deliveryService, userId },
+      client,
+    );
   }
 
   private ensureRecordChangeApplied(outcome: RecordDeliveryOutcome): void {

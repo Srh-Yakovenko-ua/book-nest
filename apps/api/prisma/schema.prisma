@@ -48,6 +48,7 @@ model User {
   customGenres            Genre[]
   mediaAssets             MediaAsset[]
   bookDeliveries          BookDelivery[]
+  deliveryServices        DeliveryService[]
 
   @@map("users")
 }
@@ -347,6 +348,23 @@ model Genre {
   @@index([key])
   @@index([userId])
   @@map("genres")
+}
+
+model DeliveryService {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  name           String
+  normalizedName String   @map("normalized_name")
+  countryCode    String?  @map("country_code")
+  isDefault      Boolean  @default(false) @map("is_default")
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, normalizedName])
+  @@index([userId])
+  @@map("delivery_services")
 }
 
 model BookList {

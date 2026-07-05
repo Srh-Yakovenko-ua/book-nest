@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/index.js";
 import { AuthorsModule } from "../authors/index.js";
+import { DeliveryServicesModule } from "../delivery-services/index.js";
 import { GenresModule } from "../genres/index.js";
 import { ListsModule } from "../lists/index.js";
 import { MediaModule } from "../media/index.js";
@@ -45,6 +46,7 @@ import { BulkBooksRepository } from "./infrastructure/bulk-books.repository.js";
     ListsModule,
     GenresModule,
     MediaModule,
+    DeliveryServicesModule,
   ],
   providers: [
     BooksService,

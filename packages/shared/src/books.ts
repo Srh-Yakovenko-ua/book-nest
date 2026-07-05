@@ -23,6 +23,7 @@ import {
   LIST_PAGE_SIZE_MAX,
   noHtmlTags,
 } from "./common.js";
+import { DeliveryServiceSchema } from "./delivery-services.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
 import {
   HTTPS_PROTOCOL,
@@ -326,7 +327,6 @@ export const DeliveryInfoInputSchema = z
 export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
 const DELIVERY_TRACKING_NUMBER_MAX = 100;
-const DELIVERY_SERVICE_MAX = 100;
 
 const DeliveryTrackingNumberSchema = z
   .string()
@@ -336,13 +336,6 @@ const DeliveryTrackingNumberSchema = z
       DELIVERY_TRACKING_NUMBER_MAX,
       "Tracking number must be at most 100 characters long",
     ),
-  );
-
-const DeliveryServiceSchema = z
-  .string()
-  .transform(collapseSpaces)
-  .pipe(
-    NoHtmlString.max(DELIVERY_SERVICE_MAX, "Delivery service must be at most 100 characters long"),
   );
 
 export const CreateDeliveryInputSchema = z
