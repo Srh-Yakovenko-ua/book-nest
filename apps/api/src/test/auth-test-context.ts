@@ -1,5 +1,7 @@
 import type { INestApplication, InjectionToken, ModuleMetadata } from "@nestjs/common";
 
+import { HttpStatus } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import request from "supertest";
 
 import { MailService } from "../modules/mail/application/mail.service.js";
@@ -30,6 +32,8 @@ type RegisterCredentials = {
 };
 
 type SentVerification = { to: string; verificationUrl: string };
+
+const NICKNAME_SUFFIX_LENGTH = 8;
 
 const defaultCredentials: RegisterCredentials = {
   email: "reader@example.com",
@@ -79,12 +83,32 @@ export async function createAuthTestContext(
   async function registerVerifyAndLogin(
     overrides: Partial<RegisterCredentials> = {},
   ): Promise<AuthenticatedUser> {
-    const credentials = { ...defaultCredentials, ...overrides };
-    await request(app.getHttpServer()).post("/api/auth/registration").send(credentials);
+    const uniqueId = randomUUID().replace(/-/g, "");
+    const credentials: RegisterCredentials = {
+      ...defaultCredentials,
+      email: defaultCredentials.email.replace("@", `+${uniqueId}@`),
+      nickname: `${defaultCredentials.nickname}_${uniqueId.slice(0, NICKNAME_SUFFIX_LENGTH)}`,
+      ...overrides,
+    };
+
+    const registerRes = await request(app.getHttpServer())
+      .post("/api/auth/registration")
+      .send(credentials);
+    if (registerRes.status !== HttpStatus.CREATED) {
+      throw new Error(
+        `registration failed with status ${registerRes.status}: ${JSON.stringify(registerRes.body)}`,
+      );
+    }
+
     const sent = await waitForVerification(credentials.email);
-    await request(app.getHttpServer())
+    const verifyRes = await request(app.getHttpServer())
       .post("/api/auth/verify-email")
       .send({ token: tokenFromUrl(sent.verificationUrl) });
+    if (verifyRes.status !== HttpStatus.OK) {
+      throw new Error(
+        `email verification failed with status ${verifyRes.status}: ${JSON.stringify(verifyRes.body)}`,
+      );
+    }
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/login")
