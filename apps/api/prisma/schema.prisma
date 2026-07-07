@@ -169,6 +169,7 @@ model Book {
   readingStatus   String               @default("not_started") @map("reading_status")
   ownershipStatus String               @default("none") @map("ownership_status")
   isFavorite      Boolean              @default(false) @map("is_favorite")
+  favoriteAddedAt DateTime?            @map("favorite_added_at") @db.Timestamptz
   pagesCount      Int?                 @map("pages_count")
   publicationYear Int?                 @map("publication_year")
   isbn            String?

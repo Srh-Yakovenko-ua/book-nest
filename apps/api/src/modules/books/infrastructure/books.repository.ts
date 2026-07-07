@@ -170,6 +170,7 @@ type CreateBookData = {
   dedication: null | string;
   deliveryInfo: CreateDeliveryData | null;
   description: null | string;
+  favoriteAddedAt: Date | null;
   firstAuthorName: string;
   formats: string[];
   genres: string[];

@@ -202,6 +202,52 @@ describe("PATCH /api/books/bulk/favorite", () => {
     const strangerRow = await prisma.book.findUniqueOrThrow({ where: { id: strangerBook.id } });
     expect(strangerRow.isFavorite).toBe(false);
   });
+
+  it("stamps favoriteAddedAt only on rows that were not already favorites", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const alreadyFavoritedAt = new Date("2026-01-01T10:00:00.000Z");
+    const already = await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      title: "Already",
+      userId,
+    });
+    await prisma.book.update({
+      data: { favoriteAddedAt: alreadyFavoritedAt },
+      where: { id: already.id },
+    });
+    const fresh = await seedBook({ authorId: author.id, title: "Fresh", userId });
+
+    const res = await patch(accessToken, "favorite", {
+      bookIds: [already.id, fresh.id],
+      isFavorite: true,
+    });
+
+    expect(res.body).toEqual({ affected: 1 });
+    const alreadyRow = await prisma.book.findUniqueOrThrow({ where: { id: already.id } });
+    expect(alreadyRow.favoriteAddedAt).toEqual(alreadyFavoritedAt);
+    const freshRow = await prisma.book.findUniqueOrThrow({ where: { id: fresh.id } });
+    expect(freshRow.isFavorite).toBe(true);
+    expect(freshRow.favoriteAddedAt).not.toBeNull();
+  });
+
+  it("clears favoriteAddedAt when the books are unfavorited in bulk", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedBook({ authorId: author.id, isFavorite: true, title: "A", userId });
+    await prisma.book.update({
+      data: { favoriteAddedAt: new Date("2026-01-01T10:00:00.000Z") },
+      where: { id: book.id },
+    });
+
+    const res = await patch(accessToken, "favorite", { bookIds: [book.id], isFavorite: false });
+
+    expect(res.body).toEqual({ affected: 1 });
+    const row = await prisma.book.findUniqueOrThrow({ where: { id: book.id } });
+    expect(row.isFavorite).toBe(false);
+    expect(row.favoriteAddedAt).toBeNull();
+  });
 });
 
 describe("PATCH /api/books/bulk/reading-status", () => {

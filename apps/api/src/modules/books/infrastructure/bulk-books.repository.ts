@@ -148,15 +148,17 @@ export class BulkBooksRepository {
   async setFavorite({
     bookIds,
     isFavorite,
+    now,
     userId,
   }: {
     bookIds: string[];
     isFavorite: boolean;
+    now: Date;
     userId: string;
   }): Promise<number> {
     const updated = await this.prisma.book.updateMany({
-      data: { isFavorite },
-      where: { id: { in: bookIds }, userId },
+      data: { favoriteAddedAt: isFavorite ? now : null, isFavorite },
+      where: { id: { in: bookIds }, isFavorite: !isFavorite, userId },
     });
     return updated.count;
   }

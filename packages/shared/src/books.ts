@@ -880,6 +880,7 @@ export const BookViewSchema = z.object({
   dedication: z.string().nullable(),
   delivery: DeliverySummaryViewSchema,
   description: z.string().nullable(),
+  favoriteAddedAt: z.string().nullable(),
   formats: z.array(BookFormatSchema),
   genres: z.array(z.string()),
   hasUnreadEarlierSeriesParts: z.boolean().nullable(),

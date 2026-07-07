@@ -128,6 +128,7 @@ export class BulkBooksService {
     const affected = await this.bulkBooksRepository.setFavorite({
       bookIds: input.bookIds,
       isFavorite: input.isFavorite,
+      now: new Date(),
       userId,
     });
     return { affected };

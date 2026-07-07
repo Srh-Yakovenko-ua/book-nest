@@ -43,6 +43,7 @@ import {
   ownershipStatusUsesLoan,
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
+import { resolveFavoriteChange } from "../domain/favorite.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookRelationsResolver } from "./book-relations-resolver.js";
@@ -84,7 +85,6 @@ const SCALAR_KEYS = [
   "genres",
   "illustrator",
   "isbn",
-  "isFavorite",
   "language",
   "originalTitle",
   "ownershipStatus",
@@ -186,6 +186,9 @@ export class BooksService {
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
     const resolved = await this.relationsResolver.resolveForCreate({ input, userId });
 
+    const now = new Date();
+    const favoriteChange = resolveFavoriteChange({ current: false, next: input.isFavorite, now });
+
     const deliveryInfo =
       ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
         ? buildDeliveryInfoData(input.deliveryInfo)
@@ -212,6 +215,7 @@ export class BooksService {
         dedication: input.dedication ?? null,
         deliveryInfo,
         description: input.description ?? null,
+        favoriteAddedAt: favoriteChange?.favoriteAddedAt ?? null,
         firstAuthorName: resolved.firstAuthorName,
         formats: input.formats,
         genres: input.genres,
@@ -385,11 +389,14 @@ export class BooksService {
     const fields = resolved.fields;
     assignScalarFields(fields, input);
 
+    const now = new Date();
+    this.applyFavoriteFields({ current, fields, input, now });
+
     let book: BookWithRelations;
     try {
       book = await this.booksRepository.updateOwned(userId, bookId, {
         authorIds: resolved.authorIds,
-        deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, new Date()),
+        deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, now),
         fields,
         listIds: resolved.listIds,
         loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),
@@ -416,6 +423,34 @@ export class BooksService {
     }
 
     return this.viewAssembler.viewOf(book);
+  }
+
+  private applyFavoriteFields({
+    current,
+    fields,
+    input,
+    now,
+  }: {
+    current: BookWithRelations;
+    fields: Prisma.BookUncheckedUpdateManyInput;
+    input: UpdateBookInput;
+    now: Date;
+  }): void {
+    if (input.isFavorite === undefined) {
+      return;
+    }
+
+    const change = resolveFavoriteChange({
+      current: current.isFavorite,
+      next: input.isFavorite,
+      now,
+    });
+    if (change === null) {
+      return;
+    }
+
+    fields.isFavorite = change.isFavorite;
+    fields.favoriteAddedAt = change.favoriteAddedAt;
   }
 
   private assertCurrentPageWithinPages({

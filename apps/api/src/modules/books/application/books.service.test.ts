@@ -58,6 +58,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     dedication: null,
     deliveries: [],
     description: null,
+    favoriteAddedAt: null,
     firstAuthorName: "Frank Herbert",
     formats: [],
     genres: [],
@@ -322,6 +323,7 @@ describe("BooksService.create", () => {
       dedication: null,
       delivery: { active: null, latest: null, totalCount: 0 },
       description: null,
+      favoriteAddedAt: null,
       formats: [],
       genres: [],
       hasUnreadEarlierSeriesParts: null,
@@ -494,6 +496,28 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ coverMediaId: MEDIA_ID }),
+    );
+  });
+
+  it("stamps favoriteAddedAt when the book is created as a favorite", async () => {
+    const { repository, service } = buildService();
+
+    await service.create(USER_ID, minimalCreateInput({ isFavorite: true }));
+
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ favoriteAddedAt: expect.any(Date), isFavorite: true }),
+    );
+  });
+
+  it("leaves favoriteAddedAt null when the book is created as a non-favorite", async () => {
+    const { repository, service } = buildService();
+
+    await service.create(USER_ID, minimalCreateInput({ isFavorite: false }));
+
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ favoriteAddedAt: null, isFavorite: false }),
     );
   });
 
@@ -691,6 +715,59 @@ describe("BooksService.update", () => {
 
     const data = updateDataFromFirstCall(repository);
     expect(data.fields).toEqual({ dedication: null });
+  });
+
+  it("stamps favoriteAddedAt when the book becomes a favorite", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ favoriteAddedAt: null, isFavorite: false }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { isFavorite: true });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ favoriteAddedAt: expect.any(Date), isFavorite: true });
+  });
+
+  it("clears favoriteAddedAt when the book stops being a favorite", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        favoriteAddedAt: new Date("2026-01-01T10:00:00.000Z"),
+        isFavorite: true,
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { isFavorite: false });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ favoriteAddedAt: null, isFavorite: false });
+  });
+
+  it("leaves favoriteAddedAt untouched when an already-favorite book is edited", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        favoriteAddedAt: new Date("2026-01-01T10:00:00.000Z"),
+        isFavorite: true,
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { isFavorite: true, title: "Renamed" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ title: "Renamed" });
+  });
+
+  it("does not touch favorite fields when isFavorite is omitted", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        favoriteAddedAt: new Date("2026-01-01T10:00:00.000Z"),
+        isFavorite: true,
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { title: "Renamed" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ title: "Renamed" });
   });
 
   it("threads the resolver output into the repository update payload", async () => {

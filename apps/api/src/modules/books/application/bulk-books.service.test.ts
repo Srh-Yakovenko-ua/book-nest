@@ -209,6 +209,7 @@ describe("BulkBooksService.setFavorite", () => {
     expect(bulkBooksRepository.setFavorite).toHaveBeenCalledWith({
       bookIds: [BOOK_A],
       isFavorite: true,
+      now: expect.any(Date),
       userId: USER_ID,
     });
     expect(result).toEqual({ affected: 3 });

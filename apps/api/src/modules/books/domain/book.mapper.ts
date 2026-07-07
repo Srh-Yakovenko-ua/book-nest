@@ -41,6 +41,7 @@ export function toBookView(book: BookWithRelations, cover: MediaView | null): Bo
     dedication: book.dedication,
     delivery: toDeliverySummaryView(book.deliveries),
     description: book.description,
+    favoriteAddedAt: book.favoriteAddedAt === null ? null : book.favoriteAddedAt.toISOString(),
     formats: BookFormatsSchema.parse(book.formats),
     genres: BookGenresSchema.parse(book.genres),
     hasUnreadEarlierSeriesParts:

@@ -199,6 +199,41 @@ describe("PATCH /api/books/:id scalar fields", () => {
     expect(res.status).toBe(200);
     expect(res.body.isFavorite).toBe(true);
   });
+
+  it("stamps favoriteAddedAt when a book is favorited and clears it when unfavorited", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    expect(created.body.favoriteAddedAt).toBeNull();
+
+    const favorited = await updateBook(accessToken, created.body.id, { isFavorite: true });
+    expect(favorited.body.favoriteAddedAt).toEqual(expect.any(String));
+
+    const unfavorited = await updateBook(accessToken, created.body.id, { isFavorite: false });
+    expect(unfavorited.body.favoriteAddedAt).toBeNull();
+  });
+
+  it("keeps the original favoriteAddedAt when an already-favorite book is edited", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      isFavorite: true,
+      title: "Dune",
+    });
+    const stampedAt = created.body.favoriteAddedAt;
+    expect(stampedAt).toEqual(expect.any(String));
+
+    const renamed = await updateBook(accessToken, created.body.id, {
+      isFavorite: true,
+      title: "Dune Reborn",
+    });
+    expect(renamed.body.favoriteAddedAt).toBe(stampedAt);
+
+    const untouched = await updateBook(accessToken, created.body.id, { title: "Dune Again" });
+    expect(untouched.body.favoriteAddedAt).toBe(stampedAt);
+  });
 });
 
 describe("PATCH /api/books/:id status to block transitions", () => {
