@@ -9,6 +9,17 @@ import { type BookWithRelations, withRelations } from "../../books/index.js";
 export class ReadingQueueRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async clearPosition(
+    userId: string,
+    bookId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.book.updateMany({
+      data: { queuePosition: null },
+      where: { id: bookId, userId },
+    });
+  }
+
   count(userId: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {
     return client.book.count({ where: { queuePosition: { not: null }, userId } });
   }
@@ -41,6 +52,17 @@ export class ReadingQueueRepository {
     await client.book.updateMany({
       data: { queuePosition: { increment: 1 } },
       where: { queuePosition: { gte: fromPosition }, userId },
+    });
+  }
+
+  async shiftUpAfter(
+    userId: string,
+    position: number,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.book.updateMany({
+      data: { queuePosition: { decrement: 1 } },
+      where: { queuePosition: { gt: position }, userId },
     });
   }
 }

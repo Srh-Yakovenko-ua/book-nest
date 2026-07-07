@@ -248,3 +248,116 @@ describe("ReadingQueueService.addToQueue", () => {
     });
   });
 });
+
+function buildRemoveFromQueueService(): {
+  clearPosition: ReturnType<typeof vi.fn>;
+  findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
+  listQueue: ReturnType<typeof vi.fn>;
+  service: ReadingQueueService;
+  shiftUpAfter: ReturnType<typeof vi.fn>;
+  tx: Prisma.TransactionClient;
+} {
+  const tx = {} as unknown as Prisma.TransactionClient;
+  const findOwnedByIdOrThrow = vi.fn();
+  const clearPosition = vi.fn().mockResolvedValue(undefined);
+  const shiftUpAfter = vi.fn().mockResolvedValue(undefined);
+  const listQueue = vi.fn().mockResolvedValue([]);
+  const viewOf = vi.fn(
+    (book: QueueRow): BookView =>
+      ({ id: book.id, pagesCount: book.pagesCount }) as unknown as BookView,
+  );
+  const run = vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(tx));
+
+  const booksRepository = { findOwnedByIdOrThrow } as unknown as BooksRepository;
+  const assembler = { viewOf } as unknown as BookViewAssembler;
+  const repository = {
+    clearPosition,
+    listQueue,
+    shiftUpAfter,
+  } as unknown as ReadingQueueRepository;
+  const transactionRunner = { run } as unknown as TransactionRunner;
+
+  const service = new ReadingQueueService(
+    booksRepository,
+    assembler,
+    repository,
+    transactionRunner,
+  );
+  return { clearPosition, findOwnedByIdOrThrow, listQueue, service, shiftUpAfter, tx };
+}
+
+describe("ReadingQueueService.removeFromQueue", () => {
+  it("rejects with NotFoundError when the book is not owned by the user", async () => {
+    const { findOwnedByIdOrThrow, service } = buildRemoveFromQueueService();
+    findOwnedByIdOrThrow.mockRejectedValue(new NotFoundError("Book not found"));
+
+    await expect(service.removeFromQueue(USER_ID, BOOK_ID)).rejects.toThrow(NotFoundError);
+  });
+
+  it("does not clear or shift positions when the book is not owned", async () => {
+    const { clearPosition, findOwnedByIdOrThrow, service, shiftUpAfter } =
+      buildRemoveFromQueueService();
+    findOwnedByIdOrThrow.mockRejectedValue(new NotFoundError("Book not found"));
+
+    await expect(service.removeFromQueue(USER_ID, BOOK_ID)).rejects.toThrow(NotFoundError);
+    expect(clearPosition).not.toHaveBeenCalled();
+    expect(shiftUpAfter).not.toHaveBeenCalled();
+  });
+
+  it("rejects with the not-in-queue message when the owned book has no queue position", async () => {
+    const { findOwnedByIdOrThrow, service } = buildRemoveFromQueueService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(null));
+
+    await expect(service.removeFromQueue(USER_ID, BOOK_ID)).rejects.toThrow(
+      "Книга не в черзі читання",
+    );
+  });
+
+  it("does not clear or shift positions when the owned book has no queue position", async () => {
+    const { clearPosition, findOwnedByIdOrThrow, service, shiftUpAfter } =
+      buildRemoveFromQueueService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(null));
+
+    await expect(service.removeFromQueue(USER_ID, BOOK_ID)).rejects.toThrow(NotFoundError);
+    expect(clearPosition).not.toHaveBeenCalled();
+    expect(shiftUpAfter).not.toHaveBeenCalled();
+  });
+
+  it("clears the removed book position within the threaded transaction", async () => {
+    const { clearPosition, findOwnedByIdOrThrow, service, tx } = buildRemoveFromQueueService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+
+    await service.removeFromQueue(USER_ID, BOOK_ID);
+
+    expect(clearPosition).toHaveBeenCalledWith(USER_ID, BOOK_ID, tx);
+  });
+
+  it("shifts up the books positioned after the removed one within the threaded transaction", async () => {
+    const { findOwnedByIdOrThrow, service, shiftUpAfter, tx } = buildRemoveFromQueueService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+
+    await service.removeFromQueue(USER_ID, BOOK_ID);
+
+    expect(shiftUpAfter).toHaveBeenCalledWith(USER_ID, 2, tx);
+  });
+
+  it("returns the reloaded queue view after removing the book", async () => {
+    const { findOwnedByIdOrThrow, listQueue, service } = buildRemoveFromQueueService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+    listQueue.mockResolvedValue([
+      { id: "book-a", pagesCount: 100, queuePosition: 1 },
+      { id: "book-c", pagesCount: 50, queuePosition: 2 },
+    ]);
+
+    const result = await service.removeFromQueue(USER_ID, BOOK_ID);
+
+    expect(result).toEqual({
+      count: 2,
+      items: [
+        { book: { id: "book-a", pagesCount: 100 }, position: 1 },
+        { book: { id: "book-c", pagesCount: 50 }, position: 2 },
+      ],
+      totalPagesCount: 150,
+    });
+  });
+});

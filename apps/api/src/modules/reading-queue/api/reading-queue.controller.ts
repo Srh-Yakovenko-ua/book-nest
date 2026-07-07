@@ -1,7 +1,17 @@
 import type { ReadingQueueView } from "@app/shared";
 
 import { AddToReadingQueueInputSchema } from "@app/shared";
-import { Body, Controller, Get, HttpCode, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -67,5 +77,24 @@ export class ReadingQueueController {
     @Body(new ZodBodyPipe(AddToReadingQueueInputSchema)) body: AddToReadingQueueInputDto,
   ): Promise<ReadingQueueView> {
     return this.readingQueueService.addToQueue(user.id, body);
+  }
+
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: "Book not found or not in the reading queue" })
+  @ApiOkResponse({
+    description: "The updated reading queue after the book was removed",
+    type: ReadingQueueViewDto,
+  })
+  @ApiOperation({ summary: "Remove a book from the reading queue and re-sequence positions" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Delete(":bookId")
+  @HttpCode(HTTP_STATUS.OK)
+  @Throttle({ default: { limit: QUEUE_ACTION_LIMIT, ttl: seconds(QUEUE_ACTION_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  removeFromQueue(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+  ): Promise<ReadingQueueView> {
+    return this.readingQueueService.removeFromQueue(user.id, bookId);
   }
 }
