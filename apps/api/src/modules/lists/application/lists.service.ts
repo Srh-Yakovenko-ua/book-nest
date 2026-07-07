@@ -23,9 +23,23 @@ const LIST_NOT_FOUND_MESSAGE = "List not found";
 
 const log = createLogger("lists.service");
 
+export type ListDetailHeader = {
+  bookCount: number;
+  createdAt: string;
+  description: null | string;
+  id: string;
+  name: string;
+  updatedAt: string;
+};
+
 type AssertNameAvailableInput = {
   excludeId: string;
   normalizedName: string;
+  userId: string;
+};
+
+type FindDetailHeaderInput = {
+  listId: string;
   userId: string;
 };
 
@@ -68,6 +82,23 @@ export class ListsService {
     if (deletedCount === 0) {
       throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
     }
+  }
+
+  async findDetailHeader({ listId, userId }: FindDetailHeaderInput): Promise<ListDetailHeader> {
+    const list = await this.listsRepository.findOwnedById(userId, listId);
+    if (list === null) {
+      throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
+    }
+
+    const bookCount = await this.listsRepository.countItems(listId);
+    return {
+      bookCount,
+      createdAt: list.createdAt.toISOString(),
+      description: list.description,
+      id: list.id,
+      name: list.name,
+      updatedAt: list.updatedAt.toISOString(),
+    };
   }
 
   async resolveListsForBook(userId: string, input: ResolveListsInput): Promise<string[]> {

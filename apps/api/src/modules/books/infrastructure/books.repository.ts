@@ -18,6 +18,7 @@ import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.r
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { appendBookToList } from "./book-list-membership.js";
+import { buildBookSearchConditions } from "./book-search.js";
 
 export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
@@ -623,7 +624,7 @@ const CREATED_AT_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { createdAt: 
 
 const ID_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { id: "asc" };
 
-const LIBRARY_ORDER_BY: Record<LibrarySort, Prisma.BookOrderByWithRelationInput[]> = {
+export const LIBRARY_ORDER_BY: Record<LibrarySort, Prisma.BookOrderByWithRelationInput[]> = {
   author_asc: [{ firstAuthorName: "asc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
   author_desc: [{ firstAuthorName: "desc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
   created_asc: [{ createdAt: "asc" }, ID_TIEBREAKER],
@@ -799,43 +800,13 @@ function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
     where.pagesCount = pagesCount;
   }
 
-  const searchConditions = buildSearchConditions(filter);
+  const searchConditions = buildBookSearchConditions({
+    search: filter.search,
+    searchGenreKeys: filter.searchGenreKeys,
+  });
   if (searchConditions !== undefined) {
     where.OR = searchConditions;
   }
 
   return where;
-}
-
-function buildSearchConditions(filter: LibraryFilter): Prisma.BookWhereInput[] | undefined {
-  if (filter.search === undefined) {
-    return undefined;
-  }
-  const contains = filter.search;
-  const conditions: Prisma.BookWhereInput[] = [
-    { title: { contains, mode: "insensitive" } },
-    { originalTitle: { contains, mode: "insensitive" } },
-    { authors: { some: { author: { name: { contains, mode: "insensitive" } } } } },
-    {
-      authors: {
-        some: { author: { names: { some: { name: { contains, mode: "insensitive" } } } } },
-      },
-    },
-    { series: { name: { contains, mode: "insensitive" } } },
-    { publisher: { name: { contains, mode: "insensitive" } } },
-    { publisher: { names: { some: { name: { contains, mode: "insensitive" } } } } },
-    { tags: { some: { tag: { name: { contains, mode: "insensitive" } } } } },
-    { translator: { contains, mode: "insensitive" } },
-    { illustrator: { contains, mode: "insensitive" } },
-  ];
-
-  const isbnQuery = filter.search.replace(/[\s-]/g, "");
-  if (isbnQuery.length > 0) {
-    conditions.push({ isbn: { contains: isbnQuery, mode: "insensitive" } });
-  }
-  if (filter.searchGenreKeys !== undefined && filter.searchGenreKeys.length > 0) {
-    conditions.push({ genres: { hasSome: filter.searchGenreKeys } });
-  }
-
-  return conditions;
 }

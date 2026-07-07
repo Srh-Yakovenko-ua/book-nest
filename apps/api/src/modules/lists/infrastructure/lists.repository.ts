@@ -48,6 +48,10 @@ type SearchListCardsInput = {
 export class ListsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  countItems(listId: string): Promise<number> {
+    return this.prisma.bookListItem.count({ where: { listId } });
+  }
+
   countOwned(userId: string, query: string | undefined): Promise<number> {
     return this.prisma.bookList.count({ where: buildOwnedWhere(userId, query) });
   }

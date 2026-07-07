@@ -15,6 +15,7 @@ import { BookOwnershipController } from "./api/book-ownership.controller.js";
 import { BookReadingController } from "./api/book-reading.controller.js";
 import { BooksController } from "./api/books.controller.js";
 import { BulkBooksController } from "./api/bulk-books.controller.js";
+import { ListDetailsController } from "./api/list-details.controller.js";
 import { BookCoverCleanup } from "./application/book-cover-cleanup.js";
 import { BookDeliveryService } from "./application/book-delivery.service.js";
 import { BookLoanService } from "./application/book-loan.service.js";
@@ -24,9 +25,11 @@ import { BookRelationsResolver } from "./application/book-relations-resolver.js"
 import { BookViewAssembler } from "./application/book-view-assembler.js";
 import { BooksService } from "./application/books.service.js";
 import { BulkBooksService } from "./application/bulk-books.service.js";
+import { ListDetailsService } from "./application/list-details.service.js";
 import { BookDeliveriesRepository } from "./infrastructure/book-deliveries.repository.js";
 import { BooksRepository } from "./infrastructure/books.repository.js";
 import { BulkBooksRepository } from "./infrastructure/bulk-books.repository.js";
+import { ListBooksRepository } from "./infrastructure/list-books.repository.js";
 
 @Module({
   controllers: [
@@ -36,6 +39,7 @@ import { BulkBooksRepository } from "./infrastructure/bulk-books.repository.js";
     BookLoanController,
     BookDeliveryController,
     BulkBooksController,
+    ListDetailsController,
   ],
   exports: [BookReadingService, BookViewAssembler, BooksRepository],
   imports: [
@@ -62,6 +66,8 @@ import { BulkBooksRepository } from "./infrastructure/bulk-books.repository.js";
     BookDeliveriesRepository,
     BulkBooksService,
     BulkBooksRepository,
+    ListDetailsService,
+    ListBooksRepository,
   ],
 })
 export class BooksModule {}

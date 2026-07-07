@@ -77,3 +77,23 @@ export const CustomListsQuerySchema = TaxonomySearchPaginationQuerySchema.extend
 });
 
 export type CustomListsQuery = z.infer<typeof CustomListsQuerySchema>;
+
+export const ListBookSortSchema = z.enum([
+  "position",
+  "added_desc",
+  "added_asc",
+  "title_asc",
+  "title_desc",
+  "author_asc",
+  "rating_desc",
+  "pages_desc",
+  "pages_asc",
+]);
+
+export type ListBookSort = z.infer<typeof ListBookSortSchema>;
+
+export const CustomListBooksQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  sort: ListBookSortSchema.default("position"),
+});
+
+export type CustomListBooksQuery = z.infer<typeof CustomListBooksQuerySchema>;

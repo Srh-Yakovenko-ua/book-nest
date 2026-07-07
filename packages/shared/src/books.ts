@@ -950,3 +950,19 @@ export const FavoritesSummaryViewSchema = z.object({
 export type FavoritesSummaryView = z.infer<typeof FavoritesSummaryViewSchema>;
 
 export const PaginatedBooksSchema = createPaginatedSchema(BookViewSchema);
+
+export const ListBookViewSchema = BookViewSchema.extend({ position: z.number() });
+
+export type ListBookView = z.infer<typeof ListBookViewSchema>;
+
+export const CustomListDetailSchema = z.object({
+  bookCount: z.number(),
+  books: createPaginatedSchema(ListBookViewSchema),
+  createdAt: z.string(),
+  description: z.string().nullable(),
+  id: z.string(),
+  name: z.string(),
+  updatedAt: z.string(),
+});
+
+export type CustomListDetail = z.infer<typeof CustomListDetailSchema>;
