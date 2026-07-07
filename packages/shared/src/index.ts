@@ -9,6 +9,7 @@ export * from "./lists.js";
 export * from "./media.js";
 export * from "./profile.js";
 export * from "./publishers.js";
+export * from "./reading-queue.js";
 export * from "./series.js";
 export * from "./tags.js";
 export * from "./taxonomy.js";

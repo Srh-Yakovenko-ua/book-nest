@@ -18,7 +18,7 @@ import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.r
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 
-const withRelations = {
+export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
   coverMedia: true,
   deliveries: { orderBy: { createdAt: "desc" } },

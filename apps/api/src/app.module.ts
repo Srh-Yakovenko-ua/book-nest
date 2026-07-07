@@ -19,6 +19,7 @@ import { MetricsMiddleware } from "./modules/observability/metrics.middleware.js
 import { MetricsModule } from "./modules/observability/metrics.module.js";
 import { ProfileModule } from "./modules/profile/profile.module.js";
 import { PublishersModule } from "./modules/publishers/publishers.module.js";
+import { ReadingQueueModule } from "./modules/reading-queue/index.js";
 import { SeriesModule } from "./modules/series/series.module.js";
 import { TagsModule } from "./modules/tags/tags.module.js";
 
@@ -44,6 +45,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     GenresModule,
     MediaModule,
     DeliveryServicesModule,
+    ReadingQueueModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

@@ -37,6 +37,7 @@ import { BulkBooksRepository } from "./infrastructure/bulk-books.repository.js";
     BookDeliveryController,
     BulkBooksController,
   ],
+  exports: [BookViewAssembler],
   imports: [
     AuthModule,
     AuthorsModule,
