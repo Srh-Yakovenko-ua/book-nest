@@ -1,18 +1,33 @@
 import type {
-  BookListView,
+  CustomListCard,
+  CustomListsQuery,
+  MediaView,
   NewListInput,
   Paginator,
-  TaxonomySearchPaginationQuery,
+  UpdateListInput,
 } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { createLogger } from "../../../core/logger.js";
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
-import { toBookListView } from "../domain/book-list.mapper.js";
-import { ListsRepository } from "../infrastructure/lists.repository.js";
+import { MediaService } from "../../media/index.js";
+import { toCustomListCard } from "../domain/custom-list-card.mapper.js";
+import { type BookListCard, ListsRepository } from "../infrastructure/lists.repository.js";
+
+const LIST_NAME_TAKEN_MESSAGE = "List with this name already exists";
+const LIST_NOT_FOUND_MESSAGE = "List not found";
+
+const log = createLogger("lists.service");
+
+type AssertNameAvailableInput = {
+  excludeId: string;
+  normalizedName: string;
+  userId: string;
+};
 
 type ResolveListsInput = {
   listIds?: string[];
@@ -21,7 +36,39 @@ type ResolveListsInput = {
 
 @Injectable()
 export class ListsService {
-  constructor(private readonly listsRepository: ListsRepository) {}
+  constructor(
+    private readonly listsRepository: ListsRepository,
+    private readonly mediaService: MediaService,
+  ) {}
+
+  async create(userId: string, input: NewListInput): Promise<CustomListCard> {
+    const normalizedName = normalizeName(input.name);
+    const existing = await this.listsRepository.findByNormalized(userId, normalizedName);
+    if (existing !== null) {
+      throw new ConflictError(LIST_NAME_TAKEN_MESSAGE);
+    }
+
+    try {
+      const created = await this.listsRepository.create(userId, {
+        description: input.description ?? null,
+        name: input.name,
+        normalizedName,
+      });
+      return this.toCard(created);
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) {
+        throw error;
+      }
+      throw new ConflictError(LIST_NAME_TAKEN_MESSAGE);
+    }
+  }
+
+  async delete(userId: string, listId: string): Promise<void> {
+    const deletedCount = await this.listsRepository.deleteOwned(userId, listId);
+    if (deletedCount === 0) {
+      throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
+    }
+  }
 
   async resolveListsForBook(userId: string, input: ResolveListsInput): Promise<string[]> {
     const resolvedIds = new Set<string>();
@@ -32,7 +79,7 @@ export class ListsService {
       const ownedIds = new Set(owned.map((list) => list.id));
       for (const requestedId of requestedIds) {
         if (!ownedIds.has(requestedId)) {
-          throw new NotFoundError("List not found");
+          throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
         }
         resolvedIds.add(requestedId);
       }
@@ -45,16 +92,14 @@ export class ListsService {
     return [...resolvedIds];
   }
 
-  async search(
-    userId: string,
-    query: TaxonomySearchPaginationQuery,
-  ): Promise<Paginator<BookListView>> {
-    const { pageNumber, pageSize, search } = query;
+  async search(userId: string, query: CustomListsQuery): Promise<Paginator<CustomListCard>> {
+    const { pageNumber, pageSize, search, sort } = query;
 
     const [lists, totalCount] = await Promise.all([
-      this.listsRepository.searchOwned({
+      this.listsRepository.searchOwnedCards({
         query: search,
         skip: (pageNumber - 1) * pageSize,
+        sort,
         take: pageSize,
         userId,
       }),
@@ -62,11 +107,46 @@ export class ListsService {
     ]);
 
     return buildPaginator({
-      items: lists.map(toBookListView),
+      items: lists.map((list) => this.toCard(list)),
       pageNumber,
       pageSize,
       totalCount,
     });
+  }
+
+  async update(userId: string, listId: string, input: UpdateListInput): Promise<CustomListCard> {
+    const current = await this.listsRepository.findOwnedById(userId, listId);
+    if (current === null) {
+      throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
+    }
+
+    const normalizedName = normalizeName(input.name);
+    await this.assertNameAvailable({ excludeId: listId, normalizedName, userId });
+
+    try {
+      const updated = await this.listsRepository.updateOwned(userId, listId, {
+        description: input.description ?? null,
+        name: input.name,
+        normalizedName,
+      });
+      return this.toCard(updated);
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) {
+        throw error;
+      }
+      throw new ConflictError(LIST_NAME_TAKEN_MESSAGE);
+    }
+  }
+
+  private async assertNameAvailable({
+    excludeId,
+    normalizedName,
+    userId,
+  }: AssertNameAvailableInput): Promise<void> {
+    const existing = await this.listsRepository.findByNormalized(userId, normalizedName);
+    if (existing !== null && existing.id !== excludeId) {
+      throw new ConflictError(LIST_NAME_TAKEN_MESSAGE);
+    }
   }
 
   private async resolveOrCreate(userId: string, newList: NewListInput): Promise<string> {
@@ -93,5 +173,20 @@ export class ListsService {
       }
       return winner.id;
     }
+  }
+
+  private toCard(list: BookListCard): CustomListCard {
+    const previewCovers: MediaView[] = [];
+    for (const item of list.items) {
+      if (item.book.coverMedia === null) {
+        continue;
+      }
+      try {
+        previewCovers.push(this.mediaService.buildView(item.book.coverMedia));
+      } catch (error) {
+        log.warn({ err: error, listId: list.id }, "failed to build preview cover view");
+      }
+    }
+    return toCustomListCard({ list, previewCovers });
   }
 }
