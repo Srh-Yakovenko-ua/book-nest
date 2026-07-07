@@ -31,6 +31,15 @@ afterAll(async () => {
   await context.close();
 });
 
+const NONEXISTENT_BOOK_ID = "33333333-3333-4333-8333-333333333333";
+
+function addToQueue(accessToken: string, body: Record<string, unknown>): request.Test {
+  return request(app.getHttpServer())
+    .post("/api/reading-queue")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
+}
+
 function createBook(accessToken: string, body: Record<string, unknown>): request.Test {
   return request(app.getHttpServer())
     .post("/api/books")
@@ -38,10 +47,28 @@ function createBook(accessToken: string, body: Record<string, unknown>): request
     .send(body);
 }
 
+async function createOwnedBook(
+  accessToken: string,
+  overrides: Record<string, unknown>,
+): Promise<string> {
+  const res = await createBook(accessToken, {
+    authors: [{ name: "Frank Herbert" }],
+    title: "Book",
+    ...overrides,
+  });
+  expect(res.status).toBe(201);
+  return res.body.id;
+}
+
 function getQueue(accessToken: string): request.Test {
   return request(app.getHttpServer())
     .get("/api/reading-queue")
     .set("Authorization", `Bearer ${accessToken}`);
+}
+
+function positionsByTitle(res: request.Response): Array<[string, number]> {
+  const items = res.body.items as Array<{ book: { title: string }; position: number }>;
+  return items.map((item) => [item.book.title, item.position]);
 }
 
 describe("GET /api/reading-queue", () => {
@@ -124,5 +151,192 @@ describe("GET /api/reading-queue", () => {
     expect(res.body.count).toBe(1);
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].book.title).toBe("Dune");
+  });
+});
+
+describe("POST /api/reading-queue", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/reading-queue")
+      .send({ bookId: NONEXISTENT_BOOK_ID, placement: "end" });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 with a bookId error when the bookId is not a uuid", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await addToQueue(accessToken, { bookId: "not-a-uuid", placement: "end" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "bookId" })]),
+    );
+  });
+
+  it("returns 400 with a position error when specific placement omits the position", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await addToQueue(accessToken, {
+      bookId: NONEXISTENT_BOOK_ID,
+      placement: "specific",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "position" })]),
+    );
+  });
+
+  it("returns 404 when the book does not exist in the user library", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await addToQueue(accessToken, { bookId: NONEXISTENT_BOOK_ID, placement: "end" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("adds a book at the end and returns the queue with the book at position 1", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookA = await createOwnedBook(accessToken, { pagesCount: 100, title: "Dune" });
+
+    const res = await addToQueue(accessToken, { bookId: bookA, placement: "end" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ count: 1, totalPagesCount: 100 });
+    expect(positionsByTitle(res)).toEqual([["Dune", 1]]);
+  });
+
+  it("returns 409 when the book is already in the queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookA = await createOwnedBook(accessToken, { title: "Dune" });
+    const first = await addToQueue(accessToken, { bookId: bookA, placement: "end" });
+    expect(first.status).toBe(200);
+
+    const res = await addToQueue(accessToken, { bookId: bookA, placement: "end" });
+
+    expect(res.status).toBe(409);
+  });
+
+  it("inserts a book at the start and shifts the existing book down", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookA = await createOwnedBook(accessToken, { title: "A" });
+    const bookB = await createOwnedBook(accessToken, { title: "B" });
+    const addA = await addToQueue(accessToken, { bookId: bookA, placement: "end" });
+    expect(addA.status).toBe(200);
+
+    const res = await addToQueue(accessToken, { bookId: bookB, placement: "start" });
+
+    expect(res.status).toBe(200);
+    expect(positionsByTitle(res)).toEqual([
+      ["B", 1],
+      ["A", 2],
+    ]);
+  });
+
+  it("inserts a book at a specific position and shifts later books down", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookA = await createOwnedBook(accessToken, { title: "A" });
+    const bookB = await createOwnedBook(accessToken, { title: "B" });
+    const bookC = await createOwnedBook(accessToken, { title: "C" });
+    const addA = await addToQueue(accessToken, { bookId: bookA, placement: "end" });
+    expect(addA.status).toBe(200);
+    const addB = await addToQueue(accessToken, { bookId: bookB, placement: "start" });
+    expect(addB.status).toBe(200);
+
+    const res = await addToQueue(accessToken, {
+      bookId: bookC,
+      placement: "specific",
+      position: 2,
+    });
+
+    expect(res.status).toBe(200);
+    expect(positionsByTitle(res)).toEqual([
+      ["B", 1],
+      ["C", 2],
+      ["A", 3],
+    ]);
+  });
+
+  it("returns 422 and leaves the queue unchanged when a specific position is out of range", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookA = await createOwnedBook(accessToken, { title: "A" });
+    const bookB = await createOwnedBook(accessToken, { title: "B" });
+    const bookC = await createOwnedBook(accessToken, { title: "C" });
+    const bookD = await createOwnedBook(accessToken, { title: "D" });
+    expect((await addToQueue(accessToken, { bookId: bookA, placement: "end" })).status).toBe(200);
+    expect((await addToQueue(accessToken, { bookId: bookB, placement: "end" })).status).toBe(200);
+    expect((await addToQueue(accessToken, { bookId: bookC, placement: "end" })).status).toBe(200);
+
+    const res = await addToQueue(accessToken, {
+      bookId: bookD,
+      placement: "specific",
+      position: 99,
+    });
+
+    expect(res.status).toBe(422);
+    const after = await getQueue(accessToken);
+    expect(positionsByTitle(after)).toEqual([
+      ["A", 1],
+      ["B", 2],
+      ["C", 3],
+    ]);
+  });
+
+  it("appends a book at the boundary position of count + 1", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookA = await createOwnedBook(accessToken, { title: "A" });
+    const bookB = await createOwnedBook(accessToken, { title: "B" });
+    const bookC = await createOwnedBook(accessToken, { title: "C" });
+    const bookD = await createOwnedBook(accessToken, { title: "D" });
+    expect((await addToQueue(accessToken, { bookId: bookA, placement: "end" })).status).toBe(200);
+    expect((await addToQueue(accessToken, { bookId: bookB, placement: "end" })).status).toBe(200);
+    expect((await addToQueue(accessToken, { bookId: bookC, placement: "end" })).status).toBe(200);
+
+    const res = await addToQueue(accessToken, {
+      bookId: bookD,
+      placement: "specific",
+      position: 4,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(4);
+    expect(positionsByTitle(res)).toEqual([
+      ["A", 1],
+      ["B", 2],
+      ["C", 3],
+      ["D", 4],
+    ]);
+  });
+
+  it("returns 404 when adding a book owned by another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin();
+    const ownerBook = await createOwnedBook(owner.accessToken, { title: "Dune" });
+
+    const res = await addToQueue(stranger.accessToken, { bookId: ownerBook, placement: "end" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("keeps each user's queue isolated when both add their own books", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin();
+    const ownerBook = await createOwnedBook(owner.accessToken, { pagesCount: 100, title: "Dune" });
+    const strangerBook = await createOwnedBook(stranger.accessToken, {
+      pagesCount: 300,
+      title: "Foundation",
+    });
+    expect(
+      (await addToQueue(owner.accessToken, { bookId: ownerBook, placement: "end" })).status,
+    ).toBe(200);
+    expect(
+      (await addToQueue(stranger.accessToken, { bookId: strangerBook, placement: "end" })).status,
+    ).toBe(200);
+
+    const ownerQueue = await getQueue(owner.accessToken);
+
+    expect(ownerQueue.body.count).toBe(1);
+    expect(positionsByTitle(ownerQueue)).toEqual([["Dune", 1]]);
   });
 });

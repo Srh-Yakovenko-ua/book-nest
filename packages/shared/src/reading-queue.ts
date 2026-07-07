@@ -16,3 +16,20 @@ export const ReadingQueueViewSchema = z.object({
 });
 
 export type ReadingQueueView = z.infer<typeof ReadingQueueViewSchema>;
+
+export const ReadingQueuePlacementSchema = z.enum(["start", "end", "specific"]);
+
+export type ReadingQueuePlacement = z.infer<typeof ReadingQueuePlacementSchema>;
+
+export const AddToReadingQueueInputSchema = z
+  .object({
+    bookId: z.uuid(),
+    placement: ReadingQueuePlacementSchema,
+    position: z.number().int().positive().optional(),
+  })
+  .refine((value) => value.placement !== "specific" || value.position !== undefined, {
+    error: "Вкажіть позицію в черзі",
+    path: ["position"],
+  });
+
+export type AddToReadingQueueInput = z.infer<typeof AddToReadingQueueInputSchema>;
