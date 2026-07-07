@@ -452,7 +452,7 @@ describe("POST /api/books/bulk/lists", () => {
     const book = await prisma.book.create({
       data: {
         authors: { create: [{ authorId: author.id, position: 0 }] },
-        lists: { create: [{ listId: listA.id }] },
+        lists: { create: [{ listId: listA.id, position: 1 }] },
         title: "A",
         userId,
       },

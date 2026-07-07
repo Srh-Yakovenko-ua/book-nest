@@ -17,6 +17,7 @@ import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.r
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { appendBookToList } from "./book-list-membership.js";
 
 export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
@@ -333,21 +334,28 @@ export class BooksRepository {
       tagIds,
       ...bookData
     } = data;
-    return this.prisma.book.create({
-      data: {
-        ...bookData,
-        authors: {
-          create: authorIds.map((authorId, position) => ({ authorId, position })),
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.book.create({
+        data: {
+          ...bookData,
+          authors: {
+            create: authorIds.map((authorId, position) => ({ authorId, position })),
+          },
+          deliveries: deliveryInfo === null ? undefined : { create: { ...deliveryInfo, userId } },
+          loanInfo: loanInfo === null ? undefined : { create: loanInfo },
+          purchaseInfo: purchaseInfo === null ? undefined : { create: purchaseInfo },
+          readingProgress: readingProgress === null ? undefined : { create: readingProgress },
+          tags: { create: tagIds.map((tagId) => ({ tagId })) },
+          userId,
         },
-        deliveries: deliveryInfo === null ? undefined : { create: { ...deliveryInfo, userId } },
-        lists: { create: listIds.map((listId) => ({ listId })) },
-        loanInfo: loanInfo === null ? undefined : { create: loanInfo },
-        purchaseInfo: purchaseInfo === null ? undefined : { create: purchaseInfo },
-        readingProgress: readingProgress === null ? undefined : { create: readingProgress },
-        tags: { create: tagIds.map((tagId) => ({ tagId })) },
-        userId,
-      },
-      include: withRelations,
+        select: { id: true },
+      });
+
+      for (const listId of listIds) {
+        await appendBookToList(tx, { bookId: created.id, listId });
+      }
+
+      return tx.book.findFirstOrThrow({ include: withRelations, where: { id: created.id } });
     });
   }
 
@@ -554,11 +562,24 @@ export class BooksRepository {
       }
 
       if (data.listIds !== undefined) {
-        await tx.bookListItem.deleteMany({ where: { bookId } });
-        if (data.listIds.length > 0) {
-          await tx.bookListItem.createMany({
-            data: data.listIds.map((listId) => ({ bookId, listId })),
-          });
+        const targetListIds = new Set(data.listIds);
+        const current = await tx.bookListItem.findMany({
+          select: { listId: true },
+          where: { bookId },
+        });
+        const currentListIds = new Set(current.map((item) => item.listId));
+
+        const removedListIds = current
+          .map((item) => item.listId)
+          .filter((listId) => !targetListIds.has(listId));
+        if (removedListIds.length > 0) {
+          await tx.bookListItem.deleteMany({ where: { bookId, listId: { in: removedListIds } } });
+        }
+
+        for (const listId of data.listIds) {
+          if (!currentListIds.has(listId)) {
+            await appendBookToList(tx, { bookId, listId });
+          }
         }
       }
 

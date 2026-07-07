@@ -4,6 +4,7 @@ import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { appendBookToList } from "./book-list-membership.js";
 
 export type BulkDeleteResult = {
   affected: number;
@@ -56,10 +57,11 @@ export class BulkBooksRepository {
       if (ownedBooks.length === 0) {
         return 0;
       }
-      await tx.bookListItem.createMany({
-        data: ownedBooks.flatMap((book) => listIds.map((listId) => ({ bookId: book.id, listId }))),
-        skipDuplicates: true,
-      });
+      for (const book of ownedBooks) {
+        for (const listId of listIds) {
+          await appendBookToList(tx, { bookId: book.id, listId });
+        }
+      }
       return ownedBooks.length;
     });
   }

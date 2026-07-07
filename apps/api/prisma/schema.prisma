@@ -385,10 +385,12 @@ model BookList {
 }
 
 model BookListItem {
-  listId String   @map("list_id") @db.Uuid
-  bookId String   @map("book_id") @db.Uuid
-  list   BookList @relation(fields: [listId], references: [id], onDelete: Cascade)
-  book   Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  listId   String   @map("list_id") @db.Uuid
+  bookId   String   @map("book_id") @db.Uuid
+  position Int      @map("position")
+  addedAt  DateTime @default(now()) @map("added_at") @db.Timestamptz
+  list     BookList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  book     Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@id([listId, bookId])
   @@index([bookId])
