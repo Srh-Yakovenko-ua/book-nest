@@ -40,6 +40,19 @@ function addToQueue(accessToken: string, body: Record<string, unknown>): request
     .send(body);
 }
 
+async function buildQueueABCD(
+  accessToken: string,
+): Promise<{ bookA: string; bookB: string; bookC: string; bookD: string }> {
+  const bookA = await createOwnedBook(accessToken, { title: "A" });
+  const bookB = await createOwnedBook(accessToken, { title: "B" });
+  const bookC = await createOwnedBook(accessToken, { title: "C" });
+  const bookD = await createOwnedBook(accessToken, { title: "D" });
+  for (const bookId of [bookA, bookB, bookC, bookD]) {
+    expect((await addToQueue(accessToken, { bookId, placement: "end" })).status).toBe(200);
+  }
+  return { bookA, bookB, bookC, bookD };
+}
+
 function createBook(accessToken: string, body: Record<string, unknown>): request.Test {
   return request(app.getHttpServer())
     .post("/api/books")
@@ -81,6 +94,13 @@ function removeFromQueue(accessToken: string, bookId: string): request.Test {
   return request(app.getHttpServer())
     .delete(`/api/reading-queue/${bookId}`)
     .set("Authorization", `Bearer ${accessToken}`);
+}
+
+function reorder(accessToken: string, order: string[]): request.Test {
+  return request(app.getHttpServer())
+    .put("/api/reading-queue/reorder")
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send({ order });
 }
 
 describe("GET /api/reading-queue", () => {
@@ -457,5 +477,127 @@ describe("DELETE /api/reading-queue/:bookId", () => {
     expect(res.body.isInReadingQueue).toBe(false);
     expect(res.body.readingStatus).toBe("reading");
     expect(res.body.ownershipStatus).toBe("owned");
+  });
+});
+
+describe("PUT /api/reading-queue/reorder", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer())
+      .put("/api/reading-queue/reorder")
+      .send({ order: [NONEXISTENT_BOOK_ID] });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when the order contains a malformed uuid", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await reorder(accessToken, ["not-a-uuid", NONEXISTENT_BOOK_ID]);
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: expect.stringMatching(/^order/) })]),
+    );
+  });
+
+  it("re-sequences positions to the requested order in the response body", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookA, bookB, bookC, bookD } = await buildQueueABCD(accessToken);
+
+    const res = await reorder(accessToken, [bookD, bookB, bookA, bookC]);
+
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(4);
+    expect(positionsByTitle(res)).toEqual([
+      ["D", 1],
+      ["B", 2],
+      ["A", 3],
+      ["C", 4],
+    ]);
+  });
+
+  it("persists the reordered positions for subsequent reads", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookA, bookB, bookC, bookD } = await buildQueueABCD(accessToken);
+    expect((await reorder(accessToken, [bookD, bookB, bookA, bookC])).status).toBe(200);
+
+    const after = await getQueue(accessToken);
+
+    expect(positionsByTitle(after)).toEqual([
+      ["D", 1],
+      ["B", 2],
+      ["A", 3],
+      ["C", 4],
+    ]);
+  });
+
+  it("returns 422 and leaves the queue unchanged when the order contains a duplicate id", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookA, bookC, bookD } = await buildQueueABCD(accessToken);
+
+    const res = await reorder(accessToken, [bookD, bookD, bookA, bookC]);
+
+    expect(res.status).toBe(422);
+    expect(res.body.message).toBe("Некоректний порядок черги");
+    const after = await getQueue(accessToken);
+    expect(positionsByTitle(after)).toEqual([
+      ["A", 1],
+      ["B", 2],
+      ["C", 3],
+      ["D", 4],
+    ]);
+  });
+
+  it("returns 422 and leaves the queue unchanged when the order omits a queued id", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookA, bookB, bookD } = await buildQueueABCD(accessToken);
+
+    const res = await reorder(accessToken, [bookD, bookB, bookA]);
+
+    expect(res.status).toBe(422);
+    const after = await getQueue(accessToken);
+    expect(positionsByTitle(after)).toEqual([
+      ["A", 1],
+      ["B", 2],
+      ["C", 3],
+      ["D", 4],
+    ]);
+  });
+
+  it("returns 422 and leaves the queue unchanged when the order includes a non-queued uuid", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookA, bookB, bookD } = await buildQueueABCD(accessToken);
+
+    const res = await reorder(accessToken, [bookD, bookB, bookA, NONEXISTENT_BOOK_ID]);
+
+    expect(res.status).toBe(422);
+    const after = await getQueue(accessToken);
+    expect(positionsByTitle(after)).toEqual([
+      ["A", 1],
+      ["B", 2],
+      ["C", 3],
+      ["D", 4],
+    ]);
+  });
+
+  it("returns 422 and does not affect another user's queue when reordering with their book id", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin();
+    const ownerQueue = await buildQueueABCD(owner.accessToken);
+    const strangerBook = await createOwnedBook(stranger.accessToken, { title: "S" });
+    expect(
+      (await addToQueue(stranger.accessToken, { bookId: strangerBook, placement: "end" })).status,
+    ).toBe(200);
+
+    const res = await reorder(owner.accessToken, [
+      ownerQueue.bookD,
+      ownerQueue.bookB,
+      ownerQueue.bookA,
+      strangerBook,
+    ]);
+
+    expect(res.status).toBe(422);
+    const strangerAfter = await getQueue(stranger.accessToken);
+    expect(positionsByTitle(strangerAfter)).toEqual([["S", 1]]);
   });
 });

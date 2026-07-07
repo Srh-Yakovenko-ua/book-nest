@@ -361,3 +361,128 @@ describe("ReadingQueueService.removeFromQueue", () => {
     });
   });
 });
+
+function buildReorderService(): {
+  findQueuedBookIds: ReturnType<typeof vi.fn>;
+  listQueue: ReturnType<typeof vi.fn>;
+  service: ReadingQueueService;
+  setPosition: ReturnType<typeof vi.fn>;
+  tx: Prisma.TransactionClient;
+} {
+  const tx = {} as unknown as Prisma.TransactionClient;
+  const findQueuedBookIds = vi.fn().mockResolvedValue([]);
+  const setPosition = vi.fn().mockResolvedValue(undefined);
+  const listQueue = vi.fn().mockResolvedValue([]);
+  const viewOf = vi.fn(
+    (book: QueueRow): BookView =>
+      ({ id: book.id, pagesCount: book.pagesCount }) as unknown as BookView,
+  );
+  const run = vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(tx));
+
+  const booksRepository = {} as unknown as BooksRepository;
+  const assembler = { viewOf } as unknown as BookViewAssembler;
+  const repository = {
+    findQueuedBookIds,
+    listQueue,
+    setPosition,
+  } as unknown as ReadingQueueRepository;
+  const transactionRunner = { run } as unknown as TransactionRunner;
+
+  const service = new ReadingQueueService(
+    booksRepository,
+    assembler,
+    repository,
+    transactionRunner,
+  );
+  return { findQueuedBookIds, listQueue, service, setPosition, tx };
+}
+
+describe("ReadingQueueService.reorder", () => {
+  it("rejects with ValidationError when the order contains duplicate ids", async () => {
+    const { service } = buildReorderService();
+
+    await expect(
+      service.reorder(USER_ID, { order: ["book-a", "book-a", "book-b"] }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("does not set any position when the order contains duplicate ids", async () => {
+    const { service, setPosition } = buildReorderService();
+
+    await expect(
+      service.reorder(USER_ID, { order: ["book-a", "book-a", "book-b"] }),
+    ).rejects.toThrow(ValidationError);
+    expect(setPosition).not.toHaveBeenCalled();
+  });
+
+  it("rejects with ValidationError when the order omits a queued id", async () => {
+    const { findQueuedBookIds, service } = buildReorderService();
+    findQueuedBookIds.mockResolvedValue(["book-a", "book-b", "book-c"]);
+
+    await expect(service.reorder(USER_ID, { order: ["book-a", "book-b"] })).rejects.toThrow(
+      ValidationError,
+    );
+  });
+
+  it("does not set any position when the order omits a queued id", async () => {
+    const { findQueuedBookIds, service, setPosition } = buildReorderService();
+    findQueuedBookIds.mockResolvedValue(["book-a", "book-b", "book-c"]);
+
+    await expect(service.reorder(USER_ID, { order: ["book-a", "book-b"] })).rejects.toThrow(
+      ValidationError,
+    );
+    expect(setPosition).not.toHaveBeenCalled();
+  });
+
+  it("rejects with ValidationError when the order includes a foreign id of matching length", async () => {
+    const { findQueuedBookIds, service } = buildReorderService();
+    findQueuedBookIds.mockResolvedValue(["book-a", "book-b", "book-c"]);
+
+    await expect(
+      service.reorder(USER_ID, { order: ["book-a", "book-b", "book-x"] }),
+    ).rejects.toThrow(ValidationError);
+  });
+
+  it("does not set any position when the order includes a foreign id", async () => {
+    const { findQueuedBookIds, service, setPosition } = buildReorderService();
+    findQueuedBookIds.mockResolvedValue(["book-a", "book-b", "book-c"]);
+
+    await expect(
+      service.reorder(USER_ID, { order: ["book-a", "book-b", "book-x"] }),
+    ).rejects.toThrow(ValidationError);
+    expect(setPosition).not.toHaveBeenCalled();
+  });
+
+  it("sets each queued book position by its index within the threaded transaction", async () => {
+    const { findQueuedBookIds, service, setPosition, tx } = buildReorderService();
+    findQueuedBookIds.mockResolvedValue(["book-a", "book-b", "book-c"]);
+
+    await service.reorder(USER_ID, { order: ["book-c", "book-a", "book-b"] });
+
+    expect(setPosition).toHaveBeenNthCalledWith(1, USER_ID, "book-c", 1, tx);
+    expect(setPosition).toHaveBeenNthCalledWith(2, USER_ID, "book-a", 2, tx);
+    expect(setPosition).toHaveBeenNthCalledWith(3, USER_ID, "book-b", 3, tx);
+  });
+
+  it("returns the reloaded queue view after reordering", async () => {
+    const { findQueuedBookIds, listQueue, service } = buildReorderService();
+    findQueuedBookIds.mockResolvedValue(["book-a", "book-b", "book-c"]);
+    listQueue.mockResolvedValue([
+      { id: "book-c", pagesCount: 30, queuePosition: 1 },
+      { id: "book-a", pagesCount: 100, queuePosition: 2 },
+      { id: "book-b", pagesCount: 250, queuePosition: 3 },
+    ]);
+
+    const result = await service.reorder(USER_ID, { order: ["book-c", "book-a", "book-b"] });
+
+    expect(result).toEqual({
+      count: 3,
+      items: [
+        { book: { id: "book-c", pagesCount: 30 }, position: 1 },
+        { book: { id: "book-a", pagesCount: 100 }, position: 2 },
+        { book: { id: "book-b", pagesCount: 250 }, position: 3 },
+      ],
+      totalPagesCount: 380,
+    });
+  });
+});

@@ -1,4 +1,9 @@
-import type { AddToReadingQueueInput, ReadingQueueItemView, ReadingQueueView } from "@app/shared";
+import type {
+  AddToReadingQueueInput,
+  ReadingQueueItemView,
+  ReadingQueueView,
+  ReorderReadingQueueInput,
+} from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -10,6 +15,7 @@ import { ReadingQueueRepository } from "../infrastructure/reading-queue.reposito
 
 const ALREADY_IN_QUEUE_MESSAGE = "Книга вже є в черзі читання";
 const NOT_IN_QUEUE_MESSAGE = "Книга не в черзі читання";
+const INVALID_ORDER_MESSAGE = "Некоректний порядок черги";
 
 @Injectable()
 export class ReadingQueueService {
@@ -66,6 +72,27 @@ export class ReadingQueueService {
     await this.transactionRunner.run(async (tx) => {
       await this.readingQueueRepository.clearPosition(userId, bookId, tx);
       await this.readingQueueRepository.shiftUpAfter(userId, removedPosition, tx);
+    });
+
+    return this.getQueue(userId);
+  }
+
+  async reorder(userId: string, input: ReorderReadingQueueInput): Promise<ReadingQueueView> {
+    const order = input.order;
+    if (new Set(order).size !== order.length) {
+      throw new ValidationError(INVALID_ORDER_MESSAGE);
+    }
+
+    const current = await this.readingQueueRepository.findQueuedBookIds(userId);
+    const currentIds = new Set(current);
+    if (order.length !== currentIds.size || !order.every((bookId) => currentIds.has(bookId))) {
+      throw new ValidationError(INVALID_ORDER_MESSAGE);
+    }
+
+    await this.transactionRunner.run(async (tx) => {
+      for (const [index, bookId] of order.entries()) {
+        await this.readingQueueRepository.setPosition(userId, bookId, index + 1, tx);
+      }
     });
 
     return this.getQueue(userId);

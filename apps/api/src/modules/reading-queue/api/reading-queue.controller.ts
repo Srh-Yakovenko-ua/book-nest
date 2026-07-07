@@ -1,6 +1,6 @@
 import type { ReadingQueueView } from "@app/shared";
 
-import { AddToReadingQueueInputSchema } from "@app/shared";
+import { AddToReadingQueueInputSchema, ReorderReadingQueueInputSchema } from "@app/shared";
 import {
   Body,
   Controller,
@@ -10,6 +10,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -33,6 +34,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { ReadingQueueService } from "../application/reading-queue.service.js";
 import { AddToReadingQueueInputDto } from "./input-dto/add-to-reading-queue.input-dto.js";
+import { ReorderReadingQueueInputDto } from "./input-dto/reorder-reading-queue.input-dto.js";
 import { ReadingQueueViewDto } from "./view-dto/reading-queue.view-dto.js";
 
 const QUEUE_ACTION_TTL_SECONDS = 60;
@@ -77,6 +79,28 @@ export class ReadingQueueController {
     @Body(new ZodBodyPipe(AddToReadingQueueInputSchema)) body: AddToReadingQueueInputDto,
   ): Promise<ReadingQueueView> {
     return this.readingQueueService.addToQueue(user.id, body);
+  }
+
+  @ApiBearerAuth()
+  @ApiBody({ type: ReorderReadingQueueInputDto })
+  @ApiOkResponse({
+    description: "The reading queue after positions were re-sequenced",
+    type: ReadingQueueViewDto,
+  })
+  @ApiOperation({ summary: "Reorder the current user reading queue" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @ApiUnprocessableEntityResponse({
+    description: "The order is not an exact permutation of the queued books",
+  })
+  @HttpCode(HTTP_STATUS.OK)
+  @Put("reorder")
+  @Throttle({ default: { limit: QUEUE_ACTION_LIMIT, ttl: seconds(QUEUE_ACTION_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  reorder(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodBodyPipe(ReorderReadingQueueInputSchema)) body: ReorderReadingQueueInputDto,
+  ): Promise<ReadingQueueView> {
+    return this.readingQueueService.reorder(user.id, body);
   }
 
   @ApiBearerAuth()

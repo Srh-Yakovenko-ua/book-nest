@@ -33,3 +33,9 @@ export const AddToReadingQueueInputSchema = z
   });
 
 export type AddToReadingQueueInput = z.infer<typeof AddToReadingQueueInputSchema>;
+
+export const ReorderReadingQueueInputSchema = z.object({
+  order: z.array(z.uuid()).min(1),
+});
+
+export type ReorderReadingQueueInput = z.infer<typeof ReorderReadingQueueInputSchema>;

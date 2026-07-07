@@ -24,6 +24,17 @@ export class ReadingQueueRepository {
     return client.book.count({ where: { queuePosition: { not: null }, userId } });
   }
 
+  async findQueuedBookIds(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<string[]> {
+    const rows = await client.book.findMany({
+      select: { id: true },
+      where: { queuePosition: { not: null }, userId },
+    });
+    return rows.map((row) => row.id);
+  }
+
   listQueue(userId: string): Promise<BookWithRelations[]> {
     return this.prisma.book.findMany({
       include: withRelations,
