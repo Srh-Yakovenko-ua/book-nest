@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { collapseHorizontalSpaces, collapseSpaces, createPaginatedSchema } from "./common.js";
+import {
+  collapseHorizontalSpaces,
+  collapseSpaces,
+  createPaginatedSchema,
+  LIST_PAGE_SIZE_MAX,
+} from "./common.js";
 import { NoHtmlString } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
@@ -97,3 +102,28 @@ export const CustomListBooksQuerySchema = TaxonomySearchPaginationQuerySchema.ex
 });
 
 export type CustomListBooksQuery = z.infer<typeof CustomListBooksQuerySchema>;
+
+const ADD_BOOKS_TO_LIST_MAX = LIST_PAGE_SIZE_MAX;
+
+export const AddBooksToListInputSchema = z.object({
+  bookIds: z.array(z.uuid()).min(1).max(ADD_BOOKS_TO_LIST_MAX),
+});
+
+export type AddBooksToListInput = z.infer<typeof AddBooksToListInputSchema>;
+
+export const AddBooksToListResultSchema = z.object({
+  added: z.number().int().nonnegative(),
+  bookCount: z.number().int().nonnegative(),
+});
+
+export type AddBooksToListResult = z.infer<typeof AddBooksToListResultSchema>;
+
+export const MoveListBookDirectionSchema = z.enum(["up", "down"]);
+
+export type MoveListBookDirection = z.infer<typeof MoveListBookDirectionSchema>;
+
+export const MoveListBookInputSchema = z.object({
+  direction: MoveListBookDirectionSchema,
+});
+
+export type MoveListBookInput = z.infer<typeof MoveListBookInputSchema>;

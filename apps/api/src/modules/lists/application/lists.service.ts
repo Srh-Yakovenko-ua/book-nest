@@ -38,6 +38,11 @@ type AssertNameAvailableInput = {
   userId: string;
 };
 
+type AssertOwnedInput = {
+  listId: string;
+  userId: string;
+};
+
 type FindDetailHeaderInput = {
   listId: string;
   userId: string;
@@ -54,6 +59,13 @@ export class ListsService {
     private readonly listsRepository: ListsRepository,
     private readonly mediaService: MediaService,
   ) {}
+
+  async assertOwned({ listId, userId }: AssertOwnedInput): Promise<void> {
+    const list = await this.listsRepository.findOwnedById(userId, listId);
+    if (list === null) {
+      throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
+    }
+  }
 
   async create(userId: string, input: NewListInput): Promise<CustomListCard> {
     const normalizedName = normalizeName(input.name);
