@@ -181,9 +181,9 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
       name: "Penguin",
     });
     expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(USER_ID, ["dark academia"]);
-    expect(listsService.resolveListsForBook).toHaveBeenCalledWith(USER_ID, {
-      listIds: [LIST_ID],
-      newLists: [{ name: "Autumn reads" }],
+    expect(listsService.resolveListsForBook).toHaveBeenCalledWith({
+      input: { listIds: [LIST_ID], newLists: [{ name: "Autumn reads" }] },
+      userId: USER_ID,
     });
     expect(resolved).toMatchObject({
       authorIds: [AUTHOR_ID],
@@ -516,9 +516,9 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       userId: USER_ID,
     });
 
-    expect(listsService.resolveListsForBook).toHaveBeenCalledWith(USER_ID, {
-      listIds: [LIST_ID],
-      newLists: undefined,
+    expect(listsService.resolveListsForBook).toHaveBeenCalledWith({
+      input: { listIds: [LIST_ID], newLists: undefined },
+      userId: USER_ID,
     });
     expect(resolved.listIds).toEqual([LIST_ID]);
   });

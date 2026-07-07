@@ -73,9 +73,9 @@ export class BulkBooksService {
     if (ownedBookIds.length === 0) {
       return { affected: 0 };
     }
-    const listIds = await this.listsService.resolveListsForBook(userId, {
-      listIds: input.listIds,
-      newLists: input.newLists,
+    const listIds = await this.listsService.resolveListsForBook({
+      input: { listIds: input.listIds, newLists: input.newLists },
+      userId,
     });
     if (listIds.length === 0) {
       return { affected: 0 };

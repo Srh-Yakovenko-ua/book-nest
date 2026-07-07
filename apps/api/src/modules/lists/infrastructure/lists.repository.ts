@@ -52,29 +52,35 @@ export class ListsRepository {
     return this.prisma.bookListItem.count({ where: { listId } });
   }
 
-  countOwned(userId: string, query: string | undefined): Promise<number> {
+  countOwned({ query, userId }: { query: string | undefined; userId: string }): Promise<number> {
     return this.prisma.bookList.count({ where: buildOwnedWhere(userId, query) });
   }
 
-  create(userId: string, data: CreateBookListData): Promise<BookListCard> {
+  create({ data, userId }: { data: CreateBookListData; userId: string }): Promise<BookListCard> {
     return this.prisma.bookList.create({ data: { ...data, userId }, ...listCardArgs });
   }
 
-  deleteOwned(userId: string, id: string): Promise<number> {
+  deleteOwned({ id, userId }: { id: string; userId: string }): Promise<number> {
     return this.prisma.bookList
       .deleteMany({ where: { id, userId } })
       .then((result) => result.count);
   }
 
-  findByNormalized(userId: string, normalizedName: string): Promise<BookListModel | null> {
+  findByNormalized({
+    normalizedName,
+    userId,
+  }: {
+    normalizedName: string;
+    userId: string;
+  }): Promise<BookListModel | null> {
     return this.prisma.bookList.findFirst({ where: { normalizedName, userId } });
   }
 
-  findOwnedById(userId: string, id: string): Promise<BookListModel | null> {
+  findOwnedById({ id, userId }: { id: string; userId: string }): Promise<BookListModel | null> {
     return this.prisma.bookList.findFirst({ where: { id, userId } });
   }
 
-  findOwnedByIds(userId: string, ids: string[]): Promise<BookListModel[]> {
+  findOwnedByIds({ ids, userId }: { ids: string[]; userId: string }): Promise<BookListModel[]> {
     return this.prisma.bookList.findMany({ where: { id: { in: ids }, userId } });
   }
 
@@ -94,7 +100,15 @@ export class ListsRepository {
     });
   }
 
-  async updateOwned(userId: string, id: string, data: UpdateBookListData): Promise<BookListCard> {
+  async updateOwned({
+    data,
+    id,
+    userId,
+  }: {
+    data: UpdateBookListData;
+    id: string;
+    userId: string;
+  }): Promise<BookListCard> {
     const updated = await this.prisma.bookList.updateMany({ data, where: { id, userId } });
     if (updated.count === 0) {
       throw new NotFoundError("List not found");

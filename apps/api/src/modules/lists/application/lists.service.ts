@@ -43,14 +43,45 @@ type AssertOwnedInput = {
   userId: string;
 };
 
+type CreateInput = {
+  input: NewListInput;
+  userId: string;
+};
+
+type DeleteInput = {
+  listId: string;
+  userId: string;
+};
+
 type FindDetailHeaderInput = {
   listId: string;
+  userId: string;
+};
+
+type ResolveListsForBookInput = {
+  input: ResolveListsInput;
   userId: string;
 };
 
 type ResolveListsInput = {
   listIds?: string[];
   newLists?: NewListInput[];
+};
+
+type ResolveOrCreateInput = {
+  newList: NewListInput;
+  userId: string;
+};
+
+type SearchInput = {
+  query: CustomListsQuery;
+  userId: string;
+};
+
+type UpdateInput = {
+  input: UpdateListInput;
+  listId: string;
+  userId: string;
 };
 
 @Injectable()
@@ -61,24 +92,27 @@ export class ListsService {
   ) {}
 
   async assertOwned({ listId, userId }: AssertOwnedInput): Promise<void> {
-    const list = await this.listsRepository.findOwnedById(userId, listId);
+    const list = await this.listsRepository.findOwnedById({ id: listId, userId });
     if (list === null) {
       throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
     }
   }
 
-  async create(userId: string, input: NewListInput): Promise<CustomListCard> {
+  async create({ input, userId }: CreateInput): Promise<CustomListCard> {
     const normalizedName = normalizeName(input.name);
-    const existing = await this.listsRepository.findByNormalized(userId, normalizedName);
+    const existing = await this.listsRepository.findByNormalized({ normalizedName, userId });
     if (existing !== null) {
       throw new ConflictError(LIST_NAME_TAKEN_MESSAGE);
     }
 
     try {
-      const created = await this.listsRepository.create(userId, {
-        description: input.description ?? null,
-        name: input.name,
-        normalizedName,
+      const created = await this.listsRepository.create({
+        data: {
+          description: input.description ?? null,
+          name: input.name,
+          normalizedName,
+        },
+        userId,
       });
       return this.toCard(created);
     } catch (error) {
@@ -89,15 +123,15 @@ export class ListsService {
     }
   }
 
-  async delete(userId: string, listId: string): Promise<void> {
-    const deletedCount = await this.listsRepository.deleteOwned(userId, listId);
+  async delete({ listId, userId }: DeleteInput): Promise<void> {
+    const deletedCount = await this.listsRepository.deleteOwned({ id: listId, userId });
     if (deletedCount === 0) {
       throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
     }
   }
 
   async findDetailHeader({ listId, userId }: FindDetailHeaderInput): Promise<ListDetailHeader> {
-    const list = await this.listsRepository.findOwnedById(userId, listId);
+    const list = await this.listsRepository.findOwnedById({ id: listId, userId });
     if (list === null) {
       throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
     }
@@ -113,12 +147,12 @@ export class ListsService {
     };
   }
 
-  async resolveListsForBook(userId: string, input: ResolveListsInput): Promise<string[]> {
+  async resolveListsForBook({ input, userId }: ResolveListsForBookInput): Promise<string[]> {
     const resolvedIds = new Set<string>();
 
     const requestedIds = input.listIds ?? [];
     if (requestedIds.length > 0) {
-      const owned = await this.listsRepository.findOwnedByIds(userId, requestedIds);
+      const owned = await this.listsRepository.findOwnedByIds({ ids: requestedIds, userId });
       const ownedIds = new Set(owned.map((list) => list.id));
       for (const requestedId of requestedIds) {
         if (!ownedIds.has(requestedId)) {
@@ -129,13 +163,13 @@ export class ListsService {
     }
 
     for (const newList of input.newLists ?? []) {
-      resolvedIds.add(await this.resolveOrCreate(userId, newList));
+      resolvedIds.add(await this.resolveOrCreate({ newList, userId }));
     }
 
     return [...resolvedIds];
   }
 
-  async search(userId: string, query: CustomListsQuery): Promise<Paginator<CustomListCard>> {
+  async search({ query, userId }: SearchInput): Promise<Paginator<CustomListCard>> {
     const { pageNumber, pageSize, search, sort } = query;
 
     const [lists, totalCount] = await Promise.all([
@@ -146,7 +180,7 @@ export class ListsService {
         take: pageSize,
         userId,
       }),
-      this.listsRepository.countOwned(userId, search),
+      this.listsRepository.countOwned({ query: search, userId }),
     ]);
 
     return buildPaginator({
@@ -157,8 +191,8 @@ export class ListsService {
     });
   }
 
-  async update(userId: string, listId: string, input: UpdateListInput): Promise<CustomListCard> {
-    const current = await this.listsRepository.findOwnedById(userId, listId);
+  async update({ input, listId, userId }: UpdateInput): Promise<CustomListCard> {
+    const current = await this.listsRepository.findOwnedById({ id: listId, userId });
     if (current === null) {
       throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
     }
@@ -167,10 +201,14 @@ export class ListsService {
     await this.assertNameAvailable({ excludeId: listId, normalizedName, userId });
 
     try {
-      const updated = await this.listsRepository.updateOwned(userId, listId, {
-        description: input.description ?? null,
-        name: input.name,
-        normalizedName,
+      const updated = await this.listsRepository.updateOwned({
+        data: {
+          description: input.description ?? null,
+          name: input.name,
+          normalizedName,
+        },
+        id: listId,
+        userId,
       });
       return this.toCard(updated);
     } catch (error) {
@@ -186,31 +224,34 @@ export class ListsService {
     normalizedName,
     userId,
   }: AssertNameAvailableInput): Promise<void> {
-    const existing = await this.listsRepository.findByNormalized(userId, normalizedName);
+    const existing = await this.listsRepository.findByNormalized({ normalizedName, userId });
     if (existing !== null && existing.id !== excludeId) {
       throw new ConflictError(LIST_NAME_TAKEN_MESSAGE);
     }
   }
 
-  private async resolveOrCreate(userId: string, newList: NewListInput): Promise<string> {
+  private async resolveOrCreate({ newList, userId }: ResolveOrCreateInput): Promise<string> {
     const normalizedName = normalizeName(newList.name);
-    const existing = await this.listsRepository.findByNormalized(userId, normalizedName);
+    const existing = await this.listsRepository.findByNormalized({ normalizedName, userId });
     if (existing !== null) {
       return existing.id;
     }
 
     try {
-      const created = await this.listsRepository.create(userId, {
-        description: newList.description ?? null,
-        name: newList.name,
-        normalizedName,
+      const created = await this.listsRepository.create({
+        data: {
+          description: newList.description ?? null,
+          name: newList.name,
+          normalizedName,
+        },
+        userId,
       });
       return created.id;
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
         throw error;
       }
-      const winner = await this.listsRepository.findByNormalized(userId, normalizedName);
+      const winner = await this.listsRepository.findByNormalized({ normalizedName, userId });
       if (winner === null) {
         throw error;
       }

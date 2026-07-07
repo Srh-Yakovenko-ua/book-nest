@@ -166,9 +166,9 @@ describe("BulkBooksService.addToLists", () => {
 
     const result = await service.addToLists({ input, userId: USER_ID });
 
-    expect(listsService.resolveListsForBook).toHaveBeenCalledWith(USER_ID, {
-      listIds: [LIST_ID],
-      newLists: undefined,
+    expect(listsService.resolveListsForBook).toHaveBeenCalledWith({
+      input: { listIds: [LIST_ID], newLists: undefined },
+      userId: USER_ID,
     });
     expect(bulkBooksRepository.addToLists).toHaveBeenCalledWith({
       bookIds: [BOOK_A],

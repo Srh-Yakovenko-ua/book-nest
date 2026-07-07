@@ -131,7 +131,7 @@ describe("ListsService.resolveListsForBook", () => {
   it("returns an empty array when no lists are requested", async () => {
     const { repository, service } = buildService();
 
-    const ids = await service.resolveListsForBook(USER_ID, {});
+    const ids = await service.resolveListsForBook({ input: {}, userId: USER_ID });
 
     expect(ids).toEqual([]);
     expect(repository.findOwnedByIds).not.toHaveBeenCalled();
@@ -145,8 +145,9 @@ describe("ListsService.resolveListsForBook", () => {
       list({ id: OTHER_LIST_ID, name: "Gifts", normalizedName: "gifts" }),
     ]);
 
-    const ids = await service.resolveListsForBook(USER_ID, {
-      listIds: [LIST_ID, OTHER_LIST_ID],
+    const ids = await service.resolveListsForBook({
+      input: { listIds: [LIST_ID, OTHER_LIST_ID] },
+      userId: USER_ID,
     });
 
     expect(ids).toEqual([LIST_ID, OTHER_LIST_ID]);
@@ -157,7 +158,10 @@ describe("ListsService.resolveListsForBook", () => {
     repository.findOwnedByIds.mockResolvedValue([list({ id: LIST_ID })]);
 
     await expect(
-      service.resolveListsForBook(USER_ID, { listIds: [LIST_ID, FOREIGN_LIST_ID] }),
+      service.resolveListsForBook({
+        input: { listIds: [LIST_ID, FOREIGN_LIST_ID] },
+        userId: USER_ID,
+      }),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
@@ -165,8 +169,9 @@ describe("ListsService.resolveListsForBook", () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(list({ id: LIST_ID }));
 
-    const ids = await service.resolveListsForBook(USER_ID, {
-      newLists: [{ name: "  Autumn   Reads " }],
+    const ids = await service.resolveListsForBook({
+      input: { newLists: [{ name: "  Autumn   Reads " }] },
+      userId: USER_ID,
     });
 
     expect(ids).toEqual([LIST_ID]);
@@ -178,15 +183,19 @@ describe("ListsService.resolveListsForBook", () => {
     repository.findByNormalized.mockResolvedValue(null);
     repository.create.mockResolvedValue(card({ description: "cozy", id: LIST_ID }));
 
-    const ids = await service.resolveListsForBook(USER_ID, {
-      newLists: [{ description: "cozy", name: "Autumn reads" }],
+    const ids = await service.resolveListsForBook({
+      input: { newLists: [{ description: "cozy", name: "Autumn reads" }] },
+      userId: USER_ID,
     });
 
     expect(ids).toEqual([LIST_ID]);
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, {
-      description: "cozy",
-      name: "Autumn reads",
-      normalizedName: "autumn reads",
+    expect(repository.create).toHaveBeenCalledWith({
+      data: {
+        description: "cozy",
+        name: "Autumn reads",
+        normalizedName: "autumn reads",
+      },
+      userId: USER_ID,
     });
   });
 
@@ -195,9 +204,9 @@ describe("ListsService.resolveListsForBook", () => {
     repository.findOwnedByIds.mockResolvedValue([list({ id: LIST_ID })]);
     repository.findByNormalized.mockResolvedValue(list({ id: LIST_ID }));
 
-    const ids = await service.resolveListsForBook(USER_ID, {
-      listIds: [LIST_ID],
-      newLists: [{ name: "Autumn reads" }],
+    const ids = await service.resolveListsForBook({
+      input: { listIds: [LIST_ID], newLists: [{ name: "Autumn reads" }] },
+      userId: USER_ID,
     });
 
     expect(ids).toEqual([LIST_ID]);
@@ -209,8 +218,9 @@ describe("ListsService.resolveListsForBook", () => {
     repository.findByNormalized.mockResolvedValueOnce(null).mockResolvedValueOnce(winner);
     repository.create.mockRejectedValue(uniqueConstraintError());
 
-    const ids = await service.resolveListsForBook(USER_ID, {
-      newLists: [{ name: "Autumn reads" }],
+    const ids = await service.resolveListsForBook({
+      input: { newLists: [{ name: "Autumn reads" }] },
+      userId: USER_ID,
     });
 
     expect(ids).toEqual([OTHER_LIST_ID]);
@@ -223,7 +233,10 @@ describe("ListsService.resolveListsForBook", () => {
     repository.create.mockRejectedValue(new Error("connection lost"));
 
     await expect(
-      service.resolveListsForBook(USER_ID, { newLists: [{ name: "Autumn reads" }] }),
+      service.resolveListsForBook({
+        input: { newLists: [{ name: "Autumn reads" }] },
+        userId: USER_ID,
+      }),
     ).rejects.toThrow("connection lost");
   });
 });
@@ -233,7 +246,10 @@ describe("ListsService.create", () => {
     const { repository, service } = buildService();
     repository.create.mockResolvedValue(card({ description: "cozy" }));
 
-    const result = await service.create(USER_ID, { description: "cozy", name: "Autumn reads" });
+    const result = await service.create({
+      input: { description: "cozy", name: "Autumn reads" },
+      userId: USER_ID,
+    });
 
     expect(result).toEqual({
       bookCount: 0,
@@ -250,9 +266,9 @@ describe("ListsService.create", () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(list());
 
-    await expect(service.create(USER_ID, { name: "Autumn reads" })).rejects.toBeInstanceOf(
-      ConflictError,
-    );
+    await expect(
+      service.create({ input: { name: "Autumn reads" }, userId: USER_ID }),
+    ).rejects.toBeInstanceOf(ConflictError);
     expect(repository.create).not.toHaveBeenCalled();
   });
 
@@ -261,9 +277,9 @@ describe("ListsService.create", () => {
     repository.findByNormalized.mockResolvedValue(null);
     repository.create.mockRejectedValue(uniqueConstraintError());
 
-    await expect(service.create(USER_ID, { name: "Autumn reads" })).rejects.toBeInstanceOf(
-      ConflictError,
-    );
+    await expect(
+      service.create({ input: { name: "Autumn reads" }, userId: USER_ID }),
+    ).rejects.toBeInstanceOf(ConflictError);
   });
 });
 
@@ -272,9 +288,9 @@ describe("ListsService.update", () => {
     const { repository, service } = buildService();
     repository.findOwnedById.mockResolvedValue(null);
 
-    await expect(service.update(USER_ID, LIST_ID, { name: "Autumn reads" })).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
+    await expect(
+      service.update({ input: { name: "Autumn reads" }, listId: LIST_ID, userId: USER_ID }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("does not error when the name is unchanged on the same list", async () => {
@@ -283,9 +299,9 @@ describe("ListsService.update", () => {
     repository.findByNormalized.mockResolvedValue(list());
     repository.updateOwned.mockResolvedValue(card({ name: "Autumn reads" }));
 
-    await expect(service.update(USER_ID, LIST_ID, { name: "Autumn reads" })).resolves.toMatchObject(
-      { id: LIST_ID, name: "Autumn reads" },
-    );
+    await expect(
+      service.update({ input: { name: "Autumn reads" }, listId: LIST_ID, userId: USER_ID }),
+    ).resolves.toMatchObject({ id: LIST_ID, name: "Autumn reads" });
   });
 
   it("throws ConflictError when the new name collides with a different list", async () => {
@@ -293,9 +309,9 @@ describe("ListsService.update", () => {
     repository.findOwnedById.mockResolvedValue(list());
     repository.findByNormalized.mockResolvedValue(list({ id: OTHER_LIST_ID }));
 
-    await expect(service.update(USER_ID, LIST_ID, { name: "Gifts" })).rejects.toBeInstanceOf(
-      ConflictError,
-    );
+    await expect(
+      service.update({ input: { name: "Gifts" }, listId: LIST_ID, userId: USER_ID }),
+    ).rejects.toBeInstanceOf(ConflictError);
     expect(repository.updateOwned).not.toHaveBeenCalled();
   });
 });
@@ -305,14 +321,16 @@ describe("ListsService.delete", () => {
     const { repository, service } = buildService();
     repository.deleteOwned.mockResolvedValue(0);
 
-    await expect(service.delete(USER_ID, LIST_ID)).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.delete({ listId: LIST_ID, userId: USER_ID })).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 
   it("resolves when a list was deleted", async () => {
     const { repository, service } = buildService();
     repository.deleteOwned.mockResolvedValue(1);
 
-    await expect(service.delete(USER_ID, LIST_ID)).resolves.toBeUndefined();
+    await expect(service.delete({ listId: LIST_ID, userId: USER_ID })).resolves.toBeUndefined();
   });
 });
 
@@ -328,11 +346,9 @@ describe("ListsService.search", () => {
     ]);
     repository.countOwned.mockResolvedValue(1);
 
-    const page = await service.search(USER_ID, {
-      pageNumber: 1,
-      pageSize: 10,
-      search: "autumn",
-      sort: "updated_desc",
+    const page = await service.search({
+      query: { pageNumber: 1, pageSize: 10, search: "autumn", sort: "updated_desc" },
+      userId: USER_ID,
     });
 
     expect(page).toEqual({
@@ -360,6 +376,6 @@ describe("ListsService.search", () => {
       take: 10,
       userId: USER_ID,
     });
-    expect(repository.countOwned).toHaveBeenCalledWith(USER_ID, "autumn");
+    expect(repository.countOwned).toHaveBeenCalledWith({ query: "autumn", userId: USER_ID });
   });
 });

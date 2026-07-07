@@ -117,9 +117,9 @@ export class BookRelationsResolver {
 
     const tagIds = await this.tagsService.resolveOrCreateMany(userId, input.tags);
 
-    const listIds = await this.listsService.resolveListsForBook(userId, {
-      listIds: input.listIds,
-      newLists: input.newLists,
+    const listIds = await this.listsService.resolveListsForBook({
+      input: { listIds: input.listIds, newLists: input.newLists },
+      userId,
     });
 
     const queuePlacement = await this.resolveQueuePlacement({ input, userId });
@@ -208,9 +208,9 @@ export class BookRelationsResolver {
     const listIds =
       input.listIds === undefined && input.newLists === undefined
         ? undefined
-        : await this.listsService.resolveListsForBook(userId, {
-            listIds: input.listIds,
-            newLists: input.newLists,
+        : await this.listsService.resolveListsForBook({
+            input: { listIds: input.listIds, newLists: input.newLists },
+            userId,
           });
 
     const seriesPlacement = await this.applySeriesFields({

@@ -60,7 +60,7 @@ export class ListsController {
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(NewListInputSchema)) body: NewListInputDto,
   ): Promise<CustomListCard> {
-    return this.listsService.create(user.id, body);
+    return this.listsService.create({ input: body, userId: user.id });
   }
 
   @ApiBearerAuth()
@@ -81,7 +81,7 @@ export class ListsController {
     @Query(new ZodQueryPipe(CustomListsQuerySchema))
     query: CustomListsQueryDto,
   ): Promise<Paginator<CustomListCard>> {
-    return this.listsService.search(user.id, query);
+    return this.listsService.search({ query, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
@@ -99,7 +99,7 @@ export class ListsController {
     @Param("listId", ParseUUIDPipe) listId: string,
     @Body(new ZodBodyPipe(UpdateListInputSchema)) body: UpdateListInputDto,
   ): Promise<CustomListCard> {
-    return this.listsService.update(user.id, listId, body);
+    return this.listsService.update({ input: body, listId, userId: user.id });
   }
 
   @ApiBearerAuth()
@@ -114,6 +114,6 @@ export class ListsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("listId", ParseUUIDPipe) listId: string,
   ): Promise<void> {
-    return this.listsService.delete(user.id, listId);
+    return this.listsService.delete({ listId, userId: user.id });
   }
 }
