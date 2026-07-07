@@ -30,6 +30,10 @@ type ListLockInput = {
   listId: string;
 };
 
+type MembershipListIdsInput = {
+  bookId: string;
+};
+
 type OwnedBookIdsInput = {
   bookIds: string[];
   userId: string;
@@ -85,6 +89,17 @@ export class ListMembershipRepository {
       where: { listId_bookId: { bookId, listId } },
     });
     return membership;
+  }
+
+  async findMembershipListIds(
+    client: Prisma.TransactionClient,
+    { bookId }: MembershipListIdsInput,
+  ): Promise<string[]> {
+    const items = await client.bookListItem.findMany({
+      select: { listId: true },
+      where: { bookId },
+    });
+    return items.map((item) => item.listId);
   }
 
   findNeighbor(

@@ -127,3 +127,26 @@ export const MoveListBookInputSchema = z.object({
 });
 
 export type MoveListBookInput = z.infer<typeof MoveListBookInputSchema>;
+
+export const BookListMembershipViewSchema = z.object({
+  bookCount: z.number().int().nonnegative(),
+  id: z.string(),
+  isMember: z.boolean(),
+  name: z.string(),
+});
+
+export type BookListMembershipView = z.infer<typeof BookListMembershipViewSchema>;
+
+export const BookListsViewSchema = z.object({
+  lists: z.array(BookListMembershipViewSchema),
+});
+
+export type BookListsView = z.infer<typeof BookListsViewSchema>;
+
+const SET_BOOK_LISTS_MAX = LIST_PAGE_SIZE_MAX;
+
+export const SetBookListsInputSchema = z.object({
+  listIds: z.array(z.uuid()).max(SET_BOOK_LISTS_MAX),
+});
+
+export type SetBookListsInput = z.infer<typeof SetBookListsInputSchema>;
