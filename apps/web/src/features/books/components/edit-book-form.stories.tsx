@@ -46,6 +46,7 @@ function makeBook(overrides: Partial<BookView> = {}): BookView {
     dedication: null,
     delivery: { active: null, latest: null, totalCount: 0 },
     description: "Роман у віршах.",
+    favoriteAddedAt: "2026-02-15T10:00:00.000Z",
     formats: ["paper"],
     genres: ["poetry", "historical_fiction"],
     hasUnreadEarlierSeriesParts: null,
