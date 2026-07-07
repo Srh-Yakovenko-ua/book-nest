@@ -710,6 +710,8 @@ export const LibrarySortSchema = z.enum([
   "created_desc",
   "created_asc",
   "updated_desc",
+  "favorite_added_desc",
+  "favorite_added_asc",
   "title_asc",
   "title_desc",
   "author_asc",

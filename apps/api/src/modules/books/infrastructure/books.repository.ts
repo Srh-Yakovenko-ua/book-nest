@@ -572,6 +572,16 @@ const LIBRARY_ORDER_BY: Record<LibrarySort, Prisma.BookOrderByWithRelationInput[
   author_desc: [{ firstAuthorName: "desc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
   created_asc: [{ createdAt: "asc" }, ID_TIEBREAKER],
   created_desc: [{ createdAt: "desc" }, ID_TIEBREAKER],
+  favorite_added_asc: [
+    { favoriteAddedAt: { nulls: "last", sort: "asc" } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
+  favorite_added_desc: [
+    { favoriteAddedAt: { nulls: "last", sort: "desc" } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
   pages_asc: [{ pagesCount: { nulls: "last", sort: "asc" } }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
   pages_desc: [
     { pagesCount: { nulls: "last", sort: "desc" } },
