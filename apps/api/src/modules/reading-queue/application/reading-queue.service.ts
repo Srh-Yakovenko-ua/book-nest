@@ -9,7 +9,7 @@ import { Injectable } from "@nestjs/common";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
-import { BooksRepository, BookViewAssembler } from "../../books/index.js";
+import { BookReadingService, BooksRepository, BookViewAssembler } from "../../books/index.js";
 import { computeQueueInsertPosition } from "../domain/queue-position.js";
 import { ReadingQueueRepository } from "../infrastructure/reading-queue.repository.js";
 
@@ -21,6 +21,7 @@ const INVALID_ORDER_MESSAGE = "Некоректний порядок черги"
 export class ReadingQueueService {
   constructor(
     private readonly booksRepository: BooksRepository,
+    private readonly bookReadingService: BookReadingService,
     private readonly bookViewAssembler: BookViewAssembler,
     private readonly readingQueueRepository: ReadingQueueRepository,
     private readonly transactionRunner: TransactionRunner,
@@ -92,6 +93,25 @@ export class ReadingQueueService {
     await this.transactionRunner.run(async (tx) => {
       for (const [index, bookId] of order.entries()) {
         await this.readingQueueRepository.setPosition(userId, bookId, index + 1, tx);
+      }
+    });
+
+    return this.getQueue(userId);
+  }
+
+  async startReading(
+    userId: string,
+    bookId: string,
+    removeFromQueue: boolean,
+  ): Promise<ReadingQueueView> {
+    const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
+    const queuePosition = book.queuePosition;
+
+    await this.transactionRunner.run(async (tx) => {
+      await this.bookReadingService.startReading(userId, bookId, tx);
+      if (removeFromQueue && queuePosition !== null) {
+        await this.readingQueueRepository.clearPosition(userId, bookId, tx);
+        await this.readingQueueRepository.shiftUpAfter(userId, queuePosition, tx);
       }
     });
 

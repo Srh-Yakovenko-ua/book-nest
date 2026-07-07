@@ -39,3 +39,9 @@ export const ReorderReadingQueueInputSchema = z.object({
 });
 
 export type ReorderReadingQueueInput = z.infer<typeof ReorderReadingQueueInputSchema>;
+
+export const StartReadingFromQueueInputSchema = z.object({
+  removeFromQueue: z.boolean(),
+});
+
+export type StartReadingFromQueueInput = z.infer<typeof StartReadingFromQueueInputSchema>;

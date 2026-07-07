@@ -258,28 +258,32 @@ export class BooksRepository {
     userId: string,
     bookId: string,
     patch: ReadingChangePatch,
+    client?: Prisma.TransactionClient,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      const owned = await tx.book.findFirst({
-        select: { id: true },
-        where: { id: bookId, userId },
-      });
-      if (owned === null) {
-        throw new NotFoundError("Book not found");
-      }
+    if (client === undefined) {
+      await this.prisma.$transaction((tx) => this.applyReadingChange(userId, bookId, patch, tx));
+      return;
+    }
 
-      if (patch.book !== null) {
-        await tx.book.update({ data: patch.book, where: { id: bookId } });
-      }
-
-      if (Object.keys(patch.progress).length > 0) {
-        await tx.bookReadingProgress.upsert({
-          create: { ...patch.progress, bookId },
-          update: patch.progress,
-          where: { bookId },
-        });
-      }
+    const owned = await client.book.findFirst({
+      select: { id: true },
+      where: { id: bookId, userId },
     });
+    if (owned === null) {
+      throw new NotFoundError("Book not found");
+    }
+
+    if (patch.book !== null) {
+      await client.book.update({ data: patch.book, where: { id: bookId } });
+    }
+
+    if (Object.keys(patch.progress).length > 0) {
+      await client.bookReadingProgress.upsert({
+        create: { ...patch.progress, bookId },
+        update: patch.progress,
+        where: { bookId },
+      });
+    }
   }
 
   countByCoverMediaId(coverMediaId: string): Promise<number> {

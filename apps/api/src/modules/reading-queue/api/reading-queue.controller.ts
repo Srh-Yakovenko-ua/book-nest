@@ -1,6 +1,10 @@
 import type { ReadingQueueView } from "@app/shared";
 
-import { AddToReadingQueueInputSchema, ReorderReadingQueueInputSchema } from "@app/shared";
+import {
+  AddToReadingQueueInputSchema,
+  ReorderReadingQueueInputSchema,
+  StartReadingFromQueueInputSchema,
+} from "@app/shared";
 import {
   Body,
   Controller,
@@ -35,6 +39,7 @@ import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { ReadingQueueService } from "../application/reading-queue.service.js";
 import { AddToReadingQueueInputDto } from "./input-dto/add-to-reading-queue.input-dto.js";
 import { ReorderReadingQueueInputDto } from "./input-dto/reorder-reading-queue.input-dto.js";
+import { StartReadingFromQueueInputDto } from "./input-dto/start-reading-from-queue.input-dto.js";
 import { ReadingQueueViewDto } from "./view-dto/reading-queue.view-dto.js";
 
 const QUEUE_ACTION_TTL_SECONDS = 60;
@@ -101,6 +106,30 @@ export class ReadingQueueController {
     @Body(new ZodBodyPipe(ReorderReadingQueueInputSchema)) body: ReorderReadingQueueInputDto,
   ): Promise<ReadingQueueView> {
     return this.readingQueueService.reorder(user.id, body);
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBearerAuth()
+  @ApiBody({ type: StartReadingFromQueueInputDto })
+  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiOkResponse({
+    description: "The reading queue after the book was marked as reading",
+    type: ReadingQueueViewDto,
+  })
+  @ApiOperation({
+    summary: "Start reading a book and optionally remove it from the reading queue",
+  })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post(":bookId/start-reading")
+  @Throttle({ default: { limit: QUEUE_ACTION_LIMIT, ttl: seconds(QUEUE_ACTION_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  startReading(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+    @Body(new ZodBodyPipe(StartReadingFromQueueInputSchema)) body: StartReadingFromQueueInputDto,
+  ): Promise<ReadingQueueView> {
+    return this.readingQueueService.startReading(user.id, bookId, body.removeFromQueue);
   }
 
   @ApiBearerAuth()

@@ -103,6 +103,17 @@ function reorder(accessToken: string, order: string[]): request.Test {
     .send({ order });
 }
 
+function startReading(
+  accessToken: string,
+  bookId: string,
+  body: Record<string, unknown>,
+): request.Test {
+  return request(app.getHttpServer())
+    .post(`/api/reading-queue/${bookId}/start-reading`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
+}
+
 describe("GET /api/reading-queue", () => {
   it("returns 401 when no Authorization header is present", async () => {
     const res = await request(app.getHttpServer()).get("/api/reading-queue");
@@ -599,5 +610,140 @@ describe("PUT /api/reading-queue/reorder", () => {
     expect(res.status).toBe(422);
     const strangerAfter = await getQueue(stranger.accessToken);
     expect(positionsByTitle(strangerAfter)).toEqual([["S", 1]]);
+  });
+});
+
+describe("POST /api/reading-queue/:bookId/start-reading", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/reading-queue/${NONEXISTENT_BOOK_ID}/start-reading`)
+      .send({ removeFromQueue: true });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when the bookId param is not a uuid", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await startReading(accessToken, "not-a-uuid", { removeFromQueue: true });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 with a removeFromQueue error when the flag is missing", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, { title: "Dune" });
+
+    const res = await startReading(accessToken, bookId, {});
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "removeFromQueue" })]),
+    );
+  });
+
+  it("returns 404 when starting a book owned by another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin();
+    const ownerBook = await createOwnedBook(owner.accessToken, { title: "Dune" });
+
+    const res = await startReading(stranger.accessToken, ownerBook, { removeFromQueue: false });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("removes the started book and re-sequences the remaining queue when removeFromQueue is true", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookA = await createOwnedBook(accessToken, { title: "A" });
+    const bookB = await createOwnedBook(accessToken, { title: "B" });
+    expect((await addToQueue(accessToken, { bookId: bookA, placement: "end" })).status).toBe(200);
+    expect((await addToQueue(accessToken, { bookId: bookB, placement: "end" })).status).toBe(200);
+
+    const res = await startReading(accessToken, bookA, { removeFromQueue: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(1);
+    expect(positionsByTitle(res)).toEqual([["B", 1]]);
+  });
+
+  it("marks the started book as reading and out of the queue in the book view when removeFromQueue is true", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookA = await createOwnedBook(accessToken, { title: "A" });
+    const bookB = await createOwnedBook(accessToken, { title: "B" });
+    expect((await addToQueue(accessToken, { bookId: bookA, placement: "end" })).status).toBe(200);
+    expect((await addToQueue(accessToken, { bookId: bookB, placement: "end" })).status).toBe(200);
+    expect((await startReading(accessToken, bookA, { removeFromQueue: true })).status).toBe(200);
+
+    const res = await getBook(accessToken, bookA);
+
+    expect(res.status).toBe(200);
+    expect(res.body.readingStatus).toBe("reading");
+    expect(res.body.isInReadingQueue).toBe(false);
+  });
+
+  it("keeps the book queued at the same position with a reading status when removeFromQueue is false", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, { title: "Dune" });
+    expect((await addToQueue(accessToken, { bookId, placement: "end" })).status).toBe(200);
+
+    const res = await startReading(accessToken, bookId, { removeFromQueue: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.count).toBe(1);
+    expect(res.body.items[0].position).toBe(1);
+    expect(res.body.items[0].book.id).toBe(bookId);
+    expect(res.body.items[0].book.readingStatus).toBe("reading");
+  });
+
+  it("reports the book as still in the queue and reading in the book view when removeFromQueue is false", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, { title: "Dune" });
+    expect((await addToQueue(accessToken, { bookId, placement: "end" })).status).toBe(200);
+    expect((await startReading(accessToken, bookId, { removeFromQueue: false })).status).toBe(200);
+
+    const res = await getBook(accessToken, bookId);
+
+    expect(res.status).toBe(200);
+    expect(res.body.isInReadingQueue).toBe(true);
+    expect(res.body.readingStatus).toBe("reading");
+  });
+
+  it("returns 200 without conflict when start-reading is called again on an already-reading queued book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, { title: "Dune" });
+    expect((await addToQueue(accessToken, { bookId, placement: "end" })).status).toBe(200);
+    expect((await startReading(accessToken, bookId, { removeFromQueue: false })).status).toBe(200);
+
+    const res = await startReading(accessToken, bookId, { removeFromQueue: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.items[0].book.readingStatus).toBe("reading");
+  });
+
+  it("dequeues an already-reading book on a subsequent start-reading with removeFromQueue true", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, { title: "Dune" });
+    expect((await addToQueue(accessToken, { bookId, placement: "end" })).status).toBe(200);
+    expect((await startReading(accessToken, bookId, { removeFromQueue: false })).status).toBe(200);
+
+    const res = await startReading(accessToken, bookId, { removeFromQueue: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ count: 0, items: [], totalPagesCount: 0 });
+  });
+
+  it("leaves the ownership status unchanged after starting reading", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, {
+      ownershipStatus: "owned",
+      title: "Dune",
+    });
+    expect((await addToQueue(accessToken, { bookId, placement: "end" })).status).toBe(200);
+    expect((await startReading(accessToken, bookId, { removeFromQueue: false })).status).toBe(200);
+
+    const res = await getBook(accessToken, bookId);
+
+    expect(res.status).toBe(200);
+    expect(res.body.ownershipStatus).toBe("owned");
   });
 });

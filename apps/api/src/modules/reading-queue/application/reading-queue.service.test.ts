@@ -4,7 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type { BooksRepository, BookViewAssembler, BookWithRelations } from "../../books/index.js";
+import type {
+  BookReadingService,
+  BooksRepository,
+  BookViewAssembler,
+  BookWithRelations,
+} from "../../books/index.js";
 import type { ReadingQueueRepository } from "../infrastructure/reading-queue.repository.js";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
@@ -31,6 +36,7 @@ function buildService(rows: QueueRow[]): {
   const transactionRunner = {} as unknown as TransactionRunner;
   const service = new ReadingQueueService(
     booksRepository,
+    {} as unknown as BookReadingService,
     assembler,
     repository,
     transactionRunner,
@@ -128,6 +134,7 @@ function buildAddToQueueService(): {
 
   const service = new ReadingQueueService(
     booksRepository,
+    {} as unknown as BookReadingService,
     assembler,
     repository,
     transactionRunner,
@@ -279,6 +286,7 @@ function buildRemoveFromQueueService(): {
 
   const service = new ReadingQueueService(
     booksRepository,
+    {} as unknown as BookReadingService,
     assembler,
     repository,
     transactionRunner,
@@ -390,11 +398,61 @@ function buildReorderService(): {
 
   const service = new ReadingQueueService(
     booksRepository,
+    {} as unknown as BookReadingService,
     assembler,
     repository,
     transactionRunner,
   );
   return { findQueuedBookIds, listQueue, service, setPosition, tx };
+}
+
+function buildStartReadingService(): {
+  clearPosition: ReturnType<typeof vi.fn>;
+  findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
+  listQueue: ReturnType<typeof vi.fn>;
+  service: ReadingQueueService;
+  shiftUpAfter: ReturnType<typeof vi.fn>;
+  startReading: ReturnType<typeof vi.fn>;
+  tx: Prisma.TransactionClient;
+} {
+  const tx = {} as unknown as Prisma.TransactionClient;
+  const findOwnedByIdOrThrow = vi.fn();
+  const startReading = vi.fn().mockResolvedValue(undefined);
+  const clearPosition = vi.fn().mockResolvedValue(undefined);
+  const shiftUpAfter = vi.fn().mockResolvedValue(undefined);
+  const listQueue = vi.fn().mockResolvedValue([]);
+  const viewOf = vi.fn(
+    (book: QueueRow): BookView =>
+      ({ id: book.id, pagesCount: book.pagesCount }) as unknown as BookView,
+  );
+  const run = vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(tx));
+
+  const booksRepository = { findOwnedByIdOrThrow } as unknown as BooksRepository;
+  const bookReadingService = { startReading } as unknown as BookReadingService;
+  const assembler = { viewOf } as unknown as BookViewAssembler;
+  const repository = {
+    clearPosition,
+    listQueue,
+    shiftUpAfter,
+  } as unknown as ReadingQueueRepository;
+  const transactionRunner = { run } as unknown as TransactionRunner;
+
+  const service = new ReadingQueueService(
+    booksRepository,
+    bookReadingService,
+    assembler,
+    repository,
+    transactionRunner,
+  );
+  return {
+    clearPosition,
+    findOwnedByIdOrThrow,
+    listQueue,
+    service,
+    shiftUpAfter,
+    startReading,
+    tx,
+  };
 }
 
 describe("ReadingQueueService.reorder", () => {
@@ -483,6 +541,113 @@ describe("ReadingQueueService.reorder", () => {
         { book: { id: "book-b", pagesCount: 250 }, position: 3 },
       ],
       totalPagesCount: 380,
+    });
+  });
+});
+
+describe("ReadingQueueService.startReading", () => {
+  it("rejects with NotFoundError when the book is not owned by the user", async () => {
+    const { findOwnedByIdOrThrow, service } = buildStartReadingService();
+    findOwnedByIdOrThrow.mockRejectedValue(new NotFoundError("Book not found"));
+
+    await expect(service.startReading(USER_ID, BOOK_ID, true)).rejects.toThrow(NotFoundError);
+  });
+
+  it("does not start reading or dequeue the book when it is not owned", async () => {
+    const { clearPosition, findOwnedByIdOrThrow, service, shiftUpAfter, startReading } =
+      buildStartReadingService();
+    findOwnedByIdOrThrow.mockRejectedValue(new NotFoundError("Book not found"));
+
+    await expect(service.startReading(USER_ID, BOOK_ID, true)).rejects.toThrow(NotFoundError);
+    expect(startReading).not.toHaveBeenCalled();
+    expect(clearPosition).not.toHaveBeenCalled();
+    expect(shiftUpAfter).not.toHaveBeenCalled();
+  });
+
+  it("marks the book as reading within the threaded transaction when it is queued and removeFromQueue is true", async () => {
+    const { findOwnedByIdOrThrow, service, startReading, tx } = buildStartReadingService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+
+    await service.startReading(USER_ID, BOOK_ID, true);
+
+    expect(startReading).toHaveBeenCalledWith(USER_ID, BOOK_ID, tx);
+  });
+
+  it("clears the started book position within the threaded transaction when it is queued and removeFromQueue is true", async () => {
+    const { clearPosition, findOwnedByIdOrThrow, service, tx } = buildStartReadingService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+
+    await service.startReading(USER_ID, BOOK_ID, true);
+
+    expect(clearPosition).toHaveBeenCalledWith(USER_ID, BOOK_ID, tx);
+  });
+
+  it("shifts up the books positioned after the started one within the threaded transaction", async () => {
+    const { findOwnedByIdOrThrow, service, shiftUpAfter, tx } = buildStartReadingService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+
+    await service.startReading(USER_ID, BOOK_ID, true);
+
+    expect(shiftUpAfter).toHaveBeenCalledWith(USER_ID, 2, tx);
+  });
+
+  it("marks the book as reading when removeFromQueue is false and the book is queued", async () => {
+    const { findOwnedByIdOrThrow, service, startReading, tx } = buildStartReadingService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+
+    await service.startReading(USER_ID, BOOK_ID, false);
+
+    expect(startReading).toHaveBeenCalledWith(USER_ID, BOOK_ID, tx);
+  });
+
+  it("does not dequeue the book when removeFromQueue is false", async () => {
+    const { clearPosition, findOwnedByIdOrThrow, service, shiftUpAfter } =
+      buildStartReadingService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+
+    await service.startReading(USER_ID, BOOK_ID, false);
+
+    expect(clearPosition).not.toHaveBeenCalled();
+    expect(shiftUpAfter).not.toHaveBeenCalled();
+  });
+
+  it("marks the book as reading when removeFromQueue is true but the book is not queued", async () => {
+    const { findOwnedByIdOrThrow, service, startReading, tx } = buildStartReadingService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(null));
+
+    await service.startReading(USER_ID, BOOK_ID, true);
+
+    expect(startReading).toHaveBeenCalledWith(USER_ID, BOOK_ID, tx);
+  });
+
+  it("does not dequeue when removeFromQueue is true but the book has no queue position", async () => {
+    const { clearPosition, findOwnedByIdOrThrow, service, shiftUpAfter } =
+      buildStartReadingService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(null));
+
+    await service.startReading(USER_ID, BOOK_ID, true);
+
+    expect(clearPosition).not.toHaveBeenCalled();
+    expect(shiftUpAfter).not.toHaveBeenCalled();
+  });
+
+  it("returns the reloaded queue view after starting reading", async () => {
+    const { findOwnedByIdOrThrow, listQueue, service } = buildStartReadingService();
+    findOwnedByIdOrThrow.mockResolvedValue(ownedBook(1));
+    listQueue.mockResolvedValue([
+      { id: "book-a", pagesCount: 100, queuePosition: 1 },
+      { id: "book-b", pagesCount: 250, queuePosition: 2 },
+    ]);
+
+    const result = await service.startReading(USER_ID, BOOK_ID, false);
+
+    expect(result).toEqual({
+      count: 2,
+      items: [
+        { book: { id: "book-a", pagesCount: 100 }, position: 1 },
+        { book: { id: "book-b", pagesCount: 250 }, position: 2 },
+      ],
+      totalPagesCount: 350,
     });
   });
 });
