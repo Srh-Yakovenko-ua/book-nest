@@ -11,6 +11,11 @@ export type ListMembership = {
   position: number;
 };
 
+type AppendManyInput = {
+  bookIds: string[];
+  listId: string;
+};
+
 type FindNeighborInput = {
   direction: MoveListBookDirection;
   listId: string;
@@ -67,6 +72,41 @@ export class ListMembershipRepository {
 
   append(client: Prisma.TransactionClient, { bookId, listId }: ListBookInput): Promise<void> {
     return appendBookToList(client, { bookId, listId });
+  }
+
+  async appendMany(
+    client: Prisma.TransactionClient,
+    { bookIds, listId }: AppendManyInput,
+  ): Promise<number> {
+    if (bookIds.length === 0) {
+      return 0;
+    }
+
+    const existing = await client.bookListItem.findMany({
+      select: { bookId: true },
+      where: { bookId: { in: bookIds }, listId },
+    });
+    const existingIds = new Set(existing.map((item) => item.bookId));
+    const toAppend = bookIds.filter((bookId) => !existingIds.has(bookId));
+    if (toAppend.length === 0) {
+      return 0;
+    }
+
+    const aggregate = await client.bookListItem.aggregate({
+      _max: { position: true },
+      where: { listId },
+    });
+    const basePosition = aggregate._max.position ?? 0;
+
+    await client.bookListItem.createMany({
+      data: toAppend.map((bookId, index) => ({
+        bookId,
+        listId,
+        position: basePosition + index + 1,
+      })),
+    });
+
+    return toAppend.length;
   }
 
   countItems(client: Prisma.TransactionClient, { listId }: ItemsCountInput): Promise<number> {

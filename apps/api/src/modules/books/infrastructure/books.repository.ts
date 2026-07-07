@@ -17,8 +17,8 @@ import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.r
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { appendBookToList } from "./book-list-membership.js";
 import { buildBookSearchConditions } from "./book-search.js";
+import { ListMembershipRepository } from "./list-membership.repository.js";
 
 export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
@@ -201,7 +201,10 @@ type CreateBookData = {
 
 @Injectable()
 export class BooksRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly membershipRepository: ListMembershipRepository,
+  ) {}
 
   async applyLoanChange(userId: string, bookId: string, patch: LoanChangePatch): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
@@ -352,8 +355,18 @@ export class BooksRepository {
         select: { id: true },
       });
 
-      for (const listId of listIds) {
-        await appendBookToList(tx, { bookId: created.id, listId });
+      if (listIds.length > 0) {
+        const now = new Date();
+        const sortedListIds = [...new Set(listIds)].sort();
+        for (const listId of sortedListIds) {
+          await this.membershipRepository.acquireListLock(tx, { listId });
+        }
+        for (const listId of sortedListIds) {
+          await this.membershipRepository.append(tx, { bookId: created.id, listId });
+        }
+        for (const listId of sortedListIds) {
+          await this.membershipRepository.touchList(tx, { listId, now, userId });
+        }
       }
 
       return tx.book.findFirstOrThrow({ include: withRelations, where: { id: created.id } });
@@ -570,16 +583,39 @@ export class BooksRepository {
         });
         const currentListIds = new Set(current.map((item) => item.listId));
 
-        const removedListIds = current
+        const toRemove = current
           .map((item) => item.listId)
           .filter((listId) => !targetListIds.has(listId));
-        if (removedListIds.length > 0) {
-          await tx.bookListItem.deleteMany({ where: { bookId, listId: { in: removedListIds } } });
-        }
+        const toAdd = data.listIds.filter((listId) => !currentListIds.has(listId));
 
-        for (const listId of data.listIds) {
-          if (!currentListIds.has(listId)) {
-            await appendBookToList(tx, { bookId, listId });
+        if (toAdd.length > 0 || toRemove.length > 0) {
+          const now = new Date();
+          const affectedListIds = [...new Set([...toAdd, ...toRemove])].sort();
+          for (const listId of affectedListIds) {
+            await this.membershipRepository.acquireListLock(tx, { listId });
+          }
+
+          for (const listId of toRemove) {
+            const membership = await this.membershipRepository.findMembership(tx, {
+              bookId,
+              listId,
+            });
+            if (membership === null) {
+              continue;
+            }
+            await this.membershipRepository.deleteMembership(tx, { bookId, listId });
+            await this.membershipRepository.shiftUpAfter(tx, {
+              listId,
+              position: membership.position,
+            });
+          }
+
+          for (const listId of toAdd) {
+            await this.membershipRepository.append(tx, { bookId, listId });
+          }
+
+          for (const listId of affectedListIds) {
+            await this.membershipRepository.touchList(tx, { listId, now, userId });
           }
         }
       }

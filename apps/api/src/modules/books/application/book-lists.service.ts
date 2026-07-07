@@ -4,6 +4,7 @@ import { Injectable } from "@nestjs/common";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { isForeignKeyConstraintError } from "../../../core/prisma-errors.js";
 import { BookListsRepository } from "../infrastructure/book-lists.repository.js";
 import { ListMembershipRepository } from "../infrastructure/list-membership.repository.js";
 
@@ -56,8 +57,15 @@ export class BookListsService {
         await this.membershipRepository.acquireListLock(tx, { listId });
       }
 
-      for (const listId of toAdd) {
-        await this.membershipRepository.append(tx, { bookId, listId });
+      try {
+        for (const listId of toAdd) {
+          await this.membershipRepository.append(tx, { bookId, listId });
+        }
+      } catch (error) {
+        if (isForeignKeyConstraintError(error)) {
+          throw new NotFoundError(BOOK_NOT_FOUND_MESSAGE);
+        }
+        throw error;
       }
 
       for (const listId of toRemove) {

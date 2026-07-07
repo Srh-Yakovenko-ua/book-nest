@@ -247,6 +247,20 @@ describe("POST /api/lists/:listId/books", () => {
     const after = await updatedAtOf(listId);
     expect(after.getTime()).toBeGreaterThan(before.getTime());
   });
+
+  it("leaves the list updatedAt untouched when every book is already a member", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createList(userId);
+    const member = await createBook(userId, "Member");
+    await seedItem(listId, member, 1);
+    const before = await stampOldUpdatedAt(listId);
+
+    const res = await addBooks(accessToken, listId, [member]);
+
+    expect(res.body).toEqual({ added: 0, bookCount: 1 });
+    const after = await updatedAtOf(listId);
+    expect(after.getTime()).toBe(before.getTime());
+  });
 });
 
 describe("DELETE /api/lists/:listId/books/:bookId", () => {

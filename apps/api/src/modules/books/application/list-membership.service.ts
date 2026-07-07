@@ -4,10 +4,12 @@ import { Injectable } from "@nestjs/common";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { isForeignKeyConstraintError } from "../../../core/prisma-errors.js";
 import { ListsService } from "../../lists/index.js";
 import { ListMembershipRepository } from "../infrastructure/list-membership.repository.js";
 
 const BOOK_NOT_IN_LIST_MESSAGE = "Book is not in this list";
+const LIST_NOT_FOUND_MESSAGE = "List not found";
 const ALREADY_AT_TOP_MESSAGE = "Book is already at the top";
 const ALREADY_AT_BOTTOM_MESSAGE = "Book is already at the bottom";
 
@@ -51,14 +53,24 @@ export class ListMembershipService {
       const orderedOwnedIds = dedupeInOrder(input.bookIds.filter((bookId) => ownedIds.has(bookId)));
 
       const before = await this.membershipRepository.countItems(tx, { listId });
-      for (const bookId of orderedOwnedIds) {
-        await this.membershipRepository.append(tx, { bookId, listId });
+      try {
+        for (const bookId of orderedOwnedIds) {
+          await this.membershipRepository.append(tx, { bookId, listId });
+        }
+      } catch (error) {
+        if (isForeignKeyConstraintError(error)) {
+          throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
+        }
+        throw error;
       }
       const bookCount = await this.membershipRepository.countItems(tx, { listId });
+      const added = bookCount - before;
 
-      await this.membershipRepository.touchList(tx, { listId, now, userId });
+      if (added > 0) {
+        await this.membershipRepository.touchList(tx, { listId, now, userId });
+      }
 
-      return { added: bookCount - before, bookCount };
+      return { added, bookCount };
     });
   }
 

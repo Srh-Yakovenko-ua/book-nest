@@ -4,7 +4,7 @@ import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { appendBookToList } from "./book-list-membership.js";
+import { ListMembershipRepository } from "./list-membership.repository.js";
 
 export type BulkDeleteResult = {
   affected: number;
@@ -13,7 +13,10 @@ export type BulkDeleteResult = {
 
 @Injectable()
 export class BulkBooksRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly membershipRepository: ListMembershipRepository,
+  ) {}
 
   addTags({
     bookIds,
@@ -57,11 +60,25 @@ export class BulkBooksRepository {
       if (ownedBooks.length === 0) {
         return 0;
       }
-      for (const book of ownedBooks) {
-        for (const listId of listIds) {
-          await appendBookToList(tx, { bookId: book.id, listId });
+
+      const ownedIds = new Set(ownedBooks.map((book) => book.id));
+      const orderedOwnedIds = [...new Set(bookIds)].filter((bookId) => ownedIds.has(bookId));
+
+      const now = new Date();
+      const sortedListIds = [...new Set(listIds)].sort();
+      for (const listId of sortedListIds) {
+        await this.membershipRepository.acquireListLock(tx, { listId });
+      }
+      for (const listId of sortedListIds) {
+        const added = await this.membershipRepository.appendMany(tx, {
+          bookIds: orderedOwnedIds,
+          listId,
+        });
+        if (added > 0) {
+          await this.membershipRepository.touchList(tx, { listId, now, userId });
         }
       }
+
       return ownedBooks.length;
     });
   }

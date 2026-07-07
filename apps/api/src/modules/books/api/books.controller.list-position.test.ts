@@ -69,11 +69,30 @@ function membership(bookId: string, listId: string): Promise<BookListItemModel |
   return prisma.bookListItem.findUnique({ where: { listId_bookId: { bookId, listId } } });
 }
 
+async function positionsOf(listId: string): Promise<Array<{ bookId: string; position: number }>> {
+  return prisma.bookListItem.findMany({
+    orderBy: { position: "asc" },
+    select: { bookId: true, position: true },
+    where: { listId },
+  });
+}
+
+async function stampOldUpdatedAt(listId: string): Promise<Date> {
+  const old = new Date("2020-01-01T00:00:00.000Z");
+  await prisma.$executeRaw`UPDATE book_lists SET updated_at = ${old} WHERE id::text = ${listId}`;
+  return old;
+}
+
 function updateBook(accessToken: string, id: string, body: Record<string, unknown>): request.Test {
   return request(app.getHttpServer())
     .patch(`/api/books/${id}`)
     .set("Authorization", `Bearer ${accessToken}`)
     .send(body);
+}
+
+async function updatedAtOf(listId: string): Promise<Date> {
+  const list = await prisma.bookList.findUniqueOrThrow({ where: { id: listId } });
+  return list.updatedAt;
 }
 
 describe("book_list_items ordering on create", () => {
@@ -186,5 +205,82 @@ describe("book_list_items ordering on update", () => {
     expect(after?.addedAt.getTime()).toBe(before?.addedAt.getTime());
     const items = await prisma.bookListItem.findMany({ where: { bookId: tracked.body.id } });
     expect(items).toHaveLength(1);
+  });
+
+  it("re-sequences remaining positions gaplessly when a middle book is delisted", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const gifts = await createList(userId, "Gifts");
+    const first = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      listIds: [gifts.id],
+      title: "First",
+    });
+    const middle = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      listIds: [gifts.id],
+      title: "Middle",
+    });
+    const last = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      listIds: [gifts.id],
+      title: "Last",
+    });
+
+    const res = await updateBook(accessToken, middle.body.id, { listIds: [] });
+
+    expect(res.status).toBe(200);
+    expect(await membership(middle.body.id, gifts.id)).toBeNull();
+    expect(await positionsOf(gifts.id)).toEqual([
+      { bookId: first.body.id, position: 1 },
+      { bookId: last.body.id, position: 2 },
+    ]);
+  });
+});
+
+describe("book_lists updatedAt on membership writes via the book form", () => {
+  it("advances the list updatedAt when a book is added on create", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const gifts = await createList(userId, "Gifts");
+    const before = await stampOldUpdatedAt(gifts.id);
+
+    await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      listIds: [gifts.id],
+      title: "Dune",
+    });
+
+    const after = await updatedAtOf(gifts.id);
+    expect(after.getTime()).toBeGreaterThan(before.getTime());
+  });
+
+  it("advances the list updatedAt when a book is added on update", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const gifts = await createList(userId, "Gifts");
+    const book = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    const before = await stampOldUpdatedAt(gifts.id);
+
+    await updateBook(accessToken, book.body.id, { listIds: [gifts.id] }).expect(200);
+
+    const after = await updatedAtOf(gifts.id);
+    expect(after.getTime()).toBeGreaterThan(before.getTime());
+  });
+
+  it("advances the list updatedAt when a book is removed on update", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const gifts = await createList(userId, "Gifts");
+    const book = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      listIds: [gifts.id],
+      title: "Dune",
+    });
+    const before = await stampOldUpdatedAt(gifts.id);
+
+    await updateBook(accessToken, book.body.id, { listIds: [] }).expect(200);
+
+    const after = await updatedAtOf(gifts.id);
+    expect(after.getTime()).toBeGreaterThan(before.getTime());
   });
 });
