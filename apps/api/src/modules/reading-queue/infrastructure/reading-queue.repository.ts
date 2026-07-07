@@ -9,6 +9,13 @@ import { type BookWithRelations, withRelations } from "../../books/index.js";
 export class ReadingQueueRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async acquireUserQueueLock(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
+  }
+
   async clearPosition(
     userId: string,
     bookId: string,
@@ -33,6 +40,18 @@ export class ReadingQueueRepository {
       where: { queuePosition: { not: null }, userId },
     });
     return rows.map((row) => row.id);
+  }
+
+  async findQueuePosition(
+    userId: string,
+    bookId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<null | number> {
+    const book = await client.book.findFirst({
+      select: { queuePosition: true },
+      where: { id: bookId, userId },
+    });
+    return book?.queuePosition ?? null;
   }
 
   listQueue(userId: string): Promise<BookWithRelations[]> {

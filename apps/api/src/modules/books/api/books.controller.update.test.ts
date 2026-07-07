@@ -69,6 +69,16 @@ function createBook(accessToken: string, body: Record<string, unknown>): request
     .send(body);
 }
 
+function readQueuePositions(
+  userId: string,
+): Promise<{ id: string; queuePosition: null | number }[]> {
+  return prisma.book.findMany({
+    orderBy: { queuePosition: "asc" },
+    select: { id: true, queuePosition: true },
+    where: { queuePosition: { not: null }, userId },
+  });
+}
+
 function updateBook(accessToken: string, id: string, body: Record<string, unknown>): request.Test {
   return request(app.getHttpServer())
     .patch(`/api/books/${id}`)
@@ -781,6 +791,90 @@ describe("PATCH /api/books/:id reading queue", () => {
     expect(res.status).toBe(200);
     expect(res.body.isInReadingQueue).toBe(false);
     expect(res.body.queuePriority).toBeNull();
+  });
+
+  it("re-sequences the tail with no gap when a middle queued book is removed", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const first = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    const middle = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune Messiah",
+    });
+    const last = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Children of Dune",
+    });
+
+    const res = await updateBook(accessToken, middle.body.id, { addToReadingQueue: false });
+
+    expect(res.status).toBe(200);
+    const positions = await readQueuePositions(userId);
+    expect(positions).toEqual([
+      { id: first.body.id, queuePosition: 1 },
+      { id: last.body.id, queuePosition: 2 },
+    ]);
+  });
+
+  it("leaves earlier positions untouched when the last queued book is removed", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const first = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    const second = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune Messiah",
+    });
+    const last = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Children of Dune",
+    });
+
+    const res = await updateBook(accessToken, last.body.id, { addToReadingQueue: false });
+
+    expect(res.status).toBe(200);
+    const positions = await readQueuePositions(userId);
+    expect(positions).toEqual([
+      { id: first.body.id, queuePosition: 1 },
+      { id: second.body.id, queuePosition: 2 },
+    ]);
+  });
+
+  it("re-sequences the rest to start at 1 when the first queued book is removed", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const first = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    const second = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune Messiah",
+    });
+    const last = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Children of Dune",
+    });
+
+    const res = await updateBook(accessToken, first.body.id, { addToReadingQueue: false });
+
+    expect(res.status).toBe(200);
+    const positions = await readQueuePositions(userId);
+    expect(positions).toEqual([
+      { id: second.body.id, queuePosition: 1 },
+      { id: last.body.id, queuePosition: 2 },
+    ]);
   });
 });
 

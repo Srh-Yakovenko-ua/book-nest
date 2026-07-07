@@ -28,15 +28,25 @@ export class ReadingQueueService {
   ) {}
 
   async addToQueue(userId: string, input: AddToReadingQueueInput): Promise<ReadingQueueView> {
-    const book = await this.booksRepository.findOwnedByIdOrThrow(userId, input.bookId);
-    if (book.queuePosition !== null) {
-      throw new ConflictError(ALREADY_IN_QUEUE_MESSAGE);
-    }
+    await this.booksRepository.findOwnedByIdOrThrow(userId, input.bookId);
 
     await this.transactionRunner.run(async (tx) => {
+      await this.readingQueueRepository.acquireUserQueueLock(userId, tx);
+
+      const existingPosition = await this.readingQueueRepository.findQueuePosition(
+        userId,
+        input.bookId,
+        tx,
+      );
+      if (existingPosition !== null) {
+        throw new ConflictError(ALREADY_IN_QUEUE_MESSAGE);
+      }
+
       const count = await this.readingQueueRepository.count(userId, tx);
+      const maxPosition = await this.booksRepository.maxQueuePosition(userId, tx);
       const result = computeQueueInsertPosition({
         count,
+        maxPosition,
         placement: input.placement,
         position: input.position,
       });
@@ -64,13 +74,19 @@ export class ReadingQueueService {
   }
 
   async removeFromQueue(userId: string, bookId: string): Promise<ReadingQueueView> {
-    const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
-    if (book.queuePosition === null) {
-      throw new NotFoundError(NOT_IN_QUEUE_MESSAGE);
-    }
-    const removedPosition: number = book.queuePosition;
+    await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
 
     await this.transactionRunner.run(async (tx) => {
+      await this.readingQueueRepository.acquireUserQueueLock(userId, tx);
+
+      const removedPosition = await this.readingQueueRepository.findQueuePosition(
+        userId,
+        bookId,
+        tx,
+      );
+      if (removedPosition === null) {
+        throw new NotFoundError(NOT_IN_QUEUE_MESSAGE);
+      }
       await this.readingQueueRepository.clearPosition(userId, bookId, tx);
       await this.readingQueueRepository.shiftUpAfter(userId, removedPosition, tx);
     });
@@ -84,13 +100,15 @@ export class ReadingQueueService {
       throw new ValidationError(INVALID_ORDER_MESSAGE);
     }
 
-    const current = await this.readingQueueRepository.findQueuedBookIds(userId);
-    const currentIds = new Set(current);
-    if (order.length !== currentIds.size || !order.every((bookId) => currentIds.has(bookId))) {
-      throw new ValidationError(INVALID_ORDER_MESSAGE);
-    }
-
     await this.transactionRunner.run(async (tx) => {
+      await this.readingQueueRepository.acquireUserQueueLock(userId, tx);
+
+      const current = await this.readingQueueRepository.findQueuedBookIds(userId, tx);
+      const currentIds = new Set(current);
+      if (order.length !== currentIds.size || !order.every((bookId) => currentIds.has(bookId))) {
+        throw new ValidationError(INVALID_ORDER_MESSAGE);
+      }
+
       for (const [index, bookId] of order.entries()) {
         await this.readingQueueRepository.setPosition(userId, bookId, index + 1, tx);
       }
@@ -104,10 +122,12 @@ export class ReadingQueueService {
     bookId: string,
     removeFromQueue: boolean,
   ): Promise<ReadingQueueView> {
-    const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
-    const queuePosition = book.queuePosition;
+    await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
 
     await this.transactionRunner.run(async (tx) => {
+      await this.readingQueueRepository.acquireUserQueueLock(userId, tx);
+
+      const queuePosition = await this.readingQueueRepository.findQueuePosition(userId, bookId, tx);
       await this.bookReadingService.startReading(userId, bookId, tx);
       if (removeFromQueue && queuePosition !== null) {
         await this.readingQueueRepository.clearPosition(userId, bookId, tx);

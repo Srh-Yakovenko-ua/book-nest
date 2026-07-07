@@ -102,9 +102,12 @@ describe("ReadingQueueService.getQueue", () => {
 });
 
 function buildAddToQueueService(): {
+  acquireUserQueueLock: ReturnType<typeof vi.fn>;
   count: ReturnType<typeof vi.fn>;
   findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
+  findQueuePosition: ReturnType<typeof vi.fn>;
   listQueue: ReturnType<typeof vi.fn>;
+  maxQueuePosition: ReturnType<typeof vi.fn>;
   service: ReadingQueueService;
   setPosition: ReturnType<typeof vi.fn>;
   shiftDownFrom: ReturnType<typeof vi.fn>;
@@ -112,6 +115,9 @@ function buildAddToQueueService(): {
 } {
   const tx = {} as unknown as Prisma.TransactionClient;
   const findOwnedByIdOrThrow = vi.fn();
+  const maxQueuePosition = vi.fn().mockResolvedValue(0);
+  const acquireUserQueueLock = vi.fn().mockResolvedValue(undefined);
+  const findQueuePosition = vi.fn().mockResolvedValue(null);
   const count = vi.fn().mockResolvedValue(0);
   const shiftDownFrom = vi.fn().mockResolvedValue(undefined);
   const setPosition = vi.fn().mockResolvedValue(undefined);
@@ -122,10 +128,12 @@ function buildAddToQueueService(): {
   );
   const run = vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(tx));
 
-  const booksRepository = { findOwnedByIdOrThrow } as unknown as BooksRepository;
+  const booksRepository = { findOwnedByIdOrThrow, maxQueuePosition } as unknown as BooksRepository;
   const assembler = { viewOf } as unknown as BookViewAssembler;
   const repository = {
+    acquireUserQueueLock,
     count,
+    findQueuePosition,
     listQueue,
     setPosition,
     shiftDownFrom,
@@ -139,7 +147,18 @@ function buildAddToQueueService(): {
     repository,
     transactionRunner,
   );
-  return { count, findOwnedByIdOrThrow, listQueue, service, setPosition, shiftDownFrom, tx };
+  return {
+    acquireUserQueueLock,
+    count,
+    findOwnedByIdOrThrow,
+    findQueuePosition,
+    listQueue,
+    maxQueuePosition,
+    service,
+    setPosition,
+    shiftDownFrom,
+    tx,
+  };
 }
 
 function ownedBook(queuePosition: null | number): BookWithRelations {
@@ -157,8 +176,9 @@ describe("ReadingQueueService.addToQueue", () => {
   });
 
   it("rejects with ConflictError when the book is already in the queue", async () => {
-    const { findOwnedByIdOrThrow, service } = buildAddToQueueService();
+    const { findOwnedByIdOrThrow, findQueuePosition, service } = buildAddToQueueService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(3));
+    findQueuePosition.mockResolvedValue(3);
 
     await expect(
       service.addToQueue(USER_ID, { bookId: BOOK_ID, placement: "end" }),
@@ -166,8 +186,10 @@ describe("ReadingQueueService.addToQueue", () => {
   });
 
   it("does not shift or set positions when the book is already in the queue", async () => {
-    const { findOwnedByIdOrThrow, service, setPosition, shiftDownFrom } = buildAddToQueueService();
+    const { findOwnedByIdOrThrow, findQueuePosition, service, setPosition, shiftDownFrom } =
+      buildAddToQueueService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(3));
+    findQueuePosition.mockResolvedValue(3);
 
     await expect(
       service.addToQueue(USER_ID, { bookId: BOOK_ID, placement: "end" }),
@@ -176,11 +198,11 @@ describe("ReadingQueueService.addToQueue", () => {
     expect(setPosition).not.toHaveBeenCalled();
   });
 
-  it("appends at count + 1 for end placement over an existing queue", async () => {
-    const { count, findOwnedByIdOrThrow, service, setPosition, shiftDownFrom, tx } =
+  it("appends at maxPosition + 1 for end placement over an existing queue", async () => {
+    const { findOwnedByIdOrThrow, maxQueuePosition, service, setPosition, shiftDownFrom, tx } =
       buildAddToQueueService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(null));
-    count.mockResolvedValue(3);
+    maxQueuePosition.mockResolvedValue(3);
 
     await service.addToQueue(USER_ID, { bookId: BOOK_ID, placement: "end" });
 
@@ -257,8 +279,10 @@ describe("ReadingQueueService.addToQueue", () => {
 });
 
 function buildRemoveFromQueueService(): {
+  acquireUserQueueLock: ReturnType<typeof vi.fn>;
   clearPosition: ReturnType<typeof vi.fn>;
   findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
+  findQueuePosition: ReturnType<typeof vi.fn>;
   listQueue: ReturnType<typeof vi.fn>;
   service: ReadingQueueService;
   shiftUpAfter: ReturnType<typeof vi.fn>;
@@ -266,6 +290,8 @@ function buildRemoveFromQueueService(): {
 } {
   const tx = {} as unknown as Prisma.TransactionClient;
   const findOwnedByIdOrThrow = vi.fn();
+  const acquireUserQueueLock = vi.fn().mockResolvedValue(undefined);
+  const findQueuePosition = vi.fn().mockResolvedValue(null);
   const clearPosition = vi.fn().mockResolvedValue(undefined);
   const shiftUpAfter = vi.fn().mockResolvedValue(undefined);
   const listQueue = vi.fn().mockResolvedValue([]);
@@ -278,7 +304,9 @@ function buildRemoveFromQueueService(): {
   const booksRepository = { findOwnedByIdOrThrow } as unknown as BooksRepository;
   const assembler = { viewOf } as unknown as BookViewAssembler;
   const repository = {
+    acquireUserQueueLock,
     clearPosition,
+    findQueuePosition,
     listQueue,
     shiftUpAfter,
   } as unknown as ReadingQueueRepository;
@@ -291,7 +319,16 @@ function buildRemoveFromQueueService(): {
     repository,
     transactionRunner,
   );
-  return { clearPosition, findOwnedByIdOrThrow, listQueue, service, shiftUpAfter, tx };
+  return {
+    acquireUserQueueLock,
+    clearPosition,
+    findOwnedByIdOrThrow,
+    findQueuePosition,
+    listQueue,
+    service,
+    shiftUpAfter,
+    tx,
+  };
 }
 
 describe("ReadingQueueService.removeFromQueue", () => {
@@ -332,8 +369,10 @@ describe("ReadingQueueService.removeFromQueue", () => {
   });
 
   it("clears the removed book position within the threaded transaction", async () => {
-    const { clearPosition, findOwnedByIdOrThrow, service, tx } = buildRemoveFromQueueService();
+    const { clearPosition, findOwnedByIdOrThrow, findQueuePosition, service, tx } =
+      buildRemoveFromQueueService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+    findQueuePosition.mockResolvedValue(2);
 
     await service.removeFromQueue(USER_ID, BOOK_ID);
 
@@ -341,8 +380,10 @@ describe("ReadingQueueService.removeFromQueue", () => {
   });
 
   it("shifts up the books positioned after the removed one within the threaded transaction", async () => {
-    const { findOwnedByIdOrThrow, service, shiftUpAfter, tx } = buildRemoveFromQueueService();
+    const { findOwnedByIdOrThrow, findQueuePosition, service, shiftUpAfter, tx } =
+      buildRemoveFromQueueService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+    findQueuePosition.mockResolvedValue(2);
 
     await service.removeFromQueue(USER_ID, BOOK_ID);
 
@@ -350,8 +391,10 @@ describe("ReadingQueueService.removeFromQueue", () => {
   });
 
   it("returns the reloaded queue view after removing the book", async () => {
-    const { findOwnedByIdOrThrow, listQueue, service } = buildRemoveFromQueueService();
+    const { findOwnedByIdOrThrow, findQueuePosition, listQueue, service } =
+      buildRemoveFromQueueService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+    findQueuePosition.mockResolvedValue(2);
     listQueue.mockResolvedValue([
       { id: "book-a", pagesCount: 100, queuePosition: 1 },
       { id: "book-c", pagesCount: 50, queuePosition: 2 },
@@ -371,6 +414,7 @@ describe("ReadingQueueService.removeFromQueue", () => {
 });
 
 function buildReorderService(): {
+  acquireUserQueueLock: ReturnType<typeof vi.fn>;
   findQueuedBookIds: ReturnType<typeof vi.fn>;
   listQueue: ReturnType<typeof vi.fn>;
   service: ReadingQueueService;
@@ -378,6 +422,7 @@ function buildReorderService(): {
   tx: Prisma.TransactionClient;
 } {
   const tx = {} as unknown as Prisma.TransactionClient;
+  const acquireUserQueueLock = vi.fn().mockResolvedValue(undefined);
   const findQueuedBookIds = vi.fn().mockResolvedValue([]);
   const setPosition = vi.fn().mockResolvedValue(undefined);
   const listQueue = vi.fn().mockResolvedValue([]);
@@ -390,6 +435,7 @@ function buildReorderService(): {
   const booksRepository = {} as unknown as BooksRepository;
   const assembler = { viewOf } as unknown as BookViewAssembler;
   const repository = {
+    acquireUserQueueLock,
     findQueuedBookIds,
     listQueue,
     setPosition,
@@ -403,12 +449,14 @@ function buildReorderService(): {
     repository,
     transactionRunner,
   );
-  return { findQueuedBookIds, listQueue, service, setPosition, tx };
+  return { acquireUserQueueLock, findQueuedBookIds, listQueue, service, setPosition, tx };
 }
 
 function buildStartReadingService(): {
+  acquireUserQueueLock: ReturnType<typeof vi.fn>;
   clearPosition: ReturnType<typeof vi.fn>;
   findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
+  findQueuePosition: ReturnType<typeof vi.fn>;
   listQueue: ReturnType<typeof vi.fn>;
   service: ReadingQueueService;
   shiftUpAfter: ReturnType<typeof vi.fn>;
@@ -417,6 +465,8 @@ function buildStartReadingService(): {
 } {
   const tx = {} as unknown as Prisma.TransactionClient;
   const findOwnedByIdOrThrow = vi.fn();
+  const acquireUserQueueLock = vi.fn().mockResolvedValue(undefined);
+  const findQueuePosition = vi.fn().mockResolvedValue(null);
   const startReading = vi.fn().mockResolvedValue(undefined);
   const clearPosition = vi.fn().mockResolvedValue(undefined);
   const shiftUpAfter = vi.fn().mockResolvedValue(undefined);
@@ -431,7 +481,9 @@ function buildStartReadingService(): {
   const bookReadingService = { startReading } as unknown as BookReadingService;
   const assembler = { viewOf } as unknown as BookViewAssembler;
   const repository = {
+    acquireUserQueueLock,
     clearPosition,
+    findQueuePosition,
     listQueue,
     shiftUpAfter,
   } as unknown as ReadingQueueRepository;
@@ -445,8 +497,10 @@ function buildStartReadingService(): {
     transactionRunner,
   );
   return {
+    acquireUserQueueLock,
     clearPosition,
     findOwnedByIdOrThrow,
+    findQueuePosition,
     listQueue,
     service,
     shiftUpAfter,
@@ -574,8 +628,10 @@ describe("ReadingQueueService.startReading", () => {
   });
 
   it("clears the started book position within the threaded transaction when it is queued and removeFromQueue is true", async () => {
-    const { clearPosition, findOwnedByIdOrThrow, service, tx } = buildStartReadingService();
+    const { clearPosition, findOwnedByIdOrThrow, findQueuePosition, service, tx } =
+      buildStartReadingService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+    findQueuePosition.mockResolvedValue(2);
 
     await service.startReading(USER_ID, BOOK_ID, true);
 
@@ -583,8 +639,10 @@ describe("ReadingQueueService.startReading", () => {
   });
 
   it("shifts up the books positioned after the started one within the threaded transaction", async () => {
-    const { findOwnedByIdOrThrow, service, shiftUpAfter, tx } = buildStartReadingService();
+    const { findOwnedByIdOrThrow, findQueuePosition, service, shiftUpAfter, tx } =
+      buildStartReadingService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
+    findQueuePosition.mockResolvedValue(2);
 
     await service.startReading(USER_ID, BOOK_ID, true);
 

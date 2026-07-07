@@ -394,6 +394,7 @@ export class BooksService {
         listIds: resolved.listIds,
         loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),
         purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
+        queueRemoval: resolved.queueRemoval,
         readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
         tagIds: resolved.tagIds,
       });

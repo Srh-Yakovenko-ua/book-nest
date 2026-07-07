@@ -34,8 +34,10 @@ export const AddToReadingQueueInputSchema = z
 
 export type AddToReadingQueueInput = z.infer<typeof AddToReadingQueueInputSchema>;
 
+const REORDER_MAX = 1000;
+
 export const ReorderReadingQueueInputSchema = z.object({
-  order: z.array(z.uuid()).min(1),
+  order: z.array(z.uuid()).min(1).max(REORDER_MAX),
 });
 
 export type ReorderReadingQueueInput = z.infer<typeof ReorderReadingQueueInputSchema>;

@@ -232,6 +232,7 @@ function resolvedUpdate(overrides: Partial<ResolvedBookUpdate> = {}): ResolvedBo
     authorIds: undefined,
     fields: {},
     listIds: undefined,
+    queueRemoval: null,
     seriesPlacement: { partNumber: null, seriesId: null },
     tagIds: undefined,
     ...overrides,

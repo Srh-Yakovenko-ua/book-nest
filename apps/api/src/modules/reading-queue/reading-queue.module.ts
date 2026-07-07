@@ -8,7 +8,6 @@ import { ReadingQueueRepository } from "./infrastructure/reading-queue.repositor
 
 @Module({
   controllers: [ReadingQueueController],
-  exports: [ReadingQueueService],
   imports: [AuthModule, BooksModule],
   providers: [ReadingQueueService, ReadingQueueRepository],
 })

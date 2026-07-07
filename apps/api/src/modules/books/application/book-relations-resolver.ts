@@ -23,6 +23,10 @@ const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
 const DUPLICATE_PART_NUMBER_MESSAGE = "A book with this part number already exists in this series";
 const BOOK_SERIES_PART_NUMBER_UNIQUE_CONSTRAINT = "books_series_id_part_number_key";
 
+export type QueueRemoval = {
+  fromPosition: number;
+};
+
 export type ResolvedBookCreate = {
   authorIds: string[];
   firstAuthorName: string;
@@ -39,6 +43,7 @@ export type ResolvedBookUpdate = {
   authorIds: string[] | undefined;
   fields: Prisma.BookUncheckedUpdateManyInput;
   listIds: string[] | undefined;
+  queueRemoval: null | QueueRemoval;
   seriesPlacement: SeriesPlacement;
   tagIds: string[] | undefined;
 };
@@ -215,7 +220,7 @@ export class BookRelationsResolver {
       input,
       userId,
     });
-    await this.applyQueueFields({ current, fields, input, userId });
+    const queueRemoval = await this.applyQueueFields({ current, fields, input, userId });
     await this.assertSeriesPartNumberUnique({
       excludeBookId: bookId,
       placement: seriesPlacement,
@@ -226,7 +231,7 @@ export class BookRelationsResolver {
       await this.genresService.assertGenresSelectable(userId, input.genres);
     }
 
-    return { authorIds, fields, listIds, seriesPlacement, tagIds };
+    return { authorIds, fields, listIds, queueRemoval, seriesPlacement, tagIds };
   }
 
   private async applyQueueFields({
@@ -239,25 +244,27 @@ export class BookRelationsResolver {
     fields: Prisma.BookUncheckedUpdateManyInput;
     input: UpdateBookInput;
     userId: string;
-  }): Promise<void> {
+  }): Promise<null | QueueRemoval> {
     const isQueued = current.queuePosition !== null;
 
     if (input.addToReadingQueue === false) {
       fields.queuePosition = null;
       fields.queuePriority = null;
-      return;
+      return current.queuePosition === null ? null : { fromPosition: current.queuePosition };
     }
 
     if (input.addToReadingQueue === true && !isQueued) {
       const lastPosition = await this.booksRepository.maxQueuePosition(userId);
       fields.queuePosition = lastPosition + 1;
       fields.queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
-      return;
+      return null;
     }
 
     if (isQueued && input.queuePriority !== undefined) {
       fields.queuePriority = input.queuePriority;
     }
+
+    return null;
   }
 
   private async applySeriesFields({

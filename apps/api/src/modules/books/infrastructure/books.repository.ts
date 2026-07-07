@@ -127,6 +127,10 @@ export type OwnershipPurchaseInfoPatch = Partial<CreatePurchaseInfoData> & {
   purchasedAt?: Date | null;
 };
 
+export type QueueRemoval = {
+  fromPosition: number;
+};
+
 export type ReadingChangePatch = {
   book: Nullable<{ readingStatus?: ReadingStatus }>;
   progress: Partial<CreateReadingProgressData>;
@@ -139,6 +143,7 @@ export type UpdateBookData = {
   listIds?: string[];
   loanInfo: BlockUpsert<CreateLoanInfoData, UpdateLoanInfoData>;
   purchaseInfo: BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData>;
+  queueRemoval: null | QueueRemoval;
   readingProgress: BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData>;
   tagIds?: string[];
 };
@@ -401,8 +406,11 @@ export class BooksRepository {
     });
   }
 
-  async maxQueuePosition(userId: string): Promise<number> {
-    const result = await this.prisma.book.aggregate({
+  async maxQueuePosition(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const result = await client.book.aggregate({
       _max: { queuePosition: true },
       where: { userId },
     });
@@ -428,6 +436,17 @@ export class BooksRepository {
       LIMIT ${limit}
     `;
     return rows.map((row) => row.storeName);
+  }
+
+  async shiftQueueUpAfter(
+    userId: string,
+    position: number,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.book.updateMany({
+      data: { queuePosition: { decrement: 1 } },
+      where: { queuePosition: { gt: position }, userId },
+    });
   }
 
   async topGenreKeys({
@@ -484,6 +503,10 @@ export class BooksRepository {
       });
       if (updated.count === 0) {
         throw new NotFoundError("Book not found");
+      }
+
+      if (data.queueRemoval !== null) {
+        await this.shiftQueueUpAfter(userId, data.queueRemoval.fromPosition, tx);
       }
 
       await applyBlockUpsert(tx.bookReadingProgress, bookId, data.readingProgress);
