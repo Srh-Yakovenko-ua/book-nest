@@ -297,13 +297,17 @@ export class BooksRepository {
   }
 
   countByReadingStatuses({
+    isFavorite,
     statuses,
     userId,
   }: {
+    isFavorite?: boolean;
     statuses: ReadingStatus[];
     userId: string;
   }): Promise<number> {
-    return this.prisma.book.count({ where: { readingStatus: { in: statuses }, userId } });
+    return this.prisma.book.count({
+      where: { isFavorite, readingStatus: { in: statuses }, userId },
+    });
   }
 
   countByUser(userId: string): Promise<number> {
@@ -349,6 +353,24 @@ export class BooksRepository {
 
   deleteOwned(userId: string, id: string): Promise<number> {
     return this.prisma.book.deleteMany({ where: { id, userId } }).then((result) => result.count);
+  }
+
+  async favoritesSummary({
+    finishedStatuses,
+    readingStatuses,
+    userId,
+  }: FavoritesSummaryQuery): Promise<FavoritesSummaryResult> {
+    const [total, reading, finished, ratingAggregate] = await Promise.all([
+      this.countFavorites(userId),
+      this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
+      this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
+      this.prisma.bookReadingProgress.aggregate({
+        _avg: { rating: true },
+        where: { book: { isFavorite: true, userId }, rating: { not: null } },
+      }),
+    ]);
+
+    return { averageRating: ratingAggregate._avg.rating, finished, reading, total };
   }
 
   findOwnedById(userId: string, id: string): Promise<BookWithRelations | null> {
@@ -544,6 +566,19 @@ export class BooksRepository {
     });
   }
 }
+
+type FavoritesSummaryQuery = {
+  finishedStatuses: ReadingStatus[];
+  readingStatuses: ReadingStatus[];
+  userId: string;
+};
+
+type FavoritesSummaryResult = {
+  averageRating: Nullable<number>;
+  finished: number;
+  reading: number;
+  total: number;
+};
 
 type ListForLibraryInput = {
   filter: LibraryFilter;

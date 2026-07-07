@@ -940,4 +940,13 @@ export const LibraryOverviewViewSchema = z.object({
 
 export type LibraryOverviewView = z.infer<typeof LibraryOverviewViewSchema>;
 
+export const FavoritesSummaryViewSchema = z.object({
+  averageRating: z.number().nullable(),
+  finished: z.number(),
+  reading: z.number(),
+  total: z.number(),
+});
+
+export type FavoritesSummaryView = z.infer<typeof FavoritesSummaryViewSchema>;
+
 export const PaginatedBooksSchema = createPaginatedSchema(BookViewSchema);

@@ -1,4 +1,4 @@
-import type { CreateBookInput, UpdateBookInput } from "@app/shared";
+import type { CreateBookInput, FavoritesSummaryView, UpdateBookInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -35,6 +35,7 @@ type Repository = {
   countForLibrary: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteOwned: ReturnType<typeof vi.fn>;
+  favoritesSummary: ReturnType<typeof vi.fn>;
   findOwnedById: ReturnType<typeof vi.fn>;
   listForLibrary: ReturnType<typeof vi.fn>;
   recentPurchaseStores: ReturnType<typeof vi.fn>;
@@ -97,6 +98,7 @@ function buildService(
     countForLibrary?: number;
     create?: BookWithRelations;
     deleteOwned?: number;
+    favoritesSummary?: FavoritesSummaryView;
     findOwnedById?: BookWithRelations | null;
     listForLibrary?: BookWithRelations[];
     recentPurchaseStores?: string[];
@@ -120,6 +122,11 @@ function buildService(
     countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
+    favoritesSummary: vi
+      .fn()
+      .mockResolvedValue(
+        overrides.favoritesSummary ?? { averageRating: null, finished: 0, reading: 0, total: 0 },
+      ),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
     listForLibrary: vi.fn().mockResolvedValue(overrides.listForLibrary ?? []),
     recentPurchaseStores: vi.fn().mockResolvedValue(overrides.recentPurchaseStores ?? []),
@@ -1044,5 +1051,39 @@ describe("BooksService.recentPurchaseStores", () => {
     await service.recentPurchaseStores({ limit: 5, userId: USER_ID });
 
     expect(repository.recentPurchaseStores).toHaveBeenCalledWith({ limit: 5, userId: USER_ID });
+  });
+});
+
+describe("BooksService.favoritesSummary", () => {
+  it("delegates to the repository with the finished and reading status sets scoped to the user", async () => {
+    const { repository, service } = buildService();
+
+    await service.favoritesSummary(USER_ID);
+
+    expect(repository.favoritesSummary).toHaveBeenCalledWith({
+      finishedStatuses: ["finished"],
+      readingStatuses: ["reading", "rereading"],
+      userId: USER_ID,
+    });
+  });
+
+  it("returns the summary produced by the repository", async () => {
+    const { service } = buildService({
+      favoritesSummary: { averageRating: 8.5, finished: 3, reading: 2, total: 7 },
+    });
+
+    const result = await service.favoritesSummary(USER_ID);
+
+    expect(result).toEqual({ averageRating: 8.5, finished: 3, reading: 2, total: 7 });
+  });
+
+  it("passes through a null average rating when no favorite has a rating", async () => {
+    const { service } = buildService({
+      favoritesSummary: { averageRating: null, finished: 0, reading: 0, total: 4 },
+    });
+
+    const result = await service.favoritesSummary(USER_ID);
+
+    expect(result.averageRating).toBeNull();
   });
 });

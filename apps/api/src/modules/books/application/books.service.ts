@@ -1,6 +1,7 @@
 import type {
   BookView,
   CreateBookInput,
+  FavoritesSummaryView,
   LibraryBooksQuery,
   LibraryOverviewView,
   OwnershipStatus,
@@ -262,6 +263,14 @@ export class BooksService {
     if (book.coverMediaId !== null) {
       await this.coverCleanup.deleteIfOrphaned({ mediaId: book.coverMediaId, userId });
     }
+  }
+
+  favoritesSummary(userId: string): Promise<FavoritesSummaryView> {
+    return this.booksRepository.favoritesSummary({
+      finishedStatuses: FINISHED_STATUSES,
+      readingStatuses: READING_IN_PROGRESS_STATUSES,
+      userId,
+    });
   }
 
   async getById(userId: string, bookId: string): Promise<BookView> {
