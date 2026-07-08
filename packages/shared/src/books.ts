@@ -203,6 +203,7 @@ export const ReadingProgressInputSchema = z
 export const ChangeReadingStatusInputSchema = z.object({
   currentPage: ReadingCurrentPageSchema.optional(),
   date: notInFutureDate("Date must not be in the future").optional(),
+  impression: ReadingImpressionSchema.nullable().optional(),
   note: ReadingNoteSchema.nullable().optional(),
   rating: ReadingRatingSchema.nullable().optional(),
   resetProgress: z.boolean().optional(),

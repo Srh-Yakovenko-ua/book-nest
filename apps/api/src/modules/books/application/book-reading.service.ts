@@ -42,6 +42,7 @@ export class BookReadingService {
       date: input.date ?? this.todayIso(),
       existingStartedAt: book.readingProgress?.startedAt ?? null,
       hasExistingProgress: book.readingProgress !== null,
+      impression: input.impression,
       note: input.note,
       pagesCount: book.pagesCount,
       rating: input.rating,

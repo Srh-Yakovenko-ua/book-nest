@@ -12,6 +12,7 @@ export type ReadingStatusTransitionInput = {
   date: string;
   existingStartedAt: Date | null;
   hasExistingProgress: boolean;
+  impression?: null | string;
   note?: null | string;
   pagesCount: null | number;
   rating?: null | number;
@@ -46,6 +47,9 @@ export function computeReadingStatusChange(
       if (input.rating !== undefined) {
         progress.rating = input.rating;
       }
+      if (input.impression !== undefined) {
+        progress.impression = input.impression;
+      }
       break;
     case "not_started":
     case "want_to_read":
@@ -56,6 +60,7 @@ export function computeReadingStatusChange(
         progress.abandonedAt = null;
         progress.rating = null;
         progress.note = null;
+        progress.impression = null;
         if (input.resetProgress === true) {
           progress.currentPage = null;
         }
