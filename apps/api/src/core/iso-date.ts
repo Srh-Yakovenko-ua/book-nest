@@ -10,3 +10,7 @@ export function parseIsoDate(value: string): Date {
 export function toIsoDate(date: Date): string {
   return formatInTimeZone(date, UTC_TIME_ZONE, ISO_DATE_FORMAT);
 }
+
+export function toNullableIsoDate(value: Date | null): null | string {
+  return value === null ? null : toIsoDate(value);
+}

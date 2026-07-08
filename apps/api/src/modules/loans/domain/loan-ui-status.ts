@@ -5,7 +5,7 @@ import { addDays, differenceInCalendarDays } from "date-fns";
 import { parseIsoDate, toIsoDate } from "../../../core/iso-date.js";
 
 const RETURN_SOON_DAYS = 7;
-const DAYS_IN_WEEK = 6;
+const DAYS_FROM_MONDAY_TO_SUNDAY = 6;
 
 export type LoanDateBounds = {
   soonEnd: Date;
@@ -40,7 +40,7 @@ export function loanDateBounds(now: Date): LoanDateBounds {
   const soonEnd = addDays(today, RETURN_SOON_DAYS);
   const mondayOffset = (today.getUTCDay() + 6) % 7;
   const weekStart = addDays(today, -mondayOffset);
-  const weekEnd = addDays(weekStart, DAYS_IN_WEEK);
+  const weekEnd = addDays(weekStart, DAYS_FROM_MONDAY_TO_SUNDAY);
 
   return { soonEnd, today, weekEnd, weekStart };
 }

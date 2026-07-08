@@ -8,10 +8,7 @@ import {
 
 import type { BookDeliveryModel } from "../../../generated/prisma/models.js";
 
-import { toIsoDate } from "../../../core/iso-date.js";
-
-const toNullableIsoDate = (value: Date | null): null | string =>
-  value === null ? null : toIsoDate(value);
+import { toNullableIsoDate } from "../../../core/iso-date.js";
 
 const toNullableInstant = (value: Date | null): null | string =>
   value === null ? null : value.toISOString();

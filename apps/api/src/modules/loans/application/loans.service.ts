@@ -9,7 +9,7 @@ import type {
 import { collapseSpaces, LoanTypeSchema, OwnershipStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import { toIsoDate } from "../../../core/iso-date.js";
+import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { createLogger } from "../../../core/logger.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
@@ -17,9 +17,6 @@ import { getLoanUiStatus, loanDateBounds } from "../domain/loan-ui-status.js";
 import { LoansRepository, type LoanWithBook } from "../infrastructure/loans.repository.js";
 
 const log = createLogger("loans.view");
-
-const toNullableIsoDate = (value: Date | null): null | string =>
-  value === null ? null : toIsoDate(value);
 
 @Injectable()
 export class LoansService {

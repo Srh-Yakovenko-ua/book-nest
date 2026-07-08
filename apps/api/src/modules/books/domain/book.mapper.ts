@@ -16,7 +16,7 @@ import {
 
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
-import { toIsoDate } from "../../../core/iso-date.js";
+import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { toBookListView } from "../../lists/index.js";
 import {
   computeHasUnreadEarlierParts,
@@ -24,9 +24,6 @@ import {
   toSeriesView,
 } from "../../series/index.js";
 import { toDeliverySummaryView } from "./delivery.mapper.js";
-
-const toNullableIsoDate = (value: Date | null): null | string =>
-  value === null ? null : toIsoDate(value);
 
 export function toBookView(book: BookWithRelations, cover: MediaView | null): BookView {
   return {
