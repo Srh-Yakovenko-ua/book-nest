@@ -1,13 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { SeriesModel } from "../../../generated/prisma/models.js";
+import type { GenresService } from "../../genres/application/genres.service.js";
 import type {
   SeriesRepository,
   SeriesWithBookCount,
   SeriesWithDetails,
 } from "../infrastructure/series.repository.js";
 
-import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { AuthorsService } from "../../authors/application/authors.service.js";
 import { SeriesService } from "./series.service.js";
@@ -82,19 +88,25 @@ function detailedSeries(
 }
 
 function makeService(options: {
+  assertGenresSelectable?: ReturnType<typeof vi.fn>;
   repository: RepoMock;
   resolveReferences?: ReturnType<typeof vi.fn>;
 }): {
   authorsService: { resolveReferences: ReturnType<typeof vi.fn> };
+  genresService: { assertGenresSelectable: ReturnType<typeof vi.fn> };
   service: SeriesService;
 } {
   const resolveReferences = options.resolveReferences ?? vi.fn().mockResolvedValue([]);
   const authorsService = { resolveReferences };
+  const assertGenresSelectable =
+    options.assertGenresSelectable ?? vi.fn().mockResolvedValue(undefined);
+  const genresService = { assertGenresSelectable };
   const service = new SeriesService(
     options.repository as unknown as SeriesRepository,
     authorsService as unknown as AuthorsService,
+    genresService as unknown as GenresService,
   );
-  return { authorsService, service };
+  return { authorsService, genresService, service };
 }
 
 function ownedWithCount(
@@ -125,6 +137,9 @@ function buildService(overrides: {
 }): {
   authorsService: {
     resolveReferences: ReturnType<typeof vi.fn>;
+  };
+  genresService: {
+    assertGenresSelectable: ReturnType<typeof vi.fn>;
   };
   repository: {
     countOwned: ReturnType<typeof vi.fn>;
@@ -162,18 +177,24 @@ function buildService(overrides: {
     resolveReferences: vi.fn().mockResolvedValue([]),
   };
 
+  const genresService = {
+    assertGenresSelectable: vi.fn().mockResolvedValue(undefined),
+  };
+
   const service = new SeriesService(
     repository as unknown as SeriesRepository,
     authorsService as unknown as AuthorsService,
+    genresService as unknown as GenresService,
   );
 
-  return { authorsService, repository, service };
+  return { authorsService, genresService, repository, service };
 }
 
 function series(overrides: Partial<SeriesModel> = {}): SeriesModel {
   return {
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     description: null,
+    genres: [],
     id: SERIES_ID,
     name: "Throne of Glass",
     normalizedName: "throne of glass",
@@ -253,7 +274,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     });
 
     const resolved = await service.resolveForBook({
-      newSeries: { name: "Throne of Glass", status: "completed", totalBooks: 8 },
+      newSeries: { genres: [], name: "Throne of Glass", status: "completed", totalBooks: 8 },
       userId: USER_ID,
     });
 
@@ -265,7 +286,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     const { repository, service } = buildService({ findByNormalized: series({ id: OTHER_ID }) });
 
     await service.resolveForBook({
-      newSeries: { name: "  Throne   OF Glass ", status: "unknown" },
+      newSeries: { genres: [], name: "  Throne   OF Glass ", status: "unknown" },
       userId: USER_ID,
     });
 
@@ -277,7 +298,13 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     const { repository, service } = buildService({ create: created, findByNormalized: null });
 
     const resolved = await service.resolveForBook({
-      newSeries: { description: "saga", name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
+      newSeries: {
+        description: "saga",
+        genres: ["fantasy"],
+        name: "Throne of Glass",
+        status: "ongoing",
+        totalBooks: 3,
+      },
       userId: USER_ID,
     });
 
@@ -286,6 +313,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
       authorIds: [],
       data: {
         description: "saga",
+        genres: ["fantasy"],
         name: "Throne of Glass",
         normalizedName: "throne of glass",
         status: "ongoing",
@@ -304,7 +332,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     });
 
     const resolved = await service.resolveForBook({
-      newSeries: { name: "Throne of Glass", status: "unknown" },
+      newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
       userId: USER_ID,
     });
 
@@ -320,7 +348,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
 
     await expect(
       service.resolveForBook({
-        newSeries: { name: "Throne of Glass", status: "unknown" },
+        newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
         userId: USER_ID,
       }),
     ).rejects.toThrow("connection lost");
@@ -350,6 +378,7 @@ describe("SeriesService.resolveForBook author linking", () => {
     await service.resolveForBook({
       newSeries: {
         authors: [{ id: AUTHOR_A }, { id: AUTHOR_B }],
+        genres: [],
         name: "Throne of Glass",
         status: "unknown",
       },
@@ -375,7 +404,7 @@ describe("SeriesService.resolveForBook author linking", () => {
 
     await service.resolveForBook({
       fallbackAuthorIds: [AUTHOR_A, AUTHOR_B],
-      newSeries: { name: "Throne of Glass", status: "unknown" },
+      newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
       userId: USER_ID,
     });
 
@@ -397,7 +426,12 @@ describe("SeriesService.resolveForBook author linking", () => {
 
     await service.resolveForBook({
       fallbackAuthorIds: [AUTHOR_B],
-      newSeries: { authors: [{ id: AUTHOR_A }], name: "Throne of Glass", status: "unknown" },
+      newSeries: {
+        authors: [{ id: AUTHOR_A }],
+        genres: [],
+        name: "Throne of Glass",
+        status: "unknown",
+      },
       userId: USER_ID,
     });
 
@@ -446,6 +480,7 @@ describe("SeriesService.search", () => {
           createdAt: "2026-02-01T10:00:00.000Z",
           description: "saga",
           finishedInSeries: 0,
+          genres: [],
           id: SERIES_ID,
           lastActivityAt: "2026-02-02T11:00:00.000Z",
           name: "Throne of Glass",
@@ -557,6 +592,7 @@ describe("SeriesService.create", () => {
     const { service } = makeService({ repository });
 
     const view = await service.create(USER_ID, {
+      genres: [],
       name: "Throne of Glass",
       status: "ongoing",
       totalBooks: 3,
@@ -579,6 +615,7 @@ describe("SeriesService.create", () => {
 
     await service.create(USER_ID, {
       description: "saga",
+      genres: ["fantasy"],
       name: "Throne OF Glass",
       status: "ongoing",
       totalBooks: 5,
@@ -588,6 +625,7 @@ describe("SeriesService.create", () => {
       authorIds: [],
       data: {
         description: "saga",
+        genres: ["fantasy"],
         name: "Throne OF Glass",
         normalizedName: "throne of glass",
         status: "ongoing",
@@ -604,7 +642,7 @@ describe("SeriesService.create", () => {
     };
     const { service } = makeService({ repository });
 
-    await service.create(USER_ID, { name: "Throne of Glass", status: "unknown" });
+    await service.create(USER_ID, { genres: [], name: "Throne of Glass", status: "unknown" });
 
     expect(repository.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -621,7 +659,7 @@ describe("SeriesService.create", () => {
     const { service } = makeService({ repository });
 
     await expect(
-      service.create(USER_ID, { name: "Throne of Glass", status: "unknown" }),
+      service.create(USER_ID, { genres: [], name: "Throne of Glass", status: "unknown" }),
     ).rejects.toBeInstanceOf(ConflictError);
     expect(repository.create).not.toHaveBeenCalled();
   });
@@ -635,7 +673,7 @@ describe("SeriesService.create", () => {
     const { service } = makeService({ repository });
 
     await expect(
-      service.create(USER_ID, { name: "Throne of Glass", status: "unknown" }),
+      service.create(USER_ID, { genres: [], name: "Throne of Glass", status: "unknown" }),
     ).rejects.toBeInstanceOf(ConflictError);
     expect(findByNormalized).toHaveBeenCalledTimes(1);
   });
@@ -652,6 +690,7 @@ describe("SeriesService.create", () => {
 
     await service.create(USER_ID, {
       authors: [{ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }],
+      genres: [],
       name: "Throne of Glass",
       status: "unknown",
     });
@@ -663,6 +702,76 @@ describe("SeriesService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       expect.objectContaining({ authorIds: ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"] }),
     );
+  });
+
+  it("threads the provided genres into the created series and returns them", async () => {
+    const repository = {
+      create: vi
+        .fn()
+        .mockResolvedValue(ownedWithCount({ genres: ["fantasy", "romance"], id: SERIES_ID })),
+      findByNormalized: vi.fn().mockResolvedValue(null),
+    };
+    const { service } = makeService({ repository });
+
+    const view = await service.create(USER_ID, {
+      genres: ["fantasy", "romance"],
+      name: "Throne of Glass",
+      status: "unknown",
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ genres: ["fantasy", "romance"] }),
+      }),
+    );
+    expect(view.genres).toEqual(["fantasy", "romance"]);
+  });
+
+  it("defaults genres to an empty array in the returned view", async () => {
+    const repository = {
+      create: vi.fn().mockResolvedValue(ownedWithCount({ id: SERIES_ID })),
+      findByNormalized: vi.fn().mockResolvedValue(null),
+    };
+    const { service } = makeService({ repository });
+
+    const view = await service.create(USER_ID, {
+      genres: [],
+      name: "Throne of Glass",
+      status: "unknown",
+    });
+
+    expect(view.genres).toEqual([]);
+  });
+
+  it("validates the genres against the catalog before creating", async () => {
+    const repository = {
+      create: vi.fn().mockResolvedValue(ownedWithCount({ id: SERIES_ID })),
+      findByNormalized: vi.fn().mockResolvedValue(null),
+    };
+    const assertGenresSelectable = vi.fn().mockResolvedValue(undefined);
+    const { service } = makeService({ assertGenresSelectable, repository });
+
+    await service.create(USER_ID, {
+      genres: ["fantasy", "romance"],
+      name: "Throne of Glass",
+      status: "unknown",
+    });
+
+    expect(assertGenresSelectable).toHaveBeenCalledWith(USER_ID, ["fantasy", "romance"]);
+  });
+
+  it("propagates a BadRequestError and never inserts when a genre is not in the catalog", async () => {
+    const repository = {
+      create: vi.fn(),
+      findByNormalized: vi.fn().mockResolvedValue(null),
+    };
+    const assertGenresSelectable = vi.fn().mockRejectedValue(new BadRequestError("Invalid genres"));
+    const { service } = makeService({ assertGenresSelectable, repository });
+
+    await expect(
+      service.create(USER_ID, { genres: ["nope"], name: "Throne of Glass", status: "unknown" }),
+    ).rejects.toBeInstanceOf(BadRequestError);
+    expect(repository.create).not.toHaveBeenCalled();
   });
 });
 
@@ -816,6 +925,81 @@ describe("SeriesService.update", () => {
     await expect(service.update(USER_ID, SERIES_ID, { name: "New" })).rejects.toBeInstanceOf(
       ConflictError,
     );
+  });
+
+  it("writes the genres field and returns the replaced genres when provided", async () => {
+    const repository = {
+      findOwnedWithCountById: vi.fn().mockResolvedValue(ownedWithCount({ id: SERIES_ID })),
+      updateOwned: vi
+        .fn()
+        .mockResolvedValue(ownedWithCount({ genres: ["fantasy"], id: SERIES_ID })),
+    };
+    const { service } = makeService({ repository });
+
+    const view = await service.update(USER_ID, SERIES_ID, { genres: ["fantasy"] });
+
+    expect(repository.updateOwned).toHaveBeenCalledWith(USER_ID, SERIES_ID, {
+      authorIds: undefined,
+      fields: { genres: ["fantasy"] },
+    });
+    expect(view.genres).toEqual(["fantasy"]);
+  });
+
+  it("omits the genres field from the update when genres are not provided", async () => {
+    const repository = {
+      findOwnedWithCountById: vi.fn().mockResolvedValue(ownedWithCount({ id: SERIES_ID })),
+      updateOwned: vi.fn().mockResolvedValue(ownedWithCount({ id: SERIES_ID })),
+    };
+    const { service } = makeService({ repository });
+
+    await service.update(USER_ID, SERIES_ID, { status: "completed" });
+
+    expect(repository.updateOwned).toHaveBeenCalledWith(USER_ID, SERIES_ID, {
+      authorIds: undefined,
+      fields: { status: "completed" },
+    });
+  });
+
+  it("validates the genres against the catalog before writing them", async () => {
+    const assertGenresSelectable = vi.fn().mockResolvedValue(undefined);
+    const repository = {
+      findOwnedWithCountById: vi.fn().mockResolvedValue(ownedWithCount({ id: SERIES_ID })),
+      updateOwned: vi
+        .fn()
+        .mockResolvedValue(ownedWithCount({ genres: ["fantasy"], id: SERIES_ID })),
+    };
+    const { service } = makeService({ assertGenresSelectable, repository });
+
+    await service.update(USER_ID, SERIES_ID, { genres: ["fantasy"] });
+
+    expect(assertGenresSelectable).toHaveBeenCalledWith(USER_ID, ["fantasy"]);
+  });
+
+  it("propagates a BadRequestError and never updates when a genre is not in the catalog", async () => {
+    const assertGenresSelectable = vi.fn().mockRejectedValue(new BadRequestError("Invalid genres"));
+    const repository = {
+      findOwnedWithCountById: vi.fn().mockResolvedValue(ownedWithCount({ id: SERIES_ID })),
+      updateOwned: vi.fn(),
+    };
+    const { service } = makeService({ assertGenresSelectable, repository });
+
+    await expect(service.update(USER_ID, SERIES_ID, { genres: ["nope"] })).rejects.toBeInstanceOf(
+      BadRequestError,
+    );
+    expect(repository.updateOwned).not.toHaveBeenCalled();
+  });
+
+  it("does not validate genres when the patch omits them", async () => {
+    const assertGenresSelectable = vi.fn().mockResolvedValue(undefined);
+    const repository = {
+      findOwnedWithCountById: vi.fn().mockResolvedValue(ownedWithCount({ id: SERIES_ID })),
+      updateOwned: vi.fn().mockResolvedValue(ownedWithCount({ id: SERIES_ID })),
+    };
+    const { service } = makeService({ assertGenresSelectable, repository });
+
+    await service.update(USER_ID, SERIES_ID, { status: "completed" });
+
+    expect(assertGenresSelectable).not.toHaveBeenCalled();
   });
 });
 

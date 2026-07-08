@@ -121,6 +121,20 @@ async function seedDetailSeries(accessToken: string): Promise<string> {
   return seriesId;
 }
 
+function seedGenres(genres: { key: string; name: string }[]): Promise<unknown> {
+  return prisma.genre.createMany({
+    data: genres.map((genre) => ({
+      groupKey: "fiction",
+      groupName: "Fiction",
+      isDefault: true,
+      key: genre.key,
+      name: genre.name,
+      normalizedName: genre.name.toLowerCase(),
+      userId: null,
+    })),
+  });
+}
+
 async function seedOverviewLibrary(accessToken: string): Promise<{
   emptySeriesId: string;
   fullyReadSeriesId: string;
@@ -219,6 +233,78 @@ describe("POST /api/series", () => {
     expect(res.status).toBe(400);
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "name" })]),
+    );
+  });
+
+  it("persists the provided genres and exposes them on the created series and its details", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([
+      { key: "fantasy", name: "Fantasy" },
+      { key: "romance", name: "Romance" },
+    ]);
+
+    const res = await createSeries(accessToken, {
+      genres: ["fantasy", "romance"],
+      name: "Genre Series",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.genres).toEqual(["fantasy", "romance"]);
+
+    const details = await getSeries(accessToken, res.body.id);
+    expect(details.status).toBe(200);
+    expect(details.body.genres).toEqual(["fantasy", "romance"]);
+  });
+
+  it("defaults genres to an empty array when omitted", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createSeries(accessToken, { name: "No Genre Series" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.genres).toEqual([]);
+  });
+
+  it("returns 400 when a genre value is not in the catalog", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([{ key: "fantasy", name: "Fantasy" }]);
+
+    const res = await createSeries(accessToken, {
+      genres: ["definitely-not-a-real-genre"],
+      name: "Unknown Genre Series",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "genres.0" })]),
+    );
+  });
+
+  it("returns 400 when more than five genres are provided", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createSeries(accessToken, {
+      genres: ["a", "b", "c", "d", "e", "f"],
+      name: "Too Many Genres",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "genres" })]),
+    );
+  });
+
+  it("returns 400 when genres contain duplicates", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createSeries(accessToken, {
+      genres: ["fantasy", "fantasy"],
+      name: "Duplicate Genres",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "genres" })]),
     );
   });
 });
@@ -453,6 +539,59 @@ describe("PATCH /api/series/:id", () => {
     const res = await patchSeries(stranger.accessToken, created.body.id, { name: "Hijack" });
 
     expect(res.status).toBe(404);
+  });
+
+  it("replaces the genres when a genres list is provided", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([
+      { key: "fantasy", name: "Fantasy" },
+      { key: "romance", name: "Romance" },
+      { key: "mystery", name: "Mystery" },
+    ]);
+    const created = await createSeries(accessToken, { genres: ["fantasy"], name: "Patch Genres" });
+
+    const res = await patchSeries(accessToken, created.body.id, {
+      genres: ["romance", "mystery"],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.genres).toEqual(["romance", "mystery"]);
+  });
+
+  it("leaves the genres unchanged when the patch omits them", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([{ key: "fantasy", name: "Fantasy" }]);
+    const created = await createSeries(accessToken, { genres: ["fantasy"], name: "Keep Genres" });
+
+    const res = await patchSeries(accessToken, created.body.id, { status: "completed" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.genres).toEqual(["fantasy"]);
+  });
+
+  it("clears the genres when passed an empty array", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedGenres([{ key: "fantasy", name: "Fantasy" }]);
+    const created = await createSeries(accessToken, { genres: ["fantasy"], name: "Clear Genres" });
+
+    const res = await patchSeries(accessToken, created.body.id, { genres: [] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.genres).toEqual([]);
+  });
+
+  it("returns 400 when the patch sets a genre not in the catalog", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createSeries(accessToken, { name: "Patch Unknown Genre" });
+
+    const res = await patchSeries(accessToken, created.body.id, {
+      genres: ["definitely-not-a-real-genre"],
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "genres.0" })]),
+    );
   });
 });
 

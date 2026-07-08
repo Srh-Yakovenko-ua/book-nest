@@ -62,6 +62,7 @@ model Series {
   status         String   @default("unknown")
   totalBooks     Int?     @map("total_books")
   description    String?
+  genres         String[] @default([])
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)

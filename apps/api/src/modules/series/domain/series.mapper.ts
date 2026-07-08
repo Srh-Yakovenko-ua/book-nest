@@ -21,6 +21,7 @@ type SeriesViewSource = {
   books: SeriesBookRow[];
   createdAt: Date;
   description: null | string;
+  genres: string[];
   id: string;
   name: string;
   status: string;
@@ -52,6 +53,7 @@ export function toSeriesView(series: SeriesViewSource): SeriesView {
     createdAt: series.createdAt.toISOString(),
     description: series.description,
     finishedInSeries,
+    genres: series.genres,
     id: series.id,
     lastActivityAt: computeSeriesLastActivityAt({
       books,

@@ -92,6 +92,7 @@ function CreateSeriesForm({ onDone }: { onDone: () => void }) {
     setServerError(null);
     const description = values.description?.trim();
     const payload: NewSeriesInput = {
+      genres: [],
       name: values.name,
       status: values.status,
       ...(values.totalBooks === undefined ? {} : { totalBooks: values.totalBooks }),

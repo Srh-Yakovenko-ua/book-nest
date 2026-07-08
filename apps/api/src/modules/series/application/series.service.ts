@@ -23,6 +23,7 @@ import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { AuthorsService } from "../../authors/index.js";
+import { GenresService } from "../../genres/index.js";
 import { computeSeriesLastActivityAt, toSeriesBookPreview } from "../domain/series-preview.js";
 import {
   computeSeriesProgress,
@@ -59,6 +60,7 @@ export class SeriesService {
   constructor(
     private readonly seriesRepository: SeriesRepository,
     private readonly authorsService: AuthorsService,
+    private readonly genresService: GenresService,
   ) {}
 
   async create(userId: string, input: NewSeriesInput): Promise<SeriesView> {
@@ -67,6 +69,8 @@ export class SeriesService {
     if (existing !== null) {
       throw new ConflictError(SERIES_NAME_TAKEN_MESSAGE);
     }
+
+    await this.genresService.assertGenresSelectable(userId, input.genres);
 
     const authorIds = await this.resolveSeriesAuthorIds({
       fallbackAuthorIds: undefined,
@@ -79,6 +83,7 @@ export class SeriesService {
         authorIds,
         data: {
           description: input.description ?? null,
+          genres: input.genres,
           name: input.name,
           normalizedName,
           status: input.status,
@@ -165,6 +170,8 @@ export class SeriesService {
       return { id: existing.id, totalBooks: existing.totalBooks };
     }
 
+    await this.genresService.assertGenresSelectable(userId, newSeries.genres);
+
     const authorIds = await this.resolveSeriesAuthorIds({
       fallbackAuthorIds,
       references: newSeries.authors,
@@ -176,6 +183,7 @@ export class SeriesService {
         authorIds,
         data: {
           description: newSeries.description ?? null,
+          genres: newSeries.genres,
           name: newSeries.name,
           normalizedName,
           status: newSeries.status,
@@ -244,6 +252,10 @@ export class SeriesService {
     }
     if (input.description !== undefined) {
       fields.description = input.description;
+    }
+    if (input.genres !== undefined) {
+      await this.genresService.assertGenresSelectable(userId, input.genres);
+      fields.genres = input.genres;
     }
 
     let authorIds: string[] | undefined;

@@ -158,6 +158,23 @@ describe("GET /api/series", () => {
     expect(res.body.totalCount).toBe(0);
   });
 
+  it("includes the genres on each returned item", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await prisma.series.create({
+      data: {
+        genres: ["fantasy", "romance"],
+        name: "Throne of Glass",
+        normalizedName: "throne of glass",
+        userId,
+      },
+    });
+
+    const res = await searchSeries(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.items[0].genres).toEqual(["fantasy", "romance"]);
+  });
+
   it("filters by a case-insensitive search term", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     await prisma.series.create({

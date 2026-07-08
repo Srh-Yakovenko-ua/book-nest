@@ -8,6 +8,7 @@ import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 export type CreateSeriesData = {
   description: null | string;
+  genres: string[];
   name: string;
   normalizedName: string;
   status: string;

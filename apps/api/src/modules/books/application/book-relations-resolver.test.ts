@@ -309,7 +309,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
 
     const resolved = await resolver.resolveForCreate({
       input: seriesPartInput({
-        newSeries: { name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
+        newSeries: { genres: [], name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
         partNumber: 1,
       }),
       userId: USER_ID,
@@ -317,7 +317,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
 
     expect(seriesService.resolveForBook).toHaveBeenCalledWith({
       fallbackAuthorIds: [AUTHOR_ID],
-      newSeries: { name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
+      newSeries: { genres: [], name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
       seriesId: undefined,
       userId: USER_ID,
     });
