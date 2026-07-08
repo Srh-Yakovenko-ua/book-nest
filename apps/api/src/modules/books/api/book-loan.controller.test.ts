@@ -573,4 +573,69 @@ describe("PATCH /api/books/:id/loan", () => {
 
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 when the contact exceeds 100 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, {
+      contact: "a".repeat(101),
+      personName: "Olha",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "contact" })]),
+    );
+  });
+
+  it("returns 400 when the note exceeds 300 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, {
+      note: "a".repeat(301),
+      personName: "Olha",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "note" })]),
+    );
+  });
+
+  it("clears omitted optional fields so the edit fully replaces the active loan", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "owned",
+      title: "Dune",
+    });
+    await createLoan(accessToken, created.body.id, {
+      contact: "olha@example.com",
+      direction: "lent",
+      note: "hardcover copy",
+      personName: "Olha",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, { personName: "Olha K." });
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo).toMatchObject({
+      contact: null,
+      note: null,
+      personName: "Olha K.",
+      remindToReturn: false,
+    });
+  });
 });
