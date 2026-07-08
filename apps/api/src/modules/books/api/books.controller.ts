@@ -9,6 +9,8 @@ import type {
 import {
   CreateBookInputSchema,
   LibraryBooksQuerySchema,
+  LibraryOverviewQuerySchema,
+  OwnershipStatusSchema,
   RecentPurchaseStoresQuerySchema,
   UpdateBookInputSchema,
 } from "@app/shared";
@@ -49,6 +51,7 @@ import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BooksService } from "../application/books.service.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
+import { LibraryOverviewQueryDto } from "./input-dto/library-overview-query.input-dto.js";
 import { RecentPurchaseStoresQueryDto } from "./input-dto/recent-purchase-stores-query.input-dto.js";
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
@@ -102,11 +105,21 @@ export class BooksController {
     type: LibraryOverviewViewDto,
   })
   @ApiOperation({ summary: "Get the current user library overview" })
+  @ApiQuery({
+    description: "Scope the overview to these ownership statuses (physical library)",
+    enum: OwnershipStatusSchema.options,
+    isArray: true,
+    name: "owner",
+    required: false,
+  })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("overview")
   @UseGuards(JwtAccessGuard)
-  overview(@CurrentUser() user: AuthenticatedUser): Promise<LibraryOverviewView> {
-    return this.booksService.overview(user.id);
+  overview(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(LibraryOverviewQuerySchema)) query: LibraryOverviewQueryDto,
+  ): Promise<LibraryOverviewView> {
+    return this.booksService.overview(user.id, query);
   }
 
   @ApiBearerAuth()

@@ -822,6 +822,12 @@ export const LibraryBooksQuerySchema = z
 
 export type LibraryBooksQuery = z.infer<typeof LibraryBooksQuerySchema>;
 
+export const LibraryOverviewQuerySchema = z.object({
+  owner: queryStringArray(OwnershipStatusSchema),
+});
+
+export type LibraryOverviewQuery = z.infer<typeof LibraryOverviewQuerySchema>;
+
 export const RecentPurchaseStoresQuerySchema = z.object({
   limit: z.coerce
     .number()

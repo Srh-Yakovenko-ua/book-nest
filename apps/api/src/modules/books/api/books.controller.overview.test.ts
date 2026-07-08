@@ -40,16 +40,18 @@ type SeedBookInput = {
   createdAt?: Date;
   genres?: string[];
   isFavorite?: boolean;
+  ownershipStatus?: string;
   readingStatus?: string;
   tagIds?: string[];
   title?: string;
   userId: string;
 };
 
-function getOverview(accessToken: string): request.Test {
-  return request(app.getHttpServer())
-    .get("/api/books/overview")
-    .set("Authorization", `Bearer ${accessToken}`);
+const PHYSICAL_SCOPE = "owner=owned&owner=lent_to_someone&owner=borrowed_from_someone";
+
+function getOverview(accessToken: string, query = ""): request.Test {
+  const path = query === "" ? "/api/books/overview" : `/api/books/overview?${query}`;
+  return request(app.getHttpServer()).get(path).set("Authorization", `Bearer ${accessToken}`);
 }
 
 function seedAuthor(input: { name: string; userId: string }): Promise<{ id: string }> {
@@ -66,6 +68,7 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
       createdAt: input.createdAt,
       genres: input.genres ?? [],
       isFavorite: input.isFavorite ?? false,
+      ownershipStatus: input.ownershipStatus ?? "none",
       readingStatus: input.readingStatus ?? "not_started",
       tags:
         input.tagIds === undefined
@@ -259,5 +262,317 @@ describe("GET /api/books/overview", () => {
 
     expect(res.body.summary).toEqual({ favorites: 0, finished: 0, reading: 1, total: 1 });
     expect(res.body.recentlyAdded.map((book: { title: string }) => book.title)).toEqual(["Mine"]);
+  });
+});
+
+describe("GET /api/books/overview owner scope", () => {
+  async function seedMixedLibrary(input: { authorId: string; userId: string }): Promise<void> {
+    const { authorId, userId } = input;
+    await seedBook({
+      authorId,
+      isFavorite: true,
+      ownershipStatus: "owned",
+      readingStatus: "reading",
+      title: "Owned Reading Favorite",
+      userId,
+    });
+    await seedBook({
+      authorId,
+      ownershipStatus: "lent_to_someone",
+      readingStatus: "finished",
+      title: "Lent Finished",
+      userId,
+    });
+    await seedBook({
+      authorId,
+      isFavorite: true,
+      ownershipStatus: "borrowed_from_someone",
+      readingStatus: "rereading",
+      title: "Borrowed Rereading Favorite",
+      userId,
+    });
+    await seedBook({
+      authorId,
+      ownershipStatus: "owned",
+      readingStatus: "not_started",
+      title: "Owned Unread",
+      userId,
+    });
+    await seedBook({
+      authorId,
+      isFavorite: true,
+      ownershipStatus: "want_to_buy",
+      readingStatus: "finished",
+      title: "Want To Buy Finished Favorite",
+      userId,
+    });
+    await seedBook({
+      authorId,
+      isFavorite: true,
+      ownershipStatus: "none",
+      readingStatus: "reading",
+      title: "None Reading Favorite",
+      userId,
+    });
+    await seedBook({
+      authorId,
+      ownershipStatus: "in_transit",
+      readingStatus: "not_started",
+      title: "In Transit Unread",
+      userId,
+    });
+  }
+
+  it("scopes every summary number to the physical library set with exact counts", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedMixedLibrary({ authorId: author.id, userId });
+
+    const res = await getOverview(accessToken, PHYSICAL_SCOPE);
+
+    expect(res.status).toBe(200);
+    expect(res.body.summary).toEqual({ favorites: 2, finished: 1, reading: 2, total: 4 });
+  });
+
+  it("keeps every scoped summary number at or below the global summary", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedMixedLibrary({ authorId: author.id, userId });
+
+    const global = await getOverview(accessToken);
+    const scoped = await getOverview(accessToken, PHYSICAL_SCOPE);
+
+    expect(scoped.body.summary.total).toBeLessThanOrEqual(global.body.summary.total);
+    expect(scoped.body.summary.reading).toBeLessThanOrEqual(global.body.summary.reading);
+    expect(scoped.body.summary.finished).toBeLessThanOrEqual(global.body.summary.finished);
+    expect(scoped.body.summary.favorites).toBeLessThanOrEqual(global.body.summary.favorites);
+  });
+
+  it("returns global summary numbers over all books when no owner scope is given", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedMixedLibrary({ authorId: author.id, userId });
+
+    const res = await getOverview(accessToken);
+
+    expect(res.body.summary).toEqual({ favorites: 4, finished: 2, reading: 3, total: 7 });
+  });
+
+  it("excludes out-of-scope ownership statuses from scoped finished and favorites counts", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      ownershipStatus: "owned",
+      readingStatus: "finished",
+      title: "Owned Finished",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      ownershipStatus: "want_to_buy",
+      readingStatus: "finished",
+      title: "Want To Buy Finished Favorite",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      ownershipStatus: "none",
+      readingStatus: "reading",
+      title: "None Reading Favorite",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      ownershipStatus: "owned",
+      readingStatus: "reading",
+      title: "Owned Reading Favorite",
+      userId,
+    });
+
+    const scoped = await getOverview(accessToken, "owner=owned");
+    const global = await getOverview(accessToken);
+
+    expect(scoped.body.summary).toEqual({ favorites: 1, finished: 1, reading: 1, total: 2 });
+    expect(global.body.summary.finished).toBe(2);
+    expect(global.body.summary.favorites).toBe(3);
+  });
+
+  it("scopes recentlyAdded to the owner set and drops a newer out-of-scope book", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      ownershipStatus: "owned",
+      title: "Owned Older",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-04T00:00:00.000Z"),
+      ownershipStatus: "owned",
+      title: "Owned Newer",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-05T00:00:00.000Z"),
+      ownershipStatus: "want_to_buy",
+      title: "Want To Buy Newest",
+      userId,
+    });
+
+    const res = await getOverview(accessToken, "owner=owned");
+
+    expect(res.body.recentlyAdded.map((book: { title: string }) => book.title)).toEqual([
+      "Owned Newer",
+      "Owned Older",
+    ]);
+  });
+
+  it("excludes a genre carried only by an out-of-scope book from scoped topGenres", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedGenre({ key: "owned-genre", name: "Owned Genre" });
+    await seedGenre({ key: "out-genre", name: "Out Genre" });
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      genres: ["owned-genre"],
+      ownershipStatus: "owned",
+      title: "Owned",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      genres: ["out-genre"],
+      ownershipStatus: "want_to_buy",
+      title: "Want To Buy",
+      userId,
+    });
+
+    const scoped = await getOverview(accessToken, "owner=owned");
+    const global = await getOverview(accessToken);
+
+    expect(scoped.body.topGenres).toEqual([{ count: 1, key: "owned-genre", name: "Owned Genre" }]);
+    expect(global.body.topGenres.map((genre: { key: string }) => genre.key)).toEqual(
+      expect.arrayContaining(["owned-genre", "out-genre"]),
+    );
+  });
+
+  it("excludes a tag carried only by an out-of-scope book from scoped topTags", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const ownedTag = await seedTag({ name: "owned tag", userId });
+    const outTag = await seedTag({ name: "out tag", userId });
+    await seedBook({
+      authorId: author.id,
+      ownershipStatus: "owned",
+      tagIds: [ownedTag.id],
+      title: "Owned",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      ownershipStatus: "want_to_buy",
+      tagIds: [outTag.id],
+      title: "Want To Buy",
+      userId,
+    });
+
+    const scoped = await getOverview(accessToken, "owner=owned");
+    const global = await getOverview(accessToken);
+
+    expect(scoped.body.topTags).toEqual([{ count: 1, id: ownedTag.id, name: "owned tag" }]);
+    expect(global.body.topTags.map((tag: { id: string }) => tag.id)).toEqual(
+      expect.arrayContaining([ownedTag.id, outTag.id]),
+    );
+  });
+
+  it("scopes the overview to a single ownership status and returns only that subset", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      isFavorite: true,
+      ownershipStatus: "none",
+      readingStatus: "reading",
+      title: "None Reading Favorite",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      ownershipStatus: "none",
+      readingStatus: "finished",
+      title: "None Finished",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      ownershipStatus: "owned",
+      readingStatus: "reading",
+      title: "Owned Reading Favorite",
+      userId,
+    });
+
+    const res = await getOverview(accessToken, "owner=none");
+
+    expect(res.body.summary).toEqual({ favorites: 1, finished: 1, reading: 1, total: 2 });
+    expect(res.body.recentlyAdded.map((book: { title: string }) => book.title)).toEqual([
+      "None Finished",
+      "None Reading Favorite",
+    ]);
+  });
+
+  it("returns 400 when the owner query param is not a valid ownership status", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getOverview(accessToken, "owner=not_a_status");
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: expect.stringMatching(/^owner/) })]),
+    );
+  });
+
+  it("never leaks another user's books into the scoped overview", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const ownerAuthor = await seedAuthor({ name: "Frank Herbert", userId: owner.userId });
+    const strangerAuthor = await seedAuthor({ name: "Isaac Asimov", userId: stranger.userId });
+    await seedBook({
+      authorId: ownerAuthor.id,
+      ownershipStatus: "owned",
+      title: "Mine Owned",
+      userId: owner.userId,
+    });
+    await seedBook({
+      authorId: ownerAuthor.id,
+      ownershipStatus: "want_to_buy",
+      title: "Mine Want To Buy",
+      userId: owner.userId,
+    });
+    await seedBook({
+      authorId: strangerAuthor.id,
+      ownershipStatus: "owned",
+      title: "Stranger Owned",
+      userId: stranger.userId,
+    });
+
+    const res = await getOverview(owner.accessToken, "owner=owned");
+
+    expect(res.body.summary.total).toBe(1);
+    expect(res.body.recentlyAdded.map((book: { title: string }) => book.title)).toEqual([
+      "Mine Owned",
+    ]);
   });
 });

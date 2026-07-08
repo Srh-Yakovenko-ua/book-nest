@@ -3,6 +3,7 @@ import type {
   CreateBookInput,
   FavoritesSummaryView,
   LibraryBooksQuery,
+  LibraryOverviewQuery,
   LibraryOverviewView,
   OwnershipStatus,
   Paginator,
@@ -340,19 +341,29 @@ export class BooksService {
     });
   }
 
-  async overview(userId: string): Promise<LibraryOverviewView> {
+  async overview(userId: string, query: LibraryOverviewQuery): Promise<LibraryOverviewView> {
+    const ownershipStatuses = query.owner;
     const [total, reading, finished, favorites, topGenreKeys, topTags, recentBooks] =
       await Promise.all([
-        this.booksRepository.countByUser(userId),
+        this.booksRepository.countByUser({ ownershipStatuses, userId }),
         this.booksRepository.countByReadingStatuses({
+          ownershipStatuses,
           statuses: READING_IN_PROGRESS_STATUSES,
           userId,
         }),
-        this.booksRepository.countByReadingStatuses({ statuses: FINISHED_STATUSES, userId }),
-        this.booksRepository.countFavorites(userId),
-        this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, userId }),
-        this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, userId }),
-        this.booksRepository.listRecentlyAdded({ take: OVERVIEW_RECENT_LIMIT, userId }),
+        this.booksRepository.countByReadingStatuses({
+          ownershipStatuses,
+          statuses: FINISHED_STATUSES,
+          userId,
+        }),
+        this.booksRepository.countFavorites({ ownershipStatuses, userId }),
+        this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
+        this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
+        this.booksRepository.listRecentlyAdded({
+          ownershipStatuses,
+          take: OVERVIEW_RECENT_LIMIT,
+          userId,
+        }),
       ]);
 
     const genreNames = await this.genresService.findNamesByKeys({

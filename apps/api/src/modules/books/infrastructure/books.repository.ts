@@ -13,11 +13,11 @@ import type {
 import { DELIVERY_ACTIVE_STATUSES, LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { Prisma } from "../../../generated/prisma/client.js";
 import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.repository.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookSearchConditions } from "./book-search.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
 
@@ -318,24 +318,45 @@ export class BooksRepository {
 
   countByReadingStatuses({
     isFavorite,
+    ownershipStatuses,
     statuses,
     userId,
   }: {
     isFavorite?: boolean;
+    ownershipStatuses?: OwnershipStatus[];
     statuses: ReadingStatus[];
     userId: string;
   }): Promise<number> {
     return this.prisma.book.count({
-      where: { isFavorite, readingStatus: { in: statuses }, userId },
+      where: buildLibraryWhere({
+        isFavorite,
+        ownershipStatuses,
+        readingStatuses: statuses,
+        userId,
+      }),
     });
   }
 
-  countByUser(userId: string): Promise<number> {
-    return this.prisma.book.count({ where: { userId } });
+  countByUser({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.book.count({ where: buildLibraryWhere({ ownershipStatuses, userId }) });
   }
 
-  countFavorites(userId: string): Promise<number> {
-    return this.prisma.book.count({ where: { isFavorite: true, userId } });
+  countFavorites({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.book.count({
+      where: buildLibraryWhere({ isFavorite: true, ownershipStatuses, userId }),
+    });
   }
 
   countForLibrary({ filter }: { filter: LibraryFilter }): Promise<number> {
@@ -408,7 +429,7 @@ export class BooksRepository {
     userId,
   }: FavoritesSummaryQuery): Promise<FavoritesSummaryResult> {
     const [total, reading, finished, ratingAggregate] = await Promise.all([
-      this.countFavorites(userId),
+      this.countFavorites({ userId }),
       this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
       this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
       this.prisma.bookReadingProgress.aggregate({
@@ -462,9 +483,11 @@ export class BooksRepository {
   }
 
   listRecentlyAdded({
+    ownershipStatuses,
     take,
     userId,
   }: {
+    ownershipStatuses?: OwnershipStatus[];
     take: number;
     userId: string;
   }): Promise<BookWithRelations[]> {
@@ -472,7 +495,7 @@ export class BooksRepository {
       include: withRelations,
       orderBy: { createdAt: "desc" },
       take,
-      where: { userId },
+      where: buildLibraryWhere({ ownershipStatuses, userId }),
     });
   }
 
@@ -521,27 +544,36 @@ export class BooksRepository {
 
   async topGenreKeys({
     limit,
+    ownershipStatuses,
     userId,
   }: {
     limit: number;
+    ownershipStatuses?: OwnershipStatus[];
     userId: string;
   }): Promise<{ count: number; key: string }[]> {
-    const rows = await this.prisma.$queryRaw<{ count: bigint; key: string }[]>`
+    const ownershipFilter =
+      ownershipStatuses === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND ownership_status IN (${Prisma.join(ownershipStatuses)})`;
+    const rows = await this.prisma.$queryRaw<{ count: bigint; key: string }[]>(Prisma.sql`
       SELECT unnest(genres) AS key, count(*) AS count
       FROM books
       WHERE user_id = ${userId}::uuid
+        ${ownershipFilter}
       GROUP BY key
       ORDER BY count DESC, key ASC
       LIMIT ${limit}
-    `;
+    `);
     return rows.map((row) => ({ count: Number(row.count), key: row.key }));
   }
 
   async topTags({
     limit,
+    ownershipStatuses,
     userId,
   }: {
     limit: number;
+    ownershipStatuses?: OwnershipStatus[];
     userId: string;
   }): Promise<{ count: number; id: string; name: string }[]> {
     const grouped = await this.prisma.bookTag.groupBy({
@@ -549,7 +581,7 @@ export class BooksRepository {
       by: ["tagId"],
       orderBy: { _count: { tagId: "desc" } },
       take: limit,
-      where: { book: { userId } },
+      where: { book: buildLibraryWhere({ ownershipStatuses, userId }) },
     });
     if (grouped.length === 0) {
       return [];
