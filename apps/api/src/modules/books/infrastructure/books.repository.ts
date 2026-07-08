@@ -147,6 +147,15 @@ export type ReadingChangePatch = {
   progress: Partial<CreateReadingProgressData>;
 };
 
+export type UpdateActiveLoanData = {
+  contact: null | string;
+  expectedReturnDate: Date | null;
+  loanDate: Date | null;
+  note: null | string;
+  personName: string;
+  remindToReturn: boolean;
+};
+
 export type UpdateBookData = {
   authorIds?: string[];
   deliveryInfo: DeliveryBlockChange;
@@ -554,6 +563,20 @@ export class BooksRepository {
       const name = nameById.get(entry.tagId);
       return name === undefined ? [] : [{ count: entry._count.tagId, id: entry.tagId, name }];
     });
+  }
+
+  async updateActiveLoan(
+    userId: string,
+    bookId: string,
+    data: UpdateActiveLoanData,
+  ): Promise<void> {
+    const updated = await this.prisma.bookLoan.updateMany({
+      data,
+      where: { book: { userId }, bookId, status: "active" },
+    });
+    if (updated.count === 0) {
+      throw new NotFoundError("Loan not found");
+    }
   }
 
   updateOwned(userId: string, bookId: string, data: UpdateBookData): Promise<BookWithRelations> {

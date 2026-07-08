@@ -1,12 +1,47 @@
-import type { CreateLoanInput, LoanDirection, LoanType, OwnershipStatus } from "@app/shared";
+import type {
+  CreateLoanInput,
+  LoanDirection,
+  LoanType,
+  OwnershipStatus,
+  UpdateLoanInput,
+} from "@app/shared";
 
-import type { CreateLoanInfoData, LoanChangePatch } from "../infrastructure/books.repository.js";
+import type {
+  CreateLoanInfoData,
+  LoanChangePatch,
+  UpdateActiveLoanData,
+} from "../infrastructure/books.repository.js";
 
 import { parseIsoDate } from "../../../core/iso-date.js";
 
 export type LoanTransitionInput =
   | { fields: CreateLoanInput; kind: "create"; today: string }
   | { kind: "return"; now: Date; ownershipStatus: OwnershipStatus };
+
+export function buildLoanEditData({
+  existingLoanDate,
+  input,
+}: {
+  existingLoanDate: Date | null;
+  input: UpdateLoanInput;
+}): UpdateActiveLoanData {
+  return {
+    contact: input.contact ?? null,
+    expectedReturnDate:
+      input.expectedReturnDate === undefined || input.expectedReturnDate === null
+        ? null
+        : parseIsoDate(input.expectedReturnDate),
+    loanDate:
+      input.loanDate === undefined
+        ? existingLoanDate
+        : input.loanDate === null
+          ? null
+          : parseIsoDate(input.loanDate),
+    note: input.note ?? null,
+    personName: input.personName,
+    remindToReturn: input.remindToReturn ?? false,
+  };
+}
 
 const DIRECTION_LOAN_TYPE: Record<LoanDirection, LoanType> = {
   borrowed: "borrowed_from_someone",

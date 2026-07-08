@@ -440,6 +440,31 @@ export const CreateLoanInputSchema = z
 
 export type CreateLoanInput = z.infer<typeof CreateLoanInputSchema>;
 
+export const UpdateLoanInputSchema = z
+  .object({
+    contact: OwnershipContactSchema.nullable().optional(),
+    expectedReturnDate: z.iso.date().nullable().optional(),
+    loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
+    note: OwnershipNoteSchema.nullable().optional(),
+    personName: OwnershipPersonNameSchema,
+    remindToReturn: z.boolean().optional(),
+  })
+  .refine(isReturnNotBeforeLoan, {
+    error: RETURN_BEFORE_LOAN_MESSAGE,
+    path: ["expectedReturnDate"],
+  })
+  .refine(
+    (value) =>
+      value.remindToReturn !== true ||
+      (value.expectedReturnDate !== undefined && value.expectedReturnDate !== null),
+    {
+      error: REMINDER_NEEDS_RETURN_DATE_MESSAGE,
+      path: ["expectedReturnDate"],
+    },
+  );
+
+export type UpdateLoanInput = z.infer<typeof UpdateLoanInputSchema>;
+
 const BookPartNumberSchema = z
   .number()
   .int()
