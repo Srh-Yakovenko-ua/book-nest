@@ -6,6 +6,7 @@ export * from "./common.js";
 export * from "./delivery-services.js";
 export * from "./genres.js";
 export * from "./lists.js";
+export * from "./loans.js";
 export * from "./media.js";
 export * from "./profile.js";
 export * from "./publishers.js";
