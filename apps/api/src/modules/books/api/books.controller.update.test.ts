@@ -734,6 +734,30 @@ describe("PATCH /api/books/:id cross-field validation", () => {
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("lent_to_someone");
     expect(res.body.loanInfo).toMatchObject({ personName: "Olha" });
+    const rows = await prisma.bookLoan.findMany({ where: { bookId: created.body.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.status).toBe("active");
+    expect(rows[0]?.type).toBe("lent_to_someone");
+  });
+
+  it("syncs the active loan type when the direction flips with loan fields present", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "lent_to_someone",
+    });
+
+    expect(res.status).toBe(200);
+    const rows = await prisma.bookLoan.findMany({ where: { bookId: created.body.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.type).toBe("lent_to_someone");
   });
 
   it("returns 400 for an unknown reading status", async () => {

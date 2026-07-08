@@ -11,6 +11,7 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
+import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { ListsService } from "../../lists/index.js";
 import { TagsService } from "../../tags/index.js";
 import {
@@ -141,10 +142,16 @@ export class BulkBooksService {
     input: BulkOwnershipStatusInput;
     userId: string;
   }): Promise<BulkActionResult> {
+    if (ownershipStatusUsesLoan(input.ownershipStatus)) {
+      throw new BadRequestError(
+        "A loan status requires a per-book borrower; set it on each book individually",
+      );
+    }
+
     const affected = await this.bulkBooksRepository.setOwnershipStatus({
       bookIds: input.bookIds,
       clearDelivery: !ownershipStatusUsesDelivery(input.ownershipStatus),
-      clearLoan: !ownershipStatusUsesLoan(input.ownershipStatus),
+      clearLoan: true,
       clearPurchase: !ownershipStatusKeepsPurchase(input.ownershipStatus),
       ownershipStatus: input.ownershipStatus,
       userId,

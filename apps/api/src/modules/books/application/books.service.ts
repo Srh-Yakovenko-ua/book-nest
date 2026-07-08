@@ -138,13 +138,14 @@ function resolveLoanBlock(
   if (!ownershipStatusUsesLoan(ownershipStatus)) {
     return { kind: "return", returnedAt: now };
   }
+  const type = LoanTypeSchema.parse(ownershipStatus);
   if (loanInfo === undefined) {
-    return { kind: "skip" };
+    return { kind: "syncType", type };
   }
   return {
     create: buildLoanInfoData(loanInfo),
     kind: "upsertActive",
-    type: LoanTypeSchema.parse(ownershipStatus),
+    type,
     update: buildLoanInfoUpdateData(loanInfo),
   };
 }

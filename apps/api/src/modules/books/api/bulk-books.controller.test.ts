@@ -345,6 +345,28 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
     expect(loan?.returnedAt).not.toBeNull();
   });
 
+  it("rejects bulk-setting a loan ownership status and leaves books unchanged", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedBook({
+      authorId: author.id,
+      ownershipStatus: "none",
+      title: "A",
+      userId,
+    });
+
+    const res = await patch(accessToken, "ownership-status", {
+      bookIds: [book.id],
+      ownershipStatus: "borrowed_from_someone",
+    });
+
+    expect(res.status).toBe(400);
+    const stored = await prisma.book.findUniqueOrThrow({ where: { id: book.id } });
+    expect(stored.ownershipStatus).toBe("none");
+    const loans = await prisma.bookLoan.findMany({ where: { bookId: book.id } });
+    expect(loans).toHaveLength(0);
+  });
+
   it("cancels the active delivery when ownership moves away from in_transit", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });

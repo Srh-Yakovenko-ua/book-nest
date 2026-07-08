@@ -119,7 +119,7 @@ export type LibraryFilter = {
 export type LoanBlockChange =
   | { create: CreateLoanInfoData; kind: "upsertActive"; type: LoanType; update: UpdateLoanInfoData }
   | { kind: "return"; returnedAt: Date }
-  | { kind: "skip" };
+  | { kind: "syncType"; type: LoanType };
 
 export type LoanChangePatch =
   | {
@@ -802,10 +802,6 @@ async function applyLoanBlock(
   userId: string,
   change: LoanBlockChange,
 ): Promise<void> {
-  if (change.kind === "skip") {
-    return;
-  }
-
   if (change.kind === "return") {
     await tx.bookLoan.updateMany({
       data: { returnedAt: change.returnedAt, status: "returned" },
@@ -815,9 +811,17 @@ async function applyLoanBlock(
   }
 
   const active = await tx.bookLoan.findFirst({
-    select: { id: true },
+    select: { id: true, type: true },
     where: { bookId, status: "active" },
   });
+
+  if (change.kind === "syncType") {
+    if (active !== null && active.type !== change.type) {
+      await tx.bookLoan.update({ data: { type: change.type }, where: { id: active.id } });
+    }
+    return;
+  }
+
   if (active === null) {
     await tx.bookLoan.create({
       data: { ...change.create, bookId, status: "active", type: change.type, userId },
@@ -825,7 +829,10 @@ async function applyLoanBlock(
     return;
   }
 
-  await tx.bookLoan.update({ data: change.update, where: { id: active.id } });
+  await tx.bookLoan.update({
+    data: { ...change.update, type: change.type },
+    where: { id: active.id },
+  });
 }
 
 function buildIntRange({
