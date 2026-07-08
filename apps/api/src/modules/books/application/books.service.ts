@@ -11,18 +11,22 @@ import type {
   UpdateBookInput,
 } from "@app/shared";
 
-import { collapseSpaces, OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
+import {
+  collapseSpaces,
+  LoanTypeSchema,
+  OwnershipStatusSchema,
+  ReadingStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
   BlockUpsert,
-  CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
   DeliveryBlockChange,
   LibraryFilter,
-  UpdateLoanInfoData,
+  LoanBlockChange,
   UpdatePurchaseInfoData,
   UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
@@ -129,15 +133,18 @@ function resolveDeliveryBlock(
 function resolveLoanBlock(
   ownershipStatus: OwnershipStatus,
   loanInfo: UpdateBookInput["loanInfo"],
-): BlockUpsert<CreateLoanInfoData, UpdateLoanInfoData> {
+  now: Date,
+): LoanBlockChange {
   if (!ownershipStatusUsesLoan(ownershipStatus)) {
-    return { delete: true };
+    return { kind: "return", returnedAt: now };
   }
   if (loanInfo === undefined) {
-    return { skip: true };
+    return { kind: "skip" };
   }
   return {
     create: buildLoanInfoData(loanInfo),
+    kind: "upsertActive",
+    type: LoanTypeSchema.parse(ownershipStatus),
     update: buildLoanInfoUpdateData(loanInfo),
   };
 }
@@ -408,7 +415,7 @@ export class BooksService {
         deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, now),
         fields,
         listIds: resolved.listIds,
-        loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),
+        loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo, now),
         purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
         queueRemoval: resolved.queueRemoval,
         readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
@@ -505,7 +512,7 @@ export class BooksService {
     }
 
     const payloadPersonName = input.loanInfo?.personName ?? "";
-    const existingPersonName = current.loanInfo?.personName ?? "";
+    const existingPersonName = current.loans[0]?.personName ?? "";
     if (payloadPersonName.length > 0 || existingPersonName.length > 0) {
       return;
     }

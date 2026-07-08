@@ -1,4 +1,4 @@
-import type { CreateLoanInput, LoanDirection, OwnershipStatus } from "@app/shared";
+import type { CreateLoanInput, LoanDirection, LoanType, OwnershipStatus } from "@app/shared";
 
 import type { CreateLoanInfoData, LoanChangePatch } from "../infrastructure/books.repository.js";
 
@@ -6,26 +6,30 @@ import { parseIsoDate } from "../../../core/iso-date.js";
 
 export type LoanTransitionInput =
   | { fields: CreateLoanInput; kind: "create"; today: string }
-  | { kind: "return"; ownershipStatus: OwnershipStatus };
+  | { kind: "return"; now: Date; ownershipStatus: OwnershipStatus };
 
-const DIRECTION_OWNERSHIP_STATUS: Record<LoanDirection, OwnershipStatus> = {
+const DIRECTION_LOAN_TYPE: Record<LoanDirection, LoanType> = {
   borrowed: "borrowed_from_someone",
   lent: "lent_to_someone",
 };
 
 export function computeLoanChange(input: LoanTransitionInput): LoanChangePatch {
   switch (input.kind) {
-    case "create":
+    case "create": {
+      const type = DIRECTION_LOAN_TYPE[input.fields.direction];
       return {
-        book: { ownershipStatus: DIRECTION_OWNERSHIP_STATUS[input.fields.direction] },
-        loanInfo: buildLoanInfo(input.fields, input.today),
+        book: { ownershipStatus: type },
+        kind: "create",
+        loan: { ...buildLoanInfo(input.fields, input.today), type },
       };
+    }
     case "return":
       return {
         book: {
           ownershipStatus: input.ownershipStatus === "borrowed_from_someone" ? "none" : "owned",
         },
-        loanInfo: "delete",
+        kind: "return",
+        returnedAt: input.now,
       };
     default: {
       const _exhaustiveCheck: never = input;

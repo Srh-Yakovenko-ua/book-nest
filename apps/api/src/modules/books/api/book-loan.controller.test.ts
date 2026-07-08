@@ -331,7 +331,7 @@ describe("POST /api/books/:id/loan/return", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns a borrowed book to the none state and clears the loan row", async () => {
+  it("returns a borrowed book to the none state and marks the loan returned", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -345,8 +345,10 @@ describe("POST /api/books/:id/loan/return", () => {
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("none");
     expect(res.body.loanInfo).toBeNull();
-    const rows = await prisma.bookLoanInfo.findMany({ where: { bookId: created.body.id } });
-    expect(rows).toHaveLength(0);
+    const rows = await prisma.bookLoan.findMany({ where: { bookId: created.body.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.status).toBe("returned");
+    expect(rows[0]?.returnedAt).not.toBeNull();
   });
 
   it("returns a lent book to the owned state and clears the loan row", async () => {

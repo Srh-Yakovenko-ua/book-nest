@@ -92,6 +92,14 @@ export const LoanDirectionSchema = z.enum(["borrowed", "lent"]);
 
 export type LoanDirection = z.infer<typeof LoanDirectionSchema>;
 
+export const LoanTypeSchema = z.enum(["borrowed_from_someone", "lent_to_someone"]);
+
+export type LoanType = z.infer<typeof LoanTypeSchema>;
+
+export const LoanStatusSchema = z.enum(["active", "returned"]);
+
+export type LoanStatus = z.infer<typeof LoanStatusSchema>;
+
 export const BookTypeSchema = z.enum(["solo", "series_part"]);
 
 export type BookType = z.infer<typeof BookTypeSchema>;

@@ -58,7 +58,7 @@ export function toBookView(book: BookWithRelations, cover: MediaView | null): Bo
     isInReadingQueue: book.queuePosition !== null,
     language: BookLanguageSchema.parse(book.language),
     lists: book.lists.map((item) => toBookListView(item.list)),
-    loanInfo: toLoanInfoView(book.loanInfo),
+    loanInfo: toLoanInfoView(book.loans),
     originalTitle: book.originalTitle,
     ownershipStatus: OwnershipStatusSchema.parse(book.ownershipStatus),
     pagesCount: book.pagesCount,
@@ -80,18 +80,19 @@ export function toBookView(book: BookWithRelations, cover: MediaView | null): Bo
   };
 }
 
-function toLoanInfoView(loanInfo: BookWithRelations["loanInfo"]): LoanInfoView | null {
-  if (loanInfo === null) {
+function toLoanInfoView(loans: BookWithRelations["loans"]): LoanInfoView | null {
+  const loan = loans[0] ?? null;
+  if (loan === null) {
     return null;
   }
 
   return {
-    contact: loanInfo.contact,
-    expectedReturnDate: toNullableIsoDate(loanInfo.expectedReturnDate),
-    loanDate: toNullableIsoDate(loanInfo.loanDate),
-    note: loanInfo.note,
-    personName: loanInfo.personName,
-    remindToReturn: loanInfo.remindToReturn,
+    contact: loan.contact,
+    expectedReturnDate: toNullableIsoDate(loan.expectedReturnDate),
+    loanDate: toNullableIsoDate(loan.loanDate),
+    note: loan.note,
+    personName: loan.personName,
+    remindToReturn: loan.remindToReturn,
   };
 }
 

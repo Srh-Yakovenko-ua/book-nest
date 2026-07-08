@@ -69,7 +69,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     isFavorite: false,
     language: "ukrainian",
     lists: [],
-    loanInfo: null,
+    loans: [],
     originalTitle: null,
     ownershipStatus: "none",
     pagesCount: null,
@@ -164,8 +164,8 @@ function buildService(
 }
 
 function loanRow(
-  overrides: Partial<NonNullable<BookWithRelations["loanInfo"]>> = {},
-): BookWithRelations["loanInfo"] {
+  overrides: Partial<BookWithRelations["loans"][number]> = {},
+): BookWithRelations["loans"][number] {
   return {
     bookId: BOOK_ID,
     contact: null,
@@ -176,9 +176,13 @@ function loanRow(
     note: null,
     personName: "Olha",
     remindToReturn: false,
+    returnedAt: null,
+    status: "active",
+    type: "borrowed_from_someone",
     updatedAt: new Date("2026-02-01T10:00:00.000Z"),
+    userId: USER_ID,
     ...overrides,
-  } as BookWithRelations["loanInfo"];
+  } as BookWithRelations["loans"][number];
 }
 
 function minimalCreateInput(overrides: Partial<CreateBookInput> = {}): CreateBookInput {
@@ -801,7 +805,7 @@ describe("BooksService.update", () => {
     });
   });
 
-  it("deletes the loan block when ownership moves away from a loan status", async () => {
+  it("marks the loan block returned when ownership moves away from a loan status", async () => {
     const { repository, service } = buildService({
       findOwnedById: bookRow({ ownershipStatus: "borrowed_from_someone" }),
     });
@@ -809,7 +813,7 @@ describe("BooksService.update", () => {
     await service.update(USER_ID, BOOK_ID, { ownershipStatus: "owned" });
 
     const data = updateDataFromFirstCall(repository);
-    expect(data.loanInfo).toEqual({ delete: true });
+    expect(data.loanInfo).toMatchObject({ kind: "return" });
   });
 
   it("builds the purchase block when ownership becomes want_to_buy", async () => {
@@ -902,7 +906,7 @@ describe("BooksService.update", () => {
   it("emits a partial loan update that omits absent sub-fields and carries only the provided one", async () => {
     const { repository, service } = buildService({
       findOwnedById: bookRow({
-        loanInfo: loanRow({ note: null, personName: "Olha" }),
+        loans: [loanRow({ note: null, personName: "Olha" })],
         ownershipStatus: "borrowed_from_someone",
       }),
     });
@@ -919,6 +923,8 @@ describe("BooksService.update", () => {
         personName: "",
         remindToReturn: false,
       },
+      kind: "upsertActive",
+      type: "borrowed_from_someone",
       update: {
         expectedReturnDate: undefined,
         loanDate: undefined,
@@ -931,7 +937,7 @@ describe("BooksService.update", () => {
   it("emits an explicit null in the partial loan update so a sub-field is cleared", async () => {
     const { repository, service } = buildService({
       findOwnedById: bookRow({
-        loanInfo: loanRow({ note: "old note", personName: "Olha" }),
+        loans: [loanRow({ note: "old note", personName: "Olha" })],
         ownershipStatus: "borrowed_from_someone",
       }),
     });
@@ -962,7 +968,7 @@ describe("BooksService.update", () => {
   it("allows a status-only switch between loan statuses when a loan row already has a person name", async () => {
     const { repository, service } = buildService({
       findOwnedById: bookRow({
-        loanInfo: loanRow({ personName: "Olha" }),
+        loans: [loanRow({ personName: "Olha" })],
         ownershipStatus: "borrowed_from_someone",
       }),
     });

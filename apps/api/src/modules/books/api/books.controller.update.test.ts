@@ -294,7 +294,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     expect(rows).toHaveLength(0);
   });
 
-  it("deletes the loan row when ownership moves away from borrowed", async () => {
+  it("marks the loan returned when ownership moves away from borrowed", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -307,8 +307,10 @@ describe("PATCH /api/books/:id status to block transitions", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.loanInfo).toBeNull();
-    const rows = await prisma.bookLoanInfo.findMany({ where: { bookId: created.body.id } });
-    expect(rows).toHaveLength(0);
+    const rows = await prisma.bookLoan.findMany({ where: { bookId: created.body.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.status).toBe("returned");
+    expect(rows[0]?.returnedAt).not.toBeNull();
   });
 
   it("creates a purchase row when ownership moves to want_to_buy", async () => {
@@ -352,10 +354,11 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     expect(res.body.delivery.active).toBeNull();
     expect(res.body.loanInfo).toMatchObject({ personName: "Olha" });
     const delivery = await prisma.bookDelivery.findMany({ where: { bookId: created.body.id } });
-    const loan = await prisma.bookLoanInfo.findMany({ where: { bookId: created.body.id } });
+    const loan = await prisma.bookLoan.findMany({ where: { bookId: created.body.id } });
     expect(delivery).toHaveLength(1);
     expect(delivery[0]?.status).toBe("cancelled");
     expect(loan).toHaveLength(1);
+    expect(loan[0]?.status).toBe("active");
   });
 
   it("edits the active delivery row through the deliveryInfo block", async () => {
@@ -571,7 +574,7 @@ describe("PATCH /api/books/:id partial block merge", () => {
       note: "return next week",
       personName: "Olha",
     });
-    const rows = await prisma.bookLoanInfo.findMany({ where: { bookId: created.body.id } });
+    const rows = await prisma.bookLoan.findMany({ where: { bookId: created.body.id } });
     expect(rows.at(0)?.personName).toBe("Olha");
     expect(rows.at(0)?.loanDate).not.toBeNull();
   });

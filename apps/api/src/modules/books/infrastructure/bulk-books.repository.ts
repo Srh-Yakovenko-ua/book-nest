@@ -215,7 +215,10 @@ export class BulkBooksRepository {
         });
       }
       if (clearLoan) {
-        await tx.bookLoanInfo.deleteMany({ where: { book: { id: { in: bookIds }, userId } } });
+        await tx.bookLoan.updateMany({
+          data: { returnedAt: new Date(), status: "returned" },
+          where: { book: { id: { in: bookIds }, userId }, status: "active" },
+        });
       }
       if (clearPurchase) {
         await tx.bookPurchaseInfo.deleteMany({ where: { book: { id: { in: bookIds }, userId } } });

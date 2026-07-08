@@ -321,7 +321,7 @@ describe("PATCH /api/books/bulk/reading-status", () => {
 });
 
 describe("PATCH /api/books/bulk/ownership-status", () => {
-  it("deletes the loan block when ownership moves away from a loan status", async () => {
+  it("marks the loan returned when ownership moves away from a loan status", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
     const book = await seedBook({
@@ -330,7 +330,9 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
       title: "A",
       userId,
     });
-    await prisma.bookLoanInfo.create({ data: { bookId: book.id, personName: "Olha" } });
+    await prisma.bookLoan.create({
+      data: { bookId: book.id, personName: "Olha", type: "borrowed_from_someone", userId },
+    });
 
     const res = await patch(accessToken, "ownership-status", {
       bookIds: [book.id],
@@ -338,8 +340,9 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
     });
 
     expect(res.body).toEqual({ affected: 1 });
-    const loan = await prisma.bookLoanInfo.findUnique({ where: { bookId: book.id } });
-    expect(loan).toBeNull();
+    const loan = await prisma.bookLoan.findFirst({ where: { bookId: book.id } });
+    expect(loan?.status).toBe("returned");
+    expect(loan?.returnedAt).not.toBeNull();
   });
 
   it("cancels the active delivery when ownership moves away from in_transit", async () => {

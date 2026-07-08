@@ -4,12 +4,13 @@ import type {
   BookLanguage,
   BookType,
   LibrarySort,
+  LoanType,
   Nullable,
   OwnershipStatus,
   ReadingStatus,
 } from "@app/shared";
 
-import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
+import { DELIVERY_ACTIVE_STATUSES, LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -25,7 +26,7 @@ export const withRelations = {
   coverMedia: true,
   deliveries: { orderBy: { createdAt: "desc" } },
   lists: { include: { list: true } },
-  loanInfo: true,
+  loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
   publisher: true,
   purchaseInfo: true,
   readingProgress: true,
@@ -115,10 +116,18 @@ export type LibraryFilter = {
   yearMin?: number;
 };
 
-export type LoanChangePatch = {
-  book: { ownershipStatus?: OwnershipStatus };
-  loanInfo?: "delete" | CreateLoanInfoData;
-};
+export type LoanBlockChange =
+  | { create: CreateLoanInfoData; kind: "upsertActive"; type: LoanType; update: UpdateLoanInfoData }
+  | { kind: "return"; returnedAt: Date }
+  | { kind: "skip" };
+
+export type LoanChangePatch =
+  | {
+      book: { ownershipStatus?: OwnershipStatus };
+      kind: "create";
+      loan: CreateLoanInfoData & { type: LoanType };
+    }
+  | { book: { ownershipStatus?: OwnershipStatus }; kind: "return"; returnedAt: Date };
 
 export type OwnershipChangePatch = {
   book: { ownershipStatus?: OwnershipStatus };
@@ -143,7 +152,7 @@ export type UpdateBookData = {
   deliveryInfo: DeliveryBlockChange;
   fields: Prisma.BookUncheckedUpdateManyInput;
   listIds?: string[];
-  loanInfo: BlockUpsert<CreateLoanInfoData, UpdateLoanInfoData>;
+  loanInfo: LoanBlockChange;
   purchaseInfo: BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData>;
   queueRemoval: null | QueueRemoval;
   readingProgress: BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData>;
@@ -220,18 +229,15 @@ export class BooksRepository {
         await tx.book.update({ data: patch.book, where: { id: bookId } });
       }
 
-      if (patch.loanInfo === "delete") {
-        await tx.bookLoanInfo.deleteMany({ where: { bookId } });
+      if (patch.kind === "create") {
+        await tx.bookLoan.create({ data: { ...patch.loan, bookId, status: "active", userId } });
         return;
       }
 
-      if (patch.loanInfo !== undefined) {
-        await tx.bookLoanInfo.upsert({
-          create: { ...patch.loanInfo, bookId },
-          update: patch.loanInfo,
-          where: { bookId },
-        });
-      }
+      await tx.bookLoan.updateMany({
+        data: { returnedAt: patch.returnedAt, status: "returned" },
+        where: { bookId, status: "active" },
+      });
     });
   }
 
@@ -346,7 +352,17 @@ export class BooksRepository {
             create: authorIds.map((authorId, position) => ({ authorId, position })),
           },
           deliveries: deliveryInfo === null ? undefined : { create: { ...deliveryInfo, userId } },
-          loanInfo: loanInfo === null ? undefined : { create: loanInfo },
+          loans:
+            loanInfo === null
+              ? undefined
+              : {
+                  create: {
+                    ...loanInfo,
+                    status: "active",
+                    type: LoanTypeSchema.parse(bookData.ownershipStatus),
+                    userId,
+                  },
+                },
           purchaseInfo: purchaseInfo === null ? undefined : { create: purchaseInfo },
           readingProgress: readingProgress === null ? undefined : { create: readingProgress },
           tags: { create: tagIds.map((tagId) => ({ tagId })) },
@@ -557,7 +573,7 @@ export class BooksRepository {
       await applyBlockUpsert(tx.bookReadingProgress, bookId, data.readingProgress);
       await applyBlockUpsert(tx.bookPurchaseInfo, bookId, data.purchaseInfo);
       await applyDeliveryBlock(tx, bookId, userId, data.deliveryInfo);
-      await applyBlockUpsert(tx.bookLoanInfo, bookId, data.loanInfo);
+      await applyLoanBlock(tx, bookId, userId, data.loanInfo);
 
       if (data.authorIds !== undefined) {
         await tx.bookAuthor.deleteMany({ where: { bookId } });
@@ -755,6 +771,38 @@ async function applyDeliveryBlock(
   }
 
   await tx.bookDelivery.update({ data: change.update, where: { id: active.id } });
+}
+
+async function applyLoanBlock(
+  tx: Prisma.TransactionClient,
+  bookId: string,
+  userId: string,
+  change: LoanBlockChange,
+): Promise<void> {
+  if (change.kind === "skip") {
+    return;
+  }
+
+  if (change.kind === "return") {
+    await tx.bookLoan.updateMany({
+      data: { returnedAt: change.returnedAt, status: "returned" },
+      where: { bookId, status: "active" },
+    });
+    return;
+  }
+
+  const active = await tx.bookLoan.findFirst({
+    select: { id: true },
+    where: { bookId, status: "active" },
+  });
+  if (active === null) {
+    await tx.bookLoan.create({
+      data: { ...change.create, bookId, status: "active", type: change.type, userId },
+    });
+    return;
+  }
+
+  await tx.bookLoan.update({ data: change.update, where: { id: active.id } });
 }
 
 function buildIntRange({
