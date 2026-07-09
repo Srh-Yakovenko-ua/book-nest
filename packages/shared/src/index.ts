@@ -2,6 +2,7 @@ export * from "./auth.js";
 export * from "./authors.js";
 export * from "./book-enums.js";
 export * from "./books.js";
+export * from "./changelog.js";
 export * from "./common.js";
 export * from "./delivery-services.js";
 export * from "./delivery.js";

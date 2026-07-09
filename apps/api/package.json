@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "generate:openapi": "node --import @swc-node/register/esm-register --conditions=source src/scripts/generate-openapi.ts",
     "seed:authors": "node --import @swc-node/register/esm-register --conditions=source src/scripts/seed-authors.ts",
+    "seed:changelog": "node --import @swc-node/register/esm-register --conditions=source src/scripts/seed-changelog.ts",
     "seed:delivery-services": "node --import @swc-node/register/esm-register --conditions=source src/scripts/seed-delivery-services.ts",
     "seed:genres": "node --import @swc-node/register/esm-register --conditions=source src/scripts/seed-genres.ts",
     "seed:publishers": "node --import @swc-node/register/esm-register --conditions=source src/scripts/seed-publishers.ts",
