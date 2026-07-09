@@ -196,6 +196,7 @@ Project subagents live in `.claude/agents/`. Full registry and roles in [`.claud
 | Write or fix tests in `apps/web/src/**`                                                  | `frontend-test-engineer`                           |
 | Write or fix tests in `apps/api/src/**`                                                  | `backend-test-engineer`                            |
 | Refactor / dead code / cleanup                                                           | `refactor-specialist`                              |
+| A user-visible feature shipped end-to-end (BE+FE) and needs a "what's new" entry         | `changelog-writer`                                 |
 | Browser-side bug (UI, console, layout, hydration, broken interaction)                    | `frontend-bug-hunter`                              |
 | Server-side bug (500, failing endpoint, Postgres/Prisma error, server crash, async hang) | `backend-bug-hunter`                               |
 | User says "ready to commit" / "сделай ревью" / "проверь перед commit"                    | `code-reviewer` (+ parallel auditors per below)    |
