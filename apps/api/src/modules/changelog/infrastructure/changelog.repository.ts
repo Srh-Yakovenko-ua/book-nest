@@ -13,6 +13,7 @@ type CountPublishedAfterInput = {
 };
 
 type FindPublishedInput = {
+  cursor: string | undefined;
   limit: number | undefined;
   now: Date;
 };
@@ -43,13 +44,14 @@ export class ChangelogRepository {
   }
 
   findPublished(
-    { limit, now }: FindPublishedInput,
+    { cursor, limit, now }: FindPublishedInput,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<ChangelogEntryModel[]> {
     return client.changelogEntry.findMany({
-      orderBy: { publishedAt: "desc" },
-      take: limit,
+      orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
       where: { publishedAt: { lte: now, not: null } },
+      ...(limit === undefined ? {} : { take: limit + 1 }),
+      ...(cursor === undefined ? {} : { cursor: { id: cursor }, skip: 1 }),
     });
   }
 

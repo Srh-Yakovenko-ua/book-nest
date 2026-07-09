@@ -39,6 +39,7 @@ export class ChangelogController {
   @ApiOperation({
     summary: "List published changelog entries (public, personalized unread count when authed)",
   })
+  @ApiQuery({ name: "cursor", required: false })
   @ApiQuery({ name: "limit", required: false })
   @ApiQuery({ name: "locale", required: false })
   @Get()
@@ -48,6 +49,7 @@ export class ChangelogController {
     @Query(new ZodQueryPipe(ChangelogListQuerySchema)) query: ChangelogListQueryDto,
   ): Promise<ChangelogListResponse> {
     return this.changelogService.list({
+      cursor: query.cursor,
       limit: query.limit,
       locale: query.locale,
       userId: user?.id ?? null,

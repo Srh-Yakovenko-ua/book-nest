@@ -7,5 +7,7 @@
  */
 
 export interface CancelDeliveryInputDto {
+  /** @nullable */
+  cancelReason?: string | null;
   keepAsWantToBuy?: boolean;
 }

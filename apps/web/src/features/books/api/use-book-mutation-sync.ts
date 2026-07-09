@@ -13,5 +13,9 @@ export function useBookMutationSync() {
     queryClient.setQueryData(bookKeys.detail(book.id), book);
     void queryClient.invalidateQueries({ predicate: matchesBooksExceptDetail(book.id) });
     void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
+    void queryClient.invalidateQueries({
+      predicate: (query) =>
+        typeof query.queryKey[0] === "string" && query.queryKey[0].startsWith("/api/delivery"),
+    });
   };
 }

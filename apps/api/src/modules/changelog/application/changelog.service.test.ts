@@ -49,7 +49,12 @@ describe("ChangelogService.list published filter", () => {
     });
     const service = new ChangelogService(repository);
 
-    const result = await service.list({ limit: undefined, locale: "uk", userId: null });
+    const result = await service.list({
+      cursor: undefined,
+      limit: undefined,
+      locale: "uk",
+      userId: null,
+    });
 
     expect(result.entries.map((entry) => entry.slug)).toEqual(["published"]);
   });
@@ -72,7 +77,12 @@ describe("ChangelogService.list mapping", () => {
     });
     const service = new ChangelogService(repository);
 
-    const result = await service.list({ limit: undefined, locale: "uk", userId: null });
+    const result = await service.list({
+      cursor: undefined,
+      limit: undefined,
+      locale: "uk",
+      userId: null,
+    });
 
     expect(result.entries[0]).toEqual({
       body: "What changed",
@@ -91,7 +101,12 @@ describe("ChangelogService.list mapping", () => {
     });
     const service = new ChangelogService(repository);
 
-    const result = await service.list({ limit: undefined, locale: "uk", userId: null });
+    const result = await service.list({
+      cursor: undefined,
+      limit: undefined,
+      locale: "uk",
+      userId: null,
+    });
 
     expect(result.entries[0]?.version).toBeNull();
   });
@@ -114,7 +129,12 @@ describe("ChangelogService.list locale resolution", () => {
   it("maps title and body to the English fields when locale is en", async () => {
     const service = new ChangelogService(makeLocalizedRepository());
 
-    const result = await service.list({ limit: undefined, locale: "en", userId: null });
+    const result = await service.list({
+      cursor: undefined,
+      limit: undefined,
+      locale: "en",
+      userId: null,
+    });
 
     expect(result.entries[0]).toMatchObject({ body: "We sped up search", title: "Faster search" });
   });
@@ -122,7 +142,12 @@ describe("ChangelogService.list locale resolution", () => {
   it("maps title and body to the Ukrainian fields when locale is uk", async () => {
     const service = new ChangelogService(makeLocalizedRepository());
 
-    const result = await service.list({ limit: undefined, locale: "uk", userId: null });
+    const result = await service.list({
+      cursor: undefined,
+      limit: undefined,
+      locale: "uk",
+      userId: null,
+    });
 
     expect(result.entries[0]).toMatchObject({
       body: "Ми пришвидшили пошук",
@@ -139,7 +164,12 @@ describe("ChangelogService.list unread count", () => {
     const repository = makeRepository({ countPublished, countPublishedAfter, getRead });
     const service = new ChangelogService(repository);
 
-    const result = await service.list({ limit: undefined, locale: "uk", userId: null });
+    const result = await service.list({
+      cursor: undefined,
+      limit: undefined,
+      locale: "uk",
+      userId: null,
+    });
 
     expect(result.unreadCount).toBe(0);
     expect(getRead).not.toHaveBeenCalled();
@@ -157,7 +187,12 @@ describe("ChangelogService.list unread count", () => {
     });
     const service = new ChangelogService(repository);
 
-    const result = await service.list({ limit: undefined, locale: "uk", userId: USER_ID });
+    const result = await service.list({
+      cursor: undefined,
+      limit: undefined,
+      locale: "uk",
+      userId: USER_ID,
+    });
 
     expect(result.unreadCount).toBe(4);
     expect(countPublishedAfter).not.toHaveBeenCalled();
@@ -173,7 +208,12 @@ describe("ChangelogService.list unread count", () => {
     });
     const service = new ChangelogService(repository);
 
-    const result = await service.list({ limit: undefined, locale: "uk", userId: USER_ID });
+    const result = await service.list({
+      cursor: undefined,
+      limit: undefined,
+      locale: "uk",
+      userId: USER_ID,
+    });
 
     expect(result.unreadCount).toBe(2);
     expect(countPublished).not.toHaveBeenCalled();
@@ -181,6 +221,79 @@ describe("ChangelogService.list unread count", () => {
       after: LAST_SEEN_AT,
       now: expect.any(Date),
     });
+  });
+});
+
+describe("ChangelogService.list cursor pagination", () => {
+  const ID_ONE = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+  const ID_TWO = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+  const ID_THREE = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+
+  it("slices the extra row off and returns the last kept id as nextCursor when more exist", async () => {
+    const repository = makeRepository({
+      findPublished: vi
+        .fn()
+        .mockResolvedValue([
+          makeEntry({ id: ID_ONE, slug: "one" }),
+          makeEntry({ id: ID_TWO, slug: "two" }),
+          makeEntry({ id: ID_THREE, slug: "three" }),
+        ]),
+    });
+    const service = new ChangelogService(repository);
+
+    const result = await service.list({ cursor: undefined, limit: 2, locale: "uk", userId: null });
+
+    expect(result.entries.map((entry) => entry.slug)).toEqual(["one", "two"]);
+    expect(result.nextCursor).toBe(ID_TWO);
+  });
+
+  it("returns a null nextCursor when the repository yields no more than the limit", async () => {
+    const repository = makeRepository({
+      findPublished: vi
+        .fn()
+        .mockResolvedValue([
+          makeEntry({ id: ID_ONE, slug: "one" }),
+          makeEntry({ id: ID_TWO, slug: "two" }),
+        ]),
+    });
+    const service = new ChangelogService(repository);
+
+    const result = await service.list({ cursor: undefined, limit: 3, locale: "uk", userId: null });
+
+    expect(result.entries.map((entry) => entry.slug)).toEqual(["one", "two"]);
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("forwards the cursor and limit to the repository", async () => {
+    const findPublished = vi.fn().mockResolvedValue([]);
+    const repository = makeRepository({ findPublished });
+    const service = new ChangelogService(repository);
+
+    await service.list({ cursor: ID_ONE, limit: 2, locale: "uk", userId: null });
+
+    expect(findPublished).toHaveBeenCalledWith({ cursor: ID_ONE, limit: 2, now: expect.any(Date) });
+  });
+
+  it("returns a null nextCursor when no limit is supplied even with entries present", async () => {
+    const repository = makeRepository({
+      findPublished: vi
+        .fn()
+        .mockResolvedValue([
+          makeEntry({ id: ID_ONE, slug: "one" }),
+          makeEntry({ id: ID_TWO, slug: "two" }),
+        ]),
+    });
+    const service = new ChangelogService(repository);
+
+    const result = await service.list({
+      cursor: undefined,
+      limit: undefined,
+      locale: "uk",
+      userId: null,
+    });
+
+    expect(result.entries).toHaveLength(2);
+    expect(result.nextCursor).toBeNull();
   });
 });
 

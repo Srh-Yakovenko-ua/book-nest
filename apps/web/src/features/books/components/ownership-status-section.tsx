@@ -44,6 +44,7 @@ import {
 } from "../model/book-status-fields";
 import { OWNERSHIP_FIELDS } from "../model/section-completeness";
 import { BookDateField } from "./book-date-field";
+import { DeliveryServiceAutocomplete } from "./delivery-service-autocomplete";
 import { FormSection } from "./form-section";
 import { StatusChipGroup } from "./status-chip-group";
 import { StoreAutocomplete } from "./store-autocomplete";
@@ -278,16 +279,61 @@ export function OwnershipStatusSection({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="delivery-order-number">{t("deliveryInfo.fields.orderNumber")}</Label>
-            <Input
-              aria-invalid={errors.deliveryInfo?.orderNumber !== undefined}
-              autoComplete="off"
-              className="h-10"
-              id="delivery-order-number"
-              placeholder={t("deliveryInfo.fields.orderNumberPlaceholder")}
-              {...register("deliveryInfo.orderNumber", { setValueAs: emptyToUndefined })}
+            <Label htmlFor="delivery-service">{t("deliveryInfo.fields.deliveryService")}</Label>
+            <Controller
+              control={control}
+              name="deliveryInfo.deliveryService"
+              render={({ field }) => (
+                <DeliveryServiceAutocomplete
+                  describedBy={
+                    errors.deliveryInfo?.deliveryService ? "delivery-service-error" : undefined
+                  }
+                  id="delivery-service"
+                  invalid={errors.deliveryInfo?.deliveryService !== undefined}
+                  label={t("deliveryInfo.fields.deliveryService")}
+                  onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
+                  placeholder={t("deliveryInfo.fields.deliveryServicePlaceholder")}
+                  value={typeof field.value === "string" ? field.value : ""}
+                />
+              )}
             />
-            <FieldError error={errors.deliveryInfo?.orderNumber} id="delivery-order-number-error" />
+            <FieldError error={errors.deliveryInfo?.deliveryService} id="delivery-service-error" />
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="delivery-order-number">{t("deliveryInfo.fields.orderNumber")}</Label>
+              <Input
+                aria-invalid={errors.deliveryInfo?.orderNumber !== undefined}
+                autoComplete="off"
+                className="h-10"
+                id="delivery-order-number"
+                placeholder={t("deliveryInfo.fields.orderNumberPlaceholder")}
+                {...register("deliveryInfo.orderNumber", { setValueAs: emptyToUndefined })}
+              />
+              <FieldError
+                error={errors.deliveryInfo?.orderNumber}
+                id="delivery-order-number-error"
+              />
+            </div>
+
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="delivery-tracking-number">
+                {t("deliveryInfo.fields.trackingNumber")}
+              </Label>
+              <Input
+                aria-invalid={errors.deliveryInfo?.trackingNumber !== undefined}
+                autoComplete="off"
+                className="h-10"
+                id="delivery-tracking-number"
+                placeholder={t("deliveryInfo.fields.trackingNumberPlaceholder")}
+                {...register("deliveryInfo.trackingNumber", { setValueAs: emptyToUndefined })}
+              />
+              <FieldError
+                error={errors.deliveryInfo?.trackingNumber}
+                id="delivery-tracking-number-error"
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -342,6 +388,81 @@ export function OwnershipStatusSection({
                 id="delivery-expected-date-error"
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="delivery-price">{t("deliveryInfo.fields.price")}</Label>
+              <Input
+                aria-invalid={errors.deliveryInfo?.price !== undefined}
+                className="h-10"
+                id="delivery-price"
+                inputMode="decimal"
+                min={0}
+                onKeyDown={blockNegativeNumberKeys}
+                onPaste={blockNegativeNumberPaste}
+                placeholder="0"
+                step="0.01"
+                type="number"
+                {...register("deliveryInfo.price", {
+                  setValueAs: (value) => {
+                    if (typeof value !== "string" || value.trim().length === 0) return undefined;
+                    const parsed = Number(value);
+                    return Number.isFinite(parsed) ? Math.min(parsed, PRICE_MAX) : undefined;
+                  },
+                })}
+              />
+              <FieldError error={errors.deliveryInfo?.price} id="delivery-price-error" />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="delivery-currency">{t("deliveryInfo.fields.currency")}</Label>
+              <Controller
+                control={control}
+                name="deliveryInfo.currency"
+                render={({ field }) => (
+                  <div className="w-full sm:w-28">
+                    <Select
+                      onValueChange={field.onChange}
+                      value={typeof field.value === "string" ? field.value : undefined}
+                    >
+                      <SelectTrigger
+                        className="h-10 w-full data-[size=default]:h-10"
+                        id="delivery-currency"
+                        isClearable={typeof field.value === "string"}
+                        onClear={() => field.onChange(undefined)}
+                      >
+                        <SelectValue placeholder={t("deliveryInfo.fields.currencyPlaceholder")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCY_OPTIONS.map((currency) => (
+                          <SelectItem key={currency} value={currency}>
+                            {currency}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="delivery-tracking-url">{t("deliveryInfo.fields.trackingUrl")}</Label>
+            <Input
+              aria-describedby={
+                errors.deliveryInfo?.trackingUrl ? "delivery-tracking-url-error" : undefined
+              }
+              aria-invalid={errors.deliveryInfo?.trackingUrl !== undefined}
+              autoComplete="off"
+              className="h-10"
+              id="delivery-tracking-url"
+              inputMode="url"
+              placeholder={t("deliveryInfo.fields.trackingUrlPlaceholder")}
+              {...register("deliveryInfo.trackingUrl", { setValueAs: emptyToUndefined })}
+            />
+            <FieldError error={errors.deliveryInfo?.trackingUrl} id="delivery-tracking-url-error" />
           </div>
 
           <div className="flex flex-col gap-2">
