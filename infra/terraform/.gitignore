@@ -1,0 +1,19 @@
+# Local Terraform state, plugins, and crash logs
+.terraform/
+.terraform.tfstate.lock.info
+
+# State (lives in R2 remote backend — never commit)
+*.tfstate
+*.tfstate.*
+
+# Secrets and machine-local values
+*.tfvars
+!*.tfvars.example
+
+# Transient import blocks (copied from imports.tf.example, deleted after import)
+imports.tf
+
+# Saved plans
+*.tfplan
+crash.log
+crash.*.log

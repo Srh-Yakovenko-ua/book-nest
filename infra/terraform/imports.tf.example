@@ -1,0 +1,44 @@
+# Transient import blocks — copy to imports.tf, fill the real IDs, then follow the
+# import-first runbook in README.md. Terraform does NOT load *.tf.example files, so
+# this template never affects `validate`/`plan`. Delete imports.tf once the import
+# has been applied and `terraform plan` shows "No changes".
+#
+# Discover every ID with the API calls documented in README.md (§ Phase 1 / § Phase 2).
+
+# ---- Phase 1: Cloudflare DNS (id = "<zone_id>/<record_id>") ----
+import {
+  to = cloudflare_dns_record.app["root"]
+  id = "ZONE_ID/RECORD_ID_root"
+}
+import {
+  to = cloudflare_dns_record.app["dev"]
+  id = "ZONE_ID/RECORD_ID_dev"
+}
+import {
+  to = cloudflare_dns_record.app["mail"]
+  id = "ZONE_ID/RECORD_ID_mail"
+}
+import {
+  to = cloudflare_dns_record.app["db"]
+  id = "ZONE_ID/RECORD_ID_db"
+}
+
+# ---- Phase 1: Cloudflare R2 buckets (id = "<account_id>/<bucket_name>/default") ----
+import {
+  to = cloudflare_r2_bucket.dev
+  id = "440b6e63826c7fd04d634fb176eb576f/book-nest-dev/default"
+}
+import {
+  to = cloudflare_r2_bucket.prod
+  id = "440b6e63826c7fd04d634fb176eb576f/book-nest-prod/default"
+}
+
+# ---- Phase 2: Hetzner (numeric IDs from `hcloud server list` / `hcloud ssh-key list`) ----
+import {
+  to = hcloud_ssh_key.deploy
+  id = "SSH_KEY_ID"
+}
+import {
+  to = hcloud_server.app
+  id = "SERVER_ID"
+}
