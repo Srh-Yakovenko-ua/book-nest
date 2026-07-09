@@ -94,7 +94,7 @@
       "nicknamePlaceholder": "booklover",
       "dateOfBirth": "Date of birth",
       "rememberMe": "Remember me",
-      "terms": "I accept the terms of service and privacy policy"
+      "terms": "I accept the <terms>terms of service</terms> and <privacy>privacy policy</privacy>"
     },
     "datePicker": {
       "placeholder": "Pick a date",
@@ -1583,6 +1583,23 @@
         "errorDescription": "Try refreshing the page.",
         "back": "Back to library"
       }
+    }
+  },
+  "legal": {
+    "back": "Back",
+    "privacy": {
+      "metaTitle": "Privacy Policy",
+      "metaDescription": "How BookNest collects, uses and protects your personal data, and the rights you have over it."
+    },
+    "terms": {
+      "metaTitle": "Terms of Service",
+      "metaDescription": "The terms that govern your use of BookNest: your account, acceptable use, content and our liability."
+    },
+    "footer": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "navLabel": "Legal",
+      "copyright": "© {year} BookNest"
     }
   }
 }
