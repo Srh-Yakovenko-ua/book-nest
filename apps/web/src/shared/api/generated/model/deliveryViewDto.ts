@@ -11,6 +11,8 @@ import type { DeliveryViewDtoStatus } from "./deliveryViewDtoStatus";
 export interface DeliveryViewDto {
   /** @nullable */
   cancelledAt: string | null;
+  /** @nullable */
+  cancelReason: string | null;
   createdAt: string;
   /** @nullable */
   currency: DeliveryViewDtoCurrency;

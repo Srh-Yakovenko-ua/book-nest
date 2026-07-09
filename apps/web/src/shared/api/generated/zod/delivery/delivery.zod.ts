@@ -180,6 +180,7 @@ export const DeliveryControllerInTransitListResponse = zod.object({
       }),
       delivery: zod.object({
         cancelledAt: zod.string().nullable(),
+        cancelReason: zod.string().nullable(),
         createdAt: zod.string(),
         currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
         deliveryService: zod.string().nullable(),
@@ -392,6 +393,7 @@ export const DeliveryControllerHistoryListResponse = zod.object({
       }),
       delivery: zod.object({
         cancelledAt: zod.string().nullable(),
+        cancelReason: zod.string().nullable(),
         createdAt: zod.string(),
         currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
         deliveryService: zod.string().nullable(),

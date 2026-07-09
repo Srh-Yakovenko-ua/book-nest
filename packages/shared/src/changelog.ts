@@ -24,12 +24,14 @@ export type ChangelogEntryView = z.infer<typeof ChangelogEntryViewSchema>;
 
 export const ChangelogListResponseSchema = z.object({
   entries: z.array(ChangelogEntryViewSchema),
+  nextCursor: z.uuid().nullable(),
   unreadCount: z.number().int().nonnegative(),
 });
 
 export type ChangelogListResponse = z.infer<typeof ChangelogListResponseSchema>;
 
 export const ChangelogListQuerySchema = z.object({
+  cursor: z.uuid().optional(),
   limit: z.coerce.number().int().min(1).max(CHANGELOG_LIMIT_MAX).optional(),
   locale: ChangelogLocaleSchema.default("uk"),
 });

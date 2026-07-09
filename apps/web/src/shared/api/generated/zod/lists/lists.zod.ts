@@ -260,6 +260,7 @@ export const ListDetailsControllerDetailResponse = zod.object({
           active: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -285,6 +286,7 @@ export const ListDetailsControllerDetailResponse = zod.object({
           latest: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),

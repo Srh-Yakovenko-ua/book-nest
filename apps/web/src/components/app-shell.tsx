@@ -12,6 +12,7 @@ import {
   LibraryBig,
   ListOrdered,
   ShoppingBag,
+  Truck,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
@@ -37,12 +38,13 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { ChangelogBell } from "@/features/changelog";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
   icon: React.ElementType;
-  key: "allBooks" | "buyList" | "home" | "myLibrary" | "readingQueue" | "series";
+  key: "allBooks" | "buyList" | "delivery" | "home" | "myLibrary" | "readingQueue" | "series";
   to: string;
 };
 
@@ -52,6 +54,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: ListOrdered, key: "readingQueue", to: "/reading-queue" },
   { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
+  { icon: Truck, key: "delivery", to: "/delivery/in-transit" },
   { icon: BookCopy, key: "series", to: "/series" },
 ];
 
@@ -199,6 +202,7 @@ function ContentArea({ children }: { children: ReactNode }) {
           <SidebarTrigger className="size-8 cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-foreground lg:hidden" />
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <ChangelogBell />
           <SessionMenu />
           <ThemePicker />
           <LocalePicker />
