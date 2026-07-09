@@ -17,17 +17,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Link, useRouter } from "@/i18n/navigation";
 
-import type { ListDraft } from "../model/book-organization-fields";
-
-import {
-  useBulkAddToList,
-  useBulkAddToReadingQueue,
-  useDeleteBook,
-  useRemoveFromReadingQueue,
-} from "../api/use-book-actions";
-import { BookListDialog } from "./book-list-dialog";
+import { useDeleteBook } from "../api/use-book-actions";
+import { AddToQueueDialog } from "./add-to-queue-dialog";
+import { BookListMembershipDialog } from "./book-list-membership-dialog";
+import { ChangeQueuePriorityDialog } from "./change-queue-priority-dialog";
 import { ChangeReadingStatusDialog } from "./change-reading-status-dialog";
 import { DeleteBookDialog } from "./delete-book-dialog";
+import { RemoveFromQueueDialog } from "./remove-from-queue-dialog";
 
 type BookDetailsActionsMenuProps = {
   book: BookView;
@@ -39,42 +35,14 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
   const tConfirm = useTranslations("books.deleteConfirm");
   const router = useRouter();
 
-  const addToQueue = useBulkAddToReadingQueue();
-  const removeFromQueue = useRemoveFromReadingQueue();
-  const addToList = useBulkAddToList();
   const deleteBook = useDeleteBook();
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-
-  function onAddToQueue() {
-    addToQueue.mutate([book.id], {
-      onError: () => toast.error(t("toast.error")),
-      onSuccess: () => toast.success(t("toast.queueAdded")),
-    });
-  }
-
-  function onRemoveFromQueue() {
-    removeFromQueue.mutate(book.id, {
-      onError: () => toast.error(t("toast.error")),
-      onSuccess: () => toast.success(t("toast.queueRemoved")),
-    });
-  }
-
-  async function onConfirmList(input: { listIds: string[]; newLists: ListDraft[] }) {
-    try {
-      await addToList.mutateAsync({
-        bookIds: [book.id],
-        listIds: input.listIds,
-        newLists: input.newLists,
-      });
-      toast.success(t("toast.addedToList"));
-    } catch (error) {
-      toast.error(t("toast.error"));
-      throw error;
-    }
-  }
+  const [addQueueOpen, setAddQueueOpen] = useState(false);
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const [removeQueueOpen, setRemoveQueueOpen] = useState(false);
 
   function onConfirmDelete() {
     deleteBook.mutate(book.id, {
@@ -111,12 +79,18 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
           </DropdownMenuItem>
 
           {book.isInReadingQueue ? (
-            <DropdownMenuItem onSelect={onRemoveFromQueue}>
-              <UiIcon name="bookmark" size={16} />
-              {t("removeFromQueue")}
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem onSelect={() => setPriorityOpen(true)}>
+                <UiIcon name="sliders" size={16} />
+                {t("changePriority")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setRemoveQueueOpen(true)}>
+                <UiIcon name="bookmark" size={16} />
+                {t("removeFromQueue")}
+              </DropdownMenuItem>
+            </>
           ) : (
-            <DropdownMenuItem onSelect={onAddToQueue}>
+            <DropdownMenuItem onSelect={() => setAddQueueOpen(true)}>
               <UiIcon name="bookmark" size={16} />
               {t("addToQueue")}
             </DropdownMenuItem>
@@ -137,12 +111,10 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
       </DropdownMenu>
 
       <ChangeReadingStatusDialog book={book} onOpenChange={setStatusOpen} open={statusOpen} />
-      <BookListDialog
-        bookCount={1}
-        onConfirm={onConfirmList}
-        onOpenChange={setListOpen}
-        open={listOpen}
-      />
+      <AddToQueueDialog book={book} onOpenChange={setAddQueueOpen} open={addQueueOpen} />
+      <ChangeQueuePriorityDialog book={book} onOpenChange={setPriorityOpen} open={priorityOpen} />
+      <RemoveFromQueueDialog book={book} onOpenChange={setRemoveQueueOpen} open={removeQueueOpen} />
+      <BookListMembershipDialog bookId={book.id} onOpenChange={setListOpen} open={listOpen} />
       <DeleteBookDialog
         cancelLabel={tConfirm("cancel")}
         confirmLabel={tConfirm("confirm")}

@@ -48,11 +48,6 @@ type ReadOnlyRatingProps = VariantProps<typeof ratingVariants> & {
   value: number;
 };
 
-function clampToStep({ max, value }: { max: number; value: number }) {
-  const stepped = Math.round(value * 2) / 2;
-  return Math.min(max, Math.max(0, stepped));
-}
-
 function InteractiveRating({
   className,
   disabled,
@@ -64,15 +59,16 @@ function InteractiveRating({
   valueText,
 }: InteractiveRatingProps) {
   const [hovered, setHovered] = React.useState<null | number>(null);
-  const ref = React.useRef<HTMLSpanElement>(null);
   const shown = hovered ?? value;
+  const stepped = Math.round(shown * 2) / 2;
 
-  function valueFromPointer(clientX: number) {
-    const node = ref.current;
-    if (!node) return value;
-    const rect = node.getBoundingClientRect();
-    const ratio = ((clientX - rect.left) / rect.width) * max;
-    return Math.max(0.5, clampToStep({ max, value: ratio }));
+  function valueFromStar(
+    index: number,
+    event: React.MouseEvent<HTMLSpanElement> | React.PointerEvent<HTMLSpanElement>,
+  ) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const isRightHalf = event.clientX - rect.left >= rect.width / 2;
+    return index + (isRightHalf ? 1 : 0.5);
   }
 
   function handleKeyDown(event: React.KeyboardEvent) {
@@ -107,15 +103,24 @@ function InteractiveRating({
         className,
       )}
       data-slot="rating-input"
-      onClick={(event) => onValueChange(valueFromPointer(event.clientX))}
       onKeyDown={handleKeyDown}
       onPointerLeave={() => setHovered(null)}
-      onPointerMove={(event) => setHovered(valueFromPointer(event.clientX))}
-      ref={ref}
       role="slider"
       tabIndex={disabled ? -1 : 0}
     >
-      <StarRow count={max} value={shown} />
+      <span className="inline-flex gap-0.5">
+        {Array.from({ length: max }, (_, index) => (
+          <span
+            aria-hidden
+            className="cursor-pointer"
+            key={index}
+            onClick={(event) => onValueChange(valueFromStar(index, event))}
+            onPointerMove={(event) => setHovered(valueFromStar(index, event))}
+          >
+            <Star fill={Math.max(0, Math.min(1, stepped - index))} />
+          </span>
+        ))}
+      </span>
     </span>
   );
 }

@@ -28,6 +28,7 @@ import type { LibrarySummaryCard } from "./library-summary-cards";
 import { useLibrarySelectionStore } from "../model/selection-store";
 import { BookActionDialogs } from "./book-action-dialogs";
 import { BookCardActions } from "./book-card-actions";
+import { BookLoanNote } from "./book-loan-note";
 import { BookRow } from "./book-row";
 import { LibraryBulkBar } from "./library-bulk-bar";
 import { LibraryCoverViewer } from "./library-cover-viewer";
@@ -417,6 +418,11 @@ function LibraryGridCard({
           href={book.href}
           kebab={renderActions(book)}
           linkComponent={linkComponent}
+          note={
+            book.loan === undefined ? undefined : (
+              <BookLoanNote icon={book.loan.icon} text={book.loan.text} />
+            )
+          }
           onCoverActivate={
             coverMedia
               ? () => onActivateCover({ bookId: book.id, media: coverMedia, title: book.title })

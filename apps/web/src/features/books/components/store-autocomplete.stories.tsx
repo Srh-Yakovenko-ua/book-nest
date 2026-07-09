@@ -113,7 +113,7 @@ export const CreateFromTyped: Story = {
   render: () => <Harness />,
 };
 
-export const StaysClosedWhenDialogAutofocuses: Story = {
+export const StaysClosedUntilClickedInsideDialog: Story = {
   beforeEach: () => {
     mockStores(["Yakaboo", "Bookstore"]);
   },
@@ -121,7 +121,7 @@ export const StaysClosedWhenDialogAutofocuses: Story = {
     const surface = within(document.body);
 
     const input = surface.getByRole("combobox", { name: "Магазин" });
-    await waitFor(() => expect(input).toHaveFocus());
+    await expect(input).not.toHaveFocus();
     await expect(surface.queryByText("Раніше використані")).toBeNull();
 
     await userEvent.click(input);

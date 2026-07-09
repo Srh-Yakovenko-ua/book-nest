@@ -107,10 +107,7 @@ export function DeliveryDialog(props: DeliveryDialogProps) {
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent
-        className="max-h-[88vh] overflow-y-auto sm:max-w-md"
-        onOpenAutoFocus={(event) => event.preventDefault()}
-      >
+      <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-md">
         {open ? (
           props.mode === "edit" ? (
             <DeliveryForm

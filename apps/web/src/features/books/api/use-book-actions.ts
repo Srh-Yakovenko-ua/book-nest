@@ -1,4 +1,4 @@
-import type { BookView, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookView, OwnershipStatus, QueuePriority, ReadingStatus } from "@app/shared";
 import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 
 import { BulkActionResultSchema } from "@app/shared";
@@ -16,6 +16,7 @@ import {
   bulkBooksControllerReadingStatus,
   bulkBooksControllerTags,
 } from "@/shared/api/generated/endpoints/books/books";
+import { getReadingQueueControllerGetQueueQueryKey } from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
 
 import type { ListDraft } from "../model/book-organization-fields";
 import type { LibraryBooksPage } from "./use-books";
@@ -27,6 +28,24 @@ const LIST_KEY = ["/api/books", "list"];
 type FavoriteContext = {
   snapshot: [QueryKey, InfiniteData<LibraryBooksPage> | undefined][];
 };
+
+export function useAddToReadingQueueWithPriority() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { id: string; queuePriority: QueuePriority }) =>
+      booksControllerUpdate(input.id, {
+        addToReadingQueue: true,
+        queuePriority: input.queuePriority,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void queryClient.invalidateQueries({
+        queryKey: getReadingQueueControllerGetQueueQueryKey(),
+      });
+    },
+  });
+}
 
 export function useBulkAddTags() {
   const queryClient = useQueryClient();
@@ -122,6 +141,21 @@ export function useBulkSetFavorite() {
   });
 }
 
+export function useChangeQueuePriority() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { id: string; queuePriority: QueuePriority }) =>
+      booksControllerUpdate(input.id, { queuePriority: input.queuePriority }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void queryClient.invalidateQueries({
+        queryKey: getReadingQueueControllerGetQueueQueryKey(),
+      });
+    },
+  });
+}
+
 export function useDeleteBook() {
   const queryClient = useQueryClient();
 
@@ -141,6 +175,9 @@ export function useRemoveFromReadingQueue() {
     mutationFn: (id: string) => booksControllerUpdate(id, { addToReadingQueue: false }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void queryClient.invalidateQueries({
+        queryKey: getReadingQueueControllerGetQueueQueryKey(),
+      });
     },
   });
 }

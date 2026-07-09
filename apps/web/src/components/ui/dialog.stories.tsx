@@ -56,7 +56,7 @@ export const Default: Story = {
   render: () => <CreateListDialog />,
 };
 
-export const OpensAndTrapsFocus: Story = {
+export const OpensWithoutAutoFocusThenTrapsFocus: Story = {
   render: () => <CreateListDialog />,
   play: async ({ canvas }) => {
     const trigger = canvas.getByRole("button", { name: "Створити список" });
@@ -66,6 +66,9 @@ export const OpensAndTrapsFocus: Story = {
     const dialog = await surface.findByRole("dialog");
     await waitFor(() => expect(dialog).toBeVisible());
     await expect(dialog).toHaveAccessibleName("Створити список");
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(false));
+
+    await userEvent.tab();
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
   },
 };

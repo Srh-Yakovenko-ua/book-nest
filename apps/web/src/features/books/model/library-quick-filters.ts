@@ -4,7 +4,7 @@ import type {
   BooksControllerListStatusItem,
 } from "@/shared/api/generated/model";
 
-import type { LibraryQueryState } from "./library-query";
+import type { LibraryQueryState, LibraryScope } from "./library-query";
 
 export const LIBRARY_QUICK_FILTER_KEYS = [
   "all",
@@ -21,12 +21,22 @@ export const LIBRARY_QUICK_FILTER_KEYS = [
 
 export type LibraryQuickFilterKey = (typeof LIBRARY_QUICK_FILTER_KEYS)[number];
 
+const QUICK_FILTERS_OUTSIDE_MY_SCOPE: readonly LibraryQuickFilterKey[] = [
+  "want_to_buy",
+  "in_transit",
+];
+
 export type LibraryQuickFilterPatch = {
   bookType: BooksControllerListBookType | null;
   isFavorite: boolean | null;
   owner: BooksControllerListOwnerItem[] | null;
   status: BooksControllerListStatusItem[] | null;
 };
+
+export function quickFilterKeysForScope(scope: LibraryScope): readonly LibraryQuickFilterKey[] {
+  if (scope === "all") return LIBRARY_QUICK_FILTER_KEYS;
+  return LIBRARY_QUICK_FILTER_KEYS.filter((key) => !QUICK_FILTERS_OUTSIDE_MY_SCOPE.includes(key));
+}
 
 const QUICK_FILTER_CLEARED: LibraryQuickFilterPatch = {
   bookType: null,

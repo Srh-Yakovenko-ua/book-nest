@@ -4,7 +4,12 @@ import { useQueryStates } from "nuqs";
 
 import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
-import type { LibraryListParams, LibraryQueryState, LibraryViewMode } from "./library-query";
+import type {
+  LibraryListParams,
+  LibraryQueryState,
+  LibraryScope,
+  LibraryViewMode,
+} from "./library-query";
 
 import {
   hasActiveLibraryFilters,
@@ -30,7 +35,7 @@ export type UseLibraryQueryResult = {
   view: LibraryViewMode;
 };
 
-export function useLibraryQuery(): UseLibraryQueryResult {
+export function useLibraryQuery(scope: LibraryScope): UseLibraryQueryResult {
   const [state, setState] = useQueryStates(libraryQueryParsers);
 
   return {
@@ -39,7 +44,7 @@ export function useLibraryQuery(): UseLibraryQueryResult {
     clearSearch: () => void setState({ q: null }),
     hasActiveFilters: hasActiveLibraryFilters(state),
     hasActiveSearch: hasActiveLibrarySearch(state),
-    listParams: toLibraryListParams(state),
+    listParams: toLibraryListParams(state, scope),
     setSearch: (value) => void setState({ q: value }),
     setSort: (value) => void setState({ sort: value }),
     setState,

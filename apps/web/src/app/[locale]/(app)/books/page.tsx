@@ -18,7 +18,7 @@ export default async function BooksLibraryPage({ params }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-5 pt-8 pb-16 md:px-8 lg:px-12">
-      <BooksLibrary />
+      <BooksLibrary scope="all" />
     </main>
   );
 }
@@ -27,5 +27,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const resolvedLocale = hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
   const t = await getTranslations({ locale: resolvedLocale, namespace: "books.library" });
-  return { title: t("title") };
+  return { title: t("all.title") };
 }

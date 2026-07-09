@@ -13,6 +13,12 @@ export interface UpdateSeriesInputDto {
   authors?: UpdateSeriesInputDtoAuthorsItem[];
   /** @nullable */
   description?: string | null;
+  /**
+   * @maxItems 5
+   * @items.minLength 1
+   * @items.maxLength 64
+   */
+  genres?: string[];
   name?: string;
   status?: UpdateSeriesInputDtoStatus;
   /**

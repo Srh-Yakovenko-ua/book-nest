@@ -19,6 +19,7 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onOpenAutoFocus = (event) => event.preventDefault(),
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean;
@@ -32,6 +33,7 @@ function DialogContent({
           className,
         )}
         data-slot="dialog-content"
+        onOpenAutoFocus={onOpenAutoFocus}
         {...props}
       >
         {children}

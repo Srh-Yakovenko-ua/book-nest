@@ -9,6 +9,8 @@ import {
   Home,
   Layers,
   Library,
+  LibraryBig,
+  ListOrdered,
   ShoppingBag,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -40,13 +42,15 @@ import { cn } from "@/lib/utils";
 
 type NavItem = {
   icon: React.ElementType;
-  key: "buyList" | "home" | "library" | "series";
+  key: "allBooks" | "buyList" | "home" | "myLibrary" | "readingQueue" | "series";
   to: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, key: "home", to: "/" },
-  { icon: Library, key: "library", to: "/books" },
+  { icon: Library, key: "myLibrary", to: "/my-library" },
+  { icon: ListOrdered, key: "readingQueue", to: "/reading-queue" },
+  { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
   { icon: BookCopy, key: "series", to: "/series" },
 ];

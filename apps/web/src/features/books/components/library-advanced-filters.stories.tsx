@@ -44,13 +44,14 @@ function countActive(state: LibraryQueryState): number {
 }
 
 function Harness() {
-  const library = useLibraryQuery();
+  const library = useLibraryQuery("all");
   return (
     <LibraryAdvancedFilters
       activeCount={countActive(library.state)}
       onClearFilters={library.clearFilters}
       onRememberEntity={() => {}}
       resolveEntityName={() => undefined}
+      scope="all"
       setState={library.setState}
       state={library.state}
     />
@@ -95,6 +96,7 @@ const meta = {
     onClearFilters: () => {},
     onRememberEntity: () => {},
     resolveEntityName: () => undefined,
+    scope: "all",
     setState: async () => new URLSearchParams(),
     state: DEFAULT_STATE,
   },

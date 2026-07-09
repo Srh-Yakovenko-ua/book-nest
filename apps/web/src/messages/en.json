@@ -11,9 +11,16 @@
   },
   "nav": {
     "home": "Home",
-    "library": "Library",
+    "myLibrary": "My library",
+    "readingQueue": "Reading queue",
+    "allBooks": "All books",
     "buyList": "Books to buy",
     "series": "Series"
+  },
+  "readingQueue": {
+    "title": "Reading queue",
+    "subtitle": "Books you plan to read next, in queue order.",
+    "removeAria": "Remove “{title}” from the queue"
   },
   "appShell": {
     "label": "Book Nest",
@@ -217,8 +224,18 @@
   },
   "books": {
     "library": {
-      "title": "My library",
-      "subtitle": "All your books in one cozy space",
+      "all": {
+        "title": "All books",
+        "subtitle": "Every book you've added — regardless of status"
+      },
+      "my": {
+        "title": "My library",
+        "subtitle": "Books physically with you: owned, lent out, or borrowed"
+      },
+      "card": {
+        "lentTo": "With {name}",
+        "borrowedFrom": "From {name}"
+      },
       "resultsTitle": "Book list",
       "addBook": "Add book",
       "loadMore": "Load more",
@@ -249,7 +266,9 @@
           "year_desc": "Newer editions",
           "year_asc": "Older editions",
           "pages_desc": "More pages",
-          "pages_asc": "Fewer pages"
+          "pages_asc": "Fewer pages",
+          "favorite_added_desc": "Favorites: newest first",
+          "favorite_added_asc": "Favorites: oldest first"
         }
       },
       "view": {
@@ -448,12 +467,14 @@
       "listDialog": {
         "title": "Add to list",
         "description": "{count, plural, one {# book} other {# books}} will be added to the selected lists.",
+        "membershipDescription": "Choose which lists this book belongs to.",
         "listsLabel": "Lists",
         "placeholder": "Choose your lists",
         "search": "Search lists…",
         "empty": "No lists found.",
         "createList": "New list",
         "confirm": "Add",
+        "save": "Save",
         "cancel": "Cancel"
       },
       "tagsDialog": {
@@ -603,6 +624,9 @@
       "genresLoading": "Loading genres…",
       "genresHint": "You can pick up to {max} genres.",
       "genresRecentHeading": "Previously used",
+      "genresFromSeries": "Genres prefilled from the “{name}” series",
+      "genresSeriesSuggestion": "Use the series genres: {genres}?",
+      "genresSeriesSuggestionDismiss": "Dismiss suggestion",
       "tags": "Tags",
       "tagsPlaceholder": "Add a tag and press Enter…",
       "tagsAtMax": "Limit reached — remove a tag to add more",
@@ -943,6 +967,7 @@
         "menu": "Book actions",
         "changeReadingStatus": "Change reading status",
         "addToQueue": "Add to reading queue",
+        "changePriority": "Change queue priority",
         "removeFromQueue": "Remove from reading queue",
         "addToList": "Add to list",
         "delete": "Delete",
@@ -950,8 +975,49 @@
           "queueAdded": "Added to reading queue",
           "queueRemoved": "Removed from reading queue",
           "addedToList": "Added to list",
+          "listsUpdated": "Lists updated",
           "deleted": "Book deleted",
           "error": "Something went wrong. Please try again."
+        }
+      },
+      "queue": {
+        "title": "Reading queue",
+        "inQueue": "In queue",
+        "badge": "In queue #{position}",
+        "rowStatus": "Status",
+        "rowPosition": "Position",
+        "rowPriority": "Priority",
+        "positionValue": "#{position}",
+        "goToQueue": "Go to the queue",
+        "changePriority": "Change priority",
+        "remove": "Remove from queue",
+        "addDialog": {
+          "title": "Add to reading queue",
+          "description": "Pick a priority — the book will be added to the end of your reading queue.",
+          "priorityLabel": "Queue priority",
+          "submit": "Add to queue"
+        },
+        "priorityDialog": {
+          "title": "Change queue priority",
+          "description": "Update how important it is to read this book.",
+          "positionLine": "Position: #{position}",
+          "priorityLabel": "Queue priority",
+          "submit": "Save"
+        },
+        "removeDialog": {
+          "title": "Remove from reading queue?",
+          "description": "The book will be removed from the reading queue but stays in your library.",
+          "confirm": "Remove from queue",
+          "removing": "Removing…"
+        },
+        "toast": {
+          "added": "Book added to the reading queue",
+          "addError": "Couldn’t add the book to the queue",
+          "duplicate": "This book is already in your reading queue.",
+          "priorityUpdated": "Priority updated",
+          "priorityError": "Couldn’t change the priority",
+          "removed": "Book removed from the reading queue",
+          "removeError": "Couldn’t remove the book from the queue"
         }
       },
       "favorite": {
@@ -1015,6 +1081,7 @@
           "dateFuture": "The date can’t be in the future.",
           "dateInvalid": "Pick a valid date.",
           "noteMax": "No more than {max} characters.",
+          "impressionMax": "The impression can’t be longer than {max} characters.",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -1329,6 +1396,8 @@
       "name": "Series name",
       "namePlaceholder": "e.g. The Witcher",
       "status": "Status",
+      "genres": "Genres",
+      "genresHint": "You can pick up to {max} genres",
       "totalBooks": "Books in series",
       "totalBooksPlaceholder": "e.g. 5",
       "descriptionLabel": "Description",
@@ -1493,6 +1562,27 @@
       "partNumberTaken": "This series already has a book with this part number",
       "partNumberExceedsTotal": "Part number is greater than the total books in the series",
       "genericError": "Could not add the book. Please try again."
+    }
+  },
+  "lists": {
+    "details": {
+      "metaTitle": "List details",
+      "back": "Back to library",
+      "books": "{count, plural, one {# book} other {# books}}",
+      "booksHeading": "Books in this list",
+      "loadMore": "Show more",
+      "empty": {
+        "title": "This list is empty",
+        "description": "Add books to this list from a book's page."
+      },
+      "states": {
+        "loading": "Loading list…",
+        "notFoundTitle": "List not found",
+        "notFoundDescription": "It may have been deleted or belongs to another user.",
+        "errorTitle": "Could not load the list",
+        "errorDescription": "Try refreshing the page.",
+        "back": "Back to library"
+      }
     }
   }
 }

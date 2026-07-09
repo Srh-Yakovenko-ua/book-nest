@@ -13,6 +13,8 @@ export const BooksControllerListSort = {
   created_desc: "created_desc",
   created_asc: "created_asc",
   updated_desc: "updated_desc",
+  favorite_added_desc: "favorite_added_desc",
+  favorite_added_asc: "favorite_added_asc",
   title_asc: "title_asc",
   title_desc: "title_desc",
   author_asc: "author_asc",

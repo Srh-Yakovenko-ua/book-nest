@@ -1,7 +1,5 @@
 "use client";
 
-import type { BookView, OwnershipStatus } from "@app/shared";
-
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,7 +7,6 @@ import { toast } from "sonner";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { Link, useRouter } from "@/i18n/navigation";
-import { ownershipStatuses, readingStatuses, type StatusEntry } from "@/lib/book-status";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
@@ -29,7 +26,8 @@ import { useLibraryBooks } from "../api/use-books";
 import { useGenres } from "../api/use-genres";
 import { useLibraryOverview } from "../api/use-library-overview";
 import { useTagsSearch } from "../api/use-tags-search";
-import { LIBRARY_SORT_ORDER } from "../model/library-query";
+import { toLibraryBook } from "../model/library-book";
+import { LIBRARY_SORT_ORDER, type LibraryScope } from "../model/library-query";
 import { activeQuickFilter, quickFilterPatch } from "../model/library-quick-filters";
 import { useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
@@ -41,22 +39,7 @@ import { LibrarySearchInput } from "./library-search-input";
 import { type LibrarySummaryCard } from "./library-summary-cards";
 import { LibrarySummarySidebar } from "./library-summary-sidebar";
 
-const PROGRESS_STATUSES: readonly BookView["readingStatus"][] = ["reading", "paused", "rereading"];
-
-const FALLBACK_STATUS: StatusEntry =
-  readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
-
-type LibraryBookLabels = {
-  genreName: (key: string) => string;
-  ownershipLabel: (value: OwnershipStatus) => string;
-  pagesText: (value: number) => string;
-  progressAriaLabel: (current: number, total: number) => string;
-  progressUnit: string;
-  ratingLabel: (value: number) => string;
-  statusLabel: (value: BookView["readingStatus"]) => string;
-};
-
-export function BooksLibrary() {
+export function BooksLibrary({ scope }: { scope: LibraryScope }) {
   const t = useTranslations("books.library");
   const tCover = useTranslations("books.cover");
   const tStatus = useTranslations("books.readingStatus.options");
@@ -64,7 +47,7 @@ export function BooksLibrary() {
   const tSortOptions = useTranslations("books.library.sort.options");
   const router = useRouter();
 
-  const library = useLibraryQuery();
+  const library = useLibraryQuery(scope);
   const {
     data,
     fetchNextPage,
@@ -75,7 +58,7 @@ export function BooksLibrary() {
     isPending,
     refetch,
   } = useLibraryBooks(library.listParams);
-  const overview = useLibraryOverview();
+  const overview = useLibraryOverview(scope);
   const genres = useGenres();
   const tags = useTagsSearch("");
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
@@ -115,7 +98,9 @@ export function BooksLibrary() {
     .flatMap((page) => page.items)
     .map((book) =>
       toLibraryBook(book, {
+        borrowedFrom: (name) => t("card.borrowedFrom", { name }),
         genreName: (key) => genreNameByKey.get(key) ?? key,
+        lentTo: (name) => t("card.lentTo", { name }),
         ownershipLabel: (value) => tOwnership(value),
         pagesText: (value) => t("meta.pages", { value }),
         progressAriaLabel: (current, total) => t("progress.ariaLabel", { current, total }),
@@ -237,6 +222,7 @@ export function BooksLibrary() {
           onClearFilters={library.clearFilters}
           onRememberEntity={rememberEntity}
           resolveEntityName={resolveEntityName}
+          scope={scope}
           setState={library.setState}
           state={library.state}
         />
@@ -272,6 +258,7 @@ export function BooksLibrary() {
       quickFilters={
         <LibraryQuickFilters
           onSelect={(key) => void library.setState(quickFilterPatch(key))}
+          scope={scope}
           value={activeQuickFilter(library.state)}
         />
       }
@@ -286,67 +273,12 @@ export function BooksLibrary() {
       sort={library.sort}
       sortLabel={t("sort.label")}
       sortOptions={sortOptions}
-      subtitle={t("subtitle")}
+      subtitle={t(`${scope}.subtitle`)}
       summaryCards={summaryCards}
       summaryLoading={overview.isPending}
-      title={t("title")}
+      title={t(`${scope}.title`)}
       view={library.view}
       viewLabels={{ grid: t("view.grid"), label: t("view.label"), list: t("view.list") }}
     />
   );
-}
-
-function resolveProgress(book: BookView): undefined | { current: number; total: number } {
-  if (!PROGRESS_STATUSES.includes(book.readingStatus)) return undefined;
-  const currentPage = book.readingProgress?.currentPage;
-  if (book.pagesCount === null || currentPage === null || currentPage === undefined) {
-    return undefined;
-  }
-  return { current: currentPage, total: book.pagesCount };
-}
-
-function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
-  const baseStatus =
-    readingStatuses.find((entry) => entry.value === book.readingStatus) ?? FALLBACK_STATUS;
-  const status: StatusEntry = { ...baseStatus, label: labels.statusLabel(book.readingStatus) };
-  const genres = book.genres.map((key) => ({ label: labels.genreName(key) }));
-  const progress = resolveProgress(book);
-  const rating = book.readingProgress?.rating ?? undefined;
-  const ownershipBase = ownershipStatuses.find((entry) => entry.value === book.ownershipStatus);
-  const ownership =
-    book.ownershipStatus === "none" || ownershipBase === undefined
-      ? undefined
-      : { ...ownershipBase, label: labels.ownershipLabel(book.ownershipStatus) };
-  const tags = book.tags.length === 0 ? undefined : book.tags.map((tag) => tag.name);
-
-  return {
-    authors: book.authors.map((author) => author.name),
-    cover: book.cover ? { alt: book.title, src: book.cover.urls.thumb } : undefined,
-    coverMedia: book.cover ?? undefined,
-    genres,
-    href: `/books/${book.id}`,
-    id: book.id,
-    isFavorite: book.isFavorite,
-    isInReadingQueue: book.isInReadingQueue,
-    ownership,
-    ownershipStatus: book.ownershipStatus,
-    pagesText: book.pagesCount === null ? undefined : labels.pagesText(book.pagesCount),
-    progress:
-      progress === undefined
-        ? undefined
-        : {
-            ...progress,
-            ariaLabel: labels.progressAriaLabel(progress.current, progress.total),
-            unit: labels.progressUnit,
-          },
-    publisher: book.publisher === null ? undefined : book.publisher.name,
-    rating,
-    ratingLabel: rating === undefined ? undefined : labels.ratingLabel(rating),
-    readingStatus: book.readingStatus,
-    series: book.series === null ? undefined : book.series.name,
-    status,
-    tags,
-    title: book.title,
-    year: book.publicationYear ?? undefined,
-  };
 }
