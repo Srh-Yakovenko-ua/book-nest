@@ -26,6 +26,7 @@ function jsonResponse(status: number, body: unknown): Response {
 function makeDelivery(overrides: Partial<DeliveryView> = {}): DeliveryView {
   return {
     cancelledAt: null,
+    cancelReason: null,
     createdAt: "2026-06-01T10:00:00.000Z",
     currency: "UAH",
     deliveryService: "Нова пошта",

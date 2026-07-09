@@ -24,6 +24,7 @@ export function toDeliverySummaryView(deliveries: BookDeliveryModel[]): Delivery
 export function toDeliveryView(delivery: BookDeliveryModel): DeliveryView {
   return {
     cancelledAt: toNullableInstant(delivery.cancelledAt),
+    cancelReason: delivery.cancelReason,
     createdAt: delivery.createdAt.toISOString(),
     currency: delivery.currency === null ? null : CurrencySchema.parse(delivery.currency),
     deliveryService: delivery.deliveryService,

@@ -38,6 +38,7 @@ export type RecordDeliveryTransition = {
 
 export type UpdateDeliveryData = {
   cancelledAt?: Date;
+  cancelReason?: null | string;
   currency?: Currency | null;
   deliveryService?: null | string;
   expectedDeliveryDate?: Date | null;

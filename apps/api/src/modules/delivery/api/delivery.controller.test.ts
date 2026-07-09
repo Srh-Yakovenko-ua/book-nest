@@ -27,6 +27,7 @@ const utcDay = (offset: number): Date => new Date(`${isoDay(offset)}T00:00:00.00
 
 type DeliverySeed = {
   cancelledAt?: Date | null;
+  cancelReason?: null | string;
   currency?: null | string;
   deliveryService?: null | string;
   expectedDeliveryDate?: Date | null;
@@ -153,6 +154,7 @@ async function seedDelivery(
     data: {
       bookId,
       cancelledAt: seed.cancelledAt ?? null,
+      cancelReason: seed.cancelReason ?? null,
       currency: seed.currency ?? null,
       deliveryService: seed.deliveryService ?? null,
       expectedDeliveryDate: seed.expectedDeliveryDate ?? null,
@@ -525,6 +527,40 @@ describe("GET /api/delivery/history", () => {
 
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].book.title).toBe("Cancelled Order");
+  });
+
+  it("carries the cancel reason on a cancelled history item", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedDelivery(user, "Cancelled With Reason", {
+      cancelledAt: new Date(),
+      cancelReason: "Out of stock",
+      orderDate: utcDay(-3),
+      ownershipStatus: "want_to_buy",
+      status: "cancelled",
+      storeName: "Yakaboo",
+    });
+
+    const res = await getJson(user.accessToken, "/api/delivery/history?tab=cancelled");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].delivery.cancelReason).toBe("Out of stock");
+  });
+
+  it("exposes a null cancel reason on a non-cancelled history item", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedDelivery(user, "Received Order", {
+      orderDate: utcDay(-3),
+      ownershipStatus: "owned",
+      receivedAt: new Date(),
+      status: "received",
+      storeName: "Yakaboo",
+    });
+
+    const res = await getJson(user.accessToken, "/api/delivery/history?tab=received");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items[0].delivery.cancelReason).toBeNull();
   });
 
   it("filters by an order-date range", async () => {

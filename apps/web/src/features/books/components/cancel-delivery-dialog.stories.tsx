@@ -10,6 +10,7 @@ import { CancelDeliveryDialog } from "./cancel-delivery-dialog";
 function activeDelivery(): DeliveryView {
   return {
     cancelledAt: null,
+    cancelReason: null,
     createdAt: "2026-06-01T10:00:00.000Z",
     currency: "UAH",
     deliveryService: null,

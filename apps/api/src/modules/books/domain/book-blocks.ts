@@ -47,28 +47,33 @@ export const toUpdateDate = (value: null | string | undefined): Date | null | un
 
 export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryData {
   return {
-    currency: null,
-    deliveryService: null,
+    currency: deliveryInfo.currency ?? null,
+    deliveryService: deliveryInfo.deliveryService ?? null,
     expectedDeliveryDate: toCreateDate(deliveryInfo.expectedDeliveryDate),
     note: deliveryInfo.note ?? null,
     orderDate: toCreateDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber ?? null,
-    price: null,
+    price: deliveryInfo.price ?? null,
     status: deliveryInfo.deliveryStatus ?? DEFAULT_DELIVERY_STATUS,
     storeName: deliveryInfo.storeName ?? null,
-    trackingNumber: null,
-    trackingUrl: null,
+    trackingNumber: deliveryInfo.trackingNumber ?? null,
+    trackingUrl: deliveryInfo.trackingUrl ?? null,
   };
 }
 
 export function buildDeliveryInfoUpdateData(deliveryInfo: DefinedDeliveryInfo): UpdateDeliveryData {
   return {
+    currency: deliveryInfo.currency,
+    deliveryService: deliveryInfo.deliveryService,
     expectedDeliveryDate: toUpdateDate(deliveryInfo.expectedDeliveryDate),
     note: deliveryInfo.note,
     orderDate: toUpdateDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber,
+    price: deliveryInfo.price,
     status: deliveryInfo.deliveryStatus,
     storeName: deliveryInfo.storeName,
+    trackingNumber: deliveryInfo.trackingNumber,
+    trackingUrl: deliveryInfo.trackingUrl,
   };
 }
 

@@ -312,23 +312,6 @@ const isExpectedNotBeforeOrder = (value: {
   value.expectedDeliveryDate === null ||
   value.expectedDeliveryDate >= value.orderDate;
 
-export const DeliveryInfoInputSchema = z
-  .object({
-    deliveryStatus: ActiveDeliveryStatusSchema.optional(),
-    expectedDeliveryDate: z.iso.date().nullable().optional(),
-    note: OwnershipNoteSchema.nullable().optional(),
-    orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
-    orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
-    storeName: OwnershipStoreNameSchema.nullable().optional(),
-  })
-  .refine(isExpectedNotBeforeOrder, {
-    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
-    path: ["expectedDeliveryDate"],
-  })
-  .optional();
-
-export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
-
 const DELIVERY_TRACKING_NUMBER_MAX = 100;
 
 const DeliveryTrackingNumberSchema = z
@@ -340,6 +323,28 @@ const DeliveryTrackingNumberSchema = z
       "Tracking number must be at most 100 characters long",
     ),
   );
+
+export const DeliveryInfoInputSchema = z
+  .object({
+    currency: CurrencySchema.nullable().optional(),
+    deliveryService: DeliveryServiceSchema.nullable().optional(),
+    deliveryStatus: ActiveDeliveryStatusSchema.optional(),
+    expectedDeliveryDate: z.iso.date().nullable().optional(),
+    note: OwnershipNoteSchema.nullable().optional(),
+    orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
+    orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
+    price: OwnershipPriceSchema.nullable().optional(),
+    storeName: OwnershipStoreNameSchema.nullable().optional(),
+    trackingNumber: DeliveryTrackingNumberSchema.nullable().optional(),
+    trackingUrl: OwnershipStoreUrlSchema.nullable().optional(),
+  })
+  .refine(isExpectedNotBeforeOrder, {
+    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
+    path: ["expectedDeliveryDate"],
+  })
+  .optional();
+
+export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
 export const CreateDeliveryInputSchema = z
   .object({
@@ -382,7 +387,21 @@ export const UpdateDeliveryInputSchema = z
 
 export type UpdateDeliveryInput = z.infer<typeof UpdateDeliveryInputSchema>;
 
+const DELIVERY_CANCEL_REASON_MAX = 500;
+
+const DeliveryCancelReasonSchema = z
+  .string()
+  .transform(collapseHorizontalSpaces)
+  .pipe(
+    NoHtmlString.max(
+      DELIVERY_CANCEL_REASON_MAX,
+      "Cancel reason must be at most 500 characters long",
+    ),
+  )
+  .transform((value) => (value.length === 0 ? null : value));
+
 export const CancelDeliveryInputSchema = z.object({
+  cancelReason: DeliveryCancelReasonSchema.nullable().optional(),
   keepAsWantToBuy: z.boolean().default(true),
 });
 
@@ -879,6 +898,7 @@ export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
 
 export const DeliveryViewSchema = z.object({
   cancelledAt: z.string().nullable(),
+  cancelReason: z.string().nullable(),
   createdAt: z.string(),
   currency: CurrencySchema.nullable(),
   deliveryService: z.string().nullable(),
