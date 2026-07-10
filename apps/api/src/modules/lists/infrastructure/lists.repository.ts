@@ -1,4 +1,4 @@
-import type { ListSort } from "@app/shared";
+import type { ListSort, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -11,13 +11,13 @@ import { NotFoundError } from "../../../core/exceptions/errors.js";
 const PREVIEW_COVERS_LIMIT = 4;
 
 export type CreateBookListData = {
-  description: null | string;
+  description: Nullable<string>;
   name: string;
   normalizedName: string;
 };
 
 export type UpdateBookListData = {
-  description: null | string;
+  description: Nullable<string>;
   name: string;
   normalizedName: string;
 };
@@ -78,11 +78,11 @@ export class ListsRepository {
       userId: string;
     },
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<BookListModel | null> {
+  ): Promise<Nullable<BookListModel>> {
     return client.bookList.findFirst({ where: { normalizedName, userId } });
   }
 
-  findOwnedById({ id, userId }: { id: string; userId: string }): Promise<BookListModel | null> {
+  findOwnedById({ id, userId }: { id: string; userId: string }): Promise<Nullable<BookListModel>> {
     return this.prisma.bookList.findFirst({ where: { id, userId } });
   }
 

@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { SeriesModel } from "../../../generated/prisma/models.js";
@@ -21,7 +23,7 @@ import { SeriesService } from "./series.service.js";
 type BookRowInput = {
   createdAt?: Date;
   id?: string;
-  partNumber?: null | number;
+  partNumber?: Nullable<number>;
   readingStatus?: string;
   title?: string;
   updatedAt?: Date;
@@ -32,11 +34,11 @@ type DetailBookInput = {
   createdAt?: Date;
   id: string;
   isFavorite?: boolean;
-  originalTitle?: null | string;
+  originalTitle?: Nullable<string>;
   ownershipStatus?: string;
-  pagesCount?: null | number;
-  partNumber: null | number;
-  rating?: null | number;
+  pagesCount?: Nullable<number>;
+  partNumber: Nullable<number>;
+  rating?: Nullable<number>;
   readingStatus?: string;
   title?: string;
   updatedAt?: Date;
@@ -129,8 +131,8 @@ const SERIES_ID = "22222222-2222-4222-8222-222222222222";
 const OTHER_ID = "33333333-3333-4333-8333-333333333333";
 
 function buildService(overrides: {
-  findByNormalized?: null | SeriesModel;
-  findOwnedById?: null | SeriesModel;
+  findByNormalized?: Nullable<SeriesModel>;
+  findOwnedById?: Nullable<SeriesModel>;
   searchOwned?: SeriesWithBookCount[];
   upsertByNormalized?: Error | SeriesModel;
 }): {

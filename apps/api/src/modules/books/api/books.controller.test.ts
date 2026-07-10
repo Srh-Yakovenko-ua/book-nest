@@ -1,6 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
-import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE } from "@app/shared";
+import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE, type Nullable } from "@app/shared";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -38,7 +38,7 @@ afterAll(async () => {
   await context.close();
 });
 
-type SeedGenre = { isDefault?: boolean; key: string; name: string; userId?: null | string };
+type SeedGenre = { isDefault?: boolean; key: string; name: string; userId?: Nullable<string> };
 
 function createBook(accessToken: string, body: Record<string, unknown>): request.Test {
   return request(app.getHttpServer())

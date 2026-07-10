@@ -1,5 +1,6 @@
 import type {
   CatalogLocale,
+  Nullable,
   Paginator,
   PublisherSearchPaginationQuery,
   PublisherView,
@@ -51,7 +52,7 @@ export class PublishersService {
     userId: string,
     input: ResolvePublisherInput,
     client?: Prisma.TransactionClient,
-  ): Promise<null | string> {
+  ): Promise<Nullable<string>> {
     if (input.id !== undefined) {
       const publisher = await this.publishersRepository.findVisibleById(userId, input.id, client);
       if (publisher === null) {

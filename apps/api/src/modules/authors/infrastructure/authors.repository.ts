@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -19,21 +21,21 @@ export type AuthorNameSeed = {
 export type AuthorWithPrimaryNames = Prisma.AuthorGetPayload<typeof primaryNamesArgs>;
 
 export type CreateGlobalAuthorData = {
-  bio: null | string;
-  birthYear: null | number;
-  countryCode: null | string;
-  deathYear: null | number;
+  bio: Nullable<string>;
+  birthYear: Nullable<number>;
+  countryCode: Nullable<string>;
+  deathYear: Nullable<number>;
   name: string;
   normalizedName: string;
   openLibraryKey: string;
-  photoUrl: null | string;
+  photoUrl: Nullable<string>;
   searchText: string;
-  wikidataId: null | string;
+  wikidataId: Nullable<string>;
 };
 
 type AuthorLookupMatch = {
   normalizedName: string;
-  openLibraryKey: null | string;
+  openLibraryKey: Nullable<string>;
 };
 
 type FindExistingByLookupInput = {
@@ -87,7 +89,7 @@ export class AuthorsRepository {
     });
   }
 
-  findByNormalized(userId: string, normalizedName: string): Promise<AuthorModel | null> {
+  findByNormalized(userId: string, normalizedName: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({
       where: { normalizedName, OR: [{ userId: null }, { userId }] },
     });
@@ -110,19 +112,19 @@ export class AuthorsRepository {
     });
   }
 
-  findGlobalByNormalizedName(normalizedName: string): Promise<AuthorModel | null> {
+  findGlobalByNormalizedName(normalizedName: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({ where: { normalizedName, userId: null } });
   }
 
-  findGlobalByOpenLibraryKey(openLibraryKey: string): Promise<AuthorModel | null> {
+  findGlobalByOpenLibraryKey(openLibraryKey: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({ where: { openLibraryKey, userId: null } });
   }
 
-  findGlobalByWikidataId(wikidataId: string): Promise<AuthorModel | null> {
+  findGlobalByWikidataId(wikidataId: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({ where: { userId: null, wikidataId } });
   }
 
-  findVisibleById(userId: string, id: string): Promise<AuthorModel | null> {
+  findVisibleById(userId: string, id: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({
       where: { id, OR: [{ userId: null }, { userId }] },
     });
@@ -135,7 +137,7 @@ export class AuthorsRepository {
     });
   }
 
-  findVisibleByIdWithNames(userId: string, id: string): Promise<AuthorWithPrimaryNames | null> {
+  findVisibleByIdWithNames(userId: string, id: string): Promise<Nullable<AuthorWithPrimaryNames>> {
     return this.prisma.author.findFirst({
       where: { id, OR: [{ userId: null }, { userId }] },
       ...primaryNamesArgs,

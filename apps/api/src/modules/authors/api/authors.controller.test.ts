@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -42,7 +43,7 @@ async function seedAuthor(data: {
   name: string;
   normalizedName: string;
   searchText?: string;
-  userId?: null | string;
+  userId?: Nullable<string>;
 }): Promise<void> {
   await prisma.author.create({
     data: {

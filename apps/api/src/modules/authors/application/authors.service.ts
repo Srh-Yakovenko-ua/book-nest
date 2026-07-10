@@ -5,6 +5,7 @@ import type {
   AuthorView,
   BookAuthorReference,
   CatalogLocale,
+  Nullable,
   Paginator,
 } from "@app/shared";
 
@@ -26,7 +27,7 @@ const CUSTOM_AUTHOR_LOCALE = "uk";
 type FindExistingGlobalAuthorInput = {
   normalizedName: string;
   openLibraryKey: string;
-  wikidataId: null | string;
+  wikidataId: Nullable<string>;
 };
 
 type RecentAuthorsInput = {
@@ -251,7 +252,7 @@ export class AuthorsService {
     normalizedName,
     openLibraryKey,
     wikidataId,
-  }: FindExistingGlobalAuthorInput): Promise<AuthorModel | null> {
+  }: FindExistingGlobalAuthorInput): Promise<Nullable<AuthorModel>> {
     const byKey = await this.authorsRepository.findGlobalByOpenLibraryKey(openLibraryKey);
     if (byKey !== null) {
       return byKey;

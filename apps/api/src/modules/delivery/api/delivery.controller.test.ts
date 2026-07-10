@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import {
   DeliveryStatisticsViewSchema,
   type DeliveryStatus,
+  type Nullable,
   type OwnershipStatus,
 } from "@app/shared";
 import request from "supertest";
@@ -26,19 +27,19 @@ const isoDay = (offset: number): string =>
 const utcDay = (offset: number): Date => new Date(`${isoDay(offset)}T00:00:00.000Z`);
 
 type DeliverySeed = {
-  cancelledAt?: Date | null;
-  cancelReason?: null | string;
-  currency?: null | string;
-  deliveryService?: null | string;
-  expectedDeliveryDate?: Date | null;
-  orderDate?: Date | null;
+  cancelledAt?: Nullable<Date>;
+  cancelReason?: Nullable<string>;
+  currency?: Nullable<string>;
+  deliveryService?: Nullable<string>;
+  expectedDeliveryDate?: Nullable<Date>;
+  orderDate?: Nullable<Date>;
   ownershipStatus: OwnershipStatus;
-  price?: null | number;
-  receivedAt?: Date | null;
+  price?: Nullable<number>;
+  receivedAt?: Nullable<Date>;
   status: DeliveryStatus;
-  storeName?: null | string;
-  trackingNumber?: null | string;
-  trackingUrl?: null | string;
+  storeName?: Nullable<string>;
+  trackingNumber?: Nullable<string>;
+  trackingUrl?: Nullable<string>;
 };
 
 let context: AuthTestContext;
@@ -267,7 +268,7 @@ describe("GET /api/delivery/in-transit", () => {
       "This Week",
       "Future",
     ]);
-    expect(res.body.items.map((item: { uiStatus: null | string }) => item.uiStatus)).toEqual([
+    expect(res.body.items.map((item: { uiStatus: Nullable<string> }) => item.uiStatus)).toEqual([
       "delayed",
       "arriving_soon",
       null,
@@ -641,8 +642,8 @@ describe("GET /api/delivery/history", () => {
 
     const res = await getJson(user.accessToken, "/api/delivery/history?sort=title");
 
-    const byTitle = new Map<string, null | string>(
-      res.body.items.map((item: { book: { title: string }; uiStatus: null | string }) => [
+    const byTitle = new Map<string, Nullable<string>>(
+      res.body.items.map((item: { book: { title: string }; uiStatus: Nullable<string> }) => [
         item.book.title,
         item.uiStatus,
       ]),

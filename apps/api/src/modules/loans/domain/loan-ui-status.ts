@@ -1,4 +1,4 @@
-import type { LoanUiStatus } from "@app/shared";
+import type { LoanUiStatus, Nullable } from "@app/shared";
 
 import { addDays, differenceInCalendarDays } from "date-fns";
 
@@ -18,7 +18,7 @@ export function getLoanUiStatus({
   expectedReturnDate,
   today,
 }: {
-  expectedReturnDate: Date | null;
+  expectedReturnDate: Nullable<Date>;
   today: Date;
 }): LoanUiStatus {
   if (expectedReturnDate === null) {

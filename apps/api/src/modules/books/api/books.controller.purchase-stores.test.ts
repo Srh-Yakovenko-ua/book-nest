@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -36,7 +37,7 @@ afterAll(async () => {
 type SeedBookInput = {
   authorId: string;
   createdAt?: Date;
-  storeName?: null | string;
+  storeName?: Nullable<string>;
   userId: string;
 };
 

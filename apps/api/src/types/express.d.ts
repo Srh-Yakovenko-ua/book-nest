@@ -5,6 +5,7 @@ declare global {
     interface Request {
       currentUser?: AuthenticatedUser;
       requestId: string;
+      route?: { path?: string };
     }
   }
 }

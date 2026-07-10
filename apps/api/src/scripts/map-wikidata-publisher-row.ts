@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { normalizeName } from "../core/normalize-name.js";
 
 export type PublisherNameSeed = {
@@ -8,38 +10,38 @@ export type PublisherNameSeed = {
 };
 
 export type PublisherSeedInput = {
-  countryCode: null | string;
-  foundedYear: null | number;
-  logoAttribution: null | string;
-  logoLicense: null | string;
-  logoLicenseUrl: null | string;
-  logoUrl: null | string;
+  countryCode: Nullable<string>;
+  foundedYear: Nullable<number>;
+  logoAttribution: Nullable<string>;
+  logoLicense: Nullable<string>;
+  logoLicenseUrl: Nullable<string>;
+  logoUrl: Nullable<string>;
   name: string;
   names: PublisherNameSeed[];
   normalizedName: string;
   searchText: string;
   userId: null;
-  websiteUrl: null | string;
+  websiteUrl: Nullable<string>;
   wikidataId: string;
 };
 
 export type WikidataPublisherRow = {
-  aliasEn: null | string;
-  aliasRu: null | string;
-  aliasUk: null | string;
-  countryCode: null | string;
-  inception: null | string;
-  labelEn: null | string;
-  labelUk: null | string;
-  logo: null | string;
-  website: null | string;
+  aliasEn: Nullable<string>;
+  aliasRu: Nullable<string>;
+  aliasUk: Nullable<string>;
+  countryCode: Nullable<string>;
+  inception: Nullable<string>;
+  labelEn: Nullable<string>;
+  labelUk: Nullable<string>;
+  logo: Nullable<string>;
+  website: Nullable<string>;
   wikidataId: string;
 };
 
 const ISO_YEAR = /^-?\d{4,}/;
 const ALIAS_SEPARATOR = "|";
 
-export function mapWikidataPublisherRow(row: WikidataPublisherRow): null | PublisherSeedInput {
+export function mapWikidataPublisherRow(row: WikidataPublisherRow): Nullable<PublisherSeedInput> {
   const labelEn = trimToNull(row.labelEn);
   const labelUk = trimToNull(row.labelUk);
   const canonicalName = labelEn ?? labelUk;
@@ -70,7 +72,7 @@ function addName(
   names: PublisherNameSeed[],
   seen: Set<string>,
   locale: string,
-  label: null | string,
+  label: Nullable<string>,
   isPrimary: boolean,
 ): void {
   const name = trimToNull(label);
@@ -88,8 +90,8 @@ function addName(
 
 function buildNames(
   row: WikidataPublisherRow,
-  labelEn: null | string,
-  labelUk: null | string,
+  labelEn: Nullable<string>,
+  labelUk: Nullable<string>,
 ): PublisherNameSeed[] {
   const names: PublisherNameSeed[] = [];
   const seen = new Set<string>();
@@ -124,7 +126,7 @@ function buildSearchText(names: PublisherNameSeed[]): string {
   return [...tokens].join(" ");
 }
 
-function parseYear(isoDateTime: null | string): null | number {
+function parseYear(isoDateTime: Nullable<string>): Nullable<number> {
   if (isoDateTime === null) {
     return null;
   }
@@ -137,7 +139,7 @@ function parseYear(isoDateTime: null | string): null | number {
   return Number.isNaN(year) ? null : year;
 }
 
-function splitAliases(raw: null | string): string[] {
+function splitAliases(raw: Nullable<string>): string[] {
   if (raw === null) {
     return [];
   }
@@ -147,7 +149,7 @@ function splitAliases(raw: null | string): string[] {
     .filter((alias) => alias.length > 0);
 }
 
-function trimToNull(value: null | string): null | string {
+function trimToNull(value: Nullable<string>): Nullable<string> {
   if (value === null) {
     return null;
   }

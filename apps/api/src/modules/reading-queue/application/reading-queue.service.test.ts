@@ -1,4 +1,4 @@
-import type { BookView } from "@app/shared";
+import type { BookView, Nullable } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -18,7 +18,7 @@ import { ReadingQueueService } from "./reading-queue.service.js";
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const BOOK_ID = "22222222-2222-4222-8222-222222222222";
 
-type QueueRow = { id: string; pagesCount: null | number; queuePosition: null | number };
+type QueueRow = { id: string; pagesCount: Nullable<number>; queuePosition: Nullable<number> };
 
 function buildService(rows: QueueRow[]): {
   listQueue: ReturnType<typeof vi.fn>;
@@ -161,7 +161,7 @@ function buildAddToQueueService(): {
   };
 }
 
-function ownedBook(queuePosition: null | number): BookWithRelations {
+function ownedBook(queuePosition: Nullable<number>): BookWithRelations {
   return { queuePosition } as unknown as BookWithRelations;
 }
 

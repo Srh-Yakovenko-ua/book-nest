@@ -1,4 +1,4 @@
-import type { MoveListBookDirection } from "@app/shared";
+import type { MoveListBookDirection, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -123,7 +123,7 @@ export class ListMembershipRepository {
   async findMembership(
     client: Prisma.TransactionClient,
     { bookId, listId }: ListBookInput,
-  ): Promise<ListMembership | null> {
+  ): Promise<Nullable<ListMembership>> {
     const membership = await client.bookListItem.findUnique({
       select: { bookId: true, position: true },
       where: { listId_bookId: { bookId, listId } },
@@ -145,7 +145,7 @@ export class ListMembershipRepository {
   findNeighbor(
     client: Prisma.TransactionClient,
     { direction, listId, position }: FindNeighborInput,
-  ): Promise<ListMembership | null> {
+  ): Promise<Nullable<ListMembership>> {
     const where =
       direction === "up"
         ? { listId, position: { lt: position } }

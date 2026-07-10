@@ -1,4 +1,4 @@
-import type { MediaView } from "@app/shared";
+import type { MediaView, Nullable } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -69,7 +69,7 @@ function card(overrides: Partial<BookListCard> = {}): BookListCard {
   };
 }
 
-function cardItem(coverMedia: MediaAssetModel | null): BookListCard["items"][number] {
+function cardItem(coverMedia: Nullable<MediaAssetModel>): BookListCard["items"][number] {
   return {
     addedAt: new Date("2026-02-01T10:00:00.000Z"),
     book: { coverMedia },

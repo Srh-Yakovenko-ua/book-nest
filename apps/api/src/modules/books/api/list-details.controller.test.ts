@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { randomUUID } from "node:crypto";
@@ -39,7 +40,7 @@ afterAll(async () => {
 
 type CreateBookInput = {
   firstAuthorName?: string;
-  pagesCount?: null | number;
+  pagesCount?: Nullable<number>;
   readingStatus?: string;
   title?: string;
   userId: string;

@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -9,7 +11,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 export class SettingsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findByUserId(userId: string): Promise<null | UserProfileSettingsModel> {
+  findByUserId(userId: string): Promise<Nullable<UserProfileSettingsModel>> {
     return this.prisma.userProfileSettings.findUnique({ where: { userId } });
   }
 

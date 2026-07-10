@@ -1,4 +1,4 @@
-import type { CreateBookInput, UpdateBookInput } from "@app/shared";
+import type { CreateBookInput, Nullable, UpdateBookInput } from "@app/shared";
 
 import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
@@ -55,12 +55,12 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
 function buildResolver(
   overrides: {
     authorId?: string;
-    findSeriesPartNumberConflict?: null | { id: string; title: string };
+    findSeriesPartNumberConflict?: Nullable<{ id: string; title: string }>;
     listIds?: string[];
     maxQueuePosition?: number;
-    publisherId?: null | string;
+    publisherId?: Nullable<string>;
     seriesId?: string;
-    seriesTotalBooks?: null | number;
+    seriesTotalBooks?: Nullable<number>;
     tagIds?: string[];
   } = {},
 ): {

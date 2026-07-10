@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -10,17 +12,17 @@ const primaryNamesArgs = {
 } satisfies Prisma.PublisherDefaultArgs;
 
 export type CreateGlobalPublisherData = {
-  countryCode: null | string;
-  foundedYear: null | number;
-  logoAttribution: null | string;
-  logoLicense: null | string;
-  logoLicenseUrl: null | string;
-  logoUrl: null | string;
+  countryCode: Nullable<string>;
+  foundedYear: Nullable<number>;
+  logoAttribution: Nullable<string>;
+  logoLicense: Nullable<string>;
+  logoLicenseUrl: Nullable<string>;
+  logoUrl: Nullable<string>;
   name: string;
   normalizedName: string;
   searchText: string;
-  websiteUrl: null | string;
-  wikidataId: null | string;
+  websiteUrl: Nullable<string>;
+  wikidataId: Nullable<string>;
 };
 
 export type PublisherNameSeed = {
@@ -77,7 +79,7 @@ export class PublishersRepository {
     userId: string,
     normalizedName: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | PublisherModel> {
+  ): Promise<Nullable<PublisherModel>> {
     return client.publisher.findFirst({
       where: { normalizedName, OR: [{ userId: null }, { userId }] },
     });
@@ -87,7 +89,7 @@ export class PublishersRepository {
     userId: string,
     id: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | PublisherModel> {
+  ): Promise<Nullable<PublisherModel>> {
     return client.publisher.findFirst({
       where: { id, OR: [{ userId: null }, { userId }] },
     });

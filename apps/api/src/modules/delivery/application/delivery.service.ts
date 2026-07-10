@@ -9,6 +9,7 @@ import type {
   DeliveryListItemView,
   DeliveryStatisticsQuery,
   DeliveryStatisticsView,
+  Nullable,
   Paginator,
 } from "@app/shared";
 
@@ -276,7 +277,7 @@ export class DeliveryService {
   }
 }
 
-function countUniqueStores(storeNames: (null | string)[]): number {
+function countUniqueStores(storeNames: Nullable<string>[]): number {
   const normalized = new Set<string>();
   for (const storeName of storeNames) {
     if (storeName === null) {

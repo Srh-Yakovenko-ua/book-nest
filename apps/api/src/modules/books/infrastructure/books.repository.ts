@@ -59,32 +59,32 @@ export type BookWithRelations = Prisma.BookGetPayload<{
 }>;
 
 export type CreateLoanInfoData = {
-  contact: null | string;
-  expectedReturnDate: Date | null;
-  loanDate: Date | null;
-  note: null | string;
+  contact: Nullable<string>;
+  expectedReturnDate: Nullable<Date>;
+  loanDate: Nullable<Date>;
+  note: Nullable<string>;
   personName: string;
   remindToReturn: boolean;
 };
 
 export type CreatePurchaseInfoData = {
-  currency: null | string;
-  expectedPrice: null | number;
-  note: null | string;
-  storeName: null | string;
-  storeUrl: null | string;
+  currency: Nullable<string>;
+  expectedPrice: Nullable<number>;
+  note: Nullable<string>;
+  storeName: Nullable<string>;
+  storeUrl: Nullable<string>;
 };
 
 export type CreateReadingProgressData = {
-  abandonedAt: Date | null;
-  currentPage: null | number;
-  finishedAt: Date | null;
-  impression: null | string;
-  lastProgressUpdateAt: Date | null;
-  note: null | string;
-  pausedAt: Date | null;
-  rating: null | number;
-  startedAt: Date | null;
+  abandonedAt: Nullable<Date>;
+  currentPage: Nullable<number>;
+  finishedAt: Nullable<Date>;
+  impression: Nullable<string>;
+  lastProgressUpdateAt: Nullable<Date>;
+  note: Nullable<string>;
+  pausedAt: Nullable<Date>;
+  rating: Nullable<number>;
+  startedAt: Nullable<Date>;
 };
 
 export type DeliveryBlockChange =
@@ -135,7 +135,7 @@ export type OwnershipChangePatch = {
 };
 
 export type OwnershipPurchaseInfoPatch = Partial<CreatePurchaseInfoData> & {
-  purchasedAt?: Date | null;
+  purchasedAt?: Nullable<Date>;
 };
 
 export type QueueRemoval = {
@@ -148,10 +148,10 @@ export type ReadingChangePatch = {
 };
 
 export type UpdateActiveLoanData = {
-  contact: null | string;
-  expectedReturnDate: Date | null;
-  loanDate: Date | null;
-  note: null | string;
+  contact: Nullable<string>;
+  expectedReturnDate: Nullable<Date>;
+  loanDate: Nullable<Date>;
+  note: Nullable<string>;
   personName: string;
   remindToReturn: boolean;
 };
@@ -163,7 +163,7 @@ export type UpdateBookData = {
   listIds?: string[];
   loanInfo: LoanBlockChange;
   purchaseInfo: BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData>;
-  queueRemoval: null | QueueRemoval;
+  queueRemoval: Nullable<QueueRemoval>;
   readingProgress: BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData>;
   tagIds?: string[];
 };
@@ -186,35 +186,35 @@ type BlockDelegate<TCreate, TUpdate> = {
 type CreateBookData = {
   ageCategory: string;
   authorIds: string[];
-  coverMediaId: null | string;
-  dedication: null | string;
-  deliveryInfo: CreateDeliveryData | null;
-  description: null | string;
-  favoriteAddedAt: Date | null;
+  coverMediaId: Nullable<string>;
+  dedication: Nullable<string>;
+  deliveryInfo: Nullable<CreateDeliveryData>;
+  description: Nullable<string>;
+  favoriteAddedAt: Nullable<Date>;
   firstAuthorName: string;
   formats: string[];
   genres: string[];
-  illustrator: null | string;
-  isbn: null | string;
+  illustrator: Nullable<string>;
+  isbn: Nullable<string>;
   isFavorite: boolean;
   language: string;
   listIds: string[];
-  loanInfo: CreateLoanInfoData | null;
-  originalTitle: null | string;
+  loanInfo: Nullable<CreateLoanInfoData>;
+  originalTitle: Nullable<string>;
   ownershipStatus: string;
-  pagesCount: null | number;
-  partNumber: null | number;
-  publicationYear: null | number;
-  publisherId: null | string;
-  purchaseInfo: CreatePurchaseInfoData | null;
-  queuePosition: null | number;
-  queuePriority: null | string;
-  readingProgress: CreateReadingProgressData | null;
+  pagesCount: Nullable<number>;
+  partNumber: Nullable<number>;
+  publicationYear: Nullable<number>;
+  publisherId: Nullable<string>;
+  purchaseInfo: Nullable<CreatePurchaseInfoData>;
+  queuePosition: Nullable<number>;
+  queuePriority: Nullable<string>;
+  readingProgress: Nullable<CreateReadingProgressData>;
   readingStatus: string;
-  seriesId: null | string;
+  seriesId: Nullable<string>;
   tagIds: string[];
   title: string;
-  translator: null | string;
+  translator: Nullable<string>;
 };
 
 @Injectable()
@@ -444,7 +444,7 @@ export class BooksRepository {
     return { averageRating: ratingAggregate._avg.rating, finished, reading, total };
   }
 
-  findOwnedById(userId: string, id: string): Promise<BookWithRelations | null> {
+  findOwnedById(userId: string, id: string): Promise<Nullable<BookWithRelations>> {
     return this.prisma.book.findFirst({
       include: withRelations,
       where: { id, userId },
@@ -464,7 +464,7 @@ export class BooksRepository {
     userId: string,
     { excludeBookId, partNumber, seriesId }: SeriesPartNumberQuery,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | SeriesPartNumberConflict> {
+  ): Promise<Nullable<SeriesPartNumberConflict>> {
     return client.book.findFirst({
       select: { id: true, title: true },
       where: {
@@ -729,7 +729,7 @@ type SeriesPartNumberConflict = {
 };
 
 type SeriesPartNumberQuery = {
-  excludeBookId: null | string;
+  excludeBookId: Nullable<string>;
   partNumber: number;
   seriesId: string;
 };

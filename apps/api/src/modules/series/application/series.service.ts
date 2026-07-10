@@ -1,6 +1,7 @@
 import type {
   BookAuthorReference,
   NewSeriesInput,
+  Nullable,
   Paginator,
   SeriesDetailsView,
   SeriesOverviewView,
@@ -46,7 +47,7 @@ type DecoratedSeries = {
 
 type ResolvedSeries = {
   id: string;
-  totalBooks: null | number;
+  totalBooks: Nullable<number>;
 };
 
 type ResolveSeriesAuthorIdsInput = {

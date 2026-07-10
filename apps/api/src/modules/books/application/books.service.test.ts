@@ -1,4 +1,4 @@
-import type { CreateBookInput, FavoritesSummaryView, UpdateBookInput } from "@app/shared";
+import type { CreateBookInput, FavoritesSummaryView, Nullable, UpdateBookInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -103,7 +103,7 @@ function buildService(
     create?: BookWithRelations;
     deleteOwned?: number;
     favoritesSummary?: FavoritesSummaryView;
-    findOwnedById?: BookWithRelations | null;
+    findOwnedById?: Nullable<BookWithRelations>;
     listForLibrary?: BookWithRelations[];
     recentPurchaseStores?: string[];
     updateOwned?: BookWithRelations;

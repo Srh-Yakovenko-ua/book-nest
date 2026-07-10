@@ -1,4 +1,4 @@
-import type { CreateBookInput, QueuePriority, UpdateBookInput } from "@app/shared";
+import type { CreateBookInput, Nullable, QueuePriority, UpdateBookInput } from "@app/shared";
 
 import {
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
@@ -31,11 +31,11 @@ export type ResolvedBookCreate = {
   authorIds: string[];
   firstAuthorName: string;
   listIds: string[];
-  partNumber: null | number;
-  publisherId: null | string;
-  queuePosition: null | number;
-  queuePriority: null | QueuePriority;
-  seriesId: null | string;
+  partNumber: Nullable<number>;
+  publisherId: Nullable<string>;
+  queuePosition: Nullable<number>;
+  queuePriority: Nullable<QueuePriority>;
+  seriesId: Nullable<string>;
   tagIds: string[];
 };
 
@@ -43,19 +43,19 @@ export type ResolvedBookUpdate = {
   authorIds: string[] | undefined;
   fields: Prisma.BookUncheckedUpdateManyInput;
   listIds: string[] | undefined;
-  queueRemoval: null | QueueRemoval;
+  queueRemoval: Nullable<QueueRemoval>;
   seriesPlacement: SeriesPlacement;
   tagIds: string[] | undefined;
 };
 
 export type SeriesPlacement = {
-  partNumber: null | number;
-  seriesId: null | string;
+  partNumber: Nullable<number>;
+  seriesId: Nullable<string>;
 };
 
 type QueuePlacement = {
-  queuePosition: null | number;
-  queuePriority: null | QueuePriority;
+  queuePosition: Nullable<number>;
+  queuePriority: Nullable<QueuePriority>;
 };
 
 @Injectable()
@@ -78,7 +78,7 @@ export class BookRelationsResolver {
     userId,
   }: {
     error: unknown;
-    excludeBookId: null | string;
+    excludeBookId: Nullable<string>;
     placement: SeriesPlacement;
     userId: string;
   }): Promise<unknown> {
@@ -279,7 +279,7 @@ export class BookRelationsResolver {
       userId: string;
     },
     client?: Prisma.TransactionClient,
-  ): Promise<null | QueueRemoval> {
+  ): Promise<Nullable<QueueRemoval>> {
     const isQueued = current.queuePosition !== null;
 
     if (input.addToReadingQueue === false) {
@@ -356,8 +356,8 @@ export class BookRelationsResolver {
     partNumber,
     totalBooks,
   }: {
-    partNumber: null | number;
-    totalBooks: null | number;
+    partNumber: Nullable<number>;
+    totalBooks: Nullable<number>;
   }): void {
     if (totalBooks === null || partNumber === null) {
       return;
@@ -375,7 +375,7 @@ export class BookRelationsResolver {
       placement,
       userId,
     }: {
-      excludeBookId: null | string;
+      excludeBookId: Nullable<string>;
       placement: SeriesPlacement;
       userId: string;
     },
@@ -424,7 +424,7 @@ export class BookRelationsResolver {
     conflict,
     partNumber,
   }: {
-    conflict: null | { id: string; title: string };
+    conflict: Nullable<{ id: string; title: string }>;
     partNumber: number;
   }): BadRequestError {
     return new BadRequestError(DUPLICATE_PART_NUMBER_MESSAGE, {

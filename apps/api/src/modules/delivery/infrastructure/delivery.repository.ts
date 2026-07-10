@@ -4,6 +4,7 @@ import type {
   DeliveryHistoryTab,
   DeliveryInTransitFilter,
   DeliveryInTransitSort,
+  Nullable,
 } from "@app/shared";
 
 import { CurrencySchema, DELIVERY_ACTIVE_STATUSES, DeliveryStatusSchema } from "@app/shared";
@@ -64,7 +65,7 @@ export type HistorySummaryData = {
 };
 
 export type InTransitCurrencyTotal = {
-  currency: null | string;
+  currency: Nullable<string>;
   total: number;
 };
 
@@ -85,7 +86,7 @@ export type InTransitSummaryData = {
   currencyTotals: InTransitCurrencyTotal[];
   delayedCount: number;
   expectedThisWeek: number;
-  storeNames: (null | string)[];
+  storeNames: Nullable<string>[];
 };
 
 export type StatisticsFilterInput = {

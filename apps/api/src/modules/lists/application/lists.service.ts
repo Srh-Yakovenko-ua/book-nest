@@ -3,6 +3,7 @@ import type {
   CustomListsQuery,
   MediaView,
   NewListInput,
+  Nullable,
   Paginator,
   UpdateListInput,
 } from "@app/shared";
@@ -28,7 +29,7 @@ const log = createLogger("lists.service");
 export type ListDetailHeader = {
   bookCount: number;
   createdAt: string;
-  description: null | string;
+  description: Nullable<string>;
   id: string;
   name: string;
   updatedAt: string;

@@ -22,6 +22,7 @@ import {
   createPaginatedSchema,
   LIST_PAGE_SIZE_MAX,
   noHtmlTags,
+  type Nullable,
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
@@ -303,8 +304,8 @@ export type MarkBoughtInput = z.infer<typeof MarkBoughtInputSchema>;
 const DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE = "Expected delivery cannot be before the order date";
 
 const isExpectedNotBeforeOrder = (value: {
-  expectedDeliveryDate?: null | string;
-  orderDate?: null | string;
+  expectedDeliveryDate?: Nullable<string>;
+  orderDate?: Nullable<string>;
 }): boolean =>
   value.orderDate === undefined ||
   value.orderDate === null ||
@@ -411,8 +412,8 @@ const RETURN_BEFORE_LOAN_MESSAGE = "Expected return cannot be before the loan da
 const REMINDER_NEEDS_RETURN_DATE_MESSAGE = "Select a return date for the reminder";
 
 const isReturnNotBeforeLoan = (value: {
-  expectedReturnDate?: null | string;
-  loanDate?: null | string;
+  expectedReturnDate?: Nullable<string>;
+  loanDate?: Nullable<string>;
 }): boolean =>
   value.loanDate === undefined ||
   value.loanDate === null ||

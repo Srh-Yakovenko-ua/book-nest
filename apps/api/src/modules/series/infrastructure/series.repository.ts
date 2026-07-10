@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -7,12 +9,12 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 export type CreateSeriesData = {
-  description: null | string;
+  description: Nullable<string>;
   genres: string[];
   name: string;
   normalizedName: string;
   status: string;
-  totalBooks: null | number;
+  totalBooks: Nullable<number>;
 };
 
 export type UpdateSeriesData = {
@@ -130,7 +132,7 @@ export class SeriesRepository {
     userId: string,
     normalizedName: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | SeriesModel> {
+  ): Promise<Nullable<SeriesModel>> {
     return client.series.findFirst({ where: { normalizedName, userId } });
   }
 
@@ -138,15 +140,15 @@ export class SeriesRepository {
     userId: string,
     id: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | SeriesModel> {
+  ): Promise<Nullable<SeriesModel>> {
     return client.series.findFirst({ where: { id, userId } });
   }
 
-  findOwnedDetailsById(userId: string, id: string): Promise<null | SeriesWithDetails> {
+  findOwnedDetailsById(userId: string, id: string): Promise<Nullable<SeriesWithDetails>> {
     return this.prisma.series.findFirst({ where: { id, userId }, ...seriesDetailsArgs });
   }
 
-  findOwnedWithCountById(userId: string, id: string): Promise<null | SeriesWithBookCount> {
+  findOwnedWithCountById(userId: string, id: string): Promise<Nullable<SeriesWithBookCount>> {
     return this.prisma.series.findFirst({ where: { id, userId }, ...seriesWithBookCountArgs });
   }
 

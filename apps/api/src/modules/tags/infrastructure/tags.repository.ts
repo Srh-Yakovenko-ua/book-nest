@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -39,7 +41,7 @@ export class TagsRepository {
     userId: string,
     normalizedName: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | TagModel> {
+  ): Promise<Nullable<TagModel>> {
     return client.tag.findFirst({ where: { normalizedName, userId } });
   }
 

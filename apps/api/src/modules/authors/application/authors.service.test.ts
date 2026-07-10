@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { AuthorModel } from "../../../generated/prisma/models.js";
@@ -60,8 +62,8 @@ function authorWithNames(overrides: Partial<AuthorWithPrimaryNames> = {}): Autho
 }
 
 function buildService(overrides: {
-  findByNormalized?: AuthorModel | null;
-  findVisibleById?: AuthorModel | null;
+  findByNormalized?: Nullable<AuthorModel>;
+  findVisibleById?: Nullable<AuthorModel>;
   searchVisible?: AuthorWithPrimaryNames[];
   upsertByNormalized?: AuthorModel | Error;
 }): {
@@ -310,12 +312,12 @@ function authorDetail(overrides: Partial<OpenLibraryAuthorDetail> = {}): OpenLib
 
 function buildMaterializeService(overrides: {
   createGlobal?: AuthorModel | Error;
-  detail?: null | OpenLibraryAuthorDetail;
-  facts?: null | WikidataAuthorFacts;
-  findGlobal?: AuthorModel | null;
-  findGlobalByNormalizedName?: AuthorModel | null;
-  findGlobalByWikidataId?: AuthorModel | null;
-  findGlobalRetry?: AuthorModel | null;
+  detail?: Nullable<OpenLibraryAuthorDetail>;
+  facts?: Nullable<WikidataAuthorFacts>;
+  findGlobal?: Nullable<AuthorModel>;
+  findGlobalByNormalizedName?: Nullable<AuthorModel>;
+  findGlobalByWikidataId?: Nullable<AuthorModel>;
+  findGlobalRetry?: Nullable<AuthorModel>;
 }): {
   createGlobal: ReturnType<typeof vi.fn>;
   findGlobalByNormalizedName: ReturnType<typeof vi.fn>;
@@ -520,8 +522,8 @@ describe("AuthorsService.materializeFromOpenLibrary", () => {
 
 function buildReferencesService(overrides: {
   findBaseByIds?: { id: string; name: string }[];
-  findByNormalized?: AuthorModel | null;
-  findGlobalByOpenLibraryKey?: AuthorModel | null;
+  findByNormalized?: Nullable<AuthorModel>;
+  findGlobalByOpenLibraryKey?: Nullable<AuthorModel>;
 }): {
   findBaseByIds: ReturnType<typeof vi.fn>;
   service: AuthorsService;

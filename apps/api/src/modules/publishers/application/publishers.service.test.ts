@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { PublisherModel } from "../../../generated/prisma/models.js";
@@ -14,8 +16,8 @@ const PUBLISHER_ID = "22222222-2222-4222-8222-222222222222";
 const GLOBAL_ID = "33333333-3333-4333-8333-333333333333";
 
 function buildService(overrides: {
-  findByNormalized?: null | PublisherModel;
-  findVisibleById?: null | PublisherModel;
+  findByNormalized?: Nullable<PublisherModel>;
+  findVisibleById?: Nullable<PublisherModel>;
   findVisibleByIds?: PublisherWithPrimaryNames[];
   recentPublisherIds?: string[];
   searchVisible?: PublisherWithPrimaryNames[];

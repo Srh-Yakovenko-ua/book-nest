@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -68,7 +69,7 @@ function seedPublisher(input: {
   names?: { isPrimary: boolean; locale: string; name: string; normalizedName: string }[];
   normalizedName: string;
   searchText?: string;
-  userId?: null | string;
+  userId?: Nullable<string>;
 }): Promise<{ id: string }> {
   return prisma.publisher.create({
     data: {

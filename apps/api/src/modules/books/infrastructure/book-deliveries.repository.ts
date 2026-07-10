@@ -9,17 +9,17 @@ import type { BookDeliveryModel } from "../../../generated/prisma/models.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
 export type CreateDeliveryData = {
-  currency: Currency | null;
-  deliveryService: null | string;
-  expectedDeliveryDate: Date | null;
-  note: null | string;
-  orderDate: Date | null;
-  orderNumber: null | string;
-  price: null | number;
+  currency: Nullable<Currency>;
+  deliveryService: Nullable<string>;
+  expectedDeliveryDate: Nullable<Date>;
+  note: Nullable<string>;
+  orderDate: Nullable<Date>;
+  orderNumber: Nullable<string>;
+  price: Nullable<number>;
   status: DeliveryStatus;
-  storeName: null | string;
-  trackingNumber: null | string;
-  trackingUrl: null | string;
+  storeName: Nullable<string>;
+  trackingNumber: Nullable<string>;
+  trackingUrl: Nullable<string>;
 };
 
 export type CreateDeliveryOutcome = "book-not-found" | "created";
@@ -38,19 +38,19 @@ export type RecordDeliveryTransition = {
 
 export type UpdateDeliveryData = {
   cancelledAt?: Date;
-  cancelReason?: null | string;
-  currency?: Currency | null;
-  deliveryService?: null | string;
-  expectedDeliveryDate?: Date | null;
-  note?: null | string;
-  orderDate?: Date | null;
-  orderNumber?: null | string;
-  price?: null | number;
+  cancelReason?: Nullable<string>;
+  currency?: Nullable<Currency>;
+  deliveryService?: Nullable<string>;
+  expectedDeliveryDate?: Nullable<Date>;
+  note?: Nullable<string>;
+  orderDate?: Nullable<Date>;
+  orderNumber?: Nullable<string>;
+  price?: Nullable<number>;
   receivedAt?: Date;
   status?: DeliveryStatus;
-  storeName?: null | string;
-  trackingNumber?: null | string;
-  trackingUrl?: null | string;
+  storeName?: Nullable<string>;
+  trackingNumber?: Nullable<string>;
+  trackingUrl?: Nullable<string>;
 };
 
 type DeliveryBookPatch = { ownershipStatus?: OwnershipStatus };
@@ -128,7 +128,7 @@ export class BookDeliveriesRepository {
   }: {
     bookId: string;
     userId: string;
-  }): Promise<BookDeliveryModel[] | null> {
+  }): Promise<Nullable<BookDeliveryModel[]>> {
     const owned = await this.prisma.book.findFirst({
       select: { id: true },
       where: { id: bookId, userId },
