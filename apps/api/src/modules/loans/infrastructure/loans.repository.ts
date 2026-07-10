@@ -1,4 +1,4 @@
-import type { LoanFilter, LoanSort, LoansSummaryView, LoanType } from "@app/shared";
+import type { LoanFilter, LoanSort, LoanType } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -17,6 +17,15 @@ export type LoansFilterInput = {
   today: Date;
   type: LoanType | undefined;
   userId: string;
+};
+
+export type LoanSummaryCounts = {
+  borrowedCount: number;
+  lentCount: number;
+  overdueCount: number;
+  returnThisWeek: number;
+  withoutReturnDate: number;
+  withReminder: number;
 };
 
 export type LoanWithBook = Prisma.BookLoanGetPayload<typeof loanBookInclude>;
@@ -52,7 +61,7 @@ export class LoansRepository {
     });
   }
 
-  async summary({ today, userId, weekEnd, weekStart }: SummaryInput): Promise<LoansSummaryView> {
+  async summary({ today, userId, weekEnd, weekStart }: SummaryInput): Promise<LoanSummaryCounts> {
     const base: Prisma.BookLoanWhereInput = { status: "active", userId };
 
     const [

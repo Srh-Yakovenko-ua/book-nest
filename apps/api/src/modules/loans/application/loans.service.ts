@@ -61,9 +61,18 @@ export class LoansService {
     });
   }
 
-  summary({ userId }: { userId: string }): Promise<LoansSummaryView> {
+  async summary({ userId }: { userId: string }): Promise<LoansSummaryView> {
     const { today, weekEnd, weekStart } = loanDateBounds(new Date());
-    return this.loansRepository.summary({ today, userId, weekEnd, weekStart });
+    const counts = await this.loansRepository.summary({ today, userId, weekEnd, weekStart });
+
+    return {
+      borrowedCount: counts.borrowedCount,
+      lentCount: counts.lentCount,
+      overdueCount: counts.overdueCount,
+      returnThisWeek: counts.returnThisWeek,
+      withoutReturnDate: counts.withoutReturnDate,
+      withReminder: counts.withReminder,
+    };
   }
 
   private coverViewOf(coverMedia: LoanWithBook["book"]["coverMedia"]): LoanBookPreview["cover"] {
