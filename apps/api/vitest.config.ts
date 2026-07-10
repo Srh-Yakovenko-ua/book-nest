@@ -1,4 +1,7 @@
+import { availableParallelism } from "node:os";
 import { defineConfig } from "vitest/config";
+
+const maxWorkers = Math.min(6, Math.max(2, availableParallelism()));
 
 const testDefaults = {
   CORS_ORIGINS: "http://localhost:5173",
@@ -25,12 +28,15 @@ export default defineConfig({
     clearMocks: true,
     env: testEnv,
     environment: "node",
-    fileParallelism: false,
+    fileParallelism: true,
     globals: false,
     globalSetup: ["./src/test/global-setup.ts"],
     include: ["src/**/*.{test,spec,e2e-spec}.ts"],
+    maxWorkers,
+    minWorkers: 1,
     pool: "forks",
     restoreMocks: true,
+    retry: 2,
     setupFiles: ["./src/test/setup.ts"],
     testTimeout: 15000,
   },
