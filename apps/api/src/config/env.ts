@@ -79,6 +79,15 @@ const envSchema = z
     WEB_BASE_URL: z.string().url().default("http://localhost:3000"),
     WIKIDATA_CONTACT: z.string().default("book-nest/1.0 (+https://book-nest.net)"),
   })
+  .superRefine((raw, ctx) => {
+    if (raw.NODE_ENV === "production" && !raw.COOKIE_SECURE) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "COOKIE_SECURE must be true when NODE_ENV=production",
+        path: ["COOKIE_SECURE"],
+      });
+    }
+  })
   .transform((raw) => ({
     accessTokenTtl: raw.ACCESS_TOKEN_TTL,
     cookieSecure: raw.COOKIE_SECURE,

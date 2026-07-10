@@ -33,11 +33,21 @@ describe("GET /api/health", () => {
     expect(res.headers["x-request-id"]).toBeDefined();
   });
 
-  it("propagates incoming x-request-id", async () => {
+  it("propagates a valid incoming x-request-id", async () => {
+    const incoming = "11111111-2222-4333-8444-555555555555";
+    const res = await request(app.getHttpServer()).get("/api/health").set("x-request-id", incoming);
+
+    expect(res.headers["x-request-id"]).toBe(incoming);
+  });
+
+  it("replaces a non-uuid incoming x-request-id with a generated one", async () => {
     const res = await request(app.getHttpServer())
       .get("/api/health")
       .set("x-request-id", "test-id-123");
 
-    expect(res.headers["x-request-id"]).toBe("test-id-123");
+    expect(res.headers["x-request-id"]).not.toBe("test-id-123");
+    expect(res.headers["x-request-id"]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
   });
 });
