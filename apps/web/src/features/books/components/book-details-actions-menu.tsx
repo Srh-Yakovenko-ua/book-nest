@@ -18,12 +18,12 @@ import {
 import { Link, useRouter } from "@/i18n/navigation";
 
 import { useDeleteBook } from "../api/use-book-actions";
+import { useReadingQueuePosition } from "../api/use-reading-queue";
+import { useRemoveFromQueueWithUndo } from "../model/use-remove-from-queue-with-undo";
 import { AddToQueueDialog } from "./add-to-queue-dialog";
 import { BookListMembershipDialog } from "./book-list-membership-dialog";
-import { ChangeQueuePriorityDialog } from "./change-queue-priority-dialog";
 import { ChangeReadingStatusDialog } from "./change-reading-status-dialog";
 import { DeleteBookDialog } from "./delete-book-dialog";
-import { RemoveFromQueueDialog } from "./remove-from-queue-dialog";
 
 type BookDetailsActionsMenuProps = {
   book: BookView;
@@ -36,13 +36,13 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
   const router = useRouter();
 
   const deleteBook = useDeleteBook();
+  const position = useReadingQueuePosition(book);
+  const removeFromQueue = useRemoveFromQueueWithUndo();
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addQueueOpen, setAddQueueOpen] = useState(false);
-  const [priorityOpen, setPriorityOpen] = useState(false);
-  const [removeQueueOpen, setRemoveQueueOpen] = useState(false);
 
   function onConfirmDelete() {
     deleteBook.mutate(book.id, {
@@ -79,16 +79,13 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
           </DropdownMenuItem>
 
           {book.isInReadingQueue ? (
-            <>
-              <DropdownMenuItem onSelect={() => setPriorityOpen(true)}>
-                <UiIcon name="sliders" size={16} />
-                {t("changePriority")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setRemoveQueueOpen(true)}>
-                <UiIcon name="bookmark" size={16} />
-                {t("removeFromQueue")}
-              </DropdownMenuItem>
-            </>
+            <DropdownMenuItem
+              disabled={removeFromQueue.isPending}
+              onSelect={() => removeFromQueue.remove(book.id, position)}
+            >
+              <UiIcon name="bookmark" size={16} />
+              {t("removeFromQueue")}
+            </DropdownMenuItem>
           ) : (
             <DropdownMenuItem onSelect={() => setAddQueueOpen(true)}>
               <UiIcon name="bookmark" size={16} />
@@ -112,8 +109,6 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
 
       <ChangeReadingStatusDialog book={book} onOpenChange={setStatusOpen} open={statusOpen} />
       <AddToQueueDialog book={book} onOpenChange={setAddQueueOpen} open={addQueueOpen} />
-      <ChangeQueuePriorityDialog book={book} onOpenChange={setPriorityOpen} open={priorityOpen} />
-      <RemoveFromQueueDialog book={book} onOpenChange={setRemoveQueueOpen} open={removeQueueOpen} />
       <BookListMembershipDialog bookId={book.id} onOpenChange={setListOpen} open={listOpen} />
       <DeleteBookDialog
         cancelLabel={tConfirm("cancel")}

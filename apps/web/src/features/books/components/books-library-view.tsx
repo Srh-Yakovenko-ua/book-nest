@@ -44,7 +44,7 @@ type ActiveCover = {
 type BooksLibraryViewProps = {
   actions: LibraryActions;
   activeFilters?: ReactNode;
-  addBookLabel: string;
+  addBookLabel?: string;
   advancedFilters?: ReactNode;
   allShownLabel: string;
   books: LibraryBook[];
@@ -66,7 +66,7 @@ type BooksLibraryViewProps = {
   loadMoreLabel: string;
   noFilteredResultsState: EmptyStateEntry;
   noSearchResultsState: EmptyStateEntry;
-  onAddBook: () => void;
+  onAddBook?: () => void;
   onClearAll: () => void;
   onClearFilters: () => void;
   onClearSearch: () => void;
@@ -84,6 +84,7 @@ type BooksLibraryViewProps = {
   summaryCards: LibrarySummaryCard[];
   summaryLoading: boolean;
   title: string;
+  titleBadge?: ReactNode;
   view: LibraryViewMode;
   viewLabels: ViewLabels;
 };
@@ -118,6 +119,7 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     summaryCards,
     summaryLoading,
     title,
+    titleBadge,
   } = props;
 
   const t = useTranslations("books.library");
@@ -146,15 +148,20 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
       <header className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-1">
-            <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
-              {title}
-            </h1>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
+                {title}
+              </h1>
+              {titleBadge}
+            </div>
             <p className="text-sm text-muted-foreground">{subtitle}</p>
           </div>
-          <Button className="self-start sm:self-auto" onClick={onAddBook}>
-            <UiIcon name="plus" size={16} />
-            {addBookLabel}
-          </Button>
+          {onAddBook && addBookLabel ? (
+            <Button className="self-start sm:self-auto" onClick={onAddBook}>
+              <UiIcon name="plus" size={16} />
+              {addBookLabel}
+            </Button>
+          ) : null}
         </div>
 
         <LibrarySummaryCards cards={summaryCards} isLoading={summaryLoading} />

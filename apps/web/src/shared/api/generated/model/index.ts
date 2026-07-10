@@ -315,6 +315,7 @@ export * from "./seriesDetailsViewDto";
 export * from "./seriesDetailsViewDtoAuthorsItem";
 export * from "./seriesDetailsViewDtoBooksItem";
 export * from "./seriesDetailsViewDtoBooksItemAuthorsItem";
+export * from "./seriesDetailsViewDtoBooksItemCover";
 export * from "./seriesDetailsViewDtoBooksItemOwnershipStatus";
 export * from "./seriesDetailsViewDtoBooksItemReadingStatus";
 export * from "./seriesDetailsViewDtoNextBook";

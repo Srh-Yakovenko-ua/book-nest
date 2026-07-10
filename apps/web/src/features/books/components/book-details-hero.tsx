@@ -12,7 +12,7 @@ import { GenreIcon, isGenreIconName, UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
-import { queuePriorities, readingStatuses } from "@/lib/book-status";
+import { readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
 import { useToggleFavorite } from "../api/use-book-actions";
@@ -133,10 +133,6 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
     : null;
   const readingBase = readingStatuses.find((entry) => entry.value === book.readingStatus);
   const queuePosition = useReadingQueuePosition(book);
-  const queuePriorityEntry =
-    book.queuePriority === null
-      ? undefined
-      : queuePriorities.find((entry) => entry.value === book.queuePriority);
   const genres = useGenres();
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
 
@@ -199,17 +195,9 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
                     label:
                       queuePosition === null
                         ? t("details.queue.inQueue")
-                        : t("details.queue.badge", { position: queuePosition }),
+                        : t("details.queue.inQueuePosition", { position: queuePosition }),
                     tone: "info",
                     value: "in_queue",
-                  }}
-                />
-              ) : null}
-              {book.isInReadingQueue && book.queuePriority !== null && queuePriorityEntry ? (
-                <StatusBadge
-                  entry={{
-                    ...queuePriorityEntry,
-                    label: t(`organization.priorityLabels.${book.queuePriority}`),
                   }}
                 />
               ) : null}
