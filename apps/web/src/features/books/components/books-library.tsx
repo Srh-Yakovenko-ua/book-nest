@@ -39,7 +39,7 @@ import { LibrarySearchInput } from "./library-search-input";
 import { type LibrarySummaryCard } from "./library-summary-cards";
 import { LibrarySummarySidebar } from "./library-summary-sidebar";
 
-export function BooksLibrary({ scope }: { scope: LibraryScope }) {
+export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorites"> }) {
   const t = useTranslations("books.library");
   const tCover = useTranslations("books.cover");
   const tStatus = useTranslations("books.readingStatus.options");

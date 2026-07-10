@@ -1,16 +1,23 @@
 "use client";
 
+import type { ListBookSort } from "@app/shared";
+
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
 import { useListDetail } from "../api/use-list-detail";
+import { LIST_BOOK_SORT_DEFAULT } from "../model/list-book-sort";
 import { ListDetailsView } from "./list-details-view";
+
+const SEARCH_DEBOUNCE_MS = 250;
 
 type ListDetailsProps = {
   id: string;
@@ -19,8 +26,12 @@ type ListDetailsProps = {
 export function ListDetails({ id }: ListDetailsProps) {
   const t = useTranslations("lists.details.states");
   const router = useRouter();
-  const { data, error, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } =
-    useListDetail(id);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<ListBookSort>(LIST_BOOK_SORT_DEFAULT);
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
+
+  const { data, error, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, isPending } =
+    useListDetail(id, { search: debouncedSearch, sort });
 
   if (isPending) {
     return (
@@ -29,8 +40,9 @@ export function ListDetails({ id }: ListDetailsProps) {
         <div className="flex flex-col gap-3">
           <Skeleton className="h-9 w-64 rounded-lg" />
           <Skeleton className="h-5 w-full max-w-xl rounded-md" />
-          <Skeleton className="h-4 w-24 rounded-md" />
+          <Skeleton className="h-4 w-48 rounded-md" />
         </div>
+        <Skeleton className="h-10 w-full rounded-md" />
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(19rem,1fr))]">
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton className="h-44 w-full rounded-xl" key={index} />
@@ -63,7 +75,7 @@ export function ListDetails({ id }: ListDetailsProps) {
             {isNotFound ? t("notFoundDescription") : t("errorDescription")}
           </p>
         </div>
-        <Button onClick={() => router.push("/my-library")} variant="secondary">
+        <Button onClick={() => router.push("/lists")} variant="secondary">
           <UiIcon name="arrow-left" size={16} />
           {t("back")}
         </Button>
@@ -74,11 +86,18 @@ export function ListDetails({ id }: ListDetailsProps) {
   return (
     <ListDetailsView
       hasNextPage={hasNextPage}
+      id={id}
+      isFetching={isFetching}
       isFetchingNextPage={isFetchingNextPage}
+      onClearSearch={() => setSearch("")}
       onLoadMore={() => {
         void fetchNextPage();
       }}
+      onSearchChange={setSearch}
+      onSortChange={setSort}
       pages={data.pages}
+      search={search}
+      sort={sort}
     />
   );
 }

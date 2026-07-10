@@ -12,6 +12,7 @@ import type {
 } from "./library-query";
 
 import {
+  favoritesQueryParsers,
   hasActiveLibraryFilters,
   hasActiveLibrarySearch,
   LIBRARY_FILTERS_RESET,
@@ -36,7 +37,9 @@ export type UseLibraryQueryResult = {
 };
 
 export function useLibraryQuery(scope: LibraryScope): UseLibraryQueryResult {
-  const [state, setState] = useQueryStates(libraryQueryParsers);
+  const parsers: typeof libraryQueryParsers =
+    scope === "favorites" ? favoritesQueryParsers : libraryQueryParsers;
+  const [state, setState] = useQueryStates(parsers);
 
   return {
     clearAll: () => void setState({ q: null, ...LIBRARY_FILTERS_RESET }),

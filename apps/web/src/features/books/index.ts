@@ -10,6 +10,7 @@ export { BooksLibraryView } from "./components/books-library-view";
 export { BooksToBuyView } from "./components/books-to-buy-view";
 export { CreateBookForm } from "./components/create-book-form";
 export { EditBookForm } from "./components/edit-book-form";
+export { FavoritesView } from "./components/favorites-view";
 export { FormSection } from "./components/form-section";
 export { GenresField } from "./components/genres-field";
 export { HomeDashboard } from "./components/home-dashboard";

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { SectionCompleteBadge } from "./section-complete-badge";
 
 type FormSectionProps = {
+  action?: ReactNode;
   children: ReactNode;
   className?: string;
   complete?: boolean;
@@ -16,6 +17,7 @@ type FormSectionProps = {
 };
 
 export function FormSection({
+  action,
   children,
   className,
   complete = false,
@@ -31,20 +33,25 @@ export function FormSection({
         className,
       )}
     >
-      <header className="flex items-start gap-3">
-        <span className="relative grid size-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground">
-          <UiIcon name={icon} size={18} />
-          {complete ? <SectionCompleteBadge /> : null}
-        </span>
-        <div className="flex flex-col gap-0.5">
-          <h2 className="font-heading text-base leading-tight font-semibold text-ink">
-            {title}
-            {complete && completeLabel ? <span className="sr-only"> — {completeLabel}</span> : null}
-          </h2>
-          {description === undefined ? null : (
-            <p className="text-sm text-muted-foreground">{description}</p>
-          )}
+      <header className="flex flex-wrap items-start gap-3">
+        <div className="flex min-w-0 grow basis-64 items-start gap-3">
+          <span className="relative grid size-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground">
+            <UiIcon name={icon} size={18} />
+            {complete ? <SectionCompleteBadge /> : null}
+          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h2 className="font-heading text-base leading-tight font-semibold text-ink">
+              {title}
+              {complete && completeLabel ? (
+                <span className="sr-only"> — {completeLabel}</span>
+              ) : null}
+            </h2>
+            {description === undefined ? null : (
+              <p className="text-sm text-muted-foreground">{description}</p>
+            )}
+          </div>
         </div>
+        {action === undefined ? null : <div className="ml-auto shrink-0">{action}</div>}
       </header>
       {children}
     </section>

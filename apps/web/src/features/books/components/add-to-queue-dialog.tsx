@@ -1,13 +1,10 @@
 "use client";
 
-import type { BookView, QueuePriority } from "@app/shared";
+import type { BookView } from "@app/shared";
+import type { FormEvent } from "react";
 
-import { QueuePrioritySchema } from "@app/shared";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,20 +15,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 import { ApiError } from "@/lib/http-client";
 
-import { useAddToReadingQueueWithPriority } from "../api/use-book-actions";
+import { useAddToReadingQueue, useReadingQueue } from "../api/use-reading-queue";
+import { useAddToQueueForm } from "../model/use-add-to-queue-form";
 import { QueueBookPreview } from "./queue-book-preview";
+import { QueuePositionField } from "./queue-position-field";
 
 type AddToQueueDialogProps = {
   book: BookView;
@@ -50,17 +41,14 @@ export function AddToQueueDialog({ book, onOpenChange, open }: AddToQueueDialogP
 }
 
 function AddToQueueForm({ book, onDone }: { book: BookView; onDone: () => void }) {
-  const t = useTranslations("books.details.queue");
-  const tPriority = useTranslations("books.organization.priorityLabels");
+  const t = useTranslations("books.details.queue.addDialog");
+  const tAdd = useTranslations("readingQueue.add");
   const tReading = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
-  const tActions = useTranslations("books.actions");
-  const add = useAddToReadingQueueWithPriority();
-
-  const { control, handleSubmit } = useForm<{ queuePriority: QueuePriority }>({
-    defaultValues: { queuePriority: "normal" },
-    resolver: zodResolver(z.object({ queuePriority: QueuePrioritySchema })),
-  });
+  const queue = useReadingQueue();
+  const queueLength = queue.data?.count ?? 0;
+  const form = useAddToQueueForm(queueLength);
+  const add = useAddToReadingQueue();
 
   const readingEntry = readingStatuses.find((entry) => entry.value === book.readingStatus);
   const ownershipEntry =
@@ -68,29 +56,30 @@ function AddToQueueForm({ book, onDone }: { book: BookView; onDone: () => void }
       ? undefined
       : ownershipStatuses.find((entry) => entry.value === book.ownershipStatus);
 
-  const onSubmit = handleSubmit((values) => {
-    add.mutate(
-      { id: book.id, queuePriority: values.queuePriority },
-      {
-        onError: (error) =>
-          toast.error(
-            error instanceof ApiError && error.status === 409
-              ? t("toast.duplicate")
-              : t("toast.addError"),
-          ),
-        onSuccess: () => {
-          toast.success(t("toast.added"));
-          onDone();
-        },
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const input = form.buildInput(book.id);
+    if (input === null) return;
+    add.mutate(input, {
+      onError: (error) => {
+        if (error instanceof ApiError && error.status === 409) {
+          toast.error(tAdd("duplicateToast"));
+          return;
+        }
+        toast.error(tAdd("errorToast"));
       },
-    );
-  });
+      onSuccess: () => {
+        toast.success(tAdd("successToast"));
+        onDone();
+      },
+    });
+  }
 
   return (
     <form className="flex flex-col gap-5" noValidate onSubmit={onSubmit}>
       <DialogHeader>
-        <DialogTitle>{t("addDialog.title")}</DialogTitle>
-        <DialogDescription>{t("addDialog.description")}</DialogDescription>
+        <DialogTitle>{t("title")}</DialogTitle>
+        <DialogDescription>{t("subtitle")}</DialogDescription>
       </DialogHeader>
 
       <QueueBookPreview book={book}>
@@ -102,34 +91,27 @@ function AddToQueueForm({ book, onDone }: { book: BookView; onDone: () => void }
         )}
       </QueueBookPreview>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="queue-priority">{t("addDialog.priorityLabel")}</Label>
-        <Controller
-          control={control}
-          name="queuePriority"
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value}>
-              <SelectTrigger className="h-10 w-full data-[size=default]:h-10" id="queue-priority">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {QueuePrioritySchema.options.map((priority) => (
-                  <SelectItem key={priority} value={priority}>
-                    {tPriority(priority)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-      </div>
+      <QueuePositionField
+        disabled={queue.isPending}
+        error={form.error}
+        idPrefix="details-add-queue-position"
+        onPlacementChange={form.setPlacement}
+        onPositionChange={form.setPosition}
+        placement={form.placement}
+        position={form.position}
+        queueLength={queueLength}
+      />
 
       <DialogFooter>
-        <Button onClick={onDone} type="button" variant="secondary">
-          {tActions("cancel")}
+        <Button disabled={add.isPending} onClick={onDone} type="button" variant="secondary">
+          {tAdd("cancel")}
         </Button>
-        <Button disabled={add.isPending} loading={add.isPending} type="submit">
-          {t("addDialog.submit")}
+        <Button
+          disabled={add.isPending || queue.isPending}
+          loading={add.isPending || queue.isPending}
+          type="submit"
+        >
+          {add.isPending ? tAdd("submitting") : tAdd("submit")}
         </Button>
       </DialogFooter>
     </form>

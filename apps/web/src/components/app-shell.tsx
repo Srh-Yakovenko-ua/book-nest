@@ -6,10 +6,13 @@ import {
   BookCopy,
   ChevronLeft,
   ChevronRight,
+  HandHelping,
+  Heart,
   Home,
   Layers,
   Library,
   LibraryBig,
+  ListChecks,
   ListOrdered,
   ShoppingBag,
 } from "lucide-react";
@@ -42,17 +45,29 @@ import { cn } from "@/lib/utils";
 
 type NavItem = {
   icon: React.ElementType;
-  key: "allBooks" | "buyList" | "home" | "myLibrary" | "readingQueue" | "series";
+  key:
+    | "allBooks"
+    | "buyList"
+    | "favorites"
+    | "home"
+    | "lists"
+    | "loans"
+    | "myLibrary"
+    | "readingQueue"
+    | "series";
   to: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, key: "home", to: "/" },
   { icon: Library, key: "myLibrary", to: "/my-library" },
+  { icon: Heart, key: "favorites", to: "/favorites" },
   { icon: ListOrdered, key: "readingQueue", to: "/reading-queue" },
   { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
+  { icon: HandHelping, key: "loans", to: "/loans" },
   { icon: BookCopy, key: "series", to: "/series" },
+  { icon: ListChecks, key: "lists", to: "/lists" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

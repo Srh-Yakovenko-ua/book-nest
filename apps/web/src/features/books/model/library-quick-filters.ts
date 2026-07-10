@@ -26,6 +26,13 @@ const QUICK_FILTERS_OUTSIDE_MY_SCOPE: readonly LibraryQuickFilterKey[] = [
   "in_transit",
 ];
 
+const QUICK_FILTERS_OUTSIDE_FAVORITES_SCOPE: readonly LibraryQuickFilterKey[] = [
+  "favorites",
+  "want_to_buy",
+  "in_transit",
+  "borrowed",
+];
+
 export type LibraryQuickFilterPatch = {
   bookType: BooksControllerListBookType | null;
   isFavorite: boolean | null;
@@ -35,6 +42,11 @@ export type LibraryQuickFilterPatch = {
 
 export function quickFilterKeysForScope(scope: LibraryScope): readonly LibraryQuickFilterKey[] {
   if (scope === "all") return LIBRARY_QUICK_FILTER_KEYS;
+  if (scope === "favorites") {
+    return LIBRARY_QUICK_FILTER_KEYS.filter(
+      (key) => !QUICK_FILTERS_OUTSIDE_FAVORITES_SCOPE.includes(key),
+    );
+  }
   return LIBRARY_QUICK_FILTER_KEYS.filter((key) => !QUICK_FILTERS_OUTSIDE_MY_SCOPE.includes(key));
 }
 
