@@ -21,9 +21,41 @@ jobs:
     name: CI
     uses: ./.github/workflows/ci.yml
 
+  changes:
+    name: Detect changed apps
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            shared: &shared
+              - 'packages/shared/**'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'tsconfig.base.json'
+              - 'turbo.json'
+            api:
+              - *shared
+              - 'apps/api/**'
+            web:
+              - *shared
+              - 'apps/web/**'
+
   build-api:
     name: Build API image
-    needs: [ci]
+    needs: [ci, changes]
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -54,7 +86,8 @@ jobs:
 
   build-web:
     name: Build web image
-    needs: [ci]
+    needs: [ci, changes]
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -97,7 +130,8 @@ jobs:
 
   deploy:
     name: Deploy over SSH
-    needs: [build-api, build-web]
+    needs: [ci, build-api, build-web]
+    if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
