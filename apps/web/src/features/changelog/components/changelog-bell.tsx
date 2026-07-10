@@ -74,7 +74,7 @@ export function ChangelogBell() {
           {unreadCount > 0 ? (
             <span
               aria-hidden
-              className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-semibold text-primary-foreground tabular-nums"
+              className="absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-1 text-[9px] leading-none font-semibold text-primary-foreground tabular-nums ring-2 ring-background"
             >
               {unreadCount > UNREAD_DISPLAY_CAP ? `${UNREAD_DISPLAY_CAP}+` : unreadCount}
             </span>
