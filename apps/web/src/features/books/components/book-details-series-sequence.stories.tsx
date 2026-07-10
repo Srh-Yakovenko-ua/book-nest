@@ -1,4 +1,4 @@
-import type { SeriesBookView, SeriesDetailsView, SeriesView } from "@app/shared";
+import type { MediaView, SeriesBookView, SeriesDetailsView, SeriesView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, waitFor } from "storybook/test";
@@ -18,6 +18,24 @@ function currentBook(seriesId: string, partNumber: number, series: SeriesView) {
     partNumber,
     series,
   });
+}
+
+function mockCover(id: string): MediaView {
+  return {
+    contentType: "image/webp",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    height: 1600,
+    id,
+    kind: "book_cover",
+    name: null,
+    sizeBytes: 1000,
+    urls: {
+      card: "https://placehold.co/300x400",
+      full: "https://placehold.co/300x400",
+      thumb: "https://placehold.co/300x400",
+    },
+    width: 1200,
+  };
 }
 
 function mockSeriesDetails(details: SeriesDetailsView) {
@@ -74,18 +92,21 @@ export const KnownTotalWithGaps: Story = {
       makeSeriesDetailsView({
         books: [
           seriesBook({
+            cover: mockCover("cover-known-1"),
             id: `${KNOWN_ID}-current`,
             partNumber: 1,
             readingStatus: "finished",
             title: "Четверте крило",
           }),
           seriesBook({
+            cover: mockCover("cover-known-2"),
             id: "known-2",
             partNumber: 2,
             readingStatus: "reading",
             title: "Ковадло зірок",
           }),
           seriesBook({
+            cover: null,
             id: "known-4",
             partNumber: 4,
             readingStatus: "want_to_read",

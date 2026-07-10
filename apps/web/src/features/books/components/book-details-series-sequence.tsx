@@ -3,6 +3,7 @@
 import type { BookView, ReadingStatus, SeriesBookView, SeriesView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { type ReactNode, useLayoutEffect, useRef } from "react";
 
 import { UiIcon } from "@/components/icons";
@@ -36,6 +37,32 @@ export function BookDetailsSeriesSequence({ book }: { book: BookView }) {
   return <SeriesSequence book={book} series={book.series} />;
 }
 
+function AddedCover({ cover, isCurrent }: { cover: SeriesBookView["cover"]; isCurrent: boolean }) {
+  if (cover === null || cover === undefined) {
+    return (
+      <div
+        className={cn(
+          "grid aspect-[3/4] w-full place-items-center rounded-md bg-accent text-accent-foreground/70 shadow-soft",
+          isCurrent && "border-2 border-brand",
+        )}
+      >
+        <UiIcon aria-hidden name="book" size={26} />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "relative aspect-[3/4] w-full overflow-hidden rounded-md shadow-soft",
+        isCurrent && "border-2 border-brand",
+      )}
+    >
+      <Image alt="" className="object-cover" fill sizes="128px" src={cover.urls.card} unoptimized />
+    </div>
+  );
+}
+
 function AddedSlot({
   book,
   connector,
@@ -53,14 +80,7 @@ function AddedSlot({
     <>
       <div className="relative w-full">
         <Connector tone={connector} />
-        <div
-          className={cn(
-            "grid aspect-[3/4] w-full place-items-center rounded-md bg-accent text-accent-foreground/70 shadow-soft",
-            isCurrent && "border-2 border-brand",
-          )}
-        >
-          <UiIcon aria-hidden name="book" size={26} />
-        </div>
+        <AddedCover cover={book.cover} isCurrent={isCurrent} />
         <NumberBadge tone="brand">{number === null ? t("noNumberBadge") : number}</NumberBadge>
       </div>
       <p className="line-clamp-2 w-full text-center text-xs font-medium text-foreground/90">
