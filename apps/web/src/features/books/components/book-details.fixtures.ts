@@ -11,6 +11,7 @@ export function makeBookView(overrides: Partial<BookView> = {}): BookView {
     delivery: { active: null, latest: null, totalCount: 0 },
     description:
       "Перша збірка оповідань про відьмака Геральта з Рівії — мисливця на чудовиськ у світі, де люди небезпечніші за монстрів.",
+    favoriteAddedAt: "2026-02-15T10:00:00.000Z",
     formats: ["paper", "ebook"],
     genres: ["fantasy", "adventure"],
     hasUnreadEarlierSeriesParts: null,

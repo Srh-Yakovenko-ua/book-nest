@@ -6,10 +6,16 @@ import {
   BookCopy,
   ChevronLeft,
   ChevronRight,
+  HandHelping,
+  Heart,
   Home,
   Layers,
   Library,
+  LibraryBig,
+  ListChecks,
+  ListOrdered,
   ShoppingBag,
+  Truck,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
@@ -35,20 +41,37 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { ChangelogBell } from "@/features/changelog";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
   icon: React.ElementType;
-  key: "buyList" | "home" | "library" | "series";
+  key:
+    | "allBooks"
+    | "buyList"
+    | "delivery"
+    | "favorites"
+    | "home"
+    | "lists"
+    | "loans"
+    | "myLibrary"
+    | "readingQueue"
+    | "series";
   to: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, key: "home", to: "/" },
-  { icon: Library, key: "library", to: "/books" },
+  { icon: Library, key: "myLibrary", to: "/my-library" },
+  { icon: Heart, key: "favorites", to: "/favorites" },
+  { icon: ListOrdered, key: "readingQueue", to: "/reading-queue" },
+  { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
+  { icon: HandHelping, key: "loans", to: "/loans" },
+  { icon: Truck, key: "delivery", to: "/delivery/in-transit" },
   { icon: BookCopy, key: "series", to: "/series" },
+  { icon: ListChecks, key: "lists", to: "/lists" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -195,6 +218,7 @@ function ContentArea({ children }: { children: ReactNode }) {
           <SidebarTrigger className="size-8 cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-foreground lg:hidden" />
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <ChangelogBell />
           <SessionMenu />
           <ThemePicker />
           <LocalePicker />

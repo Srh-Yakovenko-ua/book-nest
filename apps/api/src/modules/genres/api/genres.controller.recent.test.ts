@@ -1,4 +1,4 @@
-import type { GenreView } from "@app/shared";
+import type { GenreView, Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -67,7 +67,7 @@ function seedGenre(input: {
   isDefault?: boolean;
   key: string;
   name: string;
-  userId?: null | string;
+  userId?: Nullable<string>;
 }): Promise<{ key: string }> {
   return prisma.genre.create({
     data: {

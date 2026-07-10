@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { PrismaPg } from "@prisma/adapter-pg";
 import { z } from "zod";
 
@@ -58,23 +60,23 @@ const EnrichResponseSchema = z.object({
 });
 
 type CoreCandidate = {
-  openLibraryKey: null | string;
+  openLibraryKey: Nullable<string>;
   sitelinks: number;
   wikidataId: string;
 };
 
 type EnrichedFields = {
-  aliasEn: null | string;
-  aliasRu: null | string;
-  aliasUk: null | string;
-  birth: null | string;
-  countryCode: null | string;
-  death: null | string;
-  descEn: null | string;
-  image: null | string;
-  labelEn: null | string;
-  labelUk: null | string;
-  openLibraryKey: null | string;
+  aliasEn: Nullable<string>;
+  aliasRu: Nullable<string>;
+  aliasUk: Nullable<string>;
+  birth: Nullable<string>;
+  countryCode: Nullable<string>;
+  death: Nullable<string>;
+  descEn: Nullable<string>;
+  image: Nullable<string>;
+  labelEn: Nullable<string>;
+  labelUk: Nullable<string>;
+  openLibraryKey: Nullable<string>;
 };
 
 function buildEnrichQuery(entityIds: string[]): string {
@@ -354,7 +356,7 @@ async function seedAuthors(): Promise<void> {
   }
 }
 
-function toNullableAlias(value: string | undefined): null | string {
+function toNullableAlias(value: string | undefined): Nullable<string> {
   if (value === undefined || value.length === 0) {
     return null;
   }

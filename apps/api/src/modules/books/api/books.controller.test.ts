@@ -1,6 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
-import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE } from "@app/shared";
+import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE, type Nullable } from "@app/shared";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -38,7 +38,7 @@ afterAll(async () => {
   await context.close();
 });
 
-type SeedGenre = { isDefault?: boolean; key: string; name: string; userId?: null | string };
+type SeedGenre = { isDefault?: boolean; key: string; name: string; userId?: Nullable<string> };
 
 function createBook(accessToken: string, body: Record<string, unknown>): request.Test {
   return request(app.getHttpServer())
@@ -1399,6 +1399,74 @@ describe("POST /api/books organization", () => {
 
     const lists = await prisma.bookList.findMany({ where: { userId } });
     expect(lists).toHaveLength(1);
+  });
+});
+
+describe("POST /api/books delivery field parity", () => {
+  it("persists the price, currency, service and tracking fields of an in-transit book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      deliveryInfo: {
+        currency: "UAH",
+        deliveryService: "Nova Poshta",
+        orderDate: "2026-01-20",
+        price: 349.5,
+        storeName: "Yakaboo",
+        trackingNumber: "TTN-123",
+        trackingUrl: "https://track.example.com",
+      },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.delivery.active).toMatchObject({
+      currency: "UAH",
+      deliveryService: "Nova Poshta",
+      price: 349.5,
+      trackingNumber: "TTN-123",
+      trackingUrl: "https://track.example.com",
+    });
+    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { bookId: res.body.id } });
+    expect(row.deliveryService).toBe("Nova Poshta");
+    expect(row.trackingNumber).toBe("TTN-123");
+    expect(row.trackingUrl).toBe("https://track.example.com");
+    expect(row.currency).toBe("UAH");
+    expect(row.price?.toString()).toBe("349.5");
+  });
+
+  it("returns 400 for a non-https tracking url in the delivery block", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      deliveryInfo: { storeName: "Yakaboo", trackingUrl: "not-a-url" },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "deliveryInfo.trackingUrl" })]),
+    );
+  });
+
+  it("returns 400 for a negative delivery price", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      deliveryInfo: { price: -5, storeName: "Yakaboo" },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "deliveryInfo.price" })]),
+    );
   });
 });
 

@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -55,7 +57,7 @@ export class DeliveryServicesRepository {
   findVisibleByNormalizedName(
     { normalizedName, userId }: FindVisibleByNormalizedNameInput,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<DeliveryServiceModel | null> {
+  ): Promise<Nullable<DeliveryServiceModel>> {
     return client.deliveryService.findFirst({
       where: { normalizedName, OR: [{ userId: null }, { userId }] },
     });

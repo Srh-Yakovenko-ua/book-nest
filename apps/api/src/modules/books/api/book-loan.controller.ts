@@ -1,7 +1,16 @@
 import type { BookView } from "@app/shared";
 
-import { CreateLoanInputSchema } from "@app/shared";
-import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from "@nestjs/common";
+import { CreateLoanInputSchema, UpdateLoanInputSchema } from "@app/shared";
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -22,6 +31,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BookLoanService } from "../application/book-loan.service.js";
 import { CreateLoanInputDto } from "./input-dto/create-loan.input-dto.js";
+import { UpdateLoanInputDto } from "./input-dto/update-loan.input-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
 
 const LOAN_ACTION_TTL_SECONDS = 60;
@@ -50,6 +60,25 @@ export class BookLoanController {
     @Body(new ZodBodyPipe(CreateLoanInputSchema)) body: CreateLoanInputDto,
   ): Promise<BookView> {
     return this.bookLoanService.createLoan(user.id, id, body);
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBearerAuth()
+  @ApiBody({ type: UpdateLoanInputDto })
+  @ApiNotFoundResponse({ description: "Book or active loan not found" })
+  @ApiOkResponse({ description: "The book with the updated loan", type: BookViewDto })
+  @ApiOperation({ summary: "Edit the active loan of a borrowed or lent book" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Patch(":id/loan")
+  @Throttle({ default: { limit: LOAN_ACTION_LIMIT, ttl: seconds(LOAN_ACTION_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  editLoan(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body(new ZodBodyPipe(UpdateLoanInputSchema)) body: UpdateLoanInputDto,
+  ): Promise<BookView> {
+    return this.bookLoanService.editLoan(user.id, id, body);
   }
 
   @ApiBearerAuth()

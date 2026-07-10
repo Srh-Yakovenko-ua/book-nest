@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -28,18 +30,21 @@ export class UsersRepository {
   findByEmail(
     email: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | UserModel> {
+  ): Promise<Nullable<UserModel>> {
     return client.user.findUnique({ where: { email } });
   }
 
-  findById(id: string, client: Prisma.TransactionClient = this.prisma): Promise<null | UserModel> {
+  findById(
+    id: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<UserModel>> {
     return client.user.findUnique({ where: { id } });
   }
 
   findByNickname(
     nickname: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | UserModel> {
+  ): Promise<Nullable<UserModel>> {
     return client.user.findUnique({ where: { nickname } });
   }
 

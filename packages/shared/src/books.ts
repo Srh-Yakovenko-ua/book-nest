@@ -22,6 +22,7 @@ import {
   createPaginatedSchema,
   LIST_PAGE_SIZE_MAX,
   noHtmlTags,
+  type Nullable,
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
@@ -64,7 +65,7 @@ const READING_RATING_MIN = 0.5;
 const READING_RATING_MAX = 10;
 const READING_RATING_STEP = 0.5;
 const READING_NOTE_MAX = 300;
-const READING_IMPRESSION_MAX = 500;
+const READING_IMPRESSION_MAX = 5000;
 
 const ISBN_DIGITS_PATTERN = /^\d+$/;
 const ISBN_10_LENGTH = 10;
@@ -171,7 +172,9 @@ export const ReadingNoteSchema = z
 export const ReadingImpressionSchema = z
   .string()
   .transform(collapseHorizontalSpaces)
-  .pipe(NoHtmlString.max(READING_IMPRESSION_MAX, "Impression must be at most 500 characters long"));
+  .pipe(
+    NoHtmlString.max(READING_IMPRESSION_MAX, "Impression must be at most 5000 characters long"),
+  );
 
 const ReadingCurrentPageSchema = z
   .number()
@@ -201,6 +204,7 @@ export const ReadingProgressInputSchema = z
 export const ChangeReadingStatusInputSchema = z.object({
   currentPage: ReadingCurrentPageSchema.optional(),
   date: notInFutureDate("Date must not be in the future").optional(),
+  impression: ReadingImpressionSchema.nullable().optional(),
   note: ReadingNoteSchema.nullable().optional(),
   rating: ReadingRatingSchema.nullable().optional(),
   resetProgress: z.boolean().optional(),
@@ -300,31 +304,14 @@ export type MarkBoughtInput = z.infer<typeof MarkBoughtInputSchema>;
 const DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE = "Expected delivery cannot be before the order date";
 
 const isExpectedNotBeforeOrder = (value: {
-  expectedDeliveryDate?: null | string;
-  orderDate?: null | string;
+  expectedDeliveryDate?: Nullable<string>;
+  orderDate?: Nullable<string>;
 }): boolean =>
   value.orderDate === undefined ||
   value.orderDate === null ||
   value.expectedDeliveryDate === undefined ||
   value.expectedDeliveryDate === null ||
   value.expectedDeliveryDate >= value.orderDate;
-
-export const DeliveryInfoInputSchema = z
-  .object({
-    deliveryStatus: ActiveDeliveryStatusSchema.optional(),
-    expectedDeliveryDate: z.iso.date().nullable().optional(),
-    note: OwnershipNoteSchema.nullable().optional(),
-    orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
-    orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
-    storeName: OwnershipStoreNameSchema.nullable().optional(),
-  })
-  .refine(isExpectedNotBeforeOrder, {
-    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
-    path: ["expectedDeliveryDate"],
-  })
-  .optional();
-
-export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
 const DELIVERY_TRACKING_NUMBER_MAX = 100;
 
@@ -337,6 +324,28 @@ const DeliveryTrackingNumberSchema = z
       "Tracking number must be at most 100 characters long",
     ),
   );
+
+export const DeliveryInfoInputSchema = z
+  .object({
+    currency: CurrencySchema.nullable().optional(),
+    deliveryService: DeliveryServiceSchema.nullable().optional(),
+    deliveryStatus: ActiveDeliveryStatusSchema.optional(),
+    expectedDeliveryDate: z.iso.date().nullable().optional(),
+    note: OwnershipNoteSchema.nullable().optional(),
+    orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
+    orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
+    price: OwnershipPriceSchema.nullable().optional(),
+    storeName: OwnershipStoreNameSchema.nullable().optional(),
+    trackingNumber: DeliveryTrackingNumberSchema.nullable().optional(),
+    trackingUrl: OwnershipStoreUrlSchema.nullable().optional(),
+  })
+  .refine(isExpectedNotBeforeOrder, {
+    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
+    path: ["expectedDeliveryDate"],
+  })
+  .optional();
+
+export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
 export const CreateDeliveryInputSchema = z
   .object({
@@ -379,7 +388,21 @@ export const UpdateDeliveryInputSchema = z
 
 export type UpdateDeliveryInput = z.infer<typeof UpdateDeliveryInputSchema>;
 
+const DELIVERY_CANCEL_REASON_MAX = 500;
+
+const DeliveryCancelReasonSchema = z
+  .string()
+  .transform(collapseHorizontalSpaces)
+  .pipe(
+    NoHtmlString.max(
+      DELIVERY_CANCEL_REASON_MAX,
+      "Cancel reason must be at most 500 characters long",
+    ),
+  )
+  .transform((value) => (value.length === 0 ? null : value));
+
 export const CancelDeliveryInputSchema = z.object({
+  cancelReason: DeliveryCancelReasonSchema.nullable().optional(),
   keepAsWantToBuy: z.boolean().default(true),
 });
 
@@ -389,8 +412,8 @@ const RETURN_BEFORE_LOAN_MESSAGE = "Expected return cannot be before the loan da
 const REMINDER_NEEDS_RETURN_DATE_MESSAGE = "Select a return date for the reminder";
 
 const isReturnNotBeforeLoan = (value: {
-  expectedReturnDate?: null | string;
-  loanDate?: null | string;
+  expectedReturnDate?: Nullable<string>;
+  loanDate?: Nullable<string>;
 }): boolean =>
   value.loanDate === undefined ||
   value.loanDate === null ||
@@ -437,6 +460,31 @@ export const CreateLoanInputSchema = z
   );
 
 export type CreateLoanInput = z.infer<typeof CreateLoanInputSchema>;
+
+export const UpdateLoanInputSchema = z
+  .object({
+    contact: OwnershipContactSchema.nullable().optional(),
+    expectedReturnDate: z.iso.date().nullable().optional(),
+    loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
+    note: OwnershipNoteSchema.nullable().optional(),
+    personName: OwnershipPersonNameSchema,
+    remindToReturn: z.boolean().optional(),
+  })
+  .refine(isReturnNotBeforeLoan, {
+    error: RETURN_BEFORE_LOAN_MESSAGE,
+    path: ["expectedReturnDate"],
+  })
+  .refine(
+    (value) =>
+      value.remindToReturn !== true ||
+      (value.expectedReturnDate !== undefined && value.expectedReturnDate !== null),
+    {
+      error: REMINDER_NEEDS_RETURN_DATE_MESSAGE,
+      path: ["expectedReturnDate"],
+    },
+  );
+
+export type UpdateLoanInput = z.infer<typeof UpdateLoanInputSchema>;
 
 const BookPartNumberSchema = z
   .number()
@@ -708,6 +756,8 @@ export const LibrarySortSchema = z.enum([
   "created_desc",
   "created_asc",
   "updated_desc",
+  "favorite_added_desc",
+  "favorite_added_asc",
   "title_asc",
   "title_desc",
   "author_asc",
@@ -792,6 +842,12 @@ export const LibraryBooksQuerySchema = z
 
 export type LibraryBooksQuery = z.infer<typeof LibraryBooksQuerySchema>;
 
+export const LibraryOverviewQuerySchema = z.object({
+  owner: queryStringArray(OwnershipStatusSchema),
+});
+
+export type LibraryOverviewQuery = z.infer<typeof LibraryOverviewQuerySchema>;
+
 export const RecentPurchaseStoresQuerySchema = z.object({
   limit: z.coerce
     .number()
@@ -843,6 +899,7 @@ export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
 
 export const DeliveryViewSchema = z.object({
   cancelledAt: z.string().nullable(),
+  cancelReason: z.string().nullable(),
   createdAt: z.string(),
   currency: CurrencySchema.nullable(),
   deliveryService: z.string().nullable(),
@@ -878,6 +935,7 @@ export const BookViewSchema = z.object({
   dedication: z.string().nullable(),
   delivery: DeliverySummaryViewSchema,
   description: z.string().nullable(),
+  favoriteAddedAt: z.string().nullable(),
   formats: z.array(BookFormatSchema),
   genres: z.array(z.string()),
   hasUnreadEarlierSeriesParts: z.boolean().nullable(),
@@ -935,4 +993,29 @@ export const LibraryOverviewViewSchema = z.object({
 
 export type LibraryOverviewView = z.infer<typeof LibraryOverviewViewSchema>;
 
+export const FavoritesSummaryViewSchema = z.object({
+  averageRating: z.number().nullable(),
+  finished: z.number(),
+  reading: z.number(),
+  total: z.number(),
+});
+
+export type FavoritesSummaryView = z.infer<typeof FavoritesSummaryViewSchema>;
+
 export const PaginatedBooksSchema = createPaginatedSchema(BookViewSchema);
+
+export const ListBookViewSchema = BookViewSchema.extend({ position: z.number() });
+
+export type ListBookView = z.infer<typeof ListBookViewSchema>;
+
+export const CustomListDetailSchema = z.object({
+  bookCount: z.number(),
+  books: createPaginatedSchema(ListBookViewSchema),
+  createdAt: z.string(),
+  description: z.string().nullable(),
+  id: z.string(),
+  name: z.string(),
+  updatedAt: z.string(),
+});
+
+export type CustomListDetail = z.infer<typeof CustomListDetailSchema>;

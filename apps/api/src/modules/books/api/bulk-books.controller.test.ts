@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { randomUUID } from "node:crypto";
@@ -48,11 +49,11 @@ afterAll(async () => {
 
 type SeedBookInput = {
   authorId: string;
-  coverMediaId?: null | string;
+  coverMediaId?: Nullable<string>;
   isFavorite?: boolean;
   ownershipStatus?: string;
-  queuePosition?: null | number;
-  queuePriority?: null | string;
+  queuePosition?: Nullable<number>;
+  queuePriority?: Nullable<string>;
   readingStatus?: string;
   title?: string;
   userId: string;
@@ -123,6 +124,17 @@ function seedTag(input: { name: string; userId: string }): Promise<{ id: string 
     data: { name: input.name, normalizedName: input.name.toLowerCase(), userId: input.userId },
     select: { id: true },
   });
+}
+
+async function stampOldUpdatedAt(listId: string): Promise<Date> {
+  const old = new Date("2020-01-01T00:00:00.000Z");
+  await prisma.$executeRaw`UPDATE book_lists SET updated_at = ${old} WHERE id::text = ${listId}`;
+  return old;
+}
+
+async function updatedAtOf(listId: string): Promise<Date> {
+  const list = await prisma.bookList.findUniqueOrThrow({ where: { id: listId } });
+  return list.updatedAt;
 }
 
 describe("PATCH /api/books/bulk/favorite", () => {
@@ -202,6 +214,52 @@ describe("PATCH /api/books/bulk/favorite", () => {
     const strangerRow = await prisma.book.findUniqueOrThrow({ where: { id: strangerBook.id } });
     expect(strangerRow.isFavorite).toBe(false);
   });
+
+  it("stamps favoriteAddedAt only on rows that were not already favorites", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const alreadyFavoritedAt = new Date("2026-01-01T10:00:00.000Z");
+    const already = await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      title: "Already",
+      userId,
+    });
+    await prisma.book.update({
+      data: { favoriteAddedAt: alreadyFavoritedAt },
+      where: { id: already.id },
+    });
+    const fresh = await seedBook({ authorId: author.id, title: "Fresh", userId });
+
+    const res = await patch(accessToken, "favorite", {
+      bookIds: [already.id, fresh.id],
+      isFavorite: true,
+    });
+
+    expect(res.body).toEqual({ affected: 1 });
+    const alreadyRow = await prisma.book.findUniqueOrThrow({ where: { id: already.id } });
+    expect(alreadyRow.favoriteAddedAt).toEqual(alreadyFavoritedAt);
+    const freshRow = await prisma.book.findUniqueOrThrow({ where: { id: fresh.id } });
+    expect(freshRow.isFavorite).toBe(true);
+    expect(freshRow.favoriteAddedAt).not.toBeNull();
+  });
+
+  it("clears favoriteAddedAt when the books are unfavorited in bulk", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedBook({ authorId: author.id, isFavorite: true, title: "A", userId });
+    await prisma.book.update({
+      data: { favoriteAddedAt: new Date("2026-01-01T10:00:00.000Z") },
+      where: { id: book.id },
+    });
+
+    const res = await patch(accessToken, "favorite", { bookIds: [book.id], isFavorite: false });
+
+    expect(res.body).toEqual({ affected: 1 });
+    const row = await prisma.book.findUniqueOrThrow({ where: { id: book.id } });
+    expect(row.isFavorite).toBe(false);
+    expect(row.favoriteAddedAt).toBeNull();
+  });
 });
 
 describe("PATCH /api/books/bulk/reading-status", () => {
@@ -264,7 +322,7 @@ describe("PATCH /api/books/bulk/reading-status", () => {
 });
 
 describe("PATCH /api/books/bulk/ownership-status", () => {
-  it("deletes the loan block when ownership moves away from a loan status", async () => {
+  it("marks the loan returned when ownership moves away from a loan status", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
     const book = await seedBook({
@@ -273,7 +331,9 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
       title: "A",
       userId,
     });
-    await prisma.bookLoanInfo.create({ data: { bookId: book.id, personName: "Olha" } });
+    await prisma.bookLoan.create({
+      data: { bookId: book.id, personName: "Olha", type: "borrowed_from_someone", userId },
+    });
 
     const res = await patch(accessToken, "ownership-status", {
       bookIds: [book.id],
@@ -281,8 +341,31 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
     });
 
     expect(res.body).toEqual({ affected: 1 });
-    const loan = await prisma.bookLoanInfo.findUnique({ where: { bookId: book.id } });
-    expect(loan).toBeNull();
+    const loan = await prisma.bookLoan.findFirst({ where: { bookId: book.id } });
+    expect(loan?.status).toBe("returned");
+    expect(loan?.returnedAt).not.toBeNull();
+  });
+
+  it("rejects bulk-setting a loan ownership status and leaves books unchanged", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedBook({
+      authorId: author.id,
+      ownershipStatus: "none",
+      title: "A",
+      userId,
+    });
+
+    const res = await patch(accessToken, "ownership-status", {
+      bookIds: [book.id],
+      ownershipStatus: "borrowed_from_someone",
+    });
+
+    expect(res.status).toBe(400);
+    const stored = await prisma.book.findUniqueOrThrow({ where: { id: book.id } });
+    expect(stored.ownershipStatus).toBe("none");
+    const loans = await prisma.bookLoan.findMany({ where: { bookId: book.id } });
+    expect(loans).toHaveLength(0);
   });
 
   it("cancels the active delivery when ownership moves away from in_transit", async () => {
@@ -406,7 +489,7 @@ describe("POST /api/books/bulk/lists", () => {
     const book = await prisma.book.create({
       data: {
         authors: { create: [{ authorId: author.id, position: 0 }] },
-        lists: { create: [{ listId: listA.id }] },
+        lists: { create: [{ listId: listA.id, position: 1 }] },
         title: "A",
         userId,
       },
@@ -438,6 +521,48 @@ describe("POST /api/books/bulk/lists", () => {
     expect(lists).toHaveLength(1);
     const items = await prisma.bookListItem.findMany({ where: { bookId: book.id } });
     expect(items).toHaveLength(1);
+  });
+
+  it("appends new members at gapless positions after existing ones without duplicating", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const list = await seedList({ name: "Gifts", userId });
+    const existing = await seedBook({ authorId: author.id, title: "Existing", userId });
+    await prisma.bookListItem.create({
+      data: { bookId: existing.id, listId: list.id, position: 1 },
+    });
+    const first = await seedBook({ authorId: author.id, title: "First", userId });
+    const second = await seedBook({ authorId: author.id, title: "Second", userId });
+
+    const res = await post(accessToken, "lists", {
+      bookIds: [existing.id, first.id, second.id],
+      listIds: [list.id],
+    });
+
+    expect(res.body).toEqual({ affected: 3 });
+    const items = await prisma.bookListItem.findMany({
+      orderBy: { position: "asc" },
+      select: { bookId: true, position: true },
+      where: { listId: list.id },
+    });
+    expect(items).toEqual([
+      { bookId: existing.id, position: 1 },
+      { bookId: first.id, position: 2 },
+      { bookId: second.id, position: 3 },
+    ]);
+  });
+
+  it("advances the list updatedAt after a bulk add", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const list = await seedList({ name: "Gifts", userId });
+    const book = await seedBook({ authorId: author.id, title: "A", userId });
+    const before = await stampOldUpdatedAt(list.id);
+
+    await post(accessToken, "lists", { bookIds: [book.id], listIds: [list.id] }).expect(200);
+
+    const after = await updatedAtOf(list.id);
+    expect(after.getTime()).toBeGreaterThan(before.getTime());
   });
 });
 

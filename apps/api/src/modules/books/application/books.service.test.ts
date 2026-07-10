@@ -1,7 +1,9 @@
-import type { CreateBookInput, UpdateBookInput } from "@app/shared";
+import type { CreateBookInput, FavoritesSummaryView, Nullable, UpdateBookInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 import type { GenresService } from "../../genres/application/genres.service.js";
 import type { MediaService } from "../../media/application/media.service.js";
 import type {
@@ -20,6 +22,8 @@ import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 import { BooksService } from "./books.service.js";
 
+const TX = {} as unknown as Prisma.TransactionClient;
+
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_USER_ID = "99999999-9999-4999-8999-999999999999";
 const BOOK_ID = "22222222-2222-4222-8222-222222222222";
@@ -35,6 +39,7 @@ type Repository = {
   countForLibrary: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteOwned: ReturnType<typeof vi.fn>;
+  favoritesSummary: ReturnType<typeof vi.fn>;
   findOwnedById: ReturnType<typeof vi.fn>;
   listForLibrary: ReturnType<typeof vi.fn>;
   recentPurchaseStores: ReturnType<typeof vi.fn>;
@@ -58,6 +63,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     dedication: null,
     deliveries: [],
     description: null,
+    favoriteAddedAt: null,
     firstAuthorName: "Frank Herbert",
     formats: [],
     genres: [],
@@ -67,7 +73,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     isFavorite: false,
     language: "ukrainian",
     lists: [],
-    loanInfo: null,
+    loans: [],
     originalTitle: null,
     ownershipStatus: "none",
     pagesCount: null,
@@ -96,7 +102,8 @@ function buildService(
     countForLibrary?: number;
     create?: BookWithRelations;
     deleteOwned?: number;
-    findOwnedById?: BookWithRelations | null;
+    favoritesSummary?: FavoritesSummaryView;
+    findOwnedById?: Nullable<BookWithRelations>;
     listForLibrary?: BookWithRelations[];
     recentPurchaseStores?: string[];
     updateOwned?: BookWithRelations;
@@ -109,6 +116,7 @@ function buildService(
   };
   relationsResolver: {
     mapSeriesPartNumberWriteError: ReturnType<typeof vi.fn>;
+    resolveAuthors: ReturnType<typeof vi.fn>;
     resolveForCreate: ReturnType<typeof vi.fn>;
     resolveForUpdate: ReturnType<typeof vi.fn>;
   };
@@ -119,6 +127,11 @@ function buildService(
     countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
+    favoritesSummary: vi
+      .fn()
+      .mockResolvedValue(
+        overrides.favoritesSummary ?? { averageRating: null, finished: 0, reading: 0, total: 0 },
+      ),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
     listForLibrary: vi.fn().mockResolvedValue(overrides.listForLibrary ?? []),
     recentPurchaseStores: vi.fn().mockResolvedValue(overrides.recentPurchaseStores ?? []),
@@ -129,6 +142,9 @@ function buildService(
     mapSeriesPartNumberWriteError: vi
       .fn()
       .mockImplementation(({ error }: { error: unknown }) => Promise.resolve(error)),
+    resolveAuthors: vi
+      .fn()
+      .mockResolvedValue({ authorIds: [AUTHOR_ID], firstAuthorName: "Frank Herbert" }),
     resolveForCreate: vi.fn().mockResolvedValue(resolvedCreate()),
     resolveForUpdate: vi.fn().mockResolvedValue(resolvedUpdate()),
   };
@@ -143,6 +159,9 @@ function buildService(
     findNamesByKeys: vi.fn().mockResolvedValue([]),
     searchKeys: vi.fn().mockResolvedValue([]),
   };
+  const transactionRunner = {
+    run: vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(TX)),
+  };
 
   const service = new BooksService(
     repository as unknown as BooksRepository,
@@ -150,14 +169,15 @@ function buildService(
     viewAssembler,
     coverCleanup as unknown as BookCoverCleanup,
     genresService as unknown as GenresService,
+    transactionRunner as unknown as TransactionRunner,
   );
 
   return { coverCleanup, genresService, relationsResolver, repository, service };
 }
 
 function loanRow(
-  overrides: Partial<NonNullable<BookWithRelations["loanInfo"]>> = {},
-): BookWithRelations["loanInfo"] {
+  overrides: Partial<BookWithRelations["loans"][number]> = {},
+): BookWithRelations["loans"][number] {
   return {
     bookId: BOOK_ID,
     contact: null,
@@ -168,9 +188,13 @@ function loanRow(
     note: null,
     personName: "Olha",
     remindToReturn: false,
+    returnedAt: null,
+    status: "active",
+    type: "borrowed_from_someone",
     updatedAt: new Date("2026-02-01T10:00:00.000Z"),
+    userId: USER_ID,
     ...overrides,
-  } as BookWithRelations["loanInfo"];
+  } as BookWithRelations["loans"][number];
 }
 
 function minimalCreateInput(overrides: Partial<CreateBookInput> = {}): CreateBookInput {
@@ -232,6 +256,7 @@ function resolvedUpdate(overrides: Partial<ResolvedBookUpdate> = {}): ResolvedBo
     authorIds: undefined,
     fields: {},
     listIds: undefined,
+    queueRemoval: null,
     seriesPlacement: { partNumber: null, seriesId: null },
     tagIds: undefined,
     ...overrides,
@@ -253,7 +278,18 @@ describe("BooksService.create", () => {
 
     await service.create(USER_ID, input);
 
-    expect(relationsResolver.resolveForCreate).toHaveBeenCalledWith({ input, userId: USER_ID });
+    expect(relationsResolver.resolveAuthors).toHaveBeenCalledWith({
+      references: input.authors,
+      userId: USER_ID,
+    });
+    expect(relationsResolver.resolveForCreate).toHaveBeenCalledWith(
+      {
+        input,
+        resolvedAuthors: { authorIds: [AUTHOR_ID], firstAuthorName: "Frank Herbert" },
+        userId: USER_ID,
+      },
+      TX,
+    );
     expect(repository.create).toHaveBeenCalledTimes(1);
   });
 
@@ -289,6 +325,7 @@ describe("BooksService.create", () => {
         seriesId: SERIES_ID,
         tagIds: [TAG_ID],
       }),
+      TX,
     );
   });
 
@@ -321,6 +358,7 @@ describe("BooksService.create", () => {
       dedication: null,
       delivery: { active: null, latest: null, totalCount: 0 },
       description: null,
+      favoriteAddedAt: null,
       formats: [],
       genres: [],
       hasUnreadEarlierSeriesParts: null,
@@ -377,6 +415,7 @@ describe("BooksService.create", () => {
           startedAt: new Date("2026-02-01T00:00:00.000Z"),
         },
       }),
+      TX,
     );
   });
 
@@ -394,6 +433,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ readingProgress: null }),
+      TX,
     );
   });
 
@@ -422,6 +462,7 @@ describe("BooksService.create", () => {
           storeUrl: null,
         },
       }),
+      TX,
     );
   });
 
@@ -454,6 +495,7 @@ describe("BooksService.create", () => {
         },
         purchaseInfo: null,
       }),
+      TX,
     );
   });
 
@@ -482,6 +524,7 @@ describe("BooksService.create", () => {
         },
         purchaseInfo: null,
       }),
+      TX,
     );
   });
 
@@ -493,6 +536,31 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ coverMediaId: MEDIA_ID }),
+      TX,
+    );
+  });
+
+  it("stamps favoriteAddedAt when the book is created as a favorite", async () => {
+    const { repository, service } = buildService();
+
+    await service.create(USER_ID, minimalCreateInput({ isFavorite: true }));
+
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ favoriteAddedAt: expect.any(Date), isFavorite: true }),
+      TX,
+    );
+  });
+
+  it("leaves favoriteAddedAt null when the book is created as a non-favorite", async () => {
+    const { repository, service } = buildService();
+
+    await service.create(USER_ID, minimalCreateInput({ isFavorite: false }));
+
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      expect.objectContaining({ favoriteAddedAt: null, isFavorite: false }),
+      TX,
     );
   });
 
@@ -692,6 +760,59 @@ describe("BooksService.update", () => {
     expect(data.fields).toEqual({ dedication: null });
   });
 
+  it("stamps favoriteAddedAt when the book becomes a favorite", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ favoriteAddedAt: null, isFavorite: false }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { isFavorite: true });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ favoriteAddedAt: expect.any(Date), isFavorite: true });
+  });
+
+  it("clears favoriteAddedAt when the book stops being a favorite", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        favoriteAddedAt: new Date("2026-01-01T10:00:00.000Z"),
+        isFavorite: true,
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { isFavorite: false });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ favoriteAddedAt: null, isFavorite: false });
+  });
+
+  it("leaves favoriteAddedAt untouched when an already-favorite book is edited", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        favoriteAddedAt: new Date("2026-01-01T10:00:00.000Z"),
+        isFavorite: true,
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { isFavorite: true, title: "Renamed" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ title: "Renamed" });
+  });
+
+  it("does not touch favorite fields when isFavorite is omitted", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({
+        favoriteAddedAt: new Date("2026-01-01T10:00:00.000Z"),
+        isFavorite: true,
+      }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { title: "Renamed" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ title: "Renamed" });
+  });
+
   it("threads the resolver output into the repository update payload", async () => {
     const { relationsResolver, repository, service } = buildService({ findOwnedById: bookRow() });
     relationsResolver.resolveForUpdate.mockResolvedValue(
@@ -716,7 +837,7 @@ describe("BooksService.update", () => {
     });
   });
 
-  it("deletes the loan block when ownership moves away from a loan status", async () => {
+  it("marks the loan block returned when ownership moves away from a loan status", async () => {
     const { repository, service } = buildService({
       findOwnedById: bookRow({ ownershipStatus: "borrowed_from_someone" }),
     });
@@ -724,7 +845,7 @@ describe("BooksService.update", () => {
     await service.update(USER_ID, BOOK_ID, { ownershipStatus: "owned" });
 
     const data = updateDataFromFirstCall(repository);
-    expect(data.loanInfo).toEqual({ delete: true });
+    expect(data.loanInfo).toMatchObject({ kind: "return" });
   });
 
   it("builds the purchase block when ownership becomes want_to_buy", async () => {
@@ -817,7 +938,7 @@ describe("BooksService.update", () => {
   it("emits a partial loan update that omits absent sub-fields and carries only the provided one", async () => {
     const { repository, service } = buildService({
       findOwnedById: bookRow({
-        loanInfo: loanRow({ note: null, personName: "Olha" }),
+        loans: [loanRow({ note: null, personName: "Olha" })],
         ownershipStatus: "borrowed_from_someone",
       }),
     });
@@ -834,6 +955,8 @@ describe("BooksService.update", () => {
         personName: "",
         remindToReturn: false,
       },
+      kind: "upsertActive",
+      type: "borrowed_from_someone",
       update: {
         expectedReturnDate: undefined,
         loanDate: undefined,
@@ -846,7 +969,7 @@ describe("BooksService.update", () => {
   it("emits an explicit null in the partial loan update so a sub-field is cleared", async () => {
     const { repository, service } = buildService({
       findOwnedById: bookRow({
-        loanInfo: loanRow({ note: "old note", personName: "Olha" }),
+        loans: [loanRow({ note: "old note", personName: "Olha" })],
         ownershipStatus: "borrowed_from_someone",
       }),
     });
@@ -877,7 +1000,7 @@ describe("BooksService.update", () => {
   it("allows a status-only switch between loan statuses when a loan row already has a person name", async () => {
     const { repository, service } = buildService({
       findOwnedById: bookRow({
-        loanInfo: loanRow({ personName: "Olha" }),
+        loans: [loanRow({ personName: "Olha" })],
         ownershipStatus: "borrowed_from_someone",
       }),
     });
@@ -966,5 +1089,39 @@ describe("BooksService.recentPurchaseStores", () => {
     await service.recentPurchaseStores({ limit: 5, userId: USER_ID });
 
     expect(repository.recentPurchaseStores).toHaveBeenCalledWith({ limit: 5, userId: USER_ID });
+  });
+});
+
+describe("BooksService.favoritesSummary", () => {
+  it("delegates to the repository with the finished and reading status sets scoped to the user", async () => {
+    const { repository, service } = buildService();
+
+    await service.favoritesSummary(USER_ID);
+
+    expect(repository.favoritesSummary).toHaveBeenCalledWith({
+      finishedStatuses: ["finished"],
+      readingStatuses: ["reading", "rereading"],
+      userId: USER_ID,
+    });
+  });
+
+  it("returns the summary produced by the repository", async () => {
+    const { service } = buildService({
+      favoritesSummary: { averageRating: 8.5, finished: 3, reading: 2, total: 7 },
+    });
+
+    const result = await service.favoritesSummary(USER_ID);
+
+    expect(result).toEqual({ averageRating: 8.5, finished: 3, reading: 2, total: 7 });
+  });
+
+  it("passes through a null average rating when no favorite has a rating", async () => {
+    const { service } = buildService({
+      favoritesSummary: { averageRating: null, finished: 0, reading: 0, total: 4 },
+    });
+
+    const result = await service.favoritesSummary(USER_ID);
+
+    expect(result.averageRating).toBeNull();
   });
 });

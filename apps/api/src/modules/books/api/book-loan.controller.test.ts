@@ -52,6 +52,13 @@ function createLoan(accessToken: string, id: string, body: Record<string, unknow
     .send(body);
 }
 
+function editLoan(accessToken: string, id: string, body: Record<string, unknown>): request.Test {
+  return request(app.getHttpServer())
+    .patch(`/api/books/${id}/loan`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
+}
+
 function returnLoan(accessToken: string, id: string): request.Test {
   return request(app.getHttpServer())
     .post(`/api/books/${id}/loan/return`)
@@ -331,7 +338,7 @@ describe("POST /api/books/:id/loan/return", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns a borrowed book to the none state and clears the loan row", async () => {
+  it("returns a borrowed book to the none state and marks the loan returned", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -345,8 +352,10 @@ describe("POST /api/books/:id/loan/return", () => {
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("none");
     expect(res.body.loanInfo).toBeNull();
-    const rows = await prisma.bookLoanInfo.findMany({ where: { bookId: created.body.id } });
-    expect(rows).toHaveLength(0);
+    const rows = await prisma.bookLoan.findMany({ where: { bookId: created.body.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.status).toBe("returned");
+    expect(rows[0]?.returnedAt).not.toBeNull();
   });
 
   it("returns a lent book to the owned state and clears the loan row", async () => {
@@ -395,5 +404,238 @@ describe("POST /api/books/:id/loan/return", () => {
     expect(res.status).toBe(200);
     expect(res.body.readingStatus).toBe("reading");
     expect(res.body.isFavorite).toBe(true);
+  });
+});
+
+describe("PATCH /api/books/:id/loan", () => {
+  it("returns 401 without an Authorization header", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/books/${MISSING_UUID}/loan`)
+      .send({ personName: "Olha" });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 for a malformed book id", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await editLoan(accessToken, "not-a-uuid", { personName: "Olha" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when the book does not exist", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await editLoan(accessToken, MISSING_UUID, { personName: "Olha" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 when the book has no active loan", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "owned",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, { personName: "Olha" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toBe("Loan not found");
+  });
+
+  it("returns 404 when the book belongs to another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const created = await createBook(owner.accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+    const intruder = await context.registerVerifyAndLogin();
+
+    const res = await editLoan(intruder.accessToken, created.body.id, { personName: "Ivan" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("updates the active loan fields and keeps the loan active", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { loanDate: TODAY, personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, {
+      contact: "olha@example.com",
+      expectedReturnDate: TODAY,
+      note: "hardcover copy",
+      personName: "Olha K.",
+      remindToReturn: true,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo).toMatchObject({
+      contact: "olha@example.com",
+      expectedReturnDate: TODAY,
+      note: "hardcover copy",
+      personName: "Olha K.",
+      remindToReturn: true,
+    });
+    const rows = await prisma.bookLoan.findMany({ where: { bookId: created.body.id } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.status).toBe("active");
+    expect(rows[0]?.type).toBe("borrowed_from_someone");
+    expect(rows[0]?.personName).toBe("Olha K.");
+  });
+
+  it("preserves the loan date when it is omitted from the payload", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { loanDate: TODAY, personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, { personName: "Olha K." });
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo.loanDate).toBe(TODAY);
+  });
+
+  it("returns 400 when the person name is missing", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, { note: "no name" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when the return date is before the loan date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, {
+      expectedReturnDate: "2020-01-01",
+      loanDate: TODAY,
+      personName: "Olha",
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when a reminder is requested without a return date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, {
+      personName: "Olha",
+      remindToReturn: true,
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when the loan date is in the future", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, {
+      loanDate: FUTURE_DATE,
+      personName: "Olha",
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when the contact exceeds 100 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, {
+      contact: "a".repeat(101),
+      personName: "Olha",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "contact" })]),
+    );
+  });
+
+  it("returns 400 when the note exceeds 300 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, {
+      note: "a".repeat(301),
+      personName: "Olha",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "note" })]),
+    );
+  });
+
+  it("clears omitted optional fields so the edit fully replaces the active loan", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "owned",
+      title: "Dune",
+    });
+    await createLoan(accessToken, created.body.id, {
+      contact: "olha@example.com",
+      direction: "lent",
+      note: "hardcover copy",
+      personName: "Olha",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, { personName: "Olha K." });
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo).toMatchObject({
+      contact: null,
+      note: null,
+      personName: "Olha K.",
+      remindToReturn: false,
+    });
   });
 });

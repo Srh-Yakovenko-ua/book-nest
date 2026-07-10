@@ -7,7 +7,7 @@ import { StatCard } from "@/components/ui/stat-card";
 export type LibrarySummaryCard = {
   icon: UiIconName;
   label: string;
-  value: number;
+  value: number | string;
 };
 
 type LibrarySummaryCardsProps = {
@@ -26,7 +26,7 @@ export function LibrarySummaryCards({ cards, isLoading }: LibrarySummaryCardsPro
               key={card.label}
               label={card.label}
               size="compact"
-              value={card.value.toLocaleString()}
+              value={typeof card.value === "number" ? card.value.toLocaleString() : card.value}
             />
           ))}
     </div>

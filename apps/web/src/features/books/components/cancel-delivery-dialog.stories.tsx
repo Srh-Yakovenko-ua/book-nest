@@ -10,6 +10,7 @@ import { CancelDeliveryDialog } from "./cancel-delivery-dialog";
 function activeDelivery(): DeliveryView {
   return {
     cancelledAt: null,
+    cancelReason: null,
     createdAt: "2026-06-01T10:00:00.000Z",
     currency: "UAH",
     deliveryService: null,
@@ -115,6 +116,23 @@ export const SubmitSuccessCloses: Story = {
     const body = within(document.body);
     await userEvent.click(body.getByRole("button", { name: "Скасувати доставку" }));
     await waitFor(() => expect(body.getByTestId("open-state")).toHaveTextContent("closed"));
+  },
+  render: () => <Harness />,
+};
+
+export const SubmitsCancelReason: Story = {
+  play: async () => {
+    let capturedBody: unknown = null;
+    globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) => {
+      capturedBody = init?.body === undefined ? null : JSON.parse(String(init.body));
+      return Promise.resolve(jsonResponse(200, makeBookView({ ownershipStatus: "want_to_buy" })));
+    }) as typeof fetch;
+
+    const body = within(document.body);
+    await userEvent.type(body.getByRole("textbox"), "Замовлення втрачено поштою");
+    await userEvent.click(body.getByRole("button", { name: "Скасувати доставку" }));
+    await waitFor(() => expect(body.getByTestId("open-state")).toHaveTextContent("closed"));
+    await expect(capturedBody).toMatchObject({ cancelReason: "Замовлення втрачено поштою" });
   },
   render: () => <Harness />,
 };

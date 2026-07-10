@@ -49,6 +49,7 @@ function CreateBookInSeries({ partNumber, seriesId }: { partNumber?: number; ser
         kind: "catalog",
         name: author.name,
       })),
+      genres: series.genres,
       id: series.id,
       kind: "existing",
       name: series.name,

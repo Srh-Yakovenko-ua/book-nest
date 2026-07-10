@@ -16,6 +16,7 @@ import {
   bulkBooksControllerReadingStatus,
   bulkBooksControllerTags,
 } from "@/shared/api/generated/endpoints/books/books";
+import { getReadingQueueControllerGetQueueQueryKey } from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
 
 import type { ListDraft } from "../model/book-organization-fields";
 import type { LibraryBooksPage } from "./use-books";
@@ -141,6 +142,9 @@ export function useRemoveFromReadingQueue() {
     mutationFn: (id: string) => booksControllerUpdate(id, { addToReadingQueue: false }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+      void queryClient.invalidateQueries({
+        queryKey: getReadingQueueControllerGetQueueQueryKey(),
+      });
     },
   });
 }

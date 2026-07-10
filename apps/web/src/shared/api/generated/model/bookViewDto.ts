@@ -35,6 +35,8 @@ export interface BookViewDto {
   delivery: BookViewDtoDelivery;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  favoriteAddedAt: string | null;
   formats: BookViewDtoFormatsItem[];
   genres: string[];
   /** @nullable */

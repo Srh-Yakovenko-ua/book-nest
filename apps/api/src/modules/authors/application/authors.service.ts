@@ -5,6 +5,7 @@ import type {
   AuthorView,
   BookAuthorReference,
   CatalogLocale,
+  Nullable,
   Paginator,
 } from "@app/shared";
 
@@ -26,7 +27,7 @@ const CUSTOM_AUTHOR_LOCALE = "uk";
 type FindExistingGlobalAuthorInput = {
   normalizedName: string;
   openLibraryKey: string;
-  wikidataId: null | string;
+  wikidataId: Nullable<string>;
 };
 
 type RecentAuthorsInput = {
@@ -198,23 +199,13 @@ export class AuthorsService {
       return existing.id;
     }
 
-    try {
-      const created = await this.authorsRepository.create(userId, {
-        locale: CUSTOM_AUTHOR_LOCALE,
-        name: input.name,
-        normalizedName,
-      });
-      return created.id;
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      const winner = await this.authorsRepository.findByNormalized(userId, normalizedName);
-      if (winner === null) {
-        throw error;
-      }
-      return winner.id;
-    }
+    const created = await this.authorsRepository.upsertByNormalized({
+      locale: CUSTOM_AUTHOR_LOCALE,
+      name: input.name,
+      normalizedName,
+      userId,
+    });
+    return created.id;
   }
 
   async resolveReferences({
@@ -261,7 +252,7 @@ export class AuthorsService {
     normalizedName,
     openLibraryKey,
     wikidataId,
-  }: FindExistingGlobalAuthorInput): Promise<AuthorModel | null> {
+  }: FindExistingGlobalAuthorInput): Promise<Nullable<AuthorModel>> {
     const byKey = await this.authorsRepository.findGlobalByOpenLibraryKey(openLibraryKey);
     if (byKey !== null) {
       return byKey;

@@ -46,6 +46,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     href?: string;
     kebab?: React.ReactNode;
     linkComponent?: BookCardLinkComponent;
+    note?: React.ReactNode;
     onCoverActivate?: () => void;
     ownership?: StatusEntry;
     progress?: { ariaLabel?: string; current: number; total: number; unit?: string };
@@ -68,6 +69,7 @@ function BookCard({
   interactive,
   kebab,
   linkComponent,
+  note,
   onCoverActivate,
   ownership,
   progress,
@@ -133,6 +135,8 @@ function BookCard({
           <span className="min-w-0 truncate">{publisher}</span>
         </p>
       )}
+
+      {note}
 
       {progress === undefined ? null : (
         <div className="flex flex-col gap-1.5">

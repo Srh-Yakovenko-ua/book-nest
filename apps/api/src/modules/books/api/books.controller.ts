@@ -1,8 +1,16 @@
-import type { BookView, LibraryOverviewView, Paginator, RecentPurchaseStores } from "@app/shared";
+import type {
+  BookView,
+  FavoritesSummaryView,
+  LibraryOverviewView,
+  Paginator,
+  RecentPurchaseStores,
+} from "@app/shared";
 
 import {
   CreateBookInputSchema,
   LibraryBooksQuerySchema,
+  LibraryOverviewQuerySchema,
+  OwnershipStatusSchema,
   RecentPurchaseStoresQuerySchema,
   UpdateBookInputSchema,
 } from "@app/shared";
@@ -43,9 +51,11 @@ import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BooksService } from "../application/books.service.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
+import { LibraryOverviewQueryDto } from "./input-dto/library-overview-query.input-dto.js";
 import { RecentPurchaseStoresQueryDto } from "./input-dto/recent-purchase-stores-query.input-dto.js";
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
+import { FavoritesSummaryViewDto } from "./view-dto/favorites-summary.view-dto.js";
 import { LibraryOverviewViewDto } from "./view-dto/library-overview.view-dto.js";
 import { PaginatedBooksDto } from "./view-dto/paginated-books.view-dto.js";
 
@@ -95,11 +105,21 @@ export class BooksController {
     type: LibraryOverviewViewDto,
   })
   @ApiOperation({ summary: "Get the current user library overview" })
+  @ApiQuery({
+    description: "Scope the overview to these ownership statuses (physical library)",
+    enum: OwnershipStatusSchema.options,
+    isArray: true,
+    name: "owner",
+    required: false,
+  })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("overview")
   @UseGuards(JwtAccessGuard)
-  overview(@CurrentUser() user: AuthenticatedUser): Promise<LibraryOverviewView> {
-    return this.booksService.overview(user.id);
+  overview(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(LibraryOverviewQuerySchema)) query: LibraryOverviewQueryDto,
+  ): Promise<LibraryOverviewView> {
+    return this.booksService.overview(user.id, query);
   }
 
   @ApiBearerAuth()
@@ -117,6 +137,19 @@ export class BooksController {
     @Query(new ZodQueryPipe(RecentPurchaseStoresQuerySchema)) query: RecentPurchaseStoresQueryDto,
   ): Promise<RecentPurchaseStores> {
     return this.booksService.recentPurchaseStores({ limit: query.limit, userId: user.id });
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: "Favorites summary for the current user",
+    type: FavoritesSummaryViewDto,
+  })
+  @ApiOperation({ summary: "Get the current user favorites summary" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("favorites-summary")
+  @UseGuards(JwtAccessGuard)
+  favoritesSummary(@CurrentUser() user: AuthenticatedUser): Promise<FavoritesSummaryView> {
+    return this.booksService.favoritesSummary(user.id);
   }
 
   @ApiBearerAuth()

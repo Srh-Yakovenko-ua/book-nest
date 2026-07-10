@@ -1,4 +1,4 @@
-import type { UpdateSettingsInput } from "@app/shared";
+import type { Nullable, UpdateSettingsInput } from "@app/shared";
 
 import { defaultUserProfileSettings } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
@@ -10,7 +10,7 @@ import { SettingsService } from "./settings.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 
-function buildService(overrides: { findByUserId?: null | UserProfileSettingsModel } = {}): {
+function buildService(overrides: { findByUserId?: Nullable<UserProfileSettingsModel> } = {}): {
   repository: {
     findByUserId: ReturnType<typeof vi.fn>;
     upsert: ReturnType<typeof vi.fn>;

@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 
+import { useTranslations } from "next-intl";
+
 import { Logo } from "@/components/brand";
 import { LocalePicker } from "@/components/locale-picker";
 import { ThemePicker } from "@/components/theme-picker";
+import { Link } from "@/i18n/navigation";
 
 type AuthLayoutProps = {
   children: ReactNode;
@@ -11,6 +14,8 @@ type AuthLayoutProps = {
 };
 
 export function AuthLayout({ children, cover, tagline }: AuthLayoutProps) {
+  const t = useTranslations("legal.footer");
+
   return (
     <div className="min-h-svh bg-background min-[900px]:grid min-[900px]:grid-cols-2">
       <main className="relative flex min-h-svh flex-col overflow-y-auto px-4 pt-5 pb-8 min-[900px]:px-10 min-[900px]:pt-7 min-[900px]:pb-10 sm:px-6">
@@ -25,6 +30,23 @@ export function AuthLayout({ children, cover, tagline }: AuthLayoutProps) {
         <div className="flex flex-1 flex-col items-center justify-start pt-[8vh] pb-4 min-[900px]:pt-[12vh]">
           <div className="w-full max-w-md">{children}</div>
         </div>
+
+        <footer className="mt-8">
+          <nav
+            aria-label={t("navLabel")}
+            className="flex items-center justify-center gap-4 text-xs text-muted-foreground"
+          >
+            <Link className="transition-colors duration-150 hover:text-foreground" href="/privacy">
+              {t("privacy")}
+            </Link>
+            <span aria-hidden className="text-border">
+              ·
+            </span>
+            <Link className="transition-colors duration-150 hover:text-foreground" href="/terms">
+              {t("terms")}
+            </Link>
+          </nav>
+        </footer>
       </main>
 
       <aside

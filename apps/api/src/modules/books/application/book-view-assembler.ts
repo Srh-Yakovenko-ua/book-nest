@@ -1,4 +1,4 @@
-import type { BookView, MediaView } from "@app/shared";
+import type { BookView, MediaView, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -25,7 +25,7 @@ export class BookViewAssembler {
     return toBookView(book, this.coverViewOf(book));
   }
 
-  private coverViewOf(book: BookWithRelations): MediaView | null {
+  private coverViewOf(book: BookWithRelations): Nullable<MediaView> {
     if (book.coverMedia === null) {
       return null;
     }

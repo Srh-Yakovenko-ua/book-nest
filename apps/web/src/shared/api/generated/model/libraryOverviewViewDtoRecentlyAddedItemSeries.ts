@@ -19,6 +19,7 @@ export type LibraryOverviewViewDtoRecentlyAddedItemSeries = {
   /** @nullable */
   description: string | null;
   finishedInSeries: number;
+  genres: string[];
   id: string;
   lastActivityAt: string;
   name: string;

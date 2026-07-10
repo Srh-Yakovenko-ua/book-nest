@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
+import type { Prisma } from "../../../generated/prisma/client.js";
 import type { GenreModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -23,14 +24,20 @@ export class GenresRepository {
     });
   }
 
-  async deleteOwnedWithBookCleanup(userId: string, id: string): Promise<number> {
-    return this.prisma.$transaction(async (tx) => {
-      const genre = await tx.genre.findFirst({ select: { key: true }, where: { id, userId } });
-      if (genre === null) return 0;
-      await tx.$executeRaw`UPDATE "books" SET "genres" = array_remove("genres", ${genre.key}) WHERE "user_id" = ${userId}::uuid AND ${genre.key} = ANY("genres")`;
-      await tx.genre.delete({ where: { id } });
-      return 1;
-    });
+  async deleteOwnedWithBookCleanup(
+    userId: string,
+    id: string,
+    client?: Prisma.TransactionClient,
+  ): Promise<number> {
+    if (client === undefined) {
+      return this.prisma.$transaction((tx) => this.deleteOwnedWithBookCleanup(userId, id, tx));
+    }
+
+    const genre = await client.genre.findFirst({ select: { key: true }, where: { id, userId } });
+    if (genre === null) return 0;
+    await client.$executeRaw`UPDATE "books" SET "genres" = array_remove("genres", ${genre.key}) WHERE "user_id" = ${userId}::uuid AND ${genre.key} = ANY("genres")`;
+    await client.genre.delete({ where: { id } });
+    return 1;
   }
 
   async existsSelectableName(userId: string, normalizedName: string): Promise<boolean> {

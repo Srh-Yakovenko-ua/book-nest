@@ -35,6 +35,8 @@ export type PaginatedBooksDtoItemsItem = {
   delivery: PaginatedBooksDtoItemsItemDelivery;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  favoriteAddedAt: string | null;
   formats: PaginatedBooksDtoItemsItemFormatsItem[];
   genres: string[];
   /** @nullable */

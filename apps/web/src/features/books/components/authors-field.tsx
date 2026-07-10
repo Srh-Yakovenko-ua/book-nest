@@ -5,7 +5,7 @@ import type { AuthorView } from "@app/shared";
 import { BOOK_AUTHORS_MAX, TaxonomyNameSchema } from "@app/shared";
 import { Command as CommandPrimitive } from "cmdk";
 import { useTranslations } from "next-intl";
-import { type KeyboardEvent, useState } from "react";
+import { type KeyboardEvent, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -33,6 +33,7 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
   const t = useTranslations("books");
   const [draft, setDraft] = useState("");
   const [open, setOpen] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const debouncedDraft = useDebouncedValue(draft, SEARCH_DEBOUNCE_MS);
   const recent = useRecentAuthors();
   const { data: allAuthors = [], isFetching } = useAuthorOptions(debouncedDraft);
@@ -135,6 +136,7 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
                 "border-destructive focus-within:border-destructive focus-within:ring-destructive/20",
             )}
             data-slot="authors-field"
+            ref={anchorRef}
           >
             {value.map((author, index) => (
               <span
@@ -161,6 +163,7 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
               className="h-7 min-w-[90px] flex-1 border-0 bg-transparent text-[0.9375rem] text-ink outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
               disabled={atMax}
               id={id}
+              onClick={() => setOpen(true)}
               onFocus={() => setOpen(true)}
               onKeyDown={handleKeyDown}
               onValueChange={(next) => {
@@ -175,6 +178,12 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
         <PopoverContent
           align="start"
           className="w-[--radix-popover-trigger-width] min-w-[var(--radix-popover-anchor-width)] p-1"
+          onInteractOutside={(event) => {
+            const target = event.detail.originalEvent.target;
+            if (target instanceof Node && anchorRef.current?.contains(target)) {
+              event.preventDefault();
+            }
+          }}
           onOpenAutoFocus={(event) => event.preventDefault()}
           sideOffset={6}
         >

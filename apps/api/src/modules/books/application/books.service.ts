@@ -1,7 +1,9 @@
 import type {
   BookView,
   CreateBookInput,
+  FavoritesSummaryView,
   LibraryBooksQuery,
+  LibraryOverviewQuery,
   LibraryOverviewView,
   OwnershipStatus,
   Paginator,
@@ -10,22 +12,27 @@ import type {
   UpdateBookInput,
 } from "@app/shared";
 
-import { collapseSpaces, OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
+import {
+  LoanTypeSchema,
+  normalizeSearch,
+  OwnershipStatusSchema,
+  ReadingStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
   BlockUpsert,
-  CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
   DeliveryBlockChange,
   LibraryFilter,
-  UpdateLoanInfoData,
+  LoanBlockChange,
   UpdatePurchaseInfoData,
   UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
 
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
@@ -43,9 +50,10 @@ import {
   ownershipStatusUsesLoan,
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
+import { resolveFavoriteChange } from "../domain/favorite.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
-import { BookRelationsResolver } from "./book-relations-resolver.js";
+import { BookRelationsResolver, type SeriesPlacement } from "./book-relations-resolver.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 
 const OVERVIEW_TOP_LIMIT = 3;
@@ -63,11 +71,8 @@ function isIsbnFragment(value: string): boolean {
 }
 
 function normalizeSearchQuery(value: string | undefined): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const collapsed = collapseSpaces(value);
-  if (collapsed.length === 0) {
+  const collapsed = normalizeSearch(value);
+  if (collapsed === undefined) {
     return undefined;
   }
   if (collapsed.length < MIN_SEARCH_LENGTH && !isIsbnFragment(collapsed)) {
@@ -84,7 +89,6 @@ const SCALAR_KEYS = [
   "genres",
   "illustrator",
   "isbn",
-  "isFavorite",
   "language",
   "originalTitle",
   "ownershipStatus",
@@ -128,15 +132,19 @@ function resolveDeliveryBlock(
 function resolveLoanBlock(
   ownershipStatus: OwnershipStatus,
   loanInfo: UpdateBookInput["loanInfo"],
-): BlockUpsert<CreateLoanInfoData, UpdateLoanInfoData> {
+  now: Date,
+): LoanBlockChange {
   if (!ownershipStatusUsesLoan(ownershipStatus)) {
-    return { delete: true };
+    return { kind: "return", returnedAt: now };
   }
+  const type = LoanTypeSchema.parse(ownershipStatus);
   if (loanInfo === undefined) {
-    return { skip: true };
+    return { kind: "syncType", type };
   }
   return {
     create: buildLoanInfoData(loanInfo),
+    kind: "upsertActive",
+    type,
     update: buildLoanInfoUpdateData(loanInfo),
   };
 }
@@ -181,10 +189,12 @@ export class BooksService {
     private readonly viewAssembler: BookViewAssembler,
     private readonly coverCleanup: BookCoverCleanup,
     private readonly genresService: GenresService,
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
-    const resolved = await this.relationsResolver.resolveForCreate({ input, userId });
+    const now = new Date();
+    const favoriteChange = resolveFavoriteChange({ current: false, next: input.isFavorite, now });
 
     const deliveryInfo =
       ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
@@ -203,45 +213,64 @@ export class BooksService {
         ? buildReadingProgressData(input.readingProgress)
         : null;
 
+    const resolvedAuthors = await this.relationsResolver.resolveAuthors({
+      references: input.authors,
+      userId,
+    });
+
+    let placement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
-      book = await this.booksRepository.create(userId, {
-        ageCategory: input.ageCategory,
-        authorIds: resolved.authorIds,
-        coverMediaId: input.coverMediaId ?? null,
-        dedication: input.dedication ?? null,
-        deliveryInfo,
-        description: input.description ?? null,
-        firstAuthorName: resolved.firstAuthorName,
-        formats: input.formats,
-        genres: input.genres,
-        illustrator: input.illustrator ?? null,
-        isbn: input.isbn ?? null,
-        isFavorite: input.isFavorite,
-        language: input.language,
-        listIds: resolved.listIds,
-        loanInfo,
-        originalTitle: input.originalTitle ?? null,
-        ownershipStatus: input.ownershipStatus,
-        pagesCount: input.pagesCount ?? null,
-        partNumber: resolved.partNumber,
-        publicationYear: input.publicationYear ?? null,
-        publisherId: resolved.publisherId,
-        purchaseInfo,
-        queuePosition: resolved.queuePosition,
-        queuePriority: resolved.queuePriority,
-        readingProgress,
-        readingStatus: input.readingStatus,
-        seriesId: resolved.seriesId,
-        tagIds: resolved.tagIds,
-        title: input.title,
-        translator: input.translator ?? null,
+      book = await this.transactionRunner.run(async (client) => {
+        const resolved = await this.relationsResolver.resolveForCreate(
+          { input, resolvedAuthors, userId },
+          client,
+        );
+        placement = { partNumber: resolved.partNumber, seriesId: resolved.seriesId };
+
+        return this.booksRepository.create(
+          userId,
+          {
+            ageCategory: input.ageCategory,
+            authorIds: resolved.authorIds,
+            coverMediaId: input.coverMediaId ?? null,
+            dedication: input.dedication ?? null,
+            deliveryInfo,
+            description: input.description ?? null,
+            favoriteAddedAt: favoriteChange?.favoriteAddedAt ?? null,
+            firstAuthorName: resolved.firstAuthorName,
+            formats: input.formats,
+            genres: input.genres,
+            illustrator: input.illustrator ?? null,
+            isbn: input.isbn ?? null,
+            isFavorite: input.isFavorite,
+            language: input.language,
+            listIds: resolved.listIds,
+            loanInfo,
+            originalTitle: input.originalTitle ?? null,
+            ownershipStatus: input.ownershipStatus,
+            pagesCount: input.pagesCount ?? null,
+            partNumber: resolved.partNumber,
+            publicationYear: input.publicationYear ?? null,
+            publisherId: resolved.publisherId,
+            purchaseInfo,
+            queuePosition: resolved.queuePosition,
+            queuePriority: resolved.queuePriority,
+            readingProgress,
+            readingStatus: input.readingStatus,
+            seriesId: resolved.seriesId,
+            tagIds: resolved.tagIds,
+            title: input.title,
+            translator: input.translator ?? null,
+          },
+          client,
+        );
       });
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
         error,
         excludeBookId: null,
-        placement: { partNumber: resolved.partNumber, seriesId: resolved.seriesId },
+        placement,
         userId,
       });
     }
@@ -258,6 +287,14 @@ export class BooksService {
     if (book.coverMediaId !== null) {
       await this.coverCleanup.deleteIfOrphaned({ mediaId: book.coverMediaId, userId });
     }
+  }
+
+  favoritesSummary(userId: string): Promise<FavoritesSummaryView> {
+    return this.booksRepository.favoritesSummary({
+      finishedStatuses: FINISHED_STATUSES,
+      readingStatuses: READING_IN_PROGRESS_STATUSES,
+      userId,
+    });
   }
 
   async getById(userId: string, bookId: string): Promise<BookView> {
@@ -319,19 +356,29 @@ export class BooksService {
     });
   }
 
-  async overview(userId: string): Promise<LibraryOverviewView> {
+  async overview(userId: string, query: LibraryOverviewQuery): Promise<LibraryOverviewView> {
+    const ownershipStatuses = query.owner;
     const [total, reading, finished, favorites, topGenreKeys, topTags, recentBooks] =
       await Promise.all([
-        this.booksRepository.countByUser(userId),
+        this.booksRepository.countByUser({ ownershipStatuses, userId }),
         this.booksRepository.countByReadingStatuses({
+          ownershipStatuses,
           statuses: READING_IN_PROGRESS_STATUSES,
           userId,
         }),
-        this.booksRepository.countByReadingStatuses({ statuses: FINISHED_STATUSES, userId }),
-        this.booksRepository.countFavorites(userId),
-        this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, userId }),
-        this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, userId }),
-        this.booksRepository.listRecentlyAdded({ take: OVERVIEW_RECENT_LIMIT, userId }),
+        this.booksRepository.countByReadingStatuses({
+          ownershipStatuses,
+          statuses: FINISHED_STATUSES,
+          userId,
+        }),
+        this.booksRepository.countFavorites({ ownershipStatuses, userId }),
+        this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
+        this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
+        this.booksRepository.listRecentlyAdded({
+          ownershipStatuses,
+          take: OVERVIEW_RECENT_LIMIT,
+          userId,
+        }),
       ]);
 
     const genreNames = await this.genresService.findNamesByKeys({
@@ -376,32 +423,49 @@ export class BooksService {
     this.assertCurrentPageWithinPages({ current, input, readingStatus });
     this.assertLoanPersonNamePresent({ current, input, ownershipStatus });
 
-    const resolved = await this.relationsResolver.resolveForUpdate({
-      bookId,
-      current,
-      input,
-      userId,
-    });
-    const fields = resolved.fields;
-    assignScalarFields(fields, input);
+    const now = new Date();
 
+    const resolvedAuthors =
+      input.authors === undefined
+        ? undefined
+        : await this.relationsResolver.resolveAuthors({ references: input.authors, userId });
+
+    let seriesPlacement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
-      book = await this.booksRepository.updateOwned(userId, bookId, {
-        authorIds: resolved.authorIds,
-        deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, new Date()),
-        fields,
-        listIds: resolved.listIds,
-        loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo),
-        purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
-        readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
-        tagIds: resolved.tagIds,
+      book = await this.transactionRunner.run(async (client) => {
+        const resolved = await this.relationsResolver.resolveForUpdate(
+          { bookId, current, input, resolvedAuthors, userId },
+          client,
+        );
+        seriesPlacement = resolved.seriesPlacement;
+
+        const fields = resolved.fields;
+        assignScalarFields(fields, input);
+        this.applyFavoriteFields({ current, fields, input, now });
+
+        return this.booksRepository.updateOwned(
+          userId,
+          bookId,
+          {
+            authorIds: resolved.authorIds,
+            deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, now),
+            fields,
+            listIds: resolved.listIds,
+            loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo, now),
+            purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
+            queueRemoval: resolved.queueRemoval,
+            readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
+            tagIds: resolved.tagIds,
+          },
+          client,
+        );
       });
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
         error,
         excludeBookId: bookId,
-        placement: resolved.seriesPlacement,
+        placement: seriesPlacement,
         userId,
       });
     }
@@ -415,6 +479,34 @@ export class BooksService {
     }
 
     return this.viewAssembler.viewOf(book);
+  }
+
+  private applyFavoriteFields({
+    current,
+    fields,
+    input,
+    now,
+  }: {
+    current: BookWithRelations;
+    fields: Prisma.BookUncheckedUpdateManyInput;
+    input: UpdateBookInput;
+    now: Date;
+  }): void {
+    if (input.isFavorite === undefined) {
+      return;
+    }
+
+    const change = resolveFavoriteChange({
+      current: current.isFavorite,
+      next: input.isFavorite,
+      now,
+    });
+    if (change === null) {
+      return;
+    }
+
+    fields.isFavorite = change.isFavorite;
+    fields.favoriteAddedAt = change.favoriteAddedAt;
   }
 
   private assertCurrentPageWithinPages({
@@ -460,7 +552,7 @@ export class BooksService {
     }
 
     const payloadPersonName = input.loanInfo?.personName ?? "";
-    const existingPersonName = current.loanInfo?.personName ?? "";
+    const existingPersonName = current.loans[0]?.personName ?? "";
     if (payloadPersonName.length > 0 || existingPersonName.length > 0) {
       return;
     }

@@ -90,7 +90,22 @@ export const AlreadyQueued: Story = {
 export const OpensListDialog: Story = {
   args: { book: actionBook() },
   beforeEach: () => {
-    mockFetch({ items: [], page: 1, pagesCount: 0, pageSize: 50, totalCount: 0 });
+    mockFetch({
+      lists: [
+        {
+          bookCount: 4,
+          id: "11111111-1111-4111-8111-listaaaaaaaa",
+          isMember: true,
+          name: "Улюблене",
+        },
+        {
+          bookCount: 2,
+          id: "22222222-2222-4222-8222-listbbbbbbbb",
+          isMember: false,
+          name: "Прочитати влітку",
+        },
+      ],
+    });
   },
   play: async ({ canvas }) => {
     const menu = await openMenu(canvas);
@@ -98,6 +113,9 @@ export const OpensListDialog: Story = {
     const body = within(document.body);
     await waitFor(() =>
       expect(body.getByRole("heading", { name: "Додати до списку" })).toBeVisible(),
+    );
+    await waitFor(() =>
+      expect(body.getByRole("button", { name: "Прибрати Улюблене" })).toBeVisible(),
     );
   },
 };

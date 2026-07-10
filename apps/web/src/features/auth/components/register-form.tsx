@@ -267,7 +267,18 @@ export function RegisterForm() {
                   onCheckedChange={(checked) => termsField.onChange(checked === true)}
                   ref={termsField.ref}
                 />
-                {t("fields.terms")}
+                {t.rich("fields.terms", {
+                  privacy: (chunks) => (
+                    <Link className="font-semibold text-primary hover:underline" href="/privacy">
+                      {chunks}
+                    </Link>
+                  ),
+                  terms: (chunks) => (
+                    <Link className="font-semibold text-primary hover:underline" href="/terms">
+                      {chunks}
+                    </Link>
+                  ),
+                })}
               </label>
               <AuthFieldError error={errors.terms} field="terms" id="register-terms-error" />
             </div>

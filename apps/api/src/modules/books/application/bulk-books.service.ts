@@ -11,6 +11,7 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
+import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { ListsService } from "../../lists/index.js";
 import { TagsService } from "../../tags/index.js";
 import {
@@ -73,9 +74,9 @@ export class BulkBooksService {
     if (ownedBookIds.length === 0) {
       return { affected: 0 };
     }
-    const listIds = await this.listsService.resolveListsForBook(userId, {
-      listIds: input.listIds,
-      newLists: input.newLists,
+    const listIds = await this.listsService.resolveListsForBook({
+      input: { listIds: input.listIds, newLists: input.newLists },
+      userId,
     });
     if (listIds.length === 0) {
       return { affected: 0 };
@@ -128,6 +129,7 @@ export class BulkBooksService {
     const affected = await this.bulkBooksRepository.setFavorite({
       bookIds: input.bookIds,
       isFavorite: input.isFavorite,
+      now: new Date(),
       userId,
     });
     return { affected };
@@ -140,10 +142,16 @@ export class BulkBooksService {
     input: BulkOwnershipStatusInput;
     userId: string;
   }): Promise<BulkActionResult> {
+    if (ownershipStatusUsesLoan(input.ownershipStatus)) {
+      throw new BadRequestError(
+        "A loan status requires a per-book borrower; set it on each book individually",
+      );
+    }
+
     const affected = await this.bulkBooksRepository.setOwnershipStatus({
       bookIds: input.bookIds,
       clearDelivery: !ownershipStatusUsesDelivery(input.ownershipStatus),
-      clearLoan: !ownershipStatusUsesLoan(input.ownershipStatus),
+      clearLoan: true,
       clearPurchase: !ownershipStatusKeepsPurchase(input.ownershipStatus),
       ownershipStatus: input.ownershipStatus,
       userId,

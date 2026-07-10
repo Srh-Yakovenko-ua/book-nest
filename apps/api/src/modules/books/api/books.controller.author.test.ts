@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -26,7 +27,7 @@ const authorDetail: OpenLibraryAuthorDetail = {
   wikidataId: "Q3335",
 };
 
-const getAuthorByKey = vi.fn<(olid: string) => Promise<null | OpenLibraryAuthorDetail>>();
+const getAuthorByKey = vi.fn<(olid: string) => Promise<Nullable<OpenLibraryAuthorDetail>>>();
 const getAuthorFactsByQid = vi.fn().mockResolvedValue(null);
 
 let context: AuthTestContext;
