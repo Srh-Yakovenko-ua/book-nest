@@ -213,11 +213,19 @@ export class BooksService {
         ? buildReadingProgressData(input.readingProgress)
         : null;
 
+    const resolvedAuthors = await this.relationsResolver.resolveAuthors({
+      references: input.authors,
+      userId,
+    });
+
     let placement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
       book = await this.transactionRunner.run(async (client) => {
-        const resolved = await this.relationsResolver.resolveForCreate({ input, userId }, client);
+        const resolved = await this.relationsResolver.resolveForCreate(
+          { input, resolvedAuthors, userId },
+          client,
+        );
         placement = { partNumber: resolved.partNumber, seriesId: resolved.seriesId };
 
         return this.booksRepository.create(
@@ -417,12 +425,17 @@ export class BooksService {
 
     const now = new Date();
 
+    const resolvedAuthors =
+      input.authors === undefined
+        ? undefined
+        : await this.relationsResolver.resolveAuthors({ references: input.authors, userId });
+
     let seriesPlacement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
       book = await this.transactionRunner.run(async (client) => {
         const resolved = await this.relationsResolver.resolveForUpdate(
-          { bookId, current, input, userId },
+          { bookId, current, input, resolvedAuthors, userId },
           client,
         );
         seriesPlacement = resolved.seriesPlacement;

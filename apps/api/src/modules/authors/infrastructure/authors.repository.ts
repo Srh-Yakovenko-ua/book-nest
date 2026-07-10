@@ -172,23 +172,25 @@ export class AuthorsRepository {
     });
   }
 
-  async upsertByNormalized({
+  upsertByNormalized({
     locale,
     name,
     normalizedName,
     userId,
   }: UpsertCustomAuthorInput): Promise<AuthorModel> {
-    const author = await this.prisma.author.upsert({
-      create: { name, normalizedName, searchText: normalizedName, userId },
-      update: { normalizedName },
-      where: { userId_normalizedName: { normalizedName, userId } },
+    return this.prisma.$transaction(async (tx) => {
+      const author = await tx.author.upsert({
+        create: { name, normalizedName, searchText: normalizedName, userId },
+        update: { normalizedName },
+        where: { userId_normalizedName: { normalizedName, userId } },
+      });
+      await tx.authorName.upsert({
+        create: { authorId: author.id, isPrimary: true, locale, name, normalizedName },
+        update: { normalizedName },
+        where: { authorId_locale_normalizedName: { authorId: author.id, locale, normalizedName } },
+      });
+      return author;
     });
-    await this.prisma.authorName.upsert({
-      create: { authorId: author.id, isPrimary: true, locale, name, normalizedName },
-      update: { normalizedName },
-      where: { authorId_locale_normalizedName: { authorId: author.id, locale, normalizedName } },
-    });
-    return author;
   }
 }
 

@@ -116,6 +116,7 @@ function buildService(
   };
   relationsResolver: {
     mapSeriesPartNumberWriteError: ReturnType<typeof vi.fn>;
+    resolveAuthors: ReturnType<typeof vi.fn>;
     resolveForCreate: ReturnType<typeof vi.fn>;
     resolveForUpdate: ReturnType<typeof vi.fn>;
   };
@@ -141,6 +142,9 @@ function buildService(
     mapSeriesPartNumberWriteError: vi
       .fn()
       .mockImplementation(({ error }: { error: unknown }) => Promise.resolve(error)),
+    resolveAuthors: vi
+      .fn()
+      .mockResolvedValue({ authorIds: [AUTHOR_ID], firstAuthorName: "Frank Herbert" }),
     resolveForCreate: vi.fn().mockResolvedValue(resolvedCreate()),
     resolveForUpdate: vi.fn().mockResolvedValue(resolvedUpdate()),
   };
@@ -274,7 +278,18 @@ describe("BooksService.create", () => {
 
     await service.create(USER_ID, input);
 
-    expect(relationsResolver.resolveForCreate).toHaveBeenCalledWith({ input, userId: USER_ID }, TX);
+    expect(relationsResolver.resolveAuthors).toHaveBeenCalledWith({
+      references: input.authors,
+      userId: USER_ID,
+    });
+    expect(relationsResolver.resolveForCreate).toHaveBeenCalledWith(
+      {
+        input,
+        resolvedAuthors: { authorIds: [AUTHOR_ID], firstAuthorName: "Frank Herbert" },
+        userId: USER_ID,
+      },
+      TX,
+    );
     expect(repository.create).toHaveBeenCalledTimes(1);
   });
 

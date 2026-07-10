@@ -1,4 +1,10 @@
-import type { CreateBookInput, Nullable, QueuePriority, UpdateBookInput } from "@app/shared";
+import type {
+  BookAuthorReference,
+  CreateBookInput,
+  Nullable,
+  QueuePriority,
+  UpdateBookInput,
+} from "@app/shared";
 
 import {
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
@@ -25,6 +31,11 @@ const BOOK_SERIES_PART_NUMBER_UNIQUE_CONSTRAINT = "books_series_id_part_number_k
 
 export type QueueRemoval = {
   fromPosition: number;
+};
+
+export type ResolvedAuthors = {
+  authorIds: string[];
+  firstAuthorName: string;
 };
 
 export type ResolvedBookCreate = {
@@ -98,21 +109,32 @@ export class BookRelationsResolver {
     return this.seriesPartNumberTakenError({ conflict, partNumber: placement.partNumber });
   }
 
+  async resolveAuthors({
+    references,
+    userId,
+  }: {
+    references: BookAuthorReference[];
+    userId: string;
+  }): Promise<ResolvedAuthors> {
+    const authors = await this.authorsService.resolveReferences({ references, userId });
+    return {
+      authorIds: authors.map((author) => author.id),
+      firstAuthorName: authors[0]?.name ?? "",
+    };
+  }
+
   async resolveForCreate(
     {
       input,
+      resolvedAuthors,
       userId,
     }: {
       input: CreateBookInput;
+      resolvedAuthors: ResolvedAuthors;
       userId: string;
     },
     client?: Prisma.TransactionClient,
   ): Promise<ResolvedBookCreate> {
-    const authors = await this.authorsService.resolveReferences({
-      references: input.authors,
-      userId,
-    });
-
     const publisherId = await this.publishersService.resolveOrCreate(
       userId,
       {
@@ -138,7 +160,7 @@ export class BookRelationsResolver {
       input.bookType === "series_part"
         ? await this.seriesService.resolveForBook(
             {
-              fallbackAuthorIds: authors.map((author) => author.id),
+              fallbackAuthorIds: resolvedAuthors.authorIds,
               newSeries: input.newSeries,
               seriesId: input.seriesId,
               userId,
@@ -167,8 +189,8 @@ export class BookRelationsResolver {
     }
 
     return {
-      authorIds: authors.map((author) => author.id),
-      firstAuthorName: authors[0]?.name ?? "",
+      authorIds: resolvedAuthors.authorIds,
+      firstAuthorName: resolvedAuthors.firstAuthorName,
       listIds,
       partNumber,
       publisherId,
@@ -184,11 +206,13 @@ export class BookRelationsResolver {
       bookId,
       current,
       input,
+      resolvedAuthors,
       userId,
     }: {
       bookId: string;
       current: BookWithRelations;
       input: UpdateBookInput;
+      resolvedAuthors: ResolvedAuthors | undefined;
       userId: string;
     },
     client?: Prisma.TransactionClient,
@@ -196,13 +220,9 @@ export class BookRelationsResolver {
     const fields: Prisma.BookUncheckedUpdateManyInput = {};
 
     let authorIds: string[] | undefined;
-    if (input.authors !== undefined) {
-      const authors = await this.authorsService.resolveReferences({
-        references: input.authors,
-        userId,
-      });
-      authorIds = authors.map((author) => author.id);
-      fields.firstAuthorName = authors[0]?.name ?? "";
+    if (resolvedAuthors !== undefined) {
+      authorIds = resolvedAuthors.authorIds;
+      fields.firstAuthorName = resolvedAuthors.firstAuthorName;
     }
 
     if (input.publisherId !== undefined || input.publisherName !== undefined) {

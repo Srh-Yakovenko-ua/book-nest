@@ -14,7 +14,7 @@ import type { BooksRepository, BookWithRelations } from "../infrastructure/books
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { BookRelationsResolver } from "./book-relations-resolver.js";
+import { BookRelationsResolver, type ResolvedAuthors } from "./book-relations-resolver.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const BOOK_ID = "22222222-2222-4222-8222-222222222222";
@@ -26,6 +26,11 @@ const TAG_ID = "55555555-5555-4555-8555-555555555555";
 const SERIES_ID = "66666666-6666-4666-8666-666666666666";
 const LIST_ID = "77777777-7777-4777-8777-777777777777";
 const MEDIA_ID = "88888888-8888-4888-8888-888888888801";
+
+const DEFAULT_RESOLVED_AUTHORS: ResolvedAuthors = {
+  authorIds: [AUTHOR_ID],
+  firstAuthorName: "Frank Herbert",
+};
 
 type Repository = {
   findSeriesPartNumberConflict: ReturnType<typeof vi.fn>;
@@ -157,10 +162,45 @@ function uniqueConstraintError(target: string): Prisma.PrismaClientKnownRequestE
   });
 }
 
+describe("BookRelationsResolver.resolveAuthors", () => {
+  it("resolves references into ordered ids and firstAuthorName", async () => {
+    const { authorsService, resolver } = buildResolver();
+
+    const resolved = await resolver.resolveAuthors({
+      references: [{ name: "Frank Herbert" }],
+      userId: USER_ID,
+    });
+
+    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
+      references: [{ name: "Frank Herbert" }],
+      userId: USER_ID,
+    });
+    expect(resolved).toEqual({ authorIds: [AUTHOR_ID], firstAuthorName: "Frank Herbert" });
+  });
+
+  it("orders resolved author ids and derives firstAuthorName from the first author", async () => {
+    const { authorsService, resolver } = buildResolver();
+    authorsService.resolveReferences.mockResolvedValue([
+      { id: AUTHOR_ID, name: "Terry Pratchett" },
+      { id: AUTHOR_ID_B, name: "Neil Gaiman" },
+    ]);
+
+    const resolved = await resolver.resolveAuthors({
+      references: [{ name: "Terry Pratchett" }, { name: "Neil Gaiman" }],
+      userId: USER_ID,
+    });
+
+    expect(resolved.authorIds).toEqual([AUTHOR_ID, AUTHOR_ID_B]);
+    expect(resolved.firstAuthorName).toBe("Terry Pratchett");
+  });
+});
+
 describe("BookRelationsResolver.resolveForCreate references", () => {
-  it("resolves the author, publisher, tags and lists", async () => {
-    const { authorsService, listsService, publishersService, resolver, tagsService } =
-      buildResolver({ listIds: [LIST_ID], tagIds: [TAG_ID] });
+  it("resolves the publisher, tags and lists with the pre-resolved authors", async () => {
+    const { listsService, publishersService, resolver, tagsService } = buildResolver({
+      listIds: [LIST_ID],
+      tagIds: [TAG_ID],
+    });
 
     const resolved = await resolver.resolveForCreate({
       input: createInput({
@@ -169,13 +209,10 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
         publisherName: "Penguin",
         tags: ["dark academia"],
       }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
-    expect(authorsService.resolveReferences).toHaveBeenCalledWith({
-      references: [{ name: "Frank Herbert" }],
-      userId: USER_ID,
-    });
     expect(publishersService.resolveOrCreate).toHaveBeenCalledWith(
       USER_ID,
       { id: undefined, name: "Penguin" },
@@ -202,15 +239,12 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
     });
   });
 
-  it("orders resolved author ids and derives firstAuthorName from the first author", async () => {
-    const { authorsService, resolver } = buildResolver();
-    authorsService.resolveReferences.mockResolvedValue([
-      { id: AUTHOR_ID, name: "Terry Pratchett" },
-      { id: AUTHOR_ID_B, name: "Neil Gaiman" },
-    ]);
+  it("passes the pre-resolved authors through to the result", async () => {
+    const { resolver } = buildResolver();
 
     const resolved = await resolver.resolveForCreate({
       input: createInput({ authors: [{ name: "Terry Pratchett" }, { name: "Neil Gaiman" }] }),
+      resolvedAuthors: { authorIds: [AUTHOR_ID, AUTHOR_ID_B], firstAuthorName: "Terry Pratchett" },
       userId: USER_ID,
     });
 
@@ -223,6 +257,7 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
 
     await resolver.resolveForCreate({
       input: createInput({ coverMediaId: MEDIA_ID }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -234,6 +269,7 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
 
     await resolver.resolveForCreate({
       input: createInput({ genres: ["fentezi", "romantyka"] }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -248,7 +284,11 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
     genresService.assertGenresSelectable.mockRejectedValue(new BadRequestError("Invalid genres"));
 
     await expect(
-      resolver.resolveForCreate({ input: createInput({ genres: ["nope"] }), userId: USER_ID }),
+      resolver.resolveForCreate({
+        input: createInput({ genres: ["nope"] }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      }),
     ).rejects.toBeInstanceOf(BadRequestError);
   });
 });
@@ -259,6 +299,7 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
 
     const resolved = await resolver.resolveForCreate({
       input: createInput({ addToReadingQueue: false }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -271,6 +312,7 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
 
     const resolved = await resolver.resolveForCreate({
       input: createInput({ addToReadingQueue: true }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -282,6 +324,7 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
 
     const resolved = await resolver.resolveForCreate({
       input: createInput({ addToReadingQueue: true, queuePriority: "high" }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -305,6 +348,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
 
     const resolved = await resolver.resolveForCreate({
       input: seriesPartInput({ bookType: "solo", partNumber: 5 }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -320,6 +364,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
         newSeries: { genres: [], name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
         partNumber: 1,
       }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -340,6 +385,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
 
     const resolved = await resolver.resolveForCreate({
       input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -360,6 +406,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
 
     await resolver.resolveForCreate({
       input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -383,6 +430,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
     await expect(
       resolver.resolveForCreate({
         input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
         userId: USER_ID,
       }),
     ).rejects.toBeInstanceOf(BadRequestError);
@@ -393,6 +441,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
 
     await resolver.resolveForCreate({
       input: seriesPartInput({ bookType: "solo", partNumber: 1 }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -405,6 +454,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
     await expect(
       resolver.resolveForCreate({
         input: seriesPartInput({ partNumber: 3, seriesId: SERIES_ID }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
         userId: USER_ID,
       }),
     ).rejects.toBeInstanceOf(BadRequestError);
@@ -415,6 +465,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
 
     const resolved = await resolver.resolveForCreate({
       input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -424,16 +475,16 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
 
 describe("BookRelationsResolver.resolveForUpdate", () => {
   it("replaces the author set and recomputes firstAuthorName from the new first author", async () => {
-    const { authorsService, resolver } = buildResolver();
-    authorsService.resolveReferences.mockResolvedValue([
-      { id: AUTHOR_ID_B, name: "Ursula K. Le Guin" },
-      { id: AUTHOR_ID_C, name: "Octavia E. Butler" },
-    ]);
+    const { resolver } = buildResolver();
 
     const resolved = await resolver.resolveForUpdate({
       bookId: BOOK_ID,
       current: bookRow(),
       input: { authors: [{ name: "Ursula K. Le Guin" }, { name: "Octavia E. Butler" }] },
+      resolvedAuthors: {
+        authorIds: [AUTHOR_ID_B, AUTHOR_ID_C],
+        firstAuthorName: "Ursula K. Le Guin",
+      },
       userId: USER_ID,
     });
 
@@ -448,6 +499,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { title: "Renamed" },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -463,6 +515,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { publisherName: "Vivat" },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -476,6 +529,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { publisherName: "Vivat" },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -489,6 +543,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { coverMediaId: MEDIA_ID },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -503,6 +558,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { tags: ["dark academia"] },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -521,6 +577,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { title: "Renamed" },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -535,6 +592,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { listIds: [LIST_ID] },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -555,6 +613,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { bookType: "solo" },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -569,6 +628,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow({ partNumber: 4, seriesId: SERIES_ID }),
       input: { partNumber: 4 } as UpdateBookInput,
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -593,6 +653,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
         bookId: BOOK_ID,
         current: bookRow({ partNumber: 2, seriesId: SERIES_ID }),
         input: { partNumber: 3 } as UpdateBookInput,
+        resolvedAuthors: undefined,
         userId: USER_ID,
       }),
     ).rejects.toBeInstanceOf(BadRequestError);
@@ -605,6 +666,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { title: "Solo" },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -626,6 +688,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
           newSeries: { name: "Throne of Glass", status: "ongoing" },
           partNumber: 99,
         } as UpdateBookInput,
+        resolvedAuthors: undefined,
         userId: USER_ID,
       }),
     ).rejects.toBeInstanceOf(BadRequestError);
@@ -643,6 +706,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
         newSeries: { name: "Throne of Glass", status: "ongoing" },
         partNumber: 2,
       } as UpdateBookInput,
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -657,6 +721,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow({ queuePosition: null, queuePriority: null }),
       input: { addToReadingQueue: true, queuePriority: "high" } as UpdateBookInput,
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -671,6 +736,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow({ queuePosition: 2, queuePriority: "normal" }),
       input: { addToReadingQueue: false } as UpdateBookInput,
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -685,6 +751,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow({ queuePosition: 3, queuePriority: "low" }),
       input: { queuePriority: "high" } as UpdateBookInput,
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -700,6 +767,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { genres: ["fentezi", "romantyka"] },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -716,6 +784,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       bookId: BOOK_ID,
       current: bookRow(),
       input: { title: "Renamed" },
+      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
