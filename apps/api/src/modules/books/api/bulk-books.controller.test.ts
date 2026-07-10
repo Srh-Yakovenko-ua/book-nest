@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { randomUUID } from "node:crypto";
@@ -48,11 +49,11 @@ afterAll(async () => {
 
 type SeedBookInput = {
   authorId: string;
-  coverMediaId?: null | string;
+  coverMediaId?: Nullable<string>;
   isFavorite?: boolean;
   ownershipStatus?: string;
-  queuePosition?: null | number;
-  queuePriority?: null | string;
+  queuePosition?: Nullable<number>;
+  queuePriority?: Nullable<string>;
   readingStatus?: string;
   title?: string;
   userId: string;

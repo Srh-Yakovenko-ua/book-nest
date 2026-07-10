@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { Nullable } from "./common.js";
+
 import { RECENT_USED_LIMIT_DEFAULT, RECENT_USED_LIMIT_MAX } from "./internal.js";
 import {
   CatalogLocaleSchema,
@@ -34,18 +36,18 @@ export const BookAuthorsInputSchema = z
   .max(BOOK_AUTHORS_MAX, BOOK_AUTHORS_MAX_MESSAGE);
 
 export type AuthorView = {
-  bio: null | string;
-  birthYear: null | number;
-  countryCode: null | string;
-  deathYear: null | number;
+  bio: Nullable<string>;
+  birthYear: Nullable<number>;
+  countryCode: Nullable<string>;
+  deathYear: Nullable<number>;
   id: string;
   isCustom: boolean;
   name: string;
-  openLibraryKey: null | string;
-  photoAttribution: null | string;
-  photoLicense: null | string;
-  photoLicenseUrl: null | string;
-  photoUrl: null | string;
+  openLibraryKey: Nullable<string>;
+  photoAttribution: Nullable<string>;
+  photoLicense: Nullable<string>;
+  photoLicenseUrl: Nullable<string>;
+  photoUrl: Nullable<string>;
 };
 
 export type BookAuthorsInput = z.infer<typeof BookAuthorsInputSchema>;
@@ -73,8 +75,8 @@ export const AuthorLookupQuerySchema = z.object({
 });
 
 export type AuthorBookSuggestionView = {
-  coverUrl: null | string;
-  firstPublishYear: null | number;
+  coverUrl: Nullable<string>;
+  firstPublishYear: Nullable<number>;
   openLibraryWorkKey: string;
   title: string;
 };

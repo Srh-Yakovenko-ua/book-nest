@@ -1,4 +1,4 @@
-import { DeliveryServiceSchema } from "@app/shared";
+import { DeliveryServiceSchema, type Nullable } from "@app/shared";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
@@ -10,7 +10,7 @@ import { PrismaClient } from "../generated/prisma/client.js";
 
 const logger = createLogger("seed.delivery-services");
 
-const CURATED_DELIVERY_SERVICES: { countryCode: null | string; name: string }[] = [
+const CURATED_DELIVERY_SERVICES: { countryCode: Nullable<string>; name: string }[] = [
   { countryCode: "UA", name: "Нова Пошта" },
   { countryCode: "UA", name: "Укрпошта" },
   { countryCode: "UA", name: "Meest" },
@@ -57,7 +57,7 @@ async function seedBulk(prisma: PrismaClientInstance): Promise<void> {
   const existingNormalizedNames = new Set(existingGlobals.map((row) => row.normalizedName));
 
   const seenNormalizedNames = new Set<string>();
-  const toInsert: { countryCode: null | string; name: string; normalizedName: string }[] = [];
+  const toInsert: { countryCode: Nullable<string>; name: string; normalizedName: string }[] = [];
   for (const item of dataset) {
     const normalizedName = normalizeName(item.name);
     if (existingNormalizedNames.has(normalizedName) || seenNormalizedNames.has(normalizedName)) {

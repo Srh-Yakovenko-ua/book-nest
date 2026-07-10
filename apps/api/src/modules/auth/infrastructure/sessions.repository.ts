@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -43,7 +45,7 @@ export class SessionsRepository {
   findByRefreshHash(
     refreshHash: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | SessionModel> {
+  ): Promise<Nullable<SessionModel>> {
     return client.session.findUnique({ where: { refreshHash } });
   }
 

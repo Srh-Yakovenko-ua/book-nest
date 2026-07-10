@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -27,7 +28,7 @@ const authorDetail: OpenLibraryAuthorDetail = {
   wikidataId: "Q3335",
 };
 
-const getAuthorByKey = vi.fn<(olid: string) => Promise<null | OpenLibraryAuthorDetail>>();
+const getAuthorByKey = vi.fn<(olid: string) => Promise<Nullable<OpenLibraryAuthorDetail>>>();
 const getAuthorFactsByQid = vi.fn().mockResolvedValue(null);
 
 let context: AuthTestContext;
@@ -71,7 +72,7 @@ function createBook(accessToken: string, body: Record<string, unknown>): request
 
 function readQueuePositions(
   userId: string,
-): Promise<{ id: string; queuePosition: null | number }[]> {
+): Promise<{ id: string; queuePosition: Nullable<number> }[]> {
   return prisma.book.findMany({
     orderBy: { queuePosition: "asc" },
     select: { id: true, queuePosition: true },

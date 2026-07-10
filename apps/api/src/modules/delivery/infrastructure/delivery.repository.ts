@@ -4,6 +4,7 @@ import type {
   DeliveryHistoryTab,
   DeliveryInTransitFilter,
   DeliveryInTransitSort,
+  Nullable,
 } from "@app/shared";
 
 import { CurrencySchema, DELIVERY_ACTIVE_STATUSES, DeliveryStatusSchema } from "@app/shared";
@@ -64,7 +65,7 @@ export type HistorySummaryData = {
 };
 
 export type InTransitCurrencyTotal = {
-  currency: null | string;
+  currency: Nullable<string>;
   total: number;
 };
 
@@ -85,7 +86,7 @@ export type InTransitSummaryData = {
   currencyTotals: InTransitCurrencyTotal[];
   delayedCount: number;
   expectedThisWeek: number;
-  storeNames: (null | string)[];
+  storeNames: Nullable<string>[];
 };
 
 export type StatisticsFilterInput = {
@@ -120,38 +121,45 @@ type SummaryInput = {
 export class DeliveryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  bulkReceive({ bookIds, transition, userId }: BulkReceiveInput): Promise<BulkReceiveOutcome[]> {
-    return this.prisma.$transaction(async (tx) => {
-      const outcomes: BulkReceiveOutcome[] = [];
+  async bulkReceive(
+    { bookIds, transition, userId }: BulkReceiveInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<BulkReceiveOutcome[]> {
+    if (client === undefined) {
+      return this.prisma.$transaction((tx) =>
+        this.bulkReceive({ bookIds, transition, userId }, tx),
+      );
+    }
 
-      for (const bookId of bookIds) {
-        const owned = await tx.book.findFirst({
-          select: { id: true },
-          where: { id: bookId, userId },
-        });
-        if (owned === null) {
-          outcomes.push({ bookId, reason: "not_found", status: "skipped" });
-          continue;
-        }
+    const outcomes: BulkReceiveOutcome[] = [];
 
-        const updated = await tx.bookDelivery.updateMany({
-          data: transition.delivery,
-          where: { book: { userId }, bookId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
-        });
-        if (updated.count === 0) {
-          outcomes.push({ bookId, reason: "not_active", status: "skipped" });
-          continue;
-        }
-
-        if (transition.book !== null) {
-          await tx.book.update({ data: transition.book, where: { id: bookId } });
-        }
-
-        outcomes.push({ bookId, status: "received" });
+    for (const bookId of bookIds) {
+      const owned = await client.book.findFirst({
+        select: { id: true },
+        where: { id: bookId, userId },
+      });
+      if (owned === null) {
+        outcomes.push({ bookId, reason: "not_found", status: "skipped" });
+        continue;
       }
 
-      return outcomes;
-    });
+      const updated = await client.bookDelivery.updateMany({
+        data: transition.delivery,
+        where: { book: { userId }, bookId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
+      });
+      if (updated.count === 0) {
+        outcomes.push({ bookId, reason: "not_active", status: "skipped" });
+        continue;
+      }
+
+      if (transition.book !== null) {
+        await client.book.update({ data: transition.book, where: { id: bookId } });
+      }
+
+      outcomes.push({ bookId, status: "received" });
+    }
+
+    return outcomes;
   }
 
   countActive(input: InTransitFilterInput): Promise<number> {

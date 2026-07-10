@@ -1,4 +1,4 @@
-import type { SeriesBookView, SeriesDetailsView, SeriesView } from "@app/shared";
+import type { Nullable, SeriesBookView, SeriesDetailsView, SeriesView } from "@app/shared";
 
 import { OwnershipStatusSchema, ReadingStatusSchema, SeriesStatusSchema } from "@app/shared";
 
@@ -20,12 +20,12 @@ type SeriesViewSource = {
   authors: { author: { id: string; name: string } }[];
   books: SeriesBookRow[];
   createdAt: Date;
-  description: null | string;
+  description: Nullable<string>;
   genres: string[];
   id: string;
   name: string;
   status: string;
-  totalBooks: null | number;
+  totalBooks: Nullable<number>;
   updatedAt: Date;
 };
 

@@ -1,4 +1,4 @@
-import type { DeliveryServiceView } from "@app/shared";
+import type { DeliveryServiceView, Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { normalizeName } from "@app/shared";
@@ -79,7 +79,7 @@ function recentNames(body: DeliveryServiceView[]): string[] {
 }
 
 function seedGlobalDeliveryService(input: {
-  countryCode?: null | string;
+  countryCode?: Nullable<string>;
   name: string;
   sortOrder: number;
 }): Promise<{ id: string }> {

@@ -1,6 +1,7 @@
 import type {
   DeliveryInfoInput,
   LoanInfoInput,
+  Nullable,
   OwnershipStatus,
   PurchaseInfoInput,
   ReadingProgressInput,
@@ -39,10 +40,10 @@ const OWNERSHIP_STATUS_IN_TRANSIT: OwnershipStatus = "in_transit";
 
 const DEFAULT_DELIVERY_STATUS = "ordered";
 
-export const toCreateDate = (value: null | string | undefined): Date | null =>
+export const toCreateDate = (value: Nullable<string> | undefined): Nullable<Date> =>
   value === undefined || value === null ? null : parseIsoDate(value);
 
-export const toUpdateDate = (value: null | string | undefined): Date | null | undefined =>
+export const toUpdateDate = (value: Nullable<string> | undefined): Nullable<Date> | undefined =>
   value === undefined || value === null ? value : parseIsoDate(value);
 
 export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryData {

@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -19,7 +21,7 @@ export class PasswordResetTokensRepository {
     tokenHash: string,
     now: Date,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | { userId: string }> {
+  ): Promise<Nullable<{ userId: string }>> {
     const tokenRow = await client.passwordResetToken.findUnique({ where: { tokenHash } });
     if (tokenRow === null) return null;
 
@@ -48,7 +50,7 @@ export class PasswordResetTokensRepository {
   findLatestByUserId(
     userId: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | PasswordResetTokenModel> {
+  ): Promise<Nullable<PasswordResetTokenModel>> {
     return client.passwordResetToken.findFirst({
       orderBy: { createdAt: "desc" },
       where: { userId },

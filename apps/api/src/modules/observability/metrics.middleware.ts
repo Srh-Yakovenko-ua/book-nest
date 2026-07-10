@@ -42,7 +42,7 @@ export class MetricsMiddleware implements NestMiddleware {
 }
 
 function resolveRoutePattern(req: Request): string {
-  const route = (req as Request & { route?: { path?: string } }).route;
+  const route = req.route;
   if (route?.path) {
     const baseUrl = req.baseUrl ?? "";
     return `${baseUrl}${route.path}`;

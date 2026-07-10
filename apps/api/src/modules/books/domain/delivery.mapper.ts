@@ -4,13 +4,14 @@ import {
   type DeliverySummaryView,
   type DeliveryView,
   isActiveDeliveryStatus,
+  type Nullable,
 } from "@app/shared";
 
 import type { BookDeliveryModel } from "../../../generated/prisma/models.js";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
 
-const toNullableInstant = (value: Date | null): null | string =>
+const toNullableInstant = (value: Nullable<Date>): Nullable<string> =>
   value === null ? null : value.toISOString();
 
 export function toDeliverySummaryView(deliveries: BookDeliveryModel[]): DeliverySummaryView {

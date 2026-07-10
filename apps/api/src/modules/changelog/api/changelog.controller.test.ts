@@ -1,4 +1,4 @@
-import type { ChangelogCategory } from "@app/shared";
+import type { ChangelogCategory, Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { subDays } from "date-fns";
@@ -57,12 +57,12 @@ function seedEntry(input: {
   bodyEn?: string;
   bodyUk?: string;
   category?: ChangelogCategory;
-  publishedAt: Date | null;
+  publishedAt: Nullable<Date>;
   slug: string;
   title?: string;
   titleEn?: string;
   titleUk?: string;
-  version?: null | string;
+  version?: Nullable<string>;
 }): Promise<{ id: string }> {
   const body = input.body ?? "Details about the change";
   const title = input.title ?? input.slug;
@@ -102,7 +102,7 @@ async function seedThreePublished(): Promise<void> {
 const TIE_SHARED = new Date("2026-06-01T00:00:00.000Z");
 
 type WalkResult = {
-  nextCursors: (null | string)[];
+  nextCursors: Nullable<string>[];
   pages: string[][];
   unreadCounts: number[];
 };
@@ -122,7 +122,7 @@ function slugsOf(body: { entries: { slug: string }[] }): string[] {
 }
 
 async function walkPages({ limit, token }: { limit: number; token?: string }): Promise<WalkResult> {
-  const nextCursors: (null | string)[] = [];
+  const nextCursors: Nullable<string>[] = [];
   const pages: string[][] = [];
   const unreadCounts: number[] = [];
   let cursor: string | undefined;
@@ -132,7 +132,7 @@ async function walkPages({ limit, token }: { limit: number; token?: string }): P
     const res = await getChangelog({ query, token });
     expect(res.status).toBe(200);
 
-    const nextCursor: null | string = res.body.nextCursor;
+    const nextCursor: Nullable<string> = res.body.nextCursor;
     pages.push(slugsOf(res.body));
     nextCursors.push(nextCursor);
     unreadCounts.push(res.body.unreadCount);

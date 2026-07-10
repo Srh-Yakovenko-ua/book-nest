@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -16,7 +17,7 @@ import { WikidataClient } from "../../authors/infrastructure/wikidata.client.js"
 import { ListsModule } from "../../lists/lists.module.js";
 import { BooksModule } from "../books.module.js";
 
-const getAuthorByKey = vi.fn<(olid: string) => Promise<null | OpenLibraryAuthorDetail>>();
+const getAuthorByKey = vi.fn<(olid: string) => Promise<Nullable<OpenLibraryAuthorDetail>>>();
 const getAuthorFactsByQid = vi.fn().mockResolvedValue(null);
 
 let context: AuthTestContext;
@@ -65,7 +66,7 @@ function createList(userId: string, name: string): Promise<{ id: string }> {
   });
 }
 
-function membership(bookId: string, listId: string): Promise<BookListItemModel | null> {
+function membership(bookId: string, listId: string): Promise<Nullable<BookListItemModel>> {
   return prisma.bookListItem.findUnique({ where: { listId_bookId: { bookId, listId } } });
 }
 

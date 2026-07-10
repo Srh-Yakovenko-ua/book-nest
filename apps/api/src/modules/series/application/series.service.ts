@@ -1,6 +1,7 @@
 import type {
   BookAuthorReference,
   NewSeriesInput,
+  Nullable,
   Paginator,
   SeriesDetailsView,
   SeriesOverviewView,
@@ -46,7 +47,7 @@ type DecoratedSeries = {
 
 type ResolvedSeries = {
   id: string;
-  totalBooks: null | number;
+  totalBooks: Nullable<number>;
 };
 
 type ResolveSeriesAuthorIdsInput = {
@@ -149,11 +150,14 @@ export class SeriesService {
     };
   }
 
-  async resolveForBook(input: ResolveSeriesInput): Promise<ResolvedSeries> {
+  async resolveForBook(
+    input: ResolveSeriesInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<ResolvedSeries> {
     const { fallbackAuthorIds, newSeries, seriesId, userId } = input;
 
     if (seriesId !== undefined) {
-      const series = await this.seriesRepository.findOwnedById(userId, seriesId);
+      const series = await this.seriesRepository.findOwnedById(userId, seriesId, client);
       if (series === null) {
         throw new NotFoundError("Series not found");
       }
@@ -165,7 +169,7 @@ export class SeriesService {
     }
 
     const normalizedName = normalizeName(newSeries.name);
-    const existing = await this.seriesRepository.findByNormalized(userId, normalizedName);
+    const existing = await this.seriesRepository.findByNormalized(userId, normalizedName, client);
     if (existing !== null) {
       return { id: existing.id, totalBooks: existing.totalBooks };
     }
@@ -178,8 +182,8 @@ export class SeriesService {
       userId,
     });
 
-    try {
-      const created = await this.seriesRepository.create({
+    const created = await this.seriesRepository.upsertByNormalized(
+      {
         authorIds,
         data: {
           description: newSeries.description ?? null,
@@ -190,18 +194,10 @@ export class SeriesService {
           totalBooks: newSeries.totalBooks ?? null,
         },
         userId,
-      });
-      return { id: created.id, totalBooks: created.totalBooks };
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      const winner = await this.seriesRepository.findByNormalized(userId, normalizedName);
-      if (winner === null) {
-        throw error;
-      }
-      return { id: winner.id, totalBooks: winner.totalBooks };
-    }
+      },
+      client,
+    );
+    return { id: created.id, totalBooks: created.totalBooks };
   }
 
   async search(userId: string, query: SeriesSearchQuery): Promise<Paginator<SeriesView>> {

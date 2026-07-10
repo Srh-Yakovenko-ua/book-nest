@@ -7,6 +7,7 @@ import {
   CurrencySchema,
   type LoanInfoView,
   type MediaView,
+  type Nullable,
   OwnershipStatusSchema,
   type PurchaseInfoView,
   QueuePrioritySchema,
@@ -25,7 +26,7 @@ import {
 } from "../../series/index.js";
 import { toDeliverySummaryView } from "./delivery.mapper.js";
 
-export function toBookView(book: BookWithRelations, cover: MediaView | null): BookView {
+export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>): BookView {
   return {
     ageCategory: AgeCategorySchema.parse(book.ageCategory),
     authors: book.authors.map((bookAuthor) => ({
@@ -77,7 +78,7 @@ export function toBookView(book: BookWithRelations, cover: MediaView | null): Bo
   };
 }
 
-function toLoanInfoView(loans: BookWithRelations["loans"]): LoanInfoView | null {
+function toLoanInfoView(loans: BookWithRelations["loans"]): Nullable<LoanInfoView> {
   const loan = loans[0] ?? null;
   if (loan === null) {
     return null;
@@ -95,7 +96,7 @@ function toLoanInfoView(loans: BookWithRelations["loans"]): LoanInfoView | null 
 
 function toPurchaseInfoView(
   purchaseInfo: BookWithRelations["purchaseInfo"],
-): null | PurchaseInfoView {
+): Nullable<PurchaseInfoView> {
   if (purchaseInfo === null) {
     return null;
   }
@@ -113,7 +114,7 @@ function toPurchaseInfoView(
 
 function toReadingProgressView(
   readingProgress: BookWithRelations["readingProgress"],
-): null | ReadingProgressView {
+): Nullable<ReadingProgressView> {
   if (readingProgress === null) {
     return null;
   }

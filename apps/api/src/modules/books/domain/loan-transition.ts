@@ -2,6 +2,7 @@ import type {
   CreateLoanInput,
   LoanDirection,
   LoanType,
+  Nullable,
   OwnershipStatus,
   UpdateLoanInput,
 } from "@app/shared";
@@ -22,7 +23,7 @@ export function buildLoanEditData({
   existingLoanDate,
   input,
 }: {
-  existingLoanDate: Date | null;
+  existingLoanDate: Nullable<Date>;
   input: UpdateLoanInput;
 }): UpdateActiveLoanData {
   return {
@@ -84,6 +85,6 @@ function buildLoanInfo(fields: CreateLoanInput, today: string): CreateLoanInfoDa
   };
 }
 
-function toReturnDate(value: null | string | undefined): Date | null {
+function toReturnDate(value: Nullable<string> | undefined): Nullable<Date> {
   return value === undefined || value === null ? null : parseIsoDate(value);
 }

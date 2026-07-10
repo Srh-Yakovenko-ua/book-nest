@@ -54,6 +54,14 @@ export function normalizeName(name: string): string {
   return collapseSpaces(name).toLowerCase();
 }
 
+export function normalizeSearch(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const collapsed = collapseSpaces(value);
+  return collapsed.length === 0 ? undefined : collapsed;
+}
+
 export const createPaginatedSchema = <ItemSchema extends z.ZodType>(item: ItemSchema) =>
   z.object({
     items: z.array(item),

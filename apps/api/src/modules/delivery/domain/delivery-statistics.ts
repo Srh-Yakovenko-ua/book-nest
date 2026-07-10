@@ -9,6 +9,7 @@ import type {
   DeliveryStatisticsView,
   DeliveryStatus,
   DeliveryTopOrder,
+  Nullable,
 } from "@app/shared";
 
 import { collapseSpaces, CurrencySchema, isActiveDeliveryStatus } from "@app/shared";
@@ -24,11 +25,11 @@ const CURRENCY_ORDER: readonly Currency[] = CurrencySchema.options;
 export type StatisticsRecord = {
   bookId: string;
   bookTitle: string;
-  currency: Currency | null;
-  orderDate: Date | null;
-  price: null | number;
+  currency: Nullable<Currency>;
+  orderDate: Nullable<Date>;
+  price: Nullable<number>;
   status: DeliveryStatus;
-  storeName: null | string;
+  storeName: Nullable<string>;
 };
 
 type PricedStatisticsRecord = StatisticsRecord & { price: number };

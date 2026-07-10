@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -39,28 +40,28 @@ type SeedBookInput = {
   ageCategory?: string;
   authorId: string;
   coAuthorIds?: string[];
-  coverMediaId?: null | string;
+  coverMediaId?: Nullable<string>;
   createdAt?: Date;
-  favoriteAddedAt?: Date | null;
+  favoriteAddedAt?: Nullable<Date>;
   firstAuthorName?: string;
   formats?: string[];
   genres?: string[];
-  illustrator?: null | string;
-  isbn?: null | string;
+  illustrator?: Nullable<string>;
+  isbn?: Nullable<string>;
   isFavorite?: boolean;
   language?: string;
-  originalTitle?: null | string;
+  originalTitle?: Nullable<string>;
   ownershipStatus?: string;
-  pagesCount?: null | number;
-  partNumber?: null | number;
-  publicationYear?: null | number;
-  publisherId?: null | string;
+  pagesCount?: Nullable<number>;
+  partNumber?: Nullable<number>;
+  publicationYear?: Nullable<number>;
+  publisherId?: Nullable<string>;
   rating?: number;
   readingStatus?: string;
-  seriesId?: null | string;
+  seriesId?: Nullable<string>;
   tagIds?: string[];
   title?: string;
-  translator?: null | string;
+  translator?: Nullable<string>;
   userId: string;
 };
 
@@ -138,7 +139,11 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
   });
 }
 
-function seedGenre(input: { key: string; name: string; userId?: null | string }): Promise<unknown> {
+function seedGenre(input: {
+  key: string;
+  name: string;
+  userId?: Nullable<string>;
+}): Promise<unknown> {
   return prisma.genre.create({
     data: {
       groupKey: "fiction",

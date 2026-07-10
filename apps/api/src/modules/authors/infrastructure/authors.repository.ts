@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -19,27 +21,21 @@ export type AuthorNameSeed = {
 export type AuthorWithPrimaryNames = Prisma.AuthorGetPayload<typeof primaryNamesArgs>;
 
 export type CreateGlobalAuthorData = {
-  bio: null | string;
-  birthYear: null | number;
-  countryCode: null | string;
-  deathYear: null | number;
+  bio: Nullable<string>;
+  birthYear: Nullable<number>;
+  countryCode: Nullable<string>;
+  deathYear: Nullable<number>;
   name: string;
   normalizedName: string;
   openLibraryKey: string;
-  photoUrl: null | string;
+  photoUrl: Nullable<string>;
   searchText: string;
-  wikidataId: null | string;
+  wikidataId: Nullable<string>;
 };
 
 type AuthorLookupMatch = {
   normalizedName: string;
-  openLibraryKey: null | string;
-};
-
-type CreateCustomAuthorInput = {
-  locale: string;
-  name: string;
-  normalizedName: string;
+  openLibraryKey: Nullable<string>;
 };
 
 type FindExistingByLookupInput = {
@@ -60,6 +56,13 @@ type SearchAuthorsInput = {
   userId: string;
 };
 
+type UpsertCustomAuthorInput = {
+  locale: string;
+  name: string;
+  normalizedName: string;
+  userId: string;
+};
+
 type VisibleByIdsInput = {
   ids: string[];
   userId: string;
@@ -71,28 +74,6 @@ export class AuthorsRepository {
 
   countVisible(userId: string, query: string | undefined): Promise<number> {
     return this.prisma.author.count({ where: buildVisibleWhere(userId, query) });
-  }
-
-  create(userId: string, input: CreateCustomAuthorInput): Promise<AuthorWithPrimaryNames> {
-    return this.prisma.author.create({
-      data: {
-        name: input.name,
-        names: {
-          create: [
-            {
-              isPrimary: true,
-              locale: input.locale,
-              name: input.name,
-              normalizedName: input.normalizedName,
-            },
-          ],
-        },
-        normalizedName: input.normalizedName,
-        searchText: input.normalizedName,
-        userId,
-      },
-      ...primaryNamesArgs,
-    });
   }
 
   createGlobal(data: CreateGlobalAuthorData, names: AuthorNameSeed[]): Promise<AuthorModel> {
@@ -108,7 +89,7 @@ export class AuthorsRepository {
     });
   }
 
-  findByNormalized(userId: string, normalizedName: string): Promise<AuthorModel | null> {
+  findByNormalized(userId: string, normalizedName: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({
       where: { normalizedName, OR: [{ userId: null }, { userId }] },
     });
@@ -131,19 +112,19 @@ export class AuthorsRepository {
     });
   }
 
-  findGlobalByNormalizedName(normalizedName: string): Promise<AuthorModel | null> {
+  findGlobalByNormalizedName(normalizedName: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({ where: { normalizedName, userId: null } });
   }
 
-  findGlobalByOpenLibraryKey(openLibraryKey: string): Promise<AuthorModel | null> {
+  findGlobalByOpenLibraryKey(openLibraryKey: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({ where: { openLibraryKey, userId: null } });
   }
 
-  findGlobalByWikidataId(wikidataId: string): Promise<AuthorModel | null> {
+  findGlobalByWikidataId(wikidataId: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({ where: { userId: null, wikidataId } });
   }
 
-  findVisibleById(userId: string, id: string): Promise<AuthorModel | null> {
+  findVisibleById(userId: string, id: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({
       where: { id, OR: [{ userId: null }, { userId }] },
     });
@@ -156,7 +137,7 @@ export class AuthorsRepository {
     });
   }
 
-  findVisibleByIdWithNames(userId: string, id: string): Promise<AuthorWithPrimaryNames | null> {
+  findVisibleByIdWithNames(userId: string, id: string): Promise<Nullable<AuthorWithPrimaryNames>> {
     return this.prisma.author.findFirst({
       where: { id, OR: [{ userId: null }, { userId }] },
       ...primaryNamesArgs,
@@ -188,6 +169,27 @@ export class AuthorsRepository {
       take,
       where: buildVisibleWhere(userId, query),
       ...primaryNamesArgs,
+    });
+  }
+
+  upsertByNormalized({
+    locale,
+    name,
+    normalizedName,
+    userId,
+  }: UpsertCustomAuthorInput): Promise<AuthorModel> {
+    return this.prisma.$transaction(async (tx) => {
+      const author = await tx.author.upsert({
+        create: { name, normalizedName, searchText: normalizedName, userId },
+        update: { normalizedName },
+        where: { userId_normalizedName: { normalizedName, userId } },
+      });
+      await tx.authorName.upsert({
+        create: { authorId: author.id, isPrimary: true, locale, name, normalizedName },
+        update: { normalizedName },
+        where: { authorId_locale_normalizedName: { authorId: author.id, locale, normalizedName } },
+      });
+      return author;
     });
   }
 }

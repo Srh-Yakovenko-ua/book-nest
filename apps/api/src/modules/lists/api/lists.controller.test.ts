@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import { randomUUID } from "node:crypto";
@@ -49,7 +50,7 @@ async function addBookToList(listId: string, bookId: string, position: number): 
 async function createBook(
   userId: string,
   withCover: boolean,
-): Promise<{ bookId: string; coverId: null | string }> {
+): Promise<{ bookId: string; coverId: Nullable<string> }> {
   const coverId = withCover ? await createCover(userId) : null;
   const book = await prisma.book.create({
     data: { coverMediaId: coverId, title: `Book ${randomUUID()}`, userId },
