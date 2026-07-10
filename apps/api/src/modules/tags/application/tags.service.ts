@@ -7,7 +7,6 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { toTagView } from "../domain/tag.mapper.js";
 import { TagsRepository } from "../infrastructure/tags.repository.js";
 
@@ -75,18 +74,10 @@ export class TagsService {
       return existing.id;
     }
 
-    try {
-      const created = await this.tagsRepository.create(userId, name, normalizedName, client);
-      return created.id;
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      const winner = await this.tagsRepository.findByNormalized(userId, normalizedName, client);
-      if (winner === null) {
-        throw error;
-      }
-      return winner.id;
-    }
+    const created = await this.tagsRepository.upsertByNormalized(
+      { name, normalizedName, userId },
+      client,
+    );
+    return created.id;
   }
 }

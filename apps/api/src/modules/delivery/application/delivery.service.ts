@@ -13,10 +13,10 @@ import type {
 } from "@app/shared";
 
 import {
-  collapseSpaces,
   CurrencySchema,
   isActiveDeliveryStatus,
   normalizeName,
+  normalizeSearch,
   OwnershipStatusSchema,
   ReadingStatusSchema,
 } from "@app/shared";
@@ -289,14 +289,6 @@ function countUniqueStores(storeNames: (null | string)[]): number {
     normalized.add(key);
   }
   return normalized.size;
-}
-
-function normalizeSearch(value: string | undefined): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const collapsed = collapseSpaces(value);
-  return collapsed.length === 0 ? undefined : collapsed;
 }
 
 function toCurrencyTotals(

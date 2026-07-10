@@ -6,7 +6,7 @@ import type {
   Paginator,
 } from "@app/shared";
 
-import { collapseSpaces, LoanTypeSchema, OwnershipStatusSchema } from "@app/shared";
+import { LoanTypeSchema, normalizeSearch, OwnershipStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
@@ -107,12 +107,4 @@ export class LoansService {
       updatedAt: loan.updatedAt.toISOString(),
     };
   }
-}
-
-function normalizeSearch(value: string | undefined): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const collapsed = collapseSpaces(value);
-  return collapsed.length === 0 ? undefined : collapsed;
 }

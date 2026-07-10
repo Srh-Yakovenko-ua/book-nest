@@ -13,8 +13,8 @@ import type {
 } from "@app/shared";
 
 import {
-  collapseSpaces,
   LoanTypeSchema,
+  normalizeSearch,
   OwnershipStatusSchema,
   ReadingStatusSchema,
 } from "@app/shared";
@@ -71,11 +71,8 @@ function isIsbnFragment(value: string): boolean {
 }
 
 function normalizeSearchQuery(value: string | undefined): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const collapsed = collapseSpaces(value);
-  if (collapsed.length === 0) {
+  const collapsed = normalizeSearch(value);
+  if (collapsed === undefined) {
     return undefined;
   }
   if (collapsed.length < MIN_SEARCH_LENGTH && !isIsbnFragment(collapsed)) {

@@ -251,32 +251,18 @@ export class ListsService {
       return existing.id;
     }
 
-    try {
-      const created = await this.listsRepository.create(
-        {
-          data: {
-            description: newList.description ?? null,
-            name: newList.name,
-            normalizedName,
-          },
-          userId,
+    const created = await this.listsRepository.upsertByNormalized(
+      {
+        data: {
+          description: newList.description ?? null,
+          name: newList.name,
+          normalizedName,
         },
-        client,
-      );
-      return created.id;
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      const winner = await this.listsRepository.findByNormalized(
-        { normalizedName, userId },
-        client,
-      );
-      if (winner === null) {
-        throw error;
-      }
-      return winner.id;
-    }
+        userId,
+      },
+      client,
+    );
+    return created.id;
   }
 
   private toCard(list: BookListCard): CustomListCard {

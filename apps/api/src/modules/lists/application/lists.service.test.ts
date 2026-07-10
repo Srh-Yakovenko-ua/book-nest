@@ -28,6 +28,7 @@ function buildService(): {
     findOwnedByIds: ReturnType<typeof vi.fn>;
     searchOwnedCards: ReturnType<typeof vi.fn>;
     updateOwned: ReturnType<typeof vi.fn>;
+    upsertByNormalized: ReturnType<typeof vi.fn>;
   };
   service: ListsService;
 } {
@@ -40,6 +41,7 @@ function buildService(): {
     findOwnedByIds: vi.fn().mockResolvedValue([]),
     searchOwnedCards: vi.fn().mockResolvedValue([]),
     updateOwned: vi.fn(),
+    upsertByNormalized: vi.fn(),
   };
 
   const mediaService = { buildView: vi.fn().mockReturnValue(mediaView()) };
@@ -135,7 +137,7 @@ describe("ListsService.resolveListsForBook", () => {
 
     expect(ids).toEqual([]);
     expect(repository.findOwnedByIds).not.toHaveBeenCalled();
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
   });
 
   it("keeps the requested ids that belong to the user", async () => {
@@ -175,13 +177,13 @@ describe("ListsService.resolveListsForBook", () => {
     });
 
     expect(ids).toEqual([LIST_ID]);
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
   });
 
-  it("creates a new list with its description when no match exists", async () => {
+  it("upserts a new list with its description when no match exists", async () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(null);
-    repository.create.mockResolvedValue(card({ description: "cozy", id: LIST_ID }));
+    repository.upsertByNormalized.mockResolvedValue(list({ description: "cozy", id: LIST_ID }));
 
     const ids = await service.resolveListsForBook({
       input: { newLists: [{ description: "cozy", name: "Autumn reads" }] },
@@ -189,7 +191,7 @@ describe("ListsService.resolveListsForBook", () => {
     });
 
     expect(ids).toEqual([LIST_ID]);
-    expect(repository.create).toHaveBeenCalledWith(
+    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
       {
         data: {
           description: "cozy",
@@ -215,11 +217,10 @@ describe("ListsService.resolveListsForBook", () => {
     expect(ids).toEqual([LIST_ID]);
   });
 
-  it("rereads the winning row when create hits a unique violation", async () => {
+  it("returns the row the upsert resolves when no prior match exists", async () => {
     const { repository, service } = buildService();
-    const winner = list({ id: OTHER_LIST_ID });
-    repository.findByNormalized.mockResolvedValueOnce(null).mockResolvedValueOnce(winner);
-    repository.create.mockRejectedValue(uniqueConstraintError());
+    repository.findByNormalized.mockResolvedValue(null);
+    repository.upsertByNormalized.mockResolvedValue(list({ id: OTHER_LIST_ID }));
 
     const ids = await service.resolveListsForBook({
       input: { newLists: [{ name: "Autumn reads" }] },
@@ -227,13 +228,12 @@ describe("ListsService.resolveListsForBook", () => {
     });
 
     expect(ids).toEqual([OTHER_LIST_ID]);
-    expect(repository.findByNormalized).toHaveBeenCalledTimes(2);
   });
 
-  it("rethrows non-unique errors from create", async () => {
+  it("propagates errors raised by the upsert", async () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(null);
-    repository.create.mockRejectedValue(new Error("connection lost"));
+    repository.upsertByNormalized.mockRejectedValue(new Error("connection lost"));
 
     await expect(
       service.resolveListsForBook({

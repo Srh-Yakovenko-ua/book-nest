@@ -17,21 +17,18 @@ type SearchTagsInput = {
   userId: string;
 };
 
+type UpsertTagInput = {
+  name: string;
+  normalizedName: string;
+  userId: string;
+};
+
 @Injectable()
 export class TagsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   countOwned({ query, userId }: CountTagsInput): Promise<number> {
     return this.prisma.tag.count({ where: buildOwnedWhere(userId, query) });
-  }
-
-  create(
-    userId: string,
-    name: string,
-    normalizedName: string,
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<TagModel> {
-    return client.tag.create({ data: { name, normalizedName, userId } });
   }
 
   deleteOwned(userId: string, id: string): Promise<number> {
@@ -52,6 +49,17 @@ export class TagsRepository {
       skip,
       take,
       where: buildOwnedWhere(userId, query),
+    });
+  }
+
+  upsertByNormalized(
+    { name, normalizedName, userId }: UpsertTagInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<TagModel> {
+    return client.tag.upsert({
+      create: { name, normalizedName, userId },
+      update: { normalizedName },
+      where: { userId_normalizedName: { normalizedName, userId } },
     });
   }
 }

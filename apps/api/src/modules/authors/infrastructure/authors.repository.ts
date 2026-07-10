@@ -36,12 +36,6 @@ type AuthorLookupMatch = {
   openLibraryKey: null | string;
 };
 
-type CreateCustomAuthorInput = {
-  locale: string;
-  name: string;
-  normalizedName: string;
-};
-
 type FindExistingByLookupInput = {
   normalizedNames: string[];
   openLibraryKeys: string[];
@@ -60,6 +54,13 @@ type SearchAuthorsInput = {
   userId: string;
 };
 
+type UpsertCustomAuthorInput = {
+  locale: string;
+  name: string;
+  normalizedName: string;
+  userId: string;
+};
+
 type VisibleByIdsInput = {
   ids: string[];
   userId: string;
@@ -71,28 +72,6 @@ export class AuthorsRepository {
 
   countVisible(userId: string, query: string | undefined): Promise<number> {
     return this.prisma.author.count({ where: buildVisibleWhere(userId, query) });
-  }
-
-  create(userId: string, input: CreateCustomAuthorInput): Promise<AuthorWithPrimaryNames> {
-    return this.prisma.author.create({
-      data: {
-        name: input.name,
-        names: {
-          create: [
-            {
-              isPrimary: true,
-              locale: input.locale,
-              name: input.name,
-              normalizedName: input.normalizedName,
-            },
-          ],
-        },
-        normalizedName: input.normalizedName,
-        searchText: input.normalizedName,
-        userId,
-      },
-      ...primaryNamesArgs,
-    });
   }
 
   createGlobal(data: CreateGlobalAuthorData, names: AuthorNameSeed[]): Promise<AuthorModel> {
@@ -189,6 +168,25 @@ export class AuthorsRepository {
       where: buildVisibleWhere(userId, query),
       ...primaryNamesArgs,
     });
+  }
+
+  async upsertByNormalized({
+    locale,
+    name,
+    normalizedName,
+    userId,
+  }: UpsertCustomAuthorInput): Promise<AuthorModel> {
+    const author = await this.prisma.author.upsert({
+      create: { name, normalizedName, searchText: normalizedName, userId },
+      update: { normalizedName },
+      where: { userId_normalizedName: { normalizedName, userId } },
+    });
+    await this.prisma.authorName.upsert({
+      create: { authorId: author.id, isPrimary: true, locale, name, normalizedName },
+      update: { normalizedName },
+      where: { authorId_locale_normalizedName: { authorId: author.id, locale, normalizedName } },
+    });
+    return author;
   }
 }
 

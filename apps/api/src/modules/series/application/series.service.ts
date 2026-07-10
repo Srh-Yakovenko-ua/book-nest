@@ -181,33 +181,22 @@ export class SeriesService {
       userId,
     });
 
-    try {
-      const created = await this.seriesRepository.create(
-        {
-          authorIds,
-          data: {
-            description: newSeries.description ?? null,
-            genres: newSeries.genres,
-            name: newSeries.name,
-            normalizedName,
-            status: newSeries.status,
-            totalBooks: newSeries.totalBooks ?? null,
-          },
-          userId,
+    const created = await this.seriesRepository.upsertByNormalized(
+      {
+        authorIds,
+        data: {
+          description: newSeries.description ?? null,
+          genres: newSeries.genres,
+          name: newSeries.name,
+          normalizedName,
+          status: newSeries.status,
+          totalBooks: newSeries.totalBooks ?? null,
         },
-        client,
-      );
-      return { id: created.id, totalBooks: created.totalBooks };
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      const winner = await this.seriesRepository.findByNormalized(userId, normalizedName, client);
-      if (winner === null) {
-        throw error;
-      }
-      return { id: winner.id, totalBooks: winner.totalBooks };
-    }
+        userId,
+      },
+      client,
+    );
+    return { id: created.id, totalBooks: created.totalBooks };
   }
 
   async search(userId: string, query: SeriesSearchQuery): Promise<Paginator<SeriesView>> {

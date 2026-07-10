@@ -32,12 +32,6 @@ export type PublisherNameSeed = {
 
 export type PublisherWithPrimaryNames = Prisma.PublisherGetPayload<typeof primaryNamesArgs>;
 
-type CreateCustomPublisherInput = {
-  locale: string;
-  name: string;
-  normalizedName: string;
-};
-
 type RecentPublishersInput = {
   limit: number;
   userId: string;
@@ -47,6 +41,13 @@ type SearchPublishersInput = {
   query: string | undefined;
   skip: number;
   take: number;
+  userId: string;
+};
+
+type UpsertCustomPublisherInput = {
+  locale: string;
+  name: string;
+  normalizedName: string;
   userId: string;
 };
 
@@ -61,32 +62,6 @@ export class PublishersRepository {
 
   countVisible(userId: string, query: string | undefined): Promise<number> {
     return this.prisma.publisher.count({ where: buildVisibleWhere(userId, query) });
-  }
-
-  create(
-    userId: string,
-    input: CreateCustomPublisherInput,
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<PublisherWithPrimaryNames> {
-    return client.publisher.create({
-      data: {
-        name: input.name,
-        names: {
-          create: [
-            {
-              isPrimary: true,
-              locale: input.locale,
-              name: input.name,
-              normalizedName: input.normalizedName,
-            },
-          ],
-        },
-        normalizedName: input.normalizedName,
-        searchText: input.normalizedName,
-        userId,
-      },
-      ...primaryNamesArgs,
-    });
   }
 
   createGlobal(
@@ -150,6 +125,25 @@ export class PublishersRepository {
       where: buildVisibleWhere(userId, query),
       ...primaryNamesArgs,
     });
+  }
+
+  async upsertByNormalized(
+    { locale, name, normalizedName, userId }: UpsertCustomPublisherInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<PublisherModel> {
+    const publisher = await client.publisher.upsert({
+      create: { name, normalizedName, searchText: normalizedName, userId },
+      update: { normalizedName },
+      where: { userId_normalizedName: { normalizedName, userId } },
+    });
+    await client.publisherName.upsert({
+      create: { isPrimary: true, locale, name, normalizedName, publisherId: publisher.id },
+      update: { normalizedName },
+      where: {
+        publisherId_locale_normalizedName: { locale, normalizedName, publisherId: publisher.id },
+      },
+    });
+    return publisher;
   }
 }
 

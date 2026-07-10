@@ -124,6 +124,17 @@ export class ListsRepository {
     }
     return this.prisma.bookList.findFirstOrThrow({ where: { id, userId }, ...listCardArgs });
   }
+
+  upsertByNormalized(
+    { data, userId }: { data: CreateBookListData; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookListModel> {
+    return client.bookList.upsert({
+      create: { ...data, userId },
+      update: { normalizedName: data.normalizedName },
+      where: { userId_normalizedName: { normalizedName: data.normalizedName, userId } },
+    });
+  }
 }
 
 const NAME_ASC: Prisma.BookListOrderByWithRelationInput = { name: "asc" };

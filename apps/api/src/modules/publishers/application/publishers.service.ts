@@ -12,7 +12,6 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { toPublisherView } from "../domain/publisher.mapper.js";
 import { PublishersRepository } from "../infrastructure/publishers.repository.js";
 
@@ -75,31 +74,16 @@ export class PublishersService {
       return existing.id;
     }
 
-    try {
-      const created = await this.publishersRepository.create(
-        userId,
-        {
-          locale: CUSTOM_PUBLISHER_LOCALE,
-          name: input.name,
-          normalizedName,
-        },
-        client,
-      );
-      return created.id;
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      const winner = await this.publishersRepository.findByNormalized(
-        userId,
+    const created = await this.publishersRepository.upsertByNormalized(
+      {
+        locale: CUSTOM_PUBLISHER_LOCALE,
+        name: input.name,
         normalizedName,
-        client,
-      );
-      if (winner === null) {
-        throw error;
-      }
-      return winner.id;
-    }
+        userId,
+      },
+      client,
+    );
+    return created.id;
   }
 
   async search(

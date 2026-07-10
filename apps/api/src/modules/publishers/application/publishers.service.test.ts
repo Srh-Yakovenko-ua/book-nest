@@ -7,7 +7,6 @@ import type {
 } from "../infrastructure/publishers.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { Prisma } from "../../../generated/prisma/client.js";
 import { PublishersService } from "./publishers.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -15,48 +14,40 @@ const PUBLISHER_ID = "22222222-2222-4222-8222-222222222222";
 const GLOBAL_ID = "33333333-3333-4333-8333-333333333333";
 
 function buildService(overrides: {
-  create?: Error | PublisherWithPrimaryNames;
   findByNormalized?: null | PublisherModel;
-  findByNormalizedRetry?: null | PublisherModel;
   findVisibleById?: null | PublisherModel;
   findVisibleByIds?: PublisherWithPrimaryNames[];
   recentPublisherIds?: string[];
   searchVisible?: PublisherWithPrimaryNames[];
+  upsertByNormalized?: Error | PublisherModel;
 }): {
   repository: {
     countVisible: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
     findVisibleById: ReturnType<typeof vi.fn>;
     findVisibleByIds: ReturnType<typeof vi.fn>;
     recentPublisherIds: ReturnType<typeof vi.fn>;
     searchVisible: ReturnType<typeof vi.fn>;
+    upsertByNormalized: ReturnType<typeof vi.fn>;
   };
   service: PublishersService;
 } {
-  const create = vi.fn();
-  if (overrides.create instanceof Error) {
-    create.mockRejectedValue(overrides.create);
+  const upsertByNormalized = vi.fn();
+  if (overrides.upsertByNormalized instanceof Error) {
+    upsertByNormalized.mockRejectedValue(overrides.upsertByNormalized);
   } else {
-    create.mockResolvedValue(overrides.create ?? publisherWithNames());
-  }
-
-  const findByNormalized = vi.fn().mockResolvedValue(overrides.findByNormalized ?? null);
-  if (overrides.findByNormalizedRetry !== undefined) {
-    findByNormalized
-      .mockResolvedValueOnce(overrides.findByNormalized ?? null)
-      .mockResolvedValueOnce(overrides.findByNormalizedRetry);
+    upsertByNormalized.mockResolvedValue(overrides.upsertByNormalized ?? publisher());
   }
 
   const searchVisible = overrides.searchVisible ?? [];
   const repository = {
     countVisible: vi.fn().mockResolvedValue(searchVisible.length),
-    create,
-    findByNormalized,
+    findByNormalized: vi.fn().mockResolvedValue(overrides.findByNormalized ?? null),
     findVisibleById: vi.fn().mockResolvedValue(overrides.findVisibleById ?? null),
     findVisibleByIds: vi.fn().mockResolvedValue(overrides.findVisibleByIds ?? []),
     recentPublisherIds: vi.fn().mockResolvedValue(overrides.recentPublisherIds ?? []),
     searchVisible: vi.fn().mockResolvedValue(searchVisible),
+    upsertByNormalized,
   };
 
   const service = new PublishersService(repository as unknown as PublishersRepository);
@@ -104,13 +95,6 @@ function publisherWithNames(
   };
 }
 
-function uniqueConstraintError(): Prisma.PrismaClientKnownRequestError {
-  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
-    clientVersion: "test",
-    code: "P2002",
-  });
-}
-
 describe("PublishersService.resolveOrCreate by id", () => {
   it("returns the id when an existing visible publisher is found", async () => {
     const { service } = buildService({ findVisibleById: publisher({ id: PUBLISHER_ID }) });
@@ -130,7 +114,7 @@ describe("PublishersService.resolveOrCreate by id", () => {
 });
 
 describe("PublishersService.resolveOrCreate by name", () => {
-  it("reuses the matching publisher and does not create a new one", async () => {
+  it("reuses the matching publisher and does not upsert a new one", async () => {
     const { repository, service } = buildService({
       findByNormalized: publisher({ id: GLOBAL_ID }),
     });
@@ -138,7 +122,7 @@ describe("PublishersService.resolveOrCreate by name", () => {
     const id = await service.resolveOrCreate(USER_ID, { name: "Penguin" });
 
     expect(id).toBe(GLOBAL_ID);
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
   });
 
   it("matches an existing publisher case-insensitively and whitespace-collapsed", async () => {
@@ -151,42 +135,31 @@ describe("PublishersService.resolveOrCreate by name", () => {
     expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "penguin books", undefined);
   });
 
-  it("creates a custom publisher with the user id when no match exists", async () => {
-    const created = publisherWithNames({ id: PUBLISHER_ID, userId: USER_ID });
-    const { repository, service } = buildService({ create: created, findByNormalized: null });
+  it("upserts a custom publisher with the user id when no match exists", async () => {
+    const created = publisher({ id: PUBLISHER_ID, userId: USER_ID });
+    const { repository, service } = buildService({
+      findByNormalized: null,
+      upsertByNormalized: created,
+    });
 
     const id = await service.resolveOrCreate(USER_ID, { name: "Penguin" });
 
     expect(id).toBe(PUBLISHER_ID);
-    expect(repository.create).toHaveBeenCalledWith(
-      USER_ID,
+    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
       {
         locale: "uk",
         name: "Penguin",
         normalizedName: "penguin",
+        userId: USER_ID,
       },
       undefined,
     );
   });
 
-  it("resolves to the row a concurrent insert created when create hits a unique violation", async () => {
-    const winner = publisher({ id: GLOBAL_ID, userId: USER_ID });
-    const { repository, service } = buildService({
-      create: uniqueConstraintError(),
-      findByNormalized: null,
-      findByNormalizedRetry: winner,
-    });
-
-    const id = await service.resolveOrCreate(USER_ID, { name: "Penguin" });
-
-    expect(id).toBe(GLOBAL_ID);
-    expect(repository.findByNormalized).toHaveBeenCalledTimes(2);
-  });
-
-  it("rethrows non-unique errors from create", async () => {
+  it("propagates errors raised by the upsert", async () => {
     const { service } = buildService({
-      create: new Error("connection lost"),
       findByNormalized: null,
+      upsertByNormalized: new Error("connection lost"),
     });
 
     await expect(service.resolveOrCreate(USER_ID, { name: "Penguin" })).rejects.toThrow(
@@ -202,7 +175,7 @@ describe("PublishersService.resolveOrCreate without input", () => {
     const id = await service.resolveOrCreate(USER_ID, {});
 
     expect(id).toBeNull();
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
   });
 });
 

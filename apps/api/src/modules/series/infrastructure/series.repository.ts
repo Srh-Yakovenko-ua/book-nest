@@ -192,6 +192,24 @@ export class SeriesRepository {
 
     return client.series.findFirstOrThrow({ where: { id, userId }, ...seriesWithBookCountArgs });
   }
+
+  async upsertByNormalized(
+    { authorIds, data, userId }: CreateSeriesInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<SeriesModel> {
+    const series = await client.series.upsert({
+      create: { ...data, userId },
+      update: { normalizedName: data.normalizedName },
+      where: { userId_normalizedName: { normalizedName: data.normalizedName, userId } },
+    });
+    if (authorIds.length > 0) {
+      await client.seriesAuthor.createMany({
+        data: authorIds.map((authorId) => ({ authorId, seriesId: series.id })),
+        skipDuplicates: true,
+      });
+    }
+    return series;
+  }
 }
 
 function buildOwnedWhere({ authorIds, query, userId }: OwnedWhereInput): Prisma.SeriesWhereInput {
