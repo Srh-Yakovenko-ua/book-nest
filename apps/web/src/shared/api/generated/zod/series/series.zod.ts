@@ -233,6 +233,23 @@ export const SeriesControllerGetByIdResponse = zod.object({
           name: zod.string(),
         }),
       ),
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullish(),
       createdAt: zod.string(),
       currentPage: zod.number().nullable(),
       id: zod.string(),

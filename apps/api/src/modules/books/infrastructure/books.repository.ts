@@ -59,32 +59,32 @@ export type BookWithRelations = Prisma.BookGetPayload<{
 }>;
 
 export type CreateLoanInfoData = {
-  contact: null | string;
-  expectedReturnDate: Date | null;
-  loanDate: Date | null;
-  note: null | string;
+  contact: Nullable<string>;
+  expectedReturnDate: Nullable<Date>;
+  loanDate: Nullable<Date>;
+  note: Nullable<string>;
   personName: string;
   remindToReturn: boolean;
 };
 
 export type CreatePurchaseInfoData = {
-  currency: null | string;
-  expectedPrice: null | number;
-  note: null | string;
-  storeName: null | string;
-  storeUrl: null | string;
+  currency: Nullable<string>;
+  expectedPrice: Nullable<number>;
+  note: Nullable<string>;
+  storeName: Nullable<string>;
+  storeUrl: Nullable<string>;
 };
 
 export type CreateReadingProgressData = {
-  abandonedAt: Date | null;
-  currentPage: null | number;
-  finishedAt: Date | null;
-  impression: null | string;
-  lastProgressUpdateAt: Date | null;
-  note: null | string;
-  pausedAt: Date | null;
-  rating: null | number;
-  startedAt: Date | null;
+  abandonedAt: Nullable<Date>;
+  currentPage: Nullable<number>;
+  finishedAt: Nullable<Date>;
+  impression: Nullable<string>;
+  lastProgressUpdateAt: Nullable<Date>;
+  note: Nullable<string>;
+  pausedAt: Nullable<Date>;
+  rating: Nullable<number>;
+  startedAt: Nullable<Date>;
 };
 
 export type DeliveryBlockChange =
@@ -135,7 +135,7 @@ export type OwnershipChangePatch = {
 };
 
 export type OwnershipPurchaseInfoPatch = Partial<CreatePurchaseInfoData> & {
-  purchasedAt?: Date | null;
+  purchasedAt?: Nullable<Date>;
 };
 
 export type QueueRemoval = {
@@ -148,10 +148,10 @@ export type ReadingChangePatch = {
 };
 
 export type UpdateActiveLoanData = {
-  contact: null | string;
-  expectedReturnDate: Date | null;
-  loanDate: Date | null;
-  note: null | string;
+  contact: Nullable<string>;
+  expectedReturnDate: Nullable<Date>;
+  loanDate: Nullable<Date>;
+  note: Nullable<string>;
   personName: string;
   remindToReturn: boolean;
 };
@@ -163,7 +163,7 @@ export type UpdateBookData = {
   listIds?: string[];
   loanInfo: LoanBlockChange;
   purchaseInfo: BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData>;
-  queueRemoval: null | QueueRemoval;
+  queueRemoval: Nullable<QueueRemoval>;
   readingProgress: BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData>;
   tagIds?: string[];
 };
@@ -186,35 +186,35 @@ type BlockDelegate<TCreate, TUpdate> = {
 type CreateBookData = {
   ageCategory: string;
   authorIds: string[];
-  coverMediaId: null | string;
-  dedication: null | string;
-  deliveryInfo: CreateDeliveryData | null;
-  description: null | string;
-  favoriteAddedAt: Date | null;
+  coverMediaId: Nullable<string>;
+  dedication: Nullable<string>;
+  deliveryInfo: Nullable<CreateDeliveryData>;
+  description: Nullable<string>;
+  favoriteAddedAt: Nullable<Date>;
   firstAuthorName: string;
   formats: string[];
   genres: string[];
-  illustrator: null | string;
-  isbn: null | string;
+  illustrator: Nullable<string>;
+  isbn: Nullable<string>;
   isFavorite: boolean;
   language: string;
   listIds: string[];
-  loanInfo: CreateLoanInfoData | null;
-  originalTitle: null | string;
+  loanInfo: Nullable<CreateLoanInfoData>;
+  originalTitle: Nullable<string>;
   ownershipStatus: string;
-  pagesCount: null | number;
-  partNumber: null | number;
-  publicationYear: null | number;
-  publisherId: null | string;
-  purchaseInfo: CreatePurchaseInfoData | null;
-  queuePosition: null | number;
-  queuePriority: null | string;
-  readingProgress: CreateReadingProgressData | null;
+  pagesCount: Nullable<number>;
+  partNumber: Nullable<number>;
+  publicationYear: Nullable<number>;
+  publisherId: Nullable<string>;
+  purchaseInfo: Nullable<CreatePurchaseInfoData>;
+  queuePosition: Nullable<number>;
+  queuePriority: Nullable<string>;
+  readingProgress: Nullable<CreateReadingProgressData>;
   readingStatus: string;
-  seriesId: null | string;
+  seriesId: Nullable<string>;
   tagIds: string[];
   title: string;
-  translator: null | string;
+  translator: Nullable<string>;
 };
 
 @Injectable()
@@ -363,7 +363,11 @@ export class BooksRepository {
     return this.prisma.book.count({ where: buildLibraryWhere(filter) });
   }
 
-  create(userId: string, data: CreateBookData): Promise<BookWithRelations> {
+  async create(
+    userId: string,
+    data: CreateBookData,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookWithRelations> {
     const {
       authorIds,
       deliveryInfo,
@@ -374,49 +378,48 @@ export class BooksRepository {
       tagIds,
       ...bookData
     } = data;
-    return this.prisma.$transaction(async (tx) => {
-      const created = await tx.book.create({
-        data: {
-          ...bookData,
-          authors: {
-            create: authorIds.map((authorId, position) => ({ authorId, position })),
-          },
-          deliveries: deliveryInfo === null ? undefined : { create: { ...deliveryInfo, userId } },
-          loans:
-            loanInfo === null
-              ? undefined
-              : {
-                  create: {
-                    ...loanInfo,
-                    status: "active",
-                    type: LoanTypeSchema.parse(bookData.ownershipStatus),
-                    userId,
-                  },
-                },
-          purchaseInfo: purchaseInfo === null ? undefined : { create: purchaseInfo },
-          readingProgress: readingProgress === null ? undefined : { create: readingProgress },
-          tags: { create: tagIds.map((tagId) => ({ tagId })) },
-          userId,
+
+    const created = await client.book.create({
+      data: {
+        ...bookData,
+        authors: {
+          create: authorIds.map((authorId, position) => ({ authorId, position })),
         },
-        select: { id: true },
-      });
-
-      if (listIds.length > 0) {
-        const now = new Date();
-        const sortedListIds = [...new Set(listIds)].sort();
-        for (const listId of sortedListIds) {
-          await this.membershipRepository.acquireListLock(tx, { listId });
-        }
-        for (const listId of sortedListIds) {
-          await this.membershipRepository.append(tx, { bookId: created.id, listId });
-        }
-        for (const listId of sortedListIds) {
-          await this.membershipRepository.touchList(tx, { listId, now, userId });
-        }
-      }
-
-      return tx.book.findFirstOrThrow({ include: withRelations, where: { id: created.id } });
+        deliveries: deliveryInfo === null ? undefined : { create: { ...deliveryInfo, userId } },
+        loans:
+          loanInfo === null
+            ? undefined
+            : {
+                create: {
+                  ...loanInfo,
+                  status: "active",
+                  type: LoanTypeSchema.parse(bookData.ownershipStatus),
+                  userId,
+                },
+              },
+        purchaseInfo: purchaseInfo === null ? undefined : { create: purchaseInfo },
+        readingProgress: readingProgress === null ? undefined : { create: readingProgress },
+        tags: { create: tagIds.map((tagId) => ({ tagId })) },
+        userId,
+      },
+      select: { id: true },
     });
+
+    if (listIds.length > 0) {
+      const now = new Date();
+      const sortedListIds = [...new Set(listIds)].sort();
+      for (const listId of sortedListIds) {
+        await this.membershipRepository.acquireListLock(client, { listId });
+      }
+      for (const listId of sortedListIds) {
+        await this.membershipRepository.append(client, { bookId: created.id, listId });
+      }
+      for (const listId of sortedListIds) {
+        await this.membershipRepository.touchList(client, { listId, now, userId });
+      }
+    }
+
+    return client.book.findFirstOrThrow({ include: withRelations, where: { id: created.id } });
   }
 
   deleteOwned(userId: string, id: string): Promise<number> {
@@ -441,7 +444,7 @@ export class BooksRepository {
     return { averageRating: ratingAggregate._avg.rating, finished, reading, total };
   }
 
-  findOwnedById(userId: string, id: string): Promise<BookWithRelations | null> {
+  findOwnedById(userId: string, id: string): Promise<Nullable<BookWithRelations>> {
     return this.prisma.book.findFirst({
       include: withRelations,
       where: { id, userId },
@@ -460,8 +463,9 @@ export class BooksRepository {
   findSeriesPartNumberConflict(
     userId: string,
     { excludeBookId, partNumber, seriesId }: SeriesPartNumberQuery,
-  ): Promise<null | SeriesPartNumberConflict> {
-    return this.prisma.book.findFirst({
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<SeriesPartNumberConflict>> {
+    return client.book.findFirst({
       select: { id: true, title: true },
       where: {
         id: excludeBookId === null ? undefined : { not: excludeBookId },
@@ -611,88 +615,91 @@ export class BooksRepository {
     }
   }
 
-  updateOwned(userId: string, bookId: string, data: UpdateBookData): Promise<BookWithRelations> {
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.book.updateMany({
-        data: data.fields,
-        where: { id: bookId, userId },
+  async updateOwned(
+    userId: string,
+    bookId: string,
+    data: UpdateBookData,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookWithRelations> {
+    const updated = await client.book.updateMany({
+      data: data.fields,
+      where: { id: bookId, userId },
+    });
+    if (updated.count === 0) {
+      throw new NotFoundError("Book not found");
+    }
+
+    if (data.queueRemoval !== null) {
+      await this.shiftQueueUpAfter(userId, data.queueRemoval.fromPosition, client);
+    }
+
+    await applyBlockUpsert(client.bookReadingProgress, bookId, data.readingProgress);
+    await applyBlockUpsert(client.bookPurchaseInfo, bookId, data.purchaseInfo);
+    await applyDeliveryBlock(client, bookId, userId, data.deliveryInfo);
+    await applyLoanBlock(client, bookId, userId, data.loanInfo);
+
+    if (data.authorIds !== undefined) {
+      await client.bookAuthor.deleteMany({ where: { bookId } });
+      await client.bookAuthor.createMany({
+        data: data.authorIds.map((authorId, position) => ({ authorId, bookId, position })),
       });
-      if (updated.count === 0) {
-        throw new NotFoundError("Book not found");
-      }
+    }
 
-      if (data.queueRemoval !== null) {
-        await this.shiftQueueUpAfter(userId, data.queueRemoval.fromPosition, tx);
-      }
-
-      await applyBlockUpsert(tx.bookReadingProgress, bookId, data.readingProgress);
-      await applyBlockUpsert(tx.bookPurchaseInfo, bookId, data.purchaseInfo);
-      await applyDeliveryBlock(tx, bookId, userId, data.deliveryInfo);
-      await applyLoanBlock(tx, bookId, userId, data.loanInfo);
-
-      if (data.authorIds !== undefined) {
-        await tx.bookAuthor.deleteMany({ where: { bookId } });
-        await tx.bookAuthor.createMany({
-          data: data.authorIds.map((authorId, position) => ({ authorId, bookId, position })),
+    if (data.tagIds !== undefined) {
+      await client.bookTag.deleteMany({ where: { bookId } });
+      if (data.tagIds.length > 0) {
+        await client.bookTag.createMany({
+          data: data.tagIds.map((tagId) => ({ bookId, tagId })),
         });
       }
+    }
 
-      if (data.tagIds !== undefined) {
-        await tx.bookTag.deleteMany({ where: { bookId } });
-        if (data.tagIds.length > 0) {
-          await tx.bookTag.createMany({
-            data: data.tagIds.map((tagId) => ({ bookId, tagId })),
+    if (data.listIds !== undefined) {
+      const targetListIds = new Set(data.listIds);
+      const current = await client.bookListItem.findMany({
+        select: { listId: true },
+        where: { bookId },
+      });
+      const currentListIds = new Set(current.map((item) => item.listId));
+
+      const toRemove = current
+        .map((item) => item.listId)
+        .filter((listId) => !targetListIds.has(listId));
+      const toAdd = data.listIds.filter((listId) => !currentListIds.has(listId));
+
+      if (toAdd.length > 0 || toRemove.length > 0) {
+        const now = new Date();
+        const affectedListIds = [...new Set([...toAdd, ...toRemove])].sort();
+        for (const listId of affectedListIds) {
+          await this.membershipRepository.acquireListLock(client, { listId });
+        }
+
+        for (const listId of toRemove) {
+          const membership = await this.membershipRepository.findMembership(client, {
+            bookId,
+            listId,
+          });
+          if (membership === null) {
+            continue;
+          }
+          await this.membershipRepository.deleteMembership(client, { bookId, listId });
+          await this.membershipRepository.shiftUpAfter(client, {
+            listId,
+            position: membership.position,
           });
         }
-      }
 
-      if (data.listIds !== undefined) {
-        const targetListIds = new Set(data.listIds);
-        const current = await tx.bookListItem.findMany({
-          select: { listId: true },
-          where: { bookId },
-        });
-        const currentListIds = new Set(current.map((item) => item.listId));
+        for (const listId of toAdd) {
+          await this.membershipRepository.append(client, { bookId, listId });
+        }
 
-        const toRemove = current
-          .map((item) => item.listId)
-          .filter((listId) => !targetListIds.has(listId));
-        const toAdd = data.listIds.filter((listId) => !currentListIds.has(listId));
-
-        if (toAdd.length > 0 || toRemove.length > 0) {
-          const now = new Date();
-          const affectedListIds = [...new Set([...toAdd, ...toRemove])].sort();
-          for (const listId of affectedListIds) {
-            await this.membershipRepository.acquireListLock(tx, { listId });
-          }
-
-          for (const listId of toRemove) {
-            const membership = await this.membershipRepository.findMembership(tx, {
-              bookId,
-              listId,
-            });
-            if (membership === null) {
-              continue;
-            }
-            await this.membershipRepository.deleteMembership(tx, { bookId, listId });
-            await this.membershipRepository.shiftUpAfter(tx, {
-              listId,
-              position: membership.position,
-            });
-          }
-
-          for (const listId of toAdd) {
-            await this.membershipRepository.append(tx, { bookId, listId });
-          }
-
-          for (const listId of affectedListIds) {
-            await this.membershipRepository.touchList(tx, { listId, now, userId });
-          }
+        for (const listId of affectedListIds) {
+          await this.membershipRepository.touchList(client, { listId, now, userId });
         }
       }
+    }
 
-      return tx.book.findFirstOrThrow({ include: withRelations, where: { id: bookId, userId } });
-    });
+    return client.book.findFirstOrThrow({ include: withRelations, where: { id: bookId, userId } });
   }
 }
 
@@ -722,7 +729,7 @@ type SeriesPartNumberConflict = {
 };
 
 type SeriesPartNumberQuery = {
-  excludeBookId: null | string;
+  excludeBookId: Nullable<string>;
   partNumber: number;
   seriesId: string;
 };

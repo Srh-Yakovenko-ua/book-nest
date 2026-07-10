@@ -49,6 +49,7 @@ function BarChart({
       aria-label={ariaLabel}
       className={cn("aspect-[16/9] w-full", className)}
       config={{ ...config, value: { ...config.value, label: valueLabel } }}
+      role="img"
     >
       <RechartsBarChart
         data={data as BarChartDatum[]}

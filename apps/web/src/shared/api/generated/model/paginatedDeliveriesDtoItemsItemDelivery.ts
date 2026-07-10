@@ -11,6 +11,8 @@ import type { PaginatedDeliveriesDtoItemsItemDeliveryStatus } from "./paginatedD
 export type PaginatedDeliveriesDtoItemsItemDelivery = {
   /** @nullable */
   cancelledAt: string | null;
+  /** @nullable */
+  cancelReason: string | null;
   createdAt: string;
   /** @nullable */
   currency: PaginatedDeliveriesDtoItemsItemDeliveryCurrency;

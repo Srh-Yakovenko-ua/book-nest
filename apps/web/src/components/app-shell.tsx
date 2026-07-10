@@ -15,6 +15,7 @@ import {
   ListChecks,
   ListOrdered,
   ShoppingBag,
+  Truck,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
@@ -40,6 +41,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { ChangelogBell } from "@/features/changelog";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +50,7 @@ type NavItem = {
   key:
     | "allBooks"
     | "buyList"
+    | "delivery"
     | "favorites"
     | "home"
     | "lists"
@@ -66,6 +69,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
   { icon: HandHelping, key: "loans", to: "/loans" },
+  { icon: Truck, key: "delivery", to: "/delivery/in-transit" },
   { icon: BookCopy, key: "series", to: "/series" },
   { icon: ListChecks, key: "lists", to: "/lists" },
 ];
@@ -214,6 +218,7 @@ function ContentArea({ children }: { children: ReactNode }) {
           <SidebarTrigger className="size-8 cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-foreground lg:hidden" />
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <ChangelogBell />
           <SessionMenu />
           <ThemePicker />
           <LocalePicker />

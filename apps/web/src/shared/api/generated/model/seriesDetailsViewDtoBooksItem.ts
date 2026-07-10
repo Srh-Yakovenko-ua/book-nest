@@ -6,11 +6,14 @@
  * OpenAPI spec version: 1.0
  */
 import type { SeriesDetailsViewDtoBooksItemAuthorsItem } from "./seriesDetailsViewDtoBooksItemAuthorsItem";
+import type { SeriesDetailsViewDtoBooksItemCover } from "./seriesDetailsViewDtoBooksItemCover";
 import type { SeriesDetailsViewDtoBooksItemOwnershipStatus } from "./seriesDetailsViewDtoBooksItemOwnershipStatus";
 import type { SeriesDetailsViewDtoBooksItemReadingStatus } from "./seriesDetailsViewDtoBooksItemReadingStatus";
 
 export type SeriesDetailsViewDtoBooksItem = {
   authors: SeriesDetailsViewDtoBooksItemAuthorsItem[];
+  /** @nullable */
+  cover?: SeriesDetailsViewDtoBooksItemCover;
   createdAt: string;
   /** @nullable */
   currentPage: number | null;

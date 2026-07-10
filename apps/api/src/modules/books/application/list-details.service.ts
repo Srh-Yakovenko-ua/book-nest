@@ -1,6 +1,6 @@
 import type { CustomListBooksQuery, CustomListDetail, ListBookView } from "@app/shared";
 
-import { collapseSpaces } from "@app/shared";
+import { normalizeSearch } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { buildPaginator } from "../../../core/paginator.js";
@@ -56,12 +56,4 @@ export class ListDetailsService {
   private toListBookView(item: BookListItemWithBook): ListBookView {
     return { ...this.viewAssembler.viewOf(item.book), position: item.position };
   }
-}
-
-function normalizeSearch(value: string | undefined): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const collapsed = collapseSpaces(value);
-  return collapsed.length === 0 ? undefined : collapsed;
 }

@@ -3,6 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import {
   DeliveryStatisticsViewSchema,
   type DeliveryStatus,
+  type Nullable,
   type OwnershipStatus,
 } from "@app/shared";
 import request from "supertest";
@@ -26,18 +27,19 @@ const isoDay = (offset: number): string =>
 const utcDay = (offset: number): Date => new Date(`${isoDay(offset)}T00:00:00.000Z`);
 
 type DeliverySeed = {
-  cancelledAt?: Date | null;
-  currency?: null | string;
-  deliveryService?: null | string;
-  expectedDeliveryDate?: Date | null;
-  orderDate?: Date | null;
+  cancelledAt?: Nullable<Date>;
+  cancelReason?: Nullable<string>;
+  currency?: Nullable<string>;
+  deliveryService?: Nullable<string>;
+  expectedDeliveryDate?: Nullable<Date>;
+  orderDate?: Nullable<Date>;
   ownershipStatus: OwnershipStatus;
-  price?: null | number;
-  receivedAt?: Date | null;
+  price?: Nullable<number>;
+  receivedAt?: Nullable<Date>;
   status: DeliveryStatus;
-  storeName?: null | string;
-  trackingNumber?: null | string;
-  trackingUrl?: null | string;
+  storeName?: Nullable<string>;
+  trackingNumber?: Nullable<string>;
+  trackingUrl?: Nullable<string>;
 };
 
 let context: AuthTestContext;
@@ -153,6 +155,7 @@ async function seedDelivery(
     data: {
       bookId,
       cancelledAt: seed.cancelledAt ?? null,
+      cancelReason: seed.cancelReason ?? null,
       currency: seed.currency ?? null,
       deliveryService: seed.deliveryService ?? null,
       expectedDeliveryDate: seed.expectedDeliveryDate ?? null,
@@ -265,7 +268,7 @@ describe("GET /api/delivery/in-transit", () => {
       "This Week",
       "Future",
     ]);
-    expect(res.body.items.map((item: { uiStatus: null | string }) => item.uiStatus)).toEqual([
+    expect(res.body.items.map((item: { uiStatus: Nullable<string> }) => item.uiStatus)).toEqual([
       "delayed",
       "arriving_soon",
       null,
@@ -527,6 +530,40 @@ describe("GET /api/delivery/history", () => {
     expect(res.body.items[0].book.title).toBe("Cancelled Order");
   });
 
+  it("carries the cancel reason on a cancelled history item", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedDelivery(user, "Cancelled With Reason", {
+      cancelledAt: new Date(),
+      cancelReason: "Out of stock",
+      orderDate: utcDay(-3),
+      ownershipStatus: "want_to_buy",
+      status: "cancelled",
+      storeName: "Yakaboo",
+    });
+
+    const res = await getJson(user.accessToken, "/api/delivery/history?tab=cancelled");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].delivery.cancelReason).toBe("Out of stock");
+  });
+
+  it("exposes a null cancel reason on a non-cancelled history item", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedDelivery(user, "Received Order", {
+      orderDate: utcDay(-3),
+      ownershipStatus: "owned",
+      receivedAt: new Date(),
+      status: "received",
+      storeName: "Yakaboo",
+    });
+
+    const res = await getJson(user.accessToken, "/api/delivery/history?tab=received");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items[0].delivery.cancelReason).toBeNull();
+  });
+
   it("filters by an order-date range", async () => {
     const user = await context.registerVerifyAndLogin();
     await seedHistorySet(user);
@@ -605,8 +642,8 @@ describe("GET /api/delivery/history", () => {
 
     const res = await getJson(user.accessToken, "/api/delivery/history?sort=title");
 
-    const byTitle = new Map<string, null | string>(
-      res.body.items.map((item: { book: { title: string }; uiStatus: null | string }) => [
+    const byTitle = new Map<string, Nullable<string>>(
+      res.body.items.map((item: { book: { title: string }; uiStatus: Nullable<string> }) => [
         item.book.title,
         item.uiStatus,
       ]),

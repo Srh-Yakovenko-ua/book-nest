@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -27,7 +28,7 @@ const authorDetail: OpenLibraryAuthorDetail = {
   wikidataId: "Q3335",
 };
 
-const getAuthorByKey = vi.fn<(olid: string) => Promise<null | OpenLibraryAuthorDetail>>();
+const getAuthorByKey = vi.fn<(olid: string) => Promise<Nullable<OpenLibraryAuthorDetail>>>();
 const getAuthorFactsByQid = vi.fn().mockResolvedValue(null);
 
 let context: AuthTestContext;
@@ -71,7 +72,7 @@ function createBook(accessToken: string, body: Record<string, unknown>): request
 
 function readQueuePositions(
   userId: string,
-): Promise<{ id: string; queuePosition: null | number }[]> {
+): Promise<{ id: string; queuePosition: Nullable<number> }[]> {
   return prisma.book.findMany({
     orderBy: { queuePosition: "asc" },
     select: { id: true, queuePosition: true },
@@ -402,6 +403,130 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     expect(res.body.delivery.totalCount).toBe(1);
     const rows = await prisma.bookDelivery.findMany({ where: { bookId: created.body.id } });
     expect(rows).toHaveLength(1);
+  });
+});
+
+describe("PATCH /api/books/:id delivery field parity", () => {
+  it("updates the price, currency, service and tracking fields of the active delivery", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      deliveryInfo: { storeName: "Yakaboo" },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      deliveryInfo: {
+        currency: "USD",
+        deliveryService: "Ukrposhta",
+        price: 199.99,
+        trackingNumber: "TN-9",
+        trackingUrl: "https://parcel.example.com",
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.delivery.active).toMatchObject({
+      currency: "USD",
+      deliveryService: "Ukrposhta",
+      price: 199.99,
+      trackingNumber: "TN-9",
+      trackingUrl: "https://parcel.example.com",
+    });
+    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { bookId: created.body.id } });
+    expect(row.deliveryService).toBe("Ukrposhta");
+    expect(row.trackingNumber).toBe("TN-9");
+    expect(row.currency).toBe("USD");
+    expect(row.price?.toString()).toBe("199.99");
+  });
+
+  it("preserves untouched delivery fields when the patch omits them", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      deliveryInfo: {
+        currency: "UAH",
+        price: 349.5,
+        storeName: "Yakaboo",
+        trackingNumber: "TTN-123",
+        trackingUrl: "https://track.example.com",
+      },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      deliveryInfo: { storeName: "Nova Poshta Store" },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.delivery.active).toMatchObject({
+      currency: "UAH",
+      price: 349.5,
+      storeName: "Nova Poshta Store",
+      trackingNumber: "TTN-123",
+      trackingUrl: "https://track.example.com",
+    });
+  });
+
+  it("clears a nullable delivery field when the patch sends an explicit null", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      deliveryInfo: {
+        price: 349.5,
+        storeName: "Yakaboo",
+        trackingNumber: "TTN-123",
+      },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      deliveryInfo: { trackingNumber: null },
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.delivery.active).toMatchObject({ price: 349.5, trackingNumber: null });
+  });
+
+  it("returns 400 for a non-https tracking url in the delivery patch", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      deliveryInfo: { storeName: "Yakaboo" },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      deliveryInfo: { trackingUrl: "not-a-url" },
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "deliveryInfo.trackingUrl" })]),
+    );
+  });
+
+  it("returns 400 for a negative delivery price in the patch", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      deliveryInfo: { storeName: "Yakaboo" },
+      ownershipStatus: "in_transit",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      deliveryInfo: { price: -5 },
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "deliveryInfo.price" })]),
+    );
   });
 });
 

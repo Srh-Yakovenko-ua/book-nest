@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -19,7 +21,7 @@ export class EmailVerificationTokensRepository {
     tokenHash: string,
     now: Date,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | { userId: string }> {
+  ): Promise<Nullable<{ userId: string }>> {
     const tokenRow = await client.emailVerificationToken.findUnique({ where: { tokenHash } });
     if (tokenRow === null) return null;
 
@@ -48,7 +50,7 @@ export class EmailVerificationTokensRepository {
   findLatestByUserId(
     userId: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<EmailVerificationTokenModel | null> {
+  ): Promise<Nullable<EmailVerificationTokenModel>> {
     return client.emailVerificationToken.findFirst({
       orderBy: { createdAt: "desc" },
       where: { userId },

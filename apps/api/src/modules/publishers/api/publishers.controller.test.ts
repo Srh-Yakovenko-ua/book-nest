@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -39,16 +40,16 @@ function searchPublishers(accessToken: string, search?: string): request.Test {
 }
 
 async function seedPublisher(data: {
-  countryCode?: null | string;
-  foundedYear?: null | number;
-  logoUrl?: null | string;
+  countryCode?: Nullable<string>;
+  foundedYear?: Nullable<number>;
+  logoUrl?: Nullable<string>;
   name: string;
   names?: { isPrimary: boolean; locale: string; name: string; normalizedName: string }[];
   normalizedName: string;
   searchText?: string;
-  userId?: null | string;
-  websiteUrl?: null | string;
-  wikidataId?: null | string;
+  userId?: Nullable<string>;
+  websiteUrl?: Nullable<string>;
+  wikidataId?: Nullable<string>;
 }): Promise<void> {
   await prisma.publisher.create({
     data: {
@@ -325,7 +326,7 @@ describe("GET /api/publishers catalog fields", () => {
 
     const byName = new Map(
       res.body.items.map(
-        (publisher: { countryCode: null | string; isCustom: boolean; name: string }) => [
+        (publisher: { countryCode: Nullable<string>; isCustom: boolean; name: string }) => [
           publisher.name,
           publisher,
         ],

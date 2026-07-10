@@ -1,4 +1,4 @@
-import type { ReadingStatus } from "@app/shared";
+import type { Nullable, ReadingStatus } from "@app/shared";
 
 import type {
   CreateReadingProgressData,
@@ -10,12 +10,12 @@ import { parseIsoDate } from "../../../core/iso-date.js";
 export type ReadingStatusTransitionInput = {
   currentPage?: number;
   date: string;
-  existingStartedAt: Date | null;
+  existingStartedAt: Nullable<Date>;
   hasExistingProgress: boolean;
-  impression?: null | string;
-  note?: null | string;
-  pagesCount: null | number;
-  rating?: null | number;
+  impression?: Nullable<string>;
+  note?: Nullable<string>;
+  pagesCount: Nullable<number>;
+  rating?: Nullable<number>;
   resetProgress?: boolean;
   targetStatus: ReadingStatus;
 };

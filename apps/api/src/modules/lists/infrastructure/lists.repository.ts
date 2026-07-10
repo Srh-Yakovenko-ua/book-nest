@@ -1,4 +1,4 @@
-import type { ListSort } from "@app/shared";
+import type { ListSort, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -11,13 +11,13 @@ import { NotFoundError } from "../../../core/exceptions/errors.js";
 const PREVIEW_COVERS_LIMIT = 4;
 
 export type CreateBookListData = {
-  description: null | string;
+  description: Nullable<string>;
   name: string;
   normalizedName: string;
 };
 
 export type UpdateBookListData = {
-  description: null | string;
+  description: Nullable<string>;
   name: string;
   normalizedName: string;
 };
@@ -56,8 +56,11 @@ export class ListsRepository {
     return this.prisma.bookList.count({ where: buildOwnedWhere(userId, query) });
   }
 
-  create({ data, userId }: { data: CreateBookListData; userId: string }): Promise<BookListCard> {
-    return this.prisma.bookList.create({ data: { ...data, userId }, ...listCardArgs });
+  create(
+    { data, userId }: { data: CreateBookListData; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookListCard> {
+    return client.bookList.create({ data: { ...data, userId }, ...listCardArgs });
   }
 
   deleteOwned({ id, userId }: { id: string; userId: string }): Promise<number> {
@@ -66,22 +69,28 @@ export class ListsRepository {
       .then((result) => result.count);
   }
 
-  findByNormalized({
-    normalizedName,
-    userId,
-  }: {
-    normalizedName: string;
-    userId: string;
-  }): Promise<BookListModel | null> {
-    return this.prisma.bookList.findFirst({ where: { normalizedName, userId } });
+  findByNormalized(
+    {
+      normalizedName,
+      userId,
+    }: {
+      normalizedName: string;
+      userId: string;
+    },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<BookListModel>> {
+    return client.bookList.findFirst({ where: { normalizedName, userId } });
   }
 
-  findOwnedById({ id, userId }: { id: string; userId: string }): Promise<BookListModel | null> {
+  findOwnedById({ id, userId }: { id: string; userId: string }): Promise<Nullable<BookListModel>> {
     return this.prisma.bookList.findFirst({ where: { id, userId } });
   }
 
-  findOwnedByIds({ ids, userId }: { ids: string[]; userId: string }): Promise<BookListModel[]> {
-    return this.prisma.bookList.findMany({ where: { id: { in: ids }, userId } });
+  findOwnedByIds(
+    { ids, userId }: { ids: string[]; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookListModel[]> {
+    return client.bookList.findMany({ where: { id: { in: ids }, userId } });
   }
 
   searchOwnedCards({
@@ -114,6 +123,17 @@ export class ListsRepository {
       throw new NotFoundError("List not found");
     }
     return this.prisma.bookList.findFirstOrThrow({ where: { id, userId }, ...listCardArgs });
+  }
+
+  upsertByNormalized(
+    { data, userId }: { data: CreateBookListData; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookListModel> {
+    return client.bookList.upsert({
+      create: { ...data, userId },
+      update: { normalizedName: data.normalizedName },
+      where: { userId_normalizedName: { normalizedName: data.normalizedName, userId } },
+    });
   }
 }
 

@@ -9,14 +9,15 @@ import type {
   DeliveryListItemView,
   DeliveryStatisticsQuery,
   DeliveryStatisticsView,
+  Nullable,
   Paginator,
 } from "@app/shared";
 
 import {
-  collapseSpaces,
   CurrencySchema,
   isActiveDeliveryStatus,
   normalizeName,
+  normalizeSearch,
   OwnershipStatusSchema,
   ReadingStatusSchema,
 } from "@app/shared";
@@ -276,7 +277,7 @@ export class DeliveryService {
   }
 }
 
-function countUniqueStores(storeNames: (null | string)[]): number {
+function countUniqueStores(storeNames: Nullable<string>[]): number {
   const normalized = new Set<string>();
   for (const storeName of storeNames) {
     if (storeName === null) {
@@ -289,14 +290,6 @@ function countUniqueStores(storeNames: (null | string)[]): number {
     normalized.add(key);
   }
   return normalized.size;
-}
-
-function normalizeSearch(value: string | undefined): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const collapsed = collapseSpaces(value);
-  return collapsed.length === 0 ? undefined : collapsed;
 }
 
 function toCurrencyTotals(

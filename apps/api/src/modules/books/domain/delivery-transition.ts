@@ -1,4 +1,4 @@
-import type { CreateDeliveryInput, UpdateDeliveryInput } from "@app/shared";
+import type { CreateDeliveryInput, Nullable, UpdateDeliveryInput } from "@app/shared";
 
 import type {
   CreateDeliveryTransition,
@@ -13,12 +13,17 @@ const STATUS_RECEIVED = "received";
 const STATUS_CANCELLED = "cancelled";
 
 export function computeCancelDelivery(input: {
+  cancelReason: Nullable<string> | undefined;
   keepAsWantToBuy: boolean;
   now: Date;
 }): RecordDeliveryTransition {
   return {
     book: { ownershipStatus: input.keepAsWantToBuy ? "want_to_buy" : "none" },
-    delivery: { cancelledAt: input.now, status: STATUS_CANCELLED },
+    delivery: {
+      cancelledAt: input.now,
+      cancelReason: input.cancelReason ?? null,
+      status: STATUS_CANCELLED,
+    },
   };
 }
 

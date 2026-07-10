@@ -5,9 +5,14 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { UpdateBookInputDtoDeliveryInfoCurrency } from "./updateBookInputDtoDeliveryInfoCurrency";
 import type { UpdateBookInputDtoDeliveryInfoDeliveryStatus } from "./updateBookInputDtoDeliveryInfoDeliveryStatus";
 
 export type UpdateBookInputDtoDeliveryInfo = {
+  /** @nullable */
+  currency?: UpdateBookInputDtoDeliveryInfoCurrency;
+  /** @nullable */
+  deliveryService?: string | null;
   deliveryStatus?: UpdateBookInputDtoDeliveryInfoDeliveryStatus;
   /**
    * @nullable
@@ -23,6 +28,19 @@ export type UpdateBookInputDtoDeliveryInfo = {
   orderDate?: string | null;
   /** @nullable */
   orderNumber?: string | null;
+  /**
+   * @maximum 99999999.99
+   * @exclusiveMinimum 0
+   * @nullable
+   */
+  price?: number | null;
   /** @nullable */
   storeName?: string | null;
+  /** @nullable */
+  trackingNumber?: string | null;
+  /**
+   * @maxLength 300
+   * @nullable
+   */
+  trackingUrl?: string | null;
 };

@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -435,7 +436,9 @@ describe("GET /api/loans sorting", () => {
     const res = await listLoans(accessToken, "?sort=return_date");
 
     expect(
-      res.body.items.map((item: { expectedReturnDate: null | string }) => item.expectedReturnDate),
+      res.body.items.map(
+        (item: { expectedReturnDate: Nullable<string> }) => item.expectedReturnDate,
+      ),
     ).toEqual([isoDay(2), isoDay(5), null]);
   });
 });

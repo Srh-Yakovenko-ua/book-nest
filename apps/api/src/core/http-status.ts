@@ -1,3 +1,5 @@
+import type { ValueOf } from "@app/shared";
+
 export const HTTP_STATUS = {
   BAD_GATEWAY: 502,
   BAD_REQUEST: 400,
@@ -14,4 +16,4 @@ export const HTTP_STATUS = {
   UNPROCESSABLE_ENTITY: 422,
 } as const;
 
-export type HttpStatus = (typeof HTTP_STATUS)[keyof typeof HTTP_STATUS];
+export type HttpStatus = ValueOf<typeof HTTP_STATUS>;

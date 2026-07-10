@@ -66,6 +66,7 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
           active: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -91,6 +92,7 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
           latest: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -328,6 +330,7 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
           active: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -353,6 +356,7 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
           latest: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -586,6 +590,7 @@ export const ReadingQueueControllerReorderResponse = zod.object({
           active: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -611,6 +616,7 @@ export const ReadingQueueControllerReorderResponse = zod.object({
           latest: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -840,6 +846,7 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
           active: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -865,6 +872,7 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
           latest: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -1090,6 +1098,7 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
           active: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),
@@ -1115,6 +1124,7 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
           latest: zod
             .object({
               cancelledAt: zod.string().nullable(),
+              cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
               currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
               deliveryService: zod.string().nullable(),

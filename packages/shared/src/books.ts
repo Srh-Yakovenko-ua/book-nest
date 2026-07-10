@@ -22,6 +22,7 @@ import {
   createPaginatedSchema,
   LIST_PAGE_SIZE_MAX,
   noHtmlTags,
+  type Nullable,
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
@@ -303,31 +304,14 @@ export type MarkBoughtInput = z.infer<typeof MarkBoughtInputSchema>;
 const DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE = "Expected delivery cannot be before the order date";
 
 const isExpectedNotBeforeOrder = (value: {
-  expectedDeliveryDate?: null | string;
-  orderDate?: null | string;
+  expectedDeliveryDate?: Nullable<string>;
+  orderDate?: Nullable<string>;
 }): boolean =>
   value.orderDate === undefined ||
   value.orderDate === null ||
   value.expectedDeliveryDate === undefined ||
   value.expectedDeliveryDate === null ||
   value.expectedDeliveryDate >= value.orderDate;
-
-export const DeliveryInfoInputSchema = z
-  .object({
-    deliveryStatus: ActiveDeliveryStatusSchema.optional(),
-    expectedDeliveryDate: z.iso.date().nullable().optional(),
-    note: OwnershipNoteSchema.nullable().optional(),
-    orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
-    orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
-    storeName: OwnershipStoreNameSchema.nullable().optional(),
-  })
-  .refine(isExpectedNotBeforeOrder, {
-    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
-    path: ["expectedDeliveryDate"],
-  })
-  .optional();
-
-export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
 const DELIVERY_TRACKING_NUMBER_MAX = 100;
 
@@ -340,6 +324,28 @@ const DeliveryTrackingNumberSchema = z
       "Tracking number must be at most 100 characters long",
     ),
   );
+
+export const DeliveryInfoInputSchema = z
+  .object({
+    currency: CurrencySchema.nullable().optional(),
+    deliveryService: DeliveryServiceSchema.nullable().optional(),
+    deliveryStatus: ActiveDeliveryStatusSchema.optional(),
+    expectedDeliveryDate: z.iso.date().nullable().optional(),
+    note: OwnershipNoteSchema.nullable().optional(),
+    orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
+    orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
+    price: OwnershipPriceSchema.nullable().optional(),
+    storeName: OwnershipStoreNameSchema.nullable().optional(),
+    trackingNumber: DeliveryTrackingNumberSchema.nullable().optional(),
+    trackingUrl: OwnershipStoreUrlSchema.nullable().optional(),
+  })
+  .refine(isExpectedNotBeforeOrder, {
+    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
+    path: ["expectedDeliveryDate"],
+  })
+  .optional();
+
+export type DeliveryInfoInput = z.infer<typeof DeliveryInfoInputSchema>;
 
 export const CreateDeliveryInputSchema = z
   .object({
@@ -382,7 +388,21 @@ export const UpdateDeliveryInputSchema = z
 
 export type UpdateDeliveryInput = z.infer<typeof UpdateDeliveryInputSchema>;
 
+const DELIVERY_CANCEL_REASON_MAX = 500;
+
+const DeliveryCancelReasonSchema = z
+  .string()
+  .transform(collapseHorizontalSpaces)
+  .pipe(
+    NoHtmlString.max(
+      DELIVERY_CANCEL_REASON_MAX,
+      "Cancel reason must be at most 500 characters long",
+    ),
+  )
+  .transform((value) => (value.length === 0 ? null : value));
+
 export const CancelDeliveryInputSchema = z.object({
+  cancelReason: DeliveryCancelReasonSchema.nullable().optional(),
   keepAsWantToBuy: z.boolean().default(true),
 });
 
@@ -392,8 +412,8 @@ const RETURN_BEFORE_LOAN_MESSAGE = "Expected return cannot be before the loan da
 const REMINDER_NEEDS_RETURN_DATE_MESSAGE = "Select a return date for the reminder";
 
 const isReturnNotBeforeLoan = (value: {
-  expectedReturnDate?: null | string;
-  loanDate?: null | string;
+  expectedReturnDate?: Nullable<string>;
+  loanDate?: Nullable<string>;
 }): boolean =>
   value.loanDate === undefined ||
   value.loanDate === null ||
@@ -879,6 +899,7 @@ export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
 
 export const DeliveryViewSchema = z.object({
   cancelledAt: z.string().nullable(),
+  cancelReason: z.string().nullable(),
   createdAt: z.string(),
   currency: CurrencySchema.nullable(),
   deliveryService: z.string().nullable(),

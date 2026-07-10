@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 const UTC_TIME_ZONE = "UTC";
@@ -11,6 +13,6 @@ export function toIsoDate(date: Date): string {
   return formatInTimeZone(date, UTC_TIME_ZONE, ISO_DATE_FORMAT);
 }
 
-export function toNullableIsoDate(value: Date | null): null | string {
+export function toNullableIsoDate(value: Nullable<Date>): Nullable<string> {
   return value === null ? null : toIsoDate(value);
 }

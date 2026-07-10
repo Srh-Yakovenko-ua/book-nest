@@ -18,7 +18,8 @@
     "buyList": "Books to buy",
     "series": "Series",
     "loans": "Borrowed books",
-    "lists": "Lists"
+    "lists": "Lists",
+    "delivery": "Deliveries"
   },
   "readingQueue": {
     "title": "Reading queue",
@@ -145,6 +146,13 @@
       "title": "Your library is empty",
       "description": "Add your first book to see your stats here.",
       "action": "Add your first book"
+    },
+    "delivery": {
+      "title": "Deliveries in transit",
+      "viewAll": "View all",
+      "active": "Active",
+      "expectedThisWeek": "This week",
+      "delayed": "Delayed"
     }
   },
   "notFound": {
@@ -682,7 +690,16 @@
         "orderDate": "Order date",
         "expectedDeliveryDate": "Expected delivery",
         "deliveryStatus": "Delivery status",
-        "deliveryStatusPlaceholder": "Pick a status"
+        "deliveryStatusPlaceholder": "Pick a status",
+        "deliveryService": "Delivery service",
+        "deliveryServicePlaceholder": "e.g. Nova Poshta",
+        "trackingNumber": "Tracking number",
+        "trackingNumberPlaceholder": "e.g. 20450000000000",
+        "price": "Price",
+        "currency": "Currency",
+        "currencyPlaceholder": "Currency",
+        "trackingUrl": "Tracking link",
+        "trackingUrlPlaceholder": "https://..."
       },
       "markReceived": "Mark as received"
     },
@@ -1353,13 +1370,17 @@
           "notePlaceholder": "Short thoughts for yourself…",
           "datePlaceholder": "Pick a date",
           "createSubmit": "Order",
-          "saveSubmit": "Save"
+          "saveSubmit": "Save",
+          "trackingUrl": "Tracking link",
+          "trackingUrlPlaceholder": "https://..."
         },
         "cancelDialog": {
           "title": "Cancel delivery",
           "description": "Mark this order as cancelled? The order data stays in the history.",
           "keepAsWantToBuy": "Keep in the “Want to buy” list",
-          "confirm": "Cancel delivery"
+          "confirm": "Cancel delivery",
+          "reasonLabel": "Cancellation reason",
+          "reasonPlaceholder": "Optional: why are you cancelling?"
         },
         "errors": {
           "storeNameRequired": "Enter a store.",
@@ -1375,7 +1396,9 @@
           "price": "Price must be greater than 0.",
           "priceMax": "Too large. Maximum 99999999.99.",
           "noteMax": "No more than {max} characters.",
-          "generic": "Couldn’t save. Please try again."
+          "generic": "Couldn’t save. Please try again.",
+          "trackingUrl": "Enter a valid https link.",
+          "trackingUrlMax": "No more than {max} characters."
         }
       }
     }
@@ -1393,6 +1416,275 @@
       "title": "Could not load",
       "description": "Please try refreshing the page.",
       "retry": "Try again"
+    },
+    "markInTransit": "Mark as in transit",
+    "markInTransitFor": "Mark \"{title}\" as in transit"
+  },
+  "delivery": {
+    "metaTitle": "Books in transit",
+    "title": "Books in transit",
+    "subtitle": "Track the books you have already ordered but not yet received.",
+    "resultsTitle": "Active deliveries",
+    "counter": "{count, plural, one {# active delivery} other {# active deliveries}}",
+    "loadMore": "Show more",
+    "actions": {
+      "receiveAll": "Mark all as received"
+    },
+    "summary": {
+      "active": "In transit",
+      "expectedThisWeek": "Expected this week",
+      "delayed": "Delayed",
+      "total": "Total amount",
+      "stores": "Stores"
+    },
+    "search": {
+      "label": "Search deliveries",
+      "placeholder": "Title, author, store, tracking…",
+      "clear": "Clear search"
+    },
+    "filters": {
+      "label": "Delivery filters",
+      "all": "All",
+      "ordered": "Ordered",
+      "in_transit": "In transit",
+      "arriving_soon": "Arriving soon",
+      "this_week": "This week",
+      "delayed": "Delayed",
+      "no_delivery_date": "No delivery date"
+    },
+    "sort": {
+      "label": "Sort",
+      "options": {
+        "closest_delivery": "Closest delivery",
+        "newest_orders": "Newest orders",
+        "oldest_orders": "Oldest orders",
+        "delayed_first": "Delayed first",
+        "store": "By store",
+        "service": "By delivery service",
+        "title": "By book title",
+        "author": "By author",
+        "price": "By price"
+      }
+    },
+    "badge": {
+      "delayed": "Delayed",
+      "arriving_soon": "Arriving soon",
+      "no_delivery_date": "No delivery date",
+      "ordered": "Ordered",
+      "in_transit": "In transit",
+      "ready_for_pickup": "Ready for pickup",
+      "received": "Received",
+      "cancelled": "Cancelled"
+    },
+    "card": {
+      "seriesPart": "{name} · book {part}",
+      "store": "Store",
+      "orderDate": "Order date",
+      "expectedDate": "Expected delivery",
+      "orderNumber": "Order number",
+      "service": "Delivery service",
+      "trackingNumber": "Tracking number",
+      "price": "Price",
+      "tracking": "Tracking",
+      "openTracking": "Open tracking",
+      "openBook": "Go to book",
+      "receive": "Mark as received",
+      "edit": "Edit delivery",
+      "cancel": "Cancel order",
+      "actionsAria": "Actions for “{title}”",
+      "selectAria": "Select “{title}”"
+    },
+    "bulk": {
+      "regionLabel": "Bulk actions",
+      "selected": "{count, plural, one {# book selected} other {# books selected}}",
+      "receive": "Mark as received",
+      "clear": "Clear selection",
+      "selectAllVisible": "Select all visible ({count})"
+    },
+    "receiveDialog": {
+      "title": "Mark as received?",
+      "description": "{count, plural, one {# book will be marked as received and moved into your library.} other {# books will be marked as received and moved into your library.}}",
+      "confirm": "Mark as received"
+    },
+    "states": {
+      "loading": "Loading…",
+      "error": {
+        "title": "Could not load the data",
+        "description": "Please try refreshing the page.",
+        "retry": "Try again"
+      },
+      "empty": {
+        "title": "You have no books in transit",
+        "description": "Once you mark a book as ordered, it will appear here together with its delivery status.",
+        "cta": "Go to books to buy"
+      },
+      "filteredEmpty": {
+        "title": "Nothing found",
+        "description": "Try changing the search or resetting the filters.",
+        "reset": "Reset filters"
+      }
+    },
+    "toast": {
+      "received": "Book marked as received",
+      "receivedBulk": "{count, plural, one {# book marked as received} other {# books marked as received}}",
+      "receivedPartial": "Received: {received}. Skipped: {skipped}",
+      "error": "Could not complete the action"
+    },
+    "subnav": {
+      "label": "Delivery sections",
+      "inTransit": "In transit",
+      "history": "History",
+      "statistics": "Statistics"
+    },
+    "history": {
+      "metaTitle": "Order history",
+      "title": "Order history",
+      "subtitle": "All your delivery orders — active, received and cancelled.",
+      "resultsTitle": "Order list",
+      "counter": "{count, plural, one {# order} other {# orders}}",
+      "loadMore": "Show more",
+      "summary": {
+        "totalOrders": "Total orders",
+        "active": "Active",
+        "received": "Received",
+        "cancelled": "Cancelled",
+        "total": "Total amount"
+      },
+      "tabs": {
+        "label": "Order groups",
+        "all": "All",
+        "active": "Active",
+        "received": "Received",
+        "cancelled": "Cancelled"
+      },
+      "sort": {
+        "label": "Sort",
+        "options": {
+          "newest_orders": "Newest orders",
+          "oldest_orders": "Oldest orders",
+          "recently_updated": "Recently updated",
+          "status": "By status",
+          "store": "By store",
+          "price": "By price",
+          "title": "By book title"
+        }
+      },
+      "filters": {
+        "label": "Filters",
+        "currency": "Currency",
+        "store": "Store",
+        "storePlaceholder": "Exact store name",
+        "service": "Delivery service",
+        "servicePlaceholder": "Exact service name",
+        "from": "Date from",
+        "to": "Date to",
+        "priceMin": "Price from",
+        "priceMax": "Price to",
+        "hasTrackingNumber": "Has tracking number",
+        "hasTrackingUrl": "Has tracking link",
+        "any": "Any",
+        "yes": "Yes",
+        "no": "No",
+        "apply": "Apply",
+        "reset": "Reset"
+      },
+      "card": {
+        "deletedBook": "Book deleted",
+        "deletedBookHint": "Book data is unavailable — showing the stored delivery information.",
+        "receivedDate": "Received date",
+        "cancelledDate": "Cancelled date",
+        "cancelReason": "Cancellation reason",
+        "note": "Note"
+      },
+      "states": {
+        "loading": "Loading…",
+        "error": {
+          "title": "Could not load the data",
+          "description": "Please try refreshing the page.",
+          "retry": "Try again"
+        },
+        "empty": {
+          "title": "Your order history is empty",
+          "description": "Your delivery orders will appear here once you create them.",
+          "cta": "Go to books in transit"
+        },
+        "filteredEmpty": {
+          "title": "No orders match the selected filters",
+          "description": "Try changing the search or resetting the filters.",
+          "reset": "Reset filters"
+        }
+      }
+    },
+    "statistics": {
+      "metaTitle": "Expense statistics",
+      "title": "Expense statistics",
+      "subtitle": "How much you spend on book deliveries — by month, store and currency.",
+      "summary": {
+        "total": "Total amount",
+        "active": "Active orders",
+        "received": "Received orders",
+        "cancelled": "Cancelled orders",
+        "average": "Average price",
+        "pricedOrders": "Orders with price"
+      },
+      "controls": {
+        "includeCancelled": "Include cancelled orders",
+        "resetFilters": "Reset filters"
+      },
+      "filters": {
+        "label": "Filters",
+        "currency": "Currency",
+        "status": "Status",
+        "store": "Store",
+        "storePlaceholder": "Exact store name",
+        "from": "Period from",
+        "to": "Period to",
+        "any": "Any",
+        "apply": "Apply",
+        "reset": "Reset"
+      },
+      "monthly": {
+        "title": "Monthly spending",
+        "subtitle": "Grouped by order date. Currencies are shown separately, without conversion.",
+        "spendingIn": "Spending, {currency}",
+        "spendingAria": "Chart of spending in {currency} by month",
+        "ordersTitle": "Orders per month",
+        "ordersValueLabel": "Orders",
+        "ordersAria": "Chart of order count by month",
+        "empty": "No dated orders available for monthly statistics."
+      },
+      "status": {
+        "title": "By status",
+        "active": "Active",
+        "received": "Received",
+        "cancelled": "Cancelled"
+      },
+      "stores": {
+        "title": "Spending by store",
+        "empty": "No stores to show.",
+        "orders": "{count, plural, one {# order} other {# orders}}"
+      },
+      "topOrders": {
+        "title": "Most expensive orders",
+        "empty": "No orders with a price."
+      },
+      "states": {
+        "error": {
+          "title": "Could not load the data",
+          "description": "Please try refreshing the page.",
+          "retry": "Try again"
+        },
+        "empty": {
+          "title": "No delivery expense data yet",
+          "description": "Once you add orders with prices, your expense statistics will appear here."
+        },
+        "noPrice": "Add a price to your orders to see expense statistics.",
+        "filteredEmpty": {
+          "title": "No data for the selected filters",
+          "description": "Try changing or resetting the filters.",
+          "reset": "Reset filters"
+        }
+      }
     }
   },
   "favorites": {
@@ -2003,6 +2295,30 @@
       "previous": "Previous",
       "next": "Next",
       "status": "Page {page} of {total}"
+    }
+  },
+  "changelog": {
+    "bell": {
+      "ariaLabel": "What's new",
+      "ariaLabelUnread": "What's new, {count} unread"
+    },
+    "title": "What's new",
+    "category": {
+      "feature": "New",
+      "improvement": "Improvement",
+      "fix": "Fix"
+    },
+    "states": {
+      "empty": {
+        "title": "No updates yet",
+        "description": "New features, improvements and fixes will show up here."
+      },
+      "error": {
+        "title": "Couldn't load updates",
+        "description": "Check your connection and try again.",
+        "retry": "Try again"
+      },
+      "loadingMore": "Loading…"
     }
   }
 }

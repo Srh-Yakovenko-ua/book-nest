@@ -50,8 +50,41 @@ model User {
   bookDeliveries          BookDelivery[]
   bookLoans               BookLoan[]
   deliveryServices        DeliveryService[]
+  changelogRead           ChangelogRead?
 
   @@map("users")
+}
+
+enum ChangelogCategory {
+  feature
+  improvement
+  fix
+
+  @@map("changelog_category")
+}
+
+model ChangelogEntry {
+  id          String            @id @default(uuid()) @db.Uuid
+  slug        String            @unique
+  version     String?
+  category    ChangelogCategory
+  titleUk     String            @map("title_uk")
+  titleEn     String            @map("title_en")
+  bodyUk      String            @map("body_uk")
+  bodyEn      String            @map("body_en")
+  publishedAt DateTime?         @map("published_at") @db.Timestamptz
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("changelog_entries")
+}
+
+model ChangelogRead {
+  userId     String   @id @map("user_id") @db.Uuid
+  lastSeenAt DateTime @map("last_seen_at") @db.Timestamptz
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("changelog_reads")
 }
 
 model Series {
@@ -279,6 +312,7 @@ model BookDelivery {
   currency             String?
   note                 String?
   status               String    @default("ordered")
+  cancelReason         String?   @map("cancel_reason")
   receivedAt           DateTime? @map("received_at") @db.Timestamptz
   cancelledAt          DateTime? @map("cancelled_at") @db.Timestamptz
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz

@@ -1,4 +1,4 @@
-import type { ReadingStatus } from "@app/shared";
+import type { Nullable, ReadingStatus } from "@app/shared";
 
 import type { SeriesBookPreview } from "./series-preview.js";
 
@@ -6,7 +6,7 @@ import { countFinishedBooks } from "./series-preview.js";
 
 type SeriesProgressInput = {
   books: SeriesBookPreview[];
-  totalBooks: null | number;
+  totalBooks: Nullable<number>;
 };
 
 const ENGAGED_READING_STATUSES: ReadonlySet<ReadingStatus> = new Set<ReadingStatus>([

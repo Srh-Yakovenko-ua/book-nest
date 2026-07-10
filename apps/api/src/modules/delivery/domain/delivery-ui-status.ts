@@ -1,4 +1,4 @@
-import type { DeliveryUiStatus } from "@app/shared";
+import type { DeliveryUiStatus, Nullable } from "@app/shared";
 
 import { addDays, differenceInCalendarDays } from "date-fns";
 
@@ -28,9 +28,9 @@ export function getDeliveryUiStatus({
   expectedDeliveryDate,
   today,
 }: {
-  expectedDeliveryDate: Date | null;
+  expectedDeliveryDate: Nullable<Date>;
   today: Date;
-}): DeliveryUiStatus | null {
+}): Nullable<DeliveryUiStatus> {
   if (expectedDeliveryDate === null) {
     return "no_delivery_date";
   }

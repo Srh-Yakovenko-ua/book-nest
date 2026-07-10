@@ -34,7 +34,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { MediaService } from "../application/media.service.js";
 import { MEDIA_ERROR_CODES, mediaError } from "../domain/media-error-code.js";
-import { MediaViewDto } from "./output-dto/media-view.output-dto.js";
+import { MediaViewDto } from "./view-dto/media.view-dto.js";
 
 const UPLOAD_LIMIT = 20;
 const UPLOAD_TTL_SECONDS = 60;

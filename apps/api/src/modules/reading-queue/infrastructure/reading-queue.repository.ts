@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -46,7 +48,7 @@ export class ReadingQueueRepository {
     userId: string,
     bookId: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<null | number> {
+  ): Promise<Nullable<number>> {
     const book = await client.book.findFirst({
       select: { queuePosition: true },
       where: { id: bookId, userId },

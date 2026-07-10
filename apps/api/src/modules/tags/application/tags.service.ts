@@ -2,10 +2,11 @@ import type { Paginator, TagView, TaxonomySearchPaginationQuery } from "@app/sha
 
 import { Injectable } from "@nestjs/common";
 
+import type { Prisma } from "../../../generated/prisma/client.js";
+
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { toTagView } from "../domain/tag.mapper.js";
 import { TagsRepository } from "../infrastructure/tags.repository.js";
 
@@ -20,7 +21,11 @@ export class TagsService {
     }
   }
 
-  async resolveOrCreateMany(userId: string, names: string[]): Promise<string[]> {
+  async resolveOrCreateMany(
+    userId: string,
+    names: string[],
+    client?: Prisma.TransactionClient,
+  ): Promise<string[]> {
     const uniqueNames = new Map<string, string>();
     for (const name of names) {
       const normalizedName = normalizeName(name);
@@ -31,7 +36,7 @@ export class TagsService {
 
     const tagIds: string[] = [];
     for (const [normalizedName, name] of uniqueNames) {
-      tagIds.push(await this.resolveOrCreate(userId, name, normalizedName));
+      tagIds.push(await this.resolveOrCreate(userId, name, normalizedName, client));
     }
 
     return tagIds;
@@ -62,24 +67,17 @@ export class TagsService {
     userId: string,
     name: string,
     normalizedName: string,
+    client?: Prisma.TransactionClient,
   ): Promise<string> {
-    const existing = await this.tagsRepository.findByNormalized(userId, normalizedName);
+    const existing = await this.tagsRepository.findByNormalized(userId, normalizedName, client);
     if (existing !== null) {
       return existing.id;
     }
 
-    try {
-      const created = await this.tagsRepository.create(userId, name, normalizedName);
-      return created.id;
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      const winner = await this.tagsRepository.findByNormalized(userId, normalizedName);
-      if (winner === null) {
-        throw error;
-      }
-      return winner.id;
-    }
+    const created = await this.tagsRepository.upsertByNormalized(
+      { name, normalizedName, userId },
+      client,
+    );
+    return created.id;
   }
 }

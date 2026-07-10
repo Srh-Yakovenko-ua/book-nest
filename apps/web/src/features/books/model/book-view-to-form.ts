@@ -94,12 +94,17 @@ function deliveryToInput(book: BookView): CreateBookFormValues["deliveryInfo"] {
   const info = book.delivery.active;
   if (info === null) return {};
   return {
+    currency: info.currency ?? undefined,
+    deliveryService: info.deliveryService ?? undefined,
     deliveryStatus: isActiveDeliveryStatus(info.status) ? info.status : undefined,
     expectedDeliveryDate: info.expectedDeliveryDate ?? undefined,
     note: info.note ?? undefined,
     orderDate: info.orderDate ?? undefined,
     orderNumber: info.orderNumber ?? undefined,
+    price: info.price ?? undefined,
     storeName: info.storeName ?? undefined,
+    trackingNumber: info.trackingNumber ?? undefined,
+    trackingUrl: info.trackingUrl ?? undefined,
   };
 }
 

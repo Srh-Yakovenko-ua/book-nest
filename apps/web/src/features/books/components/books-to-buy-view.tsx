@@ -4,11 +4,13 @@ import type { BookView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import { useState } from "react";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
@@ -19,6 +21,7 @@ import {
 import type { LibraryListParams } from "../model/library-query";
 
 import { useLibraryBooks } from "../api/use-books";
+import { DeliveryDialog } from "./delivery-dialog";
 
 const WANT_TO_BUY_PARAMS: LibraryListParams = {
   ageCategory: [],
@@ -135,21 +138,45 @@ function BooksToBuyCover({ alt, src }: { alt: string; src?: string }) {
 }
 
 function BooksToBuyRow({ book }: { book: BookView }) {
+  const t = useTranslations("booksToBuy");
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
   const authorNames = book.authors.map((author) => author.name).join(", ");
 
   return (
-    <Link
-      className="group flex items-center gap-3.5 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none"
-      href={`/books/${book.id}`}
-    >
-      <BooksToBuyCover alt={book.title} src={book.cover?.urls.thumb} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h3 className="truncate font-heading text-sm leading-tight font-bold text-ink transition-colors group-hover:text-primary">
-          {book.title}
-        </h3>
-        <p className="truncate text-xs text-muted-foreground">{authorNames}</p>
+    <>
+      <div className="group flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
+        <Link
+          className="flex min-w-0 flex-1 items-center gap-3.5 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          href={`/books/${book.id}`}
+        >
+          <BooksToBuyCover alt={book.title} src={book.cover?.urls.thumb} />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <h3 className="truncate font-heading text-sm leading-tight font-bold text-ink transition-colors group-hover:text-primary">
+              {book.title}
+            </h3>
+            <p className="truncate text-xs text-muted-foreground">{authorNames}</p>
+          </div>
+        </Link>
+        {book.ownershipStatus === "want_to_buy" ? (
+          <Button
+            aria-label={t("markInTransitFor", { title: book.title })}
+            className="shrink-0"
+            onClick={() => setDeliveryOpen(true)}
+            size="sm"
+            variant="secondary"
+          >
+            <UiIcon name="truck" size={16} />
+            <span className="hidden sm:inline">{t("markInTransit")}</span>
+          </Button>
+        ) : null}
       </div>
-    </Link>
+      <DeliveryDialog
+        book={book}
+        mode="create"
+        onOpenChange={setDeliveryOpen}
+        open={deliveryOpen}
+      />
+    </>
   );
 }
 

@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -28,11 +30,11 @@ function buildService(repository: RepositoryMock): BookReadingService {
   );
 }
 
-function ownedBook(readingProgress: null | ReadingProgressRow): BookWithRelations {
+function ownedBook(readingProgress: Nullable<ReadingProgressRow>): BookWithRelations {
   return { pagesCount: 320, readingProgress } as unknown as BookWithRelations;
 }
 
-function readingProgressRow(startedAt: Date | null): ReadingProgressRow {
+function readingProgressRow(startedAt: Nullable<Date>): ReadingProgressRow {
   return { startedAt } as unknown as ReadingProgressRow;
 }
 
