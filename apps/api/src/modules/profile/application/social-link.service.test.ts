@@ -1,4 +1,4 @@
-import type { CreateSocialLinkInput, UpdateSocialLinkInput } from "@app/shared";
+import type { CreateSocialLinkInput, Nullable, UpdateSocialLinkInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -19,7 +19,7 @@ const TRANSACTION_CLIENT = Symbol("transaction-client");
 function buildService(overrides: {
   count?: number;
   create?: UserSocialLinkModel;
-  findById?: null | UserSocialLinkModel;
+  findById?: Nullable<UserSocialLinkModel>;
   listByUserId?: UserSocialLinkModel[];
   update?: UserSocialLinkModel;
 }): {

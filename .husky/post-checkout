@@ -1,0 +1,5 @@
+[ "$3" = "1" ] || exit 0
+if git diff --name-only "$1" "$2" 2>/dev/null | grep -q 'apps/api/prisma/schema.prisma'; then
+  echo "[husky] prisma schema changed, regenerating client..."
+  pnpm --filter @app/api db:generate
+fi

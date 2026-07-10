@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { Nullable } from "./common.js";
+
 const NAME_MIN = 2;
 const NAME_MAX = 50;
 const NAME_ALLOWED = /^[\p{L}\p{M} '’-]+$/u;
@@ -122,11 +124,11 @@ export type ResetPasswordResultView = { status: "password_reset" };
 
 export type UserView = {
   createdAt: string;
-  dateOfBirth: null | string;
+  dateOfBirth: Nullable<string>;
   email: string;
   emailVerified: boolean;
   id: string;
   name: string;
-  nickname: null | string;
+  nickname: Nullable<string>;
   role: Role;
 };

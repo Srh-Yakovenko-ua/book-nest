@@ -84,19 +84,28 @@ describe("computeReceiveDelivery", () => {
 });
 
 describe("computeCancelDelivery", () => {
-  it("keeps the book as want_to_buy and stamps the cancelled timestamp when keepAsWantToBuy is true", () => {
-    const patch = computeCancelDelivery({ keepAsWantToBuy: true, now: NOW });
+  it("keeps the book as want_to_buy and stamps the cancelled timestamp and reason when keepAsWantToBuy is true", () => {
+    const patch = computeCancelDelivery({
+      cancelReason: "Out of stock",
+      keepAsWantToBuy: true,
+      now: NOW,
+    });
 
     expect(patch).toEqual({
       book: { ownershipStatus: "want_to_buy" },
-      delivery: { cancelledAt: NOW, status: "cancelled" },
+      delivery: { cancelledAt: NOW, cancelReason: "Out of stock", status: "cancelled" },
     });
   });
 
-  it("returns the book to none when keepAsWantToBuy is false", () => {
-    const patch = computeCancelDelivery({ keepAsWantToBuy: false, now: NOW });
+  it("returns the book to none and nulls the reason when keepAsWantToBuy is false", () => {
+    const patch = computeCancelDelivery({
+      cancelReason: undefined,
+      keepAsWantToBuy: false,
+      now: NOW,
+    });
 
     expect(patch.book).toEqual({ ownershipStatus: "none" });
+    expect(patch.delivery.cancelReason).toBeNull();
   });
 });
 

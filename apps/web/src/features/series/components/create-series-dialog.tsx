@@ -27,6 +27,7 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BOOK_GENRES_MAX, GenresField } from "@/features/books";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -83,7 +84,13 @@ function CreateSeriesForm({ onDone }: { onDone: () => void }) {
     handleSubmit,
     register,
   } = useForm<CreateSeriesFormInput, unknown, CreateSeriesFormOutput>({
-    defaultValues: { description: "", name: "", status: "unknown", totalBooks: undefined },
+    defaultValues: {
+      description: "",
+      genres: [],
+      name: "",
+      status: "unknown",
+      totalBooks: undefined,
+    },
     mode: "onTouched",
     resolver: zodResolver(NewSeriesInputSchema),
   });
@@ -92,6 +99,7 @@ function CreateSeriesForm({ onDone }: { onDone: () => void }) {
     setServerError(null);
     const description = values.description?.trim();
     const payload: NewSeriesInput = {
+      genres: values.genres,
       name: values.name,
       status: values.status,
       ...(values.totalBooks === undefined ? {} : { totalBooks: values.totalBooks }),
@@ -148,6 +156,22 @@ function CreateSeriesForm({ onDone }: { onDone: () => void }) {
             />
           )}
         />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="new-series-genres">{t("genres")}</Label>
+        <Controller
+          control={control}
+          name="genres"
+          render={({ field }) => (
+            <GenresField
+              id="new-series-genres"
+              onChange={field.onChange}
+              value={field.value ?? []}
+            />
+          )}
+        />
+        <p className="text-xs text-muted-foreground">{t("genresHint", { max: BOOK_GENRES_MAX })}</p>
       </div>
 
       <div className="flex flex-col gap-2">

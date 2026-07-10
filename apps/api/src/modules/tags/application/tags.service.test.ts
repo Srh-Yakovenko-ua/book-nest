@@ -4,7 +4,6 @@ import type { TagModel } from "../../../generated/prisma/models.js";
 import type { TagsRepository } from "../infrastructure/tags.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { Prisma } from "../../../generated/prisma/client.js";
 import { TagsService } from "./tags.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -14,19 +13,19 @@ const OTHER_TAG_ID = "33333333-3333-4333-8333-333333333333";
 function buildService(): {
   repository: {
     countOwned: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
     deleteOwned: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
     searchOwned: ReturnType<typeof vi.fn>;
+    upsertByNormalized: ReturnType<typeof vi.fn>;
   };
   service: TagsService;
 } {
   const repository = {
     countOwned: vi.fn().mockResolvedValue(0),
-    create: vi.fn(),
     deleteOwned: vi.fn().mockResolvedValue(0),
     findByNormalized: vi.fn().mockResolvedValue(null),
     searchOwned: vi.fn().mockResolvedValue([]),
+    upsertByNormalized: vi.fn(),
   };
 
   const service = new TagsService(repository as unknown as TagsRepository);
@@ -46,13 +45,6 @@ function tag(overrides: Partial<TagModel> = {}): TagModel {
   };
 }
 
-function uniqueConstraintError(): Prisma.PrismaClientKnownRequestError {
-  return new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
-    clientVersion: "test",
-    code: "P2002",
-  });
-}
-
 describe("TagsService.resolveOrCreateMany", () => {
   it("reuses an existing tag without creating a new one", async () => {
     const { repository, service } = buildService();
@@ -61,36 +53,42 @@ describe("TagsService.resolveOrCreateMany", () => {
     const ids = await service.resolveOrCreateMany(USER_ID, ["dark academia"]);
 
     expect(ids).toEqual([TAG_ID]);
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
   });
 
-  it("creates a new tag when no match exists", async () => {
+  it("upserts a new tag when no match exists", async () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(null);
-    repository.create.mockResolvedValue(tag({ id: TAG_ID }));
+    repository.upsertByNormalized.mockResolvedValue(tag({ id: TAG_ID }));
 
     const ids = await service.resolveOrCreateMany(USER_ID, ["dark academia"]);
 
     expect(ids).toEqual([TAG_ID]);
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, "dark academia", "dark academia");
+    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+      { name: "dark academia", normalizedName: "dark academia", userId: USER_ID },
+      undefined,
+    );
   });
 
   it("dedups the input by normalized name so a repeated tag counts once", async () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(null);
-    repository.create.mockResolvedValue(tag({ id: TAG_ID }));
+    repository.upsertByNormalized.mockResolvedValue(tag({ id: TAG_ID }));
 
     const ids = await service.resolveOrCreateMany(USER_ID, ["Dark Academia", "  dark   academia "]);
 
     expect(ids).toEqual([TAG_ID]);
-    expect(repository.create).toHaveBeenCalledTimes(1);
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, "Dark Academia", "dark academia");
+    expect(repository.upsertByNormalized).toHaveBeenCalledTimes(1);
+    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+      { name: "Dark Academia", normalizedName: "dark academia", userId: USER_ID },
+      undefined,
+    );
   });
 
   it("resolves each distinct tag to its own id", async () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(null);
-    repository.create
+    repository.upsertByNormalized
       .mockResolvedValueOnce(tag({ id: TAG_ID, name: "dark academia" }))
       .mockResolvedValueOnce(
         tag({ id: OTHER_TAG_ID, name: "slow burn", normalizedName: "slow burn" }),
@@ -101,22 +99,20 @@ describe("TagsService.resolveOrCreateMany", () => {
     expect(ids).toEqual([TAG_ID, OTHER_TAG_ID]);
   });
 
-  it("rereads the winning row when create hits a unique violation", async () => {
+  it("returns the row the upsert resolves when no prior match exists", async () => {
     const { repository, service } = buildService();
-    const winner = tag({ id: OTHER_TAG_ID });
-    repository.findByNormalized.mockResolvedValueOnce(null).mockResolvedValueOnce(winner);
-    repository.create.mockRejectedValue(uniqueConstraintError());
+    repository.findByNormalized.mockResolvedValue(null);
+    repository.upsertByNormalized.mockResolvedValue(tag({ id: OTHER_TAG_ID }));
 
     const ids = await service.resolveOrCreateMany(USER_ID, ["dark academia"]);
 
     expect(ids).toEqual([OTHER_TAG_ID]);
-    expect(repository.findByNormalized).toHaveBeenCalledTimes(2);
   });
 
-  it("rethrows non-unique errors from create", async () => {
+  it("propagates errors raised by the upsert", async () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(null);
-    repository.create.mockRejectedValue(new Error("connection lost"));
+    repository.upsertByNormalized.mockRejectedValue(new Error("connection lost"));
 
     await expect(service.resolveOrCreateMany(USER_ID, ["dark academia"])).rejects.toThrow(
       "connection lost",
@@ -129,7 +125,7 @@ describe("TagsService.resolveOrCreateMany", () => {
     const ids = await service.resolveOrCreateMany(USER_ID, []);
 
     expect(ids).toEqual([]);
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
   });
 });
 

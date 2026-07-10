@@ -23,9 +23,10 @@ import {
 
 import type { AuthorSelection, SeriesSelection } from "../model/create-book-form";
 
-import { SERIES_STATUS_OPTIONS } from "../model/book-classification-fields";
+import { BOOK_GENRES_MAX, SERIES_STATUS_OPTIONS } from "../model/book-classification-fields";
 import { authorSelectionToReference, NewSeriesInputSchema } from "../model/create-book-form";
 import { AuthorsField } from "./authors-field";
+import { GenresField } from "./genres-field";
 import { StatusChipGroup } from "./status-chip-group";
 
 const NAME_MAX = 120;
@@ -91,6 +92,7 @@ function CreateSeriesForm({
   const [name, setName] = useState(initialName);
   const [authors, setAuthors] = useState<AuthorSelection[]>(initialAuthors);
   const [status, setStatus] = useState<SeriesStatusValue>("unknown");
+  const [genres, setGenres] = useState<string[]>([]);
   const [totalBooks, setTotalBooks] = useState<number | undefined>(undefined);
   const [description, setDescription] = useState("");
   const [nameError, setNameError] = useState<string | undefined>(undefined);
@@ -109,6 +111,7 @@ function CreateSeriesForm({
     const parsed = NewSeriesInputSchema.safeParse({
       authors: authors.map(authorSelectionToReference),
       description: trimmedDescription.length > 0 ? trimmedDescription : undefined,
+      genres,
       name,
       status,
       totalBooks,
@@ -181,6 +184,14 @@ function CreateSeriesForm({
           }))}
           value={status}
         />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="new-series-genres">{t("classification.genres")}</Label>
+        <GenresField id="new-series-genres" onChange={setGenres} value={genres} />
+        <p className="text-xs text-muted-foreground">
+          {t("classification.genresHint", { max: BOOK_GENRES_MAX })}
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">

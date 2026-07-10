@@ -1,4 +1,4 @@
-import type { UpdateProfileInput } from "@app/shared";
+import type { Nullable, UpdateProfileInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -19,23 +19,23 @@ function applyUpdate(
 ): ProfileWithSocialLinks {
   const next: ProfileWithSocialLinks = { ...base };
   if (data.name !== undefined) next.name = data.name as string;
-  if (data.lastName !== undefined) next.lastName = data.lastName as null | string;
-  if (data.nickname !== undefined) next.nickname = data.nickname as null | string;
-  if (data.bio !== undefined) next.bio = data.bio as null | string;
+  if (data.lastName !== undefined) next.lastName = data.lastName as Nullable<string>;
+  if (data.nickname !== undefined) next.nickname = data.nickname as Nullable<string>;
+  if (data.bio !== undefined) next.bio = data.bio as Nullable<string>;
   if (data.favoriteBookQuote !== undefined) {
-    next.favoriteBookQuote = data.favoriteBookQuote as null | string;
+    next.favoriteBookQuote = data.favoriteBookQuote as Nullable<string>;
   }
   if (data.favoriteGenres !== undefined) {
     next.favoriteGenres = data.favoriteGenres as string[];
   }
   if (data.dateOfBirth !== undefined) {
-    next.dateOfBirth = data.dateOfBirth as Date | null;
+    next.dateOfBirth = data.dateOfBirth as Nullable<Date>;
   }
   return next;
 }
 
 function buildService(overrides: {
-  findByUserId?: null | ProfileWithSocialLinks;
+  findByUserId?: Nullable<ProfileWithSocialLinks>;
   update?: (userId: string, data: Prisma.UserUpdateInput) => Promise<ProfileWithSocialLinks>;
   updateError?: unknown;
 }): {

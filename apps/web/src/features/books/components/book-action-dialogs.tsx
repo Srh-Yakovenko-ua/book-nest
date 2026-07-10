@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { LibraryActions, PendingBookAction } from "../model/book-card-actions";
 
 import { BookListDialog } from "./book-list-dialog";
+import { BookListMembershipDialog } from "./book-list-membership-dialog";
 import { BookOwnershipStatusDialog } from "./book-ownership-status-dialog";
 import { BookReadingStatusDialog } from "./book-reading-status-dialog";
 import { BookTagsDialog } from "./book-tags-dialog";
@@ -39,6 +40,18 @@ export function BookActionDialogs({
   }
 
   if (action.type === "list") {
+    const [bookId] = action.bookIds;
+
+    if (bookCount === 1 && bookId !== undefined) {
+      return (
+        <BookListMembershipDialog
+          bookId={bookId}
+          onOpenChange={(open) => !open && onClose()}
+          open
+        />
+      );
+    }
+
     return (
       <BookListDialog
         bookCount={bookCount}

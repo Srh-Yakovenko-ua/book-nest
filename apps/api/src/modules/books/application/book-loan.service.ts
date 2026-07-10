@@ -1,17 +1,26 @@
-import type { BookView, CreateLoanInput, LoanDirection, OwnershipStatus } from "@app/shared";
+import type {
+  BookView,
+  CreateLoanInput,
+  LoanDirection,
+  OwnershipStatus,
+  UpdateLoanInput,
+} from "@app/shared";
 
 import { OwnershipStatusSchema, ownershipStatusUsesLoan } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import { ConflictError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { toIsoDate } from "../../../core/iso-date.js";
-import { computeLoanChange } from "../domain/loan-transition.js";
+import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { buildLoanEditData, computeLoanChange } from "../domain/loan-transition.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 
 const BORROW_REQUIRES_NONE_MESSAGE = 'Book must have ownership status "none" to be borrowed';
 const LEND_REQUIRES_OWNED_MESSAGE = 'Book must have ownership status "owned" to be lent';
 const RETURN_REQUIRES_LOAN_MESSAGE = "Book must be borrowed or lent to be returned";
+const ACTIVE_LOAN_EXISTS_MESSAGE = "This book already has an active loan";
+const LOAN_NOT_FOUND_MESSAGE = "Loan not found";
 
 @Injectable()
 export class BookLoanService {
@@ -25,7 +34,27 @@ export class BookLoanService {
     this.assertLoanPrecondition(book, input.direction);
 
     const patch = computeLoanChange({ fields: input, kind: "create", today: this.todayIso() });
-    await this.booksRepository.applyLoanChange(userId, bookId, patch);
+    try {
+      await this.booksRepository.applyLoanChange(userId, bookId, patch);
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictError(ACTIVE_LOAN_EXISTS_MESSAGE);
+      }
+      throw error;
+    }
+
+    return this.viewAssembler.loadView({ bookId, userId });
+  }
+
+  async editLoan(userId: string, bookId: string, input: UpdateLoanInput): Promise<BookView> {
+    const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
+    const active = book.loans[0];
+    if (active === undefined) {
+      throw new NotFoundError(LOAN_NOT_FOUND_MESSAGE);
+    }
+
+    const data = buildLoanEditData({ existingLoanDate: active.loanDate, input });
+    await this.booksRepository.updateActiveLoan(userId, bookId, data);
 
     return this.viewAssembler.loadView({ bookId, userId });
   }
@@ -37,7 +66,7 @@ export class BookLoanService {
       throw new ConflictError(RETURN_REQUIRES_LOAN_MESSAGE);
     }
 
-    const patch = computeLoanChange({ kind: "return", ownershipStatus });
+    const patch = computeLoanChange({ kind: "return", now: new Date(), ownershipStatus });
     await this.booksRepository.applyLoanChange(userId, bookId, patch);
 
     return this.viewAssembler.loadView({ bookId, userId });

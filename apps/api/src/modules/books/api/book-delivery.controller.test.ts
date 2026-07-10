@@ -585,6 +585,88 @@ describe("POST /api/books/:id/deliveries/:deliveryId/cancel", () => {
   });
 });
 
+describe("POST /api/books/:id/deliveries/:deliveryId/cancel cancel reason", () => {
+  it("persists a trimmed cancel reason and returns it on the cancelled delivery", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+
+    const res = await cancelDelivery(accessToken, bookId, deliveryId, {
+      cancelReason: "  Out   of stock  ",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.delivery.latest.cancelReason).toBe("Out of stock");
+    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { id: deliveryId } });
+    expect(row.cancelReason).toBe("Out of stock");
+  });
+
+  it("stores a null cancel reason when none is provided", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+
+    const res = await cancelDelivery(accessToken, bookId, deliveryId, {});
+
+    expect(res.status).toBe(200);
+    expect(res.body.delivery.latest.cancelReason).toBeNull();
+    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { id: deliveryId } });
+    expect(row.cancelReason).toBeNull();
+  });
+
+  it("collapses a whitespace-only cancel reason to null", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+
+    const res = await cancelDelivery(accessToken, bookId, deliveryId, { cancelReason: "   " });
+
+    expect(res.status).toBe(200);
+    expect(res.body.delivery.latest.cancelReason).toBeNull();
+  });
+
+  it("returns 400 for a cancel reason longer than 500 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+
+    const res = await cancelDelivery(accessToken, bookId, deliveryId, {
+      cancelReason: "a".repeat(501),
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "cancelReason" })]),
+    );
+  });
+
+  it("returns 400 for a cancel reason containing an HTML tag", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+
+    const res = await cancelDelivery(accessToken, bookId, deliveryId, {
+      cancelReason: "Cancelled <script>alert(1)</script>",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "cancelReason" })]),
+    );
+  });
+
+  it("exposes a null cancel reason on an active delivery", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+
+    const res = await createDelivery(accessToken, created.body.id, {
+      orderDate: "2026-01-20",
+      storeName: "Yakaboo",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.delivery.active.cancelReason).toBeNull();
+  });
+});
+
 describe("GET /api/books/:id/deliveries", () => {
   it("returns 401 without an Authorization header", async () => {
     const res = await request(app.getHttpServer()).get(`/api/books/${MISSING_UUID}/deliveries`);

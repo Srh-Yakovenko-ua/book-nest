@@ -91,10 +91,10 @@
 
   --shell-header-height: 3.5rem;
 
-  --background: oklch(0.957 0.014 78.3);
+  --background: oklch(0.941 0.024 74);
   --foreground: oklch(0.38 0.018 57.1);
   --ink: oklch(0.296 0.041 53);
-  --card: oklch(0.991 0.003 84.6);
+  --card: oklch(0.995 0.004 84.6);
   --card-foreground: oklch(0.38 0.018 57.1);
   --popover: oklch(0.991 0.003 84.6);
   --popover-foreground: oklch(0.38 0.018 57.1);
@@ -167,7 +167,7 @@
   --elevation-hover: 0 12px 28px -6px oklch(0.296 0.041 53 / 0.1);
   --elevation-btn: 0 2px 8px -1px oklch(0.592 0.093 53.5 / 0.3);
 
-  --sidebar: oklch(0.937 0.018 78.2);
+  --sidebar: oklch(0.91 0.026 76);
   --sidebar-foreground: oklch(0.38 0.018 57.1);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);

@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { AuthorModel } from "../../../generated/prisma/models.js";
@@ -60,42 +62,34 @@ function authorWithNames(overrides: Partial<AuthorWithPrimaryNames> = {}): Autho
 }
 
 function buildService(overrides: {
-  create?: AuthorWithPrimaryNames | Error;
-  findByNormalized?: AuthorModel | null;
-  findByNormalizedRetry?: AuthorModel | null;
-  findVisibleById?: AuthorModel | null;
+  findByNormalized?: Nullable<AuthorModel>;
+  findVisibleById?: Nullable<AuthorModel>;
   searchVisible?: AuthorWithPrimaryNames[];
+  upsertByNormalized?: AuthorModel | Error;
 }): {
   repository: {
     countVisible: ReturnType<typeof vi.fn>;
-    create: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
     findVisibleById: ReturnType<typeof vi.fn>;
     searchVisible: ReturnType<typeof vi.fn>;
+    upsertByNormalized: ReturnType<typeof vi.fn>;
   };
   service: AuthorsService;
 } {
-  const create = vi.fn();
-  if (overrides.create instanceof Error) {
-    create.mockRejectedValue(overrides.create);
+  const upsertByNormalized = vi.fn();
+  if (overrides.upsertByNormalized instanceof Error) {
+    upsertByNormalized.mockRejectedValue(overrides.upsertByNormalized);
   } else {
-    create.mockResolvedValue(overrides.create ?? authorWithNames());
-  }
-
-  const findByNormalized = vi.fn().mockResolvedValue(overrides.findByNormalized ?? null);
-  if (overrides.findByNormalizedRetry !== undefined) {
-    findByNormalized
-      .mockResolvedValueOnce(overrides.findByNormalized ?? null)
-      .mockResolvedValueOnce(overrides.findByNormalizedRetry);
+    upsertByNormalized.mockResolvedValue(overrides.upsertByNormalized ?? author());
   }
 
   const searchVisible = overrides.searchVisible ?? [];
   const repository = {
     countVisible: vi.fn().mockResolvedValue(searchVisible.length),
-    create,
-    findByNormalized,
+    findByNormalized: vi.fn().mockResolvedValue(overrides.findByNormalized ?? null),
     findVisibleById: vi.fn().mockResolvedValue(overrides.findVisibleById ?? null),
     searchVisible: vi.fn().mockResolvedValue(searchVisible),
+    upsertByNormalized,
   };
 
   const openLibraryClient = {
@@ -139,17 +133,17 @@ describe("AuthorsService.resolveOrCreate by id", () => {
     );
   });
 
-  it("does not create a new author when resolving by id", async () => {
+  it("does not upsert a new author when resolving by id", async () => {
     const { repository, service } = buildService({ findVisibleById: author() });
 
     await service.resolveOrCreate(USER_ID, { id: AUTHOR_ID });
 
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
   });
 });
 
 describe("AuthorsService.resolveOrCreate by name", () => {
-  it("reuses the matching author and does not create a new one", async () => {
+  it("reuses the matching author and does not upsert a new one", async () => {
     const { repository, service } = buildService({
       findByNormalized: author({ id: GLOBAL_ID }),
     });
@@ -157,7 +151,7 @@ describe("AuthorsService.resolveOrCreate by name", () => {
     const id = await service.resolveOrCreate(USER_ID, { name: "Frank Herbert" });
 
     expect(id).toBe(GLOBAL_ID);
-    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
   });
 
   it("matches an existing author case-insensitively and whitespace-collapsed", async () => {
@@ -170,38 +164,28 @@ describe("AuthorsService.resolveOrCreate by name", () => {
     expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "frank herbert");
   });
 
-  it("creates a custom author with the user id when no match exists", async () => {
-    const created = authorWithNames({ id: AUTHOR_ID, userId: USER_ID });
-    const { repository, service } = buildService({ create: created, findByNormalized: null });
+  it("upserts a custom author with the user id when no match exists", async () => {
+    const created = author({ id: AUTHOR_ID, userId: USER_ID });
+    const { repository, service } = buildService({
+      findByNormalized: null,
+      upsertByNormalized: created,
+    });
 
     const id = await service.resolveOrCreate(USER_ID, { name: "Frank Herbert" });
 
     expect(id).toBe(AUTHOR_ID);
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, {
+    expect(repository.upsertByNormalized).toHaveBeenCalledWith({
       locale: "uk",
       name: "Frank Herbert",
       normalizedName: "frank herbert",
+      userId: USER_ID,
     });
   });
 
-  it("resolves to the row a concurrent insert created when create hits a unique violation", async () => {
-    const winner = author({ id: GLOBAL_ID, userId: USER_ID });
-    const { repository, service } = buildService({
-      create: uniqueConstraintError(),
-      findByNormalized: null,
-      findByNormalizedRetry: winner,
-    });
-
-    const id = await service.resolveOrCreate(USER_ID, { name: "Frank Herbert" });
-
-    expect(id).toBe(GLOBAL_ID);
-    expect(repository.findByNormalized).toHaveBeenCalledTimes(2);
-  });
-
-  it("rethrows non-unique errors from create", async () => {
+  it("propagates errors raised by the upsert", async () => {
     const { service } = buildService({
-      create: new Error("connection lost"),
       findByNormalized: null,
+      upsertByNormalized: new Error("connection lost"),
     });
 
     await expect(service.resolveOrCreate(USER_ID, { name: "Frank Herbert" })).rejects.toThrow(
@@ -328,12 +312,12 @@ function authorDetail(overrides: Partial<OpenLibraryAuthorDetail> = {}): OpenLib
 
 function buildMaterializeService(overrides: {
   createGlobal?: AuthorModel | Error;
-  detail?: null | OpenLibraryAuthorDetail;
-  facts?: null | WikidataAuthorFacts;
-  findGlobal?: AuthorModel | null;
-  findGlobalByNormalizedName?: AuthorModel | null;
-  findGlobalByWikidataId?: AuthorModel | null;
-  findGlobalRetry?: AuthorModel | null;
+  detail?: Nullable<OpenLibraryAuthorDetail>;
+  facts?: Nullable<WikidataAuthorFacts>;
+  findGlobal?: Nullable<AuthorModel>;
+  findGlobalByNormalizedName?: Nullable<AuthorModel>;
+  findGlobalByWikidataId?: Nullable<AuthorModel>;
+  findGlobalRetry?: Nullable<AuthorModel>;
 }): {
   createGlobal: ReturnType<typeof vi.fn>;
   findGlobalByNormalizedName: ReturnType<typeof vi.fn>;
@@ -538,8 +522,8 @@ describe("AuthorsService.materializeFromOpenLibrary", () => {
 
 function buildReferencesService(overrides: {
   findBaseByIds?: { id: string; name: string }[];
-  findByNormalized?: AuthorModel | null;
-  findGlobalByOpenLibraryKey?: AuthorModel | null;
+  findByNormalized?: Nullable<AuthorModel>;
+  findGlobalByOpenLibraryKey?: Nullable<AuthorModel>;
 }): {
   findBaseByIds: ReturnType<typeof vi.fn>;
   service: AuthorsService;

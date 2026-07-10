@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
@@ -21,9 +23,9 @@ type Mocks = {
 };
 
 function buildService(overrides: {
-  consume?: null | { userId: string };
-  findByEmail?: null | UserModel;
-  findLatestByUserId?: EmailVerificationTokenModel | null;
+  consume?: Nullable<{ userId: string }>;
+  findByEmail?: Nullable<UserModel>;
+  findLatestByUserId?: Nullable<EmailVerificationTokenModel>;
 }): { mocks: Mocks; service: EmailVerificationService } {
   const usersRepository = {
     findByEmail: vi.fn().mockResolvedValue(overrides.findByEmail ?? null),

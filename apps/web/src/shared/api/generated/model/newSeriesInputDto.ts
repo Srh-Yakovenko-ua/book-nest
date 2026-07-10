@@ -12,6 +12,12 @@ export interface NewSeriesInputDto {
   /** @maxItems 20 */
   authors?: NewSeriesInputDtoAuthorsItem[];
   description?: string;
+  /**
+   * @maxItems 5
+   * @items.minLength 1
+   * @items.maxLength 64
+   */
+  genres?: string[];
   name: string;
   status?: NewSeriesInputDtoStatus;
   /**

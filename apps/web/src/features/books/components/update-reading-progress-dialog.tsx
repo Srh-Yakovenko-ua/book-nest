@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookView, UpdateReadingProgressInput } from "@app/shared";
+import type { BookView, ChangeReadingStatusInput, UpdateReadingProgressInput } from "@app/shared";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
@@ -21,9 +21,11 @@ import {
 import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { NumberStepper } from "@/components/ui/number-stepper";
+import { Rating } from "@/components/ui/rating";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/http-client";
 
-import { useUpdateReadingProgress } from "../api/use-reading-progress";
+import { useChangeReadingStatus, useUpdateReadingProgress } from "../api/use-reading-progress";
 import {
   ISO_DATE_PATTERN,
   READING_CURRENT_PAGE_CEILING,
@@ -31,9 +33,14 @@ import {
 } from "../model/reading-progress";
 import { BookDateField } from "./book-date-field";
 
+const IMPRESSION_MAX = 5000;
+const RATING_MAX = 10;
+
 type UpdateProgressValues = {
   currentPage: number;
+  impression: string;
   markAsFinished: boolean;
+  rating: number;
   updateDate: string;
 };
 
@@ -46,6 +53,7 @@ type UpdateReadingProgressDialogProps = {
 type ValidationMessages = {
   dateFuture: string;
   dateInvalid: string;
+  impressionMax: string;
   pageBelowSaved: string;
   pageOverTotal: string;
 };
@@ -79,7 +87,9 @@ function buildSchema({
       .int()
       .min(savedPage, messages.pageBelowSaved)
       .max(pagesCount ?? READING_CURRENT_PAGE_CEILING, messages.pageOverTotal),
+    impression: z.string().max(IMPRESSION_MAX, messages.impressionMax),
     markAsFinished: z.boolean(),
+    rating: z.literal(0).or(z.number().min(0.5).max(RATING_MAX).multipleOf(0.5)),
     updateDate: z
       .string()
       .refine((value) => ISO_DATE_PATTERN.test(value), messages.dateInvalid)
@@ -93,6 +103,7 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
   const tActions = useTranslations("books.actions");
   const tCommon = useTranslations("common");
   const update = useUpdateReadingProgress();
+  const change = useChangeReadingStatus();
   const [serverError, setServerError] = useState<null | string>(null);
 
   const pagesCount = book.pagesCount;
@@ -106,7 +117,9 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
   } = useForm<UpdateProgressValues>({
     defaultValues: {
       currentPage: savedPage,
+      impression: book.readingProgress?.impression ?? "",
       markAsFinished: false,
+      rating: book.readingProgress?.rating ?? 0,
       updateDate: todayIso(),
     },
     mode: "onTouched",
@@ -115,6 +128,7 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
         messages: {
           dateFuture: t("errors.dateFuture"),
           dateInvalid: t("errors.dateInvalid"),
+          impressionMax: t("errors.impressionMax", { max: IMPRESSION_MAX }),
           pageBelowSaved: t("errors.pageBelowSaved", { saved: savedPage }),
           pageOverTotal: t("errors.pageOverTotal", {
             total: pagesCount ?? READING_CURRENT_PAGE_CEILING,
@@ -132,20 +146,29 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
+    const handlers = {
+      onError: (error: Error) =>
+        setServerError(error instanceof ApiError ? error.message : t("errors.generic")),
+      onSuccess: onDone,
+    };
+
+    if (values.markAsFinished) {
+      const payload: ChangeReadingStatusInput = {
+        date: values.updateDate,
+        status: "finished",
+      };
+      if (values.rating > 0) payload.rating = values.rating;
+      if (values.impression.trim().length > 0) payload.impression = values.impression.trim();
+      change.mutate({ id: book.id, payload }, handlers);
+      return;
+    }
+
     const payload: UpdateReadingProgressInput = {
       currentPage: values.currentPage,
       updateDate: values.updateDate,
     };
     if (pagesCount !== null) payload.markAsFinished = values.markAsFinished;
-
-    update.mutate(
-      { id: book.id, payload },
-      {
-        onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : t("errors.generic")),
-        onSuccess: onDone,
-      },
-    );
+    update.mutate({ id: book.id, payload }, handlers);
   });
 
   return (
@@ -208,6 +231,62 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
         />
       )}
 
+      {finished ? (
+        <div className="flex flex-col gap-2">
+          <Label>{tFields("rating")}</Label>
+          <Controller
+            control={control}
+            name="rating"
+            render={({ field }) => (
+              <Rating
+                label={tFields("rating")}
+                max={RATING_MAX}
+                onValueChange={(next) => field.onChange(Math.max(0, Math.min(RATING_MAX, next)))}
+                size="lg"
+                value={field.value}
+                valueText={(value, max) => tCommon("ratingValueText", { max, value })}
+              />
+            )}
+          />
+        </div>
+      ) : null}
+
+      {finished ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="update-impression">{tFields("impression")}</Label>
+          <Controller
+            control={control}
+            name="impression"
+            render={({ field }) => (
+              <>
+                <Textarea
+                  aria-describedby={
+                    errors.impression
+                      ? "update-impression-error update-impression-counter"
+                      : "update-impression-counter"
+                  }
+                  aria-invalid={errors.impression !== undefined}
+                  id="update-impression"
+                  maxLength={IMPRESSION_MAX}
+                  onChange={field.onChange}
+                  placeholder={tFields("impressionPlaceholder")}
+                  value={field.value}
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <FieldError error={errors.impression} id="update-impression-error" />
+                  <span
+                    className="ml-auto text-xs text-muted-foreground tabular-nums"
+                    id="update-impression-counter"
+                  >
+                    {field.value.length}/{IMPRESSION_MAX}
+                  </span>
+                </div>
+              </>
+            )}
+          />
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-2">
         <Label htmlFor="update-date">{t("updateDialog.updateDate")}</Label>
         <Controller
@@ -237,7 +316,11 @@ function UpdateProgressForm({ book, onDone }: { book: BookView; onDone: () => vo
         <Button onClick={onDone} type="button" variant="secondary">
           {tActions("cancel")}
         </Button>
-        <Button disabled={update.isPending} loading={update.isPending} type="submit">
+        <Button
+          disabled={update.isPending || change.isPending}
+          loading={update.isPending || change.isPending}
+          type="submit"
+        >
           {t("updateDialog.submit")}
         </Button>
       </DialogFooter>

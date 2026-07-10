@@ -23,7 +23,7 @@ import { StatusChipGroup } from "./status-chip-group";
 import { useSectionCompletion } from "./use-section-completion";
 
 const NOTE_MAX = 300;
-const IMPRESSION_MAX = 500;
+const IMPRESSION_MAX = 5000;
 const CURRENT_PAGE_MAX = 100000;
 const RATING_MAX = 10;
 

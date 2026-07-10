@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/sheet";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
 
-import type { LibraryQueryState } from "../model/library-query";
+import type { LibraryQueryState, LibraryScope } from "../model/library-query";
 import type { UseLibraryQueryResult } from "../model/use-library-query";
 
 import { useAuthorSearch } from "../api/use-author-search";
@@ -39,9 +39,9 @@ import {
   LIBRARY_BOOK_TYPE_VALUES,
   LIBRARY_FORMAT_VALUES,
   LIBRARY_LANGUAGE_VALUES,
-  LIBRARY_OWNER_VALUES,
   LIBRARY_STATUS_VALUES,
   libraryRangeFlags,
+  scopedOwnerValues,
 } from "../model/library-query";
 import { LibraryFilterCombobox } from "./library-filter-combobox";
 import { LibraryTagFilter } from "./library-tag-filter";
@@ -53,6 +53,7 @@ type LibraryAdvancedFiltersProps = {
   onClearFilters: () => void;
   onRememberEntity: (id: string, name: string) => void;
   resolveEntityName: (id: string) => string | undefined;
+  scope: LibraryScope;
   setState: UseLibraryQueryResult["setState"];
   state: LibraryQueryState;
 };
@@ -62,6 +63,7 @@ export function LibraryAdvancedFilters({
   onClearFilters,
   onRememberEntity,
   resolveEntityName,
+  scope,
   setState,
   state,
 }: LibraryAdvancedFiltersProps) {
@@ -85,6 +87,7 @@ export function LibraryAdvancedFilters({
   const selectedPublisherName =
     state.publisher[0] === undefined ? undefined : resolveEntityName(state.publisher[0]);
 
+  const ownerValues = scopedOwnerValues(scope);
   const ratingMinValue = state.ratingMin === null ? "any" : String(state.ratingMin);
   const ratingMaxValue = state.ratingMax === null ? "any" : String(state.ratingMax);
   const coverValue = state.hasCover === null ? "all" : state.hasCover ? "with" : "without";
@@ -128,9 +131,9 @@ export function LibraryAdvancedFilters({
               label={t("sections.ownershipStatus")}
               mode="multi"
               onValueChange={(next) =>
-                void setState({ owner: LIBRARY_OWNER_VALUES.filter((v) => next.includes(v)) })
+                void setState({ owner: ownerValues.filter((v) => next.includes(v)) })
               }
-              options={LIBRARY_OWNER_VALUES.map((value) => ({ label: tOwner(value), value }))}
+              options={ownerValues.map((value) => ({ label: tOwner(value), value }))}
               size="sm"
               value={state.owner}
             />

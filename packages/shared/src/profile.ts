@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { noHtmlTags } from "./common.js";
+import { noHtmlTags, type Nullable } from "./common.js";
 import { HTTPS_PROTOCOL, NoHtmlString, notInFutureDate } from "./internal.js";
 
 const PROFILE_NAME_MIN = 2;
@@ -150,17 +150,17 @@ export const UpdateSocialLinkInputSchema = z.object({
 
 export type ProfileView = {
   authProvider: AuthProvider;
-  avatarUrl: null | string;
-  bio: null | string;
+  avatarUrl: Nullable<string>;
+  bio: Nullable<string>;
   createdAt: string;
-  dateOfBirth: null | string;
+  dateOfBirth: Nullable<string>;
   email: string;
   emailVerified: boolean;
-  favoriteBookQuote: null | string;
+  favoriteBookQuote: Nullable<string>;
   favoriteGenres: string[];
-  lastName: null | string;
+  lastName: Nullable<string>;
   name: string;
-  nickname: null | string;
+  nickname: Nullable<string>;
   socialLinks: SocialLinkView[];
   updatedAt: string;
   userId: string;
@@ -169,11 +169,11 @@ export type ProfileView = {
 export type SocialLinkView = {
   createdAt: string;
   id: string;
-  label: null | string;
+  label: Nullable<string>;
   platform: SocialPlatform;
   updatedAt: string;
-  url: null | string;
-  username: null | string;
+  url: Nullable<string>;
+  username: Nullable<string>;
 };
 
 export type UpdateSocialLinkInput = z.infer<typeof UpdateSocialLinkInputSchema>;

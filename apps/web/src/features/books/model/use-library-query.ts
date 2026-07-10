@@ -4,9 +4,15 @@ import { useQueryStates } from "nuqs";
 
 import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
-import type { LibraryListParams, LibraryQueryState, LibraryViewMode } from "./library-query";
+import type {
+  LibraryListParams,
+  LibraryQueryState,
+  LibraryScope,
+  LibraryViewMode,
+} from "./library-query";
 
 import {
+  favoritesQueryParsers,
   hasActiveLibraryFilters,
   hasActiveLibrarySearch,
   LIBRARY_FILTERS_RESET,
@@ -30,8 +36,10 @@ export type UseLibraryQueryResult = {
   view: LibraryViewMode;
 };
 
-export function useLibraryQuery(): UseLibraryQueryResult {
-  const [state, setState] = useQueryStates(libraryQueryParsers);
+export function useLibraryQuery(scope: LibraryScope): UseLibraryQueryResult {
+  const parsers: typeof libraryQueryParsers =
+    scope === "favorites" ? favoritesQueryParsers : libraryQueryParsers;
+  const [state, setState] = useQueryStates(parsers);
 
   return {
     clearAll: () => void setState({ q: null, ...LIBRARY_FILTERS_RESET }),
@@ -39,7 +47,7 @@ export function useLibraryQuery(): UseLibraryQueryResult {
     clearSearch: () => void setState({ q: null }),
     hasActiveFilters: hasActiveLibraryFilters(state),
     hasActiveSearch: hasActiveLibrarySearch(state),
-    listParams: toLibraryListParams(state),
+    listParams: toLibraryListParams(state, scope),
     setSearch: (value) => void setState({ q: value }),
     setSort: (value) => void setState({ sort: value }),
     setState,

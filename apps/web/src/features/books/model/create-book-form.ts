@@ -33,11 +33,19 @@ export type SeriesPartNumberConflict = {
 
 export type SeriesSelection =
   | { authors: AuthorSelection[]; draft: NewSeriesDraft; kind: "new"; name: string }
-  | { authors: AuthorSelection[]; id: string; kind: "existing"; name: string; totalBooks?: number };
+  | {
+      authors: AuthorSelection[];
+      genres: string[];
+      id: string;
+      kind: "existing";
+      name: string;
+      totalBooks?: number;
+    };
 
 type NewSeriesDraft = {
   authors?: BookAuthorReference[];
   description?: string;
+  genres: string[];
   name: string;
   status: "completed" | "ongoing" | "unknown";
   totalBooks?: number;

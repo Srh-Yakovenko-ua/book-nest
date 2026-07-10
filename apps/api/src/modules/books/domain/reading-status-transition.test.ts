@@ -9,6 +9,7 @@ const EXISTING_START = new Date("2026-01-10T00:00:00.000Z");
 const CLEARED_MARKERS = {
   abandonedAt: null,
   finishedAt: null,
+  impression: null,
   note: null,
   pausedAt: null,
   rating: null,
@@ -66,6 +67,30 @@ describe("computeReadingStatusChange not_started", () => {
 
     expect(patch.progress).toEqual({ ...CLEARED_MARKERS, currentPage: null });
   });
+
+  it("clears the impression when a progress row exists", () => {
+    const patch = computeReadingStatusChange({
+      date: DATE,
+      existingStartedAt: EXISTING_START,
+      hasExistingProgress: true,
+      pagesCount: 300,
+      targetStatus: "not_started",
+    });
+
+    expect(patch.progress.impression).toBeNull();
+  });
+
+  it("leaves the impression untouched when no progress row exists", () => {
+    const patch = computeReadingStatusChange({
+      date: DATE,
+      existingStartedAt: null,
+      hasExistingProgress: false,
+      pagesCount: 300,
+      targetStatus: "not_started",
+    });
+
+    expect(patch.progress).not.toHaveProperty("impression");
+  });
 });
 
 describe("computeReadingStatusChange want_to_read", () => {
@@ -92,6 +117,18 @@ describe("computeReadingStatusChange want_to_read", () => {
     });
 
     expect(patch.progress).toEqual(CLEARED_MARKERS);
+  });
+
+  it("clears the impression when a progress row exists", () => {
+    const patch = computeReadingStatusChange({
+      date: DATE,
+      existingStartedAt: EXISTING_START,
+      hasExistingProgress: true,
+      pagesCount: 300,
+      targetStatus: "want_to_read",
+    });
+
+    expect(patch.progress.impression).toBeNull();
   });
 });
 
@@ -233,6 +270,19 @@ describe("computeReadingStatusChange paused", () => {
       pausedAt: PARSED_DATE,
     });
   });
+
+  it("never touches the impression even when one is supplied", () => {
+    const patch = computeReadingStatusChange({
+      date: DATE,
+      existingStartedAt: EXISTING_START,
+      hasExistingProgress: true,
+      impression: "Great book",
+      pagesCount: 300,
+      targetStatus: "paused",
+    });
+
+    expect(patch.progress).not.toHaveProperty("impression");
+  });
 });
 
 describe("computeReadingStatusChange finished", () => {
@@ -292,6 +342,51 @@ describe("computeReadingStatusChange finished", () => {
       pausedAt: null,
       rating: 8.5,
     });
+  });
+
+  it("records the impression when provided", () => {
+    const patch = computeReadingStatusChange({
+      date: DATE,
+      existingStartedAt: null,
+      hasExistingProgress: true,
+      impression: "Great book",
+      pagesCount: 300,
+      targetStatus: "finished",
+    });
+
+    expect(patch.progress).toEqual({
+      abandonedAt: null,
+      currentPage: 300,
+      finishedAt: PARSED_DATE,
+      impression: "Great book",
+      note: null,
+      pausedAt: null,
+    });
+  });
+
+  it("omits the impression when none is provided", () => {
+    const patch = computeReadingStatusChange({
+      date: DATE,
+      existingStartedAt: null,
+      hasExistingProgress: true,
+      pagesCount: 300,
+      targetStatus: "finished",
+    });
+
+    expect(patch.progress).not.toHaveProperty("impression");
+  });
+
+  it("passes an explicit null impression through to the patch", () => {
+    const patch = computeReadingStatusChange({
+      date: DATE,
+      existingStartedAt: null,
+      hasExistingProgress: true,
+      impression: null,
+      pagesCount: 300,
+      targetStatus: "finished",
+    });
+
+    expect(patch.progress.impression).toBeNull();
   });
 });
 

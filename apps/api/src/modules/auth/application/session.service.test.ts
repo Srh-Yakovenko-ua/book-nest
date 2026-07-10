@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
@@ -23,8 +25,8 @@ const FUTURE = new Date("2099-01-01T00:00:00.000Z");
 const PAST = new Date("2000-01-01T00:00:00.000Z");
 
 function buildService(overrides: {
-  findById?: null | UserModel;
-  findByRefreshHash?: null | SessionModel;
+  findById?: Nullable<UserModel>;
+  findByRefreshHash?: Nullable<SessionModel>;
   rotate?: number;
 }): { mocks: Mocks; service: SessionService } {
   const sessionsRepository = {

@@ -15,9 +15,9 @@ const STATUSES_STARTED_BY_PROGRESS: ReadonlySet<ReadingStatus> = new Set([
 export type ReadingProgressTransitionInput = {
   currentPage: number;
   currentStatus: ReadingStatus;
-  existingStartedAt: Date | null;
+  existingStartedAt: Nullable<Date>;
   markAsFinished?: boolean;
-  pagesCount: null | number;
+  pagesCount: Nullable<number>;
   updateDate: string;
 };
 

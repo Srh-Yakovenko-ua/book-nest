@@ -1,4 +1,4 @@
-import type { LoginInput, RegistrationInput } from "@app/shared";
+import type { LoginInput, Nullable, RegistrationInput } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -38,8 +38,8 @@ type Mocks = {
 
 function buildService(overrides: {
   compare?: boolean;
-  findByEmail?: null | UserModel;
-  findByNickname?: null | UserModel;
+  findByEmail?: Nullable<UserModel>;
+  findByNickname?: Nullable<UserModel>;
   sendVerification?: EmailVerificationService["sendVerification"];
 }): { mocks: Mocks; service: AuthService } {
   const usersRepository = {

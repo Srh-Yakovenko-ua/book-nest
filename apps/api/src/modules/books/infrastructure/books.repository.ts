@@ -4,26 +4,29 @@ import type {
   BookLanguage,
   BookType,
   LibrarySort,
+  LoanType,
   Nullable,
   OwnershipStatus,
   ReadingStatus,
 } from "@app/shared";
 
-import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
+import { DELIVERY_ACTIVE_STATUSES, LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { Prisma } from "../../../generated/prisma/client.js";
 import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.repository.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+import { buildBookSearchConditions } from "./book-search.js";
+import { ListMembershipRepository } from "./list-membership.repository.js";
 
-const withRelations = {
+export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
   coverMedia: true,
   deliveries: { orderBy: { createdAt: "desc" } },
   lists: { include: { list: true } },
-  loanInfo: true,
+  loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
   publisher: true,
   purchaseInfo: true,
   readingProgress: true,
@@ -56,32 +59,32 @@ export type BookWithRelations = Prisma.BookGetPayload<{
 }>;
 
 export type CreateLoanInfoData = {
-  contact: null | string;
-  expectedReturnDate: Date | null;
-  loanDate: Date | null;
-  note: null | string;
+  contact: Nullable<string>;
+  expectedReturnDate: Nullable<Date>;
+  loanDate: Nullable<Date>;
+  note: Nullable<string>;
   personName: string;
   remindToReturn: boolean;
 };
 
 export type CreatePurchaseInfoData = {
-  currency: null | string;
-  expectedPrice: null | number;
-  note: null | string;
-  storeName: null | string;
-  storeUrl: null | string;
+  currency: Nullable<string>;
+  expectedPrice: Nullable<number>;
+  note: Nullable<string>;
+  storeName: Nullable<string>;
+  storeUrl: Nullable<string>;
 };
 
 export type CreateReadingProgressData = {
-  abandonedAt: Date | null;
-  currentPage: null | number;
-  finishedAt: Date | null;
-  impression: null | string;
-  lastProgressUpdateAt: Date | null;
-  note: null | string;
-  pausedAt: Date | null;
-  rating: null | number;
-  startedAt: Date | null;
+  abandonedAt: Nullable<Date>;
+  currentPage: Nullable<number>;
+  finishedAt: Nullable<Date>;
+  impression: Nullable<string>;
+  lastProgressUpdateAt: Nullable<Date>;
+  note: Nullable<string>;
+  pausedAt: Nullable<Date>;
+  rating: Nullable<number>;
+  startedAt: Nullable<Date>;
 };
 
 export type DeliveryBlockChange =
@@ -113,10 +116,18 @@ export type LibraryFilter = {
   yearMin?: number;
 };
 
-export type LoanChangePatch = {
-  book: { ownershipStatus?: OwnershipStatus };
-  loanInfo?: "delete" | CreateLoanInfoData;
-};
+export type LoanBlockChange =
+  | { create: CreateLoanInfoData; kind: "upsertActive"; type: LoanType; update: UpdateLoanInfoData }
+  | { kind: "return"; returnedAt: Date }
+  | { kind: "syncType"; type: LoanType };
+
+export type LoanChangePatch =
+  | {
+      book: { ownershipStatus?: OwnershipStatus };
+      kind: "create";
+      loan: CreateLoanInfoData & { type: LoanType };
+    }
+  | { book: { ownershipStatus?: OwnershipStatus }; kind: "return"; returnedAt: Date };
 
 export type OwnershipChangePatch = {
   book: { ownershipStatus?: OwnershipStatus };
@@ -124,7 +135,11 @@ export type OwnershipChangePatch = {
 };
 
 export type OwnershipPurchaseInfoPatch = Partial<CreatePurchaseInfoData> & {
-  purchasedAt?: Date | null;
+  purchasedAt?: Nullable<Date>;
+};
+
+export type QueueRemoval = {
+  fromPosition: number;
 };
 
 export type ReadingChangePatch = {
@@ -132,13 +147,23 @@ export type ReadingChangePatch = {
   progress: Partial<CreateReadingProgressData>;
 };
 
+export type UpdateActiveLoanData = {
+  contact: Nullable<string>;
+  expectedReturnDate: Nullable<Date>;
+  loanDate: Nullable<Date>;
+  note: Nullable<string>;
+  personName: string;
+  remindToReturn: boolean;
+};
+
 export type UpdateBookData = {
   authorIds?: string[];
   deliveryInfo: DeliveryBlockChange;
   fields: Prisma.BookUncheckedUpdateManyInput;
   listIds?: string[];
-  loanInfo: BlockUpsert<CreateLoanInfoData, UpdateLoanInfoData>;
+  loanInfo: LoanBlockChange;
   purchaseInfo: BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData>;
+  queueRemoval: Nullable<QueueRemoval>;
   readingProgress: BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData>;
   tagIds?: string[];
 };
@@ -161,39 +186,43 @@ type BlockDelegate<TCreate, TUpdate> = {
 type CreateBookData = {
   ageCategory: string;
   authorIds: string[];
-  coverMediaId: null | string;
-  dedication: null | string;
-  deliveryInfo: CreateDeliveryData | null;
-  description: null | string;
+  coverMediaId: Nullable<string>;
+  dedication: Nullable<string>;
+  deliveryInfo: Nullable<CreateDeliveryData>;
+  description: Nullable<string>;
+  favoriteAddedAt: Nullable<Date>;
   firstAuthorName: string;
   formats: string[];
   genres: string[];
-  illustrator: null | string;
-  isbn: null | string;
+  illustrator: Nullable<string>;
+  isbn: Nullable<string>;
   isFavorite: boolean;
   language: string;
   listIds: string[];
-  loanInfo: CreateLoanInfoData | null;
-  originalTitle: null | string;
+  loanInfo: Nullable<CreateLoanInfoData>;
+  originalTitle: Nullable<string>;
   ownershipStatus: string;
-  pagesCount: null | number;
-  partNumber: null | number;
-  publicationYear: null | number;
-  publisherId: null | string;
-  purchaseInfo: CreatePurchaseInfoData | null;
-  queuePosition: null | number;
-  queuePriority: null | string;
-  readingProgress: CreateReadingProgressData | null;
+  pagesCount: Nullable<number>;
+  partNumber: Nullable<number>;
+  publicationYear: Nullable<number>;
+  publisherId: Nullable<string>;
+  purchaseInfo: Nullable<CreatePurchaseInfoData>;
+  queuePosition: Nullable<number>;
+  queuePriority: Nullable<string>;
+  readingProgress: Nullable<CreateReadingProgressData>;
   readingStatus: string;
-  seriesId: null | string;
+  seriesId: Nullable<string>;
   tagIds: string[];
   title: string;
-  translator: null | string;
+  translator: Nullable<string>;
 };
 
 @Injectable()
 export class BooksRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly membershipRepository: ListMembershipRepository,
+  ) {}
 
   async applyLoanChange(userId: string, bookId: string, patch: LoanChangePatch): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
@@ -209,18 +238,15 @@ export class BooksRepository {
         await tx.book.update({ data: patch.book, where: { id: bookId } });
       }
 
-      if (patch.loanInfo === "delete") {
-        await tx.bookLoanInfo.deleteMany({ where: { bookId } });
+      if (patch.kind === "create") {
+        await tx.bookLoan.create({ data: { ...patch.loan, bookId, status: "active", userId } });
         return;
       }
 
-      if (patch.loanInfo !== undefined) {
-        await tx.bookLoanInfo.upsert({
-          create: { ...patch.loanInfo, bookId },
-          update: patch.loanInfo,
-          where: { bookId },
-        });
-      }
+      await tx.bookLoan.updateMany({
+        data: { returnedAt: patch.returnedAt, status: "returned" },
+        where: { bookId, status: "active" },
+      });
     });
   }
 
@@ -258,28 +284,32 @@ export class BooksRepository {
     userId: string,
     bookId: string,
     patch: ReadingChangePatch,
+    client?: Prisma.TransactionClient,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      const owned = await tx.book.findFirst({
-        select: { id: true },
-        where: { id: bookId, userId },
-      });
-      if (owned === null) {
-        throw new NotFoundError("Book not found");
-      }
+    if (client === undefined) {
+      await this.prisma.$transaction((tx) => this.applyReadingChange(userId, bookId, patch, tx));
+      return;
+    }
 
-      if (patch.book !== null) {
-        await tx.book.update({ data: patch.book, where: { id: bookId } });
-      }
-
-      if (Object.keys(patch.progress).length > 0) {
-        await tx.bookReadingProgress.upsert({
-          create: { ...patch.progress, bookId },
-          update: patch.progress,
-          where: { bookId },
-        });
-      }
+    const owned = await client.book.findFirst({
+      select: { id: true },
+      where: { id: bookId, userId },
     });
+    if (owned === null) {
+      throw new NotFoundError("Book not found");
+    }
+
+    if (patch.book !== null) {
+      await client.book.update({ data: patch.book, where: { id: bookId } });
+    }
+
+    if (Object.keys(patch.progress).length > 0) {
+      await client.bookReadingProgress.upsert({
+        create: { ...patch.progress, bookId },
+        update: patch.progress,
+        where: { bookId },
+      });
+    }
   }
 
   countByCoverMediaId(coverMediaId: string): Promise<number> {
@@ -287,28 +317,57 @@ export class BooksRepository {
   }
 
   countByReadingStatuses({
+    isFavorite,
+    ownershipStatuses,
     statuses,
     userId,
   }: {
+    isFavorite?: boolean;
+    ownershipStatuses?: OwnershipStatus[];
     statuses: ReadingStatus[];
     userId: string;
   }): Promise<number> {
-    return this.prisma.book.count({ where: { readingStatus: { in: statuses }, userId } });
+    return this.prisma.book.count({
+      where: buildLibraryWhere({
+        isFavorite,
+        ownershipStatuses,
+        readingStatuses: statuses,
+        userId,
+      }),
+    });
   }
 
-  countByUser(userId: string): Promise<number> {
-    return this.prisma.book.count({ where: { userId } });
+  countByUser({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.book.count({ where: buildLibraryWhere({ ownershipStatuses, userId }) });
   }
 
-  countFavorites(userId: string): Promise<number> {
-    return this.prisma.book.count({ where: { isFavorite: true, userId } });
+  countFavorites({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<number> {
+    return this.prisma.book.count({
+      where: buildLibraryWhere({ isFavorite: true, ownershipStatuses, userId }),
+    });
   }
 
   countForLibrary({ filter }: { filter: LibraryFilter }): Promise<number> {
     return this.prisma.book.count({ where: buildLibraryWhere(filter) });
   }
 
-  create(userId: string, data: CreateBookData): Promise<BookWithRelations> {
+  async create(
+    userId: string,
+    data: CreateBookData,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookWithRelations> {
     const {
       authorIds,
       deliveryInfo,
@@ -319,29 +378,73 @@ export class BooksRepository {
       tagIds,
       ...bookData
     } = data;
-    return this.prisma.book.create({
+
+    const created = await client.book.create({
       data: {
         ...bookData,
         authors: {
           create: authorIds.map((authorId, position) => ({ authorId, position })),
         },
         deliveries: deliveryInfo === null ? undefined : { create: { ...deliveryInfo, userId } },
-        lists: { create: listIds.map((listId) => ({ listId })) },
-        loanInfo: loanInfo === null ? undefined : { create: loanInfo },
+        loans:
+          loanInfo === null
+            ? undefined
+            : {
+                create: {
+                  ...loanInfo,
+                  status: "active",
+                  type: LoanTypeSchema.parse(bookData.ownershipStatus),
+                  userId,
+                },
+              },
         purchaseInfo: purchaseInfo === null ? undefined : { create: purchaseInfo },
         readingProgress: readingProgress === null ? undefined : { create: readingProgress },
         tags: { create: tagIds.map((tagId) => ({ tagId })) },
         userId,
       },
-      include: withRelations,
+      select: { id: true },
     });
+
+    if (listIds.length > 0) {
+      const now = new Date();
+      const sortedListIds = [...new Set(listIds)].sort();
+      for (const listId of sortedListIds) {
+        await this.membershipRepository.acquireListLock(client, { listId });
+      }
+      for (const listId of sortedListIds) {
+        await this.membershipRepository.append(client, { bookId: created.id, listId });
+      }
+      for (const listId of sortedListIds) {
+        await this.membershipRepository.touchList(client, { listId, now, userId });
+      }
+    }
+
+    return client.book.findFirstOrThrow({ include: withRelations, where: { id: created.id } });
   }
 
   deleteOwned(userId: string, id: string): Promise<number> {
     return this.prisma.book.deleteMany({ where: { id, userId } }).then((result) => result.count);
   }
 
-  findOwnedById(userId: string, id: string): Promise<BookWithRelations | null> {
+  async favoritesSummary({
+    finishedStatuses,
+    readingStatuses,
+    userId,
+  }: FavoritesSummaryQuery): Promise<FavoritesSummaryResult> {
+    const [total, reading, finished, ratingAggregate] = await Promise.all([
+      this.countFavorites({ userId }),
+      this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
+      this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
+      this.prisma.bookReadingProgress.aggregate({
+        _avg: { rating: true },
+        where: { book: { isFavorite: true, userId }, rating: { not: null } },
+      }),
+    ]);
+
+    return { averageRating: ratingAggregate._avg.rating, finished, reading, total };
+  }
+
+  findOwnedById(userId: string, id: string): Promise<Nullable<BookWithRelations>> {
     return this.prisma.book.findFirst({
       include: withRelations,
       where: { id, userId },
@@ -360,8 +463,9 @@ export class BooksRepository {
   findSeriesPartNumberConflict(
     userId: string,
     { excludeBookId, partNumber, seriesId }: SeriesPartNumberQuery,
-  ): Promise<null | SeriesPartNumberConflict> {
-    return this.prisma.book.findFirst({
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<SeriesPartNumberConflict>> {
+    return client.book.findFirst({
       select: { id: true, title: true },
       where: {
         id: excludeBookId === null ? undefined : { not: excludeBookId },
@@ -383,9 +487,11 @@ export class BooksRepository {
   }
 
   listRecentlyAdded({
+    ownershipStatuses,
     take,
     userId,
   }: {
+    ownershipStatuses?: OwnershipStatus[];
     take: number;
     userId: string;
   }): Promise<BookWithRelations[]> {
@@ -393,12 +499,15 @@ export class BooksRepository {
       include: withRelations,
       orderBy: { createdAt: "desc" },
       take,
-      where: { userId },
+      where: buildLibraryWhere({ ownershipStatuses, userId }),
     });
   }
 
-  async maxQueuePosition(userId: string): Promise<number> {
-    const result = await this.prisma.book.aggregate({
+  async maxQueuePosition(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const result = await client.book.aggregate({
       _max: { queuePosition: true },
       where: { userId },
     });
@@ -426,29 +535,49 @@ export class BooksRepository {
     return rows.map((row) => row.storeName);
   }
 
+  async shiftQueueUpAfter(
+    userId: string,
+    position: number,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.book.updateMany({
+      data: { queuePosition: { decrement: 1 } },
+      where: { queuePosition: { gt: position }, userId },
+    });
+  }
+
   async topGenreKeys({
     limit,
+    ownershipStatuses,
     userId,
   }: {
     limit: number;
+    ownershipStatuses?: OwnershipStatus[];
     userId: string;
   }): Promise<{ count: number; key: string }[]> {
-    const rows = await this.prisma.$queryRaw<{ count: bigint; key: string }[]>`
+    const ownershipFilter =
+      ownershipStatuses === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND ownership_status IN (${Prisma.join(ownershipStatuses)})`;
+    const rows = await this.prisma.$queryRaw<{ count: bigint; key: string }[]>(Prisma.sql`
       SELECT unnest(genres) AS key, count(*) AS count
       FROM books
       WHERE user_id = ${userId}::uuid
+        ${ownershipFilter}
       GROUP BY key
       ORDER BY count DESC, key ASC
       LIMIT ${limit}
-    `;
+    `);
     return rows.map((row) => ({ count: Number(row.count), key: row.key }));
   }
 
   async topTags({
     limit,
+    ownershipStatuses,
     userId,
   }: {
     limit: number;
+    ownershipStatuses?: OwnershipStatus[];
     userId: string;
   }): Promise<{ count: number; id: string; name: string }[]> {
     const grouped = await this.prisma.bookTag.groupBy({
@@ -456,7 +585,7 @@ export class BooksRepository {
       by: ["tagId"],
       orderBy: { _count: { tagId: "desc" } },
       take: limit,
-      where: { book: { userId } },
+      where: { book: buildLibraryWhere({ ownershipStatuses, userId }) },
     });
     if (grouped.length === 0) {
       return [];
@@ -472,50 +601,120 @@ export class BooksRepository {
     });
   }
 
-  updateOwned(userId: string, bookId: string, data: UpdateBookData): Promise<BookWithRelations> {
-    return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.book.updateMany({
-        data: data.fields,
-        where: { id: bookId, userId },
+  async updateActiveLoan(
+    userId: string,
+    bookId: string,
+    data: UpdateActiveLoanData,
+  ): Promise<void> {
+    const updated = await this.prisma.bookLoan.updateMany({
+      data,
+      where: { book: { userId }, bookId, status: "active" },
+    });
+    if (updated.count === 0) {
+      throw new NotFoundError("Loan not found");
+    }
+  }
+
+  async updateOwned(
+    userId: string,
+    bookId: string,
+    data: UpdateBookData,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookWithRelations> {
+    const updated = await client.book.updateMany({
+      data: data.fields,
+      where: { id: bookId, userId },
+    });
+    if (updated.count === 0) {
+      throw new NotFoundError("Book not found");
+    }
+
+    if (data.queueRemoval !== null) {
+      await this.shiftQueueUpAfter(userId, data.queueRemoval.fromPosition, client);
+    }
+
+    await applyBlockUpsert(client.bookReadingProgress, bookId, data.readingProgress);
+    await applyBlockUpsert(client.bookPurchaseInfo, bookId, data.purchaseInfo);
+    await applyDeliveryBlock(client, bookId, userId, data.deliveryInfo);
+    await applyLoanBlock(client, bookId, userId, data.loanInfo);
+
+    if (data.authorIds !== undefined) {
+      await client.bookAuthor.deleteMany({ where: { bookId } });
+      await client.bookAuthor.createMany({
+        data: data.authorIds.map((authorId, position) => ({ authorId, bookId, position })),
       });
-      if (updated.count === 0) {
-        throw new NotFoundError("Book not found");
-      }
+    }
 
-      await applyBlockUpsert(tx.bookReadingProgress, bookId, data.readingProgress);
-      await applyBlockUpsert(tx.bookPurchaseInfo, bookId, data.purchaseInfo);
-      await applyDeliveryBlock(tx, bookId, userId, data.deliveryInfo);
-      await applyBlockUpsert(tx.bookLoanInfo, bookId, data.loanInfo);
-
-      if (data.authorIds !== undefined) {
-        await tx.bookAuthor.deleteMany({ where: { bookId } });
-        await tx.bookAuthor.createMany({
-          data: data.authorIds.map((authorId, position) => ({ authorId, bookId, position })),
+    if (data.tagIds !== undefined) {
+      await client.bookTag.deleteMany({ where: { bookId } });
+      if (data.tagIds.length > 0) {
+        await client.bookTag.createMany({
+          data: data.tagIds.map((tagId) => ({ bookId, tagId })),
         });
       }
+    }
 
-      if (data.tagIds !== undefined) {
-        await tx.bookTag.deleteMany({ where: { bookId } });
-        if (data.tagIds.length > 0) {
-          await tx.bookTag.createMany({
-            data: data.tagIds.map((tagId) => ({ bookId, tagId })),
+    if (data.listIds !== undefined) {
+      const targetListIds = new Set(data.listIds);
+      const current = await client.bookListItem.findMany({
+        select: { listId: true },
+        where: { bookId },
+      });
+      const currentListIds = new Set(current.map((item) => item.listId));
+
+      const toRemove = current
+        .map((item) => item.listId)
+        .filter((listId) => !targetListIds.has(listId));
+      const toAdd = data.listIds.filter((listId) => !currentListIds.has(listId));
+
+      if (toAdd.length > 0 || toRemove.length > 0) {
+        const now = new Date();
+        const affectedListIds = [...new Set([...toAdd, ...toRemove])].sort();
+        for (const listId of affectedListIds) {
+          await this.membershipRepository.acquireListLock(client, { listId });
+        }
+
+        for (const listId of toRemove) {
+          const membership = await this.membershipRepository.findMembership(client, {
+            bookId,
+            listId,
+          });
+          if (membership === null) {
+            continue;
+          }
+          await this.membershipRepository.deleteMembership(client, { bookId, listId });
+          await this.membershipRepository.shiftUpAfter(client, {
+            listId,
+            position: membership.position,
           });
         }
-      }
 
-      if (data.listIds !== undefined) {
-        await tx.bookListItem.deleteMany({ where: { bookId } });
-        if (data.listIds.length > 0) {
-          await tx.bookListItem.createMany({
-            data: data.listIds.map((listId) => ({ bookId, listId })),
-          });
+        for (const listId of toAdd) {
+          await this.membershipRepository.append(client, { bookId, listId });
+        }
+
+        for (const listId of affectedListIds) {
+          await this.membershipRepository.touchList(client, { listId, now, userId });
         }
       }
+    }
 
-      return tx.book.findFirstOrThrow({ include: withRelations, where: { id: bookId, userId } });
-    });
+    return client.book.findFirstOrThrow({ include: withRelations, where: { id: bookId, userId } });
   }
 }
+
+type FavoritesSummaryQuery = {
+  finishedStatuses: ReadingStatus[];
+  readingStatuses: ReadingStatus[];
+  userId: string;
+};
+
+type FavoritesSummaryResult = {
+  averageRating: Nullable<number>;
+  finished: number;
+  reading: number;
+  total: number;
+};
 
 type ListForLibraryInput = {
   filter: LibraryFilter;
@@ -530,7 +729,7 @@ type SeriesPartNumberConflict = {
 };
 
 type SeriesPartNumberQuery = {
-  excludeBookId: null | string;
+  excludeBookId: Nullable<string>;
   partNumber: number;
   seriesId: string;
 };
@@ -539,11 +738,21 @@ const CREATED_AT_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { createdAt: 
 
 const ID_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { id: "asc" };
 
-const LIBRARY_ORDER_BY: Record<LibrarySort, Prisma.BookOrderByWithRelationInput[]> = {
+export const LIBRARY_ORDER_BY: Record<LibrarySort, Prisma.BookOrderByWithRelationInput[]> = {
   author_asc: [{ firstAuthorName: "asc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
   author_desc: [{ firstAuthorName: "desc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
   created_asc: [{ createdAt: "asc" }, ID_TIEBREAKER],
   created_desc: [{ createdAt: "desc" }, ID_TIEBREAKER],
+  favorite_added_asc: [
+    { favoriteAddedAt: { nulls: "last", sort: "asc" } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
+  favorite_added_desc: [
+    { favoriteAddedAt: { nulls: "last", sort: "desc" } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
   pages_asc: [{ pagesCount: { nulls: "last", sort: "asc" } }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
   pages_desc: [
     { pagesCount: { nulls: "last", sort: "desc" } },
@@ -626,6 +835,45 @@ async function applyDeliveryBlock(
   await tx.bookDelivery.update({ data: change.update, where: { id: active.id } });
 }
 
+async function applyLoanBlock(
+  tx: Prisma.TransactionClient,
+  bookId: string,
+  userId: string,
+  change: LoanBlockChange,
+): Promise<void> {
+  if (change.kind === "return") {
+    await tx.bookLoan.updateMany({
+      data: { returnedAt: change.returnedAt, status: "returned" },
+      where: { bookId, status: "active" },
+    });
+    return;
+  }
+
+  const active = await tx.bookLoan.findFirst({
+    select: { id: true, type: true },
+    where: { bookId, status: "active" },
+  });
+
+  if (change.kind === "syncType") {
+    if (active !== null && active.type !== change.type) {
+      await tx.bookLoan.update({ data: { type: change.type }, where: { id: active.id } });
+    }
+    return;
+  }
+
+  if (active === null) {
+    await tx.bookLoan.create({
+      data: { ...change.create, bookId, status: "active", type: change.type, userId },
+    });
+    return;
+  }
+
+  await tx.bookLoan.update({
+    data: { ...change.update, type: change.type },
+    where: { id: active.id },
+  });
+}
+
 function buildIntRange({
   max,
   min,
@@ -705,43 +953,13 @@ function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
     where.pagesCount = pagesCount;
   }
 
-  const searchConditions = buildSearchConditions(filter);
+  const searchConditions = buildBookSearchConditions({
+    search: filter.search,
+    searchGenreKeys: filter.searchGenreKeys,
+  });
   if (searchConditions !== undefined) {
     where.OR = searchConditions;
   }
 
   return where;
-}
-
-function buildSearchConditions(filter: LibraryFilter): Prisma.BookWhereInput[] | undefined {
-  if (filter.search === undefined) {
-    return undefined;
-  }
-  const contains = filter.search;
-  const conditions: Prisma.BookWhereInput[] = [
-    { title: { contains, mode: "insensitive" } },
-    { originalTitle: { contains, mode: "insensitive" } },
-    { authors: { some: { author: { name: { contains, mode: "insensitive" } } } } },
-    {
-      authors: {
-        some: { author: { names: { some: { name: { contains, mode: "insensitive" } } } } },
-      },
-    },
-    { series: { name: { contains, mode: "insensitive" } } },
-    { publisher: { name: { contains, mode: "insensitive" } } },
-    { publisher: { names: { some: { name: { contains, mode: "insensitive" } } } } },
-    { tags: { some: { tag: { name: { contains, mode: "insensitive" } } } } },
-    { translator: { contains, mode: "insensitive" } },
-    { illustrator: { contains, mode: "insensitive" } },
-  ];
-
-  const isbnQuery = filter.search.replace(/[\s-]/g, "");
-  if (isbnQuery.length > 0) {
-    conditions.push({ isbn: { contains: isbnQuery, mode: "insensitive" } });
-  }
-  if (filter.searchGenreKeys !== undefined && filter.searchGenreKeys.length > 0) {
-    conditions.push({ genres: { hasSome: filter.searchGenreKeys } });
-  }
-
-  return conditions;
 }
