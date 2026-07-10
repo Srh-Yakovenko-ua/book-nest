@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, waitFor } from "storybook/test";
 
+import { formatDateLong } from "@/lib/format";
+
 import { ChangelogPopoverContent } from "./changelog-popover-content";
 import { changelogEntries } from "./changelog.fixtures";
 
@@ -61,6 +63,9 @@ export const Ready: Story = {
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByText("Черга читання")).toBeVisible());
     await expect(canvas.getAllByText("Нове").length).toBeGreaterThan(0);
+    await waitFor(() =>
+      expect(canvas.getAllByText(formatDateLong("2026-07-10", "uk")).length).toBeGreaterThan(0),
+    );
   },
 };
 

@@ -3,13 +3,13 @@
 import type { ChangelogCategory, ChangelogEntryView, ChangelogLocale } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { Virtuoso } from "react-virtuoso";
+import { GroupedVirtuoso } from "react-virtuoso";
 
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatDate } from "@/lib/format";
+import { formatDateLong } from "@/lib/format";
 
 export type ChangelogPopoverState =
   | {
@@ -62,34 +62,31 @@ export function ChangelogPopoverContent({ locale, onRetry, state }: ChangelogPop
   );
 }
 
-function ChangelogEntryRow({
-  entry,
-  locale,
-}: {
-  entry: ChangelogEntryView;
-  locale: ChangelogLocale;
-}) {
+function ChangelogEntryRow({ entry }: { entry: ChangelogEntryView }) {
   const tCategory = useTranslations("changelog.category");
   const meta = CATEGORY_META[entry.category];
 
   return (
     <article className="flex flex-col gap-1.5 border-b border-border/50 px-3.5 py-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <Badge variant={meta.variant}>{tCategory(meta.labelKey)}</Badge>
-          {entry.version === null ? null : (
-            <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-muted-foreground">
-              {entry.version}
-            </span>
-          )}
-        </div>
-        <time className="shrink-0 text-[11px] text-muted-foreground" dateTime={entry.publishedAt}>
-          {formatDate(entry.publishedAt, locale)}
-        </time>
+      <div className="flex items-center gap-1.5">
+        <Badge variant={meta.variant}>{tCategory(meta.labelKey)}</Badge>
+        {entry.version === null ? null : (
+          <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-muted-foreground">
+            {entry.version}
+          </span>
+        )}
       </div>
       <p className="text-sm font-medium text-foreground">{entry.title}</p>
       <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">{entry.body}</p>
     </article>
+  );
+}
+
+function ChangelogGroupHeader({ label }: { label: string }) {
+  return (
+    <div className="border-b border-border/60 bg-popover px-3.5 py-2 text-xs font-medium tracking-wide text-muted-foreground">
+      {label}
+    </div>
   );
 }
 
@@ -147,15 +144,26 @@ function ChangelogPopoverBody({ locale, onRetry, state }: ChangelogPopoverConten
     );
   }
 
+  const { groupCounts, groupLabels } = groupEntriesByDate({ entries: state.entries, locale });
+
   return (
-    <Virtuoso
+    <GroupedVirtuoso
       components={{ Footer: ChangelogListFooter }}
       context={{ isFetchingNextPage: state.isFetchingNextPage, loadingLabel: t("loadingMore") }}
-      data={state.entries}
       endReached={() => {
         if (state.hasNextPage && !state.isFetchingNextPage) state.onEndReached();
       }}
-      itemContent={(_, entry) => <ChangelogEntryRow entry={entry} locale={locale} />}
+      groupContent={(groupIndex) => {
+        const label = groupLabels[groupIndex];
+        if (label === undefined) return null;
+        return <ChangelogGroupHeader label={label} />;
+      }}
+      groupCounts={groupCounts}
+      itemContent={(index) => {
+        const entry = state.entries[index];
+        if (entry === undefined) return null;
+        return <ChangelogEntryRow entry={entry} />;
+      }}
       style={{ height: LIST_HEIGHT }}
     />
   );
@@ -176,4 +184,30 @@ function ChangelogSkeletonList() {
       ))}
     </div>
   );
+}
+
+function groupEntriesByDate({
+  entries,
+  locale,
+}: {
+  entries: readonly ChangelogEntryView[];
+  locale: ChangelogLocale;
+}): { groupCounts: number[]; groupLabels: string[] } {
+  const groupCounts: number[] = [];
+  const groupLabels: string[] = [];
+
+  for (const entry of entries) {
+    const label = formatDateLong(entry.publishedAt, locale);
+    const lastIndex = groupCounts.length - 1;
+
+    if (groupLabels[lastIndex] === label) {
+      groupCounts[lastIndex] = (groupCounts[lastIndex] ?? 0) + 1;
+      continue;
+    }
+
+    groupLabels.push(label);
+    groupCounts.push(1);
+  }
+
+  return { groupCounts, groupLabels };
 }
