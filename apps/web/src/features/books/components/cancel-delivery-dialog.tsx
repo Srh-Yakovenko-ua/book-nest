@@ -15,9 +15,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/http-client";
 
 import { useCancelDelivery } from "../api/use-delivery";
+
+const CANCEL_REASON_MAX = 500;
 
 type CancelDeliveryDialogProps = {
   book: BookView;
@@ -57,12 +61,21 @@ function CancelForm({
   const tActions = useTranslations("books.actions");
   const cancelDelivery = useCancelDelivery();
   const [keepAsWantToBuy, setKeepAsWantToBuy] = useState(true);
+  const [cancelReason, setCancelReason] = useState("");
   const [serverError, setServerError] = useState<null | string>(null);
 
   function onConfirm() {
     setServerError(null);
+    const trimmedReason = cancelReason.trim();
     cancelDelivery.mutate(
-      { deliveryId: delivery.id, id: book.id, payload: { keepAsWantToBuy } },
+      {
+        deliveryId: delivery.id,
+        id: book.id,
+        payload: {
+          cancelReason: trimmedReason.length > 0 ? trimmedReason : undefined,
+          keepAsWantToBuy,
+        },
+      },
       {
         onError: (error) =>
           setServerError(error instanceof ApiError ? error.message : tErrors("generic")),
@@ -85,6 +98,24 @@ function CancelForm({
         />
         <span className="text-sm text-foreground">{t("keepAsWantToBuy")}</span>
       </label>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="cancel-reason">{t("reasonLabel")}</Label>
+        <Textarea
+          aria-describedby="cancel-reason-counter"
+          id="cancel-reason"
+          maxLength={CANCEL_REASON_MAX}
+          onChange={(event) => setCancelReason(event.target.value)}
+          placeholder={t("reasonPlaceholder")}
+          value={cancelReason}
+        />
+        <span
+          className="ml-auto text-xs text-muted-foreground tabular-nums"
+          id="cancel-reason-counter"
+        >
+          {cancelReason.length}/{CANCEL_REASON_MAX}
+        </span>
+      </div>
 
       {serverError === null ? null : (
         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">

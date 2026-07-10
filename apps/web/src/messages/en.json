@@ -11,9 +11,116 @@
   },
   "nav": {
     "home": "Home",
-    "library": "Library",
+    "myLibrary": "My library",
+    "favorites": "Favorites",
+    "readingQueue": "Reading queue",
+    "allBooks": "All books",
     "buyList": "Books to buy",
-    "series": "Series"
+    "series": "Series",
+    "loans": "Borrowed books",
+    "lists": "Lists",
+    "delivery": "Deliveries"
+  },
+  "readingQueue": {
+    "title": "Reading queue",
+    "subtitle": "Your ordered list of what to read next",
+    "countBadge": "{count, plural, one {# book} other {# books}}",
+    "addBook": "Add a book to the queue",
+    "listHeading": "Queue",
+    "error": {
+      "title": "Couldn’t load the reading queue",
+      "description": "Try refreshing the page or retry a little later.",
+      "retry": "Try again"
+    },
+    "noSearchResults": {
+      "title": "Nothing found",
+      "description": "Try changing your search query or clearing the search.",
+      "clear": "Clear search"
+    },
+    "toolbar": {
+      "searchLabel": "Search the queue",
+      "searchPlaceholder": "Search the queue…",
+      "clearSearch": "Clear search",
+      "sortLabel": "Sort",
+      "sortOptions": {
+        "position": "Queue position"
+      },
+      "dragHint": "Drag books, or use the row menu, to reorder",
+      "dragDisabledHint": "Clear the search to reorder books in the queue."
+    },
+    "item": {
+      "position": "#{position}",
+      "positionAria": "Position {position}",
+      "reorderAria": "Reorder “{title}”",
+      "readingNow": "Reading now",
+      "startReading": "Start reading",
+      "viewBook": "View book",
+      "moreActions": "More actions for “{title}”",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "remove": "Remove from queue"
+    },
+    "remove": {
+      "toast": "Book removed from the queue",
+      "undo": "Undo",
+      "error": "Couldn’t remove the book from the queue"
+    },
+    "reorder": {
+      "error": "Couldn’t update the reading queue"
+    },
+    "start": {
+      "title": "Start reading?",
+      "description": "The book’s status will change to “Reading”.",
+      "removeLabel": "Remove the book from the queue after starting",
+      "confirm": "Start reading",
+      "confirming": "Starting…",
+      "cancel": "Cancel",
+      "successToast": "Reading started",
+      "error": "Couldn’t start reading the book"
+    },
+    "add": {
+      "title": "Add a book to the queue",
+      "description": "Choose a book from your library and where to place it in the queue.",
+      "searchLabel": "Search your library",
+      "searchPlaceholder": "Search your library…",
+      "empty": "No books found",
+      "loadError": "Couldn’t load your library",
+      "loadMore": "Load more",
+      "alreadyInQueue": "Already in queue",
+      "selectBookAria": "Select “{title}”",
+      "submit": "Add to queue",
+      "submitting": "Adding…",
+      "cancel": "Cancel",
+      "successToast": "Book added to the reading queue",
+      "duplicateToast": "This book is already in your reading queue",
+      "errorToast": "Couldn’t add the book to the queue"
+    },
+    "position": {
+      "legend": "Where to add the book?",
+      "start": "To the start of the queue",
+      "end": "To the end of the queue",
+      "specific": "At a specific position",
+      "positionLabel": "Position in queue",
+      "specificHelper": "If a book already occupies this position, it and all following books shift down.",
+      "emptyHelper": "The queue is empty. The book will be added at position 1.",
+      "errors": {
+        "required": "Enter a position in the queue",
+        "number": "Position must be a number",
+        "integer": "Position must be a whole number",
+        "positive": "Position must be greater than 0",
+        "max": "Position can’t be greater than the number of books in the queue + 1"
+      }
+    },
+    "stats": {
+      "booksInQueue": "Books in queue",
+      "totalLength": "Total length",
+      "pages": "{count, plural, one {# page} other {# pages}}"
+    },
+    "nextToRead": {
+      "title": "Next to read",
+      "empty": "Add a book to the queue to see what’s next to read.",
+      "startReading": "Start reading"
+    }
   },
   "appShell": {
     "label": "Book Nest",
@@ -39,6 +146,13 @@
       "title": "Your library is empty",
       "description": "Add your first book to see your stats here.",
       "action": "Add your first book"
+    },
+    "delivery": {
+      "title": "Deliveries in transit",
+      "viewAll": "View all",
+      "active": "Active",
+      "expectedThisWeek": "This week",
+      "delayed": "Delayed"
     }
   },
   "notFound": {
@@ -87,7 +201,7 @@
       "nicknamePlaceholder": "booklover",
       "dateOfBirth": "Date of birth",
       "rememberMe": "Remember me",
-      "terms": "I accept the terms of service and privacy policy"
+      "terms": "I accept the <terms>terms of service</terms> and <privacy>privacy policy</privacy>"
     },
     "datePicker": {
       "placeholder": "Pick a date",
@@ -217,8 +331,18 @@
   },
   "books": {
     "library": {
-      "title": "My library",
-      "subtitle": "All your books in one cozy space",
+      "all": {
+        "title": "All books",
+        "subtitle": "Every book you've added — regardless of status"
+      },
+      "my": {
+        "title": "My library",
+        "subtitle": "Books physically with you: owned, lent out, or borrowed"
+      },
+      "card": {
+        "lentTo": "With {name}",
+        "borrowedFrom": "From {name}"
+      },
       "resultsTitle": "Book list",
       "addBook": "Add book",
       "loadMore": "Load more",
@@ -249,7 +373,9 @@
           "year_desc": "Newer editions",
           "year_asc": "Older editions",
           "pages_desc": "More pages",
-          "pages_asc": "Fewer pages"
+          "pages_asc": "Fewer pages",
+          "favorite_added_desc": "Favorites: newest first",
+          "favorite_added_asc": "Favorites: oldest first"
         }
       },
       "view": {
@@ -448,12 +574,14 @@
       "listDialog": {
         "title": "Add to list",
         "description": "{count, plural, one {# book} other {# books}} will be added to the selected lists.",
+        "membershipDescription": "Choose which lists this book belongs to.",
         "listsLabel": "Lists",
         "placeholder": "Choose your lists",
         "search": "Search lists…",
         "empty": "No lists found.",
         "createList": "New list",
         "confirm": "Add",
+        "save": "Save",
         "cancel": "Cancel"
       },
       "tagsDialog": {
@@ -562,7 +690,16 @@
         "orderDate": "Order date",
         "expectedDeliveryDate": "Expected delivery",
         "deliveryStatus": "Delivery status",
-        "deliveryStatusPlaceholder": "Pick a status"
+        "deliveryStatusPlaceholder": "Pick a status",
+        "deliveryService": "Delivery service",
+        "deliveryServicePlaceholder": "e.g. Nova Poshta",
+        "trackingNumber": "Tracking number",
+        "trackingNumberPlaceholder": "e.g. 20450000000000",
+        "price": "Price",
+        "currency": "Currency",
+        "currencyPlaceholder": "Currency",
+        "trackingUrl": "Tracking link",
+        "trackingUrlPlaceholder": "https://..."
       },
       "markReceived": "Mark as received"
     },
@@ -603,6 +740,9 @@
       "genresLoading": "Loading genres…",
       "genresHint": "You can pick up to {max} genres.",
       "genresRecentHeading": "Previously used",
+      "genresFromSeries": "Genres prefilled from the “{name}” series",
+      "genresSeriesSuggestion": "Use the series genres: {genres}?",
+      "genresSeriesSuggestionDismiss": "Dismiss suggestion",
       "tags": "Tags",
       "tagsPlaceholder": "Add a tag and press Enter…",
       "tagsAtMax": "Limit reached — remove a tag to add more",
@@ -939,6 +1079,26 @@
         "next": "Next: {title}",
         "nextWithPart": "Next: {title} · part {number}"
       },
+      "seriesSequence": {
+        "title": "Series sequence",
+        "goToSeries": "Go to series",
+        "metaBookWithTotal": "Book {number} of {total}",
+        "metaBook": "Book {number}",
+        "metaLibraryWithTotal": "{added} of {total} in library",
+        "metaLibrary": "{added} in library",
+        "current": "Current",
+        "noNumberBadge": "№?",
+        "slotTitleFallback": "Book {number}",
+        "addBook": "+ Add",
+        "addBookAria": "Add book {number} to your library",
+        "openSlot": "Add a series book",
+        "openSlotAria": "Add the next series book",
+        "hintStartAdded": "Next in order — “<book>{title}</book>”, a great time to start",
+        "hintNextMissing": "Next in order — {title}, it's not in your library yet.",
+        "hintCompleted": "Series completed",
+        "footerNote": "Showing the full cycle order — even books not yet in your library.",
+        "ribbonLabel": "Series books in order"
+      },
       "actions": {
         "menu": "Book actions",
         "changeReadingStatus": "Change reading status",
@@ -950,8 +1110,21 @@
           "queueAdded": "Added to reading queue",
           "queueRemoved": "Removed from reading queue",
           "addedToList": "Added to list",
+          "listsUpdated": "Lists updated",
           "deleted": "Book deleted",
           "error": "Something went wrong. Please try again."
+        }
+      },
+      "queue": {
+        "title": "Reading queue",
+        "add": "Add to reading queue",
+        "inQueue": "In queue",
+        "inQueuePosition": "In queue · position {position}",
+        "goToQueue": "Go to the queue",
+        "remove": "Remove from queue",
+        "addDialog": {
+          "title": "Add to reading queue",
+          "subtitle": "Choose where to place the book in your reading queue."
         }
       },
       "favorite": {
@@ -1015,6 +1188,7 @@
           "dateFuture": "The date can’t be in the future.",
           "dateInvalid": "Pick a valid date.",
           "noteMax": "No more than {max} characters.",
+          "impressionMax": "The impression can’t be longer than {max} characters.",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -1196,13 +1370,17 @@
           "notePlaceholder": "Short thoughts for yourself…",
           "datePlaceholder": "Pick a date",
           "createSubmit": "Order",
-          "saveSubmit": "Save"
+          "saveSubmit": "Save",
+          "trackingUrl": "Tracking link",
+          "trackingUrlPlaceholder": "https://..."
         },
         "cancelDialog": {
           "title": "Cancel delivery",
           "description": "Mark this order as cancelled? The order data stays in the history.",
           "keepAsWantToBuy": "Keep in the “Want to buy” list",
-          "confirm": "Cancel delivery"
+          "confirm": "Cancel delivery",
+          "reasonLabel": "Cancellation reason",
+          "reasonPlaceholder": "Optional: why are you cancelling?"
         },
         "errors": {
           "storeNameRequired": "Enter a store.",
@@ -1218,7 +1396,9 @@
           "price": "Price must be greater than 0.",
           "priceMax": "Too large. Maximum 99999999.99.",
           "noteMax": "No more than {max} characters.",
-          "generic": "Couldn’t save. Please try again."
+          "generic": "Couldn’t save. Please try again.",
+          "trackingUrl": "Enter a valid https link.",
+          "trackingUrlMax": "No more than {max} characters."
         }
       }
     }
@@ -1236,6 +1416,292 @@
       "title": "Could not load",
       "description": "Please try refreshing the page.",
       "retry": "Try again"
+    },
+    "markInTransit": "Mark as in transit",
+    "markInTransitFor": "Mark \"{title}\" as in transit"
+  },
+  "delivery": {
+    "metaTitle": "Books in transit",
+    "title": "Books in transit",
+    "subtitle": "Track the books you have already ordered but not yet received.",
+    "resultsTitle": "Active deliveries",
+    "counter": "{count, plural, one {# active delivery} other {# active deliveries}}",
+    "loadMore": "Show more",
+    "actions": {
+      "receiveAll": "Mark all as received"
+    },
+    "summary": {
+      "active": "In transit",
+      "expectedThisWeek": "Expected this week",
+      "delayed": "Delayed",
+      "total": "Total amount",
+      "stores": "Stores"
+    },
+    "search": {
+      "label": "Search deliveries",
+      "placeholder": "Title, author, store, tracking…",
+      "clear": "Clear search"
+    },
+    "filters": {
+      "label": "Delivery filters",
+      "all": "All",
+      "ordered": "Ordered",
+      "in_transit": "In transit",
+      "arriving_soon": "Arriving soon",
+      "this_week": "This week",
+      "delayed": "Delayed",
+      "no_delivery_date": "No delivery date"
+    },
+    "sort": {
+      "label": "Sort",
+      "options": {
+        "closest_delivery": "Closest delivery",
+        "newest_orders": "Newest orders",
+        "oldest_orders": "Oldest orders",
+        "delayed_first": "Delayed first",
+        "store": "By store",
+        "service": "By delivery service",
+        "title": "By book title",
+        "author": "By author",
+        "price": "By price"
+      }
+    },
+    "badge": {
+      "delayed": "Delayed",
+      "arriving_soon": "Arriving soon",
+      "no_delivery_date": "No delivery date",
+      "ordered": "Ordered",
+      "in_transit": "In transit",
+      "ready_for_pickup": "Ready for pickup",
+      "received": "Received",
+      "cancelled": "Cancelled"
+    },
+    "card": {
+      "seriesPart": "{name} · book {part}",
+      "store": "Store",
+      "orderDate": "Order date",
+      "expectedDate": "Expected delivery",
+      "orderNumber": "Order number",
+      "service": "Delivery service",
+      "trackingNumber": "Tracking number",
+      "price": "Price",
+      "tracking": "Tracking",
+      "openTracking": "Open tracking",
+      "openBook": "Go to book",
+      "receive": "Mark as received",
+      "edit": "Edit delivery",
+      "cancel": "Cancel order",
+      "actionsAria": "Actions for “{title}”",
+      "selectAria": "Select “{title}”"
+    },
+    "bulk": {
+      "regionLabel": "Bulk actions",
+      "selected": "{count, plural, one {# book selected} other {# books selected}}",
+      "receive": "Mark as received",
+      "clear": "Clear selection",
+      "selectAllVisible": "Select all visible ({count})"
+    },
+    "receiveDialog": {
+      "title": "Mark as received?",
+      "description": "{count, plural, one {# book will be marked as received and moved into your library.} other {# books will be marked as received and moved into your library.}}",
+      "confirm": "Mark as received"
+    },
+    "states": {
+      "loading": "Loading…",
+      "error": {
+        "title": "Could not load the data",
+        "description": "Please try refreshing the page.",
+        "retry": "Try again"
+      },
+      "empty": {
+        "title": "You have no books in transit",
+        "description": "Once you mark a book as ordered, it will appear here together with its delivery status.",
+        "cta": "Go to books to buy"
+      },
+      "filteredEmpty": {
+        "title": "Nothing found",
+        "description": "Try changing the search or resetting the filters.",
+        "reset": "Reset filters"
+      }
+    },
+    "toast": {
+      "received": "Book marked as received",
+      "receivedBulk": "{count, plural, one {# book marked as received} other {# books marked as received}}",
+      "receivedPartial": "Received: {received}. Skipped: {skipped}",
+      "error": "Could not complete the action"
+    },
+    "subnav": {
+      "label": "Delivery sections",
+      "inTransit": "In transit",
+      "history": "History",
+      "statistics": "Statistics"
+    },
+    "history": {
+      "metaTitle": "Order history",
+      "title": "Order history",
+      "subtitle": "All your delivery orders — active, received and cancelled.",
+      "resultsTitle": "Order list",
+      "counter": "{count, plural, one {# order} other {# orders}}",
+      "loadMore": "Show more",
+      "summary": {
+        "totalOrders": "Total orders",
+        "active": "Active",
+        "received": "Received",
+        "cancelled": "Cancelled",
+        "total": "Total amount"
+      },
+      "tabs": {
+        "label": "Order groups",
+        "all": "All",
+        "active": "Active",
+        "received": "Received",
+        "cancelled": "Cancelled"
+      },
+      "sort": {
+        "label": "Sort",
+        "options": {
+          "newest_orders": "Newest orders",
+          "oldest_orders": "Oldest orders",
+          "recently_updated": "Recently updated",
+          "status": "By status",
+          "store": "By store",
+          "price": "By price",
+          "title": "By book title"
+        }
+      },
+      "filters": {
+        "label": "Filters",
+        "currency": "Currency",
+        "store": "Store",
+        "storePlaceholder": "Exact store name",
+        "service": "Delivery service",
+        "servicePlaceholder": "Exact service name",
+        "from": "Date from",
+        "to": "Date to",
+        "priceMin": "Price from",
+        "priceMax": "Price to",
+        "hasTrackingNumber": "Has tracking number",
+        "hasTrackingUrl": "Has tracking link",
+        "any": "Any",
+        "yes": "Yes",
+        "no": "No",
+        "apply": "Apply",
+        "reset": "Reset"
+      },
+      "card": {
+        "deletedBook": "Book deleted",
+        "deletedBookHint": "Book data is unavailable — showing the stored delivery information.",
+        "receivedDate": "Received date",
+        "cancelledDate": "Cancelled date",
+        "cancelReason": "Cancellation reason",
+        "note": "Note"
+      },
+      "states": {
+        "loading": "Loading…",
+        "error": {
+          "title": "Could not load the data",
+          "description": "Please try refreshing the page.",
+          "retry": "Try again"
+        },
+        "empty": {
+          "title": "Your order history is empty",
+          "description": "Your delivery orders will appear here once you create them.",
+          "cta": "Go to books in transit"
+        },
+        "filteredEmpty": {
+          "title": "No orders match the selected filters",
+          "description": "Try changing the search or resetting the filters.",
+          "reset": "Reset filters"
+        }
+      }
+    },
+    "statistics": {
+      "metaTitle": "Expense statistics",
+      "title": "Expense statistics",
+      "subtitle": "How much you spend on book deliveries — by month, store and currency.",
+      "summary": {
+        "total": "Total amount",
+        "active": "Active orders",
+        "received": "Received orders",
+        "cancelled": "Cancelled orders",
+        "average": "Average price",
+        "pricedOrders": "Orders with price"
+      },
+      "controls": {
+        "includeCancelled": "Include cancelled orders",
+        "resetFilters": "Reset filters"
+      },
+      "filters": {
+        "label": "Filters",
+        "currency": "Currency",
+        "status": "Status",
+        "store": "Store",
+        "storePlaceholder": "Exact store name",
+        "from": "Period from",
+        "to": "Period to",
+        "any": "Any",
+        "apply": "Apply",
+        "reset": "Reset"
+      },
+      "monthly": {
+        "title": "Monthly spending",
+        "subtitle": "Grouped by order date. Currencies are shown separately, without conversion.",
+        "spendingIn": "Spending, {currency}",
+        "spendingAria": "Chart of spending in {currency} by month",
+        "ordersTitle": "Orders per month",
+        "ordersValueLabel": "Orders",
+        "ordersAria": "Chart of order count by month",
+        "empty": "No dated orders available for monthly statistics."
+      },
+      "status": {
+        "title": "By status",
+        "active": "Active",
+        "received": "Received",
+        "cancelled": "Cancelled"
+      },
+      "stores": {
+        "title": "Spending by store",
+        "empty": "No stores to show.",
+        "orders": "{count, plural, one {# order} other {# orders}}"
+      },
+      "topOrders": {
+        "title": "Most expensive orders",
+        "empty": "No orders with a price."
+      },
+      "states": {
+        "error": {
+          "title": "Could not load the data",
+          "description": "Please try refreshing the page.",
+          "retry": "Try again"
+        },
+        "empty": {
+          "title": "No delivery expense data yet",
+          "description": "Once you add orders with prices, your expense statistics will appear here."
+        },
+        "noPrice": "Add a price to your orders to see expense statistics.",
+        "filteredEmpty": {
+          "title": "No data for the selected filters",
+          "description": "Try changing or resetting the filters.",
+          "reset": "Reset filters"
+        }
+      }
+    }
+  },
+  "favorites": {
+    "metaTitle": "Favorite books",
+    "title": "Favorite books",
+    "subtitle": "Your collection of books you marked with a heart",
+    "countBadge": "{count, plural, one {# book} other {# books}}",
+    "summary": {
+      "total": "Total favorites",
+      "finished": "Finished",
+      "reading": "Reading",
+      "averageRating": "Average rating",
+      "averageRatingEmpty": "—"
+    },
+    "remove": {
+      "toast": "Book removed from favorites",
+      "undo": "Undo"
     }
   },
   "series": {
@@ -1329,6 +1795,8 @@
       "name": "Series name",
       "namePlaceholder": "e.g. The Witcher",
       "status": "Status",
+      "genres": "Genres",
+      "genresHint": "You can pick up to {max} genres",
       "totalBooks": "Books in series",
       "totalBooksPlaceholder": "e.g. 5",
       "descriptionLabel": "Description",
@@ -1493,6 +1961,364 @@
       "partNumberTaken": "This series already has a book with this part number",
       "partNumberExceedsTotal": "Part number is greater than the total books in the series",
       "genericError": "Could not add the book. Please try again."
+    }
+  },
+  "lists": {
+    "details": {
+      "metaTitle": "List details",
+      "back": "Back to lists",
+      "books": "{count, plural, one {# book} other {# books}}",
+      "booksHeading": "Books in this list",
+      "loadMore": "Show more",
+      "toolbar": {
+        "search": "Search in list…",
+        "sort": {
+          "label": "Sort",
+          "position": "Position in list",
+          "added_desc": "Recently added",
+          "added_asc": "Oldest added",
+          "title_asc": "Title A–Z",
+          "title_desc": "Title Z–A",
+          "author_asc": "Author A–Z",
+          "rating_desc": "Highest rating",
+          "pages_desc": "More pages",
+          "pages_asc": "Fewer pages"
+        }
+      },
+      "header": {
+        "addBooks": "Add books",
+        "manage": "List actions",
+        "edit": "Edit list",
+        "delete": "Delete list",
+        "created": "Created {date}",
+        "updated": "Updated {date}"
+      },
+      "book": {
+        "actions": "Book actions: {title}",
+        "position": "Position {n}",
+        "view": "View book",
+        "remove": "Remove from list",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "addToQueue": "Add to queue",
+        "inQueue": "In queue",
+        "goToQueue": "Go to queue",
+        "addToOtherList": "Add to another list"
+      },
+      "remove": {
+        "toast": "Book removed from the list",
+        "undo": "Undo"
+      },
+      "toast": {
+        "addedToQueue": "Book added to the reading queue",
+        "error": "Something went wrong"
+      },
+      "noResults": {
+        "title": "No books found",
+        "description": "Try changing your search query or clearing the search.",
+        "clear": "Clear search"
+      },
+      "empty": {
+        "title": "This list is empty",
+        "description": "Add books from your library to fill this list.",
+        "addBooks": "Add books",
+        "back": "Back to lists"
+      },
+      "states": {
+        "loading": "Loading list…",
+        "notFoundTitle": "List not found",
+        "notFoundDescription": "It may have been deleted or belongs to another user.",
+        "errorTitle": "Could not load the list",
+        "errorDescription": "Try refreshing the page.",
+        "back": "Back to lists"
+      }
+    },
+    "catalog": {
+      "metaTitle": "Custom lists",
+      "title": "Custom lists",
+      "subtitle": "Organize your books into your own themed collections",
+      "count": "{count, plural, one {# list} other {# lists}}",
+      "create": "Create list",
+      "search": {
+        "placeholder": "Search lists…"
+      },
+      "sort": {
+        "label": "Sort",
+        "updated_desc": "Last updated",
+        "created_desc": "Newest first",
+        "created_asc": "Oldest first",
+        "title_asc": "Title A–Z",
+        "title_desc": "Title Z–A",
+        "books_count_desc": "More books",
+        "books_count_asc": "Fewer books"
+      },
+      "card": {
+        "open": "Open list",
+        "books": "{count, plural, one {# book} other {# books}}",
+        "emptyPreview": "No books in this list yet",
+        "edit": "Edit",
+        "delete": "Delete",
+        "menu": "List actions: {name}",
+        "coverAlt": "Cover from {name}"
+      },
+      "empty": {
+        "title": "No lists yet",
+        "description": "Create your first list to save books by mood, theme, or your own reading plan.",
+        "create": "Create list",
+        "library": "Go to library"
+      },
+      "noResults": {
+        "title": "Nothing found",
+        "description": "Try changing your search query or clearing the search.",
+        "clear": "Clear search"
+      },
+      "error": {
+        "title": "Couldn't load lists",
+        "description": "Try refreshing the page or repeating the request a little later.",
+        "retry": "Try again"
+      },
+      "sidebar": {
+        "stats": {
+          "title": "Quick stats",
+          "totalLists": "Total lists",
+          "booksInLists": "Books in lists",
+          "mostPopular": "Most popular list"
+        },
+        "actions": {
+          "title": "Quick actions",
+          "create": "Create new list",
+          "library": "Open library"
+        },
+        "tip": {
+          "title": "Useful tip",
+          "text": "One book can be in several lists. Deleting a list does not delete books from your library."
+        }
+      }
+    },
+    "manage": {
+      "create": {
+        "title": "Create list",
+        "subtitle": "Create your own book collection by mood, theme, or reading plan."
+      },
+      "edit": {
+        "title": "Edit list"
+      },
+      "delete": {
+        "title": "Delete list?",
+        "description": "The list will be deleted, but the books will stay in your library.",
+        "cancel": "Cancel",
+        "deleting": "Deleting…",
+        "confirm": "Delete list"
+      },
+      "fields": {
+        "name": "List name",
+        "namePlaceholder": "e.g. Autumn reading",
+        "description": "Description",
+        "descriptionPlaceholder": "What is this list about?"
+      },
+      "errors": {
+        "duplicate": "A list with this name already exists",
+        "nameRequired": "Enter a list name"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save"
+      },
+      "toast": {
+        "created": "List created",
+        "updated": "List updated",
+        "deleted": "List deleted",
+        "error": "Couldn't update the list"
+      }
+    },
+    "addBooks": {
+      "title": "Add books to the list",
+      "subtitle": "Choose books from your library to add to this list.",
+      "library": "Your library",
+      "search": "Search by title or author…",
+      "selected": "Selected books: {count}",
+      "alreadyInList": "Already in the list",
+      "clear": "Clear",
+      "submit": "Add to list",
+      "empty": "No books found",
+      "loadMore": "Show more",
+      "emptySelected": "No books selected yet",
+      "removeSelected": "Remove from selection",
+      "toast": "{count, plural, one {# book added to the list} other {# books added to the list}}"
+    }
+  },
+  "legal": {
+    "back": "Back",
+    "privacy": {
+      "metaTitle": "Privacy Policy",
+      "metaDescription": "How BookNest collects, uses and protects your personal data, and the rights you have over it."
+    },
+    "terms": {
+      "metaTitle": "Terms of Service",
+      "metaDescription": "The terms that govern your use of BookNest: your account, acceptable use, content and our liability."
+    },
+    "footer": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "navLabel": "Legal",
+      "copyright": "© {year} BookNest"
+    }
+  },
+  "loans": {
+    "metaTitle": "Borrowed books",
+    "title": "Borrowed books",
+    "subtitle": "Books you borrowed from someone or lent to someone",
+    "count": "{count, plural, one {# book} other {# books}}",
+    "listHeading": "Borrowed books list",
+    "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
+    "summary": {
+      "borrowed": "Borrowed from someone",
+      "lent": "Lent to someone",
+      "returnThisWeek": "Return this week",
+      "overdue": "Overdue",
+      "error": {
+        "title": "Could not load the summary",
+        "description": "We couldn't load your loan summary.",
+        "retry": "Try again"
+      }
+    },
+    "tabs": {
+      "borrowed": "Borrowed from someone",
+      "lent": "Lent to someone"
+    },
+    "toolbar": {
+      "searchLabel": "Search borrowed books",
+      "searchPlaceholder": "Search borrowed books...",
+      "searchClear": "Clear search",
+      "filterLabel": "Filter",
+      "sortLabel": "Sort"
+    },
+    "filters": {
+      "all": "All",
+      "return_soon": "Returning soon",
+      "overdue": "Overdue",
+      "no_return_date": "No return date",
+      "has_reminder": "With reminder",
+      "without_reminder": "Without reminder"
+    },
+    "sort": {
+      "return_date": "By return date",
+      "loan_date": "By loan date",
+      "title": "By book title",
+      "author": "By author",
+      "person": "By person",
+      "overdue_first": "Overdue first",
+      "return_soonest": "Soonest returns first"
+    },
+    "status": {
+      "on_time": "On time",
+      "return_soon": "Return soon",
+      "overdue": "Overdue",
+      "no_return_date": "No date"
+    },
+    "relative": {
+      "overdue": "{days, plural, one {# day} other {# days}} overdue",
+      "soon": "in {days, plural, one {# day} other {# days}}",
+      "today": "today"
+    },
+    "row": {
+      "personBorrowed": "Borrowed from:",
+      "personLent": "Lent to:",
+      "contact": "Contact:",
+      "loanDateBorrowed": "Loan date:",
+      "loanDateLent": "Handover date:",
+      "returnDateBorrowed": "Return by:",
+      "returnDateLent": "Expected return:",
+      "note": "Note",
+      "reminderOn": "Reminder on"
+    },
+    "actions": {
+      "menu": "Loan actions",
+      "returnBorrowed": "Mark as returned",
+      "returnLent": "Mark as returned to me",
+      "edit": "Edit",
+      "goToBook": "Go to book"
+    },
+    "edit": {
+      "title": "Edit loan",
+      "description": "Update the details of this loan."
+    },
+    "return": {
+      "titleBorrowed": "Mark as returned?",
+      "titleLent": "Mark as returned to me?",
+      "descriptionBorrowed": "The book will no longer appear in your borrowed list.",
+      "descriptionLent": "The book will return to your library.",
+      "confirm": "Mark as returned",
+      "returning": "Saving…",
+      "success": "Loan completed",
+      "error": "Could not complete the loan"
+    },
+    "states": {
+      "loading": "Loading your borrowed books...",
+      "tabEmpty": {
+        "titleBorrowed": "Nothing in “Borrowed from someone” yet",
+        "titleLent": "Nothing in “Lent to someone” yet",
+        "description": "Loans of this type will appear here once you add them.",
+        "switchToBorrowed": "View “Borrowed from someone”",
+        "switchToLent": "View “Lent to someone”"
+      },
+      "noResults": {
+        "title": "Nothing found",
+        "description": "Try changing your query or clearing the filters.",
+        "clear": "Clear filters"
+      },
+      "error": {
+        "title": "Could not load your borrowed books",
+        "description": "Try refreshing the page or repeating the request.",
+        "retry": "Try again"
+      }
+    },
+    "sidebar": {
+      "tips": {
+        "title": "Tips for borrowed books",
+        "note": "Add notes so you don't forget the important things.",
+        "reminder": "Set reminders to return books on time.",
+        "care": "Treat books as if they were your own.",
+        "footer": "Every book is trust between readers."
+      },
+      "nearest": {
+        "title": "Nearest returns",
+        "empty": "No scheduled returns yet."
+      },
+      "cta": {
+        "title": "Keep track of your books",
+        "text": "Track who has your books and who needs to return your stories.",
+        "button": "Add a book you lent to someone"
+      }
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "status": "Page {page} of {total}"
+    }
+  },
+  "changelog": {
+    "bell": {
+      "ariaLabel": "What's new",
+      "ariaLabelUnread": "What's new, {count} unread"
+    },
+    "title": "What's new",
+    "category": {
+      "feature": "New",
+      "improvement": "Improvement",
+      "fix": "Fix"
+    },
+    "states": {
+      "empty": {
+        "title": "No updates yet",
+        "description": "New features, improvements and fixes will show up here."
+      },
+      "error": {
+        "title": "Couldn't load updates",
+        "description": "Check your connection and try again.",
+        "retry": "Try again"
+      },
+      "loadingMore": "Loading…"
     }
   }
 }

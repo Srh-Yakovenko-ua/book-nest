@@ -16,6 +16,11 @@ export const seriesControllerCreateBodyAuthorsItemOneIdRegExp = new RegExp(
 export const seriesControllerCreateBodyAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
 export const seriesControllerCreateBodyAuthorsMax = 20;
 
+export const seriesControllerCreateBodyGenresItemMax = 64;
+
+export const seriesControllerCreateBodyGenresDefault = [];
+export const seriesControllerCreateBodyGenresMax = 5;
+
 export const seriesControllerCreateBodyStatusDefault = `unknown`;
 export const seriesControllerCreateBodyTotalBooksMax = 999;
 
@@ -39,6 +44,10 @@ export const SeriesControllerCreateBody = zod.object({
     .max(seriesControllerCreateBodyAuthorsMax)
     .optional(),
   description: zod.string().optional(),
+  genres: zod
+    .array(zod.string().min(1).max(seriesControllerCreateBodyGenresItemMax))
+    .max(seriesControllerCreateBodyGenresMax)
+    .default(seriesControllerCreateBodyGenresDefault),
   name: zod.string(),
   status: zod
     .enum(["completed", "ongoing", "unknown"])
@@ -107,6 +116,7 @@ export const SeriesControllerSearchResponse = zod.object({
       createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
+      genres: zod.array(zod.string()),
       id: zod.string(),
       lastActivityAt: zod.string(),
       name: zod.string(),
@@ -163,6 +173,7 @@ export const SeriesControllerOverviewResponse = zod.object({
       createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
+      genres: zod.array(zod.string()),
       id: zod.string(),
       lastActivityAt: zod.string(),
       name: zod.string(),
@@ -200,6 +211,7 @@ export const SeriesControllerGetByIdResponse = zod.object({
   createdAt: zod.string(),
   description: zod.string().nullable(),
   finishedInSeries: zod.number(),
+  genres: zod.array(zod.string()),
   id: zod.string(),
   lastActivityAt: zod.string(),
   name: zod.string(),
@@ -221,6 +233,23 @@ export const SeriesControllerGetByIdResponse = zod.object({
           name: zod.string(),
         }),
       ),
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullish(),
       createdAt: zod.string(),
       currentPage: zod.number().nullable(),
       id: zod.string(),
@@ -272,6 +301,10 @@ export const seriesControllerUpdateBodyAuthorsItemOneIdRegExp = new RegExp(
 export const seriesControllerUpdateBodyAuthorsItemTwoOpenLibraryKeyRegExp = new RegExp("^OL\\d+A$");
 export const seriesControllerUpdateBodyAuthorsMax = 20;
 
+export const seriesControllerUpdateBodyGenresItemMax = 64;
+
+export const seriesControllerUpdateBodyGenresMax = 5;
+
 export const seriesControllerUpdateBodyTotalBooksMax = 999;
 
 export const SeriesControllerUpdateBody = zod.object({
@@ -294,6 +327,10 @@ export const SeriesControllerUpdateBody = zod.object({
     .max(seriesControllerUpdateBodyAuthorsMax)
     .optional(),
   description: zod.string().nullish(),
+  genres: zod
+    .array(zod.string().min(1).max(seriesControllerUpdateBodyGenresItemMax))
+    .max(seriesControllerUpdateBodyGenresMax)
+    .optional(),
   name: zod.string().optional(),
   status: zod.enum(["completed", "ongoing", "unknown"]).optional(),
   totalBooks: zod.number().min(1).max(seriesControllerUpdateBodyTotalBooksMax).nullish(),
@@ -310,6 +347,7 @@ export const SeriesControllerUpdateResponse = zod.object({
   createdAt: zod.string(),
   description: zod.string().nullable(),
   finishedInSeries: zod.number(),
+  genres: zod.array(zod.string()),
   id: zod.string(),
   lastActivityAt: zod.string(),
   name: zod.string(),

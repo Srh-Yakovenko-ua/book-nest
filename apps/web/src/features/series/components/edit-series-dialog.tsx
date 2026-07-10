@@ -27,6 +27,7 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BOOK_GENRES_MAX, GenresField } from "@/features/books";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -99,6 +100,7 @@ function EditSeriesForm({
   } = useForm<EditSeriesFormInput, unknown, EditSeriesFormOutput>({
     defaultValues: {
       description: series.description ?? "",
+      genres: series.genres,
       name: series.name,
       status: series.status,
       totalBooks: series.totalBooks ?? undefined,
@@ -112,6 +114,7 @@ function EditSeriesForm({
     const description = values.description?.trim() ?? "";
     const payload: UpdateSeriesInput = {
       description: description.length > 0 ? description : null,
+      genres: values.genres,
       name: values.name,
       status: values.status,
       totalBooks: values.totalBooks ?? null,
@@ -172,6 +175,24 @@ function EditSeriesForm({
             />
           )}
         />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="edit-series-genres">{tFields("genres")}</Label>
+        <Controller
+          control={control}
+          name="genres"
+          render={({ field }) => (
+            <GenresField
+              id="edit-series-genres"
+              onChange={field.onChange}
+              value={field.value ?? []}
+            />
+          )}
+        />
+        <p className="text-xs text-muted-foreground">
+          {tFields("genresHint", { max: BOOK_GENRES_MAX })}
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">

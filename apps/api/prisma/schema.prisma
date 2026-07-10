@@ -48,9 +48,43 @@ model User {
   customGenres            Genre[]
   mediaAssets             MediaAsset[]
   bookDeliveries          BookDelivery[]
+  bookLoans               BookLoan[]
   deliveryServices        DeliveryService[]
+  changelogRead           ChangelogRead?
 
   @@map("users")
+}
+
+enum ChangelogCategory {
+  feature
+  improvement
+  fix
+
+  @@map("changelog_category")
+}
+
+model ChangelogEntry {
+  id          String            @id @default(uuid()) @db.Uuid
+  slug        String            @unique
+  version     String?
+  category    ChangelogCategory
+  titleUk     String            @map("title_uk")
+  titleEn     String            @map("title_en")
+  bodyUk      String            @map("body_uk")
+  bodyEn      String            @map("body_en")
+  publishedAt DateTime?         @map("published_at") @db.Timestamptz
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("changelog_entries")
+}
+
+model ChangelogRead {
+  userId     String   @id @map("user_id") @db.Uuid
+  lastSeenAt DateTime @map("last_seen_at") @db.Timestamptz
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("changelog_reads")
 }
 
 model Series {
@@ -61,6 +95,7 @@ model Series {
   status         String   @default("unknown")
   totalBooks     Int?     @map("total_books")
   description    String?
+  genres         String[] @default([])
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -169,6 +204,7 @@ model Book {
   readingStatus   String               @default("not_started") @map("reading_status")
   ownershipStatus String               @default("none") @map("ownership_status")
   isFavorite      Boolean              @default(false) @map("is_favorite")
+  favoriteAddedAt DateTime?            @map("favorite_added_at") @db.Timestamptz
   pagesCount      Int?                 @map("pages_count")
   publicationYear Int?                 @map("publication_year")
   isbn            String?
@@ -193,7 +229,7 @@ model Book {
   readingProgress BookReadingProgress?
   purchaseInfo    BookPurchaseInfo?
   deliveries      BookDelivery[]
-  loanInfo        BookLoanInfo?
+  loans           BookLoan[]
 
   @@unique([seriesId, partNumber])
   @@index([userId])
@@ -276,6 +312,7 @@ model BookDelivery {
   currency             String?
   note                 String?
   status               String    @default("ordered")
+  cancelReason         String?   @map("cancel_reason")
   receivedAt           DateTime? @map("received_at") @db.Timestamptz
   cancelledAt          DateTime? @map("cancelled_at") @db.Timestamptz
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
@@ -288,20 +325,27 @@ model BookDelivery {
   @@map("book_deliveries")
 }
 
-model BookLoanInfo {
+model BookLoan {
   id                 String    @id @default(uuid()) @db.Uuid
-  bookId             String    @unique @map("book_id") @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  bookId             String    @map("book_id") @db.Uuid
+  type               String
   personName         String    @map("person_name")
+  contact            String?   @map("contact")
   loanDate           DateTime? @map("loan_date") @db.Date
   expectedReturnDate DateTime? @map("expected_return_date") @db.Date
-  contact            String?   @map("contact")
-  remindToReturn     Boolean   @default(false) @map("remind_to_return")
   note               String?
+  remindToReturn     Boolean   @default(false) @map("remind_to_return")
+  status             String    @default("active")
+  returnedAt         DateTime? @map("returned_at") @db.Timestamptz
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   book               Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
-  @@map("book_loan_info")
+  @@index([bookId])
+  @@index([userId])
+  @@map("book_loans")
 }
 
 model Tag {
@@ -384,10 +428,12 @@ model BookList {
 }
 
 model BookListItem {
-  listId String   @map("list_id") @db.Uuid
-  bookId String   @map("book_id") @db.Uuid
-  list   BookList @relation(fields: [listId], references: [id], onDelete: Cascade)
-  book   Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  listId   String   @map("list_id") @db.Uuid
+  bookId   String   @map("book_id") @db.Uuid
+  position Int      @map("position")
+  addedAt  DateTime @default(now()) @map("added_at") @db.Timestamptz
+  list     BookList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  book     Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@id([listId, bookId])
   @@index([bookId])

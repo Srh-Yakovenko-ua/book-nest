@@ -3,6 +3,8 @@ import type { BookView, ChangeReadingStatusInput, UpdateReadingProgressInput } f
 import { ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { Prisma } from "../../../generated/prisma/client.js";
+
 import { ValidationError } from "../../../core/exceptions/errors.js";
 import { toIsoDate } from "../../../core/iso-date.js";
 import { computeReadingProgressChange } from "../domain/reading-progress-transition.js";
@@ -40,6 +42,7 @@ export class BookReadingService {
       date: input.date ?? this.todayIso(),
       existingStartedAt: book.readingProgress?.startedAt ?? null,
       hasExistingProgress: book.readingProgress !== null,
+      impression: input.impression,
       note: input.note,
       pagesCount: book.pagesCount,
       rating: input.rating,
@@ -50,6 +53,24 @@ export class BookReadingService {
     await this.booksRepository.applyReadingChange(userId, bookId, patch);
 
     return this.viewAssembler.loadView({ bookId, userId });
+  }
+
+  async startReading(
+    userId: string,
+    bookId: string,
+    client?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
+
+    const patch = computeReadingStatusChange({
+      date: this.todayIso(),
+      existingStartedAt: book.readingProgress?.startedAt ?? null,
+      hasExistingProgress: book.readingProgress !== null,
+      pagesCount: book.pagesCount,
+      targetStatus: "reading",
+    });
+
+    await this.booksRepository.applyReadingChange(userId, bookId, patch, client);
   }
 
   async updateReadingProgress(

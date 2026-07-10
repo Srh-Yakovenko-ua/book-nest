@@ -19,8 +19,10 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BookListsViewDto,
   BookViewDto,
   BooksControllerListParams,
+  BooksControllerOverviewParams,
   BooksControllerPurchaseStoresParams,
   BulkActionResultDto,
   BulkBookIdsDto,
@@ -35,11 +37,14 @@ import type {
   CreateDeliveryInputDto,
   CreateLoanInputDto,
   DeliveryViewDto,
+  FavoritesSummaryViewDto,
   LibraryOverviewViewDto,
   MarkBoughtInputDto,
   PaginatedBooksDto,
+  SetBookListsInputDto,
   UpdateBookInputDto,
   UpdateDeliveryInputDto,
+  UpdateLoanInputDto,
   UpdateReadingProgressInputDto,
   WantToBuyInputDto,
 } from "../../model";
@@ -403,42 +408,58 @@ export type booksControllerOverviewResponse =
   | booksControllerOverviewResponseSuccess
   | booksControllerOverviewResponseError;
 
-export const getBooksControllerOverviewUrl = () => {
-  return `/api/books/overview`;
+export const getBooksControllerOverviewUrl = (params?: BooksControllerOverviewParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/overview?${stringifiedParams}`
+    : `/api/books/overview`;
 };
 
 /**
  * @summary Get the current user library overview
  */
 export const booksControllerOverview = async (
+  params?: BooksControllerOverviewParams,
   options?: RequestInit,
 ): Promise<booksControllerOverviewResponse> => {
-  return customInstance<booksControllerOverviewResponse>(getBooksControllerOverviewUrl(), {
+  return customInstance<booksControllerOverviewResponse>(getBooksControllerOverviewUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getBooksControllerOverviewQueryKey = () => {
-  return [`/api/books/overview`] as const;
+export const getBooksControllerOverviewQueryKey = (params?: BooksControllerOverviewParams) => {
+  return [`/api/books/overview`, ...(params ? [params] : [])] as const;
 };
 
 export const getBooksControllerOverviewQueryOptions = <
   TData = Awaited<ReturnType<typeof booksControllerOverview>>,
   TError = void,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
+>(
+  params?: BooksControllerOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getBooksControllerOverviewQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerOverviewQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerOverview>>> = ({
     signal,
-  }) => booksControllerOverview({ signal, ...requestOptions });
+  }) => booksControllerOverview(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof booksControllerOverview>>,
@@ -456,6 +477,7 @@ export function useBooksControllerOverview<
   TData = Awaited<ReturnType<typeof booksControllerOverview>>,
   TError = void,
 >(
+  params: undefined | BooksControllerOverviewParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
@@ -476,6 +498,7 @@ export function useBooksControllerOverview<
   TData = Awaited<ReturnType<typeof booksControllerOverview>>,
   TError = void,
 >(
+  params?: BooksControllerOverviewParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
@@ -496,6 +519,7 @@ export function useBooksControllerOverview<
   TData = Awaited<ReturnType<typeof booksControllerOverview>>,
   TError = void,
 >(
+  params?: BooksControllerOverviewParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
@@ -512,6 +536,7 @@ export function useBooksControllerOverview<
   TData = Awaited<ReturnType<typeof booksControllerOverview>>,
   TError = void,
 >(
+  params?: BooksControllerOverviewParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerOverview>>, TError, TData>
@@ -520,7 +545,7 @@ export function useBooksControllerOverview<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getBooksControllerOverviewQueryOptions(options);
+  const queryOptions = getBooksControllerOverviewQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -697,6 +722,158 @@ export function useBooksControllerPurchaseStores<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerPurchaseStoresQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type booksControllerFavoritesSummaryResponse200 = {
+  data: FavoritesSummaryViewDto;
+  status: 200;
+};
+
+export type booksControllerFavoritesSummaryResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerFavoritesSummaryResponseSuccess =
+  booksControllerFavoritesSummaryResponse200 & {
+    headers: Headers;
+  };
+export type booksControllerFavoritesSummaryResponseError =
+  booksControllerFavoritesSummaryResponse401 & {
+    headers: Headers;
+  };
+
+export type booksControllerFavoritesSummaryResponse =
+  | booksControllerFavoritesSummaryResponseSuccess
+  | booksControllerFavoritesSummaryResponseError;
+
+export const getBooksControllerFavoritesSummaryUrl = () => {
+  return `/api/books/favorites-summary`;
+};
+
+/**
+ * @summary Get the current user favorites summary
+ */
+export const booksControllerFavoritesSummary = async (
+  options?: RequestInit,
+): Promise<booksControllerFavoritesSummaryResponse> => {
+  return customInstance<booksControllerFavoritesSummaryResponse>(
+    getBooksControllerFavoritesSummaryUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBooksControllerFavoritesSummaryQueryKey = () => {
+  return [`/api/books/favorites-summary`] as const;
+};
+
+export const getBooksControllerFavoritesSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerFavoritesSummary>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof booksControllerFavoritesSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerFavoritesSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerFavoritesSummary>>> = ({
+    signal,
+  }) => booksControllerFavoritesSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerFavoritesSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerFavoritesSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerFavoritesSummary>>
+>;
+export type BooksControllerFavoritesSummaryQueryError = void;
+
+export function useBooksControllerFavoritesSummary<
+  TData = Awaited<ReturnType<typeof booksControllerFavoritesSummary>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerFavoritesSummary>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerFavoritesSummary>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerFavoritesSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerFavoritesSummary<
+  TData = Awaited<ReturnType<typeof booksControllerFavoritesSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerFavoritesSummary>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerFavoritesSummary>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerFavoritesSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerFavoritesSummary<
+  TData = Awaited<ReturnType<typeof booksControllerFavoritesSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerFavoritesSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the current user favorites summary
+ */
+
+export function useBooksControllerFavoritesSummary<
+  TData = Awaited<ReturnType<typeof booksControllerFavoritesSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerFavoritesSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerFavoritesSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -2610,6 +2787,190 @@ export function useBookLoanControllerCreateLoan<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBookLoanControllerCreateLoanQueryOptions(id, createLoanInputDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bookLoanControllerEditLoanResponse200 = {
+  data: BookViewDto;
+  status: 200;
+};
+
+export type bookLoanControllerEditLoanResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bookLoanControllerEditLoanResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookLoanControllerEditLoanResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bookLoanControllerEditLoanResponseSuccess = bookLoanControllerEditLoanResponse200 & {
+  headers: Headers;
+};
+export type bookLoanControllerEditLoanResponseError = (
+  | bookLoanControllerEditLoanResponse400
+  | bookLoanControllerEditLoanResponse401
+  | bookLoanControllerEditLoanResponse404
+) & {
+  headers: Headers;
+};
+
+export type bookLoanControllerEditLoanResponse =
+  | bookLoanControllerEditLoanResponseSuccess
+  | bookLoanControllerEditLoanResponseError;
+
+export const getBookLoanControllerEditLoanUrl = (id: string) => {
+  return `/api/books/${id}/loan`;
+};
+
+/**
+ * @summary Edit the active loan of a borrowed or lent book
+ */
+export const bookLoanControllerEditLoan = async (
+  id: string,
+  updateLoanInputDto: UpdateLoanInputDto,
+  options?: RequestInit,
+): Promise<bookLoanControllerEditLoanResponse> => {
+  return customInstance<bookLoanControllerEditLoanResponse>(getBookLoanControllerEditLoanUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateLoanInputDto),
+  });
+};
+
+export const getBookLoanControllerEditLoanQueryKey = (
+  id: string,
+  updateLoanInputDto?: UpdateLoanInputDto,
+) => {
+  return ["PATCH", `/api/books/${id}/loan`, updateLoanInputDto] as const;
+};
+
+export const getBookLoanControllerEditLoanQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookLoanControllerEditLoan>>,
+  TError = void,
+>(
+  id: string,
+  updateLoanInputDto: UpdateLoanInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerEditLoan>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getBookLoanControllerEditLoanQueryKey(id, updateLoanInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bookLoanControllerEditLoan>>> = ({
+    signal,
+  }) => bookLoanControllerEditLoan(id, updateLoanInputDto, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerEditLoan>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type BookLoanControllerEditLoanQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookLoanControllerEditLoan>>
+>;
+export type BookLoanControllerEditLoanQueryError = void;
+
+export function useBookLoanControllerEditLoan<
+  TData = Awaited<ReturnType<typeof bookLoanControllerEditLoan>>,
+  TError = void,
+>(
+  id: string,
+  updateLoanInputDto: UpdateLoanInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerEditLoan>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookLoanControllerEditLoan>>,
+          TError,
+          Awaited<ReturnType<typeof bookLoanControllerEditLoan>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookLoanControllerEditLoan<
+  TData = Awaited<ReturnType<typeof bookLoanControllerEditLoan>>,
+  TError = void,
+>(
+  id: string,
+  updateLoanInputDto: UpdateLoanInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerEditLoan>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookLoanControllerEditLoan>>,
+          TError,
+          Awaited<ReturnType<typeof bookLoanControllerEditLoan>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookLoanControllerEditLoan<
+  TData = Awaited<ReturnType<typeof bookLoanControllerEditLoan>>,
+  TError = void,
+>(
+  id: string,
+  updateLoanInputDto: UpdateLoanInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerEditLoan>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Edit the active loan of a borrowed or lent book
+ */
+
+export function useBookLoanControllerEditLoan<
+  TData = Awaited<ReturnType<typeof bookLoanControllerEditLoan>>,
+  TError = void,
+>(
+  id: string,
+  updateLoanInputDto: UpdateLoanInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerEditLoan>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookLoanControllerEditLoanQueryOptions(id, updateLoanInputDto, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -4957,6 +5318,366 @@ export function useBulkBooksControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBulkBooksControllerDeleteQueryOptions(bulkBookIdsDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bookListsControllerGetListsResponse200 = {
+  data: BookListsViewDto;
+  status: 200;
+};
+
+export type bookListsControllerGetListsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookListsControllerGetListsResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bookListsControllerGetListsResponseSuccess = bookListsControllerGetListsResponse200 & {
+  headers: Headers;
+};
+export type bookListsControllerGetListsResponseError = (
+  | bookListsControllerGetListsResponse401
+  | bookListsControllerGetListsResponse404
+) & {
+  headers: Headers;
+};
+
+export type bookListsControllerGetListsResponse =
+  | bookListsControllerGetListsResponseSuccess
+  | bookListsControllerGetListsResponseError;
+
+export const getBookListsControllerGetListsUrl = (bookId: string) => {
+  return `/api/books/${bookId}/lists`;
+};
+
+/**
+ * @summary Get the user's lists annotated with whether this book belongs to each
+ */
+export const bookListsControllerGetLists = async (
+  bookId: string,
+  options?: RequestInit,
+): Promise<bookListsControllerGetListsResponse> => {
+  return customInstance<bookListsControllerGetListsResponse>(
+    getBookListsControllerGetListsUrl(bookId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBookListsControllerGetListsQueryKey = (bookId: string) => {
+  return [`/api/books/${bookId}/lists`] as const;
+};
+
+export const getBookListsControllerGetListsQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookListsControllerGetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerGetLists>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBookListsControllerGetListsQueryKey(bookId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bookListsControllerGetLists>>> = ({
+    signal,
+  }) => bookListsControllerGetLists(bookId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: bookId !== null && bookId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerGetLists>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type BookListsControllerGetListsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookListsControllerGetLists>>
+>;
+export type BookListsControllerGetListsQueryError = void;
+
+export function useBookListsControllerGetLists<
+  TData = Awaited<ReturnType<typeof bookListsControllerGetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerGetLists>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookListsControllerGetLists>>,
+          TError,
+          Awaited<ReturnType<typeof bookListsControllerGetLists>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookListsControllerGetLists<
+  TData = Awaited<ReturnType<typeof bookListsControllerGetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerGetLists>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookListsControllerGetLists>>,
+          TError,
+          Awaited<ReturnType<typeof bookListsControllerGetLists>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookListsControllerGetLists<
+  TData = Awaited<ReturnType<typeof bookListsControllerGetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerGetLists>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the user's lists annotated with whether this book belongs to each
+ */
+
+export function useBookListsControllerGetLists<
+  TData = Awaited<ReturnType<typeof bookListsControllerGetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerGetLists>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookListsControllerGetListsQueryOptions(bookId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bookListsControllerSetListsResponse200 = {
+  data: BookListsViewDto;
+  status: 200;
+};
+
+export type bookListsControllerSetListsResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bookListsControllerSetListsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookListsControllerSetListsResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bookListsControllerSetListsResponseSuccess = bookListsControllerSetListsResponse200 & {
+  headers: Headers;
+};
+export type bookListsControllerSetListsResponseError = (
+  | bookListsControllerSetListsResponse400
+  | bookListsControllerSetListsResponse401
+  | bookListsControllerSetListsResponse404
+) & {
+  headers: Headers;
+};
+
+export type bookListsControllerSetListsResponse =
+  | bookListsControllerSetListsResponseSuccess
+  | bookListsControllerSetListsResponseError;
+
+export const getBookListsControllerSetListsUrl = (bookId: string) => {
+  return `/api/books/${bookId}/lists`;
+};
+
+/**
+ * @summary Set which of the user's lists contain this book
+ */
+export const bookListsControllerSetLists = async (
+  bookId: string,
+  setBookListsInputDto: SetBookListsInputDto,
+  options?: RequestInit,
+): Promise<bookListsControllerSetListsResponse> => {
+  return customInstance<bookListsControllerSetListsResponse>(
+    getBookListsControllerSetListsUrl(bookId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(setBookListsInputDto),
+    },
+  );
+};
+
+export const getBookListsControllerSetListsQueryKey = (
+  bookId: string,
+  setBookListsInputDto?: SetBookListsInputDto,
+) => {
+  return ["PUT", `/api/books/${bookId}/lists`, setBookListsInputDto] as const;
+};
+
+export const getBookListsControllerSetListsQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookListsControllerSetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  setBookListsInputDto: SetBookListsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerSetLists>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getBookListsControllerSetListsQueryKey(bookId, setBookListsInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bookListsControllerSetLists>>> = ({
+    signal,
+  }) => bookListsControllerSetLists(bookId, setBookListsInputDto, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: bookId !== null && bookId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerSetLists>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type BookListsControllerSetListsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookListsControllerSetLists>>
+>;
+export type BookListsControllerSetListsQueryError = void;
+
+export function useBookListsControllerSetLists<
+  TData = Awaited<ReturnType<typeof bookListsControllerSetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  setBookListsInputDto: SetBookListsInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerSetLists>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookListsControllerSetLists>>,
+          TError,
+          Awaited<ReturnType<typeof bookListsControllerSetLists>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookListsControllerSetLists<
+  TData = Awaited<ReturnType<typeof bookListsControllerSetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  setBookListsInputDto: SetBookListsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerSetLists>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookListsControllerSetLists>>,
+          TError,
+          Awaited<ReturnType<typeof bookListsControllerSetLists>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookListsControllerSetLists<
+  TData = Awaited<ReturnType<typeof bookListsControllerSetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  setBookListsInputDto: SetBookListsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerSetLists>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Set which of the user's lists contain this book
+ */
+
+export function useBookListsControllerSetLists<
+  TData = Awaited<ReturnType<typeof bookListsControllerSetLists>>,
+  TError = void,
+>(
+  bookId: string,
+  setBookListsInputDto: SetBookListsInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookListsControllerSetLists>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookListsControllerSetListsQueryOptions(
+    bookId,
+    setBookListsInputDto,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

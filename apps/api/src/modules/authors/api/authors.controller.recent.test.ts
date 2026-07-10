@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -47,7 +48,7 @@ function recentNames(body: { name: string }[]): string[] {
 function seedAuthor(input: {
   name: string;
   names?: SeedAuthorName[];
-  userId?: null | string;
+  userId?: Nullable<string>;
 }): Promise<{ id: string; name: string }> {
   return prisma.author.create({
     data: {

@@ -1,4 +1,4 @@
-import type { ReadingStatus, SeriesBookView, SeriesStatsView } from "@app/shared";
+import type { Nullable, ReadingStatus, SeriesBookView, SeriesStatsView } from "@app/shared";
 
 type StatsBook = Pick<SeriesBookView, "pagesCount" | "rating" | "readingStatus">;
 
@@ -35,7 +35,7 @@ export function computeSeriesStats(books: StatsBook[]): SeriesStatsView {
   };
 }
 
-function computeAverageRating(books: StatsBook[]): null | number {
+function computeAverageRating(books: StatsBook[]): Nullable<number> {
   const ratings = books
     .map((book) => book.rating)
     .filter((rating): rating is number => rating !== null);
@@ -46,7 +46,7 @@ function computeAverageRating(books: StatsBook[]): null | number {
   return Math.round((total / ratings.length) * RATING_ROUNDING_FACTOR) / RATING_ROUNDING_FACTOR;
 }
 
-function computePagesCount(books: StatsBook[]): null | number {
+function computePagesCount(books: StatsBook[]): Nullable<number> {
   const pages = books
     .map((book) => book.pagesCount)
     .filter((pagesCount): pagesCount is number => pagesCount !== null);

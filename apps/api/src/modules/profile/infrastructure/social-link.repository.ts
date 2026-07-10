@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -25,7 +27,7 @@ export class SocialLinkRepository {
     return this.prisma.userSocialLink.delete({ where: { id } });
   }
 
-  findById(id: string): Promise<null | UserSocialLinkModel> {
+  findById(id: string): Promise<Nullable<UserSocialLinkModel>> {
     return this.prisma.userSocialLink.findUnique({ where: { id } });
   }
 

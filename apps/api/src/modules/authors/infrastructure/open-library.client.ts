@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
@@ -54,30 +56,30 @@ const BIRTH_YEAR = /\b(\d{4})\b/;
 const WORK_KEY_PREFIX = "/works/";
 
 export type OpenLibraryAuthor = {
-  birthYear: null | number;
+  birthYear: Nullable<number>;
   key: string;
   name: string;
   photoUrl: string;
 };
 
 export type OpenLibraryAuthorDetail = {
-  bio: null | string;
-  birthYear: null | number;
+  bio: Nullable<string>;
+  birthYear: Nullable<number>;
   name: string;
-  photoUrl: null | string;
-  wikidataId: null | string;
+  photoUrl: Nullable<string>;
+  wikidataId: Nullable<string>;
 };
 
 export type OpenLibraryWork = {
-  coverUrl: null | string;
-  firstPublishYear: null | number;
+  coverUrl: Nullable<string>;
+  firstPublishYear: Nullable<number>;
   openLibraryWorkKey: string;
   title: string;
 };
 
 const logger = createLogger("authors.open-library");
 
-function coverUrlFromIds(covers: number[] | undefined): null | string {
+function coverUrlFromIds(covers: number[] | undefined): Nullable<string> {
   const firstCoverId = covers?.find((coverId) => coverId !== MISSING_PHOTO_ID);
   if (firstCoverId === undefined) {
     return null;
@@ -85,7 +87,7 @@ function coverUrlFromIds(covers: number[] | undefined): null | string {
   return WORK_COVER_BY_ID(firstCoverId);
 }
 
-function normalizeBio(bio: string | undefined | { value: string }): null | string {
+function normalizeBio(bio: string | undefined | { value: string }): Nullable<string> {
   if (bio === undefined) {
     return null;
   }
@@ -94,7 +96,7 @@ function normalizeBio(bio: string | undefined | { value: string }): null | strin
   return trimmed.length === 0 ? null : trimmed;
 }
 
-function parseBirthYear(birthDate: string | undefined): null | number {
+function parseBirthYear(birthDate: string | undefined): Nullable<number> {
   if (birthDate === undefined) {
     return null;
   }
@@ -107,7 +109,7 @@ function parseBirthYear(birthDate: string | undefined): null | number {
   return Number.isNaN(year) ? null : year;
 }
 
-function photoUrlFromIds(photos: number[] | undefined): null | string {
+function photoUrlFromIds(photos: number[] | undefined): Nullable<string> {
   const firstPhotoId = photos?.[0];
   if (firstPhotoId === undefined || firstPhotoId === MISSING_PHOTO_ID) {
     return null;
@@ -117,7 +119,7 @@ function photoUrlFromIds(photos: number[] | undefined): null | string {
 
 @Injectable()
 export class OpenLibraryClient {
-  async getAuthorByKey(olid: string): Promise<null | OpenLibraryAuthorDetail> {
+  async getAuthorByKey(olid: string): Promise<Nullable<OpenLibraryAuthorDetail>> {
     let payload: unknown;
     try {
       const response = await fetch(AUTHOR_BY_KEY_ENDPOINT(olid), {

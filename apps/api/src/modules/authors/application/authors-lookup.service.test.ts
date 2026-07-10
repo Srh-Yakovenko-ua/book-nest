@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { AuthorsRepository } from "../infrastructure/authors.repository.js";
@@ -11,7 +13,7 @@ import { AuthorsService } from "./authors.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 
-type LookupMatch = { normalizedName: string; openLibraryKey: null | string };
+type LookupMatch = { normalizedName: string; openLibraryKey: Nullable<string> };
 
 function buildService(overrides: { candidates?: OpenLibraryAuthor[]; matches?: LookupMatch[] }): {
   findExistingByLookup: ReturnType<typeof vi.fn>;

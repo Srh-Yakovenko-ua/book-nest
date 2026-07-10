@@ -22,14 +22,15 @@ Subagents are useful for:
 
 ### Implementation (can Write/Edit code)
 
-| Agent                                                   | Model | When to use                                                                                                                |
-| ------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------- |
-| [`frontend-engineer`](./frontend-engineer.md)           | opus  | Writing, modifying, or debugging React code in `apps/web` — structure and logic                                            |
-| [`design-engineer`](./design-engineer.md)               | opus  | Visual polish, typography, colors, motion, interaction states, responsive rhythm                                           |
-| [`backend-engineer`](./backend-engineer.md)             | opus  | Writing, modifying, or debugging NestJS + Prisma code in `apps/api` (controllers, services, repositories, guards, modules) |
-| [`frontend-test-engineer`](./frontend-test-engineer.md) | opus  | Vitest + React Testing Library tests for `apps/web`                                                                        |
-| [`backend-test-engineer`](./backend-test-engineer.md)   | opus  | Vitest + supertest tests for `apps/api` via `createTestApp([modules])` + `@nestjs/testing`                                 |
-| [`refactor-specialist`](./refactor-specialist.md)       | opus  | Cleaning up messy code, removing dead code, simplifying — behavior-preserving                                              |
+| Agent                                                   | Model | When to use                                                                                                                                    |
+| ------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`frontend-engineer`](./frontend-engineer.md)           | opus  | Writing, modifying, or debugging React code in `apps/web` — structure and logic                                                                |
+| [`design-engineer`](./design-engineer.md)               | opus  | Visual polish, typography, colors, motion, interaction states, responsive rhythm                                                               |
+| [`backend-engineer`](./backend-engineer.md)             | opus  | Writing, modifying, or debugging NestJS + Prisma code in `apps/api` (controllers, services, repositories, guards, modules)                     |
+| [`frontend-test-engineer`](./frontend-test-engineer.md) | opus  | Vitest + React Testing Library tests for `apps/web`                                                                                            |
+| [`backend-test-engineer`](./backend-test-engineer.md)   | opus  | Vitest + supertest tests for `apps/api` via `createTestApp([modules])` + `@nestjs/testing`                                                     |
+| [`refactor-specialist`](./refactor-specialist.md)       | opus  | Cleaning up messy code, removing dead code, simplifying — behavior-preserving                                                                  |
+| [`changelog-writer`](./changelog-writer.md)             | opus  | Adding a "what's new" entry to `apps/api/src/scripts/seed-changelog.ts` when a user-visible feature ships end-to-end (uk + en, seed file only) |
 
 ### Documentation (can Write/Edit `docs/features/**` only)
 

@@ -9,6 +9,7 @@ import { useAuthStore } from "@/features/auth";
 import { Link } from "@/i18n/navigation";
 
 import { useLibraryOverview } from "../api/use-library-overview";
+import { DeliveryDashboardWidget } from "./delivery-dashboard-widget";
 import { type LibrarySummaryCard, LibrarySummaryCards } from "./library-summary-cards";
 
 export function HomeDashboard() {
@@ -51,6 +52,8 @@ export function HomeDashboard() {
       ) : (
         <>
           <LibrarySummaryCards cards={summaryCards} isLoading={overview.isPending} />
+
+          <DeliveryDashboardWidget />
 
           <ReadingProgress
             finished={summary?.finished ?? 0}

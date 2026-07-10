@@ -26,7 +26,7 @@ All concrete claims use `path:line` references so the reader can click straight 
 
 ## Planned
 
-- (none yet)
+- [loan-return-reminders](./loan-return-reminders.md) — "remind to return" is flag-only today (captured/stored/filtered, no delivery); doc records the gap + a scheduler → mail proposal (planned)
 
 ## Deprecated
 

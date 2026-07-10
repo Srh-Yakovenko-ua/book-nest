@@ -879,6 +879,7 @@ function seriesView(seed: {
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
     finishedInSeries: 0,
+    genres: [],
     id: seed.id,
     lastActivityAt: "2026-01-01T00:00:00.000Z",
     name: seed.name,

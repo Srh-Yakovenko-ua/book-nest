@@ -95,6 +95,7 @@ export const SeriesBook: Story = {
             createdAt: "2026-01-01T00:00:00.000Z",
             description: null,
             finishedInSeries: 2,
+            genres: [],
             id: "series-1",
             lastActivityAt: "2026-01-05T00:00:00.000Z",
             name: "Відьмак",

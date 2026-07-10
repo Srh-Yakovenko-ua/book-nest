@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { z } from "zod";
 
 import { env } from "../config/env.js";
@@ -19,9 +21,9 @@ const MAX_ATTRIBUTION_LENGTH = 300;
 const MAX_LICENSE_LENGTH = 120;
 
 export type CommonsImageLicense = {
-  attribution: null | string;
-  license: null | string;
-  licenseUrl: null | string;
+  attribution: Nullable<string>;
+  license: Nullable<string>;
+  licenseUrl: Nullable<string>;
 };
 
 const ExtMetadataValueSchema = z.object({ value: z.string() }).partial();
@@ -76,7 +78,7 @@ const HTML_ENTITY = /&(?:amp|lt|gt|quot|nbsp|#0?39);/g;
 const ANGLE_BRACKETS = /[<>]/g;
 const WHITESPACE = /\s+/g;
 
-export function commonsFileTitleFromUrl(url: string): null | string {
+export function commonsFileTitleFromUrl(url: string): Nullable<string> {
   const specialIndex = url.indexOf(SPECIAL_FILE_PATH_MARKER);
   if (specialIndex !== -1) {
     const encoded = url.slice(specialIndex + SPECIAL_FILE_PATH_MARKER.length);
@@ -175,7 +177,7 @@ function cleanAttribution(value: string): string {
   return collapsed.slice(0, MAX_ATTRIBUTION_LENGTH).trim();
 }
 
-function cleanLicense(value: string | undefined): null | string {
+function cleanLicense(value: string | undefined): Nullable<string> {
   const trimmed = value?.trim() ?? "";
   if (trimmed.length === 0) {
     return null;
@@ -183,7 +185,7 @@ function cleanLicense(value: string | undefined): null | string {
   return trimmed.slice(0, MAX_LICENSE_LENGTH).trim();
 }
 
-function cleanLicenseUrl(value: string | undefined): null | string {
+function cleanLicenseUrl(value: string | undefined): Nullable<string> {
   const trimmed = value?.trim() ?? "";
   if (trimmed.length === 0) {
     return null;
@@ -244,13 +246,15 @@ async function fetchBatch(titles: string[]): Promise<Map<string, CommonsImageLic
   return byCanonical;
 }
 
-function requestCommons(titles: string[]): Promise<null | z.infer<typeof CommonsResponseSchema>> {
+function requestCommons(
+  titles: string[],
+): Promise<Nullable<z.infer<typeof CommonsResponseSchema>>> {
   return requestWithRetry(titles);
 }
 
 async function requestWithRetry(
   titles: string[],
-): Promise<null | z.infer<typeof CommonsResponseSchema>> {
+): Promise<Nullable<z.infer<typeof CommonsResponseSchema>>> {
   const url = new URL(COMMONS_API_ENDPOINT);
   url.searchParams.set("action", "query");
   url.searchParams.set("prop", "imageinfo");
@@ -296,7 +300,7 @@ function stripUrlSuffix(value: string): string {
   return queryIndex === -1 ? value : value.slice(0, queryIndex);
 }
 
-function toFileTitle(encoded: string): null | string {
+function toFileTitle(encoded: string): Nullable<string> {
   if (encoded.length === 0) {
     return null;
   }

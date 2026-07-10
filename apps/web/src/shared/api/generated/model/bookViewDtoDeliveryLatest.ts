@@ -12,6 +12,8 @@
 export type BookViewDtoDeliveryLatest = {
   /** @nullable */
   cancelledAt: string | null;
+  /** @nullable */
+  cancelReason: string | null;
   createdAt: string;
   /** @nullable */
   currency: "UAH" | "EUR" | "USD" | null;

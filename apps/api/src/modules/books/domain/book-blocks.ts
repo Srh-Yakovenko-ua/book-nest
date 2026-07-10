@@ -1,6 +1,7 @@
 import type {
   DeliveryInfoInput,
   LoanInfoInput,
+  Nullable,
   OwnershipStatus,
   PurchaseInfoInput,
   ReadingProgressInput,
@@ -39,36 +40,41 @@ const OWNERSHIP_STATUS_IN_TRANSIT: OwnershipStatus = "in_transit";
 
 const DEFAULT_DELIVERY_STATUS = "ordered";
 
-export const toCreateDate = (value: null | string | undefined): Date | null =>
+export const toCreateDate = (value: Nullable<string> | undefined): Nullable<Date> =>
   value === undefined || value === null ? null : parseIsoDate(value);
 
-export const toUpdateDate = (value: null | string | undefined): Date | null | undefined =>
+export const toUpdateDate = (value: Nullable<string> | undefined): Nullable<Date> | undefined =>
   value === undefined || value === null ? value : parseIsoDate(value);
 
 export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryData {
   return {
-    currency: null,
-    deliveryService: null,
+    currency: deliveryInfo.currency ?? null,
+    deliveryService: deliveryInfo.deliveryService ?? null,
     expectedDeliveryDate: toCreateDate(deliveryInfo.expectedDeliveryDate),
     note: deliveryInfo.note ?? null,
     orderDate: toCreateDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber ?? null,
-    price: null,
+    price: deliveryInfo.price ?? null,
     status: deliveryInfo.deliveryStatus ?? DEFAULT_DELIVERY_STATUS,
     storeName: deliveryInfo.storeName ?? null,
-    trackingNumber: null,
-    trackingUrl: null,
+    trackingNumber: deliveryInfo.trackingNumber ?? null,
+    trackingUrl: deliveryInfo.trackingUrl ?? null,
   };
 }
 
 export function buildDeliveryInfoUpdateData(deliveryInfo: DefinedDeliveryInfo): UpdateDeliveryData {
   return {
+    currency: deliveryInfo.currency,
+    deliveryService: deliveryInfo.deliveryService,
     expectedDeliveryDate: toUpdateDate(deliveryInfo.expectedDeliveryDate),
     note: deliveryInfo.note,
     orderDate: toUpdateDate(deliveryInfo.orderDate),
     orderNumber: deliveryInfo.orderNumber,
+    price: deliveryInfo.price,
     status: deliveryInfo.deliveryStatus,
     storeName: deliveryInfo.storeName,
+    trackingNumber: deliveryInfo.trackingNumber,
+    trackingUrl: deliveryInfo.trackingUrl,
   };
 }
 

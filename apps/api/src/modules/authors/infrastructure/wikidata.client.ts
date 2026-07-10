@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
@@ -24,9 +26,9 @@ const FactsResponseSchema = z.object({
 const logger = createLogger("authors.wikidata");
 
 export type WikidataAuthorFacts = {
-  birthYear: null | number;
-  countryCode: null | string;
-  deathYear: null | number;
+  birthYear: Nullable<number>;
+  countryCode: Nullable<string>;
+  deathYear: Nullable<number>;
 };
 
 function buildFactsQuery(qid: string): string {
@@ -37,7 +39,7 @@ function buildFactsQuery(qid: string): string {
 } LIMIT 1`;
 }
 
-function parseYear(isoDateTime: string | undefined): null | number {
+function parseYear(isoDateTime: string | undefined): Nullable<number> {
   if (isoDateTime === undefined) {
     return null;
   }
@@ -52,7 +54,7 @@ function parseYear(isoDateTime: string | undefined): null | number {
 
 @Injectable()
 export class WikidataClient {
-  async getAuthorFactsByQid(qid: string): Promise<null | WikidataAuthorFacts> {
+  async getAuthorFactsByQid(qid: string): Promise<Nullable<WikidataAuthorFacts>> {
     if (!WIKIDATA_QID_PATTERN.test(qid)) {
       return null;
     }

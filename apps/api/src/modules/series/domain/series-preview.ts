@@ -1,4 +1,4 @@
-import type { ReadingStatus, SeriesNextBook } from "@app/shared";
+import type { Nullable, ReadingStatus, SeriesNextBook } from "@app/shared";
 
 import { ReadingStatusSchema } from "@app/shared";
 import { compareAsc } from "date-fns";
@@ -6,7 +6,7 @@ import { compareAsc } from "date-fns";
 export type SeriesBookPreview = {
   createdAt: Date;
   id: string;
-  partNumber: null | number;
+  partNumber: Nullable<number>;
   readingStatus: ReadingStatus;
   title: string;
   updatedAt: Date;
@@ -15,7 +15,7 @@ export type SeriesBookPreview = {
 export type SeriesBookRow = {
   createdAt: Date;
   id: string;
-  partNumber: null | number;
+  partNumber: Nullable<number>;
   readingStatus: string;
   title: string;
   updatedAt: Date;
@@ -23,13 +23,13 @@ export type SeriesBookRow = {
 
 export type SeriesBooksSummary = {
   finishedInSeries: number;
-  nextBook: null | SeriesNextBook;
+  nextBook: Nullable<SeriesNextBook>;
   readingInSeries: number;
 };
 
 type PartOrderedBook = {
   createdAt: Date;
-  partNumber: null | number;
+  partNumber: Nullable<number>;
 };
 
 const FINISHED_READING_STATUS: ReadingStatus = "finished";
@@ -58,8 +58,8 @@ export function computeHasUnreadEarlierParts({
   currentPartNumber,
 }: {
   books: SeriesBookPreview[];
-  currentPartNumber: null | number;
-}): boolean | null {
+  currentPartNumber: Nullable<number>;
+}): Nullable<boolean> {
   if (currentPartNumber === null) {
     return null;
   }
