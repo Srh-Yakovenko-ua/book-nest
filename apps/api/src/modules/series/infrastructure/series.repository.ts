@@ -54,6 +54,7 @@ const seriesDetailsArgs = {
     books: {
       include: {
         authors: { include: { author: true }, orderBy: { position: "asc" } },
+        coverMedia: true,
         readingProgress: { select: { currentPage: true, rating: true } },
       },
     },

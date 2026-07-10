@@ -1,5 +1,6 @@
 import type {
   BookAuthorReference,
+  MediaView,
   NewSeriesInput,
   Nullable,
   Paginator,
@@ -17,14 +18,19 @@ import { differenceInMilliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { SeriesBookPreview } from "../domain/series-preview.js";
-import type { SeriesWithBookCount } from "../infrastructure/series.repository.js";
+import type {
+  SeriesWithBookCount,
+  SeriesWithDetails,
+} from "../infrastructure/series.repository.js";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
+import { createLogger } from "../../../core/logger.js";
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { AuthorsService } from "../../authors/index.js";
 import { GenresService } from "../../genres/index.js";
+import { MediaService } from "../../media/index.js";
 import { computeSeriesLastActivityAt, toSeriesBookPreview } from "../domain/series-preview.js";
 import {
   computeSeriesProgress,
@@ -39,6 +45,8 @@ const SERIES_TOTAL_BELOW_BOOKS_MESSAGE =
   "Total books cannot be less than the number of books already in the series";
 const SERIES_TOTAL_BELOW_PART_MESSAGE = "Total books cannot be less than an existing part number";
 const OVERVIEW_TOP_LIMIT = 3;
+
+const log = createLogger("series.view");
 
 type DecoratedSeries = {
   books: SeriesBookPreview[];
@@ -62,6 +70,7 @@ export class SeriesService {
     private readonly seriesRepository: SeriesRepository,
     private readonly authorsService: AuthorsService,
     private readonly genresService: GenresService,
+    private readonly mediaService: MediaService,
   ) {}
 
   async create(userId: string, input: NewSeriesInput): Promise<SeriesView> {
@@ -110,7 +119,10 @@ export class SeriesService {
     if (series === null) {
       throw new NotFoundError("Series not found");
     }
-    return toSeriesDetailsView(series);
+    const covers = new Map<string, Nullable<MediaView>>(
+      series.books.map((book) => [book.id, this.coverViewOf(book)]),
+    );
+    return toSeriesDetailsView(series, covers);
   }
 
   async overview(userId: string): Promise<SeriesOverviewView> {
@@ -306,6 +318,18 @@ export class SeriesService {
     );
     if (totalBooks < maxPartNumber) {
       throw new ValidationError(SERIES_TOTAL_BELOW_PART_MESSAGE);
+    }
+  }
+
+  private coverViewOf(book: SeriesWithDetails["books"][number]): Nullable<MediaView> {
+    if (book.coverMedia === null) {
+      return null;
+    }
+    try {
+      return this.mediaService.buildView(book.coverMedia);
+    } catch (error) {
+      log.warn({ bookId: book.id, err: error }, "failed to build cover view");
+      return null;
     }
   }
 

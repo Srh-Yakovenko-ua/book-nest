@@ -1,9 +1,10 @@
-import type { Nullable } from "@app/shared";
+import type { MediaView, Nullable } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
 import type { SeriesModel } from "../../../generated/prisma/models.js";
 import type { GenresService } from "../../genres/application/genres.service.js";
+import type { MediaService } from "../../media/application/media.service.js";
 import type {
   SeriesRepository,
   SeriesWithBookCount,
@@ -31,6 +32,7 @@ type BookRowInput = {
 
 type DetailBookInput = {
   authors?: { id: string; name: string }[];
+  coverMedia?: Nullable<{ id: string }>;
   createdAt?: Date;
   id: string;
   isFavorite?: boolean;
@@ -73,6 +75,7 @@ function detailedSeries(
         author: { id: author.id, name: author.name },
         position: index,
       })),
+      coverMedia: book.coverMedia ?? null,
       createdAt: book.createdAt ?? new Date("2026-02-01T10:00:00.000Z"),
       id: book.id,
       isFavorite: book.isFavorite ?? false,
@@ -91,11 +94,13 @@ function detailedSeries(
 
 function makeService(options: {
   assertGenresSelectable?: ReturnType<typeof vi.fn>;
+  buildView?: ReturnType<typeof vi.fn>;
   repository: RepoMock;
   resolveReferences?: ReturnType<typeof vi.fn>;
 }): {
   authorsService: { resolveReferences: ReturnType<typeof vi.fn> };
   genresService: { assertGenresSelectable: ReturnType<typeof vi.fn> };
+  mediaService: { buildView: ReturnType<typeof vi.fn> };
   service: SeriesService;
 } {
   const resolveReferences = options.resolveReferences ?? vi.fn().mockResolvedValue([]);
@@ -103,12 +108,29 @@ function makeService(options: {
   const assertGenresSelectable =
     options.assertGenresSelectable ?? vi.fn().mockResolvedValue(undefined);
   const genresService = { assertGenresSelectable };
+  const buildView = options.buildView ?? vi.fn((asset: { id: string }) => mediaView(asset.id));
+  const mediaService = { buildView };
   const service = new SeriesService(
     options.repository as unknown as SeriesRepository,
     authorsService as unknown as AuthorsService,
     genresService as unknown as GenresService,
+    mediaService as unknown as MediaService,
   );
-  return { authorsService, genresService, service };
+  return { authorsService, genresService, mediaService, service };
+}
+
+function mediaView(id: string): MediaView {
+  return {
+    contentType: "image/webp",
+    createdAt: "2026-02-01T10:00:00.000Z",
+    height: 800,
+    id,
+    kind: "book_cover",
+    name: null,
+    sizeBytes: 1000,
+    urls: { card: `card-${id}`, full: `full-${id}`, thumb: `thumb-${id}` },
+    width: 600,
+  };
 }
 
 function ownedWithCount(
@@ -175,10 +197,15 @@ function buildService(overrides: {
     assertGenresSelectable: vi.fn().mockResolvedValue(undefined),
   };
 
+  const mediaService = {
+    buildView: vi.fn((asset: { id: string }) => mediaView(asset.id)),
+  };
+
   const service = new SeriesService(
     repository as unknown as SeriesRepository,
     authorsService as unknown as AuthorsService,
     genresService as unknown as GenresService,
+    mediaService as unknown as MediaService,
   );
 
   return { authorsService, genresService, repository, service };
@@ -1218,5 +1245,25 @@ describe("SeriesService.getById", () => {
       readingCount: 1,
       unreadCount: 0,
     });
+  });
+
+  it("builds the media cover for books that have one and null for those that do not", async () => {
+    const repository = {
+      findOwnedDetailsById: vi.fn().mockResolvedValue(
+        detailedSeries({
+          books: [
+            { coverMedia: { id: "media-1" }, id: "with-cover", partNumber: 1 },
+            { coverMedia: null, id: "without-cover", partNumber: 2 },
+          ],
+          id: SERIES_ID,
+        }),
+      ),
+    };
+    const { service } = makeService({ repository });
+
+    const details = await service.getById(USER_ID, SERIES_ID);
+
+    expect(details.books[0]?.cover).toEqual(mediaView("media-1"));
+    expect(details.books[1]?.cover).toBeNull();
   });
 });

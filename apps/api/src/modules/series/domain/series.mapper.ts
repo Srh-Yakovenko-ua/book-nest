@@ -1,4 +1,10 @@
-import type { Nullable, SeriesBookView, SeriesDetailsView, SeriesView } from "@app/shared";
+import type {
+  MediaView,
+  Nullable,
+  SeriesBookView,
+  SeriesDetailsView,
+  SeriesView,
+} from "@app/shared";
 
 import { OwnershipStatusSchema, ReadingStatusSchema, SeriesStatusSchema } from "@app/shared";
 
@@ -29,9 +35,12 @@ type SeriesViewSource = {
   updatedAt: Date;
 };
 
-export function toSeriesDetailsView(series: SeriesWithDetails): SeriesDetailsView {
+export function toSeriesDetailsView(
+  series: SeriesWithDetails,
+  covers: Map<string, Nullable<MediaView>>,
+): SeriesDetailsView {
   const orderedBooks = [...series.books].sort(compareByPartThenCreated);
-  const books = orderedBooks.map(toSeriesBookView);
+  const books = orderedBooks.map((book) => toSeriesBookView(book, covers.get(book.id) ?? null));
 
   return {
     ...toSeriesView(series),
@@ -67,12 +76,13 @@ export function toSeriesView(series: SeriesViewSource): SeriesView {
   };
 }
 
-function toSeriesBookView(book: SeriesDetailBook): SeriesBookView {
+function toSeriesBookView(book: SeriesDetailBook, cover: Nullable<MediaView>): SeriesBookView {
   return {
     authors: book.authors.map((bookAuthor) => ({
       id: bookAuthor.author.id,
       name: bookAuthor.author.name,
     })),
+    cover,
     createdAt: book.createdAt.toISOString(),
     currentPage: book.readingProgress?.currentPage ?? null,
     id: book.id,

@@ -5,6 +5,7 @@ import { OwnershipStatusSchema, ReadingStatusSchema } from "./book-enums.js";
 import { collapseHorizontalSpaces, collapseSpaces, createPaginatedSchema } from "./common.js";
 import { BookGenresSchema } from "./genres.js";
 import { NoHtmlString, queryStringArray } from "./internal.js";
+import { MediaViewSchema } from "./media.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 
 const SERIES_NAME_MIN = 2;
@@ -97,6 +98,7 @@ export type SeriesView = z.infer<typeof SeriesViewSchema>;
 
 export const SeriesBookViewSchema = z.object({
   authors: z.array(BookAuthorRefSchema),
+  cover: MediaViewSchema.nullable().optional(),
   createdAt: z.string(),
   currentPage: z.number().nullable(),
   id: z.string(),
