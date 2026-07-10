@@ -123,6 +123,8 @@ jobs:
 
       - name: Smoke test API prod build
         working-directory: apps/api
+        env:
+          COOKIE_SECURE: "true"
         run: |
           NODE_ENV=production node dist/index.js &
           API_PID=$!
