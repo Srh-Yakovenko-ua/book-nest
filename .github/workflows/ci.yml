@@ -61,10 +61,8 @@ jobs:
     name: Lint, typecheck, test, build
     needs: [static]
     if: >-
-      github.ref == 'refs/heads/stage' ||
-      github.ref == 'refs/heads/prod' ||
-      github.base_ref == 'stage' ||
-      github.base_ref == 'prod'
+      github.event_name == 'pull_request' &&
+      (github.base_ref == 'stage' || github.base_ref == 'prod')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

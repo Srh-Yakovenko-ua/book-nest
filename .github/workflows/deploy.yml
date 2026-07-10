@@ -21,26 +21,15 @@ jobs:
     name: CI
     uses: ./.github/workflows/ci.yml
 
-  deploy:
-    name: Build images and deploy
+  build-api:
+    name: Build API image
     needs: [ci]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Resolve environment
-        id: env
-        run: |
-          ENV="${{ github.ref_name }}"
-          echo "name=$ENV" >> "$GITHUB_OUTPUT"
-          if [ "$ENV" = "prod" ]; then
-            echo "site_url=https://book-nest.net" >> "$GITHUB_OUTPUT"
-          else
-            echo "site_url=https://dev.book-nest.net" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -59,9 +48,38 @@ jobs:
           file: apps/api/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ${{ env.IMAGE_PREFIX }}/booknest-api:${{ steps.env.outputs.name }}
-          cache-from: type=gha,scope=api-${{ steps.env.outputs.name }}
-          cache-to: type=gha,mode=max,scope=api-${{ steps.env.outputs.name }}
+          tags: ${{ env.IMAGE_PREFIX }}/booknest-api:${{ github.ref_name }}
+          cache-from: type=gha,scope=api-${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=api-${{ github.ref_name }}
+
+  build-web:
+    name: Build web image
+    needs: [ci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve site url
+        id: env
+        run: |
+          if [ "${{ github.ref_name }}" = "prod" ]; then
+            echo "site_url=https://book-nest.net" >> "$GITHUB_OUTPUT"
+          else
+            echo "site_url=https://dev.book-nest.net" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push web image
         uses: docker/build-push-action@v6
@@ -70,12 +88,33 @@ jobs:
           file: apps/web/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ${{ env.IMAGE_PREFIX }}/booknest-web:${{ steps.env.outputs.name }}
+          tags: ${{ env.IMAGE_PREFIX }}/booknest-web:${{ github.ref_name }}
           build-args: |
             NEXT_PUBLIC_SITE_URL=${{ steps.env.outputs.site_url }}
-            API_BASE_URL=http://api-${{ steps.env.outputs.name }}:4000
-          cache-from: type=gha,scope=web-${{ steps.env.outputs.name }}
-          cache-to: type=gha,mode=max,scope=web-${{ steps.env.outputs.name }}
+            API_BASE_URL=http://api-${{ github.ref_name }}:4000
+          cache-from: type=gha,scope=web-${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=web-${{ github.ref_name }}
+
+  deploy:
+    name: Deploy over SSH
+    needs: [build-api, build-web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve environment
+        id: env
+        run: |
+          ENV="${{ github.ref_name }}"
+          echo "name=$ENV" >> "$GITHUB_OUTPUT"
+          if [ "$ENV" = "prod" ]; then
+            echo "health_url=https://book-nest.net/api/health" >> "$GITHUB_OUTPUT"
+          else
+            echo "health_url=https://dev.book-nest.net/api/health" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Sync stack files + secrets, then deploy over SSH
         env:
@@ -143,3 +182,16 @@ jobs:
           ./deploy.sh "$ENV"
           docker logout ghcr.io
           REMOTE
+
+      - name: Verify live health
+        run: |
+          URL="${{ steps.env.outputs.health_url }}"
+          for i in $(seq 1 20); do
+            if curl -fsS -m 10 "$URL" | grep -q '"status":"ok"'; then
+              echo "live health ok: $URL"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "live health check failed for $URL" >&2
+          exit 1
