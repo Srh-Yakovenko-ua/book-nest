@@ -59,6 +59,7 @@ export function ListDetailsView({
   const t = useTranslations("lists.details");
   const tManage = useTranslations("lists.manage.toast");
   const tLibrary = useTranslations("books.library");
+  const tFormat = useTranslations("books.format.options");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
   const genres = useGenres();
@@ -82,6 +83,7 @@ export function ListDetailsView({
 
   const labels: LibraryBookLabels = {
     borrowedFrom: (name) => tLibrary("card.borrowedFrom", { name }),
+    formatLabel: (value) => tFormat(value),
     genreName: (key) => genreNameByKey.get(key) ?? key,
     lentTo: (name) => tLibrary("card.lentTo", { name }),
     ownershipLabel: (value) => tOwnership(value),
@@ -89,6 +91,7 @@ export function ListDetailsView({
     progressAriaLabel: (current, total) => tLibrary("progress.ariaLabel", { current, total }),
     progressUnit: tLibrary("progress.unit"),
     ratingLabel: (value) => tLibrary("rating.ariaLabel", { value }),
+    seriesPosition: (position, total) => tLibrary("card.seriesPosition", { position, total }),
     statusLabel: (value) => tStatus(value),
   };
 

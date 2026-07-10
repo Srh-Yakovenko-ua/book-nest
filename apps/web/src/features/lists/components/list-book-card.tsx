@@ -53,6 +53,7 @@ export function ListBookCard({
       <BookCard
         authors={libraryBook.authors}
         cover={libraryBook.cover}
+        formats={libraryBook.formats}
         genres={libraryBook.genres}
         href={libraryBook.href}
         kebab={
@@ -127,6 +128,7 @@ export function ListBookCard({
           </div>
         }
         ownership={libraryBook.ownership}
+        ownershipTooltip={libraryBook.loan?.text}
         progress={libraryBook.progress}
         publisher={libraryBook.publisher}
         rating={libraryBook.rating}

@@ -150,7 +150,7 @@ function ChangeStatusForm({
 
   const {
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
     handleSubmit,
   } = useForm<ChangeStatusValues>({
     defaultValues: {
@@ -175,10 +175,8 @@ function ChangeStatusForm({
   });
 
   const status = useWatch({ control, name: "status" });
-  const resetProgress = useWatch({ control, name: "resetProgress" });
   const hasSavedPage = (book.readingProgress?.currentPage ?? 0) > 0;
   const fields = fieldsFor(status, hasSavedPage);
-  const unchanged = status === book.readingStatus && !(fields.resetProgress && resetProgress);
 
   const onSubmit = handleSubmit((values) => {
     setServerError(null);
@@ -388,7 +386,7 @@ function ChangeStatusForm({
         <Button onClick={onDone} type="button" variant="secondary">
           {tActions("cancel")}
         </Button>
-        <Button disabled={unchanged || change.isPending} loading={change.isPending} type="submit">
+        <Button disabled={!isDirty || change.isPending} loading={change.isPending} type="submit">
           {t("statusDialog.submit")}
         </Button>
       </DialogFooter>

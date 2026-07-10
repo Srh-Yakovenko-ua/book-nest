@@ -120,15 +120,15 @@ export const KnownTotalWithGaps: Story = {
       }),
     );
   },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText("Послідовність серії")).toBeVisible();
-    await waitFor(async () => {
-      await expect(canvas.getByText("Поточна")).toBeVisible();
+  play: async ({ canvas, canvasElement }) => {
+    await expect(canvas.getByText("Послідовність читання серії")).toBeVisible();
+    await waitFor(() => {
+      expect(canvasElement.querySelector("[aria-current='true']")).not.toBeNull();
     });
     const readingLinks = canvas.getAllByRole("link", { name: /Ковадло зірок/ });
     await expect(readingLinks.length).toBeGreaterThan(0);
     await expect(readingLinks[0]).toBeVisible();
-    await expect(canvas.getByText(/Показано весь порядок циклу/, { exact: false })).toBeVisible();
+    await expect(canvas.getByText("Прочитано 1 з 5 книг серії · 20%")).toBeVisible();
   },
 };
 
@@ -170,15 +170,17 @@ export const UnknownTotalOpenSlot: Story = {
     await waitFor(async () => {
       await expect(canvas.getByText("Додати книгу серії")).toBeVisible();
     });
-    await expect(canvas.getByText(/У бібліотеці 2/)).toBeVisible();
+    await expect(canvas.getByText(/2 книги вже у твоїй бібліотеці/)).toBeVisible();
   },
 };
 
 const DONE_ID = "seq-completed";
 const doneSeries = makeSeriesView({
   booksInSeries: 3,
+  finishedInSeries: 3,
   id: DONE_ID,
   name: "Основа",
+  status: "completed",
   totalBooks: 3,
 });
 
@@ -211,8 +213,10 @@ export const AllFinished: Story = {
   },
   play: async ({ canvas }) => {
     await waitFor(async () => {
-      await expect(canvas.getByText("Серію завершено")).toBeVisible();
+      await expect(canvas.getByText("Усі книги цієї серії вже прочитані.")).toBeVisible();
     });
+    await expect(canvas.getAllByText("Серію завершено")).toHaveLength(1);
+    await expect(canvas.getByText("Серію прочитано")).toBeVisible();
   },
 };
 
@@ -310,10 +314,10 @@ export const Mobile: Story = {
       </div>
     ),
   ],
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText("Послідовність серії")).toBeVisible();
-    await waitFor(async () => {
-      await expect(canvas.getByText("Поточна")).toBeVisible();
+  play: async ({ canvas, canvasElement }) => {
+    await expect(canvas.getByText("Послідовність читання серії")).toBeVisible();
+    await waitFor(() => {
+      expect(canvasElement.querySelector("[aria-current='true']")).not.toBeNull();
     });
   },
 };
