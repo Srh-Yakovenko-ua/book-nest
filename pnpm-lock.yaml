@@ -132,6 +132,9 @@ catalogs:
     '@types/nodemailer':
       specifier: ^6.4.17
       version: 6.4.23
+    '@types/pg':
+      specifier: ^8.16.0
+      version: 8.20.0
     '@types/react':
       specifier: ^19.2.14
       version: 19.2.14
@@ -279,6 +282,9 @@ catalogs:
     orval:
       specifier: ^8.15.0
       version: 8.15.0
+    pg:
+      specifier: ^8.16.3
+      version: 8.20.0
     pino:
       specifier: ^10.3.1
       version: 10.3.1
@@ -606,9 +612,15 @@ importers:
       '@types/nodemailer':
         specifier: 'catalog:'
         version: 6.4.23
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.20.0
       '@types/supertest':
         specifier: 'catalog:'
         version: 7.2.0
+      pg:
+        specifier: 'catalog:'
+        version: 8.20.0
       pino-pretty:
         specifier: 'catalog:'
         version: 13.1.3
