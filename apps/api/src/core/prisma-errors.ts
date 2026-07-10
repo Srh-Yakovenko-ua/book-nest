@@ -1,6 +1,16 @@
 import { Prisma } from "../generated/prisma/client.js";
 
 const UNIQUE_CONSTRAINT_CODE = "P2002";
+const FOREIGN_KEY_CONSTRAINT_CODE = "P2003";
+
+export function isForeignKeyConstraintError(
+  error: unknown,
+): error is Prisma.PrismaClientKnownRequestError {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === FOREIGN_KEY_CONSTRAINT_CODE
+  );
+}
 
 export function isUniqueConstraintError(
   error: unknown,

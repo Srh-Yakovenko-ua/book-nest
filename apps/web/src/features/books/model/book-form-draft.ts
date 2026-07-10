@@ -36,6 +36,7 @@ const authorReferenceSchema = z.union([
 const newSeriesDraftSchema = z.object({
   authors: z.array(authorReferenceSchema).optional(),
   description: z.string().optional(),
+  genres: z.array(z.string()).default([]),
   name: z.string(),
   status: z.enum(["completed", "ongoing", "unknown"]),
   totalBooks: z.number().optional(),
@@ -50,6 +51,7 @@ const seriesSelectionSchema = z.union([
   }),
   z.object({
     authors: z.array(authorSelectionSchema),
+    genres: z.array(z.string()).default([]),
     id: z.string(),
     kind: z.literal("existing"),
     name: z.string(),

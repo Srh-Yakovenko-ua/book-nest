@@ -1,5 +1,6 @@
 import type {
   CreateSocialLinkInput,
+  Nullable,
   SocialLinkView,
   SocialPlatform,
   UpdateSocialLinkInput,
@@ -121,6 +122,6 @@ function hasUrl(links: UserSocialLinkModel[], url: string): boolean {
   return links.some((link) => link.url === url);
 }
 
-function isEmpty(value: null | string): boolean {
+function isEmpty(value: Nullable<string>): boolean {
   return value === null || value.length === 0;
 }

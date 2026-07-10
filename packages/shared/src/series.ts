@@ -3,7 +3,9 @@ import { z } from "zod";
 import { BOOK_AUTHORS_MAX, BookAuthorReferenceSchema, BookAuthorRefSchema } from "./authors.js";
 import { OwnershipStatusSchema, ReadingStatusSchema } from "./book-enums.js";
 import { collapseHorizontalSpaces, collapseSpaces, createPaginatedSchema } from "./common.js";
+import { BookGenresSchema } from "./genres.js";
 import { NoHtmlString, queryStringArray } from "./internal.js";
+import { MediaViewSchema } from "./media.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 
 const SERIES_NAME_MIN = 2;
@@ -43,6 +45,7 @@ const SeriesTotalBooksSchema = z
 export const NewSeriesInputSchema = z.object({
   authors: z.array(BookAuthorReferenceSchema).max(BOOK_AUTHORS_MAX).optional(),
   description: SeriesDescriptionSchema.optional(),
+  genres: BookGenresSchema.default([]),
   name: SeriesNameSchema,
   status: SeriesStatusSchema.default("unknown"),
   totalBooks: SeriesTotalBooksSchema.optional(),
@@ -53,6 +56,7 @@ export type NewSeriesInput = z.infer<typeof NewSeriesInputSchema>;
 export const UpdateSeriesInputSchema = z.object({
   authors: z.array(BookAuthorReferenceSchema).max(BOOK_AUTHORS_MAX).optional(),
   description: SeriesDescriptionSchema.nullable().optional(),
+  genres: BookGenresSchema.optional(),
   name: SeriesNameSchema.optional(),
   status: SeriesStatusSchema.optional(),
   totalBooks: SeriesTotalBooksSchema.nullable().optional(),
@@ -80,6 +84,7 @@ export const SeriesViewSchema = z.object({
   createdAt: z.string(),
   description: z.string().nullable(),
   finishedInSeries: z.number(),
+  genres: z.array(z.string()),
   id: z.string(),
   lastActivityAt: z.string(),
   name: z.string(),
@@ -93,6 +98,7 @@ export type SeriesView = z.infer<typeof SeriesViewSchema>;
 
 export const SeriesBookViewSchema = z.object({
   authors: z.array(BookAuthorRefSchema),
+  cover: MediaViewSchema.nullable().optional(),
   createdAt: z.string(),
   currentPage: z.number().nullable(),
   id: z.string(),

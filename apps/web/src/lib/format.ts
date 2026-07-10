@@ -8,6 +8,14 @@ export function formatDate(iso: string, locale: string): string {
   }).format(toLocalDate(iso));
 }
 
+export function formatDateLong(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(toLocalDate(iso));
+}
+
 export function formatTimestamp(iso: string): string {
   const d = new Date(iso);
   const date = d.toLocaleDateString("en-GB", {

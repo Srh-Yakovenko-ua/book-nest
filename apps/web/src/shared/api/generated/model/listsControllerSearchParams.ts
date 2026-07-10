@@ -5,6 +5,7 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { ListsControllerSearchSort } from "./listsControllerSearchSort";
 
 export type ListsControllerSearchParams = {
   /**
@@ -21,4 +22,5 @@ export type ListsControllerSearchParams = {
    * @maxLength 100
    */
   search?: string;
+  sort?: ListsControllerSearchSort;
 };

@@ -89,7 +89,7 @@ export const loanDueStatuses = [
 ] as const satisfies readonly StatusEntry[];
 
 export const queuePriorities = [
-  { icon: "arrow-up", label: "Високий", tone: "danger", value: "high" },
+  { icon: "arrow-up", label: "Високий", tone: "accent", value: "high" },
   { icon: "minus", isDefault: true, label: "Звичайний", tone: "neutral", value: "normal" },
   { icon: "arrow-down", label: "Низький", tone: "neutral", value: "low" },
 ] as const satisfies readonly StatusEntry[];

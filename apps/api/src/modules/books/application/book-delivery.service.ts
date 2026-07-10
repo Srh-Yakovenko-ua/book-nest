@@ -90,6 +90,7 @@ export class BookDeliveryService {
     this.assertActiveRecord(book, deliveryId);
 
     const transition = computeCancelDelivery({
+      cancelReason: input.cancelReason,
       keepAsWantToBuy: input.keepAsWantToBuy,
       now: new Date(),
     });

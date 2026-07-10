@@ -28,6 +28,19 @@ export const LIBRARY_VIEW_DEFAULT = "grid";
 export const LIBRARY_VIEW_MODES = ["grid", "list"] as const;
 export type LibraryViewMode = (typeof LIBRARY_VIEW_MODES)[number];
 
+export const LIBRARY_SCOPES = ["all", "my", "favorites"] as const;
+export type LibraryScope = (typeof LIBRARY_SCOPES)[number];
+
+export const LIBRARY_OWNERSHIP_SCOPE = [
+  BooksControllerListOwnerItem.owned,
+  BooksControllerListOwnerItem.lent_to_someone,
+  BooksControllerListOwnerItem.borrowed_from_someone,
+] as const satisfies readonly BooksControllerListOwnerItem[];
+
+const LIBRARY_OWNERSHIP_SCOPE_SET: ReadonlySet<BooksControllerListOwnerItem> = new Set(
+  LIBRARY_OWNERSHIP_SCOPE,
+);
+
 export const LIBRARY_SORT_ORDER = Object.values(BooksControllerListSort);
 
 export const LIBRARY_STATUS_VALUES = Object.values(BooksControllerListStatusItem);
@@ -60,6 +73,11 @@ export const libraryQueryParsers = {
   view: parseAsStringLiteral(LIBRARY_VIEW_MODES).withDefault(LIBRARY_VIEW_DEFAULT),
   yearMax: parseAsInteger,
   yearMin: parseAsInteger,
+};
+
+export const favoritesQueryParsers = {
+  ...libraryQueryParsers,
+  sort: parseAsStringLiteral(sortValues).withDefault(BooksControllerListSort.favorite_added_desc),
 };
 
 export type LibraryListParams = Omit<BooksControllerListParams, "pageNumber">;
@@ -126,8 +144,19 @@ export function libraryRangeFlags(source: LibraryRangeSource): LibraryRangeFlags
   };
 }
 
-export function toLibraryListParams(state: LibraryQueryState): LibraryListParams {
+export function scopedOwnerValues(scope: LibraryScope): BooksControllerListOwnerItem[] {
+  if (scope === "my") {
+    return LIBRARY_OWNER_VALUES.filter((value) => LIBRARY_OWNERSHIP_SCOPE_SET.has(value));
+  }
+  return LIBRARY_OWNER_VALUES;
+}
+
+export function toLibraryListParams(
+  state: LibraryQueryState,
+  scope: LibraryScope,
+): LibraryListParams {
   const search = state.q.trim();
+  const isFavorite = resolveIsFavoriteParam(state, scope);
 
   return {
     ageCategory: state.ageCategory,
@@ -135,7 +164,7 @@ export function toLibraryListParams(state: LibraryQueryState): LibraryListParams
     format: state.format,
     genre: state.genre,
     language: state.language,
-    owner: state.owner,
+    owner: scopedOwner(state.owner, scope),
     pageSize: LIBRARY_PAGE_SIZE,
     publisher: state.publisher,
     sort: state.sort,
@@ -143,7 +172,7 @@ export function toLibraryListParams(state: LibraryQueryState): LibraryListParams
     tag: state.tag,
     ...(search === "" ? {} : { q: search }),
     ...(state.bookType === null ? {} : { bookType: state.bookType }),
-    ...(state.isFavorite === null ? {} : { isFavorite: String(state.isFavorite) }),
+    ...(isFavorite === undefined ? {} : { isFavorite }),
     ...(state.hasCover === null ? {} : { hasCover: String(state.hasCover) }),
     ...(state.ratingMin === null ? {} : { ratingMin: state.ratingMin }),
     ...(state.ratingMax === null ? {} : { ratingMax: state.ratingMax }),
@@ -158,6 +187,21 @@ function isInvertedRange({ max, min }: LibraryRange): boolean {
   if (min === null || min === undefined) return false;
   if (max === null || max === undefined) return false;
   return min > max;
+}
+
+function resolveIsFavoriteParam(state: LibraryQueryState, scope: LibraryScope): string | undefined {
+  if (scope === "favorites") return "true";
+  if (state.isFavorite === null) return undefined;
+  return String(state.isFavorite);
+}
+
+function scopedOwner(
+  owner: BooksControllerListOwnerItem[],
+  scope: LibraryScope,
+): BooksControllerListOwnerItem[] {
+  if (scope !== "my") return owner;
+  const intersection = owner.filter((value) => LIBRARY_OWNERSHIP_SCOPE_SET.has(value));
+  return intersection.length === 0 ? [...LIBRARY_OWNERSHIP_SCOPE] : intersection;
 }
 
 export const LIBRARY_FILTERS_RESET = {

@@ -35,6 +35,8 @@ export type LibraryOverviewViewDtoRecentlyAddedItem = {
   delivery: LibraryOverviewViewDtoRecentlyAddedItemDelivery;
   /** @nullable */
   description: string | null;
+  /** @nullable */
+  favoriteAddedAt: string | null;
   formats: LibraryOverviewViewDtoRecentlyAddedItemFormatsItem[];
   genres: string[];
   /** @nullable */

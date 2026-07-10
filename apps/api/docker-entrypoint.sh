@@ -5,5 +5,6 @@ node "$(node -e "process.stdout.write(require.resolve('prisma/package.json').rep
 
 node dist/scripts/seed-genres.js
 node dist/scripts/seed-delivery-services.js
+node dist/scripts/seed-changelog.js
 
 exec node dist/index.js

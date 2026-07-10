@@ -94,7 +94,7 @@ export const Palette: Story = {
     await waitFor(() => expect(dialog).toBeVisible());
 
     const input = surface.getByPlaceholderText("Команда чи книга…");
-    await userEvent.click(input);
+    await waitFor(() => expect(input).toHaveFocus());
     await userEvent.keyboard("список");
 
     await waitFor(() => expect(surface.queryByText("Додати книгу")).not.toBeInTheDocument());

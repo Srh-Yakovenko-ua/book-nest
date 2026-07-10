@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { normalizeName } from "../core/normalize-name.js";
 
 export type AuthorNameSeed = {
@@ -8,35 +10,35 @@ export type AuthorNameSeed = {
 };
 
 export type AuthorSeedInput = {
-  bio: null | string;
-  birthYear: null | number;
-  countryCode: null | string;
-  deathYear: null | number;
+  bio: Nullable<string>;
+  birthYear: Nullable<number>;
+  countryCode: Nullable<string>;
+  deathYear: Nullable<number>;
   name: string;
   names: AuthorNameSeed[];
   normalizedName: string;
-  openLibraryKey: null | string;
-  photoAttribution: null | string;
-  photoLicense: null | string;
-  photoLicenseUrl: null | string;
-  photoUrl: null | string;
+  openLibraryKey: Nullable<string>;
+  photoAttribution: Nullable<string>;
+  photoLicense: Nullable<string>;
+  photoLicenseUrl: Nullable<string>;
+  photoUrl: Nullable<string>;
   searchText: string;
   userId: null;
   wikidataId: string;
 };
 
 export type WikidataAuthorRow = {
-  aliasEn: null | string;
-  aliasRu: null | string;
-  aliasUk: null | string;
-  authorDescription: null | string;
-  birth: null | string;
-  countryCode: null | string;
-  death: null | string;
-  image: null | string;
-  labelEn: null | string;
-  labelUk: null | string;
-  openLibraryKey: null | string;
+  aliasEn: Nullable<string>;
+  aliasRu: Nullable<string>;
+  aliasUk: Nullable<string>;
+  authorDescription: Nullable<string>;
+  birth: Nullable<string>;
+  countryCode: Nullable<string>;
+  death: Nullable<string>;
+  image: Nullable<string>;
+  labelEn: Nullable<string>;
+  labelUk: Nullable<string>;
+  openLibraryKey: Nullable<string>;
   wikidataId: string;
 };
 
@@ -44,7 +46,7 @@ const OPEN_LIBRARY_AUTHOR_KEY = /^OL\d+A$/;
 const ISO_YEAR = /^-?\d{4,}/;
 const ALIAS_SEPARATOR = "|";
 
-export function mapWikidataAuthorRow(row: WikidataAuthorRow): AuthorSeedInput | null {
+export function mapWikidataAuthorRow(row: WikidataAuthorRow): Nullable<AuthorSeedInput> {
   const labelEn = trimToNull(row.labelEn);
   const labelUk = trimToNull(row.labelUk);
   const canonicalName = labelEn ?? labelUk;
@@ -77,7 +79,7 @@ function addName(
   names: AuthorNameSeed[],
   seen: Set<string>,
   locale: string,
-  label: null | string,
+  label: Nullable<string>,
   isPrimary: boolean,
 ): void {
   const name = trimToNull(label);
@@ -95,8 +97,8 @@ function addName(
 
 function buildNames(
   row: WikidataAuthorRow,
-  labelEn: null | string,
-  labelUk: null | string,
+  labelEn: Nullable<string>,
+  labelUk: Nullable<string>,
 ): AuthorNameSeed[] {
   const names: AuthorNameSeed[] = [];
   const seen = new Set<string>();
@@ -131,14 +133,14 @@ function buildSearchText(names: AuthorNameSeed[]): string {
   return [...tokens].join(" ");
 }
 
-function normalizeOpenLibraryKey(key: null | string): null | string {
+function normalizeOpenLibraryKey(key: Nullable<string>): Nullable<string> {
   if (key === null) {
     return null;
   }
   return OPEN_LIBRARY_AUTHOR_KEY.test(key) ? key : null;
 }
 
-function parseYear(isoDateTime: null | string): null | number {
+function parseYear(isoDateTime: Nullable<string>): Nullable<number> {
   if (isoDateTime === null) {
     return null;
   }
@@ -151,7 +153,7 @@ function parseYear(isoDateTime: null | string): null | number {
   return Number.isNaN(year) ? null : year;
 }
 
-function splitAliases(raw: null | string): string[] {
+function splitAliases(raw: Nullable<string>): string[] {
   if (raw === null) {
     return [];
   }
@@ -161,7 +163,7 @@ function splitAliases(raw: null | string): string[] {
     .filter((alias) => alias.length > 0);
 }
 
-function trimToNull(value: null | string): null | string {
+function trimToNull(value: Nullable<string>): Nullable<string> {
   if (value === null) {
     return null;
   }

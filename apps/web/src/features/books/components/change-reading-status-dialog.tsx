@@ -38,6 +38,7 @@ import { BookDateField } from "./book-date-field";
 import { StatusChipGroup } from "./status-chip-group";
 
 const NOTE_MAX = 300;
+const IMPRESSION_MAX = 5000;
 const RATING_MAX = 10;
 
 type ChangeReadingStatusDialogProps = {
@@ -50,6 +51,7 @@ type ChangeReadingStatusDialogProps = {
 type ChangeStatusValues = {
   currentPage: number;
   date: string;
+  impression: string;
   note: string;
   rating: number;
   resetProgress: boolean;
@@ -59,6 +61,7 @@ type ChangeStatusValues = {
 type StatusFields = {
   currentPage: boolean;
   date: boolean;
+  impression: boolean;
   note: boolean;
   rating: boolean;
   reason: boolean;
@@ -99,6 +102,9 @@ function buildPayload({
   if ((fields.note || fields.reason) && values.note.trim().length > 0) {
     payload.note = values.note.trim();
   }
+  if (fields.impression && values.impression.trim().length > 0) {
+    payload.impression = values.impression.trim();
+  }
   if (fields.rating && values.rating > 0) payload.rating = values.rating;
   if (fields.resetProgress && values.resetProgress) payload.resetProgress = true;
   return payload;
@@ -107,6 +113,7 @@ function buildPayload({
 function buildSchema(messages: {
   dateFuture: string;
   dateInvalid: string;
+  impressionMax: string;
   noteMax: string;
   pageOverTotal: string;
 }) {
@@ -116,6 +123,7 @@ function buildSchema(messages: {
       .string()
       .refine((value) => ISO_DATE_PATTERN.test(value), messages.dateInvalid)
       .refine((value) => value <= todayIso(), messages.dateFuture),
+    impression: z.string().max(IMPRESSION_MAX, messages.impressionMax),
     note: z.string().max(NOTE_MAX, messages.noteMax),
     rating: z.literal(0).or(z.number().min(0.5).max(RATING_MAX).multipleOf(0.5)),
     resetProgress: z.boolean(),
@@ -148,6 +156,7 @@ function ChangeStatusForm({
     defaultValues: {
       currentPage: book.readingProgress?.currentPage ?? 0,
       date: todayIso(),
+      impression: book.readingProgress?.impression ?? "",
       note: "",
       rating: book.readingProgress?.rating ?? 0,
       resetProgress: false,
@@ -158,6 +167,7 @@ function ChangeStatusForm({
       buildSchema({
         dateFuture: t("errors.dateFuture"),
         dateInvalid: t("errors.dateInvalid"),
+        impressionMax: t("errors.impressionMax", { max: IMPRESSION_MAX }),
         noteMax: t("errors.noteMax", { max: NOTE_MAX }),
         pageOverTotal: t("errors.pageOverTotal", { total: book.pagesCount ?? "—" }),
       }),
@@ -248,6 +258,42 @@ function ChangeStatusForm({
                 value={field.value}
                 valueText={(value, max) => tCommon("ratingValueText", { max, value })}
               />
+            )}
+          />
+        </div>
+      ) : null}
+
+      {fields.impression ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="status-impression">{tFields("impression")}</Label>
+          <Controller
+            control={control}
+            name="impression"
+            render={({ field }) => (
+              <>
+                <Textarea
+                  aria-describedby={
+                    errors.impression
+                      ? "status-impression-error status-impression-counter"
+                      : "status-impression-counter"
+                  }
+                  aria-invalid={errors.impression !== undefined}
+                  id="status-impression"
+                  maxLength={IMPRESSION_MAX}
+                  onChange={field.onChange}
+                  placeholder={tFields("impressionPlaceholder")}
+                  value={field.value}
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <FieldError error={errors.impression} id="status-impression-error" />
+                  <span
+                    className="ml-auto text-xs text-muted-foreground tabular-nums"
+                    id="status-impression-counter"
+                  >
+                    {field.value.length}/{IMPRESSION_MAX}
+                  </span>
+                </div>
+              </>
             )}
           />
         </div>
@@ -354,6 +400,7 @@ function fieldsFor(status: ReadingStatus, canResetProgress: boolean): StatusFiel
   const none: StatusFields = {
     currentPage: false,
     date: false,
+    impression: false,
     note: false,
     rating: false,
     reason: false,
@@ -363,7 +410,7 @@ function fieldsFor(status: ReadingStatus, canResetProgress: boolean): StatusFiel
     case "dnf":
       return { ...none, currentPage: true, date: true, reason: true };
     case "finished":
-      return { ...none, date: true, rating: true };
+      return { ...none, date: true, impression: true, rating: true };
     case "not_started":
       return { ...none, resetProgress: canResetProgress };
     case "paused":

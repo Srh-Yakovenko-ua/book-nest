@@ -11,6 +11,7 @@ function makeDelivery(overrides: Partial<BookDeliveryModel> = {}): BookDeliveryM
   return {
     bookId: "00000000-0000-4000-8000-00000000b001",
     cancelledAt: null,
+    cancelReason: null,
     createdAt: BASE_CREATED_AT,
     currency: null,
     deliveryService: null,
@@ -35,6 +36,7 @@ describe("toDeliveryView", () => {
   it("maps every field of a delivery into its view shape", () => {
     const delivery = makeDelivery({
       cancelledAt: new Date("2026-02-05T12:00:00.000Z"),
+      cancelReason: "Out of stock",
       createdAt: new Date("2026-02-01T10:00:00.000Z"),
       currency: "UAH",
       deliveryService: "Nova Poshta",
@@ -53,6 +55,7 @@ describe("toDeliveryView", () => {
 
     expect(toDeliveryView(delivery)).toEqual({
       cancelledAt: "2026-02-05T12:00:00.000Z",
+      cancelReason: "Out of stock",
       createdAt: "2026-02-01T10:00:00.000Z",
       currency: "UAH",
       deliveryService: "Nova Poshta",

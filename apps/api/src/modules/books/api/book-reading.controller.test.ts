@@ -276,6 +276,49 @@ describe("POST /api/books/:id/reading-status side effects", () => {
     expect(res.body.readingProgress.rating).toBe(9);
   });
 
+  it("records the impression when finishing a book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      pagesCount: 300,
+      readingProgress: { currentPage: 100 },
+      readingStatus: "reading",
+      title: "Dune",
+    });
+
+    const res = await changeReadingStatus(accessToken, created.body.id, {
+      impression: "A sweeping desert epic",
+      status: "finished",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.readingProgress.impression).toBe("A sweeping desert epic");
+  });
+
+  it("clears the impression when a finished book is moved to want_to_read", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      pagesCount: 300,
+      readingProgress: { currentPage: 100 },
+      readingStatus: "reading",
+      title: "Dune",
+    });
+
+    const finished = await changeReadingStatus(accessToken, created.body.id, {
+      impression: "A sweeping desert epic",
+      status: "finished",
+    });
+    expect(finished.body.readingProgress.impression).toBe("A sweeping desert epic");
+
+    const res = await changeReadingStatus(accessToken, created.body.id, {
+      status: "want_to_read",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.readingProgress.impression).toBeNull();
+  });
+
   it("stamps the paused date and carries the current page and note when pausing", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {

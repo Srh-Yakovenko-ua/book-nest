@@ -1,3 +1,4 @@
+import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
 import request from "supertest";
@@ -39,27 +40,28 @@ type SeedBookInput = {
   ageCategory?: string;
   authorId: string;
   coAuthorIds?: string[];
-  coverMediaId?: null | string;
+  coverMediaId?: Nullable<string>;
   createdAt?: Date;
+  favoriteAddedAt?: Nullable<Date>;
   firstAuthorName?: string;
   formats?: string[];
   genres?: string[];
-  illustrator?: null | string;
-  isbn?: null | string;
+  illustrator?: Nullable<string>;
+  isbn?: Nullable<string>;
   isFavorite?: boolean;
   language?: string;
-  originalTitle?: null | string;
+  originalTitle?: Nullable<string>;
   ownershipStatus?: string;
-  pagesCount?: null | number;
-  partNumber?: null | number;
-  publicationYear?: null | number;
-  publisherId?: null | string;
+  pagesCount?: Nullable<number>;
+  partNumber?: Nullable<number>;
+  publicationYear?: Nullable<number>;
+  publisherId?: Nullable<string>;
   rating?: number;
   readingStatus?: string;
-  seriesId?: null | string;
+  seriesId?: Nullable<string>;
   tagIds?: string[];
   title?: string;
-  translator?: null | string;
+  translator?: Nullable<string>;
   userId: string;
 };
 
@@ -107,6 +109,7 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
       authors: { create: authorJoinCreate(input.authorId, input.coAuthorIds) },
       coverMediaId: input.coverMediaId ?? null,
       createdAt: input.createdAt,
+      favoriteAddedAt: input.favoriteAddedAt ?? null,
       firstAuthorName: input.firstAuthorName ?? "",
       formats: input.formats ?? [],
       genres: input.genres ?? [],
@@ -136,7 +139,11 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
   });
 }
 
-function seedGenre(input: { key: string; name: string; userId?: null | string }): Promise<unknown> {
+function seedGenre(input: {
+  key: string;
+  name: string;
+  userId?: Nullable<string>;
+}): Promise<unknown> {
   return prisma.genre.create({
     data: {
       groupKey: "fiction",
@@ -897,6 +904,76 @@ describe("GET /api/books sorting", () => {
 
     const desc = await listBooks(accessToken, "sort=pages_desc");
     expect(titlesOf(desc.body)).toEqual(["P500", "P100", "NoPages"]);
+  });
+
+  it("orders favorites by favorite_added with unstamped favorites last", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      favoriteAddedAt: new Date("2026-03-01T00:00:00.000Z"),
+      isFavorite: true,
+      title: "Early",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      favoriteAddedAt: new Date("2026-03-02T00:00:00.000Z"),
+      isFavorite: true,
+      title: "Middle",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      favoriteAddedAt: new Date("2026-03-03T00:00:00.000Z"),
+      isFavorite: true,
+      title: "Latest",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      favoriteAddedAt: null,
+      isFavorite: true,
+      title: "Unstamped",
+      userId,
+    });
+
+    const desc = await listBooks(accessToken, "isFavorite=true&sort=favorite_added_desc");
+    expect(titlesOf(desc.body)).toEqual(["Latest", "Middle", "Early", "Unstamped"]);
+
+    const asc = await listBooks(accessToken, "isFavorite=true&sort=favorite_added_asc");
+    expect(titlesOf(asc.body)).toEqual(["Early", "Middle", "Latest", "Unstamped"]);
+  });
+
+  it("breaks favorite_added null ties on created_at descending", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      favoriteAddedAt: null,
+      isFavorite: true,
+      title: "OlderUnstamped",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      favoriteAddedAt: null,
+      isFavorite: true,
+      title: "NewerUnstamped",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      favoriteAddedAt: new Date("2026-03-01T00:00:00.000Z"),
+      isFavorite: true,
+      title: "Stamped",
+      userId,
+    });
+
+    const desc = await listBooks(accessToken, "isFavorite=true&sort=favorite_added_desc");
+    expect(titlesOf(desc.body)).toEqual(["Stamped", "NewerUnstamped", "OlderUnstamped"]);
   });
 
   it("returns the same result set regardless of sort order", async () => {

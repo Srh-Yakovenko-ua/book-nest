@@ -10,13 +10,13 @@ function Harness({ initial = "all" }: { initial?: LibraryQuickFilterKey | null }
   const [value, setValue] = useState<LibraryQuickFilterKey | null>(initial);
   return (
     <div className="max-w-2xl">
-      <LibraryQuickFilters onSelect={setValue} value={value} />
+      <LibraryQuickFilters onSelect={setValue} scope="all" value={value} />
     </div>
   );
 }
 
 const meta = {
-  args: { onSelect: () => {}, value: "all" },
+  args: { onSelect: () => {}, scope: "all", value: "all" },
   component: LibraryQuickFilters,
   tags: ["ai-generated"],
   title: "Books/LibraryQuickFilters",

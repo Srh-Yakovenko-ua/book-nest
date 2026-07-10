@@ -1,19 +1,21 @@
 import { z } from "zod";
 
+import type { Nullable } from "./common.js";
+
 import { RECENT_USED_LIMIT_DEFAULT, RECENT_USED_LIMIT_MAX } from "./internal.js";
 import { CatalogLocaleSchema, TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 
 export type PublisherView = {
-  countryCode: null | string;
-  foundedYear: null | number;
+  countryCode: Nullable<string>;
+  foundedYear: Nullable<number>;
   id: string;
   isCustom: boolean;
-  logoAttribution: null | string;
-  logoLicense: null | string;
-  logoLicenseUrl: null | string;
-  logoUrl: null | string;
+  logoAttribution: Nullable<string>;
+  logoLicense: Nullable<string>;
+  logoLicenseUrl: Nullable<string>;
+  logoUrl: Nullable<string>;
   name: string;
-  websiteUrl: null | string;
+  websiteUrl: Nullable<string>;
 };
 
 export const BookPublisherRefSchema = z.object({

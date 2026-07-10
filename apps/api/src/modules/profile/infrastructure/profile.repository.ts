@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -14,7 +16,7 @@ export type ProfileWithSocialLinks = Prisma.UserGetPayload<{ include: typeof wit
 export class ProfileRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findByUserId(userId: string): Promise<null | ProfileWithSocialLinks> {
+  findByUserId(userId: string): Promise<Nullable<ProfileWithSocialLinks>> {
     return this.prisma.user.findUnique({
       include: withSocialLinks,
       where: { id: userId },

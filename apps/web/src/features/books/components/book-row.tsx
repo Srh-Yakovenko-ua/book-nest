@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 
 import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
 
+import { BookLoanNote } from "./book-loan-note";
+
 type BookRowProps = {
   book: LibraryBook;
   kebab?: React.ReactNode;
@@ -44,6 +46,9 @@ export function BookRow({ book, kebab, linkComponent, selected, selectionControl
           </LinkComp>
         </h3>
         <p className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</p>
+        {book.loan === undefined ? null : (
+          <BookLoanNote className="text-xs" icon={book.loan.icon} text={book.loan.text} />
+        )}
       </div>
 
       <div className="hidden w-36 shrink-0 flex-col gap-1 @md/book-row:flex">

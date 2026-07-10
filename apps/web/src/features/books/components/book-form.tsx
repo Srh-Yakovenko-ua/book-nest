@@ -37,6 +37,7 @@ import type { BookFormMode } from "../model/book-form-mode";
 import { useCreateBook } from "../api/use-create-book";
 import { useGenres } from "../api/use-genres";
 import { useUpdateBook } from "../api/use-update-book";
+import { BOOK_GENRES_MAX } from "../model/book-classification-fields";
 import { readBookFormDraft } from "../model/book-form-draft";
 import {
   FORMAT_OPTIONS,
@@ -153,6 +154,12 @@ export function BookForm(props: BookFormProps) {
   const [uploadedCover, setUploadedCover] = useState<null | { file: File; mediaId: string }>(null);
   const [seriesConflict, setSeriesConflict] = useState<null | SeriesPartNumberConflict>(null);
   const [seriesClearedByAuthors, setSeriesClearedByAuthors] = useState(false);
+  const [genresAutofilled, setGenresAutofilled] = useState(false);
+  const [seriesGenresHintName, setSeriesGenresHintName] = useState<null | string>(null);
+  const [seriesGenresSuggestion, setSeriesGenresSuggestion] = useState<null | {
+    genres: string[];
+    seriesName: string;
+  }>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -245,6 +252,12 @@ export function BookForm(props: BookFormProps) {
   const partNumberValue = useWatch({ control, name: "partNumber" });
   const basicInfoComplete = useSectionCompletion(control, BASIC_INFO_FIELDS);
 
+  function clearAutofilledGenres() {
+    setValue("genres", [], { shouldDirty: true, shouldValidate: true });
+    setGenresAutofilled(false);
+    setSeriesGenresHintName(null);
+  }
+
   function handleSeriesSelectionChange(selection: null | SeriesSelection) {
     setSeriesConflict(null);
     setSeriesClearedByAuthors(false);
@@ -256,6 +269,39 @@ export function BookForm(props: BookFormProps) {
         shouldValidate: true,
       });
     }
+
+    const seriesGenres =
+      selection?.kind === "existing"
+        ? selection.genres
+        : selection?.kind === "new"
+          ? selection.draft.genres
+          : [];
+    setSeriesGenresSuggestion(null);
+
+    if (selection === null) {
+      if (genresAutofilled) clearAutofilledGenres();
+      return;
+    }
+
+    const current = getValues("genres") ?? [];
+    const replaceable = current.length === 0 || genresAutofilled;
+
+    if (seriesGenres.length === 0) {
+      if (genresAutofilled) clearAutofilledGenres();
+      return;
+    }
+
+    if (replaceable) {
+      setValue("genres", seriesGenres.slice(0, BOOK_GENRES_MAX), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setGenresAutofilled(true);
+      setSeriesGenresHintName(selection.name);
+      return;
+    }
+
+    setSeriesGenresSuggestion({ genres: seriesGenres, seriesName: selection.name });
   }
 
   function handleAuthorsChange(next: AuthorSelection[]) {
@@ -680,7 +726,33 @@ export function BookForm(props: BookFormProps) {
           setValue={setValue}
         />
 
-        <ClassificationSection control={control} errors={errors} />
+        <ClassificationSection
+          control={control}
+          errors={errors}
+          genresHintSeriesName={seriesGenresHintName}
+          genresSuggestion={
+            seriesGenresSuggestion === null
+              ? null
+              : {
+                  genres: seriesGenresSuggestion.genres,
+                  onApply: () => {
+                    setValue("genres", seriesGenresSuggestion.genres.slice(0, BOOK_GENRES_MAX), {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    setGenresAutofilled(true);
+                    setSeriesGenresHintName(seriesGenresSuggestion.seriesName);
+                    setSeriesGenresSuggestion(null);
+                  },
+                  onDismiss: () => setSeriesGenresSuggestion(null),
+                }
+          }
+          onGenresUserEdit={() => {
+            setGenresAutofilled(false);
+            setSeriesGenresHintName(null);
+            setSeriesGenresSuggestion(null);
+          }}
+        />
 
         <ReadingStatusSection
           control={control}

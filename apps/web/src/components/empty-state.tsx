@@ -21,15 +21,10 @@ export function EmptyState({
   const entry: EmptyStateEntry = state ?? EMPTY_STATES[stateKey];
 
   return (
-    <div
-      className={cn(
-        "mx-auto flex max-w-md flex-col items-center px-6 py-12 text-center",
-        className,
-      )}
-    >
+    <div className={cn("mx-auto flex flex-col items-center px-6 py-12 text-center", className)}>
       <Image
         alt=""
-        className="h-auto w-44 select-none"
+        className="h-auto w-120 select-none"
         height={352}
         priority={false}
         src={`/illustrations/${entry.illu}.png`}
