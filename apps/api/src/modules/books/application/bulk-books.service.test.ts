@@ -11,6 +11,7 @@ import type { ListsService } from "../../lists/application/lists.service.js";
 import type { TagsService } from "../../tags/application/tags.service.js";
 import type { BulkBooksRepository } from "../infrastructure/bulk-books.repository.js";
 
+import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BulkBooksService } from "./bulk-books.service.js";
 
@@ -296,18 +297,18 @@ describe("BulkBooksService.setOwnershipStatus", () => {
     );
   });
 
-  it("keeps the loan block when the new status is a loan status", async () => {
+  it("rejects a bulk loan status because each loan needs a per-book borrower", async () => {
     const { bulkBooksRepository, service } = buildService({ setOwnershipStatus: 1 });
     const input: BulkOwnershipStatusInput = {
       bookIds: [BOOK_A],
       ownershipStatus: "borrowed_from_someone",
     };
 
-    await service.setOwnershipStatus({ input, userId: USER_ID });
-
-    expect(bulkBooksRepository.setOwnershipStatus).toHaveBeenCalledWith(
-      expect.objectContaining({ clearDelivery: true, clearLoan: false, clearPurchase: true }),
+    await expect(service.setOwnershipStatus({ input, userId: USER_ID })).rejects.toThrow(
+      BadRequestError,
     );
+
+    expect(bulkBooksRepository.setOwnershipStatus).not.toHaveBeenCalled();
   });
 });
 
