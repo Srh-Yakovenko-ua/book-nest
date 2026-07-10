@@ -72,7 +72,12 @@ describe("TagsService.resolveOrCreateMany", () => {
     const ids = await service.resolveOrCreateMany(USER_ID, ["dark academia"]);
 
     expect(ids).toEqual([TAG_ID]);
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, "dark academia", "dark academia");
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      "dark academia",
+      "dark academia",
+      undefined,
+    );
   });
 
   it("dedups the input by normalized name so a repeated tag counts once", async () => {
@@ -84,7 +89,12 @@ describe("TagsService.resolveOrCreateMany", () => {
 
     expect(ids).toEqual([TAG_ID]);
     expect(repository.create).toHaveBeenCalledTimes(1);
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, "Dark Academia", "dark academia");
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      "Dark Academia",
+      "dark academia",
+      undefined,
+    );
   });
 
   it("resolves each distinct tag to its own id", async () => {

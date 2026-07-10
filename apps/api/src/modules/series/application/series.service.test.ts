@@ -290,7 +290,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
       userId: USER_ID,
     });
 
-    expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "throne of glass");
+    expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "throne of glass", undefined);
   });
 
   it("creates a series with the provided fields when no match exists", async () => {
@@ -309,18 +309,21 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     });
 
     expect(resolved.id).toBe(SERIES_ID);
-    expect(repository.create).toHaveBeenCalledWith({
-      authorIds: [],
-      data: {
-        description: "saga",
-        genres: ["fantasy"],
-        name: "Throne of Glass",
-        normalizedName: "throne of glass",
-        status: "ongoing",
-        totalBooks: 3,
+    expect(repository.create).toHaveBeenCalledWith(
+      {
+        authorIds: [],
+        data: {
+          description: "saga",
+          genres: ["fantasy"],
+          name: "Throne of Glass",
+          normalizedName: "throne of glass",
+          status: "ongoing",
+          totalBooks: 3,
+        },
+        userId: USER_ID,
       },
-      userId: USER_ID,
-    });
+      undefined,
+    );
   });
 
   it("resolves to the row a concurrent insert created on a unique violation", async () => {
@@ -389,11 +392,17 @@ describe("SeriesService.resolveForBook author linking", () => {
       references: [{ id: AUTHOR_A }, { id: AUTHOR_B }],
       userId: USER_ID,
     });
-    expect(repository.create).toHaveBeenCalledWith({
-      authorIds: [AUTHOR_A, AUTHOR_B],
-      data: expect.objectContaining({ name: "Throne of Glass", normalizedName: "throne of glass" }),
-      userId: USER_ID,
-    });
+    expect(repository.create).toHaveBeenCalledWith(
+      {
+        authorIds: [AUTHOR_A, AUTHOR_B],
+        data: expect.objectContaining({
+          name: "Throne of Glass",
+          normalizedName: "throne of glass",
+        }),
+        userId: USER_ID,
+      },
+      undefined,
+    );
   });
 
   it("falls back to the book's authors when newSeries omits an authors field", async () => {
@@ -414,6 +423,7 @@ describe("SeriesService.resolveForBook author linking", () => {
     });
     expect(repository.create).toHaveBeenCalledWith(
       expect.objectContaining({ authorIds: [AUTHOR_A, AUTHOR_B] }),
+      undefined,
     );
   });
 
@@ -437,6 +447,7 @@ describe("SeriesService.resolveForBook author linking", () => {
 
     expect(repository.create).toHaveBeenCalledWith(
       expect.objectContaining({ authorIds: [AUTHOR_A] }),
+      undefined,
     );
   });
 

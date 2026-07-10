@@ -189,14 +189,17 @@ describe("ListsService.resolveListsForBook", () => {
     });
 
     expect(ids).toEqual([LIST_ID]);
-    expect(repository.create).toHaveBeenCalledWith({
-      data: {
-        description: "cozy",
-        name: "Autumn reads",
-        normalizedName: "autumn reads",
+    expect(repository.create).toHaveBeenCalledWith(
+      {
+        data: {
+          description: "cozy",
+          name: "Autumn reads",
+          normalizedName: "autumn reads",
+        },
+        userId: USER_ID,
       },
-      userId: USER_ID,
-    });
+      undefined,
+    );
   });
 
   it("dedups existing and new lists that resolve to the same id", async () => {

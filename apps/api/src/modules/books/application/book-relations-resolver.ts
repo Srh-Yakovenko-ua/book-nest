@@ -98,40 +98,53 @@ export class BookRelationsResolver {
     return this.seriesPartNumberTakenError({ conflict, partNumber: placement.partNumber });
   }
 
-  async resolveForCreate({
-    input,
-    userId,
-  }: {
-    input: CreateBookInput;
-    userId: string;
-  }): Promise<ResolvedBookCreate> {
+  async resolveForCreate(
+    {
+      input,
+      userId,
+    }: {
+      input: CreateBookInput;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<ResolvedBookCreate> {
     const authors = await this.authorsService.resolveReferences({
       references: input.authors,
       userId,
     });
 
-    const publisherId = await this.publishersService.resolveOrCreate(userId, {
-      id: input.publisherId,
-      name: input.publisherName,
-    });
-
-    const tagIds = await this.tagsService.resolveOrCreateMany(userId, input.tags);
-
-    const listIds = await this.listsService.resolveListsForBook({
-      input: { listIds: input.listIds, newLists: input.newLists },
+    const publisherId = await this.publishersService.resolveOrCreate(
       userId,
-    });
+      {
+        id: input.publisherId,
+        name: input.publisherName,
+      },
+      client,
+    );
 
-    const queuePlacement = await this.resolveQueuePlacement({ input, userId });
+    const tagIds = await this.tagsService.resolveOrCreateMany(userId, input.tags, client);
+
+    const listIds = await this.listsService.resolveListsForBook(
+      {
+        input: { listIds: input.listIds, newLists: input.newLists },
+        userId,
+      },
+      client,
+    );
+
+    const queuePlacement = await this.resolveQueuePlacement({ input, userId }, client);
 
     const series =
       input.bookType === "series_part"
-        ? await this.seriesService.resolveForBook({
-            fallbackAuthorIds: authors.map((author) => author.id),
-            newSeries: input.newSeries,
-            seriesId: input.seriesId,
-            userId,
-          })
+        ? await this.seriesService.resolveForBook(
+            {
+              fallbackAuthorIds: authors.map((author) => author.id),
+              newSeries: input.newSeries,
+              seriesId: input.seriesId,
+              userId,
+            },
+            client,
+          )
         : null;
     const seriesId = series?.id ?? null;
     const partNumber = input.bookType === "series_part" ? (input.partNumber ?? null) : null;
@@ -139,11 +152,14 @@ export class BookRelationsResolver {
     if (series !== null) {
       this.assertPartNumberWithinSeriesTotal({ partNumber, totalBooks: series.totalBooks });
     }
-    await this.assertSeriesPartNumberUnique({
-      excludeBookId: null,
-      placement: { partNumber, seriesId },
-      userId,
-    });
+    await this.assertSeriesPartNumberUnique(
+      {
+        excludeBookId: null,
+        placement: { partNumber, seriesId },
+        userId,
+      },
+      client,
+    );
     await this.genresService.assertGenresSelectable(userId, input.genres);
 
     if (input.coverMediaId != null) {
@@ -163,17 +179,20 @@ export class BookRelationsResolver {
     };
   }
 
-  async resolveForUpdate({
-    bookId,
-    current,
-    input,
-    userId,
-  }: {
-    bookId: string;
-    current: BookWithRelations;
-    input: UpdateBookInput;
-    userId: string;
-  }): Promise<ResolvedBookUpdate> {
+  async resolveForUpdate(
+    {
+      bookId,
+      current,
+      input,
+      userId,
+    }: {
+      bookId: string;
+      current: BookWithRelations;
+      input: UpdateBookInput;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<ResolvedBookUpdate> {
     const fields: Prisma.BookUncheckedUpdateManyInput = {};
 
     let authorIds: string[] | undefined;
@@ -187,10 +206,14 @@ export class BookRelationsResolver {
     }
 
     if (input.publisherId !== undefined || input.publisherName !== undefined) {
-      fields.publisherId = await this.publishersService.resolveOrCreate(userId, {
-        id: input.publisherId,
-        name: input.publisherName,
-      });
+      fields.publisherId = await this.publishersService.resolveOrCreate(
+        userId,
+        {
+          id: input.publisherId,
+          name: input.publisherName,
+        },
+        client,
+      );
     }
 
     if (input.coverMediaId !== undefined) {
@@ -203,29 +226,38 @@ export class BookRelationsResolver {
     const tagIds =
       input.tags === undefined
         ? undefined
-        : await this.tagsService.resolveOrCreateMany(userId, input.tags);
+        : await this.tagsService.resolveOrCreateMany(userId, input.tags, client);
 
     const listIds =
       input.listIds === undefined && input.newLists === undefined
         ? undefined
-        : await this.listsService.resolveListsForBook({
-            input: { listIds: input.listIds, newLists: input.newLists },
-            userId,
-          });
+        : await this.listsService.resolveListsForBook(
+            {
+              input: { listIds: input.listIds, newLists: input.newLists },
+              userId,
+            },
+            client,
+          );
 
-    const seriesPlacement = await this.applySeriesFields({
-      current,
-      fallbackAuthorIds: authorIds ?? current.authors.map((bookAuthor) => bookAuthor.authorId),
-      fields,
-      input,
-      userId,
-    });
-    const queueRemoval = await this.applyQueueFields({ current, fields, input, userId });
-    await this.assertSeriesPartNumberUnique({
-      excludeBookId: bookId,
-      placement: seriesPlacement,
-      userId,
-    });
+    const seriesPlacement = await this.applySeriesFields(
+      {
+        current,
+        fallbackAuthorIds: authorIds ?? current.authors.map((bookAuthor) => bookAuthor.authorId),
+        fields,
+        input,
+        userId,
+      },
+      client,
+    );
+    const queueRemoval = await this.applyQueueFields({ current, fields, input, userId }, client);
+    await this.assertSeriesPartNumberUnique(
+      {
+        excludeBookId: bookId,
+        placement: seriesPlacement,
+        userId,
+      },
+      client,
+    );
 
     if (input.genres !== undefined) {
       await this.genresService.assertGenresSelectable(userId, input.genres);
@@ -234,17 +266,20 @@ export class BookRelationsResolver {
     return { authorIds, fields, listIds, queueRemoval, seriesPlacement, tagIds };
   }
 
-  private async applyQueueFields({
-    current,
-    fields,
-    input,
-    userId,
-  }: {
-    current: BookWithRelations;
-    fields: Prisma.BookUncheckedUpdateManyInput;
-    input: UpdateBookInput;
-    userId: string;
-  }): Promise<null | QueueRemoval> {
+  private async applyQueueFields(
+    {
+      current,
+      fields,
+      input,
+      userId,
+    }: {
+      current: BookWithRelations;
+      fields: Prisma.BookUncheckedUpdateManyInput;
+      input: UpdateBookInput;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<null | QueueRemoval> {
     const isQueued = current.queuePosition !== null;
 
     if (input.addToReadingQueue === false) {
@@ -254,7 +289,7 @@ export class BookRelationsResolver {
     }
 
     if (input.addToReadingQueue === true && !isQueued) {
-      const lastPosition = await this.booksRepository.maxQueuePosition(userId);
+      const lastPosition = await this.booksRepository.maxQueuePosition(userId, client);
       fields.queuePosition = lastPosition + 1;
       fields.queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
       return null;
@@ -267,19 +302,22 @@ export class BookRelationsResolver {
     return null;
   }
 
-  private async applySeriesFields({
-    current,
-    fallbackAuthorIds,
-    fields,
-    input,
-    userId,
-  }: {
-    current: BookWithRelations;
-    fallbackAuthorIds: string[];
-    fields: Prisma.BookUncheckedUpdateManyInput;
-    input: UpdateBookInput;
-    userId: string;
-  }): Promise<SeriesPlacement> {
+  private async applySeriesFields(
+    {
+      current,
+      fallbackAuthorIds,
+      fields,
+      input,
+      userId,
+    }: {
+      current: BookWithRelations;
+      fallbackAuthorIds: string[];
+      fields: Prisma.BookUncheckedUpdateManyInput;
+      input: UpdateBookInput;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<SeriesPlacement> {
     if (input.bookType === undefined) {
       if (current.seriesId !== null && input.partNumber !== undefined) {
         this.assertPartNumberWithinSeriesTotal({
@@ -298,12 +336,15 @@ export class BookRelationsResolver {
       return { partNumber: null, seriesId: null };
     }
 
-    const series = await this.seriesService.resolveForBook({
-      fallbackAuthorIds,
-      newSeries: input.newSeries,
-      seriesId: input.seriesId,
-      userId,
-    });
+    const series = await this.seriesService.resolveForBook(
+      {
+        fallbackAuthorIds,
+        newSeries: input.newSeries,
+        seriesId: input.seriesId,
+        userId,
+      },
+      client,
+    );
     const partNumber = input.partNumber ?? null;
     this.assertPartNumberWithinSeriesTotal({ partNumber, totalBooks: series.totalBooks });
     fields.seriesId = series.id;
@@ -328,41 +369,51 @@ export class BookRelationsResolver {
     }
   }
 
-  private async assertSeriesPartNumberUnique({
-    excludeBookId,
-    placement,
-    userId,
-  }: {
-    excludeBookId: null | string;
-    placement: SeriesPlacement;
-    userId: string;
-  }): Promise<void> {
+  private async assertSeriesPartNumberUnique(
+    {
+      excludeBookId,
+      placement,
+      userId,
+    }: {
+      excludeBookId: null | string;
+      placement: SeriesPlacement;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<void> {
     if (placement.seriesId === null || placement.partNumber === null) {
       return;
     }
 
-    const conflict = await this.booksRepository.findSeriesPartNumberConflict(userId, {
-      excludeBookId,
-      partNumber: placement.partNumber,
-      seriesId: placement.seriesId,
-    });
+    const conflict = await this.booksRepository.findSeriesPartNumberConflict(
+      userId,
+      {
+        excludeBookId,
+        partNumber: placement.partNumber,
+        seriesId: placement.seriesId,
+      },
+      client,
+    );
     if (conflict !== null) {
       throw this.seriesPartNumberTakenError({ conflict, partNumber: placement.partNumber });
     }
   }
 
-  private async resolveQueuePlacement({
-    input,
-    userId,
-  }: {
-    input: CreateBookInput;
-    userId: string;
-  }): Promise<QueuePlacement> {
+  private async resolveQueuePlacement(
+    {
+      input,
+      userId,
+    }: {
+      input: CreateBookInput;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<QueuePlacement> {
     if (!input.addToReadingQueue) {
       return { queuePosition: null, queuePriority: null };
     }
 
-    const lastPosition = await this.booksRepository.maxQueuePosition(userId);
+    const lastPosition = await this.booksRepository.maxQueuePosition(userId, client);
     return {
       queuePosition: lastPosition + 1,
       queuePriority: input.queuePriority ?? DEFAULT_QUEUE_PRIORITY,

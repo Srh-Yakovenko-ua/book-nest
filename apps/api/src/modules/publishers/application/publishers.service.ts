@@ -7,6 +7,8 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
+import type { Prisma } from "../../../generated/prisma/client.js";
+
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { normalizeName } from "../../../core/normalize-name.js";
 import { buildPaginator } from "../../../core/paginator.js";
@@ -46,9 +48,13 @@ export class PublishersService {
     });
   }
 
-  async resolveOrCreate(userId: string, input: ResolvePublisherInput): Promise<null | string> {
+  async resolveOrCreate(
+    userId: string,
+    input: ResolvePublisherInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<null | string> {
     if (input.id !== undefined) {
-      const publisher = await this.publishersRepository.findVisibleById(userId, input.id);
+      const publisher = await this.publishersRepository.findVisibleById(userId, input.id, client);
       if (publisher === null) {
         throw new NotFoundError("Publisher not found");
       }
@@ -60,23 +66,35 @@ export class PublishersService {
     }
 
     const normalizedName = normalizeName(input.name);
-    const existing = await this.publishersRepository.findByNormalized(userId, normalizedName);
+    const existing = await this.publishersRepository.findByNormalized(
+      userId,
+      normalizedName,
+      client,
+    );
     if (existing !== null) {
       return existing.id;
     }
 
     try {
-      const created = await this.publishersRepository.create(userId, {
-        locale: CUSTOM_PUBLISHER_LOCALE,
-        name: input.name,
-        normalizedName,
-      });
+      const created = await this.publishersRepository.create(
+        userId,
+        {
+          locale: CUSTOM_PUBLISHER_LOCALE,
+          name: input.name,
+          normalizedName,
+        },
+        client,
+      );
       return created.id;
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
         throw error;
       }
-      const winner = await this.publishersRepository.findByNormalized(userId, normalizedName);
+      const winner = await this.publishersRepository.findByNormalized(
+        userId,
+        normalizedName,
+        client,
+      );
       if (winner === null) {
         throw error;
       }

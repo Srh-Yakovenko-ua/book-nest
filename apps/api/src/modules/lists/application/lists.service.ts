@@ -9,6 +9,8 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
+import type { Prisma } from "../../../generated/prisma/client.js";
+
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { normalizeName } from "../../../core/normalize-name.js";
@@ -147,12 +149,18 @@ export class ListsService {
     };
   }
 
-  async resolveListsForBook({ input, userId }: ResolveListsForBookInput): Promise<string[]> {
+  async resolveListsForBook(
+    { input, userId }: ResolveListsForBookInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<string[]> {
     const resolvedIds = new Set<string>();
 
     const requestedIds = input.listIds ?? [];
     if (requestedIds.length > 0) {
-      const owned = await this.listsRepository.findOwnedByIds({ ids: requestedIds, userId });
+      const owned = await this.listsRepository.findOwnedByIds(
+        { ids: requestedIds, userId },
+        client,
+      );
       const ownedIds = new Set(owned.map((list) => list.id));
       for (const requestedId of requestedIds) {
         if (!ownedIds.has(requestedId)) {
@@ -163,7 +171,7 @@ export class ListsService {
     }
 
     for (const newList of input.newLists ?? []) {
-      resolvedIds.add(await this.resolveOrCreate({ newList, userId }));
+      resolvedIds.add(await this.resolveOrCreate({ newList, userId }, client));
     }
 
     return [...resolvedIds];
@@ -230,28 +238,40 @@ export class ListsService {
     }
   }
 
-  private async resolveOrCreate({ newList, userId }: ResolveOrCreateInput): Promise<string> {
+  private async resolveOrCreate(
+    { newList, userId }: ResolveOrCreateInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<string> {
     const normalizedName = normalizeName(newList.name);
-    const existing = await this.listsRepository.findByNormalized({ normalizedName, userId });
+    const existing = await this.listsRepository.findByNormalized(
+      { normalizedName, userId },
+      client,
+    );
     if (existing !== null) {
       return existing.id;
     }
 
     try {
-      const created = await this.listsRepository.create({
-        data: {
-          description: newList.description ?? null,
-          name: newList.name,
-          normalizedName,
+      const created = await this.listsRepository.create(
+        {
+          data: {
+            description: newList.description ?? null,
+            name: newList.name,
+            normalizedName,
+          },
+          userId,
         },
-        userId,
-      });
+        client,
+      );
       return created.id;
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
         throw error;
       }
-      const winner = await this.listsRepository.findByNormalized({ normalizedName, userId });
+      const winner = await this.listsRepository.findByNormalized(
+        { normalizedName, userId },
+        client,
+      );
       if (winner === null) {
         throw error;
       }

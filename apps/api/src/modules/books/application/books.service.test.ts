@@ -2,6 +2,8 @@ import type { CreateBookInput, FavoritesSummaryView, UpdateBookInput } from "@ap
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 import type { GenresService } from "../../genres/application/genres.service.js";
 import type { MediaService } from "../../media/application/media.service.js";
 import type {
@@ -19,6 +21,8 @@ import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 import { BooksService } from "./books.service.js";
+
+const TX = {} as unknown as Prisma.TransactionClient;
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_USER_ID = "99999999-9999-4999-8999-999999999999";
@@ -151,6 +155,9 @@ function buildService(
     findNamesByKeys: vi.fn().mockResolvedValue([]),
     searchKeys: vi.fn().mockResolvedValue([]),
   };
+  const transactionRunner = {
+    run: vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(TX)),
+  };
 
   const service = new BooksService(
     repository as unknown as BooksRepository,
@@ -158,6 +165,7 @@ function buildService(
     viewAssembler,
     coverCleanup as unknown as BookCoverCleanup,
     genresService as unknown as GenresService,
+    transactionRunner as unknown as TransactionRunner,
   );
 
   return { coverCleanup, genresService, relationsResolver, repository, service };
@@ -266,7 +274,7 @@ describe("BooksService.create", () => {
 
     await service.create(USER_ID, input);
 
-    expect(relationsResolver.resolveForCreate).toHaveBeenCalledWith({ input, userId: USER_ID });
+    expect(relationsResolver.resolveForCreate).toHaveBeenCalledWith({ input, userId: USER_ID }, TX);
     expect(repository.create).toHaveBeenCalledTimes(1);
   });
 
@@ -302,6 +310,7 @@ describe("BooksService.create", () => {
         seriesId: SERIES_ID,
         tagIds: [TAG_ID],
       }),
+      TX,
     );
   });
 
@@ -391,6 +400,7 @@ describe("BooksService.create", () => {
           startedAt: new Date("2026-02-01T00:00:00.000Z"),
         },
       }),
+      TX,
     );
   });
 
@@ -408,6 +418,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ readingProgress: null }),
+      TX,
     );
   });
 
@@ -436,6 +447,7 @@ describe("BooksService.create", () => {
           storeUrl: null,
         },
       }),
+      TX,
     );
   });
 
@@ -468,6 +480,7 @@ describe("BooksService.create", () => {
         },
         purchaseInfo: null,
       }),
+      TX,
     );
   });
 
@@ -496,6 +509,7 @@ describe("BooksService.create", () => {
         },
         purchaseInfo: null,
       }),
+      TX,
     );
   });
 
@@ -507,6 +521,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ coverMediaId: MEDIA_ID }),
+      TX,
     );
   });
 
@@ -518,6 +533,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ favoriteAddedAt: expect.any(Date), isFavorite: true }),
+      TX,
     );
   });
 
@@ -529,6 +545,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ favoriteAddedAt: null, isFavorite: false }),
+      TX,
     );
   });
 

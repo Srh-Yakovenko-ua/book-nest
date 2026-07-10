@@ -149,11 +149,14 @@ export class SeriesService {
     };
   }
 
-  async resolveForBook(input: ResolveSeriesInput): Promise<ResolvedSeries> {
+  async resolveForBook(
+    input: ResolveSeriesInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<ResolvedSeries> {
     const { fallbackAuthorIds, newSeries, seriesId, userId } = input;
 
     if (seriesId !== undefined) {
-      const series = await this.seriesRepository.findOwnedById(userId, seriesId);
+      const series = await this.seriesRepository.findOwnedById(userId, seriesId, client);
       if (series === null) {
         throw new NotFoundError("Series not found");
       }
@@ -165,7 +168,7 @@ export class SeriesService {
     }
 
     const normalizedName = normalizeName(newSeries.name);
-    const existing = await this.seriesRepository.findByNormalized(userId, normalizedName);
+    const existing = await this.seriesRepository.findByNormalized(userId, normalizedName, client);
     if (existing !== null) {
       return { id: existing.id, totalBooks: existing.totalBooks };
     }
@@ -179,24 +182,27 @@ export class SeriesService {
     });
 
     try {
-      const created = await this.seriesRepository.create({
-        authorIds,
-        data: {
-          description: newSeries.description ?? null,
-          genres: newSeries.genres,
-          name: newSeries.name,
-          normalizedName,
-          status: newSeries.status,
-          totalBooks: newSeries.totalBooks ?? null,
+      const created = await this.seriesRepository.create(
+        {
+          authorIds,
+          data: {
+            description: newSeries.description ?? null,
+            genres: newSeries.genres,
+            name: newSeries.name,
+            normalizedName,
+            status: newSeries.status,
+            totalBooks: newSeries.totalBooks ?? null,
+          },
+          userId,
         },
-        userId,
-      });
+        client,
+      );
       return { id: created.id, totalBooks: created.totalBooks };
     } catch (error) {
       if (!isUniqueConstraintError(error)) {
         throw error;
       }
-      const winner = await this.seriesRepository.findByNormalized(userId, normalizedName);
+      const winner = await this.seriesRepository.findByNormalized(userId, normalizedName, client);
       if (winner === null) {
         throw error;
       }

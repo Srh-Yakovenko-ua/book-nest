@@ -32,6 +32,7 @@ import type {
   UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
 
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
@@ -52,7 +53,7 @@ import {
 import { resolveFavoriteChange } from "../domain/favorite.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
-import { BookRelationsResolver } from "./book-relations-resolver.js";
+import { BookRelationsResolver, type SeriesPlacement } from "./book-relations-resolver.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 
 const OVERVIEW_TOP_LIMIT = 3;
@@ -191,11 +192,10 @@ export class BooksService {
     private readonly viewAssembler: BookViewAssembler,
     private readonly coverCleanup: BookCoverCleanup,
     private readonly genresService: GenresService,
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
-    const resolved = await this.relationsResolver.resolveForCreate({ input, userId });
-
     const now = new Date();
     const favoriteChange = resolveFavoriteChange({ current: false, next: input.isFavorite, now });
 
@@ -216,46 +216,56 @@ export class BooksService {
         ? buildReadingProgressData(input.readingProgress)
         : null;
 
+    let placement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
-      book = await this.booksRepository.create(userId, {
-        ageCategory: input.ageCategory,
-        authorIds: resolved.authorIds,
-        coverMediaId: input.coverMediaId ?? null,
-        dedication: input.dedication ?? null,
-        deliveryInfo,
-        description: input.description ?? null,
-        favoriteAddedAt: favoriteChange?.favoriteAddedAt ?? null,
-        firstAuthorName: resolved.firstAuthorName,
-        formats: input.formats,
-        genres: input.genres,
-        illustrator: input.illustrator ?? null,
-        isbn: input.isbn ?? null,
-        isFavorite: input.isFavorite,
-        language: input.language,
-        listIds: resolved.listIds,
-        loanInfo,
-        originalTitle: input.originalTitle ?? null,
-        ownershipStatus: input.ownershipStatus,
-        pagesCount: input.pagesCount ?? null,
-        partNumber: resolved.partNumber,
-        publicationYear: input.publicationYear ?? null,
-        publisherId: resolved.publisherId,
-        purchaseInfo,
-        queuePosition: resolved.queuePosition,
-        queuePriority: resolved.queuePriority,
-        readingProgress,
-        readingStatus: input.readingStatus,
-        seriesId: resolved.seriesId,
-        tagIds: resolved.tagIds,
-        title: input.title,
-        translator: input.translator ?? null,
+      book = await this.transactionRunner.run(async (client) => {
+        const resolved = await this.relationsResolver.resolveForCreate({ input, userId }, client);
+        placement = { partNumber: resolved.partNumber, seriesId: resolved.seriesId };
+
+        return this.booksRepository.create(
+          userId,
+          {
+            ageCategory: input.ageCategory,
+            authorIds: resolved.authorIds,
+            coverMediaId: input.coverMediaId ?? null,
+            dedication: input.dedication ?? null,
+            deliveryInfo,
+            description: input.description ?? null,
+            favoriteAddedAt: favoriteChange?.favoriteAddedAt ?? null,
+            firstAuthorName: resolved.firstAuthorName,
+            formats: input.formats,
+            genres: input.genres,
+            illustrator: input.illustrator ?? null,
+            isbn: input.isbn ?? null,
+            isFavorite: input.isFavorite,
+            language: input.language,
+            listIds: resolved.listIds,
+            loanInfo,
+            originalTitle: input.originalTitle ?? null,
+            ownershipStatus: input.ownershipStatus,
+            pagesCount: input.pagesCount ?? null,
+            partNumber: resolved.partNumber,
+            publicationYear: input.publicationYear ?? null,
+            publisherId: resolved.publisherId,
+            purchaseInfo,
+            queuePosition: resolved.queuePosition,
+            queuePriority: resolved.queuePriority,
+            readingProgress,
+            readingStatus: input.readingStatus,
+            seriesId: resolved.seriesId,
+            tagIds: resolved.tagIds,
+            title: input.title,
+            translator: input.translator ?? null,
+          },
+          client,
+        );
       });
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
         error,
         excludeBookId: null,
-        placement: { partNumber: resolved.partNumber, seriesId: resolved.seriesId },
+        placement,
         userId,
       });
     }
@@ -408,36 +418,44 @@ export class BooksService {
     this.assertCurrentPageWithinPages({ current, input, readingStatus });
     this.assertLoanPersonNamePresent({ current, input, ownershipStatus });
 
-    const resolved = await this.relationsResolver.resolveForUpdate({
-      bookId,
-      current,
-      input,
-      userId,
-    });
-    const fields = resolved.fields;
-    assignScalarFields(fields, input);
-
     const now = new Date();
-    this.applyFavoriteFields({ current, fields, input, now });
 
+    let seriesPlacement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
-      book = await this.booksRepository.updateOwned(userId, bookId, {
-        authorIds: resolved.authorIds,
-        deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, now),
-        fields,
-        listIds: resolved.listIds,
-        loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo, now),
-        purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
-        queueRemoval: resolved.queueRemoval,
-        readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
-        tagIds: resolved.tagIds,
+      book = await this.transactionRunner.run(async (client) => {
+        const resolved = await this.relationsResolver.resolveForUpdate(
+          { bookId, current, input, userId },
+          client,
+        );
+        seriesPlacement = resolved.seriesPlacement;
+
+        const fields = resolved.fields;
+        assignScalarFields(fields, input);
+        this.applyFavoriteFields({ current, fields, input, now });
+
+        return this.booksRepository.updateOwned(
+          userId,
+          bookId,
+          {
+            authorIds: resolved.authorIds,
+            deliveryInfo: resolveDeliveryBlock(ownershipStatus, input.deliveryInfo, now),
+            fields,
+            listIds: resolved.listIds,
+            loanInfo: resolveLoanBlock(ownershipStatus, input.loanInfo, now),
+            purchaseInfo: resolvePurchaseBlock(ownershipStatus, input.purchaseInfo),
+            queueRemoval: resolved.queueRemoval,
+            readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
+            tagIds: resolved.tagIds,
+          },
+          client,
+        );
       });
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
         error,
         excludeBookId: bookId,
-        placement: resolved.seriesPlacement,
+        placement: seriesPlacement,
         userId,
       });
     }

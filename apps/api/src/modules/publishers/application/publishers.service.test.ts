@@ -148,7 +148,7 @@ describe("PublishersService.resolveOrCreate by name", () => {
 
     await service.resolveOrCreate(USER_ID, { name: "  PENGUIN   Books  " });
 
-    expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "penguin books");
+    expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "penguin books", undefined);
   });
 
   it("creates a custom publisher with the user id when no match exists", async () => {
@@ -158,11 +158,15 @@ describe("PublishersService.resolveOrCreate by name", () => {
     const id = await service.resolveOrCreate(USER_ID, { name: "Penguin" });
 
     expect(id).toBe(PUBLISHER_ID);
-    expect(repository.create).toHaveBeenCalledWith(USER_ID, {
-      locale: "uk",
-      name: "Penguin",
-      normalizedName: "penguin",
-    });
+    expect(repository.create).toHaveBeenCalledWith(
+      USER_ID,
+      {
+        locale: "uk",
+        name: "Penguin",
+        normalizedName: "penguin",
+      },
+      undefined,
+    );
   });
 
   it("resolves to the row a concurrent insert created when create hits a unique violation", async () => {

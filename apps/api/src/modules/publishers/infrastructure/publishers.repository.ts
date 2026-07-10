@@ -63,8 +63,12 @@ export class PublishersRepository {
     return this.prisma.publisher.count({ where: buildVisibleWhere(userId, query) });
   }
 
-  create(userId: string, input: CreateCustomPublisherInput): Promise<PublisherWithPrimaryNames> {
-    return this.prisma.publisher.create({
+  create(
+    userId: string,
+    input: CreateCustomPublisherInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<PublisherWithPrimaryNames> {
+    return client.publisher.create({
       data: {
         name: input.name,
         names: {
@@ -94,14 +98,22 @@ export class PublishersRepository {
     });
   }
 
-  findByNormalized(userId: string, normalizedName: string): Promise<null | PublisherModel> {
-    return this.prisma.publisher.findFirst({
+  findByNormalized(
+    userId: string,
+    normalizedName: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<null | PublisherModel> {
+    return client.publisher.findFirst({
       where: { normalizedName, OR: [{ userId: null }, { userId }] },
     });
   }
 
-  findVisibleById(userId: string, id: string): Promise<null | PublisherModel> {
-    return this.prisma.publisher.findFirst({
+  findVisibleById(
+    userId: string,
+    id: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<null | PublisherModel> {
+    return client.publisher.findFirst({
       where: { id, OR: [{ userId: null }, { userId }] },
     });
   }

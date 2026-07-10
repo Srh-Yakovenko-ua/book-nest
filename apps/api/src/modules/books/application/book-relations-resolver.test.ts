@@ -176,15 +176,23 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
       references: [{ name: "Frank Herbert" }],
       userId: USER_ID,
     });
-    expect(publishersService.resolveOrCreate).toHaveBeenCalledWith(USER_ID, {
-      id: undefined,
-      name: "Penguin",
-    });
-    expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(USER_ID, ["dark academia"]);
-    expect(listsService.resolveListsForBook).toHaveBeenCalledWith({
-      input: { listIds: [LIST_ID], newLists: [{ name: "Autumn reads" }] },
-      userId: USER_ID,
-    });
+    expect(publishersService.resolveOrCreate).toHaveBeenCalledWith(
+      USER_ID,
+      { id: undefined, name: "Penguin" },
+      undefined,
+    );
+    expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(
+      USER_ID,
+      ["dark academia"],
+      undefined,
+    );
+    expect(listsService.resolveListsForBook).toHaveBeenCalledWith(
+      {
+        input: { listIds: [LIST_ID], newLists: [{ name: "Autumn reads" }] },
+        userId: USER_ID,
+      },
+      undefined,
+    );
     expect(resolved).toMatchObject({
       authorIds: [AUTHOR_ID],
       firstAuthorName: "Frank Herbert",
@@ -315,12 +323,15 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
       userId: USER_ID,
     });
 
-    expect(seriesService.resolveForBook).toHaveBeenCalledWith({
-      fallbackAuthorIds: [AUTHOR_ID],
-      newSeries: { genres: [], name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
-      seriesId: undefined,
-      userId: USER_ID,
-    });
+    expect(seriesService.resolveForBook).toHaveBeenCalledWith(
+      {
+        fallbackAuthorIds: [AUTHOR_ID],
+        newSeries: { genres: [], name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
+        seriesId: undefined,
+        userId: USER_ID,
+      },
+      undefined,
+    );
     expect(resolved).toMatchObject({ partNumber: 1, seriesId: SERIES_ID });
   });
 
@@ -332,12 +343,15 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
       userId: USER_ID,
     });
 
-    expect(seriesService.resolveForBook).toHaveBeenCalledWith({
-      fallbackAuthorIds: [AUTHOR_ID],
-      newSeries: undefined,
-      seriesId: SERIES_ID,
-      userId: USER_ID,
-    });
+    expect(seriesService.resolveForBook).toHaveBeenCalledWith(
+      {
+        fallbackAuthorIds: [AUTHOR_ID],
+        newSeries: undefined,
+        seriesId: SERIES_ID,
+        userId: USER_ID,
+      },
+      undefined,
+    );
     expect(resolved).toMatchObject({ partNumber: 2, seriesId: SERIES_ID });
   });
 
@@ -349,11 +363,15 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
       userId: USER_ID,
     });
 
-    expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(USER_ID, {
-      excludeBookId: null,
-      partNumber: 2,
-      seriesId: SERIES_ID,
-    });
+    expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(
+      USER_ID,
+      {
+        excludeBookId: null,
+        partNumber: 2,
+        seriesId: SERIES_ID,
+      },
+      undefined,
+    );
   });
 
   it("rejects a book whose part number is already used in the series", async () => {
@@ -488,7 +506,11 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       userId: USER_ID,
     });
 
-    expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(USER_ID, ["dark academia"]);
+    expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(
+      USER_ID,
+      ["dark academia"],
+      undefined,
+    );
     expect(resolved.tagIds).toEqual([TAG_ID]);
   });
 
@@ -516,10 +538,13 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       userId: USER_ID,
     });
 
-    expect(listsService.resolveListsForBook).toHaveBeenCalledWith({
-      input: { listIds: [LIST_ID], newLists: undefined },
-      userId: USER_ID,
-    });
+    expect(listsService.resolveListsForBook).toHaveBeenCalledWith(
+      {
+        input: { listIds: [LIST_ID], newLists: undefined },
+        userId: USER_ID,
+      },
+      undefined,
+    );
     expect(resolved.listIds).toEqual([LIST_ID]);
   });
 
@@ -547,11 +572,15 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       userId: USER_ID,
     });
 
-    expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(USER_ID, {
-      excludeBookId: BOOK_ID,
-      partNumber: 4,
-      seriesId: SERIES_ID,
-    });
+    expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(
+      USER_ID,
+      {
+        excludeBookId: BOOK_ID,
+        partNumber: 4,
+        seriesId: SERIES_ID,
+      },
+      undefined,
+    );
   });
 
   it("rejects an update whose part number collides with another book in the series", async () => {

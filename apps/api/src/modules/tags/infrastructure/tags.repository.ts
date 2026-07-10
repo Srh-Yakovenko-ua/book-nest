@@ -25,16 +25,25 @@ export class TagsRepository {
     return this.prisma.tag.count({ where: buildOwnedWhere(userId, query) });
   }
 
-  create(userId: string, name: string, normalizedName: string): Promise<TagModel> {
-    return this.prisma.tag.create({ data: { name, normalizedName, userId } });
+  create(
+    userId: string,
+    name: string,
+    normalizedName: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<TagModel> {
+    return client.tag.create({ data: { name, normalizedName, userId } });
   }
 
   deleteOwned(userId: string, id: string): Promise<number> {
     return this.prisma.tag.deleteMany({ where: { id, userId } }).then((result) => result.count);
   }
 
-  findByNormalized(userId: string, normalizedName: string): Promise<null | TagModel> {
-    return this.prisma.tag.findFirst({ where: { normalizedName, userId } });
+  findByNormalized(
+    userId: string,
+    normalizedName: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<null | TagModel> {
+    return client.tag.findFirst({ where: { normalizedName, userId } });
   }
 
   searchOwned({ query, skip, take, userId }: SearchTagsInput): Promise<TagModel[]> {
