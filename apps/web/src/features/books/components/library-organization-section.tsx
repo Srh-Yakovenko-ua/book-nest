@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   type Control,
   Controller,
@@ -28,6 +28,7 @@ import {
   QUEUE_PRIORITY_OPTIONS,
   splitListSelection,
 } from "../model/book-organization-fields";
+import { shouldShowReadingQueue } from "../model/reading-queue-visibility";
 import { LIBRARY_ORGANIZATION_FIELDS } from "../model/section-completeness";
 import { CreateListDialog } from "./create-list-dialog";
 import { FormSection } from "./form-section";
@@ -53,6 +54,7 @@ export function LibraryOrganizationSection({
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const addToReadingQueue = useWatch({ control, name: "addToReadingQueue" }) ?? false;
+  const readingStatus = useWatch({ control, name: "readingStatus" });
   const listIds = useWatch({ control, name: "listIds" }) ?? [];
   const newLists = useWatch({ control, name: "newLists" }) ?? [];
 
@@ -66,6 +68,14 @@ export function LibraryOrganizationSection({
 
   const listsErrorMessage =
     typeof errors.listIds?.message === "string" ? errors.listIds.message : undefined;
+
+  const showQueueToggle = !readingStatus || shouldShowReadingQueue(readingStatus);
+
+  useEffect(() => {
+    if (showQueueToggle || !addToReadingQueue) return;
+    setValue("addToReadingQueue", false, { shouldValidate: true });
+    setValue("queuePriority", undefined, { shouldValidate: true });
+  }, [showQueueToggle, addToReadingQueue, setValue]);
 
   function applyQueueChange(checked: boolean) {
     setValue("addToReadingQueue", checked, { shouldValidate: true });
@@ -112,46 +122,48 @@ export function LibraryOrganizationSection({
         />
       </div>
 
-      <div className="flex flex-col gap-4 rounded-md border border-border bg-secondary/40 px-4 py-3">
-        <div className="flex items-center justify-between gap-4">
-          <Label className="cursor-pointer" htmlFor={queueSwitchId}>
-            <UiIcon className="text-primary" name="bookmark" size={18} />
-            {t("organization.queue")}
-          </Label>
-          <Controller
-            control={control}
-            name="addToReadingQueue"
-            render={({ field }) => (
-              <Switch
-                checked={field.value ?? false}
-                id={queueSwitchId}
-                onCheckedChange={handleQueueChange}
-              />
-            )}
-          />
-        </div>
-
-        {addToReadingQueue ? (
-          <div className="flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">
-            <Label>{t("organization.queuePriority")}</Label>
+      {showQueueToggle ? (
+        <div className="flex flex-col gap-4 rounded-md border border-border bg-secondary/40 px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <Label className="cursor-pointer" htmlFor={queueSwitchId}>
+              <UiIcon className="text-primary" name="bookmark" size={18} />
+              {t("organization.queue")}
+            </Label>
             <Controller
               control={control}
-              name="queuePriority"
+              name="addToReadingQueue"
               render={({ field }) => (
-                <StatusChipGroup
-                  label={t("organization.queuePriority")}
-                  onValueChange={field.onChange}
-                  options={QUEUE_PRIORITY_OPTIONS.map((value) => ({
-                    label: t(`organization.priorityLabels.${value}`),
-                    value,
-                  }))}
-                  value={field.value ?? QUEUE_PRIORITY_DEFAULT}
+                <Switch
+                  checked={field.value ?? false}
+                  id={queueSwitchId}
+                  onCheckedChange={handleQueueChange}
                 />
               )}
             />
           </div>
-        ) : null}
-      </div>
+
+          {addToReadingQueue ? (
+            <div className="flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">
+              <Label>{t("organization.queuePriority")}</Label>
+              <Controller
+                control={control}
+                name="queuePriority"
+                render={({ field }) => (
+                  <StatusChipGroup
+                    label={t("organization.queuePriority")}
+                    onValueChange={field.onChange}
+                    options={QUEUE_PRIORITY_OPTIONS.map((value) => ({
+                      label: t(`organization.priorityLabels.${value}`),
+                      value,
+                    }))}
+                    value={field.value ?? QUEUE_PRIORITY_DEFAULT}
+                  />
+                )}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="book-lists">{t("organization.lists")}</Label>

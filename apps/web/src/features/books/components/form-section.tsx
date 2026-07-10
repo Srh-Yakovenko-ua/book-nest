@@ -34,7 +34,7 @@ export function FormSection({
       )}
     >
       <header className="flex flex-wrap items-start gap-3">
-        <div className="flex min-w-0 grow basis-64 items-start gap-3">
+        <div className="flex min-w-0 grow basis-64 items-center gap-3">
           <span className="relative grid size-9 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground">
             <UiIcon name={icon} size={18} />
             {complete ? <SectionCompleteBadge /> : null}

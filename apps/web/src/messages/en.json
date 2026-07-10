@@ -100,9 +100,24 @@
       "start": "To the start of the queue",
       "end": "To the end of the queue",
       "specific": "At a specific position",
+      "relative": "Before or after a book in the queue",
       "positionLabel": "Position in queue",
+      "rangePlaceholder": "from 1 to {max}",
       "specificHelper": "If a book already occupies this position, it and all following books shift down.",
       "emptyHelper": "The queue is empty. The book will be added at position 1.",
+      "relativeSideLabel": "Before or after",
+      "relativeBefore": "Before",
+      "relativeAfter": "After",
+      "relativeBookLabel": "Book in the queue",
+      "relativeBookPlaceholder": "Choose a book in the queue",
+      "relativeBookSearch": "Search the queue…",
+      "relativeBookEmpty": "No books found",
+      "relativeRow": "{title} — pos. {position}",
+      "resultFirst": "The book will become first in the queue",
+      "resultEnd": "The book will become last (position {position})",
+      "resultSpecific": "The book will move to position {position}",
+      "resultRelativeBefore": "The book will move to position {position}, before “{title}”",
+      "resultRelativeAfter": "The book will move to position {position}, after “{title}”",
       "errors": {
         "required": "Enter a position in the queue",
         "number": "Position must be a number",
@@ -341,7 +356,8 @@
       },
       "card": {
         "lentTo": "With {name}",
-        "borrowedFrom": "From {name}"
+        "borrowedFrom": "From {name}",
+        "seriesPosition": "{position} of {total}"
       },
       "resultsTitle": "Book list",
       "addBook": "Add book",
@@ -1054,38 +1070,14 @@
       "authorsCollapse": "Collapse",
       "dedicationLabel": "Author's dedication",
       "lists": "Lists",
-      "series": {
-        "title": "Series",
-        "progressLabel": "Series progress",
-        "statusLabels": {
-          "completed": "Series completed",
-          "ongoing": "Series ongoing",
-          "unknown": "Series status unknown"
-        },
-        "partWithTotal": "Part {number} of {total}",
-        "partAdded": "Part {number} ({count} added)",
-        "partUnknown": "Part number not set",
-        "progressWithTotal": "Read {finished} of {total} · {percent}%",
-        "progressAdded": "Read {finished} of {count} · added · {percent}%",
-        "progressUnavailable": "Series progress is not available yet",
-        "state": {
-          "finished": "You have already read this book",
-          "reading": "You are reading this book now",
-          "rereading": "You are rereading this book",
-          "isNext": "This is the next book in the series",
-          "unreadEarlier": "There are unread earlier parts before this book",
-          "seriesFinished": "You have finished the series"
-        },
-        "next": "Next: {title}",
-        "nextWithPart": "Next: {title} · part {number}"
-      },
       "seriesSequence": {
-        "title": "Series sequence",
+        "title": "Series reading order",
         "goToSeries": "Go to series",
-        "metaBookWithTotal": "Book {number} of {total}",
-        "metaBook": "Book {number}",
-        "metaLibraryWithTotal": "{added} of {total} in library",
-        "metaLibrary": "{added} in library",
+        "cycleCompleteBadge": "Series complete",
+        "seriesReadBadge": "Series read",
+        "readingProgressLabel": "Read {finished} of {total, plural, one {# book} other {# books}} in the series · {percent}%",
+        "metaLibraryWithTotal": "{added} of {total, plural, one {# book} other {# books}} already in your library",
+        "metaLibrary": "{added, plural, one {# book} other {# books}} already in your library",
         "current": "Current",
         "noNumberBadge": "№?",
         "slotTitleFallback": "Book {number}",
@@ -1093,10 +1085,13 @@
         "addBookAria": "Add book {number} to your library",
         "openSlot": "Add a series book",
         "openSlotAria": "Add the next series book",
-        "hintStartAdded": "Next in order — “<book>{title}</book>”, a great time to start",
-        "hintNextMissing": "Next in order — {title}, it's not in your library yet.",
-        "hintCompleted": "Series completed",
-        "footerNote": "Showing the full cycle order — even books not yet in your library.",
+        "hintCurrent": "This is the next unread book in the series order.",
+        "hintAfterAdded": "Next in order — “<book>{title}</book>”.",
+        "hintBeforeAdded": "Earlier in the order there's still “<book>{title}</book>”.",
+        "hintAfterMissing": "Next in order — book {number}. It's not in your library yet.",
+        "hintBeforeMissing": "Earlier in the order there's still book {number}, which isn't in your library yet.",
+        "hintCompleted": "You've read every book in this series.",
+        "footerNote": "Full series order: {added, plural, one {# book} other {# books}} already in your library, {remaining} still to add.",
         "ribbonLabel": "Series books in order"
       },
       "actions": {
@@ -1124,7 +1119,16 @@
         "remove": "Remove from queue",
         "addDialog": {
           "title": "Add to reading queue",
-          "subtitle": "Choose where to place the book in your reading queue."
+          "subtitle": "Choose where to place the book in your reading queue.",
+          "moveTitle": "Move in the queue",
+          "moveSubtitle": "Choose a new position for the book in your reading queue.",
+          "queueState": "Currently in queue: {count, plural, one {# book} other {# books}}",
+          "queueEmpty": "Your reading queue is empty",
+          "alreadyInQueue": "This book is already in the queue, position {position}",
+          "move": "Move",
+          "moving": "Moving…",
+          "moveToast": "Queue position updated",
+          "reorderHint": "You can reorder the queue anytime on the <link>Reading queue</link> page."
         }
       },
       "favorite": {

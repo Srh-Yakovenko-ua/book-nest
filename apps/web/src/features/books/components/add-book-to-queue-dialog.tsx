@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { BooksControllerListSort } from "@/shared/api/generated/model";
 
 import type { LibraryListParams } from "../model/library-query";
+import type { QueuePickerItem } from "../model/queue-placement";
 
 import { useLibraryBooks } from "../api/use-books";
 import { useAddToReadingQueue } from "../api/use-reading-queue";
@@ -39,30 +40,36 @@ const PICKER_SKELETON_COUNT = 4;
 type AddBookToQueueDialogProps = {
   onOpenChange: (open: boolean) => void;
   open: boolean;
-  queueLength: number;
+  queueItems: QueuePickerItem[];
 };
 
 export function AddBookToQueueDialog({
   onOpenChange,
   open,
-  queueLength,
+  queueItems,
 }: AddBookToQueueDialogProps) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="sm:max-w-lg">
         {open ? (
-          <AddBookToQueueForm onDone={() => onOpenChange(false)} queueLength={queueLength} />
+          <AddBookToQueueForm onDone={() => onOpenChange(false)} queueItems={queueItems} />
         ) : null}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AddBookToQueueForm({ onDone, queueLength }: { onDone: () => void; queueLength: number }) {
+function AddBookToQueueForm({
+  onDone,
+  queueItems,
+}: {
+  onDone: () => void;
+  queueItems: QueuePickerItem[];
+}) {
   const t = useTranslations("readingQueue.add");
   const tLibrary = useTranslations("books.library");
   const add = useAddToReadingQueue();
-  const form = useAddToQueueForm(queueLength);
+  const form = useAddToQueueForm({ queueItems });
 
   const [selectedBookId, setSelectedBookId] = useState<null | string>(null);
   const [search, setSearch] = useState("");
@@ -154,13 +161,20 @@ function AddBookToQueueForm({ onDone, queueLength }: { onDone: () => void; queue
 
       {selectedBookId === null ? null : (
         <QueuePositionField
+          candidates={form.relativeCandidates}
           error={form.error}
           idPrefix="add-queue-position"
+          maxPosition={form.maxPosition}
           onPlacementChange={form.setPlacement}
           onPositionChange={form.setPosition}
+          onRelativeBookChange={form.setRelativeBookId}
+          onRelativeSideChange={form.setRelativeSide}
+          outcome={form.outcome}
           placement={form.placement}
           position={form.position}
-          queueLength={queueLength}
+          queueLength={form.queueLength}
+          relativeBookId={form.relativeBookId}
+          relativeSide={form.relativeSide}
         />
       )}
 
@@ -169,7 +183,7 @@ function AddBookToQueueForm({ onDone, queueLength }: { onDone: () => void; queue
           {t("cancel")}
         </Button>
         <Button
-          disabled={selectedBookId === null || add.isPending}
+          disabled={selectedBookId === null || add.isPending || !form.isValid}
           loading={add.isPending}
           type="submit"
         >

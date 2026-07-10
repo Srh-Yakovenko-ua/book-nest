@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 
 import { UiIcon } from "@/components/icons";
-import { readingStatuses } from "@/lib/book-status";
+import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 
 import { BookCard } from "./book-card";
 import { Button } from "./button";
@@ -25,6 +25,7 @@ const finished =
   readingStatuses.find((status) => status.value === "finished") ?? readingStatuses[0];
 const wantToRead =
   readingStatuses.find((status) => status.value === "want_to_read") ?? readingStatuses[0];
+const owned = ownershipStatuses.find((status) => status.value === "owned") ?? ownershipStatuses[0];
 
 function Kebab() {
   return (
@@ -65,18 +66,16 @@ export const Reading: Story = {
     ],
     kebab: <Kebab />,
     progress: {
-      ariaLabel: "Прогрес читання: 312 з 768",
       current: 312,
       total: 768,
       unit: "стор.",
     },
     rating: 4,
-    series: "Двір шипів і троянд · Книга 2 з 3",
+    series: { href: "#series", name: "Двір шипів і троянд", positionLabel: "2 з 3" },
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Двір срібного полум'я")).toBeVisible();
     await expect(canvas.getByText("Читаю")).toBeVisible();
-    await expect(canvas.getByText("312 / 768 стор.")).toBeVisible();
   },
 };
 
@@ -106,7 +105,6 @@ export const Selected: Story = {
     authors: ["Роберт Джексон Беннетт"],
     genres: [{ icon: "fentezi", label: "Фентезі" }],
     progress: {
-      ariaLabel: "Прогрес читання: 87 з 452",
       current: 87,
       total: 452,
       unit: "стор.",
@@ -122,9 +120,14 @@ export const ClickableCover: Story = {
   args: {
     cover: { alt: "Двір срібного полум'я", src: makeCoverDataUrl("#a96e47") },
     coverActivateLabel: "View cover",
+    formats: [
+      { icon: "book", label: "Паперова", value: "paper" },
+      { icon: "headphones", label: "Аудіокнига", value: "audiobook" },
+    ],
     genres: [{ icon: "fentezi", label: "Фентезі" }],
     kebab: <Kebab />,
     onCoverActivate: fn(),
+    ownership: owned,
     rating: 4,
     status: reading,
   },
@@ -152,13 +155,12 @@ export const Grid: Story = {
         href="#book"
         kebab={<Kebab />}
         progress={{
-          ariaLabel: "Прогрес читання: 312 з 768",
           current: 312,
           total: 768,
           unit: "стор.",
         }}
         rating={4}
-        series="Двір шипів і троянд · Книга 2 з 3"
+        series={{ href: "#series", name: "Двір шипів і троянд", positionLabel: "2 з 3" }}
         status={reading}
         title="Двір срібного полум'я"
       />

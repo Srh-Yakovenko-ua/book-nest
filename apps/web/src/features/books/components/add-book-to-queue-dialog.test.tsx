@@ -51,9 +51,15 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function renderDialog(queueLength = 3) {
+const QUEUE_ITEMS = [
+  { id: "q1", position: 1, title: "Черга 1" },
+  { id: "q2", position: 2, title: "Черга 2" },
+  { id: "q3", position: 3, title: "Черга 3" },
+];
+
+function renderDialog(queueItems = QUEUE_ITEMS) {
   return renderWithProviders(
-    <AddBookToQueueDialog onOpenChange={vi.fn()} open queueLength={queueLength} />,
+    <AddBookToQueueDialog onOpenChange={vi.fn()} open queueItems={queueItems} />,
   );
 }
 

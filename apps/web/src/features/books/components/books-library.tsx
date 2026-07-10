@@ -42,6 +42,7 @@ import { LibrarySummarySidebar } from "./library-summary-sidebar";
 export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorites"> }) {
   const t = useTranslations("books.library");
   const tCover = useTranslations("books.cover");
+  const tFormat = useTranslations("books.format.options");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
   const tSortOptions = useTranslations("books.library.sort.options");
@@ -99,6 +100,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     .map((book) =>
       toLibraryBook(book, {
         borrowedFrom: (name) => t("card.borrowedFrom", { name }),
+        formatLabel: (value) => tFormat(value),
         genreName: (key) => genreNameByKey.get(key) ?? key,
         lentTo: (name) => t("card.lentTo", { name }),
         ownershipLabel: (value) => tOwnership(value),
@@ -106,6 +108,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
         progressAriaLabel: (current, total) => t("progress.ariaLabel", { current, total }),
         progressUnit: t("progress.unit"),
         ratingLabel: (value) => t("rating.ariaLabel", { value }),
+        seriesPosition: (position, total) => t("card.seriesPosition", { position, total }),
         statusLabel: (value) => tStatus(value),
       }),
     );

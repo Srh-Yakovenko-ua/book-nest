@@ -27,6 +27,7 @@ const noopActions: LibraryActions = {
 function makeBook(overrides: Partial<LibraryBook>): LibraryBook {
   return {
     authors: ["Сара Дж. Маас"],
+    formats: [],
     href: "/books/1/edit",
     id: "1",
     isFavorite: false,

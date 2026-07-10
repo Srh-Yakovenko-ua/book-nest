@@ -1,13 +1,18 @@
-import type { BookView, MediaView, OwnershipStatus, ReadingStatus } from "@app/shared";
+import type { BookFormat, BookView, MediaView, OwnershipStatus, ReadingStatus } from "@app/shared";
 
-import type { GenreIconName, UiIconName } from "@/components/icons";
-
-import { ownershipStatuses, readingStatuses, type StatusEntry } from "@/lib/book-status";
+import { type GenreIconName, isGenreIconName, type UiIconName } from "@/components/icons";
+import {
+  bookFormats,
+  ownershipStatuses,
+  readingStatuses,
+  type StatusEntry,
+} from "@/lib/book-status";
 
 export type LibraryBook = {
   authors: string[];
   cover?: { alt?: string; src: string };
   coverMedia?: MediaView;
+  formats: LibraryBookFormat[];
   genres?: { icon?: GenreIconName; label: string }[];
   href: string;
   id: string;
@@ -23,15 +28,22 @@ export type LibraryBook = {
   ratingLabel?: string;
   readingStatus: ReadingStatus;
   selected?: boolean;
-  series?: string;
+  series?: LibraryBookSeries;
   status: StatusEntry;
   tags?: string[];
   title: string;
   year?: number;
 };
 
+export type LibraryBookFormat = {
+  icon: UiIconName;
+  label: string;
+  value: BookFormat;
+};
+
 export type LibraryBookLabels = {
   borrowedFrom: (name: string) => string;
+  formatLabel: (value: BookFormat) => string;
   genreName: (key: string) => string;
   lentTo: (name: string) => string;
   ownershipLabel: (value: OwnershipStatus) => string;
@@ -39,6 +51,7 @@ export type LibraryBookLabels = {
   progressAriaLabel: (current: number, total: number) => string;
   progressUnit: string;
   ratingLabel: (value: number) => string;
+  seriesPosition: (position: number, total: number) => string;
   statusLabel: (value: ReadingStatus) => string;
 };
 
@@ -47,6 +60,15 @@ export type LibraryBookLinkComponent = React.ComponentType<{
   className?: string;
   href: string;
 }>;
+
+export type LibraryBookSeries = {
+  href: string;
+  id: string;
+  name: string;
+  position?: number;
+  positionLabel?: string;
+  total?: number;
+};
 
 const PROGRESS_STATUSES: readonly ReadingStatus[] = ["reading", "paused", "rereading"];
 
@@ -57,7 +79,10 @@ export function toLibraryBook(book: BookView, labels: LibraryBookLabels): Librar
   const baseStatus =
     readingStatuses.find((entry) => entry.value === book.readingStatus) ?? FALLBACK_STATUS;
   const status: StatusEntry = { ...baseStatus, label: labels.statusLabel(book.readingStatus) };
-  const genres = book.genres.map((key) => ({ label: labels.genreName(key) }));
+  const genres = book.genres.map((key) => ({
+    icon: isGenreIconName(key) ? key : undefined,
+    label: labels.genreName(key),
+  }));
   const progress = resolveProgress(book);
   const rating = book.readingProgress?.rating ?? undefined;
   const ownershipBase = ownershipStatuses.find((entry) => entry.value === book.ownershipStatus);
@@ -67,11 +92,14 @@ export function toLibraryBook(book: BookView, labels: LibraryBookLabels): Librar
       : { ...ownershipBase, label: labels.ownershipLabel(book.ownershipStatus) };
   const tags = book.tags.length === 0 ? undefined : book.tags.map((tag) => tag.name);
   const loan = toLoanNote(book, labels);
+  const formats = toFormats(book, labels);
+  const series = toSeries(book, labels);
 
   return {
     authors: book.authors.map((author) => author.name),
-    cover: book.cover ? { alt: book.title, src: book.cover.urls.thumb } : undefined,
+    cover: book.cover ? { alt: book.title, src: book.cover.urls.card } : undefined,
     coverMedia: book.cover ?? undefined,
+    formats,
     genres,
     href: `/books/${book.id}`,
     id: book.id,
@@ -93,7 +121,7 @@ export function toLibraryBook(book: BookView, labels: LibraryBookLabels): Librar
     rating,
     ratingLabel: rating === undefined ? undefined : labels.ratingLabel(rating),
     readingStatus: book.readingStatus,
-    series: book.series === null ? undefined : book.series.name,
+    series,
     status,
     tags,
     title: book.title,
@@ -110,6 +138,28 @@ function resolveProgress(book: BookView): undefined | { current: number; total: 
   return { current: currentPage, total: book.pagesCount };
 }
 
+function seriesPositionLabel({
+  labels,
+  position,
+  total,
+}: {
+  labels: LibraryBookLabels;
+  position?: number;
+  total?: number;
+}): string | undefined {
+  if (position === undefined) return undefined;
+  if (total === undefined) return String(position);
+  return labels.seriesPosition(position, total);
+}
+
+function toFormats(book: BookView, labels: LibraryBookLabels): LibraryBookFormat[] {
+  return book.formats.flatMap((value) => {
+    const base = bookFormats.find((entry) => entry.value === value);
+    if (base === undefined) return [];
+    return [{ icon: base.icon, label: labels.formatLabel(value), value }];
+  });
+}
+
 function toLoanNote(book: BookView, labels: LibraryBookLabels): LibraryBook["loan"] {
   if (book.loanInfo === null) return undefined;
   const name = book.loanInfo.personName.trim();
@@ -121,4 +171,20 @@ function toLoanNote(book: BookView, labels: LibraryBookLabels): LibraryBook["loa
     return { icon: "arrow-down-circle", text: labels.borrowedFrom(name) };
   }
   return undefined;
+}
+
+function toSeries(book: BookView, labels: LibraryBookLabels): LibraryBookSeries | undefined {
+  if (book.series === null) return undefined;
+  const position = book.partNumber ?? undefined;
+  const total = book.series.totalBooks ?? undefined;
+  const positionLabel = seriesPositionLabel({ labels, position, total });
+
+  return {
+    href: `/series/${book.series.id}`,
+    id: book.series.id,
+    name: book.series.name,
+    position,
+    positionLabel,
+    total,
+  };
 }

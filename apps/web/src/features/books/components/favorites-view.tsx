@@ -47,6 +47,7 @@ export function FavoritesView() {
   const t = useTranslations("books.library");
   const tFav = useTranslations("favorites");
   const tCover = useTranslations("books.cover");
+  const tFormat = useTranslations("books.format.options");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
   const tSortOptions = useTranslations("books.library.sort.options");
@@ -105,6 +106,7 @@ export function FavoritesView() {
     .map((book) =>
       toLibraryBook(book, {
         borrowedFrom: (name) => t("card.borrowedFrom", { name }),
+        formatLabel: (value) => tFormat(value),
         genreName: (key) => genreNameByKey.get(key) ?? key,
         lentTo: (name) => t("card.lentTo", { name }),
         ownershipLabel: (value) => tOwnership(value),
@@ -112,6 +114,7 @@ export function FavoritesView() {
         progressAriaLabel: (current, total) => t("progress.ariaLabel", { current, total }),
         progressUnit: t("progress.unit"),
         ratingLabel: (value) => t("rating.ariaLabel", { value }),
+        seriesPosition: (position, total) => t("card.seriesPosition", { position, total }),
         statusLabel: (value) => tStatus(value),
       }),
     );
