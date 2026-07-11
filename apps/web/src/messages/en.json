@@ -348,7 +348,7 @@
     "library": {
       "all": {
         "title": "All books",
-        "subtitle": "Every book you've added — regardless of status"
+        "subtitle": "The complete list of books saved in BookNest"
       },
       "my": {
         "title": "My library",
@@ -460,7 +460,7 @@
         "trigger": "Filters",
         "title": "Filters",
         "description": "Choose the attributes you need to quickly find a book on your shelf.",
-        "done": "Done",
+        "apply": "Apply filters",
         "clear": "Clear filters",
         "clearField": "Clear",
         "customBadge": "Custom",
@@ -495,7 +495,9 @@
           "min": "From",
           "max": "To",
           "from": "From {value}",
-          "to": "To {value}"
+          "to": "To {value}",
+          "minLabel": "Minimum rating",
+          "maxLabel": "Maximum rating"
         },
         "range": {
           "min": "From",

@@ -305,7 +305,6 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       advancedFilters={
         <LibraryAdvancedFilters
           activeCount={advancedFiltersCount}
-          onClearFilters={library.clearFilters}
           onRememberEntity={rememberEntity}
           resolveEntityName={resolveEntityName}
           scope={scope}

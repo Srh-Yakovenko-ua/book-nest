@@ -749,8 +749,9 @@ export type UpdateReadingProgressInput = z.infer<typeof UpdateReadingProgressInp
 
 const LIBRARY_PAGE_SIZE_DEFAULT = 24;
 const LIBRARY_SEARCH_MAX = 200;
-const LIBRARY_RATING_MIN = 1;
+const LIBRARY_RATING_MIN = 0.5;
 const LIBRARY_RATING_MAX = 10;
+const LIBRARY_RATING_STEP = 0.5;
 
 export const LibrarySortSchema = z.enum([
   "created_desc",
@@ -794,8 +795,18 @@ export const LibraryBooksQuerySchema = z
     pagesMin: z.coerce.number().int().optional(),
     publisher: queryStringArray(z.uuid()),
     q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
-    ratingMax: z.coerce.number().int().min(LIBRARY_RATING_MIN).max(LIBRARY_RATING_MAX).optional(),
-    ratingMin: z.coerce.number().int().min(LIBRARY_RATING_MIN).max(LIBRARY_RATING_MAX).optional(),
+    ratingMax: z.coerce
+      .number()
+      .min(LIBRARY_RATING_MIN)
+      .max(LIBRARY_RATING_MAX)
+      .multipleOf(LIBRARY_RATING_STEP)
+      .optional(),
+    ratingMin: z.coerce
+      .number()
+      .min(LIBRARY_RATING_MIN)
+      .max(LIBRARY_RATING_MAX)
+      .multipleOf(LIBRARY_RATING_STEP)
+      .optional(),
     sort: LibrarySortSchema.default("created_desc"),
     status: queryStringArray(ReadingStatusSchema),
     tag: queryStringArray(z.uuid()),

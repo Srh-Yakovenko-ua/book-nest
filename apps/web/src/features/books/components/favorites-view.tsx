@@ -231,7 +231,6 @@ export function FavoritesView() {
         advancedFilters={
           <LibraryAdvancedFilters
             activeCount={advancedFiltersCount}
-            onClearFilters={library.clearFilters}
             onRememberEntity={rememberEntity}
             resolveEntityName={resolveEntityName}
             scope={FAVORITES_SCOPE}
