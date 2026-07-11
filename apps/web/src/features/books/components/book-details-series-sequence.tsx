@@ -8,6 +8,7 @@ import { type ReactNode, useLayoutEffect, useRef } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { readingOrder, suggestedPartNumber, useSeriesDetails } from "@/features/series";
@@ -15,15 +16,10 @@ import { Link } from "@/i18n/navigation";
 import { readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
+import { computeSeriesSequenceHint, type SeriesSequenceHint } from "../model/series-sequence-hint";
 import { FormSection } from "./form-section";
 
 type ConnectorTone = "none" | "pale" | "strong";
-
-type Hint =
-  | { book: SeriesBookView; kind: "startAdded" }
-  | { kind: "completed" }
-  | { kind: "nextMissing"; number: number }
-  | { kind: "none" };
 
 type Slot =
   | { book: SeriesBookView; isCurrent: boolean; key: string; kind: "added"; number: null | number }
@@ -32,32 +28,25 @@ type Slot =
 
 const SKELETON_SLOTS = ["s1", "s2", "s3", "s4", "s5"] as const;
 
+const SLOT_FADE =
+  "opacity-[0.72] group-hover/slot:opacity-100 group-focus-within/slot:opacity-100 motion-safe:transition";
+
 export function BookDetailsSeriesSequence({ book }: { book: BookView }) {
   if (book.series === null) return null;
   return <SeriesSequence book={book} series={book.series} />;
 }
 
-function AddedCover({ cover, isCurrent }: { cover: SeriesBookView["cover"]; isCurrent: boolean }) {
+function AddedCover({ cover }: { cover: SeriesBookView["cover"] }) {
   if (cover === null || cover === undefined) {
     return (
-      <div
-        className={cn(
-          "grid aspect-[3/4] w-full place-items-center rounded-md bg-accent text-accent-foreground/70 shadow-soft",
-          isCurrent && "border-2 border-brand",
-        )}
-      >
+      <div className="grid aspect-[2/3] w-full place-items-center rounded-md bg-accent text-accent-foreground/70">
         <UiIcon aria-hidden name="book" size={26} />
       </div>
     );
   }
 
   return (
-    <div
-      className={cn(
-        "relative aspect-[3/4] w-full overflow-hidden rounded-md shadow-soft",
-        isCurrent && "border-2 border-brand",
-      )}
-    >
+    <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md">
       <Image alt="" className="object-cover" fill sizes="128px" src={cover.urls.card} unoptimized />
     </div>
   );
@@ -80,13 +69,23 @@ function AddedSlot({
     <>
       <div className="relative w-full">
         <Connector tone={connector} />
-        <AddedCover cover={book.cover} isCurrent={isCurrent} />
-        <NumberBadge tone="brand">{number === null ? t("noNumberBadge") : number}</NumberBadge>
+        <SlotFrame
+          badge={<NumberBadge>{number === null ? t("noNumberBadge") : number}</NumberBadge>}
+          isCurrent={isCurrent}
+          tone="added"
+        >
+          <AddedCover cover={book.cover} />
+        </SlotFrame>
       </div>
-      <p className="line-clamp-2 w-full text-center text-xs font-medium text-foreground/90">
+      <p
+        className={cn(
+          "line-clamp-2 w-full text-center text-xs font-medium text-foreground/90",
+          !isCurrent && cn(SLOT_FADE, "group-hover/slot:text-primary"),
+        )}
+      >
         {book.title}
       </p>
-      <ReadingChip status={book.readingStatus} />
+      <ReadingChip className={isCurrent ? undefined : SLOT_FADE} status={book.readingStatus} />
     </>
   );
 
@@ -94,24 +93,18 @@ function AddedSlot({
     return (
       <li
         aria-current="true"
-        className="relative flex w-32 shrink-0 flex-col items-center"
+        className="group/slot relative flex w-32 shrink-0 flex-col items-center gap-2"
         data-current="true"
       >
-        <div className="flex h-5 items-center justify-center">
-          <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-white">
-            {t("current")}
-          </span>
-        </div>
-        <div className="flex w-full flex-col items-center gap-2">{body}</div>
+        {body}
       </li>
     );
   }
 
   return (
-    <li className="relative flex w-32 shrink-0 flex-col items-center">
-      <div className="h-5" />
+    <li className="group/slot relative flex w-32 shrink-0 flex-col items-center gap-2">
       <Link
-        className="flex w-full flex-col items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50 [&_p]:transition-colors hover:[&_p]:text-primary"
+        className="flex w-full flex-col items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         href={`/books/${book.id}`}
       >
         {body}
@@ -122,6 +115,17 @@ function AddedSlot({
 
 function assertNever(value: never): never {
   throw new Error(`Unhandled series-sequence slot: ${String(value)}`);
+}
+
+function bookLink(book: SeriesBookView) {
+  return {
+    book: (chunks: ReactNode) => (
+      <Link className="font-medium text-primary hover:underline" href={`/books/${book.id}`}>
+        {chunks}
+      </Link>
+    ),
+    title: book.title,
+  };
 }
 
 function buildSlots(series: SeriesView, books: SeriesBookView[], currentId: string): Slot[] {
@@ -163,42 +167,52 @@ function buildSlots(series: SeriesView, books: SeriesBookView[], currentId: stri
   return slots;
 }
 
-function computeHint(series: SeriesView, books: SeriesBookView[]): Hint {
-  const total = series.totalBooks;
-
-  if (total === null) {
-    const next = readingOrder(books).find((entry) => entry.readingStatus !== "finished");
-    return next === undefined ? { kind: "none" } : { book: next, kind: "startAdded" };
-  }
-
-  for (let position = 1; position <= total; position += 1) {
-    const added = books.find((entry) => entry.partNumber === position);
-    if (added === undefined) return { kind: "nextMissing", number: position };
-    if (added.readingStatus !== "finished") return { book: added, kind: "startAdded" };
-  }
-  return { kind: "completed" };
-}
-
 function Connector({ tone }: { tone: ConnectorTone }) {
   if (tone === "none") return null;
+  const strong = tone === "strong";
+  const color = strong ? "bg-brand" : "bg-accent-border";
   return (
     <span
       aria-hidden
       className={cn(
-        "absolute top-1/2 -left-4 h-0.5 w-4 -translate-y-1/2 rounded-full",
-        tone === "strong" ? "bg-brand" : "bg-border",
+        "pointer-events-none absolute top-1/2 -left-4 h-[5px] w-4 -translate-y-1/2",
+        strong ? "opacity-100" : "opacity-60",
       )}
-    />
+    >
+      <span
+        className={cn("absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 rounded-full", color)}
+      />
+      <span
+        className={cn("absolute top-1/2 left-0 size-[5px] -translate-y-1/2 rounded-full", color)}
+      />
+      <span
+        className={cn(
+          "absolute top-1/2 left-1/2 size-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full",
+          color,
+        )}
+      />
+      <span
+        className={cn("absolute top-1/2 right-0 size-[5px] -translate-y-1/2 rounded-full", color)}
+      />
+    </span>
   );
 }
 
 function connectorTone(previous: null | Slot, current: Slot): ConnectorTone {
   if (previous === null) return "none";
-  if (previous.kind !== "added" || current.kind !== "added") return "pale";
-  if (previous.number !== null && current.number !== null && previous.number === current.number) {
+  if (
+    previous.kind === "added" &&
+    current.kind === "added" &&
+    previous.number !== null &&
+    current.number !== null &&
+    previous.number === current.number
+  ) {
     return "none";
   }
-  return "strong";
+  const neighborIsCurrent =
+    (previous.kind === "added" && previous.isCurrent) ||
+    (current.kind === "added" && current.isCurrent);
+  return neighborIsCurrent ? "strong" : "pale";
 }
 
 function HintFrame({ children }: { children: ReactNode }) {
@@ -210,46 +224,27 @@ function HintFrame({ children }: { children: ReactNode }) {
   );
 }
 
-function HintLine({ hint, seriesId }: { hint: Hint; seriesId: string }) {
+function HintLine({ hint }: { hint: SeriesSequenceHint }) {
   const t = useTranslations("books.details.seriesSequence");
 
-  if (hint.kind === "completed") {
-    return <HintFrame>{t("hintCompleted")}</HintFrame>;
+  switch (hint.kind) {
+    case "afterAdded":
+      return <HintFrame>{t.rich("hintAfterAdded", bookLink(hint.book))}</HintFrame>;
+    case "afterMissing":
+      return <HintFrame>{t("hintAfterMissing", { number: hint.number })}</HintFrame>;
+    case "beforeAdded":
+      return <HintFrame>{t.rich("hintBeforeAdded", bookLink(hint.book))}</HintFrame>;
+    case "beforeMissing":
+      return <HintFrame>{t("hintBeforeMissing", { number: hint.number })}</HintFrame>;
+    case "completed":
+      return <HintFrame>{t("hintCompleted")}</HintFrame>;
+    case "current":
+      return <HintFrame>{t("hintCurrent")}</HintFrame>;
+    case "none":
+      return null;
+    default:
+      return assertNever(hint);
   }
-
-  if (hint.kind === "startAdded") {
-    return (
-      <HintFrame>
-        {t.rich("hintStartAdded", {
-          book: (chunks) => (
-            <Link
-              className="font-medium text-primary hover:underline"
-              href={`/books/${hint.book.id}`}
-            >
-              {chunks}
-            </Link>
-          ),
-          title: hint.book.title,
-        })}
-      </HintFrame>
-    );
-  }
-
-  if (hint.kind === "nextMissing") {
-    return (
-      <HintFrame>
-        {t("hintNextMissing", { title: t("slotTitleFallback", { number: hint.number }) })}{" "}
-        <Link
-          className="font-medium text-primary hover:underline"
-          href={`/books/new?seriesId=${seriesId}&partNumber=${hint.number}`}
-        >
-          {t("addBook")}
-        </Link>
-      </HintFrame>
-    );
-  }
-
-  return null;
 }
 
 function MissingSlot({
@@ -263,40 +258,33 @@ function MissingSlot({
 }) {
   const t = useTranslations("books.details.seriesSequence");
   return (
-    <li className="relative flex w-32 shrink-0 flex-col items-center">
-      <div className="h-5" />
-      <div className="flex w-full flex-col items-center gap-2">
-        <div className="relative w-full">
-          <Connector tone={connector} />
+    <li className="group/slot relative flex w-32 shrink-0 flex-col items-center gap-2">
+      <div className="relative w-full">
+        <Connector tone={connector} />
+        <SlotFrame badge={<NumberBadge>{number}</NumberBadge>} tone="placeholder">
           <PlaceholderCover icon="book" />
-          <NumberBadge tone="muted">{number}</NumberBadge>
-        </div>
-        <p className="line-clamp-2 w-full text-center text-xs text-muted-foreground">
-          {t("slotTitleFallback", { number })}
-        </p>
-        <Button asChild size="xs" variant="secondary">
-          <Link
-            aria-label={t("addBookAria", { number })}
-            href={`/books/new?seriesId=${seriesId}&partNumber=${number}`}
-          >
-            {t("addBook")}
-          </Link>
-        </Button>
+        </SlotFrame>
       </div>
+      <p className={cn("line-clamp-2 w-full text-center text-xs text-muted-foreground", SLOT_FADE)}>
+        {t("slotTitleFallback", { number })}
+      </p>
+      <Button asChild className={SLOT_FADE} size="xs" variant="secondary">
+        <Link
+          aria-label={t("addBookAria", { number })}
+          href={`/books/new?seriesId=${seriesId}&partNumber=${number}`}
+        >
+          {t("addBook")}
+        </Link>
+      </Button>
     </li>
   );
 }
 
-function NumberBadge({ children, tone }: { children: ReactNode; tone: "brand" | "muted" }) {
+function NumberBadge({ children }: { children: ReactNode }) {
   return (
     <span
       aria-hidden
-      className={cn(
-        "absolute -top-2 -left-2 z-10 grid size-6 place-items-center rounded-full font-heading text-[0.6875rem] font-bold tabular-nums shadow-soft",
-        tone === "brand"
-          ? "bg-brand text-white"
-          : "border border-border bg-field text-muted-foreground",
-      )}
+      className="absolute -top-3 -left-3 z-20 flex size-6 items-center justify-center rounded-full bg-brand pb-[3px] font-heading text-[0.8125rem] font-bold text-primary-foreground tabular-nums shadow-[0_0_0_3px_var(--card)]"
     >
       {children}
     </span>
@@ -314,25 +302,24 @@ function OpenSlot({
 }) {
   const t = useTranslations("books.details.seriesSequence");
   return (
-    <li className="relative flex w-32 shrink-0 flex-col items-center">
-      <div className="h-5" />
-      <div className="flex w-full flex-col items-center gap-2">
-        <div className="relative w-full">
-          <Connector tone={connector} />
+    <li className="group/slot relative flex w-32 shrink-0 flex-col items-center gap-2">
+      <div className="relative w-full">
+        <Connector tone={connector} />
+        <SlotFrame tone="placeholder">
           <PlaceholderCover dashed icon="plus" />
-        </div>
-        <p className="line-clamp-2 w-full text-center text-xs text-muted-foreground">
-          {t("openSlot")}
-        </p>
-        <Button asChild size="xs" variant="secondary">
-          <Link
-            aria-label={t("openSlotAria")}
-            href={`/books/new?seriesId=${seriesId}&partNumber=${partNumber}`}
-          >
-            {t("addBook")}
-          </Link>
-        </Button>
+        </SlotFrame>
       </div>
+      <p className={cn("line-clamp-2 w-full text-center text-xs text-muted-foreground", SLOT_FADE)}>
+        {t("openSlot")}
+      </p>
+      <Button asChild className={SLOT_FADE} size="xs" variant="secondary">
+        <Link
+          aria-label={t("openSlotAria")}
+          href={`/books/new?seriesId=${seriesId}&partNumber=${partNumber}`}
+        >
+          {t("addBook")}
+        </Link>
+      </Button>
     </li>
   );
 }
@@ -341,8 +328,8 @@ function PlaceholderCover({ dashed = false, icon }: { dashed?: boolean; icon: "b
   return (
     <div
       className={cn(
-        "grid aspect-[3/4] w-full place-items-center rounded-md border bg-field text-muted-foreground",
-        dashed ? "border-dashed border-border" : "border-border",
+        "grid aspect-[2/3] w-full place-items-center rounded-md border bg-card/50 text-muted-foreground",
+        dashed ? "border-dashed border-accent-border" : "border-accent-border",
       )}
     >
       <UiIcon aria-hidden name={icon} size={26} />
@@ -350,12 +337,17 @@ function PlaceholderCover({ dashed = false, icon }: { dashed?: boolean; icon: "b
   );
 }
 
-function ReadingChip({ status }: { status: ReadingStatus }) {
+function ReadingChip({ className, status }: { className?: string; status: ReadingStatus }) {
   const tReading = useTranslations("books.readingStatus.options");
   if (status === "not_started") return null;
   const entry = readingStatuses.find((item) => item.value === status);
   if (entry === undefined) return null;
-  return <StatusBadge className="max-w-full" entry={{ ...entry, label: tReading(status) }} />;
+  return (
+    <StatusBadge
+      className={cn("max-w-full", className)}
+      entry={{ ...entry, label: tReading(status) }}
+    />
+  );
 }
 
 function RibbonSkeleton() {
@@ -368,6 +360,19 @@ function RibbonSkeleton() {
           <Skeleton className="h-5 w-16 rounded-full" />
         </div>
       ))}
+    </div>
+  );
+}
+
+function SeriesReadingProgress({ finished, total }: { finished: number; total: number }) {
+  const t = useTranslations("books.details.seriesSequence");
+  const percent = Math.round((finished / total) * 100);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Progress className="h-1.5" value={percent} />
+      <p className="text-sm text-muted-foreground tabular-nums">
+        {t("readingProgressLabel", { finished, percent, total })}
+      </p>
     </div>
   );
 }
@@ -392,21 +397,7 @@ function SeriesSequence({ book, series }: { book: BookView; series: SeriesView }
     );
   }, [data]);
 
-  const meta: string[] = [];
-  if (book.partNumber !== null) {
-    meta.push(
-      series.totalBooks === null
-        ? t("metaBook", { number: book.partNumber })
-        : t("metaBookWithTotal", { number: book.partNumber, total: series.totalBooks }),
-    );
-  }
-  meta.push(
-    series.totalBooks === null
-      ? t("metaLibrary", { added: series.booksInSeries })
-      : t("metaLibraryWithTotal", { added: series.booksInSeries, total: series.totalBooks }),
-  );
-
-  const hasMissingNumbered = slots.some((slot) => slot.kind === "missing");
+  const missingCount = slots.filter((slot) => slot.kind === "missing").length;
 
   return (
     <FormSection
@@ -418,16 +409,29 @@ function SeriesSequence({ book, series }: { book: BookView; series: SeriesView }
           </Link>
         </Button>
       }
-      description={meta.join(" · ")}
       icon="list"
-      title={t("title")}
+      title={
+        <span className="relative inline-flex items-center">
+          {t("title")}
+          <Image
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-full ml-2 -translate-y-1/2 select-none"
+            height={40}
+            src="/illustrations/leaf-1.png"
+            unoptimized
+            width={48}
+          />
+        </span>
+      }
     >
+      <SeriesSummaryHeader series={series} />
       {isPending ? <RibbonSkeleton /> : null}
       {isPending || data === undefined ? null : (
         <>
           <ol
             aria-label={t("ribbonLabel")}
-            className="relative flex gap-4 overflow-x-auto px-2 pt-3 pb-2"
+            className="relative flex gap-4 overflow-x-auto px-4 pt-5 pb-4"
             ref={scrollRef}
           >
             {slots.map((slot, index) => (
@@ -439,13 +443,106 @@ function SeriesSequence({ book, series }: { book: BookView; series: SeriesView }
               />
             ))}
           </ol>
-          <HintLine hint={computeHint(series, books)} seriesId={series.id} />
-          {hasMissingNumbered ? (
-            <p className="text-xs text-muted-foreground">{t("footerNote")}</p>
+          <HintLine
+            hint={computeSeriesSequenceHint({
+              books,
+              currentId: book.id,
+              currentPartNumber: book.partNumber,
+              totalBooks: series.totalBooks,
+            })}
+          />
+          {missingCount > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {t("footerNote", { added: series.booksInSeries, remaining: missingCount })}
+            </p>
           ) : null}
         </>
       )}
     </FormSection>
+  );
+}
+
+function SeriesSummaryHeader({ series }: { series: SeriesView }) {
+  const t = useTranslations("books.details.seriesSequence");
+  const { totalBooks } = series;
+  const seriesRead =
+    totalBooks !== null && totalBooks > 0 && series.finishedInSeries === totalBooks;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          className="font-heading font-medium text-ink no-underline transition-colors outline-none hover:text-primary hover:underline focus-visible:text-primary"
+          href={`/series/${series.id}`}
+        >
+          {series.name}
+        </Link>
+        {series.status === "completed" ? (
+          <StatusBadge
+            entry={{
+              icon: "check-circle",
+              label: t("cycleCompleteBadge"),
+              tone: "success",
+              value: "cycle-complete",
+            }}
+          />
+        ) : null}
+        {seriesRead ? (
+          <StatusBadge
+            entry={{
+              icon: "check-circle",
+              label: t("seriesReadBadge"),
+              tone: "success",
+              value: "series-read",
+            }}
+          />
+        ) : null}
+      </div>
+
+      {totalBooks === null ? null : (
+        <SeriesReadingProgress finished={series.finishedInSeries} total={totalBooks} />
+      )}
+
+      <p className="text-sm text-muted-foreground">
+        {totalBooks === null
+          ? t("metaLibrary", { added: series.booksInSeries })
+          : t("metaLibraryWithTotal", { added: series.booksInSeries, total: totalBooks })}
+      </p>
+    </div>
+  );
+}
+
+function SlotFrame({
+  badge,
+  children,
+  isCurrent = false,
+  tone,
+}: {
+  badge?: ReactNode;
+  children: ReactNode;
+  isCurrent?: boolean;
+  tone: "added" | "placeholder";
+}) {
+  return (
+    <div
+      className={cn(
+        "relative w-full rounded-lg p-2.5 motion-safe:transition motion-safe:duration-200 motion-safe:ease-out",
+        tone === "added" ? "bg-card" : "bg-field",
+        isCurrent
+          ? "border-2 border-brand shadow-btn"
+          : cn(
+              "border-[1.5px] border-accent-border",
+              "opacity-[0.72] group-focus-within/slot:opacity-100 group-hover/slot:opacity-100",
+              "group-hover/slot:shadow-hover motion-safe:group-hover/slot:-translate-y-0.5",
+              tone === "added"
+                ? "group-hover/slot:border-brand"
+                : "group-hover/slot:border-accent-border group-hover/slot:bg-accent",
+            ),
+      )}
+    >
+      {children}
+      {badge}
+    </div>
   );
 }
 

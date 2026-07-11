@@ -24,6 +24,7 @@ const item = messages.readingQueue.item;
 
 const labels: LibraryBookLabels = {
   borrowedFrom: (name) => `Borrowed from ${name}`,
+  formatLabel: (value) => `format:${value}`,
   genreName: (key) => key,
   lentTo: (name) => `Lent to ${name}`,
   ownershipLabel: (value) => `ownership:${value}`,
@@ -31,6 +32,7 @@ const labels: LibraryBookLabels = {
   progressAriaLabel: (current, total) => `${current}/${total}`,
   progressUnit: "p",
   ratingLabel: (value) => `rating ${value}`,
+  seriesPosition: (position, total) => `${position} of ${total}`,
   statusLabel: (value) => `status:${value}`,
 };
 

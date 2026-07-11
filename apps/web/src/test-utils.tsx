@@ -12,6 +12,7 @@ import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { type ReactElement, type ReactNode } from "react";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import messages from "@/messages/uk.json";
 
 type RenderProvidersOptions = Omit<RenderOptions, "wrapper"> & {
@@ -36,7 +37,9 @@ export function renderWithProviders(
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <NextIntlClientProvider locale="uk" messages={messages}>
-        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        <QueryClientProvider client={client}>
+          <TooltipProvider>{children}</TooltipProvider>
+        </QueryClientProvider>
       </NextIntlClientProvider>
     );
   }

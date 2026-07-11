@@ -21,6 +21,10 @@ const wantToRead =
 const books: LibraryBook[] = [
   {
     authors: ["Сара Дж. Маас"],
+    formats: [
+      { icon: "book", label: "Паперова", value: "paper" },
+      { icon: "headphones", label: "Аудіокнига", value: "audiobook" },
+    ],
     genres: [{ label: "Фентезі" }, { label: "Темне фентезі" }, { label: "Романтика" }],
     href: "/books/1/edit",
     id: "1",
@@ -39,7 +43,14 @@ const books: LibraryBook[] = [
     rating: 8,
     ratingLabel: "Рейтинг 8 з 10",
     readingStatus: "reading",
-    series: "Двір шипів і троянд",
+    series: {
+      href: "/series/s1",
+      id: "s1",
+      name: "Двір шипів і троянд",
+      position: 2,
+      positionLabel: "2 з 3",
+      total: 3,
+    },
     status: reading,
     tags: ["драматично", "романтика", "магія", "вампіри", "інтриги"],
     title: "Двір срібного полум'я",
@@ -47,6 +58,7 @@ const books: LibraryBook[] = [
   },
   {
     authors: ["Лі Бардуго"],
+    formats: [{ icon: "tablet", label: "Електронна", value: "ebook" }],
     genres: [{ label: "Фентезі" }],
     href: "/books/2/edit",
     id: "2",
@@ -62,6 +74,7 @@ const books: LibraryBook[] = [
   },
   {
     authors: ["Медлін Міллер"],
+    formats: [],
     genres: [{ label: "Історична проза" }],
     href: "/books/3/edit",
     id: "3",

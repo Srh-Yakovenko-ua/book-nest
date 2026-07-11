@@ -19,6 +19,7 @@ import type { LibraryBookLabels } from "../model/library-book";
 
 import { useGenres } from "../api/use-genres";
 import { useReadingQueue, useReorderReadingQueue } from "../api/use-reading-queue";
+import { toQueuePickerItems } from "../model/queue-placement";
 import { useRemoveFromQueueWithUndo } from "../model/use-remove-from-queue-with-undo";
 import { AddBookToQueueDialog } from "./add-book-to-queue-dialog";
 import { NextToReadCard } from "./next-to-read-card";
@@ -37,6 +38,7 @@ type StartTarget = {
 export function ReadingQueueView() {
   const t = useTranslations("readingQueue");
   const tLibrary = useTranslations("books.library");
+  const tFormat = useTranslations("books.format.options");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
   const router = useRouter();
@@ -87,6 +89,7 @@ export function ReadingQueueView() {
 
   const labels: LibraryBookLabels = {
     borrowedFrom: (name) => tLibrary("card.borrowedFrom", { name }),
+    formatLabel: (value) => tFormat(value),
     genreName: (key) => genreNameByKey.get(key) ?? key,
     lentTo: (name) => tLibrary("card.lentTo", { name }),
     ownershipLabel: (value) => tOwnership(value),
@@ -94,6 +97,7 @@ export function ReadingQueueView() {
     progressAriaLabel: (current, total) => tLibrary("progress.ariaLabel", { current, total }),
     progressUnit: tLibrary("progress.unit"),
     ratingLabel: (value) => tLibrary("rating.ariaLabel", { value }),
+    seriesPosition: (position, total) => tLibrary("card.seriesPosition", { position, total }),
     statusLabel: (value) => tStatus(value),
   };
 
@@ -212,7 +216,11 @@ export function ReadingQueueView() {
         </div>
       )}
 
-      <AddBookToQueueDialog onOpenChange={setAddOpen} open={addOpen} queueLength={count} />
+      <AddBookToQueueDialog
+        onOpenChange={setAddOpen}
+        open={addOpen}
+        queueItems={toQueuePickerItems(serverItems)}
+      />
       <StartReadingDialog
         book={startTarget}
         onOpenChange={(open) => {

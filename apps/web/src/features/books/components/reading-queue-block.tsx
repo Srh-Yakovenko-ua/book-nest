@@ -81,7 +81,7 @@ export function ReadingQueueBlock({ book }: ReadingQueueBlockProps) {
         </CardContent>
       </Card>
 
-      <AddToQueueDialog book={book} onOpenChange={setAddOpen} open={addOpen} />
+      <AddToQueueDialog book={book} context="detail" onOpenChange={setAddOpen} open={addOpen} />
     </>
   );
 }
