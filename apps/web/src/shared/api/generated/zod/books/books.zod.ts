@@ -361,9 +361,13 @@ export const booksControllerListQueryPublisherMax = 100;
 
 export const booksControllerListQueryQMax = 200;
 
+export const booksControllerListQueryRatingMaxMin = 0.5;
 export const booksControllerListQueryRatingMaxMax = 10;
+export const booksControllerListQueryRatingMaxMultipleOf = 0.5;
 
+export const booksControllerListQueryRatingMinMin = 0.5;
 export const booksControllerListQueryRatingMinMax = 10;
+export const booksControllerListQueryRatingMinMultipleOf = 0.5;
 
 export const booksControllerListQuerySortDefault = `created_desc`;
 export const booksControllerListQueryStatusMax = 100;
@@ -444,8 +448,18 @@ export const BooksControllerListQueryParams = zod.object({
     .array(zod.uuid().regex(booksControllerListQueryPublisherItemRegExp))
     .max(booksControllerListQueryPublisherMax),
   q: zod.string().max(booksControllerListQueryQMax).optional(),
-  ratingMax: zod.number().min(1).max(booksControllerListQueryRatingMaxMax).optional(),
-  ratingMin: zod.number().min(1).max(booksControllerListQueryRatingMinMax).optional(),
+  ratingMax: zod
+    .number()
+    .min(booksControllerListQueryRatingMaxMin)
+    .max(booksControllerListQueryRatingMaxMax)
+    .multipleOf(booksControllerListQueryRatingMaxMultipleOf)
+    .optional(),
+  ratingMin: zod
+    .number()
+    .min(booksControllerListQueryRatingMinMin)
+    .max(booksControllerListQueryRatingMinMax)
+    .multipleOf(booksControllerListQueryRatingMinMultipleOf)
+    .optional(),
   sort: zod
     .enum([
       "created_desc",
@@ -763,6 +777,19 @@ export const BooksControllerOverviewQueryParams = zod.object({
 });
 
 export const BooksControllerOverviewResponse = zod.object({
+  activeReading: zod
+    .object({
+      book: zod
+        .object({
+          currentPage: zod.number(),
+          id: zod.string(),
+          pagesCount: zod.number(),
+          title: zod.string(),
+        })
+        .nullable(),
+      pagesAhead: zod.number(),
+    })
+    .optional(),
   recentlyAdded: zod.array(
     zod.object({
       ageCategory: zod.enum([
@@ -983,10 +1010,19 @@ export const BooksControllerOverviewResponse = zod.object({
     }),
   ),
   summary: zod.object({
+    authorsCount: zod.number().optional(),
+    borrowed: zod.number(),
     favorites: zod.number(),
     finished: zod.number(),
+    inTransit: zod.number(),
+    physicallyAvailable: zod.number().optional(),
     reading: zod.number(),
+    series: zod.number(),
+    seriesCount: zod.number().optional(),
+    solo: zod.number(),
     total: zod.number(),
+    wantToBuy: zod.number(),
+    wantToRead: zod.number(),
   }),
   topGenres: zod.array(
     zod.object({
@@ -1030,7 +1066,10 @@ export const BooksControllerFavoritesSummaryResponse = zod.object({
   averageRating: zod.number().nullable(),
   finished: zod.number(),
   reading: zod.number(),
+  series: zod.number(),
+  solo: zod.number(),
   total: zod.number(),
+  wantToRead: zod.number(),
 });
 
 /**
@@ -1751,6 +1790,32 @@ export const BooksControllerDeleteParams = zod.object({
 });
 
 export const BooksControllerDeleteResponse = zod.void();
+
+/**
+ * @summary Get the reading progress history of a book
+ */
+export const BookReadingControllerGetReadingHistoryParams = zod.object({
+  id: zod.string(),
+});
+
+export const BookReadingControllerGetReadingHistoryResponse = zod.object({
+  daily: zod.array(
+    zod.object({
+      date: zod.string(),
+      pagesRead: zod.number(),
+    }),
+  ),
+  daysRead: zod.number(),
+  events: zod.array(
+    zod.object({
+      date: zod.string(),
+      id: zod.string(),
+      page: zod.number(),
+      pagesRead: zod.number(),
+    }),
+  ),
+  totalPagesRead: zod.number(),
+});
 
 /**
  * @summary Change the reading status of a book with server-enforced side effects

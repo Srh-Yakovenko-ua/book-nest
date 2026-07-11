@@ -36,6 +36,22 @@ function foldParameterAllOf(parameter: UnknownRecord): void {
   };
 }
 
+function foldParameterMultipleOf(parameter: UnknownRecord): void {
+  const { multipleOf } = parameter;
+  if (typeof multipleOf !== "number") {
+    return;
+  }
+
+  delete parameter.multipleOf;
+
+  const existingSchema = isRecord(parameter.schema) ? parameter.schema : {};
+
+  parameter.schema = {
+    ...existingSchema,
+    multipleOf,
+  };
+}
+
 async function generateOpenApi(): Promise<void> {
   const app = await NestFactory.create(AppModule, { logger: false });
   await app.init();
@@ -96,6 +112,7 @@ function normalizeParameters(document: OpenAPIObject): void {
       for (const parameter of operation.parameters) {
         if (isRecord(parameter)) {
           foldParameterAllOf(parameter);
+          foldParameterMultipleOf(parameter);
         }
       }
     }
