@@ -168,6 +168,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Обкладинки в послідовності серії",
     version: null,
   },
+  {
+    bodyEn:
+      "Your library now shows books as poster-style cards — cover art with reading-status and ownership badges, quick actions, and genre chips.",
+    bodyUk:
+      "Бібліотека тепер показує книги як картки-постери: обкладинка з позначками статусу читання й власності, швидкі дії та чипи жанрів.",
+    category: "improvement",
+    publishedAt: "2026-07-11T09:00:00.000Z",
+    slug: "library-cards-redesign",
+    titleEn: "Refreshed library cards",
+    titleUk: "Оновлені картки бібліотеки",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

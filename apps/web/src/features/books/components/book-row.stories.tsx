@@ -13,6 +13,7 @@ const owned = ownershipStatuses.find((status) => status.value === "owned") ?? ow
 
 const book: LibraryBook = {
   authors: ["Сара Дж. Маас"],
+  formats: [],
   href: "/books/1/edit",
   id: "1",
   isFavorite: false,

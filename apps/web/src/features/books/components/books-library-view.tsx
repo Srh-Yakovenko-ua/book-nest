@@ -28,7 +28,6 @@ import type { LibrarySummaryCard } from "./library-summary-cards";
 import { useLibrarySelectionStore } from "../model/selection-store";
 import { BookActionDialogs } from "./book-action-dialogs";
 import { BookCardActions } from "./book-card-actions";
-import { BookLoanNote } from "./book-loan-note";
 import { BookRow } from "./book-row";
 import { LibraryBulkBar } from "./library-bulk-bar";
 import { LibraryCoverViewer } from "./library-cover-viewer";
@@ -195,19 +194,16 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
 
 function BookCardSkeleton() {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
-      <div className="flex gap-3.5">
-        <Skeleton className="h-27 w-18 shrink-0 rounded-md" />
-        <div className="flex flex-1 flex-col gap-2 pt-1">
-          <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-3 w-1/2" />
-          <Skeleton className="mt-1 h-5 w-24 rounded-full" />
+    <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card">
+      <Skeleton className="aspect-[3/4] w-full rounded-none" />
+      <div className="flex flex-col gap-2 p-4">
+        <Skeleton className="h-5 w-4/5" />
+        <Skeleton className="h-3 w-1/2" />
+        <Skeleton className="mt-1 h-5 w-24 rounded-full" />
+        <div className="mt-1 flex items-center gap-1.5">
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-5 w-20 rounded-full" />
         </div>
-      </div>
-      <Skeleton className="h-1.5 w-full rounded-full" />
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-5 w-20 rounded-full" />
-        <Skeleton className="h-4 w-16" />
       </div>
     </div>
   );
@@ -229,7 +225,7 @@ function BooksGrid({
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(19rem,1fr))]">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {books.map((book, index) => (
         <LibraryGridCard
           book={book}
@@ -249,10 +245,7 @@ function BooksGrid({
 
 function BooksGridSkeleton() {
   return (
-    <div
-      aria-busy
-      className="grid grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(19rem,1fr))]"
-    >
+    <div aria-busy className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
         <div
           className="grid motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in"
@@ -405,7 +398,7 @@ function LibraryGridCard({
       className="relative grid motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
       style={{ animationDelay: staggerDelay(index) }}
     >
-      <div className="absolute top-2.5 left-2.5 z-20">
+      <div className="absolute top-3 left-3 z-20">
         <SelectionCheckbox
           checked={selected}
           label={selectBookLabel(book.title)}
@@ -421,21 +414,18 @@ function LibraryGridCard({
           authors={book.authors}
           cover={book.cover}
           coverActivateLabel={coverViewLabel}
+          formats={book.formats}
           genres={book.genres}
           href={book.href}
           kebab={renderActions(book)}
           linkComponent={linkComponent}
-          note={
-            book.loan === undefined ? undefined : (
-              <BookLoanNote icon={book.loan.icon} text={book.loan.text} />
-            )
-          }
           onCoverActivate={
             coverMedia
               ? () => onActivateCover({ bookId: book.id, media: coverMedia, title: book.title })
               : undefined
           }
           ownership={book.ownership}
+          ownershipTooltip={book.loan?.text}
           progress={book.progress}
           publisher={book.publisher}
           rating={book.rating}
@@ -651,7 +641,7 @@ function SelectionCheckbox({
   onToggle: () => void;
 }) {
   return (
-    <span className="grid size-7 cursor-pointer place-items-center rounded-md border border-border bg-card shadow-card">
+    <span className="grid size-8 cursor-pointer place-items-center rounded-lg border border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] shadow-[var(--book-overlay-pill-shadow)] backdrop-blur-md">
       <Checkbox aria-label={label} checked={checked} onCheckedChange={onToggle} />
     </span>
   );

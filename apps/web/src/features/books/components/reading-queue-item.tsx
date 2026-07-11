@@ -109,7 +109,7 @@ export function ReadingQueueItem({
             {book.series === undefined ? null : (
               <span className="inline-flex items-center gap-1">
                 <UiIcon name="layers" size={13} />
-                {book.series}
+                {book.series.name}
               </span>
             )}
             {genres.map((genre) => (

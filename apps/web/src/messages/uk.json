@@ -100,9 +100,24 @@
       "start": "На початок черги",
       "end": "У кінець черги",
       "specific": "На конкретну позицію",
+      "relative": "Перед або після книги в черзі",
       "positionLabel": "Позиція в черзі",
+      "rangePlaceholder": "від 1 до {max}",
       "specificHelper": "Якщо на цій позиції вже є книга, вона та всі наступні книги змістяться нижче.",
       "emptyHelper": "Черга поки порожня. Книга буде додана на позицію 1.",
+      "relativeSideLabel": "Перед чи після",
+      "relativeBefore": "Перед",
+      "relativeAfter": "Після",
+      "relativeBookLabel": "Книга в черзі",
+      "relativeBookPlaceholder": "Оберіть книгу в черзі",
+      "relativeBookSearch": "Пошук у черзі…",
+      "relativeBookEmpty": "Книг не знайдено",
+      "relativeRow": "{title} — поз. {position}",
+      "resultFirst": "Книга стане першою в черзі",
+      "resultEnd": "Книга стане останньою (позиція {position})",
+      "resultSpecific": "Книга стане на позицію {position}",
+      "resultRelativeBefore": "Книга стане на позицію {position}, перед «{title}»",
+      "resultRelativeAfter": "Книга стане на позицію {position}, після «{title}»",
       "errors": {
         "required": "Вкажіть позицію в черзі",
         "number": "Позиція має бути числом",
@@ -341,7 +356,8 @@
       },
       "card": {
         "lentTo": "У {name}",
-        "borrowedFrom": "Від {name}"
+        "borrowedFrom": "Від {name}",
+        "seriesPosition": "{position} з {total}"
       },
       "resultsTitle": "Список книг",
       "addBook": "Додати книгу",
@@ -1054,38 +1070,14 @@
       "authorsCollapse": "Згорнути",
       "dedicationLabel": "Присвята автора",
       "lists": "Списки",
-      "series": {
-        "title": "Серія",
-        "progressLabel": "Прогрес серії",
-        "statusLabels": {
-          "completed": "Серія завершена",
-          "ongoing": "Серія ще виходить",
-          "unknown": "Статус серії невідомий"
-        },
-        "partWithTotal": "Частина {number} з {total}",
-        "partAdded": "Частина {number} (додано {count})",
-        "partUnknown": "Номер частини не вказаний",
-        "progressWithTotal": "Прочитано {finished} з {total} · {percent}%",
-        "progressAdded": "Прочитано {finished} з {count} · доданих · {percent}%",
-        "progressUnavailable": "Прогрес серії ще недоступний",
-        "state": {
-          "finished": "Цю книгу вже прочитано",
-          "reading": "Ви читаєте цю книгу зараз",
-          "rereading": "Ви перечитуєте цю книгу",
-          "isNext": "Це наступна книга у серії",
-          "unreadEarlier": "Перед цією книгою є непрочитані частини",
-          "seriesFinished": "Серію прочитано"
-        },
-        "next": "Наступна: {title}",
-        "nextWithPart": "Наступна: {title} · частина {number}"
-      },
       "seriesSequence": {
-        "title": "Послідовність серії",
+        "title": "Послідовність читання серії",
         "goToSeries": "Перейти до серії",
-        "metaBookWithTotal": "Книга {number} з {total}",
-        "metaBook": "Книга {number}",
-        "metaLibraryWithTotal": "У бібліотеці {added} з {total}",
-        "metaLibrary": "У бібліотеці {added}",
+        "cycleCompleteBadge": "Серію завершено",
+        "seriesReadBadge": "Серію прочитано",
+        "readingProgressLabel": "Прочитано {finished} з {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}} серії · {percent}%",
+        "metaLibraryWithTotal": "{added} з {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}} вже у твоїй бібліотеці",
+        "metaLibrary": "{added, plural, one {# книга} few {# книги} many {# книг} other {# книг}} вже у твоїй бібліотеці",
         "current": "Поточна",
         "noNumberBadge": "№?",
         "slotTitleFallback": "Книга {number}",
@@ -1093,10 +1085,13 @@
         "addBookAria": "Додати книгу {number} до бібліотеки",
         "openSlot": "Додати книгу серії",
         "openSlotAria": "Додати наступну книгу серії",
-        "hintStartAdded": "Наступна за порядком — «<book>{title}</book>», саме час почати",
-        "hintNextMissing": "Наступна за порядком — {title}, її ще немає у вашій бібліотеці.",
-        "hintCompleted": "Серію завершено",
-        "footerNote": "Показано весь порядок циклу — навіть книги, яких ще немає у вашій бібліотеці.",
+        "hintCurrent": "Це наступна непрочитана книга за порядком серії.",
+        "hintAfterAdded": "Далі за порядком — «<book>{title}</book>».",
+        "hintBeforeAdded": "Перед цією книгою за порядком ще є «<book>{title}</book>».",
+        "hintAfterMissing": "Далі за порядком — книга {number}. Її ще немає у твоїй бібліотеці.",
+        "hintBeforeMissing": "Перед цією книгою за порядком ще є книга {number}, якої немає у твоїй бібліотеці.",
+        "hintCompleted": "Усі книги цієї серії вже прочитані.",
+        "footerNote": "Повний порядок серії: {added, plural, one {# книга} few {# книги} many {# книг} other {# книг}} вже у твоїй бібліотеці, {remaining} ще можна додати.",
         "ribbonLabel": "Книги серії за порядком"
       },
       "actions": {
@@ -1124,7 +1119,16 @@
         "remove": "Прибрати з черги",
         "addDialog": {
           "title": "Додати в чергу читання",
-          "subtitle": "Оберіть, куди додати книгу в черзі читання."
+          "subtitle": "Оберіть, куди додати книгу в черзі читання.",
+          "moveTitle": "Перемістити в черзі",
+          "moveSubtitle": "Оберіть нову позицію книги в черзі читання.",
+          "queueState": "Зараз у черзі: {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+          "queueEmpty": "Черга читання поки порожня",
+          "alreadyInQueue": "Ця книга вже в черзі, позиція {position}",
+          "move": "Перемістити",
+          "moving": "Переміщення…",
+          "moveToast": "Позицію в черзі оновлено",
+          "reorderHint": "Порядок черги можна будь-коли змінити на сторінці <link>Черга читання</link>."
         }
       },
       "favorite": {
