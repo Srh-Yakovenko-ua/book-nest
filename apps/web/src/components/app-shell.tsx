@@ -131,8 +131,8 @@ function AppSidebar() {
                       className={cn(
                         "relative cursor-pointer gap-3 transition-all duration-150",
                         isActive
-                          ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
-                          : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                          ? "bg-primary/10 text-sidebar-active-foreground hover:bg-primary/15 hover:text-sidebar-active-foreground"
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                       )}
                       isActive={isActive}
                       tooltip={tNav(key)}
@@ -141,10 +141,12 @@ function AppSidebar() {
                         <Icon
                           className={cn(
                             "size-[18px] shrink-0 transition-colors duration-150",
-                            isActive ? "text-primary" : "text-muted-foreground/70",
+                            isActive
+                              ? "text-sidebar-active-foreground"
+                              : "text-sidebar-foreground/70",
                           )}
                         />
-                        <span className="font-mono text-[11px] tracking-[0.14em] uppercase">
+                        <span className="font-mono text-[14px] font-medium tracking-[0.14em] uppercase">
                           {tNav(key)}
                         </span>
                         {isActive && (

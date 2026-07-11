@@ -42,6 +42,8 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
 
   const dedication = book.dedication?.trim() ?? "";
   const isDedicationLong = dedication.length > DEDICATION_PREVIEW;
+  const hasDedication = dedication.length > 0;
+  const hasGenres = book.genres.length > 0;
 
   useLayoutEffect(() => {
     const container = dedicationContainerRef.current;
@@ -158,26 +160,14 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
             src={book.cover?.urls.card}
             title={book.title}
           />
-          {book.genres.length > 0 ? (
+          {hasGenres && hasDedication ? (
             <div className="mx-auto w-[210px] sm:mx-0">
-              <ul className="flex flex-wrap gap-1.5">
-                {book.genres.map((key) => (
-                  <li
-                    className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-tag px-2.5 py-1 text-xs font-medium text-tag-foreground"
-                    key={key}
-                  >
-                    {isGenreIconName(key) ? (
-                      <GenreIcon className="shrink-0 text-brand/90" name={key} size={14} />
-                    ) : null}
-                    <span className="min-w-0 truncate">{genreNameByKey.get(key) ?? key}</span>
-                  </li>
-                ))}
-              </ul>
+              <GenreList genreNameByKey={genreNameByKey} genres={book.genres} />
             </div>
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <div className="hero-content-branch flex min-w-0 flex-1 flex-col gap-4">
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
               {readingBase === undefined ? null : (
@@ -214,7 +204,7 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
               ) : null}
             </div>
             <div className="flex items-start justify-between gap-4">
-              <h1 className="hero-title-branch min-w-0 font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-ink md:text-[2.625rem]">
+              <h1 className="min-w-0 font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-ink md:text-[2.625rem]">
                 {book.title}
               </h1>
               <div className="flex shrink-0 items-center gap-2">
@@ -267,7 +257,7 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
             </div>
           )}
 
-          {dedication.length === 0 ? null : (
+          {hasDedication ? (
             <div className="mt-2">
               <div className="relative overflow-hidden rounded-r-[14px] border-l-[3px] border-l-[var(--terracotta)] bg-muted py-3 pr-4 pl-4">
                 <div
@@ -326,7 +316,11 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
                 ) : null}
               </div>
             </div>
-          )}
+          ) : hasGenres ? (
+            <div className="mt-2">
+              <GenreList genreNameByKey={genreNameByKey} genres={book.genres} />
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -378,5 +372,29 @@ function BookDetailsCover({ alt, src, title }: { alt: string; src?: string; titl
         />
       )}
     </div>
+  );
+}
+
+function GenreList({
+  genreNameByKey,
+  genres,
+}: {
+  genreNameByKey: Map<string, string>;
+  genres: readonly string[];
+}) {
+  return (
+    <ul className="flex flex-wrap gap-1.5">
+      {genres.map((key) => (
+        <li
+          className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-tag px-2.5 py-1 text-xs font-medium text-tag-foreground"
+          key={key}
+        >
+          {isGenreIconName(key) ? (
+            <GenreIcon className="shrink-0 text-brand/90" name={key} size={14} />
+          ) : null}
+          <span className="min-w-0 truncate">{genreNameByKey.get(key) ?? key}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

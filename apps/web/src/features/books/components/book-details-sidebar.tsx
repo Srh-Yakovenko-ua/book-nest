@@ -13,12 +13,12 @@ import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-stat
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+import { shouldShowReadingQueue } from "../model/reading-queue-visibility";
 import { BookListsBlock } from "./book-lists-block";
 import { DeliveryBlock } from "./delivery-block";
 import { OwnershipBlock } from "./ownership-block";
 import { ReadingProgressBlock } from "./reading-progress-block";
 import { ReadingQueueBlock } from "./reading-queue-block";
-import { SeriesPreviewBlock } from "./series-preview-block";
 
 type BookDetailsSidebarProps = {
   book: BookView;
@@ -97,6 +97,8 @@ export function BookDetailsSidebar({ book }: BookDetailsSidebarProps) {
         </CardContent>
       </Card>
 
+      <OwnershipBlock book={book} />
+
       <Card className="shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
@@ -129,17 +131,13 @@ export function BookDetailsSidebar({ book }: BookDetailsSidebarProps) {
         </CardContent>
       </Card>
 
-      <ReadingQueueBlock book={book} />
+      {shouldShowReadingQueue(book.readingStatus) ? <ReadingQueueBlock book={book} /> : null}
 
       <BookListsBlock book={book} />
 
       <ReadingProgressBlock book={book} />
 
-      <OwnershipBlock book={book} />
-
       <DeliveryBlock book={book} />
-
-      <SeriesPreviewBlock book={book} />
     </aside>
   );
 }
