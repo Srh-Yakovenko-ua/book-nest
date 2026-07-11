@@ -60,6 +60,10 @@ const OVERVIEW_TOP_LIMIT = 3;
 const OVERVIEW_RECENT_LIMIT = 3;
 const READING_IN_PROGRESS_STATUSES: ReadingStatus[] = ["reading", "rereading"];
 const FINISHED_STATUSES: ReadingStatus[] = ["finished"];
+const WANT_TO_READ_STATUSES: ReadingStatus[] = ["want_to_read"];
+const WANT_TO_BUY_STATUSES: OwnershipStatus[] = ["want_to_buy"];
+const IN_TRANSIT_STATUSES: OwnershipStatus[] = ["in_transit"];
+const BORROWED_STATUSES: OwnershipStatus[] = ["borrowed_from_someone", "lent_to_someone"];
 
 type ScalarFieldKey = keyof Prisma.BookUncheckedUpdateManyInput & keyof UpdateBookInput;
 
@@ -294,6 +298,7 @@ export class BooksService {
       finishedStatuses: FINISHED_STATUSES,
       readingStatuses: READING_IN_PROGRESS_STATUSES,
       userId,
+      wantToReadStatuses: WANT_TO_READ_STATUSES,
     });
   }
 
@@ -358,28 +363,16 @@ export class BooksService {
 
   async overview(userId: string, query: LibraryOverviewQuery): Promise<LibraryOverviewView> {
     const ownershipStatuses = query.owner;
-    const [total, reading, finished, favorites, topGenreKeys, topTags, recentBooks] =
-      await Promise.all([
-        this.booksRepository.countByUser({ ownershipStatuses, userId }),
-        this.booksRepository.countByReadingStatuses({
-          ownershipStatuses,
-          statuses: READING_IN_PROGRESS_STATUSES,
-          userId,
-        }),
-        this.booksRepository.countByReadingStatuses({
-          ownershipStatuses,
-          statuses: FINISHED_STATUSES,
-          userId,
-        }),
-        this.booksRepository.countFavorites({ ownershipStatuses, userId }),
-        this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
-        this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
-        this.booksRepository.listRecentlyAdded({
-          ownershipStatuses,
-          take: OVERVIEW_RECENT_LIMIT,
-          userId,
-        }),
-      ]);
+    const [summary, topGenreKeys, topTags, recentBooks] = await Promise.all([
+      this.buildOverviewSummary({ ownershipStatuses, userId }),
+      this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
+      this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
+      this.booksRepository.listRecentlyAdded({
+        ownershipStatuses,
+        take: OVERVIEW_RECENT_LIMIT,
+        userId,
+      }),
+    ]);
 
     const genreNames = await this.genresService.findNamesByKeys({
       keys: topGenreKeys.map((genre) => genre.key),
@@ -394,7 +387,7 @@ export class BooksService {
 
     return {
       recentlyAdded: recentBooks.map((book) => this.viewAssembler.viewOf(book)),
-      summary: { favorites, finished, reading, total },
+      summary,
       topGenres,
       topTags,
     };
@@ -560,5 +553,66 @@ export class BooksService {
     throw new BadRequestError("Enter the person's name", {
       fields: [{ field: "loanInfo.personName", message: "Enter the person's name" }],
     });
+  }
+
+  private async buildOverviewSummary({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<LibraryOverviewView["summary"]> {
+    const [
+      total,
+      reading,
+      finished,
+      favorites,
+      wantToRead,
+      series,
+      solo,
+      wantToBuy,
+      inTransit,
+      borrowed,
+    ] = await Promise.all([
+      this.booksRepository.countByUser({ ownershipStatuses, userId }),
+      this.booksRepository.countByReadingStatuses({
+        ownershipStatuses,
+        statuses: READING_IN_PROGRESS_STATUSES,
+        userId,
+      }),
+      this.booksRepository.countByReadingStatuses({
+        ownershipStatuses,
+        statuses: FINISHED_STATUSES,
+        userId,
+      }),
+      this.booksRepository.countFavorites({ ownershipStatuses, userId }),
+      this.booksRepository.countByReadingStatuses({
+        ownershipStatuses,
+        statuses: WANT_TO_READ_STATUSES,
+        userId,
+      }),
+      this.booksRepository.countForLibrary({
+        filter: { bookType: "series_part", ownershipStatuses, userId },
+      }),
+      this.booksRepository.countForLibrary({
+        filter: { bookType: "solo", ownershipStatuses, userId },
+      }),
+      this.booksRepository.countByUser({ ownershipStatuses: WANT_TO_BUY_STATUSES, userId }),
+      this.booksRepository.countByUser({ ownershipStatuses: IN_TRANSIT_STATUSES, userId }),
+      this.booksRepository.countByUser({ ownershipStatuses: BORROWED_STATUSES, userId }),
+    ]);
+
+    return {
+      borrowed,
+      favorites,
+      finished,
+      inTransit,
+      reading,
+      series,
+      solo,
+      total,
+      wantToBuy,
+      wantToRead,
+    };
   }
 }

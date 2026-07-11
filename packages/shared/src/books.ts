@@ -995,10 +995,16 @@ export type BookView = z.infer<typeof BookViewSchema>;
 export const LibraryOverviewViewSchema = z.object({
   recentlyAdded: z.array(BookViewSchema),
   summary: z.object({
+    borrowed: z.number(),
     favorites: z.number(),
     finished: z.number(),
+    inTransit: z.number(),
     reading: z.number(),
+    series: z.number(),
+    solo: z.number(),
     total: z.number(),
+    wantToBuy: z.number(),
+    wantToRead: z.number(),
   }),
   topGenres: z.array(
     z.object({
@@ -1022,7 +1028,10 @@ export const FavoritesSummaryViewSchema = z.object({
   averageRating: z.number().nullable(),
   finished: z.number(),
   reading: z.number(),
+  series: z.number(),
+  solo: z.number(),
   total: z.number(),
+  wantToRead: z.number(),
 });
 
 export type FavoritesSummaryView = z.infer<typeof FavoritesSummaryViewSchema>;

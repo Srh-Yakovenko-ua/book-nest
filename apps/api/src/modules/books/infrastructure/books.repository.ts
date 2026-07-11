@@ -436,18 +436,32 @@ export class BooksRepository {
     finishedStatuses,
     readingStatuses,
     userId,
+    wantToReadStatuses,
   }: FavoritesSummaryQuery): Promise<FavoritesSummaryResult> {
-    const [total, reading, finished, ratingAggregate] = await Promise.all([
-      this.countFavorites({ userId }),
-      this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
-      this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
-      this.prisma.bookReadingProgress.aggregate({
-        _avg: { rating: true },
-        where: { book: { isFavorite: true, userId }, rating: { not: null } },
-      }),
-    ]);
+    const [total, reading, finished, wantToRead, series, solo, ratingAggregate] = await Promise.all(
+      [
+        this.countFavorites({ userId }),
+        this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
+        this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
+        this.countByReadingStatuses({ isFavorite: true, statuses: wantToReadStatuses, userId }),
+        this.countForLibrary({ filter: { bookType: "series_part", isFavorite: true, userId } }),
+        this.countForLibrary({ filter: { bookType: "solo", isFavorite: true, userId } }),
+        this.prisma.bookReadingProgress.aggregate({
+          _avg: { rating: true },
+          where: { book: { isFavorite: true, userId }, rating: { not: null } },
+        }),
+      ],
+    );
 
-    return { averageRating: ratingAggregate._avg.rating, finished, reading, total };
+    return {
+      averageRating: ratingAggregate._avg.rating,
+      finished,
+      reading,
+      series,
+      solo,
+      total,
+      wantToRead,
+    };
   }
 
   findOwnedById(userId: string, id: string): Promise<Nullable<BookWithRelations>> {
@@ -745,13 +759,17 @@ type FavoritesSummaryQuery = {
   finishedStatuses: ReadingStatus[];
   readingStatuses: ReadingStatus[];
   userId: string;
+  wantToReadStatuses: ReadingStatus[];
 };
 
 type FavoritesSummaryResult = {
   averageRating: Nullable<number>;
   finished: number;
   reading: number;
+  series: number;
+  solo: number;
   total: number;
+  wantToRead: number;
 };
 
 type ListForLibraryInput = {

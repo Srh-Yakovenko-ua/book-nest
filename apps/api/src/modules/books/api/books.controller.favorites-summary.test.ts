@@ -36,8 +36,10 @@ afterAll(async () => {
 type SeedBookInput = {
   authorId: string;
   isFavorite?: boolean;
+  partNumber?: number;
   rating?: number;
   readingStatus?: string;
+  seriesId?: string;
   title?: string;
   userId: string;
 };
@@ -60,12 +62,21 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
     data: {
       authors: { create: [{ authorId: input.authorId, position: 0 }] },
       isFavorite: input.isFavorite ?? false,
+      partNumber: input.partNumber ?? null,
       readingProgress:
         input.rating === undefined ? undefined : { create: { rating: input.rating } },
       readingStatus: input.readingStatus ?? "not_started",
+      seriesId: input.seriesId ?? null,
       title: input.title ?? "Untitled",
       userId: input.userId,
     },
+    select: { id: true },
+  });
+}
+
+function seedSeries(input: { name: string; userId: string }): Promise<{ id: string }> {
+  return prisma.series.create({
+    data: { name: input.name, normalizedName: input.name.toLowerCase(), userId: input.userId },
     select: { id: true },
   });
 }
@@ -91,7 +102,15 @@ describe("GET /api/books/favorites-summary", () => {
     const res = await getFavoritesSummary(accessToken);
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ averageRating: null, finished: 0, reading: 0, total: 0 });
+    expect(res.body).toEqual({
+      averageRating: null,
+      finished: 0,
+      reading: 0,
+      series: 0,
+      solo: 0,
+      total: 0,
+      wantToRead: 0,
+    });
   });
 
   it("counts only favorites in total and excludes non-favorites", async () => {
@@ -154,7 +173,15 @@ describe("GET /api/books/favorites-summary", () => {
 
     const res = await getFavoritesSummary(accessToken);
 
-    expect(res.body).toEqual({ averageRating: null, finished: 1, reading: 2, total: 4 });
+    expect(res.body).toEqual({
+      averageRating: null,
+      finished: 1,
+      reading: 2,
+      series: 0,
+      solo: 4,
+      total: 4,
+      wantToRead: 0,
+    });
   });
 
   it("averages ratings only over favorites that have a rating", async () => {
@@ -221,6 +248,47 @@ describe("GET /api/books/favorites-summary", () => {
 
     const res = await getFavoritesSummary(owner.accessToken);
 
-    expect(res.body).toEqual({ averageRating: 6, finished: 1, reading: 0, total: 1 });
+    expect(res.body).toEqual({
+      averageRating: 6,
+      finished: 1,
+      reading: 0,
+      series: 0,
+      solo: 1,
+      total: 1,
+      wantToRead: 0,
+    });
+  });
+
+  it("counts want-to-read, series, and solo among favorites only", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const series = await seedSeries({ name: "Dune Saga", userId });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      readingStatus: "want_to_read",
+      title: "Fav Want To Read Solo",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      partNumber: 1,
+      seriesId: series.id,
+      title: "Fav Series Part",
+      userId,
+    });
+    await seedBook({ authorId: author.id, isFavorite: true, title: "Fav Solo", userId });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: false,
+      readingStatus: "want_to_read",
+      title: "Plain Want To Read",
+      userId,
+    });
+
+    const res = await getFavoritesSummary(accessToken);
+
+    expect(res.body).toMatchObject({ series: 1, solo: 2, total: 3, wantToRead: 1 });
   });
 });

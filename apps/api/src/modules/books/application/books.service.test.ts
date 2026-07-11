@@ -127,11 +127,17 @@ function buildService(
     countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
-    favoritesSummary: vi
-      .fn()
-      .mockResolvedValue(
-        overrides.favoritesSummary ?? { averageRating: null, finished: 0, reading: 0, total: 0 },
-      ),
+    favoritesSummary: vi.fn().mockResolvedValue(
+      overrides.favoritesSummary ?? {
+        averageRating: null,
+        finished: 0,
+        reading: 0,
+        series: 0,
+        solo: 0,
+        total: 0,
+        wantToRead: 0,
+      },
+    ),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
     listForLibrary: vi.fn().mockResolvedValue(overrides.listForLibrary ?? []),
     recentPurchaseStores: vi.fn().mockResolvedValue(overrides.recentPurchaseStores ?? []),
@@ -1102,22 +1108,47 @@ describe("BooksService.favoritesSummary", () => {
       finishedStatuses: ["finished"],
       readingStatuses: ["reading", "rereading"],
       userId: USER_ID,
+      wantToReadStatuses: ["want_to_read"],
     });
   });
 
   it("returns the summary produced by the repository", async () => {
     const { service } = buildService({
-      favoritesSummary: { averageRating: 8.5, finished: 3, reading: 2, total: 7 },
+      favoritesSummary: {
+        averageRating: 8.5,
+        finished: 3,
+        reading: 2,
+        series: 4,
+        solo: 3,
+        total: 7,
+        wantToRead: 1,
+      },
     });
 
     const result = await service.favoritesSummary(USER_ID);
 
-    expect(result).toEqual({ averageRating: 8.5, finished: 3, reading: 2, total: 7 });
+    expect(result).toEqual({
+      averageRating: 8.5,
+      finished: 3,
+      reading: 2,
+      series: 4,
+      solo: 3,
+      total: 7,
+      wantToRead: 1,
+    });
   });
 
   it("passes through a null average rating when no favorite has a rating", async () => {
     const { service } = buildService({
-      favoritesSummary: { averageRating: null, finished: 0, reading: 0, total: 4 },
+      favoritesSummary: {
+        averageRating: null,
+        finished: 0,
+        reading: 0,
+        series: 0,
+        solo: 0,
+        total: 4,
+        wantToRead: 0,
+      },
     });
 
     const result = await service.favoritesSummary(USER_ID);

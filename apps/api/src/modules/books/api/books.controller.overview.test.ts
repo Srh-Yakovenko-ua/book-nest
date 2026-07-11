@@ -41,7 +41,9 @@ type SeedBookInput = {
   genres?: string[];
   isFavorite?: boolean;
   ownershipStatus?: string;
+  partNumber?: number;
   readingStatus?: string;
+  seriesId?: string;
   tagIds?: string[];
   title?: string;
   userId: string;
@@ -69,7 +71,9 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
       genres: input.genres ?? [],
       isFavorite: input.isFavorite ?? false,
       ownershipStatus: input.ownershipStatus ?? "none",
+      partNumber: input.partNumber ?? null,
       readingStatus: input.readingStatus ?? "not_started",
+      seriesId: input.seriesId ?? null,
       tags:
         input.tagIds === undefined
           ? undefined
@@ -95,6 +99,13 @@ function seedGenre(input: { key: string; name: string }): Promise<unknown> {
   });
 }
 
+function seedSeries(input: { name: string; userId: string }): Promise<{ id: string }> {
+  return prisma.series.create({
+    data: { name: input.name, normalizedName: input.name.toLowerCase(), userId: input.userId },
+    select: { id: true },
+  });
+}
+
 function seedTag(input: { name: string; userId: string }): Promise<{ id: string }> {
   return prisma.tag.create({
     data: { name: input.name, normalizedName: input.name.toLowerCase(), userId: input.userId },
@@ -117,7 +128,18 @@ describe("GET /api/books/overview", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       recentlyAdded: [],
-      summary: { favorites: 0, finished: 0, reading: 0, total: 0 },
+      summary: {
+        borrowed: 0,
+        favorites: 0,
+        finished: 0,
+        inTransit: 0,
+        reading: 0,
+        series: 0,
+        solo: 0,
+        total: 0,
+        wantToBuy: 0,
+        wantToRead: 0,
+      },
       topGenres: [],
       topTags: [],
     });
@@ -139,7 +161,18 @@ describe("GET /api/books/overview", () => {
 
     const res = await getOverview(accessToken);
 
-    expect(res.body.summary).toEqual({ favorites: 1, finished: 1, reading: 2, total: 4 });
+    expect(res.body.summary).toEqual({
+      borrowed: 0,
+      favorites: 1,
+      finished: 1,
+      inTransit: 0,
+      reading: 2,
+      series: 0,
+      solo: 4,
+      total: 4,
+      wantToBuy: 0,
+      wantToRead: 1,
+    });
   });
 
   it("returns the three most frequent genres by count with resolved display names", async () => {
@@ -260,7 +293,18 @@ describe("GET /api/books/overview", () => {
 
     const res = await getOverview(owner.accessToken);
 
-    expect(res.body.summary).toEqual({ favorites: 0, finished: 0, reading: 1, total: 1 });
+    expect(res.body.summary).toEqual({
+      borrowed: 0,
+      favorites: 0,
+      finished: 0,
+      inTransit: 0,
+      reading: 1,
+      series: 0,
+      solo: 1,
+      total: 1,
+      wantToBuy: 0,
+      wantToRead: 0,
+    });
     expect(res.body.recentlyAdded.map((book: { title: string }) => book.title)).toEqual(["Mine"]);
   });
 });
@@ -331,7 +375,18 @@ describe("GET /api/books/overview owner scope", () => {
     const res = await getOverview(accessToken, PHYSICAL_SCOPE);
 
     expect(res.status).toBe(200);
-    expect(res.body.summary).toEqual({ favorites: 2, finished: 1, reading: 2, total: 4 });
+    expect(res.body.summary).toEqual({
+      borrowed: 2,
+      favorites: 2,
+      finished: 1,
+      inTransit: 1,
+      reading: 2,
+      series: 0,
+      solo: 4,
+      total: 4,
+      wantToBuy: 1,
+      wantToRead: 0,
+    });
   });
 
   it("keeps every scoped summary number at or below the global summary", async () => {
@@ -355,7 +410,18 @@ describe("GET /api/books/overview owner scope", () => {
 
     const res = await getOverview(accessToken);
 
-    expect(res.body.summary).toEqual({ favorites: 4, finished: 2, reading: 3, total: 7 });
+    expect(res.body.summary).toEqual({
+      borrowed: 2,
+      favorites: 4,
+      finished: 2,
+      inTransit: 1,
+      reading: 3,
+      series: 0,
+      solo: 7,
+      total: 7,
+      wantToBuy: 1,
+      wantToRead: 0,
+    });
   });
 
   it("excludes out-of-scope ownership statuses from scoped finished and favorites counts", async () => {
@@ -396,7 +462,18 @@ describe("GET /api/books/overview owner scope", () => {
     const scoped = await getOverview(accessToken, "owner=owned");
     const global = await getOverview(accessToken);
 
-    expect(scoped.body.summary).toEqual({ favorites: 1, finished: 1, reading: 1, total: 2 });
+    expect(scoped.body.summary).toEqual({
+      borrowed: 0,
+      favorites: 1,
+      finished: 1,
+      inTransit: 0,
+      reading: 1,
+      series: 0,
+      solo: 2,
+      total: 2,
+      wantToBuy: 1,
+      wantToRead: 0,
+    });
     expect(global.body.summary.finished).toBe(2);
     expect(global.body.summary.favorites).toBe(3);
   });
@@ -523,7 +600,18 @@ describe("GET /api/books/overview owner scope", () => {
 
     const res = await getOverview(accessToken, "owner=none");
 
-    expect(res.body.summary).toEqual({ favorites: 1, finished: 1, reading: 1, total: 2 });
+    expect(res.body.summary).toEqual({
+      borrowed: 0,
+      favorites: 1,
+      finished: 1,
+      inTransit: 0,
+      reading: 1,
+      series: 0,
+      solo: 2,
+      total: 2,
+      wantToBuy: 0,
+      wantToRead: 0,
+    });
     expect(res.body.recentlyAdded.map((book: { title: string }) => book.title)).toEqual([
       "None Finished",
       "None Reading Favorite",
@@ -574,5 +662,87 @@ describe("GET /api/books/overview owner scope", () => {
     expect(res.body.recentlyAdded.map((book: { title: string }) => book.title)).toEqual([
       "Mine Owned",
     ]);
+  });
+});
+
+describe("GET /api/books/overview quick-filter counters", () => {
+  function listBooks(accessToken: string, query: string): request.Test {
+    return request(app.getHttpServer())
+      .get(`/api/books?${query}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+  }
+
+  async function seedSpread(input: { authorId: string; userId: string }): Promise<void> {
+    const { authorId, userId } = input;
+    const series = await seedSeries({ name: "Dune Saga", userId });
+    await seedBook({
+      authorId,
+      ownershipStatus: "want_to_buy",
+      readingStatus: "want_to_read",
+      title: "Want To Buy And Want To Read",
+      userId,
+    });
+    await seedBook({ authorId, ownershipStatus: "in_transit", title: "In Transit", userId });
+    await seedBook({
+      authorId,
+      ownershipStatus: "borrowed_from_someone",
+      title: "Borrowed",
+      userId,
+    });
+    await seedBook({ authorId, ownershipStatus: "lent_to_someone", title: "Lent", userId });
+    await seedBook({
+      authorId,
+      partNumber: 1,
+      seriesId: series.id,
+      title: "Series Part One",
+      userId,
+    });
+    await seedBook({
+      authorId,
+      partNumber: 2,
+      readingStatus: "want_to_read",
+      seriesId: series.id,
+      title: "Series Part Two",
+      userId,
+    });
+    await seedBook({
+      authorId,
+      ownershipStatus: "owned",
+      readingStatus: "reading",
+      title: "Solo Owned Reading",
+      userId,
+    });
+  }
+
+  it("counts each chip and matches the list endpoint totalCount for the same predicate", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedSpread({ authorId: author.id, userId });
+
+    const overview = await getOverview(accessToken);
+    const [wantToRead, wantToBuy, inTransit, borrowed, series, solo] = await Promise.all([
+      listBooks(accessToken, "status=want_to_read"),
+      listBooks(accessToken, "owner=want_to_buy"),
+      listBooks(accessToken, "owner=in_transit"),
+      listBooks(accessToken, "owner=borrowed_from_someone&owner=lent_to_someone"),
+      listBooks(accessToken, "bookType=series_part"),
+      listBooks(accessToken, "bookType=solo"),
+    ]);
+
+    expect(overview.body.summary.wantToRead).toBe(wantToRead.body.totalCount);
+    expect(overview.body.summary.wantToBuy).toBe(wantToBuy.body.totalCount);
+    expect(overview.body.summary.inTransit).toBe(inTransit.body.totalCount);
+    expect(overview.body.summary.borrowed).toBe(borrowed.body.totalCount);
+    expect(overview.body.summary.series).toBe(series.body.totalCount);
+    expect(overview.body.summary.solo).toBe(solo.body.totalCount);
+
+    expect(overview.body.summary).toMatchObject({
+      borrowed: 2,
+      inTransit: 1,
+      series: 2,
+      solo: 5,
+      wantToBuy: 1,
+      wantToRead: 2,
+    });
   });
 });
