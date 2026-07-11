@@ -7,6 +7,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import type { GenresService } from "../../genres/application/genres.service.js";
 import type { MediaService } from "../../media/application/media.service.js";
 import type {
+  ActiveReadingRow,
   BooksRepository,
   BookWithRelations,
   UpdateBookData,
@@ -1154,5 +1155,117 @@ describe("BooksService.favoritesSummary", () => {
     const result = await service.favoritesSummary(USER_ID);
 
     expect(result.averageRating).toBeNull();
+  });
+});
+
+describe("BooksService.overview activeReading", () => {
+  function activeRow(overrides: Partial<ActiveReadingRow> = {}): ActiveReadingRow {
+    return { currentPage: null, id: BOOK_ID, pagesCount: null, title: "Dune", ...overrides };
+  }
+
+  function buildOverviewService(activeBooks: ActiveReadingRow[]): {
+    repository: { listActiveReading: ReturnType<typeof vi.fn> };
+    service: BooksService;
+  } {
+    const repository = {
+      countByReadingStatuses: vi.fn().mockResolvedValue(0),
+      countByUser: vi.fn().mockResolvedValue(0),
+      countDistinctAuthors: vi.fn().mockResolvedValue(0),
+      countDistinctSeries: vi.fn().mockResolvedValue(0),
+      countFavorites: vi.fn().mockResolvedValue(0),
+      countForLibrary: vi.fn().mockResolvedValue(0),
+      listActiveReading: vi.fn().mockResolvedValue(activeBooks),
+      listRecentlyAdded: vi.fn().mockResolvedValue([]),
+      topGenreKeys: vi.fn().mockResolvedValue([]),
+      topTags: vi.fn().mockResolvedValue([]),
+    };
+    const genresService = { findNamesByKeys: vi.fn().mockResolvedValue([]) };
+    const service = new BooksService(
+      repository as unknown as BooksRepository,
+      {} as unknown as BookRelationsResolver,
+      { viewOf: vi.fn() } as unknown as BookViewAssembler,
+      { deleteIfOrphaned: vi.fn() } as unknown as BookCoverCleanup,
+      genresService as unknown as GenresService,
+      {} as unknown as TransactionRunner,
+    );
+    return { repository, service };
+  }
+
+  it("sums pagesAhead and clamps overshoot while excluding rows with unknown pages", async () => {
+    const { service } = buildOverviewService([
+      activeRow({ currentPage: 100, id: "b1", pagesCount: 300 }),
+      activeRow({ currentPage: 250, id: "b2", pagesCount: 200 }),
+      activeRow({ currentPage: 50, id: "b3", pagesCount: null }),
+      activeRow({ currentPage: null, id: "b4", pagesCount: 400 }),
+    ]);
+
+    const res = await service.overview(USER_ID, {});
+
+    expect(res.activeReading).toEqual({ book: null, pagesAhead: 200 });
+  });
+
+  it("returns the single active book only when exactly one has known pages", async () => {
+    const { service } = buildOverviewService([
+      activeRow({ currentPage: 120, id: "b1", pagesCount: 320, title: "Solo" }),
+    ]);
+
+    const res = await service.overview(USER_ID, {});
+
+    expect(res.activeReading).toEqual({
+      book: { currentPage: 120, id: "b1", pagesCount: 320, title: "Solo" },
+      pagesAhead: 200,
+    });
+  });
+
+  it("defaults the single active book currentPage to zero when it is unknown", async () => {
+    const { service } = buildOverviewService([
+      activeRow({ currentPage: null, id: "b1", pagesCount: 320, title: "Solo" }),
+    ]);
+
+    const res = await service.overview(USER_ID, {});
+
+    expect(res.activeReading).toEqual({
+      book: { currentPage: 0, id: "b1", pagesCount: 320, title: "Solo" },
+      pagesAhead: 0,
+    });
+  });
+
+  it("nulls the active book when the only active book has unknown pages", async () => {
+    const { service } = buildOverviewService([activeRow({ currentPage: 40, pagesCount: null })]);
+
+    const res = await service.overview(USER_ID, {});
+
+    expect(res.activeReading).toEqual({ book: null, pagesAhead: 0 });
+  });
+
+  it("nulls the active book when two or more books are active", async () => {
+    const { service } = buildOverviewService([
+      activeRow({ currentPage: 100, id: "b1", pagesCount: 300 }),
+      activeRow({ currentPage: 100, id: "b2", pagesCount: 250 }),
+    ]);
+
+    const res = await service.overview(USER_ID, {});
+
+    expect(res.activeReading).toEqual({ book: null, pagesAhead: 350 });
+  });
+
+  it("omits activeReading when no book is active", async () => {
+    const { service } = buildOverviewService([]);
+
+    const res = await service.overview(USER_ID, {});
+
+    expect(res.activeReading).toBeUndefined();
+  });
+
+  it("passes the owner scope through to the active reading query", async () => {
+    const { repository, service } = buildOverviewService([]);
+
+    await service.overview(USER_ID, { owner: ["owned"] });
+
+    expect(repository.listActiveReading).toHaveBeenCalledWith({
+      ownershipStatuses: ["owned"],
+      statuses: ["reading", "rereading"],
+      userId: USER_ID,
+    });
   });
 });

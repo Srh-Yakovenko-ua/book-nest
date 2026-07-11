@@ -38,9 +38,12 @@ afterAll(async () => {
 type SeedBookInput = {
   authorId: string;
   createdAt?: Date;
+  currentPage?: number;
+  extraAuthorIds?: string[];
   genres?: string[];
   isFavorite?: boolean;
   ownershipStatus?: string;
+  pagesCount?: number;
   partNumber?: number;
   readingStatus?: string;
   seriesId?: string;
@@ -66,12 +69,22 @@ function seedAuthor(input: { name: string; userId: string }): Promise<{ id: stri
 function seedBook(input: SeedBookInput): Promise<{ id: string }> {
   return prisma.book.create({
     data: {
-      authors: { create: [{ authorId: input.authorId, position: 0 }] },
+      authors: {
+        create: [input.authorId, ...(input.extraAuthorIds ?? [])].map((authorId, position) => ({
+          authorId,
+          position,
+        })),
+      },
       createdAt: input.createdAt,
       genres: input.genres ?? [],
       isFavorite: input.isFavorite ?? false,
       ownershipStatus: input.ownershipStatus ?? "none",
+      pagesCount: input.pagesCount ?? null,
       partNumber: input.partNumber ?? null,
+      readingProgress:
+        input.currentPage === undefined
+          ? undefined
+          : { create: { currentPage: input.currentPage } },
       readingStatus: input.readingStatus ?? "not_started",
       seriesId: input.seriesId ?? null,
       tags:
@@ -129,12 +142,15 @@ describe("GET /api/books/overview", () => {
     expect(res.body).toEqual({
       recentlyAdded: [],
       summary: {
+        authorsCount: 0,
         borrowed: 0,
         favorites: 0,
         finished: 0,
         inTransit: 0,
+        physicallyAvailable: 0,
         reading: 0,
         series: 0,
+        seriesCount: 0,
         solo: 0,
         total: 0,
         wantToBuy: 0,
@@ -162,12 +178,15 @@ describe("GET /api/books/overview", () => {
     const res = await getOverview(accessToken);
 
     expect(res.body.summary).toEqual({
+      authorsCount: 1,
       borrowed: 0,
       favorites: 1,
       finished: 1,
       inTransit: 0,
+      physicallyAvailable: 0,
       reading: 2,
       series: 0,
+      seriesCount: 0,
       solo: 4,
       total: 4,
       wantToBuy: 0,
@@ -294,12 +313,15 @@ describe("GET /api/books/overview", () => {
     const res = await getOverview(owner.accessToken);
 
     expect(res.body.summary).toEqual({
+      authorsCount: 1,
       borrowed: 0,
       favorites: 0,
       finished: 0,
       inTransit: 0,
+      physicallyAvailable: 0,
       reading: 1,
       series: 0,
+      seriesCount: 0,
       solo: 1,
       total: 1,
       wantToBuy: 0,
@@ -376,12 +398,15 @@ describe("GET /api/books/overview owner scope", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.summary).toEqual({
+      authorsCount: 1,
       borrowed: 2,
       favorites: 2,
       finished: 1,
       inTransit: 1,
+      physicallyAvailable: 4,
       reading: 2,
       series: 0,
+      seriesCount: 0,
       solo: 4,
       total: 4,
       wantToBuy: 1,
@@ -411,12 +436,15 @@ describe("GET /api/books/overview owner scope", () => {
     const res = await getOverview(accessToken);
 
     expect(res.body.summary).toEqual({
+      authorsCount: 1,
       borrowed: 2,
       favorites: 4,
       finished: 2,
       inTransit: 1,
+      physicallyAvailable: 4,
       reading: 3,
       series: 0,
+      seriesCount: 0,
       solo: 7,
       total: 7,
       wantToBuy: 1,
@@ -463,12 +491,15 @@ describe("GET /api/books/overview owner scope", () => {
     const global = await getOverview(accessToken);
 
     expect(scoped.body.summary).toEqual({
+      authorsCount: 1,
       borrowed: 0,
       favorites: 1,
       finished: 1,
       inTransit: 0,
+      physicallyAvailable: 2,
       reading: 1,
       series: 0,
+      seriesCount: 0,
       solo: 2,
       total: 2,
       wantToBuy: 1,
@@ -601,12 +632,15 @@ describe("GET /api/books/overview owner scope", () => {
     const res = await getOverview(accessToken, "owner=none");
 
     expect(res.body.summary).toEqual({
+      authorsCount: 1,
       borrowed: 0,
       favorites: 1,
       finished: 1,
       inTransit: 0,
+      physicallyAvailable: 0,
       reading: 1,
       series: 0,
+      seriesCount: 0,
       solo: 2,
       total: 2,
       wantToBuy: 0,
@@ -743,6 +777,284 @@ describe("GET /api/books/overview quick-filter counters", () => {
       solo: 5,
       wantToBuy: 1,
       wantToRead: 2,
+    });
+  });
+});
+
+describe("GET /api/books/overview micro-facts", () => {
+  it("counts unique series by id, distinct from the series-part book count", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const dune = await seedSeries({ name: "Dune Saga", userId });
+    const foundation = await seedSeries({ name: "Foundation", userId });
+    await seedBook({
+      authorId: author.id,
+      partNumber: 1,
+      seriesId: dune.id,
+      title: "Dune",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      partNumber: 2,
+      seriesId: dune.id,
+      title: "Dune Messiah",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      partNumber: 1,
+      seriesId: foundation.id,
+      title: "Foundation",
+      userId,
+    });
+    await seedBook({ authorId: author.id, title: "Standalone", userId });
+
+    const res = await getOverview(accessToken);
+
+    expect(res.body.summary.seriesCount).toBe(2);
+    expect(res.body.summary.series).toBe(3);
+  });
+
+  it("counts distinct authors across the multi-author join, not per book", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const herbert = await seedAuthor({ name: "Frank Herbert", userId });
+    const asimov = await seedAuthor({ name: "Isaac Asimov", userId });
+    const clarke = await seedAuthor({ name: "Arthur C. Clarke", userId });
+    await seedBook({
+      authorId: herbert.id,
+      extraAuthorIds: [asimov.id],
+      title: "Co-authored A",
+      userId,
+    });
+    await seedBook({
+      authorId: asimov.id,
+      extraAuthorIds: [clarke.id],
+      title: "Co-authored B",
+      userId,
+    });
+
+    const res = await getOverview(accessToken);
+
+    expect(res.body.summary.total).toBe(2);
+    expect(res.body.summary.authorsCount).toBe(3);
+  });
+
+  it("counts physically available books and narrows the count under an owner scope", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({ authorId: author.id, ownershipStatus: "owned", title: "Owned", userId });
+    await seedBook({
+      authorId: author.id,
+      ownershipStatus: "lent_to_someone",
+      title: "Lent",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      ownershipStatus: "borrowed_from_someone",
+      title: "Borrowed",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      ownershipStatus: "want_to_buy",
+      title: "Want To Buy",
+      userId,
+    });
+    await seedBook({ authorId: author.id, ownershipStatus: "none", title: "None", userId });
+
+    const global = await getOverview(accessToken);
+    const scoped = await getOverview(accessToken, "owner=owned");
+
+    expect(global.body.summary.physicallyAvailable).toBe(3);
+    expect(scoped.body.summary.physicallyAvailable).toBe(1);
+  });
+
+  it("sums pagesAhead over active books with known pages, excluding unknowns and clamping negatives", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      currentPage: 100,
+      pagesCount: 300,
+      readingStatus: "reading",
+      title: "Ahead By 200",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      currentPage: 250,
+      pagesCount: 200,
+      readingStatus: "rereading",
+      title: "Overshoot Clamped",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      currentPage: 50,
+      readingStatus: "reading",
+      title: "Unknown Pages",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      pagesCount: 400,
+      readingStatus: "reading",
+      title: "Unknown Current Page",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      currentPage: 10,
+      pagesCount: 500,
+      readingStatus: "finished",
+      title: "Not Active",
+      userId,
+    });
+
+    const res = await getOverview(accessToken);
+
+    expect(res.body.summary.reading).toBe(4);
+    expect(res.body.activeReading.pagesAhead).toBe(200);
+    expect(res.body.activeReading.book).toBeNull();
+  });
+
+  it("exposes the single active book only when exactly one active book has known pages", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const active = await seedBook({
+      authorId: author.id,
+      currentPage: 120,
+      pagesCount: 320,
+      readingStatus: "reading",
+      title: "The Only Active",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      currentPage: 10,
+      pagesCount: 500,
+      readingStatus: "finished",
+      title: "Finished",
+      userId,
+    });
+
+    const res = await getOverview(accessToken);
+
+    expect(res.body.activeReading).toEqual({
+      book: { currentPage: 120, id: active.id, pagesCount: 320, title: "The Only Active" },
+      pagesAhead: 200,
+    });
+  });
+
+  it("leaves the single active book null when its page count is unknown", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      currentPage: 40,
+      readingStatus: "reading",
+      title: "No Page Count",
+      userId,
+    });
+
+    const res = await getOverview(accessToken);
+
+    expect(res.body.activeReading).toEqual({ book: null, pagesAhead: 0 });
+  });
+
+  it("returns a null active book when two or more books are active", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      currentPage: 100,
+      pagesCount: 300,
+      readingStatus: "reading",
+      title: "First Active",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      currentPage: 100,
+      pagesCount: 250,
+      readingStatus: "rereading",
+      title: "Second Active",
+      userId,
+    });
+
+    const res = await getOverview(accessToken);
+
+    expect(res.body.activeReading.book).toBeNull();
+    expect(res.body.activeReading.pagesAhead).toBe(350);
+  });
+
+  it("omits activeReading entirely when nothing is being read", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      readingStatus: "want_to_read",
+      title: "Queued",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      currentPage: 10,
+      pagesCount: 100,
+      readingStatus: "finished",
+      title: "Done",
+      userId,
+    });
+
+    const res = await getOverview(accessToken);
+
+    expect(res.body.activeReading).toBeUndefined();
+  });
+
+  it("scopes seriesCount, authorsCount and activeReading to the owner set", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const herbert = await seedAuthor({ name: "Frank Herbert", userId });
+    const asimov = await seedAuthor({ name: "Isaac Asimov", userId });
+    const ownedSeries = await seedSeries({ name: "Owned Series", userId });
+    const wishlistSeries = await seedSeries({ name: "Wishlist Series", userId });
+    const owned = await seedBook({
+      authorId: herbert.id,
+      currentPage: 100,
+      ownershipStatus: "owned",
+      pagesCount: 300,
+      partNumber: 1,
+      readingStatus: "reading",
+      seriesId: ownedSeries.id,
+      title: "Owned Reading Part",
+      userId,
+    });
+    await seedBook({
+      authorId: asimov.id,
+      currentPage: 40,
+      ownershipStatus: "want_to_buy",
+      pagesCount: 240,
+      partNumber: 1,
+      readingStatus: "reading",
+      seriesId: wishlistSeries.id,
+      title: "Wishlist Reading Part",
+      userId,
+    });
+
+    const global = await getOverview(accessToken);
+    const scoped = await getOverview(accessToken, "owner=owned");
+
+    expect(global.body.summary.seriesCount).toBe(2);
+    expect(global.body.summary.authorsCount).toBe(2);
+    expect(global.body.activeReading.book).toBeNull();
+    expect(global.body.activeReading.pagesAhead).toBe(400);
+
+    expect(scoped.body.summary.seriesCount).toBe(1);
+    expect(scoped.body.summary.authorsCount).toBe(1);
+    expect(scoped.body.activeReading).toEqual({
+      book: { currentPage: 100, id: owned.id, pagesCount: 300, title: "Owned Reading Part" },
+      pagesAhead: 200,
     });
   });
 });

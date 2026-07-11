@@ -993,14 +993,30 @@ export const BookViewSchema = z.object({
 export type BookView = z.infer<typeof BookViewSchema>;
 
 export const LibraryOverviewViewSchema = z.object({
+  activeReading: z
+    .object({
+      book: z
+        .object({
+          currentPage: z.number(),
+          id: z.string(),
+          pagesCount: z.number(),
+          title: z.string(),
+        })
+        .nullable(),
+      pagesAhead: z.number(),
+    })
+    .optional(),
   recentlyAdded: z.array(BookViewSchema),
   summary: z.object({
+    authorsCount: z.number().optional(),
     borrowed: z.number(),
     favorites: z.number(),
     finished: z.number(),
     inTransit: z.number(),
+    physicallyAvailable: z.number().optional(),
     reading: z.number(),
     series: z.number(),
+    seriesCount: z.number().optional(),
     solo: z.number(),
     total: z.number(),
     wantToBuy: z.number(),

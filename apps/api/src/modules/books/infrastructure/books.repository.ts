@@ -49,6 +49,13 @@ export const withRelations = {
   tags: { include: { tag: true } },
 } satisfies Prisma.BookInclude;
 
+export type ActiveReadingRow = {
+  currentPage: Nullable<number>;
+  id: string;
+  pagesCount: Nullable<number>;
+  title: string;
+};
+
 export type BlockUpsert<TCreate, TUpdate> =
   | { create: TCreate; update: TUpdate }
   | { delete: true }
@@ -353,6 +360,36 @@ export class BooksRepository {
     return this.prisma.book.count({ where: buildLibraryWhere({ ownershipStatuses, userId }) });
   }
 
+  async countDistinctAuthors({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<number> {
+    const rows = await this.prisma.bookAuthor.findMany({
+      distinct: ["authorId"],
+      select: { authorId: true },
+      where: { book: buildLibraryWhere({ ownershipStatuses, userId }) },
+    });
+    return rows.length;
+  }
+
+  async countDistinctSeries({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<number> {
+    const rows = await this.prisma.book.findMany({
+      distinct: ["seriesId"],
+      select: { seriesId: true },
+      where: { ...buildLibraryWhere({ ownershipStatuses, userId }), seriesId: { not: null } },
+    });
+    return rows.length;
+  }
+
   countFavorites({
     ownershipStatuses,
     userId,
@@ -504,6 +541,32 @@ export class BooksRepository {
         userId,
       },
     });
+  }
+
+  async listActiveReading({
+    ownershipStatuses,
+    statuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    statuses: ReadingStatus[];
+    userId: string;
+  }): Promise<ActiveReadingRow[]> {
+    const rows = await this.prisma.book.findMany({
+      select: {
+        id: true,
+        pagesCount: true,
+        readingProgress: { select: { currentPage: true } },
+        title: true,
+      },
+      where: buildLibraryWhere({ ownershipStatuses, readingStatuses: statuses, userId }),
+    });
+    return rows.map((row) => ({
+      currentPage: row.readingProgress?.currentPage ?? null,
+      id: row.id,
+      pagesCount: row.pagesCount,
+      title: row.title,
+    }));
   }
 
   listForLibrary({ filter, skip, sort, take }: ListForLibraryInput): Promise<BookWithRelations[]> {
