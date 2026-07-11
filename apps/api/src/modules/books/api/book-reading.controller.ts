@@ -1,7 +1,16 @@
-import type { BookView } from "@app/shared";
+import type { BookView, ReadingHistoryView } from "@app/shared";
 
 import { ChangeReadingStatusInputSchema, UpdateReadingProgressInputSchema } from "@app/shared";
-import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -24,14 +33,37 @@ import { BookReadingService } from "../application/book-reading.service.js";
 import { ChangeReadingStatusInputDto } from "./input-dto/change-reading-status.input-dto.js";
 import { UpdateReadingProgressInputDto } from "./input-dto/update-reading-progress.input-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
+import { ReadingHistoryViewDto } from "./view-dto/reading-history.view-dto.js";
 
 const READING_ACTION_TTL_SECONDS = 60;
 const READING_ACTION_LIMIT = 60;
+const READING_HISTORY_TTL_SECONDS = 60;
+const READING_HISTORY_LIMIT = 120;
 
 @ApiTags("books")
 @Controller("api/books")
 export class BookReadingController {
   constructor(private readonly bookReadingService: BookReadingService) {}
+
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiOkResponse({
+    description: "The append-only reading progress log with per-day aggregation",
+    type: ReadingHistoryViewDto,
+  })
+  @ApiOperation({ summary: "Get the reading progress history of a book" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get(":id/reading-history")
+  @Throttle({
+    default: { limit: READING_HISTORY_LIMIT, ttl: seconds(READING_HISTORY_TTL_SECONDS) },
+  })
+  @UseGuards(JwtAccessGuard)
+  getReadingHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<ReadingHistoryView> {
+    return this.bookReadingService.getReadingHistory(user.id, id);
+  }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBearerAuth()

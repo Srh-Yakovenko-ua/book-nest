@@ -908,6 +908,31 @@ export const ReadingProgressViewSchema = z.object({
 
 export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
 
+export const ReadingHistoryEventViewSchema = z.object({
+  date: z.string(),
+  id: z.string(),
+  page: z.number(),
+  pagesRead: z.number(),
+});
+
+export type ReadingHistoryEventView = z.infer<typeof ReadingHistoryEventViewSchema>;
+
+export const ReadingHistoryDayViewSchema = z.object({
+  date: z.string(),
+  pagesRead: z.number(),
+});
+
+export type ReadingHistoryDayView = z.infer<typeof ReadingHistoryDayViewSchema>;
+
+export const ReadingHistoryViewSchema = z.object({
+  daily: z.array(ReadingHistoryDayViewSchema),
+  daysRead: z.number(),
+  events: z.array(ReadingHistoryEventViewSchema),
+  totalPagesRead: z.number(),
+});
+
+export type ReadingHistoryView = z.infer<typeof ReadingHistoryViewSchema>;
+
 export const DeliveryViewSchema = z.object({
   cancelledAt: z.string().nullable(),
   cancelReason: z.string().nullable(),
@@ -995,12 +1020,18 @@ export const LibraryOverviewViewSchema = z.object({
   recentlyAdded: z.array(BookViewSchema),
   summary: z.object({
     authorsCount: z.number().optional(),
+    borrowed: z.number(),
     favorites: z.number(),
     finished: z.number(),
+    inTransit: z.number(),
     physicallyAvailable: z.number().optional(),
     reading: z.number(),
+    series: z.number(),
     seriesCount: z.number().optional(),
+    solo: z.number(),
     total: z.number(),
+    wantToBuy: z.number(),
+    wantToRead: z.number(),
   }),
   topGenres: z.array(
     z.object({
@@ -1024,7 +1055,10 @@ export const FavoritesSummaryViewSchema = z.object({
   averageRating: z.number().nullable(),
   finished: z.number(),
   reading: z.number(),
+  series: z.number(),
+  solo: z.number(),
   total: z.number(),
+  wantToRead: z.number(),
 });
 
 export type FavoritesSummaryView = z.infer<typeof FavoritesSummaryViewSchema>;
