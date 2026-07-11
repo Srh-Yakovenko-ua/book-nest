@@ -35,10 +35,10 @@ export function BookCardActions({ actions, book, onOpenDialog }: BookCardActions
         aria-label={favoriteLabel}
         aria-pressed={book.isFavorite}
         className={cn(
-          "rounded-lg border-[1.5px] transition-all duration-[180ms] ease-out",
+          "size-8 rounded-lg border backdrop-blur-md transition-all duration-[180ms] ease-out",
           book.isFavorite
             ? "border-brand bg-brand text-white shadow-btn hover:border-primary-hover hover:bg-primary-hover hover:text-white dark:hover:bg-primary-hover [&_svg]:animate-[heart-pop_320ms_ease]"
-            : "border-border bg-card text-muted-foreground hover:border-brand hover:bg-accent hover:text-brand dark:hover:bg-accent",
+            : "border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] text-[color:var(--book-overlay-pill-foreground)] shadow-[var(--book-overlay-pill-shadow)] hover:border-brand hover:text-brand",
         )}
         onClick={() => actions.onToggleFavorite({ id: book.id, isFavorite: !book.isFavorite })}
         size="icon-sm"
@@ -52,7 +52,7 @@ export function BookCardActions({ actions, book, onOpenDialog }: BookCardActions
         <DropdownMenuTrigger asChild>
           <Button
             aria-label={t("menu")}
-            className="rounded-lg border-[1.5px] border-border bg-card text-muted-foreground transition-all duration-[180ms] ease-out hover:border-brand hover:bg-accent hover:text-brand dark:hover:bg-accent"
+            className="size-8 rounded-lg border border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] text-[color:var(--book-overlay-pill-foreground)] shadow-[var(--book-overlay-pill-shadow)] backdrop-blur-md transition-all duration-[180ms] ease-out hover:border-brand hover:text-brand"
             size="icon-sm"
             variant="ghost"
           >

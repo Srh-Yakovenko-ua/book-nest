@@ -87,10 +87,10 @@ type PendingDiscard = {
   title: string;
 };
 
-function emptyToUndefined(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
+function emptyToNull(value: unknown): null | string {
+  if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 const SERVER_FIELD_PATHS = [
@@ -587,7 +587,7 @@ export function BookForm(props: BookFormProps) {
               className="h-10"
               id="book-original-title"
               placeholder={t("editionDetails.fields.originalTitlePlaceholder")}
-              {...register("originalTitle", { setValueAs: emptyToUndefined })}
+              {...register("originalTitle", { setValueAs: emptyToNull })}
             />
             <FieldError error={errors.originalTitle} id="book-original-title-error" />
           </div>
@@ -673,7 +673,7 @@ export function BookForm(props: BookFormProps) {
               id="book-description"
               maxLength={BOOK_DESCRIPTION_MAX}
               placeholder={t("fields.descriptionPlaceholder")}
-              {...register("description", { setValueAs: emptyToUndefined })}
+              {...register("description", { setValueAs: emptyToNull })}
             />
             <div className="flex items-center justify-between gap-2">
               <FieldError error={errors.description} id="book-description-error" />
@@ -700,7 +700,7 @@ export function BookForm(props: BookFormProps) {
               id="book-dedication"
               maxLength={BOOK_DEDICATION_MAX}
               placeholder={t("editionDetails.fields.dedicationPlaceholder")}
-              {...register("dedication", { setValueAs: emptyToUndefined })}
+              {...register("dedication", { setValueAs: emptyToNull })}
             />
             <div className="flex items-center justify-between gap-2">
               <FieldError error={errors.dedication} id="book-dedication-error" />
