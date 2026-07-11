@@ -6,8 +6,9 @@ import * as React from "react";
 
 import { GenreIcon, type GenreIconName, UiIcon, type UiIconName } from "@/components/icons";
 import { RatingScore } from "@/components/ui/rating-score";
+import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { type StatusEntry, type StatusTone } from "@/lib/book-status";
+import { type StatusEntry } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
 const bookCardVariants = cva(
@@ -38,6 +39,7 @@ type BookCardLinkComponent = React.ComponentType<{
 
 type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
   VariantProps<typeof bookCardVariants> & {
+    ageBadge?: string;
     authors: string[];
     cover?: { alt?: string; src: string };
     coverActivateLabel?: string;
@@ -67,17 +69,8 @@ const TOOLTIP_DELAY_MS = 400;
 const morePillClass =
   "relative z-10 inline-flex shrink-0 items-center rounded-full border border-border/60 bg-secondary/40 px-1.5 py-0.5 text-xs font-medium text-muted-foreground";
 
-const statusToneText: Record<StatusTone, string> = {
-  accent: "text-icon",
-  danger: "text-error",
-  info: "text-info",
-  neutral: "text-muted-foreground",
-  primary: "text-icon",
-  success: "text-success",
-  warning: "text-warning",
-};
-
 function BookCard({
+  ageBadge,
   authors,
   className,
   cover,
@@ -124,8 +117,11 @@ function BookCard({
         <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim-top)]" />
         <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim)]" />
 
-        <div className="absolute top-11 left-3 z-10">
+        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
           <CoverStatusBadge progress={progress} status={status} />
+          {ageBadge === undefined ? null : (
+            <span className={statusBadgeVariants({ tone: "danger" })}>{ageBadge}</span>
+          )}
         </div>
 
         {kebab === undefined ? null : <div className="absolute top-3 right-3 z-10">{kebab}</div>}
@@ -255,13 +251,7 @@ function CoverStatusBadge({
   progress?: { current: number; total: number; unit?: string };
   status: StatusEntry;
 }) {
-  const toneText = statusToneText[status.tone];
-  const badge = (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--book-overlay-badge-border)] bg-[var(--book-overlay-badge-surface)] px-2.5 py-1.5 text-xs leading-none font-semibold shadow-[var(--book-overlay-badge-shadow)] backdrop-blur-md">
-      <UiIcon className={cn("shrink-0", toneText)} name={status.icon} size={14} />
-      <span className="text-[color:var(--book-overlay-badge-foreground)]">{status.label}</span>
-    </span>
-  );
+  const badge = <StatusBadge entry={status} />;
 
   if (progress === undefined || progress.total <= 0) {
     return <div data-slot="cover-status-badge">{badge}</div>;

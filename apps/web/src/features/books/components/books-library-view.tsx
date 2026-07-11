@@ -411,6 +411,7 @@ function LibraryGridCard({
         whileHover={prefersReducedMotion ? undefined : { y: -4 }}
       >
         <BookCard
+          ageBadge={book.ageBadge}
           authors={book.authors}
           cover={book.cover}
           coverActivateLabel={coverViewLabel}

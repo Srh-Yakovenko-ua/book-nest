@@ -41,6 +41,7 @@ export function ReadingQueueView() {
   const tFormat = useTranslations("books.format.options");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
+  const tAgeCategory = useTranslations("books.classification.ageCategoryLabels");
   const router = useRouter();
 
   const { data, isError, isPending, refetch } = useReadingQueue();
@@ -88,6 +89,7 @@ export function ReadingQueueView() {
   }, [serverOrderKey]);
 
   const labels: LibraryBookLabels = {
+    ageBadge18Plus: tAgeCategory("18_plus"),
     borrowedFrom: (name) => tLibrary("card.borrowedFrom", { name }),
     formatLabel: (value) => tFormat(value),
     genreName: (key) => genreNameByKey.get(key) ?? key,

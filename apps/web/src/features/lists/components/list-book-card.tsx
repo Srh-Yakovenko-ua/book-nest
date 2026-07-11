@@ -51,6 +51,7 @@ export function ListBookCard({
   return (
     <>
       <BookCard
+        ageBadge={libraryBook.ageBadge}
         authors={libraryBook.authors}
         cover={libraryBook.cover}
         formats={libraryBook.formats}
