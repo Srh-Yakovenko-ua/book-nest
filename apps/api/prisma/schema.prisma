@@ -227,6 +227,7 @@ model Book {
   tags            BookTag[]
   lists           BookListItem[]
   readingProgress BookReadingProgress?
+  readingEvents   BookReadingProgressEvent[]
   purchaseInfo    BookPurchaseInfo?
   deliveries      BookDelivery[]
   loans           BookLoan[]
@@ -279,6 +280,19 @@ model BookReadingProgress {
   book                 Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@map("book_reading_progress")
+}
+
+model BookReadingProgressEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  bookId    String   @map("book_id") @db.Uuid
+  date      DateTime @db.Date
+  page      Int
+  pagesRead Int      @map("pages_read")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId, date])
+  @@map("book_reading_progress_events")
 }
 
 model BookPurchaseInfo {

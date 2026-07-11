@@ -897,6 +897,31 @@ export const ReadingProgressViewSchema = z.object({
 
 export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
 
+export const ReadingHistoryEventViewSchema = z.object({
+  date: z.string(),
+  id: z.string(),
+  page: z.number(),
+  pagesRead: z.number(),
+});
+
+export type ReadingHistoryEventView = z.infer<typeof ReadingHistoryEventViewSchema>;
+
+export const ReadingHistoryDayViewSchema = z.object({
+  date: z.string(),
+  pagesRead: z.number(),
+});
+
+export type ReadingHistoryDayView = z.infer<typeof ReadingHistoryDayViewSchema>;
+
+export const ReadingHistoryViewSchema = z.object({
+  daily: z.array(ReadingHistoryDayViewSchema),
+  daysRead: z.number(),
+  events: z.array(ReadingHistoryEventViewSchema),
+  totalPagesRead: z.number(),
+});
+
+export type ReadingHistoryView = z.infer<typeof ReadingHistoryViewSchema>;
+
 export const DeliveryViewSchema = z.object({
   cancelledAt: z.string().nullable(),
   cancelReason: z.string().nullable(),

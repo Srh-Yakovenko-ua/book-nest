@@ -147,6 +147,12 @@ export type ReadingChangePatch = {
   progress: Partial<CreateReadingProgressData>;
 };
 
+export type ReadingProgressEventData = {
+  date: Date;
+  page: number;
+  pagesRead: number;
+};
+
 export type UpdateActiveLoanData = {
   contact: Nullable<string>;
   expectedReturnDate: Nullable<Date>;
@@ -460,6 +466,16 @@ export class BooksRepository {
     return book;
   }
 
+  findReadingEvents(args: {
+    bookId: string;
+  }): Promise<Array<{ date: Date; id: string; page: number; pagesRead: number }>> {
+    return this.prisma.bookReadingProgressEvent.findMany({
+      orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+      select: { date: true, id: true, page: true, pagesRead: true },
+      where: { bookId: args.bookId },
+    });
+  }
+
   findSeriesPartNumberConflict(
     userId: string,
     { excludeBookId, partNumber, seriesId }: SeriesPartNumberQuery,
@@ -533,6 +549,28 @@ export class BooksRepository {
       LIMIT ${limit}
     `;
     return rows.map((row) => row.storeName);
+  }
+
+  async recordReadingProgress(args: {
+    bookId: string;
+    event: Nullable<ReadingProgressEventData>;
+    patch: ReadingChangePatch;
+    userId: string;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
+
+      if (args.event !== null) {
+        await tx.bookReadingProgressEvent.create({
+          data: {
+            bookId: args.bookId,
+            date: args.event.date,
+            page: args.event.page,
+            pagesRead: args.event.pagesRead,
+          },
+        });
+      }
+    });
   }
 
   async shiftQueueUpAfter(
