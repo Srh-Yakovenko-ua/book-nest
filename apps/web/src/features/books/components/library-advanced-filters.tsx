@@ -26,14 +26,19 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { YearPicker } from "@/components/ui/year-picker";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
+import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-status";
 
 import type { LibraryQueryState, LibraryScope } from "../model/library-query";
 import type { UseLibraryQueryResult } from "../model/use-library-query";
 
-import { useAuthorSearch } from "../api/use-author-search";
+import { useAuthorOptions } from "../api/use-author-options";
 import { useGenres } from "../api/use-genres";
 import { usePublishersSearch } from "../api/use-publishers-search";
+import { useRecentAuthors } from "../api/use-recent-authors";
+import { useRecentGenres } from "../api/use-recent-genres";
+import { useRecentPublishers } from "../api/use-recent-publishers";
 import {
   LIBRARY_AGE_CATEGORY_VALUES,
   LIBRARY_BOOK_TYPE_VALUES,
@@ -43,7 +48,7 @@ import {
   libraryRangeFlags,
   scopedOwnerValues,
 } from "../model/library-query";
-import { LibraryFilterCombobox } from "./library-filter-combobox";
+import { LibraryEntityMultiselect } from "./library-entity-multiselect";
 import { LibraryTagFilter } from "./library-tag-filter";
 
 const RATING_VALUES = [1, 2, 3, 4, 5] as const;
@@ -68,30 +73,42 @@ export function LibraryAdvancedFilters({
   state,
 }: LibraryAdvancedFiltersProps) {
   const t = useTranslations("books.library.filters");
+  const tAuthor = useTranslations("books.author");
+  const tPublisher = useTranslations("books.publisher");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwner = useTranslations("books.ownershipStatus.options");
   const tFormat = useTranslations("books.format.options");
   const tAge = useTranslations("books.classification.ageCategoryLabels");
   const tLanguage = useTranslations("books.classification.languageLabels");
+  const tClassification = useTranslations("books.classification");
   const [open, setOpen] = useState(false);
   const genres = useGenres();
+  const recentGenres = useRecentGenres();
 
-  const genreOptions = (genres.data ?? []).map((genre) => ({
-    group: genre.groupName,
-    label: genre.name,
-    value: genre.key,
+  const genreList = genres.data ?? [];
+  const genreNameByKey = new Map(genreList.map((genre) => [genre.key, genre.name]));
+  const recentHeading = tClassification("genresRecentHeading");
+  const recentKeys = (recentGenres.data ?? [])
+    .map((genre) => genre.key)
+    .filter((key) => genreNameByKey.has(key));
+  const recentKeySet = new Set(recentKeys);
+  const recentOptions = recentKeys.map((key) => ({
+    group: recentHeading,
+    label: genreNameByKey.get(key) ?? key,
+    value: key,
   }));
-
-  const selectedAuthorName =
-    state.author[0] === undefined ? undefined : resolveEntityName(state.author[0]);
-  const selectedPublisherName =
-    state.publisher[0] === undefined ? undefined : resolveEntityName(state.publisher[0]);
+  const catalogOptions = genreList
+    .filter((genre) => !recentKeySet.has(genre.key))
+    .map((genre) => ({ group: genre.groupName, label: genre.name, value: genre.key }));
+  const genreOptions = [...recentOptions, ...catalogOptions];
 
   const ownerValues = scopedOwnerValues(scope);
   const ratingMinValue = state.ratingMin === null ? "any" : String(state.ratingMin);
   const ratingMaxValue = state.ratingMax === null ? "any" : String(state.ratingMax);
   const coverValue = state.hasCover === null ? "all" : state.hasCover ? "with" : "without";
   const rangeFlags = libraryRangeFlags(state);
+  const maxYear = new Date().getUTCFullYear() + 1;
+  const minYear = 1000;
 
   return (
     <Sheet onOpenChange={setOpen} open={open}>
@@ -120,7 +137,14 @@ export function LibraryAdvancedFilters({
               onValueChange={(next) =>
                 void setState({ status: LIBRARY_STATUS_VALUES.filter((v) => next.includes(v)) })
               }
-              options={LIBRARY_STATUS_VALUES.map((value) => ({ label: tStatus(value), value }))}
+              options={LIBRARY_STATUS_VALUES.map((value) => {
+                const entry = readingStatuses.find((item) => item.value === value);
+                return {
+                  icon: entry ? <UiIcon name={entry.icon} /> : undefined,
+                  label: tStatus(value),
+                  value,
+                };
+              })}
               size="sm"
               value={state.status}
             />
@@ -133,7 +157,14 @@ export function LibraryAdvancedFilters({
               onValueChange={(next) =>
                 void setState({ owner: ownerValues.filter((v) => next.includes(v)) })
               }
-              options={ownerValues.map((value) => ({ label: tOwner(value), value }))}
+              options={ownerValues.map((value) => {
+                const entry = ownershipStatuses.find((item) => item.value === value);
+                return {
+                  icon: entry ? <UiIcon name={entry.icon} /> : undefined,
+                  label: tOwner(value),
+                  value,
+                };
+              })}
               size="sm"
               value={state.owner}
             />
@@ -146,7 +177,14 @@ export function LibraryAdvancedFilters({
               onValueChange={(next) =>
                 void setState({ format: LIBRARY_FORMAT_VALUES.filter((v) => next.includes(v)) })
               }
-              options={LIBRARY_FORMAT_VALUES.map((value) => ({ label: tFormat(value), value }))}
+              options={LIBRARY_FORMAT_VALUES.map((value) => {
+                const entry = bookFormats.find((item) => item.value === value);
+                return {
+                  icon: entry ? <UiIcon name={entry.icon} /> : undefined,
+                  label: tFormat(value),
+                  value,
+                };
+              })}
               size="sm"
               value={state.format}
             />
@@ -177,29 +215,32 @@ export function LibraryAdvancedFilters({
               removeLabel={(name) => t("removeTag", { name })}
               resolveName={resolveEntityName}
               searchingLabel={t("tagSearching")}
+              suggestionsHeading={tClassification("tagsSuggestions")}
               value={state.tag}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.ageCategory")}>
-            <ChipGroup
-              label={t("sections.ageCategory")}
-              mode="multi"
+            <Multiselect
+              emptyText={t("ageCategoryEmpty")}
               onValueChange={(next) =>
                 void setState({
                   ageCategory: LIBRARY_AGE_CATEGORY_VALUES.filter((v) => next.includes(v)),
                 })
               }
-              options={LIBRARY_AGE_CATEGORY_VALUES.map((value) => ({ label: tAge(value), value }))}
-              size="sm"
+              options={LIBRARY_AGE_CATEGORY_VALUES.map((value) => ({
+                label: tAge(value),
+                value,
+              }))}
+              placeholder={t("ageCategoryPlaceholder")}
+              searchPlaceholder={t("ageCategorySearch")}
               value={state.ageCategory}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.language")}>
-            <ChipGroup
-              label={t("sections.language")}
-              mode="multi"
+            <Multiselect
+              emptyText={t("languageEmpty")}
               onValueChange={(next) =>
                 void setState({
                   language: LIBRARY_LANGUAGE_VALUES.filter((v) => next.includes(v)),
@@ -209,48 +250,55 @@ export function LibraryAdvancedFilters({
                 label: tLanguage(value),
                 value,
               }))}
-              size="sm"
+              placeholder={t("languagePlaceholder")}
+              searchPlaceholder={t("languageSearch")}
               value={state.language}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.author")}>
-            <LibraryFilterCombobox
-              clearLabel={t("clearField")}
-              customBadge={t("customBadge")}
-              emptyLabel={t("authorEmpty")}
+            <LibraryEntityMultiselect
+              allHeading={tAuthor("allHeading")}
+              empty={t("authorEmpty")}
               icon="user"
               id="library-filter-author"
-              label={t("sections.author")}
-              onClear={() => void setState({ author: null })}
-              onSelect={(item) => {
+              onAdd={(item) => {
                 onRememberEntity(item.id, item.name);
-                void setState({ author: [item.id] });
+                void setState({ author: [...state.author, item.id] });
               }}
+              onRemove={(id) => void setState({ author: state.author.filter((v) => v !== id) })}
               placeholder={t("authorPlaceholder")}
-              searchingLabel={t("authorSearching")}
-              selectedName={selectedAuthorName}
-              useSearch={useAuthorSearch}
+              recentHeading={tAuthor("recentHeading")}
+              removeLabel={(name) => t("removeAuthor", { name })}
+              resolveName={resolveEntityName}
+              searching={t("authorSearching")}
+              useRecent={useRecentAuthors}
+              useSearch={useAuthorOptions}
+              value={state.author}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.publisher")}>
-            <LibraryFilterCombobox
-              clearLabel={t("clearField")}
-              customBadge={t("customBadge")}
-              emptyLabel={t("publisherEmpty")}
+            <LibraryEntityMultiselect
+              allHeading={tPublisher("allHeading")}
+              empty={t("publisherEmpty")}
               icon="building"
               id="library-filter-publisher"
-              label={t("sections.publisher")}
-              onClear={() => void setState({ publisher: null })}
-              onSelect={(item) => {
+              onAdd={(item) => {
                 onRememberEntity(item.id, item.name);
-                void setState({ publisher: [item.id] });
+                void setState({ publisher: [...state.publisher, item.id] });
               }}
+              onRemove={(id) =>
+                void setState({ publisher: state.publisher.filter((v) => v !== id) })
+              }
               placeholder={t("publisherPlaceholder")}
-              searchingLabel={t("publisherSearching")}
-              selectedName={selectedPublisherName}
+              recentHeading={tPublisher("recentHeading")}
+              removeLabel={(name) => t("removePublisher", { name })}
+              resolveName={resolveEntityName}
+              searching={t("publisherSearching")}
+              useRecent={useRecentPublishers}
               useSearch={usePublishersSearch}
+              value={state.publisher}
             />
           </FilterSection>
 
@@ -335,29 +383,29 @@ export function LibraryAdvancedFilters({
 
           <FilterSection title={t("sections.year")}>
             <div className="grid grid-cols-2 gap-2.5">
-              <Input
-                aria-label={t("range.yearMin")}
-                inputMode="numeric"
-                min={0}
-                onChange={(event) =>
-                  void setState({ yearMin: parseRangeValue(event.target.value) })
-                }
-                onKeyDown={blockNegativeNumberKeys}
+              <YearPicker
+                ariaLabel={t("range.yearMin")}
+                clearLabel={t("yearPicker.clear")}
+                id="library-filter-year-min"
+                max={state.yearMax ?? maxYear}
+                min={minYear}
+                nextLabel={t("yearPicker.next")}
+                onChange={(y) => void setState({ yearMin: y })}
                 placeholder={t("range.min")}
-                type="number"
-                value={state.yearMin ?? ""}
+                prevLabel={t("yearPicker.prev")}
+                value={state.yearMin}
               />
-              <Input
-                aria-label={t("range.yearMax")}
-                inputMode="numeric"
-                min={0}
-                onChange={(event) =>
-                  void setState({ yearMax: parseRangeValue(event.target.value) })
-                }
-                onKeyDown={blockNegativeNumberKeys}
+              <YearPicker
+                ariaLabel={t("range.yearMax")}
+                clearLabel={t("yearPicker.clear")}
+                id="library-filter-year-max"
+                max={maxYear}
+                min={state.yearMin ?? minYear}
+                nextLabel={t("yearPicker.next")}
+                onChange={(y) => void setState({ yearMax: y })}
                 placeholder={t("range.max")}
-                type="number"
-                value={state.yearMax ?? ""}
+                prevLabel={t("yearPicker.prev")}
+                value={state.yearMax}
               />
             </div>
             {rangeFlags.year ? (

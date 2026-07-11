@@ -352,7 +352,7 @@
       },
       "my": {
         "title": "Моя бібліотека",
-        "subtitle": "Книги, які фізично в тебе: у наявності, віддані комусь або взяті у когось"
+        "subtitle": "Твоя домашня колекція книг в одному місці"
       },
       "card": {
         "lentTo": "У {name}",
@@ -372,7 +372,15 @@
         "total": "Усього книг",
         "reading": "Читаю",
         "finished": "Прочитано",
-        "favorites": "Улюблених"
+        "favorites": "Улюблених",
+        "unitBook": "{count, plural, one {книга} few {книги} many {книг} other {книги}}",
+        "unitSeries": "{count, plural, one {серія} few {серії} many {серій} other {серії}}",
+        "unitAuthor": "{count, plural, one {автор} few {автори} many {авторів} other {автори}}",
+        "favoritesPercent": "{percent}% бібліотеки",
+        "finishedPercent": "{percent}% наявних книг",
+        "readingNone": "Немає активних",
+        "readingProgress": "{current} з {total} стор. · {percent}%",
+        "readingPagesAhead": "{pagesAhead} стор. попереду"
       },
       "sort": {
         "label": "Сортування",
@@ -451,7 +459,7 @@
       "filters": {
         "trigger": "Фільтри",
         "title": "Фільтри",
-        "description": "Звузьте бібліотеку за статусом, форматом, класифікацією та деталями видання.",
+        "description": "Обери потрібні ознаки, щоб швидко знайти книгу на своїй полиці.",
         "done": "Готово",
         "clear": "Очистити фільтри",
         "clearField": "Очистити",
@@ -498,9 +506,20 @@
           "pagesMax": "Сторінок до",
           "invalid": "Мінімум не може перевищувати максимум"
         },
+        "yearPicker": {
+          "prev": "Попередні роки",
+          "next": "Наступні роки",
+          "clear": "Очистити рік"
+        },
         "genrePlaceholder": "Оберіть жанри",
         "genreSearch": "Пошук жанру…",
         "genreEmpty": "Жанрів не знайдено",
+        "languagePlaceholder": "Оберіть мови",
+        "languageSearch": "Пошук мови…",
+        "languageEmpty": "Мов не знайдено",
+        "ageCategoryPlaceholder": "Оберіть вікові категорії",
+        "ageCategorySearch": "Пошук вікової категорії…",
+        "ageCategoryEmpty": "Категорій не знайдено",
         "tagPlaceholder": "Пошук тегів…",
         "tagSearching": "Шукаємо теги…",
         "tagEmpty": "Тегів не знайдено",
@@ -510,7 +529,9 @@
         "authorEmpty": "Авторів не знайдено",
         "publisherPlaceholder": "Пошук видавництва…",
         "publisherSearching": "Шукаємо видавництва…",
-        "publisherEmpty": "Видавництв не знайдено"
+        "publisherEmpty": "Видавництв не знайдено",
+        "removeAuthor": "Прибрати автора {name}",
+        "removePublisher": "Прибрати видавництво {name}"
       },
       "activeFilters": {
         "label": "Активні фільтри",
@@ -562,6 +583,8 @@
         "regionLabel": "Масові дії",
         "selected": "Обрано {count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}}",
         "selectBook": "Вибрати книгу «{title}»",
+        "enterSelection": "Вибрати",
+        "exitSelection": "Готово",
         "clear": "Очистити вибір",
         "addToList": "Додати до списку",
         "addToQueue": "Додати в чергу",
@@ -1694,7 +1717,7 @@
   "favorites": {
     "metaTitle": "Улюблені книги",
     "title": "Улюблені книги",
-    "subtitle": "Ваша добірка книг, які ви позначили сердечком",
+    "subtitle": "Книги, які хочеться пам'ятати, перечитувати та радити іншим",
     "countBadge": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
     "summary": {
       "total": "Усього улюблених",

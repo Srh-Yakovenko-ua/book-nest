@@ -63,7 +63,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
   };
 
 const GENRES_VISIBLE = 2;
-const TAGS_VISIBLE = 3;
+const TAGS_VISIBLE = 2;
 const TOOLTIP_DELAY_MS = 400;
 
 const morePillClass =
@@ -356,7 +356,7 @@ function BookCoverImage({
       aria-label={activateLabel}
       className={cn(
         coverBoxClass,
-        "z-10 block cursor-pointer transition duration-300 ease-out hover:brightness-105 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset",
+        "z-10 block cursor-zoom-in transition duration-300 ease-out hover:brightness-105 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset",
       )}
       onClick={onActivate}
       type="button"

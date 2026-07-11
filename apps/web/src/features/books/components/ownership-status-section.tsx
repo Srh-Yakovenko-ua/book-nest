@@ -30,6 +30,7 @@ import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
 } from "@/lib/block-negative-number-keys";
+import { ownershipStatuses } from "@/lib/book-status";
 
 import type { BookFormMode } from "../model/book-form-mode";
 import type { CreateBookFormValues } from "../model/create-book-form";
@@ -106,10 +107,14 @@ export function OwnershipStatusSection({
               if (onRequestChange) onRequestChange(next as OwnershipStatus, apply);
               else apply();
             }}
-            options={OWNERSHIP_STATUS_OPTIONS.map((value) => ({
-              label: t(`ownershipStatus.options.${value}`),
-              value,
-            }))}
+            options={OWNERSHIP_STATUS_OPTIONS.map((value) => {
+              const entry = ownershipStatuses.find((item) => item.value === value);
+              return {
+                icon: entry ? <UiIcon name={entry.icon} /> : undefined,
+                label: t(`ownershipStatus.options.${value}`),
+                value,
+              };
+            })}
             value={field.value ?? "none"}
           />
         )}
