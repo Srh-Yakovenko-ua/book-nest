@@ -174,7 +174,7 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     bodyUk:
       "Бібліотека тепер показує книги як картки-постери: обкладинка з позначками статусу читання й власності, швидкі дії та чипи жанрів.",
     category: "improvement",
-    publishedAt: "2026-07-11T09:00:00.000Z",
+    publishedAt: "2026-07-11T06:00:00.000Z",
     slug: "library-cards-redesign",
     titleEn: "Refreshed library cards",
     titleUk: "Оновлені картки бібліотеки",
