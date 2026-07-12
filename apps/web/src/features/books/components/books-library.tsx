@@ -294,6 +294,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
         title: book.title,
       }))}
       topGenres={(overview.data?.topGenres ?? []).map((genre) => ({
+        count: genre.count,
         key: genre.key,
         name: genreNameByKey.get(genre.key) ?? genre.name,
       }))}

@@ -635,6 +635,7 @@
       "sidebar": {
         "title": "Огляд бібліотеки",
         "topGenres": "Топ жанрів",
+        "topGenresChart": "Розподіл топ-жанрів",
         "topGenresEmpty": "Жанри ще не додані",
         "topTags": "Топ тегів",
         "topTagsEmpty": "Теги ще не додані",

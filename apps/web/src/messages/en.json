@@ -635,6 +635,7 @@
       "sidebar": {
         "title": "Library overview",
         "topGenres": "Top genres",
+        "topGenresChart": "Top genres distribution",
         "topGenresEmpty": "No genres yet",
         "topTags": "Top tags",
         "topTagsEmpty": "No tags yet",
