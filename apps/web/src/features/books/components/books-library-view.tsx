@@ -3,7 +3,7 @@
 import type { MediaView } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, SquareCheckBig } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
@@ -124,6 +124,8 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
   const t = useTranslations("books.library");
   const [pending, setPending] = useState<null | PendingBookAction>(null);
   const clearSelection = useLibrarySelectionStore((state) => state.clear);
+  const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
+  const exitSelection = useLibrarySelectionStore((state) => state.exitSelection);
 
   const visibleBookIdsKey = books.map((book) => book.id).join("\n");
 
@@ -132,7 +134,16 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     useLibrarySelectionStore.getState().setAvailable(ids);
   }, [visibleBookIdsKey]);
 
-  useEffect(() => () => useLibrarySelectionStore.getState().clear(), []);
+  useEffect(() => () => useLibrarySelectionStore.getState().exitSelection(), []);
+
+  useEffect(() => {
+    if (!selectionMode) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") exitSelection();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectionMode, exitSelection]);
 
   const renderActions = (book: LibraryBook) => (
     <BookCardActions actions={actions} book={book} onOpenDialog={setPending} />
@@ -390,6 +401,7 @@ function LibraryGridCard({
   prefersReducedMotion: boolean | null;
 }) {
   const selected = useLibrarySelectionStore((state) => state.selectedIds.has(book.id));
+  const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
   const toggle = useLibrarySelectionStore((state) => state.toggle);
   const coverMedia = book.coverMedia;
 
@@ -398,19 +410,22 @@ function LibraryGridCard({
       className="relative grid motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
       style={{ animationDelay: staggerDelay(index) }}
     >
-      <div className="absolute top-3 left-3 z-20">
-        <SelectionCheckbox
-          checked={selected}
-          label={selectBookLabel(book.title)}
-          onToggle={() => toggle(book.id)}
-        />
-      </div>
+      {selectionMode ? (
+        <div className="absolute -top-2.5 -left-2.5 z-30">
+          <SelectionCheckbox
+            checked={selected}
+            label={selectBookLabel(book.title)}
+            onToggle={() => toggle(book.id)}
+          />
+        </div>
+      ) : null}
       <motion.div
         className="grid h-full"
         transition={{ duration: 0.2, ease: "easeOut" }}
         whileHover={prefersReducedMotion ? undefined : { y: -4 }}
       >
         <BookCard
+          ageBadge={book.ageBadge}
           authors={book.authors}
           cover={book.cover}
           coverActivateLabel={coverViewLabel}
@@ -451,6 +466,7 @@ function LibraryListRow({
   linkComponent?: LibraryBookLinkComponent;
 }) {
   const selected = useLibrarySelectionStore((state) => state.selectedIds.has(book.id));
+  const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
   const toggle = useLibrarySelectionStore((state) => state.toggle);
 
   return (
@@ -460,11 +476,13 @@ function LibraryListRow({
       linkComponent={linkComponent}
       selected={selected}
       selectionControl={
-        <SelectionCheckbox
-          checked={selected}
-          label={selectBookLabel(book.title)}
-          onToggle={() => toggle(book.id)}
-        />
+        selectionMode ? (
+          <SelectionCheckbox
+            checked={selected}
+            label={selectBookLabel(book.title)}
+            onToggle={() => toggle(book.id)}
+          />
+        ) : undefined
       }
     />
   );
@@ -557,6 +575,11 @@ function LibraryToolbar({
   view,
   viewLabels,
 }: BooksLibraryViewProps) {
+  const t = useTranslations("books.library");
+  const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
+  const enterSelection = useLibrarySelectionStore((state) => state.enterSelection);
+  const exitSelection = useLibrarySelectionStore((state) => state.exitSelection);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -569,6 +592,13 @@ function LibraryToolbar({
             value={sort}
           />
           {advancedFilters}
+          <Button
+            onClick={selectionMode ? exitSelection : enterSelection}
+            variant={selectionMode ? "secondary" : "outline"}
+          >
+            <SquareCheckBig />
+            {selectionMode ? t("bulk.exitSelection") : t("bulk.enterSelection")}
+          </Button>
           <Segmented
             label={viewLabels.label}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
@@ -641,7 +671,7 @@ function SelectionCheckbox({
   onToggle: () => void;
 }) {
   return (
-    <span className="grid size-8 cursor-pointer place-items-center rounded-lg border border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] shadow-[var(--book-overlay-pill-shadow)] backdrop-blur-md">
+    <span className="grid size-9 cursor-pointer place-items-center rounded-2xl border border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] shadow-[var(--book-overlay-pill-shadow)] backdrop-blur-md transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100">
       <Checkbox aria-label={label} checked={checked} onCheckedChange={onToggle} />
     </span>
   );

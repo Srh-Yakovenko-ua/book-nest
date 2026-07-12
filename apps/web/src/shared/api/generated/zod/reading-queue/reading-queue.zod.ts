@@ -68,7 +68,14 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -94,7 +101,14 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -173,7 +187,14 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
           .nullable(),
         purchaseInfo: zod
           .object({
-            currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
             expectedPrice: zod.number().nullable(),
             note: zod.string().nullable(),
             purchasedAt: zod.string().nullable(),
@@ -181,7 +202,14 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
             storeUrl: zod.string().nullable(),
           })
           .nullable(),
-        queuePriority: zod.enum(["low", "normal", "high"]).nullable(),
+        queuePriority: zod
+          .union([
+            zod.literal("low"),
+            zod.literal("normal"),
+            zod.literal("high"),
+            zod.literal(null),
+          ])
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),
@@ -332,7 +360,14 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -358,7 +393,14 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -437,7 +479,14 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
           .nullable(),
         purchaseInfo: zod
           .object({
-            currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
             expectedPrice: zod.number().nullable(),
             note: zod.string().nullable(),
             purchasedAt: zod.string().nullable(),
@@ -445,7 +494,14 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
             storeUrl: zod.string().nullable(),
           })
           .nullable(),
-        queuePriority: zod.enum(["low", "normal", "high"]).nullable(),
+        queuePriority: zod
+          .union([
+            zod.literal("low"),
+            zod.literal("normal"),
+            zod.literal("high"),
+            zod.literal(null),
+          ])
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),
@@ -592,7 +648,14 @@ export const ReadingQueueControllerReorderResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -618,7 +681,14 @@ export const ReadingQueueControllerReorderResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -697,7 +767,14 @@ export const ReadingQueueControllerReorderResponse = zod.object({
           .nullable(),
         purchaseInfo: zod
           .object({
-            currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
             expectedPrice: zod.number().nullable(),
             note: zod.string().nullable(),
             purchasedAt: zod.string().nullable(),
@@ -705,7 +782,14 @@ export const ReadingQueueControllerReorderResponse = zod.object({
             storeUrl: zod.string().nullable(),
           })
           .nullable(),
-        queuePriority: zod.enum(["low", "normal", "high"]).nullable(),
+        queuePriority: zod
+          .union([
+            zod.literal("low"),
+            zod.literal("normal"),
+            zod.literal("high"),
+            zod.literal(null),
+          ])
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),
@@ -848,7 +932,14 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -874,7 +965,14 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -953,7 +1051,14 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
           .nullable(),
         purchaseInfo: zod
           .object({
-            currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
             expectedPrice: zod.number().nullable(),
             note: zod.string().nullable(),
             purchasedAt: zod.string().nullable(),
@@ -961,7 +1066,14 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
             storeUrl: zod.string().nullable(),
           })
           .nullable(),
-        queuePriority: zod.enum(["low", "normal", "high"]).nullable(),
+        queuePriority: zod
+          .union([
+            zod.literal("low"),
+            zod.literal("normal"),
+            zod.literal("high"),
+            zod.literal(null),
+          ])
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),
@@ -1100,7 +1212,14 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -1126,7 +1245,14 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -1205,7 +1331,14 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
           .nullable(),
         purchaseInfo: zod
           .object({
-            currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
             expectedPrice: zod.number().nullable(),
             note: zod.string().nullable(),
             purchasedAt: zod.string().nullable(),
@@ -1213,7 +1346,14 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
             storeUrl: zod.string().nullable(),
           })
           .nullable(),
-        queuePriority: zod.enum(["low", "normal", "high"]).nullable(),
+        queuePriority: zod
+          .union([
+            zod.literal("low"),
+            zod.literal("normal"),
+            zod.literal("high"),
+            zod.literal(null),
+          ])
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),

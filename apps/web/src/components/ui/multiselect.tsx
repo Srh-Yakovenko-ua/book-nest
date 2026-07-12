@@ -12,6 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { useLockedWheelScroll } from "@/hooks/use-locked-wheel-scroll";
 import { cn } from "@/lib/utils";
 
 type MultiselectGroup = {
@@ -73,6 +74,7 @@ function Multiselect({
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const scrollRef = useLockedWheelScroll();
 
   const selectedOptions = value
     .map((selected) => options.find((option) => option.value === selected))
@@ -175,7 +177,7 @@ function Multiselect({
               ref={inputRef}
               value={query}
             />
-            <CommandList>
+            <CommandList ref={scrollRef}>
               <CommandEmpty>{emptyText}</CommandEmpty>
               {groupOptions(options).map((group) => (
                 <CommandGroup heading={group.heading} key={group.key}>

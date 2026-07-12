@@ -26,7 +26,8 @@ const segmentedItemVariants = cva(
   {
     variants: {
       tone: {
-        surface: "data-[state=on]:bg-card data-[state=on]:text-ink data-[state=on]:shadow-soft",
+        surface:
+          "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-soft",
         accent: "data-[state=on]:bg-accent data-[state=on]:text-accent-foreground",
       },
     },

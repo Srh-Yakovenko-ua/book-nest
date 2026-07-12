@@ -51,6 +51,7 @@ export function FavoritesView() {
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
   const tSortOptions = useTranslations("books.library.sort.options");
+  const tAgeCategory = useTranslations("books.classification.ageCategoryLabels");
   const router = useRouter();
 
   const library = useLibraryQuery(FAVORITES_SCOPE);
@@ -105,6 +106,7 @@ export function FavoritesView() {
     .flatMap((page) => page.items)
     .map((book) =>
       toLibraryBook(book, {
+        ageBadge18Plus: tAgeCategory("18_plus"),
         borrowedFrom: (name) => t("card.borrowedFrom", { name }),
         formatLabel: (value) => tFormat(value),
         genreName: (key) => genreNameByKey.get(key) ?? key,
@@ -229,7 +231,6 @@ export function FavoritesView() {
         advancedFilters={
           <LibraryAdvancedFilters
             activeCount={advancedFiltersCount}
-            onClearFilters={library.clearFilters}
             onRememberEntity={rememberEntity}
             resolveEntityName={resolveEntityName}
             scope={FAVORITES_SCOPE}
