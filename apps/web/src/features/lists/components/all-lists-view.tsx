@@ -9,6 +9,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,6 +65,7 @@ export function AllListsView({
             {isPending ? null : (
               <Badge variant="secondary">{t("count", { count: totalCount })}</Badge>
             )}
+            <TitleLeaf />
           </div>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>

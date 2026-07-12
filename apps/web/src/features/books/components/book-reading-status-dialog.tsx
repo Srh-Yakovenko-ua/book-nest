@@ -6,6 +6,7 @@ import { ReadingStatusSchema } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { readingStatuses } from "@/lib/book-status";
 
 import { StatusChipGroup } from "./status-chip-group";
 
@@ -70,9 +72,10 @@ export function BookReadingStatusDialog({
             const match = READING_STATUS_VALUES.find((status) => status === next);
             if (match) setValue(match);
           }}
-          options={READING_STATUS_VALUES.map((status) => ({
-            label: tOptions(status),
-            value: status,
+          options={readingStatuses.map((entry) => ({
+            icon: <UiIcon name={entry.icon} size={16} />,
+            label: tOptions(entry.value),
+            value: entry.value,
           }))}
           value={value}
         />

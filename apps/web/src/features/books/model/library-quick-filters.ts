@@ -33,12 +33,42 @@ const QUICK_FILTERS_OUTSIDE_FAVORITES_SCOPE: readonly LibraryQuickFilterKey[] = 
   "borrowed",
 ];
 
+export type LibraryQuickFilterCounts = Partial<Record<LibraryQuickFilterKey, number>>;
+
 export type LibraryQuickFilterPatch = {
   bookType: BooksControllerListBookType | null;
   isFavorite: boolean | null;
   owner: BooksControllerListOwnerItem[] | null;
   status: BooksControllerListStatusItem[] | null;
 };
+
+type LibraryQuickFilterCountSource = {
+  borrowed?: number;
+  favorites?: number;
+  finished?: number;
+  inTransit?: number;
+  reading?: number;
+  series?: number;
+  solo?: number;
+  total?: number;
+  wantToBuy?: number;
+  wantToRead?: number;
+};
+
+export function quickFilterCounts(source: LibraryQuickFilterCountSource): LibraryQuickFilterCounts {
+  return {
+    all: source.total,
+    borrowed: source.borrowed,
+    favorites: source.favorites,
+    finished: source.finished,
+    in_transit: source.inTransit,
+    reading: source.reading,
+    series: source.series,
+    solo: source.solo,
+    want_to_buy: source.wantToBuy,
+    want_to_read: source.wantToRead,
+  };
+}
 
 export function quickFilterKeysForScope(scope: LibraryScope): readonly LibraryQuickFilterKey[] {
   if (scope === "all") return LIBRARY_QUICK_FILTER_KEYS;

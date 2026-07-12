@@ -10,6 +10,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -48,9 +49,12 @@ export function BooksToBuyView() {
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
-        <h1 className="font-heading text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold text-ink">
-          {t("title")}
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="font-heading text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold text-ink">
+            {t("title")}
+          </h1>
+          <TitleLeaf />
+        </div>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
           {t("subtitle")}
         </p>
