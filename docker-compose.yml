@@ -55,6 +55,21 @@ services:
       - -c
       - "until mc alias set local http://minio:9000 booknest booknest_local_s3; do sleep 1; done; mc mb -p local/book-nest-dev; mc anonymous set download local/book-nest-dev; echo bucket ready"
 
+  redis:
+    image: redis:7-alpine
+    container_name: booknest-local-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy noeviction
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - booknest-local-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
   cloudbeaver:
     image: dbeaver/cloudbeaver:25
     container_name: booknest-local-cloudbeaver
@@ -72,4 +87,5 @@ volumes:
   booknest-local-db:
   booknest-local-mailpit:
   booknest-local-minio:
+  booknest-local-redis:
   booknest-local-cloudbeaver:

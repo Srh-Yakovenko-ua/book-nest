@@ -5,8 +5,8 @@ import { Injectable } from "@nestjs/common";
 import sharp from "sharp";
 
 import type {
+  GenerateThumbnailOptions,
   ProcessedImage,
-  ProcessedImageSet,
   ProcessImageOptions,
 } from "../domain/image-processor.port.js";
 
@@ -61,37 +61,17 @@ export class SharpImageProcessor extends ImageProcessorPort {
     super();
   }
 
-  async process({ crop, input }: ProcessImageOptions): Promise<ProcessedImageSet> {
-    const metadata = await sharp(input, { limitInputPixels: false }).metadata();
-    if (metadata.width === undefined || metadata.height === undefined) {
-      throw new InvalidImageError("Image metadata is missing dimensions");
-    }
-    if (metadata.width * metadata.height > this.maxInputPixels) {
-      throw new ImageTooLargeError();
-    }
+  generateThumbnail({ input }: GenerateThumbnailOptions): Promise<ProcessedImage> {
+    return this.encode({
+      maxEdge: THUMB_MAX_EDGE,
+      pipeline: sharp(input, { limitInputPixels: this.maxInputPixels }),
+      quality: THUMB_QUALITY,
+    });
+  }
 
-    const normalized = sharp(input, { limitInputPixels: this.maxInputPixels }).rotate();
-
-    if (crop !== undefined) {
-      const { height: orientedHeight, width: orientedWidth } = orientImageDimensions({
-        height: metadata.height,
-        orientation: metadata.orientation,
-        width: metadata.width,
-      });
-      assertCropWithinBounds({ crop, orientedHeight, orientedWidth });
-      normalized.extract({ height: crop.height, left: crop.x, top: crop.y, width: crop.width });
-    }
-
-    const [full, thumb] = await Promise.all([
-      this.encode({ maxEdge: FULL_MAX_EDGE, pipeline: normalized.clone(), quality: FULL_QUALITY }),
-      this.encode({
-        maxEdge: THUMB_MAX_EDGE,
-        pipeline: normalized.clone(),
-        quality: THUMB_QUALITY,
-      }),
-    ]);
-
-    return { full, thumb };
+  async processFull({ crop, input }: ProcessImageOptions): Promise<ProcessedImage> {
+    const normalized = await this.normalize({ crop, input });
+    return this.encode({ maxEdge: FULL_MAX_EDGE, pipeline: normalized, quality: FULL_QUALITY });
   }
 
   private async encode({
@@ -114,5 +94,29 @@ export class SharpImageProcessor extends ImageProcessorPort {
       height: info.height,
       width: info.width,
     };
+  }
+
+  private async normalize({ crop, input }: ProcessImageOptions): Promise<Sharp> {
+    const metadata = await sharp(input, { limitInputPixels: false }).metadata();
+    if (metadata.width === undefined || metadata.height === undefined) {
+      throw new InvalidImageError("Image metadata is missing dimensions");
+    }
+    if (metadata.width * metadata.height > this.maxInputPixels) {
+      throw new ImageTooLargeError();
+    }
+
+    const normalized = sharp(input, { limitInputPixels: this.maxInputPixels }).rotate();
+
+    if (crop !== undefined) {
+      const { height: orientedHeight, width: orientedWidth } = orientImageDimensions({
+        height: metadata.height,
+        orientation: metadata.orientation,
+        width: metadata.width,
+      });
+      assertCropWithinBounds({ crop, orientedHeight, orientedWidth });
+      normalized.extract({ height: crop.height, left: crop.x, top: crop.y, width: crop.width });
+    }
+
+    return normalized;
   }
 }
