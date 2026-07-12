@@ -2,7 +2,10 @@ import { create } from "zustand";
 
 type LibrarySelectionState = {
   clear: () => void;
+  enterSelection: () => void;
+  exitSelection: () => void;
   selectedIds: Set<string>;
+  selectionMode: boolean;
   setAvailable: (ids: string[]) => void;
   toggle: (id: string) => void;
 };
@@ -10,7 +13,10 @@ type LibrarySelectionState = {
 export const useLibrarySelectionStore = create<LibrarySelectionState>((set) => ({
   clear: () =>
     set((state) => (state.selectedIds.size === 0 ? state : { selectedIds: new Set<string>() })),
+  enterSelection: () => set({ selectionMode: true }),
+  exitSelection: () => set({ selectedIds: new Set<string>(), selectionMode: false }),
   selectedIds: new Set<string>(),
+  selectionMode: false,
   setAvailable: (ids) =>
     set((state) => {
       if (state.selectedIds.size === 0) return state;

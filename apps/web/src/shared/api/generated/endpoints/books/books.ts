@@ -41,6 +41,7 @@ import type {
   LibraryOverviewViewDto,
   MarkBoughtInputDto,
   PaginatedBooksDto,
+  ReadingHistoryViewDto,
   SetBookListsInputDto,
   UpdateBookInputDto,
   UpdateDeliveryInputDto,
@@ -1387,6 +1388,198 @@ export function useBooksControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerDeleteQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type bookReadingControllerGetReadingHistoryResponse200 = {
+  data: ReadingHistoryViewDto;
+  status: 200;
+};
+
+export type bookReadingControllerGetReadingHistoryResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookReadingControllerGetReadingHistoryResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bookReadingControllerGetReadingHistoryResponseSuccess =
+  bookReadingControllerGetReadingHistoryResponse200 & {
+    headers: Headers;
+  };
+export type bookReadingControllerGetReadingHistoryResponseError = (
+  | bookReadingControllerGetReadingHistoryResponse401
+  | bookReadingControllerGetReadingHistoryResponse404
+) & {
+  headers: Headers;
+};
+
+export type bookReadingControllerGetReadingHistoryResponse =
+  | bookReadingControllerGetReadingHistoryResponseSuccess
+  | bookReadingControllerGetReadingHistoryResponseError;
+
+export const getBookReadingControllerGetReadingHistoryUrl = (id: string) => {
+  return `/api/books/${id}/reading-history`;
+};
+
+/**
+ * @summary Get the reading progress history of a book
+ */
+export const bookReadingControllerGetReadingHistory = async (
+  id: string,
+  options?: RequestInit,
+): Promise<bookReadingControllerGetReadingHistoryResponse> => {
+  return customInstance<bookReadingControllerGetReadingHistoryResponse>(
+    getBookReadingControllerGetReadingHistoryUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBookReadingControllerGetReadingHistoryQueryKey = (id: string) => {
+  return [`/api/books/${id}/reading-history`] as const;
+};
+
+export const getBookReadingControllerGetReadingHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBookReadingControllerGetReadingHistoryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>
+  > = ({ signal }) => bookReadingControllerGetReadingHistory(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BookReadingControllerGetReadingHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>
+>;
+export type BookReadingControllerGetReadingHistoryQueryError = void;
+
+export function useBookReadingControllerGetReadingHistory<
+  TData = Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+  TError = void,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+          TError,
+          Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookReadingControllerGetReadingHistory<
+  TData = Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+          TError,
+          Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookReadingControllerGetReadingHistory<
+  TData = Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the reading progress history of a book
+ */
+
+export function useBookReadingControllerGetReadingHistory<
+  TData = Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookReadingControllerGetReadingHistoryQueryOptions(id, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -62,6 +62,7 @@ export function ListDetailsView({
   const tFormat = useTranslations("books.format.options");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
+  const tAgeCategory = useTranslations("books.classification.ageCategoryLabels");
   const genres = useGenres();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -82,6 +83,7 @@ export function ListDetailsView({
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
 
   const labels: LibraryBookLabels = {
+    ageBadge18Plus: tAgeCategory("18_plus"),
     borrowedFrom: (name) => tLibrary("card.borrowedFrom", { name }),
     formatLabel: (value) => tFormat(value),
     genreName: (key) => genreNameByKey.get(key) ?? key,

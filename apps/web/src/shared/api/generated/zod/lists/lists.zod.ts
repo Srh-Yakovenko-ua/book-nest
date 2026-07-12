@@ -262,7 +262,14 @@ export const ListDetailsControllerDetailResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -288,7 +295,14 @@ export const ListDetailsControllerDetailResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -367,7 +381,14 @@ export const ListDetailsControllerDetailResponse = zod.object({
           .nullable(),
         purchaseInfo: zod
           .object({
-            currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
             expectedPrice: zod.number().nullable(),
             note: zod.string().nullable(),
             purchasedAt: zod.string().nullable(),
@@ -375,7 +396,14 @@ export const ListDetailsControllerDetailResponse = zod.object({
             storeUrl: zod.string().nullable(),
           })
           .nullable(),
-        queuePriority: zod.enum(["low", "normal", "high"]).nullable(),
+        queuePriority: zod
+          .union([
+            zod.literal("low"),
+            zod.literal("normal"),
+            zod.literal("high"),
+            zod.literal(null),
+          ])
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),

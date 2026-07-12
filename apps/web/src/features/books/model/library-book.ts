@@ -9,6 +9,7 @@ import {
 } from "@/lib/book-status";
 
 export type LibraryBook = {
+  ageBadge?: string;
   authors: string[];
   cover?: { alt?: string; src: string };
   coverMedia?: MediaView;
@@ -42,6 +43,7 @@ export type LibraryBookFormat = {
 };
 
 export type LibraryBookLabels = {
+  ageBadge18Plus: string;
   borrowedFrom: (name: string) => string;
   formatLabel: (value: BookFormat) => string;
   genreName: (key: string) => string;
@@ -96,6 +98,7 @@ export function toLibraryBook(book: BookView, labels: LibraryBookLabels): Librar
   const series = toSeries(book, labels);
 
   return {
+    ageBadge: book.ageCategory === "18_plus" ? labels.ageBadge18Plus : undefined,
     authors: book.authors.map((author) => author.name),
     cover: book.cover ? { alt: book.title, src: book.cover.urls.card } : undefined,
     coverMedia: book.cover ?? undefined,
