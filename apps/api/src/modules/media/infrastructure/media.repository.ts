@@ -25,6 +25,13 @@ export class MediaRepository {
     return result.count;
   }
 
+  findIdsWithoutThumbnail(): Promise<{ id: string; userId: string }[]> {
+    return this.prisma.mediaAsset.findMany({
+      select: { id: true, userId: true },
+      where: { thumbGeneratedAt: null },
+    });
+  }
+
   findOwnedById({ id, userId }: MediaOwnerRef): Promise<Nullable<MediaAssetModel>> {
     return this.prisma.mediaAsset.findFirst({ where: { id, userId } });
   }
