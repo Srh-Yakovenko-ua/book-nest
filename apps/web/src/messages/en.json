@@ -357,7 +357,8 @@
       "card": {
         "lentTo": "With {name}",
         "borrowedFrom": "From {name}",
-        "seriesPosition": "{position} of {total}"
+        "seriesPosition": "{position} of {total}",
+        "inQueue": "In queue"
       },
       "resultsTitle": "Book list",
       "addBook": "Add book",
@@ -453,8 +454,8 @@
         "want_to_buy": "To buy",
         "in_transit": "In transit",
         "borrowed": "Borrowed",
-        "series": "Series",
-        "solo": "Standalone"
+        "series": "Series part",
+        "solo": "Standalone book"
       },
       "filters": {
         "trigger": "Filters",
@@ -635,6 +636,7 @@
       "sidebar": {
         "title": "Library overview",
         "topGenres": "Top genres",
+        "topGenresChart": "Top genres distribution",
         "topGenresEmpty": "No genres yet",
         "topTags": "Top tags",
         "topTagsEmpty": "No tags yet",

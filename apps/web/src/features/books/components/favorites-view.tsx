@@ -32,7 +32,11 @@ import { useGenres } from "../api/use-genres";
 import { useTagsSearch } from "../api/use-tags-search";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER } from "../model/library-query";
-import { activeQuickFilter, quickFilterPatch } from "../model/library-quick-filters";
+import {
+  activeQuickFilter,
+  quickFilterCounts,
+  quickFilterPatch,
+} from "../model/library-quick-filters";
 import { useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
@@ -268,6 +272,7 @@ export function FavoritesView() {
         onViewChange={library.setView}
         quickFilters={
           <LibraryQuickFilters
+            counts={summary.data === undefined ? undefined : quickFilterCounts(summary.data)}
             onSelect={(key) => void library.setState(quickFilterPatch(key))}
             scope={FAVORITES_SCOPE}
             value={activeQuickFilter(library.state)}

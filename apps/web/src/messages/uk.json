@@ -357,7 +357,8 @@
       "card": {
         "lentTo": "У {name}",
         "borrowedFrom": "Від {name}",
-        "seriesPosition": "{position} з {total}"
+        "seriesPosition": "{position} з {total}",
+        "inQueue": "У черзі"
       },
       "resultsTitle": "Список книг",
       "addBook": "Додати книгу",
@@ -453,8 +454,8 @@
         "want_to_buy": "До покупки",
         "in_transit": "В дорозі",
         "borrowed": "Позичені",
-        "series": "Серії",
-        "solo": "Соло"
+        "series": "Частина серії",
+        "solo": "Соло книга"
       },
       "filters": {
         "trigger": "Фільтри",
@@ -635,6 +636,7 @@
       "sidebar": {
         "title": "Огляд бібліотеки",
         "topGenres": "Топ жанрів",
+        "topGenresChart": "Розподіл топ-жанрів",
         "topGenresEmpty": "Жанри ще не додані",
         "topTags": "Топ тегів",
         "topTagsEmpty": "Теги ще не додані",

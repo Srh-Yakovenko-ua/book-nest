@@ -9,6 +9,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -98,6 +99,7 @@ export function LoansView() {
             {summary.data ? (
               <Badge variant="secondary">{t("count", { count: totalActive })}</Badge>
             ) : null}
+            <TitleLeaf />
           </div>
           <p className="max-w-2xl text-sm text-muted-foreground md:text-base">{t("subtitle")}</p>
         </div>
