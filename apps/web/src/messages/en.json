@@ -357,7 +357,8 @@
       "card": {
         "lentTo": "With {name}",
         "borrowedFrom": "From {name}",
-        "seriesPosition": "{position} of {total}"
+        "seriesPosition": "{position} of {total}",
+        "inQueue": "In queue"
       },
       "resultsTitle": "Book list",
       "addBook": "Add book",

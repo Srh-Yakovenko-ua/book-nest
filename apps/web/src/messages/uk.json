@@ -357,7 +357,8 @@
       "card": {
         "lentTo": "У {name}",
         "borrowedFrom": "Від {name}",
-        "seriesPosition": "{position} з {total}"
+        "seriesPosition": "{position} з {total}",
+        "inQueue": "У черзі"
       },
       "resultsTitle": "Список книг",
       "addBook": "Додати книгу",
