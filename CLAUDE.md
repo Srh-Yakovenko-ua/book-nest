@@ -1,30 +1,25 @@
-# monorepo-fullstack
+# book-nest
 
-A teaching fullstack monorepo. The user is a working frontend developer learning backend by building this project end-to-end.
+Self-hosted book-library product: personal catalog, reading tracking, series, loans, deliveries, favorites, custom lists, and a what's-new feed. Fullstack TypeScript monorepo, built as a modular monolith so service extraction stays mechanical when a real boundary demands it.
 
-> This file is loaded at the start of every Claude Code session. **Read it carefully — it overrides default behavior and you must follow it exactly.**
-
----
-
-## 1. Who you're working with
-
-- **Role**: senior frontend engineer (React, TypeScript, modern tooling). Strong on UI. **Learning NestJS, Prisma, PostgreSQL, HTTP fundamentals, and relational schema design through this repo.**
-- **Goal**: master backend well enough to design, build, ship, and debug services solo.
-- **Language**: respond in **Russian**. Code, file paths, command output, and tool input stay in English.
-- **Communication style**:
-  - Terse by default — 3–5 sentences for status reports, no narration of what you're about to do, no trailing summaries of what you just did
-  - For BE concepts: **explain the why deeply**, not just the what
-  - Use FE analogies when teaching BE: NestJS middleware/interceptor ≈ Redux middleware chain, DTO ≈ component props interface, ORM ≈ TanStack Query cache layer, Prisma schema ≈ a Zod schema for your database, NestJS `@Injectable()` ≈ React context provider, NestJS guard ≈ a route loader's `redirect()`, etc.
-- **What annoys this user**: comments in code, unverified "should work" claims, narration, chatter, agents asking permission, custom wrapper libraries over standard tools, preemptive optimization, hardcoded values that should be env vars.
+> Loaded at the start of every Claude Code session. It overrides default behavior — follow it exactly.
 
 ---
 
-## 2. Stack
+## 1. Stack
 
-- **Workspace**: pnpm workspaces (Node 24, pnpm 10), Turborepo for caching, shared TS config in `tsconfig.base.json`
-- **Frontend** (`apps/web`): **Next.js 16 (App Router, RSC/SSR)** + React 19 + TS strict, **next-intl** locale-routing (`/[locale]/`, ru/en/uk) for multilingual SEO, TanStack Query v5 (SSR-safe), Zustand, RHF + Zod, shadcn/ui, Tailwind v4 (PostCSS), next-themes, Vitest + RTL + happy-dom + user-event, web-vitals, react-scan. File-based routing under `src/app/`; locale middleware in `src/proxy.ts`. (Migrated off Vite + React Router for SSR/SEO.)
-- **Backend** (`apps/api`): **NestJS 11 + Prisma 7 (engineless, `@prisma/adapter-pg` driver adapter) + PostgreSQL** + TS strict (ESM). Feature-sliced layered modules (`api / application / domain / infrastructure`), nestjs-zod + Zod validation pipes, @nestjs/swagger, pino logger (pretty dev / JSON prod), helmet, compression, @nestjs/throttler, jose (JWT), bcryptjs, OpenTelemetry + prom-client, graceful shutdown, request-id correlation, global `HttpErrorFilter`, Zod-validated env. Hot-reload via `@swc-node/register --watch` (**not** `tsx` — it strips the decorator metadata Nest DI needs). Schema in `prisma/schema.prisma`, client generated to `src/generated/prisma`, schema changes via `prisma migrate`.
-- **Shared** (`packages/shared`): DTOs and API contracts imported as `@app/shared`. **Single source of truth for FE/BE type alignment.**
+- **Workspace**: pnpm workspaces (Node 24, pnpm 10) + Turborepo, shared TS config in `tsconfig.base.json`.
+- **`apps/web`**: Next.js 16 (App Router, RSC/SSR) + React 19 + TS strict. next-intl locale routing (`/[locale]/`, `uk` default + `en`). TanStack Query v5 for client data (via Orval-generated hooks), Zustand for client UI state, RHF + Zod, shadcn/ui, Tailwind v4, next-themes. Vitest + RTL + happy-dom. Locale middleware in `src/proxy.ts`.
+- **`apps/api`**: NestJS 11 + Prisma 7 (engineless, `@prisma/adapter-pg`) + PostgreSQL, TS strict (ESM). Feature-sliced layered modules (`api / application / domain / infrastructure`). nestjs-zod validation pipes, `@nestjs/swagger`, pino (JSON prod / pretty dev), helmet, compression, `@nestjs/throttler`, jose (JWT), bcryptjs, OpenTelemetry + prom-client, graceful shutdown, request-id correlation, global `HttpErrorFilter`, Zod-validated env. Hot reload via `@swc-node/register --watch` (**not** `tsx` — it strips the decorator metadata Nest DI needs). Schema in `prisma/schema.prisma`, client generated to `src/generated/prisma`.
+- **`packages/shared`**: Zod DTOs + API contracts, imported as `@app/shared`. Single source of truth for FE/BE types.
+
+---
+
+## 2. Frontend ↔ backend contract
+
+- BE serves REST under `/api/*`. FE reaches it through Next.js `rewrites()` (`apps/web/next.config.ts`, proxy to `API_BASE_URL`, default `localhost:4000`).
+- **Types are generated, not hand-written.** BE controllers wrap `@app/shared` Zod schemas with `createZodDto` → `@nestjs/swagger` emits OpenAPI (`pnpm --filter @app/api generate:openapi` → `openapi.json`) → Orval generates a typed TanStack-Query client + Zod into `apps/web/src/shared/api/generated/**` (`pnpm gen:api`). Consume the generated hooks; never hand-roll `fetch`/Zod against `@app/shared`.
+- **Data fetching is client-side** (TanStack Query inside `"use client"` feature components). SSR/RSC renders only the shell, per-locale routing, and `generateMetadata` (SEO) — no server-side data prefetch/hydration. Auth is a client-held in-memory access token + client route guards; the refresh token is an httpOnly cookie.
 
 ---
 
@@ -32,231 +27,185 @@ A teaching fullstack monorepo. The user is a working frontend developer learning
 
 ```
 apps/
-  web/                React + Vite
+  web/                 Next.js 16 (App Router)
+    next.config.ts     rewrites() proxy /api/* → API_BASE_URL
     src/
-      routes/         React Router routes
-      features/       feature-sliced (api/ components/ hooks/ index.ts)
-      components/     shared components (ui/ for shadcn primitives)
-      lib/            env, http-client, query-client, logger, format, vitals
-      hooks/          shared hooks
-      main.tsx, App.tsx, index.css
-  api/                NestJS + Prisma (Postgres)
-    prisma/
-      schema.prisma   datasource + generator + model blocks — schema source of truth
-      migrations/     reviewable SQL migrations (prisma migrate)
-    prisma.config.ts  Prisma CLI config (loads .env, schema + migrations paths)
+      app/[locale]/    routed pages — (app)/(auth)/(legal) route groups, layouts, generateMetadata
+      features/<name>/  api/ (generated-client wrappers + hooks) · components/ · hooks/ · model/ · index.ts barrel
+      components/      shared UI; ui/ = vendored shadcn primitives (do not edit)
+      shared/api/generated/  Orval output (client + zod + models) — generated, never hand-edit
+      i18n/            next-intl routing + navigation
+      messages/        uk.json, en.json
+      lib/             env (Zod), http, formatting, auth bridge
+      styles/globals.css  Tailwind v4 + semantic tokens (OKLCH)
+      proxy.ts         next-intl locale middleware
+  api/                 NestJS 11 + Prisma 7 (Postgres)
+    prisma/schema.prisma   models — schema source of truth
+    prisma/migrations/     reviewed SQL migrations
+    prisma.config.ts       Prisma CLI config (loads .env)
     src/
-      index.ts        entry: bootstrap Nest → listen → graceful shutdown
-      bootstrap.ts    bootstrapNestApp() — helmet, cors, cookies, swagger, global filter
-      app.module.ts   root @Module — feature modules + DatabaseModule + middleware
-      config/env.ts   Zod-validated env loader, exits on missing required vars
-      core/           cross-cutting infra: database/, pipes/, exceptions/, middleware/, logger, paginator, tracing
-        database/     PrismaService (extends PrismaClient) + @Global DatabaseModule
-      modules/        one folder per feature (health, observability, …)
-        <feature>/    api/ (controllers + DTOs) · application/ (services) · domain/ (types) · infrastructure/ (Prisma repositories)
-      generated/prisma  generated Prisma client (gitignored, via prisma generate)
-      test/           createTestApp, truncate, global-setup
+      index.ts         bootstrap → listen → graceful shutdown
+      bootstrap.ts     helmet, cors, cookies, swagger, global filter
+      app.module.ts    root module — feature modules + DatabaseModule + middleware
+      config/env.ts    Zod-validated env
+      core/            database/ (PrismaService, @Global module, TransactionRunner) · pipes/ · exceptions/ · middleware/ · logger · tracing
+      modules/<feature>/  api/ · application/ · domain/ · infrastructure/
+      generated/prisma  generated client (gitignored)
+      test/            createTestApp, truncate, global-setup
 packages/
-  shared/             FE/BE shared types (DTOs, API contracts)
+  shared/              @app/shared — Zod DTOs + API contracts (barrel src/index.ts)
 ```
 
-The FE consumes the API via the relative path `/api/*` — Next.js `rewrites()` proxy to the API server (see `apps/web/next.config.ts`, target `API_BASE_URL`, default `localhost:4000`). Server-side (RSC) fetches hit `API_BASE_URL` directly with cookie forwarding.
+---
+
+## 4. Commands (from repo root)
+
+| Command                             | Purpose                                             |
+| ----------------------------------- | --------------------------------------------------- |
+| `pnpm install`                      | Install all dependencies                            |
+| `pnpm dev`                          | web (`:3000`) and api (`:4000`) in parallel         |
+| `pnpm dev:web` / `pnpm dev:api`     | one side only                                       |
+| `pnpm gen:api`                      | regenerate the typed API client from the BE OpenAPI |
+| `pnpm typecheck`                    | TS strict across all packages                       |
+| `pnpm build`                        | Build all packages                                  |
+| `pnpm lint` / `pnpm lint:fix`       | ESLint (root config)                                |
+| `pnpm format` / `pnpm format:check` | Prettier write / check                              |
+| `pnpm test`                         | Vitest where tests exist                            |
+| `pnpm knip`                         | dead code, unused exports, unused deps              |
+
+Migrations: `pnpm --filter @app/api db:migrate --name <snake_case>` (create-only) then `pnpm --filter @app/api db:migrate:deploy` (apply) — see §6.
 
 ---
 
-## 4. Commands (run from repo root)
+## 5. Backend architecture (non-negotiable)
 
-| Command             | Purpose                                       |
-| ------------------- | --------------------------------------------- |
-| `pnpm install`      | Install all dependencies                      |
-| `pnpm dev`          | FE (`:5173`) and BE (`:4000`) in parallel     |
-| `pnpm dev:web`      | FE only                                       |
-| `pnpm dev:api`      | BE only                                       |
-| `pnpm typecheck`    | TS check across all packages                  |
-| `pnpm build`        | Build all packages                            |
-| `pnpm lint`         | ESLint root config, all packages              |
-| `pnpm lint:fix`     | ESLint with auto-fix                          |
-| `pnpm format`       | Prettier — write                              |
-| `pnpm format:check` | Prettier — check only (CI mode)               |
-| `pnpm test`         | Vitest across packages that have tests        |
-| `pnpm knip`         | Detect dead code, unused exports, unused deps |
+Business logic stays independent of HTTP **and** of the data layer, so each layer is testable in isolation and service extraction stays mechanical. Canonical reference: [`.claude/agents/backend-engineer.md`](./.claude/agents/backend-engineer.md), [`docs/code-principles.md`](./docs/code-principles.md).
 
----
+**Layers (feature-sliced module):**
 
-## 5. Backend architecture — non-negotiable
-
-Clean layer separation is non-negotiable: business logic stays independent of HTTP **and** of the data layer. This keeps each layer testable in isolation and keeps the eventual service extraction (microservices) mechanical. The canonical backend reference is [`.claude/agents/backend-engineer.md`](./.claude/agents/backend-engineer.md) and [`docs/code-principles.md`](./docs/code-principles.md).
-
-### The layers (feature-sliced NestJS module)
-
-1. **Controllers** (`modules/<feature>/api/`) — `@Controller("api/<feature>")`. Validate `@Body`/`@Query` via `ZodBodyPipe`/`ZodQueryPipe`, call the service, return the value (Nest serializes). **No Prisma, no business logic.** Swagger via `@Api*` + `createZodDto`.
-2. **Services** (`modules/<feature>/application/`) — `@Injectable()` pure business logic. Typed input → typed output, throw `HttpError` subclasses from `core/exceptions/`, **map the Prisma model → ViewModel DTO**, wrap multi-write flows in `TransactionRunner.run(...)` from `core/database` — **services never inject `PrismaService`**. **Know nothing about `req`/`res`.**
-3. **Repositories** (`modules/<feature>/infrastructure/`) — `@Injectable()`, inject `PrismaService`, call `this.prisma.<model>.*`. **The only layer that touches Prisma** (besides `core/database`). Methods take an optional trailing `client: Prisma.TransactionClient = this.prisma` so a service-owned transaction can be threaded through. Return model rows / primitives — never a ViewModel.
-4. **Models** (`prisma/schema.prisma`) — `model` blocks. snake_case columns via `@map`/`@@map`, explicit relations, UUID PKs. Schema changes go through reviewed `prisma migrate` SQL — **never `db push`/auto-sync against shared data**.
-5. **DTOs** (`packages/shared/src/index.ts`) — request/response Zod schemas + types. **Both FE and BE import from here.** `createZodDto` wraps them for Swagger.
-6. **Env vars** — read once in `config/env.ts` via Zod, exported as a typed const. **Never `process.env.X` anywhere else** (except `prisma.config.ts`).
-7. **Errors** thrown in services must extend `HttpError` (`core/exceptions/`). The global `HttpErrorFilter` maps them to JSON with `requestId`. ZodErrors auto-map to 400/422.
-8. **Logging** — `createLogger("scope")` from `core/logger.ts`. **Never `console.log` in production code.** Pino is structured (JSON in prod, pretty in dev); request-id is propagated by `RequestLoggerMiddleware`.
-9. **Dependencies — prefer pure-JS over native addons.** Native modules (bcrypt, argon2, sharp, canvas, anything via `node-gyp`) break on bare CI images and serverless cold-start. Pick the pure-JS equivalent: `bcryptjs` not `bcrypt`, `jose` not `jsonwebtoken`+native. (Prisma 7 is engineless — no Rust binary — which is why we're on it.) Only reach for a native addon under a measured need.
-
-### Adding a new endpoint (the canonical workflow)
-
-1. Add request/response Zod schema + types to `packages/shared/src/index.ts`
-2. Add a `model` to `apps/api/prisma/schema.prisma` (if a new entity)
-3. **Two-step migration flow (never one-shot).** `pnpm --filter @app/api db:migrate --name <snake_case_name>` creates a **review-only** migration (`migrate dev --create-only`, no apply) — a name is required (the script fails fast instead of hanging on the interactive name prompt; **never run bare `prisma migrate dev`** — it prompts for a name and blocks forever in a non-TTY agent shell). Review the generated `migration.sql` (loop in `migration-reviewer`; watch the rename trap), then apply with `pnpm --filter @app/api db:migrate:deploy` (non-interactive, advisory-locked). **Raw-SQL-index trap:** four indexes live in raw SQL inside their migrations because Prisma can't express them in a `model`: the GIN trigram indexes `authors_search_text_trgm_idx` and `publishers_search_text_trgm_idx` (`gin_trgm_ops`), the partial unique index `book_deliveries_active_book_idx` (one active delivery per book, `WHERE status IN ('ordered','in_transit','ready_for_pickup')`), and the partial unique index `book_loans_active_book_idx` (one active loan per book, `WHERE status = 'active'`). They exist in the DB but not in `schema.prisma`, so every generated migration will emit a spurious `DROP INDEX` for them — hand-strip those lines **before** `db:migrate:deploy`, or cross-locale search silently degrades to a seq scan and the one-active-delivery/one-active-loan invariants are silently dropped. (This is exactly why the flow is create-then-apply, not one-shot.)
-4. Repository in `modules/<feature>/infrastructure/` — inject `PrismaService`, parameterized queries only
-5. Service in `modules/<feature>/application/` — business logic, throws `HttpError` subclasses, maps model → ViewModel, `TransactionRunner.run(...)` for multi-write
-6. Input DTO classes in `api/input-dto/` via `createZodDto(Schema)`
-7. Controller in `api/` — `@Get/@Post`, Zod pipes, `@UseGuards` if auth, full `@Api*` Swagger
-8. Module (`<feature>.module.ts`) + wire it in `app.module.ts`
-9. Tests via `backend-test-engineer` (service unit + controller integration via `createTestApp`)
-10. FE consumes via `fetch("/api/<feature>")` with the type from `@app/shared`
+1. **Controllers** (`modules/<feature>/api/`) — `@Controller("api/<feature>")`. Validate `@Body`/`@Query` via Zod pipes, call the service, return the value. No Prisma, no business logic. Swagger via `@Api*` + `createZodDto`.
+2. **Services** (`application/`) — `@Injectable()` business logic. Typed in → typed out, throw `HttpError` subclasses (`core/exceptions/`), map Prisma model → ViewModel DTO, wrap multi-write flows in `TransactionRunner.run(...)`. Never inject `PrismaService`; know nothing about `req`/`res`.
+3. **Repositories** (`infrastructure/`) — `@Injectable()`, inject `PrismaService`, the **only** layer that touches Prisma (besides `core/database`). Take an optional trailing `client: Prisma.TransactionClient = this.prisma` so a service-owned transaction threads through. Return model rows / primitives, never a ViewModel.
+4. **Models** (`prisma/schema.prisma`) — snake_case columns via `@map`/`@@map`, explicit relations, UUID PKs. Changes go through reviewed `prisma migrate` SQL — never `db push` against shared data.
+5. **DTOs** (`packages/shared`) — request/response Zod schemas + types, imported by both apps. `createZodDto` wraps them for Swagger.
+6. **Env** — read once in `config/env.ts` via Zod, exported typed. Never `process.env.X` elsewhere (except `prisma.config.ts`).
+7. **Errors** thrown in services extend `HttpError`; the global `HttpErrorFilter` maps them to JSON with `requestId`. ZodErrors auto-map to 400/422.
+8. **Logging** — `createLogger("scope")` from `core/logger.ts`, never `console.log`. Request-id propagated by `RequestLoggerMiddleware`.
+9. **Prefer pure-JS deps over native addons** (native modules break bare CI / serverless cold-start): `bcryptjs` not `bcrypt`, `jose` not `jsonwebtoken`. Prisma 7 is engineless for the same reason. Native addon only under a measured need.
 
 ---
 
-## 6. Frontend conventions
+## 6. Adding an endpoint
 
-- **Feature-sliced layout** in `src/features/<name>/` with subfolders: `api/` (TanStack Query hooks + http-client + Zod parsing), `components/`, `hooks/`, optional `routes.tsx`, barrel `index.ts` for the public API
-- **Shadcn primitives** live in `src/components/ui/` — vendored, do not edit unless polishing the primitive itself. `Button` and `DropdownMenuItem` already have `cursor-pointer` baked in.
-- **Forms**: react-hook-form + zod + shadcn primitives **directly**. Do not build wrapper `<Form>` / `<FormField>` abstractions.
-- **Data fetching**: TanStack Query. Mock at the `fetch` boundary in tests, never mock RQ hooks.
-- **Routing**: React Router v7 (`createBrowserRouter`).
-- **State**: Zustand for client-only UI state. Server state lives in TanStack Query.
-- **Styling**: Tailwind v4 with semantic CSS variables in `src/index.css`. Use semantic tokens (`bg-background`, `text-foreground`, `text-primary`, `text-muted-foreground`), **not** raw colors (`bg-blue-500`).
-- **Theme**: `next-themes` with light/dark/system, palette in OKLCH for proper interpolation.
-- **Clickable elements** must have `cursor-pointer`. Already in `Button` and `DropdownMenuItem`; apply explicitly to custom click handlers.
-- **Env**: read once in `src/lib/env.ts` via Zod, exported as a typed const. Never `import.meta.env.X` directly elsewhere.
+1. Zod request/response schema + types in `packages/shared`.
+2. `model` in `apps/api/prisma/schema.prisma` (if a new entity).
+3. **Migrations are the source of truth — two-step, never one-shot.** (a) `pnpm --filter @app/api db:migrate --name <snake_case>` creates a review-only migration (`migrate dev --create-only`; `--name` is required — bare `prisma migrate dev` blocks forever on the interactive name prompt in a non-TTY shell). (b) Review the `migration.sql` (delegate to `migration-reviewer`; watch the rename trap; strip the DROP-INDEX lines per the trap below), then `pnpm --filter @app/api db:migrate:deploy` (non-interactive, advisory-locked).
+   - **Raw-SQL-index trap.** Four indexes live in hand-written SQL inside their migrations because Prisma can't express them in a `model`: trigram GIN `authors_search_text_trgm_idx` + `publishers_search_text_trgm_idx` (`gin_trgm_ops`, cross-locale search), and partial-unique `book_deliveries_active_book_idx` + `book_loans_active_book_idx` (one active delivery / one active loan per book). They exist in the DB but not in `schema.prisma`, so every generated migration emits a spurious `DROP INDEX` for them. Hand-strip those `DROP INDEX` lines **before** `db:migrate:deploy`, or search degrades to a seq scan and the one-active invariants are silently lost.
+4. Repository — inject `PrismaService`, parameterized queries only.
+5. Service — business logic, `HttpError` subclasses, map model → ViewModel, `TransactionRunner.run(...)` for multi-write.
+6. Input DTO classes in `api/input-dto/` via `createZodDto(Schema)`.
+7. Controller — `@Get/@Post`, Zod pipes, `@UseGuards` if auth, full `@Api*` Swagger.
+8. Module (`<feature>.module.ts`) + wire into `app.module.ts`.
+9. Tests (service unit + controller integration via `createTestApp`).
+10. `pnpm gen:api`, then FE consumes the generated hooks.
 
 ---
 
-## 7. Non-negotiable rules
+## 7. Frontend conventions
 
-### Code style
+- **Feature-sliced** `src/features/<name>/`: `api/` (wrappers around the generated client + hooks), `components/`, `hooks/`, `model/`, barrel `index.ts`.
+- **Routing** is the App Router — server components under `src/app/[locale]/`, `generateMetadata` for SEO. Feature components that fetch data are `"use client"`.
+- **Data**: TanStack Query via the Orval-generated client. Mock at the `fetch` boundary in tests, never mock RQ hooks.
+- **Forms**: react-hook-form + zod + shadcn primitives **directly** — no wrapper `<Form>`/`<FormField>` abstractions.
+- **State**: Zustand for client-only UI state; server state lives in TanStack Query.
+- **Styling**: Tailwind v4, semantic tokens (`bg-background`, `text-foreground`, `text-primary`, `text-muted-foreground`) in `src/styles/globals.css` — not raw colors. Theme via `next-themes` (light/dark/system, OKLCH palette). Mobile-first responsive.
+- **Shadcn primitives** in `src/components/ui/` are vendored — do not edit. `Button` and `DropdownMenuItem` already carry `cursor-pointer`; add it to custom click handlers.
+- **Env**: read once in `src/lib/env.ts` via Zod, exported typed. Never read env vars directly elsewhere.
 
-1. **No comments.** Write self-documenting code. No file headers, no inline narration, no JSDoc on internal functions. If a comment seems needed, **rename the symbol until the code explains itself**. Comments are tech debt.
-2. **No `any`, no `!` non-null assertion, minimal `as`.** Use Zod at boundaries and trust types inside. Prefer the shared type utilities `Nullable<T>` and `ValueOf<T>` (from `@app/shared`) over hand-written `T | null` / `T[keyof T]` — one source of truth for FE and BE. Full TS canon: [`docs/typescript-principles.md`](./docs/typescript-principles.md).
-3. **Zod at every boundary.** HTTP request bodies, env vars, localStorage reads, URL params, third-party API responses — parse with Zod first, then trust the type. Never trust unparsed input.
-4. **Never hardcode secrets.** API keys, tokens, passwords, PII live in env vars (`.env`, validated by `config/env.ts` or `lib/env.ts`). Never in source.
-5. **No wrapper libraries over standard tools.** Use RHF + Zod + shadcn directly. Do not invent custom `<Form>`, `<DataTable>`, `<Modal>` abstractions over libraries that already work at the right level. Same rule applies to any well-established library.
-6. **Measure before optimizing.** No `useMemo`, `useCallback`, `React.memo`, virtualization, lazy-loading, or perf tricks **without measured evidence** from react-scan / Profiler / web vitals showing a real problem on the critical path.
-7. **DRY the knowledge, not the resemblance — and never abstract prematurely.** Eliminate real duplication: a business rule, a type, or a contract has **one source of truth** (don't copy the same logic into N places). But _incidental_ similarity — two things that merely look alike yet are different concerns and will evolve apart (e.g. FE `lib/env.ts` vs BE `config/env.ts`) — is **not** duplication; leave it. Three similar lines beat a premature shared helper; lift logic into a reusable module/class only on the **third real use** or genuine shared knowledge, not the second. Optimize for **changeability**: easy-to-delete > easy-to-extend, coupling down + cohesion up, changes stay localized. The wrong abstraction costs more than duplication. Full reference: [`docs/code-principles.md`](./docs/code-principles.md) — §0.0 (the twelve levers against complexity), §7.2 (when to extract).
-8. **Layered architecture is sacred.** Never mix layers in the BE (no Prisma in controllers, no Prisma outside the repository layer, no `req`/`res` in services, repositories never return a ViewModel). Never mix concerns in the FE (no fetch in components — go through the feature's `api/` hooks).
+---
+
+## 8. Non-negotiable rules
+
+**Code style**
+
+1. **No comments.** Self-documenting code; rename symbols until the code explains itself.
+2. **No `any`, no `!`, minimal `as`.** Parse with Zod at boundaries, trust types inside. Prefer `Nullable<T>` / `ValueOf<T>` from `@app/shared` over hand-written `T | null` / `T[keyof T]`. Full canon: [`docs/typescript-principles.md`](./docs/typescript-principles.md).
+3. **Zod at every boundary** — request bodies, env, localStorage, URL params, third-party responses. Never trust unparsed input.
+4. **Never hardcode secrets.** Keys/tokens/PII live in env vars, validated by `config/env.ts` / `lib/env.ts`.
+5. **No wrapper libraries over standard tools.** Use RHF + Zod + shadcn (and any established library) directly.
+6. **Measure before optimizing.** No `useMemo`/`useCallback`/`React.memo`/virtualization/lazy-loading without measured evidence (react-scan / Profiler / web vitals) of a real problem on the critical path.
+7. **DRY the knowledge, not the resemblance.** One source of truth for a business rule / type / contract, but leave incidental similarity alone (e.g. FE `lib/env.ts` vs BE `config/env.ts`). Extract on the third real use, not the second. Optimize for changeability: easy-to-delete > easy-to-extend. Full reference: [`docs/code-principles.md`](./docs/code-principles.md).
+8. **Layered architecture is sacred.** BE: no Prisma in controllers, no Prisma outside repositories, no `req`/`res` in services, repositories never return a ViewModel. FE: no fetch in components — go through the feature's `api/`.
 9. **Early return over nested if.** Discriminated unions over multiple optional booleans. Make invalid states unrepresentable.
-10. **One concern per file**, one default export per file (when applicable).
+10. **One concern per file**, one default export where applicable.
 
-### Working style
+**Working style**
 
-11. **Verify before claiming done.** No "should work". Run the gates, curl the endpoint, take a screenshot, prove it. Every claim must be backed by an observation, not a prediction.
-12. **Be honest about uncertainty.** Never guess library APIs. When unsure, use **Context7 MCP** / Read / Bash to verify, or admit "I don't know" and offer to investigate. Stale training data is the leading cause of bugs in agent-written code.
-13. **Push back on bad ideas.** If a user request conflicts with these rules or with the project architecture, **disagree once respectfully with reasoning**. If overruled, comply.
-14. **Context7 first for libraries.** Before writing or modifying code that uses Next.js, TanStack Query, Tailwind, shadcn, NestJS, Prisma, Zod, RHF, or any external library — query Context7 for current docs. Your training data may predate breaking changes.
-15. **Migrations are the source of truth.** Schema changes go through `prisma migrate` + reviewed SQL (loop in `migration-reviewer`) — never `prisma db push` or auto-sync against shared data. Don't scaffold roadmap features (OAuth, WebSockets, RabbitMQ, microservices, Docker, payments) preemptively — build each when a real feature needs it, keeping module boundaries clean so service extraction stays mechanical.
-16. **Investigate before destructive actions.** Before `rm`, `git reset --hard`, `git push --force`, dropping databases, or anything irreversible — confirm with the user. Confirmation is cheap, lost work is not.
+11. **Verify before claiming done.** No "should work" — run the gates, curl the endpoint, screenshot the UI. Every claim backed by an observation.
+12. **Be honest about uncertainty.** Never guess library APIs — use Context7 / Read / Bash, or say "I don't know".
+13. **Push back on bad ideas** once, with reasoning; comply if overruled.
+14. **Context7 first for libraries.** Before writing code against Next.js, TanStack Query, Tailwind, shadcn, NestJS, Prisma, Zod, RHF, or any external library — fetch current docs; training data may predate breaking changes.
+15. **No preemptive scaffolding.** Build roadmap features (OAuth, WebSockets, RabbitMQ, microservices, Docker, payments) when a real feature needs them; keep module boundaries clean instead.
+16. **Investigate before destructive actions.** Before `rm`, `git reset --hard`, `git push --force`, dropping databases, or anything irreversible — confirm with the user.
 
 ---
 
-## 8. Quality gates (must all pass before "done")
+## 9. Quality gates (all pass before "done")
 
 ```bash
-pnpm typecheck     # TS strict across all packages
-pnpm lint          # ESLint root config
+pnpm typecheck     # TS strict, all packages
+pnpm lint          # ESLint
 pnpm format:check  # Prettier
-pnpm test          # Vitest, where tests exist
-pnpm knip          # dead code, unused exports, unused deps
+pnpm test          # Vitest where tests exist
+pnpm knip          # dead code / unused exports / unused deps
 ```
 
-For BE work, additionally:
+BE additionally: `pnpm dev:api` starts clean; `curl -i http://localhost:4000/api/health` → 200 with `x-request-id`; the affected endpoint responds as expected (capture the curl).
+FE additionally: `pnpm dev:web` starts clean, no console errors; for UI changes, verify visually (screenshot / Storybook).
 
-- `pnpm dev:api` starts cleanly
-- `curl -i http://localhost:4000/api/health` → 200, `x-request-id` header present, JSON body
-- The affected endpoint responds as expected (capture the curl output)
-
-For FE work, additionally:
-
-- `pnpm dev:web` starts cleanly, no console errors on the affected page
-- For UI changes, take a Playwright screenshot and verify visually
-
-**Never report a task as done if any gate is failing.** If a gate is failing for an unrelated reason (e.g., a pre-existing flaky test), say so explicitly.
+Never report done with a failing gate. If a gate fails for an unrelated reason (e.g. a pre-existing flake), say so explicitly.
 
 ---
 
-## 9. Delegation policy (mandatory, automatic, silent)
+## 10. Delegation (mandatory, automatic, silent)
 
-The user has explicitly opted into automatic delegation. **You must route work to the right specialized subagent silently, without asking permission.** Do not narrate "I'll delegate this to X" — just do it. The user does not want to think about which agent to use.
+Route work to the right subagent without narrating or asking. Agents live in `.claude/agents/` — full registry in [`.claude/agents/README.md`](./.claude/agents/README.md). A subagent does **not** see the conversation: pass a self-contained brief (what, where, constraints, what to return). Summarize its result briefly; don't paste the full report.
 
-Project subagents live in `.claude/agents/`. Full registry and roles in [`.claude/agents/README.md`](./.claude/agents/README.md).
+| Task                                                                 | Agent                                              |
+| -------------------------------------------------------------------- | -------------------------------------------------- |
+| Write/modify React in `apps/web/src/**`                              | `frontend-engineer`                                |
+| Visual polish, motion, typography, color, responsive rhythm          | `design-engineer`                                  |
+| Write/modify NestJS/Prisma in `apps/api/src/**`                      | `backend-engineer`                                 |
+| Tests in `apps/web/src/**` / `apps/api/src/**`                       | `frontend-test-engineer` / `backend-test-engineer` |
+| Refactor / dead code / cleanup                                       | `refactor-specialist`                              |
+| End-to-end user-visible feature needing a "what's new" entry         | `changelog-writer`                                 |
+| Browser-side bug (UI, console, layout, hydration, interaction)       | `frontend-bug-hunter`                              |
+| Server-side bug (500, failing endpoint, Prisma/Postgres error, hang) | `backend-bug-hunter`                               |
+| Prisma migration / schema change                                     | `migration-reviewer`                               |
+| "ready to commit" / "сделай ревью" / "проверь перед commit"          | `code-reviewer` (+ auditors below)                 |
+| Anything touching auth / API / forms / env / deps / secrets          | `security-reviewer`                                |
+| FE slow / bundle bloat / re-render / web-vitals regression           | `frontend-performance-auditor`                     |
+| Accessibility, keyboard nav, ARIA, contrast, focus                   | `accessibility-auditor`                            |
+| SEO / SSR markup, metadata, hreflang, sitemap/robots, locale routing | `seo-auditor`                                      |
 
-### When to delegate
+**Parallel review** — on "ready to commit" / "полный ревью", launch the relevant reviewers in one turn (multiple Agent calls): always `code-reviewer`; plus `frontend-performance-auditor` / `accessibility-auditor` if the diff touches UI, `seo-auditor` if it touches routing/metadata/next-intl, `security-reviewer` if it touches auth/API/forms/env/deps.
 
-| Task                                                                                     | Agent                                              |
-| ---------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Write or modify React in `apps/web/src/**`                                               | `frontend-engineer`                                |
-| Visual polish, motion, typography, color, responsive rhythm                              | `design-engineer`                                  |
-| Write or modify NestJS/Prisma in `apps/api/src/**`                                       | `backend-engineer`                                 |
-| Write or fix tests in `apps/web/src/**`                                                  | `frontend-test-engineer`                           |
-| Write or fix tests in `apps/api/src/**`                                                  | `backend-test-engineer`                            |
-| Refactor / dead code / cleanup                                                           | `refactor-specialist`                              |
-| A user-visible feature shipped end-to-end (BE+FE) and needs a "what's new" entry         | `changelog-writer`                                 |
-| Browser-side bug (UI, console, layout, hydration, broken interaction)                    | `frontend-bug-hunter`                              |
-| Server-side bug (500, failing endpoint, Postgres/Prisma error, server crash, async hang) | `backend-bug-hunter`                               |
-| User says "ready to commit" / "сделай ревью" / "проверь перед commit"                    | `code-reviewer` (+ parallel auditors per below)    |
-| Anything touching auth / API endpoints / forms / env / deps / secrets                    | `security-reviewer` (in addition to code-reviewer) |
-| FE feels slow / bundle bloat / re-render concern / web vitals regression                 | `frontend-performance-auditor`                     |
-| Accessibility, keyboard nav, ARIA, contrast, focus management                            | `accessibility-auditor`                            |
-| SEO / SSR markup, metadata, hreflang, sitemap/robots, locale routing                     | `seo-auditor`                                      |
-
-> **No `backend-performance-auditor` exists yet** — by the measure-before-optimizing rule, we'll create it when there's a real measured BE perf problem to investigate (slow endpoints, N+1, memory growth in Node).
-
-### When NOT to delegate (do it yourself)
-
-- Trivial one-line answer
-- User explicitly says "сделай сам" / "не делегируй" / "do it yourself"
-- Mixed task spanning half the repo where holding context yourself is more efficient
-- Reading or explaining existing code without modification
-- Doc edits in `docs/`
-- Root-level config tweaks (`turbo.json`, `eslint.config.mjs`, `vite.config.ts`, `tsconfig.base.json`, `knip.json`)
-- Rewriting `CLAUDE.md` itself
-
-### Parallel review agents
-
-When the user says "ready to commit" / "сделай полный ревью" / "проверь перед commit", launch **multiple review agents in parallel** in a single message (multiple Agent tool calls in one assistant turn):
-
-- `code-reviewer` — always
-- `frontend-performance-auditor` — if diff touches `apps/web/src/**`
-- `accessibility-auditor` — if diff touches UI
-- `seo-auditor` — if diff touches routing, metadata, `app/[locale]/**`, sitemap/robots, or next-intl wiring
-- `security-reviewer` — if diff touches auth / API / forms / env / deps
-
-They have non-overlapping concerns, run in parallel, and you get multiple independent reports in one round-trip.
-
-### How to delegate
-
-Use the `Agent` tool with `subagent_type` matching the agent file name (without `.md`):
-
-- `subagent_type: "frontend-engineer"`
-- `subagent_type: "backend-engineer"`
-- `subagent_type: "backend-bug-hunter"`
-- `subagent_type: "backend-test-engineer"`
-- etc.
-
-Pass a **self-contained brief** in `prompt`. The agent does **not** see this conversation. Include:
-
-1. **What** to do (concrete, specific, no ambiguity)
-2. **Where** to look — file paths, search hints
-3. **Constraints** — what not to break, style to follow, specific rules from this CLAUDE.md the agent must respect
-4. **What to return** — summary, file list, verification result
-
-### After delegation
-
-- Summarize the agent's result **briefly** to the user (3–5 sentences). Do not paste the full report.
-- If the agent found problems, decide whether to fix immediately (delegate to another agent) or surface to the user for direction.
-- If the agent completed cleanly, give a 1–2 sentence summary plus the next step.
+**Do it yourself** (no delegation): trivial answers; reading or explaining existing code; edits in `docs/`; root config (`turbo.json`, `eslint.config.mjs`, `next.config.ts`, `tsconfig.base.json`, `knip.json`); rewriting this file; or when the user says "сделай сам".
 
 ---
 
-## 10. Operating notes
+## 11. Operating notes
 
-- **Postgres may not be running locally** with the `booknest` role / `booknest_test` DB. The API tolerates a missing DB at startup (health degrades to `postgres: "down"`, the app still serves). Tests and data endpoints need a local Postgres (Docker or brew) with the credentials in `apps/api/vitest.config.ts` / `.env`.
-- **Roadmap features are built when a real feature needs them — never scaffolded preemptively** (OAuth, WebSockets, transactions, Docker, RabbitMQ, microservices, payments). The backend is a modular monolith; service extraction comes later, only when a real boundary demands it. Keeping module boundaries clean is the only preparation needed.
-- **The repo is a teaching environment.** When implementing something new for the BE, always explain the **why** to the user — concept, tradeoffs, why this specific pattern, with FE analogies when possible. The point is not just to ship code; the point is for the user to internalize the model.
-- **User-facing memory** lives at `~/.claude/projects/-Users-macbookpro14-WebstormProjects-book-nest/memory/` and is loaded into your context automatically. It captures evolved feedback the user has given across sessions. Honor it.
+- **Local Postgres may be down.** The API tolerates a missing DB at startup (health shows `postgres: "down"`, app still serves). Tests and data endpoints need a local Postgres with the credentials in `apps/api/vitest.config.ts` / `.env` (`pnpm db:up` for the Docker Postgres).
+- **Modular monolith.** Service extraction comes later, only when a real boundary demands it — the only preparation is keeping module boundaries clean.
+- **Per-user memory** at `~/.claude/projects/-Users-macbookpro14-WebstormProjects-book-nest/memory/` is auto-loaded and captures evolved feedback across sessions — honor it.
+
+---
+
+## 12. Working with the AI assistant
+
+- Respond in **Russian**; code, paths, commands, and output stay in English.
+- Terse by default: short status, no narration of upcoming steps, no trailing recaps.
+- **Explain the why deeply for backend and non-obvious decisions.** The maintainer is a senior frontend engineer deepening backend/infra expertise — when a NestJS/Prisma/Postgres/HTTP/git-infra concept or a non-obvious tradeoff comes up, teach the mental model and the reasoning, with FE analogies where they help. This is depth on **concepts**, not narration of routine mechanical steps (those stay terse).
+- Delegation is automatic and silent (§10).
+- Avoid: comments in code, unverified "should work" claims, chatter, asking permission for routine work, wrapper libraries over standard tools, premature optimization, hardcoded values that belong in env.
