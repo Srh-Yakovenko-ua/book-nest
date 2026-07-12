@@ -23,14 +23,14 @@ You are a senior backend engineer working on `apps/api` — a NestJS 11 + Prisma
 The backend is a full modular monolith. What actually exists today:
 
 - 13 feature modules under `modules/`: auth, profile, books (largest — split into status sub-services + `BookRelationsResolver` / `BookViewAssembler` / `BookCoverCleanup` collaborators), series, authors, publishers, genres, tags, lists, media, mail, health, observability
-- `core/` cross-cutting infra: `database/` (DatabaseModule + PrismaService + TransactionRunner), `exceptions/` (HttpErrorFilter + error hierarchy), `middleware/` (request-id, request-logger), `pipes/` (ZodBodyPipe, ZodQueryPipe), `logger.ts`, `paginator.ts`, `tracing.ts`
+- `core/` cross-cutting infra: `database/` (DatabaseModule + PrismaService + TransactionRunner), `exceptions/` (HttpErrorFilter + error hierarchy), `middleware/` (request-id, request-logger), `pipes/` (ZodBodyPipe, ZodQueryPipe), `queue/` (QueueModule — BullMQ `forRoot`, Redis-backed), `logger.ts`, `paginator.ts`, `tracing.ts`
 - `config/env.ts` — Zod-validated env
 - Auth is complete (registration/login/refresh/reset/verification). `JwtAccessGuard` + `@CurrentUser()` yield the domain type `AuthenticatedUser` (`modules/auth/domain/authenticated-user.ts`) — the raw Prisma `UserModel` never reaches the api layer
 - Peer-consumed modules expose a public barrel `modules/<feature>/index.ts`; cross-module deep imports are a lint error (`eslint-plugin-boundaries`)
 
 `posts` below is purely an illustrative example of the pattern — verify a module's actual shape before editing it.
 
-> A RabbitMQ integration is planned for the future. Do **not** add messaging/queue scaffolding preemptively — build it only when the user explicitly asks.
+> **Queues**: BullMQ + Redis is the in-monolith background-job queue (live — see "Background jobs" below; first use is async media-thumbnail generation). RabbitMQ stays deferred to the microservices phase (durable cross-service messaging) — do **not** add it preemptively. Add new BullMQ queues only when a real feature needs async/offloaded work.
 
 # Managing complexity — how the twelve levers land in apps/api
 
@@ -185,6 +185,19 @@ modules/posts/
 - **Pagination** — use `buildPaginator(...)` from `core/paginator.ts`.
 - **Rate limiting** — `@nestjs/throttler` for auth-sensitive endpoints (login, token, password reset) once those exist.
 
+## Background jobs (BullMQ + Redis)
+
+The queue layer is live (first use: async media-thumbnail generation). Redis is part of the stack — `REDIS_URL` in `config/env.ts`; local `docker compose up -d redis`; server `redis-dev`/`redis-prod` on isolated `*-queue` networks in `deploy/docker-compose.yml`.
+
+- **Infra** — `core/queue/queue.module.ts`: `@Global()` module, `BullModule.forRoot` from `env.redisUrl` with `connection.maxRetriesPerRequest: null` (mandatory for BullMQ blocking connections) and `defaultJobOptions` (`attempts`, exponential `backoff`, `removeOnComplete: true`, bounded `removeOnFail`). Registered once in `app.module.ts`.
+- **Producer = the service.** The feature module calls `BullModule.registerQueue({ name })`; the service injects it with `@InjectQueue(name)` and `queue.add(job, payload)`. Payloads are small, JSON-serializable IDs (`{ assetId, userId }`) — NEVER a Buffer or a full row (they bloat Redis; re-read from storage/DB in the worker). Swallow enqueue errors only when the job is best-effort (media falls back to the full image); log at `warn`.
+- **Worker = transport, service = orchestration.** The `@Processor(name)` class (`extends WorkerHost`) is the queue analog of a controller: it Zod-parses `job.data` at the boundary and delegates to a service method (e.g. `MediaService.generateThumbnail(cmd)`). It does NOT own the workflow. Put the processor in the feature's `application/`.
+- **Idempotency + entity-gone.** A retried job must be safe. Re-check the row still exists inside the service method (`findOwnedById`) — it may have been deleted between enqueue and run. Use `updateMany` for the terminal write, and if it affects 0 rows clean up anything the job already wrote (e.g. an orphaned derivative) instead of throwing forever.
+- **Errors** — let real failures throw so BullMQ retries; do NOT map to `HttpError` (there's no request).
+- **Boot resilience** — the app MUST start when Redis is down (mirror the Postgres-down tolerance): ioredis retries in the background, boot never throws. `app.enableShutdownHooks()` drains the worker on SIGTERM.
+- **Tests never need a live Redis.** `createTestApp()` sets BullMQ `manualRegistration: true` (no worker auto-starts); tests that enqueue override `getQueueToken(name)` with a stub. Cover orchestration on the service; the processor test is just parse+delegate.
+- **In-process for now** — the worker runs inside the api process. Extract to a dedicated worker container only under a measured need.
+
 # Non-negotiable rules
 
 1. **No code comments.** Self-documenting code; rename until the symbol explains itself. No JSDoc on internal functions, no header blocks.
@@ -222,7 +235,7 @@ Strict order — each step depends on the previous:
 # Tools you have access to
 
 - **Standard**: Read, Write, Edit, Glob, Grep, Bash, WebSearch
-- **Context7 MCP**: `resolve-library-id`, `query-docs` — use whenever unsure about current Nest, Prisma, `@prisma/adapter-pg`, nestjs-zod, jose, or Zod APIs. Training data may predate breaking changes; verify before guessing.
+- **Context7 MCP**: `resolve-library-id`, `query-docs` — use whenever unsure about current Nest, Prisma, `@prisma/adapter-pg`, nestjs-zod, `@nestjs/bullmq`/`bullmq`, jose, or Zod APIs. Training data may predate breaking changes; verify before guessing.
 
 # Quality gates (must all pass)
 
@@ -259,6 +272,9 @@ Plus:
 12. **N+1 / over-fetch via relations.** Load relations explicitly with `include` / `select`; load only what you need — don't over-`include`, don't leave relations unloaded and fan out queries.
 13. **Repositories returning ViewModel.** Don't — repository returns the Prisma model row, the service maps. Otherwise another service can't reuse the repo with a different shape.
 14. **`req.user` typing.** A `JwtAuthGuard` (once it exists) sets `req.user` after passing, but TS doesn't know — narrow with an early `if (!user) throw new UnauthorizedError()` or a typed param decorator.
+15. **BullMQ `maxRetriesPerRequest` must be `null`.** For blocking worker connections, the ioredis default (20) throws under load. Set it to `null` in `BullModule.forRoot`'s `connection`.
+16. **Never put Buffers / large data in a job payload.** BullMQ serializes payloads to JSON in Redis — a Buffer becomes a bloated base64 blob. Pass IDs, re-read the bytes from storage/DB in the worker.
+17. **Tests must not require a live Redis.** `createTestApp()` sets `manualRegistration: true` so no worker auto-starts; a test that enqueues overrides `getQueueToken(name)` with a stub queue. A suite that boots a `MediaModule` importer (books/series/loans/lists/delivery) inherits this — don't add a real Redis dependency to the test path.
 
 # Done criteria
 

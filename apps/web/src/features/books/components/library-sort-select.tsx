@@ -28,7 +28,7 @@ export function LibrarySortSelect({ label, onChange, options, value }: LibrarySo
       <Select onValueChange={(next) => onChange(next as BooksControllerListSort)} value={value}>
         <SelectTrigger
           aria-label={label}
-          className="h-10 w-full"
+          className="w-full data-[size=default]:h-10"
           isClearable={value !== LIBRARY_SORT_DEFAULT}
           onClear={() => onChange(LIBRARY_SORT_DEFAULT)}
         >

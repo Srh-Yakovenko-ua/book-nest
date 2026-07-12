@@ -13,6 +13,7 @@ import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { TitleLeaf } from "@/components/title-leaf";
 import { BookCard } from "@/components/ui/book-card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -163,6 +164,7 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
                 {title}
               </h1>
               {titleBadge}
+              <TitleLeaf />
             </div>
             <p className="text-sm text-muted-foreground">{subtitle}</p>
           </div>
@@ -593,6 +595,7 @@ function LibraryToolbar({
           />
           {advancedFilters}
           <Button
+            className="h-10"
             onClick={selectionMode ? exitSelection : enterSelection}
             variant={selectionMode ? "secondary" : "outline"}
           >
@@ -600,6 +603,7 @@ function LibraryToolbar({
             {selectionMode ? t("bulk.exitSelection") : t("bulk.enterSelection")}
           </Button>
           <Segmented
+            className="h-10 items-stretch [&_[data-slot=segmented-item]]:py-0"
             label={viewLabels.label}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
             options={[

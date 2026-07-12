@@ -163,7 +163,7 @@ export function LibraryAdvancedFilters({
       open={open}
     >
       <SheetTrigger asChild>
-        <Button type="button" variant="secondary">
+        <Button className="h-10" type="button" variant="secondary">
           <UiIcon name="sliders" size={16} />
           {t("trigger")}
           {activeCount > 0 ? (

@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import type { LibraryBookLinkComponent } from "../model/library-book";
 
+import { LibraryGenresPie } from "./library-genres-pie";
+
 export type SidebarBook = {
   author: string;
   href: string;
@@ -18,7 +20,7 @@ type LibrarySummarySidebarProps = {
   isLoading: boolean;
   linkComponent?: LibraryBookLinkComponent;
   recentlyAdded: SidebarBook[];
-  topGenres: { key: string; name: string }[];
+  topGenres: { count: number; key: string; name: string }[];
   topTags: { id: string; name: string }[];
 };
 
@@ -39,20 +41,11 @@ export function LibrarySummarySidebar({
     >
       <SidebarBlock title={t("topGenres")}>
         {isLoading ? (
-          <ChipSkeleton />
+          <PieSkeleton />
         ) : topGenres.length === 0 ? (
           <EmptyText>{t("topGenresEmpty")}</EmptyText>
         ) : (
-          <ul className="flex flex-wrap gap-1.5">
-            {topGenres.slice(0, 3).map((genre) => (
-              <li
-                className="inline-flex items-center rounded-full border border-border bg-tag px-2.5 py-0.5 text-xs font-medium text-tag-foreground"
-                key={genre.key}
-              >
-                {genre.name}
-              </li>
-            ))}
-          </ul>
+          <LibraryGenresPie ariaLabel={t("topGenresChart")} genres={topGenres.slice(0, 3)} />
         )}
       </SidebarBlock>
 
@@ -115,6 +108,23 @@ function ChipSkeleton() {
 
 function EmptyText({ children }: { children: React.ReactNode }) {
   return <p className="text-xs text-muted-foreground">{children}</p>;
+}
+
+function PieSkeleton() {
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <Skeleton className="size-[140px] rounded-full" />
+      <div className="flex w-full flex-col gap-1.5">
+        {Array.from({ length: 3 }, (_, index) => (
+          <div className="flex items-center gap-2" key={index}>
+            <Skeleton className="size-2.5 rounded-[3px]" />
+            <Skeleton className="h-4 flex-1" />
+            <Skeleton className="h-4 w-10" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function RowSkeleton() {

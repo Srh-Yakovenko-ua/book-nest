@@ -13,9 +13,9 @@ const meta = {
       { author: "Ребекка Росс", href: "/books/3/edit", id: "3", title: "Божественні суперники" },
     ],
     topGenres: [
-      { key: "fantasy", name: "Фентезі" },
-      { key: "romance", name: "Романтика" },
-      { key: "mystery", name: "Детектив" },
+      { count: 24, key: "fantasy", name: "Фентезі" },
+      { count: 15, key: "romance", name: "Романтика" },
+      { count: 9, key: "mystery", name: "Детектив" },
     ],
     topTags: [
       { id: "1", name: "slow burn" },

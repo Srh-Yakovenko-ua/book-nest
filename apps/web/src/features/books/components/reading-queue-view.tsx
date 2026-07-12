@@ -10,6 +10,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -149,6 +150,7 @@ export function ReadingQueueView() {
             ) : isError ? null : (
               <Badge variant="secondary">{t("countBadge", { count })}</Badge>
             )}
+            <TitleLeaf />
           </div>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>

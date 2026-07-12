@@ -41,6 +41,7 @@ type ChipGroupProps = (MultiChipGroupProps | SingleChipGroupProps) &
   };
 
 type ChipOption = {
+  count?: number;
   disabled?: boolean;
   icon?: React.ReactNode;
   label: React.ReactNode;
@@ -70,6 +71,9 @@ function ChipGroup({ className, label, options, size, ...rest }: ChipGroupProps)
     >
       {option.icon}
       {option.label}
+      {typeof option.count === "number" && (
+        <span className="tabular-nums opacity-60">{option.count}</span>
+      )}
     </ToggleGroupPrimitive.Item>
   ));
 

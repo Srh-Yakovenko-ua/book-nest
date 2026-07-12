@@ -12,6 +12,7 @@ catalog:
   "@fontsource-variable/playfair-display": ^5.2.8
   "@hookform/devtools": ^4.4.0
   "@hookform/resolvers": ^5.2.2
+  "@nestjs/bullmq": ^11.0.4
   "@nestjs/common": ^11.1.19
   "@nestjs/core": ^11.1.19
   "@nestjs/platform-express": ^11.1.19
@@ -55,6 +56,7 @@ catalog:
   "@vitest/eslint-plugin": ^1.6.15
   "@vitest/ui": ^4.1.8
   bcryptjs: ^3.0.2
+  bullmq: ^5.80.2
   class-variance-authority: ^0.7.1
   clsx: ^2.1.1
   cmdk: ^1.1.1

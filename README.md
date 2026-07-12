@@ -1,12 +1,12 @@
 # book-nest
 
-A teaching fullstack monorepo. A frontend developer learning backend by building a book app from end to end.
+Self-hosted book-library product: personal catalog, reading tracking, series, loans, deliveries, favorites, and custom lists. Fullstack TypeScript monorepo built as a modular monolith.
 
 ## Stack
 
 pnpm workspaces with Turborepo. Node 24, pnpm 10.
 
-- `apps/web`: Next.js 16 (App Router, SSR) with React 19 and TypeScript. next-intl locale routing (ru, en, uk), TanStack Query, Tailwind v4, shadcn/ui.
+- `apps/web`: Next.js 16 (App Router, SSR) with React 19 and TypeScript. next-intl locale routing (uk, en), TanStack Query, Tailwind v4, shadcn/ui.
 - `apps/api`: NestJS 11 with Prisma 7 and PostgreSQL. Feature-sliced layered modules (api, application, domain, infrastructure).
 - `packages/shared`: request and response types shared by both apps, imported as `@app/shared`.
 

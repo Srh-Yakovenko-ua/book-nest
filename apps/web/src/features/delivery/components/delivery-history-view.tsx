@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
+import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -56,9 +57,12 @@ export function DeliveryHistoryView({
 
       <header className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
         <div className="flex flex-col gap-1">
-          <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
-            {t("title")}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
+              {t("title")}
+            </h1>
+            <TitleLeaf />
+          </div>
           <p className="max-w-2xl text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
 

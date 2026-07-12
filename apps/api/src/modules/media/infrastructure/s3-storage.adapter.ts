@@ -1,4 +1,9 @@
-import { DeleteObjectsCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { Injectable } from "@nestjs/common";
 
 import type { StoredObject } from "../domain/storage.port.js";
@@ -30,6 +35,15 @@ export class S3StorageAdapter extends StoragePort {
         Delete: { Objects: keys.map((key) => ({ Key: key })) },
       }),
     );
+  }
+
+  async get(key: string): Promise<Buffer> {
+    const result = await this.client.send(new GetObjectCommand({ Bucket: env.r2Bucket, Key: key }));
+    if (result.Body === undefined) {
+      throw new Error(`Storage object has no body: ${key}`);
+    }
+    const bytes = await result.Body.transformToByteArray();
+    return Buffer.from(bytes);
   }
 
   publicUrl(key: string): string {

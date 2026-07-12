@@ -29,7 +29,11 @@ import { useLibraryOverview } from "../api/use-library-overview";
 import { useTagsSearch } from "../api/use-tags-search";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER, type LibraryScope } from "../model/library-query";
-import { activeQuickFilter, quickFilterPatch } from "../model/library-quick-filters";
+import {
+  activeQuickFilter,
+  quickFilterCounts,
+  quickFilterPatch,
+} from "../model/library-quick-filters";
 import { useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
@@ -145,7 +149,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       const percent = pagesCount > 0 ? Math.round((currentPage / pagesCount) * 100) : 0;
       return (
         <div className="flex flex-col gap-1">
-          <Progress aria-hidden className="h-1" value={percent} />
+          <Progress aria-hidden className="h-1 w-4/5" value={percent} />
           <span className="block truncate">
             {t("summary.readingProgress", { current: currentPage, percent, total: pagesCount })}
           </span>
@@ -290,6 +294,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
         title: book.title,
       }))}
       topGenres={(overview.data?.topGenres ?? []).map((genre) => ({
+        count: genre.count,
         key: genre.key,
         name: genreNameByKey.get(genre.key) ?? genre.name,
       }))}
@@ -342,6 +347,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       onViewChange={library.setView}
       quickFilters={
         <LibraryQuickFilters
+          counts={summary === undefined ? undefined : quickFilterCounts(summary)}
           onSelect={(key) => void library.setState(quickFilterPatch(key))}
           scope={scope}
           value={activeQuickFilter(library.state)}

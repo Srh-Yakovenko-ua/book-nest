@@ -7,6 +7,7 @@ import { seconds, ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { DatabaseModule } from "./core/database/database.module.js";
 import { RequestIdMiddleware } from "./core/middleware/request-id.middleware.js";
 import { RequestLoggerMiddleware } from "./core/middleware/request-logger.middleware.js";
+import { QueueModule } from "./core/queue/queue.module.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { AuthorsModule } from "./modules/authors/authors.module.js";
 import { BooksModule } from "./modules/books/books.module.js";
@@ -35,6 +36,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
       { limit: GLOBAL_THROTTLE_LIMIT, ttl: seconds(GLOBAL_THROTTLE_TTL_SECONDS) },
     ]),
     DatabaseModule,
+    QueueModule,
     HealthModule,
     MetricsModule,
     AuthModule,
