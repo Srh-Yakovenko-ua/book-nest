@@ -49,6 +49,13 @@ export const withRelations = {
   tags: { include: { tag: true } },
 } satisfies Prisma.BookInclude;
 
+export type ActiveReadingRow = {
+  currentPage: Nullable<number>;
+  id: string;
+  pagesCount: Nullable<number>;
+  title: string;
+};
+
 export type BlockUpsert<TCreate, TUpdate> =
   | { create: TCreate; update: TUpdate }
   | { delete: true }
@@ -145,6 +152,12 @@ export type QueueRemoval = {
 export type ReadingChangePatch = {
   book: Nullable<{ readingStatus?: ReadingStatus }>;
   progress: Partial<CreateReadingProgressData>;
+};
+
+export type ReadingProgressEventData = {
+  date: Date;
+  page: number;
+  pagesRead: number;
 };
 
 export type UpdateActiveLoanData = {
@@ -347,6 +360,36 @@ export class BooksRepository {
     return this.prisma.book.count({ where: buildLibraryWhere({ ownershipStatuses, userId }) });
   }
 
+  async countDistinctAuthors({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<number> {
+    const rows = await this.prisma.bookAuthor.findMany({
+      distinct: ["authorId"],
+      select: { authorId: true },
+      where: { book: buildLibraryWhere({ ownershipStatuses, userId }) },
+    });
+    return rows.length;
+  }
+
+  async countDistinctSeries({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<number> {
+    const rows = await this.prisma.book.findMany({
+      distinct: ["seriesId"],
+      select: { seriesId: true },
+      where: { ...buildLibraryWhere({ ownershipStatuses, userId }), seriesId: { not: null } },
+    });
+    return rows.length;
+  }
+
   countFavorites({
     ownershipStatuses,
     userId,
@@ -430,18 +473,32 @@ export class BooksRepository {
     finishedStatuses,
     readingStatuses,
     userId,
+    wantToReadStatuses,
   }: FavoritesSummaryQuery): Promise<FavoritesSummaryResult> {
-    const [total, reading, finished, ratingAggregate] = await Promise.all([
-      this.countFavorites({ userId }),
-      this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
-      this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
-      this.prisma.bookReadingProgress.aggregate({
-        _avg: { rating: true },
-        where: { book: { isFavorite: true, userId }, rating: { not: null } },
-      }),
-    ]);
+    const [total, reading, finished, wantToRead, series, solo, ratingAggregate] = await Promise.all(
+      [
+        this.countFavorites({ userId }),
+        this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
+        this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
+        this.countByReadingStatuses({ isFavorite: true, statuses: wantToReadStatuses, userId }),
+        this.countForLibrary({ filter: { bookType: "series_part", isFavorite: true, userId } }),
+        this.countForLibrary({ filter: { bookType: "solo", isFavorite: true, userId } }),
+        this.prisma.bookReadingProgress.aggregate({
+          _avg: { rating: true },
+          where: { book: { isFavorite: true, userId }, rating: { not: null } },
+        }),
+      ],
+    );
 
-    return { averageRating: ratingAggregate._avg.rating, finished, reading, total };
+    return {
+      averageRating: ratingAggregate._avg.rating,
+      finished,
+      reading,
+      series,
+      solo,
+      total,
+      wantToRead,
+    };
   }
 
   findOwnedById(userId: string, id: string): Promise<Nullable<BookWithRelations>> {
@@ -460,6 +517,16 @@ export class BooksRepository {
     return book;
   }
 
+  findReadingEvents(args: {
+    bookId: string;
+  }): Promise<Array<{ date: Date; id: string; page: number; pagesRead: number }>> {
+    return this.prisma.bookReadingProgressEvent.findMany({
+      orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+      select: { date: true, id: true, page: true, pagesRead: true },
+      where: { bookId: args.bookId },
+    });
+  }
+
   findSeriesPartNumberConflict(
     userId: string,
     { excludeBookId, partNumber, seriesId }: SeriesPartNumberQuery,
@@ -474,6 +541,32 @@ export class BooksRepository {
         userId,
       },
     });
+  }
+
+  async listActiveReading({
+    ownershipStatuses,
+    statuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    statuses: ReadingStatus[];
+    userId: string;
+  }): Promise<ActiveReadingRow[]> {
+    const rows = await this.prisma.book.findMany({
+      select: {
+        id: true,
+        pagesCount: true,
+        readingProgress: { select: { currentPage: true } },
+        title: true,
+      },
+      where: buildLibraryWhere({ ownershipStatuses, readingStatuses: statuses, userId }),
+    });
+    return rows.map((row) => ({
+      currentPage: row.readingProgress?.currentPage ?? null,
+      id: row.id,
+      pagesCount: row.pagesCount,
+      title: row.title,
+    }));
   }
 
   listForLibrary({ filter, skip, sort, take }: ListForLibraryInput): Promise<BookWithRelations[]> {
@@ -533,6 +626,28 @@ export class BooksRepository {
       LIMIT ${limit}
     `;
     return rows.map((row) => row.storeName);
+  }
+
+  async recordReadingProgress(args: {
+    bookId: string;
+    event: Nullable<ReadingProgressEventData>;
+    patch: ReadingChangePatch;
+    userId: string;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
+
+      if (args.event !== null) {
+        await tx.bookReadingProgressEvent.create({
+          data: {
+            bookId: args.bookId,
+            date: args.event.date,
+            page: args.event.page,
+            pagesRead: args.event.pagesRead,
+          },
+        });
+      }
+    });
   }
 
   async shiftQueueUpAfter(
@@ -707,13 +822,17 @@ type FavoritesSummaryQuery = {
   finishedStatuses: ReadingStatus[];
   readingStatuses: ReadingStatus[];
   userId: string;
+  wantToReadStatuses: ReadingStatus[];
 };
 
 type FavoritesSummaryResult = {
   averageRating: Nullable<number>;
   finished: number;
   reading: number;
+  series: number;
+  solo: number;
   total: number;
+  wantToRead: number;
 };
 
 type ListForLibraryInput = {

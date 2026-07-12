@@ -63,10 +63,10 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, key: "home", to: "/" },
+  { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: Library, key: "myLibrary", to: "/my-library" },
   { icon: Heart, key: "favorites", to: "/favorites" },
   { icon: ListOrdered, key: "readingQueue", to: "/reading-queue" },
-  { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
   { icon: HandHelping, key: "loans", to: "/loans" },
   { icon: Truck, key: "delivery", to: "/delivery/in-transit" },
@@ -146,7 +146,7 @@ function AppSidebar() {
                               : "text-sidebar-foreground/70",
                           )}
                         />
-                        <span className="font-mono text-[14px] font-medium tracking-[0.14em] uppercase">
+                        <span className="font-mono text-[12px] font-medium tracking-[0.14em] uppercase">
                           {tNav(key)}
                         </span>
                         {isActive && (
@@ -180,7 +180,7 @@ function AppSidebar() {
         {!collapsed && (
           <Image
             alt=""
-            className="h-auto w-full select-none"
+            className="mx-auto block h-auto w-4/5 select-none"
             height={500}
             priority={false}
             src="/illustrations/sidebar.png"

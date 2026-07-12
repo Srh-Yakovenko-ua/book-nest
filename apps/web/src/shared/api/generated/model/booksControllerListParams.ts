@@ -74,12 +74,12 @@ export type BooksControllerListParams = {
    */
   q?: string;
   /**
-   * @minimum 1
+   * @minimum 0.5
    * @maximum 10
    */
   ratingMax?: number;
   /**
-   * @minimum 1
+   * @minimum 0.5
    * @maximum 10
    */
   ratingMin?: number;

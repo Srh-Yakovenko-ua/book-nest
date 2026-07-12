@@ -565,7 +565,8 @@ export const EditionDetailsSubmitsNumbers: Story = {
     await userEvent.click(await surface.findByText(/^Створити «/));
 
     await userEvent.type(canvas.getByLabelText("Сторінок", { exact: false }), "320");
-    await userEvent.type(canvas.getByLabelText("Рік видання", { exact: false }), "2021");
+    await userEvent.click(canvas.getByRole("button", { name: "Рік видання" }));
+    await userEvent.click(await surface.findByRole("button", { name: "2021" }));
     await userEvent.type(canvas.getByLabelText("Оригінальна назва", { exact: false }), "Kobzar");
 
     await userEvent.click(canvas.getByRole("button", { name: /Додаткові деталі/ }));
@@ -594,10 +595,6 @@ export const NegativeKeysBlockedInNumericFields: Story = {
     const pagesInput = canvas.getByLabelText("Сторінок", { exact: false });
     await userEvent.type(pagesInput, "-320");
     await expect(pagesInput).toHaveValue(320);
-
-    const yearInput = canvas.getByLabelText("Рік видання", { exact: false });
-    await userEvent.type(yearInput, "-2021");
-    await expect(yearInput).toHaveValue(2021);
 
     await userEvent.click(canvas.getByRole("radio", { name: "Читаю" }));
     const currentPage = canvas.getByRole("spinbutton", { name: "Сторінка зараз" });

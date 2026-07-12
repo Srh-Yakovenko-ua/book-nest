@@ -53,6 +53,12 @@ function createBook(accessToken: string, body: Record<string, unknown>): request
     .send(body);
 }
 
+function getReadingHistory(accessToken: string, id: string): request.Test {
+  return request(app.getHttpServer())
+    .get(`/api/books/${id}/reading-history`)
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
 function updateReadingProgress(
   accessToken: string,
   id: string,
@@ -649,5 +655,101 @@ describe("POST /api/books/:id/reading-progress", () => {
 
     expect(res.status).toBe(422);
     expect(res.body.message).toBe("Current page cannot be lower than the saved progress");
+  });
+});
+
+describe("GET /api/books/:id/reading-history", () => {
+  it("returns 401 without an Authorization header", async () => {
+    const res = await request(app.getHttpServer()).get(
+      `/api/books/${MISSING_UUID}/reading-history`,
+    );
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 for a book that does not exist", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getReadingHistory(accessToken, MISSING_UUID);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 when the book belongs to another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const created = await createBook(owner.accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      pagesCount: 300,
+      readingStatus: "reading",
+      title: "Dune",
+    });
+    await updateReadingProgress(owner.accessToken, created.body.id, { currentPage: 50 });
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const res = await getReadingHistory(stranger.accessToken, created.body.id);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns an empty history for a book with no progress updates", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      pagesCount: 300,
+      readingStatus: "reading",
+      title: "Dune",
+    });
+
+    const res = await getReadingHistory(accessToken, created.body.id);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ daily: [], daysRead: 0, events: [], totalPagesRead: 0 });
+  });
+
+  it("logs one event per advancing progress update with the pages read on each", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      pagesCount: 300,
+      readingStatus: "reading",
+      title: "Dune",
+    });
+    await updateReadingProgress(accessToken, created.body.id, { currentPage: 50 });
+    await updateReadingProgress(accessToken, created.body.id, { currentPage: 120 });
+
+    const res = await getReadingHistory(accessToken, created.body.id);
+
+    expect(res.status).toBe(200);
+    expect(res.body.events).toHaveLength(2);
+    const pagesReadByPage = new Map<number, number>(
+      res.body.events.map((event: { page: number; pagesRead: number }) => [
+        event.page,
+        event.pagesRead,
+      ]),
+    );
+    expect(pagesReadByPage.get(50)).toBe(50);
+    expect(pagesReadByPage.get(120)).toBe(70);
+  });
+
+  it("sums the advancing updates of a single day into one daily bucket", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      pagesCount: 300,
+      readingStatus: "reading",
+      title: "Dune",
+    });
+    await updateReadingProgress(accessToken, created.body.id, { currentPage: 50 });
+    await updateReadingProgress(accessToken, created.body.id, { currentPage: 120 });
+
+    const res = await getReadingHistory(accessToken, created.body.id);
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalPagesRead).toBe(120);
+    expect(res.body.daysRead).toBe(1);
+    expect(res.body.daily).toEqual([{ date: TODAY, pagesRead: 120 }]);
   });
 });

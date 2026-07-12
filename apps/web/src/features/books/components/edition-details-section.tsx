@@ -2,13 +2,20 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { type Control, type FieldErrors, type UseFormRegister, useWatch } from "react-hook-form";
+import {
+  type Control,
+  Controller,
+  type FieldErrors,
+  type UseFormRegister,
+  useWatch,
+} from "react-hook-form";
 
 import { UiIcon } from "@/components/icons";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { YearPicker } from "@/components/ui/year-picker";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -23,6 +30,7 @@ import { useSectionCompletion } from "./use-section-completion";
 const PAGES_MIN = 1;
 const PAGES_MAX = 10000;
 const PUBLICATION_YEAR_MAX = new Date().getUTCFullYear() + 1;
+const PUBLICATION_YEAR_MIN = 1000;
 
 type EditionDetailsSectionProps = {
   control: Control<CreateBookFormValues>;
@@ -85,19 +93,24 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
               {t("fields.optional")}
             </span>
           </Label>
-          <Input
-            aria-describedby={errors.publicationYear ? "book-publication-year-error" : undefined}
-            aria-invalid={errors.publicationYear !== undefined}
-            className="h-10"
-            id="book-publication-year"
-            inputMode="numeric"
-            max={PUBLICATION_YEAR_MAX}
-            onKeyDown={blockNegativeNumberKeys}
-            onPaste={blockNegativeNumberPaste}
-            placeholder={t("editionDetails.fields.publicationYearPlaceholder")}
-            step={1}
-            type="number"
-            {...register("publicationYear", { setValueAs: emptyToInteger })}
+          <Controller
+            control={control}
+            name="publicationYear"
+            render={({ field }) => (
+              <YearPicker
+                ariaLabel={t("editionDetails.fields.publicationYear")}
+                clearLabel={t("library.filters.yearPicker.clear")}
+                id="book-publication-year"
+                invalid={errors.publicationYear !== undefined}
+                max={PUBLICATION_YEAR_MAX}
+                min={PUBLICATION_YEAR_MIN}
+                nextLabel={t("library.filters.yearPicker.next")}
+                onChange={(year) => field.onChange(year ?? undefined)}
+                placeholder={t("editionDetails.fields.publicationYearPlaceholder")}
+                prevLabel={t("library.filters.yearPicker.prev")}
+                value={field.value ?? null}
+              />
+            )}
           />
           <FieldError error={errors.publicationYear} id="book-publication-year-error" />
         </div>

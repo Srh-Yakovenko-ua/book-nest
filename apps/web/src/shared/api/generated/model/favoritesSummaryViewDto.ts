@@ -11,5 +11,8 @@ export interface FavoritesSummaryViewDto {
   averageRating: number | null;
   finished: number;
   reading: number;
+  series: number;
+  solo: number;
   total: number;
+  wantToRead: number;
 }

@@ -32,6 +32,7 @@ function Harness() {
         removeLabel={(name) => `Прибрати тег ${name}`}
         resolveName={(id) => names.get(id)}
         searchingLabel="Пошук…"
+        suggestionsHeading="Ваші теги"
         value={value}
       />
     </div>
@@ -56,6 +57,7 @@ const meta = {
     removeLabel: (name: string) => `Прибрати тег ${name}`,
     resolveName: () => undefined,
     searchingLabel: "Пошук…",
+    suggestionsHeading: "Ваші теги",
     value: [],
   },
   component: LibraryTagFilter,

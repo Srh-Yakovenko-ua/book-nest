@@ -348,11 +348,11 @@
     "library": {
       "all": {
         "title": "All books",
-        "subtitle": "Every book you've added — regardless of status"
+        "subtitle": "The complete list of books saved in BookNest"
       },
       "my": {
         "title": "My library",
-        "subtitle": "Books physically with you: owned, lent out, or borrowed"
+        "subtitle": "Your home book collection, all in one place"
       },
       "card": {
         "lentTo": "With {name}",
@@ -372,7 +372,15 @@
         "total": "Total books",
         "reading": "Reading",
         "finished": "Finished",
-        "favorites": "Favorites"
+        "favorites": "Favorites",
+        "unitBook": "{count, plural, one {book} other {books}}",
+        "unitSeries": "{count, plural, one {series} other {series}}",
+        "unitAuthor": "{count, plural, one {author} other {authors}}",
+        "favoritesPercent": "{percent}% of library",
+        "finishedPercent": "{percent}% of owned books",
+        "readingNone": "No active",
+        "readingProgress": "{current} of {total} pp. · {percent}%",
+        "readingPagesAhead": "{pagesAhead} pages ahead"
       },
       "sort": {
         "label": "Sort",
@@ -451,8 +459,8 @@
       "filters": {
         "trigger": "Filters",
         "title": "Filters",
-        "description": "Narrow your library by status, format, classification and edition details.",
-        "done": "Done",
+        "description": "Choose the attributes you need to quickly find a book on your shelf.",
+        "apply": "Apply filters",
         "clear": "Clear filters",
         "clearField": "Clear",
         "customBadge": "Custom",
@@ -487,7 +495,9 @@
           "min": "From",
           "max": "To",
           "from": "From {value}",
-          "to": "To {value}"
+          "to": "To {value}",
+          "minLabel": "Minimum rating",
+          "maxLabel": "Maximum rating"
         },
         "range": {
           "min": "From",
@@ -498,9 +508,20 @@
           "pagesMax": "Pages to",
           "invalid": "Minimum cannot exceed maximum"
         },
+        "yearPicker": {
+          "prev": "Previous years",
+          "next": "Next years",
+          "clear": "Clear year"
+        },
         "genrePlaceholder": "Select genres",
         "genreSearch": "Search genre…",
         "genreEmpty": "No genres found",
+        "languagePlaceholder": "Select languages",
+        "languageSearch": "Search language…",
+        "languageEmpty": "No languages found",
+        "ageCategoryPlaceholder": "Select age categories",
+        "ageCategorySearch": "Search age category…",
+        "ageCategoryEmpty": "No age categories found",
         "tagPlaceholder": "Search tags…",
         "tagSearching": "Searching tags…",
         "tagEmpty": "No tags found",
@@ -510,7 +531,9 @@
         "authorEmpty": "No authors found",
         "publisherPlaceholder": "Search publisher…",
         "publisherSearching": "Searching publishers…",
-        "publisherEmpty": "No publishers found"
+        "publisherEmpty": "No publishers found",
+        "removeAuthor": "Remove author {name}",
+        "removePublisher": "Remove publisher {name}"
       },
       "activeFilters": {
         "label": "Active filters",
@@ -562,6 +585,8 @@
         "regionLabel": "Bulk actions",
         "selected": "{count, plural, one {# book selected} other {# books selected}}",
         "selectBook": "Select “{title}”",
+        "enterSelection": "Select",
+        "exitSelection": "Done",
         "clear": "Clear selection",
         "addToList": "Add to list",
         "addToQueue": "Add to queue",
@@ -1694,7 +1719,7 @@
   "favorites": {
     "metaTitle": "Favorite books",
     "title": "Favorite books",
-    "subtitle": "Your collection of books you marked with a heart",
+    "subtitle": "Books worth remembering, rereading, and recommending to others",
     "countBadge": "{count, plural, one {# book} other {# books}}",
     "summary": {
       "total": "Total favorites",

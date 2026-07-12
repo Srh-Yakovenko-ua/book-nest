@@ -11,6 +11,7 @@ import { UiIcon } from "@/components/icons";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { cn } from "@/lib/utils";
 
 import { useAuthorOptions } from "../api/use-author-options";
@@ -36,7 +37,19 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
   const anchorRef = useRef<HTMLDivElement>(null);
   const debouncedDraft = useDebouncedValue(draft, SEARCH_DEBOUNCE_MS);
   const recent = useRecentAuthors();
-  const { data: allAuthors = [], isFetching } = useAuthorOptions(debouncedDraft);
+  const {
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    items: allAuthors,
+  } = useAuthorOptions(debouncedDraft);
+  const { onScroll, scrollRef } = useInfiniteScroll({
+    hasNextPage,
+    isFetchingNextPage,
+    itemCount: allAuthors.length,
+    onLoadMore: fetchNextPage,
+  });
 
   const atMax = value.length >= BOOK_AUTHORS_MAX;
   const trimmedDraft = draft.trim();
@@ -58,12 +71,9 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
     .filter((author) => !isSelectedCatalog(author) && matchesQuery(author.name))
     .slice(0, SUGGESTION_LIMIT);
   const recentIds = new Set(recentOptions.map((author) => author.id));
-  const allOptions = allAuthors
-    .filter(
-      (author) =>
-        !isSelectedCatalog(author) && !recentIds.has(author.id) && matchesQuery(author.name),
-    )
-    .slice(0, SUGGESTION_LIMIT);
+  const allOptions = allAuthors.filter(
+    (author) => !isSelectedCatalog(author) && !recentIds.has(author.id),
+  );
 
   const exactMatchExists = [...(recent.data ?? []), ...allAuthors].some(
     (author) => author.name.toLowerCase() === query,
@@ -105,15 +115,15 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
   function authorItem(author: AuthorView) {
     return (
       <CommandItem
-        className="cursor-pointer"
+        className="cursor-pointer items-start"
         key={author.id}
         onSelect={() => addCatalog(author)}
         value={author.id}
       >
-        <UiIcon className="text-muted-foreground" name="user" size={16} />
-        <span className="min-w-0 truncate">{author.name}</span>
+        <UiIcon className="shrink-0 text-muted-foreground" name="user" size={16} />
+        <span className="min-w-0 break-words whitespace-normal">{author.name}</span>
         {author.isCustom ? (
-          <span className="ml-auto text-xs text-muted-foreground">{t("author.customBadge")}</span>
+          <span className="shrink-0 text-xs text-muted-foreground">{t("author.customBadge")}</span>
         ) : null}
       </CommandItem>
     );
@@ -177,7 +187,7 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
         </PopoverAnchor>
         <PopoverContent
           align="start"
-          className="w-[--radix-popover-trigger-width] min-w-[var(--radix-popover-anchor-width)] p-1"
+          className="w-(--radix-popover-trigger-width) max-w-(--radix-popover-trigger-width) p-1"
           onInteractOutside={(event) => {
             const target = event.detail.originalEvent.target;
             if (target instanceof Node && anchorRef.current?.contains(target)) {
@@ -187,7 +197,7 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
           onOpenAutoFocus={(event) => event.preventDefault()}
           sideOffset={6}
         >
-          <CommandList>
+          <CommandList onScroll={onScroll} ref={scrollRef}>
             {isLoading ? <CommandEmpty>{t("author.searching")}</CommandEmpty> : null}
             {isEmpty ? <CommandEmpty>{t("author.empty")}</CommandEmpty> : null}
             {recentOptions.length > 0 ? (
@@ -199,6 +209,11 @@ export function AuthorsField({ describedBy, id, invalid, onChange, value }: Auth
               <CommandGroup heading={t("author.allHeading")}>
                 {allOptions.map(authorItem)}
               </CommandGroup>
+            ) : null}
+            {isFetchingNextPage ? (
+              <div className="px-2 py-1.5 text-center text-xs text-muted-foreground">
+                {t("author.searching")}
+              </div>
             ) : null}
             {draftIsNewAuthor ? (
               <CommandGroup heading={t("author.createHeading")}>

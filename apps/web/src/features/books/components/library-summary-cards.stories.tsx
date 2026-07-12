@@ -7,10 +7,17 @@ import type { LibrarySummaryCard } from "./library-summary-cards";
 import { LibrarySummaryCards } from "./library-summary-cards";
 
 const cards: LibrarySummaryCard[] = [
-  { icon: "library", label: "Усього книг", value: 128 },
-  { icon: "book", label: "Читаю", value: 4 },
-  { icon: "check-circle", label: "Прочитано", value: 86 },
-  { icon: "heart", label: "Улюблених", value: 17 },
+  { icon: "library", iconTone: "primary", label: "Усього книг", unit: "книг", value: 128 },
+  { icon: "book", iconTone: "info", label: "Читаю", unit: "книги", value: 4 },
+  { icon: "check-circle", iconTone: "success", label: "Прочитано", unit: "книг", value: 86 },
+  {
+    icon: "heart",
+    iconTone: "favorite",
+    label: "Улюблених",
+    microfact: "13% бібліотеки",
+    unit: "книг",
+    value: 17,
+  },
 ];
 
 const meta = {

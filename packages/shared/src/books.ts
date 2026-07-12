@@ -749,8 +749,9 @@ export type UpdateReadingProgressInput = z.infer<typeof UpdateReadingProgressInp
 
 const LIBRARY_PAGE_SIZE_DEFAULT = 24;
 const LIBRARY_SEARCH_MAX = 200;
-const LIBRARY_RATING_MIN = 1;
+const LIBRARY_RATING_MIN = 0.5;
 const LIBRARY_RATING_MAX = 10;
+const LIBRARY_RATING_STEP = 0.5;
 
 export const LibrarySortSchema = z.enum([
   "created_desc",
@@ -794,8 +795,18 @@ export const LibraryBooksQuerySchema = z
     pagesMin: z.coerce.number().int().optional(),
     publisher: queryStringArray(z.uuid()),
     q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
-    ratingMax: z.coerce.number().int().min(LIBRARY_RATING_MIN).max(LIBRARY_RATING_MAX).optional(),
-    ratingMin: z.coerce.number().int().min(LIBRARY_RATING_MIN).max(LIBRARY_RATING_MAX).optional(),
+    ratingMax: z.coerce
+      .number()
+      .min(LIBRARY_RATING_MIN)
+      .max(LIBRARY_RATING_MAX)
+      .multipleOf(LIBRARY_RATING_STEP)
+      .optional(),
+    ratingMin: z.coerce
+      .number()
+      .min(LIBRARY_RATING_MIN)
+      .max(LIBRARY_RATING_MAX)
+      .multipleOf(LIBRARY_RATING_STEP)
+      .optional(),
     sort: LibrarySortSchema.default("created_desc"),
     status: queryStringArray(ReadingStatusSchema),
     tag: queryStringArray(z.uuid()),
@@ -897,6 +908,31 @@ export const ReadingProgressViewSchema = z.object({
 
 export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
 
+export const ReadingHistoryEventViewSchema = z.object({
+  date: z.string(),
+  id: z.string(),
+  page: z.number(),
+  pagesRead: z.number(),
+});
+
+export type ReadingHistoryEventView = z.infer<typeof ReadingHistoryEventViewSchema>;
+
+export const ReadingHistoryDayViewSchema = z.object({
+  date: z.string(),
+  pagesRead: z.number(),
+});
+
+export type ReadingHistoryDayView = z.infer<typeof ReadingHistoryDayViewSchema>;
+
+export const ReadingHistoryViewSchema = z.object({
+  daily: z.array(ReadingHistoryDayViewSchema),
+  daysRead: z.number(),
+  events: z.array(ReadingHistoryEventViewSchema),
+  totalPagesRead: z.number(),
+});
+
+export type ReadingHistoryView = z.infer<typeof ReadingHistoryViewSchema>;
+
 export const DeliveryViewSchema = z.object({
   cancelledAt: z.string().nullable(),
   cancelReason: z.string().nullable(),
@@ -968,12 +1004,34 @@ export const BookViewSchema = z.object({
 export type BookView = z.infer<typeof BookViewSchema>;
 
 export const LibraryOverviewViewSchema = z.object({
+  activeReading: z
+    .object({
+      book: z
+        .object({
+          currentPage: z.number(),
+          id: z.string(),
+          pagesCount: z.number(),
+          title: z.string(),
+        })
+        .nullable(),
+      pagesAhead: z.number(),
+    })
+    .optional(),
   recentlyAdded: z.array(BookViewSchema),
   summary: z.object({
+    authorsCount: z.number().optional(),
+    borrowed: z.number(),
     favorites: z.number(),
     finished: z.number(),
+    inTransit: z.number(),
+    physicallyAvailable: z.number().optional(),
     reading: z.number(),
+    series: z.number(),
+    seriesCount: z.number().optional(),
+    solo: z.number(),
     total: z.number(),
+    wantToBuy: z.number(),
+    wantToRead: z.number(),
   }),
   topGenres: z.array(
     z.object({
@@ -997,7 +1055,10 @@ export const FavoritesSummaryViewSchema = z.object({
   averageRating: z.number().nullable(),
   finished: z.number(),
   reading: z.number(),
+  series: z.number(),
+  solo: z.number(),
   total: z.number(),
+  wantToRead: z.number(),
 });
 
 export type FavoritesSummaryView = z.infer<typeof FavoritesSummaryViewSchema>;

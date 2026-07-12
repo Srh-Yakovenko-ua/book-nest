@@ -180,6 +180,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Оновлені картки бібліотеки",
     version: null,
   },
+  {
+    bodyEn:
+      "Filter your library with a rating range slider and multi-select pickers for authors, publishers, tags, and genres, then apply them together. Summary cards now surface extra stats like series and author counts and your current reading progress.",
+    bodyUk:
+      "Фільтруйте бібліотеку повзунком діапазону рейтингу та мультивибором авторів, видавців, тегів і жанрів, а потім застосовуйте їх разом. Картки підсумків тепер показують додаткову статистику: кількість серій та авторів і ваш поточний прогрес читання.",
+    category: "improvement",
+    publishedAt: "2026-07-12T06:00:00.000Z",
+    slug: "library-filters-summary",
+    titleEn: "Improved library filters and stats",
+    titleUk: "Покращені фільтри та статистика бібліотеки",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
