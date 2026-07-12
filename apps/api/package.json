@@ -28,6 +28,7 @@
   "dependencies": {
     "@app/shared": "workspace:*",
     "@aws-sdk/client-s3": "catalog:",
+    "@nestjs/bullmq": "catalog:",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
     "@nestjs/platform-express": "catalog:",
@@ -39,6 +40,7 @@
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",
     "bcryptjs": "catalog:",
+    "bullmq": "catalog:",
     "compression": "catalog:",
     "cookie-parser": "catalog:",
     "date-fns": "catalog:",

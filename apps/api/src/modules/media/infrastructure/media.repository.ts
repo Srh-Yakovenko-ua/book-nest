@@ -28,4 +28,12 @@ export class MediaRepository {
   findOwnedById({ id, userId }: MediaOwnerRef): Promise<Nullable<MediaAssetModel>> {
     return this.prisma.mediaAsset.findFirst({ where: { id, userId } });
   }
+
+  async markThumbGenerated(id: string): Promise<boolean> {
+    const result = await this.prisma.mediaAsset.updateMany({
+      data: { thumbGeneratedAt: new Date() },
+      where: { id },
+    });
+    return result.count > 0;
+  }
 }

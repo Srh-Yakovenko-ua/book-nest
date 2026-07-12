@@ -1,6 +1,7 @@
 import type { INestApplication } from "@nestjs/common";
 
 import { MEDIA_MAX_UPLOAD_BYTES } from "@app/shared";
+import { getQueueToken } from "@nestjs/bullmq";
 import sharp from "sharp";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -11,6 +12,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
+import { MEDIA_QUEUE_NAME } from "../domain/media-queue.js";
 import { StoragePort } from "../domain/storage.port.js";
 import { MediaModule } from "../media.module.js";
 
@@ -30,6 +32,7 @@ const MEDIA_VIEW_KEYS = [
 
 const storedKeys = new Set<string>();
 const deletedBatches: string[][] = [];
+const enqueuedJobs: { data: unknown; name: string }[] = [];
 
 const storageStub = {
   delete: (keys: string[]): Promise<void> => {
@@ -44,6 +47,13 @@ const storageStub = {
   },
 };
 
+const queueStub = {
+  add: (name: string, data: unknown): Promise<void> => {
+    enqueuedJobs.push({ data, name });
+    return Promise.resolve();
+  },
+};
+
 let context: AuthTestContext;
 let app: INestApplication;
 let prisma: PrismaService;
@@ -52,7 +62,10 @@ let pngBuffer: Buffer;
 beforeAll(async () => {
   context = await createAuthTestContext(
     [AuthModule, MediaModule],
-    [{ provide: StoragePort, useValue: storageStub }],
+    [
+      { provide: StoragePort, useValue: storageStub },
+      { provide: getQueueToken(MEDIA_QUEUE_NAME), useValue: queueStub },
+    ],
   );
   app = context.app;
   prisma = app.get(PrismaService);
@@ -67,6 +80,7 @@ beforeEach(() => {
   context.reset();
   storedKeys.clear();
   deletedBatches.length = 0;
+  enqueuedJobs.length = 0;
 });
 
 afterEach(async () => {
@@ -92,7 +106,7 @@ describe("POST /api/media", () => {
     expect(res.status).toBe(401);
   });
 
-  it("uploads an image, stores the image plus a thumb, and returns a MediaView with metadata", async () => {
+  it("stores the full image synchronously, returns the thumb falling back to the full url, and enqueues a thumbnail job", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
 
     const res = await uploadMedia(accessToken).attach("file", pngBuffer, {
@@ -112,15 +126,20 @@ describe("POST /api/media", () => {
     expect(typeof res.body.createdAt).toBe("string");
     expect(res.body.urls.full).toMatch(/\/image\.webp$/);
     expect(res.body.urls.card).toBe(res.body.urls.full);
-    expect(res.body.urls.thumb).toMatch(/\/thumb\.webp$/);
-    expect(res.body.urls.thumb).not.toBe(res.body.urls.full);
-    expect(storedKeys.size).toBe(2);
+    expect(res.body.urls.thumb).toBe(res.body.urls.full);
+    expect(storedKeys.size).toBe(1);
+
+    expect(enqueuedJobs).toHaveLength(1);
+    expect(enqueuedJobs[0]).toEqual({
+      data: { assetId: res.body.id, userId },
+      name: "generate-thumb",
+    });
 
     const row = await prisma.mediaAsset.findUnique({ where: { id: res.body.id } });
     expect(row?.userId).toBe(userId);
     expect(row?.kind).toBe("book_cover");
     expect(row?.originalName).toBe("cover.png");
-    expect(row?.thumbGeneratedAt).not.toBeNull();
+    expect(row?.thumbGeneratedAt).toBeNull();
   });
 
   it("accepts an explicit kind field", async () => {
@@ -179,7 +198,7 @@ describe("DELETE /api/media/:id", () => {
       contentType: "image/png",
       filename: "cover.png",
     });
-    expect(storedKeys.size).toBe(2);
+    expect(storedKeys.size).toBe(1);
 
     const res = await request(app.getHttpServer())
       .delete(`/api/media/${created.body.id}`)
@@ -188,7 +207,7 @@ describe("DELETE /api/media/:id", () => {
     expect(res.status).toBe(204);
     expect(storedKeys.size).toBe(0);
     expect(deletedBatches).toHaveLength(1);
-    expect(deletedBatches[0]).toHaveLength(2);
+    expect(deletedBatches[0]).toHaveLength(1);
     const row = await prisma.mediaAsset.findUnique({ where: { id: created.body.id } });
     expect(row).toBeNull();
   });
