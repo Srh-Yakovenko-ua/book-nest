@@ -453,8 +453,8 @@
         "want_to_buy": "До покупки",
         "in_transit": "В дорозі",
         "borrowed": "Позичені",
-        "series": "Серії",
-        "solo": "Соло"
+        "series": "Частина серії",
+        "solo": "Соло книга"
       },
       "filters": {
         "trigger": "Фільтри",

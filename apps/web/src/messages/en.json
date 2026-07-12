@@ -453,8 +453,8 @@
         "want_to_buy": "To buy",
         "in_transit": "In transit",
         "borrowed": "Borrowed",
-        "series": "Series",
-        "solo": "Standalone"
+        "series": "Series part",
+        "solo": "Standalone book"
       },
       "filters": {
         "trigger": "Filters",

@@ -17,6 +17,7 @@ import type { LibraryActions, PendingBookAction } from "../model/book-card-actio
 import type { LibraryBook } from "../model/library-book";
 
 import { canMarkFinished, canStartReading } from "../model/book-card-actions";
+import { shouldShowReadingQueue } from "../model/reading-queue-visibility";
 
 type BookCardActionsProps = {
   actions: LibraryActions;
@@ -95,17 +96,18 @@ export function BookCardActions({ actions, book, onOpenDialog }: BookCardActions
             </DropdownMenuItem>
           ) : null}
 
-          {book.isInReadingQueue ? (
-            <DropdownMenuItem onSelect={() => void actions.onRemoveFromQueue(book.id)}>
-              <UiIcon name="bookmark" size={16} />
-              {t("actions.removeFromQueue")}
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem onSelect={() => void actions.onAddToQueue([book.id])}>
-              <UiIcon name="bookmark" size={16} />
-              {t("actions.addToQueue")}
-            </DropdownMenuItem>
-          )}
+          {shouldShowReadingQueue(book.readingStatus) &&
+            (book.isInReadingQueue ? (
+              <DropdownMenuItem onSelect={() => void actions.onRemoveFromQueue(book.id)}>
+                <UiIcon name="bookmark" size={16} />
+                {t("actions.removeFromQueue")}
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onSelect={() => void actions.onAddToQueue([book.id])}>
+                <UiIcon name="bookmark" size={16} />
+                {t("actions.addToQueue")}
+              </DropdownMenuItem>
+            ))}
 
           <DropdownMenuItem
             onSelect={() =>

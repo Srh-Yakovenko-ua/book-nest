@@ -7,20 +7,22 @@ import { ChipGroup } from "@/components/ui/chip-group";
 import type { LibraryScope } from "../model/library-query";
 
 import {
+  type LibraryQuickFilterCounts,
   type LibraryQuickFilterKey,
   quickFilterKeysForScope,
 } from "../model/library-quick-filters";
 
 type LibraryQuickFiltersProps = {
+  counts?: LibraryQuickFilterCounts;
   onSelect: (key: LibraryQuickFilterKey) => void;
   scope: LibraryScope;
   value: LibraryQuickFilterKey | null;
 };
 
-export function LibraryQuickFilters({ onSelect, scope, value }: LibraryQuickFiltersProps) {
+export function LibraryQuickFilters({ counts, onSelect, scope, value }: LibraryQuickFiltersProps) {
   const t = useTranslations("books.library.quickFilters");
   const keys = quickFilterKeysForScope(scope);
-  const options = keys.map((key) => ({ label: t(key), value: key }));
+  const options = keys.map((key) => ({ count: counts?.[key], label: t(key), value: key }));
 
   return (
     <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
