@@ -65,6 +65,7 @@ export function BooksToBuyView() {
         isError={isError}
         isPending={isPending}
         onAddBook={() => router.push("/books/new")}
+        onOpenLibrary={() => router.push("/books")}
         onRetry={() => void refetch()}
       />
     </div>
@@ -76,12 +77,14 @@ function BooksToBuyContent({
   isError,
   isPending,
   onAddBook,
+  onOpenLibrary,
   onRetry,
 }: {
   books: BookView[];
   isError: boolean;
   isPending: boolean;
   onAddBook: () => void;
+  onOpenLibrary: () => void;
   onRetry: () => void;
 }) {
   const t = useTranslations("booksToBuy");
@@ -109,9 +112,10 @@ function BooksToBuyContent({
       desc: t("empty.description"),
       illu: "empty-purchases",
       primary: { icon: "plus", label: t("empty.cta") },
+      secondary: { icon: "book", label: t("empty.secondary") },
       title: t("empty.title"),
     };
-    return <EmptyState onPrimary={onAddBook} state={emptyState} />;
+    return <EmptyState onPrimary={onAddBook} onSecondary={onOpenLibrary} state={emptyState} />;
   }
 
   return (

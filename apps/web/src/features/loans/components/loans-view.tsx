@@ -255,7 +255,14 @@ function LoansContent({
     }
 
     if (totalActive === 0) {
-      return <EmptyState onPrimary={onAddBook} onSecondary={onOpenLibrary} stateKey="borrowed" />;
+      const emptyState: EmptyStateEntry = {
+        desc: t("empty.description"),
+        illu: "empty-borrowed",
+        primary: { icon: "plus", label: t("empty.cta") },
+        secondary: { icon: "book", label: t("empty.secondary") },
+        title: t("empty.title"),
+      };
+      return <EmptyState onPrimary={onAddBook} onSecondary={onOpenLibrary} state={emptyState} />;
     }
 
     const isBorrowed = tab === LoansControllerListType.borrowed_from_someone;
