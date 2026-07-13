@@ -88,11 +88,11 @@ totalPagesRead  — сума всіх pagesRead
 
 ## Підсумкова таблиця
 
-| Аспект        | Стан (overwrite)                       | Історія (append-only)                     |
-| ------------- | -------------------------------------- | ----------------------------------------- |
-| Таблиця       | `book_reading_progress`                | `book_reading_progress_events`            |
-| Модель Prisma | `BookReadingProgress`                  | `BookReadingProgressEvent`                |
-| Обмеження     | `UNIQUE(book_id)`                      | `INDEX(book_id, date)`, не unique         |
-| Запис         | `bookReadingProgress.upsert`           | `bookReadingProgressEvent.create`         |
-| Рядків/книга  | рівно 1                                | 0..N (один на кожне просування вперед)    |
-| Зберігає      | `current_page`, дати, rating, note     | `date`, `page`, `pages_read` на оновлення |
+| Аспект        | Стан (overwrite)                   | Історія (append-only)                     |
+| ------------- | ---------------------------------- | ----------------------------------------- |
+| Таблиця       | `book_reading_progress`            | `book_reading_progress_events`            |
+| Модель Prisma | `BookReadingProgress`              | `BookReadingProgressEvent`                |
+| Обмеження     | `UNIQUE(book_id)`                  | `INDEX(book_id, date)`, не unique         |
+| Запис         | `bookReadingProgress.upsert`       | `bookReadingProgressEvent.create`         |
+| Рядків/книга  | рівно 1                            | 0..N (один на кожне просування вперед)    |
+| Зберігає      | `current_page`, дати, rating, note | `date`, `page`, `pages_read` на оновлення |
