@@ -1,120 +1,98 @@
-# Аналіз: як зараз працює оновлення прогресу читання
+# Аналіз: оновлення прогресу читання (гілка `dev`)
 
-> Стан на 2026-07-10. Гілка `fix/book-details`. Read-only аналіз, без змін коду.
+> Стан на 2026-07-13, гілка `dev`. Read-only аналіз, без змін коду.
+>
+> Попередня версія цього документа (2026-07-10, гілка `fix/book-details`) описувала
+> стан **до** появи журналу подій і рекомендувала append-only лог. Той лог відтоді
+> реалізовано (міграція `20260711163000_add_book_reading_progress_events`), тож цей
+> документ описує вже новий, поточний стан.
 
-## TL;DR
+## Коротка відповідь
 
-Прогрес **перезатирається** (overwrite), а не накопичується. У БД зберігається **лише один рядок на книгу** з поточним станом. Ані посторінкова історія за кожен день, ані агрегація «скільки сторінок прочитано за день» — **не ведуться взагалі**. Кілька оновлень за один день просто перезаписують одне одного; останнє перемагає.
+Працює **і те, і те одночасно** — це дві окремі таблиці:
 
----
+- **Стан** (`book_reading_progress`) — **один рядок на книгу**, `current_page` **перезатирається** через `upsert`.
+- **Історія** (`book_reading_progress_events`) — **журнал append-only**, на кожне просування вперед вставляється **новий рядок**. Нічого не затирається й не групується — за одну дату може бути кілька записів.
 
-## 1. Модель зберігання
+Тобто історія всіх оновлень **зберігається** окремо від «останнього значення».
 
-`apps/api/prisma/schema.prisma:265`
-
-```prisma
-model BookReadingProgress {
-  id                   String    @id @default(uuid()) @db.Uuid
-  bookId               String    @unique @map("book_id") @db.Uuid   // одна книга = один рядок
-  currentPage          Int?      @map("current_page")
-  startedAt            DateTime? @map("started_at") @db.Date
-  finishedAt           DateTime? @map("finished_at") @db.Date
-  pausedAt             DateTime? @map("paused_at") @db.Date
-  abandonedAt          DateTime? @map("abandoned_at") @db.Date
-  rating               Float?
-  note                 String?
-  impression           String?
-  lastProgressUpdateAt DateTime? @map("last_progress_update_at") @db.Date  // дата, без часу
-  createdAt            DateTime  @default(now()) @db.Timestamptz
-  updatedAt            DateTime  @updatedAt @db.Timestamptz
-  book                 Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  @@map("book_reading_progress")
-}
-```
-
-Ключове:
-
-- `bookId @unique` → зв'язок `Book ⇄ BookReadingProgress` **1:1**. Фізично неможливо мати два записи прогресу для однієї книги.
-- `currentPage` — це **абсолютна позиція-курсор** (на якій сторінці ти зараз), а **не** «кількість прочитаних сторінок». Дельта «+30 сторінок сьогодні» ніде не рахується й не зберігається.
-- `lastProgressUpdateAt` — тип `@db.Date` (тільки дата, без часу). Це «дата останнього оновлення», яку щоразу перезаписують.
-- Окремої таблиці reading-session / daily-log / history **немає**. Перевірено всі 27 моделей схеми — прогресу стосується рівно одна: `BookReadingProgress`. Моделі зі словами session/history/log (`Session`, `ChangelogEntry`, `ChangelogRead`) до читання не мають стосунку.
-
-## 2. Шлях запиту
+## Дві моделі (`apps/api/prisma/schema.prisma`)
 
 ```
-POST /api/books/:id/reading-progress
-  → BookReadingController.updateReadingProgress      (api/book-reading.controller.ts:72)
-  → BookReadingService.updateReadingProgress         (application/book-reading.service.ts:76)
-  → computeReadingProgressChange                     (domain/reading-progress-transition.ts:24)
-  → BooksRepository.applyReadingChange               (infrastructure/books.repository.ts:283)
+BookReadingProgress        (266–283)   bookId @unique  → 1 рядок / книга (overwrite)
+  currentPage, startedAt, finishedAt, pausedAt, abandonedAt,
+  rating, note, impression, lastProgressUpdateAt
+
+BookReadingProgressEvent   (285–296)   @@index([bookId, date])  → 0..N рядків (журнал)
+  date (@db.Date), page, pagesRead, createdAt
 ```
 
-**Вхідний DTO** (`packages/shared/src/books.ts:214`):
+Ключовий момент: індекс на подіях `(book_id, date)` **не unique** (міграція `20260711163000_add_book_reading_progress_events`, `CREATE INDEX ... _idx`). Це навмисне — таблиця-лог, куди можна класти скільки завгодно записів за один день. Натомість у стані `book_id` має `UNIQUE INDEX` (міграція `20260611085734_book_reading_progress`), тому фізично не може бути двох рядків стану на книгу — це й змушує `upsert` перезаписувати.
+
+## Потік оновлення `POST /api/books/:id/reading-progress`
+
+`BookReadingService.updateReadingProgress` (`apps/api/src/modules/books/application/book-reading.service.ts:92`):
+
+1. Валідація: `currentPage` не більший за `pagesCount` і **не менший за збережений** `currentPage` (регрес назад заборонено) — рядки 99–106.
+2. `computeReadingProgressChange` (`apps/api/src/modules/books/domain/reading-progress-transition.ts:24`) рахує patch: ставить `currentPage` + `lastProgressUpdateAt`, і **авто-перехід статусу** — `not_started`/`want_to_read` → `reading` при page > 0, а при `markAsFinished` → `finished` (і page підтягується до `pagesCount`).
+3. `buildProgressEvent` (`book-reading.service.ts:130`): `pagesRead = resolvedPage − previousPage`. Якщо `pagesRead <= 0`, подія **не створюється** (`null`). Тобто журналюються лише кроки вперед.
+4. `recordReadingProgress` (`apps/api/src/modules/books/infrastructure/books.repository.ts:631`) — **одна транзакція**: `upsert` стану **плюс** `create` події:
 
 ```ts
-export const UpdateReadingProgressInputSchema = z.object({
-  currentPage: ReadingCurrentPageSchema,
-  markAsFinished: z.boolean().optional(),
-  updateDate: notInFutureDate("Update date must not be in the future").optional(),
-});
+await this.prisma.$transaction(async (tx) => {
+  await this.applyReadingChange(...)              // upsert current_page (перезапис)
+  if (event !== null) {
+    await tx.bookReadingProgressEvent.create({    // APPEND, ніколи не update
+      data: { bookId, date, page, pagesRead },
+    })
+  }
+})
 ```
 
-**Сервіс** (`book-reading.service.ts:76`) валідує:
+Оскільки це `create`, а не `upsert`-по-даті, два оновлення в один день дадуть **дві** події.
 
-- `currentPage > pagesCount` → 422 (`PAGE_EXCEEDS_PAGES_MESSAGE`) — не можна більше за обсяг книги;
-- `currentPage < existingPage` → 422 (`PAGE_BELOW_PROGRESS_MESSAGE`) — **прогрес не можна зменшити**, лише вперед.
+## Що віддає історія
 
-**Доменна логіка** (`reading-progress-transition.ts:24`) будує patch:
+`GET /api/books/:id/reading-history` → `toReadingHistoryView` (`apps/api/src/modules/books/domain/reading-history.mapper.ts`) повертає:
 
-```ts
-progress.currentPage = resolvedPage; // нове абсолютне значення (або pagesCount при markAsFinished)
-progress.lastProgressUpdateAt = date; // з updateDate або сьогодні
-// авто-переходи статусу:
-//   not_started/want_to_read + page>0 → "reading" (+ startedAt = existing ?? date)
-//   markAsFinished                    → "finished" (+ finishedAt = date, currentPage = pagesCount)
+```
+events[]        — всі сирі події (date, page, pagesRead) по порядку
+daily[]         — агрегація pagesRead по днях (Map date → сума)
+daysRead        — к-сть унікальних днів
+totalPagesRead  — сума всіх pagesRead
 ```
 
-## 3. Як саме пишеться в БД
+Тобто бек тримає повний журнал **і** дає готову агрегацію по днях (для графіка «сторінок за день»).
 
-`apps/api/src/modules/books/infrastructure/books.repository.ts:307`
+## Яку логіку підтримує бек
 
-```ts
-await client.bookReadingProgress.upsert({
-  create: { ...patch.progress, bookId },
-  update: patch.progress, // ← UPDATE перезаписує current_page і last_progress_update_at
-  where: { bookId },
-});
-```
+- **Update progress** (`POST /reading-progress`) — просування вперед з валідацією меж, авто-старт/авто-фініш статусу, запис події в журнал.
+- **Change status** (`POST /reading-status`) — ручна зміна статусу (`reading`/`finished`/`paused`/`abandoned`…) з побічними ефектами по датах, `resetProgress`, rating/note/impression. Іде через `applyReadingChange` (лише `upsert` стану, **без** запису події в журнал).
+- **Reading history** (`GET /reading-history`) — читання журналу + денна агрегація.
+- `markAsFinished` як шорткат: підтягує `currentPage` до `pagesCount` і ставить `finished`.
 
-`upsert` по унікальному `bookId`: якщо рядок є — **UPDATE перезаписує** поля; якщо нема — створює. Усе загорнуто в `$transaction` разом з можливим оновленням `book.readingStatus` (атомарність статусу і прогресу).
+Контролер: `apps/api/src/modules/books/api/book-reading.controller.ts`.
 
----
+## Shared DTO (`packages/shared/src/books.ts`)
 
-## 4. Прямі відповіді на поставлені питання
+- `UpdateReadingProgressInputSchema` (214–218): `{ currentPage, markAsFinished?, updateDate? }`.
+- `ReadingHistoryEventViewSchema` (911–916): `{ date, id, page, pagesRead }`.
+- `ReadingHistoryDayViewSchema` (920–923): `{ date, pagesRead }`.
+- `ReadingHistoryViewSchema` (927–932): `{ daily[], daysRead, events[], totalPagesRead }`.
 
-| Питання                                                      | Відповідь                                                                                                                                     |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Перезатираються дані чи зберігаються за кожен окремий день?  | **Перезатираються.** Один рядок на книгу, історії днів немає.                                                                                 |
-| Агрегуються сторінки за день при кількох оновленнях на день? | **Ні.** Кожне оновлення просто перезаписує `currentPage`. Останній виклик за день = фінальне значення. Дельти не рахуються.                   |
-| Що взагалі зберігається?                                     | Лише **поточний стан**: абсолютна сторінка-курсор, дати старту/завершення/паузи/відмови, дата останнього оновлення, рейтинг/нотатка/враження. |
+## Стан фронту
 
-## 5. Наслідки для продукту
+Журнал повністю реалізований і виставлений через API (є згенерований хук `useBookReadingControllerGetReadingHistory`), **але жоден рукописний FE-компонент його наразі не споживає**. UI (`apps/web/src/features/books/components/reading-progress-block.tsx`) показує тільки поточний стан з одного рядка (`resolveReadingProgress` → `currentPage`/`percent`) і `lastProgressUpdateAt`.
 
-З поточною схемою **неможливо** побудувати без зміни моделі даних:
+Дані історії накопичуються на беку, але екрана «історія читання / графік по днях» на фронті ще немає.
 
-- графік «сторінок за день»;
-- reading-streak (серії днів читання);
-- статистику темпу читання (сторінок/день, прогноз дати завершення);
-- історію «коли на якій сторінці був».
+## Підсумкова таблиця
 
-Причина одна: зберігається лише останній зріз, а не події. Кожне оновлення знищує попередній стан безповоротно.
-
-## 6. Рекомендація
-
-Перейти на патерн **append-only журнал подій + похідний поточний стан**:
-
-- нова таблиця-журнал `book_reading_events` — рядок на кожне оновлення прогресу (`bookId`, `page`, `pagesDelta`, `occurredAt`);
-- `BookReadingProgress` лишити як денормалізований «поточний стан» (швидке читання для картки книги);
-- денні/тижневі агрегати рахувати **на читанні** через `GROUP BY occurred_at SUM(pages_delta)` — сирі події лишаються джерелом правди, з них можна вивести будь-яку статистику пізніше.
-
-Детальний план впровадження та бриф для backend-інженера: [`docs/prompts/reading-progress-journal-plan.md`](./prompts/reading-progress-journal-plan.md).
+| Аспект        | Стан (overwrite)                       | Історія (append-only)                     |
+| ------------- | -------------------------------------- | ----------------------------------------- |
+| Таблиця       | `book_reading_progress`                | `book_reading_progress_events`            |
+| Модель Prisma | `BookReadingProgress`                  | `BookReadingProgressEvent`                |
+| Обмеження     | `UNIQUE(book_id)`                      | `INDEX(book_id, date)`, не unique         |
+| Запис         | `bookReadingProgress.upsert`           | `bookReadingProgressEvent.create`         |
+| Рядків/книга  | рівно 1                                | 0..N (один на кожне просування вперед)    |
+| Зберігає      | `current_page`, дати, rating, note     | `date`, `page`, `pages_read` на оновлення |
