@@ -23,10 +23,16 @@
   },
   "readingQueue": {
     "title": "Reading queue",
-    "subtitle": "Your ordered list of what to read next",
+    "subtitle": "Your organized plan for what to read next",
     "countBadge": "{count, plural, one {# book} other {# books}}",
     "addBook": "Add a book to the queue",
     "listHeading": "Queue",
+    "empty": {
+      "title": "Plan your next reads",
+      "description": "Add books to the queue, arrange them in the right order, and always know what to read next.",
+      "cta": "Add book to queue",
+      "secondary": "View all books"
+    },
     "error": {
       "title": "Couldn’t load the reading queue",
       "description": "Try refreshing the page or retry a little later.",
@@ -171,11 +177,9 @@
     }
   },
   "notFound": {
-    "eyebrow": "Error · 404",
-    "headline": "Not found",
-    "description": "The page you tried to reach doesn't exist on this server. It may have moved, or you followed a stale link.",
-    "backHome": "Back home",
-    "footer": "Book Nest · teaching project"
+    "title": "Page not found",
+    "description": "It looks like this page got lost between the library shelves. But the way back is easy to find.",
+    "quickLinks": "Quick links:"
   },
   "error": {
     "eyebrow": "Error · Client",
@@ -348,11 +352,11 @@
     "library": {
       "all": {
         "title": "All books",
-        "subtitle": "The complete list of books saved in BookNest"
+        "subtitle": "Every book you've added — finished, planned, and waiting to be discovered"
       },
       "my": {
         "title": "My library",
-        "subtitle": "Your home book collection, all in one place"
+        "subtitle": "The books that are already part of your personal collection"
       },
       "card": {
         "lentTo": "With {name}",
@@ -419,9 +423,17 @@
         "ariaLabel": "Rating {value} of 10"
       },
       "empty": {
-        "title": "Your library is still empty",
-        "description": "Add your first book to start building your reading collection.",
-        "cta": "Add book"
+        "all": {
+          "title": "Your book collection starts here",
+          "description": "Add your first book to keep track of what you've read, what you're planning, and what you want to discover next.",
+          "cta": "Add book"
+        },
+        "my": {
+          "title": "Build your home library",
+          "description": "Add the books you own or mark existing books as owned, and they'll appear here.",
+          "cta": "Add book",
+          "secondary": "View all books"
+        }
       },
       "noSearchResults": {
         "title": "Nothing found",
@@ -1437,11 +1449,12 @@
   "booksToBuy": {
     "metaTitle": "Books to buy",
     "title": "Books to buy",
-    "subtitle": "Your wishlist of books you plan to buy",
+    "subtitle": "Books you want to purchase and add to your collection",
     "empty": {
-      "title": "Your shopping list is empty",
-      "description": "Books with the «Want to buy» status will appear here.",
-      "cta": "Add book"
+      "title": "Save books for future purchases",
+      "description": "Mark the books you want to buy so you can keep track of editions, stores, and prices.",
+      "cta": "Add book",
+      "secondary": "View all books"
     },
     "error": {
       "title": "Could not load",
@@ -1454,7 +1467,7 @@
   "delivery": {
     "metaTitle": "Books in transit",
     "title": "Books in transit",
-    "subtitle": "Track the books you have already ordered but not yet received.",
+    "subtitle": "Track ordered books from purchase to delivery",
     "resultsTitle": "Active deliveries",
     "counter": "{count, plural, one {# active delivery} other {# active deliveries}}",
     "loadMore": "Show more",
@@ -1545,9 +1558,9 @@
         "retry": "Try again"
       },
       "empty": {
-        "title": "You have no books in transit",
-        "description": "Once you mark a book as ordered, it will appear here together with its delivery status.",
-        "cta": "Go to books to buy"
+        "title": "Track your book orders",
+        "description": "Mark an ordered book as \"In transit\" and add the store and delivery details to follow its journey.",
+        "cta": "View books to buy"
       },
       "filteredEmpty": {
         "title": "Nothing found",
@@ -1721,7 +1734,7 @@
   "favorites": {
     "metaTitle": "Favorite books",
     "title": "Favorite books",
-    "subtitle": "Books worth remembering, rereading, and recommending to others",
+    "subtitle": "Books you want to revisit, remember, and recommend",
     "countBadge": "{count, plural, one {# book} other {# books}}",
     "summary": {
       "total": "Total favorites",
@@ -1729,6 +1742,11 @@
       "reading": "Reading",
       "averageRating": "Average rating",
       "averageRatingEmpty": "—"
+    },
+    "empty": {
+      "title": "Collect the books that feel special",
+      "description": "Mark a book with a heart to save it to your favorites and easily find it again.",
+      "cta": "View all books"
     },
     "remove": {
       "toast": "Book removed from favorites",
@@ -1739,7 +1757,7 @@
     "page": {
       "metaTitle": "Series",
       "title": "Series",
-      "subtitle": "All the book cycles in your library — with progress and upcoming volumes",
+      "subtitle": "Organize book series, follow the reading order, and track your progress",
       "count": "{count, plural, one {# series} other {# series}}",
       "resultsTitle": "Series list",
       "create": "Create series",
@@ -1849,8 +1867,8 @@
     "states": {
       "loading": "Loading series…",
       "empty": {
-        "title": "You have no series yet",
-        "description": "Create a series or add a book that belongs to a cycle to start tracking progress.",
+        "title": "Create your first book series",
+        "description": "Create a series or add a book to one to see the volume order and track your reading progress.",
         "create": "Create series",
         "addBook": "Add book"
       },
@@ -2067,7 +2085,7 @@
     "catalog": {
       "metaTitle": "Custom lists",
       "title": "Custom lists",
-      "subtitle": "Organize your books into your own themed collections",
+      "subtitle": "Create themed collections and organize books your way",
       "count": "{count, plural, one {# list} other {# lists}}",
       "create": "Create list",
       "search": {
@@ -2093,10 +2111,10 @@
         "coverAlt": "Cover from {name}"
       },
       "empty": {
-        "title": "No lists yet",
-        "description": "Create your first list to save books by mood, theme, or your own reading plan.",
+        "title": "Create your first themed collection",
+        "description": "Group books by mood, genre, topic, or reading plan and return to any collection whenever you need it.",
         "create": "Create list",
-        "library": "Go to library"
+        "secondary": "View all books"
       },
       "noResults": {
         "title": "Nothing found",
@@ -2198,7 +2216,7 @@
   "loans": {
     "metaTitle": "Borrowed books",
     "title": "Borrowed books",
-    "subtitle": "Books you borrowed from someone or lent to someone",
+    "subtitle": "Keep track of books shared between you and other readers",
     "count": "{count, plural, one {# book} other {# books}}",
     "listHeading": "Borrowed books list",
     "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
@@ -2286,6 +2304,12 @@
     },
     "states": {
       "loading": "Loading your borrowed books...",
+      "empty": {
+        "title": "Keep borrowed books under control",
+        "description": "Add a book, note who has it now, and set a return date so nothing gets forgotten.",
+        "cta": "Add borrowed book",
+        "secondary": "View all books"
+      },
       "tabEmpty": {
         "titleBorrowed": "Nothing in “Borrowed from someone” yet",
         "titleLent": "Nothing in “Lent to someone” yet",

@@ -64,7 +64,6 @@ export function BookRow({ book, kebab, linkComponent, selected, selectionControl
       </div>
 
       <BookRowRail
-        ageBadge={book.ageBadge}
         inReadingQueue={book.isInReadingQueue}
         kebab={kebab}
         rating={book.rating}
@@ -172,18 +171,22 @@ function BookRowMeta({ book, LinkComp }: { book: LibraryBook; LinkComp: RowLinkC
           ))}
         </div>
       )}
+
+      {book.ageBadge === undefined ? null : (
+        <span className={cn(statusBadgeVariants({ tone: "danger" }), "mt-auto self-end")}>
+          {book.ageBadge}
+        </span>
+      )}
     </div>
   );
 }
 
 function BookRowRail({
-  ageBadge,
   inReadingQueue,
   kebab,
   rating,
   ratingLabel,
 }: {
-  ageBadge?: string;
   inReadingQueue: boolean;
   kebab?: React.ReactNode;
   rating?: number;
@@ -192,22 +195,19 @@ function BookRowRail({
   const t = useTranslations("books.library");
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-2 self-start">
-      <div className="flex items-center gap-1.5">
-        {ageBadge === undefined ? null : (
-          <span className={statusBadgeVariants({ tone: "danger" })}>{ageBadge}</span>
-        )}
-        {kebab === undefined ? null : <div className="relative z-10 shrink-0">{kebab}</div>}
+    <div className="flex shrink-0 flex-col items-end gap-2 self-stretch">
+      {kebab === undefined ? null : <div className="relative z-10 shrink-0">{kebab}</div>}
+
+      <div className="mt-auto flex flex-col items-end gap-2">
+        {inReadingQueue ? (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <UiIcon className="shrink-0" name="bookmark" size={14} />
+            {t("card.inQueue")}
+          </span>
+        ) : null}
+
+        {rating === undefined ? null : <RatingScore label={ratingLabel} value={rating} />}
       </div>
-
-      {rating === undefined ? null : <RatingScore label={ratingLabel} value={rating} />}
-
-      {inReadingQueue ? (
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <UiIcon className="shrink-0" name="bookmark" size={14} />
-          {t("card.inQueue")}
-        </span>
-      ) : null}
     </div>
   );
 }
