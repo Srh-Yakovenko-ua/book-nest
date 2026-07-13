@@ -70,6 +70,7 @@ type BooksLibraryViewProps = {
   onClearAll: () => void;
   onClearFilters: () => void;
   onClearSearch: () => void;
+  onEmptySecondary?: () => void;
   onLoadMore: () => void;
   onRetry: () => void;
   onSortChange: (value: BooksControllerListSort) => void;
@@ -295,6 +296,7 @@ function LibraryContent({
   onClearAll,
   onClearFilters,
   onClearSearch,
+  onEmptySecondary,
   onLoadMore,
   onRetry,
   renderActions,
@@ -318,7 +320,7 @@ function LibraryContent({
 
   if (books.length === 0) {
     if (!summaryLoading && libraryTotal === 0) {
-      return <EmptyState onPrimary={onAddBook} state={emptyState} />;
+      return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
     }
     if (hasActiveSearch && !hasActiveFilters) {
       return <EmptyState onPrimary={onClearSearch} state={noSearchResultsState} />;
@@ -332,7 +334,7 @@ function LibraryContent({
         />
       );
     }
-    return <EmptyState onPrimary={onAddBook} state={emptyState} />;
+    return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
   }
 
   return (

@@ -8,7 +8,6 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { Badge } from "@/components/ui/badge";
 import { Link, useRouter } from "@/i18n/navigation";
-import { EMPTY_STATES } from "@/lib/empty-states";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
@@ -205,6 +204,13 @@ export function FavoritesView() {
     },
   };
 
+  const emptyState: EmptyStateEntry = {
+    desc: tFav("empty.description"),
+    illu: "empty-favorites",
+    primary: { icon: "book", label: tFav("empty.cta") },
+    title: tFav("empty.title"),
+  };
+
   const errorState: EmptyStateEntry = {
     desc: t("error.description"),
     illu: "error-generic",
@@ -246,7 +252,7 @@ export function FavoritesView() {
         books={books}
         counterLabel={t("counter", { shown: books.length, total: totalCount })}
         coverViewLabel={tCover("viewer.open")}
-        emptyState={EMPTY_STATES.favorites}
+        emptyState={emptyState}
         errorState={errorState}
         hasActiveFilters={library.hasActiveFilters}
         hasActiveSearch={library.hasActiveSearch}

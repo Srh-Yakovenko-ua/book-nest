@@ -15,6 +15,7 @@ export type EmptyStateEntry = {
   desc: string;
   footer?: string;
   illu: EmptyStateIllustration;
+  illuSize?: EmptyStateIllustrationSize;
   num?: string;
   offlineCards?: readonly EmptyStateOfflineCard[];
   primary?: EmptyStateAction;
@@ -28,6 +29,7 @@ export type EmptyStateEntry = {
 };
 
 export type EmptyStateIllustration =
+  | "empty-all-books"
   | "empty-authors"
   | "empty-borrowed"
   | "empty-delivery"
@@ -45,6 +47,8 @@ export type EmptyStateIllustration =
   | "error-404"
   | "error-generic"
   | "error-offline";
+
+export type EmptyStateIllustrationSize = "lg" | "md" | "sm";
 
 export type EmptyStateOfflineCard = {
   icon: UiIconName;

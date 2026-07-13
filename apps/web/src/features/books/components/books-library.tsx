@@ -255,10 +255,12 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   };
 
   const emptyState: EmptyStateEntry = {
-    desc: t("empty.description"),
-    illu: "empty-library",
-    primary: { icon: "plus", label: t("empty.cta") },
-    title: t("empty.title"),
+    desc: t(`empty.${scope}.description`),
+    illu: scope === "all" ? "empty-all-books" : "empty-library",
+    illuSize: "lg",
+    primary: { icon: "plus", label: t(`empty.${scope}.cta`) },
+    secondary: scope === "my" ? { icon: "book", label: t("empty.my.secondary") } : undefined,
+    title: t(`empty.${scope}.title`),
   };
 
   const errorState: EmptyStateEntry = {
@@ -271,6 +273,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   const noSearchResultsState: EmptyStateEntry = {
     desc: t("noSearchResults.description"),
     illu: "empty-search",
+    illuSize: "sm",
     primary: { icon: "x", label: t("noSearchResults.clearSearch") },
     title: t("noSearchResults.title"),
   };
@@ -341,6 +344,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       onClearAll={library.clearAll}
       onClearFilters={library.clearFilters}
       onClearSearch={library.clearSearch}
+      onEmptySecondary={scope === "my" ? () => router.push("/books") : undefined}
       onLoadMore={() => void fetchNextPage()}
       onRetry={() => void refetch()}
       onSortChange={library.setSort}
