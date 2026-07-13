@@ -192,6 +192,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Покращені фільтри та статистика бібліотеки",
     version: null,
   },
+  {
+    bodyEn:
+      "Refreshed the empty-state illustrations across the app and added a localized page-not-found screen for unknown links.",
+    bodyUk:
+      "Оновили ілюстрації порожніх станів у застосунку та додали локалізовану сторінку, коли за посиланням нічого не знайдено.",
+    category: "improvement",
+    publishedAt: "2026-07-13T12:00:00.000Z",
+    slug: "empty-states-refresh",
+    titleEn: "Refreshed empty states and 404 page",
+    titleUk: "Оновлені порожні стани та сторінка 404",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
