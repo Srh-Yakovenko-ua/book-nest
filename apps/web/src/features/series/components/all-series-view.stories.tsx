@@ -126,7 +126,7 @@ export const Loading: Story = {
 export const Empty: Story = {
   args: { hasAnySeries: false, series: [], totalCount: 0, unfinishedCount: 0 },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole("heading", { name: "У вас ще немає серій" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "Збери першу книжкову серію" })).toBeVisible();
   },
 };
 

@@ -123,6 +123,14 @@ export function ReadingQueueView() {
     commitOrder(items);
   }
 
+  const emptyState: EmptyStateEntry = {
+    desc: t("empty.description"),
+    illu: "empty-queue",
+    primary: { icon: "plus", label: t("empty.cta") },
+    secondary: { icon: "book", label: t("empty.secondary") },
+    title: t("empty.title"),
+  };
+
   const errorState: EmptyStateEntry = {
     desc: t("error.description"),
     illu: "error-generic",
@@ -170,7 +178,7 @@ export function ReadingQueueView() {
         <EmptyState
           onPrimary={() => setAddOpen(true)}
           onSecondary={() => router.push("/books")}
-          stateKey="queue"
+          state={emptyState}
         />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">

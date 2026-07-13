@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { EMPTY_STATES } from "@/lib/empty-states";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
@@ -74,7 +73,7 @@ describe("ReadingQueueView", () => {
     renderWithProviders(<ReadingQueueView />);
 
     expect(document.querySelector("[aria-busy]")).toBeInTheDocument();
-    expect(screen.queryByText(EMPTY_STATES.queue.title)).not.toBeInTheDocument();
+    expect(screen.queryByText(copy.empty.title)).not.toBeInTheDocument();
   });
 
   it("shows an error state with a retry action when the queue fails to load", async () => {
@@ -92,7 +91,7 @@ describe("ReadingQueueView", () => {
 
     renderWithProviders(<ReadingQueueView />);
 
-    expect(await screen.findByText(EMPTY_STATES.queue.title)).toBeInTheDocument();
+    expect(await screen.findByText(copy.empty.title)).toBeInTheDocument();
     expect(screen.queryByText(copy.noSearchResults.title)).not.toBeInTheDocument();
   });
 
@@ -128,7 +127,7 @@ describe("ReadingQueueView", () => {
 
     expect(await screen.findByText(copy.noSearchResults.title)).toBeInTheDocument();
     expect(screen.queryByText("#2")).not.toBeInTheDocument();
-    expect(screen.queryByText(EMPTY_STATES.queue.title)).not.toBeInTheDocument();
+    expect(screen.queryByText(copy.empty.title)).not.toBeInTheDocument();
   });
 
   it("renders localized genre names on queued books rather than raw keys", async () => {

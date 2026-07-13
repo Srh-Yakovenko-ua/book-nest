@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { EMPTY_STATES, type EmptyStateEntry, type EmptyStateKey } from "@/lib/empty-states";
 import { cn } from "@/lib/utils";
 
+const ILLU_SIZE = {
+  lg: "h-84 w-auto",
+  md: "h-70 w-auto",
+  sm: "h-56 w-auto",
+} as const;
+
 type EmptyStateProps = {
   className?: string;
   onPrimary?: () => void;
@@ -19,12 +25,13 @@ export function EmptyState({
   stateKey,
 }: EmptyStateProps) {
   const entry: EmptyStateEntry = state ?? EMPTY_STATES[stateKey];
+  const illuSizeClass = ILLU_SIZE[entry.illuSize ?? "lg"];
 
   return (
-    <div className={cn("mx-auto flex flex-col items-center px-6 py-12 text-center", className)}>
+    <div className={cn("mx-auto flex flex-col items-center px-6 py-6 text-center", className)}>
       <Image
         alt=""
-        className="h-auto w-120 select-none"
+        className={cn("select-none", illuSizeClass)}
         height={352}
         priority={false}
         src={`/illustrations/${entry.illu}.png`}

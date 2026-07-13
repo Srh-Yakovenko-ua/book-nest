@@ -59,7 +59,7 @@ export function AllLists() {
         onCreateList={() => setCreateOpen(true)}
         onDeleteList={setDeleting}
         onEditList={setEditing}
-        onOpenLibrary={() => router.push("/my-library")}
+        onOpenLibrary={() => router.push("/books")}
         onRetry={() => void refetch()}
         sidebar={<ListsSidebar onCreateList={() => setCreateOpen(true)} stats={stats} />}
         toolbar={

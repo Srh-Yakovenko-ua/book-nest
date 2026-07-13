@@ -166,7 +166,7 @@ function ListsContent({
         desc: t("empty.description"),
         illu: "empty-lists",
         primary: { icon: "plus", label: t("empty.create") },
-        secondary: { icon: "library", label: t("empty.library") },
+        secondary: { icon: "book", label: t("empty.secondary") },
         title: t("empty.title"),
       };
       return <EmptyState onPrimary={onCreateList} onSecondary={onOpenLibrary} state={emptyState} />;
