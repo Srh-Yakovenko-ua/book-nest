@@ -49,6 +49,21 @@ export const withRelations = {
   tags: { include: { tag: true } },
 } satisfies Prisma.BookInclude;
 
+const readingSnapshotSelect = {
+  pagesCount: true,
+  readingProgress: {
+    select: {
+      abandonedAt: true,
+      currentPage: true,
+      finishedAt: true,
+      lastProgressUpdateAt: true,
+      pausedAt: true,
+      startedAt: true,
+    },
+  },
+  readingStatus: true,
+} satisfies Prisma.BookSelect;
+
 export type ActiveReadingRow = {
   currentPage: Nullable<number>;
   id: string;
@@ -159,6 +174,8 @@ export type ReadingProgressEventData = {
   page: number;
   pagesRead: number;
 };
+
+export type ReadingSnapshotRow = Prisma.BookGetPayload<{ select: typeof readingSnapshotSelect }>;
 
 export type UpdateActiveLoanData = {
   contact: Nullable<string>;
@@ -519,12 +536,24 @@ export class BooksRepository {
 
   findReadingEvents(args: {
     bookId: string;
-  }): Promise<Array<{ date: Date; id: string; page: number; pagesRead: number }>> {
+  }): Promise<Array<{ createdAt: Date; date: Date; id: string; page: number; pagesRead: number }>> {
     return this.prisma.bookReadingProgressEvent.findMany({
-      orderBy: [{ date: "asc" }, { createdAt: "asc" }],
-      select: { date: true, id: true, page: true, pagesRead: true },
+      orderBy: [{ date: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      select: { createdAt: true, date: true, id: true, page: true, pagesRead: true },
       where: { bookId: args.bookId },
     });
+  }
+
+  async findReadingSnapshotOrThrow(userId: string, bookId: string): Promise<ReadingSnapshotRow> {
+    const book = await this.prisma.book.findFirst({
+      select: readingSnapshotSelect,
+      where: { id: bookId, userId },
+    });
+    if (book === null) {
+      throw new NotFoundError("Book not found");
+    }
+
+    return book;
   }
 
   findSeriesPartNumberConflict(
@@ -636,6 +665,33 @@ export class BooksRepository {
   }): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
+
+      if (args.event !== null) {
+        await tx.bookReadingProgressEvent.create({
+          data: {
+            bookId: args.bookId,
+            date: args.event.date,
+            page: args.event.page,
+            pagesRead: args.event.pagesRead,
+          },
+        });
+      }
+    });
+  }
+
+  async recordReadingStatusChange(args: {
+    bookId: string;
+    clearEvents: boolean;
+    event: Nullable<ReadingProgressEventData>;
+    patch: ReadingChangePatch;
+    userId: string;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
+
+      if (args.clearEvents) {
+        await tx.bookReadingProgressEvent.deleteMany({ where: { bookId: args.bookId } });
+      }
 
       if (args.event !== null) {
         await tx.bookReadingProgressEvent.create({

@@ -6,7 +6,13 @@
  * OpenAPI spec version: 1.0
  */
 
-export type ReadingHistoryViewDtoDailyItem = {
+/**
+ * @nullable
+ */
+export type ReadingHistoryViewDtoActivitySummaryBestDay = {
   date: string;
+  /** @nullable */
+  finalPage: number | null;
   pagesRead: number;
-};
+  updatesCount: number;
+} | null;

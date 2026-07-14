@@ -908,27 +908,137 @@ export const ReadingProgressViewSchema = z.object({
 
 export type ReadingProgressView = z.infer<typeof ReadingProgressViewSchema>;
 
+export const READING_HISTORY_DAYS_LIMIT_DEFAULT = 20;
+export const READING_HISTORY_DAYS_LIMIT_MAX = 100;
+
+export const ReadingActivityRangeSchema = z.enum(["7d", "14d", "all"]);
+
+export type ReadingActivityRange = z.infer<typeof ReadingActivityRangeSchema>;
+
+export const ReadingHistorySortSchema = z.enum(["asc", "desc"]);
+
+export type ReadingHistorySort = z.infer<typeof ReadingHistorySortSchema>;
+
+export const ReadingHistoryQuerySchema = z.object({
+  activityRange: ReadingActivityRangeSchema.default("7d"),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(READING_HISTORY_DAYS_LIMIT_MAX)
+    .default(READING_HISTORY_DAYS_LIMIT_DEFAULT),
+  page: z.coerce.number().int().min(1).default(1),
+  sort: ReadingHistorySortSchema.default("desc"),
+});
+
+export type ReadingHistoryQuery = z.infer<typeof ReadingHistoryQuerySchema>;
+
 export const ReadingHistoryEventViewSchema = z.object({
   date: z.string(),
   id: z.string(),
   page: z.number(),
   pagesRead: z.number(),
+  recordedAt: z.string(),
 });
 
 export type ReadingHistoryEventView = z.infer<typeof ReadingHistoryEventViewSchema>;
 
+export const ReadingDaySummaryViewSchema = z.object({
+  date: z.string(),
+  finalPage: z.number().nullable(),
+  pagesRead: z.number(),
+  updatesCount: z.number(),
+});
+
+export type ReadingDaySummaryView = z.infer<typeof ReadingDaySummaryViewSchema>;
+
+export const ReadingHistorySummaryViewSchema = z.object({
+  abandonedAt: z.string().nullable(),
+  activeDaysCount: z.number(),
+  averagePagesPerActiveDay: z.number().nullable(),
+  bestDay: ReadingDaySummaryViewSchema.nullable(),
+  currentPage: z.number(),
+  estimatedActiveDaysRemaining: z.number().nullable(),
+  finishedAt: z.string().nullable(),
+  historyCompleteness: z.object({
+    isComplete: z.boolean(),
+    untrackedPages: z.number(),
+  }),
+  lastActivity: ReadingDaySummaryViewSchema.nullable(),
+  lastProgressUpdateAt: z.string().nullable(),
+  pagesCount: z.number().nullable(),
+  pagesRemaining: z.number().nullable(),
+  pausedAt: z.string().nullable(),
+  progressPercent: z.number().nullable(),
+  readingPeriod: z.object({
+    calendarDays: z.number().nullable(),
+    endDate: z.string().nullable(),
+    startDate: z.string().nullable(),
+  }),
+  startedAt: z.string().nullable(),
+  status: ReadingStatusSchema,
+  trackedPagesRead: z.number(),
+  updatesCount: z.number(),
+});
+
+export type ReadingHistorySummaryView = z.infer<typeof ReadingHistorySummaryViewSchema>;
+
+export const ReadingActivityPointViewSchema = z.object({
+  date: z.string(),
+  finalPage: z.number().nullable(),
+  hasActivity: z.boolean(),
+  pagesRead: z.number(),
+  startPage: z.number().nullable(),
+  updatesCount: z.number(),
+});
+
+export type ReadingActivityPointView = z.infer<typeof ReadingActivityPointViewSchema>;
+
+export const ReadingActivityViewSchema = z.object({
+  from: z.string().nullable(),
+  points: z.array(ReadingActivityPointViewSchema),
+  range: ReadingActivityRangeSchema,
+  summary: z.object({
+    activeDaysCount: z.number(),
+    averagePagesPerActiveDay: z.number().nullable(),
+    bestDay: ReadingDaySummaryViewSchema.nullable(),
+    pagesRead: z.number(),
+    updatesCount: z.number(),
+  }),
+  to: z.string().nullable(),
+});
+
+export type ReadingActivityView = z.infer<typeof ReadingActivityViewSchema>;
+
 export const ReadingHistoryDayViewSchema = z.object({
   date: z.string(),
+  events: z.array(ReadingHistoryEventViewSchema),
+  finalPage: z.number(),
   pagesRead: z.number(),
+  startPage: z.number(),
+  updatesCount: z.number(),
 });
 
 export type ReadingHistoryDayView = z.infer<typeof ReadingHistoryDayViewSchema>;
 
+export const ReadingHistoryPaginationViewSchema = z.object({
+  hasNextPage: z.boolean(),
+  hasPreviousPage: z.boolean(),
+  limit: z.number(),
+  page: z.number(),
+  totalDays: z.number(),
+  totalPages: z.number(),
+});
+
+export type ReadingHistoryPaginationView = z.infer<typeof ReadingHistoryPaginationViewSchema>;
+
 export const ReadingHistoryViewSchema = z.object({
-  daily: z.array(ReadingHistoryDayViewSchema),
-  daysRead: z.number(),
-  events: z.array(ReadingHistoryEventViewSchema),
-  totalPagesRead: z.number(),
+  activity: ReadingActivityViewSchema,
+  history: z.object({
+    days: z.array(ReadingHistoryDayViewSchema),
+    pagination: ReadingHistoryPaginationViewSchema,
+  }),
+  summary: ReadingHistorySummaryViewSchema,
 });
 
 export type ReadingHistoryView = z.infer<typeof ReadingHistoryViewSchema>;
