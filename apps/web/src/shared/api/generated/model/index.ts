@@ -183,6 +183,8 @@ export * from "./deliveryViewDto";
 export * from "./deliveryViewDtoCurrency";
 export * from "./deliveryViewDtoStatus";
 export * from "./favoritesSummaryViewDto";
+export * from "./favoritesSummaryViewDtoTopGenresItem";
+export * from "./favoritesSummaryViewDtoTopTagsItem";
 export * from "./forgotPasswordInputDto";
 export * from "./genresControllerRecentParams";
 export * from "./libraryOverviewViewDto";

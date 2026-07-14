@@ -1167,6 +1167,8 @@ export const FavoritesSummaryViewSchema = z.object({
   reading: z.number(),
   series: z.number(),
   solo: z.number(),
+  topGenres: z.array(z.object({ count: z.number().int().nonnegative(), genre: z.string() })),
+  topTags: z.array(z.object({ count: z.number().int().nonnegative(), tag: z.string() })),
   total: z.number(),
   wantToRead: z.number(),
 });

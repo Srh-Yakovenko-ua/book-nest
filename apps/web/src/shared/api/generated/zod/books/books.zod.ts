@@ -1102,12 +1102,36 @@ export const BooksControllerPurchaseStoresResponse = zod.array(
 /**
  * @summary Get the current user favorites summary
  */
+export const booksControllerFavoritesSummaryResponseTopGenresItemCountMin = 0;
+export const booksControllerFavoritesSummaryResponseTopGenresItemCountMax = 9007199254740991;
+
+export const booksControllerFavoritesSummaryResponseTopTagsItemCountMin = 0;
+export const booksControllerFavoritesSummaryResponseTopTagsItemCountMax = 9007199254740991;
+
 export const BooksControllerFavoritesSummaryResponse = zod.object({
   averageRating: zod.number().nullable(),
   finished: zod.number(),
   reading: zod.number(),
   series: zod.number(),
   solo: zod.number(),
+  topGenres: zod.array(
+    zod.object({
+      count: zod
+        .number()
+        .min(booksControllerFavoritesSummaryResponseTopGenresItemCountMin)
+        .max(booksControllerFavoritesSummaryResponseTopGenresItemCountMax),
+      genre: zod.string(),
+    }),
+  ),
+  topTags: zod.array(
+    zod.object({
+      count: zod
+        .number()
+        .min(booksControllerFavoritesSummaryResponseTopTagsItemCountMin)
+        .max(booksControllerFavoritesSummaryResponseTopTagsItemCountMax),
+      tag: zod.string(),
+    }),
+  ),
   total: zod.number(),
   wantToRead: zod.number(),
 });

@@ -5,6 +5,8 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { FavoritesSummaryViewDtoTopGenresItem } from "./favoritesSummaryViewDtoTopGenresItem";
+import type { FavoritesSummaryViewDtoTopTagsItem } from "./favoritesSummaryViewDtoTopTagsItem";
 
 export interface FavoritesSummaryViewDto {
   /** @nullable */
@@ -13,6 +15,8 @@ export interface FavoritesSummaryViewDto {
   reading: number;
   series: number;
   solo: number;
+  topGenres: FavoritesSummaryViewDtoTopGenresItem[];
+  topTags: FavoritesSummaryViewDtoTopTagsItem[];
   total: number;
   wantToRead: number;
 }

@@ -492,20 +492,49 @@ export class BooksRepository {
     userId,
     wantToReadStatuses,
   }: FavoritesSummaryQuery): Promise<FavoritesSummaryResult> {
-    const [total, reading, finished, wantToRead, series, solo, ratingAggregate] = await Promise.all(
-      [
-        this.countFavorites({ userId }),
-        this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
-        this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
-        this.countByReadingStatuses({ isFavorite: true, statuses: wantToReadStatuses, userId }),
-        this.countForLibrary({ filter: { bookType: "series_part", isFavorite: true, userId } }),
-        this.countForLibrary({ filter: { bookType: "solo", isFavorite: true, userId } }),
-        this.prisma.bookReadingProgress.aggregate({
-          _avg: { rating: true },
-          where: { book: { isFavorite: true, userId }, rating: { not: null } },
-        }),
-      ],
-    );
+    const [
+      total,
+      reading,
+      finished,
+      wantToRead,
+      series,
+      solo,
+      ratingAggregate,
+      topGenreRows,
+      topTagRows,
+    ] = await Promise.all([
+      this.countFavorites({ userId }),
+      this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
+      this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
+      this.countByReadingStatuses({ isFavorite: true, statuses: wantToReadStatuses, userId }),
+      this.countForLibrary({ filter: { bookType: "series_part", isFavorite: true, userId } }),
+      this.countForLibrary({ filter: { bookType: "solo", isFavorite: true, userId } }),
+      this.prisma.bookReadingProgress.aggregate({
+        _avg: { rating: true },
+        where: { book: { isFavorite: true, userId }, rating: { not: null } },
+      }),
+      this.prisma.$queryRaw<{ count: bigint; genre: string }[]>`
+        SELECT g AS genre, count(*) AS count
+        FROM books book, unnest(book.genres) AS g
+        WHERE book.user_id = ${userId}::uuid
+          AND book.is_favorite = true
+        GROUP BY g
+        ORDER BY count DESC, genre ASC
+        LIMIT ${FAVORITE_TOP_LIMIT}
+      `,
+      this.prisma.$queryRaw<{ count: bigint; tag: string }[]>`
+        SELECT tag.name AS tag, count(*) AS count
+        FROM book_tags book_tag
+        JOIN tags tag ON tag.id = book_tag.tag_id
+        JOIN books book ON book.id = book_tag.book_id
+        WHERE book.user_id = ${userId}::uuid
+          AND tag.user_id = ${userId}::uuid
+          AND book.is_favorite = true
+        GROUP BY tag.name
+        ORDER BY count DESC, tag ASC
+        LIMIT ${FAVORITE_TOP_LIMIT}
+      `,
+    ]);
 
     return {
       averageRating: ratingAggregate._avg.rating,
@@ -513,6 +542,8 @@ export class BooksRepository {
       reading,
       series,
       solo,
+      topGenres: topGenreRows.map((row) => ({ count: Number(row.count), genre: row.genre })),
+      topTags: topTagRows.map((row) => ({ count: Number(row.count), tag: row.tag })),
       total,
       wantToRead,
     };
@@ -887,6 +918,8 @@ type FavoritesSummaryResult = {
   reading: number;
   series: number;
   solo: number;
+  topGenres: { count: number; genre: string }[];
+  topTags: { count: number; tag: string }[];
   total: number;
   wantToRead: number;
 };
@@ -908,6 +941,8 @@ type SeriesPartNumberQuery = {
   partNumber: number;
   seriesId: string;
 };
+
+const FAVORITE_TOP_LIMIT = 3;
 
 const CREATED_AT_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { createdAt: "desc" };
 
