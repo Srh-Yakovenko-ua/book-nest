@@ -19,8 +19,10 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  FavoriteSeriesContinuationsViewDto,
   NewSeriesInputDto,
   PaginatedSeriesDto,
+  SeriesControllerFavoriteContinuationsParams,
   SeriesControllerSearchParams,
   SeriesDetailsViewDto,
   SeriesOverviewViewDto,
@@ -505,6 +507,203 @@ export function useSeriesControllerOverview<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getSeriesControllerOverviewQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesControllerFavoriteContinuationsResponse200 = {
+  data: FavoriteSeriesContinuationsViewDto;
+  status: 200;
+};
+
+export type seriesControllerFavoriteContinuationsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesControllerFavoriteContinuationsResponseSuccess =
+  seriesControllerFavoriteContinuationsResponse200 & {
+    headers: Headers;
+  };
+export type seriesControllerFavoriteContinuationsResponseError =
+  seriesControllerFavoriteContinuationsResponse401 & {
+    headers: Headers;
+  };
+
+export type seriesControllerFavoriteContinuationsResponse =
+  | seriesControllerFavoriteContinuationsResponseSuccess
+  | seriesControllerFavoriteContinuationsResponseError;
+
+export const getSeriesControllerFavoriteContinuationsUrl = (
+  params?: SeriesControllerFavoriteContinuationsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/series/favorite-continuations?${stringifiedParams}`
+    : `/api/series/favorite-continuations`;
+};
+
+/**
+ * @summary Get the next book to read in the current user favorite series
+ */
+export const seriesControllerFavoriteContinuations = async (
+  params?: SeriesControllerFavoriteContinuationsParams,
+  options?: RequestInit,
+): Promise<seriesControllerFavoriteContinuationsResponse> => {
+  return customInstance<seriesControllerFavoriteContinuationsResponse>(
+    getSeriesControllerFavoriteContinuationsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getSeriesControllerFavoriteContinuationsQueryKey = (
+  params?: SeriesControllerFavoriteContinuationsParams,
+) => {
+  return [`/api/series/favorite-continuations`, ...(params ? [params] : [])] as const;
+};
+
+export const getSeriesControllerFavoriteContinuationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+  TError = void,
+>(
+  params?: SeriesControllerFavoriteContinuationsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSeriesControllerFavoriteContinuationsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>
+  > = ({ signal }) => seriesControllerFavoriteContinuations(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesControllerFavoriteContinuationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>
+>;
+export type SeriesControllerFavoriteContinuationsQueryError = void;
+
+export function useSeriesControllerFavoriteContinuations<
+  TData = Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+  TError = void,
+>(
+  params: undefined | SeriesControllerFavoriteContinuationsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerFavoriteContinuations<
+  TData = Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+  TError = void,
+>(
+  params?: SeriesControllerFavoriteContinuationsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerFavoriteContinuations<
+  TData = Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+  TError = void,
+>(
+  params?: SeriesControllerFavoriteContinuationsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the next book to read in the current user favorite series
+ */
+
+export function useSeriesControllerFavoriteContinuations<
+  TData = Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+  TError = void,
+>(
+  params?: SeriesControllerFavoriteContinuationsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesControllerFavoriteContinuations>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesControllerFavoriteContinuationsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

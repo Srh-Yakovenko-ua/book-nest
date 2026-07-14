@@ -63,6 +63,30 @@ const seriesDetailsArgs = {
 
 export type SeriesWithDetails = Prisma.SeriesGetPayload<typeof seriesDetailsArgs>;
 
+const favoriteContinuationBookArgs = {
+  select: {
+    authors: { include: { author: true }, orderBy: { position: "asc" } },
+    coverMedia: true,
+    createdAt: true,
+    favoriteAddedAt: true,
+    id: true,
+    isFavorite: true,
+    ownershipStatus: true,
+    pagesCount: true,
+    partNumber: true,
+    queuePosition: true,
+    queuePriority: true,
+    readingProgress: { select: { currentPage: true } },
+    readingStatus: true,
+    series: { select: { id: true, name: true, status: true, totalBooks: true } },
+    title: true,
+  },
+} satisfies Prisma.BookDefaultArgs;
+
+export type FavoriteContinuationBookRow = Prisma.BookGetPayload<
+  typeof favoriteContinuationBookArgs
+>;
+
 type CountSeriesInput = {
   authorIds: string[] | undefined;
   query: string | undefined;
@@ -135,6 +159,17 @@ export class SeriesRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<SeriesModel>> {
     return client.series.findFirst({ where: { normalizedName, userId } });
+  }
+
+  findFavoriteContinuationBooks(userId: string): Promise<FavoriteContinuationBookRow[]> {
+    return this.prisma.book.findMany({
+      where: {
+        series: { books: { some: { isFavorite: true, userId } } },
+        seriesId: { not: null },
+        userId,
+      },
+      ...favoriteContinuationBookArgs,
+    });
   }
 
   findOwnedById(
