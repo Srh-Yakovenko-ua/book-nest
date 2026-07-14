@@ -21,6 +21,7 @@ import { DeliveryModule } from "../delivery.module.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const FUTURE_DATE = new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString().slice(0, 10);
 const DAY_MS = 1000 * 60 * 60 * 24;
 const isoDay = (offset: number): string =>
   new Date(Date.now() + offset * DAY_MS).toISOString().slice(0, 10);
@@ -64,11 +65,11 @@ afterAll(async () => {
   await context.close();
 });
 
-function bulkReceive(accessToken: string, bookIds: string[]): request.Test {
+function bulkReceive(accessToken: string, bookIds: string[], receivedAt?: string): request.Test {
   return request(app.getHttpServer())
     .post("/api/delivery/receive")
     .set("Authorization", `Bearer ${accessToken}`)
-    .send({ bookIds });
+    .send(receivedAt === undefined ? { bookIds } : { bookIds, receivedAt });
 }
 
 async function createBook(
@@ -400,6 +401,22 @@ describe("GET /api/delivery/in-transit", () => {
     expect(res.body.items[0].book.title).toBe("Second");
   });
 
+  it("does not match the cancel reason field when searching active deliveries", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedDelivery(user, "Active With Reason", {
+      cancelReason: "Damaged in shipping",
+      ownershipStatus: "in_transit",
+      status: "ordered",
+      storeName: "Yakaboo",
+    });
+
+    const res = await getJson(user.accessToken, "/api/delivery/in-transit?search=damaged");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toEqual([]);
+    expect(res.body.totalCount).toBe(0);
+  });
+
   it("returns 400 for an invalid sort value", async () => {
     const user = await context.registerVerifyAndLogin();
 
@@ -562,6 +579,59 @@ describe("GET /api/delivery/history", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.items[0].delivery.cancelReason).toBeNull();
+  });
+
+  it("matches a search term that appears only in the cancel reason", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedDelivery(user, "Pristine Order", {
+      cancelledAt: new Date(),
+      cancelReason: "Damaged in shipping",
+      orderDate: utcDay(-3),
+      ownershipStatus: "want_to_buy",
+      status: "cancelled",
+      storeName: "Yakaboo",
+    });
+    await seedDelivery(user, "Unrelated Order", {
+      orderDate: utcDay(-5),
+      ownershipStatus: "owned",
+      receivedAt: new Date(),
+      status: "received",
+      storeName: "Book Depot",
+    });
+
+    const res = await getJson(user.accessToken, "/api/delivery/history?search=damaged");
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(1);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].book.title).toBe("Pristine Order");
+    expect(res.body.items[0].delivery.cancelReason).toBe("Damaged in shipping");
+  });
+
+  it("does not match unrelated records when a cancel-reason search term is absent from them", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedDelivery(user, "Cancelled With Reason", {
+      cancelledAt: new Date(),
+      cancelReason: "Warehouse flooded",
+      orderDate: utcDay(-3),
+      ownershipStatus: "want_to_buy",
+      status: "cancelled",
+      storeName: "Yakaboo",
+    });
+    await seedDelivery(user, "Another Cancelled", {
+      cancelledAt: new Date(),
+      cancelReason: "Out of stock",
+      orderDate: utcDay(-4),
+      ownershipStatus: "want_to_buy",
+      status: "cancelled",
+      storeName: "Book Depot",
+    });
+
+    const res = await getJson(user.accessToken, "/api/delivery/history?search=flooded");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].book.title).toBe("Cancelled With Reason");
   });
 
   it("filters by an order-date range", async () => {
@@ -787,6 +857,83 @@ describe("POST /api/delivery/receive", () => {
       where: { bookId: activeBookId, status: "received" },
     });
     expect(receivedCount).toBe(1);
+  });
+
+  it("applies a supplied received date to every received delivery", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const firstBookId = await seedDelivery(user, "First Active", {
+      ownershipStatus: "in_transit",
+      status: "ordered",
+      storeName: "Yakaboo",
+    });
+    const secondBookId = await seedDelivery(user, "Second Active", {
+      ownershipStatus: "in_transit",
+      status: "in_transit",
+      storeName: "Book Depot",
+    });
+
+    const res = await bulkReceive(user.accessToken, [firstBookId, secondBookId], "2026-02-10");
+
+    expect(res.status).toBe(200);
+    expect(res.body.receivedBookIds.sort()).toEqual([firstBookId, secondBookId].sort());
+    const deliveries = await prisma.bookDelivery.findMany({
+      where: { bookId: { in: [firstBookId, secondBookId] } },
+    });
+    expect(deliveries).toHaveLength(2);
+    for (const delivery of deliveries) {
+      expect(delivery.status).toBe("received");
+      expect(delivery.receivedAt).toEqual(new Date("2026-02-10T00:00:00.000Z"));
+    }
+  });
+
+  it("returns 400 when the supplied received date is in the future", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const activeBookId = await seedDelivery(user, "Active", {
+      ownershipStatus: "in_transit",
+      status: "ordered",
+      storeName: "Yakaboo",
+    });
+
+    const res = await bulkReceive(user.accessToken, [activeBookId], FUTURE_DATE);
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "receivedAt" })]),
+    );
+    const delivery = await prisma.bookDelivery.findFirstOrThrow({
+      where: { bookId: activeBookId },
+    });
+    expect(delivery.status).toBe("ordered");
+    expect(delivery.receivedAt).toBeNull();
+  });
+
+  it("keeps the partial-success shape with a supplied received date when some ids cannot be received", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const activeBookId = await seedDelivery(user, "Active", {
+      ownershipStatus: "in_transit",
+      status: "ordered",
+      storeName: "Yakaboo",
+    });
+    const noDeliveryBookId = await createBook(user.accessToken, "No Delivery");
+
+    const res = await bulkReceive(
+      user.accessToken,
+      [activeBookId, noDeliveryBookId, MISSING_UUID],
+      "2026-02-10",
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.receivedBookIds).toEqual([activeBookId]);
+    expect(res.body.skipped).toEqual(
+      expect.arrayContaining([
+        { bookId: noDeliveryBookId, reason: "not_active" },
+        { bookId: MISSING_UUID, reason: "not_found" },
+      ]),
+    );
+    const delivery = await prisma.bookDelivery.findFirstOrThrow({
+      where: { bookId: activeBookId },
+    });
+    expect(delivery.receivedAt).toEqual(new Date("2026-02-10T00:00:00.000Z"));
   });
 });
 

@@ -75,10 +75,16 @@ function listDeliveries(accessToken: string, bookId: string): request.Test {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
-function receiveDelivery(accessToken: string, bookId: string, deliveryId: string): request.Test {
-  return request(app.getHttpServer())
+function receiveDelivery(
+  accessToken: string,
+  bookId: string,
+  deliveryId: string,
+  body?: Record<string, unknown>,
+): request.Test {
+  const req = request(app.getHttpServer())
     .post(`/api/books/${bookId}/deliveries/${deliveryId}/receive`)
     .set("Authorization", `Bearer ${accessToken}`);
+  return body === undefined ? req : req.send(body);
 }
 
 async function seedBookWithDelivery(
@@ -503,12 +509,80 @@ describe("POST /api/books/:id/deliveries/:deliveryId/receive", () => {
     expect(res.body.delivery.totalCount).toBe(1);
   });
 
+  it("stamps the received date with now when no receivedAt is supplied", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+    const before = Date.now();
+
+    const res = await receiveDelivery(accessToken, bookId, deliveryId, {});
+    const after = Date.now();
+
+    expect(res.status).toBe(200);
+    const receivedAt = new Date(res.body.delivery.latest.receivedAt).getTime();
+    expect(receivedAt).toBeGreaterThanOrEqual(before - 1000);
+    expect(receivedAt).toBeLessThanOrEqual(after + 1000);
+  });
+
+  it("persists a supplied past received date instead of now", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+
+    const res = await receiveDelivery(accessToken, bookId, deliveryId, {
+      receivedAt: "2026-02-10",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ownershipStatus).toBe("owned");
+    expect(res.body.delivery.latest).toMatchObject({ id: deliveryId, status: "received" });
+    expect(res.body.delivery.latest.receivedAt).toBe("2026-02-10T00:00:00.000Z");
+    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { id: deliveryId } });
+    expect(row.receivedAt).toEqual(new Date("2026-02-10T00:00:00.000Z"));
+  });
+
+  it("returns 400 when the supplied received date is in the future", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+
+    const res = await receiveDelivery(accessToken, bookId, deliveryId, { receivedAt: FUTURE_DATE });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "receivedAt" })]),
+    );
+  });
+
+  it("returns 400 for a malformed received date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+
+    const res = await receiveDelivery(accessToken, bookId, deliveryId, {
+      receivedAt: "10/02/2026",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "receivedAt" })]),
+    );
+  });
+
   it("returns 409 when the delivery is already received", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
     await receiveDelivery(accessToken, bookId, deliveryId);
 
     const res = await receiveDelivery(accessToken, bookId, deliveryId);
+
+    expect(res.status).toBe(409);
+  });
+
+  it("returns 409 for an already-received delivery even with a supplied received date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+    await receiveDelivery(accessToken, bookId, deliveryId, {});
+
+    const res = await receiveDelivery(accessToken, bookId, deliveryId, {
+      receivedAt: "2026-02-10",
+    });
 
     expect(res.status).toBe(409);
   });

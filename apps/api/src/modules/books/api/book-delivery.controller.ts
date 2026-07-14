@@ -136,7 +136,7 @@ export class BookDeliveryController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Param("deliveryId", ParseUUIDPipe) deliveryId: string,
-    @Body(new ZodBodyPipe(ReceiveDeliveryInputSchema)) body: ReceiveDeliveryInputDto,
+    @Body(new ZodBodyPipe(ReceiveDeliveryInputSchema.default({}))) body: ReceiveDeliveryInputDto,
   ): Promise<BookView> {
     return this.bookDeliveryService.receive(user.id, id, deliveryId, body);
   }

@@ -13,6 +13,8 @@ const ORDER_DATE = "2026-01-20";
 const PARSED_ORDER_DATE = new Date("2026-01-20T00:00:00.000Z");
 const EXPECTED_DATE = "2026-02-10";
 const PARSED_EXPECTED_DATE = new Date("2026-02-10T00:00:00.000Z");
+const RECEIVED_DATE = "2026-01-25";
+const PARSED_RECEIVED_DATE = new Date("2026-01-25T00:00:00.000Z");
 const NOW = new Date("2026-02-01T10:30:00.000Z");
 
 describe("computeCreateDelivery", () => {
@@ -80,6 +82,21 @@ describe("computeReceiveDelivery", () => {
       book: { ownershipStatus: "owned" },
       delivery: { receivedAt: NOW, status: "received" },
     });
+  });
+
+  it("stamps the parsed supplied received date instead of now when receivedAt is provided", () => {
+    const patch = computeReceiveDelivery({ now: NOW, receivedAt: RECEIVED_DATE });
+
+    expect(patch).toEqual({
+      book: { ownershipStatus: "owned" },
+      delivery: { receivedAt: PARSED_RECEIVED_DATE, status: "received" },
+    });
+  });
+
+  it("falls back to now when receivedAt is null", () => {
+    const patch = computeReceiveDelivery({ now: NOW, receivedAt: null });
+
+    expect(patch.delivery.receivedAt).toEqual(NOW);
   });
 });
 
