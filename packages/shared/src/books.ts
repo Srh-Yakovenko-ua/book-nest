@@ -408,6 +408,12 @@ export const CancelDeliveryInputSchema = z.object({
 
 export type CancelDeliveryInput = z.infer<typeof CancelDeliveryInputSchema>;
 
+export const ReceiveDeliveryInputSchema = z.object({
+  receivedAt: notInFutureDate("Received date must not be in the future").optional(),
+});
+
+export type ReceiveDeliveryInput = z.infer<typeof ReceiveDeliveryInputSchema>;
+
 const RETURN_BEFORE_LOAN_MESSAGE = "Expected return cannot be before the loan date";
 const REMINDER_NEEDS_RETURN_DATE_MESSAGE = "Select a return date for the reminder";
 

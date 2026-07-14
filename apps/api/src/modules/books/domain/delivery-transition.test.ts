@@ -74,7 +74,7 @@ describe("computeCreateDelivery", () => {
 
 describe("computeReceiveDelivery", () => {
   it("marks the book as owned and stamps the received timestamp with the injected now", () => {
-    const patch = computeReceiveDelivery(NOW);
+    const patch = computeReceiveDelivery({ now: NOW });
 
     expect(patch).toEqual({
       book: { ownershipStatus: "owned" },

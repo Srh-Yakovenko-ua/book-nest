@@ -3,6 +3,7 @@ import type { BookView, DeliveryView } from "@app/shared";
 import {
   CancelDeliveryInputSchema,
   CreateDeliveryInputSchema,
+  ReceiveDeliveryInputSchema,
   UpdateDeliveryInputSchema,
 } from "@app/shared";
 import {
@@ -37,6 +38,7 @@ import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BookDeliveryService } from "../application/book-delivery.service.js";
 import { CancelDeliveryInputDto } from "./input-dto/cancel-delivery.input-dto.js";
 import { CreateDeliveryInputDto } from "./input-dto/create-delivery.input-dto.js";
+import { ReceiveDeliveryInputDto } from "./input-dto/receive-delivery.input-dto.js";
 import { UpdateDeliveryInputDto } from "./input-dto/update-delivery.input-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
 import { DeliveryViewDto } from "./view-dto/delivery.view-dto.js";
@@ -113,7 +115,9 @@ export class BookDeliveryController {
     return this.bookDeliveryService.update(user.id, id, deliveryId, body);
   }
 
+  @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBearerAuth()
+  @ApiBody({ type: ReceiveDeliveryInputDto })
   @ApiConflictResponse({ description: "The delivery is no longer active" })
   @ApiNotFoundResponse({ description: "Book or delivery not found" })
   @ApiOkResponse({
@@ -132,8 +136,9 @@ export class BookDeliveryController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
     @Param("deliveryId", ParseUUIDPipe) deliveryId: string,
+    @Body(new ZodBodyPipe(ReceiveDeliveryInputSchema)) body: ReceiveDeliveryInputDto,
   ): Promise<BookView> {
-    return this.bookDeliveryService.receive(user.id, id, deliveryId);
+    return this.bookDeliveryService.receive(user.id, id, deliveryId, body);
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

@@ -154,6 +154,10 @@ export class DeliveryController {
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(BulkReceiveDeliveriesInputSchema)) body: BulkReceiveDeliveriesInputDto,
   ): Promise<BulkReceiveDeliveriesResultView> {
-    return this.deliveryService.bulkReceive({ bookIds: body.bookIds, userId: user.id });
+    return this.deliveryService.bulkReceive({
+      bookIds: body.bookIds,
+      receivedAt: body.receivedAt,
+      userId: user.id,
+    });
   }
 }
