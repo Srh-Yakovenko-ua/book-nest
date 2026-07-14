@@ -121,6 +121,7 @@ export type LibraryFilter = {
   formats?: BookFormat[];
   genreKeys?: string[];
   hasCover?: boolean;
+  hasRating?: boolean;
   isFavorite?: boolean;
   languages?: BookLanguage[];
   ownershipStatuses?: OwnershipStatus[];
@@ -499,6 +500,7 @@ export class BooksRepository {
       wantToRead,
       series,
       solo,
+      unrated,
       ratingAggregate,
       topGenreRows,
       topTagRows,
@@ -509,6 +511,9 @@ export class BooksRepository {
       this.countByReadingStatuses({ isFavorite: true, statuses: wantToReadStatuses, userId }),
       this.countForLibrary({ filter: { bookType: "series_part", isFavorite: true, userId } }),
       this.countForLibrary({ filter: { bookType: "solo", isFavorite: true, userId } }),
+      this.countForLibrary({
+        filter: { hasRating: false, isFavorite: true, readingStatuses: finishedStatuses, userId },
+      }),
       this.prisma.bookReadingProgress.aggregate({
         _avg: { rating: true },
         where: { book: { isFavorite: true, userId }, rating: { not: null } },
@@ -545,6 +550,7 @@ export class BooksRepository {
       topGenres: topGenreRows.map((row) => ({ count: Number(row.count), genre: row.genre })),
       topTags: topTagRows.map((row) => ({ count: Number(row.count), tag: row.tag })),
       total,
+      unrated,
       wantToRead,
     };
   }
@@ -921,6 +927,7 @@ type FavoritesSummaryResult = {
   topGenres: { count: number; genre: string }[];
   topTags: { count: number; tag: string }[];
   total: number;
+  unrated: number;
   wantToRead: number;
 };
 
@@ -1152,7 +1159,12 @@ function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
 
   const rating = buildIntRange({ max: filter.ratingMax, min: filter.ratingMin });
   if (rating !== undefined) {
-    where.readingProgress = { rating };
+    where.readingProgress = { is: { rating } };
+  } else if (filter.hasRating === true) {
+    where.readingProgress = { is: { rating: { not: null } } };
+  }
+  if (filter.hasRating === false) {
+    where.NOT = { readingProgress: { is: { rating: { not: null } } } };
   }
   const publicationYear = buildIntRange({ max: filter.yearMax, min: filter.yearMin });
   if (publicationYear !== undefined) {

@@ -781,6 +781,7 @@ export const LibraryBooksQuerySchema = z
     format: queryStringArray(BookFormatSchema),
     genre: queryStringArray(GenreKeySchema),
     hasCover: z.stringbool().optional(),
+    hasRating: z.stringbool().optional(),
     isFavorite: z.stringbool().optional(),
     language: queryStringArray(BookLanguageSchema),
     owner: queryStringArray(OwnershipStatusSchema),
@@ -1170,6 +1171,11 @@ export const FavoritesSummaryViewSchema = z.object({
   topGenres: z.array(z.object({ count: z.number().int().nonnegative(), genre: z.string() })),
   topTags: z.array(z.object({ count: z.number().int().nonnegative(), tag: z.string() })),
   total: z.number(),
+  unrated: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Count of finished favorite books without a rating"),
   wantToRead: z.number(),
 });
 

@@ -412,6 +412,7 @@ export const BooksControllerListQueryParams = zod.object({
     .array(zod.string().min(1).max(booksControllerListQueryGenreItemMax))
     .max(booksControllerListQueryGenreMax),
   hasCover: zod.string().optional(),
+  hasRating: zod.string().optional(),
   isFavorite: zod.string().optional(),
   language: zod
     .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
@@ -1108,6 +1109,9 @@ export const booksControllerFavoritesSummaryResponseTopGenresItemCountMax = 9007
 export const booksControllerFavoritesSummaryResponseTopTagsItemCountMin = 0;
 export const booksControllerFavoritesSummaryResponseTopTagsItemCountMax = 9007199254740991;
 
+export const booksControllerFavoritesSummaryResponseUnratedMin = 0;
+export const booksControllerFavoritesSummaryResponseUnratedMax = 9007199254740991;
+
 export const BooksControllerFavoritesSummaryResponse = zod.object({
   averageRating: zod.number().nullable(),
   finished: zod.number(),
@@ -1133,6 +1137,11 @@ export const BooksControllerFavoritesSummaryResponse = zod.object({
     }),
   ),
   total: zod.number(),
+  unrated: zod
+    .number()
+    .min(booksControllerFavoritesSummaryResponseUnratedMin)
+    .max(booksControllerFavoritesSummaryResponseUnratedMax)
+    .describe("Count of finished favorite books without a rating"),
   wantToRead: zod.number(),
 });
 

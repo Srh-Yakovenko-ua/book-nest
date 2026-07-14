@@ -18,5 +18,11 @@ export interface FavoritesSummaryViewDto {
   topGenres: FavoritesSummaryViewDtoTopGenresItem[];
   topTags: FavoritesSummaryViewDtoTopTagsItem[];
   total: number;
+  /**
+   * Count of finished favorite books without a rating
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  unrated: number;
   wantToRead: number;
 }

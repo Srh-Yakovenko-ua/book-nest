@@ -1124,6 +1124,7 @@ describe("BooksService.favoritesSummary", () => {
         topGenres: [],
         topTags: [],
         total: 7,
+        unrated: 2,
         wantToRead: 1,
       },
     });
@@ -1139,6 +1140,7 @@ describe("BooksService.favoritesSummary", () => {
       topGenres: [],
       topTags: [],
       total: 7,
+      unrated: 2,
       wantToRead: 1,
     });
   });
@@ -1154,6 +1156,7 @@ describe("BooksService.favoritesSummary", () => {
         topGenres: [],
         topTags: [],
         total: 4,
+        unrated: 4,
         wantToRead: 0,
       },
     });
