@@ -1744,7 +1744,17 @@
       "finishedMicrofactActive": "{percentage}% of favorites read",
       "finishedMicrofactEmpty": "Nothing read yet",
       "ratingMicrofact": "Among rated favorites",
-      "ratingMicrofactEmpty": "No ratings yet"
+      "ratingMicrofactEmpty": "No ratings yet",
+      "topGenre": "Top genre",
+      "topGenreEmpty": "No genre",
+      "topGenreMicrofact": "{count, plural, one {# favorite in this genre} other {# favorites in this genre}}",
+      "topGenreMicrofactEmpty": "No genres among favorites",
+      "topGenreMicrofactTie": "{count, plural, one {# favorite in each genre} other {# favorites in each genre}}",
+      "topTag": "Top tag",
+      "topTagEmpty": "No tag",
+      "topTagMicrofact": "{count, plural, one {# favorite with this tag} other {# favorites with this tag}}",
+      "topTagMicrofactEmpty": "No tags among favorites",
+      "topTagMicrofactTie": "{count, plural, one {# favorite with each tag} other {# favorites with each tag}}"
     },
     "empty": {
       "title": "Collect the books that feel special",

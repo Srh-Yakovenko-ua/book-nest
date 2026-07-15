@@ -1744,7 +1744,17 @@
       "finishedMicrofactActive": "{percentage}% улюблених прочитано",
       "finishedMicrofactEmpty": "Ще немає прочитаних",
       "ratingMicrofact": "Серед улюблених книг з оцінкою",
-      "ratingMicrofactEmpty": "Оцінок поки немає"
+      "ratingMicrofactEmpty": "Оцінок поки немає",
+      "topGenre": "Топ жанр",
+      "topGenreEmpty": "Немає жанру",
+      "topGenreMicrofact": "{count, plural, one {# улюблена в цьому жанрі} few {# улюблені в цьому жанрі} many {# улюблених у цьому жанрі} other {# улюблені в цьому жанрі}}",
+      "topGenreMicrofactEmpty": "Серед улюблених немає жанрів",
+      "topGenreMicrofactTie": "{count, plural, one {По # улюбленій у кожному жанрі} few {По # улюблені в кожному жанрі} many {По # улюблених у кожному жанрі} other {По # улюблених у кожному жанрі}}",
+      "topTag": "Топ тег",
+      "topTagEmpty": "Немає тегу",
+      "topTagMicrofact": "{count, plural, one {# улюблена з цим тегом} few {# улюблені з цим тегом} many {# улюблених з цим тегом} other {# улюблені з цим тегом}}",
+      "topTagMicrofactEmpty": "Серед улюблених немає тегів",
+      "topTagMicrofactTie": "{count, plural, one {По # улюбленій з кожним тегом} few {По # улюблені з кожним тегом} many {По # улюблених з кожним тегом} other {По # улюблених з кожним тегом}}"
     },
     "empty": {
       "title": "Збери книги, які стали особливими",

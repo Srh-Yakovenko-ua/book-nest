@@ -193,6 +193,65 @@ export function FavoritesView() {
       <span className="block truncate">{tFav("summary.ratingMicrofact")}</span>
     );
 
+  const topGenreRows = summary.data?.topGenres ?? [];
+  const topGenreMaxCount = topGenreRows[0]?.count;
+  const tiedTopGenres =
+    topGenreMaxCount === undefined
+      ? []
+      : topGenreRows.filter((genre) => genre.count === topGenreMaxCount).slice(0, 2);
+  const tiedTopGenreNames = tiedTopGenres.map(
+    (genre) => genreNameByKey.get(genre.genre) ?? genre.genre,
+  );
+  const topGenreValue =
+    tiedTopGenreNames.length === 0 ? tFav("summary.topGenreEmpty") : tiedTopGenreNames.join(", ");
+  const topGenreValueClassName = tiedTopGenres.length > 1 ? "text-lg leading-snug" : undefined;
+  const topTagRows = summary.data?.topTags ?? [];
+  const topTagMaxCount = topTagRows[0]?.count;
+  const tiedTopTags =
+    topTagMaxCount === undefined
+      ? []
+      : topTagRows.filter((tag) => tag.count === topTagMaxCount).slice(0, 2);
+  const tiedTopTagNames = tiedTopTags.map((tag) => tag.tag);
+  const topTagValue =
+    tiedTopTagNames.length === 0 ? tFav("summary.topTagEmpty") : tiedTopTagNames.join(", ");
+  const topTagValueClassName = tiedTopTags.length > 1 ? "text-lg leading-snug" : undefined;
+
+  const topGenreMicrofact: ReactNode = (() => {
+    if (topGenreMaxCount === undefined) {
+      return <span className="block truncate">{tFav("summary.topGenreMicrofactEmpty")}</span>;
+    }
+    if (tiedTopGenres.length > 1) {
+      return (
+        <span className="block truncate">
+          {tFav("summary.topGenreMicrofactTie", { count: topGenreMaxCount })}
+        </span>
+      );
+    }
+    return (
+      <span className="block truncate">
+        {tFav("summary.topGenreMicrofact", { count: topGenreMaxCount })}
+      </span>
+    );
+  })();
+
+  const topTagMicrofact: ReactNode = (() => {
+    if (topTagMaxCount === undefined) {
+      return <span className="block truncate">{tFav("summary.topTagMicrofactEmpty")}</span>;
+    }
+    if (tiedTopTags.length > 1) {
+      return (
+        <span className="block truncate">
+          {tFav("summary.topTagMicrofactTie", { count: topTagMaxCount })}
+        </span>
+      );
+    }
+    return (
+      <span className="block truncate">
+        {tFav("summary.topTagMicrofact", { count: topTagMaxCount })}
+      </span>
+    );
+  })();
+
   const summaryCards: LibrarySummaryCard[] = [
     {
       icon: "heart",
@@ -224,6 +283,22 @@ export function FavoritesView() {
       label: tFav("summary.averageRating"),
       microfact: ratingMicrofact,
       value: formatAverageRating(averageRating, tFav("summary.averageRatingEmpty")),
+    },
+    {
+      icon: "layers",
+      iconTone: "genre",
+      label: tFav("summary.topGenre"),
+      microfact: topGenreMicrofact,
+      value: topGenreValue,
+      valueClassName: topGenreValueClassName,
+    },
+    {
+      icon: "tag",
+      iconTone: "tag",
+      label: tFav("summary.topTag"),
+      microfact: topTagMicrofact,
+      value: topTagValue,
+      valueClassName: topTagValueClassName,
     },
   ];
 

@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const statCardVariants = cva(
-  "flex flex-col overflow-hidden border border-border bg-card shadow-card",
+  "flex flex-col overflow-hidden border border-border bg-card shadow-card justify-between",
   {
     variants: {
       size: {
@@ -39,6 +39,8 @@ const iconBadgeVariants = cva("grid shrink-0 place-items-center rounded-full [&_
       info: "bg-info-soft text-info",
       success: "bg-success-soft text-success",
       favorite: "bg-favorite-soft text-favorite",
+      genre: "bg-genre-soft text-genre",
+      tag: "bg-chip-soft text-chip",
     },
   },
   defaultVariants: {
@@ -47,7 +49,7 @@ const iconBadgeVariants = cva("grid shrink-0 place-items-center rounded-full [&_
   },
 });
 
-type StatCardIconTone = "favorite" | "info" | "ink" | "primary" | "success";
+type StatCardIconTone = "favorite" | "genre" | "info" | "ink" | "primary" | "success" | "tag";
 
 const valueVariants = cva("font-heading leading-[1.12] font-bold text-ink tabular-nums", {
   variants: {
