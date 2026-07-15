@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export type LibrarySummaryCard = {
   icon: UiIconName;
+  iconSlot?: ReactNode;
   iconTone?: StatCardIconTone;
   label: string;
   microfact?: ReactNode;
@@ -32,6 +33,7 @@ export function LibrarySummaryCards({ cards, isLoading }: LibrarySummaryCardsPro
             <StatCard
               className="stat-card-branch"
               icon={card.icon}
+              iconSlot={card.iconSlot}
               iconTone={card.iconTone}
               key={card.label}
               label={card.label}

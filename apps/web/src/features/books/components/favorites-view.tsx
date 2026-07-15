@@ -38,10 +38,12 @@ import {
 import { useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
+import { FavoritesUnratedBlock } from "./favorites-unrated-block";
 import { LibraryActiveFilters } from "./library-active-filters";
 import { LibraryAdvancedFilters } from "./library-advanced-filters";
 import { LibraryQuickFilters } from "./library-quick-filters";
 import { LibrarySearchInput } from "./library-search-input";
+import { topGenreIconSlot } from "./top-genre-icon-slot";
 
 const FAVORITES_SCOPE: LibraryScope = "favorites";
 
@@ -147,6 +149,7 @@ export function FavoritesView() {
   const series = summary.data?.series ?? 0;
   const solo = summary.data?.solo ?? 0;
   const averageRating = summary.data?.averageRating ?? null;
+  const unrated = summary.data?.unrated ?? 0;
   const readingPercent = total > 0 ? Math.round((reading / total) * 100) : 0;
   const finishedPercent = total > 0 ? Math.round((finished / total) * 100) : 0;
 
@@ -286,6 +289,7 @@ export function FavoritesView() {
     },
     {
       icon: "layers",
+      iconSlot: topGenreIconSlot(tiedTopGenres.map((genre) => genre.genre)),
       iconTone: "genre",
       label: tFav("summary.topGenre"),
       microfact: topGenreMicrofact,
@@ -440,6 +444,7 @@ export function FavoritesView() {
             value={library.state.q}
           />
         }
+        sidebar={<FavoritesUnratedBlock unrated={unrated} />}
         sort={library.sort}
         sortLabel={t("sort.label")}
         sortOptions={sortOptions}

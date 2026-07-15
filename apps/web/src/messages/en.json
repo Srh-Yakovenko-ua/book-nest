@@ -559,6 +559,8 @@
         "favorite": "Favorites",
         "coverWith": "Has cover",
         "coverWithout": "No cover",
+        "ratedWith": "Rated",
+        "ratedWithout": "Not rated",
         "ratingFrom": "Rating from {value}",
         "ratingTo": "Rating up to {value}",
         "ratingRange": "Rating {min}–{max}",
@@ -1764,6 +1766,17 @@
     "remove": {
       "toast": "Book removed from favorites",
       "undo": "Undo"
+    },
+    "unrated": {
+      "title": "Needs rating",
+      "subtitle": "Rate the books you've finished to sharpen your favorites stats.",
+      "rate": "Rate book",
+      "rateBook": "Rate the book “{title}”",
+      "countLabel": "{count, plural, one {# book without a rating} other {# books without a rating}}",
+      "viewAll": "View all",
+      "emptyAllRated": "No unrated books among your finished favorites",
+      "error": "Couldn't load books",
+      "retry": "Try again"
     }
   },
   "series": {

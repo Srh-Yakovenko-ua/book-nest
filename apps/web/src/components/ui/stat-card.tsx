@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const statCardVariants = cva(
-  "flex flex-col overflow-hidden border border-border bg-card shadow-card justify-between",
+  "flex flex-col justify-between overflow-hidden border border-border bg-card shadow-card",
   {
     variants: {
       size: {
@@ -67,6 +67,7 @@ type StatCardProps = Omit<React.ComponentProps<typeof Card>, "children" | "size"
   Pick<VariantProps<typeof statCardVariants>, "size"> & {
     caption?: React.ReactNode;
     icon: UiIconName;
+    iconSlot?: React.ReactNode;
     iconTone?: StatCardIconTone;
     label: React.ReactNode;
     microfact?: React.ReactNode;
@@ -85,6 +86,7 @@ function StatCard({
   className,
   size = "default",
   icon,
+  iconSlot,
   label,
   value,
   iconTone = "primary",
@@ -123,7 +125,7 @@ function StatCard({
         )}
       >
         <span className={iconBadgeVariants({ size, tone: iconTone })}>
-          <UiIcon name={icon} />
+          {iconSlot ?? <UiIcon name={icon} />}
         </span>
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate text-sm font-medium text-muted-foreground">{label}</span>
