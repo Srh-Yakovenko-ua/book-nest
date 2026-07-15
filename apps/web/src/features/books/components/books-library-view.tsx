@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 
 import type { LibraryActions, PendingBookAction } from "../model/book-card-actions";
 import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-book";
