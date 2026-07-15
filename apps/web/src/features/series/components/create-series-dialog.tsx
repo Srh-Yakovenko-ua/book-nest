@@ -1,6 +1,6 @@
 "use client";
 
-import type { NewSeriesInput, SeriesStatus } from "@app/shared";
+import type { NewSeriesInput } from "@app/shared";
 
 import { NewSeriesInputSchema, SERIES_DESCRIPTION_MAX } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,11 +10,7 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
-import type { UiIconName } from "@/components/icons";
-
-import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { ChipGroup } from "@/components/ui/chip-group";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +23,14 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BOOK_GENRES_MAX, GenresField } from "@/features/books";
+import {
+  type AuthorSelection,
+  authorSelectionToReference,
+  AuthorsField,
+  BOOK_GENRES_MAX,
+  GenresField,
+  SeriesStatusChips,
+} from "@/features/books";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -40,12 +43,6 @@ const NAME_MAX = 120;
 const TOTAL_BOOKS_MIN = 1;
 const TOTAL_BOOKS_MAX = 999;
 const DUPLICATE_STATUS = 409;
-
-const STATUS_OPTIONS = [
-  { icon: "check-circle", value: "completed" },
-  { icon: "clock", value: "ongoing" },
-  { icon: "help-circle", value: "unknown" },
-] as const satisfies readonly { icon: UiIconName; value: SeriesStatus }[];
 
 type CreateSeriesDialogProps = {
   onOpenChange: (open: boolean) => void;
@@ -73,9 +70,9 @@ export function CreateSeriesDialog({ onOpenChange, open }: CreateSeriesDialogPro
 
 function CreateSeriesForm({ onDone }: { onDone: () => void }) {
   const t = useTranslations("series.dialog");
-  const tStatus = useTranslations("series.status");
   const tToast = useTranslations("series.toast");
   const createSeries = useCreateSeries();
+  const [authors, setAuthors] = useState<AuthorSelection[]>([]);
   const [serverError, setServerError] = useState<null | string>(null);
 
   const {
@@ -104,6 +101,7 @@ function CreateSeriesForm({ onDone }: { onDone: () => void }) {
       status: values.status,
       ...(values.totalBooks === undefined ? {} : { totalBooks: values.totalBooks }),
       ...(description ? { description } : {}),
+      ...(authors.length > 0 ? { authors: authors.map(authorSelectionToReference) } : {}),
     };
     createSeries.mutate(payload, {
       onError: (error) =>
@@ -137,21 +135,27 @@ function CreateSeriesForm({ onDone }: { onDone: () => void }) {
       </div>
 
       <div className="flex flex-col gap-2">
+        <Label htmlFor="new-series-authors">
+          {t("authors")}{" "}
+          <span className="text-xs font-normal text-muted-foreground">{t("optional")}</span>
+        </Label>
+        <AuthorsField
+          id="new-series-authors"
+          invalid={false}
+          onChange={setAuthors}
+          value={authors}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
         <Label>{t("status")}</Label>
         <Controller
           control={control}
           name="status"
           render={({ field }) => (
-            <ChipGroup
+            <SeriesStatusChips
               label={t("status")}
-              mode="single"
-              onValueChange={(value) => field.onChange(value)}
-              options={STATUS_OPTIONS.map((option) => ({
-                icon: <UiIcon name={option.icon} size={16} />,
-                label: tStatus(option.value),
-                value: option.value,
-              }))}
-              size="sm"
+              onChange={field.onChange}
               value={field.value ?? "unknown"}
             />
           )}

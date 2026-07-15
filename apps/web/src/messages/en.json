@@ -559,6 +559,8 @@
         "favorite": "Favorites",
         "coverWith": "Has cover",
         "coverWithout": "No cover",
+        "ratedWith": "Rated",
+        "ratedWithout": "Not rated",
         "ratingFrom": "Rating from {value}",
         "ratingTo": "Rating up to {value}",
         "ratingRange": "Rating {min}–{max}",
@@ -868,11 +870,6 @@
       "createHeading": "Create new",
       "createNew": "Create new series",
       "createAction": "Create “{name}”",
-      "statusLabels": {
-        "unknown": "Unknown",
-        "ongoing": "Ongoing",
-        "completed": "Completed"
-      },
       "create": {
         "title": "New series",
         "description": "The series will be created together with the book.",
@@ -1735,13 +1732,31 @@
     "metaTitle": "Favorite books",
     "title": "Favorite books",
     "subtitle": "Books you want to revisit, remember, and recommend",
-    "countBadge": "{count, plural, one {# book} other {# books}}",
     "summary": {
       "total": "Total favorites",
       "finished": "Finished",
       "reading": "Reading",
       "averageRating": "Average rating",
-      "averageRatingEmpty": "—"
+      "averageRatingEmpty": "—",
+      "totalMicrofact": "{series} in series · {solo, plural, one {# standalone} other {# standalone}}",
+      "totalMicrofactEmpty": "No favorite books yet",
+      "readingMicrofactActive": "{percentage}% of favorites in progress",
+      "readingMicrofactPlanned": "{count, plural, one {# book planned to read} other {# books planned to read}}",
+      "readingMicrofactNone": "No active reading",
+      "finishedMicrofactActive": "{percentage}% of favorites read",
+      "finishedMicrofactEmpty": "Nothing read yet",
+      "ratingMicrofact": "Among rated favorites",
+      "ratingMicrofactEmpty": "No ratings yet",
+      "topGenre": "Top genre",
+      "topGenreEmpty": "No genre",
+      "topGenreMicrofact": "{count, plural, one {# favorite in this genre} other {# favorites in this genre}}",
+      "topGenreMicrofactEmpty": "No genres among favorites",
+      "topGenreMicrofactTie": "{count, plural, one {# favorite in each genre} other {# favorites in each genre}}",
+      "topTag": "Top tag",
+      "topTagEmpty": "No tag",
+      "topTagMicrofact": "{count, plural, one {# favorite with this tag} other {# favorites with this tag}}",
+      "topTagMicrofactEmpty": "No tags among favorites",
+      "topTagMicrofactTie": "{count, plural, one {# favorite with each tag} other {# favorites with each tag}}"
     },
     "empty": {
       "title": "Collect the books that feel special",
@@ -1751,6 +1766,49 @@
     "remove": {
       "toast": "Book removed from favorites",
       "undo": "Undo"
+    },
+    "unrated": {
+      "title": "Needs rating",
+      "subtitle": "Rate the books you've finished to sharpen your favorites stats.",
+      "rate": "Rate book",
+      "rateBook": "Rate the book “{title}”",
+      "countLabel": "{count, plural, one {# book without a rating} other {# books without a rating}}",
+      "viewAll": "View all",
+      "emptyAllRated": "No unrated books among your finished favorites",
+      "error": "Couldn't load books",
+      "retry": "Try again"
+    },
+    "seriesContinuations": {
+      "title": "Next in series",
+      "subtitle": "Next books from series where you already have favorites",
+      "countChip": "{count, plural, one {# suggestion} other {# suggestions}}",
+      "showAll": "Show all",
+      "collapse": "Collapse",
+      "error": "Couldn’t load series continuations",
+      "retry": "Try again",
+      "empty": "No series to continue yet",
+      "bookPosition": "{position} of {total}",
+      "seriesProgress": "Read {finished} of {total} books in the series",
+      "openBook": "Open “{title}”",
+      "openSeries": "Open series “{title}”",
+      "actions": {
+        "continueReading": "Continue reading",
+        "resumeReading": "Resume reading",
+        "addToQueue": "Add to queue",
+        "openQueue": "Go to queue",
+        "openLoan": "View loan",
+        "openOrder": "View order",
+        "openWishlist": "Go to purchase",
+        "addToWishlist": "Add to “Want to buy”"
+      }
+    },
+    "topGenres": {
+      "title": "Top genres",
+      "subtitle": "Top 3 genres among your favorites",
+      "chartLabel": "Pie chart of favorite top genres",
+      "empty": "No genres among favorites yet",
+      "error": "Failed to load genres",
+      "retry": "Try again"
     }
   },
   "series": {
@@ -1843,6 +1901,7 @@
       "description": "Create a book series to track its progress.",
       "name": "Series name",
       "namePlaceholder": "e.g. The Witcher",
+      "authors": "Series authors",
       "status": "Status",
       "genres": "Genres",
       "genresHint": "You can pick up to {max} genres",

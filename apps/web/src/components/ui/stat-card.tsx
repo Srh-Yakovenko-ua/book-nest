@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const statCardVariants = cva(
-  "flex flex-col overflow-hidden border border-border bg-card shadow-card",
+  "flex flex-col justify-between overflow-hidden border border-border bg-card shadow-card",
   {
     variants: {
       size: {
@@ -39,6 +39,8 @@ const iconBadgeVariants = cva("grid shrink-0 place-items-center rounded-full [&_
       info: "bg-info-soft text-info",
       success: "bg-success-soft text-success",
       favorite: "bg-favorite-soft text-favorite",
+      genre: "bg-genre-soft text-genre",
+      tag: "bg-chip-soft text-chip",
     },
   },
   defaultVariants: {
@@ -47,7 +49,7 @@ const iconBadgeVariants = cva("grid shrink-0 place-items-center rounded-full [&_
   },
 });
 
-type StatCardIconTone = "favorite" | "info" | "ink" | "primary" | "success";
+type StatCardIconTone = "favorite" | "genre" | "info" | "ink" | "primary" | "success" | "tag";
 
 const valueVariants = cva("font-heading leading-[1.12] font-bold text-ink tabular-nums", {
   variants: {
@@ -65,6 +67,7 @@ type StatCardProps = Omit<React.ComponentProps<typeof Card>, "children" | "size"
   Pick<VariantProps<typeof statCardVariants>, "size"> & {
     caption?: React.ReactNode;
     icon: UiIconName;
+    iconSlot?: React.ReactNode;
     iconTone?: StatCardIconTone;
     label: React.ReactNode;
     microfact?: React.ReactNode;
@@ -83,6 +86,7 @@ function StatCard({
   className,
   size = "default",
   icon,
+  iconSlot,
   label,
   value,
   iconTone = "primary",
@@ -121,7 +125,7 @@ function StatCard({
         )}
       >
         <span className={iconBadgeVariants({ size, tone: iconTone })}>
-          <UiIcon name={icon} />
+          {iconSlot ?? <UiIcon name={icon} />}
         </span>
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate text-sm font-medium text-muted-foreground">{label}</span>

@@ -136,6 +136,14 @@ export function useLibraryFilterChips({
     });
   }
 
+  if (state.hasRating !== null) {
+    chips.push({
+      key: "hasRating",
+      label: state.hasRating ? t("ratedWith") : t("ratedWithout"),
+      onRemove: () => void setState({ hasRating: null }),
+    });
+  }
+
   const ratingChip = rangeLabel({
     from: (value) => t("ratingFrom", { value }),
     max: state.ratingMax,

@@ -559,6 +559,8 @@
         "favorite": "Улюблені",
         "coverWith": "Є обкладинка",
         "coverWithout": "Немає обкладинки",
+        "ratedWith": "З оцінкою",
+        "ratedWithout": "Без оцінки",
         "ratingFrom": "Рейтинг від {value}",
         "ratingTo": "Рейтинг до {value}",
         "ratingRange": "Рейтинг {min}–{max}",
@@ -868,11 +870,6 @@
       "createHeading": "Створити нову",
       "createNew": "Створити нову серію",
       "createAction": "Створити «{name}»",
-      "statusLabels": {
-        "unknown": "Невідомо",
-        "ongoing": "Триває",
-        "completed": "Завершено"
-      },
       "create": {
         "title": "Нова серія",
         "description": "Серія буде створена разом із книгою.",
@@ -1735,13 +1732,31 @@
     "metaTitle": "Улюблені книги",
     "title": "Улюблені книги",
     "subtitle": "Книги, до яких хочеться повертатися й радити іншим",
-    "countBadge": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
     "summary": {
       "total": "Усього улюблених",
       "finished": "Прочитано",
       "reading": "Читаю",
       "averageRating": "Середній рейтинг",
-      "averageRatingEmpty": "—"
+      "averageRatingEmpty": "—",
+      "totalMicrofact": "{series} у серіях · {solo, plural, one {# окрема} few {# окремі} many {# окремих} other {# окремі}}",
+      "totalMicrofactEmpty": "Улюблених книг поки немає",
+      "readingMicrofactActive": "{percentage}% улюблених читається зараз",
+      "readingMicrofactPlanned": "{count, plural, one {# книгу заплановано прочитати} few {# книги заплановано прочитати} many {# книг заплановано прочитати} other {# книги заплановано прочитати}}",
+      "readingMicrofactNone": "Немає активного читання",
+      "finishedMicrofactActive": "{percentage}% улюблених прочитано",
+      "finishedMicrofactEmpty": "Ще немає прочитаних",
+      "ratingMicrofact": "Серед улюблених книг з оцінкою",
+      "ratingMicrofactEmpty": "Оцінок поки немає",
+      "topGenre": "Топ жанр",
+      "topGenreEmpty": "Немає жанру",
+      "topGenreMicrofact": "{count, plural, one {# улюблена в цьому жанрі} few {# улюблені в цьому жанрі} many {# улюблених у цьому жанрі} other {# улюблені в цьому жанрі}}",
+      "topGenreMicrofactEmpty": "Серед улюблених немає жанрів",
+      "topGenreMicrofactTie": "{count, plural, one {По # улюбленій у кожному жанрі} few {По # улюблені в кожному жанрі} many {По # улюблених у кожному жанрі} other {По # улюблених у кожному жанрі}}",
+      "topTag": "Топ тег",
+      "topTagEmpty": "Немає тегу",
+      "topTagMicrofact": "{count, plural, one {# улюблена з цим тегом} few {# улюблені з цим тегом} many {# улюблених з цим тегом} other {# улюблені з цим тегом}}",
+      "topTagMicrofactEmpty": "Серед улюблених немає тегів",
+      "topTagMicrofactTie": "{count, plural, one {По # улюбленій з кожним тегом} few {По # улюблені з кожним тегом} many {По # улюблених з кожним тегом} other {По # улюблених з кожним тегом}}"
     },
     "empty": {
       "title": "Збери книги, які стали особливими",
@@ -1751,6 +1766,49 @@
     "remove": {
       "toast": "Книгу прибрано з улюблених",
       "undo": "Скасувати"
+    },
+    "unrated": {
+      "title": "Потребують оцінки",
+      "subtitle": "Додай оцінки прочитаним книгам, щоб статистика улюблених була точнішою.",
+      "rate": "Поставити оцінку",
+      "rateBook": "Поставити оцінку книзі «{title}»",
+      "countLabel": "{count, plural, one {# книга без оцінки} few {# книги без оцінки} many {# книг без оцінки} other {# книги без оцінки}}",
+      "viewAll": "Показати всі",
+      "emptyAllRated": "Серед прочитаних улюблених немає книг без оцінки",
+      "error": "Не вдалося завантажити книги",
+      "retry": "Спробувати ще раз"
+    },
+    "seriesContinuations": {
+      "title": "Далі в серіях",
+      "subtitle": "Наступні книги із серій, де вже є твої улюблені",
+      "countChip": "{count, plural, one {# пропозиція} few {# пропозиції} many {# пропозицій} other {# пропозиції}}",
+      "showAll": "Показати всі",
+      "collapse": "Згорнути",
+      "error": "Не вдалося завантажити продовження серій",
+      "retry": "Спробувати ще раз",
+      "empty": "Поки немає серій, які можна продовжити",
+      "bookPosition": "{position} із {total}",
+      "seriesProgress": "У серії прочитано {finished} із {total} книг",
+      "openBook": "Відкрити «{title}»",
+      "openSeries": "Відкрити серію «{title}»",
+      "actions": {
+        "continueReading": "Продовжити читання",
+        "resumeReading": "Повернутися до читання",
+        "addToQueue": "Додати в чергу",
+        "openQueue": "Перейти до черги",
+        "openLoan": "Переглянути позику",
+        "openOrder": "Переглянути замовлення",
+        "openWishlist": "Перейти до покупки",
+        "addToWishlist": "Додати до «Хочу купити»"
+      }
+    },
+    "topGenres": {
+      "title": "Топ жанрів",
+      "subtitle": "Топ-3 жанри серед твоїх улюблених",
+      "chartLabel": "Кругова діаграма топ-жанрів улюблених",
+      "empty": "Ще немає жанрів серед улюблених",
+      "error": "Не вдалося завантажити жанри",
+      "retry": "Спробувати ще раз"
     }
   },
   "series": {
@@ -1843,6 +1901,7 @@
       "description": "Створіть книжкову серію, щоб відстежувати її прогрес.",
       "name": "Назва серії",
       "namePlaceholder": "Напр. Відьмак",
+      "authors": "Автори серії",
       "status": "Статус",
       "genres": "Жанри",
       "genresHint": "Можна обрати до {max} жанрів",

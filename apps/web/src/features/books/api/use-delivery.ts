@@ -62,7 +62,7 @@ export function useReceiveDelivery() {
 
   return useMutation({
     mutationFn: async (input: { deliveryId: string; id: string }): Promise<BookView> =>
-      BookViewSchema.parse(await bookDeliveryControllerReceive(input.id, input.deliveryId)),
+      BookViewSchema.parse(await bookDeliveryControllerReceive(input.id, input.deliveryId, {})),
     onSuccess: sync,
   });
 }

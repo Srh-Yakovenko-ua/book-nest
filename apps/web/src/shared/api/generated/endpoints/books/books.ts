@@ -43,6 +43,7 @@ import type {
   MarkBoughtInputDto,
   PaginatedBooksDto,
   ReadingHistoryViewDto,
+  ReceiveDeliveryInputDto,
   SetBookListsInputDto,
   UpdateBookInputDto,
   UpdateDeliveryInputDto,
@@ -3967,6 +3968,11 @@ export type bookDeliveryControllerReceiveResponse200 = {
   status: 200;
 };
 
+export type bookDeliveryControllerReceiveResponse400 = {
+  data: void;
+  status: 400;
+};
+
 export type bookDeliveryControllerReceiveResponse401 = {
   data: void;
   status: 401;
@@ -3987,6 +3993,7 @@ export type bookDeliveryControllerReceiveResponseSuccess =
     headers: Headers;
   };
 export type bookDeliveryControllerReceiveResponseError = (
+  | bookDeliveryControllerReceiveResponse400
   | bookDeliveryControllerReceiveResponse401
   | bookDeliveryControllerReceiveResponse404
   | bookDeliveryControllerReceiveResponse409
@@ -4008,6 +4015,7 @@ export const getBookDeliveryControllerReceiveUrl = (id: string, deliveryId: stri
 export const bookDeliveryControllerReceive = async (
   id: string,
   deliveryId: string,
+  receiveDeliveryInputDto: ReceiveDeliveryInputDto,
   options?: RequestInit,
 ): Promise<bookDeliveryControllerReceiveResponse> => {
   return customInstance<bookDeliveryControllerReceiveResponse>(
@@ -4015,12 +4023,22 @@ export const bookDeliveryControllerReceive = async (
     {
       ...options,
       method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(receiveDeliveryInputDto),
     },
   );
 };
 
-export const getBookDeliveryControllerReceiveQueryKey = (id: string, deliveryId: string) => {
-  return ["POST", `/api/books/${id}/deliveries/${deliveryId}/receive`] as const;
+export const getBookDeliveryControllerReceiveQueryKey = (
+  id: string,
+  deliveryId: string,
+  receiveDeliveryInputDto?: ReceiveDeliveryInputDto,
+) => {
+  return [
+    "POST",
+    `/api/books/${id}/deliveries/${deliveryId}/receive`,
+    receiveDeliveryInputDto,
+  ] as const;
 };
 
 export const getBookDeliveryControllerReceiveQueryOptions = <
@@ -4029,6 +4047,7 @@ export const getBookDeliveryControllerReceiveQueryOptions = <
 >(
   id: string,
   deliveryId: string,
+  receiveDeliveryInputDto: ReceiveDeliveryInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookDeliveryControllerReceive>>, TError, TData>
@@ -4039,11 +4058,16 @@ export const getBookDeliveryControllerReceiveQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getBookDeliveryControllerReceiveQueryKey(id, deliveryId);
+    queryOptions?.queryKey ??
+    getBookDeliveryControllerReceiveQueryKey(id, deliveryId, receiveDeliveryInputDto);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof bookDeliveryControllerReceive>>> = ({
     signal,
-  }) => bookDeliveryControllerReceive(id, deliveryId, { signal, ...requestOptions });
+  }) =>
+    bookDeliveryControllerReceive(id, deliveryId, receiveDeliveryInputDto, {
+      signal,
+      ...requestOptions,
+    });
 
   return {
     queryKey,
@@ -4066,6 +4090,7 @@ export function useBookDeliveryControllerReceive<
 >(
   id: string,
   deliveryId: string,
+  receiveDeliveryInputDto: ReceiveDeliveryInputDto,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookDeliveryControllerReceive>>, TError, TData>
@@ -4088,6 +4113,7 @@ export function useBookDeliveryControllerReceive<
 >(
   id: string,
   deliveryId: string,
+  receiveDeliveryInputDto: ReceiveDeliveryInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookDeliveryControllerReceive>>, TError, TData>
@@ -4110,6 +4136,7 @@ export function useBookDeliveryControllerReceive<
 >(
   id: string,
   deliveryId: string,
+  receiveDeliveryInputDto: ReceiveDeliveryInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookDeliveryControllerReceive>>, TError, TData>
@@ -4128,6 +4155,7 @@ export function useBookDeliveryControllerReceive<
 >(
   id: string,
   deliveryId: string,
+  receiveDeliveryInputDto: ReceiveDeliveryInputDto,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof bookDeliveryControllerReceive>>, TError, TData>
@@ -4136,7 +4164,12 @@ export function useBookDeliveryControllerReceive<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getBookDeliveryControllerReceiveQueryOptions(id, deliveryId, options);
+  const queryOptions = getBookDeliveryControllerReceiveQueryOptions(
+    id,
+    deliveryId,
+    receiveDeliveryInputDto,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

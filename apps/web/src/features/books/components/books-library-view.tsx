@@ -55,6 +55,7 @@ type BooksLibraryViewProps = {
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   hasNextPage: boolean;
+  headerDecoration?: ReactNode;
   isError: boolean;
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;

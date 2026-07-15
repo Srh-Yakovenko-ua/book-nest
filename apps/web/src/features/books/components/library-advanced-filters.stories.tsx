@@ -86,6 +86,7 @@ const DEFAULT_STATE: LibraryQueryState = {
   format: [],
   genre: [],
   hasCover: null,
+  hasRating: null,
   isFavorite: null,
   language: [],
   owner: [],
