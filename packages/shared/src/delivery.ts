@@ -9,6 +9,7 @@ import {
 import { BulkBookIdsSchema, DeliveryViewSchema } from "./books.js";
 import { createPaginatedSchema, LIST_PAGE_SIZE_MAX } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
+import { notInFutureDate } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 
 const DELIVERY_SEARCH_MAX = 100;
@@ -232,7 +233,9 @@ export const DeliveryStatisticsViewSchema = z.object({
 
 export type DeliveryStatisticsView = z.infer<typeof DeliveryStatisticsViewSchema>;
 
-export const BulkReceiveDeliveriesInputSchema = BulkBookIdsSchema;
+export const BulkReceiveDeliveriesInputSchema = BulkBookIdsSchema.extend({
+  receivedAt: notInFutureDate("Received date must not be in the future").optional(),
+});
 
 export type BulkReceiveDeliveriesInput = z.infer<typeof BulkReceiveDeliveriesInputSchema>;
 

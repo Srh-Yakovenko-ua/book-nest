@@ -49,13 +49,15 @@ export class DeliveryService {
 
   async bulkReceive({
     bookIds,
+    receivedAt,
     userId,
   }: {
     bookIds: string[];
+    receivedAt?: string;
     userId: string;
   }): Promise<BulkReceiveDeliveriesResultView> {
     const now = new Date();
-    const transition = computeReceiveDelivery(now);
+    const transition = computeReceiveDelivery({ now, receivedAt });
     const uniqueBookIds = [...new Set(bookIds)];
 
     const outcomes = await this.deliveryRepository.bulkReceive({

@@ -49,6 +49,21 @@ export const withRelations = {
   tags: { include: { tag: true } },
 } satisfies Prisma.BookInclude;
 
+const readingSnapshotSelect = {
+  pagesCount: true,
+  readingProgress: {
+    select: {
+      abandonedAt: true,
+      currentPage: true,
+      finishedAt: true,
+      lastProgressUpdateAt: true,
+      pausedAt: true,
+      startedAt: true,
+    },
+  },
+  readingStatus: true,
+} satisfies Prisma.BookSelect;
+
 export type ActiveReadingRow = {
   currentPage: Nullable<number>;
   id: string;
@@ -106,6 +121,7 @@ export type LibraryFilter = {
   formats?: BookFormat[];
   genreKeys?: string[];
   hasCover?: boolean;
+  hasRating?: boolean;
   isFavorite?: boolean;
   languages?: BookLanguage[];
   ownershipStatuses?: OwnershipStatus[];
@@ -159,6 +175,8 @@ export type ReadingProgressEventData = {
   page: number;
   pagesRead: number;
 };
+
+export type ReadingSnapshotRow = Prisma.BookGetPayload<{ select: typeof readingSnapshotSelect }>;
 
 export type UpdateActiveLoanData = {
   contact: Nullable<string>;
@@ -475,20 +493,53 @@ export class BooksRepository {
     userId,
     wantToReadStatuses,
   }: FavoritesSummaryQuery): Promise<FavoritesSummaryResult> {
-    const [total, reading, finished, wantToRead, series, solo, ratingAggregate] = await Promise.all(
-      [
-        this.countFavorites({ userId }),
-        this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
-        this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
-        this.countByReadingStatuses({ isFavorite: true, statuses: wantToReadStatuses, userId }),
-        this.countForLibrary({ filter: { bookType: "series_part", isFavorite: true, userId } }),
-        this.countForLibrary({ filter: { bookType: "solo", isFavorite: true, userId } }),
-        this.prisma.bookReadingProgress.aggregate({
-          _avg: { rating: true },
-          where: { book: { isFavorite: true, userId }, rating: { not: null } },
-        }),
-      ],
-    );
+    const [
+      total,
+      reading,
+      finished,
+      wantToRead,
+      series,
+      solo,
+      unrated,
+      ratingAggregate,
+      topGenreRows,
+      topTagRows,
+    ] = await Promise.all([
+      this.countFavorites({ userId }),
+      this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
+      this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
+      this.countByReadingStatuses({ isFavorite: true, statuses: wantToReadStatuses, userId }),
+      this.countForLibrary({ filter: { bookType: "series_part", isFavorite: true, userId } }),
+      this.countForLibrary({ filter: { bookType: "solo", isFavorite: true, userId } }),
+      this.countForLibrary({
+        filter: { hasRating: false, isFavorite: true, readingStatuses: finishedStatuses, userId },
+      }),
+      this.prisma.bookReadingProgress.aggregate({
+        _avg: { rating: true },
+        where: { book: { isFavorite: true, userId }, rating: { not: null } },
+      }),
+      this.prisma.$queryRaw<{ count: bigint; genre: string }[]>`
+        SELECT g AS genre, count(*) AS count
+        FROM books book, unnest(book.genres) AS g
+        WHERE book.user_id = ${userId}::uuid
+          AND book.is_favorite = true
+        GROUP BY g
+        ORDER BY count DESC, genre ASC
+        LIMIT ${FAVORITE_TOP_LIMIT}
+      `,
+      this.prisma.$queryRaw<{ count: bigint; tag: string }[]>`
+        SELECT tag.name AS tag, count(*) AS count
+        FROM book_tags book_tag
+        JOIN tags tag ON tag.id = book_tag.tag_id
+        JOIN books book ON book.id = book_tag.book_id
+        WHERE book.user_id = ${userId}::uuid
+          AND tag.user_id = ${userId}::uuid
+          AND book.is_favorite = true
+        GROUP BY tag.name
+        ORDER BY count DESC, tag ASC
+        LIMIT ${FAVORITE_TOP_LIMIT}
+      `,
+    ]);
 
     return {
       averageRating: ratingAggregate._avg.rating,
@@ -496,7 +547,10 @@ export class BooksRepository {
       reading,
       series,
       solo,
+      topGenres: topGenreRows.map((row) => ({ count: Number(row.count), genre: row.genre })),
+      topTags: topTagRows.map((row) => ({ count: Number(row.count), tag: row.tag })),
       total,
+      unrated,
       wantToRead,
     };
   }
@@ -519,12 +573,24 @@ export class BooksRepository {
 
   findReadingEvents(args: {
     bookId: string;
-  }): Promise<Array<{ date: Date; id: string; page: number; pagesRead: number }>> {
+  }): Promise<Array<{ createdAt: Date; date: Date; id: string; page: number; pagesRead: number }>> {
     return this.prisma.bookReadingProgressEvent.findMany({
-      orderBy: [{ date: "asc" }, { createdAt: "asc" }],
-      select: { date: true, id: true, page: true, pagesRead: true },
+      orderBy: [{ date: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      select: { createdAt: true, date: true, id: true, page: true, pagesRead: true },
       where: { bookId: args.bookId },
     });
+  }
+
+  async findReadingSnapshotOrThrow(userId: string, bookId: string): Promise<ReadingSnapshotRow> {
+    const book = await this.prisma.book.findFirst({
+      select: readingSnapshotSelect,
+      where: { id: bookId, userId },
+    });
+    if (book === null) {
+      throw new NotFoundError("Book not found");
+    }
+
+    return book;
   }
 
   findSeriesPartNumberConflict(
@@ -636,6 +702,33 @@ export class BooksRepository {
   }): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
+
+      if (args.event !== null) {
+        await tx.bookReadingProgressEvent.create({
+          data: {
+            bookId: args.bookId,
+            date: args.event.date,
+            page: args.event.page,
+            pagesRead: args.event.pagesRead,
+          },
+        });
+      }
+    });
+  }
+
+  async recordReadingStatusChange(args: {
+    bookId: string;
+    clearEvents: boolean;
+    event: Nullable<ReadingProgressEventData>;
+    patch: ReadingChangePatch;
+    userId: string;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
+
+      if (args.clearEvents) {
+        await tx.bookReadingProgressEvent.deleteMany({ where: { bookId: args.bookId } });
+      }
 
       if (args.event !== null) {
         await tx.bookReadingProgressEvent.create({
@@ -831,7 +924,10 @@ type FavoritesSummaryResult = {
   reading: number;
   series: number;
   solo: number;
+  topGenres: { count: number; genre: string }[];
+  topTags: { count: number; tag: string }[];
   total: number;
+  unrated: number;
   wantToRead: number;
 };
 
@@ -852,6 +948,8 @@ type SeriesPartNumberQuery = {
   partNumber: number;
   seriesId: string;
 };
+
+const FAVORITE_TOP_LIMIT = 3;
 
 const CREATED_AT_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { createdAt: "desc" };
 
@@ -1061,7 +1159,12 @@ function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
 
   const rating = buildIntRange({ max: filter.ratingMax, min: filter.ratingMin });
   if (rating !== undefined) {
-    where.readingProgress = { rating };
+    where.readingProgress = { is: { rating } };
+  } else if (filter.hasRating === true) {
+    where.readingProgress = { is: { rating: { not: null } } };
+  }
+  if (filter.hasRating === false) {
+    where.NOT = { readingProgress: { is: { rating: { not: null } } } };
   }
   const publicationYear = buildIntRange({ max: filter.yearMax, min: filter.yearMin });
   if (publicationYear !== undefined) {

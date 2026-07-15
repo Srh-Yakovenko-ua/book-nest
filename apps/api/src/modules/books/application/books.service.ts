@@ -374,6 +374,7 @@ export class BooksService {
       formats: query.format,
       genreKeys: query.genre,
       hasCover: query.hasCover,
+      hasRating: query.hasRating,
       isFavorite: query.isFavorite,
       languages: query.language,
       ownershipStatuses: query.owner,

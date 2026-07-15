@@ -20,6 +20,7 @@ import type {
 
 import type {
   BookListsViewDto,
+  BookReadingControllerGetReadingHistoryParams,
   BookViewDto,
   BooksControllerListParams,
   BooksControllerOverviewParams,
@@ -1401,6 +1402,11 @@ export type bookReadingControllerGetReadingHistoryResponse200 = {
   status: 200;
 };
 
+export type bookReadingControllerGetReadingHistoryResponse400 = {
+  data: void;
+  status: 400;
+};
+
 export type bookReadingControllerGetReadingHistoryResponse401 = {
   data: void;
   status: 401;
@@ -1416,6 +1422,7 @@ export type bookReadingControllerGetReadingHistoryResponseSuccess =
     headers: Headers;
   };
 export type bookReadingControllerGetReadingHistoryResponseError = (
+  | bookReadingControllerGetReadingHistoryResponse400
   | bookReadingControllerGetReadingHistoryResponse401
   | bookReadingControllerGetReadingHistoryResponse404
 ) & {
@@ -1426,8 +1433,23 @@ export type bookReadingControllerGetReadingHistoryResponse =
   | bookReadingControllerGetReadingHistoryResponseSuccess
   | bookReadingControllerGetReadingHistoryResponseError;
 
-export const getBookReadingControllerGetReadingHistoryUrl = (id: string) => {
-  return `/api/books/${id}/reading-history`;
+export const getBookReadingControllerGetReadingHistoryUrl = (
+  id: string,
+  params?: BookReadingControllerGetReadingHistoryParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/${id}/reading-history?${stringifiedParams}`
+    : `/api/books/${id}/reading-history`;
 };
 
 /**
@@ -1435,10 +1457,11 @@ export const getBookReadingControllerGetReadingHistoryUrl = (id: string) => {
  */
 export const bookReadingControllerGetReadingHistory = async (
   id: string,
+  params?: BookReadingControllerGetReadingHistoryParams,
   options?: RequestInit,
 ): Promise<bookReadingControllerGetReadingHistoryResponse> => {
   return customInstance<bookReadingControllerGetReadingHistoryResponse>(
-    getBookReadingControllerGetReadingHistoryUrl(id),
+    getBookReadingControllerGetReadingHistoryUrl(id, params),
     {
       ...options,
       method: "GET",
@@ -1446,8 +1469,11 @@ export const bookReadingControllerGetReadingHistory = async (
   );
 };
 
-export const getBookReadingControllerGetReadingHistoryQueryKey = (id: string) => {
-  return [`/api/books/${id}/reading-history`] as const;
+export const getBookReadingControllerGetReadingHistoryQueryKey = (
+  id: string,
+  params?: BookReadingControllerGetReadingHistoryParams,
+) => {
+  return [`/api/books/${id}/reading-history`, ...(params ? [params] : [])] as const;
 };
 
 export const getBookReadingControllerGetReadingHistoryQueryOptions = <
@@ -1455,6 +1481,7 @@ export const getBookReadingControllerGetReadingHistoryQueryOptions = <
   TError = void,
 >(
   id: string,
+  params?: BookReadingControllerGetReadingHistoryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1468,11 +1495,13 @@ export const getBookReadingControllerGetReadingHistoryQueryOptions = <
 ) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getBookReadingControllerGetReadingHistoryQueryKey(id);
+  const queryKey =
+    queryOptions?.queryKey ?? getBookReadingControllerGetReadingHistoryQueryKey(id, params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof bookReadingControllerGetReadingHistory>>
-  > = ({ signal }) => bookReadingControllerGetReadingHistory(id, { signal, ...requestOptions });
+  > = ({ signal }) =>
+    bookReadingControllerGetReadingHistory(id, params, { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -1496,6 +1525,7 @@ export function useBookReadingControllerGetReadingHistory<
   TError = void,
 >(
   id: string,
+  params: undefined | BookReadingControllerGetReadingHistoryParams,
   options: {
     query: Partial<
       UseQueryOptions<
@@ -1521,6 +1551,7 @@ export function useBookReadingControllerGetReadingHistory<
   TError = void,
 >(
   id: string,
+  params?: BookReadingControllerGetReadingHistoryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1546,6 +1577,7 @@ export function useBookReadingControllerGetReadingHistory<
   TError = void,
 >(
   id: string,
+  params?: BookReadingControllerGetReadingHistoryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1567,6 +1599,7 @@ export function useBookReadingControllerGetReadingHistory<
   TError = void,
 >(
   id: string,
+  params?: BookReadingControllerGetReadingHistoryParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -1579,7 +1612,7 @@ export function useBookReadingControllerGetReadingHistory<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getBookReadingControllerGetReadingHistoryQueryOptions(id, options);
+  const queryOptions = getBookReadingControllerGetReadingHistoryQueryOptions(id, params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

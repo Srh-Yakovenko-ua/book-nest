@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { BOOK_AUTHORS_MAX, BookAuthorReferenceSchema, BookAuthorRefSchema } from "./authors.js";
-import { OwnershipStatusSchema, ReadingStatusSchema } from "./book-enums.js";
+import { OwnershipStatusSchema, QueuePrioritySchema, ReadingStatusSchema } from "./book-enums.js";
 import { collapseHorizontalSpaces, collapseSpaces, createPaginatedSchema } from "./common.js";
 import { BookGenresSchema } from "./genres.js";
 import { NoHtmlString, queryStringArray } from "./internal.js";
@@ -148,3 +148,87 @@ export const SeriesOverviewViewSchema = z.object({
 export type SeriesOverviewView = z.infer<typeof SeriesOverviewViewSchema>;
 
 export const PaginatedSeriesSchema = createPaginatedSchema(SeriesViewSchema);
+
+const FAVORITE_CONTINUATIONS_LIMIT_MIN = 1;
+const FAVORITE_CONTINUATIONS_LIMIT_MAX = 50;
+const FAVORITE_CONTINUATIONS_LIMIT_DEFAULT = 3;
+
+export const FavoriteSeriesContinuationsQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(FAVORITE_CONTINUATIONS_LIMIT_MIN)
+    .max(FAVORITE_CONTINUATIONS_LIMIT_MAX)
+    .default(FAVORITE_CONTINUATIONS_LIMIT_DEFAULT),
+});
+
+export type FavoriteSeriesContinuationsQuery = z.infer<
+  typeof FavoriteSeriesContinuationsQuerySchema
+>;
+
+export const SeriesContinuationRankReasonSchema = z.enum([
+  "reading",
+  "paused",
+  "available",
+  "lent",
+  "in_transit",
+  "want_to_buy",
+  "not_owned",
+]);
+
+export type SeriesContinuationRankReason = z.infer<typeof SeriesContinuationRankReasonSchema>;
+
+export const SeriesContinuationNextBookSchema = z.object({
+  authors: BookAuthorRefSchema.array(),
+  cover: MediaViewSchema.nullable(),
+  favoriteAddedAt: z.string().nullable(),
+  id: z.string(),
+  isFavorite: z.boolean(),
+  ownershipStatus: OwnershipStatusSchema,
+  queue: z
+    .object({
+      position: z.number().int(),
+      priority: QueuePrioritySchema.nullable(),
+    })
+    .nullable(),
+  readingProgress: z
+    .object({
+      currentPage: z.number().int(),
+      percentage: z.number().int().nullable(),
+      totalPages: z.number().int().nullable(),
+    })
+    .nullable(),
+  readingStatus: ReadingStatusSchema,
+  seriesPosition: z.number().int().nullable(),
+  title: z.string(),
+});
+
+export type SeriesContinuationNextBook = z.infer<typeof SeriesContinuationNextBookSchema>;
+
+export const FavoriteSeriesContinuationItemSchema = z.object({
+  favoriteBooksCount: z.number().int(),
+  lastFavoriteAddedAt: z.string().nullable(),
+  nextBook: SeriesContinuationNextBookSchema,
+  progress: z.object({
+    closedBooks: z.number().int(),
+    finishedBooks: z.number().int(),
+    totalBooks: z.number().int(),
+  }),
+  rankReason: SeriesContinuationRankReasonSchema,
+  series: z.object({
+    id: z.string(),
+    status: SeriesStatusSchema,
+    title: z.string(),
+    totalBooks: z.number().int(),
+  }),
+});
+
+export type FavoriteSeriesContinuationItem = z.infer<typeof FavoriteSeriesContinuationItemSchema>;
+
+export const FavoriteSeriesContinuationsViewSchema = z.object({
+  items: FavoriteSeriesContinuationItemSchema.array(),
+  nextCursor: z.string().nullable(),
+  total: z.number().int(),
+});
+
+export type FavoriteSeriesContinuationsView = z.infer<typeof FavoriteSeriesContinuationsViewSchema>;

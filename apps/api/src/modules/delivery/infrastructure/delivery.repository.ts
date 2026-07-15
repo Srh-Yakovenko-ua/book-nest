@@ -443,9 +443,15 @@ function applyInTransitFilter({
   }
 }
 
-function buildDeliverySearchConditions(search: string): Prisma.BookDeliveryWhereInput[] {
+function buildDeliverySearchConditions({
+  includeCancelReason,
+  search,
+}: {
+  includeCancelReason: boolean;
+  search: string;
+}): Prisma.BookDeliveryWhereInput[] {
   const contains = { contains: search, mode: "insensitive" } as const;
-  return [
+  const conditions: Prisma.BookDeliveryWhereInput[] = [
     { book: { title: contains } },
     { book: { originalTitle: contains } },
     { book: { firstAuthorName: contains } },
@@ -455,6 +461,12 @@ function buildDeliverySearchConditions(search: string): Prisma.BookDeliveryWhere
     { deliveryService: contains },
     { note: contains },
   ];
+
+  if (includeCancelReason) {
+    conditions.push({ cancelReason: contains });
+  }
+
+  return conditions;
 }
 
 function buildHistoryWhere({
@@ -504,7 +516,7 @@ function buildHistoryWhere({
   }
 
   if (search !== undefined) {
-    where.OR = buildDeliverySearchConditions(search);
+    where.OR = buildDeliverySearchConditions({ includeCancelReason: true, search });
   }
 
   return where;
@@ -534,7 +546,7 @@ function buildInTransitWhere({
   applyInTransitFilter({ filter, soonEnd, today, weekEnd, weekStart, where });
 
   if (search !== undefined) {
-    where.OR = buildDeliverySearchConditions(search);
+    where.OR = buildDeliverySearchConditions({ includeCancelReason: false, search });
   }
 
   return where;

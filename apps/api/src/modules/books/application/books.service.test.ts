@@ -1121,7 +1121,10 @@ describe("BooksService.favoritesSummary", () => {
         reading: 2,
         series: 4,
         solo: 3,
+        topGenres: [],
+        topTags: [],
         total: 7,
+        unrated: 2,
         wantToRead: 1,
       },
     });
@@ -1134,7 +1137,10 @@ describe("BooksService.favoritesSummary", () => {
       reading: 2,
       series: 4,
       solo: 3,
+      topGenres: [],
+      topTags: [],
       total: 7,
+      unrated: 2,
       wantToRead: 1,
     });
   });
@@ -1147,7 +1153,10 @@ describe("BooksService.favoritesSummary", () => {
         reading: 0,
         series: 0,
         solo: 0,
+        topGenres: [],
+        topTags: [],
         total: 4,
+        unrated: 4,
         wantToRead: 0,
       },
     });

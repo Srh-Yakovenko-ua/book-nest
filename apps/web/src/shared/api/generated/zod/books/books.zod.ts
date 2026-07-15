@@ -412,6 +412,7 @@ export const BooksControllerListQueryParams = zod.object({
     .array(zod.string().min(1).max(booksControllerListQueryGenreItemMax))
     .max(booksControllerListQueryGenreMax),
   hasCover: zod.string().optional(),
+  hasRating: zod.string().optional(),
   isFavorite: zod.string().optional(),
   language: zod
     .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
@@ -1102,13 +1103,45 @@ export const BooksControllerPurchaseStoresResponse = zod.array(
 /**
  * @summary Get the current user favorites summary
  */
+export const booksControllerFavoritesSummaryResponseTopGenresItemCountMin = 0;
+export const booksControllerFavoritesSummaryResponseTopGenresItemCountMax = 9007199254740991;
+
+export const booksControllerFavoritesSummaryResponseTopTagsItemCountMin = 0;
+export const booksControllerFavoritesSummaryResponseTopTagsItemCountMax = 9007199254740991;
+
+export const booksControllerFavoritesSummaryResponseUnratedMin = 0;
+export const booksControllerFavoritesSummaryResponseUnratedMax = 9007199254740991;
+
 export const BooksControllerFavoritesSummaryResponse = zod.object({
   averageRating: zod.number().nullable(),
   finished: zod.number(),
   reading: zod.number(),
   series: zod.number(),
   solo: zod.number(),
+  topGenres: zod.array(
+    zod.object({
+      count: zod
+        .number()
+        .min(booksControllerFavoritesSummaryResponseTopGenresItemCountMin)
+        .max(booksControllerFavoritesSummaryResponseTopGenresItemCountMax),
+      genre: zod.string(),
+    }),
+  ),
+  topTags: zod.array(
+    zod.object({
+      count: zod
+        .number()
+        .min(booksControllerFavoritesSummaryResponseTopTagsItemCountMin)
+        .max(booksControllerFavoritesSummaryResponseTopTagsItemCountMax),
+      tag: zod.string(),
+    }),
+  ),
   total: zod.number(),
+  unrated: zod
+    .number()
+    .min(booksControllerFavoritesSummaryResponseUnratedMin)
+    .max(booksControllerFavoritesSummaryResponseUnratedMax)
+    .describe("Count of finished favorite books without a rating"),
   wantToRead: zod.number(),
 });
 
@@ -1858,23 +1891,140 @@ export const BookReadingControllerGetReadingHistoryParams = zod.object({
   id: zod.string(),
 });
 
+export const bookReadingControllerGetReadingHistoryQueryActivityRangeDefault = `7d`;
+export const bookReadingControllerGetReadingHistoryQueryLimitDefault = 20;
+export const bookReadingControllerGetReadingHistoryQueryLimitMax = 100;
+
+export const bookReadingControllerGetReadingHistoryQueryPageDefault = 1;
+export const bookReadingControllerGetReadingHistoryQueryPageMax = 9007199254740991;
+
+export const bookReadingControllerGetReadingHistoryQuerySortDefault = `desc`;
+
+export const BookReadingControllerGetReadingHistoryQueryParams = zod.object({
+  activityRange: zod
+    .enum(["7d", "14d", "all"])
+    .default(bookReadingControllerGetReadingHistoryQueryActivityRangeDefault),
+  limit: zod
+    .number()
+    .min(1)
+    .max(bookReadingControllerGetReadingHistoryQueryLimitMax)
+    .default(bookReadingControllerGetReadingHistoryQueryLimitDefault),
+  page: zod
+    .number()
+    .min(1)
+    .max(bookReadingControllerGetReadingHistoryQueryPageMax)
+    .default(bookReadingControllerGetReadingHistoryQueryPageDefault),
+  sort: zod.enum(["asc", "desc"]).default(bookReadingControllerGetReadingHistoryQuerySortDefault),
+});
+
 export const BookReadingControllerGetReadingHistoryResponse = zod.object({
-  daily: zod.array(
-    zod.object({
-      date: zod.string(),
+  activity: zod.object({
+    from: zod.string().nullable(),
+    points: zod.array(
+      zod.object({
+        date: zod.string(),
+        finalPage: zod.number().nullable(),
+        hasActivity: zod.boolean(),
+        pagesRead: zod.number(),
+        startPage: zod.number().nullable(),
+        updatesCount: zod.number(),
+      }),
+    ),
+    range: zod.enum(["7d", "14d", "all"]),
+    summary: zod.object({
+      activeDaysCount: zod.number(),
+      averagePagesPerActiveDay: zod.number().nullable(),
+      bestDay: zod
+        .object({
+          date: zod.string(),
+          finalPage: zod.number().nullable(),
+          pagesRead: zod.number(),
+          updatesCount: zod.number(),
+        })
+        .nullable(),
       pagesRead: zod.number(),
+      updatesCount: zod.number(),
     }),
-  ),
-  daysRead: zod.number(),
-  events: zod.array(
-    zod.object({
-      date: zod.string(),
-      id: zod.string(),
+    to: zod.string().nullable(),
+  }),
+  history: zod.object({
+    days: zod.array(
+      zod.object({
+        date: zod.string(),
+        events: zod.array(
+          zod.object({
+            date: zod.string(),
+            id: zod.string(),
+            page: zod.number(),
+            pagesRead: zod.number(),
+            recordedAt: zod.string(),
+          }),
+        ),
+        finalPage: zod.number(),
+        pagesRead: zod.number(),
+        startPage: zod.number(),
+        updatesCount: zod.number(),
+      }),
+    ),
+    pagination: zod.object({
+      hasNextPage: zod.boolean(),
+      hasPreviousPage: zod.boolean(),
+      limit: zod.number(),
       page: zod.number(),
-      pagesRead: zod.number(),
+      totalDays: zod.number(),
+      totalPages: zod.number(),
     }),
-  ),
-  totalPagesRead: zod.number(),
+  }),
+  summary: zod.object({
+    abandonedAt: zod.string().nullable(),
+    activeDaysCount: zod.number(),
+    averagePagesPerActiveDay: zod.number().nullable(),
+    bestDay: zod
+      .object({
+        date: zod.string(),
+        finalPage: zod.number().nullable(),
+        pagesRead: zod.number(),
+        updatesCount: zod.number(),
+      })
+      .nullable(),
+    currentPage: zod.number(),
+    estimatedActiveDaysRemaining: zod.number().nullable(),
+    finishedAt: zod.string().nullable(),
+    historyCompleteness: zod.object({
+      isComplete: zod.boolean(),
+      untrackedPages: zod.number(),
+    }),
+    lastActivity: zod
+      .object({
+        date: zod.string(),
+        finalPage: zod.number().nullable(),
+        pagesRead: zod.number(),
+        updatesCount: zod.number(),
+      })
+      .nullable(),
+    lastProgressUpdateAt: zod.string().nullable(),
+    pagesCount: zod.number().nullable(),
+    pagesRemaining: zod.number().nullable(),
+    pausedAt: zod.string().nullable(),
+    progressPercent: zod.number().nullable(),
+    readingPeriod: zod.object({
+      calendarDays: zod.number().nullable(),
+      endDate: zod.string().nullable(),
+      startDate: zod.string().nullable(),
+    }),
+    startedAt: zod.string().nullable(),
+    status: zod.enum([
+      "not_started",
+      "want_to_read",
+      "reading",
+      "paused",
+      "finished",
+      "dnf",
+      "rereading",
+    ]),
+    trackedPagesRead: zod.number(),
+    updatesCount: zod.number(),
+  }),
 });
 
 /**

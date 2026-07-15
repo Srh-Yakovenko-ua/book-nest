@@ -6,9 +6,13 @@
  * OpenAPI spec version: 1.0
  */
 
-export type ReadingHistoryViewDtoEventsItem = {
+/**
+ * @nullable
+ */
+export type ReadingHistoryViewDtoSummaryLastActivity = {
   date: string;
-  id: string;
-  page: number;
+  /** @nullable */
+  finalPage: number | null;
   pagesRead: number;
-};
+  updatesCount: number;
+} | null;

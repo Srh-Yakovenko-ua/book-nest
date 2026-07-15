@@ -6,7 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 
-export type ReadingHistoryViewDtoDailyItem = {
-  date: string;
-  pagesRead: number;
+export type FavoriteSeriesContinuationsViewDtoItemsItemNextBookAuthorsItem = {
+  id: string;
+  name: string;
 };

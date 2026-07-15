@@ -5,12 +5,12 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { ReadingHistoryViewDtoDailyItem } from "./readingHistoryViewDtoDailyItem";
-import type { ReadingHistoryViewDtoEventsItem } from "./readingHistoryViewDtoEventsItem";
+import type { ReadingHistoryViewDtoActivity } from "./readingHistoryViewDtoActivity";
+import type { ReadingHistoryViewDtoHistory } from "./readingHistoryViewDtoHistory";
+import type { ReadingHistoryViewDtoSummary } from "./readingHistoryViewDtoSummary";
 
 export interface ReadingHistoryViewDto {
-  daily: ReadingHistoryViewDtoDailyItem[];
-  daysRead: number;
-  events: ReadingHistoryViewDtoEventsItem[];
-  totalPagesRead: number;
+  activity: ReadingHistoryViewDtoActivity;
+  history: ReadingHistoryViewDtoHistory;
+  summary: ReadingHistoryViewDtoSummary;
 }
