@@ -1,12 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
-import { Badge } from "@/components/ui/badge";
 import { Link, useRouter } from "@/i18n/navigation";
 
 import type { LibraryActions } from "../model/book-card-actions";
@@ -141,15 +140,90 @@ export function FavoritesView() {
     resultsRegionRef.current?.focus({ preventScroll: true });
   }, [visibleBookIdsKey]);
 
-  const favoritesTotal = summary.data?.total ?? 0;
+  const total = summary.data?.total ?? 0;
+  const reading = summary.data?.reading ?? 0;
+  const finished = summary.data?.finished ?? 0;
+  const wantToRead = summary.data?.wantToRead ?? 0;
+  const series = summary.data?.series ?? 0;
+  const solo = summary.data?.solo ?? 0;
+  const averageRating = summary.data?.averageRating ?? null;
+  const readingPercent = total > 0 ? Math.round((reading / total) * 100) : 0;
+  const finishedPercent = total > 0 ? Math.round((finished / total) * 100) : 0;
+
+  const bookUnit = (count: number) => t("summary.unitBook", { count });
+
+  const totalMicrofact: ReactNode =
+    total === 0 ? (
+      <span className="block truncate">{tFav("summary.totalMicrofactEmpty")}</span>
+    ) : (
+      <span className="block truncate">{tFav("summary.totalMicrofact", { series, solo })}</span>
+    );
+
+  const readingMicrofact = ((): ReactNode => {
+    if (reading > 0) {
+      return (
+        <span className="block truncate">
+          {tFav("summary.readingMicrofactActive", { percentage: readingPercent })}
+        </span>
+      );
+    }
+    if (wantToRead > 0) {
+      return (
+        <span className="block truncate">
+          {tFav("summary.readingMicrofactPlanned", { count: wantToRead })}
+        </span>
+      );
+    }
+    return <span className="block truncate">{tFav("summary.readingMicrofactNone")}</span>;
+  })();
+
+  const finishedMicrofact: ReactNode =
+    finished > 0 ? (
+      <span className="block truncate">
+        {tFav("summary.finishedMicrofactActive", { percentage: finishedPercent })}
+      </span>
+    ) : (
+      <span className="block truncate">{tFav("summary.finishedMicrofactEmpty")}</span>
+    );
+
+  const ratingMicrofact: ReactNode =
+    averageRating === null ? (
+      <span className="block truncate">{tFav("summary.ratingMicrofactEmpty")}</span>
+    ) : (
+      <span className="block truncate">{tFav("summary.ratingMicrofact")}</span>
+    );
+
   const summaryCards: LibrarySummaryCard[] = [
-    { icon: "heart", label: tFav("summary.total"), value: favoritesTotal },
-    { icon: "check-circle", label: tFav("summary.finished"), value: summary.data?.finished ?? 0 },
-    { icon: "book", label: tFav("summary.reading"), value: summary.data?.reading ?? 0 },
+    {
+      icon: "heart",
+      iconTone: "favorite",
+      label: tFav("summary.total"),
+      microfact: totalMicrofact,
+      unit: bookUnit(total),
+      value: total,
+    },
+    {
+      icon: "book",
+      iconTone: "info",
+      label: tFav("summary.reading"),
+      microfact: readingMicrofact,
+      unit: bookUnit(reading),
+      value: reading,
+    },
+    {
+      icon: "check-circle",
+      iconTone: "success",
+      label: tFav("summary.finished"),
+      microfact: finishedMicrofact,
+      unit: bookUnit(finished),
+      value: finished,
+    },
     {
       icon: "star",
+      iconTone: "primary",
       label: tFav("summary.averageRating"),
-      value: formatAverageRating(summary.data?.averageRating, tFav("summary.averageRatingEmpty")),
+      microfact: ratingMicrofact,
+      value: formatAverageRating(averageRating, tFav("summary.averageRatingEmpty")),
     },
   ];
 
@@ -261,7 +335,7 @@ export function FavoritesView() {
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
-        libraryTotal={favoritesTotal}
+        libraryTotal={total}
         linkComponent={Link}
         loadingLabel={t("loading")}
         loadMoreErrorLabel={t("loadMoreError")}
@@ -298,11 +372,6 @@ export function FavoritesView() {
         summaryCards={summaryCards}
         summaryLoading={summary.isPending}
         title={tFav("title")}
-        titleBadge={
-          summary.data === undefined ? undefined : (
-            <Badge variant="secondary">{tFav("countBadge", { count: favoritesTotal })}</Badge>
-          )
-        }
         view={library.view}
         viewLabels={{ grid: t("view.grid"), label: t("view.label"), list: t("view.list") }}
       />

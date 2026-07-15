@@ -1,6 +1,7 @@
 export { useBook } from "./api/use-book";
 export { useCreateBook } from "./api/use-create-book";
 export { useUpdateBook } from "./api/use-update-book";
+export { AuthorsField } from "./components/authors-field";
 export { BookDetails } from "./components/book-details";
 export { BookForm } from "./components/book-form";
 export { BookPreview } from "./components/book-preview";
@@ -14,6 +15,7 @@ export { FormSection } from "./components/form-section";
 export { GenresField } from "./components/genres-field";
 export { HomeDashboard } from "./components/home-dashboard";
 export { ReadingQueueView } from "./components/reading-queue-view";
+export { SeriesStatusChips } from "./components/series-status-chips";
 export { BOOK_GENRES_MAX } from "./model/book-classification-fields";
 export {
   type AuthorSelection,

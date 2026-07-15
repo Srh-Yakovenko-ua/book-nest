@@ -868,11 +868,6 @@
       "createHeading": "Create new",
       "createNew": "Create new series",
       "createAction": "Create “{name}”",
-      "statusLabels": {
-        "unknown": "Unknown",
-        "ongoing": "Ongoing",
-        "completed": "Completed"
-      },
       "create": {
         "title": "New series",
         "description": "The series will be created together with the book.",
@@ -1735,13 +1730,21 @@
     "metaTitle": "Favorite books",
     "title": "Favorite books",
     "subtitle": "Books you want to revisit, remember, and recommend",
-    "countBadge": "{count, plural, one {# book} other {# books}}",
     "summary": {
       "total": "Total favorites",
       "finished": "Finished",
       "reading": "Reading",
       "averageRating": "Average rating",
-      "averageRatingEmpty": "—"
+      "averageRatingEmpty": "—",
+      "totalMicrofact": "{series} in series · {solo, plural, one {# standalone} other {# standalone}}",
+      "totalMicrofactEmpty": "No favorite books yet",
+      "readingMicrofactActive": "{percentage}% of favorites in progress",
+      "readingMicrofactPlanned": "{count, plural, one {# book planned to read} other {# books planned to read}}",
+      "readingMicrofactNone": "No active reading",
+      "finishedMicrofactActive": "{percentage}% of favorites read",
+      "finishedMicrofactEmpty": "Nothing read yet",
+      "ratingMicrofact": "Among rated favorites",
+      "ratingMicrofactEmpty": "No ratings yet"
     },
     "empty": {
       "title": "Collect the books that feel special",
@@ -1843,6 +1846,7 @@
       "description": "Create a book series to track its progress.",
       "name": "Series name",
       "namePlaceholder": "e.g. The Witcher",
+      "authors": "Series authors",
       "status": "Status",
       "genres": "Genres",
       "genresHint": "You can pick up to {max} genres",

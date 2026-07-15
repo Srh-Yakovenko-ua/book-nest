@@ -868,11 +868,6 @@
       "createHeading": "Створити нову",
       "createNew": "Створити нову серію",
       "createAction": "Створити «{name}»",
-      "statusLabels": {
-        "unknown": "Невідомо",
-        "ongoing": "Триває",
-        "completed": "Завершено"
-      },
       "create": {
         "title": "Нова серія",
         "description": "Серія буде створена разом із книгою.",
@@ -1735,13 +1730,21 @@
     "metaTitle": "Улюблені книги",
     "title": "Улюблені книги",
     "subtitle": "Книги, до яких хочеться повертатися й радити іншим",
-    "countBadge": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
     "summary": {
       "total": "Усього улюблених",
       "finished": "Прочитано",
       "reading": "Читаю",
       "averageRating": "Середній рейтинг",
-      "averageRatingEmpty": "—"
+      "averageRatingEmpty": "—",
+      "totalMicrofact": "{series} у серіях · {solo, plural, one {# окрема} few {# окремі} many {# окремих} other {# окремі}}",
+      "totalMicrofactEmpty": "Улюблених книг поки немає",
+      "readingMicrofactActive": "{percentage}% улюблених читається зараз",
+      "readingMicrofactPlanned": "{count, plural, one {# книгу заплановано прочитати} few {# книги заплановано прочитати} many {# книг заплановано прочитати} other {# книги заплановано прочитати}}",
+      "readingMicrofactNone": "Немає активного читання",
+      "finishedMicrofactActive": "{percentage}% улюблених прочитано",
+      "finishedMicrofactEmpty": "Ще немає прочитаних",
+      "ratingMicrofact": "Серед улюблених книг з оцінкою",
+      "ratingMicrofactEmpty": "Оцінок поки немає"
     },
     "empty": {
       "title": "Збери книги, які стали особливими",
@@ -1843,6 +1846,7 @@
       "description": "Створіть книжкову серію, щоб відстежувати її прогрес.",
       "name": "Назва серії",
       "namePlaceholder": "Напр. Відьмак",
+      "authors": "Автори серії",
       "status": "Статус",
       "genres": "Жанри",
       "genresHint": "Можна обрати до {max} жанрів",
