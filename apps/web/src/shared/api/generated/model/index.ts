@@ -342,6 +342,7 @@ export * from "./readingQueueViewDtoItemsItemBookReadingProgress";
 export * from "./readingQueueViewDtoItemsItemBookReadingStatus";
 export * from "./readingQueueViewDtoItemsItemBookSeries";
 export * from "./readingQueueViewDtoItemsItemBookTagsItem";
+export * from "./receiveDeliveryInputDto";
 export * from "./registrationInputDto";
 export * from "./reorderReadingQueueInputDto";
 export * from "./resendVerificationInputDto";
