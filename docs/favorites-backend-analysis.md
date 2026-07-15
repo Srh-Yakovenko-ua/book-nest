@@ -19,17 +19,17 @@ favoriteAddedAt DateTime? @map("favorite_added_at") @db.Timestamptz
 
 > ⚠️ Не плутати: у `User` є ще `favoriteBookQuote` / `favoriteGenres` (`schema.prisma:30-31`) — це персоналізація профілю, до книжкового «улюбленого» стосунку не має.
 
-**Чому так спроєктовано:** улюблене — це атрибут стану *конкретної книги користувача*, а не багато-до-багатьох зв'язок (як було б, якби одну книгу могли фаворитити різні юзери). Тому join-таблиця була б надлишковою. Ціна рішення — немає історії (коли додав/прибрав/знову додав), лише останній `favoriteAddedAt`.
+**Чому так спроєктовано:** улюблене — це атрибут стану _конкретної книги користувача_, а не багато-до-багатьох зв'язок (як було б, якби одну книгу могли фаворитити різні юзери). Тому join-таблиця була б надлишковою. Ціна рішення — немає історії (коли додав/прибрав/знову додав), лише останній `favoriteAddedAt`.
 
 ## Endpoints (усі під `JwtAccessGuard`)
 
-| Метод + маршрут | Що робить |
-| --- | --- |
-| `PATCH /api/books/:id` | Основний спосіб перемкнути одну книгу — body містить `isFavorite?` |
-| `PATCH /api/books/bulk/favorite` | Масове set/unset: `{ bookIds: uuid[], isFavorite }` → `{ affected }` |
-| `POST /api/books` | При створенні можна одразу `isFavorite` (default `false`) |
-| `GET /api/books?isFavorite=true` | Фільтр списку тільки на улюблені + сорт `favorite_added_desc/asc` |
-| `GET /api/books/favorites-summary` | Агрегована статистика по улюблених |
+| Метод + маршрут                    | Що робить                                                            |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| `PATCH /api/books/:id`             | Основний спосіб перемкнути одну книгу — body містить `isFavorite?`   |
+| `PATCH /api/books/bulk/favorite`   | Масове set/unset: `{ bookIds: uuid[], isFavorite }` → `{ affected }` |
+| `POST /api/books`                  | При створенні можна одразу `isFavorite` (default `false`)            |
+| `GET /api/books?isFavorite=true`   | Фільтр списку тільки на улюблені + сорт `favorite_added_desc/asc`    |
+| `GET /api/books/favorites-summary` | Агрегована статистика по улюблених                                   |
 
 Окремого `POST /books/:id/favorite` / `DELETE` **немає** — додавання/зняття йде через update, create або bulk.
 
@@ -44,7 +44,7 @@ favoriteAddedAt DateTime? @map("favorite_added_at") @db.Timestamptz
 
 ```ts
 export function resolveFavoriteChange({ current, next, now }) {
-  if (next === current) return null;                               // no-op
+  if (next === current) return null; // no-op
   return { favoriteAddedAt: next ? now : null, isFavorite: next }; // set/clear timestamp
 }
 ```
@@ -70,7 +70,7 @@ return updated.count;
 
 Два важливі моменти:
 
-1. `isFavorite: !isFavorite` у `where` — оновлюються лише рядки, які реально в протилежному стані. Тому `affected` = кількість *справжніх* змін, а повторний виклик поверне `0`. Це «ідемпотентність на рівні SQL», без попереднього SELECT.
+1. `isFavorite: !isFavorite` у `where` — оновлюються лише рядки, які реально в протилежному стані. Тому `affected` = кількість _справжніх_ змін, а повторний виклик поверне `0`. Це «ідемпотентність на рівні SQL», без попереднього SELECT.
 2. `userId` у `where` — це і є перевірка власності. Чужі/неіснуючі `bookIds` просто не потрапляють під update і **тихо ігноруються** (не рахуються, помилки немає).
 
 Явної помилки «вже в улюблених» ніде не кидається — повторне фаворитення є тихим no-op.

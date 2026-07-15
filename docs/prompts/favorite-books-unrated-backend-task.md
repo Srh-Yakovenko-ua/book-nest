@@ -158,13 +158,7 @@ GET /api/books/favorites-summary
 
 ```ts
 {
-  total,
-  reading,
-  finished,
-  wantToRead,
-  series,
-  solo,
-  averageRating
+  (total, reading, finished, wantToRead, series, solo, averageRating);
 }
 ```
 
@@ -420,21 +414,14 @@ hasRating=false
 Додати поле:
 
 ```ts
-unrated: number
+unrated: number;
 ```
 
 Оновлена відповідь:
 
 ```ts
 {
-  total,
-  reading,
-  finished,
-  wantToRead,
-  series,
-  solo,
-  averageRating,
-  unrated
+  (total, reading, finished, wantToRead, series, solo, averageRating, unrated);
 }
 ```
 
@@ -647,7 +634,7 @@ book.userId = currentUserId
 Якщо еквівалентного фільтра ще немає:
 
 ```ts
-hasRating: z.stringbool().optional()
+hasRating: z.stringbool().optional();
 ```
 
 Назву потрібно узгодити з поточним стилем API.
@@ -657,7 +644,7 @@ hasRating: z.stringbool().optional()
 Додати:
 
 ```ts
-unrated: z.number().int().nonnegative()
+unrated: z.number().int().nonnegative();
 ```
 
 ### View DTO

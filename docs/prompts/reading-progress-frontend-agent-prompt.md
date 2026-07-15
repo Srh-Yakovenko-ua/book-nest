@@ -515,7 +515,7 @@ Page 250
 Тривалість брати лише з:
 
 ```ts
-summary.readingPeriod.calendarDays
+summary.readingPeriod.calendarDays;
 ```
 
 Не рахувати її на фронтенді.
@@ -600,7 +600,7 @@ EN:
 Показувати лише якщо:
 
 ```ts
-summary.estimatedActiveDaysRemaining !== null
+summary.estimatedActiveDaysRemaining !== null;
 ```
 
 Текст:
@@ -637,13 +637,13 @@ At the current pace, about {{count}} active reading days remain.
 Якщо:
 
 ```ts
-summary.historyCompleteness.isComplete === false
+summary.historyCompleteness.isComplete === false;
 ```
 
 і:
 
 ```ts
-summary.historyCompleteness.untrackedPages > 0
+summary.historyCompleteness.untrackedPages > 0;
 ```
 
 показати делікатне повідомлення:
@@ -709,13 +709,13 @@ English:
 Значення:
 
 ```ts
-"7d" | "14d" | "all"
+"7d" | "14d" | "all";
 ```
 
 Default:
 
 ```ts
-"7d"
+"7d";
 ```
 
 ## 7.2. Поведінка перемикача
@@ -752,7 +752,7 @@ Default:
 Дані брати без змін із:
 
 ```ts
-activity.points
+activity.points;
 ```
 
 ## 7.4. Tooltip графіка
@@ -1077,13 +1077,13 @@ Oldest first
 Values:
 
 ```ts
-"desc" | "asc"
+"desc" | "asc";
 ```
 
 Default:
 
 ```ts
-"desc"
+"desc";
 ```
 
 При зміні sort:
@@ -1221,13 +1221,13 @@ The time the update was saved. It may differ from the actual reading time.
 Використовувати лише:
 
 ```ts
-history.pagination
+history.pagination;
 ```
 
 Показати pagination, якщо:
 
 ```ts
-totalPages > 1
+totalPages > 1;
 ```
 
 При зміні сторінки:
