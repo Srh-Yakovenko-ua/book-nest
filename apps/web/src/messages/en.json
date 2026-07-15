@@ -1777,6 +1777,38 @@
       "emptyAllRated": "No unrated books among your finished favorites",
       "error": "Couldn't load books",
       "retry": "Try again"
+    },
+    "seriesContinuations": {
+      "title": "Next in series",
+      "subtitle": "Next books from series where you already have favorites",
+      "countChip": "{count, plural, one {# suggestion} other {# suggestions}}",
+      "showAll": "Show all",
+      "collapse": "Collapse",
+      "error": "Couldn’t load series continuations",
+      "retry": "Try again",
+      "empty": "No series to continue yet",
+      "bookPosition": "{position} of {total}",
+      "seriesProgress": "Read {finished} of {total} books in the series",
+      "openBook": "Open “{title}”",
+      "openSeries": "Open series “{title}”",
+      "actions": {
+        "continueReading": "Continue reading",
+        "resumeReading": "Resume reading",
+        "addToQueue": "Add to queue",
+        "openQueue": "Go to queue",
+        "openLoan": "View loan",
+        "openOrder": "View order",
+        "openWishlist": "Go to purchase",
+        "addToWishlist": "Add to “Want to buy”"
+      }
+    },
+    "topGenres": {
+      "title": "Top genres",
+      "subtitle": "Top 3 genres among your favorites",
+      "chartLabel": "Pie chart of favorite top genres",
+      "empty": "No genres among favorites yet",
+      "error": "Failed to load genres",
+      "retry": "Try again"
     }
   },
   "series": {

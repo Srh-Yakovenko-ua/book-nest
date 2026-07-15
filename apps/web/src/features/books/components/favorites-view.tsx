@@ -38,7 +38,7 @@ import {
 import { useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
-import { FavoritesUnratedBlock } from "./favorites-unrated-block";
+import { FavoritesSidebar } from "./favorites-sidebar";
 import { LibraryActiveFilters } from "./library-active-filters";
 import { LibraryAdvancedFilters } from "./library-advanced-filters";
 import { LibraryQuickFilters } from "./library-quick-filters";
@@ -444,7 +444,7 @@ export function FavoritesView() {
             value={library.state.q}
           />
         }
-        sidebar={<FavoritesUnratedBlock unrated={unrated} />}
+        sidebar={<FavoritesSidebar unrated={unrated} />}
         sort={library.sort}
         sortLabel={t("sort.label")}
         sortOptions={sortOptions}

@@ -28,7 +28,7 @@ export function FavoritesUnratedBlock({ unrated }: FavoritesUnratedBlockProps) {
   const books = preview.data?.items ?? [];
 
   return (
-    <aside className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0">
+    <>
       {unrated > 0 ? (
         <section className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card">
           <header className="flex flex-col gap-3">
@@ -81,7 +81,7 @@ export function FavoritesUnratedBlock({ unrated }: FavoritesUnratedBlockProps) {
           open
         />
       ) : null}
-    </aside>
+    </>
   );
 }
 
