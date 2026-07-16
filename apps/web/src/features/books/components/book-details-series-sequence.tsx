@@ -6,12 +6,14 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { type ReactNode, useLayoutEffect, useRef } from "react";
 
+import type { SeriesSlot } from "@/features/series";
+
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { readingOrder, suggestedPartNumber, useSeriesDetails } from "@/features/series";
+import { buildSeriesSlots, useSeriesDetails } from "@/features/series";
 import { Link } from "@/i18n/navigation";
 import { readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
@@ -20,11 +22,6 @@ import { computeSeriesSequenceHint, type SeriesSequenceHint } from "../model/ser
 import { FormSection } from "./form-section";
 
 type ConnectorTone = "none" | "pale" | "strong";
-
-type Slot =
-  | { book: SeriesBookView; isCurrent: boolean; key: string; kind: "added"; number: null | number }
-  | { key: string; kind: "missing"; number: number }
-  | { key: string; kind: "open"; partNumber: number };
 
 const SKELETON_SLOTS = ["s1", "s2", "s3", "s4", "s5"] as const;
 
@@ -128,45 +125,6 @@ function bookLink(book: SeriesBookView) {
   };
 }
 
-function buildSlots(series: SeriesView, books: SeriesBookView[], currentId: string): Slot[] {
-  const total = series.totalBooks;
-
-  if (total === null) {
-    const numbered = readingOrder(books).map((entry) => toAddedSlot(entry, currentId));
-    const unnumbered = books
-      .filter((entry) => entry.partNumber === null)
-      .map((entry) => toAddedSlot(entry, currentId));
-    return [
-      ...numbered,
-      ...unnumbered,
-      { key: "open", kind: "open", partNumber: suggestedPartNumber(books) },
-    ];
-  }
-
-  const used = new Set<string>();
-  const slots: Slot[] = [];
-  for (let position = 1; position <= total; position += 1) {
-    const matches = books.filter((entry) => entry.partNumber === position);
-    if (matches.length === 0) {
-      slots.push({ key: `missing-${position}`, kind: "missing", number: position });
-      continue;
-    }
-    for (const match of matches) {
-      slots.push(toAddedSlot(match, currentId));
-      used.add(match.id);
-    }
-  }
-
-  const extras = books
-    .filter((entry) => !used.has(entry.id))
-    .sort(
-      (a, b) =>
-        (a.partNumber ?? Number.MAX_SAFE_INTEGER) - (b.partNumber ?? Number.MAX_SAFE_INTEGER),
-    );
-  for (const extra of extras) slots.push(toAddedSlot(extra, currentId));
-  return slots;
-}
-
 function Connector({ tone }: { tone: ConnectorTone }) {
   if (tone === "none") return null;
   const strong = tone === "strong";
@@ -198,7 +156,7 @@ function Connector({ tone }: { tone: ConnectorTone }) {
   );
 }
 
-function connectorTone(previous: null | Slot, current: Slot): ConnectorTone {
+function connectorTone(previous: null | SeriesSlot, current: SeriesSlot): ConnectorTone {
   if (previous === null) return "none";
   if (
     previous.kind === "added" &&
@@ -383,7 +341,10 @@ function SeriesSequence({ book, series }: { book: BookView; series: SeriesView }
   const scrollRef = useRef<HTMLOListElement>(null);
 
   const books = data?.books ?? [];
-  const slots = data === undefined ? [] : buildSlots(series, books, book.id);
+  const slots =
+    data === undefined
+      ? []
+      : buildSeriesSlots({ books, currentId: book.id, totalBooks: series.totalBooks });
 
   useLayoutEffect(() => {
     const container = scrollRef.current;
@@ -553,7 +514,7 @@ function SlotView({
 }: {
   connector: ConnectorTone;
   seriesId: string;
-  slot: Slot;
+  slot: SeriesSlot;
 }) {
   switch (slot.kind) {
     case "added":
@@ -572,14 +533,4 @@ function SlotView({
     default:
       return assertNever(slot);
   }
-}
-
-function toAddedSlot(book: SeriesBookView, currentId: string): Slot {
-  return {
-    book,
-    isCurrent: book.id === currentId,
-    key: `added-${book.id}`,
-    kind: "added",
-    number: book.partNumber,
-  };
 }
