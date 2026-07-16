@@ -137,6 +137,22 @@ export class SeriesOrderCheckService {
     });
   }
 
+  async getSeriesCheckPreference({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesOrderPreferenceView> {
+    const ownedSeriesId = await this.repository.findOwnedSeriesId({ seriesId, userId });
+    if (ownedSeriesId === null) {
+      throw new NotFoundError(SERIES_NOT_FOUND_MESSAGE, { code: SERIES_NOT_FOUND_CODE });
+    }
+
+    const disabled = await this.repository.isSeriesDisabled({ seriesId, userId });
+    return { enabled: !disabled };
+  }
+
   async ignoreIssue({
     fingerprint,
     userId,

@@ -128,6 +128,12 @@ function getQueue(accessToken: string): request.Test {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
+function getSeriesOrderPreference(accessToken: string, seriesId: string): request.Test {
+  return request(app.getHttpServer())
+    .get(`/api/series/${seriesId}/order-check-preference`)
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
 function ignoreIssue(accessToken: string, fingerprint: string): request.Test {
   return request(app.getHttpServer())
     .post(`/api/reading-queue/series-order-issues/${fingerprint}/ignore`)
@@ -734,6 +740,95 @@ describe("PUT /api/series/:seriesId/order-check-preference", () => {
     const res = await request(app.getHttpServer())
       .put(`/api/series/${randomUUID()}/order-check-preference`)
       .send({ enabled: false });
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("GET /api/series/:seriesId/order-check-preference", () => {
+  it("returns enabled true by default when the series was never disabled", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+
+    const res = await getSeriesOrderPreference(user.accessToken, scenario.seriesId);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ enabled: true });
+  });
+
+  it("returns enabled false after the check is disabled", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+
+    expect(
+      (await setSeriesOrderPreference(user.accessToken, scenario.seriesId, false)).status,
+    ).toBe(200);
+
+    const res = await getSeriesOrderPreference(user.accessToken, scenario.seriesId);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ enabled: false });
+  });
+
+  it("returns enabled false when a disabled row is seeded directly", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+
+    const prisma = app.get(PrismaService);
+    await prisma.seriesOrderDisabledSeries.create({
+      data: { seriesId: scenario.seriesId, userId: user.userId },
+    });
+
+    const res = await getSeriesOrderPreference(user.accessToken, scenario.seriesId);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ enabled: false });
+  });
+
+  it("returns enabled true again after the check is re-enabled", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+
+    expect(
+      (await setSeriesOrderPreference(user.accessToken, scenario.seriesId, false)).status,
+    ).toBe(200);
+    expect((await getSeriesOrderPreference(user.accessToken, scenario.seriesId)).body).toEqual({
+      enabled: false,
+    });
+
+    expect((await setSeriesOrderPreference(user.accessToken, scenario.seriesId, true)).status).toBe(
+      200,
+    );
+
+    const res = await getSeriesOrderPreference(user.accessToken, scenario.seriesId);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ enabled: true });
+  });
+
+  it("returns 404 for a series not owned by the user", async () => {
+    const user = await context.registerVerifyAndLogin();
+
+    const res = await getSeriesOrderPreference(user.accessToken, randomUUID());
+
+    expect(res.status).toBe(404);
+  });
+
+  it("does not leak another user's series preference", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const ownerScenario = await seedMissingPreviousScenario(owner.accessToken);
+    expect(
+      (await setSeriesOrderPreference(owner.accessToken, ownerScenario.seriesId, false)).status,
+    ).toBe(200);
+
+    const other = await context.registerVerifyAndLogin({ email: "other@example.com" });
+    const res = await getSeriesOrderPreference(other.accessToken, ownerScenario.seriesId);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("rejects an unauthenticated request", async () => {
+    const res = await request(app.getHttpServer()).get(
+      `/api/series/${randomUUID()}/order-check-preference`,
+    );
     expect(res.status).toBe(401);
   });
 });

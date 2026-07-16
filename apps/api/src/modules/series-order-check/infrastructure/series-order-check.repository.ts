@@ -88,6 +88,17 @@ export class SeriesOrderCheckRepository {
     return row?.id ?? null;
   }
 
+  async isSeriesDisabled(
+    { seriesId, userId }: { seriesId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<boolean> {
+    const row = await client.seriesOrderDisabledSeries.findFirst({
+      select: { seriesId: true },
+      where: { seriesId, userId },
+    });
+    return row !== null;
+  }
+
   async listDisabledSeriesIds(
     userId: string,
     client: Prisma.TransactionClient = this.prisma,

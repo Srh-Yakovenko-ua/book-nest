@@ -1,7 +1,16 @@
 import type { SeriesOrderPreferenceView } from "@app/shared";
 
 import { SeriesOrderCheckPreferenceInputSchema } from "@app/shared";
-import { Body, Controller, HttpCode, Param, ParseUUIDPipe, Put, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Put,
+  UseGuards,
+} from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -31,6 +40,31 @@ const PREFERENCE_ACTION_LIMIT = 60;
 @Controller("api/series")
 export class SeriesOrderPreferenceController {
   constructor(private readonly seriesOrderCheckService: SeriesOrderCheckService) {}
+
+  @ApiBadRequestResponse({ description: "Invalid series id" })
+  @ApiBearerAuth()
+  @ApiNotFoundResponse({ description: "Series not found" })
+  @ApiOkResponse({
+    description: "The current series order check preference",
+    type: SeriesOrderPreferenceViewDto,
+  })
+  @ApiOperation({ summary: "Read the series read-order check preference for a series" })
+  @ApiParam({ description: "The series id", name: "seriesId" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get(":seriesId/order-check-preference")
+  @Throttle({
+    default: { limit: PREFERENCE_ACTION_LIMIT, ttl: seconds(PREFERENCE_ACTION_TTL_SECONDS) },
+  })
+  @UseGuards(JwtAccessGuard)
+  getPreference(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("seriesId", ParseUUIDPipe) seriesId: string,
+  ): Promise<SeriesOrderPreferenceView> {
+    return this.seriesOrderCheckService.getSeriesCheckPreference({
+      seriesId,
+      userId: user.id,
+    });
+  }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBearerAuth()
