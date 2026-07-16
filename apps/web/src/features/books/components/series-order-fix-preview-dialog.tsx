@@ -3,7 +3,7 @@
 import type { SeriesOrderFixPreviewView, SeriesOrderQueuePreviewItem } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,12 @@ import { cn } from "@/lib/utils";
 
 import type { SeriesOrderErrorKey, SeriesOrderFixTarget } from "../model/series-order-check";
 
-import { useApplySeriesOrderFix, useSeriesOrderFixPreview } from "../api/use-series-order-check";
-import { toSeriesOrderErrorKey } from "../model/series-order-check";
+import {
+  useApplySeriesOrderFix,
+  useInvalidateSeriesOrderIssues,
+  useSeriesOrderFixPreview,
+} from "../api/use-series-order-check";
+import { isSeriesOrderStaleError, toSeriesOrderErrorKey } from "../model/series-order-check";
 
 type SeriesOrderFixPreviewDialogProps = {
   onCloseAutoFocus: (event: Event) => void;
@@ -74,10 +78,21 @@ function FixPreview({
   const tError = useTranslations("readingQueue.seriesOrderCheck.error");
   const preview = useSeriesOrderFixPreview(target);
   const applyFix = useApplySeriesOrderFix();
+  const invalidateIssues = useInvalidateSeriesOrderIssues();
   const [errorKey, setErrorKey] = useState<null | SeriesOrderErrorKey>(null);
+  const reportedStaleRef = useRef(false);
 
   const confirmLabel =
     target.strategy === "REORDER_SERIES_SLOTS" ? t("confirmReorder") : t("confirmInsert");
+  const previewErrorKey = preview.isError ? toSeriesOrderErrorKey(preview.error) : null;
+
+  useEffect(() => {
+    if (previewErrorKey === null || !isSeriesOrderStaleError(previewErrorKey)) return;
+    if (reportedStaleRef.current) return;
+    reportedStaleRef.current = true;
+    void invalidateIssues();
+    onError(previewErrorKey);
+  }, [invalidateIssues, onError, previewErrorKey]);
 
   function handleConfirm() {
     setErrorKey(null);
@@ -110,9 +125,11 @@ function FixPreview({
             <Skeleton className="h-16 w-full rounded-md" key={index} />
           ))}
         </div>
-      ) : preview.isError || preview.data === undefined ? (
+      ) : preview.data === undefined ? (
         <p className="text-sm text-destructive" role="alert">
-          {t("error")}
+          {previewErrorKey === null || previewErrorKey === "generic"
+            ? t("error")
+            : tError(previewErrorKey)}
         </p>
       ) : (
         <PreviewBody data={preview.data} />

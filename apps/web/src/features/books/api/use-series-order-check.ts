@@ -2,12 +2,15 @@ import type {
   ApplySeriesOrderFixResponse,
   SeriesOrderFixInput,
   SeriesOrderFixPreviewView,
+  SeriesOrderIssuesView,
+  SeriesOrderPreferenceView,
 } from "@app/shared";
 
 import {
   ApplySeriesOrderFixResponseSchema,
   SeriesOrderFixPreviewViewSchema,
   SeriesOrderIssuesViewSchema,
+  SeriesOrderPreferenceViewSchema,
 } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -54,9 +57,11 @@ export function useApplySeriesOrderFix() {
 export function useDisableSeriesOrderCheck() {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, ApiError, string>({
-    mutationFn: (seriesId) =>
-      seriesOrderPreferenceControllerSetPreference(seriesId, { enabled: false }),
+  return useMutation<SeriesOrderPreferenceView, ApiError, string>({
+    mutationFn: async (seriesId) =>
+      SeriesOrderPreferenceViewSchema.parse(
+        await seriesOrderPreferenceControllerSetPreference(seriesId, { enabled: false }),
+      ),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: seriesOrderIssuesRootKey }),
   });
 }
@@ -64,10 +69,17 @@ export function useDisableSeriesOrderCheck() {
 export function useIgnoreSeriesOrderIssue() {
   const queryClient = useQueryClient();
 
-  return useMutation<unknown, ApiError, string>({
-    mutationFn: (fingerprint) => seriesOrderCheckControllerIgnoreIssue(fingerprint),
+  return useMutation<SeriesOrderIssuesView, ApiError, string>({
+    mutationFn: async (fingerprint) =>
+      SeriesOrderIssuesViewSchema.parse(await seriesOrderCheckControllerIgnoreIssue(fingerprint)),
     onSettled: () => queryClient.invalidateQueries({ queryKey: seriesOrderIssuesRootKey }),
   });
+}
+
+export function useInvalidateSeriesOrderIssues() {
+  const queryClient = useQueryClient();
+
+  return () => queryClient.invalidateQueries({ queryKey: seriesOrderIssuesRootKey });
 }
 
 export function useSeriesOrderFixPreview(target: SeriesOrderFixTarget) {

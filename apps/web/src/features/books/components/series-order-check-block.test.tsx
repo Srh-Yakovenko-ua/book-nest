@@ -158,12 +158,13 @@ describe("SeriesOrderCheckBlock states", () => {
     expect(await screen.findByRole("link", { name: "Відновлена серія" })).toBeInTheDocument();
   });
 
-  it("renders nothing when the queue has no order problems", async () => {
+  it("shows nothing but an empty live region when the queue has no order problems", async () => {
     withIssues({ items: [] });
-    const { container } = renderWithProviders(<SeriesOrderCheckBlock />);
+    renderWithProviders(<SeriesOrderCheckBlock />);
 
     await waitFor(() => expect(issuesGetCount()).toBeGreaterThan(0));
-    await waitFor(() => expect(container).toBeEmptyDOMElement());
+    await waitFor(() => expect(screen.getByRole("status")).toBeEmptyDOMElement());
+    expect(screen.queryByRole("heading", { name: soc.title })).not.toBeInTheDocument();
   });
 
   it("asks the backend for three issues in the sidebar", async () => {
