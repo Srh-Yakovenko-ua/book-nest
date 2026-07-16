@@ -140,6 +140,132 @@
       "title": "Наступна до читання",
       "empty": "Додайте книгу в чергу, щоб побачити наступну до читання.",
       "startReading": "Почати читати"
+    },
+    "seriesOrderCheck": {
+      "title": "Перевірити порядок серій",
+      "subtitle": "Знайдено серії, де порядок читання може бути порушений",
+      "viewAll": "Переглянути всі",
+      "countLabel": "Знайдено проблем із порядком: {count}",
+      "loading": "Перевіряємо порядок серій…",
+      "allIssues": {
+        "title": "Порядок серій",
+        "description": "Усі серії, у яких порядок читання може бути порушений."
+      },
+      "empty": {
+        "title": "Порядок серій перевірено",
+        "description": "У черзі не знайдено порушень порядку."
+      },
+      "severity": {
+        "error": "Помилка",
+        "warning": "Попередження",
+        "info": "Інформація"
+      },
+      "card": {
+        "affectedBook": "Проблемна книга",
+        "previousBook": "Попередня книга",
+        "seriesPosition": "Книга {position}",
+        "seriesPositionUnknown": "Позиція невідома",
+        "queuePosition": "Позиція в черзі: {position}",
+        "notInQueue": "Не в черзі",
+        "currentReading": "Читається зараз",
+        "relatedProblems": "{count, plural, one {Ще # конфлікт у цій серії} few {Ще # конфлікти у цій серії} many {Ще # конфліктів у цій серії} other {Ще # конфліктів у цій серії}}",
+        "moreActions": "Більше дій для серії «{series}»",
+        "coverAlt": "Обкладинка «{title}»"
+      },
+      "order": {
+        "listLabel": "Порядок книг серії"
+      },
+      "problems": {
+        "missing_previous_from_queue": {
+          "title": "Перед «{affectedBook}» ще не завершено «{previousBook}»."
+        },
+        "previous_book_after_later_book": {
+          "title": "«{previousBook}» має бути раніше за «{affectedBook}»."
+        },
+        "multiple_previous_missing": {
+          "title": "Перед «{affectedBook}» залишилося {count, plural, one {# незакрита частина} few {# незакриті частини} many {# незакритих частин} other {# незакритих частин}}.",
+          "description": "Наступна за порядком — «{previousBook}»."
+        },
+        "previous_book_paused": {
+          "title": "Попередня частина ще не завершена.",
+          "description": "«{previousBook}» на паузі, а «{affectedBook}» уже попереду."
+        },
+        "current_reading_ahead_of_order": {
+          "title": "Поточне читання випереджає порядок серії.",
+          "description": "Зараз читається «{affectedBook}», хоча «{previousBook}» ще не завершена."
+        },
+        "previous_book_not_owned": {
+          "title": "Попередньої частини немає у власній бібліотеці."
+        },
+        "previous_book_want_to_buy": {
+          "title": "Попередня частина ще не придбана."
+        },
+        "previous_book_in_transit": {
+          "title": "Попередня частина вже в дорозі."
+        },
+        "previous_book_lent_out": {
+          "title": "Попередня частина позичена комусь і зараз недоступна."
+        },
+        "multiple_books_out_of_order": {
+          "title": "У серії переплутано порядок."
+        }
+      },
+      "actions": {
+        "retry": "Спробувати ще раз",
+        "fixOrder": "Виправити порядок",
+        "arrangeBySeries": "Розташувати за порядком серії",
+        "addBefore": "Додати перед «{affectedBook}»",
+        "addNext": "Додати наступну книгу",
+        "addAll": "Додати всі за порядком",
+        "openBook": "Відкрити попередню книгу",
+        "resumeBook": "Повернутися до книги",
+        "addToWishlist": "Додати до «Хочу купити»",
+        "openPurchase": "Перейти до покупки",
+        "openOrder": "Переглянути замовлення",
+        "openLoan": "Переглянути позику",
+        "ignore": "Залишити як є",
+        "disableSeries": "Не перевіряти цю серію"
+      },
+      "preview": {
+        "title": "Виправити порядок серії?",
+        "current": "Зараз:",
+        "recommended": "Рекомендовано:",
+        "afterFix": "Після виправлення:",
+        "added": "Буде додано:",
+        "moved": "Перемістяться:",
+        "addedItem": "«{title}» буде додана на позицію {position}.",
+        "movedItem": "«{title}»: позиція {from} → {to}",
+        "unrelatedUnchanged": "Інші книги залишаться на своїх позиціях.",
+        "shiftedUnrelated": "{count, plural, one {# стороння книга зміститься} few {# сторонні книги змістяться} many {# сторонніх книг змістяться} other {# сторонніх книг змістяться}} на нову позицію.",
+        "warningsTitle": "Зверніть увагу",
+        "loading": "Готуємо перегляд змін…",
+        "error": "Не вдалося підготувати перегляд змін",
+        "cancel": "Скасувати",
+        "confirm": "Підтвердити дію",
+        "confirmReorder": "Виправити порядок",
+        "confirmInsert": "Додати й виправити"
+      },
+      "disable": {
+        "title": "Вимкнути перевірку порядку?",
+        "description": "BookNest більше не показуватиме попередження для цієї серії. Увімкнути перевірку можна в налаштуваннях серії.",
+        "cancel": "Скасувати",
+        "confirm": "Не перевіряти серію"
+      },
+      "error": {
+        "load": "Не вдалося перевірити порядок серій",
+        "queueStale": "Черга змінилася. Онови дані й перевір порядок ще раз.",
+        "issueStale": "Ця проблема вже змінилася. Перевір оновлений порядок.",
+        "alreadyInQueue": "Книга вже є в черзі.",
+        "queueLimit": "Не вдалося додати книги: досягнуто ліміт черги.",
+        "notFound": "Книгу або серію більше не знайдено.",
+        "forbidden": "Немає доступу до цієї книги або серії.",
+        "generic": "Не вдалося виконати дію. Спробуй ще раз."
+      },
+      "success": {
+        "fixed": "Порядок серії виправлено",
+        "ignored": "Це попередження приховано для поточного порядку",
+        "disabled": "Перевірку порядку для цієї серії вимкнено"
+      }
     }
   },
   "appShell": {

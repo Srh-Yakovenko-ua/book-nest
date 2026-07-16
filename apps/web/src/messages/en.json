@@ -140,6 +140,132 @@
       "title": "Next to read",
       "empty": "Add a book to the queue to see what’s next to read.",
       "startReading": "Start reading"
+    },
+    "seriesOrderCheck": {
+      "title": "Check series order",
+      "subtitle": "Found series where the reading order may be broken",
+      "viewAll": "View all",
+      "countLabel": "Series order issues found: {count}",
+      "loading": "Checking series order…",
+      "allIssues": {
+        "title": "Series order",
+        "description": "All series where the reading order may be broken."
+      },
+      "empty": {
+        "title": "Series order checked",
+        "description": "No order violations found in the queue."
+      },
+      "severity": {
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Info"
+      },
+      "card": {
+        "affectedBook": "Affected book",
+        "previousBook": "Previous book",
+        "seriesPosition": "Book {position}",
+        "seriesPositionUnknown": "Position unknown",
+        "queuePosition": "Queue position: {position}",
+        "notInQueue": "Not in the queue",
+        "currentReading": "Currently reading",
+        "relatedProblems": "{count, plural, one {# more conflict in this series} other {# more conflicts in this series}}",
+        "moreActions": "More actions for the “{series}” series",
+        "coverAlt": "“{title}” cover"
+      },
+      "order": {
+        "listLabel": "Series book order"
+      },
+      "problems": {
+        "missing_previous_from_queue": {
+          "title": "“{previousBook}” is not finished yet, but “{affectedBook}” is already queued."
+        },
+        "previous_book_after_later_book": {
+          "title": "“{previousBook}” should come before “{affectedBook}”."
+        },
+        "multiple_previous_missing": {
+          "title": "{count, plural, one {# unfinished part remains} other {# unfinished parts remain}} before “{affectedBook}”.",
+          "description": "Next in order is “{previousBook}”."
+        },
+        "previous_book_paused": {
+          "title": "The previous part is not finished yet.",
+          "description": "“{previousBook}” is paused while “{affectedBook}” is already ahead."
+        },
+        "current_reading_ahead_of_order": {
+          "title": "Current reading is ahead of the series order.",
+          "description": "You are reading “{affectedBook}” while “{previousBook}” is not finished."
+        },
+        "previous_book_not_owned": {
+          "title": "The previous part is not in your library."
+        },
+        "previous_book_want_to_buy": {
+          "title": "The previous part has not been bought yet."
+        },
+        "previous_book_in_transit": {
+          "title": "The previous part is already on its way."
+        },
+        "previous_book_lent_out": {
+          "title": "The previous part is lent out and unavailable right now."
+        },
+        "multiple_books_out_of_order": {
+          "title": "The series order is mixed up."
+        }
+      },
+      "actions": {
+        "retry": "Try again",
+        "fixOrder": "Fix the order",
+        "arrangeBySeries": "Arrange by series order",
+        "addBefore": "Add before “{affectedBook}”",
+        "addNext": "Add the next book",
+        "addAll": "Add all in order",
+        "openBook": "Open the previous book",
+        "resumeBook": "Back to the book",
+        "addToWishlist": "Add to “Want to buy”",
+        "openPurchase": "Go to purchase",
+        "openOrder": "View the order",
+        "openLoan": "View the loan",
+        "ignore": "Leave as is",
+        "disableSeries": "Don’t check this series"
+      },
+      "preview": {
+        "title": "Fix the series order?",
+        "current": "Now:",
+        "recommended": "Recommended:",
+        "afterFix": "After the fix:",
+        "added": "Will be added:",
+        "moved": "Will move:",
+        "addedItem": "“{title}” will be added at position {position}.",
+        "movedItem": "“{title}”: position {from} → {to}",
+        "unrelatedUnchanged": "Other books will stay at their positions.",
+        "shiftedUnrelated": "{count, plural, one {# unrelated book will shift} other {# unrelated books will shift}} to a new position.",
+        "warningsTitle": "Please note",
+        "loading": "Preparing the change preview…",
+        "error": "Couldn’t prepare the change preview",
+        "cancel": "Cancel",
+        "confirm": "Confirm the action",
+        "confirmReorder": "Fix the order",
+        "confirmInsert": "Add and fix"
+      },
+      "disable": {
+        "title": "Turn off the order check?",
+        "description": "BookNest will no longer show warnings for this series. You can turn the check back on in the series settings.",
+        "cancel": "Cancel",
+        "confirm": "Don’t check the series"
+      },
+      "error": {
+        "load": "Couldn’t check the series order",
+        "queueStale": "The queue has changed. Refresh the data and check the order again.",
+        "issueStale": "This issue has already changed. Check the updated order.",
+        "alreadyInQueue": "The book is already in the queue.",
+        "queueLimit": "Couldn’t add the books: the queue limit has been reached.",
+        "notFound": "The book or series can no longer be found.",
+        "forbidden": "You don’t have access to this book or series.",
+        "generic": "Couldn’t complete the action. Try again."
+      },
+      "success": {
+        "fixed": "Series order fixed",
+        "ignored": "This warning is hidden for the current order",
+        "disabled": "The order check for this series is turned off"
+      }
     }
   },
   "appShell": {

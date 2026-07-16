@@ -26,6 +26,8 @@ import { NextToReadCard } from "./next-to-read-card";
 import { QueueStats } from "./queue-stats";
 import { ReadingQueueList } from "./reading-queue-list";
 import { ReadingQueueToolbar } from "./reading-queue-toolbar";
+import { SeriesOrderCheckBlock } from "./series-order-check-block";
+import { SeriesOrderCheckSkeleton } from "./series-order-check-skeleton";
 import { StartReadingDialog } from "./start-reading-dialog";
 
 const SKELETON_COUNT = 6;
@@ -218,6 +220,7 @@ export function ReadingQueueView() {
               }}
             />
             <QueueStats count={count} totalPagesCount={totalPagesCount} />
+            <SeriesOrderCheckBlock />
           </aside>
         </div>
       )}
@@ -270,6 +273,7 @@ function QueueSkeleton() {
       <div className="hidden flex-col gap-4 lg:flex">
         <Skeleton className="h-44 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
+        <SeriesOrderCheckSkeleton />
       </div>
     </div>
   );
