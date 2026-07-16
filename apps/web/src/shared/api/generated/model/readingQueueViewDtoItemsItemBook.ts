@@ -48,6 +48,7 @@ export type ReadingQueueViewDtoItemsItemBook = {
   /** @nullable */
   isbn: string | null;
   isFavorite: boolean;
+  isFavoriteDedication: boolean;
   isInReadingQueue: boolean;
   language: ReadingQueueViewDtoItemsItemBookLanguage;
   lists: ReadingQueueViewDtoItemsItemBookListsItem[];

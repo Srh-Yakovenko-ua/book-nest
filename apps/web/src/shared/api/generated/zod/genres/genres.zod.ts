@@ -38,6 +38,45 @@ export const GenresControllerRecentQueryParams = zod.object({
 export const GenresControllerRecentResponse = zod.unknown();
 
 /**
+ * @summary Get per-genre statistics for the current user library
+ */
+export const genresControllerStatsResponseBooksCountMin = -9007199254740991;
+export const genresControllerStatsResponseBooksCountMax = 9007199254740991;
+
+export const genresControllerStatsResponseReadCountMin = -9007199254740991;
+export const genresControllerStatsResponseReadCountMax = 9007199254740991;
+
+export const genresControllerStatsResponseReadingQueueCountMin = -9007199254740991;
+export const genresControllerStatsResponseReadingQueueCountMax = 9007199254740991;
+
+export const genresControllerStatsResponseWantToBuyCountMin = -9007199254740991;
+export const genresControllerStatsResponseWantToBuyCountMax = 9007199254740991;
+
+export const GenresControllerStatsResponseItem = zod.object({
+  averageRating: zod.number().nullable(),
+  booksCount: zod
+    .number()
+    .min(genresControllerStatsResponseBooksCountMin)
+    .max(genresControllerStatsResponseBooksCountMax),
+  coverUrls: zod.array(zod.string()),
+  key: zod.string(),
+  label: zod.string(),
+  readCount: zod
+    .number()
+    .min(genresControllerStatsResponseReadCountMin)
+    .max(genresControllerStatsResponseReadCountMax),
+  readingQueueCount: zod
+    .number()
+    .min(genresControllerStatsResponseReadingQueueCountMin)
+    .max(genresControllerStatsResponseReadingQueueCountMax),
+  wantToBuyCount: zod
+    .number()
+    .min(genresControllerStatsResponseWantToBuyCountMin)
+    .max(genresControllerStatsResponseWantToBuyCountMax),
+});
+export const GenresControllerStatsResponse = zod.array(GenresControllerStatsResponseItem);
+
+/**
  * @summary Delete a custom genre of the current user
  */
 export const GenresControllerDeleteParams = zod.object({

@@ -8,6 +8,22 @@
 import * as zod from "zod";
 
 /**
+ * @summary Create a personal tag for the current user
+ */
+export const tagsControllerCreateBodyTypeDefault = `custom`;
+
+export const TagsControllerCreateBody = zod.object({
+  color: zod.string().optional(),
+  description: zod.string().optional(),
+  name: zod.string(),
+  type: zod
+    .enum(["trope", "atmosphere", "theme", "character", "format", "custom"])
+    .default(tagsControllerCreateBodyTypeDefault),
+});
+
+export const TagsControllerCreateResponse = zod.void();
+
+/**
  * @summary Search the current user personal tags
  */
 export const tagsControllerSearchQueryPageNumberDefault = 1;
@@ -33,6 +49,53 @@ export const TagsControllerSearchQueryParams = zod.object({
 });
 
 export const TagsControllerSearchResponse = zod.unknown();
+
+/**
+ * @summary Get per-tag usage statistics for the current user
+ */
+export const tagsControllerStatsResponseBooksCountMin = -9007199254740991;
+export const tagsControllerStatsResponseBooksCountMax = 9007199254740991;
+
+export const TagsControllerStatsResponseItem = zod.object({
+  booksCount: zod
+    .number()
+    .min(tagsControllerStatsResponseBooksCountMin)
+    .max(tagsControllerStatsResponseBooksCountMax),
+  color: zod.string().nullable(),
+  description: zod.string().nullable(),
+  id: zod.string(),
+  lastUsedAt: zod.string().nullable(),
+  name: zod.string(),
+  normalizedName: zod.string(),
+  type: zod.enum(["trope", "atmosphere", "theme", "character", "format", "custom"]),
+});
+export const TagsControllerStatsResponse = zod.array(TagsControllerStatsResponseItem);
+
+/**
+ * @summary Update a tag of the current user
+ */
+export const TagsControllerUpdateParams = zod.object({
+  id: zod.string(),
+});
+
+export const TagsControllerUpdateBody = zod.object({
+  color: zod.string().nullish(),
+  description: zod.string().nullish(),
+  name: zod.string().optional(),
+  type: zod.enum(["trope", "atmosphere", "theme", "character", "format", "custom"]).optional(),
+});
+
+export const TagsControllerUpdateResponse = zod.object({
+  color: zod.string().nullable(),
+  createdAt: zod.string(),
+  description: zod.string().nullable(),
+  id: zod.string(),
+  lastUsedAt: zod.string().nullable(),
+  name: zod.string(),
+  normalizedName: zod.string(),
+  type: zod.enum(["trope", "atmosphere", "theme", "character", "format", "custom"]),
+  updatedAt: zod.string(),
+});
 
 /**
  * @summary Delete a tag of the current user
