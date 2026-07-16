@@ -13,6 +13,8 @@ import {
   LoanDirectionSchema,
   OwnershipStatusSchema,
   ownershipStatusUsesLoan,
+  QUEUE_PRIORITY_REASON_CUSTOM_TEXT_MAX,
+  QueuePriorityReasonSchema,
   QueuePrioritySchema,
   ReadingStatusSchema,
 } from "./book-enums.js";
@@ -534,6 +536,13 @@ export const CreateBookInputSchema = z
     publisherName: TaxonomyNameSchema.optional(),
     purchaseInfo: PurchaseInfoInputSchema,
     queuePriority: QueuePrioritySchema.optional(),
+    queuePriorityReason: QueuePriorityReasonSchema.nullable().optional(),
+    queuePriorityReasonCustomText: z
+      .string()
+      .max(QUEUE_PRIORITY_REASON_CUSTOM_TEXT_MAX)
+      .nullable()
+      .optional(),
+    queuePriorityTargetDate: z.iso.date().nullable().optional(),
     readingProgress: ReadingProgressInputSchema,
     readingStatus: ReadingStatusSchema.default("not_started"),
     seriesId: z.uuid().optional(),
@@ -636,6 +645,13 @@ export const UpdateBookInputSchema = z
     publisherName: TaxonomyNameSchema.optional(),
     purchaseInfo: PurchaseInfoInputSchema,
     queuePriority: QueuePrioritySchema.optional(),
+    queuePriorityReason: QueuePriorityReasonSchema.nullable().optional(),
+    queuePriorityReasonCustomText: z
+      .string()
+      .max(QUEUE_PRIORITY_REASON_CUSTOM_TEXT_MAX)
+      .nullable()
+      .optional(),
+    queuePriorityTargetDate: z.iso.date().nullable().optional(),
     readingProgress: ReadingProgressInputSchema,
     readingStatus: ReadingStatusSchema.optional(),
     seriesId: z.uuid().optional(),
@@ -1108,6 +1124,9 @@ export const BookViewSchema = z.object({
   publisher: BookPublisherRefSchema.nullable(),
   purchaseInfo: PurchaseInfoViewSchema.nullable(),
   queuePriority: QueuePrioritySchema.nullable(),
+  queuePriorityReason: QueuePriorityReasonSchema.nullable(),
+  queuePriorityReasonCustomText: z.string().nullable(),
+  queuePriorityTargetDate: z.iso.date().nullable(),
   readingProgress: ReadingProgressViewSchema.nullable(),
   readingStatus: ReadingStatusSchema,
   series: SeriesViewSchema.nullable(),

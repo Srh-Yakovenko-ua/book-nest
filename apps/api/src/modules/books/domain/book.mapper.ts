@@ -10,6 +10,7 @@ import {
   type Nullable,
   OwnershipStatusSchema,
   type PurchaseInfoView,
+  QueuePriorityReasonSchema,
   QueuePrioritySchema,
   type ReadingProgressView,
   ReadingStatusSchema,
@@ -67,6 +68,12 @@ export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>):
     purchaseInfo: toPurchaseInfoView(book.purchaseInfo),
     queuePriority:
       book.queuePriority === null ? null : QueuePrioritySchema.parse(book.queuePriority),
+    queuePriorityReason:
+      book.queuePriorityReason === null
+        ? null
+        : QueuePriorityReasonSchema.parse(book.queuePriorityReason),
+    queuePriorityReasonCustomText: book.queuePriorityReasonCustomText,
+    queuePriorityTargetDate: toNullableIsoDate(book.queuePriorityTargetDate),
     readingProgress: toReadingProgressView(book.readingProgress),
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
     series: book.series === null ? null : toSeriesView(book.series),

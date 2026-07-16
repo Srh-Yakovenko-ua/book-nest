@@ -240,6 +240,9 @@ type CreateBookData = {
   purchaseInfo: Nullable<CreatePurchaseInfoData>;
   queuePosition: Nullable<number>;
   queuePriority: Nullable<string>;
+  queuePriorityReason: Nullable<string>;
+  queuePriorityReasonCustomText: Nullable<string>;
+  queuePriorityTargetDate: Nullable<Date>;
   readingProgress: Nullable<CreateReadingProgressData>;
   readingStatus: string;
   seriesId: Nullable<string>;

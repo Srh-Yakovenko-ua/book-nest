@@ -191,46 +191,49 @@ model PublisherName {
 }
 
 model Book {
-  id              String               @id @default(uuid()) @db.Uuid
-  userId          String               @map("user_id") @db.Uuid
-  title           String
-  firstAuthorName String               @default("") @map("first_author_name")
-  publisherId     String?              @map("publisher_id") @db.Uuid
-  description     String?
-  genres          String[]             @default([])
-  formats         String[]             @default([])
-  language        String               @default("ukrainian")
-  ageCategory     String               @default("not_specified") @map("age_category")
-  readingStatus   String               @default("not_started") @map("reading_status")
-  ownershipStatus String               @default("none") @map("ownership_status")
-  isFavorite      Boolean              @default(false) @map("is_favorite")
-  favoriteAddedAt DateTime?            @map("favorite_added_at") @db.Timestamptz
-  pagesCount      Int?                 @map("pages_count")
-  publicationYear Int?                 @map("publication_year")
-  isbn            String?
-  originalTitle   String?              @map("original_title")
-  translator      String?
-  illustrator     String?
-  dedication      String?
-  seriesId        String?              @map("series_id") @db.Uuid
-  partNumber      Int?                 @map("part_number")
-  queuePriority   String?              @map("queue_priority")
-  queuePosition   Int?                 @map("queue_position")
-  coverMediaId    String?              @map("cover_media_id") @db.Uuid
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  authors         BookAuthor[]
-  publisher       Publisher?           @relation(fields: [publisherId], references: [id])
-  series          Series?              @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  coverMedia      MediaAsset?          @relation(fields: [coverMediaId], references: [id], onDelete: SetNull)
-  tags            BookTag[]
-  lists           BookListItem[]
-  readingProgress BookReadingProgress?
-  readingEvents   BookReadingProgressEvent[]
-  purchaseInfo    BookPurchaseInfo?
-  deliveries      BookDelivery[]
-  loans           BookLoan[]
+  id                            String                     @id @default(uuid()) @db.Uuid
+  userId                        String                     @map("user_id") @db.Uuid
+  title                         String
+  firstAuthorName               String                     @default("") @map("first_author_name")
+  publisherId                   String?                    @map("publisher_id") @db.Uuid
+  description                   String?
+  genres                        String[]                   @default([])
+  formats                       String[]                   @default([])
+  language                      String                     @default("ukrainian")
+  ageCategory                   String                     @default("not_specified") @map("age_category")
+  readingStatus                 String                     @default("not_started") @map("reading_status")
+  ownershipStatus               String                     @default("none") @map("ownership_status")
+  isFavorite                    Boolean                    @default(false) @map("is_favorite")
+  favoriteAddedAt               DateTime?                  @map("favorite_added_at") @db.Timestamptz
+  pagesCount                    Int?                       @map("pages_count")
+  publicationYear               Int?                       @map("publication_year")
+  isbn                          String?
+  originalTitle                 String?                    @map("original_title")
+  translator                    String?
+  illustrator                   String?
+  dedication                    String?
+  seriesId                      String?                    @map("series_id") @db.Uuid
+  partNumber                    Int?                       @map("part_number")
+  queuePriority                 String?                    @map("queue_priority")
+  queuePriorityReason           String?                    @map("queue_priority_reason")
+  queuePriorityReasonCustomText String?                    @map("queue_priority_reason_custom_text")
+  queuePriorityTargetDate       DateTime?                  @map("queue_priority_target_date") @db.Date
+  queuePosition                 Int?                       @map("queue_position")
+  coverMediaId                  String?                    @map("cover_media_id") @db.Uuid
+  createdAt                     DateTime                   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                     DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
+  user                          User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  authors                       BookAuthor[]
+  publisher                     Publisher?                 @relation(fields: [publisherId], references: [id])
+  series                        Series?                    @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  coverMedia                    MediaAsset?                @relation(fields: [coverMediaId], references: [id], onDelete: SetNull)
+  tags                          BookTag[]
+  lists                         BookListItem[]
+  readingProgress               BookReadingProgress?
+  readingEvents                 BookReadingProgressEvent[]
+  purchaseInfo                  BookPurchaseInfo?
+  deliveries                    BookDelivery[]
+  loans                         BookLoan[]
 
   @@unique([seriesId, partNumber])
   @@index([userId])

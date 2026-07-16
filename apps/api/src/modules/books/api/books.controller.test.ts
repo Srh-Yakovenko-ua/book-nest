@@ -12,6 +12,13 @@ import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { BooksModule } from "../books.module.js";
+import {
+  QUEUE_PRIORITY_CUSTOM_TEXT_OTHER_ONLY_MESSAGE,
+  QUEUE_PRIORITY_CUSTOM_TEXT_REQUIRED_MESSAGE,
+  QUEUE_PRIORITY_REASON_HIGH_ONLY_MESSAGE,
+  QUEUE_PRIORITY_TARGET_DATE_REQUIRES_REASON_MESSAGE,
+  QUEUE_PRIORITY_TARGET_DATE_UNSUPPORTED_MESSAGE,
+} from "../domain/queue-priority.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
@@ -1467,6 +1474,285 @@ describe("POST /api/books delivery field parity", () => {
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "deliveryInfo.price" })]),
     );
+  });
+});
+
+describe("POST /api/books queue priority reason", () => {
+  function createHighQueueBook(accessToken: string, extra: Record<string, unknown>): request.Test {
+    return createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      queuePriority: "high",
+      title: "Dune",
+      ...extra,
+    });
+  }
+
+  it("stores no reason detail fields for a high priority book created without them", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, {});
+
+    expect(res.status).toBe(201);
+    expect(res.body.queuePriority).toBe("high");
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("stores a non-date reason with no custom text or target date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, { queuePriorityReason: "series_order" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.queuePriorityReason).toBe("series_order");
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("stores a date-supporting reason with its target date and round-trips the date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.queuePriorityReason).toBe("book_club");
+    expect(res.body.queuePriorityTargetDate).toBe("2026-08-24");
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+  });
+
+  it("trims and stores the custom text for the other reason", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "other",
+      queuePriorityReasonCustomText: "  wife recommended  ",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.queuePriorityReason).toBe("other");
+    expect(res.body.queuePriorityReasonCustomText).toBe("wife recommended");
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("returns 400 when the other reason is missing its custom text", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, { queuePriorityReason: "other" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityReasonCustomText",
+          message: QUEUE_PRIORITY_CUSTOM_TEXT_REQUIRED_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
+  it("returns 400 when the other reason custom text is whitespace only", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "other",
+      queuePriorityReasonCustomText: "   ",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityReasonCustomText",
+          message: QUEUE_PRIORITY_CUSTOM_TEXT_REQUIRED_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
+  it("returns 400 when custom text is given for a non-other reason", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "series_order",
+      queuePriorityReasonCustomText: "handpicked",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityReasonCustomText",
+          message: QUEUE_PRIORITY_CUSTOM_TEXT_OTHER_ONLY_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
+  it("returns 400 for a target date with a malformed format", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026/08/24",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "queuePriorityTargetDate" })]),
+    );
+  });
+
+  it("returns 400 for a target date that is not a real calendar date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-02-30",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "queuePriorityTargetDate" })]),
+    );
+  });
+
+  it("returns 400 when a target date is set for a reason that does not support one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "series_order",
+      queuePriorityTargetDate: "2026-08-24",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityTargetDate",
+          message: QUEUE_PRIORITY_TARGET_DATE_UNSUPPORTED_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
+  it("returns 400 when a target date is set with no reason", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createHighQueueBook(accessToken, { queuePriorityTargetDate: "2026-08-24" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityTargetDate",
+          message: QUEUE_PRIORITY_TARGET_DATE_REQUIRES_REASON_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
+  it("returns 400 when a reason is set for a normal priority queued book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      queuePriority: "normal",
+      queuePriorityReason: "series_order",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityReason",
+          message: QUEUE_PRIORITY_REASON_HIGH_ONLY_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
+  it("returns 400 when a reason is set for a low priority queued book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      queuePriority: "low",
+      queuePriorityReason: "series_order",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityReason",
+          message: QUEUE_PRIORITY_REASON_HIGH_ONLY_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
+  it("returns 400 when a reason is set on a book that is not added to the reading queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      addToReadingQueue: false,
+      authors: [{ name: "Frank Herbert" }],
+      queuePriorityReason: "series_order",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityReason",
+          message: QUEUE_PRIORITY_REASON_HIGH_ONLY_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
+  it("accepts a legacy payload that sets only a normal queue priority", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      queuePriority: "normal",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.queuePriority).toBe("normal");
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("accepts a legacy payload that sets only a low queue priority", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      queuePriority: "low",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.queuePriority).toBe("low");
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
   });
 });
 

@@ -31,6 +31,9 @@ export function makeBookView(overrides: Partial<BookView> = {}): BookView {
     publisher: { id: "22222222-2222-4222-8222-222222222222", name: "Клуб Сімейного Дозвілля" },
     purchaseInfo: null,
     queuePriority: null,
+    queuePriorityReason: null,
+    queuePriorityReasonCustomText: null,
+    queuePriorityTargetDate: null,
     readingProgress: {
       abandonedAt: null,
       currentPage: null,
