@@ -26,6 +26,8 @@ const log = createLogger("books.repository");
 
 const WISHLIST_MAX_BOOKS = 1000;
 
+const DEDICATIONS_MAX_BOOKS = 1000;
+
 export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
   coverMedia: true,
@@ -658,6 +660,29 @@ export class BooksRepository {
       pagesCount: row.pagesCount,
       title: row.title,
     }));
+  }
+
+  async listDedicationBooks({
+    client,
+    userId,
+  }: {
+    client?: Prisma.TransactionClient;
+    userId: string;
+  }): Promise<BookWithRelations[]> {
+    const db = client ?? this.prisma;
+    const rows = await db.book.findMany({
+      include: withRelations,
+      orderBy: LIBRARY_ORDER_BY.created_desc,
+      take: DEDICATIONS_MAX_BOOKS,
+      where: {
+        AND: [{ dedication: { not: null } }, { dedication: { not: "" } }],
+        userId,
+      },
+    });
+    if (rows.length === DEDICATIONS_MAX_BOOKS) {
+      log.warn({ cap: DEDICATIONS_MAX_BOOKS, userId }, "dedications truncated at the safety cap");
+    }
+    return rows;
   }
 
   listForLibrary({ filter, skip, sort, take }: ListForLibraryInput): Promise<BookWithRelations[]> {
