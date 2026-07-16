@@ -67,6 +67,9 @@ function makeBook(overrides: Partial<BookView> = {}): BookView {
     publisher: null,
     purchaseInfo: null,
     queuePriority: null,
+    queuePriorityReason: null,
+    queuePriorityReasonCustomText: null,
+    queuePriorityTargetDate: null,
     readingProgress: {
       abandonedAt: null,
       currentPage: null,

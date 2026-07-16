@@ -13,6 +13,7 @@ import {
   LoanDirectionSchema,
   OwnershipStatusSchema,
   ownershipStatusUsesLoan,
+  QueuePriorityReasonSchema,
   QueuePrioritySchema,
   ReadingStatusSchema,
 } from "./book-enums.js";
@@ -1108,6 +1109,9 @@ export const BookViewSchema = z.object({
   publisher: BookPublisherRefSchema.nullable(),
   purchaseInfo: PurchaseInfoViewSchema.nullable(),
   queuePriority: QueuePrioritySchema.nullable(),
+  queuePriorityReason: QueuePriorityReasonSchema.nullable(),
+  queuePriorityReasonCustomText: z.string().nullable(),
+  queuePriorityTargetDate: z.iso.date().nullable(),
   readingProgress: ReadingProgressViewSchema.nullable(),
   readingStatus: ReadingStatusSchema,
   series: SeriesViewSchema.nullable(),
