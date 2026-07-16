@@ -2185,7 +2185,8 @@
       "booksHeading": "Series books",
       "summary": {
         "finished": "{count} read",
-        "remaining": "{count} left"
+        "remaining": "{count} left",
+        "notAdded": "{count} not added yet"
       },
       "tabs": {
         "books": "Books in series",
@@ -2195,8 +2196,11 @@
         "title": "This series has no books yet",
         "action": "Add book"
       },
-      "readingOrder": {
-        "title": "Reading order"
+      "missingRow": {
+        "title": "Book {number}",
+        "hint": "Not in your library yet",
+        "action": "Add",
+        "actionAria": "Add book {number} to your library"
       },
       "row": {
         "menu": "Book actions",
