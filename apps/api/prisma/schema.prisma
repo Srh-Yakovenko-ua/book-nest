@@ -34,23 +34,26 @@ model User {
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
-  sessions                Session[]
-  emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens     PasswordResetToken[]
-  socialLinks             UserSocialLink[]
-  settings                UserProfileSettings?
-  authors                 Author[]
-  publishers              Publisher[]
-  books                   Book[]
-  tags                    Tag[]
-  series                  Series[]
-  bookLists               BookList[]
-  customGenres            Genre[]
-  mediaAssets             MediaAsset[]
-  bookDeliveries          BookDelivery[]
-  bookLoans               BookLoan[]
-  deliveryServices        DeliveryService[]
-  changelogRead           ChangelogRead?
+  sessions                  Session[]
+  emailVerificationTokens   EmailVerificationToken[]
+  passwordResetTokens       PasswordResetToken[]
+  socialLinks               UserSocialLink[]
+  settings                  UserProfileSettings?
+  authors                   Author[]
+  publishers                Publisher[]
+  books                     Book[]
+  tags                      Tag[]
+  series                    Series[]
+  bookLists                 BookList[]
+  customGenres              Genre[]
+  mediaAssets               MediaAsset[]
+  bookDeliveries            BookDelivery[]
+  bookLoans                 BookLoan[]
+  bookStoreLinks            BookStoreLink[]
+  deliveryServices          DeliveryService[]
+  changelogRead             ChangelogRead?
+  seriesOrderIgnoredIssues  SeriesOrderIgnoredIssue[]
+  seriesOrderDisabledSeries SeriesOrderDisabledSeries[]
 
   @@map("users")
 }
@@ -88,19 +91,21 @@ model ChangelogRead {
 }
 
 model Series {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  name           String
-  normalizedName String   @map("normalized_name")
-  status         String   @default("unknown")
-  totalBooks     Int?     @map("total_books")
-  description    String?
-  genres         String[] @default([])
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  books          Book[]
-  authors        SeriesAuthor[]
+  id                   String                      @id @default(uuid()) @db.Uuid
+  userId               String                      @map("user_id") @db.Uuid
+  name                 String
+  normalizedName       String                      @map("normalized_name")
+  status               String                      @default("unknown")
+  totalBooks           Int?                        @map("total_books")
+  description          String?
+  genres               String[]                    @default([])
+  createdAt            DateTime                    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime                    @updatedAt @map("updated_at") @db.Timestamptz
+  user                 User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books                Book[]
+  authors              SeriesAuthor[]
+  orderIgnoredIssues   SeriesOrderIgnoredIssue[]
+  orderDisabledEntries SeriesOrderDisabledSeries[]
 
   @@unique([userId, normalizedName])
   @@index([userId])
@@ -108,23 +113,23 @@ model Series {
 }
 
 model Author {
-  id               String       @id @default(uuid()) @db.Uuid
-  userId           String?      @map("user_id") @db.Uuid
+  id               String         @id @default(uuid()) @db.Uuid
+  userId           String?        @map("user_id") @db.Uuid
   name             String
-  normalizedName   String       @map("normalized_name")
-  searchText       String       @default("") @map("search_text")
+  normalizedName   String         @map("normalized_name")
+  searchText       String         @default("") @map("search_text")
   bio              String?
-  photoUrl         String?      @map("photo_url")
-  photoLicense     String?      @map("photo_license")
-  photoAttribution String?      @map("photo_attribution")
-  photoLicenseUrl  String?      @map("photo_license_url")
-  countryCode      String?      @map("country_code")
-  birthYear        Int?         @map("birth_year")
-  deathYear        Int?         @map("death_year")
-  wikidataId       String?      @unique @map("wikidata_id")
-  openLibraryKey   String?      @unique @map("open_library_key")
-  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  photoUrl         String?        @map("photo_url")
+  photoLicense     String?        @map("photo_license")
+  photoAttribution String?        @map("photo_attribution")
+  photoLicenseUrl  String?        @map("photo_license_url")
+  countryCode      String?        @map("country_code")
+  birthYear        Int?           @map("birth_year")
+  deathYear        Int?           @map("death_year")
+  wikidataId       String?        @unique @map("wikidata_id")
+  openLibraryKey   String?        @unique @map("open_library_key")
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz
   user             User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookAuthors      BookAuthor[]
   names            AuthorName[]
@@ -234,6 +239,7 @@ model Book {
   purchaseInfo                  BookPurchaseInfo?
   deliveries                    BookDelivery[]
   loans                         BookLoan[]
+  storeLinks                    BookStoreLink[]
 
   @@unique([seriesId, partNumber])
   @@index([userId])
@@ -363,6 +369,25 @@ model BookLoan {
   @@index([bookId])
   @@index([userId])
   @@map("book_loans")
+}
+
+model BookStoreLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  bookId    String   @map("book_id") @db.Uuid
+  storeName String   @map("store_name")
+  url       String
+  price     Decimal? @db.Decimal(10, 2)
+  currency  String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, url])
+  @@index([bookId])
+  @@index([userId])
+  @@map("book_store_links")
 }
 
 model Tag {
@@ -496,6 +521,33 @@ model UserSocialLink {
   @@map("user_social_links")
 }
 
+model SeriesOrderIgnoredIssue {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  seriesId    String   @map("series_id") @db.Uuid
+  fingerprint String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series      Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId, seriesId])
+  @@map("series_order_ignored_issues")
+}
+
+model SeriesOrderDisabledSeries {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  seriesId  String   @map("series_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series    Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, seriesId])
+  @@index([userId])
+  @@map("series_order_disabled_series")
+}
+
 model EmailVerificationToken {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
@@ -534,19 +586,19 @@ model Session {
 }
 
 model MediaAsset {
-  id           String   @id @default(uuid()) @db.Uuid
-  userId       String   @map("user_id") @db.Uuid
-  kind         String
-  storageKey   String   @map("storage_key")
-  originalName String?  @map("original_name")
-  contentType  String   @map("content_type")
-  width        Int
-  height       Int
-  sizeBytes    Int      @map("size_bytes")
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  kind             String
+  storageKey       String    @map("storage_key")
+  originalName     String?   @map("original_name")
+  contentType      String    @map("content_type")
+  width            Int
+  height           Int
+  sizeBytes        Int       @map("size_bytes")
   thumbGeneratedAt DateTime? @map("thumb_generated_at") @db.Timestamptz
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coverOfBooks Book[]
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverOfBooks     Book[]
 
   @@index([userId])
   @@map("media_assets")

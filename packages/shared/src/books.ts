@@ -229,14 +229,14 @@ const OWNERSHIP_CONTACT_MAX = 100;
 const OWNERSHIP_PRICE_MIN = 0;
 const OWNERSHIP_PRICE_MAX = 99999999.99;
 
-const OwnershipStoreNameSchema = z
+export const OwnershipStoreNameSchema = z
   .string()
   .transform(collapseSpaces)
   .pipe(
     NoHtmlString.max(OWNERSHIP_STORE_NAME_MAX, "Store name must be at most 100 characters long"),
   );
 
-const OwnershipStoreUrlSchema = z
+export const OwnershipStoreUrlSchema = z
   .string()
   .trim()
   .max(OWNERSHIP_STORE_URL_MAX, "URL must be at most 300 characters long")
@@ -273,7 +273,7 @@ const OwnershipContactSchema = z
   .transform(collapseSpaces)
   .pipe(NoHtmlString.max(OWNERSHIP_CONTACT_MAX, "Contact must be at most 100 characters long"));
 
-const OwnershipPriceSchema = z
+export const OwnershipPriceSchema = z
   .number()
   .gt(OWNERSHIP_PRICE_MIN, "Price must be greater than 0")
   .max(OWNERSHIP_PRICE_MAX, "Price must be at most 99999999.99");

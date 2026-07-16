@@ -1,11 +1,19 @@
 import { z } from "zod";
 
 import { BOOK_AUTHORS_MAX, BookAuthorReferenceSchema, BookAuthorRefSchema } from "./authors.js";
-import { OwnershipStatusSchema, QueuePrioritySchema, ReadingStatusSchema } from "./book-enums.js";
+import {
+  AgeCategorySchema,
+  BookFormatSchema,
+  OwnershipStatusSchema,
+  QueuePrioritySchema,
+  ReadingStatusSchema,
+} from "./book-enums.js";
 import { collapseHorizontalSpaces, collapseSpaces, createPaginatedSchema } from "./common.js";
 import { BookGenresSchema } from "./genres.js";
 import { NoHtmlString, queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
+import { BookPublisherRefSchema } from "./publishers.js";
+import { TagViewSchema } from "./tags.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 
 const SERIES_NAME_MIN = 2;
@@ -97,18 +105,24 @@ export const SeriesViewSchema = z.object({
 export type SeriesView = z.infer<typeof SeriesViewSchema>;
 
 export const SeriesBookViewSchema = z.object({
+  ageCategory: AgeCategorySchema,
   authors: z.array(BookAuthorRefSchema),
   cover: MediaViewSchema.nullable().optional(),
   createdAt: z.string(),
   currentPage: z.number().nullable(),
+  formats: z.array(BookFormatSchema),
+  genres: z.array(z.string()),
   id: z.string(),
   isFavorite: z.boolean(),
+  isInReadingQueue: z.boolean(),
   originalTitle: z.string().nullable(),
   ownershipStatus: OwnershipStatusSchema,
   pagesCount: z.number().nullable(),
   partNumber: z.number().nullable(),
+  publicationYear: z.number().nullable(),
   rating: z.number().nullable(),
   readingStatus: ReadingStatusSchema,
+  tags: z.array(TagViewSchema),
   title: z.string(),
 });
 
@@ -127,6 +141,7 @@ export type SeriesStatsView = z.infer<typeof SeriesStatsViewSchema>;
 
 export const SeriesDetailsViewSchema = SeriesViewSchema.extend({
   books: z.array(SeriesBookViewSchema),
+  publishers: z.array(BookPublisherRefSchema),
   stats: SeriesStatsViewSchema,
 });
 
