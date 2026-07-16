@@ -54,6 +54,7 @@ export class BookStoreLinkService {
     const data = toCreateData(input);
 
     const created = await this.transactionRunner.run(async (tx) => {
+      await this.bookStoreLinkRepository.acquireBookStoreLinkLock({ bookId, client: tx });
       const linkCount = await this.bookStoreLinkRepository.countByBook({
         bookId,
         client: tx,

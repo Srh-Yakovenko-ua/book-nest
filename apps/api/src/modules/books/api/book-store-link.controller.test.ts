@@ -213,6 +213,18 @@ describe("POST /api/books/:id/store-links", () => {
 
     expect(res.status).toBe(400);
   });
+
+  it("returns 400 for a whitespace-only store name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createDune(accessToken);
+
+    const res = await addStoreLink(accessToken, bookId, {
+      storeName: "   ",
+      url: "https://yakaboo.ua/dune",
+    });
+
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("GET /api/books/:id/store-links", () => {
@@ -291,6 +303,54 @@ describe("PATCH /api/books/:id/store-links/:linkId", () => {
       storeName: "Book Depository",
       url: "https://yakaboo.ua/dune",
     });
+  });
+
+  it("keeps the stored currency when a price-only patch omits the currency", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createDune(accessToken);
+    const created = await addStoreLink(accessToken, bookId, {
+      currency: "EUR",
+      price: 20,
+      storeName: "Book Depository",
+      url: "https://bookdepository.com/dune",
+    });
+
+    const res = await editStoreLink(accessToken, bookId, created.body.id, { price: 12.5 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ currency: "EUR", price: 12.5 });
+  });
+
+  it("updates the currency when it is explicitly provided", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createDune(accessToken);
+    const created = await addStoreLink(accessToken, bookId, {
+      currency: "EUR",
+      price: 20,
+      storeName: "Book Depository",
+      url: "https://bookdepository.com/dune",
+    });
+
+    const res = await editStoreLink(accessToken, bookId, created.body.id, { currency: "USD" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ currency: "USD", price: 20 });
+  });
+
+  it("keeps the stored currency when the price is cleared", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createDune(accessToken);
+    const created = await addStoreLink(accessToken, bookId, {
+      currency: "EUR",
+      price: 20,
+      storeName: "Book Depository",
+      url: "https://bookdepository.com/dune",
+    });
+
+    const res = await editStoreLink(accessToken, bookId, created.body.id, { price: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ currency: "EUR", price: null });
   });
 
   it("returns 404 for a store link that belongs to another user", async () => {

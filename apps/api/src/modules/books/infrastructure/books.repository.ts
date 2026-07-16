@@ -17,9 +17,14 @@ import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.r
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookSearchConditions } from "./book-search.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
+
+const log = createLogger("books.repository");
+
+const WISHLIST_MAX_BOOKS = 1000;
 
 export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
@@ -682,7 +687,7 @@ export class BooksRepository {
     });
   }
 
-  listWishlistBooks({
+  async listWishlistBooks({
     client,
     userId,
   }: {
@@ -690,11 +695,16 @@ export class BooksRepository {
     userId: string;
   }): Promise<WishlistBookRow[]> {
     const db = client ?? this.prisma;
-    return db.book.findMany({
+    const rows = await db.book.findMany({
       include: wishlistWithRelations,
       orderBy: LIBRARY_ORDER_BY.created_desc,
+      take: WISHLIST_MAX_BOOKS,
       where: { ownershipStatus: "want_to_buy", userId },
     });
+    if (rows.length === WISHLIST_MAX_BOOKS) {
+      log.warn({ cap: WISHLIST_MAX_BOOKS, userId }, "wishlist truncated at the safety cap");
+    }
+    return rows;
   }
 
   async maxQueuePosition(

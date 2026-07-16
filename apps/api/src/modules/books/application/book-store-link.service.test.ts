@@ -22,6 +22,7 @@ const OTHER_BOOK_ID = "44444444-4444-4444-8444-444444444444";
 const CREATED_AT = new Date("2026-02-01T10:00:00.000Z");
 
 type StoreLinkRepositoryMock = {
+  acquireBookStoreLinkLock: ReturnType<typeof vi.fn>;
   countByBook: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   deleteById: ReturnType<typeof vi.fn>;
@@ -48,6 +49,7 @@ function makeLink(overrides: Partial<BookStoreLinkModel> = {}): BookStoreLinkMod
 
 function setup(overrides: Partial<StoreLinkRepositoryMock> = {}) {
   const repository: StoreLinkRepositoryMock = {
+    acquireBookStoreLinkLock: vi.fn().mockResolvedValue(undefined),
     countByBook: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue(makeLink()),
     deleteById: vi.fn().mockResolvedValue(1),

@@ -1,11 +1,9 @@
 import type { BestOfferView, Currency, Nullable } from "@app/shared";
 
-import { CurrencySchema } from "@app/shared";
+import { CurrencySchema, DEFAULT_CURRENCY } from "@app/shared";
 import { isBefore } from "date-fns";
 
 import type { BookStoreLinkModel } from "../../../generated/prisma/models.js";
-
-const DEFAULT_CURRENCY: Currency = "UAH";
 
 type PricedStoreLink = BookStoreLinkModel & { price: NonNullable<BookStoreLinkModel["price"]> };
 

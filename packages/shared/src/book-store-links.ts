@@ -11,7 +11,12 @@ import { type Nullable, type ValueOf } from "./common.js";
 
 export const MAX_STORE_LINKS_PER_BOOK = 20;
 
-const DEFAULT_CURRENCY: Currency = "UAH";
+export const DEFAULT_CURRENCY: Currency = "UAH";
+
+const StoreLinkStoreNameSchema = OwnershipStoreNameSchema.refine(
+  (value) => value.length > 0,
+  "Store name is required",
+);
 
 const resolveCurrency = (fields: {
   currency?: Nullable<Currency>;
@@ -23,21 +28,19 @@ export const CreateBookStoreLinkInputSchema = z
   .object({
     currency: CurrencySchema.nullable().optional(),
     price: OwnershipPriceSchema.nullable().optional(),
-    storeName: OwnershipStoreNameSchema,
+    storeName: StoreLinkStoreNameSchema,
     url: OwnershipStoreUrlSchema,
   })
   .transform((value) => ({ ...value, currency: resolveCurrency(value) }));
 
 export type CreateBookStoreLinkInput = z.infer<typeof CreateBookStoreLinkInputSchema>;
 
-export const UpdateBookStoreLinkInputSchema = z
-  .object({
-    currency: CurrencySchema.nullable().optional(),
-    price: OwnershipPriceSchema.nullable().optional(),
-    storeName: OwnershipStoreNameSchema.optional(),
-    url: OwnershipStoreUrlSchema.optional(),
-  })
-  .transform((value) => ({ ...value, currency: resolveCurrency(value) }));
+export const UpdateBookStoreLinkInputSchema = z.object({
+  currency: CurrencySchema.nullable().optional(),
+  price: OwnershipPriceSchema.nullable().optional(),
+  storeName: StoreLinkStoreNameSchema.optional(),
+  url: OwnershipStoreUrlSchema.optional(),
+});
 
 export type UpdateBookStoreLinkInput = z.infer<typeof UpdateBookStoreLinkInputSchema>;
 

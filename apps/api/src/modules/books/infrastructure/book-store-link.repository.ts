@@ -16,6 +16,8 @@ export type StoreLinkWriteData = {
   url: string;
 };
 
+type AcquireLockArgs = { bookId: string; client: Prisma.TransactionClient };
+
 type CountByBookArgs = WithClient & { bookId: string; userId: string };
 
 type CreateArgs = WithClient & { bookId: string; data: StoreLinkWriteData; userId: string };
@@ -35,6 +37,10 @@ type WithClient = { client?: Prisma.TransactionClient };
 @Injectable()
 export class BookStoreLinkRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async acquireBookStoreLinkLock({ bookId, client }: AcquireLockArgs): Promise<void> {
+    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${bookId}))`;
+  }
 
   countByBook({ bookId, client, userId }: CountByBookArgs): Promise<number> {
     const db = client ?? this.prisma;
