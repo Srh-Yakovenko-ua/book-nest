@@ -10,7 +10,9 @@ const YEAR_SPAN = 10;
 type BookDateFieldProps = {
   allowFuture?: boolean;
   ariaLabel: string;
+  className?: string;
   describedBy?: string;
+  disablePast?: boolean;
   id: string;
   invalid?: boolean;
   onChange: (value: string | undefined) => void;
@@ -21,7 +23,9 @@ type BookDateFieldProps = {
 export function BookDateField({
   allowFuture = false,
   ariaLabel,
+  className,
   describedBy,
+  disablePast = false,
   id,
   invalid,
   onChange,
@@ -29,15 +33,17 @@ export function BookDateField({
   value,
 }: BookDateFieldProps) {
   const now = new Date();
-  const startMonth = new Date(now.getFullYear() - YEAR_SPAN, 0, 1);
+  const startMonth = disablePast ? now : new Date(now.getFullYear() - YEAR_SPAN, 0, 1);
   const endMonth = allowFuture ? new Date(now.getFullYear() + YEAR_SPAN, 11, 31) : now;
 
   return (
     <DatePicker
       allowFuture={allowFuture}
       ariaLabel={ariaLabel}
+      className={className}
       defaultMonth={now}
       describedBy={describedBy}
+      disablePast={disablePast}
       endMonth={endMonth}
       id={id}
       invalid={invalid}

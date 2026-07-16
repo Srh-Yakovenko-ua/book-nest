@@ -220,7 +220,7 @@ function WantToBuyForm({ book, onDone }: { book: BookView; onDone: () => void })
                   value={field.value === "" ? undefined : field.value}
                 >
                   <SelectTrigger
-                    className="h-10 w-full"
+                    className="h-10 w-full data-[size=default]:h-10"
                     id="buy-currency"
                     isClearable={field.value !== ""}
                     onClear={() => field.onChange("")}

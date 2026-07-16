@@ -13,6 +13,10 @@ import * as zod from "zod";
 export const readingQueueControllerGetQueueResponseCountMin = 0;
 export const readingQueueControllerGetQueueResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerGetQueueResponseItemsItemBookQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const readingQueueControllerGetQueueResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerGetQueueResponseItemsItemPositionMax = 9007199254740991;
 
@@ -210,6 +214,24 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
             zod.literal(null),
           ])
           .nullable(),
+        queuePriorityReason: zod
+          .union([
+            zod.literal("book_club"),
+            zod.literal("buddy_read"),
+            zod.literal("event_or_deadline"),
+            zod.literal("return_due"),
+            zod.literal("series_order"),
+            zod.literal("reading_goal"),
+            zod.literal("anticipated_release"),
+            zod.literal("other"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        queuePriorityReasonCustomText: zod.string().nullable(),
+        queuePriorityTargetDate: zod.iso
+          .date()
+          .regex(readingQueueControllerGetQueueResponseItemsItemBookQueuePriorityTargetDateRegExp)
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),
@@ -305,6 +327,10 @@ export const ReadingQueueControllerAddToQueueBody = zod.object({
 export const readingQueueControllerAddToQueueResponseCountMin = 0;
 export const readingQueueControllerAddToQueueResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerAddToQueueResponseItemsItemBookQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const readingQueueControllerAddToQueueResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerAddToQueueResponseItemsItemPositionMax = 9007199254740991;
 
@@ -502,6 +528,24 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
             zod.literal(null),
           ])
           .nullable(),
+        queuePriorityReason: zod
+          .union([
+            zod.literal("book_club"),
+            zod.literal("buddy_read"),
+            zod.literal("event_or_deadline"),
+            zod.literal("return_due"),
+            zod.literal("series_order"),
+            zod.literal("reading_goal"),
+            zod.literal("anticipated_release"),
+            zod.literal("other"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        queuePriorityReasonCustomText: zod.string().nullable(),
+        queuePriorityTargetDate: zod.iso
+          .date()
+          .regex(readingQueueControllerAddToQueueResponseItemsItemBookQueuePriorityTargetDateRegExp)
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),
@@ -593,6 +637,10 @@ export const ReadingQueueControllerReorderBody = zod.object({
 export const readingQueueControllerReorderResponseCountMin = 0;
 export const readingQueueControllerReorderResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerReorderResponseItemsItemBookQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const readingQueueControllerReorderResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerReorderResponseItemsItemPositionMax = 9007199254740991;
 
@@ -790,6 +838,24 @@ export const ReadingQueueControllerReorderResponse = zod.object({
             zod.literal(null),
           ])
           .nullable(),
+        queuePriorityReason: zod
+          .union([
+            zod.literal("book_club"),
+            zod.literal("buddy_read"),
+            zod.literal("event_or_deadline"),
+            zod.literal("return_due"),
+            zod.literal("series_order"),
+            zod.literal("reading_goal"),
+            zod.literal("anticipated_release"),
+            zod.literal("other"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        queuePriorityReasonCustomText: zod.string().nullable(),
+        queuePriorityTargetDate: zod.iso
+          .date()
+          .regex(readingQueueControllerReorderResponseItemsItemBookQueuePriorityTargetDateRegExp)
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),
@@ -877,6 +943,10 @@ export const ReadingQueueControllerStartReadingBody = zod.object({
 export const readingQueueControllerStartReadingResponseCountMin = 0;
 export const readingQueueControllerStartReadingResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerStartReadingResponseItemsItemBookQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const readingQueueControllerStartReadingResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerStartReadingResponseItemsItemPositionMax = 9007199254740991;
 
@@ -1074,6 +1144,26 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
             zod.literal(null),
           ])
           .nullable(),
+        queuePriorityReason: zod
+          .union([
+            zod.literal("book_club"),
+            zod.literal("buddy_read"),
+            zod.literal("event_or_deadline"),
+            zod.literal("return_due"),
+            zod.literal("series_order"),
+            zod.literal("reading_goal"),
+            zod.literal("anticipated_release"),
+            zod.literal("other"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        queuePriorityReasonCustomText: zod.string().nullable(),
+        queuePriorityTargetDate: zod.iso
+          .date()
+          .regex(
+            readingQueueControllerStartReadingResponseItemsItemBookQueuePriorityTargetDateRegExp,
+          )
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),
@@ -1157,6 +1247,10 @@ export const ReadingQueueControllerRemoveFromQueueParams = zod.object({
 export const readingQueueControllerRemoveFromQueueResponseCountMin = 0;
 export const readingQueueControllerRemoveFromQueueResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerRemoveFromQueueResponseItemsItemBookQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const readingQueueControllerRemoveFromQueueResponseItemsItemPositionExclusiveMin = 0;
 export const readingQueueControllerRemoveFromQueueResponseItemsItemPositionMax = 9007199254740991;
 
@@ -1353,6 +1447,26 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
             zod.literal("high"),
             zod.literal(null),
           ])
+          .nullable(),
+        queuePriorityReason: zod
+          .union([
+            zod.literal("book_club"),
+            zod.literal("buddy_read"),
+            zod.literal("event_or_deadline"),
+            zod.literal("return_due"),
+            zod.literal("series_order"),
+            zod.literal("reading_goal"),
+            zod.literal("anticipated_release"),
+            zod.literal("other"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        queuePriorityReasonCustomText: zod.string().nullable(),
+        queuePriorityTargetDate: zod.iso
+          .date()
+          .regex(
+            readingQueueControllerRemoveFromQueueResponseItemsItemBookQueuePriorityTargetDateRegExp,
+          )
           .nullable(),
         readingProgress: zod
           .object({
