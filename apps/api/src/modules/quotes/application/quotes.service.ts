@@ -21,6 +21,7 @@ import { buildQuotesSummary } from "../domain/quotes-summary.js";
 import {
   type OwnedBook,
   QuotesRepository,
+  type QuoteUpdateData,
   type QuoteWithBook,
   type QuoteWriteData,
 } from "../infrastructure/quotes.repository.js";
@@ -29,7 +30,7 @@ const BOOK_NOT_FOUND_MESSAGE = "Book not found";
 const QUOTE_NOT_FOUND_MESSAGE = "Quote not found";
 const PAGE_EXCEEDS_BOOK_MESSAGE = "Page must not exceed the book's page count";
 
-const log = createLogger("quotes.view");
+const log = createLogger("quotes");
 
 @Injectable()
 export class QuotesService {
@@ -143,11 +144,10 @@ export class QuotesService {
     quoteId: string;
     userId: string;
   }): Promise<QuoteView> {
-    const book = await this.findOwnedBookOrThrow(userId, bookId);
-    await this.findOwnedQuoteOrThrow({ bookId, quoteId, userId });
-    this.assertPageWithinBook(input.page, book.pagesCount);
+    const quote = await this.findOwnedQuoteOrThrow({ bookId, quoteId, userId });
+    this.assertPageWithinBook(input.page, quote.book.pagesCount);
 
-    const updated = await this.quotesRepository.update({ data: toWriteData(input), quoteId });
+    const updated = await this.quotesRepository.update({ data: toUpdateData(input), quoteId });
 
     return this.toQuoteView(updated);
   }
@@ -230,6 +230,29 @@ function normalizeOptionalText(value: Nullable<string> | undefined): Nullable<st
   }
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
+}
+
+function toUpdateData(input: UpdateQuoteInput): QuoteUpdateData {
+  const data: QuoteUpdateData = {};
+  if (input.chapter !== undefined) {
+    data.chapter = normalizeOptionalText(input.chapter);
+  }
+  if (input.comment !== undefined) {
+    data.comment = normalizeOptionalText(input.comment);
+  }
+  if (input.isFavorite !== undefined) {
+    data.isFavorite = input.isFavorite;
+  }
+  if (input.isSpoiler !== undefined) {
+    data.isSpoiler = input.isSpoiler;
+  }
+  if (input.page !== undefined) {
+    data.page = input.page;
+  }
+  if (input.text !== undefined) {
+    data.text = input.text;
+  }
+  return data;
 }
 
 function toWriteData(input: CreateQuoteInput): QuoteWriteData {

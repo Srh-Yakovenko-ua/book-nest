@@ -286,6 +286,17 @@ describe("GET /api/quotes search", () => {
     expect(texts(byAuthor.body)).toEqual(["Fear is the mind-killer"]);
     expect(texts(byPage.body)).toEqual(["Fear is the mind-killer"]);
   });
+
+  it("does not error on a numeric search larger than any storable page", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSearchable(accessToken);
+
+    const res = await listQuotes(accessToken, "?q=9780441013593");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toEqual([]);
+    expect(res.body.totalCount).toBe(0);
+  });
 });
 
 describe("GET /api/quotes pagination and validation", () => {

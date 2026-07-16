@@ -7,7 +7,7 @@ const QUOTE_TEXT_MAX = 1000;
 const QUOTE_CHAPTER_MAX = 80;
 const QUOTE_COMMENT_MAX = 500;
 const QUOTE_PAGE_MIN = 1;
-const QUOTE_PAGE_MAX = 10000;
+export const QUOTE_PAGE_MAX = 10000;
 const QUOTE_SEARCH_MAX = 100;
 const QUOTES_DEFAULT_PAGE_SIZE = 12;
 
@@ -33,20 +33,25 @@ export const QuotePageSchema = z.coerce
   .min(QUOTE_PAGE_MIN, "Page must be greater than 0")
   .max(QUOTE_PAGE_MAX, "Page must be at most 10000");
 
-const quoteInputShape = {
+export const CreateQuoteInputSchema = z.object({
   chapter: QuoteChapterSchema.nullish(),
   comment: QuoteCommentSchema.nullish(),
   isFavorite: z.boolean().default(false),
   isSpoiler: z.boolean().default(false),
   page: QuotePageSchema.nullish(),
   text: QuoteTextSchema,
-};
-
-export const CreateQuoteInputSchema = z.object(quoteInputShape);
+});
 
 export type CreateQuoteInput = z.infer<typeof CreateQuoteInputSchema>;
 
-export const UpdateQuoteInputSchema = z.object(quoteInputShape);
+export const UpdateQuoteInputSchema = z.object({
+  chapter: QuoteChapterSchema.nullish(),
+  comment: QuoteCommentSchema.nullish(),
+  isFavorite: z.boolean().optional(),
+  isSpoiler: z.boolean().optional(),
+  page: QuotePageSchema.nullish(),
+  text: QuoteTextSchema.optional(),
+});
 
 export type UpdateQuoteInput = z.infer<typeof UpdateQuoteInputSchema>;
 

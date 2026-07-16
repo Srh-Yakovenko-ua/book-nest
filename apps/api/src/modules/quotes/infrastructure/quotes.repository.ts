@@ -1,8 +1,9 @@
 import type { Nullable, QuoteFilter, QuoteSort } from "@app/shared";
 
+import { QUOTE_PAGE_MAX } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { QuoteBookCount } from "../domain/quotes-summary.js";
+import type { QuoteBookCount, QuotesSummaryData } from "../domain/quotes-summary.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -29,13 +30,7 @@ export type QuotesFilterInput = {
   userId: string;
 };
 
-export type QuotesSummaryRow = {
-  bookCounts: QuoteBookCount[];
-  favorites: number;
-  spoiler: number;
-  total: number;
-  withComment: number;
-};
+export type QuoteUpdateData = Partial<QuoteWriteData>;
 
 export type QuoteWithBook = Prisma.QuoteGetPayload<typeof quoteWithBook>;
 
@@ -107,7 +102,7 @@ export class QuotesRepository {
     quoteId,
     userId,
   }: {
-    bookId?: string;
+    bookId: string;
     quoteId: string;
     userId: string;
   }): Promise<Nullable<QuoteWithBook>> {
@@ -135,7 +130,7 @@ export class QuotesRepository {
     });
   }
 
-  async summaryData(userId: string): Promise<QuotesSummaryRow> {
+  async summaryData(userId: string): Promise<QuotesSummaryData> {
     const base: Prisma.QuoteWhereInput = { userId };
     const [total, favorites, spoiler, withComment, groups] = await Promise.all([
       this.prisma.quote.count({ where: base }),
@@ -159,7 +154,7 @@ export class QuotesRepository {
       data,
       quoteId,
     }: {
-      data: QuoteWriteData;
+      data: QuoteUpdateData;
       quoteId: string;
     },
     client: Prisma.TransactionClient = this.prisma,
@@ -247,7 +242,12 @@ function buildQuoteSearchConditions(search: string): Prisma.QuoteWhereInput[] {
   ];
 
   const pageMatch = Number.parseInt(search, 10);
-  if (Number.isInteger(pageMatch) && pageMatch > 0 && String(pageMatch) === search) {
+  if (
+    Number.isInteger(pageMatch) &&
+    pageMatch > 0 &&
+    pageMatch <= QUOTE_PAGE_MAX &&
+    String(pageMatch) === search
+  ) {
     conditions.push({ page: pageMatch });
   }
 

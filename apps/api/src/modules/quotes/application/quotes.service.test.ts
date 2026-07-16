@@ -262,35 +262,100 @@ describe("QuotesService.updateForBook", () => {
     expect(repository.update).not.toHaveBeenCalled();
   });
 
-  it("updates the favorite flag independently through the edit path", async () => {
+  it("updates only the favorite flag and leaves every other field untouched", async () => {
     const { repository, service } = buildService();
 
     await service.updateForBook({
       bookId: BOOK_ID,
-      input: createInput({ isFavorite: true }),
+      input: { isFavorite: true },
       quoteId: QUOTE_ID,
       userId: USER_ID,
     });
 
     expect(repository.update).toHaveBeenCalledWith({
-      data: expect.objectContaining({ isFavorite: true }),
+      data: { isFavorite: true },
       quoteId: QUOTE_ID,
     });
   });
 
-  it("rejects a page greater than the book's page count on edit", async () => {
+  it("updates only the spoiler flag without wiping the other fields", async () => {
     const { repository, service } = buildService();
-    repository.findOwnedBook.mockResolvedValue(ownedBook({ pagesCount: 50 }));
+
+    await service.updateForBook({
+      bookId: BOOK_ID,
+      input: { isSpoiler: true },
+      quoteId: QUOTE_ID,
+      userId: USER_ID,
+    });
+
+    expect(repository.update).toHaveBeenCalledWith({
+      data: { isSpoiler: true },
+      quoteId: QUOTE_ID,
+    });
+  });
+
+  it("clears only the chapter when it is explicitly set to null", async () => {
+    const { repository, service } = buildService();
+
+    await service.updateForBook({
+      bookId: BOOK_ID,
+      input: { chapter: null },
+      quoteId: QUOTE_ID,
+      userId: USER_ID,
+    });
+
+    expect(repository.update).toHaveBeenCalledWith({
+      data: { chapter: null },
+      quoteId: QUOTE_ID,
+    });
+  });
+
+  it("never sends an omitted field to the repository", async () => {
+    const { repository, service } = buildService();
+
+    await service.updateForBook({
+      bookId: BOOK_ID,
+      input: { text: "revised" },
+      quoteId: QUOTE_ID,
+      userId: USER_ID,
+    });
+
+    expect(repository.update).toHaveBeenCalledWith({
+      data: { text: "revised" },
+      quoteId: QUOTE_ID,
+    });
+  });
+
+  it("rejects a page greater than the book's page count only when the page is being set", async () => {
+    const { repository, service } = buildService();
+    repository.findOwnedQuote.mockResolvedValue(quote({ book: book({ pagesCount: 50 }) }));
 
     await expect(
       service.updateForBook({
         bookId: BOOK_ID,
-        input: createInput({ page: 51 }),
+        input: { page: 51 },
         quoteId: QUOTE_ID,
         userId: USER_ID,
       }),
     ).rejects.toBeInstanceOf(BadRequestError);
     expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it("does not check the page bound when the page is omitted on edit", async () => {
+    const { repository, service } = buildService();
+    repository.findOwnedQuote.mockResolvedValue(quote({ book: book({ pagesCount: 50 }) }));
+
+    await service.updateForBook({
+      bookId: BOOK_ID,
+      input: { text: "revised" },
+      quoteId: QUOTE_ID,
+      userId: USER_ID,
+    });
+
+    expect(repository.update).toHaveBeenCalledWith({
+      data: { text: "revised" },
+      quoteId: QUOTE_ID,
+    });
   });
 });
 

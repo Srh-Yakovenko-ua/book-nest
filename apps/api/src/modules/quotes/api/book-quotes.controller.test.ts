@@ -228,6 +228,75 @@ describe("PATCH /api/books/:bookId/quotes/:quoteId", () => {
     expect(res.body).toMatchObject({ isFavorite: true, isSpoiler: true, text: "after" });
   });
 
+  it("updates only isFavorite and leaves the other fields intact", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, { pagesCount: 500 });
+    const created = await addQuote(accessToken, bookId, {
+      chapter: "Chapter I",
+      comment: "a note",
+      isSpoiler: true,
+      page: 12,
+      text: "original",
+    });
+
+    const res = await patchQuote(accessToken, bookId, created.body.id, { isFavorite: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      chapter: "Chapter I",
+      comment: "a note",
+      isFavorite: true,
+      isSpoiler: true,
+      page: 12,
+      text: "original",
+    });
+  });
+
+  it("updates only isSpoiler without wiping the other fields", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, { pagesCount: 500 });
+    const created = await addQuote(accessToken, bookId, {
+      chapter: "Chapter I",
+      comment: "a note",
+      isFavorite: true,
+      page: 12,
+      text: "original",
+    });
+
+    const res = await patchQuote(accessToken, bookId, created.body.id, { isSpoiler: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      chapter: "Chapter I",
+      comment: "a note",
+      isFavorite: true,
+      isSpoiler: true,
+      page: 12,
+      text: "original",
+    });
+  });
+
+  it("clears only the chapter when it is set to null", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, { pagesCount: 500 });
+    const created = await addQuote(accessToken, bookId, {
+      chapter: "Chapter I",
+      comment: "a note",
+      page: 12,
+      text: "original",
+    });
+
+    const res = await patchQuote(accessToken, bookId, created.body.id, { chapter: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      chapter: null,
+      comment: "a note",
+      page: 12,
+      text: "original",
+    });
+  });
+
   it("keeps the quote favorite independent from the book favorite", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
