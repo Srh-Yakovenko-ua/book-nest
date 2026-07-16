@@ -7,7 +7,12 @@ import type {
   Nullable,
 } from "@app/shared";
 
-import { CurrencySchema, DELIVERY_ACTIVE_STATUSES, DeliveryStatusSchema } from "@app/shared";
+import {
+  CurrencySchema,
+  DEFAULT_CURRENCY,
+  DELIVERY_ACTIVE_STATUSES,
+  DeliveryStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -170,8 +175,18 @@ export class DeliveryRepository {
     return this.prisma.bookDelivery.count({ where: buildHistoryWhere(input) });
   }
 
-  async historySummary({ userId }: { userId: string }): Promise<HistorySummaryData> {
+  async historySummary({
+    includeCancelled,
+    userId,
+  }: {
+    includeCancelled: boolean;
+    userId: string;
+  }): Promise<HistorySummaryData> {
     const base: Prisma.BookDeliveryWhereInput = { book: { userId } };
+    const currencyWhere: Prisma.BookDeliveryWhereInput = { ...base, price: { not: null } };
+    if (!includeCancelled) {
+      currencyWhere.status = { not: "cancelled" };
+    }
 
     const [totalOrders, activeCount, receivedCount, cancelledCount, currencyGroups] =
       await Promise.all([
@@ -184,11 +199,7 @@ export class DeliveryRepository {
         this.prisma.bookDelivery.groupBy({
           _sum: { price: true },
           by: ["currency"],
-          where: {
-            ...base,
-            price: { not: null },
-            status: { not: "cancelled" },
-          },
+          where: currencyWhere,
         }),
       ]);
 
@@ -239,7 +250,7 @@ export class DeliveryRepository {
     }
 
     if (currency !== undefined) {
-      where.currency = currency;
+      applyCurrencyFilter({ currency, where });
     }
 
     if (status !== undefined) {
@@ -354,6 +365,27 @@ function activeInTransitBase(userId: string): Prisma.BookDeliveryWhereInput {
     book: { ownershipStatus: "in_transit", userId },
     status: { in: [...DELIVERY_ACTIVE_STATUSES] },
   };
+}
+
+function applyCurrencyFilter({
+  currency,
+  where,
+}: {
+  currency: string;
+  where: Prisma.BookDeliveryWhereInput;
+}): void {
+  if (currency !== DEFAULT_CURRENCY) {
+    where.currency = currency;
+    return;
+  }
+
+  const uahMatch: Prisma.BookDeliveryWhereInput = {
+    OR: [{ currency: DEFAULT_CURRENCY }, { currency: null, price: { not: null } }],
+  };
+  const existingAnd = where.AND;
+  const andConditions =
+    existingAnd === undefined ? [] : Array.isArray(existingAnd) ? existingAnd : [existingAnd];
+  where.AND = [...andConditions, uahMatch];
 }
 
 function applyHistoryTab({
@@ -496,7 +528,7 @@ function buildHistoryWhere({
   }
 
   if (currency !== undefined) {
-    where.currency = currency;
+    applyCurrencyFilter({ currency, where });
   }
 
   if (from !== undefined || to !== undefined) {

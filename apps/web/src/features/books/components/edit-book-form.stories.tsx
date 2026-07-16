@@ -25,6 +25,7 @@ const activeDeliveryFixture: DeliveryView = {
   storeName: "Yakaboo",
   trackingNumber: null,
   trackingUrl: null,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 function emptyPage(pageSize: number) {

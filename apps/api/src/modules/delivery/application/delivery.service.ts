@@ -121,8 +121,14 @@ export class DeliveryService {
     });
   }
 
-  async historySummary({ userId }: { userId: string }): Promise<DeliveryHistorySummaryView> {
-    const data = await this.deliveryRepository.historySummary({ userId });
+  async historySummary({
+    includeCancelled,
+    userId,
+  }: {
+    includeCancelled: boolean;
+    userId: string;
+  }): Promise<DeliveryHistorySummaryView> {
+    const data = await this.deliveryRepository.historySummary({ includeCancelled, userId });
 
     return {
       activeCount: data.activeCount,

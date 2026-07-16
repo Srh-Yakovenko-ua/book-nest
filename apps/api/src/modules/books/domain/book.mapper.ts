@@ -6,6 +6,7 @@ import {
   type BookView,
   CurrencySchema,
   type LoanInfoView,
+  LoanTypeSchema,
   type MediaView,
   type Nullable,
   OwnershipStatusSchema,
@@ -18,8 +19,9 @@ import {
 
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
-import { toNullableIsoDate } from "../../../core/iso-date.js";
+import { parseIsoDate, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { toBookListView } from "../../lists/index.js";
+import { getLoanUiStatus } from "../../loans/index.js";
 import {
   computeHasUnreadEarlierParts,
   toSeriesBookPreview,
@@ -92,10 +94,14 @@ function toLoanInfoView(loans: BookWithRelations["loans"]): Nullable<LoanInfoVie
     return null;
   }
 
+  const today = parseIsoDate(toIsoDate(new Date()));
+
   return {
     contact: loan.contact,
     expectedReturnDate: toNullableIsoDate(loan.expectedReturnDate),
     loanDate: toNullableIsoDate(loan.loanDate),
+    loanType: LoanTypeSchema.parse(loan.type),
+    loanUiStatus: getLoanUiStatus({ expectedReturnDate: loan.expectedReturnDate, today }),
     note: loan.note,
     personName: loan.personName,
     remindToReturn: loan.remindToReturn,

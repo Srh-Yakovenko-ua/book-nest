@@ -231,7 +231,7 @@ describe("POST /api/books/:id/deliveries validation", () => {
     );
   });
 
-  it("returns 400 for a non-https tracking url", async () => {
+  it("returns 400 for a tracking url with a non-http(s) scheme", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -241,7 +241,7 @@ describe("POST /api/books/:id/deliveries validation", () => {
     const res = await createDelivery(accessToken, created.body.id, {
       orderDate: "2026-01-20",
       storeName: "Yakaboo",
-      trackingUrl: "http://track.example.com",
+      trackingUrl: "ftp://track.example.com",
     });
 
     expect(res.status).toBe(400);

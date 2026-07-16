@@ -17,6 +17,8 @@ export const notInFutureDate = (message: string) => z.iso.date().refine(isNotInF
 
 export const HTTPS_PROTOCOL = /^https$/;
 
+export const HTTP_OR_HTTPS_PROTOCOL = /^https?$/;
+
 export const RECENT_USED_LIMIT_DEFAULT = 8;
 export const RECENT_USED_LIMIT_MAX = 20;
 

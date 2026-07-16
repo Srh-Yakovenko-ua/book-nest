@@ -11,6 +11,14 @@ type BookSearchConditionsInput = {
   searchGenreKeys?: string[];
 };
 
+export function buildAuthorSearchConditions(search: string): Prisma.BookWhereInput[] {
+  const contains = { contains: search, mode: "insensitive" } as const;
+  return [
+    { authors: { some: { author: { name: contains } } } },
+    { authors: { some: { author: { names: { some: { name: contains } } } } } },
+  ];
+}
+
 export function buildBookSearchConditions({
   includeDedication,
   search,
@@ -24,12 +32,7 @@ export function buildBookSearchConditions({
   const conditions: Prisma.BookWhereInput[] = [
     { title: { contains, mode: "insensitive" } },
     { originalTitle: { contains, mode: "insensitive" } },
-    { authors: { some: { author: { name: { contains, mode: "insensitive" } } } } },
-    {
-      authors: {
-        some: { author: { names: { some: { name: { contains, mode: "insensitive" } } } } },
-      },
-    },
+    ...buildAuthorSearchConditions(search),
     { series: { name: { contains, mode: "insensitive" } } },
     { publisher: { name: { contains, mode: "insensitive" } } },
     { publisher: { names: { some: { name: { contains, mode: "insensitive" } } } } },

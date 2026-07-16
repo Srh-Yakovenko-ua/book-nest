@@ -73,11 +73,14 @@ export function LoanDialog({ book, direction, onOpenChange, open }: LoanDialogPr
 }
 
 function buildPayload(direction: LoanDirection, values: LoanValues): CreateLoanInput {
-  const payload: CreateLoanInput = { direction, personName: values.personName.trim() };
+  const payload: CreateLoanInput = {
+    direction,
+    loanDate: values.loanDate,
+    personName: values.personName.trim(),
+  };
   const contact = values.contact.trim();
   const note = values.note.trim();
 
-  if (values.loanDate.length > 0) payload.loanDate = values.loanDate;
   if (values.expectedReturnDate.length > 0) payload.expectedReturnDate = values.expectedReturnDate;
   if (contact.length > 0) payload.contact = contact;
   if (note.length > 0) payload.note = note;

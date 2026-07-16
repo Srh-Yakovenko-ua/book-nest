@@ -178,7 +178,7 @@ describe("POST /api/books/:id/store-links", () => {
     expect(res.status).toBe(409);
   });
 
-  it("returns 400 for a non-https URL", async () => {
+  it("accepts an http URL", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createDune(accessToken);
 
@@ -187,15 +187,42 @@ describe("POST /api/books/:id/store-links", () => {
       url: "http://yakaboo.ua/dune",
     });
 
+    expect(res.status).toBe(201);
+    expect(res.body.url).toBe("http://yakaboo.ua/dune");
+  });
+
+  it("returns 400 for a non-http(s) URL scheme", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createDune(accessToken);
+
+    const res = await addStoreLink(accessToken, bookId, {
+      storeName: "Yakaboo",
+      url: "ftp://yakaboo.ua/dune",
+    });
+
     expect(res.status).toBe(400);
   });
 
-  it("returns 400 for a non-positive price", async () => {
+  it("accepts a zero price", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createDune(accessToken);
 
     const res = await addStoreLink(accessToken, bookId, {
       price: 0,
+      storeName: "Yakaboo",
+      url: "https://yakaboo.ua/dune",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.price).toBe(0);
+  });
+
+  it("returns 400 for a negative price", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createDune(accessToken);
+
+    const res = await addStoreLink(accessToken, bookId, {
+      price: -1,
       storeName: "Yakaboo",
       url: "https://yakaboo.ua/dune",
     });

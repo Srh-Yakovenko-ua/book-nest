@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX } from "./common.js";
+import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
 
 const TIMELINE_NAME_MIN = 1;
 const TIMELINE_NAME_MAX = 100;
@@ -243,7 +243,7 @@ export const TimelineEventsQuerySchema = z.object({
   importance: multiEnumQuery(TimelineImportanceSchema),
   important: QueryBooleanSchema.optional(),
   keyOnly: QueryBooleanSchema.optional(),
-  pageNumber: z.coerce.number().int().min(1).max(TIMELINE_EVENT_PAGE_MAX).default(1),
+  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
   pageSize: z.coerce
     .number()
     .int()

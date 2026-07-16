@@ -10,6 +10,7 @@ import type {
 import {
   BulkReceiveDeliveriesInputSchema,
   DeliveryHistoryQuerySchema,
+  DeliveryHistorySummaryQuerySchema,
   DeliveryInTransitQuerySchema,
   DeliveryStatisticsQuerySchema,
 } from "@app/shared";
@@ -34,6 +35,7 @@ import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { DeliveryService } from "../application/delivery.service.js";
 import { BulkReceiveDeliveriesInputDto } from "./input-dto/bulk-receive-deliveries.input-dto.js";
 import { DeliveryHistoryQueryDto } from "./input-dto/delivery-history-query.input-dto.js";
+import { DeliveryHistorySummaryQueryDto } from "./input-dto/delivery-history-summary-query.input-dto.js";
 import { DeliveryInTransitQueryDto } from "./input-dto/delivery-in-transit-query.input-dto.js";
 import { DeliveryStatisticsQueryDto } from "./input-dto/delivery-statistics-query.input-dto.js";
 import { BulkReceiveDeliveriesResultViewDto } from "./view-dto/bulk-receive-deliveries-result.view-dto.js";
@@ -88,9 +90,17 @@ export class DeliveryController {
     type: DeliveryHistorySummaryViewDto,
   })
   @ApiOperation({ summary: "Get summary metrics for the current user's order history" })
+  @ApiQuery({ name: "includeCancelled", required: false })
   @Get("history/summary")
-  historySummary(@CurrentUser() user: AuthenticatedUser): Promise<DeliveryHistorySummaryView> {
-    return this.deliveryService.historySummary({ userId: user.id });
+  historySummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(DeliveryHistorySummaryQuerySchema))
+    query: DeliveryHistorySummaryQueryDto,
+  ): Promise<DeliveryHistorySummaryView> {
+    return this.deliveryService.historySummary({
+      includeCancelled: query.includeCancelled,
+      userId: user.id,
+    });
   }
 
   @ApiOkResponse({

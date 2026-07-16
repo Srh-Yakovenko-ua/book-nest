@@ -12,19 +12,26 @@ export function computeBestOffer({
 }: {
   links: BookStoreLinkModel[];
 }): Nullable<BestOfferView> {
-  const pricedLinks = links.filter(isPricedStoreLink);
-  if (pricedLinks.length === 0) {
-    return null;
+  const cheapestByCurrency = new Map<Currency, PricedStoreLink>();
+
+  for (const link of links) {
+    if (!isPricedStoreLink(link)) {
+      continue;
+    }
+    const currency = resolveOfferCurrency(link.currency);
+    const currentBest = cheapestByCurrency.get(currency);
+    if (currentBest === undefined || isBetterOffer({ candidate: link, currentBest })) {
+      cheapestByCurrency.set(currency, link);
+    }
   }
 
-  const bestLink = pricedLinks.reduce((currentBest, candidate) =>
-    isBetterOffer({ candidate, currentBest }) ? candidate : currentBest,
-  );
-
-  return {
-    currency: resolveOfferCurrency(bestLink.currency),
-    price: bestLink.price.toNumber(),
-  };
+  for (const currency of CurrencySchema.options) {
+    const link = cheapestByCurrency.get(currency);
+    if (link !== undefined) {
+      return { currency, price: link.price.toNumber() };
+    }
+  }
+  return null;
 }
 
 function isBetterOffer({

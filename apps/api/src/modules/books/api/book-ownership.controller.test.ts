@@ -340,7 +340,24 @@ describe("POST /api/books/:id/ownership/want-to-buy", () => {
     expect(res.status).toBe(409);
   });
 
-  it("returns 400 for a non-positive expected price", async () => {
+  it("returns 400 for a negative expected price", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "want-to-buy", {
+      expectedPrice: -1,
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "expectedPrice" })]),
+    );
+  });
+
+  it("accepts a zero expected price", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -351,10 +368,8 @@ describe("POST /api/books/:id/ownership/want-to-buy", () => {
       expectedPrice: 0,
     });
 
-    expect(res.status).toBe(400);
-    expect(res.body.errorsMessages).toEqual(
-      expect.arrayContaining([expect.objectContaining({ field: "expectedPrice" })]),
-    );
+    expect(res.status).toBe(200);
+    expect(res.body.purchaseInfo.expectedPrice).toBe(0);
   });
 });
 

@@ -11,6 +11,7 @@ import {
   CurrencySchema,
   DeliveryStatusSchema,
   LoanDirectionSchema,
+  LoanTypeSchema,
   OwnershipStatusSchema,
   ownershipStatusUsesLoan,
   QUEUE_PRIORITY_REASON_CUSTOM_TEXT_MAX,
@@ -25,11 +26,12 @@ import {
   LIST_PAGE_SIZE_MAX,
   noHtmlTags,
   type Nullable,
+  PAGE_NUMBER_MAX,
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
 import {
-  HTTPS_PROTOCOL,
+  HTTP_OR_HTTPS_PROTOCOL,
   NoHtmlString,
   notInFutureDate,
   queryStringArray,
@@ -37,6 +39,7 @@ import {
   RECENT_USED_LIMIT_MAX,
 } from "./internal.js";
 import { BookListViewSchema, NewListInputSchema } from "./lists.js";
+import { LoanUiStatusSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
 import { BookPublisherRefSchema } from "./publishers.js";
 import { NewSeriesInputSchema, SeriesViewSchema } from "./series.js";
@@ -223,7 +226,8 @@ const OWNERSHIP_STORE_NAME_MAX = 100;
 const OWNERSHIP_STORE_URL_MAX = 300;
 const OWNERSHIP_ORDER_NUMBER_MAX = 100;
 const OWNERSHIP_NOTE_MAX = 300;
-const OWNERSHIP_PERSON_NAME_MIN = 2;
+const LOAN_NOTE_MAX = 500;
+const OWNERSHIP_PERSON_NAME_MIN = 1;
 const OWNERSHIP_PERSON_NAME_MAX = 100;
 const OWNERSHIP_CONTACT_MAX = 100;
 const OWNERSHIP_PRICE_MIN = 0;
@@ -241,7 +245,7 @@ export const OwnershipStoreUrlSchema = z
   .trim()
   .max(OWNERSHIP_STORE_URL_MAX, "URL must be at most 300 characters long")
   .refine(noHtmlTags, "HTML tags are not allowed")
-  .pipe(z.url({ error: "Enter a valid https link", protocol: HTTPS_PROTOCOL }));
+  .pipe(z.url({ error: "Enter a valid link", protocol: HTTP_OR_HTTPS_PROTOCOL }));
 
 const OwnershipOrderNumberSchema = z
   .string()
@@ -258,11 +262,16 @@ const OwnershipNoteSchema = z
   .transform(collapseHorizontalSpaces)
   .pipe(NoHtmlString.max(OWNERSHIP_NOTE_MAX, "Note must be at most 300 characters long"));
 
+const LoanNoteSchema = z
+  .string()
+  .transform(collapseHorizontalSpaces)
+  .pipe(NoHtmlString.max(LOAN_NOTE_MAX, "Note must be at most 500 characters long"));
+
 const OwnershipPersonNameSchema = z
   .string()
   .transform(collapseSpaces)
   .pipe(
-    NoHtmlString.min(OWNERSHIP_PERSON_NAME_MIN, "Name must be at least 2 characters long").max(
+    NoHtmlString.min(OWNERSHIP_PERSON_NAME_MIN, "Enter the person's name").max(
       OWNERSHIP_PERSON_NAME_MAX,
       "Name must be at most 100 characters long",
     ),
@@ -275,7 +284,7 @@ const OwnershipContactSchema = z
 
 export const OwnershipPriceSchema = z
   .number()
-  .gt(OWNERSHIP_PRICE_MIN, "Price must be greater than 0")
+  .min(OWNERSHIP_PRICE_MIN, "Price cannot be negative")
   .max(OWNERSHIP_PRICE_MAX, "Price must be at most 99999999.99");
 
 const PurchaseInfoFieldsSchema = z.object({
@@ -432,7 +441,7 @@ const isReturnNotBeforeLoan = (value: {
 const LoanInfoFieldsSchema = z.object({
   expectedReturnDate: z.iso.date().nullable().optional(),
   loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
-  note: OwnershipNoteSchema.nullable().optional(),
+  note: LoanNoteSchema.nullable().optional(),
   personName: OwnershipPersonNameSchema.optional(),
 });
 
@@ -448,8 +457,8 @@ export const CreateLoanInputSchema = z
     contact: OwnershipContactSchema.nullable().optional(),
     direction: LoanDirectionSchema,
     expectedReturnDate: z.iso.date().nullable().optional(),
-    loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
-    note: OwnershipNoteSchema.nullable().optional(),
+    loanDate: notInFutureDate("Loan date must not be in the future"),
+    note: LoanNoteSchema.nullable().optional(),
     personName: OwnershipPersonNameSchema,
     remindToReturn: z.boolean().optional(),
   })
@@ -474,7 +483,7 @@ export const UpdateLoanInputSchema = z
     contact: OwnershipContactSchema.nullable().optional(),
     expectedReturnDate: z.iso.date().nullable().optional(),
     loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
-    note: OwnershipNoteSchema.nullable().optional(),
+    note: LoanNoteSchema.nullable().optional(),
     personName: OwnershipPersonNameSchema,
     remindToReturn: z.boolean().optional(),
   })
@@ -808,7 +817,7 @@ export const LibraryBooksQuerySchema = z
     isFavorite: z.stringbool().optional(),
     language: queryStringArray(BookLanguageSchema),
     owner: queryStringArray(OwnershipStatusSchema),
-    pageNumber: z.coerce.number().int().min(1).default(1),
+    pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
     pageSize: z.coerce
       .number()
       .int()
@@ -900,6 +909,8 @@ export const LoanInfoViewSchema = z.object({
   contact: z.string().nullable(),
   expectedReturnDate: z.string().nullable(),
   loanDate: z.string().nullable(),
+  loanType: LoanTypeSchema,
+  loanUiStatus: LoanUiStatusSchema,
   note: z.string().nullable(),
   personName: z.string(),
   remindToReturn: z.boolean(),
@@ -1084,6 +1095,7 @@ export const DeliveryViewSchema = z.object({
   storeName: z.string().nullable(),
   trackingNumber: z.string().nullable(),
   trackingUrl: z.string().nullable(),
+  updatedAt: z.string(),
 });
 
 export type DeliveryView = z.infer<typeof DeliveryViewSchema>;

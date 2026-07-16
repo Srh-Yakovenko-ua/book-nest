@@ -7,7 +7,7 @@ import {
   ReadingStatusSchema,
 } from "./book-enums.js";
 import { BulkBookIdsSchema, DeliveryViewSchema } from "./books.js";
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX } from "./common.js";
+import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import { notInFutureDate } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
@@ -68,7 +68,7 @@ export type DeliveryInTransitSort = z.infer<typeof DeliveryInTransitSortSchema>;
 
 export const DeliveryInTransitQuerySchema = z.object({
   filter: DeliveryInTransitFilterSchema.default("all"),
-  pageNumber: z.coerce.number().int().min(1).default(1),
+  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
   pageSize: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(10),
   search: z.string().trim().max(DELIVERY_SEARCH_MAX).optional(),
   service: DeliveryServiceSchema.optional(),
@@ -138,7 +138,7 @@ export const DeliveryHistoryQuerySchema = z.object({
   from: z.iso.date().optional(),
   hasTrackingNumber: QueryBooleanSchema.optional(),
   hasTrackingUrl: QueryBooleanSchema.optional(),
-  pageNumber: z.coerce.number().int().min(1).default(1),
+  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
   pageSize: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(10),
   priceMax: z.coerce.number().nonnegative().optional(),
   priceMin: z.coerce.number().nonnegative().optional(),
@@ -151,6 +151,12 @@ export const DeliveryHistoryQuerySchema = z.object({
 });
 
 export type DeliveryHistoryQuery = z.infer<typeof DeliveryHistoryQuerySchema>;
+
+export const DeliveryHistorySummaryQuerySchema = z.object({
+  includeCancelled: QueryBooleanWithDefaultSchema,
+});
+
+export type DeliveryHistorySummaryQuery = z.infer<typeof DeliveryHistorySummaryQuerySchema>;
 
 export const DeliveryHistorySummaryViewSchema = z.object({
   activeCount: z.number().int().nonnegative(),

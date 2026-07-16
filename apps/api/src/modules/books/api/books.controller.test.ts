@@ -883,6 +883,8 @@ describe("POST /api/books", () => {
       contact: null,
       expectedReturnDate: null,
       loanDate: "2026-02-01",
+      loanType: "borrowed_from_someone",
+      loanUiStatus: "no_return_date",
       note: null,
       personName: "Olha",
       remindToReturn: false,
@@ -1801,6 +1803,16 @@ describe("GET /api/books", () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ page: 1, pagesCount: 2, pageSize: 2, totalCount: 3 });
     expect(res.body.items).toHaveLength(2);
+  });
+
+  it("returns 400 for a pageNumber that would overflow the int4 skip bound", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/books?pageNumber=99999999999")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(400);
   });
 });
 

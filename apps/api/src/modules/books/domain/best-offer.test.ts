@@ -42,7 +42,7 @@ describe("computeBestOffer", () => {
     expect(computeBestOffer({ links })).toEqual({ currency: "USD", price: 19.99 });
   });
 
-  it("picks the cheapest priced link", () => {
+  it("picks the cheapest priced link within a single currency", () => {
     const links = [
       makeLink({ currency: "UAH", id: "l-1", price: new Prisma.Decimal("349.00") }),
       makeLink({ currency: "UAH", id: "l-2", price: new Prisma.Decimal("199.50") }),
@@ -52,11 +52,29 @@ describe("computeBestOffer", () => {
     expect(computeBestOffer({ links })).toEqual({ currency: "UAH", price: 199.5 });
   });
 
-  it("breaks a price tie by the earliest createdAt regardless of input order", () => {
+  it("never compares prices across currencies: prefers the default currency over a cheaper foreign price", () => {
+    const links = [
+      makeLink({ currency: "USD", id: "l-usd", price: new Prisma.Decimal("5.00") }),
+      makeLink({ currency: "UAH", id: "l-uah", price: new Prisma.Decimal("200.00") }),
+    ];
+
+    expect(computeBestOffer({ links })).toEqual({ currency: "UAH", price: 200 });
+  });
+
+  it("falls back to the next available currency when the default currency is absent", () => {
+    const links = [
+      makeLink({ currency: "USD", id: "l-usd", price: new Prisma.Decimal("50.00") }),
+      makeLink({ currency: "EUR", id: "l-eur", price: new Prisma.Decimal("100.00") }),
+    ];
+
+    expect(computeBestOffer({ links })).toEqual({ currency: "EUR", price: 100 });
+  });
+
+  it("breaks a within-currency price tie by the earliest createdAt regardless of input order", () => {
     const links = [
       makeLink({
         createdAt: new Date("2026-02-03T10:00:00.000Z"),
-        currency: "EUR",
+        currency: "UAH",
         id: "l-late",
         price: new Prisma.Decimal("100.00"),
       }),
@@ -71,7 +89,7 @@ describe("computeBestOffer", () => {
     expect(computeBestOffer({ links })).toEqual({ currency: "UAH", price: 100 });
   });
 
-  it("falls back to UAH when the cheapest priced link has no currency", () => {
+  it("treats a priced link with no currency as UAH", () => {
     const links = [makeLink({ currency: null, id: "l-1", price: new Prisma.Decimal("42.00") })];
 
     expect(computeBestOffer({ links })).toEqual({ currency: "UAH", price: 42 });

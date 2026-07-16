@@ -499,6 +499,22 @@ describe("GET /api/delivery/history/summary", () => {
     expect(res.status).toBe(200);
     expect(res.body.totalByCurrency).toEqual([{ currency: "UAH", total: 700 }]);
   });
+
+  it("folds cancelled priced orders into the total when includeCancelled is true", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedHistorySet(user);
+
+    const res = await getJson(
+      user.accessToken,
+      "/api/delivery/history/summary?includeCancelled=true",
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalByCurrency).toEqual([
+      { currency: "UAH", total: 150 },
+      { currency: "USD", total: 200 },
+    ]);
+  });
 });
 
 describe("GET /api/delivery/history", () => {
@@ -547,6 +563,44 @@ describe("GET /api/delivery/history", () => {
     expect(res.body.items[0].book.title).toBe("Cancelled Order");
   });
 
+  it("includes null-currency priced orders when filtering history by UAH", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedDelivery(user, "Explicit UAH", {
+      currency: "UAH",
+      orderDate: utcDay(-3),
+      ownershipStatus: "owned",
+      price: 100,
+      receivedAt: new Date(),
+      status: "received",
+      storeName: "Yakaboo",
+    });
+    await seedDelivery(user, "Null Currency Priced", {
+      currency: null,
+      orderDate: utcDay(-4),
+      ownershipStatus: "owned",
+      price: 200,
+      receivedAt: new Date(),
+      status: "received",
+      storeName: "Book Depot",
+    });
+    await seedDelivery(user, "USD Order", {
+      currency: "USD",
+      orderDate: utcDay(-5),
+      ownershipStatus: "owned",
+      price: 300,
+      receivedAt: new Date(),
+      status: "received",
+      storeName: "Amazon",
+    });
+
+    const res = await getJson(user.accessToken, "/api/delivery/history?currency=UAH");
+
+    expect(res.status).toBe(200);
+    expect(
+      res.body.items.map((item: { book: { title: string } }) => item.book.title).sort(),
+    ).toEqual(["Explicit UAH", "Null Currency Priced"]);
+  });
+
   it("carries the cancel reason on a cancelled history item", async () => {
     const user = await context.registerVerifyAndLogin();
     await seedDelivery(user, "Cancelled With Reason", {
@@ -579,6 +633,23 @@ describe("GET /api/delivery/history", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.items[0].delivery.cancelReason).toBeNull();
+  });
+
+  it("exposes the delivery updatedAt timestamp on a history item", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedDelivery(user, "Received Order", {
+      orderDate: utcDay(-3),
+      ownershipStatus: "owned",
+      receivedAt: new Date(),
+      status: "received",
+      storeName: "Yakaboo",
+    });
+
+    const res = await getJson(user.accessToken, "/api/delivery/history?tab=received");
+
+    expect(res.status).toBe(200);
+    expect(typeof res.body.items[0].delivery.updatedAt).toBe("string");
+    expect(Number.isNaN(Date.parse(res.body.items[0].delivery.updatedAt))).toBe(false);
   });
 
   it("matches a search term that appears only in the cancel reason", async () => {

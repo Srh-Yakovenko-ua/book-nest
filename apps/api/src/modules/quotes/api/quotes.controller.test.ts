@@ -297,6 +297,20 @@ describe("GET /api/quotes search", () => {
     expect(texts(byPage.body)).toEqual(["Fear is the mind-killer"]);
   });
 
+  it("searches by a co-author who is not the first author", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const collab = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }, { name: "Brian Herbert Jr" }],
+      title: "Dune Messiah",
+    });
+    await addQuote(accessToken, collab, { text: "The past is prologue" });
+
+    const res = await listQuotes(accessToken, "?q=brian");
+
+    expect(res.status).toBe(200);
+    expect(texts(res.body)).toEqual(["The past is prologue"]);
+  });
+
   it("does not error on a numeric search larger than any storable page", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await seedSearchable(accessToken);

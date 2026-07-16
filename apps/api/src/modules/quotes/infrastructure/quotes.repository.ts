@@ -7,6 +7,7 @@ import type { QuoteBookCount, QuotesSummaryData } from "../domain/quotes-summary
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { buildAuthorSearchConditions } from "../../books/index.js";
 
 const quoteWithBook = {
   include: { book: { include: { coverMedia: true } } },
@@ -241,7 +242,7 @@ function buildQuoteSearchConditions(search: string): Prisma.QuoteWhereInput[] {
     { chapter: contains },
     { book: { title: contains } },
     { book: { originalTitle: contains } },
-    { book: { firstAuthorName: contains } },
+    ...buildAuthorSearchConditions(search).map((condition) => ({ book: condition })),
   ];
 
   const pageMatch = Number.parseInt(search, 10);
