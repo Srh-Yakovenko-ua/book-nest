@@ -17,9 +17,7 @@ import { ReadingProgressBlock } from "./reading-progress-block";
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
 function historyRequests() {
-  return fetchMock.mock.calls.filter(([input]) =>
-    String(input).includes("/reading-history"),
-  );
+  return fetchMock.mock.calls.filter(([input]) => String(input).includes("/reading-history"));
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -482,9 +480,7 @@ describe("ReadingProgressBlock", () => {
     await screen.findByText("250 із 320 сторінок");
     await userEvent.click(screen.getByRole("radio", { name: "14 днів" }));
 
-    await waitFor(() =>
-      expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument());
     expect(screen.getByText("250 із 320 сторінок")).toBeInTheDocument();
 
     resolveSecond?.(jsonResponse(makeReadingHistoryView({ summary: readingSummary() })));

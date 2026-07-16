@@ -143,7 +143,15 @@ describe("ReadingHistoryTab", () => {
       makeReadingHistoryView({
         days: [
           makeReadingDay({
-            events: [{ date: "2026-03-12", id: "e1", page: 225, pagesRead: 10, recordedAt: "2026-03-12T10:20:00.000Z" }],
+            events: [
+              {
+                date: "2026-03-12",
+                id: "e1",
+                page: 225,
+                pagesRead: 10,
+                recordedAt: "2026-03-12T10:20:00.000Z",
+              },
+            ],
           }),
         ],
       }),
@@ -337,7 +345,10 @@ describe("ReadingHistoryTab", () => {
   it("resets the page and closes accordions when the book changes", async () => {
     respondByParams((params) => paginatedView(params, 3));
 
-    const otherBook = makeBookView({ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", readingStatus: "reading" });
+    const otherBook = makeBookView({
+      id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      readingStatus: "reading",
+    });
     const { rerender } = renderWithProviders(
       <ReadingHistoryTab book={book} isActive key={book.id} />,
     );

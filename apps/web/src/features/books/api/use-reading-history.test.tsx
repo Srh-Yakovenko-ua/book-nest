@@ -109,10 +109,9 @@ describe("useReadingHistory", () => {
     const client = createTestQueryClient();
     const wrapper = makeWrapper(client);
 
-    const { result: historyResult } = renderHook(
-      () => useReadingHistory(BOOK_ID, DEFAULT_PARAMS),
-      { wrapper },
-    );
+    const { result: historyResult } = renderHook(() => useReadingHistory(BOOK_ID, DEFAULT_PARAMS), {
+      wrapper,
+    });
     await waitFor(() => expect(historyResult.current.isSuccess).toBe(true));
 
     const requestsBefore = historyRequests().length;

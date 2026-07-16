@@ -14,29 +14,29 @@
 
 ## Query support
 
-| Capability | Status | Actual name/behavior | Notes |
-|---|---|---|---|
-| activityRange 7d/14d/all | | | |
-| page | | | |
-| limit | | | |
-| sort asc/desc | | | |
+| Capability               | Status | Actual name/behavior | Notes |
+| ------------------------ | ------ | -------------------- | ----- |
+| activityRange 7d/14d/all |        |                      |       |
+| page                     |        |                      |       |
+| limit                    |        |                      |       |
+| sort asc/desc            |        |                      |       |
 
 ## Response support
 
-| Section / field group | Status | Actual mapping | Critical? |
-|---|---|---|---|
-| summary current progress | | | yes |
-| status dates | | | yes |
-| reading period | | | yes |
-| active stats | | | yes |
-| best/last activity | | | yes |
-| forecast | | | no/conditional |
-| completeness | | | yes for legacy state |
-| activity summary | | | yes |
-| chart points with zero days | | | yes |
-| grouped history days | | | yes |
-| events | | | yes |
-| server pagination | | | yes |
+| Section / field group       | Status | Actual mapping | Critical?            |
+| --------------------------- | ------ | -------------- | -------------------- |
+| summary current progress    |        |                | yes                  |
+| status dates                |        |                | yes                  |
+| reading period              |        |                | yes                  |
+| active stats                |        |                | yes                  |
+| best/last activity          |        |                | yes                  |
+| forecast                    |        |                | no/conditional       |
+| completeness                |        |                | yes for legacy state |
+| activity summary            |        |                | yes                  |
+| chart points with zero days |        |                | yes                  |
+| grouped history days        |        |                | yes                  |
+| events                      |        |                | yes                  |
+| server pagination           |        |                | yes                  |
 
 ## Mutation invalidation readiness
 

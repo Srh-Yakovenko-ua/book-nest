@@ -50,7 +50,9 @@ export function makeReadingActivity(
   };
 }
 
-export function makeReadingDay(overrides: Partial<ReadingHistoryDayView> = {}): ReadingHistoryDayView {
+export function makeReadingDay(
+  overrides: Partial<ReadingHistoryDayView> = {},
+): ReadingHistoryDayView {
   return {
     date: "2026-03-12",
     events: [makeReadingEvent()],

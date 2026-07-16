@@ -15,29 +15,29 @@
 
 ## Query support
 
-| Capability                | Status | Actual name/behavior                                   | Notes                                             |
-| ------------------------- | ------ | ------------------------------------------------------ | ------------------------------------------------- |
-| activityRange 7d/14d/all  | ✅     | `activityRange: "7d" \| "14d" \| "all"`, default `7d`  | Zod enum у `ReadingHistoryQuerySchema`            |
-| page                      | ✅     | `page`, `coerce.int().min(1)`, default `1`             |                                                   |
-| limit                     | ✅     | `limit`, `min(1).max(100)`, default `20`               | **`limit: 3` підтримується** (compact block)      |
-| sort asc/desc             | ✅     | `sort: "asc" \| "desc"`, default `desc`                | `history.days` уже відсортовані сервером          |
+| Capability               | Status | Actual name/behavior                                  | Notes                                        |
+| ------------------------ | ------ | ----------------------------------------------------- | -------------------------------------------- |
+| activityRange 7d/14d/all | ✅     | `activityRange: "7d" \| "14d" \| "all"`, default `7d` | Zod enum у `ReadingHistoryQuerySchema`       |
+| page                     | ✅     | `page`, `coerce.int().min(1)`, default `1`            |                                              |
+| limit                    | ✅     | `limit`, `min(1).max(100)`, default `20`              | **`limit: 3` підтримується** (compact block) |
+| sort asc/desc            | ✅     | `sort: "asc" \| "desc"`, default `desc`               | `history.days` уже відсортовані сервером     |
 
 ## Response support
 
-| Section / field group        | Status | Actual mapping                                                                 | Critical? |
-| ---------------------------- | ------ | ------------------------------------------------------------------------------ | --------- |
-| summary current progress     | ✅     | `summary.currentPage/pagesCount/progressPercent/pagesRemaining`               | yes       |
-| status dates                 | ✅     | `summary.startedAt/finishedAt/pausedAt/abandonedAt/lastProgressUpdateAt`       | yes       |
-| reading period               | ✅     | `summary.readingPeriod.{startDate,endDate,calendarDays}`                        | yes       |
-| active stats                 | ✅     | `summary.activeDaysCount/updatesCount/trackedPagesRead/averagePagesPerActiveDay` | yes     |
-| best/last activity           | ✅     | `summary.bestDay/lastActivity` (`ReadingDaySummaryView`, nullable)             | yes       |
-| forecast                     | ✅     | `summary.estimatedActiveDaysRemaining` (nullable)                              | conditional |
-| completeness                 | ✅     | `summary.historyCompleteness.{isComplete,untrackedPages}`                       | yes (legacy) |
-| activity summary             | ✅     | `activity.summary.{activeDaysCount,pagesRead,updatesCount,averagePagesPerActiveDay,bestDay}` | yes |
-| chart points with zero days  | ✅     | `activity.points[]` з `hasActivity` (нульові календарні дні присутні)          | yes       |
-| grouped history days         | ✅     | `history.days[]` (`date`, `pagesRead`, `updatesCount`, `startPage`, `finalPage`) | yes     |
-| events                       | ✅     | `history.days[].events[]` (`id`, `date`, `page`, `pagesRead`, `recordedAt`)    | yes       |
-| server pagination            | ✅     | `history.pagination.{page,limit,totalDays,totalPages,hasNextPage,hasPreviousPage}` — за day groups | yes |
+| Section / field group       | Status | Actual mapping                                                                                     | Critical?    |
+| --------------------------- | ------ | -------------------------------------------------------------------------------------------------- | ------------ |
+| summary current progress    | ✅     | `summary.currentPage/pagesCount/progressPercent/pagesRemaining`                                    | yes          |
+| status dates                | ✅     | `summary.startedAt/finishedAt/pausedAt/abandonedAt/lastProgressUpdateAt`                           | yes          |
+| reading period              | ✅     | `summary.readingPeriod.{startDate,endDate,calendarDays}`                                           | yes          |
+| active stats                | ✅     | `summary.activeDaysCount/updatesCount/trackedPagesRead/averagePagesPerActiveDay`                   | yes          |
+| best/last activity          | ✅     | `summary.bestDay/lastActivity` (`ReadingDaySummaryView`, nullable)                                 | yes          |
+| forecast                    | ✅     | `summary.estimatedActiveDaysRemaining` (nullable)                                                  | conditional  |
+| completeness                | ✅     | `summary.historyCompleteness.{isComplete,untrackedPages}`                                          | yes (legacy) |
+| activity summary            | ✅     | `activity.summary.{activeDaysCount,pagesRead,updatesCount,averagePagesPerActiveDay,bestDay}`       | yes          |
+| chart points with zero days | ✅     | `activity.points[]` з `hasActivity` (нульові календарні дні присутні)                              | yes          |
+| grouped history days        | ✅     | `history.days[]` (`date`, `pagesRead`, `updatesCount`, `startPage`, `finalPage`)                   | yes          |
+| events                      | ✅     | `history.days[].events[]` (`id`, `date`, `page`, `pagesRead`, `recordedAt`)                        | yes          |
+| server pagination           | ✅     | `history.pagination.{page,limit,totalDays,totalPages,hasNextPage,hasPreviousPage}` — за day groups | yes          |
 
 ## Mutation invalidation readiness
 

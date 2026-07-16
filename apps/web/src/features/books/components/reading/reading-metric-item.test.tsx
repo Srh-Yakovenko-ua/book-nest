@@ -7,7 +7,9 @@ import { ReadingMetricItem } from "./reading-metric-item";
 
 describe("ReadingMetricItem", () => {
   it("renders the value with a secondary hint", () => {
-    renderWithProviders(<ReadingMetricItem hint="10 бер. 2026" value="84 стор. — найкращий день" />);
+    renderWithProviders(
+      <ReadingMetricItem hint="10 бер. 2026" value="84 стор. — найкращий день" />,
+    );
 
     expect(screen.getByText("84 стор. — найкращий день")).toBeInTheDocument();
     expect(screen.getByText("10 бер. 2026")).toBeInTheDocument();

@@ -30,9 +30,7 @@ describe("ReadingHistoryEvent", () => {
   });
 
   it.skip("hides the time when recordedAt is absent (unreachable: backend always sends recordedAt)", () => {
-    renderWithProviders(
-      <ReadingHistoryEvent event={makeReadingEvent({ recordedAt: "" })} />,
-    );
+    renderWithProviders(<ReadingHistoryEvent event={makeReadingEvent({ recordedAt: "" })} />);
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
