@@ -1191,6 +1191,46 @@ describe("PATCH /api/books/:id queue priority reason", () => {
     );
   });
 
+  it("clears the priority and reason detail fields when the book is removed from the queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { addToReadingQueue: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isInReadingQueue).toBe(false);
+    expect(res.body.queuePriority).toBeNull();
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("persists the reason detail fields when re-adding a non-queued book to the queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    expect(created.body.isInReadingQueue).toBe(false);
+
+    const res = await updateBook(accessToken, created.body.id, {
+      addToReadingQueue: true,
+      queuePriority: "high",
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isInReadingQueue).toBe(true);
+    expect(res.body.queuePriority).toBe("high");
+    expect(res.body.queuePriorityReason).toBe("book_club");
+    expect(res.body.queuePriorityTargetDate).toBe("2026-08-24");
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+  });
+
   it("keeps the queue position and order when the priority is toggled", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const first = await createBook(accessToken, {

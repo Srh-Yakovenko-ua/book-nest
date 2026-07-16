@@ -396,7 +396,9 @@ export class BookRelationsResolver {
         fields,
         input: detailsInput,
         resolvedPriority:
-          current.queuePriority === null ? null : QueuePrioritySchema.parse(current.queuePriority),
+          current.queuePosition === null || current.queuePriority === null
+            ? null
+            : QueuePrioritySchema.parse(current.queuePriority),
       });
     }
     return null;

@@ -1700,6 +1700,27 @@ describe("POST /api/books queue priority reason", () => {
     );
   });
 
+  it("returns 400 when a reason is set on a book that is not added to the reading queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      addToReadingQueue: false,
+      authors: [{ name: "Frank Herbert" }],
+      queuePriorityReason: "series_order",
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityReason",
+          message: QUEUE_PRIORITY_REASON_HIGH_ONLY_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
   it("accepts a legacy payload that sets only a normal queue priority", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
