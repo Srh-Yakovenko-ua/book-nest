@@ -19,6 +19,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
+  EventPositionScope,
   EventScalarRow,
   UpdateEventFields,
 } from "../infrastructure/timeline-event.repository.js";
@@ -228,9 +229,11 @@ export class TimelineEventService {
         targetTimelineId: target.id,
         tx,
       });
-      return this.timelineEventRepository.moveEvent(
-        { eventId, timelineId: target.id, timelineOrder },
-        tx,
+      return this.runOrderWrite(() =>
+        this.timelineEventRepository.moveEvent(
+          { eventId, timelineId: target.id, timelineOrder },
+          tx,
+        ),
       );
     });
 
@@ -278,12 +281,10 @@ export class TimelineEventService {
         tx,
       });
 
-      if (input.scope === "book") {
-        return this.timelineEventRepository.setBookOrder({ bookOrder: position, eventId }, tx);
-      }
-      return this.timelineEventRepository.setTimelineOrder(
-        { eventId, timelineOrder: position },
-        tx,
+      return this.runOrderWrite(() =>
+        input.scope === "book"
+          ? this.timelineEventRepository.setBookOrder({ bookOrder: position, eventId }, tx)
+          : this.timelineEventRepository.setTimelineOrder({ eventId, timelineOrder: position }, tx),
       );
     });
 
@@ -372,20 +373,17 @@ export class TimelineEventService {
     }
   }
 
-  private async neighborOrder({
+  private async reorderAnchorOrder({
     event,
     neighborId,
     scope,
     tx,
   }: {
     event: EventScalarRow;
-    neighborId: string | undefined;
+    neighborId: string;
     scope: TimelineReorderScope;
     tx: Prisma.TransactionClient;
-  }): Promise<Nullable<number>> {
-    if (neighborId === undefined) {
-      return null;
-    }
+  }): Promise<number> {
     if (neighborId === event.id) {
       throw new ValidationError("An event cannot be positioned relative to itself", {
         code: TIMELINE_ERROR_CODES.invalidNeighbor,
@@ -408,37 +406,6 @@ export class TimelineEventService {
     return scope === "book" ? neighbor.bookOrder : neighbor.timelineOrder;
   }
 
-  private async neighborOrderInTimeline({
-    movingId,
-    neighborId,
-    targetTimelineId,
-    tx,
-  }: {
-    movingId: string;
-    neighborId: string | undefined;
-    targetTimelineId: string;
-    tx: Prisma.TransactionClient;
-  }): Promise<Nullable<number>> {
-    if (neighborId === undefined) {
-      return null;
-    }
-    if (neighborId === movingId) {
-      throw new ValidationError("An event cannot be positioned relative to itself", {
-        code: TIMELINE_ERROR_CODES.invalidNeighbor,
-      });
-    }
-    const timelineOrder = await this.timelineEventRepository.findTimelineOrderInTimeline(
-      { eventId: neighborId, timelineId: targetTimelineId },
-      tx,
-    );
-    if (timelineOrder === null) {
-      throw new ValidationError("The neighbor event does not belong to the target timeline", {
-        code: TIMELINE_ERROR_CODES.invalidNeighbor,
-      });
-    }
-    return timelineOrder;
-  }
-
   private async requireBookContext(userId: string, bookId: string): Promise<BookReadingContext> {
     const context = await this.timelineRepository.findBookContext({ bookId, userId });
     if (context === null) {
@@ -459,7 +426,43 @@ export class TimelineEventService {
     return event;
   }
 
-  private async resolveReorderPosition({
+  private async resolveNeighborOrders({
+    afterEventId,
+    beforeEventId,
+    movingId,
+    resolveAnchorOrder,
+    scope,
+    tx,
+  }: {
+    afterEventId: string | undefined;
+    beforeEventId: string | undefined;
+    movingId: string;
+    resolveAnchorOrder: (neighborId: string) => Promise<number>;
+    scope: EventPositionScope;
+    tx: Prisma.TransactionClient;
+  }): Promise<{ after: Nullable<number>; before: Nullable<number> }> {
+    const afterOrder = afterEventId === undefined ? null : await resolveAnchorOrder(afterEventId);
+    const beforeOrder =
+      beforeEventId === undefined ? null : await resolveAnchorOrder(beforeEventId);
+
+    if (afterOrder !== null) {
+      const before = await this.timelineEventRepository.nextOrder(
+        { excludeEventId: movingId, order: afterOrder, scope },
+        tx,
+      );
+      return { after: afterOrder, before };
+    }
+    if (beforeOrder !== null) {
+      const after = await this.timelineEventRepository.prevOrder(
+        { excludeEventId: movingId, order: beforeOrder, scope },
+        tx,
+      );
+      return { after, before: beforeOrder };
+    }
+    return { after: null, before: null };
+  }
+
+  private resolveReorderPosition({
     afterEventId,
     beforeEventId,
     event,
@@ -472,28 +475,22 @@ export class TimelineEventService {
     scope: TimelineReorderScope;
     tx: Prisma.TransactionClient;
   }): Promise<number> {
-    const compute = async (): Promise<Nullable<number>> => {
-      const after = await this.neighborOrder({ event, neighborId: afterEventId, scope, tx });
-      const before = await this.neighborOrder({ event, neighborId: beforeEventId, scope, tx });
-      const result = computeSparsePosition({ after, before });
-      return result.ok ? result.position : null;
-    };
+    const positionScope: EventPositionScope =
+      scope === "book"
+        ? { bookId: event.bookId, kind: "book" }
+        : { kind: "timeline", timelineId: event.timelineId };
 
-    const first = await compute();
-    if (first !== null) {
-      return first;
-    }
-    if (scope === "book") {
-      await this.timelineEventRepository.rebalanceBookOrder(event.bookId, tx);
-    } else {
-      await this.timelineEventRepository.rebalanceTimelineOrder(event.timelineId, tx);
-    }
-    const second = await compute();
-    if (second !== null) {
-      return second;
-    }
-    throw new ConflictError("The event order changed, reload and retry", {
-      code: TIMELINE_ERROR_CODES.reorderConflict,
+    return this.resolveSparsePosition({
+      afterEventId,
+      beforeEventId,
+      movingId: event.id,
+      rebalance: () =>
+        scope === "book"
+          ? this.timelineEventRepository.rebalanceBookOrder(event.bookId, tx)
+          : this.timelineEventRepository.rebalanceTimelineOrder(event.timelineId, tx),
+      resolveAnchorOrder: (neighborId) => this.reorderAnchorOrder({ event, neighborId, scope, tx }),
+      scope: positionScope,
+      tx,
     });
   }
 
@@ -528,6 +525,50 @@ export class TimelineEventService {
     return resolvedByEventId;
   }
 
+  private async resolveSparsePosition({
+    afterEventId,
+    beforeEventId,
+    movingId,
+    rebalance,
+    resolveAnchorOrder,
+    scope,
+    tx,
+  }: {
+    afterEventId: string | undefined;
+    beforeEventId: string | undefined;
+    movingId: string;
+    rebalance: () => Promise<void>;
+    resolveAnchorOrder: (neighborId: string) => Promise<number>;
+    scope: EventPositionScope;
+    tx: Prisma.TransactionClient;
+  }): Promise<number> {
+    const compute = async (): Promise<Nullable<number>> => {
+      const neighbors = await this.resolveNeighborOrders({
+        afterEventId,
+        beforeEventId,
+        movingId,
+        resolveAnchorOrder,
+        scope,
+        tx,
+      });
+      const result = computeSparsePosition(neighbors);
+      return result.ok ? result.position : null;
+    };
+
+    const first = await compute();
+    if (first !== null) {
+      return first;
+    }
+    await rebalance();
+    const second = await compute();
+    if (second !== null) {
+      return second;
+    }
+    throw new ConflictError("The event order changed, reload and retry", {
+      code: TIMELINE_ERROR_CODES.reorderConflict,
+    });
+  }
+
   private async resolveTargetTimelineOrder({
     afterEventId,
     beforeEventId,
@@ -547,34 +588,15 @@ export class TimelineEventService {
       );
     }
 
-    const compute = async (): Promise<Nullable<number>> => {
-      const after = await this.neighborOrderInTimeline({
-        movingId,
-        neighborId: afterEventId,
-        targetTimelineId,
-        tx,
-      });
-      const before = await this.neighborOrderInTimeline({
-        movingId,
-        neighborId: beforeEventId,
-        targetTimelineId,
-        tx,
-      });
-      const result = computeSparsePosition({ after, before });
-      return result.ok ? result.position : null;
-    };
-
-    const first = await compute();
-    if (first !== null) {
-      return first;
-    }
-    await this.timelineEventRepository.rebalanceTimelineOrder(targetTimelineId, tx);
-    const second = await compute();
-    if (second !== null) {
-      return second;
-    }
-    throw new ConflictError("The event order changed, reload and retry", {
-      code: TIMELINE_ERROR_CODES.reorderConflict,
+    return this.resolveSparsePosition({
+      afterEventId,
+      beforeEventId,
+      movingId,
+      rebalance: () => this.timelineEventRepository.rebalanceTimelineOrder(targetTimelineId, tx),
+      resolveAnchorOrder: (neighborId) =>
+        this.timelineAnchorOrder({ movingId, neighborId, targetTimelineId, tx }),
+      scope: { kind: "timeline", timelineId: targetTimelineId },
+      tx,
     });
   }
 
@@ -603,5 +625,46 @@ export class TimelineEventService {
       });
     }
     return defaultTimeline.id;
+  }
+
+  private async runOrderWrite<Result>(write: () => Promise<Result>): Promise<Result> {
+    try {
+      return await write();
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictError("The event order changed, reload and retry", {
+          code: TIMELINE_ERROR_CODES.reorderConflict,
+        });
+      }
+      throw error;
+    }
+  }
+
+  private async timelineAnchorOrder({
+    movingId,
+    neighborId,
+    targetTimelineId,
+    tx,
+  }: {
+    movingId: string;
+    neighborId: string;
+    targetTimelineId: string;
+    tx: Prisma.TransactionClient;
+  }): Promise<number> {
+    if (neighborId === movingId) {
+      throw new ValidationError("An event cannot be positioned relative to itself", {
+        code: TIMELINE_ERROR_CODES.invalidNeighbor,
+      });
+    }
+    const timelineOrder = await this.timelineEventRepository.findTimelineOrderInTimeline(
+      { eventId: neighborId, timelineId: targetTimelineId },
+      tx,
+    );
+    if (timelineOrder === null) {
+      throw new ValidationError("The neighbor event does not belong to the target timeline", {
+        code: TIMELINE_ERROR_CODES.invalidNeighbor,
+      });
+    }
+    return timelineOrder;
   }
 }

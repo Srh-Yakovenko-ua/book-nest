@@ -329,6 +329,162 @@ describe("move between timelines", () => {
     expect(detail.body.threadStatus).toBe("open");
     expect(detail.body.relations.outgoing).toHaveLength(1);
   });
+
+  it("moves an event after an interior neighbor without a unique collision", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const targetLine = await authed("post", `/api/books/${bookId}/timelines`, accessToken).send({
+      name: "Future",
+    });
+    const first = await createTitledEvent(accessToken, bookId, "T1", {
+      timelineId: targetLine.body.id,
+    });
+    const second = await createTitledEvent(accessToken, bookId, "T2", {
+      timelineId: targetLine.body.id,
+    });
+    await createTitledEvent(accessToken, bookId, "T3", { timelineId: targetLine.body.id });
+    const mover = await createTitledEvent(accessToken, bookId, "mover");
+
+    const move = await authed(
+      "post",
+      `/api/timeline-events/${mover.body.id}/move`,
+      accessToken,
+    ).send({ afterEventId: first.body.id, targetTimelineId: targetLine.body.id });
+    expect(move.status).toBe(HttpStatus.OK);
+    expect(move.body.timelineId).toBe(targetLine.body.id);
+    expect(move.body.bookOrder).toBe(mover.body.bookOrder);
+    expect(move.body.timelineOrder).toBeGreaterThan(first.body.timelineOrder);
+    expect(move.body.timelineOrder).toBeLessThan(second.body.timelineOrder);
+
+    const list = await listEvents(
+      accessToken,
+      bookId,
+      `?sort=timeline_order&pageSize=100&timelineId=${targetLine.body.id}`,
+    );
+    expect(list.body.items.map((event: { title: string }) => event.title)).toEqual([
+      "T1",
+      "mover",
+      "T2",
+      "T3",
+    ]);
+  });
+});
+
+describe("interior neighbor reorder", () => {
+  it("places an event after an interior neighbor without a unique collision", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const first = await createTitledEvent(accessToken, bookId, "A");
+    const second = await createTitledEvent(accessToken, bookId, "B");
+    const third = await createTitledEvent(accessToken, bookId, "C");
+
+    const reorder = await authed(
+      "post",
+      `/api/timeline-events/${third.body.id}/reorder`,
+      accessToken,
+    ).send({ afterEventId: first.body.id, expectedUpdatedAt: third.body.updatedAt, scope: "book" });
+    expect(reorder.status).toBe(HttpStatus.OK);
+    expect(reorder.body.bookOrder).toBeGreaterThan(first.body.bookOrder);
+    expect(reorder.body.bookOrder).toBeLessThan(second.body.bookOrder);
+
+    const list = await listEvents(accessToken, bookId, "?sort=book_order&pageSize=100");
+    expect(list.body.items.map((event: { title: string }) => event.title)).toEqual(["A", "C", "B"]);
+    const orders = list.body.items.map((event: { bookOrder: number }) => event.bookOrder);
+    expect(new Set(orders).size).toBe(orders.length);
+  });
+
+  it("places an event before an interior neighbor without a unique collision", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const first = await createTitledEvent(accessToken, bookId, "A");
+    const second = await createTitledEvent(accessToken, bookId, "B");
+    const third = await createTitledEvent(accessToken, bookId, "C");
+
+    const reorder = await authed(
+      "post",
+      `/api/timeline-events/${first.body.id}/reorder`,
+      accessToken,
+    ).send({
+      beforeEventId: third.body.id,
+      expectedUpdatedAt: first.body.updatedAt,
+      scope: "book",
+    });
+    expect(reorder.status).toBe(HttpStatus.OK);
+    expect(reorder.body.bookOrder).toBeGreaterThan(second.body.bookOrder);
+    expect(reorder.body.bookOrder).toBeLessThan(third.body.bookOrder);
+
+    const list = await listEvents(accessToken, bookId, "?sort=book_order&pageSize=100");
+    expect(list.body.items.map((event: { title: string }) => event.title)).toEqual(["B", "A", "C"]);
+  });
+
+  it("resolves non-adjacent both-anchor reorder deterministically as place-after", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const first = await createTitledEvent(accessToken, bookId, "A");
+    const second = await createTitledEvent(accessToken, bookId, "B");
+    const third = await createTitledEvent(accessToken, bookId, "C");
+    const fourth = await createTitledEvent(accessToken, bookId, "D");
+
+    const reorder = await authed(
+      "post",
+      `/api/timeline-events/${fourth.body.id}/reorder`,
+      accessToken,
+    ).send({
+      afterEventId: first.body.id,
+      beforeEventId: third.body.id,
+      expectedUpdatedAt: fourth.body.updatedAt,
+      scope: "book",
+    });
+    expect(reorder.status).toBe(HttpStatus.OK);
+    expect(reorder.body.bookOrder).toBeGreaterThan(first.body.bookOrder);
+    expect(reorder.body.bookOrder).toBeLessThan(second.body.bookOrder);
+
+    const list = await listEvents(accessToken, bookId, "?sort=book_order&pageSize=100");
+    expect(list.body.items.map((event: { title: string }) => event.title)).toEqual([
+      "A",
+      "D",
+      "B",
+      "C",
+    ]);
+  });
+
+  it("triggers a rebalance when the integer gap is exhausted and still lands correctly", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const anchor = await createTitledEvent(accessToken, bookId, "anchor");
+    const tail = await createTitledEvent(accessToken, bookId, "tail");
+
+    for (let index = 0; index < 15; index += 1) {
+      const created = await createTitledEvent(accessToken, bookId, `filler-${index}`);
+      const reorder = await authed(
+        "post",
+        `/api/timeline-events/${created.body.id}/reorder`,
+        accessToken,
+      ).send({
+        afterEventId: anchor.body.id,
+        expectedUpdatedAt: created.body.updatedAt,
+        scope: "book",
+      });
+      expect(reorder.status).toBe(HttpStatus.OK);
+      expect(reorder.body.bookOrder).toBeGreaterThan(anchor.body.bookOrder);
+    }
+
+    const all = await listEvents(accessToken, bookId, "?sort=book_order&pageSize=100");
+    const orders = all.body.items.map((event: { bookOrder: number }) => event.bookOrder);
+    expect(new Set(orders).size).toBe(orders.length);
+    expect(all.body.items[0].id).toBe(anchor.body.id);
+    expect(all.body.items[all.body.items.length - 1].id).toBe(tail.body.id);
+  });
+});
+
+describe("pagination bounds", () => {
+  it("rejects an out-of-range page number instead of overflowing the offset", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const res = await listEvents(accessToken, bookId, "?pageNumber=99999999999");
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(res.status).not.toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+  });
 });
 
 describe("event relations", () => {

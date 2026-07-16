@@ -243,7 +243,7 @@ export const TimelineEventsQuerySchema = z.object({
   importance: multiEnumQuery(TimelineImportanceSchema),
   important: QueryBooleanSchema.optional(),
   keyOnly: QueryBooleanSchema.optional(),
-  pageNumber: z.coerce.number().int().min(1).default(1),
+  pageNumber: z.coerce.number().int().min(1).max(TIMELINE_EVENT_PAGE_MAX).default(1),
   pageSize: z.coerce
     .number()
     .int()

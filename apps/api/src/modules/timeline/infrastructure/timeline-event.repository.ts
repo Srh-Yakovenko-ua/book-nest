@@ -78,6 +78,10 @@ export type EventNeighborRow = {
   timelineOrder: number;
 };
 
+export type EventPositionScope =
+  | { bookId: string; kind: "book" }
+  | { kind: "timeline"; timelineId: string };
+
 export type EventScalarRow = Prisma.BookTimelineEventGetPayload<Record<string, never>>;
 
 export type EventsFilter = {
@@ -161,6 +165,7 @@ export class TimelineEventRepository {
       this.prisma.bookTimelineEvent.groupBy({
         _count: { _all: true },
         by: ["chapter"],
+        orderBy: { chapter: "asc" },
         where: { bookId },
       }),
     ]);
@@ -365,6 +370,62 @@ export class TimelineEventRepository {
       where: { id: eventId },
       ...eventViewArgs,
     });
+  }
+
+  async nextOrder(
+    {
+      excludeEventId,
+      order,
+      scope,
+    }: { excludeEventId: string; order: number; scope: EventPositionScope },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<number>> {
+    if (scope.kind === "book") {
+      const row = await client.bookTimelineEvent.findFirst({
+        orderBy: { bookOrder: "asc" },
+        select: { bookOrder: true },
+        where: { bookId: scope.bookId, bookOrder: { gt: order }, id: { not: excludeEventId } },
+      });
+      return row?.bookOrder ?? null;
+    }
+    const row = await client.bookTimelineEvent.findFirst({
+      orderBy: { timelineOrder: "asc" },
+      select: { timelineOrder: true },
+      where: {
+        id: { not: excludeEventId },
+        timelineId: scope.timelineId,
+        timelineOrder: { gt: order },
+      },
+    });
+    return row?.timelineOrder ?? null;
+  }
+
+  async prevOrder(
+    {
+      excludeEventId,
+      order,
+      scope,
+    }: { excludeEventId: string; order: number; scope: EventPositionScope },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<number>> {
+    if (scope.kind === "book") {
+      const row = await client.bookTimelineEvent.findFirst({
+        orderBy: { bookOrder: "desc" },
+        select: { bookOrder: true },
+        where: { bookId: scope.bookId, bookOrder: { lt: order }, id: { not: excludeEventId } },
+      });
+      return row?.bookOrder ?? null;
+    }
+    const row = await client.bookTimelineEvent.findFirst({
+      orderBy: { timelineOrder: "desc" },
+      select: { timelineOrder: true },
+      where: {
+        id: { not: excludeEventId },
+        timelineId: scope.timelineId,
+        timelineOrder: { lt: order },
+      },
+    });
+    return row?.timelineOrder ?? null;
   }
 
   async rebalanceBookOrder(
