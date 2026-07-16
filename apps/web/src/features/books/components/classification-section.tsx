@@ -133,7 +133,7 @@ export function ClassificationSection({
               return (
                 <Select onValueChange={field.onChange} value={value}>
                   <SelectTrigger
-                    className="h-10 w-full"
+                    className="h-10 w-full data-[size=default]:h-10"
                     id="book-age-category"
                     isClearable={value !== "not_specified"}
                     onClear={() => field.onChange("not_specified")}
@@ -163,7 +163,7 @@ export function ClassificationSection({
               return (
                 <Select onValueChange={field.onChange} value={value}>
                   <SelectTrigger
-                    className="h-10 w-full"
+                    className="h-10 w-full data-[size=default]:h-10"
                     id="book-language"
                     isClearable={value !== "ukrainian"}
                     onClear={() => field.onChange("ukrainian")}
