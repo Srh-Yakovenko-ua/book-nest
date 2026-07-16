@@ -16,6 +16,7 @@ import {
   PageTabsPanel,
   pageTabsTriggerClass,
 } from "@/components/page-tabs";
+import { SeriesNotesBlock } from "@/features/notes";
 import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
@@ -119,8 +120,9 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
           <PageTabsPanel className="flex flex-col gap-5" value="books">
             <SeriesBooksTab details={details} onAddBook={openAddBook} />
           </PageTabsPanel>
-          <PageTabsPanel value="about">
+          <PageTabsPanel className="flex flex-col gap-6" value="about">
             <SeriesDetailsAbout details={details} />
+            <SeriesNotesBlock details={details} />
           </PageTabsPanel>
         </TabsPrimitive.Root>
 

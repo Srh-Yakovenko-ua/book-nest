@@ -114,7 +114,7 @@ export const booksControllerCreateBodyReadingStatusDefault = `not_started`;
 export const booksControllerCreateBodySeriesIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerCreateBodyTagsMax = 12;
+export const booksControllerCreateBodyTagsMax = 15;
 
 export const BooksControllerCreateBody = zod.object({
   addToReadingQueue: zod.boolean().default(booksControllerCreateBodyAddToReadingQueueDefault),
@@ -669,6 +669,7 @@ export const BooksControllerListResponse = zod.object({
       illustrator: zod.string().nullable(),
       isbn: zod.string().nullable(),
       isFavorite: zod.boolean(),
+      isFavoriteDedication: zod.boolean(),
       isInReadingQueue: zod.boolean(),
       language: zod.enum([
         "ukrainian",
@@ -980,6 +981,7 @@ export const BooksControllerOverviewResponse = zod.object({
       illustrator: zod.string().nullable(),
       isbn: zod.string().nullable(),
       isFavorite: zod.boolean(),
+      isFavoriteDedication: zod.boolean(),
       isInReadingQueue: zod.boolean(),
       language: zod.enum([
         "ukrainian",
@@ -1338,6 +1340,7 @@ export const BooksControllerWishlistResponse = zod.object({
       illustrator: zod.string().nullable(),
       isbn: zod.string().nullable(),
       isFavorite: zod.boolean(),
+      isFavoriteDedication: zod.boolean(),
       isInReadingQueue: zod.boolean(),
       language: zod.enum([
         "ukrainian",
@@ -1514,6 +1517,367 @@ export const BooksControllerWishlistResponse = zod.object({
 });
 
 /**
+ * @summary List and filter the current user books that carry a dedication
+ */
+export const booksControllerDedicationsQueryFilterDefault = `all`;
+export const booksControllerDedicationsQueryGenreMax = 64;
+
+export const booksControllerDedicationsQueryPageNumberDefault = 1;
+export const booksControllerDedicationsQueryPageNumberMax = 9007199254740991;
+
+export const booksControllerDedicationsQueryPageSizeDefault = 12;
+export const booksControllerDedicationsQueryPageSizeMax = 100;
+
+export const booksControllerDedicationsQueryQMax = 200;
+
+export const booksControllerDedicationsQuerySortDefault = `newest`;
+
+export const BooksControllerDedicationsQueryParams = zod.object({
+  filter: zod
+    .enum(["all", "favorites", "without_favorites", "finished", "unfinished"])
+    .default(booksControllerDedicationsQueryFilterDefault),
+  genre: zod.string().min(1).max(booksControllerDedicationsQueryGenreMax).optional(),
+  pageNumber: zod
+    .number()
+    .min(1)
+    .max(booksControllerDedicationsQueryPageNumberMax)
+    .default(booksControllerDedicationsQueryPageNumberDefault),
+  pageSize: zod
+    .number()
+    .min(1)
+    .max(booksControllerDedicationsQueryPageSizeMax)
+    .default(booksControllerDedicationsQueryPageSizeDefault),
+  q: zod.string().max(booksControllerDedicationsQueryQMax).optional(),
+  sort: zod
+    .enum([
+      "newest",
+      "recently_updated",
+      "book_title_asc",
+      "author_asc",
+      "favorites_first",
+      "publication_year_desc",
+    ])
+    .default(booksControllerDedicationsQuerySortDefault),
+});
+
+export const booksControllerDedicationsResponseItemsItemQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerDedicationsResponsePageMin = -9007199254740991;
+export const booksControllerDedicationsResponsePageMax = 9007199254740991;
+
+export const booksControllerDedicationsResponsePagesCountMin = -9007199254740991;
+export const booksControllerDedicationsResponsePagesCountMax = 9007199254740991;
+
+export const booksControllerDedicationsResponsePageSizeMin = -9007199254740991;
+export const booksControllerDedicationsResponsePageSizeMax = 9007199254740991;
+
+export const booksControllerDedicationsResponseTotalCountMin = -9007199254740991;
+export const booksControllerDedicationsResponseTotalCountMax = 9007199254740991;
+
+export const BooksControllerDedicationsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      ageCategory: zod.enum([
+        "not_specified",
+        "no_restrictions",
+        "6_plus",
+        "12_plus",
+        "14_plus",
+        "16_plus",
+        "18_plus",
+      ]),
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      bookType: zod.enum(["solo", "series_part"]),
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullish(),
+      createdAt: zod.string(),
+      dedication: zod.string().nullable(),
+      delivery: zod.object({
+        active: zod
+          .object({
+            cancelledAt: zod.string().nullable(),
+            cancelReason: zod.string().nullable(),
+            createdAt: zod.string(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
+            deliveryService: zod.string().nullable(),
+            expectedDeliveryDate: zod.string().nullable(),
+            id: zod.string(),
+            note: zod.string().nullable(),
+            orderDate: zod.string().nullable(),
+            orderNumber: zod.string().nullable(),
+            price: zod.number().nullable(),
+            receivedAt: zod.string().nullable(),
+            status: zod.enum([
+              "ordered",
+              "in_transit",
+              "ready_for_pickup",
+              "received",
+              "cancelled",
+            ]),
+            storeName: zod.string().nullable(),
+            trackingNumber: zod.string().nullable(),
+            trackingUrl: zod.string().nullable(),
+          })
+          .nullable(),
+        latest: zod
+          .object({
+            cancelledAt: zod.string().nullable(),
+            cancelReason: zod.string().nullable(),
+            createdAt: zod.string(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
+            deliveryService: zod.string().nullable(),
+            expectedDeliveryDate: zod.string().nullable(),
+            id: zod.string(),
+            note: zod.string().nullable(),
+            orderDate: zod.string().nullable(),
+            orderNumber: zod.string().nullable(),
+            price: zod.number().nullable(),
+            receivedAt: zod.string().nullable(),
+            status: zod.enum([
+              "ordered",
+              "in_transit",
+              "ready_for_pickup",
+              "received",
+              "cancelled",
+            ]),
+            storeName: zod.string().nullable(),
+            trackingNumber: zod.string().nullable(),
+            trackingUrl: zod.string().nullable(),
+          })
+          .nullable(),
+        totalCount: zod.number(),
+      }),
+      description: zod.string().nullable(),
+      favoriteAddedAt: zod.string().nullable(),
+      formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
+      genres: zod.array(zod.string()),
+      hasUnreadEarlierSeriesParts: zod.boolean().nullable(),
+      id: zod.string(),
+      illustrator: zod.string().nullable(),
+      isbn: zod.string().nullable(),
+      isFavorite: zod.boolean(),
+      isFavoriteDedication: zod.boolean(),
+      isInReadingQueue: zod.boolean(),
+      language: zod.enum([
+        "ukrainian",
+        "english",
+        "polish",
+        "german",
+        "french",
+        "spanish",
+        "other",
+      ]),
+      lists: zod.array(
+        zod.object({
+          description: zod.string().nullable(),
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      loanInfo: zod
+        .object({
+          contact: zod.string().nullable(),
+          expectedReturnDate: zod.string().nullable(),
+          loanDate: zod.string().nullable(),
+          note: zod.string().nullable(),
+          personName: zod.string(),
+          remindToReturn: zod.boolean(),
+        })
+        .nullable(),
+      originalTitle: zod.string().nullable(),
+      ownershipStatus: zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+      pagesCount: zod.number().nullable(),
+      partNumber: zod.number().nullable(),
+      publicationYear: zod.number().nullable(),
+      publisher: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+        })
+        .nullable(),
+      purchaseInfo: zod
+        .object({
+          currency: zod
+            .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+            .nullable(),
+          expectedPrice: zod.number().nullable(),
+          note: zod.string().nullable(),
+          purchasedAt: zod.string().nullable(),
+          storeName: zod.string().nullable(),
+          storeUrl: zod.string().nullable(),
+        })
+        .nullable(),
+      queuePriority: zod
+        .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+        .nullable(),
+      queuePriorityReason: zod
+        .union([
+          zod.literal("book_club"),
+          zod.literal("buddy_read"),
+          zod.literal("event_or_deadline"),
+          zod.literal("return_due"),
+          zod.literal("series_order"),
+          zod.literal("reading_goal"),
+          zod.literal("anticipated_release"),
+          zod.literal("other"),
+          zod.literal(null),
+        ])
+        .nullable(),
+      queuePriorityReasonCustomText: zod.string().nullable(),
+      queuePriorityTargetDate: zod.iso
+        .date()
+        .regex(booksControllerDedicationsResponseItemsItemQueuePriorityTargetDateRegExp)
+        .nullable(),
+      readingProgress: zod
+        .object({
+          abandonedAt: zod.string().nullable(),
+          currentPage: zod.number().nullable(),
+          finishedAt: zod.string().nullable(),
+          impression: zod.string().nullable(),
+          lastProgressUpdateAt: zod.string().nullable(),
+          note: zod.string().nullable(),
+          pausedAt: zod.string().nullable(),
+          rating: zod.number().nullable(),
+          startedAt: zod.string().nullable(),
+        })
+        .nullable(),
+      readingStatus: zod.enum([
+        "not_started",
+        "want_to_read",
+        "reading",
+        "paused",
+        "finished",
+        "dnf",
+        "rereading",
+      ]),
+      series: zod
+        .object({
+          authors: zod.array(
+            zod.object({
+              id: zod.string(),
+              name: zod.string(),
+            }),
+          ),
+          booksInSeries: zod.number(),
+          createdAt: zod.string(),
+          description: zod.string().nullable(),
+          finishedInSeries: zod.number(),
+          genres: zod.array(zod.string()),
+          id: zod.string(),
+          lastActivityAt: zod.string(),
+          name: zod.string(),
+          nextBook: zod
+            .object({
+              id: zod.string(),
+              partNumber: zod.number().nullable(),
+              title: zod.string(),
+            })
+            .nullable(),
+          readingInSeries: zod.number(),
+          status: zod.enum(["completed", "ongoing", "unknown"]),
+          totalBooks: zod.number().nullable(),
+        })
+        .nullable(),
+      tags: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      title: zod.string(),
+      translator: zod.string().nullable(),
+      updatedAt: zod.string(),
+      userId: zod.string(),
+    }),
+  ),
+  page: zod
+    .number()
+    .min(booksControllerDedicationsResponsePageMin)
+    .max(booksControllerDedicationsResponsePageMax),
+  pagesCount: zod
+    .number()
+    .min(booksControllerDedicationsResponsePagesCountMin)
+    .max(booksControllerDedicationsResponsePagesCountMax),
+  pageSize: zod
+    .number()
+    .min(booksControllerDedicationsResponsePageSizeMin)
+    .max(booksControllerDedicationsResponsePageSizeMax),
+  totalCount: zod
+    .number()
+    .min(booksControllerDedicationsResponseTotalCountMin)
+    .max(booksControllerDedicationsResponseTotalCountMax),
+});
+
+/**
+ * @summary Get the current user dedications summary
+ */
+export const booksControllerDedicationsSummaryResponseAvailableGenresItemMax = 64;
+
+export const BooksControllerDedicationsSummaryResponse = zod.object({
+  availableGenres: zod.array(
+    zod.string().min(1).max(booksControllerDedicationsSummaryResponseAvailableGenresItemMax),
+  ),
+  favoriteCount: zod.number(),
+  finishedCount: zod.number(),
+  topAuthor: zod
+    .object({
+      count: zod.number(),
+      name: zod.string(),
+    })
+    .nullable(),
+  topGenre: zod
+    .object({
+      count: zod.number(),
+      genre: zod.string(),
+    })
+    .nullable(),
+  totalCount: zod.number(),
+  unfinishedCount: zod.number(),
+});
+
+/**
  * @summary Get a book by id
  */
 export const BooksControllerGetByIdParams = zod.object({
@@ -1616,6 +1980,7 @@ export const BooksControllerGetByIdResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -1850,7 +2215,7 @@ export const booksControllerUpdateBodyReadingProgressStartedAtRegExp = new RegEx
 export const booksControllerUpdateBodySeriesIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerUpdateBodyTagsMax = 12;
+export const booksControllerUpdateBodyTagsMax = 15;
 
 export const BooksControllerUpdateBody = zod.object({
   addToReadingQueue: zod.boolean().optional(),
@@ -1923,6 +2288,7 @@ export const BooksControllerUpdateBody = zod.object({
   illustrator: zod.string().nullish(),
   isbn: zod.string().nullish(),
   isFavorite: zod.boolean().optional(),
+  isFavoriteDedication: zod.boolean().optional(),
   language: zod
     .enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"])
     .optional(),
@@ -2181,6 +2547,7 @@ export const BooksControllerUpdateResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -2606,6 +2973,7 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -2861,6 +3229,7 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -3096,6 +3465,7 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -3331,6 +3701,7 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -3567,6 +3938,7 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -3821,6 +4193,7 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -4079,6 +4452,7 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -4334,6 +4708,7 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -4588,6 +4963,7 @@ export const BookLoanControllerEditLoanResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -4823,6 +5199,7 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -5089,6 +5466,7 @@ export const BookDeliveryControllerCreateResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -5390,6 +5768,7 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -5634,6 +6013,7 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -5877,6 +6257,7 @@ export const BookDeliveryControllerCancelResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -6216,7 +6597,7 @@ export const bulkBooksControllerTagsBodyBookIdsItemRegExp = new RegExp(
 );
 export const bulkBooksControllerTagsBodyBookIdsMax = 100;
 
-export const bulkBooksControllerTagsBodyTagsMax = 12;
+export const bulkBooksControllerTagsBodyTagsMax = 15;
 
 export const BulkBooksControllerTagsBody = zod.object({
   bookIds: zod

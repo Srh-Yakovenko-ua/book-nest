@@ -24,6 +24,7 @@ import type {
   BookStoreLinkViewDto,
   BookStoreLinksViewDto,
   BookViewDto,
+  BooksControllerDedicationsParams,
   BooksControllerListParams,
   BooksControllerOverviewParams,
   BooksControllerPurchaseStoresParams,
@@ -40,6 +41,7 @@ import type {
   CreateBookStoreLinkInputDto,
   CreateDeliveryInputDto,
   CreateLoanInputDto,
+  DedicationsSummaryViewDto,
   DeliveryViewDto,
   FavoritesSummaryViewDto,
   LibraryOverviewViewDto,
@@ -1029,6 +1031,330 @@ export function useBooksControllerWishlist<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerWishlistQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type booksControllerDedicationsResponse200 = {
+  data: PaginatedBooksDto;
+  status: 200;
+};
+
+export type booksControllerDedicationsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerDedicationsResponseSuccess = booksControllerDedicationsResponse200 & {
+  headers: Headers;
+};
+export type booksControllerDedicationsResponseError = booksControllerDedicationsResponse401 & {
+  headers: Headers;
+};
+
+export type booksControllerDedicationsResponse =
+  | booksControllerDedicationsResponseSuccess
+  | booksControllerDedicationsResponseError;
+
+export const getBooksControllerDedicationsUrl = (params?: BooksControllerDedicationsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/dedications?${stringifiedParams}`
+    : `/api/books/dedications`;
+};
+
+/**
+ * @summary List and filter the current user books that carry a dedication
+ */
+export const booksControllerDedications = async (
+  params?: BooksControllerDedicationsParams,
+  options?: RequestInit,
+): Promise<booksControllerDedicationsResponse> => {
+  return customInstance<booksControllerDedicationsResponse>(
+    getBooksControllerDedicationsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBooksControllerDedicationsQueryKey = (
+  params?: BooksControllerDedicationsParams,
+) => {
+  return [`/api/books/dedications`, ...(params ? [params] : [])] as const;
+};
+
+export const getBooksControllerDedicationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerDedications>>,
+  TError = void,
+>(
+  params?: BooksControllerDedicationsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedications>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerDedicationsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerDedications>>> = ({
+    signal,
+  }) => booksControllerDedications(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerDedications>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerDedicationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerDedications>>
+>;
+export type BooksControllerDedicationsQueryError = void;
+
+export function useBooksControllerDedications<
+  TData = Awaited<ReturnType<typeof booksControllerDedications>>,
+  TError = void,
+>(
+  params: undefined | BooksControllerDedicationsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedications>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerDedications>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerDedications>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerDedications<
+  TData = Awaited<ReturnType<typeof booksControllerDedications>>,
+  TError = void,
+>(
+  params?: BooksControllerDedicationsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedications>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerDedications>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerDedications>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerDedications<
+  TData = Awaited<ReturnType<typeof booksControllerDedications>>,
+  TError = void,
+>(
+  params?: BooksControllerDedicationsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedications>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List and filter the current user books that carry a dedication
+ */
+
+export function useBooksControllerDedications<
+  TData = Awaited<ReturnType<typeof booksControllerDedications>>,
+  TError = void,
+>(
+  params?: BooksControllerDedicationsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedications>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerDedicationsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type booksControllerDedicationsSummaryResponse200 = {
+  data: DedicationsSummaryViewDto;
+  status: 200;
+};
+
+export type booksControllerDedicationsSummaryResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerDedicationsSummaryResponseSuccess =
+  booksControllerDedicationsSummaryResponse200 & {
+    headers: Headers;
+  };
+export type booksControllerDedicationsSummaryResponseError =
+  booksControllerDedicationsSummaryResponse401 & {
+    headers: Headers;
+  };
+
+export type booksControllerDedicationsSummaryResponse =
+  | booksControllerDedicationsSummaryResponseSuccess
+  | booksControllerDedicationsSummaryResponseError;
+
+export const getBooksControllerDedicationsSummaryUrl = () => {
+  return `/api/books/dedications/summary`;
+};
+
+/**
+ * @summary Get the current user dedications summary
+ */
+export const booksControllerDedicationsSummary = async (
+  options?: RequestInit,
+): Promise<booksControllerDedicationsSummaryResponse> => {
+  return customInstance<booksControllerDedicationsSummaryResponse>(
+    getBooksControllerDedicationsSummaryUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBooksControllerDedicationsSummaryQueryKey = () => {
+  return [`/api/books/dedications/summary`] as const;
+};
+
+export const getBooksControllerDedicationsSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsSummary>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedicationsSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerDedicationsSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerDedicationsSummary>>> = ({
+    signal,
+  }) => booksControllerDedicationsSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerDedicationsSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerDedicationsSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerDedicationsSummary>>
+>;
+export type BooksControllerDedicationsSummaryQueryError = void;
+
+export function useBooksControllerDedicationsSummary<
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsSummary>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedicationsSummary>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerDedicationsSummary>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerDedicationsSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerDedicationsSummary<
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedicationsSummary>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerDedicationsSummary>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerDedicationsSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerDedicationsSummary<
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedicationsSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the current user dedications summary
+ */
+
+export function useBooksControllerDedicationsSummary<
+  TData = Awaited<ReturnType<typeof booksControllerDedicationsSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerDedicationsSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerDedicationsSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

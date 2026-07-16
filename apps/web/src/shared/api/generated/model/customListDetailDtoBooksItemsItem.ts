@@ -48,6 +48,7 @@ export type CustomListDetailDtoBooksItemsItem = {
   /** @nullable */
   isbn: string | null;
   isFavorite: boolean;
+  isFavoriteDedication: boolean;
   isInReadingQueue: boolean;
   language: CustomListDetailDtoBooksItemsItemLanguage;
   lists: CustomListDetailDtoBooksItemsItemListsItem[];
