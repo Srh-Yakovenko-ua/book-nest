@@ -204,6 +204,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Оновлені порожні стани та сторінка 404",
     version: null,
   },
+  {
+    bodyEn:
+      "The book page now shows a reading-activity chart with key stats and a pace forecast, plus a full day-by-day history of your progress updates.",
+    bodyUk:
+      "Сторінка книги тепер показує графік активності читання з ключовою статистикою та прогнозом темпу, а також повну історію оновлень прогресу за днями.",
+    category: "feature",
+    publishedAt: "2026-07-16T00:00:00.000Z",
+    slug: "reading-progress-history",
+    titleEn: "Reading statistics and history",
+    titleUk: "Статистика та історія читання",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
