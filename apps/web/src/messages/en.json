@@ -2200,7 +2200,6 @@
       },
       "row": {
         "menu": "Book actions",
-        "view": "View book",
         "remove": "Remove from series",
         "progress": "p. {current} of {total}",
         "authorsUnknown": "Unknown author",
@@ -2217,10 +2216,7 @@
         "reading": "Reading {count}",
         "unread": "Not read {count}",
         "unavailable": "Progress not available yet",
-        "completed": "Series completed"
-      },
-      "next": {
-        "cta": "Go to book"
+        "completed": "Series read"
       },
       "stats": {
         "title": "Series statistics",

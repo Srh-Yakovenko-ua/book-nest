@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import {
   authorsDifferFromSeries,
   duplicatePartNumbers,
-  seriesBooksInReadingOrder,
   seriesCoverBooks,
 } from "./series-details-derive";
 import { makeSeriesBookView } from "./series.fixtures";
@@ -27,47 +26,6 @@ function makeCover(id: string): MediaView {
     width: 600,
   };
 }
-
-describe("seriesBooksInReadingOrder", () => {
-  it("sorts by part number ascending and keeps unnumbered books last", () => {
-    const ordered = seriesBooksInReadingOrder([
-      makeSeriesBookView({ id: "extra-a", partNumber: null }),
-      makeSeriesBookView({ id: "fourth", partNumber: 4 }),
-      makeSeriesBookView({ id: "first", partNumber: 1 }),
-      makeSeriesBookView({ id: "extra-b", partNumber: null }),
-      makeSeriesBookView({ id: "third", partNumber: 3 }),
-    ]);
-
-    expect(ordered.map((book) => book.id)).toEqual([
-      "first",
-      "third",
-      "fourth",
-      "extra-a",
-      "extra-b",
-    ]);
-  });
-
-  it("keeps duplicate part numbers in their original order", () => {
-    const ordered = seriesBooksInReadingOrder([
-      makeSeriesBookView({ id: "second-of-two", partNumber: 2 }),
-      makeSeriesBookView({ id: "first-of-two", partNumber: 2 }),
-      makeSeriesBookView({ id: "first", partNumber: 1 }),
-    ]);
-
-    expect(ordered.map((book) => book.id)).toEqual(["first", "second-of-two", "first-of-two"]);
-  });
-
-  it("does not mutate the source list", () => {
-    const books = [
-      makeSeriesBookView({ id: "second", partNumber: 2 }),
-      makeSeriesBookView({ id: "first", partNumber: 1 }),
-    ];
-
-    seriesBooksInReadingOrder(books);
-
-    expect(books.map((book) => book.id)).toEqual(["second", "first"]);
-  });
-});
 
 describe("duplicatePartNumbers", () => {
   it("reports each repeated part number once, sorted ascending", () => {

@@ -16,6 +16,7 @@ import {
 import { StatusBadge } from "@/components/ui/status-badge";
 import { seriesStatuses } from "@/lib/book-status";
 
+import { seriesProgress } from "../model/series-derive";
 import { seriesCoverBooks } from "../model/series-details-derive";
 import { SeriesCoverFan } from "./series-cover-fan";
 
@@ -59,12 +60,24 @@ export function SeriesDetailsHero({
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge entry={{ ...statusBase, label: tStatus(details.status) }} />
+              {seriesProgress(details).fullyRead ? (
+                <StatusBadge
+                  entry={{
+                    icon: "check-circle",
+                    label: t("progress.completed"),
+                    tone: "success",
+                    value: "series-read",
+                  }}
+                />
+              ) : null}
+            </div>
             <h1 className="font-heading text-2xl leading-tight font-semibold text-ink md:text-3xl">
               {details.name}
             </h1>
             <p className="text-base font-medium text-foreground/90">{authorsLine}</p>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <StatusBadge entry={{ ...statusBase, label: tStatus(details.status) }} />
               {hasCoverFan ? null : (
                 <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <UiIcon className="text-icon" name="book" size={15} />

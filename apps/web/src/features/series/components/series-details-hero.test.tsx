@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { MediaView, SeriesBookView } from "@app/shared";
+import type { MediaView, SeriesBookView, SeriesDetailsView, SeriesStatus } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -27,16 +27,37 @@ function makeCover(id: string): MediaView {
   };
 }
 
+function makeFinishedBooks(count: number): SeriesBookView[] {
+  return Array.from({ length: count }, (_, index) =>
+    makeSeriesBookView({
+      id: `finished-${index + 1}`,
+      partNumber: index + 1,
+      readingStatus: "finished",
+      title: `Книга ${index + 1}`,
+    }),
+  );
+}
+
 function renderHero(books: SeriesBookView[], totalBooks: null | number = 5) {
+  return renderHeroDetails({ books, booksInSeries: books.length, totalBooks });
+}
+
+function renderHeroDetails(overrides: Partial<SeriesDetailsView>) {
   return renderWithProviders(
     <SeriesDetailsHero
-      details={makeSeriesDetailsView({ books, booksInSeries: books.length, totalBooks })}
+      details={makeSeriesDetailsView(overrides)}
       onAddBook={vi.fn()}
       onDelete={vi.fn()}
       onEdit={vi.fn()}
     />,
   );
 }
+
+const statusCases: [SeriesStatus, string][] = [
+  ["completed", "Завершена"],
+  ["ongoing", "Ще виходить"],
+  ["unknown", "Невідомо"],
+];
 
 describe("SeriesDetailsHero", () => {
   it("renders the cover fan and moves the count onto it when books have covers", () => {
@@ -75,5 +96,64 @@ describe("SeriesDetailsHero", () => {
     expect(screen.queryByRole("img", { name: /Обкладинки книг/ })).not.toBeInTheDocument();
     expect(screen.getByText("1 з 5 додано")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Емпіреї" })).toBeInTheDocument();
+  });
+
+  it.each(statusCases)("renders the %s status badge above the title", (status, label) => {
+    renderHeroDetails({ status });
+
+    const badge = screen.getByText(label);
+    const title = screen.getByRole("heading", { level: 1, name: "Емпіреї" });
+
+    expect(badge).toBeInTheDocument();
+    expect(Boolean(badge.compareDocumentPosition(title) & badge.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
+  });
+
+  it("shows the fully-read badge when every book of a finished series is read", () => {
+    renderHeroDetails({
+      books: makeFinishedBooks(3),
+      booksInSeries: 3,
+      finishedInSeries: 3,
+      totalBooks: 3,
+    });
+
+    expect(screen.getByText("Серію прочитано")).toBeInTheDocument();
+  });
+
+  it("hides the fully-read badge while some books are unread", () => {
+    renderHeroDetails({ booksInSeries: 3, finishedInSeries: 1, totalBooks: 5 });
+
+    expect(screen.queryByText("Серію прочитано")).not.toBeInTheDocument();
+  });
+
+  it("shows the fully-read badge when totalBooks is unknown and every added book is read", () => {
+    renderHeroDetails({
+      books: makeFinishedBooks(3),
+      booksInSeries: 3,
+      finishedInSeries: 3,
+      totalBooks: null,
+    });
+
+    expect(screen.getByText("Серію прочитано")).toBeInTheDocument();
+  });
+
+  it("keeps the fully-read badge next to the status badge above the title", () => {
+    renderHeroDetails({
+      books: makeFinishedBooks(3),
+      booksInSeries: 3,
+      finishedInSeries: 3,
+      status: "completed",
+      totalBooks: 3,
+    });
+
+    const statusBadge = screen.getByText("Завершена");
+    const readBadge = screen.getByText("Серію прочитано");
+    const title = screen.getByRole("heading", { level: 1, name: "Емпіреї" });
+
+    expect(statusBadge.parentElement).toBe(readBadge.parentElement);
+    expect(
+      Boolean(readBadge.compareDocumentPosition(title) & readBadge.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
   });
 });

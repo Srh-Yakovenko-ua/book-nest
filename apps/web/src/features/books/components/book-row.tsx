@@ -13,9 +13,12 @@ import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-boo
 
 import { BookLoanNote } from "./book-loan-note";
 
+type BookRowCoverAspect = "portrait" | "stretch";
+
 type BookRowProps = {
   accent?: boolean;
   book: LibraryBook;
+  coverAspect?: BookRowCoverAspect;
   kebab?: React.ReactNode;
   leading?: React.ReactNode;
   linkComponent?: LibraryBookLinkComponent;
@@ -45,6 +48,7 @@ const toneClass: Record<BookRowTone, string> = {
 export function BookRow({
   accent,
   book,
+  coverAspect = "stretch",
   kebab,
   leading,
   linkComponent,
@@ -73,7 +77,11 @@ export function BookRow({
 
       {leading === undefined ? null : <div className="relative z-10 shrink-0">{leading}</div>}
 
-      <BookRowCover alt={book.cover?.alt ?? book.title} src={book.cover?.src} />
+      <BookRowCover
+        alt={book.cover?.alt ?? book.title}
+        aspect={coverAspect}
+        src={book.cover?.src}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col gap-3 @xl/book-row:flex-row @xl/book-row:flex-wrap @xl/book-row:items-start @xl/book-row:gap-x-4 @xl/book-row:gap-y-3 @3xl/book-row:flex-nowrap @3xl/book-row:items-stretch">
         <BookRowMeta book={book} LinkComp={LinkComp} note={note} />
@@ -139,17 +147,32 @@ function BookRowChips({ genres, tags }: { genres?: LibraryBook["genres"]; tags?:
   );
 }
 
-function BookRowCover({ alt, src }: { alt: string; src?: string }) {
+function BookRowCover({
+  alt,
+  aspect,
+  src,
+}: {
+  alt: string;
+  aspect: BookRowCoverAspect;
+  src?: string;
+}) {
+  const frameClass = aspect === "portrait" ? "aspect-[2/3] self-start" : "self-stretch";
+
   if (src === undefined) {
     return (
-      <div className="grid w-24 shrink-0 place-items-center self-stretch rounded-lg bg-accent text-accent-foreground/70">
+      <div
+        className={cn(
+          "grid w-24 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground/70",
+          frameClass,
+        )}
+      >
         <UiIcon name="book" size={32} />
       </div>
     );
   }
 
   return (
-    <div className="relative w-24 shrink-0 self-stretch overflow-hidden rounded-lg bg-accent">
+    <div className={cn("relative w-24 shrink-0 overflow-hidden rounded-lg bg-accent", frameClass)}>
       <Image alt={alt} className="object-cover" fill sizes="96px" src={src} unoptimized />
     </div>
   );

@@ -2,7 +2,6 @@
 
 import type { SeriesBookView, SeriesDetailsView } from "@app/shared";
 
-import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -10,13 +9,11 @@ import { toast } from "sonner";
 import type { LibraryBook } from "@/features/books/model/library-book";
 
 import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
@@ -87,6 +84,7 @@ export function SeriesBookCard({ book, isNextInOrder, seriesAuthors }: SeriesBoo
       <BookRow
         accent={routeState === "unread" && isReadingNow(book.readingStatus)}
         book={libraryBook}
+        coverAspect="portrait"
         kebab={
           <div className="flex items-center gap-0.5">
             <Button
@@ -124,13 +122,6 @@ export function SeriesBookCard({ book, isNextInOrder, seriesAuthors }: SeriesBoo
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem asChild>
-                  <Link href={libraryBook.href}>
-                    <UiIcon name="book" size={16} />
-                    {t("view")}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => setRemoveOpen(true)} variant="destructive">
                   <UiIcon name="x-circle" size={16} />
                   {t("remove")}
@@ -142,8 +133,7 @@ export function SeriesBookCard({ book, isNextInOrder, seriesAuthors }: SeriesBoo
         linkComponent={Link}
         note={
           <SeriesBookNote
-            href={libraryBook.href}
-            isNextInOrder={isNextInOrder}
+            isInReadingQueue={book.isInReadingQueue}
             ownership={libraryBook.ownership}
             partNumber={book.partNumber}
             progress={progress}
@@ -167,42 +157,33 @@ export function SeriesBookCard({ book, isNextInOrder, seriesAuthors }: SeriesBoo
 }
 
 function SeriesBookNote({
-  href,
-  isNextInOrder,
+  isInReadingQueue,
   ownership,
   partNumber,
   progress,
   status,
 }: {
-  href: string;
-  isNextInOrder: boolean;
+  isInReadingQueue: boolean;
   ownership?: LibraryBook["ownership"];
   partNumber: null | number;
   progress?: SeriesBookProgress;
   status: LibraryBook["status"];
 }) {
   const t = useTranslations("series.details.row");
-  const tNext = useTranslations("series.details.next");
+  const tQueue = useTranslations("books.details.queue");
 
   return (
     <div className="flex flex-col items-start gap-1.5 pt-0.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        {isNextInOrder ? (
-          <Badge className="h-6 border-primary/40" variant="primary">
-            <UiIcon name="bookmark" size={12} />
-            {t("nextInOrder")}
-          </Badge>
-        ) : null}
-
         <StatusBadge entry={status} />
 
-        {ownership === undefined ? null : (
+        {ownership === undefined ? null : <StatusBadge entry={ownership} />}
+
+        {isInReadingQueue ? (
           <StatusBadge
-            className="border border-border bg-transparent font-medium text-muted-foreground"
-            entry={ownership}
-            tone="neutral"
+            entry={{ icon: "list", label: tQueue("inQueue"), tone: "info", value: "in_queue" }}
           />
-        )}
+        ) : null}
       </div>
 
       {progress === undefined ? null : (
@@ -221,15 +202,6 @@ function SeriesBookNote({
 
       {partNumber === null ? (
         <span className="text-xs text-muted-foreground">{t("partUnknown")}</span>
-      ) : null}
-
-      {isNextInOrder ? (
-        <Button asChild className="relative z-10 mt-0.5" size="sm">
-          <Link href={href}>
-            {tNext("cta")}
-            <ArrowRight aria-hidden size={16} />
-          </Link>
-        </Button>
       ) : null}
     </div>
   );
