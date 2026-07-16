@@ -24,6 +24,7 @@ import { MetricsModule } from "./modules/observability/metrics.module.js";
 import { ProfileModule } from "./modules/profile/profile.module.js";
 import { PublishersModule } from "./modules/publishers/publishers.module.js";
 import { ReadingQueueModule } from "./modules/reading-queue/index.js";
+import { SeriesOrderCheckModule } from "./modules/series-order-check/index.js";
 import { SeriesModule } from "./modules/series/series.module.js";
 import { TagsModule } from "./modules/tags/tags.module.js";
 
@@ -51,6 +52,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     MediaModule,
     DeliveryServicesModule,
     ReadingQueueModule,
+    SeriesOrderCheckModule,
     LoansModule,
     DeliveryModule,
     ChangelogModule,
