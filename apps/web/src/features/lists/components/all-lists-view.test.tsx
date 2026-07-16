@@ -33,7 +33,6 @@ function renderView(overrides: Partial<ViewProps> = {}) {
     onRetry: vi.fn(),
     sidebar: <div>SIDEBAR</div>,
     toolbar: <div>TOOLBAR</div>,
-    totalCount: 1,
     ...overrides,
   };
   return renderWithProviders(<AllListsView {...props} />);

@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import {
   bookOwnershipControllerMarkBought,
   bookOwnershipControllerMarkOwned,
+  bookOwnershipControllerRemoveFromWishlist,
   bookOwnershipControllerRemoveOwned,
   bookOwnershipControllerWantToBuy,
 } from "@/shared/api/generated/endpoints/books/books";
@@ -28,6 +29,16 @@ export function useMarkOwned() {
   return useMutation({
     mutationFn: async (id: string): Promise<BookView> =>
       BookViewSchema.parse(await bookOwnershipControllerMarkOwned(id)),
+    onSuccess: sync,
+  });
+}
+
+export function useRemoveFromWishlist() {
+  const sync = useBookMutationSync();
+
+  return useMutation({
+    mutationFn: async (id: string): Promise<BookView> =>
+      BookViewSchema.parse(await bookOwnershipControllerRemoveFromWishlist(id)),
     onSuccess: sync,
   });
 }

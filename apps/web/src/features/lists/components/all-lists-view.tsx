@@ -10,7 +10,6 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -32,7 +31,6 @@ type AllListsViewProps = {
   onRetry: () => void;
   sidebar: ReactNode;
   toolbar: ReactNode;
-  totalCount: number;
 };
 
 export function AllListsView({
@@ -49,7 +47,6 @@ export function AllListsView({
   onRetry,
   sidebar,
   toolbar,
-  totalCount,
 }: AllListsViewProps) {
   const t = useTranslations("lists.catalog");
   const showToolbar = !isError && (isPending || hasAnyLists);
@@ -62,9 +59,6 @@ export function AllListsView({
             <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
               {t("title")}
             </h1>
-            {isPending ? null : (
-              <Badge variant="secondary">{t("count", { count: totalCount })}</Badge>
-            )}
             <TitleLeaf />
           </div>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>

@@ -430,6 +430,15 @@ export const SeriesControllerGetByIdResponse = zod.object({
   totalBooks: zod.number().nullable(),
   books: zod.array(
     zod.object({
+      ageCategory: zod.enum([
+        "not_specified",
+        "no_restrictions",
+        "6_plus",
+        "12_plus",
+        "14_plus",
+        "16_plus",
+        "18_plus",
+      ]),
       authors: zod.array(
         zod.object({
           id: zod.string(),
@@ -455,8 +464,11 @@ export const SeriesControllerGetByIdResponse = zod.object({
         .nullish(),
       createdAt: zod.string(),
       currentPage: zod.number().nullable(),
+      formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
+      genres: zod.array(zod.string()),
       id: zod.string(),
       isFavorite: zod.boolean(),
+      isInReadingQueue: zod.boolean(),
       originalTitle: zod.string().nullable(),
       ownershipStatus: zod.enum([
         "none",
@@ -468,6 +480,7 @@ export const SeriesControllerGetByIdResponse = zod.object({
       ]),
       pagesCount: zod.number().nullable(),
       partNumber: zod.number().nullable(),
+      publicationYear: zod.number().nullable(),
       rating: zod.number().nullable(),
       readingStatus: zod.enum([
         "not_started",
@@ -478,7 +491,19 @@ export const SeriesControllerGetByIdResponse = zod.object({
         "dnf",
         "rereading",
       ]),
+      tags: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
       title: zod.string(),
+    }),
+  ),
+  publishers: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
     }),
   ),
   stats: zod.object({
@@ -574,3 +599,18 @@ export const SeriesControllerDeleteParams = zod.object({
 });
 
 export const SeriesControllerDeleteResponse = zod.void();
+
+/**
+ * @summary Enable or disable the series read-order check for a series
+ */
+export const SeriesOrderPreferenceControllerSetPreferenceParams = zod.object({
+  seriesId: zod.string().describe("The series id"),
+});
+
+export const SeriesOrderPreferenceControllerSetPreferenceBody = zod.object({
+  enabled: zod.boolean(),
+});
+
+export const SeriesOrderPreferenceControllerSetPreferenceResponse = zod.object({
+  enabled: zod.boolean(),
+});

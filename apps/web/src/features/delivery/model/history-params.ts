@@ -15,6 +15,7 @@ import {
 } from "@/shared/api/generated/model";
 
 export const DELIVERY_HISTORY_PAGE_SIZE = 24;
+export const DELIVERY_HISTORY_PANEL_ID = "delivery-history-results";
 export const DELIVERY_HISTORY_TAB_DEFAULT = DeliveryControllerHistoryListTab.all;
 export const DELIVERY_HISTORY_SORT_DEFAULT = DeliveryControllerHistoryListSort.newest_orders;
 
