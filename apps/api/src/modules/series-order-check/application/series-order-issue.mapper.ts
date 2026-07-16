@@ -3,6 +3,8 @@ import type {
   Nullable,
   ReadingStatus,
   SeriesOrderBookView,
+  SeriesOrderFixPreviewView,
+  SeriesOrderFixStrategy,
   SeriesOrderIssueView,
   SeriesOrderPositionView,
   SeriesOrderRelatedProblem,
@@ -14,6 +16,7 @@ import {
   type SeriesOrderDetectedIssue,
   type SeriesOrderDetectionBook,
 } from "../domain/series-order-detection.js";
+import { type FixPlan } from "../domain/series-order-fix-plan.js";
 
 const CURRENT_READING_STATUSES: ReadonlySet<ReadingStatus> = new Set<ReadingStatus>([
   "reading",
@@ -21,6 +24,34 @@ const CURRENT_READING_STATUSES: ReadonlySet<ReadingStatus> = new Set<ReadingStat
 ]);
 
 const READING_EFFECTIVE_POSITION = 0;
+
+export function toSeriesOrderFixPreviewView({
+  fingerprint,
+  plan,
+  queueVersion,
+  series,
+  strategy,
+}: {
+  fingerprint: string;
+  plan: FixPlan;
+  queueVersion: string;
+  series: { id: string; title: string };
+  strategy: SeriesOrderFixStrategy;
+}): SeriesOrderFixPreviewView {
+  return {
+    addedBooksCount: plan.addedBookIds.length,
+    after: plan.after,
+    before: plan.before,
+    changes: plan.changes,
+    fingerprint,
+    movedBooksCount: plan.movedBookIds.length,
+    queueVersion,
+    series,
+    shiftedUnrelatedBooksCount: plan.shiftedUnrelatedBooksCount,
+    strategy,
+    warnings: plan.warnings,
+  };
+}
 
 export function toSeriesOrderIssueView({
   coverByBookId,

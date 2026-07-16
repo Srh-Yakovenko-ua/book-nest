@@ -1,3 +1,5 @@
+import type { Nullable } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -19,6 +21,13 @@ const relevantSeriesBookSelect = {
   seriesId: true,
   title: true,
 } satisfies Prisma.BookSelect;
+
+export type FullQueueEntry = {
+  bookId: string;
+  queuePosition: number;
+  seriesId: Nullable<string>;
+  title: string;
+};
 
 export type QueueSignatureEntry = {
   id: string;
@@ -51,6 +60,30 @@ export class SeriesOrderCheckRepository {
       where: { userId },
     });
     return rows.map((row) => row.fingerprint);
+  }
+
+  async loadFullQueue(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<FullQueueEntry[]> {
+    const rows = await client.book.findMany({
+      orderBy: { queuePosition: "asc" },
+      select: { id: true, queuePosition: true, seriesId: true, title: true },
+      where: { queuePosition: { not: null }, userId },
+    });
+
+    return rows.flatMap((row) =>
+      row.queuePosition === null
+        ? []
+        : [
+            {
+              bookId: row.id,
+              queuePosition: row.queuePosition,
+              seriesId: row.seriesId,
+              title: row.title,
+            },
+          ],
+    );
   }
 
   async loadQueueSignature(

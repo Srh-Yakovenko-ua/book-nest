@@ -153,3 +153,11 @@ export type SeriesOrderFixInput = z.infer<typeof SeriesOrderFixInputSchema>;
 
 export const SeriesOrderCheckPreferenceInputSchema = z.object({ enabled: z.boolean() });
 export type SeriesOrderCheckPreferenceInput = z.infer<typeof SeriesOrderCheckPreferenceInputSchema>;
+
+export const SERIES_ORDER_ERROR_CODES = {
+  ALREADY_IN_QUEUE: "ALREADY_IN_QUEUE",
+  INVALID_FIX_STRATEGY: "INVALID_FIX_STRATEGY",
+  ISSUE_STALE: "ISSUE_STALE",
+  QUEUE_LIMIT_REACHED: "QUEUE_LIMIT_REACHED",
+  QUEUE_STALE: "QUEUE_STALE",
+} as const;
