@@ -29,6 +29,7 @@ import { ReadingQueueModule } from "./modules/reading-queue/index.js";
 import { SeriesOrderCheckModule } from "./modules/series-order-check/index.js";
 import { SeriesModule } from "./modules/series/series.module.js";
 import { TagsModule } from "./modules/tags/tags.module.js";
+import { TimelineModule } from "./modules/timeline/timeline.module.js";
 
 const GLOBAL_THROTTLE_TTL_SECONDS = 60;
 const GLOBAL_THROTTLE_LIMIT = 120;
@@ -60,6 +61,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     ChangelogModule,
     QuotesModule,
     NotesModule,
+    TimelineModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

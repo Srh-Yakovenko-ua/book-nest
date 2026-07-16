@@ -246,6 +246,8 @@ model Book {
   storeLinks                    BookStoreLink[]
   quotes                        Quote[]
   notes                         Note[]
+  timelines                     BookTimeline[]
+  timelineEvents                BookTimelineEvent[]
 
   @@unique([seriesId, partNumber])
   @@index([userId])
@@ -659,4 +661,72 @@ model Quote {
   @@index([bookId])
   @@index([userId])
   @@map("quotes")
+}
+
+model BookTimeline {
+  id          String              @id @default(uuid()) @db.Uuid
+  bookId      String              @map("book_id") @db.Uuid
+  name        String
+  description String?
+  colorKey    String?             @map("color_key")
+  position    Int
+  isDefault   Boolean             @default(false) @map("is_default")
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  book        Book                @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  events      BookTimelineEvent[]
+
+  @@index([bookId])
+  @@map("book_timelines")
+}
+
+model BookTimelineEvent {
+  id                String                      @id @default(uuid()) @db.Uuid
+  bookId            String                      @map("book_id") @db.Uuid
+  timelineId        String                      @map("timeline_id") @db.Uuid
+  title             String
+  summary           String?
+  description       String?
+  chapter           String?
+  pageNumber        Int?                        @map("page_number")
+  location          String?
+  storyTime         String?                     @map("story_time")
+  eventType         String                      @default("main") @map("event_type")
+  importance        String                      @default("medium")
+  importanceRank    Int                         @default(1) @map("importance_rank")
+  personalNote      String?                     @map("personal_note")
+  threadStatus      String?                     @map("thread_status")
+  resolvedByEventId String?                     @map("resolved_by_event_id") @db.Uuid
+  bookOrder         Int                         @map("book_order")
+  timelineOrder     Int                         @map("timeline_order")
+  createdAt         DateTime                    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime                    @updatedAt @map("updated_at") @db.Timestamptz
+  book              Book                        @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  timeline          BookTimeline                @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  resolvedBy        BookTimelineEvent?          @relation("EventResolution", fields: [resolvedByEventId], references: [id], onDelete: SetNull)
+  resolves          BookTimelineEvent[]         @relation("EventResolution")
+  outgoingRelations BookTimelineEventRelation[] @relation("RelationSource")
+  incomingRelations BookTimelineEventRelation[] @relation("RelationTarget")
+
+  @@unique([bookId, bookOrder])
+  @@unique([timelineId, timelineOrder])
+  @@index([bookId])
+  @@index([timelineId])
+  @@index([resolvedByEventId])
+  @@index([bookId, importanceRank])
+  @@map("book_timeline_events")
+}
+
+model BookTimelineEventRelation {
+  id            String            @id @default(uuid()) @db.Uuid
+  sourceEventId String            @map("source_event_id") @db.Uuid
+  targetEventId String            @map("target_event_id") @db.Uuid
+  relationType  String            @map("relation_type")
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  sourceEvent   BookTimelineEvent @relation("RelationSource", fields: [sourceEventId], references: [id], onDelete: Cascade)
+  targetEvent   BookTimelineEvent @relation("RelationTarget", fields: [targetEventId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceEventId, targetEventId, relationType])
+  @@index([targetEventId])
+  @@map("book_timeline_event_relations")
 }
