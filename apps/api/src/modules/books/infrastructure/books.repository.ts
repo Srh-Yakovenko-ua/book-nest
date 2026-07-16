@@ -490,6 +490,14 @@ export class BooksRepository {
     return this.prisma.book.deleteMany({ where: { id, userId } }).then((result) => result.count);
   }
 
+  async existsOwned({ bookId, userId }: { bookId: string; userId: string }): Promise<boolean> {
+    const book = await this.prisma.book.findFirst({
+      select: { id: true },
+      where: { id: bookId, userId },
+    });
+    return book !== null;
+  }
+
   async favoritesSummary({
     finishedStatuses,
     readingStatuses,
