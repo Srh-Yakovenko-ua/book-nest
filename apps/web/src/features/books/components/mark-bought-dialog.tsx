@@ -255,7 +255,10 @@ function MarkBoughtForm({ book, onDone }: { book: BookView; onDone: () => void }
                 render={({ field }) => (
                   <div className="w-full sm:w-28">
                     <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="h-10 w-full" id="buy-currency">
+                      <SelectTrigger
+                        className="h-10 w-full data-[size=default]:h-10"
+                        id="buy-currency"
+                      >
                         <SelectValue placeholder={tDialog("currencyPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>

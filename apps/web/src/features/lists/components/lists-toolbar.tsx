@@ -72,7 +72,7 @@ export function ListsToolbar({
         <Select onValueChange={(next) => onSortChange(next as ListSort)} value={sort}>
           <SelectTrigger
             aria-label={t("sort.label")}
-            className="h-10 w-full"
+            className="h-10 w-full data-[size=default]:h-10"
             clearLabel={tCommon("clear")}
             isClearable={sort !== LIST_SORT_DEFAULT}
             onClear={() => onSortChange(LIST_SORT_DEFAULT)}

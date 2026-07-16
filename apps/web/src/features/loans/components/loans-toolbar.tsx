@@ -98,7 +98,7 @@ function ToolbarSelect<TValue extends string>({
       <Select onValueChange={(next) => onChange(next as TValue)} value={value}>
         <SelectTrigger
           aria-label={label}
-          className="h-10 w-full"
+          className="h-10 w-full data-[size=default]:h-10"
           clearLabel={clearLabel}
           isClearable={clearable}
           onClear={onClear}
