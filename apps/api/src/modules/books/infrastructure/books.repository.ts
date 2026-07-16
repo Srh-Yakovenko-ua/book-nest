@@ -49,6 +49,11 @@ export const withRelations = {
   tags: { include: { tag: true } },
 } satisfies Prisma.BookInclude;
 
+export const wishlistWithRelations = {
+  ...withRelations,
+  storeLinks: { orderBy: { createdAt: "asc" } },
+} satisfies Prisma.BookInclude;
+
 const readingSnapshotSelect = {
   pagesCount: true,
   readingProgress: {
@@ -204,6 +209,10 @@ export type UpdateLoanInfoData = Partial<CreateLoanInfoData>;
 export type UpdatePurchaseInfoData = Partial<CreatePurchaseInfoData>;
 
 export type UpdateReadingProgressData = Partial<CreateReadingProgressData>;
+
+export type WishlistBookRow = Prisma.BookGetPayload<{
+  include: typeof wishlistWithRelations;
+}>;
 
 type BlockDelegate<TCreate, TUpdate> = {
   deleteMany: (args: { where: { bookId: string } }) => Promise<{ count: number }>;
@@ -670,6 +679,21 @@ export class BooksRepository {
       orderBy: { createdAt: "desc" },
       take,
       where: buildLibraryWhere({ ownershipStatuses, userId }),
+    });
+  }
+
+  listWishlistBooks({
+    client,
+    userId,
+  }: {
+    client?: Prisma.TransactionClient;
+    userId: string;
+  }): Promise<WishlistBookRow[]> {
+    const db = client ?? this.prisma;
+    return db.book.findMany({
+      include: wishlistWithRelations,
+      orderBy: LIBRARY_ORDER_BY.created_desc,
+      where: { ownershipStatus: "want_to_buy", userId },
     });
   }
 

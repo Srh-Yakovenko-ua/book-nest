@@ -4,6 +4,7 @@ import type {
   LibraryOverviewView,
   Paginator,
   RecentPurchaseStores,
+  WishlistView,
 } from "@app/shared";
 
 import {
@@ -49,6 +50,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BooksService } from "../application/books.service.js";
+import { WishlistService } from "../application/wishlist.service.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
 import { LibraryOverviewQueryDto } from "./input-dto/library-overview-query.input-dto.js";
@@ -58,16 +60,22 @@ import { BookViewDto } from "./view-dto/book.view-dto.js";
 import { FavoritesSummaryViewDto } from "./view-dto/favorites-summary.view-dto.js";
 import { LibraryOverviewViewDto } from "./view-dto/library-overview.view-dto.js";
 import { PaginatedBooksDto } from "./view-dto/paginated-books.view-dto.js";
+import { WishlistViewDto } from "./view-dto/wishlist.view-dto.js";
 
 const CREATE_BOOK_TTL_SECONDS = 60;
 const CREATE_BOOK_LIMIT = 30;
 const UPDATE_BOOK_TTL_SECONDS = 60;
 const UPDATE_BOOK_LIMIT = 60;
+const WISHLIST_TTL_SECONDS = 60;
+const WISHLIST_LIMIT = 120;
 
 @ApiTags("books")
 @Controller("api/books")
 export class BooksController {
-  constructor(private readonly booksService: BooksService) {}
+  constructor(
+    private readonly booksService: BooksService,
+    private readonly wishlistService: WishlistService,
+  ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBearerAuth()
@@ -150,6 +158,20 @@ export class BooksController {
   @UseGuards(JwtAccessGuard)
   favoritesSummary(@CurrentUser() user: AuthenticatedUser): Promise<FavoritesSummaryView> {
     return this.booksService.favoritesSummary(user.id);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: "The current user books-to-buy wishlist with a per-currency summary",
+    type: WishlistViewDto,
+  })
+  @ApiOperation({ summary: "Get the current user books-to-buy wishlist" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("wishlist")
+  @Throttle({ default: { limit: WISHLIST_LIMIT, ttl: seconds(WISHLIST_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  wishlist(@CurrentUser() user: AuthenticatedUser): Promise<WishlistView> {
+    return this.wishlistService.getWishlist({ userId: user.id });
   }
 
   @ApiBearerAuth()

@@ -32,6 +32,7 @@ import { BooksService } from "./application/books.service.js";
 import { BulkBooksService } from "./application/bulk-books.service.js";
 import { ListDetailsService } from "./application/list-details.service.js";
 import { ListMembershipService } from "./application/list-membership.service.js";
+import { WishlistService } from "./application/wishlist.service.js";
 import { BookDeliveriesRepository } from "./infrastructure/book-deliveries.repository.js";
 import { BookListsRepository } from "./infrastructure/book-lists.repository.js";
 import { BookStoreLinkRepository } from "./infrastructure/book-store-link.repository.js";
@@ -75,6 +76,7 @@ import { ListMembershipRepository } from "./infrastructure/list-membership.repos
     BookLoanService,
     BookDeliveryService,
     BookStoreLinkService,
+    WishlistService,
     BooksRepository,
     BookDeliveriesRepository,
     BookStoreLinkRepository,

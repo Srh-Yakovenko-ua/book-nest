@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { type Currency, CurrencySchema } from "./book-enums.js";
 import {
+  BookViewSchema,
   OwnershipPriceSchema,
   OwnershipStoreNameSchema,
   OwnershipStoreUrlSchema,
@@ -66,6 +67,38 @@ export const BookStoreLinksViewSchema = z.object({
 });
 
 export type BookStoreLinksView = z.infer<typeof BookStoreLinksViewSchema>;
+
+export const WishlistBookViewSchema = BookViewSchema.extend({
+  bestOffer: BestOfferViewSchema.nullable(),
+  storeLinks: z.array(BookStoreLinkViewSchema),
+});
+
+export type WishlistBookView = z.infer<typeof WishlistBookViewSchema>;
+
+export const WishlistCurrencyEstimateSchema = z.object({
+  average: z.number(),
+  best: z.number(),
+  booksCount: z.number(),
+  currency: CurrencySchema,
+  total: z.number(),
+});
+
+export type WishlistCurrencyEstimate = z.infer<typeof WishlistCurrencyEstimateSchema>;
+
+export const WishlistSummaryViewSchema = z.object({
+  booksCount: z.number(),
+  estimates: z.array(WishlistCurrencyEstimateSchema),
+  trackedStoresCount: z.number(),
+});
+
+export type WishlistSummaryView = z.infer<typeof WishlistSummaryViewSchema>;
+
+export const WishlistViewSchema = z.object({
+  books: z.array(WishlistBookViewSchema),
+  summary: WishlistSummaryViewSchema,
+});
+
+export type WishlistView = z.infer<typeof WishlistViewSchema>;
 
 export const STORE_LINK_ERROR_CODES = {
   BOOK_NOT_FOUND: "BOOK_NOT_FOUND",
