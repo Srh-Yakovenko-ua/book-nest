@@ -1,5 +1,6 @@
 import type { BookView, MarkBoughtInput, OwnershipStatus, WantToBuyInput } from "@app/shared";
 
+import { STORE_LINK_ERROR_CODES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { ConflictError } from "../../../core/exceptions/errors.js";
@@ -13,6 +14,8 @@ const MARK_OWNED_MESSAGE =
 const REMOVE_OWNED_MESSAGE = 'Book must have ownership status "owned" to remove ownership';
 const WANT_TO_BUY_MESSAGE = 'Book must have ownership status "none" to be marked as want to buy';
 const MARK_BOUGHT_MESSAGE = 'Book must have ownership status "want_to_buy" to be marked as bought';
+const REMOVE_FROM_WISHLIST_MESSAGE =
+  'Book must have ownership status "want_to_buy" to be removed from the wishlist';
 
 @Injectable()
 export class BookOwnershipService {
@@ -23,7 +26,11 @@ export class BookOwnershipService {
 
   async markBought(userId: string, bookId: string, input: MarkBoughtInput): Promise<BookView> {
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
-    this.assertOwnershipStatus(book, "want_to_buy", MARK_BOUGHT_MESSAGE);
+    if (book.ownershipStatus !== "want_to_buy") {
+      throw new ConflictError(MARK_BOUGHT_MESSAGE, {
+        code: STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST,
+      });
+    }
 
     const date = input.purchasedAt ?? this.todayIso();
     const patch = computeOwnershipChange({ date, fields: input, kind: "mark-bought" });
@@ -39,6 +46,26 @@ export class BookOwnershipService {
     }
 
     const patch = computeOwnershipChange({ kind: "mark-owned" });
+    await this.booksRepository.applyOwnershipChange(userId, bookId, patch);
+
+    return this.viewAssembler.loadView({ bookId, userId });
+  }
+
+  async removeFromWishlist({
+    bookId,
+    userId,
+  }: {
+    bookId: string;
+    userId: string;
+  }): Promise<BookView> {
+    const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
+    if (book.ownershipStatus !== "want_to_buy") {
+      throw new ConflictError(REMOVE_FROM_WISHLIST_MESSAGE, {
+        code: STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST,
+      });
+    }
+
+    const patch = computeOwnershipChange({ kind: "remove-from-wishlist" });
     await this.booksRepository.applyOwnershipChange(userId, bookId, patch);
 
     return this.viewAssembler.loadView({ bookId, userId });
