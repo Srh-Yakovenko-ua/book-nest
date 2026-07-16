@@ -23,6 +23,7 @@ import { MetricsMiddleware } from "./modules/observability/metrics.middleware.js
 import { MetricsModule } from "./modules/observability/metrics.module.js";
 import { ProfileModule } from "./modules/profile/profile.module.js";
 import { PublishersModule } from "./modules/publishers/publishers.module.js";
+import { QuotesModule } from "./modules/quotes/index.js";
 import { ReadingQueueModule } from "./modules/reading-queue/index.js";
 import { SeriesOrderCheckModule } from "./modules/series-order-check/index.js";
 import { SeriesModule } from "./modules/series/series.module.js";
@@ -56,6 +57,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     LoansModule,
     DeliveryModule,
     ChangelogModule,
+    QuotesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

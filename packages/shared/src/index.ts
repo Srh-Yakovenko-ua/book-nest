@@ -14,6 +14,7 @@ export * from "./loans.js";
 export * from "./media.js";
 export * from "./profile.js";
 export * from "./publishers.js";
+export * from "./quotes.js";
 export * from "./reading-queue.js";
 export * from "./series-order-check.js";
 export * from "./series.js";

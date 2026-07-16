@@ -54,6 +54,7 @@ model User {
   changelogRead             ChangelogRead?
   seriesOrderIgnoredIssues  SeriesOrderIgnoredIssue[]
   seriesOrderDisabledSeries SeriesOrderDisabledSeries[]
+  quotes                    Quote[]
 
   @@map("users")
 }
@@ -241,6 +242,7 @@ model Book {
   deliveries                    BookDelivery[]
   loans                         BookLoan[]
   storeLinks                    BookStoreLink[]
+  quotes                        Quote[]
 
   @@unique([seriesId, partNumber])
   @@index([userId])
@@ -603,4 +605,24 @@ model MediaAsset {
 
   @@index([userId])
   @@map("media_assets")
+}
+
+model Quote {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  bookId     String   @map("book_id") @db.Uuid
+  text       String
+  chapter    String?
+  page       Int?
+  comment    String?
+  isSpoiler  Boolean  @default(false) @map("is_spoiler")
+  isFavorite Boolean  @default(false) @map("is_favorite")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@index([userId])
+  @@map("quotes")
 }
