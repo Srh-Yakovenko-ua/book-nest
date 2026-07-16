@@ -32,7 +32,7 @@ export function BookDetailsSidebar({ book }: BookDetailsSidebarProps) {
   const ownershipBase = ownershipStatuses.find((entry) => entry.value === book.ownershipStatus);
 
   return (
-    <aside className="details-sidebar-leaf flex flex-col gap-6">
+    <aside className="book-details-leaf flex flex-col gap-6">
       <Card className="shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
