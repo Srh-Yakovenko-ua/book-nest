@@ -398,6 +398,10 @@ model Tag {
   userId         String    @map("user_id") @db.Uuid
   name           String
   normalizedName String    @map("normalized_name")
+  type           String    @default("custom")
+  color          String?
+  description    String?
+  lastUsedAt     DateTime? @map("last_used_at") @db.Timestamptz
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)

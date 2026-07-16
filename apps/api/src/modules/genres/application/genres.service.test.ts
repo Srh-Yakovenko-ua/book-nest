@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { GenreModel } from "../../../generated/prisma/models.js";
+import type { MediaService } from "../../media/index.js";
 import type { GenresRepository } from "../infrastructure/genres.repository.js";
 
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
@@ -12,28 +13,41 @@ const GENRE_ID = "22222222-2222-4222-8222-222222222222";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 function buildService(): {
+  mediaService: { buildView: ReturnType<typeof vi.fn> };
   repository: {
+    aggregateGenreStats: ReturnType<typeof vi.fn>;
     createCustom: ReturnType<typeof vi.fn>;
     deleteOwnedWithBookCleanup: ReturnType<typeof vi.fn>;
     existsSelectableName: ReturnType<typeof vi.fn>;
+    findNamesByKeys: ReturnType<typeof vi.fn>;
     findSelectableKeys: ReturnType<typeof vi.fn>;
     findVisibleByKeys: ReturnType<typeof vi.fn>;
     listAvailable: ReturnType<typeof vi.fn>;
+    listGenreCovers: ReturnType<typeof vi.fn>;
     recentGenreKeys: ReturnType<typeof vi.fn>;
   };
   service: GenresService;
 } {
   const repository = {
+    aggregateGenreStats: vi.fn().mockResolvedValue([]),
     createCustom: vi.fn(),
     deleteOwnedWithBookCleanup: vi.fn(),
     existsSelectableName: vi.fn().mockResolvedValue(false),
+    findNamesByKeys: vi.fn().mockResolvedValue([]),
     findSelectableKeys: vi.fn().mockResolvedValue([]),
     findVisibleByKeys: vi.fn().mockResolvedValue([]),
     listAvailable: vi.fn().mockResolvedValue([]),
+    listGenreCovers: vi.fn().mockResolvedValue([]),
     recentGenreKeys: vi.fn().mockResolvedValue([]),
   };
-  const service = new GenresService(repository as unknown as GenresRepository);
-  return { repository, service };
+  const mediaService = {
+    buildView: vi.fn((asset: { id: string }) => ({ urls: { thumb: `https://cdn/${asset.id}` } })),
+  };
+  const service = new GenresService(
+    repository as unknown as GenresRepository,
+    mediaService as unknown as MediaService,
+  );
+  return { mediaService, repository, service };
 }
 
 function genre(overrides: Partial<GenreModel> = {}): GenreModel {
@@ -218,5 +232,135 @@ describe("GenresService.recent", () => {
     await service.recent({ limit: 5, userId: USER_ID });
 
     expect(repository.recentGenreKeys).toHaveBeenCalledWith({ limit: 5, userId: USER_ID });
+  });
+});
+
+describe("GenresService.stats", () => {
+  it("returns an empty array without loading names or covers when the library has no genres", async () => {
+    const { repository, service } = buildService();
+    repository.aggregateGenreStats.mockResolvedValue([]);
+
+    const result = await service.stats(USER_ID);
+
+    expect(result).toEqual([]);
+    expect(repository.findNamesByKeys).not.toHaveBeenCalled();
+    expect(repository.listGenreCovers).not.toHaveBeenCalled();
+  });
+
+  it("merges labels, rounds the average rating and falls back to the key when unlabeled", async () => {
+    const { repository, service } = buildService();
+    repository.aggregateGenreStats.mockResolvedValue([
+      {
+        averageRating: 4.333333,
+        booksCount: 3,
+        key: "fantasy",
+        readCount: 2,
+        readingQueueCount: 1,
+        wantToBuyCount: 0,
+      },
+      {
+        averageRating: null,
+        booksCount: 1,
+        key: "orphan",
+        readCount: 0,
+        readingQueueCount: 0,
+        wantToBuyCount: 1,
+      },
+    ]);
+    repository.findNamesByKeys.mockResolvedValue([{ key: "fantasy", name: "Фентезі" }]);
+
+    const result = await service.stats(USER_ID);
+
+    expect(result).toEqual([
+      {
+        averageRating: 4.33,
+        booksCount: 3,
+        coverUrls: [],
+        key: "fantasy",
+        label: "Фентезі",
+        readCount: 2,
+        readingQueueCount: 1,
+        wantToBuyCount: 0,
+      },
+      {
+        averageRating: null,
+        booksCount: 1,
+        coverUrls: [],
+        key: "orphan",
+        label: "orphan",
+        readCount: 0,
+        readingQueueCount: 0,
+        wantToBuyCount: 1,
+      },
+    ]);
+  });
+
+  it("caps cover previews per genre and spreads a shared cover across each of its genres", async () => {
+    const { repository, service } = buildService();
+    repository.aggregateGenreStats.mockResolvedValue([
+      {
+        averageRating: null,
+        booksCount: 6,
+        key: "fantasy",
+        readCount: 0,
+        readingQueueCount: 0,
+        wantToBuyCount: 0,
+      },
+      {
+        averageRating: null,
+        booksCount: 1,
+        key: "romance",
+        readCount: 0,
+        readingQueueCount: 0,
+        wantToBuyCount: 0,
+      },
+    ]);
+    repository.listGenreCovers.mockResolvedValue([
+      { coverMedia: { id: "m1" }, genres: ["fantasy", "romance"] },
+      { coverMedia: { id: "m2" }, genres: ["fantasy"] },
+      { coverMedia: { id: "m3" }, genres: ["fantasy"] },
+      { coverMedia: { id: "m4" }, genres: ["fantasy"] },
+      { coverMedia: { id: "m5" }, genres: ["fantasy"] },
+    ]);
+
+    const result = await service.stats(USER_ID);
+    const fantasy = result.find((entry) => entry.key === "fantasy");
+    const romance = result.find((entry) => entry.key === "romance");
+
+    expect(fantasy?.coverUrls).toEqual([
+      "https://cdn/m1",
+      "https://cdn/m2",
+      "https://cdn/m3",
+      "https://cdn/m4",
+    ]);
+    expect(romance?.coverUrls).toEqual(["https://cdn/m1"]);
+  });
+
+  it("skips a cover whose view cannot be built", async () => {
+    const { mediaService, repository, service } = buildService();
+    repository.aggregateGenreStats.mockResolvedValue([
+      {
+        averageRating: null,
+        booksCount: 2,
+        key: "fantasy",
+        readCount: 0,
+        readingQueueCount: 0,
+        wantToBuyCount: 0,
+      },
+    ]);
+    repository.listGenreCovers.mockResolvedValue([
+      { coverMedia: { id: "broken" }, genres: ["fantasy"] },
+      { coverMedia: { id: "ok" }, genres: ["fantasy"] },
+    ]);
+    mediaService.buildView.mockImplementation((asset: { id: string }) => {
+      if (asset.id === "broken") {
+        throw new Error("missing storage key");
+      }
+      return { urls: { thumb: `https://cdn/${asset.id}` } };
+    });
+
+    const result = await service.stats(USER_ID);
+
+    expect(result[0]?.coverUrls).toEqual(["https://cdn/ok"]);
   });
 });

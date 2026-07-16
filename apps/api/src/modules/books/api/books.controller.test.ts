@@ -412,9 +412,9 @@ describe("POST /api/books", () => {
     expect(tags).toHaveLength(1);
   });
 
-  it("returns 400 when more than 12 tags are provided", async () => {
+  it("returns 400 when more than 15 tags are provided", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
-    const tags = Array.from({ length: 13 }, (unused, index) => `tag ${index}`);
+    const tags = Array.from({ length: 16 }, (unused, index) => `tag ${index}`);
 
     const res = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],

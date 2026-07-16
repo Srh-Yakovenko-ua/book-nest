@@ -1,4 +1,4 @@
-import type { Nullable } from "@app/shared";
+import type { Nullable, TagType } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -12,11 +12,34 @@ type CountTagsInput = {
   userId: string;
 };
 
+type CreateTagInput = {
+  color: Nullable<string>;
+  description: Nullable<string>;
+  name: string;
+  normalizedName: string;
+  type: TagType;
+  userId: string;
+};
+
 type SearchTagsInput = {
   query: string | undefined;
   skip: number;
   take: number;
   userId: string;
+};
+
+type TouchLastUsedInput = {
+  tagIds: string[];
+  usedAt: Date;
+  userId: string;
+};
+
+type UpdateTagFields = {
+  color?: Nullable<string>;
+  description?: Nullable<string>;
+  name?: string;
+  normalizedName?: string;
+  type?: TagType;
 };
 
 type UpsertTagInput = {
@@ -29,8 +52,27 @@ type UpsertTagInput = {
 export class TagsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async acquireCreateLock(userId: string, client: Prisma.TransactionClient): Promise<void> {
+    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`tag:create:${userId}`}))`;
+  }
+
+  countBooksByTag(userId: string): Promise<{ count: number; tagId: string }[]> {
+    return this.prisma.bookTag
+      .groupBy({
+        _count: { bookId: true },
+        by: ["tagId"],
+        where: { tag: { userId } },
+      })
+      .then((rows) => rows.map((row) => ({ count: row._count.bookId, tagId: row.tagId })));
+  }
+
   countOwned({ query, userId }: CountTagsInput): Promise<number> {
     return this.prisma.tag.count({ where: buildOwnedWhere(userId, query) });
+  }
+
+  create(input: CreateTagInput, client: Prisma.TransactionClient = this.prisma): Promise<TagModel> {
+    const { userId, ...data } = input;
+    return client.tag.create({ data: { ...data, userId } });
   }
 
   deleteOwned(userId: string, id: string): Promise<number> {
@@ -45,6 +87,29 @@ export class TagsRepository {
     return client.tag.findFirst({ where: { normalizedName, userId } });
   }
 
+  findByNormalizedExcluding(
+    {
+      excludeId,
+      normalizedName,
+      userId,
+    }: { excludeId: string; normalizedName: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<TagModel>> {
+    return client.tag.findFirst({ where: { id: { not: excludeId }, normalizedName, userId } });
+  }
+
+  findOwnedById(
+    userId: string,
+    id: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<TagModel>> {
+    return client.tag.findFirst({ where: { id, userId } });
+  }
+
+  listOwned(userId: string): Promise<TagModel[]> {
+    return this.prisma.tag.findMany({ orderBy: { name: "asc" }, where: { userId } });
+  }
+
   searchOwned({ query, skip, take, userId }: SearchTagsInput): Promise<TagModel[]> {
     return this.prisma.tag.findMany({
       orderBy: { name: "asc" },
@@ -52,6 +117,26 @@ export class TagsRepository {
       take,
       where: buildOwnedWhere(userId, query),
     });
+  }
+
+  async touchLastUsed(
+    { tagIds, usedAt, userId }: TouchLastUsedInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    if (tagIds.length === 0) {
+      return;
+    }
+    await client.tag.updateMany({
+      data: { lastUsedAt: usedAt },
+      where: { id: { in: tagIds }, userId },
+    });
+  }
+
+  update(
+    { data, id }: { data: UpdateTagFields; id: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<TagModel> {
+    return client.tag.update({ data, where: { id } });
   }
 
   upsertByNormalized(
