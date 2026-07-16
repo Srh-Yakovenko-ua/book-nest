@@ -16,6 +16,28 @@ export function formatDateLong(iso: string, locale: string): string {
   }).format(toLocalDate(iso));
 }
 
+export function formatDateShort(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "short",
+  }).format(toLocalDate(iso));
+}
+
+export function formatNumber(
+  value: number,
+  locale: string,
+  options?: Intl.NumberFormatOptions,
+): string {
+  return new Intl.NumberFormat(locale, options).format(value);
+}
+
+export function formatTime(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
 export function formatTimestamp(iso: string): string {
   const d = new Date(iso);
   const date = d.toLocaleDateString("en-GB", {
