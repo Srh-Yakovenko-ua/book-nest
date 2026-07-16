@@ -1,11 +1,18 @@
+import { normalizeSearch } from "@app/shared";
+
 import type { Prisma } from "../../../generated/prisma/client.js";
 
+const MIN_SEARCH_LENGTH = 2;
+const ISBN_FRAGMENT_PATTERN = /^\d+$/;
+
 type BookSearchConditionsInput = {
+  includeDedication?: boolean;
   search: string | undefined;
   searchGenreKeys?: string[];
 };
 
 export function buildBookSearchConditions({
+  includeDedication,
   search,
   searchGenreKeys,
 }: BookSearchConditionsInput): Prisma.BookWhereInput[] | undefined {
@@ -38,6 +45,24 @@ export function buildBookSearchConditions({
   if (searchGenreKeys !== undefined && searchGenreKeys.length > 0) {
     conditions.push({ genres: { hasSome: searchGenreKeys } });
   }
+  if (includeDedication === true) {
+    conditions.push({ dedication: { contains, mode: "insensitive" } });
+  }
 
   return conditions;
+}
+
+export function normalizeSearchQuery(value: string | undefined): string | undefined {
+  const collapsed = normalizeSearch(value);
+  if (collapsed === undefined) {
+    return undefined;
+  }
+  if (collapsed.length < MIN_SEARCH_LENGTH && !isIsbnFragment(collapsed)) {
+    return undefined;
+  }
+  return collapsed;
+}
+
+function isIsbnFragment(value: string): boolean {
+  return ISBN_FRAGMENT_PATTERN.test(value.replace(/[\s-]/g, ""));
 }

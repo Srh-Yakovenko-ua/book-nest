@@ -1,4 +1,4 @@
-import { DedicationsViewSchema } from "@app/shared";
+import { DedicationsSummaryViewSchema } from "@app/shared";
 import { createZodDto } from "nestjs-zod";
 
-export class DedicationsViewDto extends createZodDto(DedicationsViewSchema) {}
+export class DedicationsSummaryViewDto extends createZodDto(DedicationsSummaryViewSchema) {}

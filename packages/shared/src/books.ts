@@ -771,7 +771,7 @@ export type ReadingProgressInput = z.infer<typeof ReadingProgressInputSchema>;
 export type UpdateReadingProgressInput = z.infer<typeof UpdateReadingProgressInputSchema>;
 
 const LIBRARY_PAGE_SIZE_DEFAULT = 24;
-const LIBRARY_SEARCH_MAX = 200;
+export const LIBRARY_SEARCH_MAX = 200;
 const LIBRARY_RATING_MIN = 0.5;
 const LIBRARY_RATING_MAX = 10;
 const LIBRARY_RATING_STEP = 0.5;

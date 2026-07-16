@@ -3,6 +3,8 @@ import type {
   BookFormat,
   BookLanguage,
   BookType,
+  DedicationFilter,
+  DedicationSort,
   LibrarySort,
   LoanType,
   Nullable,
@@ -25,8 +27,6 @@ import { ListMembershipRepository } from "./list-membership.repository.js";
 const log = createLogger("books.repository");
 
 const WISHLIST_MAX_BOOKS = 1000;
-
-const DEDICATIONS_MAX_BOOKS = 1000;
 
 export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
@@ -119,6 +119,14 @@ export type CreateReadingProgressData = {
   pausedAt: Nullable<Date>;
   rating: Nullable<number>;
   startedAt: Nullable<Date>;
+};
+
+export type DedicationsFilter = {
+  filter: DedicationFilter;
+  genreKey?: string;
+  search?: string;
+  searchGenreKeys?: string[];
+  userId: string;
 };
 
 export type DeliveryBlockChange =
@@ -397,6 +405,10 @@ export class BooksRepository {
     return this.prisma.book.count({ where: buildLibraryWhere({ ownershipStatuses, userId }) });
   }
 
+  countDedicationsForQuery({ filter }: { filter: DedicationsFilter }): Promise<number> {
+    return this.prisma.book.count({ where: buildDedicationsWhere(filter) });
+  }
+
   async countDistinctAuthors({
     ownershipStatuses,
     userId,
@@ -500,6 +512,68 @@ export class BooksRepository {
     }
 
     return client.book.findFirstOrThrow({ include: withRelations, where: { id: created.id } });
+  }
+
+  async dedicationsSummary({ userId }: { userId: string }): Promise<DedicationsSummaryResult> {
+    const [
+      totalCount,
+      favoriteCount,
+      finishedCount,
+      unfinishedCount,
+      genreRows,
+      topGenreRows,
+      topAuthorRows,
+    ] = await Promise.all([
+      this.prisma.book.count({ where: buildDedicationsWhere({ filter: "all", userId }) }),
+      this.prisma.book.count({ where: buildDedicationsWhere({ filter: "favorites", userId }) }),
+      this.prisma.book.count({ where: buildDedicationsWhere({ filter: "finished", userId }) }),
+      this.prisma.book.count({ where: buildDedicationsWhere({ filter: "unfinished", userId }) }),
+      this.prisma.$queryRaw<{ key: string }[]>`
+        SELECT DISTINCT genre AS key
+        FROM books book, unnest(book.genres) AS genre
+        WHERE book.user_id = ${userId}::uuid
+          AND book.dedication IS NOT NULL
+          AND book.dedication <> ''
+        ORDER BY key ASC
+      `,
+      this.prisma.$queryRaw<{ count: bigint; key: string }[]>`
+        SELECT genre AS key, count(*) AS count
+        FROM books book, unnest(book.genres) AS genre
+        WHERE book.user_id = ${userId}::uuid
+          AND book.dedication IS NOT NULL
+          AND book.dedication <> ''
+        GROUP BY genre
+        ORDER BY count DESC, key ASC
+        LIMIT 1
+      `,
+      this.prisma.$queryRaw<{ count: bigint; name: string }[]>`
+        SELECT author.name AS name, count(*) AS count
+        FROM book_authors book_author
+        JOIN authors author ON author.id = book_author.author_id
+        JOIN books book ON book.id = book_author.book_id
+        WHERE book.user_id = ${userId}::uuid
+          AND book.dedication IS NOT NULL
+          AND book.dedication <> ''
+        GROUP BY author.name
+        ORDER BY count DESC, name ASC
+        LIMIT 1
+      `,
+    ]);
+
+    const topGenre = topGenreRows[0];
+    const topAuthor = topAuthorRows[0];
+
+    return {
+      availableGenres: genreRows.map((row) => row.key),
+      favoriteCount,
+      finishedCount,
+      topAuthor:
+        topAuthor === undefined ? null : { count: Number(topAuthor.count), name: topAuthor.name },
+      topGenre:
+        topGenre === undefined ? null : { count: Number(topGenre.count), genre: topGenre.key },
+      totalCount,
+      unfinishedCount,
+    };
   }
 
   deleteOwned(userId: string, id: string): Promise<number> {
@@ -662,27 +736,24 @@ export class BooksRepository {
     }));
   }
 
-  async listDedicationBooks({
-    client,
-    userId,
+  listDedicationsForQuery({
+    filter,
+    skip,
+    sort,
+    take,
   }: {
-    client?: Prisma.TransactionClient;
-    userId: string;
+    filter: DedicationsFilter;
+    skip: number;
+    sort: DedicationSort;
+    take: number;
   }): Promise<BookWithRelations[]> {
-    const db = client ?? this.prisma;
-    const rows = await db.book.findMany({
+    return this.prisma.book.findMany({
       include: withRelations,
-      orderBy: LIBRARY_ORDER_BY.created_desc,
-      take: DEDICATIONS_MAX_BOOKS,
-      where: {
-        AND: [{ dedication: { not: null } }, { dedication: { not: "" } }],
-        userId,
-      },
+      orderBy: DEDICATIONS_ORDER_BY[sort],
+      skip,
+      take,
+      where: buildDedicationsWhere(filter),
     });
-    if (rows.length === DEDICATIONS_MAX_BOOKS) {
-      log.warn({ cap: DEDICATIONS_MAX_BOOKS, userId }, "dedications truncated at the safety cap");
-    }
-    return rows;
   }
 
   listForLibrary({ filter, skip, sort, take }: ListForLibraryInput): Promise<BookWithRelations[]> {
@@ -981,6 +1052,16 @@ export class BooksRepository {
   }
 }
 
+type DedicationsSummaryResult = {
+  availableGenres: string[];
+  favoriteCount: number;
+  finishedCount: number;
+  topAuthor: Nullable<{ count: number; name: string }>;
+  topGenre: Nullable<{ count: number; genre: string }>;
+  totalCount: number;
+  unfinishedCount: number;
+};
+
 type FavoritesSummaryQuery = {
   finishedStatuses: ReadingStatus[];
   readingStatuses: ReadingStatus[];
@@ -1071,6 +1152,19 @@ export const LIBRARY_ORDER_BY: Record<LibrarySort, Prisma.BookOrderByWithRelatio
   ],
 };
 
+export const DEDICATIONS_ORDER_BY: Record<DedicationSort, Prisma.BookOrderByWithRelationInput[]> = {
+  author_asc: [{ firstAuthorName: "asc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  book_title_asc: [{ title: "asc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  favorites_first: [{ isFavoriteDedication: "desc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+  newest: [{ createdAt: "desc" }, ID_TIEBREAKER],
+  publication_year_desc: [
+    { publicationYear: { nulls: "last", sort: "desc" } },
+    CREATED_AT_TIEBREAKER,
+    ID_TIEBREAKER,
+  ],
+  recently_updated: [{ updatedAt: "desc" }, CREATED_AT_TIEBREAKER, ID_TIEBREAKER],
+};
+
 async function applyBlockUpsert<TCreate, TUpdate>(
   delegate: BlockDelegate<TCreate, TUpdate>,
   bookId: string,
@@ -1090,6 +1184,26 @@ async function applyBlockUpsert<TCreate, TUpdate>(
     update: block.update,
     where: { bookId },
   });
+}
+
+function applyDedicationStatusFilter(where: Prisma.BookWhereInput, filter: DedicationFilter): void {
+  switch (filter) {
+    case "all":
+      return;
+    case "favorites":
+      where.isFavoriteDedication = true;
+      return;
+    case "finished":
+      where.readingStatus = "finished";
+      return;
+    case "unfinished":
+      where.readingStatus = { not: "finished" };
+      return;
+    default: {
+      const _exhaustiveCheck: never = filter;
+      return _exhaustiveCheck;
+    }
+  }
 }
 
 async function applyDeliveryBlock(
@@ -1159,6 +1273,30 @@ async function applyLoanBlock(
     data: { ...change.update, type: change.type },
     where: { id: active.id },
   });
+}
+
+function buildDedicationsWhere(input: DedicationsFilter): Prisma.BookWhereInput {
+  const where: Prisma.BookWhereInput = {
+    AND: [{ dedication: { not: null } }, { dedication: { not: "" } }],
+    userId: input.userId,
+  };
+
+  applyDedicationStatusFilter(where, input.filter);
+
+  if (input.genreKey !== undefined) {
+    where.genres = { hasSome: [input.genreKey] };
+  }
+
+  const searchConditions = buildBookSearchConditions({
+    includeDedication: true,
+    search: input.search,
+    searchGenreKeys: input.searchGenreKeys,
+  });
+  if (searchConditions !== undefined) {
+    where.OR = searchConditions;
+  }
+
+  return where;
 }
 
 function buildIntRange({

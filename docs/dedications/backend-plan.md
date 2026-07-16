@@ -36,15 +36,26 @@ separate from the book favorite.
    `dedication IS NOT NULL` holds (TC-003). **Auto-reset
    `isFavoriteDedication → false` when the dedication is cleared** (spec allows it;
    keeps the invariant "no favorite dedication without a dedication").
-3. **`GET /api/books/dedications` → `{ books: BookView[], summary }`**, mirroring
-   the wishlist: return-all-capped (`DEDICATIONS_MAX_BOOKS`), **FE does
-   search/filter/sort/pagination** (the spec explicitly allows FE derivation for
-   MVP; the 6 sorts / 4 filters / genre filter are client-side URL state).
-   `isFavoriteDedication` is added to `BookView` (a cheap scalar column, needed by
-   both this page and the Book Details dedication block; the fixture ripple is
-   mechanical, exactly like `isFavorite`). The favorite toggle rides the existing
-   `PATCH /api/books/:id`. `buildBookSearchConditions` is NOT changed (dedication
-   text search is client-side); global-search integration is FE/deferred.
+3. **Full server-side query** (updated 2026-07-16 — the owner wants the complete
+   backend, not the MVP FE-derive shape). Two endpoints mirroring the library
+   list + favorites-summary split:
+   - `GET /api/books/dedications` — server-side filter + sort + search +
+     pagination → `PaginatedBooks` (`createPaginatedSchema(BookView)`). Query
+     (`DedicationsQuerySchema`): `q` (search over dedication text + the fields
+     `buildBookSearchConditions` already covers), `filter`
+     (`all|favorites|finished|unfinished`), `genre` (single genre key), `sort`
+     (`DedicationSortSchema`: newest / recently_updated / book_title_asc /
+     author_asc / favorites_first / publication_year_desc), `pageNumber`,
+     `pageSize` (default 12, max `LIST_PAGE_SIZE_MAX`).
+   - `GET /api/books/dedications/summary` — the stats (over ALL dedications, not
+     the filtered page) + `availableGenres` (distinct genre keys across the user's
+     dedication books, for the FE filter dropdown).
+     `isFavoriteDedication` is added to `BookView` (cheap scalar; needed by page +
+     Book Details). The favorite toggle rides the existing `PATCH /api/books/:id`.
+     `buildBookSearchConditions` gains an opt-in `includeDedication` flag (adds the
+     dedication-text OR-condition WITHOUT changing library search). Global-search
+     result-type + Dashboard/Statistics aggregates stay deferred — they depend on
+     those (not-yet-built) features existing, not on dedications.
 4. **Summary** (`computeDedicationsSummary`, pure, computed in-memory over the
    loaded set like `wishlist-summary`): total, favorites, from-finished,
    from-unfinished, top genre, top author (tie → highest count then alphabetical).

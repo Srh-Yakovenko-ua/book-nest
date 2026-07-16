@@ -13,12 +13,7 @@ import type {
   UpdateBookInput,
 } from "@app/shared";
 
-import {
-  LoanTypeSchema,
-  normalizeSearch,
-  OwnershipStatusSchema,
-  ReadingStatusSchema,
-} from "@app/shared";
+import { LoanTypeSchema, OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -53,6 +48,7 @@ import {
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
 import { resolveFavoriteChange } from "../domain/favorite.js";
+import { normalizeSearchQuery } from "../infrastructure/book-search.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookRelationsResolver, type SeriesPlacement } from "./book-relations-resolver.js";
@@ -69,24 +65,6 @@ const BORROWED_STATUSES: OwnershipStatus[] = ["borrowed_from_someone", "lent_to_
 const PHYSICAL_OWNERSHIP_STATUSES: OwnershipStatus[] = ["owned", ...BORROWED_STATUSES];
 
 type ScalarFieldKey = keyof Prisma.BookUncheckedUpdateManyInput & keyof UpdateBookInput;
-
-const MIN_SEARCH_LENGTH = 2;
-const ISBN_FRAGMENT_PATTERN = /^\d+$/;
-
-function isIsbnFragment(value: string): boolean {
-  return ISBN_FRAGMENT_PATTERN.test(value.replace(/[\s-]/g, ""));
-}
-
-function normalizeSearchQuery(value: string | undefined): string | undefined {
-  const collapsed = normalizeSearch(value);
-  if (collapsed === undefined) {
-    return undefined;
-  }
-  if (collapsed.length < MIN_SEARCH_LENGTH && !isIsbnFragment(collapsed)) {
-    return undefined;
-  }
-  return collapsed;
-}
 
 const SCALAR_KEYS = [
   "ageCategory",

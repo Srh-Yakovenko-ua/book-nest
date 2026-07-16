@@ -1,13 +1,28 @@
-import type { BookView } from "@app/shared";
+import type { BookView, DedicationsQuery, DedicationsSummaryView } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { BooksRepository, BookWithRelations } from "../infrastructure/books.repository.js";
+import type { GenresService } from "../../genres/index.js";
+import type {
+  BooksRepository,
+  BookWithRelations,
+  DedicationsFilter,
+} from "../infrastructure/books.repository.js";
 import type { BookViewAssembler } from "./book-view-assembler.js";
 
 import { DedicationsService } from "./dedications.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
+
+function makeQuery(overrides: Partial<DedicationsQuery> = {}): DedicationsQuery {
+  return {
+    filter: "all",
+    pageNumber: 1,
+    pageSize: 12,
+    sort: "newest",
+    ...overrides,
+  };
+}
 
 function makeView(overrides: {
   authors?: string[];
@@ -28,80 +43,144 @@ function makeView(overrides: {
   } as unknown as BookView;
 }
 
-function setup(views: BookView[]) {
+const EMPTY_SUMMARY: DedicationsSummaryView = {
+  availableGenres: [],
+  favoriteCount: 0,
+  finishedCount: 0,
+  topAuthor: null,
+  topGenre: null,
+  totalCount: 0,
+  unfinishedCount: 0,
+};
+
+function setup(options: {
+  searchKeys?: string[];
+  summary?: DedicationsSummaryView;
+  totalCount?: number;
+  views?: BookView[];
+}) {
+  const views = options.views ?? [];
   const rows = views.map((view) => ({ id: view.id }) as unknown as BookWithRelations);
-  const listDedicationBooks = vi.fn().mockResolvedValue(rows);
-  const booksRepository = { listDedicationBooks } as unknown as BooksRepository;
+
+  const listDedicationsForQuery = vi.fn().mockResolvedValue(rows);
+  const countDedicationsForQuery = vi.fn().mockResolvedValue(options.totalCount ?? views.length);
+  const dedicationsSummary = vi.fn().mockResolvedValue(options.summary ?? EMPTY_SUMMARY);
+  const booksRepository = {
+    countDedicationsForQuery,
+    dedicationsSummary,
+    listDedicationsForQuery,
+  } as unknown as BooksRepository;
+
   const viewByRowId = new Map(views.map((view) => [view.id, view]));
   const viewOf = vi.fn(
     (row: BookWithRelations) => viewByRowId.get(row.id) ?? makeView({ id: row.id }),
   );
   const bookViewAssembler = { viewOf } as unknown as BookViewAssembler;
-  const service = new DedicationsService(booksRepository, bookViewAssembler);
 
-  return { listDedicationBooks, service, viewOf };
+  const searchKeys = vi.fn().mockResolvedValue(options.searchKeys ?? []);
+  const genresService = { searchKeys } as unknown as GenresService;
+
+  const service = new DedicationsService(booksRepository, bookViewAssembler, genresService);
+
+  return {
+    countDedicationsForQuery,
+    dedicationsSummary,
+    listDedicationsForQuery,
+    searchKeys,
+    service,
+  };
 }
 
 describe("DedicationsService.getDedications", () => {
-  it("assembles a book view per row and returns them", async () => {
-    const views = [
-      makeView({ authors: ["Frank Herbert"], genres: ["memoir"], id: "book-a" }),
-      makeView({ authors: ["Isaac Asimov"], genres: ["history"], id: "book-b" }),
-    ];
-    const { listDedicationBooks, service, viewOf } = setup(views);
+  it("maps rows to a paginated page and derives skip/take from the query", async () => {
+    const views = [makeView({ id: "book-a" }), makeView({ id: "book-b" })];
+    const { listDedicationsForQuery, service } = setup({ totalCount: 30, views });
 
-    const result = await service.getDedications({ userId: USER_ID });
+    const result = await service.getDedications({
+      query: makeQuery({ pageNumber: 3, pageSize: 10 }),
+      userId: USER_ID,
+    });
 
-    expect(listDedicationBooks).toHaveBeenCalledWith({ userId: USER_ID });
-    expect(viewOf).toHaveBeenCalledTimes(2);
-    expect(result.books.map((book) => book.id)).toEqual(["book-a", "book-b"]);
+    expect(listDedicationsForQuery).toHaveBeenCalledWith({
+      filter: {
+        filter: "all",
+        genreKey: undefined,
+        search: undefined,
+        searchGenreKeys: undefined,
+        userId: USER_ID,
+      },
+      skip: 20,
+      sort: "newest",
+      take: 10,
+    });
+    expect(result.items.map((book) => book.id)).toEqual(["book-a", "book-b"]);
+    expect(result.page).toBe(3);
+    expect(result.pageSize).toBe(10);
+    expect(result.totalCount).toBe(30);
+    expect(result.pagesCount).toBe(3);
   });
 
-  it("computes the summary from the assembled views", async () => {
-    const views = [
-      makeView({
-        authors: ["Frank Herbert"],
-        genres: ["memoir", "history"],
-        id: "book-a",
-        readingStatus: "finished",
-      }),
-      makeView({
-        authors: ["Frank Herbert"],
-        genres: ["memoir"],
-        id: "book-b",
-        isFavoriteDedication: true,
-        readingStatus: "reading",
-      }),
-    ];
-    const { service } = setup(views);
+  it("resolves the search into genre keys and forwards the whole filter", async () => {
+    const { countDedicationsForQuery, listDedicationsForQuery, searchKeys, service } = setup({
+      searchKeys: ["memoir"],
+      views: [makeView({ id: "book-a" })],
+    });
 
-    const result = await service.getDedications({ userId: USER_ID });
+    await service.getDedications({
+      query: makeQuery({ filter: "favorites", genre: "history", q: "memoir" }),
+      userId: USER_ID,
+    });
 
-    expect(result.summary).toEqual({
+    expect(searchKeys).toHaveBeenCalledWith({ query: "memoir", userId: USER_ID });
+    const expectedFilter: DedicationsFilter = {
+      filter: "favorites",
+      genreKey: "history",
+      search: "memoir",
+      searchGenreKeys: ["memoir"],
+      userId: USER_ID,
+    };
+    expect(listDedicationsForQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: expectedFilter }),
+    );
+    expect(countDedicationsForQuery).toHaveBeenCalledWith({ filter: expectedFilter });
+  });
+
+  it("skips genre-key resolution when there is no search term", async () => {
+    const { searchKeys, service } = setup({ views: [] });
+
+    await service.getDedications({ query: makeQuery(), userId: USER_ID });
+
+    expect(searchKeys).not.toHaveBeenCalled();
+  });
+
+  it("ignores a search term below the minimum length", async () => {
+    const { listDedicationsForQuery, searchKeys, service } = setup({ views: [] });
+
+    await service.getDedications({ query: makeQuery({ q: "a" }), userId: USER_ID });
+
+    expect(searchKeys).not.toHaveBeenCalled();
+    expect(listDedicationsForQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: expect.objectContaining({ search: undefined }) }),
+    );
+  });
+});
+
+describe("DedicationsService.getDedicationsSummary", () => {
+  it("delegates to the repository and returns its exact summary", async () => {
+    const summary: DedicationsSummaryView = {
+      availableGenres: ["history", "memoir"],
       favoriteCount: 1,
       finishedCount: 1,
       topAuthor: { count: 2, name: "Frank Herbert" },
       topGenre: { count: 2, genre: "memoir" },
       totalCount: 2,
       unfinishedCount: 1,
-    });
-  });
+    };
+    const { dedicationsSummary, service } = setup({ summary });
 
-  it("returns an empty result for a user without dedications", async () => {
-    const { service } = setup([]);
+    const result = await service.getDedicationsSummary({ userId: USER_ID });
 
-    const result = await service.getDedications({ userId: USER_ID });
-
-    expect(result).toEqual({
-      books: [],
-      summary: {
-        favoriteCount: 0,
-        finishedCount: 0,
-        topAuthor: null,
-        topGenre: null,
-        totalCount: 0,
-        unfinishedCount: 0,
-      },
-    });
+    expect(dedicationsSummary).toHaveBeenCalledWith({ userId: USER_ID });
+    expect(result).toEqual(summary);
   });
 });
