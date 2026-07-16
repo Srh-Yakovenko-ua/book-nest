@@ -96,9 +96,6 @@ export function LoansView() {
             <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
               {t("title")}
             </h1>
-            {summary.data ? (
-              <Badge variant="secondary">{t("count", { count: totalActive })}</Badge>
-            ) : null}
             <TitleLeaf />
           </div>
           <p className="max-w-2xl text-sm text-muted-foreground md:text-base">{t("subtitle")}</p>

@@ -24,7 +24,6 @@
   "readingQueue": {
     "title": "Reading queue",
     "subtitle": "Your organized plan for what to read next",
-    "countBadge": "{count, plural, one {# book} other {# books}}",
     "addBook": "Add a book to the queue",
     "listHeading": "Queue",
     "empty": {
@@ -1232,6 +1231,23 @@
           "generic": "Couldn’t save. Please try again."
         }
       },
+      "readingHistory": {
+        "tab": "Full reading history",
+        "title": "Full reading history",
+        "subtitle": "Detailed activity and every recorded progress update.",
+        "periodLabel": "Reading period",
+        "allUpdates": "All progress updates",
+        "sortLabel": "Sort updates",
+        "newestFirst": "Newest first",
+        "oldestFirst": "Oldest first",
+        "recordedTimeHint": "The time the update was saved. It may differ from the actual reading time.",
+        "emptyTitle": "Reading history is empty",
+        "emptySubtitle": "Update the current page to start building activity and progress history.",
+        "paginationLabel": "Reading history pages",
+        "previous": "Previous",
+        "next": "Next",
+        "goToPage": "Page {page}"
+      },
       "ownership": {
         "title": "Ownership",
         "statusLabel": "Status",
@@ -1816,7 +1832,6 @@
       "metaTitle": "Series",
       "title": "Series",
       "subtitle": "Organize book series, follow the reading order, and track your progress",
-      "count": "{count, plural, one {# series} other {# series}}",
       "resultsTitle": "Series list",
       "create": "Create series",
       "addBook": "Add book"
@@ -1949,8 +1964,7 @@
     },
     "details": {
       "metaTitle": "Series details",
-      "back": "Series",
-      "coverAlt": "Cover of series {name}",
+      "coverFanAlt": "Book covers of series {name}, {count, plural, one {# book} other {# books}}",
       "authorsUnknown": "Unknown author",
       "books": "{count, plural, one {# book} other {# books}}",
       "booksWithTotal": "{count} of {total} added",
@@ -1976,7 +1990,11 @@
         "view": "View book",
         "remove": "Remove from series",
         "progress": "p. {current} of {total}",
-        "authorsUnknown": "Unknown author"
+        "authorsUnknown": "Unknown author",
+        "part": "Part {number}",
+        "partUnknown": "Part number not specified",
+        "nextInOrder": "Next in order",
+        "progressPercent": "{percent}%"
       },
       "progress": {
         "title": "Your progress in the series",
@@ -2027,7 +2045,8 @@
         "errorTitle": "Could not load the series",
         "errorDescription": "Try refreshing the page.",
         "back": "Back to series"
-      }
+      },
+      "duplicateParts": "Some books share the same part number: {parts}. The reading order may be inaccurate."
     },
     "editDialog": {
       "title": "Edit series",
@@ -2145,7 +2164,6 @@
       "metaTitle": "Custom lists",
       "title": "Custom lists",
       "subtitle": "Create themed collections and organize books your way",
-      "count": "{count, plural, one {# list} other {# lists}}",
       "create": "Create list",
       "search": {
         "placeholder": "Search lists…"
@@ -2276,7 +2294,6 @@
     "metaTitle": "Borrowed books",
     "title": "Borrowed books",
     "subtitle": "Keep track of books shared between you and other readers",
-    "count": "{count, plural, one {# book} other {# books}}",
     "listHeading": "Borrowed books list",
     "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
     "summary": {

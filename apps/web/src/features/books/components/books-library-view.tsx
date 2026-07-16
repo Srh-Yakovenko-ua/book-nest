@@ -86,7 +86,6 @@ type BooksLibraryViewProps = {
   summaryCards: LibrarySummaryCard[];
   summaryLoading: boolean;
   title: string;
-  titleBadge?: ReactNode;
   view: LibraryViewMode;
   viewLabels: ViewLabels;
 };
@@ -121,7 +120,6 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     summaryCards,
     summaryLoading,
     title,
-    titleBadge,
   } = props;
 
   const t = useTranslations("books.library");
@@ -165,7 +163,6 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
               <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
                 {title}
               </h1>
-              {titleBadge}
               <TitleLeaf />
             </div>
             <p className="text-sm text-muted-foreground">{subtitle}</p>

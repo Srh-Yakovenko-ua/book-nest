@@ -44,7 +44,6 @@ export function AllSeries() {
     sort,
   });
   const unfinishedCount = items.filter(isSeriesUnfinished).length;
-  const totalCount = overview.data?.totalSeries ?? items.length;
   const hasAnySeries = items.length > 0 || (overview.data?.totalSeries ?? 0) > 0;
   const hasActiveQuery = search.trim() !== "" || statusFilter !== "all" || readingFilter !== "all";
 
@@ -103,7 +102,6 @@ export function AllSeries() {
             statusFilter={statusFilter}
           />
         }
-        totalCount={totalCount}
         unfinishedCount={unfinishedCount}
       />
       <CreateSeriesDialog onOpenChange={setDialogOpen} open={dialogOpen} />

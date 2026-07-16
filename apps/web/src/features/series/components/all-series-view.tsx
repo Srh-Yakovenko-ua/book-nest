@@ -42,7 +42,6 @@ type AllSeriesViewProps = {
   summaryLoading: boolean;
   tab: SeriesTab;
   toolbar: ReactNode;
-  totalCount: number;
   unfinishedCount: number;
 };
 
@@ -65,7 +64,6 @@ export function AllSeriesView({
   summaryLoading,
   tab,
   toolbar,
-  totalCount,
   unfinishedCount,
 }: AllSeriesViewProps) {
   const t = useTranslations("series");
@@ -80,7 +78,6 @@ export function AllSeriesView({
               <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
                 {t("page.title")}
               </h1>
-              <Badge variant="secondary">{t("page.count", { count: totalCount })}</Badge>
               <TitleLeaf />
             </div>
             <p className="text-sm text-muted-foreground">{t("page.subtitle")}</p>
