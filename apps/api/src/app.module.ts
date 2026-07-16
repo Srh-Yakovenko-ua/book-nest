@@ -19,6 +19,7 @@ import { HealthModule } from "./modules/health/health.module.js";
 import { ListsModule } from "./modules/lists/lists.module.js";
 import { LoansModule } from "./modules/loans/index.js";
 import { MediaModule } from "./modules/media/media.module.js";
+import { NotesModule } from "./modules/notes/notes.module.js";
 import { MetricsMiddleware } from "./modules/observability/metrics.middleware.js";
 import { MetricsModule } from "./modules/observability/metrics.module.js";
 import { ProfileModule } from "./modules/profile/profile.module.js";
@@ -58,6 +59,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     DeliveryModule,
     ChangelogModule,
     QuotesModule,
+    NotesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

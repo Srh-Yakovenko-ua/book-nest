@@ -127,6 +127,11 @@ export class SeriesService {
     await this.seriesRepository.deleteOwned(userId, id);
   }
 
+  async existsOwned({ seriesId, userId }: { seriesId: string; userId: string }): Promise<boolean> {
+    const series = await this.seriesRepository.findOwnedById(userId, seriesId);
+    return series !== null;
+  }
+
   async favoriteContinuations(
     userId: string,
     query: FavoriteSeriesContinuationsQuery,
