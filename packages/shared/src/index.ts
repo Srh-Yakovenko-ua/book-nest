@@ -21,3 +21,4 @@ export * from "./series-order-check.js";
 export * from "./series.js";
 export * from "./tags.js";
 export * from "./taxonomy.js";
+export * from "./timeline.js";
