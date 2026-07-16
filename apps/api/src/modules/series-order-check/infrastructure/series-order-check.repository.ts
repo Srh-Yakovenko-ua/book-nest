@@ -40,6 +40,54 @@ export type RelevantSeriesBook = Prisma.BookGetPayload<{ select: typeof relevant
 export class SeriesOrderCheckRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async addIgnoredIssue(
+    {
+      fingerprint,
+      seriesId,
+      userId,
+    }: {
+      fingerprint: string;
+      seriesId: string;
+      userId: string;
+    },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.seriesOrderIgnoredIssue.upsert({
+      create: { fingerprint, seriesId, userId },
+      update: {},
+      where: { userId_fingerprint: { fingerprint, userId } },
+    });
+  }
+
+  async disableSeries(
+    { seriesId, userId }: { seriesId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.seriesOrderDisabledSeries.upsert({
+      create: { seriesId, userId },
+      update: {},
+      where: { userId_seriesId: { seriesId, userId } },
+    });
+  }
+
+  async enableSeries(
+    { seriesId, userId }: { seriesId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.seriesOrderDisabledSeries.deleteMany({ where: { seriesId, userId } });
+  }
+
+  async findOwnedSeriesId(
+    { seriesId, userId }: { seriesId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<string>> {
+    const row = await client.series.findFirst({
+      select: { id: true },
+      where: { id: seriesId, userId },
+    });
+    return row?.id ?? null;
+  }
+
   async listDisabledSeriesIds(
     userId: string,
     client: Prisma.TransactionClient = this.prisma,

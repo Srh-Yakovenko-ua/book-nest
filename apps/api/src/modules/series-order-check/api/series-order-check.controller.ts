@@ -107,4 +107,24 @@ export class SeriesOrderCheckController {
   ): Promise<ApplySeriesOrderFixResponse> {
     return this.seriesOrderCheckService.applyFix({ fingerprint, input: body, userId: user.id });
   }
+
+  @ApiBearerAuth()
+  @ApiConflictResponse({ description: "The issue is no longer present for the given fingerprint" })
+  @ApiOkResponse({
+    description: "The remaining series order issues after ignoring this one",
+    type: SeriesOrderIssuesViewDto,
+  })
+  @ApiOperation({ summary: "Ignore a detected series order issue for the current user" })
+  @ApiParam({ description: "The detected issue fingerprint", name: "fingerprint" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post("series-order-issues/:fingerprint/ignore")
+  @Throttle({ default: { limit: FIX_ACTION_LIMIT, ttl: seconds(FIX_ACTION_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  ignoreIssue(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("fingerprint") fingerprint: string,
+  ): Promise<SeriesOrderIssuesView> {
+    return this.seriesOrderCheckService.ignoreIssue({ fingerprint, userId: user.id });
+  }
 }

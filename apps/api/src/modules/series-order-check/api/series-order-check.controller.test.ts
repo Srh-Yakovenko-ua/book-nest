@@ -1,6 +1,7 @@
 import type { INestApplication } from "@nestjs/common";
 
 import { READING_QUEUE_LIMIT, SERIES_ORDER_ERROR_CODES } from "@app/shared";
+import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -12,6 +13,7 @@ import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { ReadingQueueModule } from "../../reading-queue/reading-queue.module.js";
+import { SeriesOrderCheckRepository } from "../infrastructure/series-order-check.repository.js";
 import { SeriesOrderCheckModule } from "../series-order-check.module.js";
 
 let context: AuthTestContext;
@@ -119,6 +121,12 @@ function getQueue(accessToken: string): request.Test {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
+function ignoreIssue(accessToken: string, fingerprint: string): request.Test {
+  return request(app.getHttpServer())
+    .post(`/api/reading-queue/series-order-issues/${fingerprint}/ignore`)
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
 function previewFix(
   accessToken: string,
   fingerprint: string,
@@ -184,6 +192,17 @@ async function seedOutOfOrderScenario(accessToken: string): Promise<OutOfOrderSc
     seriesId: bookThree.seriesId,
     soloId,
   };
+}
+
+function setSeriesOrderPreference(
+  accessToken: string,
+  seriesId: string,
+  enabled: boolean,
+): request.Test {
+  return request(app.getHttpServer())
+    .put(`/api/series/${seriesId}/order-check-preference`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send({ enabled });
 }
 
 describe("GET /api/reading-queue/series-order-issues", () => {
@@ -477,6 +496,177 @@ describe("POST /api/reading-queue/series-order-issues/:fingerprint/apply", () =>
     const res = await request(app.getHttpServer())
       .post("/api/reading-queue/series-order-issues/anything/apply")
       .send({ expectedQueueVersion: "x", strategy: "ADD_NEXT_PREVIOUS_BEFORE" });
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("POST /api/reading-queue/series-order-issues/:fingerprint/ignore", () => {
+  it("removes the ignored issue from detection and persists the ignored row", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+    const { fingerprint } = await firstIssue(user.accessToken);
+
+    const res = await ignoreIssue(user.accessToken, fingerprint);
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(0);
+    expect(res.body.items).toHaveLength(0);
+
+    const after = await getIssues(user.accessToken);
+    expect(after.body.total).toBe(0);
+
+    const prisma = app.get(PrismaService);
+    const rows = await prisma.seriesOrderIgnoredIssue.findMany({ where: { userId: user.userId } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.fingerprint).toBe(fingerprint);
+    expect(rows[0]?.seriesId).toBe(scenario.seriesId);
+  });
+
+  it("returns 409 ISSUE_STALE when re-ignoring an already ignored fingerprint", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedMissingPreviousScenario(user.accessToken);
+    const { fingerprint } = await firstIssue(user.accessToken);
+
+    expect((await ignoreIssue(user.accessToken, fingerprint)).status).toBe(200);
+
+    const replay = await ignoreIssue(user.accessToken, fingerprint);
+    expect(replay.status).toBe(409);
+    expect(replay.body.code).toBe(SERIES_ORDER_ERROR_CODES.ISSUE_STALE);
+  });
+
+  it("keeps the ignored write idempotent without duplicate rows", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+
+    const repository = app.get(SeriesOrderCheckRepository);
+    const payload = {
+      fingerprint: "same-fingerprint",
+      seriesId: scenario.seriesId,
+      userId: user.userId,
+    };
+    await repository.addIgnoredIssue(payload);
+    await expect(repository.addIgnoredIssue(payload)).resolves.toBeUndefined();
+
+    const prisma = app.get(PrismaService);
+    const rows = await prisma.seriesOrderIgnoredIssue.findMany({
+      where: { fingerprint: "same-fingerprint", userId: user.userId },
+    });
+    expect(rows).toHaveLength(1);
+  });
+
+  it("returns 409 ISSUE_STALE for an unknown fingerprint", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedMissingPreviousScenario(user.accessToken);
+
+    const res = await ignoreIssue(user.accessToken, "not-a-real-fingerprint");
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe(SERIES_ORDER_ERROR_CODES.ISSUE_STALE);
+  });
+
+  it("re-surfaces the issue when the conflict essence changes", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+    const { fingerprint } = await firstIssue(user.accessToken);
+
+    expect((await ignoreIssue(user.accessToken, fingerprint)).status).toBe(200);
+
+    const prisma = app.get(PrismaService);
+    await prisma.book.update({
+      data: { readingStatus: "reading" },
+      where: { id: scenario.bookThreeId },
+    });
+
+    const res = await getIssues(user.accessToken);
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.items[0].fingerprint).not.toBe(fingerprint);
+  });
+
+  it("rejects an unauthenticated request", async () => {
+    const res = await request(app.getHttpServer()).post(
+      "/api/reading-queue/series-order-issues/anything/ignore",
+    );
+    expect(res.status).toBe(401);
+  });
+});
+
+describe("PUT /api/series/:seriesId/order-check-preference", () => {
+  it("stops detection for a series when the check is disabled", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+    expect((await getIssues(user.accessToken)).body.total).toBe(1);
+
+    const res = await setSeriesOrderPreference(user.accessToken, scenario.seriesId, false);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ enabled: false });
+
+    const after = await getIssues(user.accessToken);
+    expect(after.body.total).toBe(0);
+  });
+
+  it("resumes detection when the check is re-enabled", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+
+    expect(
+      (await setSeriesOrderPreference(user.accessToken, scenario.seriesId, false)).status,
+    ).toBe(200);
+    expect((await getIssues(user.accessToken)).body.total).toBe(0);
+
+    const res = await setSeriesOrderPreference(user.accessToken, scenario.seriesId, true);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ enabled: true });
+    expect((await getIssues(user.accessToken)).body.total).toBe(1);
+  });
+
+  it("is idempotent when the check is disabled twice", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMissingPreviousScenario(user.accessToken);
+
+    expect(
+      (await setSeriesOrderPreference(user.accessToken, scenario.seriesId, false)).status,
+    ).toBe(200);
+    expect(
+      (await setSeriesOrderPreference(user.accessToken, scenario.seriesId, false)).status,
+    ).toBe(200);
+
+    expect((await getIssues(user.accessToken)).body.total).toBe(0);
+
+    const prisma = app.get(PrismaService);
+    const rows = await prisma.seriesOrderDisabledSeries.findMany({
+      where: { seriesId: scenario.seriesId, userId: user.userId },
+    });
+    expect(rows).toHaveLength(1);
+  });
+
+  it("returns 404 for a series not owned by the user", async () => {
+    const user = await context.registerVerifyAndLogin();
+
+    const res = await setSeriesOrderPreference(user.accessToken, randomUUID(), false);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("does not let one user's disable affect another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const ownerScenario = await seedMissingPreviousScenario(owner.accessToken);
+
+    const other = await context.registerVerifyAndLogin({ email: "other@example.com" });
+    await seedMissingPreviousScenario(other.accessToken);
+
+    expect(
+      (await setSeriesOrderPreference(owner.accessToken, ownerScenario.seriesId, false)).status,
+    ).toBe(200);
+
+    expect((await getIssues(owner.accessToken)).body.total).toBe(0);
+    expect((await getIssues(other.accessToken)).body.total).toBe(1);
+  });
+
+  it("rejects an unauthenticated request", async () => {
+    const res = await request(app.getHttpServer())
+      .put(`/api/series/${randomUUID()}/order-check-preference`)
+      .send({ enabled: false });
     expect(res.status).toBe(401);
   });
 });

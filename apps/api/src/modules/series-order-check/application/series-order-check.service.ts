@@ -6,6 +6,7 @@ import type {
   SeriesOrderFixPreviewView,
   SeriesOrderFixStrategy,
   SeriesOrderIssuesView,
+  SeriesOrderPreferenceView,
 } from "@app/shared";
 
 import {
@@ -13,6 +14,7 @@ import {
   READING_QUEUE_LIMIT,
   ReadingStatusSchema,
   SERIES_ORDER_ERROR_CODES,
+  SERIES_ORDER_ISSUES_LIMIT_DEFAULT,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
@@ -26,7 +28,7 @@ import type {
 import type { RelevantSeriesBook } from "../infrastructure/series-order-check.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
-import { ConflictError, ValidationError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { MediaService } from "../../media/index.js";
 import { ReadingQueueRepository } from "../../reading-queue/index.js";
@@ -43,6 +45,8 @@ import {
 const log = createLogger("series-order-check.service");
 
 const ISSUE_STALE_MESSAGE = "Проблема більше не актуальна";
+const SERIES_NOT_FOUND_MESSAGE = "Series not found";
+const SERIES_NOT_FOUND_CODE = "SERIES_NOT_FOUND";
 const QUEUE_STALE_MESSAGE = "Черга читання змінилася, оновіть і спробуйте ще раз";
 const INVALID_FIX_STRATEGY_MESSAGE = "Ця дія недоступна для цієї проблеми";
 const ALREADY_IN_QUEUE_MESSAGE = "Книга вже є в черзі читання";
@@ -131,6 +135,21 @@ export class SeriesOrderCheckService {
     });
   }
 
+  async ignoreIssue({
+    fingerprint,
+    userId,
+  }: {
+    fingerprint: string;
+    userId: string;
+  }): Promise<SeriesOrderIssuesView> {
+    const fingerprintedIssues = await this.computeIssues({ userId });
+    const issue = this.findIssueOrThrow({ fingerprint, fingerprintedIssues });
+
+    await this.repository.addIgnoredIssue({ fingerprint, seriesId: issue.series.id, userId });
+
+    return this.listIssues({ limit: SERIES_ORDER_ISSUES_LIMIT_DEFAULT, userId });
+  }
+
   async listIssues({
     limit,
     userId,
@@ -190,6 +209,29 @@ export class SeriesOrderCheckService {
       series: issue.series,
       strategy: input.strategy,
     });
+  }
+
+  async setSeriesCheckPreference({
+    enabled,
+    seriesId,
+    userId,
+  }: {
+    enabled: boolean;
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesOrderPreferenceView> {
+    const ownedSeriesId = await this.repository.findOwnedSeriesId({ seriesId, userId });
+    if (ownedSeriesId === null) {
+      throw new NotFoundError(SERIES_NOT_FOUND_MESSAGE, { code: SERIES_NOT_FOUND_CODE });
+    }
+
+    if (enabled) {
+      await this.repository.enableSeries({ seriesId, userId });
+    } else {
+      await this.repository.disableSeries({ seriesId, userId });
+    }
+
+    return { enabled };
   }
 
   private assertStrategyAllowed({
