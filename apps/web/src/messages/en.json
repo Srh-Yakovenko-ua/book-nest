@@ -1470,7 +1470,12 @@
           "markOrdered": "Mark as ordered",
           "return": "Mark as returned",
           "startDelivery": "Ordered — in transit",
-          "alreadyOwn": "I already have this book"
+          "alreadyOwn": "I already have this book",
+          "removeFromWishlist": "Remove from shopping list"
+        },
+        "storeLinks": {
+          "title": "Stores and prices",
+          "add": "Add link"
         },
         "purchase": {
           "title": "Purchase details",
@@ -1518,6 +1523,7 @@
           "noteMax": "No more than {max} characters.",
           "purchaseDateRequired": "Enter the purchase date.",
           "purchaseDateFuture": "The date can’t be in the future.",
+          "notInWishlist": "This book is no longer in the shopping list.",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -1672,11 +1678,78 @@
     "metaTitle": "Books to buy",
     "title": "Books to buy",
     "subtitle": "Books you want to purchase and add to your collection",
+    "countBadge": "{count, plural, one {# book} other {# books}}",
+    "addBook": "Add book",
+    "sidebar": {
+      "label": "Purchase overview",
+      "stats": {
+        "title": "Quick statistics",
+        "booksCount": "Books in the list",
+        "storesCount": "Stores tracked",
+        "average": "Average price",
+        "best": "Best offer",
+        "currencyGroup": "{currency} · {count, plural, one {# book with a price} other {# books with a price}}",
+        "pricesEmpty": "No prices yet. Add a store link with a price to see the estimate."
+      },
+      "bestOffers": {
+        "title": "Best deals",
+        "empty": "Books with the lowest prices will appear here.",
+        "showAll": "View all"
+      },
+      "quickActions": {
+        "title": "Quick actions",
+        "addBook": "Add book",
+        "openLibrary": "Open library",
+        "inTransit": "Books in transit"
+      },
+      "howItWorks": {
+        "title": "How it works",
+        "bought": "When you mark a book as bought, it disappears from this list and its ownership status becomes “Owned”.",
+        "delivery": "If a book is already ordered but not yet received, mark it as “In transit”."
+      }
+    },
+    "toolbar": {
+      "searchLabel": "Search the shopping list",
+      "searchPlaceholder": "Search the list...",
+      "searchClear": "Clear search",
+      "linkFilterLabel": "Filter by links and prices",
+      "sortLabel": "Sorting",
+      "storeLabel": "By store",
+      "storeAny": "All stores",
+      "publisherLabel": "By publisher",
+      "publisherAny": "All publishers",
+      "genreLabel": "By genre",
+      "genreAny": "All genres",
+      "tagLabel": "By tag",
+      "tagAny": "All tags"
+    },
+    "linkFilter": {
+      "all": "All",
+      "has_links": "With links",
+      "without_links": "Without links",
+      "has_price": "With price",
+      "without_price": "Without price"
+    },
+    "sort": {
+      "added_asc": "Oldest first",
+      "added_desc": "Newest first",
+      "title_asc": "By title",
+      "author_asc": "By author",
+      "publisher_asc": "By publisher",
+      "price_asc": "Lowest price first",
+      "price_desc": "Highest price first",
+      "stores_desc": "By store count"
+    },
     "empty": {
       "title": "Save books for future purchases",
       "description": "Mark the books you want to buy so you can keep track of editions, stores, and prices.",
       "cta": "Add book",
       "secondary": "View all books"
+    },
+    "noResults": {
+      "title": "Nothing found",
+      "description": "Try changing your query or clearing the filters.",
+      "clear": "Clear filters"
     },
     "error": {
       "title": "Could not load",
@@ -1684,7 +1757,66 @@
       "retry": "Try again"
     },
     "markInTransit": "Mark as in transit",
-    "markInTransitFor": "Mark \"{title}\" as in transit"
+    "markInTransitFor": "Mark \"{title}\" as in transit",
+    "markBought": "Mark as bought",
+    "markBoughtFor": "Mark “{title}” as bought",
+    "markBoughtSuccess": "The book is marked as bought",
+    "rowMenuLabel": "More actions for “{title}”",
+    "removeFromList": {
+      "action": "Remove from the shopping list",
+      "title": "Remove the book from the shopping list?",
+      "description": "The book will disappear from the “Books to buy” page but will stay in your library.",
+      "cancel": "Cancel",
+      "confirm": "Remove from the list",
+      "pending": "Removing...",
+      "success": "The book was removed from the shopping list",
+      "error": "Could not remove the book from the shopping list",
+      "notInWishlist": "This book is no longer in the shopping list"
+    },
+    "storeLinks": {
+      "listLabel": "Store links",
+      "empty": "No store links added yet",
+      "bestOffer": "Best price",
+      "expand": "{count} more",
+      "collapse": "Collapse",
+      "add": "Add link",
+      "addFor": "Add a store link for “{title}”",
+      "menuLabel": "Actions for the “{store}” link",
+      "edit": "Edit link",
+      "delete": "Delete link",
+      "deleted": "Link deleted",
+      "undo": "Undo",
+      "deleteError": "Could not delete the link",
+      "undoError": "Could not restore the link"
+    },
+    "storeLinkDialog": {
+      "addTitle": "Add a store link",
+      "addDescription": "Add a link to the book's page in an online store.",
+      "editTitle": "Edit link",
+      "editDescription": "Update the store, link, price or currency.",
+      "storeName": "Store",
+      "storeNamePlaceholder": "For example, Yakaboo",
+      "url": "Link",
+      "urlPlaceholder": "https://",
+      "price": "Price",
+      "currency": "Currency",
+      "addSubmit": "Save link",
+      "editSubmit": "Save changes",
+      "addSuccess": "Link added",
+      "editSuccess": "Link updated",
+      "errors": {
+        "storeNameRequired": "Choose a store",
+        "storeNameMax": "Store name must be at most {max} characters",
+        "urlRequired": "Add a store link",
+        "url": "The link must start with https://",
+        "urlMax": "The link must be at most {max} characters",
+        "price": "Price must be greater than 0",
+        "priceMax": "Price must be at most {max}",
+        "duplicateUrl": "This link has already been added for this book",
+        "maxLinks": "The limit of {max} links per book has been reached",
+        "generic": "Could not save the link"
+      }
+    }
   },
   "delivery": {
     "metaTitle": "Books in transit",
