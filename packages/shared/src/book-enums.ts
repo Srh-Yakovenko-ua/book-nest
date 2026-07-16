@@ -44,6 +44,23 @@ export const QueuePriorityReasonSchema = z.enum([
 
 export type QueuePriorityReason = z.infer<typeof QueuePriorityReasonSchema>;
 
+export const QUEUE_PRIORITY_REASON_CUSTOM_TEXT_MAX = 300;
+
+export const QUEUE_PRIORITY_DATE_REASONS = [
+  "book_club",
+  "buddy_read",
+  "event_or_deadline",
+  "return_due",
+] as const satisfies readonly QueuePriorityReason[];
+
+const QUEUE_PRIORITY_DATE_REASON_SET: ReadonlySet<QueuePriorityReason> = new Set(
+  QUEUE_PRIORITY_DATE_REASONS,
+);
+
+export function queuePriorityReasonSupportsDate(reason: QueuePriorityReason): boolean {
+  return QUEUE_PRIORITY_DATE_REASON_SET.has(reason);
+}
+
 export const DeliveryStatusSchema = z.enum([
   "ordered",
   "in_transit",

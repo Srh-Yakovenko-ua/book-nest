@@ -3,18 +3,22 @@ import type {
   CreateBookInput,
   Nullable,
   QueuePriority,
+  QueuePriorityReason,
   UpdateBookInput,
 } from "@app/shared";
 
 import {
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+  QueuePriorityReasonSchema,
+  QueuePrioritySchema,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
+import { parseIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { isUniqueConstraintErrorOn } from "../../../core/prisma-errors.js";
 import { AuthorsService } from "../../authors/index.js";
 import { GenresService } from "../../genres/index.js";
@@ -23,6 +27,12 @@ import { MediaService } from "../../media/index.js";
 import { PublishersService } from "../../publishers/index.js";
 import { SeriesService } from "../../series/index.js";
 import { TagsService } from "../../tags/index.js";
+import {
+  EMPTY_QUEUE_PRIORITY_DETAILS,
+  type QueuePriorityDetails,
+  type QueuePriorityDetailsInput,
+  resolveQueuePriorityDetails,
+} from "../domain/queue-priority.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
@@ -46,6 +56,9 @@ export type ResolvedBookCreate = {
   publisherId: Nullable<string>;
   queuePosition: Nullable<number>;
   queuePriority: Nullable<QueuePriority>;
+  queuePriorityReason: Nullable<QueuePriorityReason>;
+  queuePriorityReasonCustomText: Nullable<string>;
+  queuePriorityTargetDate: Nullable<Date>;
   seriesId: Nullable<string>;
   tagIds: string[];
 };
@@ -67,7 +80,33 @@ export type SeriesPlacement = {
 type QueuePlacement = {
   queuePosition: Nullable<number>;
   queuePriority: Nullable<QueuePriority>;
+  queuePriorityReason: Nullable<QueuePriorityReason>;
+  queuePriorityReasonCustomText: Nullable<string>;
+  queuePriorityTargetDate: Nullable<Date>;
 };
+
+function toQueuePlacementDetails(details: QueuePriorityDetails): {
+  queuePriorityReason: Nullable<QueuePriorityReason>;
+  queuePriorityReasonCustomText: Nullable<string>;
+  queuePriorityTargetDate: Nullable<Date>;
+} {
+  return {
+    queuePriorityReason: details.reason,
+    queuePriorityReasonCustomText: details.customText,
+    queuePriorityTargetDate: details.targetDate === null ? null : parseIsoDate(details.targetDate),
+  };
+}
+
+function toQueuePriorityDetails(current: BookWithRelations): QueuePriorityDetails {
+  return {
+    customText: current.queuePriorityReasonCustomText,
+    reason:
+      current.queuePriorityReason === null
+        ? null
+        : QueuePriorityReasonSchema.parse(current.queuePriorityReason),
+    targetDate: toNullableIsoDate(current.queuePriorityTargetDate),
+  };
+}
 
 @Injectable()
 export class BookRelationsResolver {
@@ -196,6 +235,9 @@ export class BookRelationsResolver {
       publisherId,
       queuePosition: queuePlacement.queuePosition,
       queuePriority: queuePlacement.queuePriority,
+      queuePriorityReason: queuePlacement.queuePriorityReason,
+      queuePriorityReasonCustomText: queuePlacement.queuePriorityReasonCustomText,
+      queuePriorityTargetDate: queuePlacement.queuePriorityTargetDate,
       seriesId,
       tagIds,
     };
@@ -301,24 +343,62 @@ export class BookRelationsResolver {
     client?: Prisma.TransactionClient,
   ): Promise<Nullable<QueueRemoval>> {
     const isQueued = current.queuePosition !== null;
+    const detailsInput: QueuePriorityDetailsInput = {
+      customText: input.queuePriorityReasonCustomText,
+      reason: input.queuePriorityReason,
+      targetDate: input.queuePriorityTargetDate,
+    };
 
     if (input.addToReadingQueue === false) {
       fields.queuePosition = null;
       fields.queuePriority = null;
+      this.assignQueuePriorityDetails({
+        current,
+        fields,
+        input: detailsInput,
+        resolvedPriority: null,
+      });
       return current.queuePosition === null ? null : { fromPosition: current.queuePosition };
     }
 
     if (input.addToReadingQueue === true && !isQueued) {
       const lastPosition = await this.booksRepository.maxQueuePosition(userId, client);
+      const queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
       fields.queuePosition = lastPosition + 1;
-      fields.queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
+      fields.queuePriority = queuePriority;
+      this.assignQueuePriorityDetails({
+        current,
+        fields,
+        input: detailsInput,
+        resolvedPriority: queuePriority,
+      });
       return null;
     }
 
     if (isQueued && input.queuePriority !== undefined) {
       fields.queuePriority = input.queuePriority;
+      this.assignQueuePriorityDetails({
+        current,
+        fields,
+        input: detailsInput,
+        resolvedPriority: input.queuePriority,
+      });
+      return null;
     }
 
+    if (
+      input.queuePriorityReason !== undefined ||
+      input.queuePriorityReasonCustomText !== undefined ||
+      input.queuePriorityTargetDate !== undefined
+    ) {
+      this.assignQueuePriorityDetails({
+        current,
+        fields,
+        input: detailsInput,
+        resolvedPriority:
+          current.queuePriority === null ? null : QueuePrioritySchema.parse(current.queuePriority),
+      });
+    }
     return null;
   }
 
@@ -419,24 +499,58 @@ export class BookRelationsResolver {
     }
   }
 
-  private async resolveQueuePlacement(
-    {
+  private assignQueuePriorityDetails({
+    current,
+    fields,
+    input,
+    resolvedPriority,
+  }: {
+    current: BookWithRelations;
+    fields: Prisma.BookUncheckedUpdateManyInput;
+    input: QueuePriorityDetailsInput;
+    resolvedPriority: Nullable<QueuePriority>;
+  }): void {
+    const details = resolveQueuePriorityDetails({
+      current: toQueuePriorityDetails(current),
       input,
-      userId,
-    }: {
-      input: CreateBookInput;
-      userId: string;
-    },
+      resolvedPriority,
+    });
+    fields.queuePriorityReason = details.reason;
+    fields.queuePriorityReasonCustomText = details.customText;
+    fields.queuePriorityTargetDate =
+      details.targetDate === null ? null : parseIsoDate(details.targetDate);
+  }
+
+  private async resolveQueuePlacement(
+    { input, userId }: { input: CreateBookInput; userId: string },
     client?: Prisma.TransactionClient,
   ): Promise<QueuePlacement> {
+    const detailsInput: QueuePriorityDetailsInput = {
+      customText: input.queuePriorityReasonCustomText,
+      reason: input.queuePriorityReason,
+      targetDate: input.queuePriorityTargetDate,
+    };
+
     if (!input.addToReadingQueue) {
-      return { queuePosition: null, queuePriority: null };
+      const details = resolveQueuePriorityDetails({
+        current: EMPTY_QUEUE_PRIORITY_DETAILS,
+        input: detailsInput,
+        resolvedPriority: null,
+      });
+      return { queuePosition: null, queuePriority: null, ...toQueuePlacementDetails(details) };
     }
 
     const lastPosition = await this.booksRepository.maxQueuePosition(userId, client);
+    const queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
+    const details = resolveQueuePriorityDetails({
+      current: EMPTY_QUEUE_PRIORITY_DETAILS,
+      input: detailsInput,
+      resolvedPriority: queuePriority,
+    });
     return {
       queuePosition: lastPosition + 1,
-      queuePriority: input.queuePriority ?? DEFAULT_QUEUE_PRIORITY,
+      queuePriority,
+      ...toQueuePlacementDetails(details),
     };
   }
 
