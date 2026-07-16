@@ -24,7 +24,6 @@
   "readingQueue": {
     "title": "Reading queue",
     "subtitle": "Your organized plan for what to read next",
-    "countBadge": "{count, plural, one {# book} other {# books}}",
     "addBook": "Add a book to the queue",
     "listHeading": "Queue",
     "empty": {
@@ -141,6 +140,132 @@
       "title": "Next to read",
       "empty": "Add a book to the queue to see what’s next to read.",
       "startReading": "Start reading"
+    },
+    "seriesOrderCheck": {
+      "title": "Check series order",
+      "subtitle": "Found series where the reading order may be broken",
+      "viewAll": "View all",
+      "countLabel": "Series order issues found: {count}",
+      "loading": "Checking series order…",
+      "allIssues": {
+        "title": "Series order",
+        "description": "All series where the reading order may be broken."
+      },
+      "empty": {
+        "title": "Series order checked",
+        "description": "No order violations found in the queue."
+      },
+      "severity": {
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Info"
+      },
+      "card": {
+        "affectedBook": "Affected book",
+        "previousBook": "Previous book",
+        "seriesPosition": "Book {position}",
+        "seriesPositionUnknown": "Position unknown",
+        "queuePosition": "Queue position: {position}",
+        "notInQueue": "Not in the queue",
+        "currentReading": "Currently reading",
+        "relatedProblems": "{count, plural, one {# more conflict in this series} other {# more conflicts in this series}}",
+        "moreActions": "More actions for the “{series}” series",
+        "coverAlt": "“{title}” cover"
+      },
+      "order": {
+        "listLabel": "Series book order"
+      },
+      "problems": {
+        "missing_previous_from_queue": {
+          "title": "“{previousBook}” is not finished yet, but “{affectedBook}” is already queued."
+        },
+        "previous_book_after_later_book": {
+          "title": "“{previousBook}” should come before “{affectedBook}”."
+        },
+        "multiple_previous_missing": {
+          "title": "{count, plural, one {# unfinished part remains} other {# unfinished parts remain}} before “{affectedBook}”.",
+          "description": "Next in order is “{previousBook}”."
+        },
+        "previous_book_paused": {
+          "title": "The previous part is not finished yet.",
+          "description": "“{previousBook}” is paused while “{affectedBook}” is already ahead."
+        },
+        "current_reading_ahead_of_order": {
+          "title": "Current reading is ahead of the series order.",
+          "description": "You are reading “{affectedBook}” while “{previousBook}” is not finished."
+        },
+        "previous_book_not_owned": {
+          "title": "The previous part is not in your library."
+        },
+        "previous_book_want_to_buy": {
+          "title": "The previous part has not been bought yet."
+        },
+        "previous_book_in_transit": {
+          "title": "The previous part is already on its way."
+        },
+        "previous_book_lent_out": {
+          "title": "The previous part is lent out and unavailable right now."
+        },
+        "multiple_books_out_of_order": {
+          "title": "The series order is mixed up."
+        }
+      },
+      "actions": {
+        "retry": "Try again",
+        "fixOrder": "Fix the order",
+        "arrangeBySeries": "Arrange by series order",
+        "addBefore": "Add before “{affectedBook}”",
+        "addNext": "Add the next book",
+        "addAll": "Add all in order",
+        "openBook": "Open the previous book",
+        "resumeBook": "Back to the book",
+        "addToWishlist": "Add to “Want to buy”",
+        "openPurchase": "Go to purchase",
+        "openOrder": "View the order",
+        "openLoan": "View the loan",
+        "ignore": "Leave as is",
+        "disableSeries": "Don’t check this series"
+      },
+      "preview": {
+        "title": "Fix the series order?",
+        "current": "Now:",
+        "recommended": "Recommended:",
+        "afterFix": "After the fix:",
+        "added": "Will be added:",
+        "moved": "Will move:",
+        "addedItem": "“{title}” will be added at position {position}.",
+        "movedItem": "“{title}”: position {from} → {to}",
+        "unrelatedUnchanged": "Other books will stay at their positions.",
+        "shiftedUnrelated": "{count, plural, one {# unrelated book will shift} other {# unrelated books will shift}} to a new position.",
+        "warningsTitle": "Please note",
+        "loading": "Preparing the change preview…",
+        "error": "Couldn’t prepare the change preview",
+        "cancel": "Cancel",
+        "confirm": "Confirm the action",
+        "confirmReorder": "Fix the order",
+        "confirmInsert": "Add and fix"
+      },
+      "disable": {
+        "title": "Turn off the order check?",
+        "description": "BookNest will no longer show warnings for this series. You can turn the check back on in the series settings.",
+        "cancel": "Cancel",
+        "confirm": "Don’t check the series"
+      },
+      "error": {
+        "load": "Couldn’t check the series order",
+        "queueStale": "The queue has changed. Refresh the data and check the order again.",
+        "issueStale": "This issue has already changed. Check the updated order.",
+        "alreadyInQueue": "The book is already in the queue.",
+        "queueLimit": "Couldn’t add the books: the queue limit has been reached.",
+        "notFound": "The book or series can no longer be found.",
+        "forbidden": "You don’t have access to this book or series.",
+        "generic": "Couldn’t complete the action. Try again."
+      },
+      "success": {
+        "fixed": "Series order fixed",
+        "ignored": "This warning is hidden for the current order",
+        "disabled": "The order check for this series is turned off"
+      }
     }
   },
   "appShell": {
@@ -1315,6 +1440,23 @@
           "generic": "Couldn’t save. Please try again."
         }
       },
+      "readingHistory": {
+        "tab": "Full reading history",
+        "title": "Full reading history",
+        "subtitle": "Detailed activity and every recorded progress update.",
+        "periodLabel": "Reading period",
+        "allUpdates": "All progress updates",
+        "sortLabel": "Sort updates",
+        "newestFirst": "Newest first",
+        "oldestFirst": "Oldest first",
+        "recordedTimeHint": "The time the update was saved. It may differ from the actual reading time.",
+        "emptyTitle": "Reading history is empty",
+        "emptySubtitle": "Update the current page to start building activity and progress history.",
+        "paginationLabel": "Reading history pages",
+        "previous": "Previous",
+        "next": "Next",
+        "goToPage": "Page {page}"
+      },
       "ownership": {
         "title": "Ownership",
         "statusLabel": "Status",
@@ -1328,7 +1470,12 @@
           "markOrdered": "Mark as ordered",
           "return": "Mark as returned",
           "startDelivery": "Ordered — in transit",
-          "alreadyOwn": "I already have this book"
+          "alreadyOwn": "I already have this book",
+          "removeFromWishlist": "Remove from shopping list"
+        },
+        "storeLinks": {
+          "title": "Stores and prices",
+          "add": "Add link"
         },
         "purchase": {
           "title": "Purchase details",
@@ -1376,6 +1523,7 @@
           "noteMax": "No more than {max} characters.",
           "purchaseDateRequired": "Enter the purchase date.",
           "purchaseDateFuture": "The date can’t be in the future.",
+          "notInWishlist": "This book is no longer in the shopping list.",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -1523,23 +1671,6 @@
           "trackingUrl": "Enter a valid https link.",
           "trackingUrlMax": "No more than {max} characters."
         }
-      },
-      "readingHistory": {
-        "tab": "Full reading history",
-        "title": "Full reading history",
-        "subtitle": "Detailed activity and every recorded progress update.",
-        "periodLabel": "Reading period",
-        "allUpdates": "All progress updates",
-        "sortLabel": "Sort updates",
-        "newestFirst": "Newest first",
-        "oldestFirst": "Oldest first",
-        "recordedTimeHint": "The time the update was saved. It may differ from the actual reading time.",
-        "emptyTitle": "Reading history is empty",
-        "emptySubtitle": "Update the current page to start building activity and progress history.",
-        "paginationLabel": "Reading history pages",
-        "previous": "Previous",
-        "next": "Next",
-        "goToPage": "Page {page}"
       }
     }
   },
@@ -1547,11 +1678,78 @@
     "metaTitle": "Books to buy",
     "title": "Books to buy",
     "subtitle": "Books you want to purchase and add to your collection",
+    "countBadge": "{count, plural, one {# book} other {# books}}",
+    "addBook": "Add book",
+    "sidebar": {
+      "label": "Purchase overview",
+      "stats": {
+        "title": "Quick statistics",
+        "booksCount": "Books in the list",
+        "storesCount": "Stores tracked",
+        "average": "Average price",
+        "best": "Best offer",
+        "currencyGroup": "{currency} · {count, plural, one {# book with a price} other {# books with a price}}",
+        "pricesEmpty": "No prices yet. Add a store link with a price to see the estimate."
+      },
+      "bestOffers": {
+        "title": "Best deals",
+        "empty": "Books with the lowest prices will appear here.",
+        "showAll": "View all"
+      },
+      "quickActions": {
+        "title": "Quick actions",
+        "addBook": "Add book",
+        "openLibrary": "Open library",
+        "inTransit": "Books in transit"
+      },
+      "howItWorks": {
+        "title": "How it works",
+        "bought": "When you mark a book as bought, it disappears from this list and its ownership status becomes “Owned”.",
+        "delivery": "If a book is already ordered but not yet received, mark it as “In transit”."
+      }
+    },
+    "toolbar": {
+      "searchLabel": "Search the shopping list",
+      "searchPlaceholder": "Search the list...",
+      "searchClear": "Clear search",
+      "linkFilterLabel": "Filter by links and prices",
+      "sortLabel": "Sorting",
+      "storeLabel": "By store",
+      "storeAny": "All stores",
+      "publisherLabel": "By publisher",
+      "publisherAny": "All publishers",
+      "genreLabel": "By genre",
+      "genreAny": "All genres",
+      "tagLabel": "By tag",
+      "tagAny": "All tags"
+    },
+    "linkFilter": {
+      "all": "All",
+      "has_links": "With links",
+      "without_links": "Without links",
+      "has_price": "With price",
+      "without_price": "Without price"
+    },
+    "sort": {
+      "added_asc": "Oldest first",
+      "added_desc": "Newest first",
+      "title_asc": "By title",
+      "author_asc": "By author",
+      "publisher_asc": "By publisher",
+      "price_asc": "Lowest price first",
+      "price_desc": "Highest price first",
+      "stores_desc": "By store count"
+    },
     "empty": {
       "title": "Save books for future purchases",
       "description": "Mark the books you want to buy so you can keep track of editions, stores, and prices.",
       "cta": "Add book",
       "secondary": "View all books"
+    },
+    "noResults": {
+      "title": "Nothing found",
+      "description": "Try changing your query or clearing the filters.",
+      "clear": "Clear filters"
     },
     "error": {
       "title": "Could not load",
@@ -1559,7 +1757,66 @@
       "retry": "Try again"
     },
     "markInTransit": "Mark as in transit",
-    "markInTransitFor": "Mark \"{title}\" as in transit"
+    "markInTransitFor": "Mark \"{title}\" as in transit",
+    "markBought": "Mark as bought",
+    "markBoughtFor": "Mark “{title}” as bought",
+    "markBoughtSuccess": "The book is marked as bought",
+    "rowMenuLabel": "More actions for “{title}”",
+    "removeFromList": {
+      "action": "Remove from the shopping list",
+      "title": "Remove the book from the shopping list?",
+      "description": "The book will disappear from the “Books to buy” page but will stay in your library.",
+      "cancel": "Cancel",
+      "confirm": "Remove from the list",
+      "pending": "Removing...",
+      "success": "The book was removed from the shopping list",
+      "error": "Could not remove the book from the shopping list",
+      "notInWishlist": "This book is no longer in the shopping list"
+    },
+    "storeLinks": {
+      "listLabel": "Store links",
+      "empty": "No store links added yet",
+      "bestOffer": "Best price",
+      "expand": "{count} more",
+      "collapse": "Collapse",
+      "add": "Add link",
+      "addFor": "Add a store link for “{title}”",
+      "menuLabel": "Actions for the “{store}” link",
+      "edit": "Edit link",
+      "delete": "Delete link",
+      "deleted": "Link deleted",
+      "undo": "Undo",
+      "deleteError": "Could not delete the link",
+      "undoError": "Could not restore the link"
+    },
+    "storeLinkDialog": {
+      "addTitle": "Add a store link",
+      "addDescription": "Add a link to the book's page in an online store.",
+      "editTitle": "Edit link",
+      "editDescription": "Update the store, link, price or currency.",
+      "storeName": "Store",
+      "storeNamePlaceholder": "For example, Yakaboo",
+      "url": "Link",
+      "urlPlaceholder": "https://",
+      "price": "Price",
+      "currency": "Currency",
+      "addSubmit": "Save link",
+      "editSubmit": "Save changes",
+      "addSuccess": "Link added",
+      "editSuccess": "Link updated",
+      "errors": {
+        "storeNameRequired": "Choose a store",
+        "storeNameMax": "Store name must be at most {max} characters",
+        "urlRequired": "Add a store link",
+        "url": "The link must start with https://",
+        "urlMax": "The link must be at most {max} characters",
+        "price": "Price must be greater than 0",
+        "priceMax": "Price must be at most {max}",
+        "duplicateUrl": "This link has already been added for this book",
+        "maxLinks": "The limit of {max} links per book has been reached",
+        "generic": "Could not save the link"
+      }
+    }
   },
   "delivery": {
     "metaTitle": "Books in transit",
@@ -1916,7 +2173,6 @@
       "metaTitle": "Series",
       "title": "Series",
       "subtitle": "Organize book series, follow the reading order, and track your progress",
-      "count": "{count, plural, one {# series} other {# series}}",
       "resultsTitle": "Series list",
       "create": "Create series",
       "addBook": "Add book"
@@ -2049,8 +2305,7 @@
     },
     "details": {
       "metaTitle": "Series details",
-      "back": "Series",
-      "coverAlt": "Cover of series {name}",
+      "coverFanAlt": "Book covers of series {name}, {count, plural, one {# book} other {# books}}",
       "authorsUnknown": "Unknown author",
       "books": "{count, plural, one {# book} other {# books}}",
       "booksWithTotal": "{count} of {total} added",
@@ -2060,6 +2315,11 @@
       "menu": "Series actions",
       "addBookInline": "Add a book to this series",
       "booksHeading": "Series books",
+      "summary": {
+        "finished": "{count} read",
+        "remaining": "{count} left",
+        "notAdded": "{count} not added yet"
+      },
       "tabs": {
         "books": "Books in series",
         "about": "About the series"
@@ -2068,15 +2328,21 @@
         "title": "This series has no books yet",
         "action": "Add book"
       },
-      "readingOrder": {
-        "title": "Reading order"
+      "missingRow": {
+        "title": "Book {number}",
+        "hint": "Not in your library yet",
+        "action": "Add",
+        "actionAria": "Add book {number} to your library"
       },
       "row": {
         "menu": "Book actions",
-        "view": "View book",
         "remove": "Remove from series",
         "progress": "p. {current} of {total}",
-        "authorsUnknown": "Unknown author"
+        "authorsUnknown": "Unknown author",
+        "part": "Part {number}",
+        "partUnknown": "Part number not specified",
+        "nextInOrder": "Next in order",
+        "progressPercent": "{percent}%"
       },
       "progress": {
         "title": "Your progress in the series",
@@ -2086,14 +2352,7 @@
         "reading": "Reading {count}",
         "unread": "Not read {count}",
         "unavailable": "Progress not available yet",
-        "completed": "Series completed"
-      },
-      "next": {
-        "title": "Next book",
-        "book": "Book {number}",
-        "cta": "Go to book",
-        "allRead": "All books read",
-        "empty": "Add the first book"
+        "completed": "Series read"
       },
       "stats": {
         "title": "Series statistics",
@@ -2103,12 +2362,6 @@
         "unread": "Not read",
         "averageRating": "Average rating",
         "pages": "Pages in series"
-      },
-      "actions": {
-        "title": "Actions",
-        "edit": "Edit series",
-        "addBook": "Add a book to the series",
-        "delete": "Delete series"
       },
       "about": {
         "title": "About the series",
@@ -2127,7 +2380,8 @@
         "errorTitle": "Could not load the series",
         "errorDescription": "Try refreshing the page.",
         "back": "Back to series"
-      }
+      },
+      "duplicateParts": "Some books share the same part number: {parts}. The reading order may be inaccurate."
     },
     "editDialog": {
       "title": "Edit series",
@@ -2245,7 +2499,6 @@
       "metaTitle": "Custom lists",
       "title": "Custom lists",
       "subtitle": "Create themed collections and organize books your way",
-      "count": "{count, plural, one {# list} other {# lists}}",
       "create": "Create list",
       "search": {
         "placeholder": "Search lists…"
@@ -2376,7 +2629,6 @@
     "metaTitle": "Borrowed books",
     "title": "Borrowed books",
     "subtitle": "Keep track of books shared between you and other readers",
-    "count": "{count, plural, one {# book} other {# books}}",
     "listHeading": "Borrowed books list",
     "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
     "summary": {

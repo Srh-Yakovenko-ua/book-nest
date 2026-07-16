@@ -1540,3 +1540,673 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
     .min(readingQueueControllerRemoveFromQueueResponseTotalPagesCountMin)
     .max(readingQueueControllerRemoveFromQueueResponseTotalPagesCountMax),
 });
+
+/**
+ * @summary Detect series read-order issues for the current user reading queue
+ */
+export const seriesOrderCheckControllerListIssuesQueryLimitDefault = 3;
+export const seriesOrderCheckControllerListIssuesQueryLimitExclusiveMin = 0;
+export const seriesOrderCheckControllerListIssuesQueryLimitMax = 50;
+
+export const SeriesOrderCheckControllerListIssuesQueryParams = zod.object({
+  limit: zod
+    .number()
+    .gt(seriesOrderCheckControllerListIssuesQueryLimitExclusiveMin)
+    .max(seriesOrderCheckControllerListIssuesQueryLimitMax)
+    .default(seriesOrderCheckControllerListIssuesQueryLimitDefault),
+});
+
+export const seriesOrderCheckControllerListIssuesResponseItemsItemAffectedBookQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerListIssuesResponseItemsItemAffectedBookQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerListIssuesResponseItemsItemAffectedBookSeriesPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerListIssuesResponseItemsItemAffectedBookSeriesPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerListIssuesResponseItemsItemCurrentOrderItemQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerListIssuesResponseItemsItemCurrentOrderItemQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerListIssuesResponseItemsItemCurrentOrderItemSeriesPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerListIssuesResponseItemsItemCurrentOrderItemSeriesPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerListIssuesResponseItemsItemPreviousBookQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerListIssuesResponseItemsItemPreviousBookQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerListIssuesResponseItemsItemPreviousBookSeriesPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerListIssuesResponseItemsItemPreviousBookSeriesPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerListIssuesResponseItemsItemRecommendedOrderItemQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerListIssuesResponseItemsItemRecommendedOrderItemQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerListIssuesResponseItemsItemRecommendedOrderItemSeriesPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerListIssuesResponseItemsItemRecommendedOrderItemSeriesPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerListIssuesResponseItemsItemUnresolvedPreviousCountMin = 0;
+export const seriesOrderCheckControllerListIssuesResponseItemsItemUnresolvedPreviousCountMax = 9007199254740991;
+
+export const seriesOrderCheckControllerListIssuesResponseTotalMin = 0;
+export const seriesOrderCheckControllerListIssuesResponseTotalMax = 9007199254740991;
+
+export const SeriesOrderCheckControllerListIssuesResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      affectedBook: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        isCurrentReading: zod.boolean(),
+        ownershipStatus: zod.enum([
+          "none",
+          "want_to_buy",
+          "in_transit",
+          "owned",
+          "borrowed_from_someone",
+          "lent_to_someone",
+        ]),
+        queuePosition: zod
+          .number()
+          .min(seriesOrderCheckControllerListIssuesResponseItemsItemAffectedBookQueuePositionMin)
+          .max(seriesOrderCheckControllerListIssuesResponseItemsItemAffectedBookQueuePositionMax)
+          .nullable(),
+        readingStatus: zod.enum([
+          "not_started",
+          "want_to_read",
+          "reading",
+          "paused",
+          "finished",
+          "dnf",
+          "rereading",
+        ]),
+        seriesPosition: zod
+          .number()
+          .min(seriesOrderCheckControllerListIssuesResponseItemsItemAffectedBookSeriesPositionMin)
+          .max(seriesOrderCheckControllerListIssuesResponseItemsItemAffectedBookSeriesPositionMax)
+          .nullable(),
+        title: zod.string(),
+      }),
+      allowedActions: zod.array(
+        zod.enum([
+          "ADD_NEXT_PREVIOUS_BEFORE",
+          "ADD_ALL_PREVIOUS_BEFORE",
+          "REORDER_SERIES_SLOTS",
+          "OPEN_PREVIOUS_BOOK",
+          "RESUME_PREVIOUS_BOOK",
+          "ADD_PREVIOUS_TO_WISHLIST",
+          "OPEN_PURCHASE",
+          "OPEN_ORDER",
+          "OPEN_LOAN",
+          "IGNORE_ISSUE",
+          "DISABLE_SERIES_CHECK",
+        ]),
+      ),
+      currentOrder: zod.array(
+        zod.object({
+          bookId: zod.string(),
+          queuePosition: zod
+            .number()
+            .min(
+              seriesOrderCheckControllerListIssuesResponseItemsItemCurrentOrderItemQueuePositionMin,
+            )
+            .max(
+              seriesOrderCheckControllerListIssuesResponseItemsItemCurrentOrderItemQueuePositionMax,
+            )
+            .nullable(),
+          seriesPosition: zod
+            .number()
+            .min(
+              seriesOrderCheckControllerListIssuesResponseItemsItemCurrentOrderItemSeriesPositionMin,
+            )
+            .max(
+              seriesOrderCheckControllerListIssuesResponseItemsItemCurrentOrderItemSeriesPositionMax,
+            )
+            .nullable(),
+          title: zod.string(),
+        }),
+      ),
+      fingerprint: zod.string(),
+      previousBook: zod
+        .object({
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
+          id: zod.string(),
+          isCurrentReading: zod.boolean(),
+          ownershipStatus: zod.enum([
+            "none",
+            "want_to_buy",
+            "in_transit",
+            "owned",
+            "borrowed_from_someone",
+            "lent_to_someone",
+          ]),
+          queuePosition: zod
+            .number()
+            .min(seriesOrderCheckControllerListIssuesResponseItemsItemPreviousBookQueuePositionMin)
+            .max(seriesOrderCheckControllerListIssuesResponseItemsItemPreviousBookQueuePositionMax)
+            .nullable(),
+          readingStatus: zod.enum([
+            "not_started",
+            "want_to_read",
+            "reading",
+            "paused",
+            "finished",
+            "dnf",
+            "rereading",
+          ]),
+          seriesPosition: zod
+            .number()
+            .min(seriesOrderCheckControllerListIssuesResponseItemsItemPreviousBookSeriesPositionMin)
+            .max(seriesOrderCheckControllerListIssuesResponseItemsItemPreviousBookSeriesPositionMax)
+            .nullable(),
+          title: zod.string(),
+        })
+        .nullable(),
+      problemType: zod.enum([
+        "missing_previous_from_queue",
+        "previous_book_after_later_book",
+        "multiple_previous_missing",
+        "previous_book_paused",
+        "current_reading_ahead_of_order",
+        "previous_book_want_to_buy",
+        "previous_book_not_owned",
+        "previous_book_in_transit",
+        "previous_book_lent_out",
+        "multiple_books_out_of_order",
+      ]),
+      recommendedOrder: zod.array(
+        zod.object({
+          bookId: zod.string(),
+          queuePosition: zod
+            .number()
+            .min(
+              seriesOrderCheckControllerListIssuesResponseItemsItemRecommendedOrderItemQueuePositionMin,
+            )
+            .max(
+              seriesOrderCheckControllerListIssuesResponseItemsItemRecommendedOrderItemQueuePositionMax,
+            )
+            .nullable(),
+          seriesPosition: zod
+            .number()
+            .min(
+              seriesOrderCheckControllerListIssuesResponseItemsItemRecommendedOrderItemSeriesPositionMin,
+            )
+            .max(
+              seriesOrderCheckControllerListIssuesResponseItemsItemRecommendedOrderItemSeriesPositionMax,
+            )
+            .nullable(),
+          title: zod.string(),
+        }),
+      ),
+      relatedProblems: zod.array(
+        zod.object({
+          affectedBookId: zod.string(),
+          previousBookId: zod.string().nullable(),
+          problemType: zod.enum([
+            "missing_previous_from_queue",
+            "previous_book_after_later_book",
+            "multiple_previous_missing",
+            "previous_book_paused",
+            "current_reading_ahead_of_order",
+            "previous_book_want_to_buy",
+            "previous_book_not_owned",
+            "previous_book_in_transit",
+            "previous_book_lent_out",
+            "multiple_books_out_of_order",
+          ]),
+        }),
+      ),
+      series: zod.object({
+        id: zod.string(),
+        title: zod.string(),
+      }),
+      severity: zod.enum(["error", "warning", "info"]),
+      unresolvedPreviousCount: zod
+        .number()
+        .min(seriesOrderCheckControllerListIssuesResponseItemsItemUnresolvedPreviousCountMin)
+        .max(seriesOrderCheckControllerListIssuesResponseItemsItemUnresolvedPreviousCountMax),
+    }),
+  ),
+  queueVersion: zod.string(),
+  total: zod
+    .number()
+    .min(seriesOrderCheckControllerListIssuesResponseTotalMin)
+    .max(seriesOrderCheckControllerListIssuesResponseTotalMax),
+});
+
+/**
+ * @summary Preview a series order fix strategy without mutating the queue
+ */
+export const SeriesOrderCheckControllerPreviewFixParams = zod.object({
+  fingerprint: zod.string().describe("The detected issue fingerprint"),
+});
+
+export const seriesOrderCheckControllerPreviewFixBodyExpectedQueueVersionMax = 64;
+
+export const SeriesOrderCheckControllerPreviewFixBody = zod.object({
+  expectedQueueVersion: zod
+    .string()
+    .max(seriesOrderCheckControllerPreviewFixBodyExpectedQueueVersionMax),
+  strategy: zod.enum([
+    "ADD_NEXT_PREVIOUS_BEFORE",
+    "ADD_ALL_PREVIOUS_BEFORE",
+    "REORDER_SERIES_SLOTS",
+  ]),
+});
+
+export const seriesOrderCheckControllerPreviewFixResponseAddedBooksCountMin = 0;
+export const seriesOrderCheckControllerPreviewFixResponseAddedBooksCountMax = 9007199254740991;
+
+export const seriesOrderCheckControllerPreviewFixResponseAfterItemQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerPreviewFixResponseAfterItemQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerPreviewFixResponseBeforeItemQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerPreviewFixResponseBeforeItemQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerPreviewFixResponseChangesItemFromPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerPreviewFixResponseChangesItemFromPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerPreviewFixResponseChangesItemToPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerPreviewFixResponseChangesItemToPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerPreviewFixResponseMovedBooksCountMin = 0;
+export const seriesOrderCheckControllerPreviewFixResponseMovedBooksCountMax = 9007199254740991;
+
+export const seriesOrderCheckControllerPreviewFixResponseShiftedUnrelatedBooksCountMin = 0;
+export const seriesOrderCheckControllerPreviewFixResponseShiftedUnrelatedBooksCountMax = 9007199254740991;
+
+export const SeriesOrderCheckControllerPreviewFixResponse = zod.object({
+  addedBooksCount: zod
+    .number()
+    .min(seriesOrderCheckControllerPreviewFixResponseAddedBooksCountMin)
+    .max(seriesOrderCheckControllerPreviewFixResponseAddedBooksCountMax),
+  after: zod.array(
+    zod.object({
+      belongsToAffectedSeries: zod.boolean(),
+      bookId: zod.string(),
+      queuePosition: zod
+        .number()
+        .min(seriesOrderCheckControllerPreviewFixResponseAfterItemQueuePositionMin)
+        .max(seriesOrderCheckControllerPreviewFixResponseAfterItemQueuePositionMax),
+      title: zod.string(),
+    }),
+  ),
+  before: zod.array(
+    zod.object({
+      belongsToAffectedSeries: zod.boolean(),
+      bookId: zod.string(),
+      queuePosition: zod
+        .number()
+        .min(seriesOrderCheckControllerPreviewFixResponseBeforeItemQueuePositionMin)
+        .max(seriesOrderCheckControllerPreviewFixResponseBeforeItemQueuePositionMax),
+      title: zod.string(),
+    }),
+  ),
+  changes: zod.array(
+    zod.object({
+      bookId: zod.string(),
+      fromPosition: zod
+        .number()
+        .min(seriesOrderCheckControllerPreviewFixResponseChangesItemFromPositionMin)
+        .max(seriesOrderCheckControllerPreviewFixResponseChangesItemFromPositionMax)
+        .nullable(),
+      title: zod.string(),
+      toPosition: zod
+        .number()
+        .min(seriesOrderCheckControllerPreviewFixResponseChangesItemToPositionMin)
+        .max(seriesOrderCheckControllerPreviewFixResponseChangesItemToPositionMax),
+      type: zod.enum(["add", "move"]),
+    }),
+  ),
+  fingerprint: zod.string(),
+  movedBooksCount: zod
+    .number()
+    .min(seriesOrderCheckControllerPreviewFixResponseMovedBooksCountMin)
+    .max(seriesOrderCheckControllerPreviewFixResponseMovedBooksCountMax),
+  queueVersion: zod.string(),
+  series: zod.object({
+    id: zod.string(),
+    title: zod.string(),
+  }),
+  shiftedUnrelatedBooksCount: zod
+    .number()
+    .min(seriesOrderCheckControllerPreviewFixResponseShiftedUnrelatedBooksCountMin)
+    .max(seriesOrderCheckControllerPreviewFixResponseShiftedUnrelatedBooksCountMax),
+  strategy: zod.enum([
+    "ADD_NEXT_PREVIOUS_BEFORE",
+    "ADD_ALL_PREVIOUS_BEFORE",
+    "REORDER_SERIES_SLOTS",
+  ]),
+  warnings: zod.array(zod.string()),
+});
+
+/**
+ * @summary Apply a series order fix strategy atomically to the reading queue
+ */
+export const SeriesOrderCheckControllerApplyFixParams = zod.object({
+  fingerprint: zod.string().describe("The detected issue fingerprint"),
+});
+
+export const seriesOrderCheckControllerApplyFixBodyExpectedQueueVersionMax = 64;
+
+export const SeriesOrderCheckControllerApplyFixBody = zod.object({
+  expectedQueueVersion: zod
+    .string()
+    .max(seriesOrderCheckControllerApplyFixBodyExpectedQueueVersionMax),
+  strategy: zod.enum([
+    "ADD_NEXT_PREVIOUS_BEFORE",
+    "ADD_ALL_PREVIOUS_BEFORE",
+    "REORDER_SERIES_SLOTS",
+  ]),
+});
+
+export const SeriesOrderCheckControllerApplyFixResponse = zod.object({
+  addedBookIds: zod.array(zod.string()),
+  changedBookIds: zod.array(zod.string()),
+  queueVersion: zod.string(),
+  resolvedFingerprint: zod.string(),
+  success: zod.literal(true),
+});
+
+/**
+ * @summary Ignore a detected series order issue for the current user
+ */
+export const SeriesOrderCheckControllerIgnoreIssueParams = zod.object({
+  fingerprint: zod.string().describe("The detected issue fingerprint"),
+});
+
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemAffectedBookQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemAffectedBookQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemAffectedBookSeriesPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemAffectedBookSeriesPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemCurrentOrderItemQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemCurrentOrderItemQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemCurrentOrderItemSeriesPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemCurrentOrderItemSeriesPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemPreviousBookQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemPreviousBookQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemPreviousBookSeriesPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemPreviousBookSeriesPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemRecommendedOrderItemQueuePositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemRecommendedOrderItemQueuePositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemRecommendedOrderItemSeriesPositionMin =
+  -9007199254740991;
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemRecommendedOrderItemSeriesPositionMax = 9007199254740991;
+
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemUnresolvedPreviousCountMin = 0;
+export const seriesOrderCheckControllerIgnoreIssueResponseItemsItemUnresolvedPreviousCountMax = 9007199254740991;
+
+export const seriesOrderCheckControllerIgnoreIssueResponseTotalMin = 0;
+export const seriesOrderCheckControllerIgnoreIssueResponseTotalMax = 9007199254740991;
+
+export const SeriesOrderCheckControllerIgnoreIssueResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      affectedBook: zod.object({
+        cover: zod
+          .object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          })
+          .nullable(),
+        id: zod.string(),
+        isCurrentReading: zod.boolean(),
+        ownershipStatus: zod.enum([
+          "none",
+          "want_to_buy",
+          "in_transit",
+          "owned",
+          "borrowed_from_someone",
+          "lent_to_someone",
+        ]),
+        queuePosition: zod
+          .number()
+          .min(seriesOrderCheckControllerIgnoreIssueResponseItemsItemAffectedBookQueuePositionMin)
+          .max(seriesOrderCheckControllerIgnoreIssueResponseItemsItemAffectedBookQueuePositionMax)
+          .nullable(),
+        readingStatus: zod.enum([
+          "not_started",
+          "want_to_read",
+          "reading",
+          "paused",
+          "finished",
+          "dnf",
+          "rereading",
+        ]),
+        seriesPosition: zod
+          .number()
+          .min(seriesOrderCheckControllerIgnoreIssueResponseItemsItemAffectedBookSeriesPositionMin)
+          .max(seriesOrderCheckControllerIgnoreIssueResponseItemsItemAffectedBookSeriesPositionMax)
+          .nullable(),
+        title: zod.string(),
+      }),
+      allowedActions: zod.array(
+        zod.enum([
+          "ADD_NEXT_PREVIOUS_BEFORE",
+          "ADD_ALL_PREVIOUS_BEFORE",
+          "REORDER_SERIES_SLOTS",
+          "OPEN_PREVIOUS_BOOK",
+          "RESUME_PREVIOUS_BOOK",
+          "ADD_PREVIOUS_TO_WISHLIST",
+          "OPEN_PURCHASE",
+          "OPEN_ORDER",
+          "OPEN_LOAN",
+          "IGNORE_ISSUE",
+          "DISABLE_SERIES_CHECK",
+        ]),
+      ),
+      currentOrder: zod.array(
+        zod.object({
+          bookId: zod.string(),
+          queuePosition: zod
+            .number()
+            .min(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemCurrentOrderItemQueuePositionMin,
+            )
+            .max(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemCurrentOrderItemQueuePositionMax,
+            )
+            .nullable(),
+          seriesPosition: zod
+            .number()
+            .min(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemCurrentOrderItemSeriesPositionMin,
+            )
+            .max(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemCurrentOrderItemSeriesPositionMax,
+            )
+            .nullable(),
+          title: zod.string(),
+        }),
+      ),
+      fingerprint: zod.string(),
+      previousBook: zod
+        .object({
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
+          id: zod.string(),
+          isCurrentReading: zod.boolean(),
+          ownershipStatus: zod.enum([
+            "none",
+            "want_to_buy",
+            "in_transit",
+            "owned",
+            "borrowed_from_someone",
+            "lent_to_someone",
+          ]),
+          queuePosition: zod
+            .number()
+            .min(seriesOrderCheckControllerIgnoreIssueResponseItemsItemPreviousBookQueuePositionMin)
+            .max(seriesOrderCheckControllerIgnoreIssueResponseItemsItemPreviousBookQueuePositionMax)
+            .nullable(),
+          readingStatus: zod.enum([
+            "not_started",
+            "want_to_read",
+            "reading",
+            "paused",
+            "finished",
+            "dnf",
+            "rereading",
+          ]),
+          seriesPosition: zod
+            .number()
+            .min(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemPreviousBookSeriesPositionMin,
+            )
+            .max(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemPreviousBookSeriesPositionMax,
+            )
+            .nullable(),
+          title: zod.string(),
+        })
+        .nullable(),
+      problemType: zod.enum([
+        "missing_previous_from_queue",
+        "previous_book_after_later_book",
+        "multiple_previous_missing",
+        "previous_book_paused",
+        "current_reading_ahead_of_order",
+        "previous_book_want_to_buy",
+        "previous_book_not_owned",
+        "previous_book_in_transit",
+        "previous_book_lent_out",
+        "multiple_books_out_of_order",
+      ]),
+      recommendedOrder: zod.array(
+        zod.object({
+          bookId: zod.string(),
+          queuePosition: zod
+            .number()
+            .min(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemRecommendedOrderItemQueuePositionMin,
+            )
+            .max(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemRecommendedOrderItemQueuePositionMax,
+            )
+            .nullable(),
+          seriesPosition: zod
+            .number()
+            .min(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemRecommendedOrderItemSeriesPositionMin,
+            )
+            .max(
+              seriesOrderCheckControllerIgnoreIssueResponseItemsItemRecommendedOrderItemSeriesPositionMax,
+            )
+            .nullable(),
+          title: zod.string(),
+        }),
+      ),
+      relatedProblems: zod.array(
+        zod.object({
+          affectedBookId: zod.string(),
+          previousBookId: zod.string().nullable(),
+          problemType: zod.enum([
+            "missing_previous_from_queue",
+            "previous_book_after_later_book",
+            "multiple_previous_missing",
+            "previous_book_paused",
+            "current_reading_ahead_of_order",
+            "previous_book_want_to_buy",
+            "previous_book_not_owned",
+            "previous_book_in_transit",
+            "previous_book_lent_out",
+            "multiple_books_out_of_order",
+          ]),
+        }),
+      ),
+      series: zod.object({
+        id: zod.string(),
+        title: zod.string(),
+      }),
+      severity: zod.enum(["error", "warning", "info"]),
+      unresolvedPreviousCount: zod
+        .number()
+        .min(seriesOrderCheckControllerIgnoreIssueResponseItemsItemUnresolvedPreviousCountMin)
+        .max(seriesOrderCheckControllerIgnoreIssueResponseItemsItemUnresolvedPreviousCountMax),
+    }),
+  ),
+  queueVersion: zod.string(),
+  total: zod
+    .number()
+    .min(seriesOrderCheckControllerIgnoreIssueResponseTotalMin)
+    .max(seriesOrderCheckControllerIgnoreIssueResponseTotalMax),
+});

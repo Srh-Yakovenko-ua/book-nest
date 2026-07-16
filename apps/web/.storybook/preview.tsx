@@ -2,6 +2,7 @@ import type { Decorator, Preview } from "@storybook/react";
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { NextIntlClientProvider } from "next-intl";
+import { NuqsAdapter } from "nuqs/adapters/react";
 import React, { useEffect } from "react";
 
 import { TooltipProvider } from "../src/components/ui/tooltip";
@@ -25,13 +26,15 @@ const ThemeDecorator: Decorator = (Story, context) => {
 };
 
 const ProvidersDecorator: Decorator = (Story) => (
-  <QueryClientProvider client={getQueryClient()}>
-    <NextIntlClientProvider locale="uk" messages={messages}>
-      <TooltipProvider>
-        <Story />
-      </TooltipProvider>
-    </NextIntlClientProvider>
-  </QueryClientProvider>
+  <NuqsAdapter>
+    <QueryClientProvider client={getQueryClient()}>
+      <NextIntlClientProvider locale="uk" messages={messages}>
+        <TooltipProvider>
+          <Story />
+        </TooltipProvider>
+      </NextIntlClientProvider>
+    </QueryClientProvider>
+  </NuqsAdapter>
 );
 
 const preview: Preview = {

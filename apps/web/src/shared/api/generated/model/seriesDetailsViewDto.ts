@@ -8,6 +8,7 @@
 import type { SeriesDetailsViewDtoAuthorsItem } from "./seriesDetailsViewDtoAuthorsItem";
 import type { SeriesDetailsViewDtoBooksItem } from "./seriesDetailsViewDtoBooksItem";
 import type { SeriesDetailsViewDtoNextBook } from "./seriesDetailsViewDtoNextBook";
+import type { SeriesDetailsViewDtoPublishersItem } from "./seriesDetailsViewDtoPublishersItem";
 import type { SeriesDetailsViewDtoStats } from "./seriesDetailsViewDtoStats";
 import type { SeriesDetailsViewDtoStatus } from "./seriesDetailsViewDtoStatus";
 
@@ -29,5 +30,6 @@ export interface SeriesDetailsViewDto {
   /** @nullable */
   totalBooks: number | null;
   books: SeriesDetailsViewDtoBooksItem[];
+  publishers: SeriesDetailsViewDtoPublishersItem[];
   stats: SeriesDetailsViewDtoStats;
 }

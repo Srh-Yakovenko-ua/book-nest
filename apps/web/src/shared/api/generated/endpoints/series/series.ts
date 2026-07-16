@@ -25,6 +25,8 @@ import type {
   SeriesControllerFavoriteContinuationsParams,
   SeriesControllerSearchParams,
   SeriesDetailsViewDto,
+  SeriesOrderCheckPreferenceInputDto,
+  SeriesOrderPreferenceViewDto,
   SeriesOverviewViewDto,
   SeriesViewDto,
   UpdateSeriesInputDto,
@@ -1230,6 +1232,232 @@ export function useSeriesControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getSeriesControllerDeleteQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesOrderPreferenceControllerSetPreferenceResponse200 = {
+  data: SeriesOrderPreferenceViewDto;
+  status: 200;
+};
+
+export type seriesOrderPreferenceControllerSetPreferenceResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type seriesOrderPreferenceControllerSetPreferenceResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesOrderPreferenceControllerSetPreferenceResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type seriesOrderPreferenceControllerSetPreferenceResponseSuccess =
+  seriesOrderPreferenceControllerSetPreferenceResponse200 & {
+    headers: Headers;
+  };
+export type seriesOrderPreferenceControllerSetPreferenceResponseError = (
+  | seriesOrderPreferenceControllerSetPreferenceResponse400
+  | seriesOrderPreferenceControllerSetPreferenceResponse401
+  | seriesOrderPreferenceControllerSetPreferenceResponse404
+) & {
+  headers: Headers;
+};
+
+export type seriesOrderPreferenceControllerSetPreferenceResponse =
+  | seriesOrderPreferenceControllerSetPreferenceResponseSuccess
+  | seriesOrderPreferenceControllerSetPreferenceResponseError;
+
+export const getSeriesOrderPreferenceControllerSetPreferenceUrl = (seriesId: string) => {
+  return `/api/series/${seriesId}/order-check-preference`;
+};
+
+/**
+ * @summary Enable or disable the series read-order check for a series
+ */
+export const seriesOrderPreferenceControllerSetPreference = async (
+  seriesId: string,
+  seriesOrderCheckPreferenceInputDto: SeriesOrderCheckPreferenceInputDto,
+  options?: RequestInit,
+): Promise<seriesOrderPreferenceControllerSetPreferenceResponse> => {
+  return customInstance<seriesOrderPreferenceControllerSetPreferenceResponse>(
+    getSeriesOrderPreferenceControllerSetPreferenceUrl(seriesId),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(seriesOrderCheckPreferenceInputDto),
+    },
+  );
+};
+
+export const getSeriesOrderPreferenceControllerSetPreferenceQueryKey = (
+  seriesId: string,
+  seriesOrderCheckPreferenceInputDto?: SeriesOrderCheckPreferenceInputDto,
+) => {
+  return [
+    "PUT",
+    `/api/series/${seriesId}/order-check-preference`,
+    seriesOrderCheckPreferenceInputDto,
+  ] as const;
+};
+
+export const getSeriesOrderPreferenceControllerSetPreferenceQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  seriesOrderCheckPreferenceInputDto: SeriesOrderCheckPreferenceInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getSeriesOrderPreferenceControllerSetPreferenceQueryKey(
+      seriesId,
+      seriesOrderCheckPreferenceInputDto,
+    );
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>
+  > = ({ signal }) =>
+    seriesOrderPreferenceControllerSetPreference(seriesId, seriesOrderCheckPreferenceInputDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: seriesId !== null && seriesId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesOrderPreferenceControllerSetPreferenceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>
+>;
+export type SeriesOrderPreferenceControllerSetPreferenceQueryError = void;
+
+export function useSeriesOrderPreferenceControllerSetPreference<
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  seriesOrderCheckPreferenceInputDto: SeriesOrderCheckPreferenceInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderPreferenceControllerSetPreference<
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  seriesOrderCheckPreferenceInputDto: SeriesOrderCheckPreferenceInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderPreferenceControllerSetPreference<
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  seriesOrderCheckPreferenceInputDto: SeriesOrderCheckPreferenceInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Enable or disable the series read-order check for a series
+ */
+
+export function useSeriesOrderPreferenceControllerSetPreference<
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  seriesOrderCheckPreferenceInputDto: SeriesOrderCheckPreferenceInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerSetPreference>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesOrderPreferenceControllerSetPreferenceQueryOptions(
+    seriesId,
+    seriesOrderCheckPreferenceInputDto,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

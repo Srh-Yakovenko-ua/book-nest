@@ -5,14 +5,17 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
+import type { DeliveryControllerHistoryListTab } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
+import { pageTabsTriggerId } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import type { DeliveryHistoryCardModel } from "../model/history-card-model";
 
+import { DELIVERY_HISTORY_PANEL_ID } from "../model/history-params";
 import { DeliverySubnav } from "./delivery-subnav";
 
 export type HistoryContent =
@@ -32,6 +35,7 @@ type DeliveryHistoryViewProps = {
   renderCard: (model: DeliveryHistoryCardModel) => ReactNode;
   showToolbar: boolean;
   summary: ReactNode;
+  tab: DeliveryControllerHistoryListTab;
   toolbar: ReactNode;
 };
 
@@ -47,6 +51,7 @@ export function DeliveryHistoryView({
   renderCard,
   showToolbar,
   summary,
+  tab,
   toolbar,
 }: DeliveryHistoryViewProps) {
   const t = useTranslations("delivery.history");
@@ -71,7 +76,16 @@ export function DeliveryHistoryView({
 
       {showToolbar ? toolbar : null}
 
-      <div className="flex min-w-0 flex-col gap-6">
+      <div
+        className="flex min-w-0 flex-col gap-6"
+        {...(showToolbar
+          ? {
+              "aria-labelledby": pageTabsTriggerId(DELIVERY_HISTORY_PANEL_ID, tab),
+              id: DELIVERY_HISTORY_PANEL_ID,
+              role: "tabpanel",
+            }
+          : {})}
+      >
         <h2 className="sr-only">{t("resultsTitle")}</h2>
         <HistoryContentArea
           content={content}
