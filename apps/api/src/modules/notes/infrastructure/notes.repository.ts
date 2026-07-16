@@ -7,6 +7,7 @@ import type {
   Nullable,
 } from "@app/shared";
 
+import { NOTE_PAGE_MAX } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -21,9 +22,14 @@ import { type NoteSummaryCounts } from "../domain/note-summary.js";
 
 const noteEntityArgs = {
   include: {
-    book: { select: { coverMedia: true, id: true, title: true } },
+    book: { select: { coverMedia: true, firstAuthorName: true, id: true, title: true } },
     series: {
       select: {
+        _count: { select: { books: true } },
+        authors: {
+          orderBy: { author: { name: "asc" } },
+          select: { author: { select: { name: true } } },
+        },
         books: {
           orderBy: [{ partNumber: "asc" }, { createdAt: "asc" }],
           select: { coverMedia: true },
@@ -55,6 +61,7 @@ export type CreateNoteData = {
 export type NotesFilterInput = {
   bookId: string | undefined;
   category: NoteCategory | undefined;
+  customCategory: string | undefined;
   entityType: NoteEntityFilter;
   filter: NoteFilter;
   hasChapter: boolean | undefined;
@@ -65,6 +72,12 @@ export type NotesFilterInput = {
 };
 
 export type NoteWithEntity = Prisma.NoteGetPayload<typeof noteEntityArgs>;
+
+export type UpdateNoteArgs = {
+  fields: UpdateNoteFields;
+  noteId: string;
+  userId: string;
+};
 
 export type UpdateNoteFields = {
   category?: Nullable<string>;
@@ -141,6 +154,7 @@ export class NotesRepository {
       pinnedCount,
       bookGroups,
       seriesGroups,
+      customCategoryRows,
     ] = await Promise.all([
       this.prisma.note.count({ where: base }),
       this.prisma.note.count({ where: { ...base, entityType: "book" } }),
@@ -149,9 +163,18 @@ export class NotesRepository {
       this.prisma.note.count({ where: { ...base, isPinned: true } }),
       this.prisma.note.groupBy({ by: ["bookId"], where: { ...base, bookId: { not: null } } }),
       this.prisma.note.groupBy({ by: ["seriesId"], where: { ...base, seriesId: { not: null } } }),
+      this.prisma.note.findMany({
+        distinct: ["customCategory"],
+        orderBy: { customCategory: "asc" },
+        select: { customCategory: true },
+        where: { ...base, customCategory: { not: null } },
+      }),
     ]);
 
     return {
+      availableCustomCategories: customCategoryRows
+        .map((row) => row.customCategory)
+        .filter((value): value is string => value !== null),
       bookNotesCount,
       booksWithNotesCount: bookGroups.length,
       favoriteCount,
@@ -162,8 +185,12 @@ export class NotesRepository {
     };
   }
 
-  update(noteId: string, fields: UpdateNoteFields): Promise<NoteWithEntity> {
-    return this.prisma.note.update({ data: fields, where: { id: noteId }, ...noteEntityArgs });
+  update({ fields, noteId, userId }: UpdateNoteArgs): Promise<NoteWithEntity> {
+    return this.prisma.note.update({
+      data: fields,
+      where: { id: noteId, userId },
+      ...noteEntityArgs,
+    });
   }
 }
 
@@ -204,7 +231,12 @@ function buildNoteSearchConditions(search: string): Prisma.NoteWhereInput[] {
   ];
 
   const parsedPage = Number.parseInt(search, 10);
-  if (Number.isInteger(parsedPage) && parsedPage > 0 && String(parsedPage) === search) {
+  if (
+    Number.isInteger(parsedPage) &&
+    parsedPage > 0 &&
+    parsedPage <= NOTE_PAGE_MAX &&
+    String(parsedPage) === search
+  ) {
     conditions.push({ page: parsedPage });
   }
 
@@ -214,6 +246,7 @@ function buildNoteSearchConditions(search: string): Prisma.NoteWhereInput[] {
 function buildNotesWhere({
   bookId,
   category,
+  customCategory,
   entityType,
   filter,
   hasChapter,
@@ -229,6 +262,9 @@ function buildNotesWhere({
   }
   if (category !== undefined) {
     where.category = category;
+  }
+  if (customCategory !== undefined) {
+    where.customCategory = customCategory;
   }
   if (bookId !== undefined) {
     where.bookId = bookId;

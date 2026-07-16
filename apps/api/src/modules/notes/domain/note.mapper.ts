@@ -2,13 +2,15 @@ import type { MediaView, NoteView, Nullable } from "@app/shared";
 
 import { NoteCategorySchema, NoteEntityTypeSchema } from "@app/shared";
 
+import { emptyToNull } from "./note-fields.js";
+
 export type NoteEntityCovers = {
   book: Nullable<MediaView>;
   series: Nullable<MediaView>;
 };
 
 type NoteMapperSource = {
-  book: Nullable<{ id: string; title: string }>;
+  book: Nullable<{ firstAuthorName: string; id: string; title: string }>;
   category: Nullable<string>;
   chapter: Nullable<string>;
   createdAt: Date;
@@ -19,7 +21,12 @@ type NoteMapperSource = {
   isPinned: boolean;
   isSpoiler: boolean;
   page: Nullable<number>;
-  series: Nullable<{ id: string; name: string }>;
+  series: Nullable<{
+    _count: { books: number };
+    authors: { author: { name: string } }[];
+    id: string;
+    name: string;
+  }>;
   text: string;
   updatedAt: Date;
 };
@@ -27,7 +34,14 @@ type NoteMapperSource = {
 export function toNoteView(note: NoteMapperSource, covers: NoteEntityCovers): NoteView {
   return {
     book:
-      note.book === null ? null : { cover: covers.book, id: note.book.id, title: note.book.title },
+      note.book === null
+        ? null
+        : {
+            author: emptyToNull(note.book.firstAuthorName),
+            cover: covers.book,
+            id: note.book.id,
+            title: note.book.title,
+          },
     category: note.category === null ? null : NoteCategorySchema.parse(note.category),
     chapter: note.chapter,
     createdAt: note.createdAt.toISOString(),
@@ -41,7 +55,13 @@ export function toNoteView(note: NoteMapperSource, covers: NoteEntityCovers): No
     series:
       note.series === null
         ? null
-        : { cover: covers.series, id: note.series.id, name: note.series.name },
+        : {
+            authors: note.series.authors.map((seriesAuthor) => seriesAuthor.author.name),
+            booksCount: note.series._count.books,
+            cover: covers.series,
+            id: note.series.id,
+            name: note.series.name,
+          },
     text: note.text,
     updatedAt: note.updatedAt.toISOString(),
   };

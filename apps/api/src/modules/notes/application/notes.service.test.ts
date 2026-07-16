@@ -17,6 +17,7 @@ const SERIES_ID = "33333333-3333-3333-3333-333333333333";
 const NOTE_ID = "44444444-4444-4444-4444-444444444444";
 
 const EMPTY_COUNTS: NoteSummaryCounts = {
+  availableCustomCategories: [],
   bookNotesCount: 0,
   booksWithNotesCount: 0,
   favoriteCount: 0,
@@ -69,7 +70,7 @@ function createService(config: ServiceConfig = {}): {
 
 function makeBookNote(overrides: Partial<NoteWithEntity> = {}): NoteWithEntity {
   return {
-    book: { coverMedia: null, id: BOOK_ID, title: "Dune" },
+    book: { coverMedia: null, firstAuthorName: "Frank Herbert", id: BOOK_ID, title: "Dune" },
     bookId: BOOK_ID,
     category: null,
     chapter: null,
@@ -197,7 +198,11 @@ describe("NotesService edit", () => {
 
     await service.editNote(USER_ID, NOTE_ID, { isFavorite: true });
 
-    expect(update).toHaveBeenCalledWith(NOTE_ID, { isFavorite: true });
+    expect(update).toHaveBeenCalledWith({
+      fields: { isFavorite: true },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
   });
 
   it("clears the custom category when switching to a non-other category", async () => {
@@ -206,7 +211,11 @@ describe("NotesService edit", () => {
 
     await service.editNote(USER_ID, NOTE_ID, { category: "plot" });
 
-    expect(update).toHaveBeenCalledWith(NOTE_ID, { category: "plot", customCategory: null });
+    expect(update).toHaveBeenCalledWith({
+      fields: { category: "plot", customCategory: null },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
   });
 
   it("sets the custom category when only the custom label changes on an other note", async () => {
@@ -215,7 +224,11 @@ describe("NotesService edit", () => {
 
     await service.editNote(USER_ID, NOTE_ID, { customCategory: "romance arc" });
 
-    expect(update).toHaveBeenCalledWith(NOTE_ID, { customCategory: "romance arc" });
+    expect(update).toHaveBeenCalledWith({
+      fields: { customCategory: "romance arc" },
+      noteId: NOTE_ID,
+      userId: USER_ID,
+    });
   });
 });
 
@@ -223,6 +236,7 @@ describe("NotesService summary", () => {
   it("maps repository counts into the summary view", async () => {
     const { service } = createService({
       summaryResult: {
+        availableCustomCategories: ["romance arc"],
         bookNotesCount: 4,
         booksWithNotesCount: 2,
         favoriteCount: 1,
@@ -237,5 +251,6 @@ describe("NotesService summary", () => {
 
     expect(summary.seriesNotesCount).toBe(2);
     expect(summary.withoutSpoilerCount).toBe(4);
+    expect(summary.availableCustomCategories).toEqual(["romance arc"]);
   });
 });

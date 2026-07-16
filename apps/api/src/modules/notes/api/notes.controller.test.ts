@@ -355,6 +355,118 @@ describe("notes archive", () => {
   });
 });
 
+describe("note page bounds (int4)", () => {
+  const OUT_OF_RANGE_PAGE = 3_000_000_000;
+
+  it("rejects an out-of-range page on create and update without a 500", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const created = await createBookNote(
+      accessToken,
+      bookId,
+      noteBody({ page: OUT_OF_RANGE_PAGE }),
+    );
+    expect(created.status).toBe(HttpStatus.BAD_REQUEST);
+
+    const valid = await createBookNote(accessToken, bookId, noteBody({ page: 42 }));
+    expect(valid.status).toBe(HttpStatus.CREATED);
+
+    const edited = await authed("patch", `/api/notes/${valid.body.id}`, accessToken).send({
+      page: OUT_OF_RANGE_PAGE,
+    });
+    expect(edited.status).toBe(HttpStatus.BAD_REQUEST);
+  });
+
+  it("treats an out-of-range numeric search as an empty result without a 500", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    await createBookNote(accessToken, bookId, noteBody({ page: 200 }));
+
+    const res = await authed("get", "/api/notes?search=9999999999", accessToken);
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.totalCount).toBe(0);
+  });
+});
+
+describe("note entity previews", () => {
+  it("exposes the book author and the series authors + books count", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const bookId = await createBook(accessToken, {
+      authors: [{ name: "N. K. Jemisin" }],
+      title: "The Fifth Season",
+    });
+    await createBookNote(accessToken, bookId, noteBody());
+
+    const seriesRes = await authed("post", "/api/series", accessToken).send({
+      authors: [{ name: "Ursula Le Guin" }],
+      name: "Earthsea",
+    });
+    expect(seriesRes.status).toBe(HttpStatus.CREATED);
+    const seriesId = seriesRes.body.id;
+
+    await createBook(accessToken, {
+      authors: [{ name: "Ursula Le Guin" }],
+      bookType: "series_part",
+      partNumber: 1,
+      seriesId,
+      title: "A Wizard of Earthsea",
+    });
+    await authed("post", `/api/series/${seriesId}/notes`, accessToken).send(noteBody());
+
+    const bookNotes = await authed("get", `/api/books/${bookId}/notes`, accessToken);
+    expect(bookNotes.body.notes[0].book.author).toBe("N. K. Jemisin");
+
+    const seriesNotes = await authed("get", `/api/series/${seriesId}/notes`, accessToken);
+    expect(seriesNotes.body.notes[0].series.authors).toEqual(["Ursula Le Guin"]);
+    expect(seriesNotes.body.notes[0].series.booksCount).toBe(1);
+
+    const archive = await authed("get", "/api/notes?entityType=series", accessToken);
+    expect(archive.body.items[0].series.authors).toEqual(["Ursula Le Guin"]);
+    expect(archive.body.items[0].series.booksCount).toBe(1);
+  });
+});
+
+describe("custom category filter", () => {
+  it("filters by a custom category and lists the distinct custom categories", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    await createBookNote(
+      accessToken,
+      bookId,
+      noteBody({ category: "other", customCategory: "translation notes" }),
+    );
+    await createBookNote(
+      accessToken,
+      bookId,
+      noteBody({ category: "other", customCategory: "translation notes" }),
+    );
+    await createBookNote(
+      accessToken,
+      bookId,
+      noteBody({ category: "other", customCategory: "cover design" }),
+    );
+    await createBookNote(accessToken, bookId, noteBody({ category: "plot" }));
+
+    const filtered = await authed(
+      "get",
+      "/api/notes?customCategory=translation notes",
+      accessToken,
+    );
+    expect(filtered.body.totalCount).toBe(2);
+    expect(
+      filtered.body.items.every(
+        (note: { customCategory: string }) => note.customCategory === "translation notes",
+      ),
+    ).toBe(true);
+
+    const summary = await authed("get", "/api/notes/summary", accessToken);
+    expect(summary.body.availableCustomCategories).toEqual(["cover design", "translation notes"]);
+  });
+});
+
 describe("cascade and invariants", () => {
   it("removes notes when their book or series is deleted", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();

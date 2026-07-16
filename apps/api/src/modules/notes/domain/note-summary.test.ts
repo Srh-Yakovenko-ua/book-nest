@@ -5,6 +5,7 @@ import { buildNotesSummary } from "./note-summary.js";
 describe("buildNotesSummary", () => {
   it("derives series and non-spoiler counts from totals", () => {
     const summary = buildNotesSummary({
+      availableCustomCategories: ["finale", "romance arc"],
       bookNotesCount: 7,
       booksWithNotesCount: 3,
       favoriteCount: 4,
@@ -15,6 +16,7 @@ describe("buildNotesSummary", () => {
     });
 
     expect(summary).toStrictEqual({
+      availableCustomCategories: ["finale", "romance arc"],
       bookNotesCount: 7,
       booksWithNotesCount: 3,
       favoriteCount: 4,
@@ -29,6 +31,7 @@ describe("buildNotesSummary", () => {
 
   it("returns all zeroes for an empty archive", () => {
     const summary = buildNotesSummary({
+      availableCustomCategories: [],
       bookNotesCount: 0,
       booksWithNotesCount: 0,
       favoriteCount: 0,
@@ -40,5 +43,6 @@ describe("buildNotesSummary", () => {
 
     expect(summary.seriesNotesCount).toBe(0);
     expect(summary.withoutSpoilerCount).toBe(0);
+    expect(summary.availableCustomCategories).toEqual([]);
   });
 });

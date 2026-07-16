@@ -44,6 +44,7 @@ export class NotesController {
   @ApiQuery({ name: "filter", required: false })
   @ApiQuery({ name: "entityType", required: false })
   @ApiQuery({ name: "category", required: false })
+  @ApiQuery({ name: "customCategory", required: false })
   @ApiQuery({ name: "bookId", required: false })
   @ApiQuery({ name: "seriesId", required: false })
   @ApiQuery({ name: "hasPage", required: false })

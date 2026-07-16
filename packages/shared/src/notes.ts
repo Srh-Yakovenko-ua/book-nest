@@ -9,6 +9,8 @@ const NOTE_CHAPTER_MAX = 100;
 const NOTE_SEARCH_MAX = 100;
 const NOTES_DEFAULT_PAGE_SIZE = 20;
 
+export const NOTE_PAGE_MAX = 2147483647;
+
 export const NOTE_ERROR_CODES = {
   bookNotFound: "note_book_not_found",
   noteNotFound: "note_not_found",
@@ -67,7 +69,7 @@ export const CreateNoteInputSchema = z.object({
   isFavorite: z.boolean().default(false),
   isPinned: z.boolean().default(false),
   isSpoiler: z.boolean().default(false),
-  page: z.coerce.number().int().positive().nullish(),
+  page: z.coerce.number().int().positive().max(NOTE_PAGE_MAX).nullish(),
   text: z.string().trim().min(1).max(NOTE_TEXT_MAX),
 });
 
@@ -80,7 +82,7 @@ export const UpdateNoteInputSchema = z.object({
   isFavorite: z.boolean().optional(),
   isPinned: z.boolean().optional(),
   isSpoiler: z.boolean().optional(),
-  page: z.coerce.number().int().positive().nullish(),
+  page: z.coerce.number().int().positive().max(NOTE_PAGE_MAX).nullish(),
   text: z.string().trim().min(1).max(NOTE_TEXT_MAX).optional(),
 });
 
@@ -89,6 +91,7 @@ export type UpdateNoteInput = z.infer<typeof UpdateNoteInputSchema>;
 export const NotesQuerySchema = z.object({
   bookId: z.string().uuid().optional(),
   category: NoteCategorySchema.optional(),
+  customCategory: z.string().trim().min(1).max(NOTE_CUSTOM_CATEGORY_MAX).optional(),
   entityType: NoteEntityFilterSchema.default("all"),
   filter: NoteFilterSchema.default("all"),
   hasChapter: NoteBooleanQuerySchema.optional(),
@@ -103,6 +106,7 @@ export const NotesQuerySchema = z.object({
 export type NotesQuery = z.infer<typeof NotesQuerySchema>;
 
 export const NoteBookPreviewSchema = z.object({
+  author: z.string().nullable(),
   cover: MediaViewSchema.nullable(),
   id: z.string(),
   title: z.string(),
@@ -111,6 +115,8 @@ export const NoteBookPreviewSchema = z.object({
 export type NoteBookPreview = z.infer<typeof NoteBookPreviewSchema>;
 
 export const NoteSeriesPreviewSchema = z.object({
+  authors: z.array(z.string()),
+  booksCount: z.number().int().nonnegative(),
   cover: MediaViewSchema.nullable(),
   id: z.string(),
   name: z.string(),
@@ -147,6 +153,7 @@ export const EntityNotesViewSchema = z.object({
 export type EntityNotesView = z.infer<typeof EntityNotesViewSchema>;
 
 export const NotesSummaryViewSchema = z.object({
+  availableCustomCategories: z.array(z.string()),
   bookNotesCount: z.number().int().nonnegative(),
   booksWithNotesCount: z.number().int().nonnegative(),
   favoriteCount: z.number().int().nonnegative(),

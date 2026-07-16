@@ -104,7 +104,7 @@ export class NotesService {
     }
 
     const fields = this.buildUpdateFields(current, input);
-    const updated = await this.notesRepository.update(noteId, fields);
+    const updated = await this.notesRepository.update({ fields, noteId, userId });
     return this.toView(updated);
   }
 
@@ -118,6 +118,7 @@ export class NotesService {
     const filter = {
       bookId: query.bookId,
       category: query.category,
+      customCategory: query.customCategory,
       entityType: query.entityType,
       filter: query.filter,
       hasChapter: query.hasChapter,

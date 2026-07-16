@@ -1,6 +1,7 @@
 import type { NotesSummaryView } from "@app/shared";
 
 export type NoteSummaryCounts = {
+  availableCustomCategories: string[];
   bookNotesCount: number;
   booksWithNotesCount: number;
   favoriteCount: number;
@@ -12,6 +13,7 @@ export type NoteSummaryCounts = {
 
 export function buildNotesSummary(counts: NoteSummaryCounts): NotesSummaryView {
   return {
+    availableCustomCategories: counts.availableCustomCategories,
     bookNotesCount: counts.bookNotesCount,
     booksWithNotesCount: counts.booksWithNotesCount,
     favoriteCount: counts.favoriteCount,
