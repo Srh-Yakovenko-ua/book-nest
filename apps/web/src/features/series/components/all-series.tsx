@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
@@ -13,16 +14,18 @@ import {
   filterSeries,
   isSeriesUnfinished,
   SERIES_SORT_DEFAULT,
+  SERIES_TABS,
   type SeriesReadingFilter,
   type SeriesSort,
   type SeriesStatusFilter,
-  type SeriesTab,
   sortSeries,
 } from "../model/series-derive";
 import { AllSeriesView } from "./all-series-view";
 import { CreateSeriesDialog } from "./create-series-dialog";
 import { SeriesSidebar } from "./series-sidebar";
 import { SeriesToolbar } from "./series-toolbar";
+
+const tabParser = parseAsStringLiteral(SERIES_TABS).withDefault("all");
 
 export function AllSeries() {
   const t = useTranslations("series.summary");
@@ -31,7 +34,7 @@ export function AllSeries() {
   const { data, isError, isPending, refetch } = useSeriesList();
   const overview = useSeriesOverview();
 
-  const [tab, setTab] = useState<SeriesTab>("all");
+  const [tab, setTab] = useQueryState("tab", tabParser);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SeriesStatusFilter>("all");
   const [readingFilter, setReadingFilter] = useState<SeriesReadingFilter>("all");
@@ -72,15 +75,15 @@ export function AllSeries() {
         onCreateSeries={() => setDialogOpen(true)}
         onOverviewRetry={() => void overview.refetch()}
         onRetry={() => void refetch()}
-        onShowAll={() => setTab("all")}
-        onTabChange={setTab}
+        onShowAll={() => void setTab("all")}
+        onTabChange={(value) => void setTab(value)}
         series={visibleSeries}
         sidebar={
           <SeriesSidebar
             isError={overview.isError}
             isLoading={overview.isPending}
             onCreateSeries={() => setDialogOpen(true)}
-            onGoToUnfinished={() => setTab("unfinished")}
+            onGoToUnfinished={() => void setTab("unfinished")}
             onRetry={() => void overview.refetch()}
             overview={overview.data}
           />

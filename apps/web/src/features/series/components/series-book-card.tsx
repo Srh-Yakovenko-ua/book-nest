@@ -2,9 +2,12 @@
 
 import type { SeriesBookView, SeriesDetailsView } from "@app/shared";
 
+import { ArrowRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
+
+import type { LibraryBook } from "@/features/books/model/library-book";
 
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { useUpdateBook } from "@/features/books/api/use-update-book";
 import { BookRow } from "@/features/books/components/book-row";
 import { Link } from "@/i18n/navigation";
@@ -27,6 +31,7 @@ import type { SeriesBookProgress } from "../model/series-library-book";
 import {
   isReadingNow,
   seriesBookProgress,
+  seriesBookRouteState,
   toSeriesLibraryBook,
 } from "../model/series-library-book";
 import { RemoveBookFromSeriesDialog } from "./remove-book-from-series-dialog";
@@ -59,6 +64,7 @@ export function SeriesBookCard({ book, isNextInOrder, seriesAuthors }: SeriesBoo
     seriesAuthors,
   });
   const progress = seriesBookProgress(book);
+  const routeState = seriesBookRouteState({ isNextInOrder, readingStatus: book.readingStatus });
   const favoriteLabel = book.isFavorite
     ? tLibrary("actions.unfavorite")
     : tLibrary("actions.favorite");
@@ -79,7 +85,7 @@ export function SeriesBookCard({ book, isNextInOrder, seriesAuthors }: SeriesBoo
   return (
     <>
       <BookRow
-        accent={isReadingNow(book.readingStatus)}
+        accent={routeState === "unread" && isReadingNow(book.readingStatus)}
         book={libraryBook}
         kebab={
           <div className="flex items-center gap-0.5">
@@ -133,15 +139,19 @@ export function SeriesBookCard({ book, isNextInOrder, seriesAuthors }: SeriesBoo
             </DropdownMenu>
           </div>
         }
-        leading={<PartNumberBadge partNumber={book.partNumber} />}
         linkComponent={Link}
         note={
           <SeriesBookNote
+            href={libraryBook.href}
             isNextInOrder={isNextInOrder}
+            ownership={libraryBook.ownership}
             partNumber={book.partNumber}
             progress={progress}
+            status={libraryBook.status}
           />
         }
+        statusPlacement="note"
+        tone={routeState === "unread" ? undefined : routeState}
       />
 
       <RemoveBookFromSeriesDialog
@@ -156,43 +166,45 @@ export function SeriesBookCard({ book, isNextInOrder, seriesAuthors }: SeriesBoo
   );
 }
 
-const partNumberBadgeClass =
-  "grid size-9 place-items-center rounded-md bg-accent font-heading text-sm font-bold text-accent-foreground tabular-nums";
-
-function PartNumberBadge({ partNumber }: { partNumber: null | number }) {
-  const t = useTranslations("series.details.row");
-
-  if (partNumber === null) {
-    return (
-      <span aria-hidden className={partNumberBadgeClass}>
-        —
-      </span>
-    );
-  }
-
-  return (
-    <span className={partNumberBadgeClass}>
-      <span className="sr-only">{t("part", { number: partNumber })}</span>
-      <span aria-hidden>{partNumber}</span>
-    </span>
-  );
-}
-
 function SeriesBookNote({
+  href,
   isNextInOrder,
+  ownership,
   partNumber,
   progress,
+  status,
 }: {
+  href: string;
   isNextInOrder: boolean;
+  ownership?: LibraryBook["ownership"];
   partNumber: null | number;
   progress?: SeriesBookProgress;
+  status: LibraryBook["status"];
 }) {
   const t = useTranslations("series.details.row");
-
-  if (progress === undefined && !isNextInOrder && partNumber !== null) return null;
+  const tNext = useTranslations("series.details.next");
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+    <div className="flex flex-col items-start gap-1.5 pt-0.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        {isNextInOrder ? (
+          <Badge className="h-6 border-primary/40" variant="primary">
+            <UiIcon name="bookmark" size={12} />
+            {t("nextInOrder")}
+          </Badge>
+        ) : null}
+
+        <StatusBadge entry={status} />
+
+        {ownership === undefined ? null : (
+          <StatusBadge
+            className="border border-border bg-transparent font-medium text-muted-foreground"
+            entry={ownership}
+            tone="neutral"
+          />
+        )}
+      </div>
+
       {progress === undefined ? null : (
         <span className="flex items-center gap-2">
           <Progress
@@ -207,15 +219,17 @@ function SeriesBookNote({
         </span>
       )}
 
-      {isNextInOrder ? (
-        <Badge variant="primary">
-          <UiIcon name="bookmark" size={12} />
-          {t("nextInOrder")}
-        </Badge>
-      ) : null}
-
       {partNumber === null ? (
         <span className="text-xs text-muted-foreground">{t("partUnknown")}</span>
+      ) : null}
+
+      {isNextInOrder ? (
+        <Button asChild className="relative z-10 mt-0.5" size="sm">
+          <Link href={href}>
+            {tNext("cta")}
+            <ArrowRight aria-hidden size={16} />
+          </Link>
+        </Button>
       ) : null}
     </div>
   );

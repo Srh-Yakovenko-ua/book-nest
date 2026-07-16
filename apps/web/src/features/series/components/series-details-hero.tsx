@@ -79,38 +79,28 @@ export function SeriesDetailsHero({
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <Button onClick={onEdit} size="sm" variant="outline">
-              <UiIcon name="edit" size={16} />
-              {t("edit")}
-            </Button>
-            <Button onClick={onAddBook} size="sm">
-              <UiIcon name="plus" size={16} />
-              {t("addBook")}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button aria-label={t("menu")} size="icon" variant="outline">
-                  <UiIcon name="more" size={18} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onSelect={onEdit}>
-                  <UiIcon name="edit" size={16} />
-                  {t("edit")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={onAddBook}>
-                  <UiIcon name="plus" size={16} />
-                  {t("addBook")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={onDelete} variant="destructive">
-                  <UiIcon name="trash" size={16} />
-                  {t("delete")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button aria-label={t("menu")} className="shrink-0" size="icon" variant="outline">
+                <UiIcon name="more" size={18} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onSelect={onEdit}>
+                <UiIcon name="edit" size={16} />
+                {t("edit")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onAddBook}>
+                <UiIcon name="plus" size={16} />
+                {t("addBook")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onDelete} variant="destructive">
+                <UiIcon name="trash" size={16} />
+                {t("delete")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {description.length === 0 ? null : (

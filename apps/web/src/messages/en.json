@@ -911,11 +911,56 @@
       "description": "Add the book to favorites, the reading queue and your own lists.",
       "favorite": "Add to favorites",
       "queue": "Add to reading queue",
-      "queuePriority": "Queue priority",
-      "priorityLabels": {
-        "low": "Low",
-        "normal": "Normal",
-        "high": "High"
+      "priority": {
+        "title": "Reading priority",
+        "subtitle": "Choose the priority for this book in your reading queue.",
+        "info": "Priority shows how important a book is, but it does not change its position in the queue automatically.",
+        "low": {
+          "label": "Low",
+          "shortDescription": "Can wait until later",
+          "detailTitle": "Low priority",
+          "extendedDescription": "Choose low priority if the book interests you but is not part of your immediate reading plans and can make way for more important books."
+        },
+        "normal": {
+          "label": "Normal",
+          "shortDescription": "Read in the usual order",
+          "detailTitle": "Normal priority",
+          "extendedDescription": "The standard choice for most books in the queue. Pick it when a book matters to you but has no specific deadline or reason to read it right away."
+        },
+        "high": {
+          "label": "High",
+          "shortDescription": "Read in the near future",
+          "detailTitle": "High priority",
+          "extendedDescription": "Choose high priority if you need to read the book before a certain event, discussion or deadline, return it to its owner, or finish it before the next book in a series."
+        },
+        "reason": {
+          "label": "Why is this book a high priority?",
+          "placeholder": "Choose a reason",
+          "clear": "Clear the reason",
+          "options": {
+            "bookClub": "Book club",
+            "buddyRead": "Buddy read",
+            "eventOrDeadline": "Event or deadline",
+            "returnDue": "Needs to be returned",
+            "seriesOrder": "Series order",
+            "readingGoal": "Reading goal",
+            "anticipatedRelease": "Anticipated release",
+            "other": "Other"
+          }
+        },
+        "customReason": {
+          "label": "Tell us the reason",
+          "placeholder": "For example, I want to read it before vacation",
+          "error": "Enter your own reason for the high priority."
+        },
+        "targetDate": {
+          "label": "Event or deadline date",
+          "placeholder": "Choose a date",
+          "hint": "A date helps you not to miss an event, a deadline or a return due date.",
+          "returnDueHint": "Set the date by which the book has to be returned."
+        },
+        "positionNote": "Priority does not change the position of the book automatically. Once added, the book appears at the end of the queue. You can change the reading order on the <link>Reading queue</link> page.",
+        "positionNoteLink": "Reading queue"
       },
       "lists": "Lists",
       "listsPlaceholder": "Pick your lists",
@@ -1494,23 +1539,6 @@
           "trackingUrl": "Enter a valid https link.",
           "trackingUrlMax": "No more than {max} characters."
         }
-      },
-      "readingHistory": {
-        "tab": "Full reading history",
-        "title": "Full reading history",
-        "subtitle": "Detailed activity and every recorded progress update.",
-        "periodLabel": "Reading period",
-        "allUpdates": "All progress updates",
-        "sortLabel": "Sort updates",
-        "newestFirst": "Newest first",
-        "oldestFirst": "Oldest first",
-        "recordedTimeHint": "The time the update was saved. It may differ from the actual reading time.",
-        "emptyTitle": "Reading history is empty",
-        "emptySubtitle": "Update the current page to start building activity and progress history.",
-        "paginationLabel": "Reading history pages",
-        "previous": "Previous",
-        "next": "Next",
-        "goToPage": "Page {page}"
       }
     }
   },
@@ -2029,6 +2057,10 @@
       "menu": "Series actions",
       "addBookInline": "Add a book to this series",
       "booksHeading": "Series books",
+      "summary": {
+        "finished": "{count} read",
+        "remaining": "{count} left"
+      },
       "tabs": {
         "books": "Books in series",
         "about": "About the series"
@@ -2062,11 +2094,7 @@
         "completed": "Series completed"
       },
       "next": {
-        "title": "Next book",
-        "book": "Book {number}",
-        "cta": "Go to book",
-        "allRead": "All books read",
-        "empty": "Add the first book"
+        "cta": "Go to book"
       },
       "stats": {
         "title": "Series statistics",
@@ -2076,12 +2104,6 @@
         "unread": "Not read",
         "averageRating": "Average rating",
         "pages": "Pages in series"
-      },
-      "actions": {
-        "title": "Actions",
-        "edit": "Edit series",
-        "addBook": "Add a book to the series",
-        "delete": "Delete series"
       },
       "about": {
         "title": "About the series",

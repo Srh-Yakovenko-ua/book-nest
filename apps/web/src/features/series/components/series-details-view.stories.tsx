@@ -92,6 +92,6 @@ export const AllRead: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getAllByText("Серію прочитано").length).toBeGreaterThan(0);
-    await expect(canvas.getAllByText("Усі книги прочитані").length).toBeGreaterThan(0);
+    await expect(canvas.queryByRole("heading", { name: "Наступна книга" })).not.toBeInTheDocument();
   },
 };

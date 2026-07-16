@@ -54,13 +54,14 @@ import {
   type BookFormInitialSeries,
   createBookFormDefaults,
   type CreateBookFormOutput,
+  CreateBookFormSchema,
   type CreateBookFormValues,
-  CreateBookInputSchema,
   type PublisherSelection,
   type SeriesPartNumberConflict,
   type SeriesSelection,
-  UpdateBookInputSchema,
+  UpdateBookFormSchema,
 } from "../model/create-book-form";
+import { buildQueuePriorityPayload } from "../model/queue-priority";
 import { BASIC_INFO_FIELDS } from "../model/section-completeness";
 import { AuthorsField } from "./authors-field";
 import { BookPreview } from "./book-preview";
@@ -174,7 +175,7 @@ export function BookForm(props: BookFormProps) {
   }
 
   const resolver = (
-    props.mode === "edit" ? zodResolver(UpdateBookInputSchema) : zodResolver(CreateBookInputSchema)
+    props.mode === "edit" ? zodResolver(UpdateBookFormSchema) : zodResolver(CreateBookFormSchema)
   ) as Resolver<CreateBookFormValues, unknown, CreateBookFormOutput>;
 
   const defaultFormValues: DefaultValues<CreateBookFormValues> = restoredDraft
@@ -431,7 +432,7 @@ export function BookForm(props: BookFormProps) {
       return;
     }
 
-    const payload = pruneStatusPayload(values);
+    const payload = buildQueuePriorityPayload(pruneStatusPayload(values));
     payload.authors = authorSelections.map(authorSelectionToReference);
 
     if (coverState.kind === "selected") {

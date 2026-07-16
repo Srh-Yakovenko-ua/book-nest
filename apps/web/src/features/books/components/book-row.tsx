@@ -22,7 +22,11 @@ type BookRowProps = {
   note?: React.ReactNode;
   selected?: boolean;
   selectionControl?: React.ReactNode;
+  statusPlacement?: "column" | "note";
+  tone?: BookRowTone;
 };
+
+type BookRowTone = "next" | "read";
 
 type RowLinkComponent = "a" | LibraryBookLinkComponent;
 
@@ -33,6 +37,11 @@ const TOOLTIP_DELAY_MS = 400;
 const morePillClass =
   "relative z-10 inline-flex shrink-0 items-center rounded-full border border-border/60 bg-secondary/40 px-1.5 py-0.5 text-xs font-medium text-muted-foreground";
 
+const toneClass: Record<BookRowTone, string> = {
+  next: "border-primary bg-primary/5 hover:border-primary",
+  read: "border-success/40 bg-success-soft/40 hover:border-success/60",
+};
+
 export function BookRow({
   accent,
   book,
@@ -42,6 +51,8 @@ export function BookRow({
   note,
   selected,
   selectionControl,
+  statusPlacement = "column",
+  tone,
 }: BookRowProps) {
   const LinkComp: RowLinkComponent = linkComponent ?? "a";
   const hasChips = (book.genres ?? []).length > 0 || (book.tags ?? []).length > 0;
@@ -51,6 +62,7 @@ export function BookRow({
       className={cn(
         "group/book-row @container/book-row relative flex min-h-[9.5rem] items-stretch gap-3.5 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none",
         accent && "border-accent-border",
+        tone === undefined ? undefined : toneClass[tone],
         selected && "ring-1 ring-primary",
       )}
       data-slot="book-row"
@@ -66,9 +78,12 @@ export function BookRow({
       <div className="flex min-w-0 flex-1 flex-col gap-3 @xl/book-row:flex-row @xl/book-row:flex-wrap @xl/book-row:items-start @xl/book-row:gap-x-4 @xl/book-row:gap-y-3 @3xl/book-row:flex-nowrap @3xl/book-row:items-stretch">
         <BookRowMeta book={book} LinkComp={LinkComp} note={note} />
 
-        <div className="hidden w-px self-stretch bg-border @3xl/book-row:block" />
-
-        <BookRowStatuses book={book} />
+        {statusPlacement === "column" ? (
+          <>
+            <div className="hidden w-px self-stretch bg-border @3xl/book-row:block" />
+            <BookRowStatuses book={book} />
+          </>
+        ) : null}
 
         {hasChips ? (
           <>

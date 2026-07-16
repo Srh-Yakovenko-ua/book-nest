@@ -25,6 +25,8 @@ export type SeriesBookProgress = {
   total: number;
 };
 
+export type SeriesBookRouteState = "next" | "read" | "unread";
+
 export type SeriesLibraryBookLabels = {
   authorsUnknown: string;
   ownershipLabel: (value: OwnershipStatus) => string;
@@ -47,6 +49,18 @@ export function seriesBookProgress(book: SeriesBookView): SeriesBookProgress | u
     percent: Math.round((book.currentPage / book.pagesCount) * PERCENT_MAX),
     total: book.pagesCount,
   };
+}
+
+export function seriesBookRouteState({
+  isNextInOrder,
+  readingStatus,
+}: {
+  isNextInOrder: boolean;
+  readingStatus: ReadingStatus;
+}): SeriesBookRouteState {
+  if (isNextInOrder) return "next";
+  if (readingStatus === "finished") return "read";
+  return "unread";
 }
 
 export function toSeriesLibraryBook({

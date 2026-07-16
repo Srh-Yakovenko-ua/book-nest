@@ -3,10 +3,13 @@
 import type { SeriesDetailsView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { PageTabsItem } from "@/components/page-tabs";
+
+import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { useRouter } from "@/i18n/navigation";
 
 import { useDeleteSeries } from "../api/use-delete-series";
@@ -14,31 +17,36 @@ import { suggestedPartNumber } from "../model/series-details-derive";
 import { AddBookToSeriesDialog } from "./add-book-to-series-dialog";
 import { DeleteSeriesDialog } from "./delete-series-dialog";
 import { EditSeriesDialog } from "./edit-series-dialog";
-import { SeriesActionsCard } from "./series-actions-card";
 import { SeriesBooksTab } from "./series-books-tab";
 import { SeriesDetailsAbout } from "./series-details-about";
 import { SeriesDetailsHero } from "./series-details-hero";
-import { SeriesNextBookCard } from "./series-next-book-card";
 import { SeriesProgressCard } from "./series-progress-card";
 import { SeriesStatsCard } from "./series-stats-card";
-
-type DetailTab = "about" | "books";
 
 type SeriesDetailsViewProps = {
   details: SeriesDetailsView;
 };
+
+const DETAIL_TABS = ["books", "about"] as const;
+
+const tabParser = parseAsStringLiteral(DETAIL_TABS).withDefault("books");
 
 export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
   const t = useTranslations("series.details");
   const tToast = useTranslations("series.toast");
   const router = useRouter();
 
-  const [tab, setTab] = useState<DetailTab>("books");
+  const [tab, setTab] = useQueryState("tab", tabParser);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
   const deleteSeries = useDeleteSeries(details.id);
+
+  const tabItems: PageTabsItem[] = [
+    { label: t("tabs.books"), value: "books" },
+    { label: t("tabs.about"), value: "about" },
+  ];
 
   function onConfirmDelete() {
     deleteSeries.mutate(undefined, {
@@ -63,41 +71,29 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
 
         <div className="details-sidebar-leaf flex flex-col gap-6 lg:hidden">
           <SeriesProgressCard details={details} />
-          <SeriesNextBookCard details={details} />
         </div>
 
-        <Tabs onValueChange={(value) => setTab(value as DetailTab)} value={tab}>
-          <TabsList>
-            <TabsTrigger value="books">{t("tabs.books")}</TabsTrigger>
-            <TabsTrigger value="about">{t("tabs.about")}</TabsTrigger>
-          </TabsList>
-          <TabsContent className="flex flex-col gap-5" value="books">
+        <PageTabs
+          items={tabItems}
+          onValueChange={(value) => void setTab(value === "about" ? "about" : "books")}
+          value={tab}
+        >
+          <PageTabsPanel className="flex flex-col gap-5" value="books">
             <SeriesBooksTab details={details} onAddBook={() => setAddOpen(true)} />
-          </TabsContent>
-          <TabsContent value="about">
+          </PageTabsPanel>
+          <PageTabsPanel value="about">
             <SeriesDetailsAbout details={details} />
-          </TabsContent>
-        </Tabs>
+          </PageTabsPanel>
+        </PageTabs>
 
         <div className="details-sidebar-leaf flex flex-col gap-6 lg:hidden">
           <SeriesStatsCard stats={details.stats} />
-          <SeriesActionsCard
-            onAddBook={() => setAddOpen(true)}
-            onDelete={() => setDeleteOpen(true)}
-            onEdit={() => setEditOpen(true)}
-          />
         </div>
       </div>
 
       <aside className="details-sidebar-leaf hidden flex-col gap-6 lg:flex">
         <SeriesProgressCard details={details} />
-        <SeriesNextBookCard details={details} />
         <SeriesStatsCard stats={details.stats} />
-        <SeriesActionsCard
-          onAddBook={() => setAddOpen(true)}
-          onDelete={() => setDeleteOpen(true)}
-          onEdit={() => setEditOpen(true)}
-        />
       </aside>
 
       <EditSeriesDialog onOpenChange={setEditOpen} open={editOpen} series={details} />

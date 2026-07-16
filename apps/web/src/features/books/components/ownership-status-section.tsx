@@ -481,7 +481,7 @@ export function OwnershipStatusSection({
                   value={typeof field.value === "string" ? field.value : undefined}
                 >
                   <SelectTrigger
-                    className="h-10 w-full"
+                    className="h-10 w-full data-[size=default]:h-10"
                     id="delivery-status"
                     isClearable={typeof field.value === "string"}
                     onClear={() => field.onChange(undefined)}

@@ -69,7 +69,7 @@ export function DeliveryToolbar({
           >
             <SelectTrigger
               aria-label={tSort("label")}
-              className="h-10 w-full"
+              className="h-10 w-full data-[size=default]:h-10"
               isClearable={sort !== DELIVERY_SORT_DEFAULT}
               onClear={() => onSortChange(DELIVERY_SORT_DEFAULT)}
             >

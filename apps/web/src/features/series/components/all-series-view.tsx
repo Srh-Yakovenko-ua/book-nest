@@ -5,15 +5,16 @@ import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
+import type { PageTabsItem } from "@/components/page-tabs";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { PageTabs, pageTabsTriggerId } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import type { SeriesTab } from "../model/series-derive";
 import type { SeriesSummaryCard } from "./series-summary-cards";
@@ -22,6 +23,7 @@ import { SeriesCard } from "./series-card";
 import { SeriesSummaryCards } from "./series-summary-cards";
 
 const SKELETON_COUNT = 6;
+const SERIES_RESULTS_PANEL_ID = "series-results";
 
 type AllSeriesViewProps = {
   hasActiveQuery: boolean;
@@ -69,6 +71,15 @@ export function AllSeriesView({
   const t = useTranslations("series");
   const showToolbar = !isError && (isPending || hasAnySeries);
 
+  const tabItems: PageTabsItem[] = [
+    { label: t("tabs.all"), value: "all" },
+    {
+      badge: <Badge variant="secondary">{unfinishedCount}</Badge>,
+      label: t("tabs.unfinished"),
+      value: "unfinished",
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
@@ -98,21 +109,27 @@ export function AllSeriesView({
 
       {showToolbar ? (
         <div className="flex flex-col gap-4">
-          <Tabs onValueChange={(value) => onTabChange(value as SeriesTab)} value={tab}>
-            <TabsList>
-              <TabsTrigger value="all">{t("tabs.all")}</TabsTrigger>
-              <TabsTrigger value="unfinished">
-                {t("tabs.unfinished")}
-                <Badge variant="secondary">{unfinishedCount}</Badge>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <PageTabs
+            items={tabItems}
+            onValueChange={(value) => onTabChange(value === "unfinished" ? "unfinished" : "all")}
+            panelId={SERIES_RESULTS_PANEL_ID}
+            value={tab}
+          />
           {toolbar}
         </div>
       ) : null}
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <div
+          className="flex min-w-0 flex-1 flex-col gap-6"
+          {...(showToolbar
+            ? {
+                "aria-labelledby": pageTabsTriggerId(SERIES_RESULTS_PANEL_ID, tab),
+                id: SERIES_RESULTS_PANEL_ID,
+                role: "tabpanel",
+              }
+            : {})}
+        >
           <h2 className="sr-only">{t("page.resultsTitle")}</h2>
           <SeriesContent
             hasActiveQuery={hasActiveQuery}

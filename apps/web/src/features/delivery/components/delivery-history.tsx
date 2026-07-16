@@ -147,6 +147,7 @@ export function DeliveryHistory() {
         renderCard={renderCard}
         showToolbar={showToolbar}
         summary={<DeliverySummaryCards cards={summaryCards} isLoading={summaryQuery.isPending} />}
+        tab={params.tab}
         toolbar={
           <DeliveryHistoryToolbar
             counterLabel={t("counter", { count: totalCount })}
