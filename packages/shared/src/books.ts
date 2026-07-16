@@ -59,7 +59,7 @@ const BOOK_PAGES_COUNT_MAX = 10000;
 const BOOK_PUBLICATION_YEAR_MIN = 1000;
 const BOOK_ORIGINAL_TITLE_MAX = 200;
 const BOOK_CONTRIBUTOR_NAME_MAX = 100;
-export const BOOK_DEDICATION_MAX = 1000;
+export const BOOK_DEDICATION_MAX = 2000;
 
 const READING_CURRENT_PAGE_MIN = 0;
 const READING_CURRENT_PAGE_MAX = 100000;
@@ -164,7 +164,7 @@ export const IllustratorSchema = z
 export const DedicationSchema = z
   .string()
   .transform(collapseHorizontalSpaces)
-  .pipe(NoHtmlString.max(BOOK_DEDICATION_MAX, "Dedication must be at most 1000 characters long"));
+  .pipe(NoHtmlString.max(BOOK_DEDICATION_MAX, "Dedication must be at most 2000 characters long"));
 
 export const ReadingNoteSchema = z
   .string()
@@ -631,6 +631,7 @@ export const UpdateBookInputSchema = z
     illustrator: IllustratorSchema.nullable().optional(),
     isbn: IsbnSchema.nullable().optional(),
     isFavorite: z.boolean().optional(),
+    isFavoriteDedication: z.boolean().optional(),
     language: BookLanguageSchema.optional(),
     listIds: z.array(z.uuid()).max(BOOK_LIST_IDS_MAX).optional(),
     loanInfo: LoanInfoInputSchema,
@@ -1112,6 +1113,7 @@ export const BookViewSchema = z.object({
   illustrator: z.string().nullable(),
   isbn: z.string().nullable(),
   isFavorite: z.boolean(),
+  isFavoriteDedication: z.boolean(),
   isInReadingQueue: z.boolean(),
   language: BookLanguageSchema,
   lists: z.array(BookListViewSchema),

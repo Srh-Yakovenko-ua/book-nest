@@ -19,6 +19,7 @@ export function makeBookView(overrides: Partial<BookView> = {}): BookView {
     illustrator: null,
     isbn: "9786176791393",
     isFavorite: true,
+    isFavoriteDedication: false,
     isInReadingQueue: false,
     language: "ukrainian",
     lists: [],

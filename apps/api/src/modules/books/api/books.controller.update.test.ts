@@ -1333,3 +1333,148 @@ describe("PATCH /api/books/:id series progress recompute", () => {
     expect(byId.get(targetSeriesId)).toEqual({ booksInSeries: 2, finishedInSeries: 1 });
   });
 });
+
+describe("PATCH /api/books/:id dedication favorite independence and normalization", () => {
+  it("favorites the dedication without touching the book favorite (TC-014)", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+    expect(created.body.isFavorite).toBe(false);
+    expect(created.body.isFavoriteDedication).toBe(false);
+
+    const res = await updateBook(accessToken, created.body.id, { isFavoriteDedication: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isFavoriteDedication).toBe(true);
+    expect(res.body.isFavorite).toBe(false);
+  });
+
+  it("favorites the book without touching the dedication favorite (TC-015)", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { isFavorite: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isFavorite).toBe(true);
+    expect(res.body.isFavoriteDedication).toBe(false);
+  });
+
+  it("keeps both favorite states true at once (TC-016)", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      isFavorite: true,
+      isFavoriteDedication: true,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isFavorite).toBe(true);
+    expect(res.body.isFavoriteDedication).toBe(true);
+  });
+
+  it("normalizes a whitespace-only dedication to null on create", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "   ",
+      title: "Dune",
+    });
+
+    expect(created.status).toBe(201);
+    expect(created.body.dedication).toBeNull();
+    expect(created.body.isFavoriteDedication).toBe(false);
+  });
+
+  it("normalizes an empty-string dedication to null on update", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { dedication: "" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.dedication).toBeNull();
+  });
+
+  it("auto-resets the dedication favorite when the dedication is cleared", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+    const favorited = await updateBook(accessToken, created.body.id, {
+      isFavoriteDedication: true,
+    });
+    expect(favorited.body.isFavoriteDedication).toBe(true);
+
+    const res = await updateBook(accessToken, created.body.id, { dedication: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.dedication).toBeNull();
+    expect(res.body.isFavoriteDedication).toBe(false);
+  });
+
+  it("lets the auto-reset win over a favorite flag sent in the same clearing patch", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      dedication: "",
+      isFavoriteDedication: true,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.dedication).toBeNull();
+    expect(res.body.isFavoriteDedication).toBe(false);
+  });
+
+  it("accepts a dedication of exactly 2000 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const dedication = "a".repeat(2000);
+
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication,
+      title: "Dune",
+    });
+
+    expect(created.status).toBe(201);
+    expect(created.body.dedication).toBe(dedication);
+  });
+
+  it("rejects a dedication longer than 2000 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "a".repeat(2001),
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "dedication" })]),
+    );
+  });
+});

@@ -72,6 +72,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     illustrator: null,
     isbn: null,
     isFavorite: false,
+    isFavoriteDedication: false,
     language: "ukrainian",
     lists: [],
     loans: [],
@@ -379,6 +380,7 @@ describe("BooksService.create", () => {
       illustrator: null,
       isbn: null,
       isFavorite: false,
+      isFavoriteDedication: false,
       isInReadingQueue: false,
       language: "ukrainian",
       lists: [],
@@ -822,6 +824,83 @@ describe("BooksService.update", () => {
         isFavorite: true,
       }),
     });
+
+    await service.update(USER_ID, BOOK_ID, { title: "Renamed" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ title: "Renamed" });
+  });
+
+  it("sets the dedication favorite without touching the book favorite", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ dedication: "For my family", isFavorite: false }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { isFavoriteDedication: true });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ isFavoriteDedication: true });
+  });
+
+  it("leaves the dedication favorite untouched when only the book favorite changes", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ dedication: "For my family", isFavorite: false }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { isFavorite: true });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ favoriteAddedAt: expect.any(Date), isFavorite: true });
+  });
+
+  it("sets both favorite states in a single update", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ dedication: "For my family", isFavorite: false }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { isFavorite: true, isFavoriteDedication: true });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({
+      favoriteAddedAt: expect.any(Date),
+      isFavorite: true,
+      isFavoriteDedication: true,
+    });
+  });
+
+  it("normalizes an empty dedication to null", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
+
+    await service.update(USER_ID, BOOK_ID, { dedication: "" });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ dedication: null });
+  });
+
+  it("clears the dedication favorite when the dedication is cleared", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ dedication: "For my family", isFavoriteDedication: true }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { dedication: null });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ dedication: null, isFavoriteDedication: false });
+  });
+
+  it("lets the auto-reset override a dedication favorite sent in the same clearing patch", async () => {
+    const { repository, service } = buildService({
+      findOwnedById: bookRow({ dedication: "For my family", isFavoriteDedication: true }),
+    });
+
+    await service.update(USER_ID, BOOK_ID, { dedication: "", isFavoriteDedication: true });
+
+    const data = updateDataFromFirstCall(repository);
+    expect(data.fields).toEqual({ dedication: null, isFavoriteDedication: false });
+  });
+
+  it("leaves the dedication favorite untouched on an unrelated patch without a dedication", async () => {
+    const { repository, service } = buildService({ findOwnedById: bookRow() });
 
     await service.update(USER_ID, BOOK_ID, { title: "Renamed" });
 

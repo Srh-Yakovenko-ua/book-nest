@@ -5,6 +5,7 @@ import type {
   LibraryBooksQuery,
   LibraryOverviewQuery,
   LibraryOverviewView,
+  Nullable,
   OwnershipStatus,
   Paginator,
   ReadingStatus,
@@ -89,7 +90,6 @@ function normalizeSearchQuery(value: string | undefined): string | undefined {
 
 const SCALAR_KEYS = [
   "ageCategory",
-  "dedication",
   "description",
   "formats",
   "genres",
@@ -145,6 +145,13 @@ function intersectOwnership({
     return allowed;
   }
   return allowed.filter((status) => scope.includes(status));
+}
+
+function normalizeDedication(value: Nullable<string>): Nullable<string> {
+  if (value === null || value.length === 0) {
+    return null;
+  }
+  return value;
 }
 
 function resolveDeliveryBlock(
@@ -286,7 +293,7 @@ export class BooksService {
             ageCategory: input.ageCategory,
             authorIds: resolved.authorIds,
             coverMediaId: input.coverMediaId ?? null,
-            dedication: input.dedication ?? null,
+            dedication: normalizeDedication(input.dedication ?? null),
             deliveryInfo,
             description: input.description ?? null,
             favoriteAddedAt: favoriteChange?.favoriteAddedAt ?? null,
@@ -490,6 +497,8 @@ export class BooksService {
         const fields = resolved.fields;
         assignScalarFields(fields, input);
         this.applyFavoriteFields({ current, fields, input, now });
+        this.applyFavoriteDedicationFields({ fields, input });
+        this.applyDedicationFields({ current, fields, input });
 
         return this.booksRepository.updateOwned(
           userId,
@@ -526,6 +535,46 @@ export class BooksService {
     }
 
     return this.viewAssembler.viewOf(book);
+  }
+
+  private applyDedicationFields({
+    current,
+    fields,
+    input,
+  }: {
+    current: BookWithRelations;
+    fields: Prisma.BookUncheckedUpdateManyInput;
+    input: UpdateBookInput;
+  }): void {
+    const dedication =
+      input.dedication === undefined ? current.dedication : normalizeDedication(input.dedication);
+
+    if (input.dedication !== undefined) {
+      fields.dedication = dedication;
+    }
+
+    if (dedication !== null) {
+      return;
+    }
+
+    const favoriteAfterPatch = input.isFavoriteDedication ?? current.isFavoriteDedication;
+    if (favoriteAfterPatch) {
+      fields.isFavoriteDedication = false;
+    }
+  }
+
+  private applyFavoriteDedicationFields({
+    fields,
+    input,
+  }: {
+    fields: Prisma.BookUncheckedUpdateManyInput;
+    input: UpdateBookInput;
+  }): void {
+    if (input.isFavoriteDedication === undefined) {
+      return;
+    }
+
+    fields.isFavoriteDedication = input.isFavoriteDedication;
   }
 
   private applyFavoriteFields({

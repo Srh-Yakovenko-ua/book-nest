@@ -55,6 +55,7 @@ function makeBook(overrides: Partial<BookView> = {}): BookView {
     illustrator: null,
     isbn: null,
     isFavorite: true,
+    isFavoriteDedication: false,
     isInReadingQueue: false,
     language: "ukrainian",
     lists: [],

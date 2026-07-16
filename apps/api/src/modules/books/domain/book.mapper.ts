@@ -54,6 +54,7 @@ export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>):
     illustrator: book.illustrator,
     isbn: book.isbn,
     isFavorite: book.isFavorite,
+    isFavoriteDedication: book.isFavoriteDedication,
     isInReadingQueue: book.queuePosition !== null,
     language: BookLanguageSchema.parse(book.language),
     lists: book.lists.map((item) => toBookListView(item.list)),
