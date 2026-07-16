@@ -20,8 +20,13 @@ import type {
 
 import type {
   AddToReadingQueueInputDto,
+  ApplySeriesOrderFixResponseDto,
   ReadingQueueViewDto,
   ReorderReadingQueueInputDto,
+  SeriesOrderCheckControllerListIssuesParams,
+  SeriesOrderFixInputDto,
+  SeriesOrderFixPreviewViewDto,
+  SeriesOrderIssuesViewDto,
   StartReadingFromQueueInputDto,
 } from "../../model";
 
@@ -938,6 +943,823 @@ export function useReadingQueueControllerRemoveFromQueue<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getReadingQueueControllerRemoveFromQueueQueryOptions(bookId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesOrderCheckControllerListIssuesResponse200 = {
+  data: SeriesOrderIssuesViewDto;
+  status: 200;
+};
+
+export type seriesOrderCheckControllerListIssuesResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesOrderCheckControllerListIssuesResponseSuccess =
+  seriesOrderCheckControllerListIssuesResponse200 & {
+    headers: Headers;
+  };
+export type seriesOrderCheckControllerListIssuesResponseError =
+  seriesOrderCheckControllerListIssuesResponse401 & {
+    headers: Headers;
+  };
+
+export type seriesOrderCheckControllerListIssuesResponse =
+  | seriesOrderCheckControllerListIssuesResponseSuccess
+  | seriesOrderCheckControllerListIssuesResponseError;
+
+export const getSeriesOrderCheckControllerListIssuesUrl = (
+  params?: SeriesOrderCheckControllerListIssuesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reading-queue/series-order-issues?${stringifiedParams}`
+    : `/api/reading-queue/series-order-issues`;
+};
+
+/**
+ * @summary Detect series read-order issues for the current user reading queue
+ */
+export const seriesOrderCheckControllerListIssues = async (
+  params?: SeriesOrderCheckControllerListIssuesParams,
+  options?: RequestInit,
+): Promise<seriesOrderCheckControllerListIssuesResponse> => {
+  return customInstance<seriesOrderCheckControllerListIssuesResponse>(
+    getSeriesOrderCheckControllerListIssuesUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getSeriesOrderCheckControllerListIssuesQueryKey = (
+  params?: SeriesOrderCheckControllerListIssuesParams,
+) => {
+  return [`/api/reading-queue/series-order-issues`, ...(params ? [params] : [])] as const;
+};
+
+export const getSeriesOrderCheckControllerListIssuesQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+  TError = void,
+>(
+  params?: SeriesOrderCheckControllerListIssuesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSeriesOrderCheckControllerListIssuesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>
+  > = ({ signal }) => seriesOrderCheckControllerListIssues(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesOrderCheckControllerListIssuesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>
+>;
+export type SeriesOrderCheckControllerListIssuesQueryError = void;
+
+export function useSeriesOrderCheckControllerListIssues<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+  TError = void,
+>(
+  params: undefined | SeriesOrderCheckControllerListIssuesParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderCheckControllerListIssues<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+  TError = void,
+>(
+  params?: SeriesOrderCheckControllerListIssuesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderCheckControllerListIssues<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+  TError = void,
+>(
+  params?: SeriesOrderCheckControllerListIssuesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Detect series read-order issues for the current user reading queue
+ */
+
+export function useSeriesOrderCheckControllerListIssues<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+  TError = void,
+>(
+  params?: SeriesOrderCheckControllerListIssuesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerListIssues>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesOrderCheckControllerListIssuesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesOrderCheckControllerPreviewFixResponse200 = {
+  data: SeriesOrderFixPreviewViewDto;
+  status: 200;
+};
+
+export type seriesOrderCheckControllerPreviewFixResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesOrderCheckControllerPreviewFixResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type seriesOrderCheckControllerPreviewFixResponse422 = {
+  data: void;
+  status: 422;
+};
+
+export type seriesOrderCheckControllerPreviewFixResponseSuccess =
+  seriesOrderCheckControllerPreviewFixResponse200 & {
+    headers: Headers;
+  };
+export type seriesOrderCheckControllerPreviewFixResponseError = (
+  | seriesOrderCheckControllerPreviewFixResponse401
+  | seriesOrderCheckControllerPreviewFixResponse409
+  | seriesOrderCheckControllerPreviewFixResponse422
+) & {
+  headers: Headers;
+};
+
+export type seriesOrderCheckControllerPreviewFixResponse =
+  | seriesOrderCheckControllerPreviewFixResponseSuccess
+  | seriesOrderCheckControllerPreviewFixResponseError;
+
+export const getSeriesOrderCheckControllerPreviewFixUrl = (fingerprint: string) => {
+  return `/api/reading-queue/series-order-issues/${fingerprint}/preview`;
+};
+
+/**
+ * @summary Preview a series order fix strategy without mutating the queue
+ */
+export const seriesOrderCheckControllerPreviewFix = async (
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: RequestInit,
+): Promise<seriesOrderCheckControllerPreviewFixResponse> => {
+  return customInstance<seriesOrderCheckControllerPreviewFixResponse>(
+    getSeriesOrderCheckControllerPreviewFixUrl(fingerprint),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(seriesOrderFixInputDto),
+    },
+  );
+};
+
+export const getSeriesOrderCheckControllerPreviewFixQueryKey = (
+  fingerprint: string,
+  seriesOrderFixInputDto?: SeriesOrderFixInputDto,
+) => {
+  return [
+    "POST",
+    `/api/reading-queue/series-order-issues/${fingerprint}/preview`,
+    seriesOrderFixInputDto,
+  ] as const;
+};
+
+export const getSeriesOrderCheckControllerPreviewFixQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getSeriesOrderCheckControllerPreviewFixQueryKey(fingerprint, seriesOrderFixInputDto);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>
+  > = ({ signal }) =>
+    seriesOrderCheckControllerPreviewFix(fingerprint, seriesOrderFixInputDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: fingerprint !== null && fingerprint !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesOrderCheckControllerPreviewFixQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>
+>;
+export type SeriesOrderCheckControllerPreviewFixQueryError = void;
+
+export function useSeriesOrderCheckControllerPreviewFix<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderCheckControllerPreviewFix<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderCheckControllerPreviewFix<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Preview a series order fix strategy without mutating the queue
+ */
+
+export function useSeriesOrderCheckControllerPreviewFix<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerPreviewFix>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesOrderCheckControllerPreviewFixQueryOptions(
+    fingerprint,
+    seriesOrderFixInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesOrderCheckControllerApplyFixResponse200 = {
+  data: ApplySeriesOrderFixResponseDto;
+  status: 200;
+};
+
+export type seriesOrderCheckControllerApplyFixResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesOrderCheckControllerApplyFixResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type seriesOrderCheckControllerApplyFixResponse422 = {
+  data: void;
+  status: 422;
+};
+
+export type seriesOrderCheckControllerApplyFixResponseSuccess =
+  seriesOrderCheckControllerApplyFixResponse200 & {
+    headers: Headers;
+  };
+export type seriesOrderCheckControllerApplyFixResponseError = (
+  | seriesOrderCheckControllerApplyFixResponse401
+  | seriesOrderCheckControllerApplyFixResponse409
+  | seriesOrderCheckControllerApplyFixResponse422
+) & {
+  headers: Headers;
+};
+
+export type seriesOrderCheckControllerApplyFixResponse =
+  | seriesOrderCheckControllerApplyFixResponseSuccess
+  | seriesOrderCheckControllerApplyFixResponseError;
+
+export const getSeriesOrderCheckControllerApplyFixUrl = (fingerprint: string) => {
+  return `/api/reading-queue/series-order-issues/${fingerprint}/apply`;
+};
+
+/**
+ * @summary Apply a series order fix strategy atomically to the reading queue
+ */
+export const seriesOrderCheckControllerApplyFix = async (
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: RequestInit,
+): Promise<seriesOrderCheckControllerApplyFixResponse> => {
+  return customInstance<seriesOrderCheckControllerApplyFixResponse>(
+    getSeriesOrderCheckControllerApplyFixUrl(fingerprint),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(seriesOrderFixInputDto),
+    },
+  );
+};
+
+export const getSeriesOrderCheckControllerApplyFixQueryKey = (
+  fingerprint: string,
+  seriesOrderFixInputDto?: SeriesOrderFixInputDto,
+) => {
+  return [
+    "POST",
+    `/api/reading-queue/series-order-issues/${fingerprint}/apply`,
+    seriesOrderFixInputDto,
+  ] as const;
+};
+
+export const getSeriesOrderCheckControllerApplyFixQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getSeriesOrderCheckControllerApplyFixQueryKey(fingerprint, seriesOrderFixInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>> = ({
+    signal,
+  }) =>
+    seriesOrderCheckControllerApplyFix(fingerprint, seriesOrderFixInputDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: fingerprint !== null && fingerprint !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesOrderCheckControllerApplyFixQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>
+>;
+export type SeriesOrderCheckControllerApplyFixQueryError = void;
+
+export function useSeriesOrderCheckControllerApplyFix<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderCheckControllerApplyFix<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderCheckControllerApplyFix<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Apply a series order fix strategy atomically to the reading queue
+ */
+
+export function useSeriesOrderCheckControllerApplyFix<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>,
+  TError = void,
+>(
+  fingerprint: string,
+  seriesOrderFixInputDto: SeriesOrderFixInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesOrderCheckControllerApplyFix>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesOrderCheckControllerApplyFixQueryOptions(
+    fingerprint,
+    seriesOrderFixInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type seriesOrderCheckControllerIgnoreIssueResponse200 = {
+  data: SeriesOrderIssuesViewDto;
+  status: 200;
+};
+
+export type seriesOrderCheckControllerIgnoreIssueResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesOrderCheckControllerIgnoreIssueResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type seriesOrderCheckControllerIgnoreIssueResponseSuccess =
+  seriesOrderCheckControllerIgnoreIssueResponse200 & {
+    headers: Headers;
+  };
+export type seriesOrderCheckControllerIgnoreIssueResponseError = (
+  | seriesOrderCheckControllerIgnoreIssueResponse401
+  | seriesOrderCheckControllerIgnoreIssueResponse409
+) & {
+  headers: Headers;
+};
+
+export type seriesOrderCheckControllerIgnoreIssueResponse =
+  | seriesOrderCheckControllerIgnoreIssueResponseSuccess
+  | seriesOrderCheckControllerIgnoreIssueResponseError;
+
+export const getSeriesOrderCheckControllerIgnoreIssueUrl = (fingerprint: string) => {
+  return `/api/reading-queue/series-order-issues/${fingerprint}/ignore`;
+};
+
+/**
+ * @summary Ignore a detected series order issue for the current user
+ */
+export const seriesOrderCheckControllerIgnoreIssue = async (
+  fingerprint: string,
+  options?: RequestInit,
+): Promise<seriesOrderCheckControllerIgnoreIssueResponse> => {
+  return customInstance<seriesOrderCheckControllerIgnoreIssueResponse>(
+    getSeriesOrderCheckControllerIgnoreIssueUrl(fingerprint),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getSeriesOrderCheckControllerIgnoreIssueQueryKey = (fingerprint: string) => {
+  return ["POST", `/api/reading-queue/series-order-issues/${fingerprint}/ignore`] as const;
+};
+
+export const getSeriesOrderCheckControllerIgnoreIssueQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+  TError = void,
+>(
+  fingerprint: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSeriesOrderCheckControllerIgnoreIssueQueryKey(fingerprint);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>
+  > = ({ signal }) =>
+    seriesOrderCheckControllerIgnoreIssue(fingerprint, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: fingerprint !== null && fingerprint !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesOrderCheckControllerIgnoreIssueQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>
+>;
+export type SeriesOrderCheckControllerIgnoreIssueQueryError = void;
+
+export function useSeriesOrderCheckControllerIgnoreIssue<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+  TError = void,
+>(
+  fingerprint: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderCheckControllerIgnoreIssue<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+  TError = void,
+>(
+  fingerprint: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderCheckControllerIgnoreIssue<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+  TError = void,
+>(
+  fingerprint: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Ignore a detected series order issue for the current user
+ */
+
+export function useSeriesOrderCheckControllerIgnoreIssue<
+  TData = Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+  TError = void,
+>(
+  fingerprint: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderCheckControllerIgnoreIssue>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesOrderCheckControllerIgnoreIssueQueryOptions(fingerprint, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
