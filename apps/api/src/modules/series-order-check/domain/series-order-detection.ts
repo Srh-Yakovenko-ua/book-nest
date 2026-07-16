@@ -158,7 +158,7 @@ function collapseOutOfOrder({
   partedBooks: PartedBook[];
 }): RankedConflict[] {
   const queuedParted = partedBooks
-    .filter(isQueuedParted)
+    .filter(isJumbleCandidate)
     .sort((first, second) => first.queuePosition - second.queuePosition);
   if (queuedParted.length < MIN_JUMBLED_QUEUED || isStrictlyIncreasingByPart(queuedParted)) {
     return conflicts;
@@ -284,6 +284,10 @@ function hasPartNumber(book: SeriesOrderDetectionBook): book is PartedBook {
 
 function isInPlay(book: SeriesOrderDetectionBook): boolean {
   return book.queuePosition !== null || isReading(book.readingStatus);
+}
+
+function isJumbleCandidate(book: PartedBook): book is PartedBook & { queuePosition: number } {
+  return isQueuedParted(book) && !isClosedReadingStatus(book.readingStatus);
 }
 
 function isProblematicPrevious({

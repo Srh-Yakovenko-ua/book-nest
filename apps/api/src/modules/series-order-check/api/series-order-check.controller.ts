@@ -35,6 +35,8 @@ import { SeriesOrderIssuesViewDto } from "./view-dto/series-order-issues.view-dt
 
 const FIX_ACTION_TTL_SECONDS = 60;
 const FIX_ACTION_LIMIT = 60;
+const LIST_ISSUES_TTL_SECONDS = 60;
+const LIST_ISSUES_LIMIT = 30;
 
 @ApiTags("reading-queue")
 @Controller("api/reading-queue")
@@ -50,6 +52,7 @@ export class SeriesOrderCheckController {
   @ApiQuery({ name: "limit", required: false })
   @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("series-order-issues")
+  @Throttle({ default: { limit: LIST_ISSUES_LIMIT, ttl: seconds(LIST_ISSUES_TTL_SECONDS) } })
   @UseGuards(JwtAccessGuard)
   listIssues(
     @CurrentUser() user: AuthenticatedUser,

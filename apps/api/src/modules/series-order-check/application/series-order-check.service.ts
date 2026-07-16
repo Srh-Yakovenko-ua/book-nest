@@ -52,6 +52,8 @@ const INVALID_FIX_STRATEGY_MESSAGE = "Ця дія недоступна для ц
 const ALREADY_IN_QUEUE_MESSAGE = "Книга вже є в черзі читання";
 const QUEUE_LIMIT_REACHED_MESSAGE = "Досягнуто ліміт черги читання";
 
+const SERIES_ORDER_MAX_BOOKS_PER_SERIES = 300;
+
 const ADD_STRATEGIES: ReadonlySet<SeriesOrderFixStrategy> = new Set<SeriesOrderFixStrategy>([
   "ADD_ALL_PREVIOUS_BEFORE",
   "ADD_NEXT_PREVIOUS_BEFORE",
@@ -157,11 +159,11 @@ export class SeriesOrderCheckService {
     limit: number;
     userId: string;
   }): Promise<SeriesOrderIssuesView> {
-    const [relevantBooks, fingerprintedIssues, queueSignature] = await Promise.all([
+    const [relevantBooks, queueSignature] = await Promise.all([
       this.repository.loadRelevantSeries(userId),
-      this.computeIssues({ userId }),
       this.repository.loadQueueSignature(userId),
     ]);
+    const fingerprintedIssues = await this.computeIssues({ relevantBooks, userId });
 
     const coverByBookId = this.buildCoverMap(relevantBooks);
     const items = fingerprintedIssues
@@ -269,29 +271,42 @@ export class SeriesOrderCheckService {
       booksBySeriesId.set(book.seriesId, group);
     }
 
-    return [...booksBySeriesId].map(([seriesId, books]) => ({
-      books: books.map(toDetectionBook),
-      id: seriesId,
-      title: books[0]?.series?.name ?? "",
-    }));
+    return [...booksBySeriesId].flatMap(([seriesId, books]) => {
+      if (books.length > SERIES_ORDER_MAX_BOOKS_PER_SERIES) {
+        log.warn(
+          { bookCount: books.length, seriesId },
+          "skipping oversized series order detection",
+        );
+        return [];
+      }
+      return [
+        {
+          books: books.map(toDetectionBook),
+          id: seriesId,
+          title: books[0]?.series?.name ?? "",
+        },
+      ];
+    });
   }
 
   private async computeIssues({
     client,
+    relevantBooks,
     userId,
   }: {
     client?: Prisma.TransactionClient;
+    relevantBooks?: RelevantSeriesBook[];
     userId: string;
   }): Promise<FingerprintedIssue[]> {
-    const [relevantBooks, disabledSeriesIds, ignoredFingerprints] = await Promise.all([
-      this.repository.loadRelevantSeries(userId, client),
+    const [loadedBooks, disabledSeriesIds, ignoredFingerprints] = await Promise.all([
+      relevantBooks ?? this.repository.loadRelevantSeries(userId, client),
       this.repository.listDisabledSeriesIds(userId, client),
       this.repository.listIgnoredFingerprints(userId, client),
     ]);
 
     const disabledSeries = new Set(disabledSeriesIds);
     const ignored = new Set(ignoredFingerprints);
-    const seriesList = this.buildDetectionSeries({ disabledSeries, relevantBooks });
+    const seriesList = this.buildDetectionSeries({ disabledSeries, relevantBooks: loadedBooks });
 
     return detectSeriesOrderIssues(seriesList)
       .map((issue) => ({ fingerprint: computeSeriesOrderFingerprint({ issue, userId }), issue }))

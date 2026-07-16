@@ -313,6 +313,34 @@ describe("detectSeriesOrderIssue non-conflicts", () => {
     expect(issue).toBeNull();
   });
 
+  it("does not collapse three closed queued parts jumbled by part number", () => {
+    const issue = detectSeriesOrderIssue(
+      makeSeries({
+        books: [
+          makeBook({ id: "p3", partNumber: 3, queuePosition: 1, readingStatus: "finished" }),
+          makeBook({ id: "p2", partNumber: 2, queuePosition: 2, readingStatus: "finished" }),
+          makeBook({ id: "p4", partNumber: 4, queuePosition: 3, readingStatus: "dnf" }),
+        ],
+      }),
+    );
+
+    expect(issue).toBeNull();
+  });
+
+  it("ignores a jumbling finished part among correctly ordered unclosed parts", () => {
+    const issue = detectSeriesOrderIssue(
+      makeSeries({
+        books: [
+          makeBook({ id: "p2", partNumber: 2, queuePosition: 1, readingStatus: "not_started" }),
+          makeBook({ id: "p4", partNumber: 4, queuePosition: 2, readingStatus: "not_started" }),
+          makeBook({ id: "p3", partNumber: 3, queuePosition: 3, readingStatus: "finished" }),
+        ],
+      }),
+    );
+
+    expect(issue).toBeNull();
+  });
+
   it("treats borrowed_from_someone as available, using missing rather than an ownership problem", () => {
     const issue = detectOrThrow(
       makeSeries({

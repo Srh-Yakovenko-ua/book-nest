@@ -74,7 +74,7 @@ export function toSeriesOrderIssueView({
     problemType: primary.problemType,
     recommendedOrder: toRecommendedOrder(issue),
     relatedProblems: issue.related.map(toRelatedProblem),
-    series: { cover: null, id: issue.series.id, title: issue.series.title },
+    series: { id: issue.series.id, title: issue.series.title },
     severity: primary.severity,
     unresolvedPreviousCount: primary.unresolvedPreviousCount,
   };

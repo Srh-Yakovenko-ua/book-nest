@@ -78,7 +78,7 @@ export const SeriesOrderIssueViewSchema = z.object({
   problemType: SeriesOrderProblemTypeSchema,
   recommendedOrder: z.array(SeriesOrderPositionViewSchema),
   relatedProblems: z.array(SeriesOrderRelatedProblemSchema),
-  series: z.object({ cover: MediaViewSchema.nullable(), id: z.string(), title: z.string() }),
+  series: z.object({ id: z.string(), title: z.string() }),
   severity: SeriesOrderSeveritySchema,
   unresolvedPreviousCount: z.number().int().nonnegative(),
 });
@@ -146,7 +146,7 @@ export const SeriesOrderIssuesQuerySchema = z.object({
 export type SeriesOrderIssuesQuery = z.infer<typeof SeriesOrderIssuesQuerySchema>;
 
 export const SeriesOrderFixInputSchema = z.object({
-  expectedQueueVersion: z.string(),
+  expectedQueueVersion: z.string().max(64),
   strategy: SeriesOrderFixStrategySchema,
 });
 export type SeriesOrderFixInput = z.infer<typeof SeriesOrderFixInputSchema>;

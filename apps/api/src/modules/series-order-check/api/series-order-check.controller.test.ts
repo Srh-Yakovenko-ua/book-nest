@@ -41,6 +41,13 @@ afterAll(async () => {
   await context.close();
 });
 
+type MultipleMissingScenario = {
+  bookFourId: string;
+  bookThreeId: string;
+  bookTwoId: string;
+  seriesId: string;
+};
+
 type OutOfOrderScenario = {
   bookThreeId: string;
   bookTwoId: string;
@@ -164,6 +171,36 @@ async function seedMissingPreviousScenario(accessToken: string): Promise<SeededS
     bookThreeId: bookThree.bookId,
     bookTwoId: bookTwo.bookId,
     seriesId: bookThree.seriesId,
+  };
+}
+
+async function seedMultipleMissingScenario(accessToken: string): Promise<MultipleMissingScenario> {
+  const bookFour = await createSeriesPartBook(accessToken, {
+    newSeries: { name: "Dune" },
+    partNumber: 4,
+    readingStatus: "not_started",
+    title: "God Emperor of Dune",
+  });
+  const bookTwo = await createSeriesPartBook(accessToken, {
+    partNumber: 2,
+    readingStatus: "not_started",
+    seriesId: bookFour.seriesId,
+    title: "Dune Messiah",
+  });
+  const bookThree = await createSeriesPartBook(accessToken, {
+    partNumber: 3,
+    readingStatus: "not_started",
+    seriesId: bookFour.seriesId,
+    title: "Children of Dune",
+  });
+
+  expect((await queueBook(accessToken, bookFour.bookId)).status).toBe(200);
+
+  return {
+    bookFourId: bookFour.bookId,
+    bookThreeId: bookThree.bookId,
+    bookTwoId: bookTwo.bookId,
+    seriesId: bookFour.seriesId,
   };
 }
 
@@ -421,6 +458,36 @@ describe("POST /api/reading-queue/series-order-issues/:fingerprint/apply", () =>
     expect(positionByBookId.get(scenario.bookTwoId)).toBe(1);
     expect(positionByBookId.get(scenario.soloId)).toBe(2);
     expect(positionByBookId.get(scenario.bookThreeId)).toBe(3);
+  });
+
+  it("applies ADD_ALL_PREVIOUS_BEFORE inserting every missing previous before the affected book", async () => {
+    const user = await context.registerVerifyAndLogin();
+    const scenario = await seedMultipleMissingScenario(user.accessToken);
+    const { fingerprint, queueVersion } = await firstIssue(user.accessToken);
+
+    const res = await applyFix(user.accessToken, fingerprint, {
+      expectedQueueVersion: queueVersion,
+      strategy: "ADD_ALL_PREVIOUS_BEFORE",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.addedBookIds).toHaveLength(2);
+    expect(res.body.addedBookIds).toEqual(
+      expect.arrayContaining([scenario.bookTwoId, scenario.bookThreeId]),
+    );
+
+    const queueRes = await getQueue(user.accessToken);
+    expect(queueRes.body.items).toHaveLength(3);
+    const positionByBookId = new Map<string, number>(
+      queueRes.body.items.map((item: { book: { id: string }; position: number }) => [
+        item.book.id,
+        item.position,
+      ]),
+    );
+    expect(positionByBookId.get(scenario.bookTwoId)).toBe(1);
+    expect(positionByBookId.get(scenario.bookThreeId)).toBe(2);
+    expect(positionByBookId.get(scenario.bookFourId)).toBe(3);
   });
 
   it("returns 409 ISSUE_STALE when re-applying the same fingerprint after success", async () => {

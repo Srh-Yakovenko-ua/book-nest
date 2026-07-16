@@ -231,6 +231,63 @@ describe("computeFixPlan / REORDER_SERIES_SLOTS", () => {
     expect(plan.warnings).toEqual([]);
   });
 
+  it("keeps a queued null-part book of the series in place while permuting parted books", () => {
+    const bookThree = detectionBook({
+      createdAt: new Date("2024-03-01T00:00:00.000Z"),
+      id: "b3",
+      partNumber: 3,
+      queuePosition: 1,
+      title: "Book 3",
+    });
+    const bookNull = detectionBook({
+      createdAt: new Date("2024-04-01T00:00:00.000Z"),
+      id: "bnull",
+      partNumber: null,
+      queuePosition: 2,
+      title: "Companion",
+    });
+    const bookTwo = detectionBook({
+      createdAt: new Date("2024-02-01T00:00:00.000Z"),
+      id: "b2",
+      partNumber: 2,
+      queuePosition: 3,
+      title: "Book 2",
+    });
+    const queue: FixPlanQueueItem[] = [
+      queueItem({ bookId: "b3", queuePosition: 1, seriesId: AFFECTED_SERIES_ID, title: "Book 3" }),
+      queueItem({
+        bookId: "bnull",
+        queuePosition: 2,
+        seriesId: AFFECTED_SERIES_ID,
+        title: "Companion",
+      }),
+      queueItem({ bookId: "b2", queuePosition: 3, seriesId: AFFECTED_SERIES_ID, title: "Book 2" }),
+    ];
+    const issue = makeIssue({
+      inPlayBooks: [bookThree, bookNull, bookTwo],
+      primary: makeConflict({
+        affectedBook: bookThree,
+        allowedActions: ["REORDER_SERIES_SLOTS"],
+        problemType: "previous_book_after_later_book",
+      }),
+    });
+
+    const plan = computeFixPlan({
+      issue,
+      queue,
+      queueLimit: DEFAULT_QUEUE_LIMIT,
+      strategy: "REORDER_SERIES_SLOTS",
+    });
+
+    const afterPositions = positionByBookId(plan.after);
+    expect(afterPositions.get("b2")).toBe(1);
+    expect(afterPositions.get("bnull")).toBe(2);
+    expect(afterPositions.get("b3")).toBe(3);
+    expect(plan.movedBookIds).toEqual(expect.arrayContaining(["b2", "b3"]));
+    expect(plan.movedBookIds).not.toContain("bnull");
+    expect(plan.shiftedUnrelatedBooksCount).toBe(0);
+  });
+
   it("fully reverses a series whose books are queued in descending part order", () => {
     const bookOne = detectionBook({
       createdAt: new Date("2024-01-01T00:00:00.000Z"),

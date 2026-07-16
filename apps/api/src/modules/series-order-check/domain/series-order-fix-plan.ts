@@ -186,11 +186,13 @@ function resolveReorder({
   const partOrderOf = (item: FixPlanQueueItem): { createdAt: Date; partNumber: Nullable<number> } =>
     partOrderByBookId.get(item.bookId) ?? { createdAt: EPOCH, partNumber: null };
 
-  const seriesItems = queue.filter((item) => item.seriesId === affectedSeriesId);
-  const slots = seriesItems
+  const partedSeriesItems = queue.filter(
+    (item) => item.seriesId === affectedSeriesId && partOrderOf(item).partNumber !== null,
+  );
+  const slots = partedSeriesItems
     .map((item) => item.queuePosition)
     .sort((first, second) => first - second);
-  const sortedSeriesItems = [...seriesItems].sort((first, second) =>
+  const sortedSeriesItems = [...partedSeriesItems].sort((first, second) =>
     compareByPartThenCreated(partOrderOf(first), partOrderOf(second)),
   );
 
