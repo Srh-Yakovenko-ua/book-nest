@@ -336,6 +336,30 @@ describe("GenresService.stats", () => {
     expect(romance?.coverUrls).toEqual(["https://cdn/m1"]);
   });
 
+  it("dedups a cover reused across multiple books in the same genre", async () => {
+    const { repository, service } = buildService();
+    repository.aggregateGenreStats.mockResolvedValue([
+      {
+        averageRating: null,
+        booksCount: 3,
+        key: "fantasy",
+        readCount: 0,
+        readingQueueCount: 0,
+        wantToBuyCount: 0,
+      },
+    ]);
+    repository.listGenreCovers.mockResolvedValue([
+      { coverMedia: { id: "shared" }, genres: ["fantasy"] },
+      { coverMedia: { id: "shared" }, genres: ["fantasy"] },
+      { coverMedia: { id: "other" }, genres: ["fantasy"] },
+    ]);
+
+    const result = await service.stats(USER_ID);
+    const fantasy = result.find((entry) => entry.key === "fantasy");
+
+    expect(fantasy?.coverUrls).toEqual(["https://cdn/shared", "https://cdn/other"]);
+  });
+
   it("skips a cover whose view cannot be built", async () => {
     const { mediaService, repository, service } = buildService();
     repository.aggregateGenreStats.mockResolvedValue([

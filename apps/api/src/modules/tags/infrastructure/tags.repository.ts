@@ -126,17 +126,14 @@ export class TagsRepository {
     if (tagIds.length === 0) {
       return;
     }
-    await client.tag.updateMany({
-      data: { lastUsedAt: usedAt },
-      where: { id: { in: tagIds }, userId },
-    });
+    await client.$executeRaw`UPDATE tags SET last_used_at = ${usedAt} WHERE id = ANY(${tagIds}::uuid[]) AND user_id = ${userId}::uuid`;
   }
 
   update(
-    { data, id }: { data: UpdateTagFields; id: string },
+    { data, id, userId }: { data: UpdateTagFields; id: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<TagModel> {
-    return client.tag.update({ data, where: { id } });
+    return client.tag.update({ data, where: { id, userId } });
   }
 
   upsertByNormalized(
@@ -152,10 +149,15 @@ export class TagsRepository {
 }
 
 function buildOwnedWhere(userId: string, query: string | undefined): Prisma.TagWhereInput {
-  const nameFilter: Prisma.TagWhereInput =
-    query === undefined || query.length === 0
-      ? {}
-      : { name: { contains: query, mode: "insensitive" } };
+  if (query === undefined || query.length === 0) {
+    return { userId };
+  }
 
-  return { ...nameFilter, userId };
+  return {
+    OR: [
+      { name: { contains: query, mode: "insensitive" } },
+      { description: { contains: query, mode: "insensitive" } },
+    ],
+    userId,
+  };
 }

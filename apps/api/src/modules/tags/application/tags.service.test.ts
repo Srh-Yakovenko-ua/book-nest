@@ -189,7 +189,11 @@ describe("TagsService.update", () => {
       FAKE_TX,
     );
     expect(repository.update).toHaveBeenCalledWith(
-      { data: { name: "Cozy Mystery", normalizedName: "cozy mystery" }, id: TAG_ID },
+      {
+        data: { name: "Cozy Mystery", normalizedName: "cozy mystery" },
+        id: TAG_ID,
+        userId: USER_ID,
+      },
       FAKE_TX,
     );
   });
@@ -214,7 +218,11 @@ describe("TagsService.update", () => {
 
     expect(repository.findByNormalizedExcluding).not.toHaveBeenCalled();
     expect(repository.update).toHaveBeenCalledWith(
-      { data: { name: "Dark Academia", normalizedName: "dark academia" }, id: TAG_ID },
+      {
+        data: { name: "Dark Academia", normalizedName: "dark academia" },
+        id: TAG_ID,
+        userId: USER_ID,
+      },
       FAKE_TX,
     );
   });
@@ -228,7 +236,7 @@ describe("TagsService.update", () => {
 
     expect(repository.findByNormalizedExcluding).not.toHaveBeenCalled();
     expect(repository.update).toHaveBeenCalledWith(
-      { data: { type: "trope" }, id: TAG_ID },
+      { data: { type: "trope" }, id: TAG_ID, userId: USER_ID },
       FAKE_TX,
     );
   });
@@ -241,7 +249,7 @@ describe("TagsService.update", () => {
     await service.update(USER_ID, TAG_ID, { color: null, description: null });
 
     expect(repository.update).toHaveBeenCalledWith(
-      { data: { color: null, description: null }, id: TAG_ID },
+      { data: { color: null, description: null }, id: TAG_ID, userId: USER_ID },
       FAKE_TX,
     );
   });
@@ -251,7 +259,12 @@ describe("TagsService.stats", () => {
   it("merges book counts into each owned tag and defaults missing counts to zero", async () => {
     const { repository, service } = buildService();
     repository.listOwned.mockResolvedValue([
-      tag({ id: TAG_ID, name: "dark academia", normalizedName: "dark academia" }),
+      tag({
+        description: "moody university vibes",
+        id: TAG_ID,
+        name: "dark academia",
+        normalizedName: "dark academia",
+      }),
       tag({ id: OTHER_TAG_ID, name: "slow burn", normalizedName: "slow burn" }),
     ]);
     repository.countBooksByTag.mockResolvedValue([{ count: 3, tagId: TAG_ID }]);
@@ -262,6 +275,7 @@ describe("TagsService.stats", () => {
       {
         booksCount: 3,
         color: null,
+        description: "moody university vibes",
         id: TAG_ID,
         lastUsedAt: null,
         name: "dark academia",
@@ -271,6 +285,7 @@ describe("TagsService.stats", () => {
       {
         booksCount: 0,
         color: null,
+        description: null,
         id: OTHER_TAG_ID,
         lastUsedAt: null,
         name: "slow burn",

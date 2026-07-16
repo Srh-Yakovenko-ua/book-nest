@@ -168,6 +168,16 @@ describe("GET /api/quotes filters", () => {
     expect(texts(noSpoilers.body).sort()).toEqual(["commented", "favorite", "plain"]);
     expect(texts(commented.body)).toEqual(["commented"]);
   });
+
+  it("returns only quotes without a comment for filter=without_comment", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    await seedMixed(accessToken, bookId);
+
+    const withoutComment = await listQuotes(accessToken, "?filter=without_comment");
+
+    expect(texts(withoutComment.body).sort()).toEqual(["favorite", "plain", "spoiler"]);
+  });
 });
 
 describe("GET /api/quotes sorting", () => {

@@ -6,7 +6,13 @@ import { GenreKeySchema } from "./genres.js";
 
 export const DEDICATIONS_PAGE_SIZE_DEFAULT = 12;
 
-export const DedicationFilterSchema = z.enum(["all", "favorites", "finished", "unfinished"]);
+export const DedicationFilterSchema = z.enum([
+  "all",
+  "favorites",
+  "without_favorites",
+  "finished",
+  "unfinished",
+]);
 
 export type DedicationFilter = z.infer<typeof DedicationFilterSchema>;
 

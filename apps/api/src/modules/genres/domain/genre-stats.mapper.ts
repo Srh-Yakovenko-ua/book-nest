@@ -1,7 +1,7 @@
-import type { GenreStatsView } from "@app/shared";
+import type { GenreStatsView, Nullable } from "@app/shared";
 
 export type GenreStatsAggregateRow = {
-  averageRating: null | number;
+  averageRating: Nullable<number>;
   booksCount: number;
   key: string;
   readCount: number;

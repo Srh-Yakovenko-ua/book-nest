@@ -28,6 +28,7 @@ export function toTagStatsView({
   return {
     booksCount,
     color: tag.color,
+    description: tag.description,
     id: tag.id,
     lastUsedAt: tag.lastUsedAt === null ? null : tag.lastUsedAt.toISOString(),
     name: tag.name,

@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { isEqual } from "date-fns";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -9,16 +10,19 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
+import { TagsRepository } from "../infrastructure/tags.repository.js";
 import { TagsModule } from "../tags.module.js";
 
 let context: AuthTestContext;
 let app: INestApplication;
 let prisma: PrismaService;
+let tagsRepository: TagsRepository;
 
 beforeAll(async () => {
   context = await createAuthTestContext([AuthModule, TagsModule]);
   app = context.app;
   prisma = app.get(PrismaService);
+  tagsRepository = app.get(TagsRepository);
 });
 
 beforeEach(() => {
@@ -273,6 +277,7 @@ describe("GET /api/tags/stats", () => {
     const usedTag = await prisma.tag.create({
       data: {
         color: "#A96E47",
+        description: "moody university vibes",
         name: "dark academia",
         normalizedName: "dark academia",
         type: "atmosphere",
@@ -291,12 +296,14 @@ describe("GET /api/tags/stats", () => {
     expect(byName.get("dark academia")).toMatchObject({
       booksCount: 1,
       color: "#A96E47",
+      description: "moody university vibes",
       type: "atmosphere",
     });
-    expect(byName.get("unused")).toMatchObject({ booksCount: 0 });
+    expect(byName.get("unused")).toMatchObject({ booksCount: 0, description: null });
     expect(Object.keys(byName.get("unused") as object).sort()).toEqual([
       "booksCount",
       "color",
+      "description",
       "id",
       "lastUsedAt",
       "name",
@@ -353,6 +360,26 @@ describe("GET /api/tags", () => {
     });
 
     const res = await searchTags(accessToken, "DARK");
+
+    const names = res.body.items.map((tag: { name: string }) => tag.name);
+    expect(names).toEqual(["dark academia"]);
+  });
+
+  it("matches a term that only appears in a tag's description", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await prisma.tag.createMany({
+      data: [
+        {
+          description: "moody university vibes",
+          name: "dark academia",
+          normalizedName: "dark academia",
+          userId,
+        },
+        { name: "slow burn", normalizedName: "slow burn", userId },
+      ],
+    });
+
+    const res = await searchTags(accessToken, "university");
 
     const names = res.body.items.map((tag: { name: string }) => tag.name);
     expect(names).toEqual(["dark academia"]);
@@ -459,5 +486,41 @@ describe("DELETE /api/tags/:id", () => {
 
     expect(res.status).toBe(404);
     expect(await prisma.tag.count({ where: { id: strangerTag.id } })).toBe(1);
+  });
+});
+
+describe("TagsRepository.touchLastUsed", () => {
+  it("stamps lastUsedAt without bumping updatedAt", async () => {
+    const { userId } = await context.registerVerifyAndLogin();
+    const created = await prisma.tag.create({
+      data: { name: "dark academia", normalizedName: "dark academia", userId },
+    });
+    expect(created.lastUsedAt).toBeNull();
+
+    await tagsRepository.touchLastUsed({ tagIds: [created.id], usedAt: new Date(), userId });
+
+    const touched = await prisma.tag.findUniqueOrThrow({ where: { id: created.id } });
+    expect(touched.lastUsedAt).not.toBeNull();
+    expect(isEqual(touched.updatedAt, created.updatedAt)).toBe(true);
+  });
+
+  it("does not stamp a tag owned by another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const strangerTag = await prisma.tag.create({
+      data: { name: "secret tag", normalizedName: "secret tag", userId: stranger.userId },
+    });
+
+    await tagsRepository.touchLastUsed({
+      tagIds: [strangerTag.id],
+      usedAt: new Date(),
+      userId: owner.userId,
+    });
+
+    const unchanged = await prisma.tag.findUniqueOrThrow({ where: { id: strangerTag.id } });
+    expect(unchanged.lastUsedAt).toBeNull();
   });
 });

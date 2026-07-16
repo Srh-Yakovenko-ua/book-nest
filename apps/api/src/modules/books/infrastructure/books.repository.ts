@@ -1199,6 +1199,9 @@ function applyDedicationStatusFilter(where: Prisma.BookWhereInput, filter: Dedic
     case "unfinished":
       where.readingStatus = { not: "finished" };
       return;
+    case "without_favorites":
+      where.isFavoriteDedication = false;
+      return;
     default: {
       const _exhaustiveCheck: never = filter;
       return _exhaustiveCheck;

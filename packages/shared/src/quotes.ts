@@ -61,6 +61,7 @@ export const QuoteFilterSchema = z.enum([
   "with_spoiler",
   "favorites",
   "with_comment",
+  "without_comment",
 ]);
 
 export type QuoteFilter = z.infer<typeof QuoteFilterSchema>;

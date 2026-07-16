@@ -191,6 +191,14 @@ describe("GET /api/books/dedications", () => {
       expect(titlesOf(res.body).sort()).toEqual(["FavFinished", "FavReading"]);
     });
 
+    it("returns only non-favorite dedications for filter=without_favorites", async () => {
+      const accessToken = await seedFilterSet();
+
+      const res = await getDedications(accessToken, { filter: "without_favorites" });
+
+      expect(titlesOf(res.body).sort()).toEqual(["PlainFinished", "PlainUnstarted"]);
+    });
+
     it("returns only finished dedications for filter=finished", async () => {
       const accessToken = await seedFilterSet();
 

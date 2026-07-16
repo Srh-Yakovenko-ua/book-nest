@@ -223,6 +223,9 @@ function applyQuoteFilter(filter: QuoteFilter, where: Prisma.QuoteWhereInput): v
     case "with_spoiler":
       where.isSpoiler = true;
       return;
+    case "without_comment":
+      where.comment = null;
+      return;
     default: {
       const _exhaustiveCheck: never = filter;
       return _exhaustiveCheck;

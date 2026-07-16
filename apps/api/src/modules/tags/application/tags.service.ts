@@ -139,7 +139,7 @@ export class TagsService {
           throw new NotFoundError("Tag not found");
         }
         const data = await this.buildUpdateData({ current, input, tx, userId });
-        return this.tagsRepository.update({ data, id: tagId }, tx);
+        return this.tagsRepository.update({ data, id: tagId, userId }, tx);
       });
       return toTagCatalogView(updated);
     } catch (error) {

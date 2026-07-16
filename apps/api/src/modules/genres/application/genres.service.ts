@@ -1,4 +1,4 @@
-import type { CreateGenreInput, GenreStatsView, GenreView } from "@app/shared";
+import type { CreateGenreInput, GenreStatsView, GenreView, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
@@ -116,24 +116,24 @@ export class GenresService {
   private buildCoverUrlsByKey(
     coverRows: { coverMedia: Parameters<MediaService["buildView"]>[0]; genres: string[] }[],
   ): Map<string, string[]> {
-    const coverUrlsByKey = new Map<string, string[]>();
+    const urlsByKey = new Map<string, Set<string>>();
     for (const row of coverRows) {
       const thumbUrl = this.thumbUrlOf(row.coverMedia);
       if (thumbUrl === null) {
         continue;
       }
       for (const key of row.genres) {
-        const urls = coverUrlsByKey.get(key) ?? [];
-        if (urls.length < GENRE_COVER_PREVIEW_LIMIT) {
-          urls.push(thumbUrl);
-          coverUrlsByKey.set(key, urls);
+        const urls = urlsByKey.get(key) ?? new Set<string>();
+        if (urls.size < GENRE_COVER_PREVIEW_LIMIT) {
+          urls.add(thumbUrl);
+          urlsByKey.set(key, urls);
         }
       }
     }
-    return coverUrlsByKey;
+    return new Map([...urlsByKey].map(([key, urls]) => [key, [...urls]]));
   }
 
-  private thumbUrlOf(coverMedia: Parameters<MediaService["buildView"]>[0]): null | string {
+  private thumbUrlOf(coverMedia: Parameters<MediaService["buildView"]>[0]): Nullable<string> {
     try {
       return this.mediaService.buildView(coverMedia).urls.thumb;
     } catch (error) {

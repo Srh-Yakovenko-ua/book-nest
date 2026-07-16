@@ -108,6 +108,7 @@ export type TagCatalogView = z.infer<typeof TagCatalogViewSchema>;
 export const TagStatsViewSchema = z.object({
   booksCount: z.number().int(),
   color: z.string().nullable(),
+  description: z.string().nullable(),
   id: z.string(),
   lastUsedAt: z.string().nullable(),
   name: z.string(),
