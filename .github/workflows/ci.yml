@@ -87,6 +87,7 @@ jobs:
       DATABASE_URL: postgresql://booknest:booknest_ci@localhost:5432/booknest_test
       JWT_ACCESS_SECRET: ci-access-secret-0000000000000000000000000
       JWT_REFRESH_SECRET: ci-refresh-secret-000000000000000000000000
+      NEXT_PUBLIC_SITE_URL: https://book-nest.net
 
     steps:
       - name: Checkout
