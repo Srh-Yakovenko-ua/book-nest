@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 
 import { AUTH_COVER, AuthLayout, RegisterForm } from "@/features/auth";
 import { routing } from "@/i18n/routing";
+import { buildAlternates, buildOpenGraph, buildTwitter } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -15,7 +16,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const resolvedLocale = hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
   const t = await getTranslations({ locale: resolvedLocale, namespace: "auth.register" });
-  return { title: t("title") };
+  const brand = await getTranslations({ locale: resolvedLocale, namespace: "home" });
+  const title = brand("title");
+  const description = brand("description");
+
+  return {
+    alternates: buildAlternates({ locale: resolvedLocale, pathname: "/register" }),
+    description,
+    openGraph: buildOpenGraph({
+      description,
+      locale: resolvedLocale,
+      pathname: "/register",
+      title,
+    }),
+    title: t("title"),
+    twitter: buildTwitter({ description, title }),
+  };
 }
 
 export default async function RegisterPage({ params }: Props) {

@@ -28,5 +28,5 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const resolvedLocale = hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
   const t = await getTranslations({ locale: resolvedLocale, namespace: "auth.forgot" });
-  return { title: t("title") };
+  return { robots: { follow: false, index: false }, title: t("title") };
 }
