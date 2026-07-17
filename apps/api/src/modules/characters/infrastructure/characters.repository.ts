@@ -1,4 +1,4 @@
-import type { Nullable } from "@app/shared";
+import type { CharacterListSort, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -26,11 +26,39 @@ const rosterInclude = {
   portraitMedia: true,
 } satisfies Prisma.BookCharacterInclude;
 
+const globalSummaryInclude = {
+  _count: { select: { bookAppearances: true } },
+  avatarMedia: true,
+} satisfies Prisma.CharacterInclude;
+
+const seriesAppearanceInclude = {
+  book: { select: { id: true, partNumber: true } },
+  character: {
+    select: { avatarMedia: true, entityKind: true, id: true, isFavorite: true, name: true },
+  },
+  portraitMedia: true,
+} satisfies Prisma.BookCharacterInclude;
+
 const purgeSelect = {
   avatarMediaId: true,
   bookAppearances: { select: { portraitMediaId: true } },
   deletedAt: true,
 } satisfies Prisma.CharacterSelect;
+
+const GLOBAL_CHARACTER_ORDER_BY: Record<
+  CharacterListSort,
+  Prisma.CharacterOrderByWithRelationInput[]
+> = {
+  name: [{ name: "asc" }, { createdAt: "asc" }],
+  recently_added: [{ createdAt: "desc" }, { name: "asc" }],
+  recently_updated: [{ updatedAt: "desc" }, { name: "asc" }],
+};
+
+export type BookContextRow = {
+  id: string;
+  partNumber: Nullable<number>;
+  seriesId: Nullable<string>;
+};
 
 export type CharacterDeletionImpact = {
   aliasCount: number;
@@ -40,6 +68,17 @@ export type CharacterDeletionImpact = {
 };
 
 export type CharacterDetailsRow = Prisma.CharacterGetPayload<{ include: typeof detailsInclude }>;
+
+export type CharacterDuplicateSignals = {
+  aliases: { normalizedName: string }[];
+  bookAppearances: { book: { seriesId: Nullable<string> } }[];
+  name: string;
+  normalizedName: string;
+};
+
+export type CharacterGlobalSummaryRow = Prisma.CharacterGetPayload<{
+  include: typeof globalSummaryInclude;
+}>;
 
 export type CharacterPurgeRow = Prisma.CharacterGetPayload<{ select: typeof purgeSelect }>;
 
@@ -106,7 +145,31 @@ export type CreateRoleData = {
   roleType: string;
 };
 
+export type GlobalCharacterFilter = {
+  archived: boolean;
+  attitudes: string[] | undefined;
+  contextBookId: string | undefined;
+  favorite: boolean | undefined;
+  genders: string[] | undefined;
+  importances: string[] | undefined;
+  includeSpoilerSearch: boolean;
+  roleTypes: string[] | undefined;
+  search: string | undefined;
+  species: string[] | undefined;
+  userId: string;
+};
+
 export type RosterRow = Prisma.BookCharacterGetPayload<{ include: typeof rosterInclude }>;
+
+export type SeriesAppearanceRow = Prisma.BookCharacterGetPayload<{
+  include: typeof seriesAppearanceInclude;
+}>;
+
+export type SeriesBookRow = {
+  createdAt: Date;
+  id: string;
+  partNumber: Nullable<number>;
+};
 
 export type UpdateBookCharacterData = {
   appearanceNotes?: Nullable<string>;
@@ -178,6 +241,10 @@ export class CharactersRepository {
     return { aliasCount, appearanceCount, roleCount, tagCount };
   }
 
+  countGlobalSummaries(filter: GlobalCharacterFilter): Promise<number> {
+    return this.prisma.character.count({ where: buildGlobalCharacterWhere(filter) });
+  }
+
   countRoster(filter: RosterFilter): Promise<number> {
     return this.prisma.bookCharacter.count({ where: buildRosterWhere(filter) });
   }
@@ -220,6 +287,82 @@ export class CharactersRepository {
     return found !== null;
   }
 
+  async existsOwnedSeries({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<boolean> {
+    const found = await this.prisma.series.findFirst({
+      select: { id: true },
+      where: { id: seriesId, userId },
+    });
+    return found !== null;
+  }
+
+  findCharacterDuplicateSignals({
+    characterId,
+    userId,
+  }: {
+    characterId: string;
+    userId: string;
+  }): Promise<Nullable<CharacterDuplicateSignals>> {
+    return this.prisma.character.findFirst({
+      select: {
+        aliases: { select: { normalizedName: true } },
+        bookAppearances: { select: { book: { select: { seriesId: true } } } },
+        name: true,
+        normalizedName: true,
+      },
+      where: { deletedAt: null, id: characterId, userId },
+    });
+  }
+
+  findDuplicateCandidates({
+    excludeCharacterId,
+    limit,
+    normalizedNames,
+    seriesIds,
+    similarName,
+    userId,
+  }: {
+    excludeCharacterId: string | undefined;
+    limit: number;
+    normalizedNames: string[];
+    seriesIds: string[];
+    similarName: string | undefined;
+    userId: string;
+  }): Promise<CharacterGlobalSummaryRow[]> {
+    const or: Prisma.CharacterWhereInput[] = [];
+    if (normalizedNames.length > 0) {
+      or.push({ normalizedName: { in: normalizedNames } });
+      or.push({ aliases: { some: { normalizedName: { in: normalizedNames } } } });
+    }
+    if (seriesIds.length > 0 && similarName !== undefined) {
+      or.push({
+        AND: [
+          { name: { contains: similarName, mode: "insensitive" } },
+          { bookAppearances: { some: { book: { seriesId: { in: seriesIds } } } } },
+        ],
+      });
+    }
+    if (or.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    const where: Prisma.CharacterWhereInput = { deletedAt: null, OR: or, userId };
+    if (excludeCharacterId !== undefined) {
+      where.id = { not: excludeCharacterId };
+    }
+    return this.prisma.character.findMany({
+      include: globalSummaryInclude,
+      orderBy: [{ name: "asc" }, { createdAt: "asc" }],
+      take: limit,
+      where,
+    });
+  }
+
   findForPurge(
     { characterId, userId }: { characterId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
@@ -236,6 +379,19 @@ export class CharactersRepository {
   ): Promise<Nullable<BookCharacterModel>> {
     return client.bookCharacter.findFirst({
       where: { bookId, character: { deletedAt: null, userId }, characterId },
+    });
+  }
+
+  findOwnedBookContext({
+    bookId,
+    userId,
+  }: {
+    bookId: string;
+    userId: string;
+  }): Promise<Nullable<BookContextRow>> {
+    return this.prisma.book.findFirst({
+      select: { id: true, partNumber: true, seriesId: true },
+      where: { id: bookId, userId },
     });
   }
 
@@ -272,6 +428,26 @@ export class CharactersRepository {
     return result.count;
   }
 
+  listGlobalSummaries({
+    filter,
+    skip,
+    sort,
+    take,
+  }: {
+    filter: GlobalCharacterFilter;
+    skip: number;
+    sort: CharacterListSort;
+    take: number;
+  }): Promise<CharacterGlobalSummaryRow[]> {
+    return this.prisma.character.findMany({
+      include: globalSummaryInclude,
+      orderBy: GLOBAL_CHARACTER_ORDER_BY[sort],
+      skip,
+      take,
+      where: buildGlobalCharacterWhere(filter),
+    });
+  }
+
   listRoster({ skip, take, ...filter }: ListRosterInput): Promise<RosterRow[]> {
     return this.prisma.bookCharacter.findMany({
       include: rosterInclude,
@@ -280,6 +456,104 @@ export class CharactersRepository {
       take,
       where: buildRosterWhere(filter),
     });
+  }
+
+  listSeriesAppearances({
+    bookIds,
+    search,
+    userId,
+  }: {
+    bookIds: string[];
+    search: string | undefined;
+    userId: string;
+  }): Promise<SeriesAppearanceRow[]> {
+    const where: Prisma.BookCharacterWhereInput = {
+      bookId: { in: bookIds },
+      character: { deletedAt: null, userId },
+      hidePresenceAsSpoiler: false,
+    };
+    if (search !== undefined) {
+      const contains = { contains: search, mode: "insensitive" } as const;
+      where.OR = [
+        { character: { name: contains } },
+        { displayName: contains, displayNameIsSpoiler: false },
+        { character: { aliases: { some: { isSpoiler: false, name: contains } } } },
+      ];
+    }
+    return this.prisma.bookCharacter.findMany({
+      include: seriesAppearanceInclude,
+      orderBy: [{ createdAt: "asc" }],
+      where,
+    });
+  }
+
+  listSeriesBooks({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesBookRow[]> {
+    return this.prisma.book.findMany({
+      orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
+      select: { createdAt: true, id: true, partNumber: true },
+      where: { seriesId, userId },
+    });
+  }
+
+  async listSuggestions({
+    bookId,
+    limit,
+    search,
+    seriesId,
+    userId,
+  }: {
+    bookId: string;
+    limit: number;
+    search: string | undefined;
+    seriesId: Nullable<string>;
+    userId: string;
+  }): Promise<CharacterGlobalSummaryRow[]> {
+    const baseWhere: Prisma.CharacterWhereInput = {
+      archivedAt: null,
+      bookAppearances: { none: { bookId } },
+      deletedAt: null,
+      userId,
+    };
+    if (search !== undefined) {
+      const contains = { contains: search, mode: "insensitive" } as const;
+      baseWhere.OR = [
+        { name: contains },
+        { aliases: { some: { isSpoiler: false, name: contains } } },
+      ];
+    }
+
+    const sameSeries =
+      seriesId === null
+        ? []
+        : await this.prisma.character.findMany({
+            include: globalSummaryInclude,
+            orderBy: [{ name: "asc" }, { createdAt: "asc" }],
+            take: limit,
+            where: {
+              ...baseWhere,
+              bookAppearances: { none: { bookId }, some: { book: { seriesId } } },
+            },
+          });
+
+    const remaining = limit - sameSeries.length;
+    if (remaining <= 0) {
+      return sameSeries;
+    }
+
+    const excludeIds = sameSeries.map((row) => row.id);
+    const others = await this.prisma.character.findMany({
+      include: globalSummaryInclude,
+      orderBy: [{ name: "asc" }, { createdAt: "asc" }],
+      take: remaining,
+      where: { ...baseWhere, id: { notIn: excludeIds } },
+    });
+    return [...sameSeries, ...others];
   }
 
   async replaceAliases(
@@ -363,6 +637,94 @@ export class CharactersRepository {
   }
 }
 
+function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.CharacterWhereInput {
+  const {
+    archived,
+    attitudes,
+    contextBookId,
+    favorite,
+    genders,
+    importances,
+    includeSpoilerSearch,
+    roleTypes,
+    search,
+    species,
+    userId,
+  } = filter;
+
+  const where: Prisma.CharacterWhereInput = {
+    archivedAt: archived ? { not: null } : null,
+    deletedAt: null,
+    userId,
+  };
+  if (genders !== undefined) {
+    where.gender = { in: genders };
+  }
+  if (species !== undefined) {
+    where.species = { in: species };
+  }
+  if (attitudes !== undefined) {
+    where.globalAttitude = { in: attitudes };
+  }
+  if (favorite !== undefined) {
+    where.isFavorite = favorite;
+  }
+
+  const scopeAppearance = (
+    extra: Prisma.BookCharacterWhereInput,
+  ): Prisma.BookCharacterWhereInput =>
+    contextBookId === undefined ? extra : { ...extra, bookId: contextBookId };
+
+  const and: Prisma.CharacterWhereInput[] = [];
+  if (importances !== undefined) {
+    and.push({ bookAppearances: { some: scopeAppearance({ importance: { in: importances } }) } });
+  }
+  if (roleTypes !== undefined) {
+    and.push({
+      bookAppearances: {
+        some: scopeAppearance({
+          roles: {
+            some: {
+              roleType: { in: roleTypes },
+              ...(includeSpoilerSearch ? {} : { isSpoiler: false }),
+            },
+          },
+        }),
+      },
+    });
+  }
+  if (contextBookId !== undefined) {
+    and.push({
+      bookAppearances: { none: { bookId: contextBookId, hidePresenceAsSpoiler: true } },
+    });
+  }
+  if (search !== undefined) {
+    const contains = { contains: search, mode: "insensitive" } as const;
+    and.push({
+      OR: [
+        { name: contains },
+        {
+          aliases: {
+            some: { name: contains, ...(includeSpoilerSearch ? {} : { isSpoiler: false }) },
+          },
+        },
+        {
+          bookAppearances: {
+            some: scopeAppearance({
+              displayName: contains,
+              ...(includeSpoilerSearch ? {} : { displayNameIsSpoiler: false }),
+            }),
+          },
+        },
+      ],
+    });
+  }
+  if (and.length > 0) {
+    where.AND = and;
+  }
+  return where;
+}
+
 function buildRosterWhere({
   bookId,
   search,
@@ -376,7 +738,10 @@ function buildRosterWhere({
 
   if (search !== undefined) {
     const contains = { contains: search, mode: "insensitive" } as const;
-    where.OR = [{ character: { name: contains } }, { displayName: contains }];
+    where.OR = [
+      { character: { name: contains } },
+      { displayName: contains, displayNameIsSpoiler: false },
+    ];
   }
 
   return where;

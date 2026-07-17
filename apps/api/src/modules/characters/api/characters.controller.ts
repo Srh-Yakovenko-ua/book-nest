@@ -2,9 +2,14 @@ import type {
   CharacterDeletionPreview,
   CharacterDeletionResult,
   CharacterDetailsView,
+  CharacterDuplicateCandidatesView,
+  CharacterGlobalSummaryView,
+  Paginator,
 } from "@app/shared";
 
 import {
+  CharacterDuplicateCandidatesQuerySchema,
+  CharactersListQuerySchema,
   CreateCharacterSchema,
   DeleteCharacterQuerySchema,
   UpdateCharacterSchema,
@@ -44,12 +49,16 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { CharactersService } from "../application/characters.service.js";
+import { CharactersListQueryDto } from "./input-dto/characters-list-query.input-dto.js";
 import { CreateCharacterInputDto } from "./input-dto/create-character.input-dto.js";
 import { DeleteCharacterQueryDto } from "./input-dto/delete-character-query.input-dto.js";
+import { CharacterDuplicateCandidatesQueryDto } from "./input-dto/duplicate-candidates-query.input-dto.js";
 import { UpdateCharacterInputDto } from "./input-dto/update-character.input-dto.js";
 import { CharacterDeletionPreviewDto } from "./view-dto/character-deletion-preview.view-dto.js";
 import { CharacterDeletionResultDto } from "./view-dto/character-deletion-result.view-dto.js";
 import { CharacterDetailsViewDto } from "./view-dto/character-details.view-dto.js";
+import { CharacterDuplicateCandidatesDto } from "./view-dto/character-duplicate-candidates.view-dto.js";
+import { PaginatedCharacterGlobalSummaryDto } from "./view-dto/paginated-character-global-summary.view-dto.js";
 
 const CHARACTER_ACTION_TTL_SECONDS = 60;
 const CHARACTER_ACTION_LIMIT = 60;
@@ -76,6 +85,50 @@ export class CharactersController {
     @Body(new ZodBodyPipe(CreateCharacterSchema)) body: CreateCharacterInputDto,
   ): Promise<CharacterDetailsView> {
     return this.charactersService.createGlobalCharacter(user.id, body);
+  }
+
+  @ApiOkResponse({
+    description: "A spoiler-safe global summary list of the current user's characters",
+    type: PaginatedCharacterGlobalSummaryDto,
+  })
+  @ApiOperation({ summary: "List the current user's characters as spoiler-safe global summaries" })
+  @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "role", required: false })
+  @ApiQuery({ name: "importance", required: false })
+  @ApiQuery({ name: "species", required: false })
+  @ApiQuery({ name: "gender", required: false })
+  @ApiQuery({ name: "attitude", required: false })
+  @ApiQuery({ name: "favorite", required: false })
+  @ApiQuery({ name: "archived", required: false })
+  @ApiQuery({ name: "sort", required: false })
+  @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({ name: "includeSpoilerSearch", required: false })
+  @ApiQuery({ name: "pageNumber", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
+  @Get()
+  list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(CharactersListQuerySchema)) query: CharactersListQueryDto,
+  ): Promise<Paginator<CharacterGlobalSummaryView>> {
+    return this.charactersService.listGlobal({ query, userId: user.id });
+  }
+
+  @ApiOkResponse({
+    description: "Spoiler-safe owner-scoped duplicate candidates for the given name and signals",
+    type: CharacterDuplicateCandidatesDto,
+  })
+  @ApiOperation({ summary: "Find possible duplicate characters before creating a new one" })
+  @ApiQuery({ name: "name", required: false })
+  @ApiQuery({ name: "aliases", required: false })
+  @ApiQuery({ name: "seriesId", required: false })
+  @ApiQuery({ name: "characterId", required: false })
+  @Get("duplicate-candidates")
+  duplicateCandidates(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(CharacterDuplicateCandidatesQuerySchema))
+    query: CharacterDuplicateCandidatesQueryDto,
+  ): Promise<CharacterDuplicateCandidatesView> {
+    return this.charactersService.duplicateCandidates({ query, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "Character not found" })

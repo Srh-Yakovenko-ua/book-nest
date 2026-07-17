@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
+import { queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 
 const CHARACTER_NAME_MAX = 200;
@@ -17,12 +18,17 @@ const CHARACTERS_DEFAULT_PAGE_SIZE = 20;
 
 export const CHARACTER_INT4_MAX = 2147483647;
 
+export const CHARACTER_SUGGESTIONS_LIMIT_DEFAULT = 10;
+export const CHARACTER_SUGGESTIONS_LIMIT_MAX = 50;
+export const CHARACTER_DUPLICATE_CANDIDATES_MAX = 20;
+
 export const CHARACTER_ERROR_CODES = {
   alreadyLinkedToBook: "character_already_linked_to_book",
   bookNotFound: "character_book_not_found",
   mediaOwnershipMismatch: "media_ownership_mismatch",
   notFound: "character_not_found",
   ownershipMismatch: "character_ownership_mismatch",
+  seriesNotFound: "character_series_not_found",
   tagNotFound: "character_tag_not_found",
   validationFailed: "validation_failed",
 } as const;
@@ -416,3 +422,109 @@ export const CharacterSummaryViewSchema = z.object({
 export type CharacterSummaryView = z.infer<typeof CharacterSummaryViewSchema>;
 
 export const PaginatedCharacterSummarySchema = createPaginatedSchema(CharacterSummaryViewSchema);
+
+export const CharacterListSortSchema = z.enum(["name", "recently_added", "recently_updated"]);
+
+export type CharacterListSort = z.infer<typeof CharacterListSortSchema>;
+
+export const CharactersListQuerySchema = z.object({
+  archived: z.stringbool().optional(),
+  attitude: queryStringArray(CharacterAttitudeSchema),
+  contextBookId: z.string().uuid().optional(),
+  favorite: z.stringbool().optional(),
+  gender: queryStringArray(CharacterGenderSchema),
+  importance: queryStringArray(BookCharacterImportanceSchema),
+  includeSpoilerSearch: z.stringbool().optional(),
+  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(LIST_PAGE_SIZE_MAX)
+    .default(CHARACTERS_DEFAULT_PAGE_SIZE),
+  q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
+  role: queryStringArray(BookCharacterRoleTypeSchema),
+  sort: CharacterListSortSchema.default("name"),
+  species: queryStringArray(z.string().trim().min(1).max(CHARACTER_SPECIES_MAX)),
+});
+
+export type CharactersListQuery = z.infer<typeof CharactersListQuerySchema>;
+
+export const CharacterDuplicateCandidatesQuerySchema = z.object({
+  aliases: queryStringArray(z.string().trim().min(1).max(CHARACTER_NAME_MAX)),
+  characterId: z.string().uuid().optional(),
+  name: z.string().trim().min(1).max(CHARACTER_NAME_MAX).optional(),
+  seriesId: z.string().uuid().optional(),
+});
+
+export type CharacterDuplicateCandidatesQuery = z.infer<
+  typeof CharacterDuplicateCandidatesQuerySchema
+>;
+
+export const CharacterSuggestionsQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(CHARACTER_SUGGESTIONS_LIMIT_MAX)
+    .default(CHARACTER_SUGGESTIONS_LIMIT_DEFAULT),
+  q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
+});
+
+export type CharacterSuggestionsQuery = z.infer<typeof CharacterSuggestionsQuerySchema>;
+
+export const SeriesCharactersSortSchema = z.enum(["name", "importance"]);
+
+export type SeriesCharactersSort = z.infer<typeof SeriesCharactersSortSchema>;
+
+export const SeriesCharactersQuerySchema = z.object({
+  contextBookId: z.string().uuid().optional(),
+  includeFuture: z.stringbool().optional(),
+  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(LIST_PAGE_SIZE_MAX)
+    .default(CHARACTERS_DEFAULT_PAGE_SIZE),
+  q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
+  sort: SeriesCharactersSortSchema.default("name"),
+});
+
+export type SeriesCharactersQuery = z.infer<typeof SeriesCharactersQuerySchema>;
+
+export const CharacterGlobalSummaryViewSchema = z.object({
+  appearanceCount: z.number().int(),
+  archivedAt: z.string().nullable(),
+  avatar: MediaViewSchema.nullable(),
+  customGender: z.string().nullable(),
+  entityKind: CharacterEntityKindSchema,
+  gender: CharacterGenderSchema,
+  globalAttitude: CharacterAttitudeSchema.nullable(),
+  id: z.string(),
+  isFavorite: z.boolean(),
+  name: z.string(),
+  neutralDescription: z.string().nullable(),
+  pronouns: z.string().nullable(),
+  species: z.string().nullable(),
+});
+
+export type CharacterGlobalSummaryView = z.infer<typeof CharacterGlobalSummaryViewSchema>;
+
+export const PaginatedCharacterGlobalSummarySchema = createPaginatedSchema(
+  CharacterGlobalSummaryViewSchema,
+);
+
+export const CharacterDuplicateCandidatesViewSchema = z.object({
+  candidates: z.array(CharacterGlobalSummaryViewSchema),
+});
+
+export type CharacterDuplicateCandidatesView = z.infer<
+  typeof CharacterDuplicateCandidatesViewSchema
+>;
+
+export const CharacterSuggestionsViewSchema = z.object({
+  suggestions: z.array(CharacterGlobalSummaryViewSchema),
+});
+
+export type CharacterSuggestionsView = z.infer<typeof CharacterSuggestionsViewSchema>;

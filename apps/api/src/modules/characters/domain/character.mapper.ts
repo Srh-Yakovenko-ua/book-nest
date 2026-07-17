@@ -1,6 +1,7 @@
 import type {
   BookCharacterView,
   CharacterDetailsView,
+  CharacterGlobalSummaryView,
   CharacterSummaryView,
   MediaView,
   Nullable,
@@ -77,6 +78,20 @@ export type CharacterSource = {
   pronouns: Nullable<string>;
   species: Nullable<string>;
   updatedAt: Date;
+};
+
+export type GlobalSummaryCharacterSource = {
+  archivedAt: Nullable<Date>;
+  customGender: Nullable<string>;
+  entityKind: string;
+  gender: string;
+  globalAttitude: Nullable<string>;
+  id: string;
+  isFavorite: boolean;
+  name: string;
+  neutralDescription: Nullable<string>;
+  pronouns: Nullable<string>;
+  species: Nullable<string>;
 };
 
 export type SpoilerFlags = {
@@ -183,6 +198,35 @@ export function toCharacterDetailsView({
     pronouns: emptyToNull(character.pronouns),
     species: emptyToNull(character.species),
     updatedAt: character.updatedAt.toISOString(),
+  };
+}
+
+export function toCharacterGlobalSummaryView({
+  appearanceCount,
+  avatar,
+  character,
+}: {
+  appearanceCount: number;
+  avatar: Nullable<MediaView>;
+  character: GlobalSummaryCharacterSource;
+}): CharacterGlobalSummaryView {
+  return {
+    appearanceCount,
+    archivedAt: character.archivedAt === null ? null : character.archivedAt.toISOString(),
+    avatar,
+    customGender: emptyToNull(character.customGender),
+    entityKind: CharacterEntityKindSchema.parse(character.entityKind),
+    gender: CharacterGenderSchema.parse(character.gender),
+    globalAttitude:
+      character.globalAttitude === null
+        ? null
+        : CharacterAttitudeSchema.parse(character.globalAttitude),
+    id: character.id,
+    isFavorite: character.isFavorite,
+    name: character.name,
+    neutralDescription: emptyToNull(character.neutralDescription),
+    pronouns: emptyToNull(character.pronouns),
+    species: emptyToNull(character.species),
   };
 }
 
