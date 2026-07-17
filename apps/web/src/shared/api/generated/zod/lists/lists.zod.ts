@@ -338,6 +338,7 @@ export const ListDetailsControllerDetailResponse = zod.object({
         illustrator: zod.string().nullable(),
         isbn: zod.string().nullable(),
         isFavorite: zod.boolean(),
+        isFavoriteDedication: zod.boolean(),
         isInReadingQueue: zod.boolean(),
         language: zod.enum([
           "ukrainian",

@@ -48,6 +48,7 @@ export type PaginatedBooksDtoItemsItem = {
   /** @nullable */
   isbn: string | null;
   isFavorite: boolean;
+  isFavoriteDedication: boolean;
   isInReadingQueue: boolean;
   language: PaginatedBooksDtoItemsItemLanguage;
   lists: PaginatedBooksDtoItemsItemListsItem[];

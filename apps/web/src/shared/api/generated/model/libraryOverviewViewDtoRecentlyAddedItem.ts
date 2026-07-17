@@ -48,6 +48,7 @@ export type LibraryOverviewViewDtoRecentlyAddedItem = {
   /** @nullable */
   isbn: string | null;
   isFavorite: boolean;
+  isFavoriteDedication: boolean;
   isInReadingQueue: boolean;
   language: LibraryOverviewViewDtoRecentlyAddedItemLanguage;
   lists: LibraryOverviewViewDtoRecentlyAddedItemListsItem[];

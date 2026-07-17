@@ -48,6 +48,7 @@ export interface BookViewDto {
   /** @nullable */
   isbn: string | null;
   isFavorite: boolean;
+  isFavoriteDedication: boolean;
   isInReadingQueue: boolean;
   language: BookViewDtoLanguage;
   lists: BookViewDtoListsItem[];

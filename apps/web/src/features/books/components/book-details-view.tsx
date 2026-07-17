@@ -8,6 +8,8 @@ import { parseAsStringLiteral, useQueryState } from "nuqs";
 import type { PageTabsItem } from "@/components/page-tabs";
 
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
+import { BookNotesBlock } from "@/features/notes";
+import { BookQuotesBlock } from "@/features/quotes";
 
 import { BookDetailsAbout } from "./book-details-about";
 import { BookDetailsEdition } from "./book-details-edition";
@@ -47,8 +49,10 @@ export function BookDetailsView({ book }: BookDetailsViewProps) {
         >
           <PageTabsPanel className="flex flex-col gap-6" value="overview">
             <BookDetailsAbout book={book} />
+            <BookQuotesBlock book={book} />
             <ReadingProgressBlock book={book} onViewFullHistory={() => void setTab("history")} />
             <BookDetailsEdition book={book} />
+            <BookNotesBlock book={book} />
           </PageTabsPanel>
           <PageTabsPanel value="history">
             <ReadingHistoryTab book={book} isActive={tab === "history"} key={book.id} />

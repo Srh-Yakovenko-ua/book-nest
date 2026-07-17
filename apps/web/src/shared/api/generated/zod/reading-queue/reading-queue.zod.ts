@@ -144,6 +144,7 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
         illustrator: zod.string().nullable(),
         isbn: zod.string().nullable(),
         isFavorite: zod.boolean(),
+        isFavoriteDedication: zod.boolean(),
         isInReadingQueue: zod.boolean(),
         language: zod.enum([
           "ukrainian",
@@ -458,6 +459,7 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
         illustrator: zod.string().nullable(),
         isbn: zod.string().nullable(),
         isFavorite: zod.boolean(),
+        isFavoriteDedication: zod.boolean(),
         isInReadingQueue: zod.boolean(),
         language: zod.enum([
           "ukrainian",
@@ -768,6 +770,7 @@ export const ReadingQueueControllerReorderResponse = zod.object({
         illustrator: zod.string().nullable(),
         isbn: zod.string().nullable(),
         isFavorite: zod.boolean(),
+        isFavoriteDedication: zod.boolean(),
         isInReadingQueue: zod.boolean(),
         language: zod.enum([
           "ukrainian",
@@ -1074,6 +1077,7 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
         illustrator: zod.string().nullable(),
         isbn: zod.string().nullable(),
         isFavorite: zod.boolean(),
+        isFavoriteDedication: zod.boolean(),
         isInReadingQueue: zod.boolean(),
         language: zod.enum([
           "ukrainian",
@@ -1378,6 +1382,7 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
         illustrator: zod.string().nullable(),
         isbn: zod.string().nullable(),
         isFavorite: zod.boolean(),
+        isFavoriteDedication: zod.boolean(),
         isInReadingQueue: zod.boolean(),
         language: zod.enum([
           "ukrainian",

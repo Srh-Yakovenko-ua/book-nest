@@ -50,6 +50,7 @@ export type WishlistViewDtoBooksItem = {
   /** @nullable */
   isbn: string | null;
   isFavorite: boolean;
+  isFavoriteDedication: boolean;
   isInReadingQueue: boolean;
   language: WishlistViewDtoBooksItemLanguage;
   lists: WishlistViewDtoBooksItemListsItem[];
