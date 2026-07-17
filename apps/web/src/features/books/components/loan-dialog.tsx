@@ -101,7 +101,7 @@ function buildSchema(messages: LoanMessages) {
         ),
       loanDate: z
         .string()
-        .refine((value) => value.length === 0 || ISO_DATE_PATTERN.test(value), messages.dateInvalid)
+        .refine((value) => ISO_DATE_PATTERN.test(value), messages.dateInvalid)
         .refine((value) => value.length === 0 || value <= todayIso(), messages.loanDateFuture),
       note: z.string().max(NOTE_MAX, messages.noteMax),
       personName: z
