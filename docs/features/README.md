@@ -23,6 +23,7 @@ All concrete claims use `path:line` references so the reader can click straight 
 - [books](./books.md) — full-stack personal book library (spec §6–§12): create/edit/list/delete `/api/books` (POST/GET/GET:id/PATCH/DELETE) + author/publisher/tag/series/list resolve-or-create + cover upload + Next.js form slice and library grid (active)
 - [blogs-posts](./blogs-posts.md) — full-stack blogs + posts with modal-only UX, TanStack Query, BE CRUD + 33 integration tests (active)
 - [blogs-posts-videos](./blogs-posts-videos.md) — BE-only reference for all three resources including videos; 55 integration tests; superseded by blogs-posts.md for FE sections (active)
+- [characters](./characters.md) — per-user book characters (Phase 1, backend-only): stable identity + per-book profiles/aliases/roles/POV/tags, server-side spoiler redaction, duplicate detection, series aggregation, soft-delete trash + delayed BullMQ purge; 15 endpoints across 4 controllers; no frontend yet (active)
 
 ## Planned
 
