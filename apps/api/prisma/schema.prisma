@@ -56,6 +56,7 @@ model User {
   seriesOrderDisabledSeries SeriesOrderDisabledSeries[]
   quotes                    Quote[]
   notes                     Note[]
+  characters                Character[]
 
   @@map("users")
 }
@@ -248,6 +249,8 @@ model Book {
   notes                         Note[]
   timelines                     BookTimeline[]
   timelineEvents                BookTimelineEvent[]
+  bookCharacters                BookCharacter[]
+  characterAliases              CharacterAlias[]
 
   @@unique([seriesId, partNumber])
   @@index([userId])
@@ -625,19 +628,21 @@ model Session {
 }
 
 model MediaAsset {
-  id               String    @id @default(uuid()) @db.Uuid
-  userId           String    @map("user_id") @db.Uuid
-  kind             String
-  storageKey       String    @map("storage_key")
-  originalName     String?   @map("original_name")
-  contentType      String    @map("content_type")
-  width            Int
-  height           Int
-  sizeBytes        Int       @map("size_bytes")
-  thumbGeneratedAt DateTime? @map("thumb_generated_at") @db.Timestamptz
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coverOfBooks     Book[]
+  id                       String          @id @default(uuid()) @db.Uuid
+  userId                   String          @map("user_id") @db.Uuid
+  kind                     String
+  storageKey               String          @map("storage_key")
+  originalName             String?         @map("original_name")
+  contentType              String          @map("content_type")
+  width                    Int
+  height                   Int
+  sizeBytes                Int             @map("size_bytes")
+  thumbGeneratedAt         DateTime?       @map("thumb_generated_at") @db.Timestamptz
+  createdAt                DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  user                     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverOfBooks             Book[]
+  avatarOfCharacters       Character[]
+  portraitOfBookCharacters BookCharacter[]
 
   @@index([userId])
   @@map("media_assets")
@@ -729,4 +734,116 @@ model BookTimelineEventRelation {
   @@unique([sourceEventId, targetEventId, relationType])
   @@index([targetEventId])
   @@map("book_timeline_event_relations")
+}
+
+model Character {
+  id                 String           @id @default(uuid()) @db.Uuid
+  userId             String           @map("user_id") @db.Uuid
+  name               String
+  normalizedName     String           @map("normalized_name")
+  entityKind         String           @default("individual") @map("entity_kind")
+  species            String?
+  gender             String           @default("unknown")
+  customGender       String?          @map("custom_gender")
+  pronouns           String?
+  neutralDescription String?          @map("neutral_description")
+  avatarMediaId      String?          @map("avatar_media_id") @db.Uuid
+  isFavorite         Boolean          @default(false) @map("is_favorite")
+  globalAttitude     String?          @map("global_attitude")
+  archivedAt         DateTime?        @map("archived_at") @db.Timestamptz
+  deletedAt          DateTime?        @map("deleted_at") @db.Timestamptz
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  avatarMedia        MediaAsset?      @relation(fields: [avatarMediaId], references: [id], onDelete: SetNull)
+  aliases            CharacterAlias[]
+  bookAppearances    BookCharacter[]
+
+  @@index([userId])
+  @@index([userId, normalizedName])
+  @@index([userId, isFavorite])
+  @@index([userId, archivedAt])
+  @@index([userId, deletedAt])
+  @@index([avatarMediaId])
+  @@map("characters")
+}
+
+model CharacterAlias {
+  id             String    @id @default(uuid()) @db.Uuid
+  characterId    String    @map("character_id") @db.Uuid
+  name           String
+  normalizedName String    @map("normalized_name")
+  type           String    @default("nickname")
+  bookId         String?   @map("book_id") @db.Uuid
+  isSpoiler      Boolean   @default(false) @map("is_spoiler")
+  position       Int       @default(0)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  book           Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, bookId, normalizedName, type])
+  @@index([characterId])
+  @@index([bookId])
+  @@map("character_aliases")
+}
+
+model BookCharacter {
+  id                          String              @id @default(uuid()) @db.Uuid
+  bookId                      String              @map("book_id") @db.Uuid
+  characterId                 String              @map("character_id") @db.Uuid
+  displayName                 String?             @map("display_name")
+  importance                  String              @default("supporting")
+  status                      String              @default("active")
+  statusCustomText            String?             @map("status_custom_text")
+  description                 String?
+  personalImpression          String?             @map("personal_impression")
+  appearanceNotes             String?             @map("appearance_notes")
+  speciesOverride             String?             @map("species_override")
+  portraitMediaId             String?             @map("portrait_media_id") @db.Uuid
+  attitude                    String?
+  firstAppearanceChapter      String?             @map("first_appearance_chapter")
+  firstAppearancePage         Int?                @map("first_appearance_page")
+  firstAppearanceAudioSeconds Int?                @map("first_appearance_audio_seconds")
+  firstAppearanceNote         String?             @map("first_appearance_note")
+  isPovCharacter              Boolean             @default(false) @map("is_pov_character")
+  narratorType                String?             @map("narrator_type")
+  sortOrder                   Int?                @map("sort_order")
+  hidePresenceAsSpoiler       Boolean             @default(false) @map("hide_presence_as_spoiler")
+  displayNameIsSpoiler        Boolean             @default(false) @map("display_name_is_spoiler")
+  statusIsSpoiler             Boolean             @default(false) @map("status_is_spoiler")
+  descriptionIsSpoiler        Boolean             @default(false) @map("description_is_spoiler")
+  personalImpressionIsSpoiler Boolean             @default(false) @map("personal_impression_is_spoiler")
+  appearanceNotesIsSpoiler    Boolean             @default(false) @map("appearance_notes_is_spoiler")
+  speciesOverrideIsSpoiler    Boolean             @default(false) @map("species_override_is_spoiler")
+  portraitIsSpoiler           Boolean             @default(false) @map("portrait_is_spoiler")
+  createdAt                   DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  book                        Book                @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  character                   Character           @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  portraitMedia               MediaAsset?         @relation(fields: [portraitMediaId], references: [id], onDelete: SetNull)
+  roles                       BookCharacterRole[]
+
+  @@unique([bookId, characterId])
+  @@index([bookId])
+  @@index([characterId])
+  @@index([bookId, importance])
+  @@index([portraitMediaId])
+  @@map("book_characters")
+}
+
+model BookCharacterRole {
+  id              String        @id @default(uuid()) @db.Uuid
+  bookCharacterId String        @map("book_character_id") @db.Uuid
+  roleType        String        @map("role_type")
+  customRole      String?       @map("custom_role")
+  isSpoiler       Boolean       @default(false) @map("is_spoiler")
+  position        Int           @default(0)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  bookCharacter   BookCharacter @relation(fields: [bookCharacterId], references: [id], onDelete: Cascade)
+
+  @@unique([bookCharacterId, roleType, customRole])
+  @@index([bookCharacterId])
+  @@map("book_character_roles")
 }
