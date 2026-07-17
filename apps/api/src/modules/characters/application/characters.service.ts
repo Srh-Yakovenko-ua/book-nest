@@ -2,6 +2,8 @@ import type {
   BookCharacterProfileInput,
   BookCharactersQuery,
   BookCharacterView,
+  CharacterDeletionPreview,
+  CharacterDeletionResult,
   CharacterDetailsView,
   CharacterInput,
   CharacterSummaryView,
@@ -13,13 +15,20 @@ import type {
   UpdateBookCharacter,
   UpdateCharacter,
 } from "@app/shared";
+import type { Queue } from "bullmq";
 
 import { CHARACTER_ERROR_CODES, normalizeName, normalizeSearch } from "@app/shared";
+import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
+import { addMilliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
-import type { CharacterDetailsRow, RosterRow } from "../infrastructure/characters.repository.js";
+import type {
+  CharacterDetailsRow,
+  CharacterPurgeRow,
+  RosterRow,
+} from "../infrastructure/characters.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
@@ -30,6 +39,12 @@ import { BooksRepository } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { TagsService } from "../../tags/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
+import {
+  CHARACTER_PURGE_JOB,
+  CHARACTER_PURGE_QUEUE_NAME,
+  CHARACTER_PURGE_WINDOW_MS,
+  type CharacterPurgeJob,
+} from "../domain/character-purge.js";
 import {
   toBookCharacterView,
   toCharacterDetailsView,
@@ -55,6 +70,8 @@ export class CharactersService {
     private readonly mediaService: MediaService,
     private readonly tagsService: TagsService,
     private readonly transactionRunner: TransactionRunner,
+    @InjectQueue(CHARACTER_PURGE_QUEUE_NAME)
+    private readonly purgeQueue: Queue<CharacterPurgeJob>,
   ) {}
 
   async createGlobalCharacter(
@@ -111,6 +128,20 @@ export class CharactersService {
     return this.toDetailsView(detailsRow);
   }
 
+  async deletionPreview({
+    characterId,
+    userId,
+  }: {
+    characterId: string;
+    userId: string;
+  }): Promise<CharacterDeletionPreview> {
+    const owned = await this.charactersRepository.findOwnedCharacterBare({ characterId, userId });
+    if (owned === null) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
+    return this.charactersRepository.countDeletionImpact({ characterId });
+  }
+
   async getBookCharacterDetails(
     userId: string,
     bookId: string,
@@ -159,6 +190,62 @@ export class CharactersService {
       pageSize: query.pageSize,
       totalCount,
     });
+  }
+
+  async purge({ characterId, userId }: CharacterPurgeJob): Promise<void> {
+    const character = await this.charactersRepository.findForPurge({ characterId, userId });
+    if (character === null || character.deletedAt === null) {
+      return;
+    }
+
+    const mediaIds = collectMediaIds(character);
+    const purged = await this.charactersRepository.hardDeleteIfDeleted({ characterId, userId });
+    if (purged === 0) {
+      return;
+    }
+
+    for (const mediaId of mediaIds) {
+      try {
+        await this.mediaService.deleteIfUnreferenced({ id: mediaId, userId });
+      } catch (error) {
+        log.warn({ err: error, mediaId }, "failed to clean up orphaned character media");
+      }
+    }
+  }
+
+  async restore({
+    characterId,
+    userId,
+  }: {
+    characterId: string;
+    userId: string;
+  }): Promise<CharacterDetailsView> {
+    const restored = await this.charactersRepository.restore({ characterId, userId });
+    if (restored === 0) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
+    await this.cancelPurge(characterId);
+    return this.getCharacterDetails(userId, characterId);
+  }
+
+  async softDelete({
+    characterId,
+    userId,
+  }: {
+    characterId: string;
+    userId: string;
+  }): Promise<CharacterDeletionResult> {
+    const deletedAt = new Date();
+    const affected = await this.charactersRepository.softDelete({ characterId, deletedAt, userId });
+    if (affected === 0) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
+    await this.enqueuePurge({ characterId, userId });
+    return {
+      characterId,
+      deletedAt: deletedAt.toISOString(),
+      purgeAt: addMilliseconds(deletedAt, CHARACTER_PURGE_WINDOW_MS).toISOString(),
+    };
   }
 
   async unlink({
@@ -590,6 +677,27 @@ export class CharactersService {
     }));
   }
 
+  private async cancelPurge(characterId: string): Promise<void> {
+    try {
+      await this.purgeQueue.remove(characterId);
+    } catch (error) {
+      log.warn({ characterId, err: error }, "failed to cancel character purge job");
+    }
+  }
+
+  private async enqueuePurge({ characterId, userId }: CharacterPurgeJob): Promise<void> {
+    try {
+      await this.purgeQueue.remove(characterId);
+      await this.purgeQueue.add(
+        CHARACTER_PURGE_JOB,
+        { characterId, userId },
+        { delay: CHARACTER_PURGE_WINDOW_MS, jobId: characterId },
+      );
+    } catch (error) {
+      log.warn({ characterId, err: error }, "failed to enqueue character purge job");
+    }
+  }
+
   private async insertBookCharacter({
     data,
     tx,
@@ -699,6 +807,14 @@ export class CharactersService {
       portrait: this.mediaViewOf(row.portraitMedia),
     });
   }
+}
+
+function collectMediaIds(character: CharacterPurgeRow): string[] {
+  const ids = [
+    character.avatarMediaId,
+    ...character.bookAppearances.map((appearance) => appearance.portraitMediaId),
+  ];
+  return [...new Set(ids.filter((id): id is string => id !== null))];
 }
 
 function dedupeAliases(aliases: CreateAliasData[]): CreateAliasData[] {

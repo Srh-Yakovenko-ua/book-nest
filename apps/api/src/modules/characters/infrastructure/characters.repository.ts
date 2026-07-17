@@ -26,7 +26,22 @@ const rosterInclude = {
   portraitMedia: true,
 } satisfies Prisma.BookCharacterInclude;
 
+const purgeSelect = {
+  avatarMediaId: true,
+  bookAppearances: { select: { portraitMediaId: true } },
+  deletedAt: true,
+} satisfies Prisma.CharacterSelect;
+
+export type CharacterDeletionImpact = {
+  aliasCount: number;
+  appearanceCount: number;
+  roleCount: number;
+  tagCount: number;
+};
+
 export type CharacterDetailsRow = Prisma.CharacterGetPayload<{ include: typeof detailsInclude }>;
+
+export type CharacterPurgeRow = Prisma.CharacterGetPayload<{ select: typeof purgeSelect }>;
 
 export type CreateAliasData = {
   bookId: Nullable<string>;
@@ -150,6 +165,19 @@ type RosterFilter = {
 export class CharactersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async countDeletionImpact(
+    { characterId }: { characterId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<CharacterDeletionImpact> {
+    const [appearanceCount, roleCount, aliasCount, tagCount] = await Promise.all([
+      client.bookCharacter.count({ where: { characterId } }),
+      client.bookCharacterRole.count({ where: { bookCharacter: { characterId } } }),
+      client.characterAlias.count({ where: { characterId } }),
+      client.characterTag.count({ where: { characterId } }),
+    ]);
+    return { aliasCount, appearanceCount, roleCount, tagCount };
+  }
+
   countRoster(filter: RosterFilter): Promise<number> {
     return this.prisma.bookCharacter.count({ where: buildRosterWhere(filter) });
   }
@@ -192,6 +220,16 @@ export class CharactersRepository {
     return found !== null;
   }
 
+  findForPurge(
+    { characterId, userId }: { characterId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<CharacterPurgeRow>> {
+    return client.character.findFirst({
+      select: purgeSelect,
+      where: { id: characterId, userId },
+    });
+  }
+
   findOwnedBookCharacter(
     { bookId, characterId, userId }: { bookId: string; characterId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
@@ -222,6 +260,16 @@ export class CharactersRepository {
       },
       where: { deletedAt: null, id: characterId, userId },
     });
+  }
+
+  async hardDeleteIfDeleted(
+    { characterId, userId }: { characterId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const result = await client.character.deleteMany({
+      where: { deletedAt: { not: null }, id: characterId, userId },
+    });
+    return result.count;
   }
 
   listRoster({ skip, take, ...filter }: ListRosterInput): Promise<RosterRow[]> {
@@ -272,6 +320,28 @@ export class CharactersRepository {
         data: roles.map((role) => ({ ...role, bookCharacterId })),
       });
     }
+  }
+
+  async restore(
+    { characterId, userId }: { characterId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const result = await client.character.updateMany({
+      data: { deletedAt: null },
+      where: { deletedAt: { not: null }, id: characterId, userId },
+    });
+    return result.count;
+  }
+
+  async softDelete(
+    { characterId, deletedAt, userId }: { characterId: string; deletedAt: Date; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const result = await client.character.updateMany({
+      data: { deletedAt },
+      where: { deletedAt: null, id: characterId, userId },
+    });
+    return result.count;
   }
 
   updateBookCharacter(

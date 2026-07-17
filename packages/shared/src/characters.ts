@@ -300,6 +300,29 @@ export const BookCharactersQuerySchema = z.object({
 
 export type BookCharactersQuery = z.infer<typeof BookCharactersQuerySchema>;
 
+export const DeleteCharacterQuerySchema = z.object({
+  confirm: z.literal("true"),
+});
+
+export type DeleteCharacterQuery = z.infer<typeof DeleteCharacterQuerySchema>;
+
+export const CharacterDeletionResultSchema = z.object({
+  characterId: z.string().uuid(),
+  deletedAt: z.iso.datetime(),
+  purgeAt: z.iso.datetime(),
+});
+
+export type CharacterDeletionResult = z.infer<typeof CharacterDeletionResultSchema>;
+
+export const CharacterDeletionPreviewSchema = z.object({
+  aliasCount: z.number().int(),
+  appearanceCount: z.number().int(),
+  roleCount: z.number().int(),
+  tagCount: z.number().int(),
+});
+
+export type CharacterDeletionPreview = z.infer<typeof CharacterDeletionPreviewSchema>;
+
 const CharacterAliasViewSchema = z.object({
   bookId: z.string().nullable(),
   id: z.string(),
