@@ -70,6 +70,13 @@ export class TagsRepository {
     return this.prisma.tag.count({ where: buildOwnedWhere(userId, query) });
   }
 
+  countOwnedByIds(
+    { ids, userId }: { ids: string[]; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    return client.tag.count({ where: { id: { in: ids }, userId } });
+  }
+
   create(input: CreateTagInput, client: Prisma.TransactionClient = this.prisma): Promise<TagModel> {
     const { userId, ...data } = input;
     return client.tag.create({ data: { ...data, userId } });

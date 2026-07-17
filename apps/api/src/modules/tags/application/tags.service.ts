@@ -40,6 +40,23 @@ export class TagsService {
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
+  async assertAllOwned(
+    { tagIds, userId }: { tagIds: string[]; userId: string },
+    client?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const uniqueIds = [...new Set(tagIds)];
+    if (uniqueIds.length === 0) {
+      return;
+    }
+    const ownedCount = await this.tagsRepository.countOwnedByIds(
+      { ids: uniqueIds, userId },
+      client,
+    );
+    if (ownedCount !== uniqueIds.length) {
+      throw new NotFoundError("Tag not found");
+    }
+  }
+
   async create(userId: string, input: CreateTagInput): Promise<TagCatalogView> {
     const normalizedName = normalizeName(input.name);
     try {

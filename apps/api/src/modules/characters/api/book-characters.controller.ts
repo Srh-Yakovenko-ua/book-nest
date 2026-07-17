@@ -5,13 +5,20 @@ import type {
   Paginator,
 } from "@app/shared";
 
-import { BookCharactersQuerySchema, CreateCharacterInBookSchema } from "@app/shared";
+import {
+  BookCharactersQuerySchema,
+  CreateCharacterInBookSchema,
+  UpdateBookCharacterSchema,
+} from "@app/shared";
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -22,6 +29,7 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -34,12 +42,14 @@ import { seconds, Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
+import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { CharactersService } from "../application/characters.service.js";
 import { BookCharactersQueryDto } from "./input-dto/book-characters-query.input-dto.js";
 import { CreateCharacterInBookInputDto } from "./input-dto/create-character-in-book.input-dto.js";
+import { UpdateBookCharacterInputDto } from "./input-dto/update-book-character.input-dto.js";
 import { CharacterDetailsViewDto } from "./view-dto/character-details.view-dto.js";
 import { PaginatedCharactersDto } from "./view-dto/paginated-characters.view-dto.js";
 
@@ -110,5 +120,48 @@ export class BookCharactersController {
     @Param("characterId", ParseUUIDPipe) characterId: string,
   ): Promise<CharacterDetailsView> {
     return this.charactersService.getBookCharacterDetails(user.id, bookId, characterId);
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed or a global field was sent" })
+  @ApiBody({ type: UpdateBookCharacterInputDto })
+  @ApiNotFoundResponse({ description: "Book, character, media or tag not found" })
+  @ApiOkResponse({
+    description: "The character combined with its updated book appearance",
+    type: CharacterDetailsViewDto,
+  })
+  @ApiOperation({
+    summary: "Update a character's book profile, roles, book-scoped aliases and tags",
+  })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @ApiParam({ description: "Character id", name: "characterId" })
+  @Patch(":characterId")
+  @Throttle({
+    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
+  })
+  updateInBook(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+    @Param("characterId", ParseUUIDPipe) characterId: string,
+    @Body(new ZodBodyPipe(UpdateBookCharacterSchema)) body: UpdateBookCharacterInputDto,
+  ): Promise<CharacterDetailsView> {
+    return this.charactersService.updateBook({ bookId, characterId, input: body, userId: user.id });
+  }
+
+  @ApiNoContentResponse({ description: "The character was unlinked from the book" })
+  @ApiNotFoundResponse({ description: "Book or character not found" })
+  @ApiOperation({ summary: "Unlink a character from a book, keeping the global profile" })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @ApiParam({ description: "Character id", name: "characterId" })
+  @Delete(":characterId")
+  @HttpCode(HTTP_STATUS.NO_CONTENT)
+  @Throttle({
+    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
+  })
+  unlink(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+    @Param("characterId", ParseUUIDPipe) characterId: string,
+  ): Promise<void> {
+    return this.charactersService.unlink({ bookId, characterId, userId: user.id });
   }
 }

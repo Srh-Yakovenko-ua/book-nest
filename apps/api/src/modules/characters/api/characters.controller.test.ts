@@ -405,3 +405,380 @@ describe("cascade and invariants", () => {
     expect(await prisma.character.count({ where: { userId } })).toBe(0);
   });
 });
+
+async function createTag(token: string, name: string): Promise<string> {
+  const res = await authed("post", "/api/tags", token).send({ name });
+  expect(res.status).toBe(HttpStatus.CREATED);
+  return res.body.id;
+}
+
+describe("global character update", () => {
+  it("rejects a book-scoped field with 400", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await authed("post", "/api/characters", accessToken).send({
+      character: { name: "Paul Atreides" },
+    });
+    const characterId = created.body.id;
+
+    const res = await authed("patch", `/api/characters/${characterId}`, accessToken).send({
+      importance: "central",
+    });
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+  });
+
+  it("rejects clearing customGender while the stored gender stays custom", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await authed("post", "/api/characters", accessToken).send({
+      character: { customGender: "Eldritch", gender: "custom", name: "The Old One" },
+    });
+    const characterId = created.body.id;
+
+    const res = await authed("patch", `/api/characters/${characterId}`, accessToken).send({
+      customGender: "",
+    });
+    expect(res.status).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
+    expect(res.body.code).toBe("validation_failed");
+
+    const read = await authed("get", `/api/characters/${characterId}`, accessToken);
+    expect(read.body.gender).toBe("custom");
+    expect(read.body.customGender).toBe("Eldritch");
+  });
+
+  it("updates global fields and global aliases without touching the book appearance", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createNewInBook(
+      accessToken,
+      bookId,
+      { name: "Paul Atreides" },
+      { displayName: "Muad'Dib", importance: "central" },
+    );
+    const characterId = created.body.id;
+
+    const patched = await authed("patch", `/api/characters/${characterId}`, accessToken).send({
+      aliases: [{ name: "Usul", type: "nickname" }],
+      isFavorite: true,
+      name: "Paul Muad'Dib Atreides",
+    });
+    expect(patched.status).toBe(HttpStatus.OK);
+    expect(patched.body.name).toBe("Paul Muad'Dib Atreides");
+    expect(patched.body.isFavorite).toBe(true);
+
+    const globalAliases = patched.body.aliases.filter(
+      (alias: { bookId: null | string }) => alias.bookId === null,
+    );
+    expect(globalAliases).toHaveLength(1);
+    expect(globalAliases[0]).toMatchObject({ name: "Usul", type: "nickname" });
+
+    expect(patched.body.appearances).toHaveLength(1);
+    expect(patched.body.appearances[0]).toMatchObject({
+      bookId,
+      displayName: "Muad'Dib",
+      importance: "central",
+    });
+  });
+});
+
+describe("book character update", () => {
+  it("rejects a global field with 400", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createNewInBook(accessToken, bookId, { name: "Paul Atreides" });
+    const characterId = created.body.id;
+
+    const res = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      accessToken,
+    ).send({ name: "Renamed Globally" });
+    expect(res.status).toBe(HttpStatus.BAD_REQUEST);
+  });
+
+  it("updates the book profile, roles, book aliases and tags without touching global data", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createNewInBook(
+      accessToken,
+      bookId,
+      { aliases: [{ name: "GlobalUsul", type: "nickname" }], name: "Paul Atreides" },
+      { importance: "supporting" },
+    );
+    const characterId = created.body.id;
+    const tagId = await createTag(accessToken, "Villain");
+
+    const patched = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      accessToken,
+    ).send({
+      aliases: [{ name: "BookMuad", type: "title" }],
+      displayName: "Muad'Dib",
+      importance: "central",
+      roles: [{ roleType: "protagonist" }],
+      tagIds: [tagId],
+    });
+    expect(patched.status).toBe(HttpStatus.OK);
+    expect(patched.body.name).toBe("Paul Atreides");
+
+    const appearance = patched.body.appearances[0];
+    expect(appearance).toMatchObject({ bookId, displayName: "Muad'Dib", importance: "central" });
+    expect(appearance.roles).toHaveLength(1);
+    expect(appearance.roles[0].roleType).toBe("protagonist");
+
+    const bookAliases = patched.body.aliases.filter(
+      (alias: { bookId: null | string }) => alias.bookId === bookId,
+    );
+    expect(bookAliases).toHaveLength(1);
+    expect(bookAliases[0].name).toBe("BookMuad");
+
+    const globalAliases = patched.body.aliases.filter(
+      (alias: { bookId: null | string }) => alias.bookId === null,
+    );
+    expect(globalAliases).toHaveLength(1);
+    expect(globalAliases[0].name).toBe("GlobalUsul");
+
+    const prisma = app.get(PrismaService);
+    const links = await prisma.characterTag.findMany({ where: { characterId } });
+    expect(links).toHaveLength(1);
+    expect(links[0]?.tagId).toBe(tagId);
+  });
+
+  it("replaces the whole role set on update", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createNewInBook(
+      accessToken,
+      bookId,
+      { name: "Paul Atreides" },
+      { roles: [{ roleType: "protagonist" }, { roleType: "supporting" }] },
+    );
+    const characterId = created.body.id;
+    expect(created.body.appearances[0].roles).toHaveLength(2);
+
+    const patched = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      accessToken,
+    ).send({ roles: [{ roleType: "antagonist" }] });
+    expect(patched.status).toBe(HttpStatus.OK);
+    expect(patched.body.appearances[0].roles).toHaveLength(1);
+    expect(patched.body.appearances[0].roles[0].roleType).toBe("antagonist");
+  });
+
+  it("rejects roleType narrator and point_of_view with 400", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createNewInBook(accessToken, bookId, { name: "Paul Atreides" });
+    const characterId = created.body.id;
+
+    const narrator = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      accessToken,
+    ).send({ roles: [{ roleType: "narrator" }] });
+    expect(narrator.status).toBe(HttpStatus.BAD_REQUEST);
+
+    const pov = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      accessToken,
+    ).send({ roles: [{ roleType: "point_of_view" }] });
+    expect(pov.status).toBe(HttpStatus.BAD_REQUEST);
+  });
+
+  it("replaces book aliases within the book scope only", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createNewInBook(accessToken, bookId, {
+      aliases: [{ name: "GlobalUsul", type: "nickname" }],
+      name: "Paul Atreides",
+    });
+    const characterId = created.body.id;
+
+    await authed("patch", `/api/books/${bookId}/characters/${characterId}`, accessToken).send({
+      aliases: [{ name: "BookMuad", type: "title" }],
+    });
+    const patched = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      accessToken,
+    ).send({ aliases: [{ name: "BookLisan", type: "title" }] });
+    expect(patched.status).toBe(HttpStatus.OK);
+
+    const bookAliases = patched.body.aliases.filter(
+      (alias: { bookId: null | string }) => alias.bookId === bookId,
+    );
+    expect(bookAliases).toHaveLength(1);
+    expect(bookAliases[0].name).toBe("BookLisan");
+
+    const globalAliases = patched.body.aliases.filter(
+      (alias: { bookId: null | string }) => alias.bookId === null,
+    );
+    expect(globalAliases).toHaveLength(1);
+    expect(globalAliases[0].name).toBe("GlobalUsul");
+  });
+
+  it("keeps book aliases when global aliases are replaced", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const created = await createNewInBook(accessToken, bookId, {
+      aliases: [{ name: "GlobalUsul", type: "nickname" }],
+      name: "Paul Atreides",
+    });
+    const characterId = created.body.id;
+
+    await authed("patch", `/api/books/${bookId}/characters/${characterId}`, accessToken).send({
+      aliases: [{ name: "BookMuad", type: "title" }],
+    });
+
+    const patched = await authed("patch", `/api/characters/${characterId}`, accessToken).send({
+      aliases: [{ name: "NewGlobal", type: "nickname" }],
+    });
+    expect(patched.status).toBe(HttpStatus.OK);
+
+    const globalAliases = patched.body.aliases.filter(
+      (alias: { bookId: null | string }) => alias.bookId === null,
+    );
+    expect(globalAliases).toHaveLength(1);
+    expect(globalAliases[0].name).toBe("NewGlobal");
+
+    const bookAliases = patched.body.aliases.filter(
+      (alias: { bookId: null | string }) => alias.bookId === bookId,
+    );
+    expect(bookAliases).toHaveLength(1);
+    expect(bookAliases[0].name).toBe("BookMuad");
+  });
+
+  it("rejects a foreign or missing tag and links nothing", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const intruder = await context.registerVerifyAndLogin({ email: "intruder@example.com" });
+    const bookId = await createBook(owner.accessToken);
+    const created = await createNewInBook(owner.accessToken, bookId, { name: "Paul Atreides" });
+    const characterId = created.body.id;
+    const foreignTagId = await createTag(intruder.accessToken, "Foreign");
+
+    const foreign = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      owner.accessToken,
+    ).send({ tagIds: [foreignTagId] });
+    expect(foreign.status).toBe(HttpStatus.NOT_FOUND);
+    expect(foreign.body.code).toBe("character_tag_not_found");
+
+    const missing = await authed(
+      "patch",
+      `/api/books/${bookId}/characters/${characterId}`,
+      owner.accessToken,
+    ).send({ tagIds: [MISSING_ID] });
+    expect(missing.status).toBe(HttpStatus.NOT_FOUND);
+    expect(missing.body.code).toBe("character_tag_not_found");
+
+    const prisma = app.get(PrismaService);
+    expect(await prisma.characterTag.count({ where: { characterId } })).toBe(0);
+  });
+});
+
+describe("book character unlink", () => {
+  it("removes only the book appearance, roles and book aliases while keeping the global profile", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const firstBook = await createBook(accessToken, { title: "Dune" });
+    const secondBook = await createBook(accessToken, { title: "Dune Messiah" });
+
+    const created = await createNewInBook(
+      accessToken,
+      firstBook,
+      { aliases: [{ name: "GlobalUsul", type: "nickname" }], name: "Paul Atreides" },
+      { roles: [{ roleType: "protagonist" }] },
+    );
+    const characterId = created.body.id;
+
+    await authed("post", `/api/books/${secondBook}/characters`, accessToken).send({
+      bookProfile: bookProfile({ importance: "major" }),
+      characterId,
+      mode: "existing",
+    });
+
+    const tagId = await createTag(accessToken, "Hero");
+    await authed("patch", `/api/books/${firstBook}/characters/${characterId}`, accessToken).send({
+      aliases: [{ name: "FirstBookAlias", type: "title" }],
+      tagIds: [tagId],
+    });
+
+    const unlinked = await authed(
+      "delete",
+      `/api/books/${firstBook}/characters/${characterId}`,
+      accessToken,
+    );
+    expect(unlinked.status).toBe(HttpStatus.NO_CONTENT);
+
+    const global = await authed("get", `/api/characters/${characterId}`, accessToken);
+    expect(global.status).toBe(HttpStatus.OK);
+    expect(global.body.appearances).toHaveLength(1);
+    expect(global.body.appearances[0].bookId).toBe(secondBook);
+
+    const globalAliases = global.body.aliases.filter(
+      (alias: { bookId: null | string }) => alias.bookId === null,
+    );
+    expect(globalAliases).toHaveLength(1);
+    expect(globalAliases[0].name).toBe("GlobalUsul");
+
+    const firstBookAliases = global.body.aliases.filter(
+      (alias: { bookId: null | string }) => alias.bookId === firstBook,
+    );
+    expect(firstBookAliases).toHaveLength(0);
+
+    const prisma = app.get(PrismaService);
+    expect(await prisma.characterTag.count({ where: { characterId } })).toBe(1);
+    expect(await prisma.bookCharacter.count({ where: { bookId: firstBook, characterId } })).toBe(0);
+    expect(
+      await prisma.bookCharacterRole.count({ where: { bookCharacter: { characterId } } }),
+    ).toBe(0);
+  });
+});
+
+describe("mutation ownership (IDOR)", () => {
+  it("returns 404 for a foreign character, book, media or tag without leaking existence", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const intruder = await context.registerVerifyAndLogin({ email: "intruder@example.com" });
+    const ownerBook = await createBook(owner.accessToken);
+    const created = await createNewInBook(owner.accessToken, ownerBook, { name: "Paul Atreides" });
+    const characterId = created.body.id;
+
+    const foreignGlobal = await authed(
+      "patch",
+      `/api/characters/${characterId}`,
+      intruder.accessToken,
+    ).send({ name: "Hijacked" });
+    expect(foreignGlobal.status).toBe(HttpStatus.NOT_FOUND);
+
+    const foreignBook = await authed(
+      "patch",
+      `/api/books/${ownerBook}/characters/${characterId}`,
+      intruder.accessToken,
+    ).send({ importance: "central" });
+    expect(foreignBook.status).toBe(HttpStatus.NOT_FOUND);
+
+    const foreignUnlink = await authed(
+      "delete",
+      `/api/books/${ownerBook}/characters/${characterId}`,
+      intruder.accessToken,
+    );
+    expect(foreignUnlink.status).toBe(HttpStatus.NOT_FOUND);
+
+    const foreignAvatar = await authed(
+      "patch",
+      `/api/characters/${characterId}`,
+      owner.accessToken,
+    ).send({ avatarMediaId: MISSING_ID });
+    expect(foreignAvatar.status).toBe(HttpStatus.NOT_FOUND);
+    expect(foreignAvatar.body.code).toBe("media_ownership_mismatch");
+
+    const foreignPortrait = await authed(
+      "patch",
+      `/api/books/${ownerBook}/characters/${characterId}`,
+      owner.accessToken,
+    ).send({ portraitMediaId: MISSING_ID });
+    expect(foreignPortrait.status).toBe(HttpStatus.NOT_FOUND);
+    expect(foreignPortrait.body.code).toBe("media_ownership_mismatch");
+  });
+});

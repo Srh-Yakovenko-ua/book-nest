@@ -436,11 +436,12 @@ model Tag {
   type           String    @default("custom")
   color          String?
   description    String?
-  lastUsedAt     DateTime? @map("last_used_at") @db.Timestamptz
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt     DateTime?       @map("last_used_at") @db.Timestamptz
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   books          BookTag[]
+  characters     CharacterTag[]
 
   @@unique([userId, normalizedName])
   @@index([userId])
@@ -758,6 +759,7 @@ model Character {
   avatarMedia        MediaAsset?      @relation(fields: [avatarMediaId], references: [id], onDelete: SetNull)
   aliases            CharacterAlias[]
   bookAppearances    BookCharacter[]
+  tags               CharacterTag[]
 
   @@index([userId])
   @@index([userId, normalizedName])
@@ -846,4 +848,15 @@ model BookCharacterRole {
   @@unique([bookCharacterId, roleType, customRole])
   @@index([bookCharacterId])
   @@map("book_character_roles")
+}
+
+model CharacterTag {
+  characterId String    @map("character_id") @db.Uuid
+  tagId       String    @map("tag_id") @db.Uuid
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([characterId, tagId])
+  @@index([tagId])
+  @@map("character_tags")
 }

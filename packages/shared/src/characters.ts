@@ -12,6 +12,7 @@ const CHARACTER_LONG_TEXT_MAX = 5000;
 const CHARACTER_SEARCH_MAX = 100;
 const CHARACTER_ALIASES_MAX = 30;
 const CHARACTER_ROLES_MAX = 20;
+const CHARACTER_TAGS_MAX = 15;
 const CHARACTERS_DEFAULT_PAGE_SIZE = 20;
 
 export const CHARACTER_INT4_MAX = 2147483647;
@@ -22,6 +23,7 @@ export const CHARACTER_ERROR_CODES = {
   mediaOwnershipMismatch: "media_ownership_mismatch",
   notFound: "character_not_found",
   ownershipMismatch: "character_ownership_mismatch",
+  tagNotFound: "character_tag_not_found",
   validationFailed: "validation_failed",
 } as const;
 
@@ -213,6 +215,77 @@ export const CreateCharacterInBookSchema = z.discriminatedUnion("mode", [
 ]);
 
 export type CreateCharacterInBook = z.infer<typeof CreateCharacterInBookSchema>;
+
+const CharacterAliasReplaceInputSchema = z
+  .object({
+    isSpoiler: z.boolean().default(false),
+    name: z.string().trim().min(1).max(CHARACTER_NAME_MAX),
+    position: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).optional(),
+    type: CharacterAliasTypeSchema.default("nickname"),
+  })
+  .strict();
+
+export const UpdateCharacterSchema = z
+  .object({
+    aliases: z.array(CharacterAliasReplaceInputSchema).max(CHARACTER_ALIASES_MAX).optional(),
+    avatarMediaId: z.string().uuid().nullish(),
+    customGender: optionalText(CHARACTER_GENDER_CUSTOM_MAX),
+    entityKind: CharacterEntityKindSchema.optional(),
+    gender: CharacterGenderSchema.optional(),
+    globalAttitude: CharacterAttitudeSchema.nullish(),
+    isFavorite: z.boolean().optional(),
+    name: z.string().trim().min(1).max(CHARACTER_NAME_MAX).optional(),
+    neutralDescription: optionalText(CHARACTER_LONG_TEXT_MAX),
+    pronouns: optionalText(CHARACTER_PRONOUNS_MAX),
+    species: optionalText(CHARACTER_SPECIES_MAX),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.gender === "custom" && (value.customGender ?? "").trim().length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "customGender is required when gender is custom",
+        path: ["customGender"],
+      });
+    }
+  });
+
+export type UpdateCharacter = z.infer<typeof UpdateCharacterSchema>;
+
+export const UpdateBookCharacterSchema = z
+  .object({
+    aliases: z.array(CharacterAliasReplaceInputSchema).max(CHARACTER_ALIASES_MAX).optional(),
+    appearanceNotes: optionalText(CHARACTER_LONG_TEXT_MAX),
+    appearanceNotesIsSpoiler: z.boolean().optional(),
+    attitude: CharacterAttitudeSchema.nullish(),
+    description: optionalText(CHARACTER_LONG_TEXT_MAX),
+    descriptionIsSpoiler: z.boolean().optional(),
+    displayName: optionalText(CHARACTER_SHORT_TEXT_MAX),
+    displayNameIsSpoiler: z.boolean().optional(),
+    firstAppearanceAudioSeconds: optionalNonNegativeInt4(),
+    firstAppearanceChapter: optionalText(CHARACTER_SHORT_TEXT_MAX),
+    firstAppearanceNote: optionalText(CHARACTER_SHORT_TEXT_MAX),
+    firstAppearancePage: optionalInt4(),
+    hidePresenceAsSpoiler: z.boolean().optional(),
+    importance: BookCharacterImportanceSchema.optional(),
+    isPovCharacter: z.boolean().optional(),
+    narratorType: BookCharacterNarratorTypeSchema.nullish(),
+    personalImpression: optionalText(CHARACTER_LONG_TEXT_MAX),
+    personalImpressionIsSpoiler: z.boolean().optional(),
+    portraitIsSpoiler: z.boolean().optional(),
+    portraitMediaId: z.string().uuid().nullish(),
+    roles: z.array(BookCharacterRoleInputSchema).max(CHARACTER_ROLES_MAX).optional(),
+    sortOrder: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).nullish(),
+    speciesOverride: optionalText(CHARACTER_SHORT_TEXT_MAX),
+    speciesOverrideIsSpoiler: z.boolean().optional(),
+    status: BookCharacterStatusSchema.optional(),
+    statusCustomText: optionalText(CHARACTER_SHORT_TEXT_MAX),
+    statusIsSpoiler: z.boolean().optional(),
+    tagIds: z.array(z.string().uuid()).max(CHARACTER_TAGS_MAX).optional(),
+  })
+  .strict();
+
+export type UpdateBookCharacter = z.infer<typeof UpdateBookCharacterSchema>;
 
 export const BookCharactersQuerySchema = z.object({
   pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),

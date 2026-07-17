@@ -1,7 +1,16 @@
 import type { CharacterDetailsView } from "@app/shared";
 
-import { CreateCharacterSchema } from "@app/shared";
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from "@nestjs/common";
+import { CreateCharacterSchema, UpdateCharacterSchema } from "@app/shared";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -22,6 +31,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { CharactersService } from "../application/characters.service.js";
 import { CreateCharacterInputDto } from "./input-dto/create-character.input-dto.js";
+import { UpdateCharacterInputDto } from "./input-dto/update-character.input-dto.js";
 import { CharacterDetailsViewDto } from "./view-dto/character-details.view-dto.js";
 
 const CHARACTER_ACTION_TTL_SECONDS = 60;
@@ -64,5 +74,23 @@ export class CharactersController {
     @Param("characterId", ParseUUIDPipe) characterId: string,
   ): Promise<CharacterDetailsView> {
     return this.charactersService.getCharacterDetails(user.id, characterId);
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed or a book-scoped field was sent" })
+  @ApiBody({ type: UpdateCharacterInputDto })
+  @ApiNotFoundResponse({ description: "Character or media not found" })
+  @ApiOkResponse({ description: "The updated character", type: CharacterDetailsViewDto })
+  @ApiOperation({ summary: "Update the global fields of a character" })
+  @ApiParam({ description: "Character id", name: "characterId" })
+  @Patch(":characterId")
+  @Throttle({
+    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
+  })
+  updateGlobal(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("characterId", ParseUUIDPipe) characterId: string,
+    @Body(new ZodBodyPipe(UpdateCharacterSchema)) body: UpdateCharacterInputDto,
+  ): Promise<CharacterDetailsView> {
+    return this.charactersService.updateGlobal({ characterId, input: body, userId: user.id });
   }
 }

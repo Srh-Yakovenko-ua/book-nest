@@ -93,6 +93,48 @@ export type CreateRoleData = {
 
 export type RosterRow = Prisma.BookCharacterGetPayload<{ include: typeof rosterInclude }>;
 
+export type UpdateBookCharacterData = {
+  appearanceNotes?: Nullable<string>;
+  appearanceNotesIsSpoiler?: boolean;
+  attitude?: Nullable<string>;
+  description?: Nullable<string>;
+  descriptionIsSpoiler?: boolean;
+  displayName?: Nullable<string>;
+  displayNameIsSpoiler?: boolean;
+  firstAppearanceAudioSeconds?: Nullable<number>;
+  firstAppearanceChapter?: Nullable<string>;
+  firstAppearanceNote?: Nullable<string>;
+  firstAppearancePage?: Nullable<number>;
+  hidePresenceAsSpoiler?: boolean;
+  importance?: string;
+  isPovCharacter?: boolean;
+  narratorType?: Nullable<string>;
+  personalImpression?: Nullable<string>;
+  personalImpressionIsSpoiler?: boolean;
+  portraitIsSpoiler?: boolean;
+  portraitMediaId?: Nullable<string>;
+  sortOrder?: Nullable<number>;
+  speciesOverride?: Nullable<string>;
+  speciesOverrideIsSpoiler?: boolean;
+  status?: string;
+  statusCustomText?: Nullable<string>;
+  statusIsSpoiler?: boolean;
+};
+
+export type UpdateCharacterData = {
+  avatarMediaId?: Nullable<string>;
+  customGender?: Nullable<string>;
+  entityKind?: string;
+  gender?: string;
+  globalAttitude?: Nullable<string>;
+  isFavorite?: boolean;
+  name?: string;
+  neutralDescription?: Nullable<string>;
+  normalizedName?: string;
+  pronouns?: Nullable<string>;
+  species?: Nullable<string>;
+};
+
 type ListRosterInput = RosterFilter & {
   skip: number;
   take: number;
@@ -132,6 +174,13 @@ export class CharactersRepository {
     });
   }
 
+  async deleteBookCharacter(
+    { bookCharacterId }: { bookCharacterId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.bookCharacter.delete({ where: { id: bookCharacterId } });
+  }
+
   async existsLink(
     { bookId, characterId }: { bookId: string; characterId: string },
     client: Prisma.TransactionClient = this.prisma,
@@ -141,6 +190,15 @@ export class CharactersRepository {
       where: { bookId_characterId: { bookId, characterId } },
     });
     return found !== null;
+  }
+
+  findOwnedBookCharacter(
+    { bookId, characterId, userId }: { bookId: string; characterId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<BookCharacterModel>> {
+    return client.bookCharacter.findFirst({
+      where: { bookId, character: { deletedAt: null, userId }, characterId },
+    });
   }
 
   findOwnedCharacterBare(
@@ -174,6 +232,64 @@ export class CharactersRepository {
       take,
       where: buildRosterWhere(filter),
     });
+  }
+
+  async replaceAliases(
+    {
+      aliases,
+      bookId,
+      characterId,
+    }: { aliases: CreateAliasData[]; bookId: Nullable<string>; characterId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.characterAlias.deleteMany({ where: { bookId, characterId } });
+    if (aliases.length > 0) {
+      await client.characterAlias.createMany({
+        data: aliases.map((alias) => ({ ...alias, characterId })),
+      });
+    }
+  }
+
+  async replaceCharacterTags(
+    { characterId, tagIds }: { characterId: string; tagIds: string[] },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.characterTag.deleteMany({ where: { characterId } });
+    if (tagIds.length > 0) {
+      await client.characterTag.createMany({
+        data: tagIds.map((tagId) => ({ characterId, tagId })),
+      });
+    }
+  }
+
+  async replaceRoles(
+    { bookCharacterId, roles }: { bookCharacterId: string; roles: CreateRoleData[] },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.bookCharacterRole.deleteMany({ where: { bookCharacterId } });
+    if (roles.length > 0) {
+      await client.bookCharacterRole.createMany({
+        data: roles.map((role) => ({ ...role, bookCharacterId })),
+      });
+    }
+  }
+
+  updateBookCharacter(
+    { bookCharacterId, data }: { bookCharacterId: string; data: UpdateBookCharacterData },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookCharacterModel> {
+    return client.bookCharacter.update({ data, where: { id: bookCharacterId } });
+  }
+
+  updateCharacter(
+    {
+      characterId,
+      data,
+      userId,
+    }: { characterId: string; data: UpdateCharacterData; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<CharacterModel> {
+    return client.character.update({ data, where: { id: characterId, userId } });
   }
 }
 
