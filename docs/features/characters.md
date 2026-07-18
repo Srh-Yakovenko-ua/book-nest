@@ -66,11 +66,14 @@ Returns owned characters not yet linked to the book, same-series first (`limit` 
 
 ### `@Controller("api/series/:seriesId/characters")` — `api/series-characters.controller.ts`
 
-| Method | Path                               | Success | Errors   | Request schema                | Response                          |
-| ------ | ---------------------------------- | ------- | -------- | ----------------------------- | --------------------------------- |
-| GET    | `/api/series/:seriesId/characters` | 200     | 401, 404 | `SeriesCharactersQuerySchema` | `Paginator<CharacterSummaryView>` |
+| Method | Path                                            | Success | Errors   | Request schema                      | Response                          |
+| ------ | ----------------------------------------------- | ------- | -------- | ----------------------------------- | --------------------------------- |
+| GET    | `/api/series/:seriesId/characters`              | 200     | 401, 404 | `SeriesCharactersQuerySchema`       | `Paginator<CharacterSummaryView>` |
+| GET    | `/api/series/:seriesId/characters/:characterId` | 200     | 401, 404 | `SeriesCharacterProfileQuerySchema` | `CharacterSeriesProfileView`      |
 
-Aggregates distinct characters across the series' books. `contextBookId` + `includeFuture` control how far into the series the reader has progressed so later-book appearances are masked by default (spoiler-by-progress). Sort is `name` | `importance`.
+The list aggregates distinct characters across the series' books. `contextBookId` + `includeFuture` control how far into the series the reader has progressed so later-book appearances are masked by default (spoiler-by-progress). Sort is `name` | `importance`.
+
+The single-character route returns a spoiler-safe series profile (identity + non-spoiler, global-or-in-context aliases) plus an appearance timeline restricted to the reader's context and ordered by `partNumber` (nulls last). Field values are redacted with the same rule as the summary view (`displayName`/`status`/`portrait` → null + `hiddenFields`). A character that appears only in future or `hidePresenceAsSpoiler` books returns 404 so its presence never leaks.
 
 ## Spoiler-safety model (the core of the feature)
 
