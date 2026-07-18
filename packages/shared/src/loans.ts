@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { LoanTypeSchema, OwnershipStatusSchema } from "./book-enums.js";
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX } from "./common.js";
+import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
 import { MediaViewSchema } from "./media.js";
 
 const LOAN_SEARCH_MAX = 100;
@@ -35,7 +35,7 @@ export type LoanSort = z.infer<typeof LoanSortSchema>;
 
 export const LoansQuerySchema = z.object({
   filter: LoanFilterSchema.default("all"),
-  pageNumber: z.coerce.number().int().min(1).default(1),
+  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
   pageSize: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(10),
   search: z.string().trim().max(LOAN_SEARCH_MAX).optional(),
   sort: LoanSortSchema.default("return_date"),

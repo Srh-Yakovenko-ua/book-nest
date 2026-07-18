@@ -9,7 +9,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
+import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -31,7 +31,6 @@ type AllListsViewProps = {
   onRetry: () => void;
   sidebar: ReactNode;
   toolbar: ReactNode;
-  totalCount: number;
 };
 
 export function AllListsView({
@@ -48,7 +47,6 @@ export function AllListsView({
   onRetry,
   sidebar,
   toolbar,
-  totalCount,
 }: AllListsViewProps) {
   const t = useTranslations("lists.catalog");
   const showToolbar = !isError && (isPending || hasAnyLists);
@@ -61,9 +59,7 @@ export function AllListsView({
             <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
               {t("title")}
             </h1>
-            {isPending ? null : (
-              <Badge variant="secondary">{t("count", { count: totalCount })}</Badge>
-            )}
+            <TitleLeaf />
           </div>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
@@ -164,7 +160,7 @@ function ListsContent({
         desc: t("empty.description"),
         illu: "empty-lists",
         primary: { icon: "plus", label: t("empty.create") },
-        secondary: { icon: "library", label: t("empty.library") },
+        secondary: { icon: "book", label: t("empty.secondary") },
         title: t("empty.title"),
       };
       return <EmptyState onPrimary={onCreateList} onSecondary={onOpenLibrary} state={emptyState} />;

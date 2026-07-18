@@ -8,17 +8,23 @@ import type {
 
 export function makeSeriesBookView(overrides: Partial<SeriesBookView> = {}): SeriesBookView {
   return {
+    ageCategory: "16_plus",
     authors: [{ id: "author-1", name: "Ребекка Яррос" }],
     createdAt: "2026-01-01T00:00:00.000Z",
     currentPage: null,
+    formats: ["paper"],
+    genres: ["fantasy", "romance"],
     id: "series-book-1",
     isFavorite: false,
+    isInReadingQueue: false,
     originalTitle: null,
     ownershipStatus: "owned",
     pagesCount: 512,
     partNumber: 1,
+    publicationYear: 2023,
     rating: null,
     readingStatus: "finished",
+    tags: [{ id: "tag-1", name: "дракони" }],
     title: "Четверте крило",
     ...overrides,
   };
@@ -27,7 +33,7 @@ export function makeSeriesBookView(overrides: Partial<SeriesBookView> = {}): Ser
 export function makeSeriesDetailsView(
   overrides: Partial<SeriesDetailsView> = {},
 ): SeriesDetailsView {
-  const { books, stats, ...seriesOverrides } = overrides;
+  const { books, publishers, stats, ...seriesOverrides } = overrides;
   return {
     ...makeSeriesView(seriesOverrides),
     books: books ?? [
@@ -58,6 +64,7 @@ export function makeSeriesDetailsView(
         title: "Оніксове полум'я",
       }),
     ],
+    publishers: publishers ?? [{ id: "publisher-1", name: "Vivat" }],
     stats: stats ?? makeSeriesStats(),
   };
 }

@@ -5,11 +5,24 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { FavoritesSummaryViewDtoTopGenresItem } from "./favoritesSummaryViewDtoTopGenresItem";
+import type { FavoritesSummaryViewDtoTopTagsItem } from "./favoritesSummaryViewDtoTopTagsItem";
 
 export interface FavoritesSummaryViewDto {
   /** @nullable */
   averageRating: number | null;
   finished: number;
   reading: number;
+  series: number;
+  solo: number;
+  topGenres: FavoritesSummaryViewDtoTopGenresItem[];
+  topTags: FavoritesSummaryViewDtoTopTagsItem[];
   total: number;
+  /**
+   * Count of finished favorite books without a rating
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  unrated: number;
+  wantToRead: number;
 }

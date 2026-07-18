@@ -1,5 +1,7 @@
 import type {
   BookAuthorReference,
+  FavoriteSeriesContinuationsQuery,
+  FavoriteSeriesContinuationsView,
   MediaView,
   NewSeriesInput,
   Nullable,
@@ -12,15 +14,25 @@ import type {
   UpdateSeriesInput,
 } from "@app/shared";
 
-import { SeriesStatusSchema } from "@app/shared";
+import {
+  OwnershipStatusSchema,
+  QueuePrioritySchema,
+  ReadingStatusSchema,
+  SeriesStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { differenceInMilliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { MediaAssetModel } from "../../../generated/prisma/models.js";
+import type {
+  ContinuationBook,
+  ContinuationSeriesGroup,
+} from "../domain/favorite-continuations.js";
 import type { SeriesBookPreview } from "../domain/series-preview.js";
 import type {
+  FavoriteContinuationBookRow,
   SeriesWithBookCount,
-  SeriesWithDetails,
 } from "../infrastructure/series.repository.js";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
@@ -31,6 +43,7 @@ import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { AuthorsService } from "../../authors/index.js";
 import { GenresService } from "../../genres/index.js";
 import { MediaService } from "../../media/index.js";
+import { assembleContinuations } from "../domain/favorite-continuations.js";
 import { computeSeriesLastActivityAt, toSeriesBookPreview } from "../domain/series-preview.js";
 import {
   computeSeriesProgress,
@@ -112,6 +125,25 @@ export class SeriesService {
 
   async delete(userId: string, id: string): Promise<void> {
     await this.seriesRepository.deleteOwned(userId, id);
+  }
+
+  async existsOwned({ seriesId, userId }: { seriesId: string; userId: string }): Promise<boolean> {
+    const series = await this.seriesRepository.findOwnedById(userId, seriesId);
+    return series !== null;
+  }
+
+  async favoriteContinuations(
+    userId: string,
+    query: FavoriteSeriesContinuationsQuery,
+  ): Promise<FavoriteSeriesContinuationsView> {
+    const rows = await this.seriesRepository.findFavoriteContinuationBooks(userId);
+    const items = assembleContinuations(this.toContinuationGroups(rows));
+
+    return {
+      items: items.slice(0, query.limit),
+      nextCursor: null,
+      total: items.length,
+    };
   }
 
   async getById(userId: string, id: string): Promise<SeriesDetailsView> {
@@ -321,7 +353,10 @@ export class SeriesService {
     }
   }
 
-  private coverViewOf(book: SeriesWithDetails["books"][number]): Nullable<MediaView> {
+  private coverViewOf(book: {
+    coverMedia: Nullable<MediaAssetModel>;
+    id: string;
+  }): Nullable<MediaView> {
     if (book.coverMedia === null) {
       return null;
     }
@@ -347,6 +382,58 @@ export class SeriesService {
     }
 
     return fallbackAuthorIds ?? [];
+  }
+
+  private toContinuationBook(row: FavoriteContinuationBookRow): ContinuationBook {
+    return {
+      authors: row.authors.map((bookAuthor) => ({
+        id: bookAuthor.author.id,
+        name: bookAuthor.author.name,
+      })),
+      cover: this.coverViewOf(row),
+      createdAt: row.createdAt,
+      currentPage: row.readingProgress?.currentPage ?? null,
+      favoriteAddedAt: row.favoriteAddedAt,
+      id: row.id,
+      isFavorite: row.isFavorite,
+      ownershipStatus: OwnershipStatusSchema.parse(row.ownershipStatus),
+      pagesCount: row.pagesCount,
+      partNumber: row.partNumber,
+      queuePosition: row.queuePosition,
+      queuePriority:
+        row.queuePriority === null ? null : QueuePrioritySchema.parse(row.queuePriority),
+      readingStatus: ReadingStatusSchema.parse(row.readingStatus),
+      title: row.title,
+    };
+  }
+
+  private toContinuationGroups(rows: FavoriteContinuationBookRow[]): ContinuationSeriesGroup[] {
+    const groups = new Map<string, ContinuationSeriesGroup>();
+
+    for (const row of rows) {
+      if (row.series === null) {
+        continue;
+      }
+
+      const book = this.toContinuationBook(row);
+      const existing = groups.get(row.series.id);
+      if (existing === undefined) {
+        groups.set(row.series.id, {
+          books: [book],
+          series: {
+            id: row.series.id,
+            status: SeriesStatusSchema.parse(row.series.status),
+            title: row.series.name,
+            totalBooks: row.series.totalBooks,
+          },
+        });
+        continue;
+      }
+
+      existing.books.push(book);
+    }
+
+    return [...groups.values()];
   }
 }
 

@@ -2,15 +2,22 @@ import "reflect-metadata";
 
 import type { INestApplication, InjectionToken, ModuleMetadata } from "@nestjs/common";
 
+import { BullModule } from "@nestjs/bullmq";
 import { type NestExpressApplication } from "@nestjs/platform-express";
 import { Test } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
 
+import { env } from "../config/env.js";
 import { DatabaseModule } from "../core/database/database.module.js";
 import { HttpErrorFilter } from "../core/exceptions/http-error.filter.js";
 import { RequestIdMiddleware } from "../core/middleware/request-id.middleware.js";
 
 const JSON_BODY_LIMIT = "1mb";
+
+const TestBullModule = BullModule.forRoot({
+  connection: { maxRetriesPerRequest: null, url: env.redisUrl },
+  extraOptions: { manualRegistration: true },
+});
 
 type ProviderOverride = {
   provide: InjectionToken;
@@ -22,7 +29,7 @@ export async function createTestApp(
   overrides: ProviderOverride[] = [],
 ): Promise<INestApplication> {
   let builder = Test.createTestingModule({
-    imports: [DatabaseModule, ...imports],
+    imports: [DatabaseModule, TestBullModule, ...imports],
   });
 
   for (const override of overrides) {

@@ -5,12 +5,14 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { LibraryOverviewViewDtoActiveReading } from "./libraryOverviewViewDtoActiveReading";
 import type { LibraryOverviewViewDtoRecentlyAddedItem } from "./libraryOverviewViewDtoRecentlyAddedItem";
 import type { LibraryOverviewViewDtoSummary } from "./libraryOverviewViewDtoSummary";
 import type { LibraryOverviewViewDtoTopGenresItem } from "./libraryOverviewViewDtoTopGenresItem";
 import type { LibraryOverviewViewDtoTopTagsItem } from "./libraryOverviewViewDtoTopTagsItem";
 
 export interface LibraryOverviewViewDto {
+  activeReading?: LibraryOverviewViewDtoActiveReading;
   recentlyAdded: LibraryOverviewViewDtoRecentlyAddedItem[];
   summary: LibraryOverviewViewDtoSummary;
   topGenres: LibraryOverviewViewDtoTopGenresItem[];

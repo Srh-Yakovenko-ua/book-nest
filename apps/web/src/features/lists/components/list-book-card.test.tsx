@@ -19,6 +19,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const labels: LibraryBookLabels = {
+  ageBadge18Plus: "18+",
   borrowedFrom: (name) => `Borrowed from ${name}`,
   formatLabel: (value) => `format:${value}`,
   genreName: (key) => key,

@@ -24,7 +24,13 @@ export class ReadingQueueRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
     await client.book.updateMany({
-      data: { queuePosition: null },
+      data: {
+        queuePosition: null,
+        queuePriority: null,
+        queuePriorityReason: null,
+        queuePriorityReasonCustomText: null,
+        queuePriorityTargetDate: null,
+      },
       where: { id: bookId, userId },
     });
   }

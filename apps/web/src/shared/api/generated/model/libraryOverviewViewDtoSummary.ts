@@ -7,8 +7,17 @@
  */
 
 export type LibraryOverviewViewDtoSummary = {
+  authorsCount?: number;
+  borrowed: number;
   favorites: number;
   finished: number;
+  inTransit: number;
+  physicallyAvailable?: number;
   reading: number;
+  series: number;
+  seriesCount?: number;
+  solo: number;
   total: number;
+  wantToBuy: number;
+  wantToRead: number;
 };

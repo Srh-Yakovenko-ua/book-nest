@@ -25,6 +25,7 @@ function activeDelivery(): DeliveryView {
     storeName: "Книгарня «Є»",
     trackingNumber: null,
     trackingUrl: null,
+    updatedAt: "2026-06-01T10:00:00.000Z",
   };
 }
 

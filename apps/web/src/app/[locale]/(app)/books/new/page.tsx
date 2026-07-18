@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 
 import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
+import { TitleLeaf } from "@/components/title-leaf";
 import { CreateBookForm } from "@/features/books";
 import { routing } from "@/i18n/routing";
 
@@ -41,15 +41,7 @@ export default async function NewBookPage({ params, searchParams }: Props) {
           <h1 className="font-heading text-[clamp(1.875rem,4vw,2.75rem)] leading-tight font-semibold text-ink">
             {t("page.title")}
           </h1>
-          <Image
-            alt=""
-            aria-hidden
-            className="h-auto w-14 shrink-0 select-none"
-            height={189}
-            src="/illustrations/leaf-1.png"
-            unoptimized
-            width={227}
-          />
+          <TitleLeaf />
         </div>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
           {t("page.subtitle")}

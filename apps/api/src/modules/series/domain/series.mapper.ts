@@ -6,7 +6,14 @@ import type {
   SeriesView,
 } from "@app/shared";
 
-import { OwnershipStatusSchema, ReadingStatusSchema, SeriesStatusSchema } from "@app/shared";
+import {
+  AgeCategorySchema,
+  BookFormatsSchema,
+  BookGenresSchema,
+  OwnershipStatusSchema,
+  ReadingStatusSchema,
+  SeriesStatusSchema,
+} from "@app/shared";
 
 import type { SeriesWithDetails } from "../infrastructure/series.repository.js";
 import type { SeriesBookRow } from "./series-preview.js";
@@ -45,6 +52,7 @@ export function toSeriesDetailsView(
   return {
     ...toSeriesView(series),
     books,
+    publishers: collectSeriesPublishers(series.books),
     stats: computeSeriesStats(books),
   };
 }
@@ -76,8 +84,28 @@ export function toSeriesView(series: SeriesViewSource): SeriesView {
   };
 }
 
+function collectSeriesPublishers(
+  books: SeriesWithDetails["books"],
+): { id: string; name: string }[] {
+  const publishersById = new Map<string, { id: string; name: string }>();
+
+  for (const book of books) {
+    if (book.publisher !== null) {
+      publishersById.set(book.publisher.id, {
+        id: book.publisher.id,
+        name: book.publisher.name,
+      });
+    }
+  }
+
+  return Array.from(publishersById.values()).sort((first, second) =>
+    first.name.localeCompare(second.name),
+  );
+}
+
 function toSeriesBookView(book: SeriesDetailBook, cover: Nullable<MediaView>): SeriesBookView {
   return {
+    ageCategory: AgeCategorySchema.parse(book.ageCategory),
     authors: book.authors.map((bookAuthor) => ({
       id: bookAuthor.author.id,
       name: bookAuthor.author.name,
@@ -85,14 +113,19 @@ function toSeriesBookView(book: SeriesDetailBook, cover: Nullable<MediaView>): S
     cover,
     createdAt: book.createdAt.toISOString(),
     currentPage: book.readingProgress?.currentPage ?? null,
+    formats: BookFormatsSchema.parse(book.formats),
+    genres: BookGenresSchema.parse(book.genres),
     id: book.id,
     isFavorite: book.isFavorite,
+    isInReadingQueue: book.queuePosition !== null,
     originalTitle: book.originalTitle,
     ownershipStatus: OwnershipStatusSchema.parse(book.ownershipStatus),
     pagesCount: book.pagesCount,
     partNumber: book.partNumber,
+    publicationYear: book.publicationYear,
     rating: book.readingProgress?.rating ?? null,
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
+    tags: book.tags.map((bookTag) => ({ id: bookTag.tag.id, name: bookTag.tag.name })),
     title: book.title,
   };
 }

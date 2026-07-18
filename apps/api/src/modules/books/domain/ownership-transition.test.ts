@@ -21,6 +21,15 @@ describe("computeOwnershipChange remove-owned", () => {
   });
 });
 
+describe("computeOwnershipChange remove-from-wishlist", () => {
+  it("sets the ownership status back to none and deletes the purchase row like remove-owned", () => {
+    const patch = computeOwnershipChange({ kind: "remove-from-wishlist" });
+
+    expect(patch).toEqual(computeOwnershipChange({ kind: "remove-owned" }));
+    expect(patch).toEqual({ book: { ownershipStatus: "none" }, purchaseInfo: "delete" });
+  });
+});
+
 describe("computeOwnershipChange mark-bought", () => {
   it("sets ownership to owned and stamps the purchase date without touching other fields", () => {
     const patch = computeOwnershipChange({ date: DATE, fields: {}, kind: "mark-bought" });

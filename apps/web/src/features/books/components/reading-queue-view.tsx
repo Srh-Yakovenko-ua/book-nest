@@ -10,7 +10,7 @@ import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
+import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "@/i18n/navigation";
@@ -26,6 +26,8 @@ import { NextToReadCard } from "./next-to-read-card";
 import { QueueStats } from "./queue-stats";
 import { ReadingQueueList } from "./reading-queue-list";
 import { ReadingQueueToolbar } from "./reading-queue-toolbar";
+import { SeriesOrderCheckBlock } from "./series-order-check-block";
+import { SeriesOrderCheckSkeleton } from "./series-order-check-skeleton";
 import { StartReadingDialog } from "./start-reading-dialog";
 
 const SKELETON_COUNT = 6;
@@ -41,6 +43,7 @@ export function ReadingQueueView() {
   const tFormat = useTranslations("books.format.options");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
+  const tAgeCategory = useTranslations("books.classification.ageCategoryLabels");
   const router = useRouter();
 
   const { data, isError, isPending, refetch } = useReadingQueue();
@@ -88,6 +91,7 @@ export function ReadingQueueView() {
   }, [serverOrderKey]);
 
   const labels: LibraryBookLabels = {
+    ageBadge18Plus: tAgeCategory("18_plus"),
     borrowedFrom: (name) => tLibrary("card.borrowedFrom", { name }),
     formatLabel: (value) => tFormat(value),
     genreName: (key) => genreNameByKey.get(key) ?? key,
@@ -120,6 +124,14 @@ export function ReadingQueueView() {
     commitOrder(items);
   }
 
+  const emptyState: EmptyStateEntry = {
+    desc: t("empty.description"),
+    illu: "empty-queue",
+    primary: { icon: "plus", label: t("empty.cta") },
+    secondary: { icon: "book", label: t("empty.secondary") },
+    title: t("empty.title"),
+  };
+
   const errorState: EmptyStateEntry = {
     desc: t("error.description"),
     illu: "error-generic",
@@ -142,11 +154,7 @@ export function ReadingQueueView() {
             <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
               {t("title")}
             </h1>
-            {isPending ? (
-              <Skeleton className="h-6 w-16 rounded-full" />
-            ) : isError ? null : (
-              <Badge variant="secondary">{t("countBadge", { count })}</Badge>
-            )}
+            <TitleLeaf />
           </div>
           <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
@@ -166,7 +174,7 @@ export function ReadingQueueView() {
         <EmptyState
           onPrimary={() => setAddOpen(true)}
           onSecondary={() => router.push("/books")}
-          stateKey="queue"
+          state={emptyState}
         />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
@@ -212,6 +220,7 @@ export function ReadingQueueView() {
               }}
             />
             <QueueStats count={count} totalPagesCount={totalPagesCount} />
+            <SeriesOrderCheckBlock />
           </aside>
         </div>
       )}
@@ -264,6 +273,7 @@ function QueueSkeleton() {
       <div className="hidden flex-col gap-4 lg:flex">
         <Skeleton className="h-44 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
+        <SeriesOrderCheckSkeleton />
       </div>
     </div>
   );

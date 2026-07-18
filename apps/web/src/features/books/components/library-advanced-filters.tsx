@@ -26,15 +26,22 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Slider } from "@/components/ui/slider";
+import { YearPicker } from "@/components/ui/year-picker";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
+import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-status";
 
 import type { LibraryQueryState, LibraryScope } from "../model/library-query";
 import type { UseLibraryQueryResult } from "../model/use-library-query";
 
-import { useAuthorSearch } from "../api/use-author-search";
+import { useAuthorOptions } from "../api/use-author-options";
 import { useGenres } from "../api/use-genres";
 import { usePublishersSearch } from "../api/use-publishers-search";
+import { useRecentAuthors } from "../api/use-recent-authors";
+import { useRecentGenres } from "../api/use-recent-genres";
+import { useRecentPublishers } from "../api/use-recent-publishers";
 import {
+  hasActiveLibraryFilters,
   LIBRARY_AGE_CATEGORY_VALUES,
   LIBRARY_BOOK_TYPE_VALUES,
   LIBRARY_FORMAT_VALUES,
@@ -43,14 +50,52 @@ import {
   libraryRangeFlags,
   scopedOwnerValues,
 } from "../model/library-query";
-import { LibraryFilterCombobox } from "./library-filter-combobox";
+import { LibraryEntityMultiselect } from "./library-entity-multiselect";
 import { LibraryTagFilter } from "./library-tag-filter";
 
-const RATING_VALUES = [1, 2, 3, 4, 5] as const;
+type LibraryFiltersDraft = Pick<
+  LibraryQueryState,
+  | "ageCategory"
+  | "author"
+  | "bookType"
+  | "format"
+  | "genre"
+  | "hasCover"
+  | "language"
+  | "owner"
+  | "pagesMax"
+  | "pagesMin"
+  | "publisher"
+  | "ratingMax"
+  | "ratingMin"
+  | "status"
+  | "tag"
+  | "yearMax"
+  | "yearMin"
+>;
+
+const EMPTY_FILTERS: LibraryFiltersDraft = {
+  ageCategory: [],
+  author: [],
+  bookType: null,
+  format: [],
+  genre: [],
+  hasCover: null,
+  language: [],
+  owner: [],
+  pagesMax: null,
+  pagesMin: null,
+  publisher: [],
+  ratingMax: null,
+  ratingMin: null,
+  status: [],
+  tag: [],
+  yearMax: null,
+  yearMin: null,
+};
 
 type LibraryAdvancedFiltersProps = {
   activeCount: number;
-  onClearFilters: () => void;
   onRememberEntity: (id: string, name: string) => void;
   resolveEntityName: (id: string) => string | undefined;
   scope: LibraryScope;
@@ -60,7 +105,6 @@ type LibraryAdvancedFiltersProps = {
 
 export function LibraryAdvancedFilters({
   activeCount,
-  onClearFilters,
   onRememberEntity,
   resolveEntityName,
   scope,
@@ -68,35 +112,58 @@ export function LibraryAdvancedFilters({
   state,
 }: LibraryAdvancedFiltersProps) {
   const t = useTranslations("books.library.filters");
+  const tAuthor = useTranslations("books.author");
+  const tPublisher = useTranslations("books.publisher");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwner = useTranslations("books.ownershipStatus.options");
   const tFormat = useTranslations("books.format.options");
   const tAge = useTranslations("books.classification.ageCategoryLabels");
   const tLanguage = useTranslations("books.classification.languageLabels");
+  const tClassification = useTranslations("books.classification");
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<LibraryFiltersDraft>(() => draftFromState(state));
   const genres = useGenres();
+  const recentGenres = useRecentGenres();
 
-  const genreOptions = (genres.data ?? []).map((genre) => ({
-    group: genre.groupName,
-    label: genre.name,
-    value: genre.key,
+  const genreList = genres.data ?? [];
+  const genreNameByKey = new Map(genreList.map((genre) => [genre.key, genre.name]));
+  const recentHeading = tClassification("genresRecentHeading");
+  const recentKeys = (recentGenres.data ?? [])
+    .map((genre) => genre.key)
+    .filter((key) => genreNameByKey.has(key));
+  const recentKeySet = new Set(recentKeys);
+  const recentOptions = recentKeys.map((key) => ({
+    group: recentHeading,
+    label: genreNameByKey.get(key) ?? key,
+    value: key,
   }));
-
-  const selectedAuthorName =
-    state.author[0] === undefined ? undefined : resolveEntityName(state.author[0]);
-  const selectedPublisherName =
-    state.publisher[0] === undefined ? undefined : resolveEntityName(state.publisher[0]);
+  const catalogOptions = genreList
+    .filter((genre) => !recentKeySet.has(genre.key))
+    .map((genre) => ({ group: genre.groupName, label: genre.name, value: genre.key }));
+  const genreOptions = [...recentOptions, ...catalogOptions];
 
   const ownerValues = scopedOwnerValues(scope);
-  const ratingMinValue = state.ratingMin === null ? "any" : String(state.ratingMin);
-  const ratingMaxValue = state.ratingMax === null ? "any" : String(state.ratingMax);
-  const coverValue = state.hasCover === null ? "all" : state.hasCover ? "with" : "without";
-  const rangeFlags = libraryRangeFlags(state);
+  const coverValue = draft.hasCover === null ? "all" : draft.hasCover ? "with" : "without";
+  const rangeFlags = libraryRangeFlags(draft);
+  const maxYear = new Date().getUTCFullYear() + 1;
+  const minYear = 1000;
+  const ratingFloor = 0.5;
+  const ratingCeil = 10;
+  const ratingStep = 0.5;
+  const ratingLow = draft.ratingMin ?? ratingFloor;
+  const ratingHigh = draft.ratingMax ?? ratingCeil;
+  const ratingIsAny = ratingLow <= ratingFloor && ratingHigh >= ratingCeil;
 
   return (
-    <Sheet onOpenChange={setOpen} open={open}>
+    <Sheet
+      onOpenChange={(next) => {
+        if (next) setDraft(draftFromState(state));
+        setOpen(next);
+      }}
+      open={open}
+    >
       <SheetTrigger asChild>
-        <Button type="button" variant="secondary">
+        <Button className="h-10" type="button" variant="secondary">
           <UiIcon name="sliders" size={16} />
           {t("trigger")}
           {activeCount > 0 ? (
@@ -118,11 +185,21 @@ export function LibraryAdvancedFilters({
               label={t("sections.readingStatus")}
               mode="multi"
               onValueChange={(next) =>
-                void setState({ status: LIBRARY_STATUS_VALUES.filter((v) => next.includes(v)) })
+                setDraft((prev) => ({
+                  ...prev,
+                  status: LIBRARY_STATUS_VALUES.filter((v) => next.includes(v)),
+                }))
               }
-              options={LIBRARY_STATUS_VALUES.map((value) => ({ label: tStatus(value), value }))}
+              options={LIBRARY_STATUS_VALUES.map((value) => {
+                const entry = readingStatuses.find((item) => item.value === value);
+                return {
+                  icon: entry ? <UiIcon name={entry.icon} /> : undefined,
+                  label: tStatus(value),
+                  value,
+                };
+              })}
               size="sm"
-              value={state.status}
+              value={draft.status}
             />
           </FilterSection>
 
@@ -131,11 +208,21 @@ export function LibraryAdvancedFilters({
               label={t("sections.ownershipStatus")}
               mode="multi"
               onValueChange={(next) =>
-                void setState({ owner: ownerValues.filter((v) => next.includes(v)) })
+                setDraft((prev) => ({
+                  ...prev,
+                  owner: ownerValues.filter((v) => next.includes(v)),
+                }))
               }
-              options={ownerValues.map((value) => ({ label: tOwner(value), value }))}
+              options={ownerValues.map((value) => {
+                const entry = ownershipStatuses.find((item) => item.value === value);
+                return {
+                  icon: entry ? <UiIcon name={entry.icon} /> : undefined,
+                  label: tOwner(value),
+                  value,
+                };
+              })}
               size="sm"
-              value={state.owner}
+              value={draft.owner}
             />
           </FilterSection>
 
@@ -144,22 +231,32 @@ export function LibraryAdvancedFilters({
               label={t("sections.format")}
               mode="multi"
               onValueChange={(next) =>
-                void setState({ format: LIBRARY_FORMAT_VALUES.filter((v) => next.includes(v)) })
+                setDraft((prev) => ({
+                  ...prev,
+                  format: LIBRARY_FORMAT_VALUES.filter((v) => next.includes(v)),
+                }))
               }
-              options={LIBRARY_FORMAT_VALUES.map((value) => ({ label: tFormat(value), value }))}
+              options={LIBRARY_FORMAT_VALUES.map((value) => {
+                const entry = bookFormats.find((item) => item.value === value);
+                return {
+                  icon: entry ? <UiIcon name={entry.icon} /> : undefined,
+                  label: tFormat(value),
+                  value,
+                };
+              })}
               size="sm"
-              value={state.format}
+              value={draft.format}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.genre")}>
             <Multiselect
               emptyText={t("genreEmpty")}
-              onValueChange={(next) => void setState({ genre: next })}
+              onValueChange={(next) => setDraft((prev) => ({ ...prev, genre: next }))}
               options={genreOptions}
               placeholder={t("genrePlaceholder")}
               searchPlaceholder={t("genreSearch")}
-              value={state.genre}
+              value={draft.genre}
             />
           </FilterSection>
 
@@ -170,104 +267,121 @@ export function LibraryAdvancedFilters({
               label={t("sections.tag")}
               onAdd={(tag) => {
                 onRememberEntity(tag.id, tag.name);
-                void setState({ tag: [...state.tag, tag.id] });
+                setDraft((prev) => ({ ...prev, tag: [...prev.tag, tag.id] }));
               }}
-              onRemove={(id) => void setState({ tag: state.tag.filter((value) => value !== id) })}
+              onRemove={(id) =>
+                setDraft((prev) => ({ ...prev, tag: prev.tag.filter((value) => value !== id) }))
+              }
               placeholder={t("tagPlaceholder")}
               removeLabel={(name) => t("removeTag", { name })}
               resolveName={resolveEntityName}
               searchingLabel={t("tagSearching")}
-              value={state.tag}
+              suggestionsHeading={tClassification("tagsSuggestions")}
+              value={draft.tag}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.ageCategory")}>
-            <ChipGroup
-              label={t("sections.ageCategory")}
-              mode="multi"
+            <Multiselect
+              emptyText={t("ageCategoryEmpty")}
               onValueChange={(next) =>
-                void setState({
+                setDraft((prev) => ({
+                  ...prev,
                   ageCategory: LIBRARY_AGE_CATEGORY_VALUES.filter((v) => next.includes(v)),
-                })
+                }))
               }
-              options={LIBRARY_AGE_CATEGORY_VALUES.map((value) => ({ label: tAge(value), value }))}
-              size="sm"
-              value={state.ageCategory}
+              options={LIBRARY_AGE_CATEGORY_VALUES.map((value) => ({
+                label: tAge(value),
+                value,
+              }))}
+              placeholder={t("ageCategoryPlaceholder")}
+              searchPlaceholder={t("ageCategorySearch")}
+              value={draft.ageCategory}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.language")}>
-            <ChipGroup
-              label={t("sections.language")}
-              mode="multi"
+            <Multiselect
+              emptyText={t("languageEmpty")}
               onValueChange={(next) =>
-                void setState({
+                setDraft((prev) => ({
+                  ...prev,
                   language: LIBRARY_LANGUAGE_VALUES.filter((v) => next.includes(v)),
-                })
+                }))
               }
               options={LIBRARY_LANGUAGE_VALUES.map((value) => ({
                 label: tLanguage(value),
                 value,
               }))}
-              size="sm"
-              value={state.language}
+              placeholder={t("languagePlaceholder")}
+              searchPlaceholder={t("languageSearch")}
+              value={draft.language}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.author")}>
-            <LibraryFilterCombobox
-              clearLabel={t("clearField")}
-              customBadge={t("customBadge")}
-              emptyLabel={t("authorEmpty")}
+            <LibraryEntityMultiselect
+              allHeading={tAuthor("allHeading")}
+              empty={t("authorEmpty")}
               icon="user"
               id="library-filter-author"
-              label={t("sections.author")}
-              onClear={() => void setState({ author: null })}
-              onSelect={(item) => {
+              onAdd={(item) => {
                 onRememberEntity(item.id, item.name);
-                void setState({ author: [item.id] });
+                setDraft((prev) => ({ ...prev, author: [...prev.author, item.id] }));
               }}
+              onRemove={(id) =>
+                setDraft((prev) => ({ ...prev, author: prev.author.filter((v) => v !== id) }))
+              }
               placeholder={t("authorPlaceholder")}
-              searchingLabel={t("authorSearching")}
-              selectedName={selectedAuthorName}
-              useSearch={useAuthorSearch}
+              recentHeading={tAuthor("recentHeading")}
+              removeLabel={(name) => t("removeAuthor", { name })}
+              resolveName={resolveEntityName}
+              searching={t("authorSearching")}
+              useRecent={useRecentAuthors}
+              useSearch={useAuthorOptions}
+              value={draft.author}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.publisher")}>
-            <LibraryFilterCombobox
-              clearLabel={t("clearField")}
-              customBadge={t("customBadge")}
-              emptyLabel={t("publisherEmpty")}
+            <LibraryEntityMultiselect
+              allHeading={tPublisher("allHeading")}
+              empty={t("publisherEmpty")}
               icon="building"
               id="library-filter-publisher"
-              label={t("sections.publisher")}
-              onClear={() => void setState({ publisher: null })}
-              onSelect={(item) => {
+              onAdd={(item) => {
                 onRememberEntity(item.id, item.name);
-                void setState({ publisher: [item.id] });
+                setDraft((prev) => ({ ...prev, publisher: [...prev.publisher, item.id] }));
               }}
+              onRemove={(id) =>
+                setDraft((prev) => ({ ...prev, publisher: prev.publisher.filter((v) => v !== id) }))
+              }
               placeholder={t("publisherPlaceholder")}
-              searchingLabel={t("publisherSearching")}
-              selectedName={selectedPublisherName}
+              recentHeading={tPublisher("recentHeading")}
+              removeLabel={(name) => t("removePublisher", { name })}
+              resolveName={resolveEntityName}
+              searching={t("publisherSearching")}
+              useRecent={useRecentPublishers}
               useSearch={usePublishersSearch}
+              value={draft.publisher}
             />
           </FilterSection>
 
           <FilterSection title={t("sections.bookType")}>
             <Select
               onValueChange={(next) =>
-                void setState({
+                setDraft((prev) => ({
+                  ...prev,
                   bookType: LIBRARY_BOOK_TYPE_VALUES.find((v) => v === next) ?? null,
-                })
+                }))
               }
-              value={state.bookType ?? "all"}
+              value={draft.bookType ?? "all"}
             >
               <SelectTrigger
                 aria-label={t("sections.bookType")}
-                className="h-10 w-full"
-                isClearable={state.bookType !== null}
-                onClear={() => void setState({ bookType: null })}
+                className="h-10 w-full data-[size=default]:h-10"
+                isClearable={draft.bookType !== null}
+                onClear={() => setDraft((prev) => ({ ...prev, bookType: null }))}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -280,54 +394,24 @@ export function LibraryAdvancedFilters({
           </FilterSection>
 
           <FilterSection title={t("sections.rating")}>
-            <div className="grid grid-cols-2 gap-2.5">
-              <Select
-                onValueChange={(next) =>
-                  void setState({ ratingMin: next === "any" ? null : Number(next) })
-                }
-                value={ratingMinValue}
-              >
-                <SelectTrigger
-                  aria-label={t("rating.min")}
-                  className="h-10 w-full"
-                  isClearable={state.ratingMin !== null}
-                  onClear={() => void setState({ ratingMin: null })}
-                >
-                  <SelectValue placeholder={t("rating.min")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">{t("rating.any")}</SelectItem>
-                  {RATING_VALUES.map((value) => (
-                    <SelectItem key={value} value={String(value)}>
-                      {t("rating.from", { value })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                onValueChange={(next) =>
-                  void setState({ ratingMax: next === "any" ? null : Number(next) })
-                }
-                value={ratingMaxValue}
-              >
-                <SelectTrigger
-                  aria-label={t("rating.max")}
-                  className="h-10 w-full"
-                  isClearable={state.ratingMax !== null}
-                  onClear={() => void setState({ ratingMax: null })}
-                >
-                  <SelectValue placeholder={t("rating.max")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">{t("rating.any")}</SelectItem>
-                  {RATING_VALUES.map((value) => (
-                    <SelectItem key={value} value={String(value)}>
-                      {t("rating.to", { value })}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="text-sm text-muted-foreground tabular-nums">
+              {ratingIsAny ? t("rating.any") : `${ratingLow} – ${ratingHigh}`}
+            </p>
+            <Slider
+              max={ratingCeil}
+              min={ratingFloor}
+              onValueChange={(next) => {
+                const [low, high] = next as [number, number];
+                setDraft((prev) => ({
+                  ...prev,
+                  ratingMax: high >= ratingCeil ? null : high,
+                  ratingMin: low <= ratingFloor ? null : low,
+                }));
+              }}
+              step={ratingStep}
+              thumbLabels={[t("rating.minLabel"), t("rating.maxLabel")]}
+              value={[ratingLow, ratingHigh]}
+            />
             {rangeFlags.rating ? (
               <p className="text-xs text-destructive">{t("range.invalid")}</p>
             ) : null}
@@ -335,29 +419,29 @@ export function LibraryAdvancedFilters({
 
           <FilterSection title={t("sections.year")}>
             <div className="grid grid-cols-2 gap-2.5">
-              <Input
-                aria-label={t("range.yearMin")}
-                inputMode="numeric"
-                min={0}
-                onChange={(event) =>
-                  void setState({ yearMin: parseRangeValue(event.target.value) })
-                }
-                onKeyDown={blockNegativeNumberKeys}
+              <YearPicker
+                ariaLabel={t("range.yearMin")}
+                clearLabel={t("yearPicker.clear")}
+                id="library-filter-year-min"
+                max={draft.yearMax ?? maxYear}
+                min={minYear}
+                nextLabel={t("yearPicker.next")}
+                onChange={(y) => setDraft((prev) => ({ ...prev, yearMin: y }))}
                 placeholder={t("range.min")}
-                type="number"
-                value={state.yearMin ?? ""}
+                prevLabel={t("yearPicker.prev")}
+                value={draft.yearMin}
               />
-              <Input
-                aria-label={t("range.yearMax")}
-                inputMode="numeric"
-                min={0}
-                onChange={(event) =>
-                  void setState({ yearMax: parseRangeValue(event.target.value) })
-                }
-                onKeyDown={blockNegativeNumberKeys}
+              <YearPicker
+                ariaLabel={t("range.yearMax")}
+                clearLabel={t("yearPicker.clear")}
+                id="library-filter-year-max"
+                max={maxYear}
+                min={draft.yearMin ?? minYear}
+                nextLabel={t("yearPicker.next")}
+                onChange={(y) => setDraft((prev) => ({ ...prev, yearMax: y }))}
                 placeholder={t("range.max")}
-                type="number"
-                value={state.yearMax ?? ""}
+                prevLabel={t("yearPicker.prev")}
+                value={draft.yearMax}
               />
             </div>
             {rangeFlags.year ? (
@@ -372,24 +456,24 @@ export function LibraryAdvancedFilters({
                 inputMode="numeric"
                 min={0}
                 onChange={(event) =>
-                  void setState({ pagesMin: parseRangeValue(event.target.value) })
+                  setDraft((prev) => ({ ...prev, pagesMin: parseRangeValue(event.target.value) }))
                 }
                 onKeyDown={blockNegativeNumberKeys}
                 placeholder={t("range.min")}
                 type="number"
-                value={state.pagesMin ?? ""}
+                value={draft.pagesMin ?? ""}
               />
               <Input
                 aria-label={t("range.pagesMax")}
                 inputMode="numeric"
                 min={0}
                 onChange={(event) =>
-                  void setState({ pagesMax: parseRangeValue(event.target.value) })
+                  setDraft((prev) => ({ ...prev, pagesMax: parseRangeValue(event.target.value) }))
                 }
                 onKeyDown={blockNegativeNumberKeys}
                 placeholder={t("range.max")}
                 type="number"
-                value={state.pagesMax ?? ""}
+                value={draft.pagesMax ?? ""}
               />
             </div>
             {rangeFlags.pages ? (
@@ -400,15 +484,15 @@ export function LibraryAdvancedFilters({
           <FilterSection title={t("sections.cover")}>
             <Select
               onValueChange={(next) =>
-                void setState({ hasCover: next === "all" ? null : next === "with" })
+                setDraft((prev) => ({ ...prev, hasCover: next === "all" ? null : next === "with" }))
               }
               value={coverValue}
             >
               <SelectTrigger
                 aria-label={t("sections.cover")}
-                className="h-10 w-full"
-                isClearable={state.hasCover !== null}
-                onClear={() => void setState({ hasCover: null })}
+                className="h-10 w-full data-[size=default]:h-10"
+                isClearable={draft.hasCover !== null}
+                onClear={() => setDraft((prev) => ({ ...prev, hasCover: null }))}
               >
                 <SelectValue />
               </SelectTrigger>
@@ -423,15 +507,21 @@ export function LibraryAdvancedFilters({
 
         <SheetFooter>
           <Button
-            disabled={activeCount === 0}
-            onClick={onClearFilters}
+            disabled={!hasActiveLibraryFilters({ ...state, ...draft })}
+            onClick={() => setDraft(EMPTY_FILTERS)}
             type="button"
             variant="ghost"
           >
             {t("clear")}
           </Button>
-          <Button onClick={() => setOpen(false)} type="button">
-            {t("done")}
+          <Button
+            onClick={() => {
+              void setState(toCommitPatch(draft));
+              setOpen(false);
+            }}
+            type="button"
+          >
+            {t("apply")}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -439,8 +529,52 @@ export function LibraryAdvancedFilters({
   );
 }
 
+function draftFromState(state: LibraryQueryState): LibraryFiltersDraft {
+  return {
+    ageCategory: state.ageCategory,
+    author: state.author,
+    bookType: state.bookType,
+    format: state.format,
+    genre: state.genre,
+    hasCover: state.hasCover,
+    language: state.language,
+    owner: state.owner,
+    pagesMax: state.pagesMax,
+    pagesMin: state.pagesMin,
+    publisher: state.publisher,
+    ratingMax: state.ratingMax,
+    ratingMin: state.ratingMin,
+    status: state.status,
+    tag: state.tag,
+    yearMax: state.yearMax,
+    yearMin: state.yearMin,
+  };
+}
+
 function parseRangeValue(raw: string): null | number {
   if (raw === "") return null;
   const parsed = Number.parseInt(raw, 10);
   return Number.isNaN(parsed) ? null : parsed;
+}
+
+function toCommitPatch(draft: LibraryFiltersDraft) {
+  return {
+    ageCategory: draft.ageCategory.length === 0 ? null : draft.ageCategory,
+    author: draft.author.length === 0 ? null : draft.author,
+    bookType: draft.bookType,
+    format: draft.format.length === 0 ? null : draft.format,
+    genre: draft.genre.length === 0 ? null : draft.genre,
+    hasCover: draft.hasCover,
+    language: draft.language.length === 0 ? null : draft.language,
+    owner: draft.owner.length === 0 ? null : draft.owner,
+    pagesMax: draft.pagesMax,
+    pagesMin: draft.pagesMin,
+    publisher: draft.publisher.length === 0 ? null : draft.publisher,
+    ratingMax: draft.ratingMax,
+    ratingMin: draft.ratingMin,
+    status: draft.status.length === 0 ? null : draft.status,
+    tag: draft.tag.length === 0 ? null : draft.tag,
+    yearMax: draft.yearMax,
+    yearMin: draft.yearMin,
+  };
 }

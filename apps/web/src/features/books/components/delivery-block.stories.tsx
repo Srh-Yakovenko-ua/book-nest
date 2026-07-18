@@ -41,6 +41,7 @@ function makeDelivery(overrides: Partial<DeliveryView> = {}): DeliveryView {
     storeName: "Книгарня «Є»",
     trackingNumber: "20450000000000",
     trackingUrl: "https://novaposhta.ua/tracking/20450000000000",
+    updatedAt: "2026-06-01T10:00:00.000Z",
     ...overrides,
   };
 }

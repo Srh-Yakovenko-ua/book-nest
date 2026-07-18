@@ -33,7 +33,6 @@ function renderView(overrides: Partial<ViewProps> = {}) {
     onRetry: vi.fn(),
     sidebar: <div>SIDEBAR</div>,
     toolbar: <div>TOOLBAR</div>,
-    totalCount: 1,
     ...overrides,
   };
   return renderWithProviders(<AllListsView {...props} />);
@@ -71,7 +70,7 @@ describe("AllListsView", () => {
     renderView({ isPending: true, lists: [] });
 
     expect(document.querySelector("[aria-busy]")).toBeInTheDocument();
-    expect(screen.queryByText("Списків поки немає")).not.toBeInTheDocument();
+    expect(screen.queryByText("Створи першу тематичну добірку")).not.toBeInTheDocument();
   });
 
   it("shows an error alert with a retry action and hides the toolbar", async () => {
@@ -91,10 +90,10 @@ describe("AllListsView", () => {
     const onOpenLibrary = vi.fn();
     renderView({ hasAnyLists: false, lists: [], onOpenLibrary });
 
-    expect(screen.getByText("Списків поки немає")).toBeInTheDocument();
+    expect(screen.getByText("Створи першу тематичну добірку")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Створити список" })).toHaveLength(2);
 
-    await userEvent.click(screen.getByRole("button", { name: "Перейти до бібліотеки" }));
+    await userEvent.click(screen.getByRole("button", { name: "Перейти до всіх книг" }));
 
     expect(onOpenLibrary).toHaveBeenCalledOnce();
   });

@@ -7,7 +7,7 @@ import type {
   DeliveryControllerHistoryListTab,
 } from "@/shared/api/generated/model";
 
-import { Segmented } from "@/components/ui/segmented";
+import { PageTabs } from "@/components/page-tabs";
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import type { DeliveryHistoryQueryState } from "../model/history-params";
 import type { HistoryFilterPatch } from "../model/use-history-params";
 
 import {
+  DELIVERY_HISTORY_PANEL_ID,
   DELIVERY_HISTORY_SORT_DEFAULT,
   DELIVERY_HISTORY_SORT_ORDER,
   DELIVERY_HISTORY_TABS,
@@ -65,17 +66,16 @@ export function DeliveryHistoryToolbar({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="-mx-1 no-scrollbar overflow-x-auto px-1">
-        <Segmented
-          label={tTabs("label")}
-          onValueChange={(next) => {
-            const match = DELIVERY_HISTORY_TABS.find((value) => value === next);
-            if (match !== undefined) onTabChange(match);
-          }}
-          options={tabOptions}
-          value={tab}
-        />
-      </div>
+      <PageTabs
+        ariaLabel={tTabs("label")}
+        items={tabOptions}
+        onValueChange={(next) => {
+          const match = DELIVERY_HISTORY_TABS.find((value) => value === next);
+          if (match !== undefined) onTabChange(match);
+        }}
+        panelId={DELIVERY_HISTORY_PANEL_ID}
+        value={tab}
+      />
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="lg:flex-1">
@@ -89,7 +89,7 @@ export function DeliveryHistoryToolbar({
             >
               <SelectTrigger
                 aria-label={tSort("label")}
-                className="h-10 w-full"
+                className="h-10 w-full data-[size=default]:h-10"
                 isClearable={sort !== DELIVERY_HISTORY_SORT_DEFAULT}
                 onClear={() => onSortChange(DELIVERY_HISTORY_SORT_DEFAULT)}
               >

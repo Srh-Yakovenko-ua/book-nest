@@ -25,6 +25,7 @@ const activeDeliveryFixture: DeliveryView = {
   storeName: "Yakaboo",
   trackingNumber: null,
   trackingUrl: null,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 function emptyPage(pageSize: number) {
@@ -55,6 +56,7 @@ function makeBook(overrides: Partial<BookView> = {}): BookView {
     illustrator: null,
     isbn: null,
     isFavorite: true,
+    isFavoriteDedication: false,
     isInReadingQueue: false,
     language: "ukrainian",
     lists: [],
@@ -67,6 +69,9 @@ function makeBook(overrides: Partial<BookView> = {}): BookView {
     publisher: null,
     purchaseInfo: null,
     queuePriority: null,
+    queuePriorityReason: null,
+    queuePriorityReasonCustomText: null,
+    queuePriorityTargetDate: null,
     readingProgress: {
       abandonedAt: null,
       currentPage: null,

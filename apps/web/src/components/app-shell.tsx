@@ -6,6 +6,7 @@ import {
   BookCopy,
   ChevronLeft,
   ChevronRight,
+  Feather,
   HandHelping,
   Heart,
   Home,
@@ -14,7 +15,10 @@ import {
   LibraryBig,
   ListChecks,
   ListOrdered,
+  NotebookPen,
+  Quote,
   ShoppingBag,
+  Tags,
   Truck,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -50,12 +54,16 @@ type NavItem = {
   key:
     | "allBooks"
     | "buyList"
+    | "dedications"
     | "delivery"
     | "favorites"
+    | "genresTags"
     | "home"
     | "lists"
     | "loans"
     | "myLibrary"
+    | "notes"
+    | "quotes"
     | "readingQueue"
     | "series";
   to: string;
@@ -63,15 +71,19 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { icon: Home, key: "home", to: "/" },
+  { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: Library, key: "myLibrary", to: "/my-library" },
   { icon: Heart, key: "favorites", to: "/favorites" },
+  { icon: Quote, key: "quotes", to: "/quotes" },
   { icon: ListOrdered, key: "readingQueue", to: "/reading-queue" },
-  { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
   { icon: HandHelping, key: "loans", to: "/loans" },
   { icon: Truck, key: "delivery", to: "/delivery/in-transit" },
+  { icon: Feather, key: "dedications", to: "/dedications" },
   { icon: BookCopy, key: "series", to: "/series" },
+  { icon: Tags, key: "genresTags", to: "/genres-tags" },
   { icon: ListChecks, key: "lists", to: "/lists" },
+  { icon: NotebookPen, key: "notes", to: "/notes" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -146,7 +158,7 @@ function AppSidebar() {
                               : "text-sidebar-foreground/70",
                           )}
                         />
-                        <span className="font-mono text-[14px] font-medium tracking-[0.14em] uppercase">
+                        <span className="font-mono text-[12px] font-medium tracking-[0.14em] uppercase">
                           {tNav(key)}
                         </span>
                         {isActive && (
@@ -180,7 +192,7 @@ function AppSidebar() {
         {!collapsed && (
           <Image
             alt=""
-            className="h-auto w-full select-none"
+            className="mx-auto block h-auto w-4/5 select-none"
             height={500}
             priority={false}
             src="/illustrations/sidebar.png"

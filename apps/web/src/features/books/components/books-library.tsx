@@ -1,11 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
+import { Progress } from "@/components/ui/progress";
 import { Link, useRouter } from "@/i18n/navigation";
 
 import type { LibraryActions } from "../model/book-card-actions";
@@ -28,7 +29,11 @@ import { useLibraryOverview } from "../api/use-library-overview";
 import { useTagsSearch } from "../api/use-tags-search";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER, type LibraryScope } from "../model/library-query";
-import { activeQuickFilter, quickFilterPatch } from "../model/library-quick-filters";
+import {
+  activeQuickFilter,
+  quickFilterCounts,
+  quickFilterPatch,
+} from "../model/library-quick-filters";
 import { useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
@@ -46,6 +51,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
   const tSortOptions = useTranslations("books.library.sort.options");
+  const tAgeCategory = useTranslations("books.classification.ageCategoryLabels");
   const router = useRouter();
 
   const library = useLibraryQuery(scope);
@@ -99,6 +105,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     .flatMap((page) => page.items)
     .map((book) =>
       toLibraryBook(book, {
+        ageBadge18Plus: tAgeCategory("18_plus"),
         borrowedFrom: (name) => t("card.borrowedFrom", { name }),
         formatLabel: (value) => tFormat(value),
         genreName: (key) => genreNameByKey.get(key) ?? key,
@@ -114,11 +121,91 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     );
 
   const summary = overview.data?.summary;
+  const activeReading = overview.data?.activeReading;
+  const total = summary?.total ?? 0;
+  const reading = summary?.reading ?? 0;
+  const finished = summary?.finished ?? 0;
+  const favorites = summary?.favorites ?? 0;
+
+  const bookUnit = (count: number) => t("summary.unitBook", { count });
+
+  const totalMicrofact = ((): ReactNode => {
+    const seriesCount = summary?.seriesCount;
+    const authorsCount = summary?.authorsCount;
+    if (authorsCount === undefined || authorsCount === 0) return undefined;
+    const authorsPart = `${authorsCount.toLocaleString()} ${t("summary.unitAuthor", { count: authorsCount })}`;
+    if (seriesCount === undefined || seriesCount === 0) {
+      return <span className="block truncate">{authorsPart}</span>;
+    }
+    const seriesPart = `${seriesCount.toLocaleString()} ${t("summary.unitSeries", { count: seriesCount })}`;
+    return <span className="block truncate">{`${seriesPart} · ${authorsPart}`}</span>;
+  })();
+
+  const readingMicrofact = ((): ReactNode => {
+    if (activeReading === undefined) return undefined;
+    if (reading === 0) return <span className="block truncate">{t("summary.readingNone")}</span>;
+    if (activeReading.book !== null) {
+      const { currentPage, pagesCount } = activeReading.book;
+      const percent = pagesCount > 0 ? Math.round((currentPage / pagesCount) * 100) : 0;
+      return (
+        <div className="flex flex-col gap-1">
+          <Progress aria-hidden className="h-1 w-4/5" value={percent} />
+          <span className="block truncate">
+            {t("summary.readingProgress", { current: currentPage, percent, total: pagesCount })}
+          </span>
+        </div>
+      );
+    }
+    const many = `${reading.toLocaleString()} ${bookUnit(reading)} · ${t("summary.readingPagesAhead", { pagesAhead: activeReading.pagesAhead })}`;
+    return <span className="block truncate">{many}</span>;
+  })();
+
+  const finishedMicrofact = ((): ReactNode => {
+    const physicallyAvailable = summary?.physicallyAvailable;
+    if (physicallyAvailable === undefined || physicallyAvailable === 0) return undefined;
+    const percent = Math.round((finished / physicallyAvailable) * 100);
+    return <span className="block truncate">{t("summary.finishedPercent", { percent })}</span>;
+  })();
+
+  const favoritesMicrofact = ((): ReactNode => {
+    if (total === 0) return undefined;
+    const percent = Math.round((favorites / total) * 100);
+    return <span className="block truncate">{t("summary.favoritesPercent", { percent })}</span>;
+  })();
+
   const summaryCards: LibrarySummaryCard[] = [
-    { icon: "library", label: t("summary.total"), value: summary?.total ?? 0 },
-    { icon: "book", label: t("summary.reading"), value: summary?.reading ?? 0 },
-    { icon: "check-circle", label: t("summary.finished"), value: summary?.finished ?? 0 },
-    { icon: "heart", label: t("summary.favorites"), value: summary?.favorites ?? 0 },
+    {
+      icon: "library",
+      iconTone: "primary",
+      label: t("summary.total"),
+      microfact: totalMicrofact,
+      unit: bookUnit(total),
+      value: total,
+    },
+    {
+      icon: "book",
+      iconTone: "info",
+      label: t("summary.reading"),
+      microfact: readingMicrofact,
+      unit: bookUnit(reading),
+      value: reading,
+    },
+    {
+      icon: "check-circle",
+      iconTone: "success",
+      label: t("summary.finished"),
+      microfact: finishedMicrofact,
+      unit: bookUnit(finished),
+      value: finished,
+    },
+    {
+      icon: "heart",
+      iconTone: "favorite",
+      label: t("summary.favorites"),
+      microfact: favoritesMicrofact,
+      unit: bookUnit(favorites),
+      value: favorites,
+    },
   ];
 
   const sortOptions = LIBRARY_SORT_ORDER.map((value) => ({ label: tSortOptions(value), value }));
@@ -168,10 +255,12 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   };
 
   const emptyState: EmptyStateEntry = {
-    desc: t("empty.description"),
-    illu: "empty-library",
-    primary: { icon: "plus", label: t("empty.cta") },
-    title: t("empty.title"),
+    desc: t(`empty.${scope}.description`),
+    illu: scope === "all" ? "empty-all-books" : "empty-library",
+    illuSize: "lg",
+    primary: { icon: "plus", label: t(`empty.${scope}.cta`) },
+    secondary: scope === "my" ? { icon: "book", label: t("empty.my.secondary") } : undefined,
+    title: t(`empty.${scope}.title`),
   };
 
   const errorState: EmptyStateEntry = {
@@ -184,6 +273,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   const noSearchResultsState: EmptyStateEntry = {
     desc: t("noSearchResults.description"),
     illu: "empty-search",
+    illuSize: "sm",
     primary: { icon: "x", label: t("noSearchResults.clearSearch") },
     title: t("noSearchResults.title"),
   };
@@ -207,6 +297,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
         title: book.title,
       }))}
       topGenres={(overview.data?.topGenres ?? []).map((genre) => ({
+        count: genre.count,
         key: genre.key,
         name: genreNameByKey.get(genre.key) ?? genre.name,
       }))}
@@ -222,7 +313,6 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       advancedFilters={
         <LibraryAdvancedFilters
           activeCount={advancedFiltersCount}
-          onClearFilters={library.clearFilters}
           onRememberEntity={rememberEntity}
           resolveEntityName={resolveEntityName}
           scope={scope}
@@ -254,12 +344,14 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       onClearAll={library.clearAll}
       onClearFilters={library.clearFilters}
       onClearSearch={library.clearSearch}
+      onEmptySecondary={scope === "my" ? () => router.push("/books") : undefined}
       onLoadMore={() => void fetchNextPage()}
       onRetry={() => void refetch()}
       onSortChange={library.setSort}
       onViewChange={library.setView}
       quickFilters={
         <LibraryQuickFilters
+          counts={summary === undefined ? undefined : quickFilterCounts(summary)}
           onSelect={(key) => void library.setState(quickFilterPatch(key))}
           scope={scope}
           value={activeQuickFilter(library.state)}

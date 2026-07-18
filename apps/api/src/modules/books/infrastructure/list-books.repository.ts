@@ -17,31 +17,30 @@ export type BookListItemWithBook = Prisma.BookListItemGetPayload<typeof listItem
 type CountListBooksInput = {
   listId: string;
   search: string | undefined;
+  searchGenreKeys: string[] | undefined;
   userId: string;
 };
 
-type ListListBooksInput = {
-  listId: string;
-  search: string | undefined;
+type ListListBooksInput = CountListBooksInput & {
   skip: number;
   sort: ListBookSort;
   take: number;
-  userId: string;
 };
 
 @Injectable()
 export class ListBooksRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  countBooks({ listId, search, userId }: CountListBooksInput): Promise<number> {
+  countBooks({ listId, search, searchGenreKeys, userId }: CountListBooksInput): Promise<number> {
     return this.prisma.bookListItem.count({
-      where: buildListItemWhere({ listId, search, userId }),
+      where: buildListItemWhere({ listId, search, searchGenreKeys, userId }),
     });
   }
 
   listBooks({
     listId,
     search,
+    searchGenreKeys,
     skip,
     sort,
     take,
@@ -51,7 +50,7 @@ export class ListBooksRepository {
       orderBy: LIST_BOOK_ORDER_BY[sort],
       skip,
       take,
-      where: buildListItemWhere({ listId, search, userId }),
+      where: buildListItemWhere({ listId, search, searchGenreKeys, userId }),
       ...listItemWithBook,
     });
   }
@@ -78,10 +77,11 @@ const LIST_BOOK_ORDER_BY: Record<ListBookSort, Prisma.BookListItemOrderByWithRel
 function buildListItemWhere({
   listId,
   search,
+  searchGenreKeys,
   userId,
 }: CountListBooksInput): Prisma.BookListItemWhereInput {
   const where: Prisma.BookListItemWhereInput = { list: { userId }, listId };
-  const conditions = buildBookSearchConditions({ search });
+  const conditions = buildBookSearchConditions({ search, searchGenreKeys });
   if (conditions !== undefined) {
     where.book = { OR: conditions };
   }

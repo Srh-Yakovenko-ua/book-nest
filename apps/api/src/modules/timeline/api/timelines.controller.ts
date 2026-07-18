@@ -1,0 +1,202 @@
+import type { TimelineListView, TimelineSummaryView, TimelineView } from "@app/shared";
+
+import {
+  CreateTimelineInputSchema,
+  DeleteTimelineQuerySchema,
+  ReorderTimelinesInputSchema,
+  SetDefaultTimelineInputSchema,
+  UpdateTimelineInputSchema,
+} from "@app/shared";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+  ApiUnauthorizedResponse,
+  ApiUnprocessableEntityResponse,
+} from "@nestjs/swagger";
+import { seconds, Throttle } from "@nestjs/throttler";
+
+import type { AuthenticatedUser } from "../../auth/index.js";
+
+import { HTTP_STATUS } from "../../../core/http-status.js";
+import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
+import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { TimelineService } from "../application/timeline.service.js";
+import { CreateTimelineInputDto } from "./input-dto/create-timeline.input-dto.js";
+import { DeleteTimelineQueryDto } from "./input-dto/delete-timeline-query.input-dto.js";
+import { ReorderTimelinesInputDto } from "./input-dto/reorder-timelines.input-dto.js";
+import { SetDefaultTimelineInputDto } from "./input-dto/set-default-timeline.input-dto.js";
+import { UpdateTimelineInputDto } from "./input-dto/update-timeline.input-dto.js";
+import { TimelineListViewDto } from "./view-dto/timeline-list.view-dto.js";
+import { TimelineSummaryViewDto } from "./view-dto/timeline-summary.view-dto.js";
+import { TimelineViewDto } from "./view-dto/timeline.view-dto.js";
+
+const TIMELINE_ACTION_TTL_SECONDS = 60;
+const TIMELINE_ACTION_LIMIT = 60;
+
+@ApiBearerAuth()
+@ApiTags("timelines")
+@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+@Controller()
+@UseGuards(JwtAccessGuard)
+export class TimelinesController {
+  constructor(private readonly timelineService: TimelineService) {}
+
+  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiOkResponse({
+    description: "The book's timelines ordered by position, including the default line",
+    type: TimelineListViewDto,
+  })
+  @ApiOperation({ summary: "List the timelines of a book" })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @Get("api/books/:bookId/timelines")
+  listTimelines(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+  ): Promise<TimelineListView> {
+    return this.timelineService.listTimelines(user.id, bookId);
+  }
+
+  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiOkResponse({
+    description: "Total event count and per-timeline event counts for the book",
+    type: TimelineSummaryViewDto,
+  })
+  @ApiOperation({ summary: "Get timeline event counts for a book" })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @Get("api/books/:bookId/timeline/summary")
+  summary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+  ): Promise<TimelineSummaryView> {
+    return this.timelineService.summary(user.id, bookId);
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: CreateTimelineInputDto })
+  @ApiConflictResponse({ description: "A timeline with this name already exists for this book" })
+  @ApiCreatedResponse({ description: "The created timeline", type: TimelineViewDto })
+  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiOperation({ summary: "Create a timeline for a book" })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @Post("api/books/:bookId/timelines")
+  @Throttle({
+    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
+  })
+  createTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+    @Body(new ZodBodyPipe(CreateTimelineInputSchema)) body: CreateTimelineInputDto,
+  ): Promise<TimelineView> {
+    return this.timelineService.createTimeline(user.id, bookId, body);
+  }
+
+  @ApiBody({ type: ReorderTimelinesInputDto })
+  @ApiConflictResponse({ description: "The timeline order changed, reload and retry" })
+  @ApiNotFoundResponse({ description: "Book or timeline not found" })
+  @ApiOkResponse({ description: "The reordered timelines", type: TimelineListViewDto })
+  @ApiOperation({ summary: "Reorder a timeline within a book" })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @ApiUnprocessableEntityResponse({ description: "The neighbor timeline is invalid" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post("api/books/:bookId/timelines/reorder")
+  @Throttle({
+    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
+  })
+  reorderTimelines(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+    @Body(new ZodBodyPipe(ReorderTimelinesInputSchema)) body: ReorderTimelinesInputDto,
+  ): Promise<TimelineListView> {
+    return this.timelineService.reorderTimelines(user.id, bookId, body);
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: UpdateTimelineInputDto })
+  @ApiConflictResponse({ description: "A timeline with this name already exists for this book" })
+  @ApiNotFoundResponse({ description: "Timeline not found" })
+  @ApiOkResponse({ description: "The updated timeline", type: TimelineViewDto })
+  @ApiOperation({ summary: "Update a timeline's name, description or color" })
+  @ApiParam({ description: "Timeline id", name: "timelineId" })
+  @Patch("api/timelines/:timelineId")
+  @Throttle({
+    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
+  })
+  updateTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("timelineId", ParseUUIDPipe) timelineId: string,
+    @Body(new ZodBodyPipe(UpdateTimelineInputSchema)) body: UpdateTimelineInputDto,
+  ): Promise<TimelineView> {
+    return this.timelineService.updateTimeline(user.id, timelineId, body);
+  }
+
+  @ApiBody({ required: false, type: SetDefaultTimelineInputDto })
+  @ApiConflictResponse({ description: "The timeline changed, reload and retry" })
+  @ApiNotFoundResponse({ description: "Timeline not found" })
+  @ApiOkResponse({
+    description: "The timelines after the default was reassigned",
+    type: TimelineListViewDto,
+  })
+  @ApiOperation({ summary: "Mark a timeline as the default line for its book" })
+  @ApiParam({ description: "Timeline id", name: "timelineId" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post("api/timelines/:timelineId/set-default")
+  @Throttle({
+    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
+  })
+  setDefault(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("timelineId", ParseUUIDPipe) timelineId: string,
+    @Body(new ZodBodyPipe(SetDefaultTimelineInputSchema)) body: SetDefaultTimelineInputDto,
+  ): Promise<TimelineListView> {
+    return this.timelineService.setDefault(user.id, timelineId, body);
+  }
+
+  @ApiConflictResponse({ description: "The default timeline cannot be deleted" })
+  @ApiNoContentResponse({ description: "The timeline was deleted" })
+  @ApiNotFoundResponse({ description: "Timeline not found" })
+  @ApiOperation({
+    summary: "Delete a timeline, optionally moving or deleting its events",
+  })
+  @ApiParam({ description: "Timeline id", name: "timelineId" })
+  @ApiQuery({ name: "strategy", required: false })
+  @ApiQuery({ name: "targetTimelineId", required: false })
+  @ApiUnprocessableEntityResponse({
+    description: "A delete strategy or target timeline is required",
+  })
+  @Delete("api/timelines/:timelineId")
+  @HttpCode(HTTP_STATUS.NO_CONTENT)
+  @Throttle({
+    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
+  })
+  deleteTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("timelineId", ParseUUIDPipe) timelineId: string,
+    @Query(new ZodQueryPipe(DeleteTimelineQuerySchema)) query: DeleteTimelineQueryDto,
+  ): Promise<void> {
+    return this.timelineService.deleteTimeline(user.id, timelineId, query);
+  }
+}

@@ -7,7 +7,12 @@ import type {
   Nullable,
 } from "@app/shared";
 
-import { CurrencySchema, DELIVERY_ACTIVE_STATUSES, DeliveryStatusSchema } from "@app/shared";
+import {
+  CurrencySchema,
+  DEFAULT_CURRENCY,
+  DELIVERY_ACTIVE_STATUSES,
+  DeliveryStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -170,8 +175,18 @@ export class DeliveryRepository {
     return this.prisma.bookDelivery.count({ where: buildHistoryWhere(input) });
   }
 
-  async historySummary({ userId }: { userId: string }): Promise<HistorySummaryData> {
+  async historySummary({
+    includeCancelled,
+    userId,
+  }: {
+    includeCancelled: boolean;
+    userId: string;
+  }): Promise<HistorySummaryData> {
     const base: Prisma.BookDeliveryWhereInput = { book: { userId } };
+    const currencyWhere: Prisma.BookDeliveryWhereInput = { ...base, price: { not: null } };
+    if (!includeCancelled) {
+      currencyWhere.status = { not: "cancelled" };
+    }
 
     const [totalOrders, activeCount, receivedCount, cancelledCount, currencyGroups] =
       await Promise.all([
@@ -184,11 +199,7 @@ export class DeliveryRepository {
         this.prisma.bookDelivery.groupBy({
           _sum: { price: true },
           by: ["currency"],
-          where: {
-            ...base,
-            price: { not: null },
-            status: { not: "cancelled" },
-          },
+          where: currencyWhere,
         }),
       ]);
 
@@ -239,7 +250,7 @@ export class DeliveryRepository {
     }
 
     if (currency !== undefined) {
-      where.currency = currency;
+      applyCurrencyFilter({ currency, where });
     }
 
     if (status !== undefined) {
@@ -356,6 +367,27 @@ function activeInTransitBase(userId: string): Prisma.BookDeliveryWhereInput {
   };
 }
 
+function applyCurrencyFilter({
+  currency,
+  where,
+}: {
+  currency: string;
+  where: Prisma.BookDeliveryWhereInput;
+}): void {
+  if (currency !== DEFAULT_CURRENCY) {
+    where.currency = currency;
+    return;
+  }
+
+  const uahMatch: Prisma.BookDeliveryWhereInput = {
+    OR: [{ currency: DEFAULT_CURRENCY }, { currency: null, price: { not: null } }],
+  };
+  const existingAnd = where.AND;
+  const andConditions =
+    existingAnd === undefined ? [] : Array.isArray(existingAnd) ? existingAnd : [existingAnd];
+  where.AND = [...andConditions, uahMatch];
+}
+
 function applyHistoryTab({
   tab,
   where,
@@ -443,9 +475,15 @@ function applyInTransitFilter({
   }
 }
 
-function buildDeliverySearchConditions(search: string): Prisma.BookDeliveryWhereInput[] {
+function buildDeliverySearchConditions({
+  includeCancelReason,
+  search,
+}: {
+  includeCancelReason: boolean;
+  search: string;
+}): Prisma.BookDeliveryWhereInput[] {
   const contains = { contains: search, mode: "insensitive" } as const;
-  return [
+  const conditions: Prisma.BookDeliveryWhereInput[] = [
     { book: { title: contains } },
     { book: { originalTitle: contains } },
     { book: { firstAuthorName: contains } },
@@ -455,6 +493,12 @@ function buildDeliverySearchConditions(search: string): Prisma.BookDeliveryWhere
     { deliveryService: contains },
     { note: contains },
   ];
+
+  if (includeCancelReason) {
+    conditions.push({ cancelReason: contains });
+  }
+
+  return conditions;
 }
 
 function buildHistoryWhere({
@@ -484,7 +528,7 @@ function buildHistoryWhere({
   }
 
   if (currency !== undefined) {
-    where.currency = currency;
+    applyCurrencyFilter({ currency, where });
   }
 
   if (from !== undefined || to !== undefined) {
@@ -504,7 +548,7 @@ function buildHistoryWhere({
   }
 
   if (search !== undefined) {
-    where.OR = buildDeliverySearchConditions(search);
+    where.OR = buildDeliverySearchConditions({ includeCancelReason: true, search });
   }
 
   return where;
@@ -534,7 +578,7 @@ function buildInTransitWhere({
   applyInTransitFilter({ filter, soonEnd, today, weekEnd, weekStart, where });
 
   if (search !== undefined) {
-    where.OR = buildDeliverySearchConditions(search);
+    where.OR = buildDeliverySearchConditions({ includeCancelReason: false, search });
   }
 
   return where;

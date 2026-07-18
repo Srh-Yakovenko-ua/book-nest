@@ -1,15 +1,14 @@
 import type { MediaCrop } from "@app/shared";
 
+export type GenerateThumbnailOptions = {
+  input: Buffer;
+};
+
 export type ProcessedImage = {
   body: Buffer;
   contentType: string;
   height: number;
   width: number;
-};
-
-export type ProcessedImageSet = {
-  full: ProcessedImage;
-  thumb: ProcessedImage;
 };
 
 export type ProcessImageOptions = {
@@ -25,7 +24,8 @@ export class CropOutOfBoundsError extends Error {
 }
 
 export abstract class ImageProcessorPort {
-  abstract process(options: ProcessImageOptions): Promise<ProcessedImageSet>;
+  abstract generateThumbnail(options: GenerateThumbnailOptions): Promise<ProcessedImage>;
+  abstract processFull(options: ProcessImageOptions): Promise<ProcessedImage>;
 }
 
 export class ImageTooLargeError extends Error {

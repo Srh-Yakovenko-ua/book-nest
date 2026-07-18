@@ -77,7 +77,7 @@ function ChangelogEntryRow({ entry }: { entry: ChangelogEntryView }) {
         )}
       </div>
       <p className="text-sm font-medium text-foreground">{entry.title}</p>
-      <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">{entry.body}</p>
+      <p className="text-xs leading-relaxed text-muted-foreground">{entry.body}</p>
     </article>
   );
 }

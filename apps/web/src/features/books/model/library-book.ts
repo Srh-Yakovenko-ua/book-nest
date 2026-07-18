@@ -9,16 +9,18 @@ import {
 } from "@/lib/book-status";
 
 export type LibraryBook = {
+  ageBadge?: string;
   authors: string[];
   cover?: { alt?: string; src: string };
   coverMedia?: MediaView;
-  formats: LibraryBookFormat[];
+  formats?: LibraryBookFormat[];
   genres?: { icon?: GenreIconName; label: string }[];
   href: string;
   id: string;
   isFavorite: boolean;
-  isInReadingQueue: boolean;
+  isInReadingQueue?: boolean;
   loan?: { icon: UiIconName; text: string };
+  originalTitle?: string;
   ownership?: StatusEntry;
   ownershipStatus: OwnershipStatus;
   pagesText?: string;
@@ -42,6 +44,7 @@ export type LibraryBookFormat = {
 };
 
 export type LibraryBookLabels = {
+  ageBadge18Plus: string;
   borrowedFrom: (name: string) => string;
   formatLabel: (value: BookFormat) => string;
   genreName: (key: string) => string;
@@ -72,12 +75,12 @@ export type LibraryBookSeries = {
 
 const PROGRESS_STATUSES: readonly ReadingStatus[] = ["reading", "paused", "rereading"];
 
-const FALLBACK_STATUS: StatusEntry =
+export const FALLBACK_READING_STATUS: StatusEntry =
   readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
 
 export function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
   const baseStatus =
-    readingStatuses.find((entry) => entry.value === book.readingStatus) ?? FALLBACK_STATUS;
+    readingStatuses.find((entry) => entry.value === book.readingStatus) ?? FALLBACK_READING_STATUS;
   const status: StatusEntry = { ...baseStatus, label: labels.statusLabel(book.readingStatus) };
   const genres = book.genres.map((key) => ({
     icon: isGenreIconName(key) ? key : undefined,
@@ -96,6 +99,7 @@ export function toLibraryBook(book: BookView, labels: LibraryBookLabels): Librar
   const series = toSeries(book, labels);
 
   return {
+    ageBadge: book.ageCategory === "18_plus" ? labels.ageBadge18Plus : undefined,
     authors: book.authors.map((author) => author.name),
     cover: book.cover ? { alt: book.title, src: book.cover.urls.card } : undefined,
     coverMedia: book.cover ?? undefined,

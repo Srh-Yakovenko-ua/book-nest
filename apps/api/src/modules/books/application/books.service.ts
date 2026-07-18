@@ -5,6 +5,7 @@ import type {
   LibraryBooksQuery,
   LibraryOverviewQuery,
   LibraryOverviewView,
+  Nullable,
   OwnershipStatus,
   Paginator,
   ReadingStatus,
@@ -12,16 +13,12 @@ import type {
   UpdateBookInput,
 } from "@app/shared";
 
-import {
-  LoanTypeSchema,
-  normalizeSearch,
-  OwnershipStatusSchema,
-  ReadingStatusSchema,
-} from "@app/shared";
+import { LoanTypeSchema, OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
+  ActiveReadingRow,
   BlockUpsert,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
@@ -51,6 +48,7 @@ import {
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
 import { resolveFavoriteChange } from "../domain/favorite.js";
+import { normalizeSearchQuery } from "../infrastructure/book-search.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookRelationsResolver, type SeriesPlacement } from "./book-relations-resolver.js";
@@ -60,30 +58,16 @@ const OVERVIEW_TOP_LIMIT = 3;
 const OVERVIEW_RECENT_LIMIT = 3;
 const READING_IN_PROGRESS_STATUSES: ReadingStatus[] = ["reading", "rereading"];
 const FINISHED_STATUSES: ReadingStatus[] = ["finished"];
+const WANT_TO_READ_STATUSES: ReadingStatus[] = ["want_to_read"];
+const WANT_TO_BUY_STATUSES: OwnershipStatus[] = ["want_to_buy"];
+const IN_TRANSIT_STATUSES: OwnershipStatus[] = ["in_transit"];
+const BORROWED_STATUSES: OwnershipStatus[] = ["borrowed_from_someone", "lent_to_someone"];
+const PHYSICAL_OWNERSHIP_STATUSES: OwnershipStatus[] = ["owned", ...BORROWED_STATUSES];
 
 type ScalarFieldKey = keyof Prisma.BookUncheckedUpdateManyInput & keyof UpdateBookInput;
 
-const MIN_SEARCH_LENGTH = 2;
-const ISBN_FRAGMENT_PATTERN = /^\d+$/;
-
-function isIsbnFragment(value: string): boolean {
-  return ISBN_FRAGMENT_PATTERN.test(value.replace(/[\s-]/g, ""));
-}
-
-function normalizeSearchQuery(value: string | undefined): string | undefined {
-  const collapsed = normalizeSearch(value);
-  if (collapsed === undefined) {
-    return undefined;
-  }
-  if (collapsed.length < MIN_SEARCH_LENGTH && !isIsbnFragment(collapsed)) {
-    return undefined;
-  }
-  return collapsed;
-}
-
 const SCALAR_KEYS = [
   "ageCategory",
-  "dedication",
   "description",
   "formats",
   "genres",
@@ -99,6 +83,10 @@ const SCALAR_KEYS = [
   "translator",
 ] as const satisfies readonly ScalarFieldKey[];
 
+type ActiveReadingBook = NonNullable<ActiveReadingView>["book"];
+
+type ActiveReadingView = LibraryOverviewView["activeReading"];
+
 function assignScalarFields(
   fields: Prisma.BookUncheckedUpdateManyInput,
   input: UpdateBookInput,
@@ -109,6 +97,39 @@ function assignScalarFields(
       Object.assign(fields, { [key]: value });
     }
   }
+}
+
+function buildActiveReading(activeBooks: ActiveReadingRow[]): ActiveReadingView {
+  if (activeBooks.length === 0) {
+    return undefined;
+  }
+  const pagesAhead = activeBooks.reduce((total, activeBook) => {
+    if (activeBook.pagesCount === null || activeBook.currentPage === null) {
+      return total;
+    }
+    return total + Math.max(0, activeBook.pagesCount - activeBook.currentPage);
+  }, 0);
+  return { book: resolveSingleActiveBook(activeBooks), pagesAhead };
+}
+
+function intersectOwnership({
+  allowed,
+  scope,
+}: {
+  allowed: OwnershipStatus[];
+  scope?: OwnershipStatus[];
+}): OwnershipStatus[] {
+  if (scope === undefined) {
+    return allowed;
+  }
+  return allowed.filter((status) => scope.includes(status));
+}
+
+function normalizeDedication(value: Nullable<string>): Nullable<string> {
+  if (value === null || value.length === 0) {
+    return null;
+  }
+  return value;
 }
 
 function resolveDeliveryBlock(
@@ -181,6 +202,22 @@ function resolveReadingProgressBlock(
   };
 }
 
+function resolveSingleActiveBook(activeBooks: ActiveReadingRow[]): ActiveReadingBook {
+  if (activeBooks.length !== 1) {
+    return null;
+  }
+  const [onlyBook] = activeBooks;
+  if (onlyBook === undefined || onlyBook.pagesCount === null) {
+    return null;
+  }
+  return {
+    currentPage: onlyBook.currentPage ?? 0,
+    id: onlyBook.id,
+    pagesCount: onlyBook.pagesCount,
+    title: onlyBook.title,
+  };
+}
+
 @Injectable()
 export class BooksService {
   constructor(
@@ -234,7 +271,7 @@ export class BooksService {
             ageCategory: input.ageCategory,
             authorIds: resolved.authorIds,
             coverMediaId: input.coverMediaId ?? null,
-            dedication: input.dedication ?? null,
+            dedication: normalizeDedication(input.dedication ?? null),
             deliveryInfo,
             description: input.description ?? null,
             favoriteAddedAt: favoriteChange?.favoriteAddedAt ?? null,
@@ -256,6 +293,9 @@ export class BooksService {
             purchaseInfo,
             queuePosition: resolved.queuePosition,
             queuePriority: resolved.queuePriority,
+            queuePriorityReason: resolved.queuePriorityReason,
+            queuePriorityReasonCustomText: resolved.queuePriorityReasonCustomText,
+            queuePriorityTargetDate: resolved.queuePriorityTargetDate,
             readingProgress,
             readingStatus: input.readingStatus,
             seriesId: resolved.seriesId,
@@ -294,6 +334,7 @@ export class BooksService {
       finishedStatuses: FINISHED_STATUSES,
       readingStatuses: READING_IN_PROGRESS_STATUSES,
       userId,
+      wantToReadStatuses: WANT_TO_READ_STATUSES,
     });
   }
 
@@ -321,6 +362,7 @@ export class BooksService {
       formats: query.format,
       genreKeys: query.genre,
       hasCover: query.hasCover,
+      hasRating: query.hasRating,
       isFavorite: query.isFavorite,
       languages: query.language,
       ownershipStatuses: query.owner,
@@ -358,28 +400,17 @@ export class BooksService {
 
   async overview(userId: string, query: LibraryOverviewQuery): Promise<LibraryOverviewView> {
     const ownershipStatuses = query.owner;
-    const [total, reading, finished, favorites, topGenreKeys, topTags, recentBooks] =
-      await Promise.all([
-        this.booksRepository.countByUser({ ownershipStatuses, userId }),
-        this.booksRepository.countByReadingStatuses({
-          ownershipStatuses,
-          statuses: READING_IN_PROGRESS_STATUSES,
-          userId,
-        }),
-        this.booksRepository.countByReadingStatuses({
-          ownershipStatuses,
-          statuses: FINISHED_STATUSES,
-          userId,
-        }),
-        this.booksRepository.countFavorites({ ownershipStatuses, userId }),
-        this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
-        this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
-        this.booksRepository.listRecentlyAdded({
-          ownershipStatuses,
-          take: OVERVIEW_RECENT_LIMIT,
-          userId,
-        }),
-      ]);
+    const [summary, activeReading, topGenreKeys, topTags, recentBooks] = await Promise.all([
+      this.buildOverviewSummary({ ownershipStatuses, userId }),
+      this.buildActiveReading({ ownershipStatuses, userId }),
+      this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
+      this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
+      this.booksRepository.listRecentlyAdded({
+        ownershipStatuses,
+        take: OVERVIEW_RECENT_LIMIT,
+        userId,
+      }),
+    ]);
 
     const genreNames = await this.genresService.findNamesByKeys({
       keys: topGenreKeys.map((genre) => genre.key),
@@ -393,8 +424,9 @@ export class BooksService {
     }));
 
     return {
+      activeReading,
       recentlyAdded: recentBooks.map((book) => this.viewAssembler.viewOf(book)),
-      summary: { favorites, finished, reading, total },
+      summary,
       topGenres,
       topTags,
     };
@@ -443,6 +475,8 @@ export class BooksService {
         const fields = resolved.fields;
         assignScalarFields(fields, input);
         this.applyFavoriteFields({ current, fields, input, now });
+        this.applyFavoriteDedicationFields({ fields, input });
+        this.applyDedicationFields({ current, fields, input });
 
         return this.booksRepository.updateOwned(
           userId,
@@ -479,6 +513,46 @@ export class BooksService {
     }
 
     return this.viewAssembler.viewOf(book);
+  }
+
+  private applyDedicationFields({
+    current,
+    fields,
+    input,
+  }: {
+    current: BookWithRelations;
+    fields: Prisma.BookUncheckedUpdateManyInput;
+    input: UpdateBookInput;
+  }): void {
+    const dedication =
+      input.dedication === undefined ? current.dedication : normalizeDedication(input.dedication);
+
+    if (input.dedication !== undefined) {
+      fields.dedication = dedication;
+    }
+
+    if (dedication !== null) {
+      return;
+    }
+
+    const favoriteAfterPatch = input.isFavoriteDedication ?? current.isFavoriteDedication;
+    if (favoriteAfterPatch) {
+      fields.isFavoriteDedication = false;
+    }
+  }
+
+  private applyFavoriteDedicationFields({
+    fields,
+    input,
+  }: {
+    fields: Prisma.BookUncheckedUpdateManyInput;
+    input: UpdateBookInput;
+  }): void {
+    if (input.isFavoriteDedication === undefined) {
+      return;
+    }
+
+    fields.isFavoriteDedication = input.isFavoriteDedication;
   }
 
   private applyFavoriteFields({
@@ -560,5 +634,96 @@ export class BooksService {
     throw new BadRequestError("Enter the person's name", {
       fields: [{ field: "loanInfo.personName", message: "Enter the person's name" }],
     });
+  }
+
+  private async buildActiveReading({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<ActiveReadingView> {
+    const activeBooks = await this.booksRepository.listActiveReading({
+      ownershipStatuses,
+      statuses: READING_IN_PROGRESS_STATUSES,
+      userId,
+    });
+    return buildActiveReading(activeBooks);
+  }
+
+  private async buildOverviewSummary({
+    ownershipStatuses,
+    userId,
+  }: {
+    ownershipStatuses?: OwnershipStatus[];
+    userId: string;
+  }): Promise<LibraryOverviewView["summary"]> {
+    const [
+      total,
+      reading,
+      finished,
+      favorites,
+      wantToRead,
+      series,
+      solo,
+      wantToBuy,
+      inTransit,
+      borrowed,
+      authorsCount,
+      physicallyAvailable,
+      seriesCount,
+    ] = await Promise.all([
+      this.booksRepository.countByUser({ ownershipStatuses, userId }),
+      this.booksRepository.countByReadingStatuses({
+        ownershipStatuses,
+        statuses: READING_IN_PROGRESS_STATUSES,
+        userId,
+      }),
+      this.booksRepository.countByReadingStatuses({
+        ownershipStatuses,
+        statuses: FINISHED_STATUSES,
+        userId,
+      }),
+      this.booksRepository.countFavorites({ ownershipStatuses, userId }),
+      this.booksRepository.countByReadingStatuses({
+        ownershipStatuses,
+        statuses: WANT_TO_READ_STATUSES,
+        userId,
+      }),
+      this.booksRepository.countForLibrary({
+        filter: { bookType: "series_part", ownershipStatuses, userId },
+      }),
+      this.booksRepository.countForLibrary({
+        filter: { bookType: "solo", ownershipStatuses, userId },
+      }),
+      this.booksRepository.countByUser({ ownershipStatuses: WANT_TO_BUY_STATUSES, userId }),
+      this.booksRepository.countByUser({ ownershipStatuses: IN_TRANSIT_STATUSES, userId }),
+      this.booksRepository.countByUser({ ownershipStatuses: BORROWED_STATUSES, userId }),
+      this.booksRepository.countDistinctAuthors({ ownershipStatuses, userId }),
+      this.booksRepository.countByUser({
+        ownershipStatuses: intersectOwnership({
+          allowed: PHYSICAL_OWNERSHIP_STATUSES,
+          scope: ownershipStatuses,
+        }),
+        userId,
+      }),
+      this.booksRepository.countDistinctSeries({ ownershipStatuses, userId }),
+    ]);
+
+    return {
+      authorsCount,
+      borrowed,
+      favorites,
+      finished,
+      inTransit,
+      physicallyAvailable,
+      reading,
+      series,
+      seriesCount,
+      solo,
+      total,
+      wantToBuy,
+      wantToRead,
+    };
   }
 }

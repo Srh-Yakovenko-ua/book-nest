@@ -43,5 +43,5 @@ export function canMarkFinished(readingStatus: ReadingStatus): boolean {
 }
 
 export function canStartReading(readingStatus: ReadingStatus): boolean {
-  return !ACTIVE_READING_STATUSES.includes(readingStatus);
+  return readingStatus !== "finished" && !ACTIVE_READING_STATUSES.includes(readingStatus);
 }

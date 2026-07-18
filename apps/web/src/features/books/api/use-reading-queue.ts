@@ -12,6 +12,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import {
   getReadingQueueControllerGetQueueQueryKey,
+  getSeriesOrderCheckControllerListIssuesQueryKey,
   readingQueueControllerAddToQueue,
   readingQueueControllerRemoveFromQueue,
   readingQueueControllerReorder,
@@ -85,6 +86,9 @@ export function useReorderReadingQueue() {
       },
       onSettled: () => {
         void queryClient.invalidateQueries({ queryKey: bookKeys.root });
+        void queryClient.invalidateQueries({
+          queryKey: getSeriesOrderCheckControllerListIssuesQueryKey(),
+        });
       },
       onSuccess: (view) => {
         queryClient.setQueryData(queueKey, view);
@@ -109,6 +113,9 @@ function applyReadingQueueView(queryClient: QueryClient, view: ReadingQueueView)
   queryClient.setQueryData(getReadingQueueControllerGetQueueQueryKey(), view);
   void queryClient.invalidateQueries({ queryKey: bookKeys.root });
   void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
+  void queryClient.invalidateQueries({
+    queryKey: getSeriesOrderCheckControllerListIssuesQueryKey(),
+  });
 }
 
 function reorderQueueView(view: ReadingQueueView, order: string[]): ReadingQueueView {

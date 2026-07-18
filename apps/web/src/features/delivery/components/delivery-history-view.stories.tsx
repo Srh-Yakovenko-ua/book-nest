@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, waitFor } from "storybook/test";
 
+import { DELIVERY_HISTORY_TAB_DEFAULT } from "../model/history-params";
 import { DeliveryHistoryCard } from "./delivery-history-card";
 import { DeliveryHistoryView } from "./delivery-history-view";
 import { historyCardModels } from "./delivery-history.fixtures";
@@ -40,6 +41,7 @@ const meta = {
     ),
     showToolbar: false,
     summary: summaryNode,
+    tab: DELIVERY_HISTORY_TAB_DEFAULT,
     toolbar: null,
   },
   component: DeliveryHistoryView,

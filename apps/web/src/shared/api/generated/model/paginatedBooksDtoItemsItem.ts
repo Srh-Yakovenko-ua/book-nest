@@ -18,6 +18,7 @@ import type { PaginatedBooksDtoItemsItemOwnershipStatus } from "./paginatedBooks
 import type { PaginatedBooksDtoItemsItemPublisher } from "./paginatedBooksDtoItemsItemPublisher";
 import type { PaginatedBooksDtoItemsItemPurchaseInfo } from "./paginatedBooksDtoItemsItemPurchaseInfo";
 import type { PaginatedBooksDtoItemsItemQueuePriority } from "./paginatedBooksDtoItemsItemQueuePriority";
+import type { PaginatedBooksDtoItemsItemQueuePriorityReason } from "./paginatedBooksDtoItemsItemQueuePriorityReason";
 import type { PaginatedBooksDtoItemsItemReadingProgress } from "./paginatedBooksDtoItemsItemReadingProgress";
 import type { PaginatedBooksDtoItemsItemReadingStatus } from "./paginatedBooksDtoItemsItemReadingStatus";
 import type { PaginatedBooksDtoItemsItemSeries } from "./paginatedBooksDtoItemsItemSeries";
@@ -47,6 +48,7 @@ export type PaginatedBooksDtoItemsItem = {
   /** @nullable */
   isbn: string | null;
   isFavorite: boolean;
+  isFavoriteDedication: boolean;
   isInReadingQueue: boolean;
   language: PaginatedBooksDtoItemsItemLanguage;
   lists: PaginatedBooksDtoItemsItemListsItem[];
@@ -67,6 +69,15 @@ export type PaginatedBooksDtoItemsItem = {
   purchaseInfo: PaginatedBooksDtoItemsItemPurchaseInfo;
   /** @nullable */
   queuePriority: PaginatedBooksDtoItemsItemQueuePriority;
+  /** @nullable */
+  queuePriorityReason: PaginatedBooksDtoItemsItemQueuePriorityReason;
+  /** @nullable */
+  queuePriorityReasonCustomText: string | null;
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  queuePriorityTargetDate: string | null;
   /** @nullable */
   readingProgress: PaginatedBooksDtoItemsItemReadingProgress;
   readingStatus: PaginatedBooksDtoItemsItemReadingStatus;
