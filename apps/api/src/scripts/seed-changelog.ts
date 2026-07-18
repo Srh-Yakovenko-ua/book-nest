@@ -216,6 +216,133 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Статистика та історія читання",
     version: null,
   },
+  {
+    bodyEn:
+      "Keep notes on your books and series — organize them by category, pin the important ones, mark favorites, and hide spoilers.",
+    bodyUk:
+      "Ведіть нотатки до книг і серій — впорядковуйте їх за категоріями, закріплюйте важливі, позначайте улюблені та ховайте спойлери.",
+    category: "feature",
+    publishedAt: "2026-07-18T06:00:00.000Z",
+    slug: "notes",
+    titleEn: "Notes",
+    titleUk: "Нотатки",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Save favorite quotes from your books with page references, mark the ones you love, and hide spoilers.",
+    bodyUk:
+      "Зберігайте улюблені цитати з книг із зазначенням сторінок, позначайте найкращі та ховайте спойлери.",
+    category: "feature",
+    publishedAt: "2026-07-18T06:00:01.000Z",
+    slug: "quotes",
+    titleEn: "Quotes",
+    titleUk: "Цитати",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Browse, search, and sort the dedications from your books, and mark the ones that stay with you.",
+    bodyUk:
+      "Переглядайте, шукайте та сортуйте присвяти з ваших книг і позначайте ті, що западають у душу.",
+    category: "feature",
+    publishedAt: "2026-07-18T06:00:02.000Z",
+    slug: "dedications",
+    titleEn: "Book dedications",
+    titleUk: "Присвяти книг",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Build a wishlist of books to buy, add store links with prices, and see the best current offer at a glance.",
+    bodyUk:
+      "Складайте список книг до купівлі, додавайте посилання на магазини з цінами та одразу бачте найкращу пропозицію.",
+    category: "feature",
+    publishedAt: "2026-07-18T06:00:03.000Z",
+    slug: "books-to-buy",
+    titleEn: "Books to buy",
+    titleUk: "Книги до купівлі",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Organize books with your own tags — create and edit them, give them colors, and see how often you use each one.",
+    bodyUk:
+      "Впорядковуйте книги власними тегами — створюйте й редагуйте їх, задавайте кольори та дивіться, як часто ви користуєтеся кожним.",
+    category: "feature",
+    publishedAt: "2026-07-18T06:00:04.000Z",
+    slug: "tags",
+    titleEn: "Tags",
+    titleUk: "Теги",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A new home page greets you after signing in — library summary cards, a deliveries widget, and an overview of your reading progress.",
+    bodyUk:
+      "Нова головна сторінка вітає вас після входу — картки підсумків бібліотеки, віджет доставок та огляд вашого прогресу читання.",
+    category: "feature",
+    publishedAt: "2026-07-18T06:00:05.000Z",
+    slug: "home-dashboard",
+    titleEn: "Home dashboard",
+    titleUk: "Головна панель",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Spot when series books sit out of order in your reading queue and fix the sequence with a one-click preview.",
+    bodyUk:
+      "Помічайте, коли книги серії стоять у черзі читання не за порядком, і виправляйте послідовність одним кліком із попереднім переглядом.",
+    category: "feature",
+    publishedAt: "2026-07-18T06:00:06.000Z",
+    slug: "series-order-check",
+    titleEn: "Series order check",
+    titleUk: "Перевірка порядку серій",
+    version: null,
+  },
+  {
+    bodyEn:
+      "When adding a book to the reading queue you can now set a priority reason and a target date, shown back on the book and in the queue.",
+    bodyUk:
+      "Додаючи книгу в чергу читання, тепер можна вказати причину пріоритету та цільову дату — вони показуються на книзі та в черзі.",
+    category: "improvement",
+    publishedAt: "2026-07-18T06:00:07.000Z",
+    slug: "reading-queue-priority",
+    titleEn: "Reading-queue priority",
+    titleUk: "Пріоритет у черзі читання",
+    version: null,
+  },
+  {
+    bodyEn: "Assign several authors to a single book.",
+    bodyUk: "Призначайте кілька авторів одній книзі.",
+    category: "improvement",
+    publishedAt: "2026-07-18T06:00:08.000Z",
+    slug: "multiple-authors",
+    titleEn: "Multiple authors",
+    titleUk: "Кілька авторів",
+    version: null,
+  },
+  {
+    bodyEn: "Series now carry their own genres, just like books do.",
+    bodyUk: "Серії тепер мають власні жанри, як і книги.",
+    category: "improvement",
+    publishedAt: "2026-07-18T06:00:09.000Z",
+    slug: "series-genres",
+    titleEn: "Series genres",
+    titleUk: "Жанри серій",
+    version: null,
+  },
+  {
+    bodyEn: "Books marked 18+ now show an adult-content badge on cards and rows.",
+    bodyUk:
+      "Книги з позначкою 18+ тепер показують значок дорослого контенту на картках і в рядках.",
+    category: "improvement",
+    publishedAt: "2026-07-18T06:00:10.000Z",
+    slug: "adult-age-badge",
+    titleEn: "18+ age badge",
+    titleUk: "Значок 18+",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
