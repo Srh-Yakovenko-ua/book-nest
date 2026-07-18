@@ -83,8 +83,19 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
       DATABASE_URL: postgresql://booknest:booknest_ci@localhost:5432/booknest_test
+      REDIS_URL: redis://localhost:6379
       JWT_ACCESS_SECRET: ci-access-secret-0000000000000000000000000
       JWT_REFRESH_SECRET: ci-refresh-secret-000000000000000000000000
       NEXT_PUBLIC_SITE_URL: https://book-nest.net
