@@ -100,6 +100,26 @@ Same commit-tree pattern, parented on `origin/prod`, title `Release to prod: <su
 
 `curl -fsS https://book-nest.net/api/health` → must contain `"status":"ok"` (the deploy workflow also gates on this). Smoke a couple of the new endpoints if relevant. Report the final commit SHAs on `stage`/`prod` and the health result.
 
+# Fast lane — trivial / content-only releases
+
+Not every release needs the full two-gate gauntlet. Running `full` (build + 2600 tests + smoke, ~10 min) twice — once on stage, once on prod — to ship a changelog seed or a doc is waste. When the release is content-only, take the fast lane.
+
+**Qualifies ONLY when BOTH hold:**
+
+- Zero pending migrations (`git diff --name-only origin/prod..origin/dev -- apps/api/prisma/migrations` is empty), AND
+- the content diff (`git diff --name-only origin/prod..origin/dev`) touches ONLY non-runtime-critical paths: `docs/**`, `.claude/**`, root `*.md`, and `apps/api/src/scripts/seed-*.ts`. If anything under `prisma/**` or any other `apps/*/src/**` (controllers, services, components, hooks, …) changed, it does NOT qualify — use the full pipeline.
+
+Why it's safe here: the seed scripts are NOT exercised by the test suite or the CI smoke (the smoke runs `node dist/index.js` directly; only the real prod container runs seeds on boot via `docker-entrypoint.sh`, and a throwing seed leaves the container unhealthy → `deploy.sh` auto-rolls-back the image). So the signal that actually protects a content release is `static` (typecheck + lint) plus the prod boot's own rollback — not the full suite. Running `full` twice buys almost nothing.
+
+**Fast-lane steps:**
+
+1. Steps 0–1 as normal. SKIP step 3 (no migrations → no pre-flight); step 4 (release notes) is optional — a one-liner or skip for docs-only.
+2. Do step 5 (changelog reconcile) — a content release is exactly when it matters most.
+3. Promote dev → prod **directly, skipping the stage hop**: commit-tree parented on `origin/prod`, open the PR, then either (a) let the single `full` gate run once and merge, or (b) if the byte-identical tree already passed `full` on a stage/dev run (commit-tree guarantees identity), `gh pr merge <n> --admin --squash --delete-branch` to skip the redundant re-run. **Never bypass `static`** (typecheck/lint) — only the redundant second `full`.
+4. Deploy verify (step 8) as normal.
+
+If you are unsure whether a change is content-only, it isn't — use the full pipeline. The fast lane is for seed / docs / agent-config, never for code or schema.
+
 # Hard gates (any red → STOP and report, do not proceed)
 
 1. Dirty tracked working tree.
