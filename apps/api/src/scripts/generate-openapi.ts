@@ -12,29 +12,24 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "../../../..");
 const outputPath = resolve(repoRoot, "openapi.json");
 
+const PARAMETER_OBJECT_KEYS = new Set([
+  "$ref",
+  "allowEmptyValue",
+  "allowReserved",
+  "content",
+  "deprecated",
+  "description",
+  "example",
+  "examples",
+  "explode",
+  "in",
+  "name",
+  "required",
+  "schema",
+  "style",
+]);
+
 type UnknownRecord = Record<string, unknown>;
-
-function foldParameterAllOf(parameter: UnknownRecord): void {
-  const { allOf } = parameter;
-  if (!Array.isArray(allOf)) {
-    return;
-  }
-
-  delete parameter.allOf;
-
-  const subschemas = allOf.filter(isRecord);
-  if (subschemas.length === 0) {
-    return;
-  }
-
-  const existingSchema = isRecord(parameter.schema) ? parameter.schema : {};
-  const existingAllOf = Array.isArray(existingSchema.allOf) ? existingSchema.allOf : [];
-
-  parameter.schema = {
-    ...existingSchema,
-    allOf: [...existingAllOf, ...subschemas],
-  };
-}
 
 async function generateOpenApi(): Promise<void> {
   const app = await NestFactory.create(AppModule, { logger: false });
@@ -47,6 +42,30 @@ async function generateOpenApi(): Promise<void> {
 
   await app.close();
   process.stdout.write(`openapi.json written to ${outputPath}\n`);
+}
+
+function hoistParameterSchemaKeywords(parameter: UnknownRecord): void {
+  const leakedKeys = Object.keys(parameter).filter((key) => !PARAMETER_OBJECT_KEYS.has(key));
+  if (leakedKeys.length === 0) {
+    return;
+  }
+
+  const schema = isRecord(parameter.schema) ? parameter.schema : {};
+
+  for (const key of leakedKeys) {
+    const leakedValue = parameter[key];
+    const existingValue = schema[key];
+
+    if (existingValue === undefined) {
+      schema[key] = leakedValue;
+    } else if (Array.isArray(existingValue) && Array.isArray(leakedValue)) {
+      schema[key] = [...existingValue, ...leakedValue];
+    }
+
+    delete parameter[key];
+  }
+
+  parameter.schema = schema;
 }
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -95,7 +114,7 @@ function normalizeParameters(document: OpenAPIObject): void {
 
       for (const parameter of operation.parameters) {
         if (isRecord(parameter)) {
-          foldParameterAllOf(parameter);
+          hoistParameterSchemaKeywords(parameter);
         }
       }
     }

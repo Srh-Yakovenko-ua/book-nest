@@ -1,13 +1,16 @@
 import type {
   BookView,
+  DedicationsSummaryView,
   FavoritesSummaryView,
   LibraryOverviewView,
   Paginator,
   RecentPurchaseStores,
+  WishlistView,
 } from "@app/shared";
 
 import {
   CreateBookInputSchema,
+  DedicationsQuerySchema,
   LibraryBooksQuerySchema,
   LibraryOverviewQuerySchema,
   OwnershipStatusSchema,
@@ -49,25 +52,38 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { BooksService } from "../application/books.service.js";
+import { DedicationsService } from "../application/dedications.service.js";
+import { WishlistService } from "../application/wishlist.service.js";
 import { CreateBookInputDto } from "./input-dto/create-book.input-dto.js";
+import { DedicationsQueryDto } from "./input-dto/dedications-query.input-dto.js";
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
 import { LibraryOverviewQueryDto } from "./input-dto/library-overview-query.input-dto.js";
 import { RecentPurchaseStoresQueryDto } from "./input-dto/recent-purchase-stores-query.input-dto.js";
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
+import { DedicationsSummaryViewDto } from "./view-dto/dedications.view-dto.js";
 import { FavoritesSummaryViewDto } from "./view-dto/favorites-summary.view-dto.js";
 import { LibraryOverviewViewDto } from "./view-dto/library-overview.view-dto.js";
 import { PaginatedBooksDto } from "./view-dto/paginated-books.view-dto.js";
+import { WishlistViewDto } from "./view-dto/wishlist.view-dto.js";
 
 const CREATE_BOOK_TTL_SECONDS = 60;
 const CREATE_BOOK_LIMIT = 30;
 const UPDATE_BOOK_TTL_SECONDS = 60;
 const UPDATE_BOOK_LIMIT = 60;
+const WISHLIST_TTL_SECONDS = 60;
+const WISHLIST_LIMIT = 120;
+const DEDICATIONS_TTL_SECONDS = 60;
+const DEDICATIONS_LIMIT = 120;
 
 @ApiTags("books")
 @Controller("api/books")
 export class BooksController {
-  constructor(private readonly booksService: BooksService) {}
+  constructor(
+    private readonly booksService: BooksService,
+    private readonly wishlistService: WishlistService,
+    private readonly dedicationsService: DedicationsService,
+  ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBearerAuth()
@@ -150,6 +166,51 @@ export class BooksController {
   @UseGuards(JwtAccessGuard)
   favoritesSummary(@CurrentUser() user: AuthenticatedUser): Promise<FavoritesSummaryView> {
     return this.booksService.favoritesSummary(user.id);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: "The current user books-to-buy wishlist with a per-currency summary",
+    type: WishlistViewDto,
+  })
+  @ApiOperation({ summary: "Get the current user books-to-buy wishlist" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("wishlist")
+  @Throttle({ default: { limit: WISHLIST_LIMIT, ttl: seconds(WISHLIST_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  wishlist(@CurrentUser() user: AuthenticatedUser): Promise<WishlistView> {
+    return this.wishlistService.getWishlist({ userId: user.id });
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: "A page of the current user books that carry a dedication",
+    type: PaginatedBooksDto,
+  })
+  @ApiOperation({ summary: "List and filter the current user books that carry a dedication" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("dedications")
+  @Throttle({ default: { limit: DEDICATIONS_LIMIT, ttl: seconds(DEDICATIONS_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  dedications(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(DedicationsQuerySchema)) query: DedicationsQueryDto,
+  ): Promise<Paginator<BookView>> {
+    return this.dedicationsService.getDedications({ query, userId: user.id });
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: "Dedications summary for the current user",
+    type: DedicationsSummaryViewDto,
+  })
+  @ApiOperation({ summary: "Get the current user dedications summary" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("dedications/summary")
+  @Throttle({ default: { limit: DEDICATIONS_LIMIT, ttl: seconds(DEDICATIONS_TTL_SECONDS) } })
+  @UseGuards(JwtAccessGuard)
+  dedicationsSummary(@CurrentUser() user: AuthenticatedUser): Promise<DedicationsSummaryView> {
+    return this.dedicationsService.getDedicationsSummary({ userId: user.id });
   }
 
   @ApiBearerAuth()

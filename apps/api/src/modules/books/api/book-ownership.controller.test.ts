@@ -36,11 +36,28 @@ afterAll(async () => {
   await context.close();
 });
 
+function addStoreLink(
+  accessToken: string,
+  bookId: string,
+  body: Record<string, unknown>,
+): request.Test {
+  return request(app.getHttpServer())
+    .post(`/api/books/${bookId}/store-links`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
+}
+
 function createBook(accessToken: string, body: Record<string, unknown>): request.Test {
   return request(app.getHttpServer())
     .post("/api/books")
     .set("Authorization", `Bearer ${accessToken}`)
     .send(body);
+}
+
+function listStoreLinks(accessToken: string, bookId: string): request.Test {
+  return request(app.getHttpServer())
+    .get(`/api/books/${bookId}/store-links`)
+    .set("Authorization", `Bearer ${accessToken}`);
 }
 
 function ownershipAction(
@@ -206,6 +223,72 @@ describe("POST /api/books/:id/ownership/remove-owned", () => {
   });
 });
 
+describe("POST /api/books/:id/ownership/remove-from-wishlist", () => {
+  it("removes a want-to-buy book from the wishlist and keeps its store links", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      title: "Dune",
+    });
+    await addStoreLink(accessToken, created.body.id, {
+      currency: "UAH",
+      price: 299.99,
+      storeName: "Yakaboo",
+      url: "https://yakaboo.ua/dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "remove-from-wishlist");
+
+    expect(res.status).toBe(200);
+    expect(res.body.ownershipStatus).toBe("none");
+
+    const links = await listStoreLinks(accessToken, created.body.id);
+
+    expect(links.status).toBe(200);
+    expect(links.body.storeLinks).toHaveLength(1);
+    expect(links.body.storeLinks[0]).toMatchObject({
+      storeName: "Yakaboo",
+      url: "https://yakaboo.ua/dune",
+    });
+  });
+
+  it("returns 409 with a NOT_IN_WISHLIST code when the book is not in the wishlist", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "owned",
+      title: "Dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "remove-from-wishlist");
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("NOT_IN_WISHLIST");
+  });
+
+  it("returns 404 when the book belongs to another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const created = await createBook(owner.accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      title: "Dune",
+    });
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const res = await ownershipAction(
+      stranger.accessToken,
+      created.body.id,
+      "remove-from-wishlist",
+    );
+
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("POST /api/books/:id/ownership/want-to-buy", () => {
   it("marks a book as want to buy with an empty body and no purchase row", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
@@ -257,7 +340,24 @@ describe("POST /api/books/:id/ownership/want-to-buy", () => {
     expect(res.status).toBe(409);
   });
 
-  it("returns 400 for a non-positive expected price", async () => {
+  it("returns 400 for a negative expected price", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "want-to-buy", {
+      expectedPrice: -1,
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "expectedPrice" })]),
+    );
+  });
+
+  it("accepts a zero expected price", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -268,10 +368,8 @@ describe("POST /api/books/:id/ownership/want-to-buy", () => {
       expectedPrice: 0,
     });
 
-    expect(res.status).toBe(400);
-    expect(res.body.errorsMessages).toEqual(
-      expect.arrayContaining([expect.objectContaining({ field: "expectedPrice" })]),
-    );
+    expect(res.status).toBe(200);
+    expect(res.body.purchaseInfo.expectedPrice).toBe(0);
   });
 });
 
@@ -410,5 +508,6 @@ describe("POST /api/books/:id/ownership/mark-bought", () => {
     const res = await ownershipAction(accessToken, created.body.id, "mark-bought", {});
 
     expect(res.status).toBe(409);
+    expect(res.body.code).toBe("NOT_IN_WISHLIST");
   });
 });

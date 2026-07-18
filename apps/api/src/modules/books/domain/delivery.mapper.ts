@@ -40,5 +40,6 @@ export function toDeliveryView(delivery: BookDeliveryModel): DeliveryView {
     storeName: delivery.storeName,
     trackingNumber: delivery.trackingNumber,
     trackingUrl: delivery.trackingUrl,
+    updatedAt: delivery.updatedAt.toISOString(),
   };
 }

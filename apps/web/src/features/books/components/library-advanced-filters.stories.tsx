@@ -48,7 +48,6 @@ function Harness() {
   return (
     <LibraryAdvancedFilters
       activeCount={countActive(library.state)}
-      onClearFilters={library.clearFilters}
       onRememberEntity={() => {}}
       resolveEntityName={() => undefined}
       scope="all"
@@ -66,6 +65,20 @@ function renderWithParams(searchParams?: string) {
   );
 }
 
+let urlUpdates: URLSearchParams[] = [];
+
+function renderWithUpdates(searchParams?: string) {
+  urlUpdates = [];
+  return (
+    <NuqsTestingAdapter
+      onUrlUpdate={(event) => urlUpdates.push(event.searchParams)}
+      searchParams={searchParams}
+    >
+      <Harness />
+    </NuqsTestingAdapter>
+  );
+}
+
 const DEFAULT_STATE: LibraryQueryState = {
   ageCategory: [],
   author: [],
@@ -73,6 +86,7 @@ const DEFAULT_STATE: LibraryQueryState = {
   format: [],
   genre: [],
   hasCover: null,
+  hasRating: null,
   isFavorite: null,
   language: [],
   owner: [],
@@ -93,7 +107,6 @@ const DEFAULT_STATE: LibraryQueryState = {
 const meta = {
   args: {
     activeCount: 0,
-    onClearFilters: () => {},
     onRememberEntity: () => {},
     resolveEntityName: () => undefined,
     scope: "all",
@@ -167,6 +180,30 @@ export const ClearInsideSheet: Story = {
         "off",
       ),
     );
+    expect(urlUpdates).toHaveLength(0);
   },
-  render: () => renderWithParams("?status=finished"),
+  render: () => renderWithUpdates("?status=finished"),
+};
+
+export const DefersUntilApply: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: /Фільтри/ }));
+    const surface = within(document.body);
+    await waitFor(() => expect(surface.getByText("Статус читання")).toBeVisible());
+
+    await userEvent.click(surface.getByRole("button", { name: "Прочитано" }));
+    await expect(surface.getByRole("button", { name: "Прочитано" })).toHaveAttribute(
+      "data-state",
+      "on",
+    );
+    expect(urlUpdates).toHaveLength(0);
+
+    const apply = surface.getByRole("button", { name: "Застосувати фільтри" });
+    await userEvent.click(apply);
+
+    await waitFor(() => expect(urlUpdates).toHaveLength(1));
+    expect(urlUpdates[0]?.get("status")).toBe("finished");
+    await waitFor(() => expect(surface.queryByText("Статус читання")).toBeNull());
+  },
+  render: () => renderWithUpdates(),
 };

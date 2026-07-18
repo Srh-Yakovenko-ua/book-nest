@@ -4,6 +4,7 @@ import {
   type inferParserType,
   parseAsArrayOf,
   parseAsBoolean,
+  parseAsFloat,
   parseAsInteger,
   parseAsString,
   parseAsStringLiteral,
@@ -58,6 +59,7 @@ export const libraryQueryParsers = {
   format: parseAsArrayOf(parseAsStringLiteral(LIBRARY_FORMAT_VALUES)).withDefault([]),
   genre: parseAsArrayOf(parseAsString).withDefault([]),
   hasCover: parseAsBoolean,
+  hasRating: parseAsBoolean,
   isFavorite: parseAsBoolean,
   language: parseAsArrayOf(parseAsStringLiteral(LIBRARY_LANGUAGE_VALUES)).withDefault([]),
   owner: parseAsArrayOf(parseAsStringLiteral(LIBRARY_OWNER_VALUES)).withDefault([]),
@@ -65,8 +67,8 @@ export const libraryQueryParsers = {
   pagesMin: parseAsInteger,
   publisher: parseAsArrayOf(parseAsString).withDefault([]),
   q: parseAsString.withDefault(""),
-  ratingMax: parseAsInteger,
-  ratingMin: parseAsInteger,
+  ratingMax: parseAsFloat,
+  ratingMin: parseAsFloat,
   sort: parseAsStringLiteral(sortValues).withDefault(LIBRARY_SORT_DEFAULT),
   status: parseAsArrayOf(parseAsStringLiteral(LIBRARY_STATUS_VALUES)).withDefault([]),
   tag: parseAsArrayOf(parseAsString).withDefault([]),
@@ -118,6 +120,7 @@ export function hasActiveLibraryFilters(state: LibraryQueryState): boolean {
     state.bookType !== null ||
     state.isFavorite !== null ||
     state.hasCover !== null ||
+    state.hasRating !== null ||
     state.ratingMin !== null ||
     state.ratingMax !== null ||
     state.yearMin !== null ||
@@ -174,6 +177,7 @@ export function toLibraryListParams(
     ...(state.bookType === null ? {} : { bookType: state.bookType }),
     ...(isFavorite === undefined ? {} : { isFavorite }),
     ...(state.hasCover === null ? {} : { hasCover: String(state.hasCover) }),
+    ...(state.hasRating === null ? {} : { hasRating: String(state.hasRating) }),
     ...(state.ratingMin === null ? {} : { ratingMin: state.ratingMin }),
     ...(state.ratingMax === null ? {} : { ratingMax: state.ratingMax }),
     ...(state.yearMin === null ? {} : { yearMin: state.yearMin }),
@@ -211,6 +215,7 @@ export const LIBRARY_FILTERS_RESET = {
   format: null,
   genre: null,
   hasCover: null,
+  hasRating: null,
   isFavorite: null,
   language: null,
   owner: null,

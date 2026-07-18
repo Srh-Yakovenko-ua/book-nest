@@ -90,6 +90,7 @@ describe("POST /api/books/:id/loan authorization", () => {
 
     const res = await createLoan(accessToken, MISSING_UUID, {
       direction: "borrowed",
+      loanDate: TODAY,
       personName: "Olha",
     });
 
@@ -109,6 +110,7 @@ describe("POST /api/books/:id/loan authorization", () => {
 
     const res = await createLoan(stranger.accessToken, created.body.id, {
       direction: "borrowed",
+      loanDate: TODAY,
       personName: "Olha",
     });
 
@@ -117,7 +119,7 @@ describe("POST /api/books/:id/loan authorization", () => {
 });
 
 describe("POST /api/books/:id/loan validation", () => {
-  it("returns 400 when the person name is too short", async () => {
+  it("returns 400 when the person name is empty", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -126,12 +128,48 @@ describe("POST /api/books/:id/loan validation", () => {
 
     const res = await createLoan(accessToken, created.body.id, {
       direction: "borrowed",
-      personName: "A",
+      loanDate: TODAY,
+      personName: "",
     });
 
     expect(res.status).toBe(400);
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "personName" })]),
+    );
+  });
+
+  it("accepts a single-character person name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+
+    const res = await createLoan(accessToken, created.body.id, {
+      direction: "borrowed",
+      loanDate: TODAY,
+      personName: "A",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo.personName).toBe("A");
+  });
+
+  it("returns 400 when the loan date is missing", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+
+    const res = await createLoan(accessToken, created.body.id, {
+      direction: "borrowed",
+      personName: "Olha",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "loanDate" })]),
     );
   });
 
@@ -144,6 +182,7 @@ describe("POST /api/books/:id/loan validation", () => {
 
     const res = await createLoan(accessToken, created.body.id, {
       direction: "borrowed",
+      loanDate: TODAY,
       personName: "Olha",
       remindToReturn: true,
     });
@@ -200,7 +239,7 @@ describe("POST /api/books/:id/loan validation", () => {
 });
 
 describe("POST /api/books/:id/loan preconditions", () => {
-  it("returns 409 when borrowing a book that is not in the none state", async () => {
+  it("returns 409 when borrowing a book that is neither none nor want_to_buy", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -210,10 +249,29 @@ describe("POST /api/books/:id/loan preconditions", () => {
 
     const res = await createLoan(accessToken, created.body.id, {
       direction: "borrowed",
+      loanDate: TODAY,
       personName: "Olha",
     });
 
     expect(res.status).toBe(409);
+  });
+
+  it("borrows a book that is currently marked want_to_buy", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      title: "Dune",
+    });
+
+    const res = await createLoan(accessToken, created.body.id, {
+      direction: "borrowed",
+      loanDate: TODAY,
+      personName: "Olha",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ownershipStatus).toBe("borrowed_from_someone");
   });
 
   it("returns 409 when lending a book that is not owned", async () => {
@@ -225,6 +283,7 @@ describe("POST /api/books/:id/loan preconditions", () => {
 
     const res = await createLoan(accessToken, created.body.id, {
       direction: "lent",
+      loanDate: TODAY,
       personName: "Olha",
     });
 
@@ -233,7 +292,7 @@ describe("POST /api/books/:id/loan preconditions", () => {
 });
 
 describe("POST /api/books/:id/loan side effects", () => {
-  it("borrows a book with no ownership and defaults the loan date to today", async () => {
+  it("borrows a book with no ownership and records the provided loan date", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -242,6 +301,7 @@ describe("POST /api/books/:id/loan side effects", () => {
 
     const res = await createLoan(accessToken, created.body.id, {
       direction: "borrowed",
+      loanDate: TODAY,
       personName: "Olha",
     });
 
@@ -259,6 +319,7 @@ describe("POST /api/books/:id/loan side effects", () => {
 
     const res = await createLoan(accessToken, created.body.id, {
       direction: "borrowed",
+      loanDate: TODAY,
       personName: "Olha",
     });
 
@@ -266,6 +327,8 @@ describe("POST /api/books/:id/loan side effects", () => {
     expect(res.body.loanInfo).toMatchObject({
       contact: null,
       expectedReturnDate: null,
+      loanType: "borrowed_from_someone",
+      loanUiStatus: "no_return_date",
       note: null,
       personName: "Olha",
       remindToReturn: false,
@@ -292,10 +355,11 @@ describe("POST /api/books/:id/loan side effects", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("lent_to_someone");
-    expect(res.body.loanInfo).toEqual({
+    expect(res.body.loanInfo).toMatchObject({
       contact: "olha@example.com",
       expectedReturnDate: "2026-03-01",
       loanDate: "2026-01-20",
+      loanType: "lent_to_someone",
       note: "hardcover copy",
       personName: "Olha",
       remindToReturn: true,
@@ -312,6 +376,7 @@ describe("POST /api/books/:id/loan side effects", () => {
     await createLoan(accessToken, created.body.id, {
       contact: "olha@example.com",
       direction: "lent",
+      loanDate: TODAY,
       note: "first loan",
       personName: "Olha",
     });
@@ -319,6 +384,7 @@ describe("POST /api/books/:id/loan side effects", () => {
 
     const res = await createLoan(accessToken, created.body.id, {
       direction: "lent",
+      loanDate: TODAY,
       personName: "Max",
     });
 
@@ -594,7 +660,7 @@ describe("PATCH /api/books/:id/loan", () => {
     );
   });
 
-  it("returns 400 when the note exceeds 300 characters", async () => {
+  it("accepts a loan note up to 500 characters", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -604,7 +670,25 @@ describe("PATCH /api/books/:id/loan", () => {
     });
 
     const res = await editLoan(accessToken, created.body.id, {
-      note: "a".repeat(301),
+      note: "a".repeat(500),
+      personName: "Olha",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanInfo.note).toBe("a".repeat(500));
+  });
+
+  it("returns 400 when the note exceeds 500 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      loanInfo: { personName: "Olha" },
+      ownershipStatus: "borrowed_from_someone",
+      title: "Dune",
+    });
+
+    const res = await editLoan(accessToken, created.body.id, {
+      note: "a".repeat(501),
       personName: "Olha",
     });
 
@@ -624,6 +708,7 @@ describe("PATCH /api/books/:id/loan", () => {
     await createLoan(accessToken, created.body.id, {
       contact: "olha@example.com",
       direction: "lent",
+      loanDate: TODAY,
       note: "hardcover copy",
       personName: "Olha",
     });

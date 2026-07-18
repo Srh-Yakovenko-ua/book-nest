@@ -3,8 +3,12 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
+import { getQueryClient } from "@/lib/query-client";
+
 import { makeSeriesView } from "../model/series.fixtures";
 import { CreateSeriesDialog } from "./create-series-dialog";
+
+const EMPTY_AUTHORS_PAGE = { items: [], page: 1, pagesCount: 1, pageSize: 20, totalCount: 0 };
 
 function Harness() {
   const [open, setOpen] = useState(true);
@@ -24,11 +28,22 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 function mockFetch(status: number, body: unknown) {
-  globalThis.fetch = (() => Promise.resolve(jsonResponse(status, body))) as typeof fetch;
+  getQueryClient().clear();
+  globalThis.fetch = ((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/api/authors/recent")) return Promise.resolve(jsonResponse(200, []));
+    if (url.includes("/api/authors")) {
+      return Promise.resolve(jsonResponse(200, EMPTY_AUTHORS_PAGE));
+    }
+    return Promise.resolve(jsonResponse(status, body));
+  }) as typeof fetch;
 }
 
 const meta = {
   args: { onOpenChange: () => {}, open: true },
+  beforeEach: () => {
+    mockFetch(200, makeSeriesView());
+  },
   component: CreateSeriesDialog,
   parameters: { layout: "fullscreen" },
   render: () => <Harness />,

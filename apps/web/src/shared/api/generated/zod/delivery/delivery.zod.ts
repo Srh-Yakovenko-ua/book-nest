@@ -182,7 +182,9 @@ export const DeliveryControllerInTransitListResponse = zod.object({
         cancelledAt: zod.string().nullable(),
         cancelReason: zod.string().nullable(),
         createdAt: zod.string(),
-        currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+        currency: zod
+          .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+          .nullable(),
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
@@ -197,7 +199,14 @@ export const DeliveryControllerInTransitListResponse = zod.object({
         trackingUrl: zod.string().nullable(),
       }),
       id: zod.string(),
-      uiStatus: zod.enum(["delayed", "arriving_soon", "no_delivery_date"]).nullable(),
+      uiStatus: zod
+        .union([
+          zod.literal("delayed"),
+          zod.literal("arriving_soon"),
+          zod.literal("no_delivery_date"),
+          zod.literal(null),
+        ])
+        .nullable(),
     }),
   ),
   page: zod
@@ -395,7 +404,9 @@ export const DeliveryControllerHistoryListResponse = zod.object({
         cancelledAt: zod.string().nullable(),
         cancelReason: zod.string().nullable(),
         createdAt: zod.string(),
-        currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+        currency: zod
+          .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+          .nullable(),
         deliveryService: zod.string().nullable(),
         expectedDeliveryDate: zod.string().nullable(),
         id: zod.string(),
@@ -410,7 +421,14 @@ export const DeliveryControllerHistoryListResponse = zod.object({
         trackingUrl: zod.string().nullable(),
       }),
       id: zod.string(),
-      uiStatus: zod.enum(["delayed", "arriving_soon", "no_delivery_date"]).nullable(),
+      uiStatus: zod
+        .union([
+          zod.literal("delayed"),
+          zod.literal("arriving_soon"),
+          zod.literal("no_delivery_date"),
+          zod.literal(null),
+        ])
+        .nullable(),
     }),
   ),
   page: zod
@@ -584,7 +602,9 @@ export const DeliveryControllerStatisticsResponse = zod.object({
     zod.object({
       bookId: zod.string(),
       bookTitle: zod.string(),
-      currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+      currency: zod
+        .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+        .nullable(),
       orderDate: zod.string().nullable(),
       price: zod.number(),
       status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
@@ -601,11 +621,16 @@ export const deliveryControllerBulkReceiveBodyBookIdsItemRegExp = new RegExp(
 );
 export const deliveryControllerBulkReceiveBodyBookIdsMax = 100;
 
+export const deliveryControllerBulkReceiveBodyReceivedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
 export const DeliveryControllerBulkReceiveBody = zod.object({
   bookIds: zod
     .array(zod.uuid().regex(deliveryControllerBulkReceiveBodyBookIdsItemRegExp))
     .min(1)
     .max(deliveryControllerBulkReceiveBodyBookIdsMax),
+  receivedAt: zod.iso.date().regex(deliveryControllerBulkReceiveBodyReceivedAtRegExp).optional(),
 });
 
 export const DeliveryControllerBulkReceiveResponse = zod.object({

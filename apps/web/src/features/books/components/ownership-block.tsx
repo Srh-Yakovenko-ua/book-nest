@@ -8,6 +8,7 @@ import type {
   PurchaseInfoView,
 } from "@app/shared";
 
+import { STORE_LINK_ERROR_CODES } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ import { UiIcon, type UiIconName } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { BookStoreLinksBlock, RemoveFromWishlistDialog } from "@/features/books-to-buy";
 import { ownershipStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
 import { ApiError } from "@/lib/http-client";
@@ -23,7 +25,7 @@ import { isHttpsUrl } from "@/lib/is-https-url";
 import { cn } from "@/lib/utils";
 
 import { useReturnLoan } from "../api/use-loan";
-import { useMarkOwned, useRemoveOwned } from "../api/use-ownership";
+import { useMarkOwned, useRemoveFromWishlist, useRemoveOwned } from "../api/use-ownership";
 import { todayIso } from "../model/reading-progress";
 import { DeliveryDialog } from "./delivery-dialog";
 import { LoanDialog } from "./loan-dialog";
@@ -53,6 +55,7 @@ type OwnershipActionLabels = {
   markBought: string;
   markOrdered: string;
   markOwned: string;
+  removeFromWishlist: string;
   removeOwned: string;
   return: string;
   startDelivery: string;
@@ -70,11 +73,13 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
   const markOwned = useMarkOwned();
   const removeOwned = useRemoveOwned();
   const returnLoan = useReturnLoan();
+  const removeFromWishlist = useRemoveFromWishlist();
 
   const [buyOpen, setBuyOpen] = useState(false);
   const [markBoughtOpen, setMarkBoughtOpen] = useState(false);
   const [deliveryOpen, setDeliveryOpen] = useState(false);
   const [loanOpen, setLoanOpen] = useState(false);
+  const [removeFromWishlistOpen, setRemoveFromWishlistOpen] = useState(false);
   const [loanDirection, setLoanDirection] = useState<LoanDirection>("borrowed");
 
   const ownershipBase = ownershipStatuses.find((entry) => entry.value === book.ownershipStatus);
@@ -91,6 +96,17 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
     setLoanOpen(true);
   }
 
+  function confirmRemoveFromWishlist() {
+    removeFromWishlist.mutate(book.id, {
+      onError: (error) =>
+        toast.error(isNotInWishlist(error) ? t("errors.notInWishlist") : t("toast.error")),
+      onSuccess: () => {
+        setRemoveFromWishlistOpen(false);
+        toast.success(t("toast.updated"));
+      },
+    });
+  }
+
   const actions = buildActions({
     labels: {
       alreadyOwn: t("actions.alreadyOwn"),
@@ -99,6 +115,7 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
       markBought: t("actions.markBought"),
       markOrdered: t("actions.markOrdered"),
       markOwned: t("actions.markOwned"),
+      removeFromWishlist: t("actions.removeFromWishlist"),
       removeOwned: t("actions.removeOwned"),
       return: t("actions.return"),
       startDelivery: t("actions.startDelivery"),
@@ -107,6 +124,7 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
     markOwned,
     onLoan: openLoan,
     onMarkBought: () => setMarkBoughtOpen(true),
+    onRemoveFromWishlist: () => setRemoveFromWishlistOpen(true),
     onStartDelivery: () => setDeliveryOpen(true),
     onWantToBuy: () => setBuyOpen(true),
     removeOwned,
@@ -137,6 +155,7 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
           {book.purchaseInfo !== null && book.ownershipStatus === "owned" ? (
             <AcquisitionBlock info={book.purchaseInfo} />
           ) : null}
+          <BookStoreLinksBlock book={book} />
           {book.loanInfo === null ? null : <LoanInfoBlock book={book} info={book.loanInfo} />}
 
           {actions.length === 0 ? null : (
@@ -173,6 +192,12 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
         onOpenChange={setLoanOpen}
         open={loanOpen}
       />
+      <RemoveFromWishlistDialog
+        isPending={removeFromWishlist.isPending}
+        onConfirm={confirmRemoveFromWishlist}
+        onOpenChange={setRemoveFromWishlistOpen}
+        open={removeFromWishlistOpen}
+      />
     </>
   );
 }
@@ -208,6 +233,7 @@ function buildActions({
   markOwned,
   onLoan,
   onMarkBought,
+  onRemoveFromWishlist,
   onStartDelivery,
   onWantToBuy,
   removeOwned,
@@ -219,6 +245,7 @@ function buildActions({
   markOwned: DirectMutation;
   onLoan: (direction: LoanDirection) => void;
   onMarkBought: () => void;
+  onRemoveFromWishlist: () => void;
   onStartDelivery: () => void;
   onWantToBuy: () => void;
   removeOwned: DirectMutation;
@@ -321,6 +348,14 @@ function buildActions({
           pending: markOwned.isPending,
           variant: "ghost",
         },
+        {
+          icon: "x-circle",
+          key: "remove-from-wishlist",
+          label: labels.removeFromWishlist,
+          onClick: onRemoveFromWishlist,
+          pending: false,
+          variant: "ghost",
+        },
       ];
     default:
       return assertNever(status);
@@ -344,6 +379,10 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <dd className="min-w-0 text-right text-sm break-words text-foreground/90">{value}</dd>
     </div>
   );
+}
+
+function isNotInWishlist(error: unknown): boolean {
+  return error instanceof ApiError && error.code === STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST;
 }
 
 function LoanInfoBlock({ book, info }: { book: BookView; info: LoanInfoView }) {

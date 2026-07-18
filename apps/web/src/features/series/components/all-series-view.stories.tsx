@@ -93,7 +93,6 @@ const meta = {
     summaryLoading: false,
     tab: "all",
     toolbar,
-    totalCount: 8,
     unfinishedCount: 5,
   },
   component: AllSeriesView,
@@ -109,7 +108,6 @@ type Story = StoryObj<typeof meta>;
 export const Populated: Story = {
   play: async ({ canvas }) => {
     await waitFor(() => expect(canvas.getByRole("heading", { name: "Серії" })).toBeVisible());
-    await expect(canvas.getByText("8 серій")).toBeVisible();
     await expect(canvas.getByText("Володар перснів")).toBeVisible();
     await expect(canvas.getByText("Усього серій")).toBeVisible();
   },
@@ -124,9 +122,9 @@ export const Loading: Story = {
 };
 
 export const Empty: Story = {
-  args: { hasAnySeries: false, series: [], totalCount: 0, unfinishedCount: 0 },
+  args: { hasAnySeries: false, series: [], unfinishedCount: 0 },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole("heading", { name: "У вас ще немає серій" })).toBeVisible();
+    await expect(canvas.getByRole("heading", { name: "Збери першу книжкову серію" })).toBeVisible();
   },
 };
 

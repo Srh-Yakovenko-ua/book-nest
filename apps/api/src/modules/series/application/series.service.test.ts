@@ -31,17 +31,24 @@ type BookRowInput = {
 };
 
 type DetailBookInput = {
+  ageCategory?: string;
   authors?: { id: string; name: string }[];
   coverMedia?: Nullable<{ id: string }>;
   createdAt?: Date;
+  formats?: string[];
+  genres?: string[];
   id: string;
   isFavorite?: boolean;
   originalTitle?: Nullable<string>;
   ownershipStatus?: string;
   pagesCount?: Nullable<number>;
   partNumber: Nullable<number>;
+  publicationYear?: Nullable<number>;
+  publisher?: Nullable<{ id: string; name: string }>;
+  queuePosition?: Nullable<number>;
   rating?: Nullable<number>;
   readingStatus?: string;
+  tags?: { id: string; name: string }[];
   title?: string;
   updatedAt?: Date;
 };
@@ -71,21 +78,28 @@ function detailedSeries(
     _count: { books: books.length },
     authors: [],
     books: books.map((book) => ({
+      ageCategory: book.ageCategory ?? "not_specified",
       authors: (book.authors ?? []).map((author, index) => ({
         author: { id: author.id, name: author.name },
         position: index,
       })),
       coverMedia: book.coverMedia ?? null,
       createdAt: book.createdAt ?? new Date("2026-02-01T10:00:00.000Z"),
+      formats: book.formats ?? [],
+      genres: book.genres ?? [],
       id: book.id,
       isFavorite: book.isFavorite ?? false,
       originalTitle: book.originalTitle ?? null,
       ownershipStatus: book.ownershipStatus ?? "none",
       pagesCount: book.pagesCount ?? null,
       partNumber: book.partNumber,
+      publicationYear: book.publicationYear ?? null,
+      publisher: book.publisher ?? null,
+      queuePosition: book.queuePosition ?? null,
       readingProgress:
         book.rating === undefined ? null : { currentPage: null, rating: book.rating },
       readingStatus: book.readingStatus ?? "not_started",
+      tags: (book.tags ?? []).map((tag) => ({ tag: { id: tag.id, name: tag.name } })),
       title: book.title ?? "Book",
       updatedAt: book.updatedAt ?? new Date("2026-02-01T10:00:00.000Z"),
     })),
@@ -1265,5 +1279,79 @@ describe("SeriesService.getById", () => {
 
     expect(details.books[0]?.cover).toEqual(mediaView("media-1"));
     expect(details.books[1]?.cover).toBeNull();
+  });
+
+  it("maps the card fields onto each series book", async () => {
+    const repository = {
+      findOwnedDetailsById: vi.fn().mockResolvedValue(
+        detailedSeries({
+          books: [
+            {
+              ageCategory: "12_plus",
+              formats: ["paper", "ebook"],
+              genres: ["fantasy", "romance"],
+              id: "part-1",
+              partNumber: 1,
+              publicationYear: 2018,
+              queuePosition: 2,
+              tags: [{ id: "tag-1", name: "epic" }],
+            },
+          ],
+          id: SERIES_ID,
+        }),
+      ),
+    };
+    const { service } = makeService({ repository });
+
+    const details = await service.getById(USER_ID, SERIES_ID);
+
+    expect(details.books[0]).toMatchObject({
+      ageCategory: "12_plus",
+      formats: ["paper", "ebook"],
+      genres: ["fantasy", "romance"],
+      isInReadingQueue: true,
+      publicationYear: 2018,
+      tags: [{ id: "tag-1", name: "epic" }],
+    });
+  });
+
+  it("marks a book with no queue position as not in the reading queue", async () => {
+    const repository = {
+      findOwnedDetailsById: vi.fn().mockResolvedValue(
+        detailedSeries({
+          books: [{ id: "part-1", partNumber: 1, queuePosition: null }],
+          id: SERIES_ID,
+        }),
+      ),
+    };
+    const { service } = makeService({ repository });
+
+    const details = await service.getById(USER_ID, SERIES_ID);
+
+    expect(details.books[0]?.isInReadingQueue).toBe(false);
+  });
+
+  it("dedupes the series publishers by id and sorts them by name", async () => {
+    const repository = {
+      findOwnedDetailsById: vi.fn().mockResolvedValue(
+        detailedSeries({
+          books: [
+            { id: "part-1", partNumber: 1, publisher: { id: "pub-vivat", name: "Vivat" } },
+            { id: "part-2", partNumber: 2, publisher: { id: "pub-abab", name: "A-BA-BA-HA" } },
+            { id: "part-3", partNumber: 3, publisher: { id: "pub-vivat", name: "Vivat" } },
+            { id: "part-4", partNumber: 4, publisher: null },
+          ],
+          id: SERIES_ID,
+        }),
+      ),
+    };
+    const { service } = makeService({ repository });
+
+    const details = await service.getById(USER_ID, SERIES_ID);
+
+    expect(details.publishers).toEqual([
+      { id: "pub-abab", name: "A-BA-BA-HA" },
+      { id: "pub-vivat", name: "Vivat" },
+    ]);
   });
 });

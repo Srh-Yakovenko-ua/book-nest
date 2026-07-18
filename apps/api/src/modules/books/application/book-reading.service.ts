@@ -1,12 +1,21 @@
-import type { BookView, ChangeReadingStatusInput, UpdateReadingProgressInput } from "@app/shared";
+import type {
+  BookView,
+  ChangeReadingStatusInput,
+  Nullable,
+  ReadingHistoryQuery,
+  ReadingHistoryView,
+  UpdateReadingProgressInput,
+} from "@app/shared";
 
 import { ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { ReadingProgressEventData } from "../infrastructure/books.repository.js";
 
 import { ValidationError } from "../../../core/exceptions/errors.js";
-import { toIsoDate } from "../../../core/iso-date.js";
+import { parseIsoDate, toIsoDate } from "../../../core/iso-date.js";
+import { toReadingHistoryView } from "../domain/reading-history.mapper.js";
 import { computeReadingProgressChange } from "../domain/reading-progress-transition.js";
 import { computeReadingStatusChange } from "../domain/reading-status-transition.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
@@ -37,9 +46,11 @@ export class BookReadingService {
       throw new ValidationError(PAGE_EXCEEDS_PAGES_MESSAGE);
     }
 
+    const changeDate = input.date ?? this.todayIso();
+
     const patch = computeReadingStatusChange({
       currentPage: input.currentPage,
-      date: input.date ?? this.todayIso(),
+      date: changeDate,
       existingStartedAt: book.readingProgress?.startedAt ?? null,
       hasExistingProgress: book.readingProgress !== null,
       impression: input.impression,
@@ -50,9 +61,47 @@ export class BookReadingService {
       targetStatus: input.status,
     });
 
-    await this.booksRepository.applyReadingChange(userId, bookId, patch);
+    const event = this.buildProgressEvent({
+      previousPage: book.readingProgress?.currentPage ?? 0,
+      resolvedPage: patch.progress.currentPage,
+      updateDate: changeDate,
+    });
+
+    await this.booksRepository.recordReadingStatusChange({
+      bookId,
+      clearEvents: this.shouldClearReadingEvents(input),
+      event,
+      patch,
+      userId,
+    });
 
     return this.viewAssembler.loadView({ bookId, userId });
+  }
+
+  async getReadingHistory(
+    userId: string,
+    bookId: string,
+    query: ReadingHistoryQuery,
+  ): Promise<ReadingHistoryView> {
+    const book = await this.booksRepository.findReadingSnapshotOrThrow(userId, bookId);
+
+    const events = await this.booksRepository.findReadingEvents({ bookId });
+
+    return toReadingHistoryView({
+      events,
+      pagesCount: book.pagesCount,
+      progress: {
+        abandonedAt: book.readingProgress?.abandonedAt ?? null,
+        currentPage: book.readingProgress?.currentPage ?? null,
+        finishedAt: book.readingProgress?.finishedAt ?? null,
+        lastProgressUpdateAt: book.readingProgress?.lastProgressUpdateAt ?? null,
+        pausedAt: book.readingProgress?.pausedAt ?? null,
+        startedAt: book.readingProgress?.startedAt ?? null,
+      },
+      query,
+      readingStatus: ReadingStatusSchema.parse(book.readingStatus),
+      today: new Date(),
+    });
   }
 
   async startReading(
@@ -89,18 +138,51 @@ export class BookReadingService {
       throw new ValidationError(PAGE_BELOW_PROGRESS_MESSAGE);
     }
 
+    const updateDate = input.updateDate ?? this.todayIso();
+
     const patch = computeReadingProgressChange({
       currentPage: input.currentPage,
       currentStatus: ReadingStatusSchema.parse(book.readingStatus),
       existingStartedAt: book.readingProgress?.startedAt ?? null,
       markAsFinished: input.markAsFinished,
       pagesCount: book.pagesCount,
-      updateDate: input.updateDate ?? this.todayIso(),
+      updateDate,
     });
 
-    await this.booksRepository.applyReadingChange(userId, bookId, patch);
+    const event = this.buildProgressEvent({
+      previousPage: book.readingProgress?.currentPage ?? 0,
+      resolvedPage: patch.progress.currentPage,
+      updateDate,
+    });
+
+    await this.booksRepository.recordReadingProgress({ bookId, event, patch, userId });
 
     return this.viewAssembler.loadView({ bookId, userId });
+  }
+
+  private buildProgressEvent(args: {
+    previousPage: number;
+    resolvedPage: Nullable<number> | undefined;
+    updateDate: string;
+  }): Nullable<ReadingProgressEventData> {
+    const { previousPage, resolvedPage, updateDate } = args;
+    if (resolvedPage === null || resolvedPage === undefined) {
+      return null;
+    }
+
+    const pagesRead = resolvedPage - previousPage;
+    if (pagesRead <= 0) {
+      return null;
+    }
+
+    return { date: parseIsoDate(updateDate), page: resolvedPage, pagesRead };
+  }
+
+  private shouldClearReadingEvents(input: ChangeReadingStatusInput): boolean {
+    return (
+      input.resetProgress === true &&
+      (input.status === "not_started" || input.status === "want_to_read")
+    );
   }
 
   private todayIso(): string {

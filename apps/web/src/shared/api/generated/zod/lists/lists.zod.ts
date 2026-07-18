@@ -204,6 +204,10 @@ export const ListDetailsControllerDetailQueryParams = zod.object({
     .default(listDetailsControllerDetailQuerySortDefault),
 });
 
+export const listDetailsControllerDetailResponseBooksItemsItemQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 export const listDetailsControllerDetailResponseBooksPageMin = -9007199254740991;
 export const listDetailsControllerDetailResponseBooksPageMax = 9007199254740991;
 
@@ -262,7 +266,14 @@ export const ListDetailsControllerDetailResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -288,7 +299,14 @@ export const ListDetailsControllerDetailResponse = zod.object({
               cancelledAt: zod.string().nullable(),
               cancelReason: zod.string().nullable(),
               createdAt: zod.string(),
-              currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+              currency: zod
+                .union([
+                  zod.literal("UAH"),
+                  zod.literal("EUR"),
+                  zod.literal("USD"),
+                  zod.literal(null),
+                ])
+                .nullable(),
               deliveryService: zod.string().nullable(),
               expectedDeliveryDate: zod.string().nullable(),
               id: zod.string(),
@@ -320,6 +338,7 @@ export const ListDetailsControllerDetailResponse = zod.object({
         illustrator: zod.string().nullable(),
         isbn: zod.string().nullable(),
         isFavorite: zod.boolean(),
+        isFavoriteDedication: zod.boolean(),
         isInReadingQueue: zod.boolean(),
         language: zod.enum([
           "ukrainian",
@@ -367,7 +386,14 @@ export const ListDetailsControllerDetailResponse = zod.object({
           .nullable(),
         purchaseInfo: zod
           .object({
-            currency: zod.enum(["UAH", "EUR", "USD"]).nullable(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
             expectedPrice: zod.number().nullable(),
             note: zod.string().nullable(),
             purchasedAt: zod.string().nullable(),
@@ -375,7 +401,32 @@ export const ListDetailsControllerDetailResponse = zod.object({
             storeUrl: zod.string().nullable(),
           })
           .nullable(),
-        queuePriority: zod.enum(["low", "normal", "high"]).nullable(),
+        queuePriority: zod
+          .union([
+            zod.literal("low"),
+            zod.literal("normal"),
+            zod.literal("high"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        queuePriorityReason: zod
+          .union([
+            zod.literal("book_club"),
+            zod.literal("buddy_read"),
+            zod.literal("event_or_deadline"),
+            zod.literal("return_due"),
+            zod.literal("series_order"),
+            zod.literal("reading_goal"),
+            zod.literal("anticipated_release"),
+            zod.literal("other"),
+            zod.literal(null),
+          ])
+          .nullable(),
+        queuePriorityReasonCustomText: zod.string().nullable(),
+        queuePriorityTargetDate: zod.iso
+          .date()
+          .regex(listDetailsControllerDetailResponseBooksItemsItemQueuePriorityTargetDateRegExp)
+          .nullable(),
         readingProgress: zod
           .object({
             abandonedAt: zod.string().nullable(),

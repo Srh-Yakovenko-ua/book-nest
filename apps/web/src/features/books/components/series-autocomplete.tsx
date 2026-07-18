@@ -42,6 +42,7 @@ export function SeriesAutocomplete({
   value,
 }: SeriesAutocompleteProps) {
   const t = useTranslations("books");
+  const tStatus = useTranslations("series.status");
   const [query, setQuery] = useState(value?.name ?? "");
   const [open, setOpen] = useState(false);
   const [trackedValue, setTrackedValue] = useState(value);
@@ -114,7 +115,7 @@ export function SeriesAutocomplete({
           ) : null}
         </span>
         <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-          {t(`series.statusLabels.${item.status}`)}
+          {tStatus(item.status)}
         </span>
       </CommandItem>
     );

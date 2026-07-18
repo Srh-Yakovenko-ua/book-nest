@@ -1,6 +1,6 @@
 import type { QueryKey } from "@tanstack/react-query";
 
-const BOOKS_ROOT = "/api/books";
+export const BOOKS_ROOT = "/api/books";
 
 export const bookKeys = {
   deliveryHistory: (id: string) => [...bookKeys.detail(id), "deliveries"] as const,

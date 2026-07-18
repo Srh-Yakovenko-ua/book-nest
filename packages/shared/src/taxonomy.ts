@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { collapseSpaces, LIST_PAGE_SIZE_MAX } from "./common.js";
+import { collapseSpaces, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
 import { NoHtmlString } from "./internal.js";
 
 const TAXONOMY_NAME_MIN = 2;
@@ -17,7 +17,7 @@ export const TaxonomyNameSchema = z
   );
 
 export const TaxonomySearchPaginationQuerySchema = z.object({
-  pageNumber: z.coerce.number().int().min(1).default(1),
+  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
   pageSize: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(10),
   search: z.string().trim().max(TAXONOMY_NAME_MAX).optional(),
 });

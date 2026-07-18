@@ -164,8 +164,8 @@ const sidebar = (
       },
     ]}
     topGenres={[
-      { key: "thriller", name: "Трилер" },
-      { key: "scifi", name: "Наукова фантастика" },
+      { count: 18, key: "thriller", name: "Трилер" },
+      { count: 11, key: "scifi", name: "Наукова фантастика" },
     ]}
     topTags={[{ id: "1", name: "slow burn" }]}
   />

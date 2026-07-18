@@ -6,10 +6,12 @@ import {
   type BookView,
   CurrencySchema,
   type LoanInfoView,
+  LoanTypeSchema,
   type MediaView,
   type Nullable,
   OwnershipStatusSchema,
   type PurchaseInfoView,
+  QueuePriorityReasonSchema,
   QueuePrioritySchema,
   type ReadingProgressView,
   ReadingStatusSchema,
@@ -17,8 +19,9 @@ import {
 
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
-import { toNullableIsoDate } from "../../../core/iso-date.js";
+import { parseIsoDate, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { toBookListView } from "../../lists/index.js";
+import { getLoanUiStatus } from "../../loans/index.js";
 import {
   computeHasUnreadEarlierParts,
   toSeriesBookPreview,
@@ -53,6 +56,7 @@ export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>):
     illustrator: book.illustrator,
     isbn: book.isbn,
     isFavorite: book.isFavorite,
+    isFavoriteDedication: book.isFavoriteDedication,
     isInReadingQueue: book.queuePosition !== null,
     language: BookLanguageSchema.parse(book.language),
     lists: book.lists.map((item) => toBookListView(item.list)),
@@ -67,6 +71,12 @@ export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>):
     purchaseInfo: toPurchaseInfoView(book.purchaseInfo),
     queuePriority:
       book.queuePriority === null ? null : QueuePrioritySchema.parse(book.queuePriority),
+    queuePriorityReason:
+      book.queuePriorityReason === null
+        ? null
+        : QueuePriorityReasonSchema.parse(book.queuePriorityReason),
+    queuePriorityReasonCustomText: book.queuePriorityReasonCustomText,
+    queuePriorityTargetDate: toNullableIsoDate(book.queuePriorityTargetDate),
     readingProgress: toReadingProgressView(book.readingProgress),
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
     series: book.series === null ? null : toSeriesView(book.series),
@@ -84,10 +94,14 @@ function toLoanInfoView(loans: BookWithRelations["loans"]): Nullable<LoanInfoVie
     return null;
   }
 
+  const today = parseIsoDate(toIsoDate(new Date()));
+
   return {
     contact: loan.contact,
     expectedReturnDate: toNullableIsoDate(loan.expectedReturnDate),
     loanDate: toNullableIsoDate(loan.loanDate),
+    loanType: LoanTypeSchema.parse(loan.type),
+    loanUiStatus: getLoanUiStatus({ expectedReturnDate: loan.expectedReturnDate, today }),
     note: loan.note,
     personName: loan.personName,
     remindToReturn: loan.remindToReturn,

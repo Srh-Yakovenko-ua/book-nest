@@ -3,7 +3,7 @@
 import type { MediaView } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, SquareCheckBig } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
@@ -13,6 +13,7 @@ import type { BooksControllerListSort } from "@/shared/api/generated/model";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { TitleLeaf } from "@/components/title-leaf";
 import { BookCard } from "@/components/ui/book-card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -54,6 +55,7 @@ type BooksLibraryViewProps = {
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   hasNextPage: boolean;
+  headerDecoration?: ReactNode;
   isError: boolean;
   isFetchingNextPage: boolean;
   isLoadMoreError: boolean;
@@ -69,6 +71,7 @@ type BooksLibraryViewProps = {
   onClearAll: () => void;
   onClearFilters: () => void;
   onClearSearch: () => void;
+  onEmptySecondary?: () => void;
   onLoadMore: () => void;
   onRetry: () => void;
   onSortChange: (value: BooksControllerListSort) => void;
@@ -83,7 +86,6 @@ type BooksLibraryViewProps = {
   summaryCards: LibrarySummaryCard[];
   summaryLoading: boolean;
   title: string;
-  titleBadge?: ReactNode;
   view: LibraryViewMode;
   viewLabels: ViewLabels;
 };
@@ -118,12 +120,13 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     summaryCards,
     summaryLoading,
     title,
-    titleBadge,
   } = props;
 
   const t = useTranslations("books.library");
   const [pending, setPending] = useState<null | PendingBookAction>(null);
   const clearSelection = useLibrarySelectionStore((state) => state.clear);
+  const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
+  const exitSelection = useLibrarySelectionStore((state) => state.exitSelection);
 
   const visibleBookIdsKey = books.map((book) => book.id).join("\n");
 
@@ -132,7 +135,16 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     useLibrarySelectionStore.getState().setAvailable(ids);
   }, [visibleBookIdsKey]);
 
-  useEffect(() => () => useLibrarySelectionStore.getState().clear(), []);
+  useEffect(() => () => useLibrarySelectionStore.getState().exitSelection(), []);
+
+  useEffect(() => {
+    if (!selectionMode) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") exitSelection();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectionMode, exitSelection]);
 
   const renderActions = (book: LibraryBook) => (
     <BookCardActions actions={actions} book={book} onOpenDialog={setPending} />
@@ -151,7 +163,7 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
               <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
                 {title}
               </h1>
-              {titleBadge}
+              <TitleLeaf />
             </div>
             <p className="text-sm text-muted-foreground">{subtitle}</p>
           </div>
@@ -282,6 +294,7 @@ function LibraryContent({
   onClearAll,
   onClearFilters,
   onClearSearch,
+  onEmptySecondary,
   onLoadMore,
   onRetry,
   renderActions,
@@ -305,7 +318,7 @@ function LibraryContent({
 
   if (books.length === 0) {
     if (!summaryLoading && libraryTotal === 0) {
-      return <EmptyState onPrimary={onAddBook} state={emptyState} />;
+      return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
     }
     if (hasActiveSearch && !hasActiveFilters) {
       return <EmptyState onPrimary={onClearSearch} state={noSearchResultsState} />;
@@ -319,7 +332,7 @@ function LibraryContent({
         />
       );
     }
-    return <EmptyState onPrimary={onAddBook} state={emptyState} />;
+    return <EmptyState onPrimary={onAddBook} onSecondary={onEmptySecondary} state={emptyState} />;
   }
 
   return (
@@ -390,6 +403,7 @@ function LibraryGridCard({
   prefersReducedMotion: boolean | null;
 }) {
   const selected = useLibrarySelectionStore((state) => state.selectedIds.has(book.id));
+  const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
   const toggle = useLibrarySelectionStore((state) => state.toggle);
   const coverMedia = book.coverMedia;
 
@@ -398,19 +412,22 @@ function LibraryGridCard({
       className="relative grid motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
       style={{ animationDelay: staggerDelay(index) }}
     >
-      <div className="absolute top-3 left-3 z-20">
-        <SelectionCheckbox
-          checked={selected}
-          label={selectBookLabel(book.title)}
-          onToggle={() => toggle(book.id)}
-        />
-      </div>
+      {selectionMode ? (
+        <div className="absolute -top-2.5 -left-2.5 z-30">
+          <SelectionCheckbox
+            checked={selected}
+            label={selectBookLabel(book.title)}
+            onToggle={() => toggle(book.id)}
+          />
+        </div>
+      ) : null}
       <motion.div
         className="grid h-full"
         transition={{ duration: 0.2, ease: "easeOut" }}
         whileHover={prefersReducedMotion ? undefined : { y: -4 }}
       >
         <BookCard
+          ageBadge={book.ageBadge}
           authors={book.authors}
           cover={book.cover}
           coverActivateLabel={coverViewLabel}
@@ -451,6 +468,7 @@ function LibraryListRow({
   linkComponent?: LibraryBookLinkComponent;
 }) {
   const selected = useLibrarySelectionStore((state) => state.selectedIds.has(book.id));
+  const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
   const toggle = useLibrarySelectionStore((state) => state.toggle);
 
   return (
@@ -460,11 +478,13 @@ function LibraryListRow({
       linkComponent={linkComponent}
       selected={selected}
       selectionControl={
-        <SelectionCheckbox
-          checked={selected}
-          label={selectBookLabel(book.title)}
-          onToggle={() => toggle(book.id)}
-        />
+        selectionMode ? (
+          <SelectionCheckbox
+            checked={selected}
+            label={selectBookLabel(book.title)}
+            onToggle={() => toggle(book.id)}
+          />
+        ) : undefined
       }
     />
   );
@@ -557,6 +577,11 @@ function LibraryToolbar({
   view,
   viewLabels,
 }: BooksLibraryViewProps) {
+  const t = useTranslations("books.library");
+  const selectionMode = useLibrarySelectionStore((state) => state.selectionMode);
+  const enterSelection = useLibrarySelectionStore((state) => state.enterSelection);
+  const exitSelection = useLibrarySelectionStore((state) => state.exitSelection);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -569,7 +594,16 @@ function LibraryToolbar({
             value={sort}
           />
           {advancedFilters}
+          <Button
+            className="h-10"
+            onClick={selectionMode ? exitSelection : enterSelection}
+            variant={selectionMode ? "secondary" : "outline"}
+          >
+            <SquareCheckBig />
+            {selectionMode ? t("bulk.exitSelection") : t("bulk.enterSelection")}
+          </Button>
           <Segmented
+            className="h-10 items-stretch [&_[data-slot=segmented-item]]:py-0"
             label={viewLabels.label}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
             options={[
@@ -641,7 +675,7 @@ function SelectionCheckbox({
   onToggle: () => void;
 }) {
   return (
-    <span className="grid size-8 cursor-pointer place-items-center rounded-lg border border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] shadow-[var(--book-overlay-pill-shadow)] backdrop-blur-md">
+    <span className="grid size-9 cursor-pointer place-items-center rounded-2xl border border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] shadow-[var(--book-overlay-pill-shadow)] backdrop-blur-md transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:scale-105 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100">
       <Checkbox aria-label={label} checked={checked} onCheckedChange={onToggle} />
     </span>
   );

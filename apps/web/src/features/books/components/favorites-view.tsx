@@ -1,14 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
-import { Badge } from "@/components/ui/badge";
 import { Link, useRouter } from "@/i18n/navigation";
-import { EMPTY_STATES } from "@/lib/empty-states";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
@@ -32,14 +30,20 @@ import { useGenres } from "../api/use-genres";
 import { useTagsSearch } from "../api/use-tags-search";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER } from "../model/library-query";
-import { activeQuickFilter, quickFilterPatch } from "../model/library-quick-filters";
+import {
+  activeQuickFilter,
+  quickFilterCounts,
+  quickFilterPatch,
+} from "../model/library-quick-filters";
 import { useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
+import { FavoritesSidebar } from "./favorites-sidebar";
 import { LibraryActiveFilters } from "./library-active-filters";
 import { LibraryAdvancedFilters } from "./library-advanced-filters";
 import { LibraryQuickFilters } from "./library-quick-filters";
 import { LibrarySearchInput } from "./library-search-input";
+import { topGenreIconSlot } from "./top-genre-icon-slot";
 
 const FAVORITES_SCOPE: LibraryScope = "favorites";
 
@@ -51,6 +55,7 @@ export function FavoritesView() {
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwnership = useTranslations("books.ownershipStatus.options");
   const tSortOptions = useTranslations("books.library.sort.options");
+  const tAgeCategory = useTranslations("books.classification.ageCategoryLabels");
   const router = useRouter();
 
   const library = useLibraryQuery(FAVORITES_SCOPE);
@@ -105,6 +110,7 @@ export function FavoritesView() {
     .flatMap((page) => page.items)
     .map((book) =>
       toLibraryBook(book, {
+        ageBadge18Plus: tAgeCategory("18_plus"),
         borrowedFrom: (name) => t("card.borrowedFrom", { name }),
         formatLabel: (value) => tFormat(value),
         genreName: (key) => genreNameByKey.get(key) ?? key,
@@ -136,15 +142,167 @@ export function FavoritesView() {
     resultsRegionRef.current?.focus({ preventScroll: true });
   }, [visibleBookIdsKey]);
 
-  const favoritesTotal = summary.data?.total ?? 0;
+  const total = summary.data?.total ?? 0;
+  const reading = summary.data?.reading ?? 0;
+  const finished = summary.data?.finished ?? 0;
+  const wantToRead = summary.data?.wantToRead ?? 0;
+  const series = summary.data?.series ?? 0;
+  const solo = summary.data?.solo ?? 0;
+  const averageRating = summary.data?.averageRating ?? null;
+  const unrated = summary.data?.unrated ?? 0;
+  const readingPercent = total > 0 ? Math.round((reading / total) * 100) : 0;
+  const finishedPercent = total > 0 ? Math.round((finished / total) * 100) : 0;
+
+  const bookUnit = (count: number) => t("summary.unitBook", { count });
+
+  const totalMicrofact: ReactNode =
+    total === 0 ? (
+      <span className="block truncate">{tFav("summary.totalMicrofactEmpty")}</span>
+    ) : (
+      <span className="block truncate">{tFav("summary.totalMicrofact", { series, solo })}</span>
+    );
+
+  const readingMicrofact = ((): ReactNode => {
+    if (reading > 0) {
+      return (
+        <span className="block truncate">
+          {tFav("summary.readingMicrofactActive", { percentage: readingPercent })}
+        </span>
+      );
+    }
+    if (wantToRead > 0) {
+      return (
+        <span className="block truncate">
+          {tFav("summary.readingMicrofactPlanned", { count: wantToRead })}
+        </span>
+      );
+    }
+    return <span className="block truncate">{tFav("summary.readingMicrofactNone")}</span>;
+  })();
+
+  const finishedMicrofact: ReactNode =
+    finished > 0 ? (
+      <span className="block truncate">
+        {tFav("summary.finishedMicrofactActive", { percentage: finishedPercent })}
+      </span>
+    ) : (
+      <span className="block truncate">{tFav("summary.finishedMicrofactEmpty")}</span>
+    );
+
+  const ratingMicrofact: ReactNode =
+    averageRating === null ? (
+      <span className="block truncate">{tFav("summary.ratingMicrofactEmpty")}</span>
+    ) : (
+      <span className="block truncate">{tFav("summary.ratingMicrofact")}</span>
+    );
+
+  const topGenreRows = summary.data?.topGenres ?? [];
+  const topGenreMaxCount = topGenreRows[0]?.count;
+  const tiedTopGenres =
+    topGenreMaxCount === undefined
+      ? []
+      : topGenreRows.filter((genre) => genre.count === topGenreMaxCount).slice(0, 2);
+  const tiedTopGenreNames = tiedTopGenres.map(
+    (genre) => genreNameByKey.get(genre.genre) ?? genre.genre,
+  );
+  const topGenreValue =
+    tiedTopGenreNames.length === 0 ? tFav("summary.topGenreEmpty") : tiedTopGenreNames.join(", ");
+  const topGenreValueClassName = tiedTopGenres.length > 1 ? "text-lg leading-snug" : undefined;
+  const topTagRows = summary.data?.topTags ?? [];
+  const topTagMaxCount = topTagRows[0]?.count;
+  const tiedTopTags =
+    topTagMaxCount === undefined
+      ? []
+      : topTagRows.filter((tag) => tag.count === topTagMaxCount).slice(0, 2);
+  const tiedTopTagNames = tiedTopTags.map((tag) => tag.tag);
+  const topTagValue =
+    tiedTopTagNames.length === 0 ? tFav("summary.topTagEmpty") : tiedTopTagNames.join(", ");
+  const topTagValueClassName = tiedTopTags.length > 1 ? "text-lg leading-snug" : undefined;
+
+  const topGenreMicrofact: ReactNode = (() => {
+    if (topGenreMaxCount === undefined) {
+      return <span className="block truncate">{tFav("summary.topGenreMicrofactEmpty")}</span>;
+    }
+    if (tiedTopGenres.length > 1) {
+      return (
+        <span className="block truncate">
+          {tFav("summary.topGenreMicrofactTie", { count: topGenreMaxCount })}
+        </span>
+      );
+    }
+    return (
+      <span className="block truncate">
+        {tFav("summary.topGenreMicrofact", { count: topGenreMaxCount })}
+      </span>
+    );
+  })();
+
+  const topTagMicrofact: ReactNode = (() => {
+    if (topTagMaxCount === undefined) {
+      return <span className="block truncate">{tFav("summary.topTagMicrofactEmpty")}</span>;
+    }
+    if (tiedTopTags.length > 1) {
+      return (
+        <span className="block truncate">
+          {tFav("summary.topTagMicrofactTie", { count: topTagMaxCount })}
+        </span>
+      );
+    }
+    return (
+      <span className="block truncate">
+        {tFav("summary.topTagMicrofact", { count: topTagMaxCount })}
+      </span>
+    );
+  })();
+
   const summaryCards: LibrarySummaryCard[] = [
-    { icon: "heart", label: tFav("summary.total"), value: favoritesTotal },
-    { icon: "check-circle", label: tFav("summary.finished"), value: summary.data?.finished ?? 0 },
-    { icon: "book", label: tFav("summary.reading"), value: summary.data?.reading ?? 0 },
+    {
+      icon: "heart",
+      iconTone: "favorite",
+      label: tFav("summary.total"),
+      microfact: totalMicrofact,
+      unit: bookUnit(total),
+      value: total,
+    },
+    {
+      icon: "book",
+      iconTone: "info",
+      label: tFav("summary.reading"),
+      microfact: readingMicrofact,
+      unit: bookUnit(reading),
+      value: reading,
+    },
+    {
+      icon: "check-circle",
+      iconTone: "success",
+      label: tFav("summary.finished"),
+      microfact: finishedMicrofact,
+      unit: bookUnit(finished),
+      value: finished,
+    },
     {
       icon: "star",
+      iconTone: "primary",
       label: tFav("summary.averageRating"),
-      value: formatAverageRating(summary.data?.averageRating, tFav("summary.averageRatingEmpty")),
+      microfact: ratingMicrofact,
+      value: formatAverageRating(averageRating, tFav("summary.averageRatingEmpty")),
+    },
+    {
+      icon: "layers",
+      iconSlot: topGenreIconSlot(tiedTopGenres.map((genre) => genre.genre)),
+      iconTone: "genre",
+      label: tFav("summary.topGenre"),
+      microfact: topGenreMicrofact,
+      value: topGenreValue,
+      valueClassName: topGenreValueClassName,
+    },
+    {
+      icon: "tag",
+      iconTone: "tag",
+      label: tFav("summary.topTag"),
+      microfact: topTagMicrofact,
+      value: topTagValue,
+      valueClassName: topTagValueClassName,
     },
   ];
 
@@ -199,6 +357,13 @@ export function FavoritesView() {
     },
   };
 
+  const emptyState: EmptyStateEntry = {
+    desc: tFav("empty.description"),
+    illu: "empty-favorites",
+    primary: { icon: "book", label: tFav("empty.cta") },
+    title: tFav("empty.title"),
+  };
+
   const errorState: EmptyStateEntry = {
     desc: t("error.description"),
     illu: "error-generic",
@@ -229,7 +394,6 @@ export function FavoritesView() {
         advancedFilters={
           <LibraryAdvancedFilters
             activeCount={advancedFiltersCount}
-            onClearFilters={library.clearFilters}
             onRememberEntity={rememberEntity}
             resolveEntityName={resolveEntityName}
             scope={FAVORITES_SCOPE}
@@ -241,7 +405,7 @@ export function FavoritesView() {
         books={books}
         counterLabel={t("counter", { shown: books.length, total: totalCount })}
         coverViewLabel={tCover("viewer.open")}
-        emptyState={EMPTY_STATES.favorites}
+        emptyState={emptyState}
         errorState={errorState}
         hasActiveFilters={library.hasActiveFilters}
         hasActiveSearch={library.hasActiveSearch}
@@ -250,7 +414,7 @@ export function FavoritesView() {
         isFetchingNextPage={isFetchingNextPage}
         isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
-        libraryTotal={favoritesTotal}
+        libraryTotal={total}
         linkComponent={Link}
         loadingLabel={t("loading")}
         loadMoreErrorLabel={t("loadMoreError")}
@@ -267,6 +431,7 @@ export function FavoritesView() {
         onViewChange={library.setView}
         quickFilters={
           <LibraryQuickFilters
+            counts={summary.data === undefined ? undefined : quickFilterCounts(summary.data)}
             onSelect={(key) => void library.setState(quickFilterPatch(key))}
             scope={FAVORITES_SCOPE}
             value={activeQuickFilter(library.state)}
@@ -279,6 +444,7 @@ export function FavoritesView() {
             value={library.state.q}
           />
         }
+        sidebar={<FavoritesSidebar unrated={unrated} />}
         sort={library.sort}
         sortLabel={t("sort.label")}
         sortOptions={sortOptions}
@@ -286,11 +452,6 @@ export function FavoritesView() {
         summaryCards={summaryCards}
         summaryLoading={summary.isPending}
         title={tFav("title")}
-        titleBadge={
-          summary.data === undefined ? undefined : (
-            <Badge variant="secondary">{tFav("countBadge", { count: favoritesTotal })}</Badge>
-          )
-        }
         view={library.view}
         viewLabels={{ grid: t("view.grid"), label: t("view.label"), list: t("view.list") }}
       />

@@ -9,6 +9,8 @@ export const ReadingQueueItemViewSchema = z.object({
 
 export type ReadingQueueItemView = z.infer<typeof ReadingQueueItemViewSchema>;
 
+export const READING_QUEUE_LIMIT = 500;
+
 export const ReadingQueueViewSchema = z.object({
   count: z.number().int().nonnegative(),
   items: z.array(ReadingQueueItemViewSchema),

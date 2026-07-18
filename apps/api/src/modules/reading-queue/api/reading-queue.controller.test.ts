@@ -114,6 +114,17 @@ function startReading(
     .send(body);
 }
 
+function updateBook(
+  accessToken: string,
+  bookId: string,
+  body: Record<string, unknown>,
+): request.Test {
+  return request(app.getHttpServer())
+    .patch(`/api/books/${bookId}`)
+    .set("Authorization", `Bearer ${accessToken}`)
+    .send(body);
+}
+
 describe("GET /api/reading-queue", () => {
   it("returns 401 when no Authorization header is present", async () => {
     const res = await request(app.getHttpServer()).get("/api/reading-queue");
@@ -489,6 +500,50 @@ describe("DELETE /api/reading-queue/:bookId", () => {
     expect(res.body.readingStatus).toBe("reading");
     expect(res.body.ownershipStatus).toBe("owned");
   });
+
+  it("clears the priority and reason detail fields when a high-priority book is removed from the queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, {
+      addToReadingQueue: true,
+      queuePriority: "high",
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+      title: "Dune",
+    });
+
+    const removed = await removeFromQueue(accessToken, bookId);
+    expect(removed.status).toBe(200);
+
+    const res = await getBook(accessToken, bookId);
+    expect(res.status).toBe(200);
+    expect(res.body.isInReadingQueue).toBe(false);
+    expect(res.body.queuePriority).toBeNull();
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("rejects a reason detail patch on a book after it was removed from the queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, {
+      addToReadingQueue: true,
+      queuePriority: "high",
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+      title: "Dune",
+    });
+    expect((await removeFromQueue(accessToken, bookId)).status).toBe(200);
+
+    const res = await updateBook(accessToken, bookId, {
+      queuePriorityReason: "event_or_deadline",
+      queuePriorityTargetDate: "2026-09-01",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "queuePriorityReason" })]),
+    );
+  });
 });
 
 describe("PUT /api/reading-queue/reorder", () => {
@@ -745,5 +800,26 @@ describe("POST /api/reading-queue/:bookId/start-reading", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("owned");
+  });
+
+  it("clears the priority and reason detail fields when start-reading removes a high-priority book from the queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createOwnedBook(accessToken, {
+      addToReadingQueue: true,
+      queuePriority: "high",
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+      title: "Dune",
+    });
+
+    expect((await startReading(accessToken, bookId, { removeFromQueue: true })).status).toBe(200);
+
+    const res = await getBook(accessToken, bookId);
+    expect(res.status).toBe(200);
+    expect(res.body.isInReadingQueue).toBe(false);
+    expect(res.body.queuePriority).toBeNull();
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
   });
 });

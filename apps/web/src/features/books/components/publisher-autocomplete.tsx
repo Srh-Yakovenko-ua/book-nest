@@ -10,6 +10,7 @@ import { UiIcon } from "@/components/icons";
 import { CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { cn } from "@/lib/utils";
 
 import { usePublishersSearch } from "../api/use-publishers-search";
@@ -47,8 +48,20 @@ export function PublisherAutocomplete({
   const [query, setQuery] = useState(value?.name ?? "");
   const [open, setOpen] = useState(false);
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
-  const { data: publishers = [], isFetching } = usePublishersSearch(debouncedQuery);
+  const {
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    items: publishers,
+  } = usePublishersSearch(debouncedQuery);
   const { data: recentPublishers = [] } = useRecentPublishers();
+  const { onScroll, scrollRef } = useInfiniteScroll({
+    hasNextPage,
+    isFetchingNextPage,
+    itemCount: publishers.length,
+    onLoadMore: fetchNextPage,
+  });
 
   const trimmedQuery = query.trim();
   const normalizedQuery = trimmedQuery.toLowerCase();
@@ -138,11 +151,11 @@ export function PublisherAutocomplete({
         </PopoverAnchor>
         <PopoverContent
           align="start"
-          className="w-[--radix-popover-trigger-width] min-w-[var(--radix-popover-anchor-width)] p-1"
+          className="w-(--radix-popover-trigger-width) max-w-(--radix-popover-trigger-width) p-1"
           onOpenAutoFocus={(event) => event.preventDefault()}
           sideOffset={6}
         >
-          <CommandList>
+          <CommandList onScroll={onScroll} ref={scrollRef}>
             {isFetching && !hasResults ? (
               <CommandEmpty>{t("publisher.searching")}</CommandEmpty>
             ) : null}
@@ -171,6 +184,11 @@ export function PublisherAutocomplete({
                 ))}
               </CommandGroup>
             ) : null}
+            {isFetchingNextPage ? (
+              <div className="px-2 py-1.5 text-center text-xs text-muted-foreground">
+                {t("publisher.searching")}
+              </div>
+            ) : null}
             {showCustomOption ? (
               <CommandGroup heading={t("publisher.createHeading")}>
                 <CommandItem
@@ -195,11 +213,11 @@ export function PublisherAutocomplete({
 function PublisherOption({ onSelect, publisher }: PublisherOptionProps) {
   const t = useTranslations("books");
   return (
-    <CommandItem className="cursor-pointer" onSelect={onSelect} value={publisher.id}>
-      <UiIcon className="text-muted-foreground" name="building" size={16} />
-      <span className="min-w-0 truncate">{publisher.name}</span>
+    <CommandItem className="cursor-pointer items-start" onSelect={onSelect} value={publisher.id}>
+      <UiIcon className="shrink-0 text-muted-foreground" name="building" size={16} />
+      <span className="min-w-0 break-words whitespace-normal">{publisher.name}</span>
       {publisher.isCustom ? (
-        <span className="ml-auto text-xs text-muted-foreground">{t("publisher.customBadge")}</span>
+        <span className="shrink-0 text-xs text-muted-foreground">{t("publisher.customBadge")}</span>
       ) : null}
     </CommandItem>
   );

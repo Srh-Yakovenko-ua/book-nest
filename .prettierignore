@@ -7,3 +7,4 @@ pnpm-lock.yaml
 *.tsbuildinfo
 .playwright-mcp
 **/generated
+docs/prompts

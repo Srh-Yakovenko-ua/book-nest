@@ -5,11 +5,13 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { JsonLd } from "@/components/json-ld";
 import { Providers } from "@/components/providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "@/features/auth";
 import { routing } from "@/i18n/routing";
 import { env } from "@/lib/env";
+import { buildAlternates, buildOpenGraph, buildTwitter, buildWebsiteJsonLd } from "@/lib/seo";
 
 type Props = {
   children: ReactNode;
@@ -20,19 +22,20 @@ export async function generateMetadata({ params }: Omit<Props, "children">): Pro
   const { locale } = await params;
   const resolvedLocale = hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
   const t = await getTranslations({ locale: resolvedLocale, namespace: "home" });
+  const title = t("title");
+  const description = t("description");
 
   return {
-    alternates: {
-      canonical: `/${locale}`,
-      languages: Object.fromEntries(routing.locales.map((l) => [l, `/${l}`])),
-    },
-    description: t("description"),
+    alternates: buildAlternates({ locale: resolvedLocale, pathname: "" }),
+    description,
     icons: { icon: "/favicon.svg" },
     metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
+    openGraph: buildOpenGraph({ description, locale: resolvedLocale, pathname: "", title }),
     title: {
-      default: t("title"),
-      template: `%s · ${t("title")}`,
+      default: title,
+      template: `%s · ${title}`,
     },
+    twitter: buildTwitter({ description, title }),
   };
 }
 
@@ -55,6 +58,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased">
+        <JsonLd data={buildWebsiteJsonLd({ locale })} />
         <NextIntlClientProvider>
           <ThemeProvider>
             <Providers>

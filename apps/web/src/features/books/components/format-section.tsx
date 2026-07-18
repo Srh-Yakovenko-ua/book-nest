@@ -5,6 +5,9 @@ import type { BookFormat } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { type Control, Controller } from "react-hook-form";
 
+import { UiIcon } from "@/components/icons";
+import { bookFormats } from "@/lib/book-status";
+
 import type { CreateBookFormValues } from "../model/create-book-form";
 
 import { FORMAT_OPTIONS } from "../model/book-status-fields";
@@ -37,10 +40,14 @@ export function FormatSection({ control }: FormatSectionProps) {
             label={t("format.title")}
             mode="multi"
             onValueChange={(next) => field.onChange(next.filter(isBookFormat))}
-            options={FORMAT_OPTIONS.map((value) => ({
-              label: t(`format.options.${value}`),
-              value,
-            }))}
+            options={FORMAT_OPTIONS.map((value) => {
+              const entry = bookFormats.find((item) => item.value === value);
+              return {
+                icon: entry ? <UiIcon name={entry.icon} /> : undefined,
+                label: t(`format.options.${value}`),
+                value,
+              };
+            })}
             value={field.value ?? []}
           />
         )}

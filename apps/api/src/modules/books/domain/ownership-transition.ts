@@ -11,6 +11,7 @@ export type OwnershipTransitionInput =
   | { date: string; fields: MarkBoughtInput; kind: "mark-bought" }
   | { fields: WantToBuyInput; kind: "want-to-buy" }
   | { kind: "mark-owned" }
+  | { kind: "remove-from-wishlist" }
   | { kind: "remove-owned" };
 
 export function computeOwnershipChange(input: OwnershipTransitionInput): OwnershipChangePatch {
@@ -22,6 +23,8 @@ export function computeOwnershipChange(input: OwnershipTransitionInput): Ownersh
       };
     case "mark-owned":
       return { book: { ownershipStatus: "owned" }, purchaseInfo: "delete" };
+    case "remove-from-wishlist":
+      return { book: { ownershipStatus: "none" }, purchaseInfo: "delete" };
     case "remove-owned":
       return { book: { ownershipStatus: "none" }, purchaseInfo: "delete" };
     case "want-to-buy": {

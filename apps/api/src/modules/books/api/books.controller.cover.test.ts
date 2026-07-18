@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { getQueueToken } from "@nestjs/bullmq";
 import sharp from "sharp";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -9,6 +10,7 @@ import type { AuthTestContext } from "../../../test/auth-test-context.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
+import { MEDIA_QUEUE_NAME } from "../../media/domain/media-queue.js";
 import { StoragePort } from "../../media/domain/storage.port.js";
 import { MediaModule } from "../../media/media.module.js";
 import { BooksModule } from "../books.module.js";
@@ -21,6 +23,8 @@ const storageStub = {
   put: (): Promise<void> => Promise.resolve(),
 };
 
+const queueStub = { add: (): Promise<void> => Promise.resolve() };
+
 let context: AuthTestContext;
 let app: INestApplication;
 let pngBuffer: Buffer;
@@ -28,7 +32,10 @@ let pngBuffer: Buffer;
 beforeAll(async () => {
   context = await createAuthTestContext(
     [AuthModule, BooksModule, MediaModule],
-    [{ provide: StoragePort, useValue: storageStub }],
+    [
+      { provide: StoragePort, useValue: storageStub },
+      { provide: getQueueToken(MEDIA_QUEUE_NAME), useValue: queueStub },
+    ],
   );
   app = context.app;
   pngBuffer = await sharp({
