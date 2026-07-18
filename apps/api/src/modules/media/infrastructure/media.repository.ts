@@ -16,6 +16,15 @@ export type MediaOwnerRef = {
 export class MediaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async countReferences(id: string): Promise<number> {
+    const [bookCovers, characterAvatars, bookCharacterPortraits] = await Promise.all([
+      this.prisma.book.count({ where: { coverMediaId: id } }),
+      this.prisma.character.count({ where: { avatarMediaId: id } }),
+      this.prisma.bookCharacter.count({ where: { portraitMediaId: id } }),
+    ]);
+    return bookCovers + characterAvatars + bookCharacterPortraits;
+  }
+
   create(data: Prisma.MediaAssetUncheckedCreateInput): Promise<MediaAssetModel> {
     return this.prisma.mediaAsset.create({ data });
   }

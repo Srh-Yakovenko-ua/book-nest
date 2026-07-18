@@ -86,6 +86,11 @@ export const booksControllerCreateBodyPurchaseInfoExpectedPriceMax = 99999999.99
 
 export const booksControllerCreateBodyPurchaseInfoStoreUrlMax = 300;
 
+export const booksControllerCreateBodyQueuePriorityReasonCustomTextMax = 300;
+
+export const booksControllerCreateBodyQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerCreateBodyReadingProgressAbandonedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -109,7 +114,7 @@ export const booksControllerCreateBodyReadingStatusDefault = `not_started`;
 export const booksControllerCreateBodySeriesIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerCreateBodyTagsMax = 12;
+export const booksControllerCreateBodyTagsMax = 15;
 
 export const BooksControllerCreateBody = zod.object({
   addToReadingQueue: zod.boolean().default(booksControllerCreateBodyAddToReadingQueueDefault),
@@ -282,6 +287,27 @@ export const BooksControllerCreateBody = zod.object({
     })
     .optional(),
   queuePriority: zod.enum(["low", "normal", "high"]).optional(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  queuePriorityReasonCustomText: zod
+    .string()
+    .max(booksControllerCreateBodyQueuePriorityReasonCustomTextMax)
+    .nullish(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(booksControllerCreateBodyQueuePriorityTargetDateRegExp)
+    .nullish(),
   readingProgress: zod
     .object({
       abandonedAt: zod.iso
@@ -412,6 +438,7 @@ export const BooksControllerListQueryParams = zod.object({
     .array(zod.string().min(1).max(booksControllerListQueryGenreItemMax))
     .max(booksControllerListQueryGenreMax),
   hasCover: zod.string().optional(),
+  hasRating: zod.string().optional(),
   isFavorite: zod.string().optional(),
   language: zod
     .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
@@ -511,6 +538,9 @@ export const BooksControllerListQueryParams = zod.object({
     .optional(),
 });
 
+export const booksControllerListResponseItemsItemQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerListResponsePageMin = -9007199254740991;
 export const booksControllerListResponsePageMax = 9007199254740991;
 
@@ -639,6 +669,7 @@ export const BooksControllerListResponse = zod.object({
       illustrator: zod.string().nullable(),
       isbn: zod.string().nullable(),
       isFavorite: zod.boolean(),
+      isFavoriteDedication: zod.boolean(),
       isInReadingQueue: zod.boolean(),
       language: zod.enum([
         "ukrainian",
@@ -698,6 +729,24 @@ export const BooksControllerListResponse = zod.object({
         .nullable(),
       queuePriority: zod
         .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+        .nullable(),
+      queuePriorityReason: zod
+        .union([
+          zod.literal("book_club"),
+          zod.literal("buddy_read"),
+          zod.literal("event_or_deadline"),
+          zod.literal("return_due"),
+          zod.literal("series_order"),
+          zod.literal("reading_goal"),
+          zod.literal("anticipated_release"),
+          zod.literal("other"),
+          zod.literal(null),
+        ])
+        .nullable(),
+      queuePriorityReasonCustomText: zod.string().nullable(),
+      queuePriorityTargetDate: zod.iso
+        .date()
+        .regex(booksControllerListResponseItemsItemQueuePriorityTargetDateRegExp)
         .nullable(),
       readingProgress: zod
         .object({
@@ -797,6 +846,11 @@ export const BooksControllerOverviewQueryParams = zod.object({
     .optional()
     .describe("Scope the overview to these ownership statuses (physical library)"),
 });
+
+export const booksControllerOverviewResponseRecentlyAddedItemQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 
 export const BooksControllerOverviewResponse = zod.object({
   activeReading: zod
@@ -927,6 +981,7 @@ export const BooksControllerOverviewResponse = zod.object({
       illustrator: zod.string().nullable(),
       isbn: zod.string().nullable(),
       isFavorite: zod.boolean(),
+      isFavoriteDedication: zod.boolean(),
       isInReadingQueue: zod.boolean(),
       language: zod.enum([
         "ukrainian",
@@ -986,6 +1041,24 @@ export const BooksControllerOverviewResponse = zod.object({
         .nullable(),
       queuePriority: zod
         .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+        .nullable(),
+      queuePriorityReason: zod
+        .union([
+          zod.literal("book_club"),
+          zod.literal("buddy_read"),
+          zod.literal("event_or_deadline"),
+          zod.literal("return_due"),
+          zod.literal("series_order"),
+          zod.literal("reading_goal"),
+          zod.literal("anticipated_release"),
+          zod.literal("other"),
+          zod.literal(null),
+        ])
+        .nullable(),
+      queuePriorityReasonCustomText: zod.string().nullable(),
+      queuePriorityTargetDate: zod.iso
+        .date()
+        .regex(booksControllerOverviewResponseRecentlyAddedItemQueuePriorityTargetDateRegExp)
         .nullable(),
       readingProgress: zod
         .object({
@@ -1102,14 +1175,706 @@ export const BooksControllerPurchaseStoresResponse = zod.array(
 /**
  * @summary Get the current user favorites summary
  */
+export const booksControllerFavoritesSummaryResponseTopGenresItemCountMin = 0;
+export const booksControllerFavoritesSummaryResponseTopGenresItemCountMax = 9007199254740991;
+
+export const booksControllerFavoritesSummaryResponseTopTagsItemCountMin = 0;
+export const booksControllerFavoritesSummaryResponseTopTagsItemCountMax = 9007199254740991;
+
+export const booksControllerFavoritesSummaryResponseUnratedMin = 0;
+export const booksControllerFavoritesSummaryResponseUnratedMax = 9007199254740991;
+
 export const BooksControllerFavoritesSummaryResponse = zod.object({
   averageRating: zod.number().nullable(),
   finished: zod.number(),
   reading: zod.number(),
   series: zod.number(),
   solo: zod.number(),
+  topGenres: zod.array(
+    zod.object({
+      count: zod
+        .number()
+        .min(booksControllerFavoritesSummaryResponseTopGenresItemCountMin)
+        .max(booksControllerFavoritesSummaryResponseTopGenresItemCountMax),
+      genre: zod.string(),
+    }),
+  ),
+  topTags: zod.array(
+    zod.object({
+      count: zod
+        .number()
+        .min(booksControllerFavoritesSummaryResponseTopTagsItemCountMin)
+        .max(booksControllerFavoritesSummaryResponseTopTagsItemCountMax),
+      tag: zod.string(),
+    }),
+  ),
   total: zod.number(),
+  unrated: zod
+    .number()
+    .min(booksControllerFavoritesSummaryResponseUnratedMin)
+    .max(booksControllerFavoritesSummaryResponseUnratedMax)
+    .describe("Count of finished favorite books without a rating"),
   wantToRead: zod.number(),
+});
+
+/**
+ * @summary Get the current user books-to-buy wishlist
+ */
+export const booksControllerWishlistResponseBooksItemQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const BooksControllerWishlistResponse = zod.object({
+  books: zod.array(
+    zod.object({
+      ageCategory: zod.enum([
+        "not_specified",
+        "no_restrictions",
+        "6_plus",
+        "12_plus",
+        "14_plus",
+        "16_plus",
+        "18_plus",
+      ]),
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      bookType: zod.enum(["solo", "series_part"]),
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullish(),
+      createdAt: zod.string(),
+      dedication: zod.string().nullable(),
+      delivery: zod.object({
+        active: zod
+          .object({
+            cancelledAt: zod.string().nullable(),
+            cancelReason: zod.string().nullable(),
+            createdAt: zod.string(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
+            deliveryService: zod.string().nullable(),
+            expectedDeliveryDate: zod.string().nullable(),
+            id: zod.string(),
+            note: zod.string().nullable(),
+            orderDate: zod.string().nullable(),
+            orderNumber: zod.string().nullable(),
+            price: zod.number().nullable(),
+            receivedAt: zod.string().nullable(),
+            status: zod.enum([
+              "ordered",
+              "in_transit",
+              "ready_for_pickup",
+              "received",
+              "cancelled",
+            ]),
+            storeName: zod.string().nullable(),
+            trackingNumber: zod.string().nullable(),
+            trackingUrl: zod.string().nullable(),
+          })
+          .nullable(),
+        latest: zod
+          .object({
+            cancelledAt: zod.string().nullable(),
+            cancelReason: zod.string().nullable(),
+            createdAt: zod.string(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
+            deliveryService: zod.string().nullable(),
+            expectedDeliveryDate: zod.string().nullable(),
+            id: zod.string(),
+            note: zod.string().nullable(),
+            orderDate: zod.string().nullable(),
+            orderNumber: zod.string().nullable(),
+            price: zod.number().nullable(),
+            receivedAt: zod.string().nullable(),
+            status: zod.enum([
+              "ordered",
+              "in_transit",
+              "ready_for_pickup",
+              "received",
+              "cancelled",
+            ]),
+            storeName: zod.string().nullable(),
+            trackingNumber: zod.string().nullable(),
+            trackingUrl: zod.string().nullable(),
+          })
+          .nullable(),
+        totalCount: zod.number(),
+      }),
+      description: zod.string().nullable(),
+      favoriteAddedAt: zod.string().nullable(),
+      formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
+      genres: zod.array(zod.string()),
+      hasUnreadEarlierSeriesParts: zod.boolean().nullable(),
+      id: zod.string(),
+      illustrator: zod.string().nullable(),
+      isbn: zod.string().nullable(),
+      isFavorite: zod.boolean(),
+      isFavoriteDedication: zod.boolean(),
+      isInReadingQueue: zod.boolean(),
+      language: zod.enum([
+        "ukrainian",
+        "english",
+        "polish",
+        "german",
+        "french",
+        "spanish",
+        "other",
+      ]),
+      lists: zod.array(
+        zod.object({
+          description: zod.string().nullable(),
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      loanInfo: zod
+        .object({
+          contact: zod.string().nullable(),
+          expectedReturnDate: zod.string().nullable(),
+          loanDate: zod.string().nullable(),
+          note: zod.string().nullable(),
+          personName: zod.string(),
+          remindToReturn: zod.boolean(),
+        })
+        .nullable(),
+      originalTitle: zod.string().nullable(),
+      ownershipStatus: zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+      pagesCount: zod.number().nullable(),
+      partNumber: zod.number().nullable(),
+      publicationYear: zod.number().nullable(),
+      publisher: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+        })
+        .nullable(),
+      purchaseInfo: zod
+        .object({
+          currency: zod
+            .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+            .nullable(),
+          expectedPrice: zod.number().nullable(),
+          note: zod.string().nullable(),
+          purchasedAt: zod.string().nullable(),
+          storeName: zod.string().nullable(),
+          storeUrl: zod.string().nullable(),
+        })
+        .nullable(),
+      queuePriority: zod
+        .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+        .nullable(),
+      queuePriorityReason: zod
+        .union([
+          zod.literal("book_club"),
+          zod.literal("buddy_read"),
+          zod.literal("event_or_deadline"),
+          zod.literal("return_due"),
+          zod.literal("series_order"),
+          zod.literal("reading_goal"),
+          zod.literal("anticipated_release"),
+          zod.literal("other"),
+          zod.literal(null),
+        ])
+        .nullable(),
+      queuePriorityReasonCustomText: zod.string().nullable(),
+      queuePriorityTargetDate: zod.iso
+        .date()
+        .regex(booksControllerWishlistResponseBooksItemQueuePriorityTargetDateRegExp)
+        .nullable(),
+      readingProgress: zod
+        .object({
+          abandonedAt: zod.string().nullable(),
+          currentPage: zod.number().nullable(),
+          finishedAt: zod.string().nullable(),
+          impression: zod.string().nullable(),
+          lastProgressUpdateAt: zod.string().nullable(),
+          note: zod.string().nullable(),
+          pausedAt: zod.string().nullable(),
+          rating: zod.number().nullable(),
+          startedAt: zod.string().nullable(),
+        })
+        .nullable(),
+      readingStatus: zod.enum([
+        "not_started",
+        "want_to_read",
+        "reading",
+        "paused",
+        "finished",
+        "dnf",
+        "rereading",
+      ]),
+      series: zod
+        .object({
+          authors: zod.array(
+            zod.object({
+              id: zod.string(),
+              name: zod.string(),
+            }),
+          ),
+          booksInSeries: zod.number(),
+          createdAt: zod.string(),
+          description: zod.string().nullable(),
+          finishedInSeries: zod.number(),
+          genres: zod.array(zod.string()),
+          id: zod.string(),
+          lastActivityAt: zod.string(),
+          name: zod.string(),
+          nextBook: zod
+            .object({
+              id: zod.string(),
+              partNumber: zod.number().nullable(),
+              title: zod.string(),
+            })
+            .nullable(),
+          readingInSeries: zod.number(),
+          status: zod.enum(["completed", "ongoing", "unknown"]),
+          totalBooks: zod.number().nullable(),
+        })
+        .nullable(),
+      tags: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      title: zod.string(),
+      translator: zod.string().nullable(),
+      updatedAt: zod.string(),
+      userId: zod.string(),
+      bestOffer: zod
+        .object({
+          currency: zod.enum(["UAH", "EUR", "USD"]),
+          price: zod.number(),
+        })
+        .nullable(),
+      storeLinks: zod.array(
+        zod.object({
+          bookId: zod.string(),
+          createdAt: zod.string(),
+          currency: zod
+            .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+            .nullable(),
+          id: zod.string(),
+          price: zod.number().nullable(),
+          storeName: zod.string(),
+          updatedAt: zod.string(),
+          url: zod.string(),
+        }),
+      ),
+    }),
+  ),
+  summary: zod.object({
+    booksCount: zod.number(),
+    estimates: zod.array(
+      zod.object({
+        average: zod.number(),
+        best: zod.number(),
+        booksCount: zod.number(),
+        currency: zod.enum(["UAH", "EUR", "USD"]),
+        total: zod.number(),
+      }),
+    ),
+    trackedStoresCount: zod.number(),
+  }),
+});
+
+/**
+ * @summary List and filter the current user books that carry a dedication
+ */
+export const booksControllerDedicationsQueryFilterDefault = `all`;
+export const booksControllerDedicationsQueryGenreMax = 64;
+
+export const booksControllerDedicationsQueryPageNumberDefault = 1;
+export const booksControllerDedicationsQueryPageNumberMax = 9007199254740991;
+
+export const booksControllerDedicationsQueryPageSizeDefault = 12;
+export const booksControllerDedicationsQueryPageSizeMax = 100;
+
+export const booksControllerDedicationsQueryQMax = 200;
+
+export const booksControllerDedicationsQuerySortDefault = `newest`;
+
+export const BooksControllerDedicationsQueryParams = zod.object({
+  filter: zod
+    .enum(["all", "favorites", "without_favorites", "finished", "unfinished"])
+    .default(booksControllerDedicationsQueryFilterDefault),
+  genre: zod.string().min(1).max(booksControllerDedicationsQueryGenreMax).optional(),
+  pageNumber: zod
+    .number()
+    .min(1)
+    .max(booksControllerDedicationsQueryPageNumberMax)
+    .default(booksControllerDedicationsQueryPageNumberDefault),
+  pageSize: zod
+    .number()
+    .min(1)
+    .max(booksControllerDedicationsQueryPageSizeMax)
+    .default(booksControllerDedicationsQueryPageSizeDefault),
+  q: zod.string().max(booksControllerDedicationsQueryQMax).optional(),
+  sort: zod
+    .enum([
+      "newest",
+      "recently_updated",
+      "book_title_asc",
+      "author_asc",
+      "favorites_first",
+      "publication_year_desc",
+    ])
+    .default(booksControllerDedicationsQuerySortDefault),
+});
+
+export const booksControllerDedicationsResponseItemsItemQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const booksControllerDedicationsResponsePageMin = -9007199254740991;
+export const booksControllerDedicationsResponsePageMax = 9007199254740991;
+
+export const booksControllerDedicationsResponsePagesCountMin = -9007199254740991;
+export const booksControllerDedicationsResponsePagesCountMax = 9007199254740991;
+
+export const booksControllerDedicationsResponsePageSizeMin = -9007199254740991;
+export const booksControllerDedicationsResponsePageSizeMax = 9007199254740991;
+
+export const booksControllerDedicationsResponseTotalCountMin = -9007199254740991;
+export const booksControllerDedicationsResponseTotalCountMax = 9007199254740991;
+
+export const BooksControllerDedicationsResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      ageCategory: zod.enum([
+        "not_specified",
+        "no_restrictions",
+        "6_plus",
+        "12_plus",
+        "14_plus",
+        "16_plus",
+        "18_plus",
+      ]),
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      bookType: zod.enum(["solo", "series_part"]),
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullish(),
+      createdAt: zod.string(),
+      dedication: zod.string().nullable(),
+      delivery: zod.object({
+        active: zod
+          .object({
+            cancelledAt: zod.string().nullable(),
+            cancelReason: zod.string().nullable(),
+            createdAt: zod.string(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
+            deliveryService: zod.string().nullable(),
+            expectedDeliveryDate: zod.string().nullable(),
+            id: zod.string(),
+            note: zod.string().nullable(),
+            orderDate: zod.string().nullable(),
+            orderNumber: zod.string().nullable(),
+            price: zod.number().nullable(),
+            receivedAt: zod.string().nullable(),
+            status: zod.enum([
+              "ordered",
+              "in_transit",
+              "ready_for_pickup",
+              "received",
+              "cancelled",
+            ]),
+            storeName: zod.string().nullable(),
+            trackingNumber: zod.string().nullable(),
+            trackingUrl: zod.string().nullable(),
+          })
+          .nullable(),
+        latest: zod
+          .object({
+            cancelledAt: zod.string().nullable(),
+            cancelReason: zod.string().nullable(),
+            createdAt: zod.string(),
+            currency: zod
+              .union([
+                zod.literal("UAH"),
+                zod.literal("EUR"),
+                zod.literal("USD"),
+                zod.literal(null),
+              ])
+              .nullable(),
+            deliveryService: zod.string().nullable(),
+            expectedDeliveryDate: zod.string().nullable(),
+            id: zod.string(),
+            note: zod.string().nullable(),
+            orderDate: zod.string().nullable(),
+            orderNumber: zod.string().nullable(),
+            price: zod.number().nullable(),
+            receivedAt: zod.string().nullable(),
+            status: zod.enum([
+              "ordered",
+              "in_transit",
+              "ready_for_pickup",
+              "received",
+              "cancelled",
+            ]),
+            storeName: zod.string().nullable(),
+            trackingNumber: zod.string().nullable(),
+            trackingUrl: zod.string().nullable(),
+          })
+          .nullable(),
+        totalCount: zod.number(),
+      }),
+      description: zod.string().nullable(),
+      favoriteAddedAt: zod.string().nullable(),
+      formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
+      genres: zod.array(zod.string()),
+      hasUnreadEarlierSeriesParts: zod.boolean().nullable(),
+      id: zod.string(),
+      illustrator: zod.string().nullable(),
+      isbn: zod.string().nullable(),
+      isFavorite: zod.boolean(),
+      isFavoriteDedication: zod.boolean(),
+      isInReadingQueue: zod.boolean(),
+      language: zod.enum([
+        "ukrainian",
+        "english",
+        "polish",
+        "german",
+        "french",
+        "spanish",
+        "other",
+      ]),
+      lists: zod.array(
+        zod.object({
+          description: zod.string().nullable(),
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      loanInfo: zod
+        .object({
+          contact: zod.string().nullable(),
+          expectedReturnDate: zod.string().nullable(),
+          loanDate: zod.string().nullable(),
+          note: zod.string().nullable(),
+          personName: zod.string(),
+          remindToReturn: zod.boolean(),
+        })
+        .nullable(),
+      originalTitle: zod.string().nullable(),
+      ownershipStatus: zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+      pagesCount: zod.number().nullable(),
+      partNumber: zod.number().nullable(),
+      publicationYear: zod.number().nullable(),
+      publisher: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+        })
+        .nullable(),
+      purchaseInfo: zod
+        .object({
+          currency: zod
+            .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+            .nullable(),
+          expectedPrice: zod.number().nullable(),
+          note: zod.string().nullable(),
+          purchasedAt: zod.string().nullable(),
+          storeName: zod.string().nullable(),
+          storeUrl: zod.string().nullable(),
+        })
+        .nullable(),
+      queuePriority: zod
+        .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+        .nullable(),
+      queuePriorityReason: zod
+        .union([
+          zod.literal("book_club"),
+          zod.literal("buddy_read"),
+          zod.literal("event_or_deadline"),
+          zod.literal("return_due"),
+          zod.literal("series_order"),
+          zod.literal("reading_goal"),
+          zod.literal("anticipated_release"),
+          zod.literal("other"),
+          zod.literal(null),
+        ])
+        .nullable(),
+      queuePriorityReasonCustomText: zod.string().nullable(),
+      queuePriorityTargetDate: zod.iso
+        .date()
+        .regex(booksControllerDedicationsResponseItemsItemQueuePriorityTargetDateRegExp)
+        .nullable(),
+      readingProgress: zod
+        .object({
+          abandonedAt: zod.string().nullable(),
+          currentPage: zod.number().nullable(),
+          finishedAt: zod.string().nullable(),
+          impression: zod.string().nullable(),
+          lastProgressUpdateAt: zod.string().nullable(),
+          note: zod.string().nullable(),
+          pausedAt: zod.string().nullable(),
+          rating: zod.number().nullable(),
+          startedAt: zod.string().nullable(),
+        })
+        .nullable(),
+      readingStatus: zod.enum([
+        "not_started",
+        "want_to_read",
+        "reading",
+        "paused",
+        "finished",
+        "dnf",
+        "rereading",
+      ]),
+      series: zod
+        .object({
+          authors: zod.array(
+            zod.object({
+              id: zod.string(),
+              name: zod.string(),
+            }),
+          ),
+          booksInSeries: zod.number(),
+          createdAt: zod.string(),
+          description: zod.string().nullable(),
+          finishedInSeries: zod.number(),
+          genres: zod.array(zod.string()),
+          id: zod.string(),
+          lastActivityAt: zod.string(),
+          name: zod.string(),
+          nextBook: zod
+            .object({
+              id: zod.string(),
+              partNumber: zod.number().nullable(),
+              title: zod.string(),
+            })
+            .nullable(),
+          readingInSeries: zod.number(),
+          status: zod.enum(["completed", "ongoing", "unknown"]),
+          totalBooks: zod.number().nullable(),
+        })
+        .nullable(),
+      tags: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      title: zod.string(),
+      translator: zod.string().nullable(),
+      updatedAt: zod.string(),
+      userId: zod.string(),
+    }),
+  ),
+  page: zod
+    .number()
+    .min(booksControllerDedicationsResponsePageMin)
+    .max(booksControllerDedicationsResponsePageMax),
+  pagesCount: zod
+    .number()
+    .min(booksControllerDedicationsResponsePagesCountMin)
+    .max(booksControllerDedicationsResponsePagesCountMax),
+  pageSize: zod
+    .number()
+    .min(booksControllerDedicationsResponsePageSizeMin)
+    .max(booksControllerDedicationsResponsePageSizeMax),
+  totalCount: zod
+    .number()
+    .min(booksControllerDedicationsResponseTotalCountMin)
+    .max(booksControllerDedicationsResponseTotalCountMax),
+});
+
+/**
+ * @summary Get the current user dedications summary
+ */
+export const booksControllerDedicationsSummaryResponseAvailableGenresItemMax = 64;
+
+export const BooksControllerDedicationsSummaryResponse = zod.object({
+  availableGenres: zod.array(
+    zod.string().min(1).max(booksControllerDedicationsSummaryResponseAvailableGenresItemMax),
+  ),
+  favoriteCount: zod.number(),
+  finishedCount: zod.number(),
+  topAuthor: zod
+    .object({
+      count: zod.number(),
+      name: zod.string(),
+    })
+    .nullable(),
+  topGenre: zod
+    .object({
+      count: zod.number(),
+      genre: zod.string(),
+    })
+    .nullable(),
+  totalCount: zod.number(),
+  unfinishedCount: zod.number(),
 });
 
 /**
@@ -1118,6 +1883,10 @@ export const BooksControllerFavoritesSummaryResponse = zod.object({
 export const BooksControllerGetByIdParams = zod.object({
   id: zod.string(),
 });
+
+export const booksControllerGetByIdResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BooksControllerGetByIdResponse = zod.object({
   ageCategory: zod.enum([
@@ -1211,6 +1980,7 @@ export const BooksControllerGetByIdResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -1262,6 +2032,24 @@ export const BooksControllerGetByIdResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(booksControllerGetByIdResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -1400,6 +2188,11 @@ export const booksControllerUpdateBodyPurchaseInfoExpectedPriceMax = 99999999.99
 
 export const booksControllerUpdateBodyPurchaseInfoStoreUrlMax = 300;
 
+export const booksControllerUpdateBodyQueuePriorityReasonCustomTextMax = 300;
+
+export const booksControllerUpdateBodyQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const booksControllerUpdateBodyReadingProgressAbandonedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -1422,7 +2215,7 @@ export const booksControllerUpdateBodyReadingProgressStartedAtRegExp = new RegEx
 export const booksControllerUpdateBodySeriesIdRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
 );
-export const booksControllerUpdateBodyTagsMax = 12;
+export const booksControllerUpdateBodyTagsMax = 15;
 
 export const BooksControllerUpdateBody = zod.object({
   addToReadingQueue: zod.boolean().optional(),
@@ -1495,6 +2288,7 @@ export const BooksControllerUpdateBody = zod.object({
   illustrator: zod.string().nullish(),
   isbn: zod.string().nullish(),
   isFavorite: zod.boolean().optional(),
+  isFavoriteDedication: zod.boolean().optional(),
   language: zod
     .enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"])
     .optional(),
@@ -1594,6 +2388,27 @@ export const BooksControllerUpdateBody = zod.object({
     })
     .optional(),
   queuePriority: zod.enum(["low", "normal", "high"]).optional(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullish(),
+  queuePriorityReasonCustomText: zod
+    .string()
+    .max(booksControllerUpdateBodyQueuePriorityReasonCustomTextMax)
+    .nullish(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(booksControllerUpdateBodyQueuePriorityTargetDateRegExp)
+    .nullish(),
   readingProgress: zod
     .object({
       abandonedAt: zod.iso
@@ -1635,6 +2450,10 @@ export const BooksControllerUpdateBody = zod.object({
   title: zod.string().optional(),
   translator: zod.string().nullish(),
 });
+
+export const booksControllerUpdateResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BooksControllerUpdateResponse = zod.object({
   ageCategory: zod.enum([
@@ -1728,6 +2547,7 @@ export const BooksControllerUpdateResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -1779,6 +2599,24 @@ export const BooksControllerUpdateResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(booksControllerUpdateResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -1858,23 +2696,140 @@ export const BookReadingControllerGetReadingHistoryParams = zod.object({
   id: zod.string(),
 });
 
+export const bookReadingControllerGetReadingHistoryQueryActivityRangeDefault = `7d`;
+export const bookReadingControllerGetReadingHistoryQueryLimitDefault = 20;
+export const bookReadingControllerGetReadingHistoryQueryLimitMax = 100;
+
+export const bookReadingControllerGetReadingHistoryQueryPageDefault = 1;
+export const bookReadingControllerGetReadingHistoryQueryPageMax = 9007199254740991;
+
+export const bookReadingControllerGetReadingHistoryQuerySortDefault = `desc`;
+
+export const BookReadingControllerGetReadingHistoryQueryParams = zod.object({
+  activityRange: zod
+    .enum(["7d", "14d", "all"])
+    .default(bookReadingControllerGetReadingHistoryQueryActivityRangeDefault),
+  limit: zod
+    .number()
+    .min(1)
+    .max(bookReadingControllerGetReadingHistoryQueryLimitMax)
+    .default(bookReadingControllerGetReadingHistoryQueryLimitDefault),
+  page: zod
+    .number()
+    .min(1)
+    .max(bookReadingControllerGetReadingHistoryQueryPageMax)
+    .default(bookReadingControllerGetReadingHistoryQueryPageDefault),
+  sort: zod.enum(["asc", "desc"]).default(bookReadingControllerGetReadingHistoryQuerySortDefault),
+});
+
 export const BookReadingControllerGetReadingHistoryResponse = zod.object({
-  daily: zod.array(
-    zod.object({
-      date: zod.string(),
+  activity: zod.object({
+    from: zod.string().nullable(),
+    points: zod.array(
+      zod.object({
+        date: zod.string(),
+        finalPage: zod.number().nullable(),
+        hasActivity: zod.boolean(),
+        pagesRead: zod.number(),
+        startPage: zod.number().nullable(),
+        updatesCount: zod.number(),
+      }),
+    ),
+    range: zod.enum(["7d", "14d", "all"]),
+    summary: zod.object({
+      activeDaysCount: zod.number(),
+      averagePagesPerActiveDay: zod.number().nullable(),
+      bestDay: zod
+        .object({
+          date: zod.string(),
+          finalPage: zod.number().nullable(),
+          pagesRead: zod.number(),
+          updatesCount: zod.number(),
+        })
+        .nullable(),
       pagesRead: zod.number(),
+      updatesCount: zod.number(),
     }),
-  ),
-  daysRead: zod.number(),
-  events: zod.array(
-    zod.object({
-      date: zod.string(),
-      id: zod.string(),
+    to: zod.string().nullable(),
+  }),
+  history: zod.object({
+    days: zod.array(
+      zod.object({
+        date: zod.string(),
+        events: zod.array(
+          zod.object({
+            date: zod.string(),
+            id: zod.string(),
+            page: zod.number(),
+            pagesRead: zod.number(),
+            recordedAt: zod.string(),
+          }),
+        ),
+        finalPage: zod.number(),
+        pagesRead: zod.number(),
+        startPage: zod.number(),
+        updatesCount: zod.number(),
+      }),
+    ),
+    pagination: zod.object({
+      hasNextPage: zod.boolean(),
+      hasPreviousPage: zod.boolean(),
+      limit: zod.number(),
       page: zod.number(),
-      pagesRead: zod.number(),
+      totalDays: zod.number(),
+      totalPages: zod.number(),
     }),
-  ),
-  totalPagesRead: zod.number(),
+  }),
+  summary: zod.object({
+    abandonedAt: zod.string().nullable(),
+    activeDaysCount: zod.number(),
+    averagePagesPerActiveDay: zod.number().nullable(),
+    bestDay: zod
+      .object({
+        date: zod.string(),
+        finalPage: zod.number().nullable(),
+        pagesRead: zod.number(),
+        updatesCount: zod.number(),
+      })
+      .nullable(),
+    currentPage: zod.number(),
+    estimatedActiveDaysRemaining: zod.number().nullable(),
+    finishedAt: zod.string().nullable(),
+    historyCompleteness: zod.object({
+      isComplete: zod.boolean(),
+      untrackedPages: zod.number(),
+    }),
+    lastActivity: zod
+      .object({
+        date: zod.string(),
+        finalPage: zod.number().nullable(),
+        pagesRead: zod.number(),
+        updatesCount: zod.number(),
+      })
+      .nullable(),
+    lastProgressUpdateAt: zod.string().nullable(),
+    pagesCount: zod.number().nullable(),
+    pagesRemaining: zod.number().nullable(),
+    pausedAt: zod.string().nullable(),
+    progressPercent: zod.number().nullable(),
+    readingPeriod: zod.object({
+      calendarDays: zod.number().nullable(),
+      endDate: zod.string().nullable(),
+      startDate: zod.string().nullable(),
+    }),
+    startedAt: zod.string().nullable(),
+    status: zod.enum([
+      "not_started",
+      "want_to_read",
+      "reading",
+      "paused",
+      "finished",
+      "dnf",
+      "rereading",
+    ]),
+    trackedPagesRead: zod.number(),
+    updatesCount: zod.number(),
+  }),
 });
 
 /**
@@ -1920,6 +2875,11 @@ export const BookReadingControllerChangeReadingStatusBody = zod.object({
     "rereading",
   ]),
 });
+
+export const bookReadingControllerChangeReadingStatusResponseQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 
 export const BookReadingControllerChangeReadingStatusResponse = zod.object({
   ageCategory: zod.enum([
@@ -2013,6 +2973,7 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -2064,6 +3025,24 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookReadingControllerChangeReadingStatusResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -2152,6 +3131,11 @@ export const BookReadingControllerUpdateReadingProgressBody = zod.object({
     .regex(bookReadingControllerUpdateReadingProgressBodyUpdateDateRegExp)
     .optional(),
 });
+
+export const bookReadingControllerUpdateReadingProgressResponseQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
 
 export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
   ageCategory: zod.enum([
@@ -2245,6 +3229,7 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -2296,6 +3281,24 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookReadingControllerUpdateReadingProgressResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -2365,6 +3368,10 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
 export const BookOwnershipControllerMarkOwnedParams = zod.object({
   id: zod.string(),
 });
+
+export const bookOwnershipControllerMarkOwnedResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BookOwnershipControllerMarkOwnedResponse = zod.object({
   ageCategory: zod.enum([
@@ -2458,6 +3465,7 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -2509,6 +3517,24 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookOwnershipControllerMarkOwnedResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -2578,6 +3604,10 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
 export const BookOwnershipControllerRemoveOwnedParams = zod.object({
   id: zod.string(),
 });
+
+export const bookOwnershipControllerRemoveOwnedResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
   ageCategory: zod.enum([
@@ -2671,6 +3701,7 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -2722,6 +3753,261 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookOwnershipControllerRemoveOwnedResponseQueuePriorityTargetDateRegExp)
+    .nullable(),
+  readingProgress: zod
+    .object({
+      abandonedAt: zod.string().nullable(),
+      currentPage: zod.number().nullable(),
+      finishedAt: zod.string().nullable(),
+      impression: zod.string().nullable(),
+      lastProgressUpdateAt: zod.string().nullable(),
+      note: zod.string().nullable(),
+      pausedAt: zod.string().nullable(),
+      rating: zod.number().nullable(),
+      startedAt: zod.string().nullable(),
+    })
+    .nullable(),
+  readingStatus: zod.enum([
+    "not_started",
+    "want_to_read",
+    "reading",
+    "paused",
+    "finished",
+    "dnf",
+    "rereading",
+  ]),
+  series: zod
+    .object({
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      booksInSeries: zod.number(),
+      createdAt: zod.string(),
+      description: zod.string().nullable(),
+      finishedInSeries: zod.number(),
+      genres: zod.array(zod.string()),
+      id: zod.string(),
+      lastActivityAt: zod.string(),
+      name: zod.string(),
+      nextBook: zod
+        .object({
+          id: zod.string(),
+          partNumber: zod.number().nullable(),
+          title: zod.string(),
+        })
+        .nullable(),
+      readingInSeries: zod.number(),
+      status: zod.enum(["completed", "ongoing", "unknown"]),
+      totalBooks: zod.number().nullable(),
+    })
+    .nullable(),
+  tags: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  title: zod.string(),
+  translator: zod.string().nullable(),
+  updatedAt: zod.string(),
+  userId: zod.string(),
+});
+
+/**
+ * @summary Remove a book from the wishlist
+ */
+export const BookOwnershipControllerRemoveFromWishlistParams = zod.object({
+  id: zod.string(),
+});
+
+export const bookOwnershipControllerRemoveFromWishlistResponseQueuePriorityTargetDateRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+
+export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
+  ageCategory: zod.enum([
+    "not_specified",
+    "no_restrictions",
+    "6_plus",
+    "12_plus",
+    "14_plus",
+    "16_plus",
+    "18_plus",
+  ]),
+  authors: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  bookType: zod.enum(["solo", "series_part"]),
+  cover: zod
+    .object({
+      contentType: zod.string(),
+      createdAt: zod.string(),
+      height: zod.number(),
+      id: zod.string(),
+      kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+      name: zod.string().nullable(),
+      sizeBytes: zod.number(),
+      urls: zod.object({
+        card: zod.string(),
+        full: zod.string(),
+        thumb: zod.string(),
+      }),
+      width: zod.number(),
+    })
+    .nullish(),
+  createdAt: zod.string(),
+  dedication: zod.string().nullable(),
+  delivery: zod.object({
+    active: zod
+      .object({
+        cancelledAt: zod.string().nullable(),
+        cancelReason: zod.string().nullable(),
+        createdAt: zod.string(),
+        currency: zod
+          .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+          .nullable(),
+        deliveryService: zod.string().nullable(),
+        expectedDeliveryDate: zod.string().nullable(),
+        id: zod.string(),
+        note: zod.string().nullable(),
+        orderDate: zod.string().nullable(),
+        orderNumber: zod.string().nullable(),
+        price: zod.number().nullable(),
+        receivedAt: zod.string().nullable(),
+        status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
+        storeName: zod.string().nullable(),
+        trackingNumber: zod.string().nullable(),
+        trackingUrl: zod.string().nullable(),
+      })
+      .nullable(),
+    latest: zod
+      .object({
+        cancelledAt: zod.string().nullable(),
+        cancelReason: zod.string().nullable(),
+        createdAt: zod.string(),
+        currency: zod
+          .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+          .nullable(),
+        deliveryService: zod.string().nullable(),
+        expectedDeliveryDate: zod.string().nullable(),
+        id: zod.string(),
+        note: zod.string().nullable(),
+        orderDate: zod.string().nullable(),
+        orderNumber: zod.string().nullable(),
+        price: zod.number().nullable(),
+        receivedAt: zod.string().nullable(),
+        status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
+        storeName: zod.string().nullable(),
+        trackingNumber: zod.string().nullable(),
+        trackingUrl: zod.string().nullable(),
+      })
+      .nullable(),
+    totalCount: zod.number(),
+  }),
+  description: zod.string().nullable(),
+  favoriteAddedAt: zod.string().nullable(),
+  formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
+  genres: zod.array(zod.string()),
+  hasUnreadEarlierSeriesParts: zod.boolean().nullable(),
+  id: zod.string(),
+  illustrator: zod.string().nullable(),
+  isbn: zod.string().nullable(),
+  isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
+  isInReadingQueue: zod.boolean(),
+  language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
+  lists: zod.array(
+    zod.object({
+      description: zod.string().nullable(),
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  loanInfo: zod
+    .object({
+      contact: zod.string().nullable(),
+      expectedReturnDate: zod.string().nullable(),
+      loanDate: zod.string().nullable(),
+      note: zod.string().nullable(),
+      personName: zod.string(),
+      remindToReturn: zod.boolean(),
+    })
+    .nullable(),
+  originalTitle: zod.string().nullable(),
+  ownershipStatus: zod.enum([
+    "none",
+    "want_to_buy",
+    "in_transit",
+    "owned",
+    "borrowed_from_someone",
+    "lent_to_someone",
+  ]),
+  pagesCount: zod.number().nullable(),
+  partNumber: zod.number().nullable(),
+  publicationYear: zod.number().nullable(),
+  publisher: zod
+    .object({
+      id: zod.string(),
+      name: zod.string(),
+    })
+    .nullable(),
+  purchaseInfo: zod
+    .object({
+      currency: zod
+        .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+        .nullable(),
+      expectedPrice: zod.number().nullable(),
+      note: zod.string().nullable(),
+      purchasedAt: zod.string().nullable(),
+      storeName: zod.string().nullable(),
+      storeUrl: zod.string().nullable(),
+    })
+    .nullable(),
+  queuePriority: zod
+    .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookOwnershipControllerRemoveFromWishlistResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -2810,6 +4096,10 @@ export const BookOwnershipControllerWantToBuyBody = zod.object({
   storeName: zod.string().nullish(),
   storeUrl: zod.string().max(bookOwnershipControllerWantToBuyBodyStoreUrlMax).nullish(),
 });
+
+export const bookOwnershipControllerWantToBuyResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BookOwnershipControllerWantToBuyResponse = zod.object({
   ageCategory: zod.enum([
@@ -2903,6 +4193,7 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -2954,6 +4245,24 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookOwnershipControllerWantToBuyResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -3047,6 +4356,10 @@ export const BookOwnershipControllerMarkBoughtBody = zod.object({
   storeName: zod.string().nullish(),
 });
 
+export const bookOwnershipControllerMarkBoughtResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
 export const BookOwnershipControllerMarkBoughtResponse = zod.object({
   ageCategory: zod.enum([
     "not_specified",
@@ -3139,6 +4452,7 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -3190,6 +4504,24 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookOwnershipControllerMarkBoughtResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -3279,6 +4611,10 @@ export const BookLoanControllerCreateLoanBody = zod.object({
   personName: zod.string(),
   remindToReturn: zod.boolean().optional(),
 });
+
+export const bookLoanControllerCreateLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BookLoanControllerCreateLoanResponse = zod.object({
   ageCategory: zod.enum([
@@ -3372,6 +4708,7 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -3423,6 +4760,24 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookLoanControllerCreateLoanResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -3511,6 +4866,10 @@ export const BookLoanControllerEditLoanBody = zod.object({
   personName: zod.string(),
   remindToReturn: zod.boolean().optional(),
 });
+
+export const bookLoanControllerEditLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BookLoanControllerEditLoanResponse = zod.object({
   ageCategory: zod.enum([
@@ -3604,6 +4963,7 @@ export const BookLoanControllerEditLoanResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -3655,6 +5015,24 @@ export const BookLoanControllerEditLoanResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookLoanControllerEditLoanResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -3724,6 +5102,10 @@ export const BookLoanControllerEditLoanResponse = zod.object({
 export const BookLoanControllerReturnLoanParams = zod.object({
   id: zod.string(),
 });
+
+export const bookLoanControllerReturnLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BookLoanControllerReturnLoanResponse = zod.object({
   ageCategory: zod.enum([
@@ -3817,6 +5199,7 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -3868,6 +5251,24 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookLoanControllerReturnLoanResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -3969,6 +5370,10 @@ export const BookDeliveryControllerCreateBody = zod.object({
   trackingUrl: zod.string().max(bookDeliveryControllerCreateBodyTrackingUrlMax).optional(),
 });
 
+export const bookDeliveryControllerCreateResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
 export const BookDeliveryControllerCreateResponse = zod.object({
   ageCategory: zod.enum([
     "not_specified",
@@ -4061,6 +5466,7 @@ export const BookDeliveryControllerCreateResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -4112,6 +5518,24 @@ export const BookDeliveryControllerCreateResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookDeliveryControllerCreateResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -4248,6 +5672,10 @@ export const BookDeliveryControllerUpdateBody = zod.object({
   trackingUrl: zod.string().max(bookDeliveryControllerUpdateBodyTrackingUrlMax).nullish(),
 });
 
+export const bookDeliveryControllerUpdateResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
 export const BookDeliveryControllerUpdateResponse = zod.object({
   ageCategory: zod.enum([
     "not_specified",
@@ -4340,6 +5768,7 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -4391,6 +5820,24 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookDeliveryControllerUpdateResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -4461,6 +5908,18 @@ export const BookDeliveryControllerReceiveParams = zod.object({
   id: zod.string(),
   deliveryId: zod.string(),
 });
+
+export const bookDeliveryControllerReceiveBodyReceivedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+
+export const BookDeliveryControllerReceiveBody = zod.object({
+  receivedAt: zod.iso.date().regex(bookDeliveryControllerReceiveBodyReceivedAtRegExp).optional(),
+});
+
+export const bookDeliveryControllerReceiveResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BookDeliveryControllerReceiveResponse = zod.object({
   ageCategory: zod.enum([
@@ -4554,6 +6013,7 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -4605,6 +6065,24 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookDeliveryControllerReceiveResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -4682,6 +6160,10 @@ export const BookDeliveryControllerCancelBody = zod.object({
   cancelReason: zod.string().nullish(),
   keepAsWantToBuy: zod.boolean().default(bookDeliveryControllerCancelBodyKeepAsWantToBuyDefault),
 });
+
+export const bookDeliveryControllerCancelResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 
 export const BookDeliveryControllerCancelResponse = zod.object({
   ageCategory: zod.enum([
@@ -4775,6 +6257,7 @@ export const BookDeliveryControllerCancelResponse = zod.object({
   illustrator: zod.string().nullable(),
   isbn: zod.string().nullable(),
   isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
   isInReadingQueue: zod.boolean(),
   language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
   lists: zod.array(
@@ -4826,6 +6309,24 @@ export const BookDeliveryControllerCancelResponse = zod.object({
     .nullable(),
   queuePriority: zod
     .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookDeliveryControllerCancelResponseQueuePriorityTargetDateRegExp)
     .nullable(),
   readingProgress: zod
     .object({
@@ -4888,6 +6389,112 @@ export const BookDeliveryControllerCancelResponse = zod.object({
   updatedAt: zod.string(),
   userId: zod.string(),
 });
+
+/**
+ * @summary List the store links of a book with its best offer
+ */
+export const BookStoreLinkControllerGetBookStoreLinksParams = zod.object({
+  id: zod.string(),
+});
+
+export const BookStoreLinkControllerGetBookStoreLinksResponse = zod.object({
+  bestOffer: zod
+    .object({
+      currency: zod.enum(["UAH", "EUR", "USD"]),
+      price: zod.number(),
+    })
+    .nullable(),
+  storeLinks: zod.array(
+    zod.object({
+      bookId: zod.string(),
+      createdAt: zod.string(),
+      currency: zod
+        .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+        .nullable(),
+      id: zod.string(),
+      price: zod.number().nullable(),
+      storeName: zod.string(),
+      updatedAt: zod.string(),
+      url: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Add a store link to a book
+ */
+export const BookStoreLinkControllerAddLinkParams = zod.object({
+  id: zod.string(),
+});
+
+export const bookStoreLinkControllerAddLinkBodyPriceExclusiveMin = 0;
+export const bookStoreLinkControllerAddLinkBodyPriceMax = 99999999.99;
+
+export const bookStoreLinkControllerAddLinkBodyUrlMax = 300;
+
+export const BookStoreLinkControllerAddLinkBody = zod.object({
+  currency: zod
+    .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+    .nullish(),
+  price: zod
+    .number()
+    .gt(bookStoreLinkControllerAddLinkBodyPriceExclusiveMin)
+    .max(bookStoreLinkControllerAddLinkBodyPriceMax)
+    .nullish(),
+  storeName: zod.string(),
+  url: zod.string().max(bookStoreLinkControllerAddLinkBodyUrlMax),
+});
+
+export const BookStoreLinkControllerAddLinkResponse = zod.void();
+
+/**
+ * @summary Edit a store link of a book
+ */
+export const BookStoreLinkControllerEditLinkParams = zod.object({
+  id: zod.string(),
+  linkId: zod.string(),
+});
+
+export const bookStoreLinkControllerEditLinkBodyPriceExclusiveMin = 0;
+export const bookStoreLinkControllerEditLinkBodyPriceMax = 99999999.99;
+
+export const bookStoreLinkControllerEditLinkBodyUrlMax = 300;
+
+export const BookStoreLinkControllerEditLinkBody = zod.object({
+  currency: zod
+    .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+    .nullish(),
+  price: zod
+    .number()
+    .gt(bookStoreLinkControllerEditLinkBodyPriceExclusiveMin)
+    .max(bookStoreLinkControllerEditLinkBodyPriceMax)
+    .nullish(),
+  storeName: zod.string().optional(),
+  url: zod.string().max(bookStoreLinkControllerEditLinkBodyUrlMax).optional(),
+});
+
+export const BookStoreLinkControllerEditLinkResponse = zod.object({
+  bookId: zod.string(),
+  createdAt: zod.string(),
+  currency: zod
+    .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+    .nullable(),
+  id: zod.string(),
+  price: zod.number().nullable(),
+  storeName: zod.string(),
+  updatedAt: zod.string(),
+  url: zod.string(),
+});
+
+/**
+ * @summary Remove a store link from a book
+ */
+export const BookStoreLinkControllerDeleteLinkParams = zod.object({
+  id: zod.string(),
+  linkId: zod.string(),
+});
+
+export const BookStoreLinkControllerDeleteLinkResponse = zod.void();
 
 /**
  * @summary Set the favorite flag on the selected books
@@ -4990,7 +6597,7 @@ export const bulkBooksControllerTagsBodyBookIdsItemRegExp = new RegExp(
 );
 export const bulkBooksControllerTagsBodyBookIdsMax = 100;
 
-export const bulkBooksControllerTagsBodyTagsMax = 12;
+export const bulkBooksControllerTagsBodyTagsMax = 15;
 
 export const BulkBooksControllerTagsBody = zod.object({
   bookIds: zod

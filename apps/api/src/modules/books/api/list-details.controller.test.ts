@@ -340,6 +340,35 @@ describe("GET /api/lists/:listId", () => {
     expect(titles(byAuthor.body)).toEqual(["Foundation"]);
   });
 
+  it("filters books within the list by a genre display name", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createList(userId, "Autumn reads");
+
+    await prisma.genre.create({
+      data: {
+        groupKey: "fiction",
+        groupName: "Fiction",
+        isDefault: true,
+        key: "fentezi",
+        name: "Фентезі",
+        normalizedName: "фентезі",
+        userId: null,
+      },
+    });
+    const fantasy = await prisma.book.create({
+      data: { firstAuthorName: "", genres: ["fentezi"], title: "Dune", userId },
+    });
+    const other = await createBook({ title: "Foundation", userId });
+    await addToList(listId, fantasy.id, 0);
+    await addToList(listId, other, 1);
+
+    const res = await getDetail(accessToken, listId, { search: "Фентезі" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.totalCount).toBe(1);
+    expect(titles(res.body)).toEqual(["Dune"]);
+  });
+
   it("paginates the books and reflects the filtered total count", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const listId = await createList(userId, "Autumn reads");

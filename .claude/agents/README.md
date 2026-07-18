@@ -38,6 +38,12 @@ Subagents are useful for:
 | --------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
 | [`feature-context-curator`](./feature-context-curator.md) | opus  | Writing or updating end-to-end feature docs in `docs/features/<name>.md` — FE↔shared↔BE full map |
 
+### Release & operations (can Write/Edit + run git/gh/docker)
+
+| Agent                                     | Model | When to use                                                                                                                                                                                   |
+| ----------------------------------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`release-manager`](./release-manager.md) | opus  | Promote/ship `dev` → `stage` → `prod`: release-delta, per-migration data-risk, prod-copy migration pre-flight, commit-tree promotion, CI gates, deploy, health verify. Halts on any red gate. |
+
 ### Investigation & review (read-only)
 
 | Agent                                                               | Model | When to use                                                                                      |

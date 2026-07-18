@@ -12,6 +12,8 @@ import { GenreIcon, isGenreIconName, UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
+import { useDedicationActions } from "@/features/dedications";
+import { Link } from "@/i18n/navigation";
 import { readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
@@ -314,6 +316,7 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
                     />
                   </button>
                 ) : null}
+                <DedicationActions book={book} dedication={dedication} />
               </div>
             </div>
           ) : hasGenres ? (
@@ -371,6 +374,45 @@ function BookDetailsCover({ alt, src, title }: { alt: string; src?: string; titl
           unoptimized
         />
       )}
+    </div>
+  );
+}
+
+function DedicationActions({ book, dedication }: { book: BookView; dedication: string }) {
+  const t = useTranslations("books.details");
+  const tDedication = useTranslations("dedications.card");
+  const { copy, isTogglingFavorite, toggleFavorite } = useDedicationActions();
+
+  const favoriteLabel = book.isFavoriteDedication
+    ? tDedication("removeFavorite")
+    : tDedication("addFavorite");
+
+  return (
+    <div className="relative z-10 mt-3 flex flex-wrap items-center gap-1">
+      <Button onClick={() => void copy(dedication)} size="sm" variant="ghost">
+        <UiIcon name="copy" size={15} />
+        {t("dedicationCopy")}
+      </Button>
+      <Button
+        aria-pressed={book.isFavoriteDedication}
+        disabled={isTogglingFavorite}
+        onClick={() => toggleFavorite(book)}
+        size="sm"
+        variant="ghost"
+      >
+        <UiIcon
+          className={book.isFavoriteDedication ? "text-favorite" : undefined}
+          name={book.isFavoriteDedication ? "heart-fill" : "heart"}
+          size={15}
+        />
+        {favoriteLabel}
+      </Button>
+      <Button asChild size="sm" variant="ghost">
+        <Link href="/dedications">
+          <UiIcon name="arrow-right" size={15} />
+          {t("dedicationAllLink")}
+        </Link>
+      </Button>
     </div>
   );
 }

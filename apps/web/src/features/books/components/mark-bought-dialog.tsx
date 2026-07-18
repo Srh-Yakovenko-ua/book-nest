@@ -2,6 +2,7 @@
 
 import type { BookView, Currency, MarkBoughtInput } from "@app/shared";
 
+import { STORE_LINK_ERROR_CODES } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
@@ -48,6 +49,7 @@ const PRICE_MAX = 99999999.99;
 type MarkBoughtDialogProps = {
   book: BookView;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
   open: boolean;
 };
 
@@ -67,11 +69,13 @@ type MarkBoughtValues = {
   storeName: string;
 };
 
-export function MarkBoughtDialog({ book, onOpenChange, open }: MarkBoughtDialogProps) {
+export function MarkBoughtDialog({ book, onOpenChange, onSuccess, open }: MarkBoughtDialogProps) {
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className="sm:max-w-md">
-        {open ? <MarkBoughtForm book={book} onDone={() => onOpenChange(false)} /> : null}
+        {open ? (
+          <MarkBoughtForm book={book} onDone={() => onOpenChange(false)} onSuccess={onSuccess} />
+        ) : null}
       </DialogContent>
     </Dialog>
   );
@@ -115,7 +119,15 @@ function formatPrice(price: number, currency: Currency, locale: string): string 
   return `${new Intl.NumberFormat(locale).format(price)} ${currency}`;
 }
 
-function MarkBoughtForm({ book, onDone }: { book: BookView; onDone: () => void }) {
+function MarkBoughtForm({
+  book,
+  onDone,
+  onSuccess,
+}: {
+  book: BookView;
+  onDone: () => void;
+  onSuccess?: () => void;
+}) {
   const t = useTranslations("books.details.ownership.buyConfirm");
   const tDialog = useTranslations("books.details.ownership.buyDialog");
   const tErrors = useTranslations("books.details.ownership.errors");
@@ -166,9 +178,17 @@ function MarkBoughtForm({ book, onDone }: { book: BookView; onDone: () => void }
     markBought.mutate(
       { id: book.id, payload: buildPayload(values, usesOther) },
       {
-        onError: (error) =>
-          setServerError(error instanceof ApiError ? error.message : tErrors("generic")),
-        onSuccess: onDone,
+        onError: (error) => {
+          if (error instanceof ApiError && error.code === STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST) {
+            setServerError(tErrors("notInWishlist"));
+            return;
+          }
+          setServerError(error instanceof ApiError ? error.message : tErrors("generic"));
+        },
+        onSuccess: () => {
+          onSuccess?.();
+          onDone();
+        },
       },
     );
   });
@@ -255,7 +275,10 @@ function MarkBoughtForm({ book, onDone }: { book: BookView; onDone: () => void }
                 render={({ field }) => (
                   <div className="w-full sm:w-28">
                     <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="h-10 w-full" id="buy-currency">
+                      <SelectTrigger
+                        className="h-10 w-full data-[size=default]:h-10"
+                        id="buy-currency"
+                      >
                         <SelectValue placeholder={tDialog("currencyPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>

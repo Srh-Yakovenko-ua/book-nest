@@ -6,7 +6,13 @@ import {
 } from "@app/shared";
 import { z } from "zod";
 
+import { validateQueuePriority } from "./queue-priority";
+
 export { CreateBookInputSchema, NewSeriesInputSchema, UpdateBookInputSchema };
+
+export const CreateBookFormSchema = CreateBookInputSchema.superRefine(validateQueuePriority);
+
+export const UpdateBookFormSchema = UpdateBookInputSchema.superRefine(validateQueuePriority);
 
 export type AuthorSelection =
   | { id: string; kind: "catalog"; name: string }
@@ -77,6 +83,9 @@ export const createBookFormDefaults = {
   loanInfo: {},
   ownershipStatus: "none",
   purchaseInfo: { currency: "UAH" },
+  queuePriorityReason: null,
+  queuePriorityReasonCustomText: null,
+  queuePriorityTargetDate: null,
   readingProgress: {},
   readingStatus: "not_started",
   tags: [],

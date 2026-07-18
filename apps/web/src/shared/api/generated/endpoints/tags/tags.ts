@@ -18,11 +18,187 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { TagsControllerSearchParams } from "../../model";
+import type {
+  CreateTagDto,
+  TagCatalogViewDto,
+  TagStatsViewDto,
+  TagsControllerSearchParams,
+  UpdateTagDto,
+} from "../../model";
 
 import { customInstance } from "../../../mutator";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+export type tagsControllerCreateResponse201 = {
+  data: TagCatalogViewDto;
+  status: 201;
+};
+
+export type tagsControllerCreateResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type tagsControllerCreateResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type tagsControllerCreateResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type tagsControllerCreateResponseSuccess = tagsControllerCreateResponse201 & {
+  headers: Headers;
+};
+export type tagsControllerCreateResponseError = (
+  | tagsControllerCreateResponse400
+  | tagsControllerCreateResponse401
+  | tagsControllerCreateResponse409
+) & {
+  headers: Headers;
+};
+
+export type tagsControllerCreateResponse =
+  | tagsControllerCreateResponseSuccess
+  | tagsControllerCreateResponseError;
+
+export const getTagsControllerCreateUrl = () => {
+  return `/api/tags`;
+};
+
+/**
+ * @summary Create a personal tag for the current user
+ */
+export const tagsControllerCreate = async (
+  createTagDto: CreateTagDto,
+  options?: RequestInit,
+): Promise<tagsControllerCreateResponse> => {
+  return customInstance<tagsControllerCreateResponse>(getTagsControllerCreateUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createTagDto),
+  });
+};
+
+export const getTagsControllerCreateQueryKey = (createTagDto?: CreateTagDto) => {
+  return ["POST", `/api/tags`, createTagDto] as const;
+};
+
+export const getTagsControllerCreateQueryOptions = <
+  TData = Awaited<ReturnType<typeof tagsControllerCreate>>,
+  TError = void,
+>(
+  createTagDto: CreateTagDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getTagsControllerCreateQueryKey(createTagDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof tagsControllerCreate>>> = ({ signal }) =>
+    tagsControllerCreate(createTagDto, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof tagsControllerCreate>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type TagsControllerCreateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof tagsControllerCreate>>
+>;
+export type TagsControllerCreateQueryError = void;
+
+export function useTagsControllerCreate<
+  TData = Awaited<ReturnType<typeof tagsControllerCreate>>,
+  TError = void,
+>(
+  createTagDto: CreateTagDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCreate>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerCreate>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerCreate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerCreate<
+  TData = Awaited<ReturnType<typeof tagsControllerCreate>>,
+  TError = void,
+>(
+  createTagDto: CreateTagDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCreate>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerCreate>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerCreate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerCreate<
+  TData = Awaited<ReturnType<typeof tagsControllerCreate>>,
+  TError = void,
+>(
+  createTagDto: CreateTagDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Create a personal tag for the current user
+ */
+
+export function useTagsControllerCreate<
+  TData = Awaited<ReturnType<typeof tagsControllerCreate>>,
+  TError = void,
+>(
+  createTagDto: CreateTagDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerCreate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTagsControllerCreateQueryOptions(createTagDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export type tagsControllerSearchResponse200 = {
   data: void;
@@ -180,6 +356,335 @@ export function useTagsControllerSearch<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getTagsControllerSearchQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type tagsControllerStatsResponse200 = {
+  data: TagStatsViewDto[];
+  status: 200;
+};
+
+export type tagsControllerStatsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type tagsControllerStatsResponseSuccess = tagsControllerStatsResponse200 & {
+  headers: Headers;
+};
+export type tagsControllerStatsResponseError = tagsControllerStatsResponse401 & {
+  headers: Headers;
+};
+
+export type tagsControllerStatsResponse =
+  | tagsControllerStatsResponseSuccess
+  | tagsControllerStatsResponseError;
+
+export const getTagsControllerStatsUrl = () => {
+  return `/api/tags/stats`;
+};
+
+/**
+ * @summary Get per-tag usage statistics for the current user
+ */
+export const tagsControllerStats = async (
+  options?: RequestInit,
+): Promise<tagsControllerStatsResponse> => {
+  return customInstance<tagsControllerStatsResponse>(getTagsControllerStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getTagsControllerStatsQueryKey = () => {
+  return [`/api/tags/stats`] as const;
+};
+
+export const getTagsControllerStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+  TError = void,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>>;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getTagsControllerStatsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof tagsControllerStats>>> = ({ signal }) =>
+    tagsControllerStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof tagsControllerStats>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type TagsControllerStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof tagsControllerStats>>
+>;
+export type TagsControllerStatsQueryError = void;
+
+export function useTagsControllerStats<
+  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerStats>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerStats>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerStats<
+  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerStats>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerStats>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerStats<
+  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get per-tag usage statistics for the current user
+ */
+
+export function useTagsControllerStats<
+  TData = Awaited<ReturnType<typeof tagsControllerStats>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerStats>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTagsControllerStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export type tagsControllerUpdateResponse200 = {
+  data: TagCatalogViewDto;
+  status: 200;
+};
+
+export type tagsControllerUpdateResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type tagsControllerUpdateResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type tagsControllerUpdateResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type tagsControllerUpdateResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type tagsControllerUpdateResponseSuccess = tagsControllerUpdateResponse200 & {
+  headers: Headers;
+};
+export type tagsControllerUpdateResponseError = (
+  | tagsControllerUpdateResponse400
+  | tagsControllerUpdateResponse401
+  | tagsControllerUpdateResponse404
+  | tagsControllerUpdateResponse409
+) & {
+  headers: Headers;
+};
+
+export type tagsControllerUpdateResponse =
+  | tagsControllerUpdateResponseSuccess
+  | tagsControllerUpdateResponseError;
+
+export const getTagsControllerUpdateUrl = (id: string) => {
+  return `/api/tags/${id}`;
+};
+
+/**
+ * @summary Update a tag of the current user
+ */
+export const tagsControllerUpdate = async (
+  id: string,
+  updateTagDto: UpdateTagDto,
+  options?: RequestInit,
+): Promise<tagsControllerUpdateResponse> => {
+  return customInstance<tagsControllerUpdateResponse>(getTagsControllerUpdateUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateTagDto),
+  });
+};
+
+export const getTagsControllerUpdateQueryKey = (id: string, updateTagDto?: UpdateTagDto) => {
+  return ["PATCH", `/api/tags/${id}`, updateTagDto] as const;
+};
+
+export const getTagsControllerUpdateQueryOptions = <
+  TData = Awaited<ReturnType<typeof tagsControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateTagDto: UpdateTagDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getTagsControllerUpdateQueryKey(id, updateTagDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof tagsControllerUpdate>>> = ({ signal }) =>
+    tagsControllerUpdate(id, updateTagDto, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof tagsControllerUpdate>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type TagsControllerUpdateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof tagsControllerUpdate>>
+>;
+export type TagsControllerUpdateQueryError = void;
+
+export function useTagsControllerUpdate<
+  TData = Awaited<ReturnType<typeof tagsControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateTagDto: UpdateTagDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerUpdate>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerUpdate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerUpdate<
+  TData = Awaited<ReturnType<typeof tagsControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateTagDto: UpdateTagDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerUpdate>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof tagsControllerUpdate>>,
+          TError,
+          Awaited<ReturnType<typeof tagsControllerUpdate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTagsControllerUpdate<
+  TData = Awaited<ReturnType<typeof tagsControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateTagDto: UpdateTagDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Update a tag of the current user
+ */
+
+export function useTagsControllerUpdate<
+  TData = Awaited<ReturnType<typeof tagsControllerUpdate>>,
+  TError = void,
+>(
+  id: string,
+  updateTagDto: UpdateTagDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof tagsControllerUpdate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTagsControllerUpdateQueryOptions(id, updateTagDto, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

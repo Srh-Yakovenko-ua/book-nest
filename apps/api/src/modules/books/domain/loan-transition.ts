@@ -16,7 +16,7 @@ import type {
 import { parseIsoDate } from "../../../core/iso-date.js";
 
 export type LoanTransitionInput =
-  | { fields: CreateLoanInput; kind: "create"; today: string }
+  | { fields: CreateLoanInput; kind: "create" }
   | { kind: "return"; now: Date; ownershipStatus: OwnershipStatus };
 
 export function buildLoanEditData({
@@ -56,7 +56,7 @@ export function computeLoanChange(input: LoanTransitionInput): LoanChangePatch {
       return {
         book: { ownershipStatus: type },
         kind: "create",
-        loan: { ...buildLoanInfo(input.fields, input.today), type },
+        loan: { ...buildLoanInfo(input.fields), type },
       };
     }
     case "return":
@@ -74,11 +74,11 @@ export function computeLoanChange(input: LoanTransitionInput): LoanChangePatch {
   }
 }
 
-function buildLoanInfo(fields: CreateLoanInput, today: string): CreateLoanInfoData {
+function buildLoanInfo(fields: CreateLoanInput): CreateLoanInfoData {
   return {
     contact: fields.contact ?? null,
     expectedReturnDate: toReturnDate(fields.expectedReturnDate),
-    loanDate: parseIsoDate(fields.loanDate ?? today),
+    loanDate: parseIsoDate(fields.loanDate),
     note: fields.note ?? null,
     personName: fields.personName,
     remindToReturn: fields.remindToReturn ?? false,

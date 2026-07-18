@@ -70,6 +70,7 @@ describe("toDeliveryView", () => {
       storeName: "Yakaboo",
       trackingNumber: "TTN-1",
       trackingUrl: "https://track.example.com",
+      updatedAt: "2026-02-01T10:00:00.000Z",
     });
   });
 

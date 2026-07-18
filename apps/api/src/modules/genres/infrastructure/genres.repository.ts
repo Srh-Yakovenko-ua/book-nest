@@ -1,13 +1,40 @@
 import { Injectable } from "@nestjs/common";
 
-import type { Prisma } from "../../../generated/prisma/client.js";
-import type { GenreModel } from "../../../generated/prisma/models.js";
+import type { GenreModel, MediaAssetModel } from "../../../generated/prisma/models.js";
+import type { GenreStatsAggregateRow } from "../domain/genre-stats.mapper.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+
+export type GenreCoverRow = {
+  coverMedia: MediaAssetModel;
+  genres: string[];
+};
+
+const READ_STATUS = "finished";
+const WANT_TO_BUY_STATUS = "want_to_buy";
 
 @Injectable()
 export class GenresRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  aggregateGenreStats(userId: string): Promise<GenreStatsAggregateRow[]> {
+    return this.prisma.$queryRaw<GenreStatsAggregateRow[]>(Prisma.sql`
+      SELECT
+        genre_key AS "key",
+        count(*)::int AS "booksCount",
+        (count(*) FILTER (WHERE book.reading_status = ${READ_STATUS}))::int AS "readCount",
+        (count(*) FILTER (WHERE book.queue_position IS NOT NULL))::int AS "readingQueueCount",
+        (count(*) FILTER (WHERE book.ownership_status = ${WANT_TO_BUY_STATUS}))::int AS "wantToBuyCount",
+        avg(progress.rating) AS "averageRating"
+      FROM books book
+      CROSS JOIN unnest(book.genres) AS genre_key
+      LEFT JOIN book_reading_progress progress ON progress.book_id = book.id
+      WHERE book.user_id = ${userId}::uuid
+      GROUP BY genre_key
+      ORDER BY count(*) DESC, genre_key ASC
+    `);
+  }
 
   createCustom(
     userId: string,
@@ -105,6 +132,24 @@ export class GenresRepository {
       orderBy: [{ groupKey: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
       where: { OR: [{ userId: null }, { userId }] },
     });
+  }
+
+  async listGenreCovers({
+    scanLimit,
+    userId,
+  }: {
+    scanLimit: number;
+    userId: string;
+  }): Promise<GenreCoverRow[]> {
+    const rows = await this.prisma.book.findMany({
+      orderBy: { createdAt: "desc" },
+      select: { coverMedia: true, genres: true },
+      take: scanLimit,
+      where: { coverMediaId: { not: null }, genres: { isEmpty: false }, userId },
+    });
+    return rows.flatMap((row) =>
+      row.coverMedia === null ? [] : [{ coverMedia: row.coverMedia, genres: row.genres }],
+    );
   }
 
   async recentGenreKeys({ limit, userId }: { limit: number; userId: string }): Promise<string[]> {

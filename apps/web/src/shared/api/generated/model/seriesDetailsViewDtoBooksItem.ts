@@ -5,20 +5,27 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { SeriesDetailsViewDtoBooksItemAgeCategory } from "./seriesDetailsViewDtoBooksItemAgeCategory";
 import type { SeriesDetailsViewDtoBooksItemAuthorsItem } from "./seriesDetailsViewDtoBooksItemAuthorsItem";
 import type { SeriesDetailsViewDtoBooksItemCover } from "./seriesDetailsViewDtoBooksItemCover";
+import type { SeriesDetailsViewDtoBooksItemFormatsItem } from "./seriesDetailsViewDtoBooksItemFormatsItem";
 import type { SeriesDetailsViewDtoBooksItemOwnershipStatus } from "./seriesDetailsViewDtoBooksItemOwnershipStatus";
 import type { SeriesDetailsViewDtoBooksItemReadingStatus } from "./seriesDetailsViewDtoBooksItemReadingStatus";
+import type { SeriesDetailsViewDtoBooksItemTagsItem } from "./seriesDetailsViewDtoBooksItemTagsItem";
 
 export type SeriesDetailsViewDtoBooksItem = {
+  ageCategory: SeriesDetailsViewDtoBooksItemAgeCategory;
   authors: SeriesDetailsViewDtoBooksItemAuthorsItem[];
   /** @nullable */
   cover?: SeriesDetailsViewDtoBooksItemCover;
   createdAt: string;
   /** @nullable */
   currentPage: number | null;
+  formats: SeriesDetailsViewDtoBooksItemFormatsItem[];
+  genres: string[];
   id: string;
   isFavorite: boolean;
+  isInReadingQueue: boolean;
   /** @nullable */
   originalTitle: string | null;
   ownershipStatus: SeriesDetailsViewDtoBooksItemOwnershipStatus;
@@ -27,7 +34,10 @@ export type SeriesDetailsViewDtoBooksItem = {
   /** @nullable */
   partNumber: number | null;
   /** @nullable */
+  publicationYear: number | null;
+  /** @nullable */
   rating: number | null;
   readingStatus: SeriesDetailsViewDtoBooksItemReadingStatus;
+  tags: SeriesDetailsViewDtoBooksItemTagsItem[];
   title: string;
 };

@@ -88,6 +88,39 @@ function patchSeries(accessToken: string, id: string, body: Record<string, unkno
     .send(body);
 }
 
+async function seedCardFieldsSeries(accessToken: string): Promise<string> {
+  const first = await createBook(accessToken, {
+    ageCategory: "12_plus",
+    authors: [{ name: "Sarah J. Maas" }],
+    bookType: "series_part",
+    formats: ["paper", "ebook"],
+    newSeries: { name: "Card Fields Series", status: "ongoing" },
+    partNumber: 1,
+    publicationYear: 2018,
+    publisherName: "Vivat",
+    tags: ["Epic"],
+    title: "Card One",
+  });
+  const seriesId = first.body.series.id;
+  await createBook(accessToken, {
+    authors: [{ name: "Sarah J. Maas" }],
+    bookType: "series_part",
+    partNumber: 2,
+    publisherName: "A-BA-BA-HA",
+    seriesId,
+    title: "Card Two",
+  });
+  await createBook(accessToken, {
+    authors: [{ name: "Sarah J. Maas" }],
+    bookType: "series_part",
+    partNumber: 3,
+    publisherName: "Vivat",
+    seriesId,
+    title: "Card Three",
+  });
+  return seriesId;
+}
+
 async function seedDetailSeries(accessToken: string): Promise<string> {
   const first = await createBook(accessToken, {
     authors: [{ name: "Sarah J. Maas" }],
@@ -418,6 +451,29 @@ describe("GET /api/series/:id", () => {
       readingCount: 1,
       unreadCount: 1,
     });
+  });
+
+  it("exposes the card fields on each book and the deduped sorted series publishers", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const seriesId = await seedCardFieldsSeries(accessToken);
+
+    const res = await getSeries(accessToken, seriesId);
+
+    expect(res.status).toBe(200);
+    expect(SeriesDetailsViewSchema.safeParse(res.body).success).toBe(true);
+    expect(res.body.books[0]).toMatchObject({
+      ageCategory: "12_plus",
+      formats: ["paper", "ebook"],
+      genres: [],
+      isInReadingQueue: false,
+      publicationYear: 2018,
+      tags: [expect.objectContaining({ name: "Epic" })],
+    });
+    expect(res.body.publishers.map((publisher: { name: string }) => publisher.name)).toEqual([
+      "A-BA-BA-HA",
+      "Vivat",
+    ]);
+    expect(res.body.publishers[0].id).toMatch(UUID);
   });
 
   it("orders a linked book without a part number last", async () => {

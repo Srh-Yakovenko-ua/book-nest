@@ -379,7 +379,7 @@ export function LibraryAdvancedFilters({
             >
               <SelectTrigger
                 aria-label={t("sections.bookType")}
-                className="h-10 w-full"
+                className="h-10 w-full data-[size=default]:h-10"
                 isClearable={draft.bookType !== null}
                 onClear={() => setDraft((prev) => ({ ...prev, bookType: null }))}
               >
@@ -490,7 +490,7 @@ export function LibraryAdvancedFilters({
             >
               <SelectTrigger
                 aria-label={t("sections.cover")}
-                className="h-10 w-full"
+                className="h-10 w-full data-[size=default]:h-10"
                 isClearable={draft.hasCover !== null}
                 onClear={() => setDraft((prev) => ({ ...prev, hasCover: null }))}
               >

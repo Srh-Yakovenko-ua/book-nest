@@ -1,6 +1,13 @@
-import type { Paginator, SeriesDetailsView, SeriesOverviewView, SeriesView } from "@app/shared";
+import type {
+  FavoriteSeriesContinuationsView,
+  Paginator,
+  SeriesDetailsView,
+  SeriesOverviewView,
+  SeriesView,
+} from "@app/shared";
 
 import {
+  FavoriteSeriesContinuationsQuerySchema,
   NewSeriesInputSchema,
   SeriesSearchQuerySchema,
   UpdateSeriesInputSchema,
@@ -42,9 +49,11 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { SeriesService } from "../application/series.service.js";
+import { FavoriteSeriesContinuationsQueryDto } from "./input-dto/favorite-series-continuations-query.input-dto.js";
 import { NewSeriesInputDto } from "./input-dto/new-series.input-dto.js";
 import { SeriesSearchQueryDto } from "./input-dto/series-search-query.input-dto.js";
 import { UpdateSeriesInputDto } from "./input-dto/update-series.input-dto.js";
+import { FavoriteSeriesContinuationsViewDto } from "./view-dto/favorite-series-continuations.view-dto.js";
 import { PaginatedSeriesDto } from "./view-dto/paginated-series.view-dto.js";
 import { SeriesDetailsViewDto } from "./view-dto/series-details.view-dto.js";
 import { SeriesOverviewViewDto } from "./view-dto/series-overview.view-dto.js";
@@ -106,6 +115,24 @@ export class SeriesController {
   @UseGuards(JwtAccessGuard)
   overview(@CurrentUser() user: AuthenticatedUser): Promise<SeriesOverviewView> {
     return this.seriesService.overview(user.id);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: "Continue-your-favorite-series items for the current user",
+    type: FavoriteSeriesContinuationsViewDto,
+  })
+  @ApiOperation({ summary: "Get the next book to read in the current user favorite series" })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("favorite-continuations")
+  @UseGuards(JwtAccessGuard)
+  favoriteContinuations(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(FavoriteSeriesContinuationsQuerySchema))
+    query: FavoriteSeriesContinuationsQueryDto,
+  ): Promise<FavoriteSeriesContinuationsView> {
+    return this.seriesService.favoriteContinuations(user.id, query);
   }
 
   @ApiBearerAuth()

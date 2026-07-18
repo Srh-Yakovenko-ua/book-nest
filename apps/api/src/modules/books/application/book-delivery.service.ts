@@ -5,6 +5,7 @@ import type {
   DeliveryView,
   Nullable,
   OwnershipStatus,
+  ReceiveDeliveryInput,
   UpdateDeliveryInput,
 } from "@app/shared";
 
@@ -133,11 +134,16 @@ export class BookDeliveryService {
     return deliveries.map(toDeliveryView);
   }
 
-  async receive(userId: string, bookId: string, deliveryId: string): Promise<BookView> {
+  async receive(
+    userId: string,
+    bookId: string,
+    deliveryId: string,
+    input: ReceiveDeliveryInput,
+  ): Promise<BookView> {
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
     this.assertActiveRecord(book, deliveryId);
 
-    const transition = computeReceiveDelivery(new Date());
+    const transition = computeReceiveDelivery({ now: new Date(), receivedAt: input.receivedAt });
     const outcome = await this.bookDeliveriesRepository.applyRecordChange(
       userId,
       bookId,

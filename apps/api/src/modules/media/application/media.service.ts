@@ -104,12 +104,19 @@ export class MediaService {
     if (asset === null) {
       throw new NotFoundError("Media not found");
     }
-    await this.mediaRepository.deleteOwned({ id, userId });
-    const keys =
-      asset.thumbGeneratedAt === null
-        ? [asset.storageKey]
-        : [asset.storageKey, thumbKey(asset.storageKey)];
-    await this.removeObjects(keys);
+    await this.removeAsset(asset);
+  }
+
+  async deleteIfUnreferenced({ id, userId }: MediaOwnerRef): Promise<void> {
+    const asset = await this.mediaRepository.findOwnedById({ id, userId });
+    if (asset === null) {
+      return;
+    }
+    const references = await this.mediaRepository.countReferences(id);
+    if (references > 0) {
+      return;
+    }
+    await this.removeAsset(asset);
   }
 
   async generateThumbnail({ assetId, userId }: GenerateThumbJob): Promise<void> {
@@ -224,6 +231,15 @@ export class MediaService {
       log.warn({ err: error }, "image processing failed");
       throw mediaError("Image is corrupted or unsupported", MEDIA_ERROR_CODES.corruptedImage);
     }
+  }
+
+  private async removeAsset(asset: MediaAssetModel): Promise<void> {
+    await this.mediaRepository.deleteOwned({ id: asset.id, userId: asset.userId });
+    const keys =
+      asset.thumbGeneratedAt === null
+        ? [asset.storageKey]
+        : [asset.storageKey, thumbKey(asset.storageKey)];
+    await this.removeObjects(keys);
   }
 
   private async removeObjects(keys: string[]): Promise<void> {

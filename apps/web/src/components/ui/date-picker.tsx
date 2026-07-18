@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { enUS, uk } from "date-fns/locale";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { type DropdownProps, type Locale } from "react-day-picker";
+import { type DropdownProps, type Locale, type Matcher } from "react-day-picker";
 
 import { UiIcon } from "@/components/icons";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,9 +21,11 @@ import { cn } from "@/lib/utils";
 type DatePickerProps = {
   allowFuture?: boolean;
   ariaLabel?: string;
+  className?: string;
   defaultMonth?: Date;
   describedBy?: string;
   disabled?: boolean;
+  disablePast?: boolean;
   endMonth?: Date;
   id: string;
   invalid?: boolean;
@@ -38,9 +40,11 @@ const DATE_FNS_LOCALES: Record<string, Locale> = { en: enUS, uk };
 export function DatePicker({
   allowFuture = false,
   ariaLabel,
+  className,
   defaultMonth,
   describedBy,
   disabled,
+  disablePast = false,
   endMonth,
   id,
   invalid,
@@ -55,6 +59,10 @@ export function DatePicker({
   const [open, setOpen] = useState(false);
 
   const today = new Date();
+  const disabledMatchers: Matcher[] = [
+    ...(allowFuture ? [] : [{ after: today }]),
+    ...(disablePast ? [{ before: today }] : []),
+  ];
 
   return (
     <Popover onOpenChange={setOpen} open={open}>
@@ -71,6 +79,7 @@ export function DatePicker({
           invalid === true &&
             "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/15 data-[state=open]:border-destructive data-[state=open]:ring-destructive/15",
           value ? "text-foreground" : "text-muted-foreground",
+          className,
         )}
         disabled={disabled}
         id={id}
@@ -112,7 +121,7 @@ export function DatePicker({
           }}
           components={{ Dropdown: CalendarDropdown }}
           defaultMonth={value ?? defaultMonth}
-          disabled={allowFuture ? undefined : { after: today }}
+          disabled={disabledMatchers.length > 0 ? disabledMatchers : undefined}
           endMonth={endMonth}
           labels={{
             labelMonthDropdown: () => t("monthLabel"),

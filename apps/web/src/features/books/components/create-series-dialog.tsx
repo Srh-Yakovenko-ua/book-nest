@@ -1,5 +1,7 @@
 "use client";
 
+import type { SeriesStatus } from "@app/shared";
+
 import { SERIES_DESCRIPTION_MAX } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { type FormEvent, useState } from "react";
@@ -23,11 +25,11 @@ import {
 
 import type { AuthorSelection, SeriesSelection } from "../model/create-book-form";
 
-import { BOOK_GENRES_MAX, SERIES_STATUS_OPTIONS } from "../model/book-classification-fields";
+import { BOOK_GENRES_MAX } from "../model/book-classification-fields";
 import { authorSelectionToReference, NewSeriesInputSchema } from "../model/create-book-form";
 import { AuthorsField } from "./authors-field";
 import { GenresField } from "./genres-field";
-import { StatusChipGroup } from "./status-chip-group";
+import { SeriesStatusChips } from "./series-status-chips";
 
 const NAME_MAX = 120;
 const DESCRIPTION_MAX = SERIES_DESCRIPTION_MAX;
@@ -48,8 +50,6 @@ type CreateSeriesFormProps = {
   onCancel: () => void;
   onConfirm: (selection: Extract<SeriesSelection, { kind: "new" }>) => void;
 };
-
-type SeriesStatusValue = (typeof SERIES_STATUS_OPTIONS)[number];
 
 export function CreateSeriesDialog({
   authorSelections,
@@ -91,7 +91,7 @@ function CreateSeriesForm({
   const t = useTranslations("books");
   const [name, setName] = useState(initialName);
   const [authors, setAuthors] = useState<AuthorSelection[]>(initialAuthors);
-  const [status, setStatus] = useState<SeriesStatusValue>("unknown");
+  const [status, setStatus] = useState<SeriesStatus>("unknown");
   const [genres, setGenres] = useState<string[]>([]);
   const [totalBooks, setTotalBooks] = useState<number | undefined>(undefined);
   const [description, setDescription] = useState("");
@@ -175,15 +175,7 @@ function CreateSeriesForm({
 
       <div className="flex flex-col gap-2">
         <Label>{t("series.create.status")}</Label>
-        <StatusChipGroup
-          label={t("series.create.status")}
-          onValueChange={(value) => setStatus(value as SeriesStatusValue)}
-          options={SERIES_STATUS_OPTIONS.map((value) => ({
-            label: t(`series.statusLabels.${value}`),
-            value,
-          }))}
-          value={status}
-        />
+        <SeriesStatusChips label={t("series.create.status")} onChange={setStatus} value={status} />
       </div>
 
       <div className="flex flex-col gap-2">

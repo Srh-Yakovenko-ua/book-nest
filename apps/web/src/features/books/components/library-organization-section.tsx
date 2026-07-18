@@ -25,14 +25,13 @@ import {
   draftListValue,
   type ListDraft,
   QUEUE_PRIORITY_DEFAULT,
-  QUEUE_PRIORITY_OPTIONS,
   splitListSelection,
 } from "../model/book-organization-fields";
 import { shouldShowReadingQueue } from "../model/reading-queue-visibility";
 import { LIBRARY_ORGANIZATION_FIELDS } from "../model/section-completeness";
 import { CreateListDialog } from "./create-list-dialog";
 import { FormSection } from "./form-section";
-import { StatusChipGroup } from "./status-chip-group";
+import { QueuePrioritySection } from "./queue-priority";
 import { useSectionCompletion } from "./use-section-completion";
 
 type LibraryOrganizationSectionProps = {
@@ -82,6 +81,10 @@ export function LibraryOrganizationSection({
     setValue("queuePriority", checked ? QUEUE_PRIORITY_DEFAULT : undefined, {
       shouldValidate: true,
     });
+    if (checked) return;
+    setValue("queuePriorityReason", null, { shouldValidate: true });
+    setValue("queuePriorityReasonCustomText", null, { shouldValidate: true });
+    setValue("queuePriorityTargetDate", null, { shouldValidate: true });
   }
 
   function handleQueueChange(checked: boolean) {
@@ -143,23 +146,8 @@ export function LibraryOrganizationSection({
           </div>
 
           {addToReadingQueue ? (
-            <div className="flex flex-col gap-2 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">
-              <Label>{t("organization.queuePriority")}</Label>
-              <Controller
-                control={control}
-                name="queuePriority"
-                render={({ field }) => (
-                  <StatusChipGroup
-                    label={t("organization.queuePriority")}
-                    onValueChange={field.onChange}
-                    options={QUEUE_PRIORITY_OPTIONS.map((value) => ({
-                      label: t(`organization.priorityLabels.${value}`),
-                      value,
-                    }))}
-                    value={field.value ?? QUEUE_PRIORITY_DEFAULT}
-                  />
-                )}
-              />
+            <div className="motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">
+              <QueuePrioritySection control={control} errors={errors} setValue={setValue} />
             </div>
           ) : null}
         </div>

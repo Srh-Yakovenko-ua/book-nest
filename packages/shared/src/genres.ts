@@ -36,3 +36,16 @@ export const RecentGenresQuerySchema = z.object({
 });
 
 export type RecentGenresQuery = z.infer<typeof RecentGenresQuerySchema>;
+
+export const GenreStatsViewSchema = z.object({
+  averageRating: z.number().nullable(),
+  booksCount: z.number().int(),
+  coverUrls: z.array(z.string()),
+  key: z.string(),
+  label: z.string(),
+  readCount: z.number().int(),
+  readingQueueCount: z.number().int(),
+  wantToBuyCount: z.number().int(),
+});
+
+export type GenreStatsView = z.infer<typeof GenreStatsViewSchema>;

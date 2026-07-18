@@ -182,6 +182,7 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 | Browser-side bug (UI, console, layout, hydration, interaction)       | `frontend-bug-hunter`                              |
 | Server-side bug (500, failing endpoint, Prisma/Postgres error, hang) | `backend-bug-hunter`                               |
 | Prisma migration / schema change                                     | `migration-reviewer`                               |
+| Release / promote dev→stage→prod, deploy, "залить в прод", "выкати"  | `release-manager`                                  |
 | "ready to commit" / "сделай ревью" / "проверь перед commit"          | `code-reviewer` (+ auditors below)                 |
 | Anything touching auth / API / forms / env / deps / secrets          | `security-reviewer`                                |
 | FE slow / bundle bloat / re-render / web-vitals regression           | `frontend-performance-auditor`                     |

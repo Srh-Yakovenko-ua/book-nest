@@ -24,6 +24,8 @@ export type SeriesStatusFilter = "all" | SeriesStatus;
 
 export type SeriesTab = "all" | "unfinished";
 
+export const SERIES_TABS = ["all", "unfinished"] as const satisfies readonly SeriesTab[];
+
 export const SERIES_SORT_OPTIONS = [
   "name_asc",
   "name_desc",

@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 
 import { getPrivacyContent, LegalDocument } from "@/features/legal";
 import { routing } from "@/i18n/routing";
+import { buildAlternates, buildOpenGraph, buildTwitter } from "@/lib/seo";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -15,15 +16,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const resolvedLocale = hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
   const t = await getTranslations({ locale: resolvedLocale, namespace: "legal.privacy" });
+  const title = t("metaTitle");
+  const description = t("metaDescription");
 
   return {
-    alternates: {
-      canonical: `/${locale}/privacy`,
-      languages: Object.fromEntries(routing.locales.map((l) => [l, `/${l}/privacy`])),
-    },
-    description: t("metaDescription"),
+    alternates: buildAlternates({ locale: resolvedLocale, pathname: "/privacy" }),
+    description,
+    openGraph: buildOpenGraph({ description, locale: resolvedLocale, pathname: "/privacy", title }),
     robots: { follow: true, index: true },
-    title: t("metaTitle"),
+    title,
+    twitter: buildTwitter({ description, title }),
   };
 }
 

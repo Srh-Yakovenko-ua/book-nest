@@ -38,6 +38,8 @@ export type ValueOf<T> = T[keyof T];
 
 export const LIST_PAGE_SIZE_MAX = 100;
 
+export const PAGE_NUMBER_MAX = 21474836;
+
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>|<!--|<!\w/;
 
 export const noHtmlTags = (value: string): boolean => !HTML_TAG.test(value);

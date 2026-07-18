@@ -13,13 +13,14 @@ export type LibraryBook = {
   authors: string[];
   cover?: { alt?: string; src: string };
   coverMedia?: MediaView;
-  formats: LibraryBookFormat[];
+  formats?: LibraryBookFormat[];
   genres?: { icon?: GenreIconName; label: string }[];
   href: string;
   id: string;
   isFavorite: boolean;
-  isInReadingQueue: boolean;
+  isInReadingQueue?: boolean;
   loan?: { icon: UiIconName; text: string };
+  originalTitle?: string;
   ownership?: StatusEntry;
   ownershipStatus: OwnershipStatus;
   pagesText?: string;
@@ -74,12 +75,12 @@ export type LibraryBookSeries = {
 
 const PROGRESS_STATUSES: readonly ReadingStatus[] = ["reading", "paused", "rereading"];
 
-const FALLBACK_STATUS: StatusEntry =
+export const FALLBACK_READING_STATUS: StatusEntry =
   readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
 
 export function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {
   const baseStatus =
-    readingStatuses.find((entry) => entry.value === book.readingStatus) ?? FALLBACK_STATUS;
+    readingStatuses.find((entry) => entry.value === book.readingStatus) ?? FALLBACK_READING_STATUS;
   const status: StatusEntry = { ...baseStatus, label: labels.statusLabel(book.readingStatus) };
   const genres = book.genres.map((key) => ({
     icon: isGenreIconName(key) ? key : undefined,

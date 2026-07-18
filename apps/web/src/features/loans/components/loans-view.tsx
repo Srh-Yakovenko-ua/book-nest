@@ -5,14 +5,15 @@ import type { LoanListItemView } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import type { PageTabsItem } from "@/components/page-tabs";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
+import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { todayIso } from "@/features/books/model/reading-progress";
 import { useRouter } from "@/i18n/navigation";
 import { LoansControllerListType } from "@/shared/api/generated/model";
@@ -20,6 +21,7 @@ import { LoansControllerListType } from "@/shared/api/generated/model";
 import { useLoansList } from "../api/use-loans-list";
 import { useLoansSummary } from "../api/use-loans-summary";
 import { nearestReturns } from "../model/loans-derive";
+import { LOANS_TAB_VALUES } from "../model/loans-query";
 import { useLoansQuery } from "../model/use-loans-query";
 import { EditLoanDialog } from "./edit-loan-dialog";
 import { LoanRow } from "./loan-row";
@@ -68,6 +70,19 @@ export function LoansView() {
   const hasAnyLoans = totalActive > 0 || items.length > 0;
   const showChrome = !list.isError && (list.isPending || hasAnyLoans);
 
+  const tabItems: PageTabsItem[] = [
+    {
+      badge: <Badge variant="secondary">{borrowedCount}</Badge>,
+      label: t("tabs.borrowed"),
+      value: LoansControllerListType.borrowed_from_someone,
+    },
+    {
+      badge: <Badge variant="secondary">{lentCount}</Badge>,
+      label: t("tabs.lent"),
+      value: LoansControllerListType.lent_to_someone,
+    },
+  ];
+
   const loansContent = (
     <LoansContent
       hasActiveFilters={query.hasActiveFilters}
@@ -96,9 +111,6 @@ export function LoansView() {
             <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
               {t("title")}
             </h1>
-            {summary.data ? (
-              <Badge variant="secondary">{t("count", { count: totalActive })}</Badge>
-            ) : null}
             <TitleLeaf />
           </div>
           <p className="max-w-2xl text-sm text-muted-foreground md:text-base">{t("subtitle")}</p>
@@ -113,44 +125,35 @@ export function LoansView() {
       </header>
 
       {showChrome ? (
-        <Tabs
-          className="gap-6"
-          onValueChange={(value) => query.setTab(value as LoansControllerListType)}
+        <PageTabs
+          className="gap-4"
+          items={tabItems}
+          onValueChange={(value) => {
+            const match = LOANS_TAB_VALUES.find((item) => item === value);
+            if (match !== undefined) query.setTab(match);
+          }}
           value={query.tab}
         >
-          <div className="flex flex-col gap-4">
-            <TabsList>
-              <TabsTrigger value={LoansControllerListType.borrowed_from_someone}>
-                {t("tabs.borrowed")}
-                <Badge variant="secondary">{borrowedCount}</Badge>
-              </TabsTrigger>
-              <TabsTrigger value={LoansControllerListType.lent_to_someone}>
-                {t("tabs.lent")}
-                <Badge variant="secondary">{lentCount}</Badge>
-              </TabsTrigger>
-            </TabsList>
+          <LoansToolbar
+            filter={query.filter}
+            onFilterChange={query.setFilter}
+            onSearchChange={query.setSearch}
+            onSearchClear={() => query.setSearch("")}
+            onSortChange={query.setSort}
+            search={query.state.q}
+            sort={query.sort}
+          />
 
-            <LoansToolbar
-              filter={query.filter}
-              onFilterChange={query.setFilter}
-              onSearchChange={query.setSearch}
-              onSearchClear={() => query.setSearch("")}
-              onSortChange={query.setSort}
-              search={query.state.q}
-              sort={query.sort}
-            />
-          </div>
-
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
+          <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
             <div className="flex min-w-0 flex-1 flex-col gap-6">
-              <TabsContent className="mt-0 flex flex-col gap-6 outline-none" value={query.tab}>
+              <PageTabsPanel className="flex flex-col gap-6" value={query.tab}>
                 <p className="sr-only" role="status">
                   {list.isPending
                     ? ""
                     : t("resultsCount", { count: page?.totalCount ?? items.length })}
                 </p>
                 {loansContent}
-              </TabsContent>
+              </PageTabsPanel>
 
               {page && items.length > 0 && page.pagesCount > 1 ? (
                 <LoansPager
@@ -168,7 +171,7 @@ export function LoansView() {
               onAddBook={() => router.push("/books/new")}
             />
           </div>
-        </Tabs>
+        </PageTabs>
       ) : (
         <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-6">{loansContent}</div>

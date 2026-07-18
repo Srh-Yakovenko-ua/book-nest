@@ -172,6 +172,10 @@ function seedMedia(input: { userId: string }): Promise<{ id: string }> {
   });
 }
 
+function seedNullRatingProgress(bookId: string): Promise<unknown> {
+  return prisma.bookReadingProgress.create({ data: { bookId, rating: null } });
+}
+
 function seedPublisher(input: {
   name: string;
   names?: SeedAuthorName[];
@@ -768,6 +772,242 @@ describe("GET /api/books filters", () => {
     const res = await listBooks(accessToken, "pagesMin=500&pagesMax=100");
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/books hasRating filter", () => {
+  it("returns a favorite that has no reading-progress row", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({ authorId: author.id, isFavorite: true, title: "NoProgress", userId });
+
+    const res = await listBooks(accessToken, "isFavorite=true&hasRating=false");
+
+    expect(res.body.totalCount).toBe(1);
+    expect(titlesOf(res.body)).toEqual(["NoProgress"]);
+  });
+
+  it("returns a favorite whose reading-progress row has a null rating", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      title: "NullRating",
+      userId,
+    });
+    await seedNullRatingProgress(book.id);
+
+    const res = await listBooks(accessToken, "isFavorite=true&hasRating=false");
+
+    expect(res.body.totalCount).toBe(1);
+    expect(titlesOf(res.body)).toEqual(["NullRating"]);
+  });
+
+  it("excludes a favorite that has a rating", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({ authorId: author.id, isFavorite: true, rating: 8, title: "Rated", userId });
+
+    const res = await listBooks(accessToken, "isFavorite=true&hasRating=false");
+
+    expect(res.body.totalCount).toBe(0);
+    expect(res.body.items).toEqual([]);
+  });
+
+  it("excludes an unrated non-favorite when favorites are requested", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({ authorId: author.id, isFavorite: false, title: "PlainUnrated", userId });
+
+    const res = await listBooks(accessToken, "isFavorite=true&hasRating=false");
+
+    expect(res.body.totalCount).toBe(0);
+  });
+
+  it("never returns another user's unrated favorite", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const strangerAuthor = await seedAuthor({ name: "Frank Herbert", userId: stranger.userId });
+    await seedBook({
+      authorId: strangerAuthor.id,
+      isFavorite: true,
+      title: "Theirs",
+      userId: stranger.userId,
+    });
+
+    const res = await listBooks(owner.accessToken, "isFavorite=true&hasRating=false");
+
+    expect(res.body.totalCount).toBe(0);
+  });
+
+  it("excludes a reading unrated favorite when the finished status is added", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      readingStatus: "finished",
+      title: "FinishedUnrated",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      readingStatus: "reading",
+      title: "ReadingUnrated",
+      userId,
+    });
+
+    const res = await listBooks(accessToken, "isFavorite=true&hasRating=false&status=finished");
+
+    expect(res.body.totalCount).toBe(1);
+    expect(titlesOf(res.body)).toEqual(["FinishedUnrated"]);
+  });
+
+  it("reports the database-level total count independent of the page size", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      isFavorite: true,
+      title: "One",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      isFavorite: true,
+      title: "Two",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-03T00:00:00.000Z"),
+      isFavorite: true,
+      title: "Three",
+      userId,
+    });
+
+    const res = await listBooks(
+      accessToken,
+      "isFavorite=true&hasRating=false&pageNumber=1&pageSize=2",
+    );
+
+    expect(res.body).toMatchObject({ page: 1, pagesCount: 2, pageSize: 2, totalCount: 3 });
+    expect(res.body.items).toHaveLength(2);
+  });
+
+  it("orders unrated favorites newest-first by favorite_added with a stable created_at tiebreaker", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      favoriteAddedAt: new Date("2026-03-03T00:00:00.000Z"),
+      isFavorite: true,
+      title: "Latest",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      favoriteAddedAt: null,
+      isFavorite: true,
+      title: "OlderUnstamped",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      favoriteAddedAt: null,
+      isFavorite: true,
+      title: "NewerUnstamped",
+      userId,
+    });
+
+    const res = await listBooks(
+      accessToken,
+      "isFavorite=true&hasRating=false&sort=favorite_added_desc",
+    );
+
+    expect(titlesOf(res.body)).toEqual(["Latest", "NewerUnstamped", "OlderUnstamped"]);
+  });
+
+  it("returns only books that have a rating when hasRating is true", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({ authorId: author.id, rating: 7, title: "Rated", userId });
+    await seedBook({ authorId: author.id, title: "NoProgress", userId });
+    const nulled = await seedBook({ authorId: author.id, title: "NullRating", userId });
+    await seedNullRatingProgress(nulled.id);
+
+    const res = await listBooks(accessToken, "hasRating=true");
+
+    expect(res.body.totalCount).toBe(1);
+    expect(titlesOf(res.body)).toEqual(["Rated"]);
+  });
+});
+
+describe("GET /api/books hasRating validation", () => {
+  it("accepts hasRating=true", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listBooks(accessToken, "hasRating=true");
+
+    expect(res.status).toBe(200);
+  });
+
+  it("accepts hasRating=false", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listBooks(accessToken, "hasRating=false");
+
+    expect(res.status).toBe(200);
+  });
+
+  it("rejects a non-boolean hasRating value with 400", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listBooks(accessToken, "hasRating=maybe");
+
+    expect(res.status).toBe(400);
+  });
+
+  it("applies no rating filter when hasRating is absent", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({ authorId: author.id, rating: 6, title: "Rated", userId });
+    await seedBook({ authorId: author.id, title: "Unrated", userId });
+
+    const res = await listBooks(accessToken);
+
+    expect(res.body.totalCount).toBe(2);
+  });
+
+  it("combines hasRating with a search term and the favorite filter", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({ authorId: author.id, isFavorite: true, title: "Dune", userId });
+    await seedBook({
+      authorId: author.id,
+      isFavorite: true,
+      rating: 9,
+      title: "Dune Messiah",
+      userId,
+    });
+    await seedBook({ authorId: author.id, isFavorite: false, title: "Dune Unloved", userId });
+
+    const res = await listBooks(
+      accessToken,
+      `q=${encodeURIComponent("dune")}&isFavorite=true&hasRating=false`,
+    );
+
+    expect(res.body.totalCount).toBe(1);
+    expect(titlesOf(res.body)).toEqual(["Dune"]);
   });
 });
 
