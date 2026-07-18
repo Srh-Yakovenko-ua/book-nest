@@ -76,7 +76,11 @@ Gate: `migrate deploy` exits 0 and status is clean. If it fails, **HALT** — th
 
 Write/refresh `docs/releases/<YYYY-MM-DD>-prod.md`: delivery mechanics, the pending-migration table with risk, headline features (from step 1), and the runbook. Commit to `dev` (`docs(releases): …`) and push.
 
-### 5. Promote dev → stage (CI gate)
+### 5. Reconcile the changelog (before promoting — so no shipped feature ships unlogged)
+
+The "What's New" feed is a recurring miss: the frontend often lands in a different session than the backend, user-visible features pile up unlogged, and a release then goes out with the feed missing half of what users just got. Before promoting, reconcile it: delegate to `changelog-writer` in RECONCILE mode — audit every `apps/web/src/features/*` slice and `apps/web/src/app/[locale]/**` route against the slugs in `apps/api/src/scripts/seed-changelog.ts`, and backfill a localized (uk + en) entry for every user-visible feature that shipped without one (dated to this release). Backend-only work with no FE (e.g. this release's characters / timeline / series-order-check) is correctly NOT logged. Commit the seed edits to `dev` (`feat(changelog): …`) and push so they ride this release's tree. Soft gate: do not promote with known user-visible features missing from the feed.
+
+### 6. Promote dev → stage (CI gate)
 
 ```sh
 git fetch origin
@@ -88,11 +92,11 @@ gh pr create --base stage --head promote-stage --title "Release to stage: <summa
 
 Verify `gh pr view promote-stage --json mergeable,mergeStateStatus` → `mergeable: MERGEABLE` (proves the commit-tree worked; if CONFLICTING, your parent was wrong). Then wait for CI: `gh pr checks <n> --watch --interval 30`. Green → `gh pr merge <n> --squash --delete-branch`. Red → HALT, report the failing job.
 
-### 6. Promote stage → prod (CI gate + live deploy)
+### 7. Promote stage → prod (CI gate + live deploy)
 
-Same commit-tree pattern, parented on `origin/prod`, title `Release to prod: <summary>`, base `prod`. Wait for CI green, then `gh pr merge <n> --squash --delete-branch`. **Merging into `prod` pushes `prod` → triggers the deploy workflow → builds `:prod` images → SSH-deploys → the api container auto-runs `migrate deploy` on the live prod DB on boot.** This is the irreversible step; it is gated by steps 3 (prod-copy pre-flight green) and 5–6 (CI green). If either was not green, you must not be here.
+Same commit-tree pattern, parented on `origin/prod`, title `Release to prod: <summary>`, base `prod`. Wait for CI green, then `gh pr merge <n> --squash --delete-branch`. **Merging into `prod` pushes `prod` → triggers the deploy workflow → builds `:prod` images → SSH-deploys → the api container auto-runs `migrate deploy` on the live prod DB on boot.** This is the irreversible step; it is gated by steps 3 (prod-copy pre-flight green) and 6–7 (CI green). If either was not green, you must not be here.
 
-### 7. Verify live
+### 8. Verify live
 
 `curl -fsS https://book-nest.net/api/health` → must contain `"status":"ok"` (the deploy workflow also gates on this). Smoke a couple of the new endpoints if relevant. Report the final commit SHAs on `stage`/`prod` and the health result.
 
