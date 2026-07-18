@@ -2,9 +2,11 @@ import type {
   BookCharacterView,
   CharacterDetailsView,
   CharacterGlobalSummaryView,
+  CharacterSeriesProfileView,
   CharacterSummaryView,
   MediaView,
   Nullable,
+  SeriesCharacterAppearanceView,
 } from "@app/shared";
 
 import {
@@ -17,6 +19,7 @@ import {
   CharacterEntityKindSchema,
   CharacterGenderSchema,
 } from "@app/shared";
+import { compareAsc } from "date-fns";
 
 import { emptyToNull } from "./character-fields.js";
 
@@ -94,6 +97,29 @@ export type GlobalSummaryCharacterSource = {
   species: Nullable<string>;
 };
 
+export type SeriesProfileAppearanceSource = SummaryHiddenFieldFlags & {
+  bookId: string;
+  createdAt: Date;
+  displayName: Nullable<string>;
+  id: string;
+  importance: string;
+  portrait: Nullable<MediaView>;
+  status: string;
+};
+
+export type SeriesProfileCharacterSource = {
+  customGender: Nullable<string>;
+  entityKind: string;
+  gender: string;
+  globalAttitude: Nullable<string>;
+  id: string;
+  isFavorite: boolean;
+  name: string;
+  neutralDescription: Nullable<string>;
+  pronouns: Nullable<string>;
+  species: Nullable<string>;
+};
+
 export type SpoilerFlags = {
   appearanceNotesIsSpoiler: boolean;
   descriptionIsSpoiler: boolean;
@@ -116,6 +142,12 @@ export type SummaryCharacterSource = {
   id: string;
   isFavorite: boolean;
   name: string;
+};
+
+export type SummaryHiddenFieldFlags = {
+  displayNameIsSpoiler: boolean;
+  portraitIsSpoiler: boolean;
+  statusIsSpoiler: boolean;
 };
 
 export function toBookCharacterView({
@@ -230,6 +262,57 @@ export function toCharacterGlobalSummaryView({
   };
 }
 
+export function toCharacterSeriesProfileView({
+  aliases,
+  appearances,
+  avatar,
+  character,
+  partNumberByBookId,
+}: {
+  aliases: CharacterAliasSource[];
+  appearances: SeriesProfileAppearanceSource[];
+  avatar: Nullable<MediaView>;
+  character: SeriesProfileCharacterSource;
+  partNumberByBookId: Map<string, Nullable<number>>;
+}): CharacterSeriesProfileView {
+  const ordered = [...appearances].sort(
+    (left, right) =>
+      comparePartNumberAscNullsLast(
+        partNumberByBookId.get(left.bookId) ?? null,
+        partNumberByBookId.get(right.bookId) ?? null,
+      ) || compareAsc(left.createdAt, right.createdAt),
+  );
+  const entries = ordered.map((appearance) =>
+    toSeriesAppearanceView({
+      appearance,
+      partNumber: partNumberByBookId.get(appearance.bookId) ?? null,
+    }),
+  );
+
+  const hiddenFields = [...new Set(entries.flatMap((entry) => entry.hiddenFields))];
+  hiddenFields.sort((left, right) => left.localeCompare(right));
+
+  return {
+    aliases: aliases.map((alias) => toAliasView(alias)),
+    appearances: entries,
+    avatar,
+    characterId: character.id,
+    customGender: emptyToNull(character.customGender),
+    entityKind: CharacterEntityKindSchema.parse(character.entityKind),
+    gender: CharacterGenderSchema.parse(character.gender),
+    globalAttitude:
+      character.globalAttitude === null
+        ? null
+        : CharacterAttitudeSchema.parse(character.globalAttitude),
+    hiddenFields,
+    isFavorite: character.isFavorite,
+    name: character.name,
+    neutralDescription: emptyToNull(character.neutralDescription),
+    pronouns: emptyToNull(character.pronouns),
+    species: emptyToNull(character.species),
+  };
+}
+
 export function toCharacterSummaryView({
   appearance,
   avatar,
@@ -254,6 +337,19 @@ export function toCharacterSummaryView({
     portrait: appearance.portraitIsSpoiler ? null : portrait,
     status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),
   };
+}
+
+function comparePartNumberAscNullsLast(left: Nullable<number>, right: Nullable<number>): number {
+  if (left === right) {
+    return 0;
+  }
+  if (left === null) {
+    return 1;
+  }
+  if (right === null) {
+    return -1;
+  }
+  return left - right;
 }
 
 function computeHiddenFields(flags: SpoilerFlags): string[] {
@@ -282,7 +378,7 @@ function computeHiddenFields(flags: SpoilerFlags): string[] {
   return hidden;
 }
 
-function computeSummaryHiddenFields(flags: SpoilerFlags): string[] {
+function computeSummaryHiddenFields(flags: SummaryHiddenFieldFlags): string[] {
   const hidden: string[] = [];
   if (flags.displayNameIsSpoiler) {
     hidden.push("displayName");
@@ -314,5 +410,24 @@ function toRoleView(role: CharacterRoleSource): BookCharacterView["roles"][numbe
     isSpoiler: role.isSpoiler,
     position: role.position,
     roleType: BookCharacterRoleTypeSchema.parse(role.roleType),
+  };
+}
+
+function toSeriesAppearanceView({
+  appearance,
+  partNumber,
+}: {
+  appearance: SeriesProfileAppearanceSource;
+  partNumber: Nullable<number>;
+}): SeriesCharacterAppearanceView {
+  return {
+    bookCharacterId: appearance.id,
+    bookId: appearance.bookId,
+    displayName: appearance.displayNameIsSpoiler ? null : emptyToNull(appearance.displayName),
+    hiddenFields: computeSummaryHiddenFields(appearance),
+    importance: BookCharacterImportanceSchema.parse(appearance.importance),
+    partNumber,
+    portrait: appearance.portraitIsSpoiler ? null : appearance.portrait,
+    status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),
   };
 }

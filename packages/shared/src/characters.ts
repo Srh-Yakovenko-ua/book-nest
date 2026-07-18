@@ -423,6 +423,38 @@ export type CharacterSummaryView = z.infer<typeof CharacterSummaryViewSchema>;
 
 export const PaginatedCharacterSummarySchema = createPaginatedSchema(CharacterSummaryViewSchema);
 
+export const SeriesCharacterAppearanceViewSchema = z.object({
+  bookCharacterId: z.string(),
+  bookId: z.string(),
+  displayName: z.string().nullable(),
+  hiddenFields: z.array(z.string()),
+  importance: BookCharacterImportanceSchema,
+  partNumber: z.number().int().nullable(),
+  portrait: MediaViewSchema.nullable(),
+  status: BookCharacterStatusSchema.nullable(),
+});
+
+export type SeriesCharacterAppearanceView = z.infer<typeof SeriesCharacterAppearanceViewSchema>;
+
+export const CharacterSeriesProfileViewSchema = z.object({
+  aliases: z.array(CharacterAliasViewSchema),
+  appearances: z.array(SeriesCharacterAppearanceViewSchema),
+  avatar: MediaViewSchema.nullable(),
+  characterId: z.string(),
+  customGender: z.string().nullable(),
+  entityKind: CharacterEntityKindSchema,
+  gender: CharacterGenderSchema,
+  globalAttitude: CharacterAttitudeSchema.nullable(),
+  hiddenFields: z.array(z.string()),
+  isFavorite: z.boolean(),
+  name: z.string(),
+  neutralDescription: z.string().nullable(),
+  pronouns: z.string().nullable(),
+  species: z.string().nullable(),
+});
+
+export type CharacterSeriesProfileView = z.infer<typeof CharacterSeriesProfileViewSchema>;
+
 export const CharacterListSortSchema = z.enum(["name", "recently_added", "recently_updated"]);
 
 export type CharacterListSort = z.infer<typeof CharacterListSortSchema>;
@@ -492,6 +524,13 @@ export const SeriesCharactersQuerySchema = z.object({
 });
 
 export type SeriesCharactersQuery = z.infer<typeof SeriesCharactersQuerySchema>;
+
+export const SeriesCharacterProfileQuerySchema = z.object({
+  contextBookId: z.string().uuid().optional(),
+  includeFuture: z.stringbool().optional(),
+});
+
+export type SeriesCharacterProfileQuery = z.infer<typeof SeriesCharacterProfileQuerySchema>;
 
 export const CharacterGlobalSummaryViewSchema = z.object({
   appearanceCount: z.number().int(),

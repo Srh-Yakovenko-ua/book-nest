@@ -39,6 +39,15 @@ const seriesAppearanceInclude = {
   portraitMedia: true,
 } satisfies Prisma.BookCharacterInclude;
 
+const seriesProfileInclude = {
+  aliases: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
+  avatarMedia: true,
+  bookAppearances: {
+    include: { portraitMedia: true },
+    orderBy: [{ createdAt: "asc" }],
+  },
+} satisfies Prisma.CharacterInclude;
+
 const purgeSelect = {
   avatarMediaId: true,
   bookAppearances: { select: { portraitMediaId: true } },
@@ -81,6 +90,10 @@ export type CharacterGlobalSummaryRow = Prisma.CharacterGetPayload<{
 }>;
 
 export type CharacterPurgeRow = Prisma.CharacterGetPayload<{ select: typeof purgeSelect }>;
+
+export type CharacterSeriesProfileRow = Prisma.CharacterGetPayload<{
+  include: typeof seriesProfileInclude;
+}>;
 
 export type CreateAliasData = {
   bookId: Nullable<string>;
@@ -412,6 +425,26 @@ export class CharactersRepository {
         bookAppearances: {
           ...detailsInclude.bookAppearances,
           where: bookId === undefined ? undefined : { bookId },
+        },
+      },
+      where: { deletedAt: null, id: characterId, userId },
+    });
+  }
+
+  findSeriesCharacterProfile(
+    {
+      allowedBookIds,
+      characterId,
+      userId,
+    }: { allowedBookIds: string[]; characterId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<CharacterSeriesProfileRow>> {
+    return client.character.findFirst({
+      include: {
+        ...seriesProfileInclude,
+        bookAppearances: {
+          ...seriesProfileInclude.bookAppearances,
+          where: { bookId: { in: allowedBookIds }, hidePresenceAsSpoiler: false },
         },
       },
       where: { deletedAt: null, id: characterId, userId },

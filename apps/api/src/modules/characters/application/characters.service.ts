@@ -9,6 +9,7 @@ import type {
   CharacterDuplicateCandidatesView,
   CharacterGlobalSummaryView,
   CharacterInput,
+  CharacterSeriesProfileView,
   CharactersListQuery,
   CharacterSuggestionsQuery,
   CharacterSuggestionsView,
@@ -18,6 +19,7 @@ import type {
   MediaView,
   Nullable,
   Paginator,
+  SeriesCharacterProfileQuery,
   SeriesCharactersQuery,
   UpdateBookCharacter,
   UpdateCharacter,
@@ -65,6 +67,7 @@ import {
   toBookCharacterView,
   toCharacterDetailsView,
   toCharacterGlobalSummaryView,
+  toCharacterSeriesProfileView,
   toCharacterSummaryView,
 } from "../domain/character.mapper.js";
 import {
@@ -263,6 +266,78 @@ export class CharactersService {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
     return this.toDetailsView(row);
+  }
+
+  async getSeriesCharacterProfile({
+    characterId,
+    query,
+    seriesId,
+    userId,
+  }: {
+    characterId: string;
+    query: SeriesCharacterProfileQuery;
+    seriesId: string;
+    userId: string;
+  }): Promise<CharacterSeriesProfileView> {
+    await this.assertSeriesOwned({ seriesId, userId });
+
+    let contextBook: Nullable<BookContextRow> = null;
+    if (query.contextBookId !== undefined) {
+      const resolved = await this.charactersRepository.findOwnedBookContext({
+        bookId: query.contextBookId,
+        userId,
+      });
+      if (resolved === null || resolved.seriesId !== seriesId) {
+        throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
+      }
+      contextBook = resolved;
+    }
+
+    const seriesBooks = await this.charactersRepository.listSeriesBooks({ seriesId, userId });
+    this.warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId });
+
+    const allowedBookIds = resolveAllowedBookIds({
+      contextBook,
+      includeFuture: query.includeFuture ?? false,
+      seriesBooks,
+    });
+
+    const character =
+      allowedBookIds.length === 0
+        ? null
+        : await this.charactersRepository.findSeriesCharacterProfile({
+            allowedBookIds,
+            characterId,
+            userId,
+          });
+    if (character === null || character.bookAppearances.length === 0) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
+
+    const allowedBookIdSet = new Set(allowedBookIds);
+    const partNumberByBookId = new Map(seriesBooks.map((book) => [book.id, book.partNumber]));
+
+    return toCharacterSeriesProfileView({
+      aliases: character.aliases.filter(
+        (alias) =>
+          !alias.isSpoiler && (alias.bookId === null || allowedBookIdSet.has(alias.bookId)),
+      ),
+      appearances: character.bookAppearances.map((appearance) => ({
+        bookId: appearance.bookId,
+        createdAt: appearance.createdAt,
+        displayName: appearance.displayName,
+        displayNameIsSpoiler: appearance.displayNameIsSpoiler,
+        id: appearance.id,
+        importance: appearance.importance,
+        portrait: this.mediaViewOf(appearance.portraitMedia),
+        portraitIsSpoiler: appearance.portraitIsSpoiler,
+        status: appearance.status,
+        statusIsSpoiler: appearance.statusIsSpoiler,
+      })),
+      avatar: this.mediaViewOf(character.avatarMedia),
+      character,
+      partNumberByBookId,
+    });
   }
 
   async listBookRoster(
