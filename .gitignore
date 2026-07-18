@@ -57,3 +57,13 @@ storybook-static/
 
 # Local scratch notes / spec dumps (not part of the codebase)
 apps/api/md/
+
+# Agent-generated planning docs — local working material, not part of the codebase.
+# Reference docs stay tracked: code-principles.md, typescript-principles.md, architecture.md,
+# patterns.md, stack.md, workflow.md, README.md, docs/features/, docs/tools/.
+docs/books-to-buy/
+docs/delivery-docs/
+docs/prompts/
+docs/series-order-check/
+docs/series-order-check-development-repository/
+docs/tasks/

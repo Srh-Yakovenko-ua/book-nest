@@ -4,7 +4,7 @@ import { hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
-import { BooksToBuyView } from "@/features/books";
+import { BooksToBuyView } from "@/features/books-to-buy";
 import { routing } from "@/i18n/routing";
 
 type Props = {

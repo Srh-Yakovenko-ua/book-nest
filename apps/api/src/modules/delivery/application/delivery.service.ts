@@ -49,13 +49,15 @@ export class DeliveryService {
 
   async bulkReceive({
     bookIds,
+    receivedAt,
     userId,
   }: {
     bookIds: string[];
+    receivedAt?: string;
     userId: string;
   }): Promise<BulkReceiveDeliveriesResultView> {
     const now = new Date();
-    const transition = computeReceiveDelivery(now);
+    const transition = computeReceiveDelivery({ now, receivedAt });
     const uniqueBookIds = [...new Set(bookIds)];
 
     const outcomes = await this.deliveryRepository.bulkReceive({
@@ -119,8 +121,14 @@ export class DeliveryService {
     });
   }
 
-  async historySummary({ userId }: { userId: string }): Promise<DeliveryHistorySummaryView> {
-    const data = await this.deliveryRepository.historySummary({ userId });
+  async historySummary({
+    includeCancelled,
+    userId,
+  }: {
+    includeCancelled: boolean;
+    userId: string;
+  }): Promise<DeliveryHistorySummaryView> {
+    const data = await this.deliveryRepository.historySummary({ includeCancelled, userId });
 
     return {
       activeCount: data.activeCount,

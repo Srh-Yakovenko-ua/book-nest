@@ -4,6 +4,7 @@ import { normalizeSearch } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { buildPaginator } from "../../../core/paginator.js";
+import { GenresService } from "../../genres/index.js";
 import { ListsService } from "../../lists/index.js";
 import {
   type BookListItemWithBook,
@@ -22,6 +23,7 @@ export class ListDetailsService {
   constructor(
     private readonly listsService: ListsService,
     private readonly listBooksRepository: ListBooksRepository,
+    private readonly genresService: GenresService,
     private readonly viewAssembler: BookViewAssembler,
   ) {}
 
@@ -30,17 +32,22 @@ export class ListDetailsService {
 
     const { pageNumber, pageSize, sort } = query;
     const search = normalizeSearch(query.search);
+    const searchGenreKeys =
+      search === undefined
+        ? undefined
+        : await this.genresService.searchKeys({ query: search, userId });
 
     const [items, totalCount] = await Promise.all([
       this.listBooksRepository.listBooks({
         listId,
         search,
+        searchGenreKeys,
         skip: (pageNumber - 1) * pageSize,
         sort,
         take: pageSize,
         userId,
       }),
-      this.listBooksRepository.countBooks({ listId, search, userId }),
+      this.listBooksRepository.countBooks({ listId, search, searchGenreKeys, userId }),
     ]);
 
     const books = buildPaginator({

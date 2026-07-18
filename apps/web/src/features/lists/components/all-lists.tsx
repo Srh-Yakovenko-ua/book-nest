@@ -71,7 +71,6 @@ export function AllLists() {
             sort={sort}
           />
         }
-        totalCount={stats.totalLists}
       />
 
       <CreateListDialog onOpenChange={setCreateOpen} open={createOpen} />

@@ -18,6 +18,7 @@ import type { CustomListDetailDtoBooksItemsItemOwnershipStatus } from "./customL
 import type { CustomListDetailDtoBooksItemsItemPublisher } from "./customListDetailDtoBooksItemsItemPublisher";
 import type { CustomListDetailDtoBooksItemsItemPurchaseInfo } from "./customListDetailDtoBooksItemsItemPurchaseInfo";
 import type { CustomListDetailDtoBooksItemsItemQueuePriority } from "./customListDetailDtoBooksItemsItemQueuePriority";
+import type { CustomListDetailDtoBooksItemsItemQueuePriorityReason } from "./customListDetailDtoBooksItemsItemQueuePriorityReason";
 import type { CustomListDetailDtoBooksItemsItemReadingProgress } from "./customListDetailDtoBooksItemsItemReadingProgress";
 import type { CustomListDetailDtoBooksItemsItemReadingStatus } from "./customListDetailDtoBooksItemsItemReadingStatus";
 import type { CustomListDetailDtoBooksItemsItemSeries } from "./customListDetailDtoBooksItemsItemSeries";
@@ -47,6 +48,7 @@ export type CustomListDetailDtoBooksItemsItem = {
   /** @nullable */
   isbn: string | null;
   isFavorite: boolean;
+  isFavoriteDedication: boolean;
   isInReadingQueue: boolean;
   language: CustomListDetailDtoBooksItemsItemLanguage;
   lists: CustomListDetailDtoBooksItemsItemListsItem[];
@@ -67,6 +69,15 @@ export type CustomListDetailDtoBooksItemsItem = {
   purchaseInfo: CustomListDetailDtoBooksItemsItemPurchaseInfo;
   /** @nullable */
   queuePriority: CustomListDetailDtoBooksItemsItemQueuePriority;
+  /** @nullable */
+  queuePriorityReason: CustomListDetailDtoBooksItemsItemQueuePriorityReason;
+  /** @nullable */
+  queuePriorityReasonCustomText: string | null;
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  queuePriorityTargetDate: string | null;
   /** @nullable */
   readingProgress: CustomListDetailDtoBooksItemsItemReadingProgress;
   readingStatus: CustomListDetailDtoBooksItemsItemReadingStatus;

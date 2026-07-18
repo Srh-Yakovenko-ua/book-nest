@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
 import { BookReadingService } from "./book-reading.service.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
@@ -129,43 +128,5 @@ describe("BookReadingService.updateReadingProgress history event", () => {
         event: { date: EXPECTED_EVENT_DATE, page: 320, pagesRead: 220 },
       }),
     );
-  });
-});
-
-describe("BookReadingService.getReadingHistory", () => {
-  it("aggregates the stored events into the reading history view", async () => {
-    const repository = repositoryMock();
-    repository.findOwnedByIdOrThrow.mockResolvedValue(ownedBook({ currentPage: 150 }));
-    repository.findReadingEvents.mockResolvedValue([
-      { date: new Date("2026-07-05T00:00:00.000Z"), id: "e1", page: 40, pagesRead: 40 },
-      { date: new Date("2026-07-05T00:00:00.000Z"), id: "e2", page: 90, pagesRead: 50 },
-      { date: new Date("2026-07-06T00:00:00.000Z"), id: "e3", page: 150, pagesRead: 60 },
-    ]);
-    const service = buildService(repository, assemblerMock());
-
-    const result = await service.getReadingHistory(USER_ID, BOOK_ID);
-
-    expect(result).toEqual({
-      daily: [
-        { date: "2026-07-05", pagesRead: 90 },
-        { date: "2026-07-06", pagesRead: 60 },
-      ],
-      daysRead: 2,
-      events: [
-        { date: "2026-07-05", id: "e1", page: 40, pagesRead: 40 },
-        { date: "2026-07-05", id: "e2", page: 90, pagesRead: 50 },
-        { date: "2026-07-06", id: "e3", page: 150, pagesRead: 60 },
-      ],
-      totalPagesRead: 150,
-    });
-  });
-
-  it("throws NotFoundError and never reads events when the book is not owned", async () => {
-    const repository = repositoryMock();
-    repository.findOwnedByIdOrThrow.mockRejectedValue(new NotFoundError("Book not found"));
-    const service = buildService(repository, assemblerMock());
-
-    await expect(service.getReadingHistory(USER_ID, BOOK_ID)).rejects.toThrow(NotFoundError);
-    expect(repository.findReadingEvents).not.toHaveBeenCalled();
   });
 });

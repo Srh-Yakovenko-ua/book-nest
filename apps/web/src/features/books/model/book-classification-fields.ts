@@ -1,4 +1,4 @@
-import type { AgeCategory, BookLanguage, SeriesStatus } from "@app/shared";
+import type { AgeCategory, BookLanguage } from "@app/shared";
 
 export const AGE_CATEGORY_OPTIONS = [
   "not_specified",
@@ -19,11 +19,5 @@ export const BOOK_LANGUAGE_OPTIONS = [
   "spanish",
   "other",
 ] as const satisfies readonly BookLanguage[];
-
-export const SERIES_STATUS_OPTIONS = [
-  "unknown",
-  "ongoing",
-  "completed",
-] as const satisfies readonly SeriesStatus[];
 
 export const BOOK_GENRES_MAX = 5;

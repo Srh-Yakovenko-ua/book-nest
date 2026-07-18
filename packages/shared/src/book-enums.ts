@@ -12,6 +12,17 @@ export const ReadingStatusSchema = z.enum([
 
 export type ReadingStatus = z.infer<typeof ReadingStatusSchema>;
 
+export const CLOSED_READING_STATUSES = [
+  "finished",
+  "dnf",
+] as const satisfies readonly ReadingStatus[];
+
+const CLOSED_READING_STATUS_SET: ReadonlySet<ReadingStatus> = new Set(CLOSED_READING_STATUSES);
+
+export function isClosedReadingStatus(status: ReadingStatus): boolean {
+  return CLOSED_READING_STATUS_SET.has(status);
+}
+
 export const OwnershipStatusSchema = z.enum([
   "none",
   "want_to_buy",
@@ -30,6 +41,36 @@ export type Currency = z.infer<typeof CurrencySchema>;
 export const QueuePrioritySchema = z.enum(["low", "normal", "high"]);
 
 export type QueuePriority = z.infer<typeof QueuePrioritySchema>;
+
+export const QueuePriorityReasonSchema = z.enum([
+  "book_club",
+  "buddy_read",
+  "event_or_deadline",
+  "return_due",
+  "series_order",
+  "reading_goal",
+  "anticipated_release",
+  "other",
+]);
+
+export type QueuePriorityReason = z.infer<typeof QueuePriorityReasonSchema>;
+
+export const QUEUE_PRIORITY_REASON_CUSTOM_TEXT_MAX = 300;
+
+export const QUEUE_PRIORITY_DATE_REASONS = [
+  "book_club",
+  "buddy_read",
+  "event_or_deadline",
+  "return_due",
+] as const satisfies readonly QueuePriorityReason[];
+
+const QUEUE_PRIORITY_DATE_REASON_SET: ReadonlySet<QueuePriorityReason> = new Set(
+  QUEUE_PRIORITY_DATE_REASONS,
+);
+
+export function queuePriorityReasonSupportsDate(reason: QueuePriorityReason): boolean {
+  return QUEUE_PRIORITY_DATE_REASON_SET.has(reason);
+}
 
 export const DeliveryStatusSchema = z.enum([
   "ordered",

@@ -1,4 +1,4 @@
-import type { GenreView } from "@app/shared";
+import type { GenreStatsView, GenreView } from "@app/shared";
 
 import { CreateGenreSchema, RecentGenresQuerySchema } from "@app/shared";
 import {
@@ -37,6 +37,7 @@ import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { GenresService } from "../application/genres.service.js";
 import { CreateGenreDto } from "./input-dto/create-genre.input-dto.js";
 import { RecentGenresQueryDto } from "./input-dto/recent-genres-query.input-dto.js";
+import { GenreStatsViewDto } from "./view-dto/genre-stats.view-dto.js";
 
 @ApiTags("genres")
 @Controller("api/genres")
@@ -82,6 +83,19 @@ export class GenresController {
     @Query(new ZodQueryPipe(RecentGenresQuerySchema)) query: RecentGenresQueryDto,
   ): Promise<GenreView[]> {
     return this.genresService.recent({ limit: query.limit, userId: user.id });
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: "Per-genre statistics over the current user library",
+    type: [GenreStatsViewDto],
+  })
+  @ApiOperation({ summary: "Get per-genre statistics for the current user library" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("stats")
+  @UseGuards(JwtAccessGuard)
+  stats(@CurrentUser() user: AuthenticatedUser): Promise<GenreStatsView[]> {
+    return this.genresService.stats(user.id);
   }
 
   @ApiBearerAuth()

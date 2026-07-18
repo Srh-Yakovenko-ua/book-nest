@@ -44,8 +44,10 @@ const NOTE_MAX = 300;
 const PRICE_MIN = 0;
 const PRICE_MAX = 99999999.99;
 
+type WantToBuyBook = Pick<BookView, "id">;
+
 type WantToBuyDialogProps = {
-  book: BookView;
+  book: WantToBuyBook;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
@@ -113,7 +115,7 @@ function buildSchema(messages: WantToBuyMessages) {
   });
 }
 
-function WantToBuyForm({ book, onDone }: { book: BookView; onDone: () => void }) {
+function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => void }) {
   const t = useTranslations("books.details.ownership.buyDialog");
   const tErrors = useTranslations("books.details.ownership.errors");
   const tActions = useTranslations("books.actions");
@@ -220,7 +222,7 @@ function WantToBuyForm({ book, onDone }: { book: BookView; onDone: () => void })
                   value={field.value === "" ? undefined : field.value}
                 >
                   <SelectTrigger
-                    className="h-10 w-full"
+                    className="h-10 w-full data-[size=default]:h-10"
                     id="buy-currency"
                     isClearable={field.value !== ""}
                     onClear={() => field.onChange("")}

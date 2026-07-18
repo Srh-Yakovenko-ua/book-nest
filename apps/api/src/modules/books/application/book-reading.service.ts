@@ -2,6 +2,7 @@ import type {
   BookView,
   ChangeReadingStatusInput,
   Nullable,
+  ReadingHistoryQuery,
   ReadingHistoryView,
   UpdateReadingProgressInput,
 } from "@app/shared";
@@ -45,9 +46,11 @@ export class BookReadingService {
       throw new ValidationError(PAGE_EXCEEDS_PAGES_MESSAGE);
     }
 
+    const changeDate = input.date ?? this.todayIso();
+
     const patch = computeReadingStatusChange({
       currentPage: input.currentPage,
-      date: input.date ?? this.todayIso(),
+      date: changeDate,
       existingStartedAt: book.readingProgress?.startedAt ?? null,
       hasExistingProgress: book.readingProgress !== null,
       impression: input.impression,
@@ -58,17 +61,47 @@ export class BookReadingService {
       targetStatus: input.status,
     });
 
-    await this.booksRepository.applyReadingChange(userId, bookId, patch);
+    const event = this.buildProgressEvent({
+      previousPage: book.readingProgress?.currentPage ?? 0,
+      resolvedPage: patch.progress.currentPage,
+      updateDate: changeDate,
+    });
+
+    await this.booksRepository.recordReadingStatusChange({
+      bookId,
+      clearEvents: this.shouldClearReadingEvents(input),
+      event,
+      patch,
+      userId,
+    });
 
     return this.viewAssembler.loadView({ bookId, userId });
   }
 
-  async getReadingHistory(userId: string, bookId: string): Promise<ReadingHistoryView> {
-    await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
+  async getReadingHistory(
+    userId: string,
+    bookId: string,
+    query: ReadingHistoryQuery,
+  ): Promise<ReadingHistoryView> {
+    const book = await this.booksRepository.findReadingSnapshotOrThrow(userId, bookId);
 
     const events = await this.booksRepository.findReadingEvents({ bookId });
 
-    return toReadingHistoryView({ events });
+    return toReadingHistoryView({
+      events,
+      pagesCount: book.pagesCount,
+      progress: {
+        abandonedAt: book.readingProgress?.abandonedAt ?? null,
+        currentPage: book.readingProgress?.currentPage ?? null,
+        finishedAt: book.readingProgress?.finishedAt ?? null,
+        lastProgressUpdateAt: book.readingProgress?.lastProgressUpdateAt ?? null,
+        pausedAt: book.readingProgress?.pausedAt ?? null,
+        startedAt: book.readingProgress?.startedAt ?? null,
+      },
+      query,
+      readingStatus: ReadingStatusSchema.parse(book.readingStatus),
+      today: new Date(),
+    });
   }
 
   async startReading(
@@ -143,6 +176,13 @@ export class BookReadingService {
     }
 
     return { date: parseIsoDate(updateDate), page: resolvedPage, pagesRead };
+  }
+
+  private shouldClearReadingEvents(input: ChangeReadingStatusInput): boolean {
+    return (
+      input.resetProgress === true &&
+      (input.status === "not_started" || input.status === "want_to_read")
+    );
   }
 
   private todayIso(): string {

@@ -44,7 +44,11 @@ async function borrowCustomBook(
   personName: string,
 ): Promise<void> {
   const created = await createBook(accessToken, book);
-  await startLoan(accessToken, created.body.id, { direction: "borrowed", personName });
+  await startLoan(accessToken, created.body.id, {
+    direction: "borrowed",
+    loanDate: isoDay(0),
+    personName,
+  });
 }
 
 function createBook(accessToken: string, body: Record<string, unknown>): request.Test {
@@ -64,7 +68,11 @@ async function createBorrowedLoan(
     ownershipStatus: "none",
     title,
   });
-  await startLoan(accessToken, created.body.id, { direction: "borrowed", ...loan });
+  await startLoan(accessToken, created.body.id, {
+    direction: "borrowed",
+    loanDate: isoDay(0),
+    ...loan,
+  });
   return created.body.id;
 }
 
@@ -78,7 +86,11 @@ async function createLentLoan(
     ownershipStatus: "owned",
     title,
   });
-  await startLoan(accessToken, created.body.id, { direction: "lent", ...loan });
+  await startLoan(accessToken, created.body.id, {
+    direction: "lent",
+    loanDate: isoDay(0),
+    ...loan,
+  });
   return created.body.id;
 }
 

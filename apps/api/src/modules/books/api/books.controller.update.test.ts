@@ -15,6 +15,7 @@ import { OpenLibraryClient } from "../../authors/infrastructure/open-library.cli
 import { WikidataClient } from "../../authors/infrastructure/wikidata.client.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { BooksModule } from "../books.module.js";
+import { QUEUE_PRIORITY_CUSTOM_TEXT_REQUIRED_MESSAGE } from "../domain/queue-priority.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
@@ -1065,6 +1066,202 @@ describe("PATCH /api/books/:id reading queue", () => {
   });
 });
 
+describe("PATCH /api/books/:id queue priority reason", () => {
+  function createHighQueueBook(accessToken: string, extra: Record<string, unknown>): request.Test {
+    return createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      queuePriority: "high",
+      title: "Dune",
+      ...extra,
+    });
+  }
+
+  it("clears all reason detail fields when the priority is lowered to normal", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { queuePriority: "normal" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.queuePriority).toBe("normal");
+    expect(res.body.isInReadingQueue).toBe(true);
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("clears all reason detail fields when the priority is lowered to low", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "other",
+      queuePriorityReasonCustomText: "wife recommended",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { queuePriority: "low" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.queuePriority).toBe("low");
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("clears the custom text when the reason changes away from other", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "other",
+      queuePriorityReasonCustomText: "wife recommended",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      queuePriorityReason: "series_order",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.queuePriorityReason).toBe("series_order");
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+  });
+
+  it("clears the target date when the reason changes to one without dates", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      queuePriorityReason: "series_order",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.queuePriorityReason).toBe("series_order");
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("clears the custom text and target date when the reason is set to null", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "other",
+      queuePriorityReasonCustomText: "wife recommended",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { queuePriorityReason: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("leaves the reason detail fields unchanged when the patch omits them", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { title: "Dune Reborn" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe("Dune Reborn");
+    expect(res.body.queuePriority).toBe("high");
+    expect(res.body.queuePriorityReason).toBe("book_club");
+    expect(res.body.queuePriorityTargetDate).toBe("2026-08-24");
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+  });
+
+  it("returns 400 when the patch sets the other reason without custom text", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createHighQueueBook(accessToken, { queuePriorityReason: "series_order" });
+
+    const res = await updateBook(accessToken, created.body.id, { queuePriorityReason: "other" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "queuePriorityReasonCustomText",
+          message: QUEUE_PRIORITY_CUSTOM_TEXT_REQUIRED_MESSAGE,
+        }),
+      ]),
+    );
+  });
+
+  it("clears the priority and reason detail fields when the book is removed from the queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createHighQueueBook(accessToken, {
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { addToReadingQueue: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isInReadingQueue).toBe(false);
+    expect(res.body.queuePriority).toBeNull();
+    expect(res.body.queuePriorityReason).toBeNull();
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+    expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+
+  it("persists the reason detail fields when re-adding a non-queued book to the queue", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    expect(created.body.isInReadingQueue).toBe(false);
+
+    const res = await updateBook(accessToken, created.body.id, {
+      addToReadingQueue: true,
+      queuePriority: "high",
+      queuePriorityReason: "book_club",
+      queuePriorityTargetDate: "2026-08-24",
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isInReadingQueue).toBe(true);
+    expect(res.body.queuePriority).toBe("high");
+    expect(res.body.queuePriorityReason).toBe("book_club");
+    expect(res.body.queuePriorityTargetDate).toBe("2026-08-24");
+    expect(res.body.queuePriorityReasonCustomText).toBeNull();
+  });
+
+  it("keeps the queue position and order when the priority is toggled", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const first = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    const second = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune Messiah",
+    });
+    const before = await readQueuePositions(userId);
+    expect(before).toEqual([
+      { id: first.body.id, queuePosition: 1 },
+      { id: second.body.id, queuePosition: 2 },
+    ]);
+
+    const raised = await updateBook(accessToken, first.body.id, { queuePriority: "high" });
+    expect(raised.status).toBe(200);
+    expect(raised.body.queuePriority).toBe("high");
+
+    const lowered = await updateBook(accessToken, first.body.id, { queuePriority: "normal" });
+    expect(lowered.status).toBe(200);
+    expect(lowered.body.queuePriority).toBe("normal");
+
+    const after = await readQueuePositions(userId);
+    expect(after).toEqual(before);
+  });
+});
+
 describe("PATCH /api/books/:id series progress recompute", () => {
   function searchSeries(accessToken: string): request.Test {
     return request(app.getHttpServer())
@@ -1134,5 +1331,150 @@ describe("PATCH /api/books/:id series progress recompute", () => {
     );
     expect(byId.get(sourceSeriesId)).toEqual({ booksInSeries: 0, finishedInSeries: 0 });
     expect(byId.get(targetSeriesId)).toEqual({ booksInSeries: 2, finishedInSeries: 1 });
+  });
+});
+
+describe("PATCH /api/books/:id dedication favorite independence and normalization", () => {
+  it("favorites the dedication without touching the book favorite (TC-014)", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+    expect(created.body.isFavorite).toBe(false);
+    expect(created.body.isFavoriteDedication).toBe(false);
+
+    const res = await updateBook(accessToken, created.body.id, { isFavoriteDedication: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isFavoriteDedication).toBe(true);
+    expect(res.body.isFavorite).toBe(false);
+  });
+
+  it("favorites the book without touching the dedication favorite (TC-015)", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { isFavorite: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isFavorite).toBe(true);
+    expect(res.body.isFavoriteDedication).toBe(false);
+  });
+
+  it("keeps both favorite states true at once (TC-016)", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      isFavorite: true,
+      isFavoriteDedication: true,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isFavorite).toBe(true);
+    expect(res.body.isFavoriteDedication).toBe(true);
+  });
+
+  it("normalizes a whitespace-only dedication to null on create", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "   ",
+      title: "Dune",
+    });
+
+    expect(created.status).toBe(201);
+    expect(created.body.dedication).toBeNull();
+    expect(created.body.isFavoriteDedication).toBe(false);
+  });
+
+  it("normalizes an empty-string dedication to null on update", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, { dedication: "" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.dedication).toBeNull();
+  });
+
+  it("auto-resets the dedication favorite when the dedication is cleared", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+    const favorited = await updateBook(accessToken, created.body.id, {
+      isFavoriteDedication: true,
+    });
+    expect(favorited.body.isFavoriteDedication).toBe(true);
+
+    const res = await updateBook(accessToken, created.body.id, { dedication: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.dedication).toBeNull();
+    expect(res.body.isFavoriteDedication).toBe(false);
+  });
+
+  it("lets the auto-reset win over a favorite flag sent in the same clearing patch", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "For my family",
+      title: "Dune",
+    });
+
+    const res = await updateBook(accessToken, created.body.id, {
+      dedication: "",
+      isFavoriteDedication: true,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.dedication).toBeNull();
+    expect(res.body.isFavoriteDedication).toBe(false);
+  });
+
+  it("accepts a dedication of exactly 2000 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const dedication = "a".repeat(2000);
+
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication,
+      title: "Dune",
+    });
+
+    expect(created.status).toBe(201);
+    expect(created.body.dedication).toBe(dedication);
+  });
+
+  it("rejects a dedication longer than 2000 characters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      dedication: "a".repeat(2001),
+      title: "Dune",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "dedication" })]),
+    );
   });
 });

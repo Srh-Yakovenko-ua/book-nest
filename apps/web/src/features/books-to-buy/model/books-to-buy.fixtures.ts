@@ -1,0 +1,56 @@
+import type {
+  BookStoreLinkView,
+  WishlistBookView,
+  WishlistCurrencyEstimate,
+  WishlistSummaryView,
+} from "@app/shared";
+
+import { makeBookView } from "@/features/books/components/book-details.fixtures";
+
+export function makeCurrencyEstimate(
+  overrides: Partial<WishlistCurrencyEstimate> = {},
+): WishlistCurrencyEstimate {
+  return {
+    average: 450,
+    best: 380,
+    booksCount: 2,
+    currency: "UAH",
+    total: 900,
+    ...overrides,
+  };
+}
+
+export function makeStoreLink(overrides: Partial<BookStoreLinkView> = {}): BookStoreLinkView {
+  return {
+    bookId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    createdAt: "2026-03-01T10:00:00.000Z",
+    currency: "UAH",
+    id: "link-1",
+    price: 450,
+    storeName: "Yakaboo",
+    updatedAt: "2026-03-01T10:00:00.000Z",
+    url: "https://yakaboo.ua/last-wish",
+    ...overrides,
+  };
+}
+
+export function makeWishlistBook(overrides: Partial<WishlistBookView> = {}): WishlistBookView {
+  const { bestOffer, storeLinks, ...bookOverrides } = overrides;
+
+  return {
+    ...makeBookView({ ownershipStatus: "want_to_buy", ...bookOverrides }),
+    bestOffer: bestOffer ?? null,
+    storeLinks: storeLinks ?? [],
+  };
+}
+
+export function makeWishlistSummary(
+  overrides: Partial<WishlistSummaryView> = {},
+): WishlistSummaryView {
+  return {
+    booksCount: 1,
+    estimates: [],
+    trackedStoresCount: 0,
+    ...overrides,
+  };
+}

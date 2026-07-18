@@ -46,10 +46,19 @@ export function computeCreateDelivery(fields: CreateDeliveryInput): CreateDelive
   };
 }
 
-export function computeReceiveDelivery(now: Date): RecordDeliveryTransition {
+export function computeReceiveDelivery({
+  now,
+  receivedAt,
+}: {
+  now: Date;
+  receivedAt?: Nullable<string>;
+}): RecordDeliveryTransition {
   return {
     book: { ownershipStatus: "owned" },
-    delivery: { receivedAt: now, status: STATUS_RECEIVED },
+    delivery: {
+      receivedAt: receivedAt != null ? parseIsoDate(receivedAt) : now,
+      status: STATUS_RECEIVED,
+    },
   };
 }
 

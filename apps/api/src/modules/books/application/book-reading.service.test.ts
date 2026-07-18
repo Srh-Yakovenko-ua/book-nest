@@ -1,14 +1,14 @@
-import type { Nullable } from "@app/shared";
+import type { BookView, Nullable } from "@app/shared";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
-import type { BookViewAssembler } from "./book-view-assembler.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
 import { BookReadingService } from "./book-reading.service.js";
+import { BookViewAssembler } from "./book-view-assembler.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const BOOK_ID = "22222222-2222-4222-8222-222222222222";
@@ -121,6 +121,83 @@ describe("BookReadingService.startReading", () => {
       BOOK_ID,
       expect.anything(),
       client,
+    );
+  });
+});
+
+describe("BookReadingService.changeReadingStatus clearEvents", () => {
+  function buildStatusService(repository: {
+    findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
+    recordReadingStatusChange: ReturnType<typeof vi.fn>;
+  }): BookReadingService {
+    return new BookReadingService(
+      repository as unknown as BooksRepository,
+      {
+        loadView: vi.fn().mockResolvedValue({} as BookView),
+      } as unknown as BookViewAssembler,
+    );
+  }
+
+  function statusRepositoryMock(): {
+    findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
+    recordReadingStatusChange: ReturnType<typeof vi.fn>;
+  } {
+    return {
+      findOwnedByIdOrThrow: vi.fn().mockResolvedValue({
+        pagesCount: 320,
+        readingProgress: { currentPage: 120, startedAt: EXISTING_STARTED_AT },
+      } as unknown as BookWithRelations),
+      recordReadingStatusChange: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  it("clears the reading events when resetting progress to not_started", async () => {
+    const repository = statusRepositoryMock();
+    const service = buildStatusService(repository);
+
+    await service.changeReadingStatus(USER_ID, BOOK_ID, {
+      resetProgress: true,
+      status: "not_started",
+    });
+
+    expect(repository.recordReadingStatusChange).toHaveBeenCalledWith(
+      expect.objectContaining({ clearEvents: true }),
+    );
+  });
+
+  it("keeps the reading events when finishing a book pulls the current page to the page count", async () => {
+    const repository = statusRepositoryMock();
+    const service = buildStatusService(repository);
+
+    await service.changeReadingStatus(USER_ID, BOOK_ID, { status: "finished" });
+
+    expect(repository.recordReadingStatusChange).toHaveBeenCalledWith(
+      expect.objectContaining({ clearEvents: false }),
+    );
+  });
+
+  it("keeps the reading events when returning to not_started without a reset", async () => {
+    const repository = statusRepositoryMock();
+    const service = buildStatusService(repository);
+
+    await service.changeReadingStatus(USER_ID, BOOK_ID, { status: "not_started" });
+
+    expect(repository.recordReadingStatusChange).toHaveBeenCalledWith(
+      expect.objectContaining({ clearEvents: false }),
+    );
+  });
+
+  it("does not clear events when resetProgress is set but the target status still reads", async () => {
+    const repository = statusRepositoryMock();
+    const service = buildStatusService(repository);
+
+    await service.changeReadingStatus(USER_ID, BOOK_ID, {
+      resetProgress: true,
+      status: "reading",
+    });
+
+    expect(repository.recordReadingStatusChange).toHaveBeenCalledWith(
+      expect.objectContaining({ clearEvents: false }),
     );
   });
 });

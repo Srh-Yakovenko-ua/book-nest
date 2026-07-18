@@ -18,6 +18,7 @@ import type { ReadingQueueViewDtoItemsItemBookOwnershipStatus } from "./readingQ
 import type { ReadingQueueViewDtoItemsItemBookPublisher } from "./readingQueueViewDtoItemsItemBookPublisher";
 import type { ReadingQueueViewDtoItemsItemBookPurchaseInfo } from "./readingQueueViewDtoItemsItemBookPurchaseInfo";
 import type { ReadingQueueViewDtoItemsItemBookQueuePriority } from "./readingQueueViewDtoItemsItemBookQueuePriority";
+import type { ReadingQueueViewDtoItemsItemBookQueuePriorityReason } from "./readingQueueViewDtoItemsItemBookQueuePriorityReason";
 import type { ReadingQueueViewDtoItemsItemBookReadingProgress } from "./readingQueueViewDtoItemsItemBookReadingProgress";
 import type { ReadingQueueViewDtoItemsItemBookReadingStatus } from "./readingQueueViewDtoItemsItemBookReadingStatus";
 import type { ReadingQueueViewDtoItemsItemBookSeries } from "./readingQueueViewDtoItemsItemBookSeries";
@@ -47,6 +48,7 @@ export type ReadingQueueViewDtoItemsItemBook = {
   /** @nullable */
   isbn: string | null;
   isFavorite: boolean;
+  isFavoriteDedication: boolean;
   isInReadingQueue: boolean;
   language: ReadingQueueViewDtoItemsItemBookLanguage;
   lists: ReadingQueueViewDtoItemsItemBookListsItem[];
@@ -67,6 +69,15 @@ export type ReadingQueueViewDtoItemsItemBook = {
   purchaseInfo: ReadingQueueViewDtoItemsItemBookPurchaseInfo;
   /** @nullable */
   queuePriority: ReadingQueueViewDtoItemsItemBookQueuePriority;
+  /** @nullable */
+  queuePriorityReason: ReadingQueueViewDtoItemsItemBookQueuePriorityReason;
+  /** @nullable */
+  queuePriorityReasonCustomText: string | null;
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  queuePriorityTargetDate: string | null;
   /** @nullable */
   readingProgress: ReadingQueueViewDtoItemsItemBookReadingProgress;
   readingStatus: ReadingQueueViewDtoItemsItemBookReadingStatus;

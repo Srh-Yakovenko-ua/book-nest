@@ -71,6 +71,25 @@ export class BookOwnershipController {
     return this.bookOwnershipService.removeOwned(user.id, id);
   }
 
+  @ApiBearerAuth()
+  @ApiConflictResponse({ description: "Book is not in the wishlist" })
+  @ApiNotFoundResponse({ description: "Book not found" })
+  @ApiOkResponse({ description: "The book removed from the wishlist", type: BookViewDto })
+  @ApiOperation({ summary: "Remove a book from the wishlist" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post(":id/ownership/remove-from-wishlist")
+  @Throttle({
+    default: { limit: OWNERSHIP_ACTION_LIMIT, ttl: seconds(OWNERSHIP_ACTION_TTL_SECONDS) },
+  })
+  @UseGuards(JwtAccessGuard)
+  removeFromWishlist(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<BookView> {
+    return this.bookOwnershipService.removeFromWishlist({ bookId: id, userId: user.id });
+  }
+
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBearerAuth()
   @ApiBody({ type: WantToBuyInputDto })

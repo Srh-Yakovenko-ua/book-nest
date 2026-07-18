@@ -17,14 +17,17 @@
     "allBooks": "All books",
     "buyList": "Books to buy",
     "series": "Series",
+    "genresTags": "Genres / Tags",
     "loans": "Borrowed books",
     "lists": "Lists",
-    "delivery": "Deliveries"
+    "notes": "Notes",
+    "delivery": "Deliveries",
+    "dedications": "Dedications",
+    "quotes": "Quotes"
   },
   "readingQueue": {
     "title": "Reading queue",
     "subtitle": "Your organized plan for what to read next",
-    "countBadge": "{count, plural, one {# book} other {# books}}",
     "addBook": "Add a book to the queue",
     "listHeading": "Queue",
     "empty": {
@@ -141,6 +144,132 @@
       "title": "Next to read",
       "empty": "Add a book to the queue to see what’s next to read.",
       "startReading": "Start reading"
+    },
+    "seriesOrderCheck": {
+      "title": "Check series order",
+      "subtitle": "Found series where the reading order may be broken",
+      "viewAll": "View all",
+      "countLabel": "Series order issues found: {count}",
+      "loading": "Checking series order…",
+      "allIssues": {
+        "title": "Series order",
+        "description": "All series where the reading order may be broken."
+      },
+      "empty": {
+        "title": "Series order checked",
+        "description": "No order violations found in the queue."
+      },
+      "severity": {
+        "error": "Error",
+        "warning": "Warning",
+        "info": "Info"
+      },
+      "card": {
+        "affectedBook": "Affected book",
+        "previousBook": "Previous book",
+        "seriesPosition": "Book {position}",
+        "seriesPositionUnknown": "Position unknown",
+        "queuePosition": "Queue position: {position}",
+        "notInQueue": "Not in the queue",
+        "currentReading": "Currently reading",
+        "relatedProblems": "{count, plural, one {# more conflict in this series} other {# more conflicts in this series}}",
+        "moreActions": "More actions for the “{series}” series",
+        "coverAlt": "“{title}” cover"
+      },
+      "order": {
+        "listLabel": "Series book order"
+      },
+      "problems": {
+        "missing_previous_from_queue": {
+          "title": "“{previousBook}” is not finished yet, but “{affectedBook}” is already queued."
+        },
+        "previous_book_after_later_book": {
+          "title": "“{previousBook}” should come before “{affectedBook}”."
+        },
+        "multiple_previous_missing": {
+          "title": "{count, plural, one {# unfinished part remains} other {# unfinished parts remain}} before “{affectedBook}”.",
+          "description": "Next in order is “{previousBook}”."
+        },
+        "previous_book_paused": {
+          "title": "The previous part is not finished yet.",
+          "description": "“{previousBook}” is paused while “{affectedBook}” is already ahead."
+        },
+        "current_reading_ahead_of_order": {
+          "title": "Current reading is ahead of the series order.",
+          "description": "You are reading “{affectedBook}” while “{previousBook}” is not finished."
+        },
+        "previous_book_not_owned": {
+          "title": "The previous part is not in your library."
+        },
+        "previous_book_want_to_buy": {
+          "title": "The previous part has not been bought yet."
+        },
+        "previous_book_in_transit": {
+          "title": "The previous part is already on its way."
+        },
+        "previous_book_lent_out": {
+          "title": "The previous part is lent out and unavailable right now."
+        },
+        "multiple_books_out_of_order": {
+          "title": "The series order is mixed up."
+        }
+      },
+      "actions": {
+        "retry": "Try again",
+        "fixOrder": "Fix the order",
+        "arrangeBySeries": "Arrange by series order",
+        "addBefore": "Add before “{affectedBook}”",
+        "addNext": "Add the next book",
+        "addAll": "Add all in order",
+        "openBook": "Open the previous book",
+        "resumeBook": "Back to the book",
+        "addToWishlist": "Add to “Want to buy”",
+        "openPurchase": "Go to purchase",
+        "openOrder": "View the order",
+        "openLoan": "View the loan",
+        "ignore": "Leave as is",
+        "disableSeries": "Don’t check this series"
+      },
+      "preview": {
+        "title": "Fix the series order?",
+        "current": "Now:",
+        "recommended": "Recommended:",
+        "afterFix": "After the fix:",
+        "added": "Will be added:",
+        "moved": "Will move:",
+        "addedItem": "“{title}” will be added at position {position}.",
+        "movedItem": "“{title}”: position {from} → {to}",
+        "unrelatedUnchanged": "Other books will stay at their positions.",
+        "shiftedUnrelated": "{count, plural, one {# unrelated book will shift} other {# unrelated books will shift}} to a new position.",
+        "warningsTitle": "Please note",
+        "loading": "Preparing the change preview…",
+        "error": "Couldn’t prepare the change preview",
+        "cancel": "Cancel",
+        "confirm": "Confirm the action",
+        "confirmReorder": "Fix the order",
+        "confirmInsert": "Add and fix"
+      },
+      "disable": {
+        "title": "Turn off the order check?",
+        "description": "BookNest will no longer show warnings for this series. You can turn the check back on in the series settings.",
+        "cancel": "Cancel",
+        "confirm": "Don’t check the series"
+      },
+      "error": {
+        "load": "Couldn’t check the series order",
+        "queueStale": "The queue has changed. Refresh the data and check the order again.",
+        "issueStale": "This issue has already changed. Check the updated order.",
+        "alreadyInQueue": "The book is already in the queue.",
+        "queueLimit": "Couldn’t add the books: the queue limit has been reached.",
+        "notFound": "The book or series can no longer be found.",
+        "forbidden": "You don’t have access to this book or series.",
+        "generic": "Couldn’t complete the action. Try again."
+      },
+      "success": {
+        "fixed": "Series order fixed",
+        "ignored": "This warning is hidden for the current order",
+        "disabled": "The order check for this series is turned off"
+      }
     }
   },
   "appShell": {
@@ -559,6 +688,8 @@
         "favorite": "Favorites",
         "coverWith": "Has cover",
         "coverWithout": "No cover",
+        "ratedWith": "Rated",
+        "ratedWithout": "Not rated",
         "ratingFrom": "Rating from {value}",
         "ratingTo": "Rating up to {value}",
         "ratingRange": "Rating {min}–{max}",
@@ -868,11 +999,6 @@
       "createHeading": "Create new",
       "createNew": "Create new series",
       "createAction": "Create “{name}”",
-      "statusLabels": {
-        "unknown": "Unknown",
-        "ongoing": "Ongoing",
-        "completed": "Completed"
-      },
       "create": {
         "title": "New series",
         "description": "The series will be created together with the book.",
@@ -915,11 +1041,56 @@
       "description": "Add the book to favorites, the reading queue and your own lists.",
       "favorite": "Add to favorites",
       "queue": "Add to reading queue",
-      "queuePriority": "Queue priority",
-      "priorityLabels": {
-        "low": "Low",
-        "normal": "Normal",
-        "high": "High"
+      "priority": {
+        "title": "Reading priority",
+        "subtitle": "Choose the priority for this book in your reading queue.",
+        "info": "Priority shows how important a book is, but it does not change its position in the queue automatically.",
+        "low": {
+          "label": "Low",
+          "shortDescription": "Can wait until later",
+          "detailTitle": "Low priority",
+          "extendedDescription": "Choose low priority if the book interests you but is not part of your immediate reading plans and can make way for more important books."
+        },
+        "normal": {
+          "label": "Normal",
+          "shortDescription": "Read in the usual order",
+          "detailTitle": "Normal priority",
+          "extendedDescription": "The standard choice for most books in the queue. Pick it when a book matters to you but has no specific deadline or reason to read it right away."
+        },
+        "high": {
+          "label": "High",
+          "shortDescription": "Read in the near future",
+          "detailTitle": "High priority",
+          "extendedDescription": "Choose high priority if you need to read the book before a certain event, discussion or deadline, return it to its owner, or finish it before the next book in a series."
+        },
+        "reason": {
+          "label": "Why is this book a high priority?",
+          "placeholder": "Choose a reason",
+          "clear": "Clear the reason",
+          "options": {
+            "bookClub": "Book club",
+            "buddyRead": "Buddy read",
+            "eventOrDeadline": "Event or deadline",
+            "returnDue": "Needs to be returned",
+            "seriesOrder": "Series order",
+            "readingGoal": "Reading goal",
+            "anticipatedRelease": "Anticipated release",
+            "other": "Other"
+          }
+        },
+        "customReason": {
+          "label": "Tell us the reason",
+          "placeholder": "For example, I want to read it before vacation",
+          "error": "Enter your own reason for the high priority."
+        },
+        "targetDate": {
+          "label": "Event or deadline date",
+          "placeholder": "Choose a date",
+          "hint": "A date helps you not to miss an event, a deadline or a return due date.",
+          "returnDueHint": "Set the date by which the book has to be returned."
+        },
+        "positionNote": "Priority does not change the position of the book automatically. Once added, the book appears at the end of the queue. You can change the reading order on the <link>Reading queue</link> page.",
+        "positionNoteLink": "Reading queue"
       },
       "lists": "Lists",
       "listsPlaceholder": "Pick your lists",
@@ -1108,6 +1279,8 @@
       "authorsShowAll": "Show all authors",
       "authorsCollapse": "Collapse",
       "dedicationLabel": "Author's dedication",
+      "dedicationAllLink": "Go to all dedications",
+      "dedicationCopy": "Copy",
       "lists": "Lists",
       "seriesSequence": {
         "title": "Series reading order",
@@ -1205,6 +1378,44 @@
         "changeStatusCta": "Change status",
         "lastUpdate": "Last updated",
         "pagesOnly": "Page {current}",
+        "summaryTitle": "Reading summary",
+        "tabOverview": "Overview",
+        "pagesOf": "{current} of {total, plural, one {# page} other {# pages}}",
+        "started": "Started",
+        "updated": "Updated",
+        "finishedDate": "Finished",
+        "pausedSince": "Paused since",
+        "stopped": "Stopped",
+        "stopPageLabel": "Stopped at",
+        "remaining": "Remaining",
+        "duration": "Duration",
+        "pagesUnit": "{count, plural, one {# page} other {# pages}}",
+        "daysUnit": "{count, plural, one {# day} other {# days}}",
+        "activeDays": "{count, plural, one {# active day} other {# active days}}",
+        "averagePerActiveDay": "{value} pp./active day",
+        "bestDay": "{pages} pp. — best day",
+        "updatesCount": "{count, plural, one {# update} other {# updates}}",
+        "estimatedDaysRemaining": "{count, plural, one {At the current pace, about # active reading day remains.} other {At the current pace, about # active reading days remain.}}",
+        "incompleteHistory": "Some previously saved progress has no detailed update history.",
+        "incompleteHistoryHint": "The activity chart and stats are based only on recorded updates.",
+        "activityTitle": "Reading activity",
+        "range7d": "7 days",
+        "range14d": "14 days",
+        "rangeAll": "All time",
+        "rangeLabel": "Activity range",
+        "noActivityInRange": "There are no progress updates in the selected period.",
+        "noActivityAll": "Activity history is empty for now.",
+        "recentActivity": "Recent activity",
+        "viewFullHistory": "View full history",
+        "toPage": "To page {page}",
+        "pagesDelta": "{count, plural, one {+# page} other {+# pages}}",
+        "tooltipRange": "From page {start} to {final}",
+        "tooltipNoUpdates": "No updates",
+        "emptyNeutral": "Progress history will appear after the first page update.",
+        "legacyNoHistory": "Detailed update history is not available for this progress yet.",
+        "loadError": "Reading history could not be loaded.",
+        "retry": "Try again",
+        "loading": "Loading reading history…",
         "updateDialog": {
           "title": "Update progress",
           "description": "Mark how many pages you’ve read.",
@@ -1235,6 +1446,23 @@
           "generic": "Couldn’t save. Please try again."
         }
       },
+      "readingHistory": {
+        "tab": "Full reading history",
+        "title": "Full reading history",
+        "subtitle": "Detailed activity and every recorded progress update.",
+        "periodLabel": "Reading period",
+        "allUpdates": "All progress updates",
+        "sortLabel": "Sort updates",
+        "newestFirst": "Newest first",
+        "oldestFirst": "Oldest first",
+        "recordedTimeHint": "The time the update was saved. It may differ from the actual reading time.",
+        "emptyTitle": "Reading history is empty",
+        "emptySubtitle": "Update the current page to start building activity and progress history.",
+        "paginationLabel": "Reading history pages",
+        "previous": "Previous",
+        "next": "Next",
+        "goToPage": "Page {page}"
+      },
       "ownership": {
         "title": "Ownership",
         "statusLabel": "Status",
@@ -1248,7 +1476,12 @@
           "markOrdered": "Mark as ordered",
           "return": "Mark as returned",
           "startDelivery": "Ordered — in transit",
-          "alreadyOwn": "I already have this book"
+          "alreadyOwn": "I already have this book",
+          "removeFromWishlist": "Remove from shopping list"
+        },
+        "storeLinks": {
+          "title": "Stores and prices",
+          "add": "Add link"
         },
         "purchase": {
           "title": "Purchase details",
@@ -1296,6 +1529,7 @@
           "noteMax": "No more than {max} characters.",
           "purchaseDateRequired": "Enter the purchase date.",
           "purchaseDateFuture": "The date can’t be in the future.",
+          "notInWishlist": "This book is no longer in the shopping list.",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -1450,11 +1684,78 @@
     "metaTitle": "Books to buy",
     "title": "Books to buy",
     "subtitle": "Books you want to purchase and add to your collection",
+    "countBadge": "{count, plural, one {# book} other {# books}}",
+    "addBook": "Add book",
+    "sidebar": {
+      "label": "Purchase overview",
+      "stats": {
+        "title": "Quick statistics",
+        "booksCount": "Books in the list",
+        "storesCount": "Stores tracked",
+        "average": "Average price",
+        "best": "Best offer",
+        "currencyGroup": "{currency} · {count, plural, one {# book with a price} other {# books with a price}}",
+        "pricesEmpty": "No prices yet. Add a store link with a price to see the estimate."
+      },
+      "bestOffers": {
+        "title": "Best deals",
+        "empty": "Books with the lowest prices will appear here.",
+        "showAll": "View all"
+      },
+      "quickActions": {
+        "title": "Quick actions",
+        "addBook": "Add book",
+        "openLibrary": "Open library",
+        "inTransit": "Books in transit"
+      },
+      "howItWorks": {
+        "title": "How it works",
+        "bought": "When you mark a book as bought, it disappears from this list and its ownership status becomes “Owned”.",
+        "delivery": "If a book is already ordered but not yet received, mark it as “In transit”."
+      }
+    },
+    "toolbar": {
+      "searchLabel": "Search the shopping list",
+      "searchPlaceholder": "Search the list...",
+      "searchClear": "Clear search",
+      "linkFilterLabel": "Filter by links and prices",
+      "sortLabel": "Sorting",
+      "storeLabel": "By store",
+      "storeAny": "All stores",
+      "publisherLabel": "By publisher",
+      "publisherAny": "All publishers",
+      "genreLabel": "By genre",
+      "genreAny": "All genres",
+      "tagLabel": "By tag",
+      "tagAny": "All tags"
+    },
+    "linkFilter": {
+      "all": "All",
+      "has_links": "With links",
+      "without_links": "Without links",
+      "has_price": "With price",
+      "without_price": "Without price"
+    },
+    "sort": {
+      "added_asc": "Oldest first",
+      "added_desc": "Newest first",
+      "title_asc": "By title",
+      "author_asc": "By author",
+      "publisher_asc": "By publisher",
+      "price_asc": "Lowest price first",
+      "price_desc": "Highest price first",
+      "stores_desc": "By store count"
+    },
     "empty": {
       "title": "Save books for future purchases",
       "description": "Mark the books you want to buy so you can keep track of editions, stores, and prices.",
       "cta": "Add book",
       "secondary": "View all books"
+    },
+    "noResults": {
+      "title": "Nothing found",
+      "description": "Try changing your query or clearing the filters.",
+      "clear": "Clear filters"
     },
     "error": {
       "title": "Could not load",
@@ -1462,7 +1763,173 @@
       "retry": "Try again"
     },
     "markInTransit": "Mark as in transit",
-    "markInTransitFor": "Mark \"{title}\" as in transit"
+    "markInTransitFor": "Mark \"{title}\" as in transit",
+    "markBought": "Mark as bought",
+    "markBoughtFor": "Mark “{title}” as bought",
+    "markBoughtSuccess": "The book is marked as bought",
+    "rowMenuLabel": "More actions for “{title}”",
+    "removeFromList": {
+      "action": "Remove from the shopping list",
+      "title": "Remove the book from the shopping list?",
+      "description": "The book will disappear from the “Books to buy” page but will stay in your library.",
+      "cancel": "Cancel",
+      "confirm": "Remove from the list",
+      "pending": "Removing...",
+      "success": "The book was removed from the shopping list",
+      "error": "Could not remove the book from the shopping list",
+      "notInWishlist": "This book is no longer in the shopping list"
+    },
+    "storeLinks": {
+      "listLabel": "Store links",
+      "empty": "No store links added yet",
+      "bestOffer": "Best price",
+      "expand": "{count} more",
+      "collapse": "Collapse",
+      "add": "Add link",
+      "addFor": "Add a store link for “{title}”",
+      "menuLabel": "Actions for the “{store}” link",
+      "edit": "Edit link",
+      "delete": "Delete link",
+      "deleted": "Link deleted",
+      "undo": "Undo",
+      "deleteError": "Could not delete the link",
+      "undoError": "Could not restore the link"
+    },
+    "storeLinkDialog": {
+      "addTitle": "Add a store link",
+      "addDescription": "Add a link to the book's page in an online store.",
+      "editTitle": "Edit link",
+      "editDescription": "Update the store, link, price or currency.",
+      "storeName": "Store",
+      "storeNamePlaceholder": "For example, Yakaboo",
+      "url": "Link",
+      "urlPlaceholder": "https://",
+      "price": "Price",
+      "currency": "Currency",
+      "addSubmit": "Save link",
+      "editSubmit": "Save changes",
+      "addSuccess": "Link added",
+      "editSuccess": "Link updated",
+      "errors": {
+        "storeNameRequired": "Choose a store",
+        "storeNameMax": "Store name must be at most {max} characters",
+        "urlRequired": "Add a store link",
+        "url": "The link must start with https://",
+        "urlMax": "The link must be at most {max} characters",
+        "price": "Price must be greater than 0",
+        "priceMax": "Price must be at most {max}",
+        "duplicateUrl": "This link has already been added for this book",
+        "maxLinks": "The limit of {max} links per book has been reached",
+        "generic": "Could not save the link"
+      }
+    }
+  },
+  "dedications": {
+    "metaTitle": "Dedications",
+    "title": "Dedications",
+    "subtitle": "Author dedications from the books you added to your library. The small words that begin a big story.",
+    "countBadge": "{count, plural, one {# dedication} other {# dedications}}",
+    "toolbar": {
+      "searchLabel": "Search dedications",
+      "searchPlaceholder": "Search dedications, books, authors...",
+      "searchClear": "Clear search",
+      "sortLabel": "Sorting",
+      "filterLabel": "Dedication filter",
+      "genreLabel": "By genre",
+      "genreAny": "All genres"
+    },
+    "filter": {
+      "all": "All",
+      "favorites": "Favorites",
+      "without_favorites": "Not favorites",
+      "finished": "Finished",
+      "unfinished": "Unfinished"
+    },
+    "sort": {
+      "newest": "Recently added",
+      "recently_updated": "Recently updated",
+      "book_title_asc": "By book title",
+      "author_asc": "By author",
+      "favorites_first": "Favorites first",
+      "publication_year_desc": "By publication year"
+    },
+    "card": {
+      "coverAlt": "Cover of “{title}”",
+      "unknownAuthor": "Unknown author",
+      "read": "Read the dedication from “{title}”",
+      "openBook": "Go to the book",
+      "copy": "Copy the dedication",
+      "addFavorite": "Add the dedication to favorites",
+      "removeFavorite": "Remove the dedication from favorites"
+    },
+    "modal": {
+      "openBook": "Go to the book",
+      "copy": "Copy",
+      "favorite": "Favorite",
+      "genresLabel": "Genres",
+      "tagsLabel": "Tags"
+    },
+    "copy": {
+      "success": "Dedication copied",
+      "error": "Could not copy the dedication"
+    },
+    "favorite": {
+      "added": "Added to favorite dedications",
+      "removed": "Removed from favorite dedications",
+      "error": "Could not update favorite dedications"
+    },
+    "sidebar": {
+      "label": "Dedications overview",
+      "stats": {
+        "title": "Statistics",
+        "total": "Dedications total",
+        "favorites": "Favorites",
+        "fromFinished": "From finished books",
+        "fromUnfinished": "From unfinished books",
+        "topGenre": "Most common genre",
+        "topAuthor": "Most dedications by author",
+        "empty": "—",
+        "error": "Could not load the dedication statistics."
+      },
+      "quickFilters": {
+        "title": "Quick filters",
+        "finished": "Finished books only",
+        "unfinished": "Unfinished books only",
+        "favorites": "Favorite dedications",
+        "without_favorites": "Not favorites"
+      },
+      "quote": {
+        "text": "Every dedication is a little story about someone who matters."
+      },
+      "helper": {
+        "title": "Cannot find your dedication?",
+        "text": "Add it on the book edit page and it will show up here.",
+        "cta": "Add a book",
+        "secondary": "Go to all books"
+      }
+    },
+    "pagination": {
+      "label": "Dedication pages",
+      "previous": "Previous",
+      "next": "Next",
+      "goToPage": "Page {page}"
+    },
+    "empty": {
+      "title": "You have no dedications yet",
+      "description": "Add an author dedication when you create or edit a book — and it will show up here.",
+      "cta": "Add a book",
+      "secondary": "Go to all books"
+    },
+    "noResults": {
+      "title": "Nothing found",
+      "description": "Try changing your query or clearing the filters.",
+      "clear": "Clear filters"
+    },
+    "error": {
+      "title": "Could not load the dedications",
+      "description": "Try refreshing the page or come back later.",
+      "retry": "Try again"
+    }
   },
   "delivery": {
     "metaTitle": "Books in transit",
@@ -1735,13 +2202,31 @@
     "metaTitle": "Favorite books",
     "title": "Favorite books",
     "subtitle": "Books you want to revisit, remember, and recommend",
-    "countBadge": "{count, plural, one {# book} other {# books}}",
     "summary": {
       "total": "Total favorites",
       "finished": "Finished",
       "reading": "Reading",
       "averageRating": "Average rating",
-      "averageRatingEmpty": "—"
+      "averageRatingEmpty": "—",
+      "totalMicrofact": "{series} in series · {solo, plural, one {# standalone} other {# standalone}}",
+      "totalMicrofactEmpty": "No favorite books yet",
+      "readingMicrofactActive": "{percentage}% of favorites in progress",
+      "readingMicrofactPlanned": "{count, plural, one {# book planned to read} other {# books planned to read}}",
+      "readingMicrofactNone": "No active reading",
+      "finishedMicrofactActive": "{percentage}% of favorites read",
+      "finishedMicrofactEmpty": "Nothing read yet",
+      "ratingMicrofact": "Among rated favorites",
+      "ratingMicrofactEmpty": "No ratings yet",
+      "topGenre": "Top genre",
+      "topGenreEmpty": "No genre",
+      "topGenreMicrofact": "{count, plural, one {# favorite in this genre} other {# favorites in this genre}}",
+      "topGenreMicrofactEmpty": "No genres among favorites",
+      "topGenreMicrofactTie": "{count, plural, one {# favorite in each genre} other {# favorites in each genre}}",
+      "topTag": "Top tag",
+      "topTagEmpty": "No tag",
+      "topTagMicrofact": "{count, plural, one {# favorite with this tag} other {# favorites with this tag}}",
+      "topTagMicrofactEmpty": "No tags among favorites",
+      "topTagMicrofactTie": "{count, plural, one {# favorite with each tag} other {# favorites with each tag}}"
     },
     "empty": {
       "title": "Collect the books that feel special",
@@ -1751,6 +2236,49 @@
     "remove": {
       "toast": "Book removed from favorites",
       "undo": "Undo"
+    },
+    "unrated": {
+      "title": "Needs rating",
+      "subtitle": "Rate the books you've finished to sharpen your favorites stats.",
+      "rate": "Rate book",
+      "rateBook": "Rate the book “{title}”",
+      "countLabel": "{count, plural, one {# book without a rating} other {# books without a rating}}",
+      "viewAll": "View all",
+      "emptyAllRated": "No unrated books among your finished favorites",
+      "error": "Couldn't load books",
+      "retry": "Try again"
+    },
+    "seriesContinuations": {
+      "title": "Next in series",
+      "subtitle": "Next books from series where you already have favorites",
+      "countChip": "{count, plural, one {# suggestion} other {# suggestions}}",
+      "showAll": "Show all",
+      "collapse": "Collapse",
+      "error": "Couldn’t load series continuations",
+      "retry": "Try again",
+      "empty": "No series to continue yet",
+      "bookPosition": "{position} of {total}",
+      "seriesProgress": "Read {finished} of {total} books in the series",
+      "openBook": "Open “{title}”",
+      "openSeries": "Open series “{title}”",
+      "actions": {
+        "continueReading": "Continue reading",
+        "resumeReading": "Resume reading",
+        "addToQueue": "Add to queue",
+        "openQueue": "Go to queue",
+        "openLoan": "View loan",
+        "openOrder": "View order",
+        "openWishlist": "Go to purchase",
+        "addToWishlist": "Add to “Want to buy”"
+      }
+    },
+    "topGenres": {
+      "title": "Top genres",
+      "subtitle": "Top 3 genres among your favorites",
+      "chartLabel": "Pie chart of favorite top genres",
+      "empty": "No genres among favorites yet",
+      "error": "Failed to load genres",
+      "retry": "Try again"
     }
   },
   "series": {
@@ -1758,7 +2286,6 @@
       "metaTitle": "Series",
       "title": "Series",
       "subtitle": "Organize book series, follow the reading order, and track your progress",
-      "count": "{count, plural, one {# series} other {# series}}",
       "resultsTitle": "Series list",
       "create": "Create series",
       "addBook": "Add book"
@@ -1843,6 +2370,7 @@
       "description": "Create a book series to track its progress.",
       "name": "Series name",
       "namePlaceholder": "e.g. The Witcher",
+      "authors": "Series authors",
       "status": "Status",
       "genres": "Genres",
       "genresHint": "You can pick up to {max} genres",
@@ -1890,8 +2418,7 @@
     },
     "details": {
       "metaTitle": "Series details",
-      "back": "Series",
-      "coverAlt": "Cover of series {name}",
+      "coverFanAlt": "Book covers of series {name}, {count, plural, one {# book} other {# books}}",
       "authorsUnknown": "Unknown author",
       "books": "{count, plural, one {# book} other {# books}}",
       "booksWithTotal": "{count} of {total} added",
@@ -1901,6 +2428,11 @@
       "menu": "Series actions",
       "addBookInline": "Add a book to this series",
       "booksHeading": "Series books",
+      "summary": {
+        "finished": "{count} read",
+        "remaining": "{count} left",
+        "notAdded": "{count} not added yet"
+      },
       "tabs": {
         "books": "Books in series",
         "about": "About the series"
@@ -1909,15 +2441,21 @@
         "title": "This series has no books yet",
         "action": "Add book"
       },
-      "readingOrder": {
-        "title": "Reading order"
+      "missingRow": {
+        "title": "Book {number}",
+        "hint": "Not in your library yet",
+        "action": "Add",
+        "actionAria": "Add book {number} to your library"
       },
       "row": {
         "menu": "Book actions",
-        "view": "View book",
         "remove": "Remove from series",
         "progress": "p. {current} of {total}",
-        "authorsUnknown": "Unknown author"
+        "authorsUnknown": "Unknown author",
+        "part": "Part {number}",
+        "partUnknown": "Part number not specified",
+        "nextInOrder": "Next in order",
+        "progressPercent": "{percent}%"
       },
       "progress": {
         "title": "Your progress in the series",
@@ -1927,14 +2465,7 @@
         "reading": "Reading {count}",
         "unread": "Not read {count}",
         "unavailable": "Progress not available yet",
-        "completed": "Series completed"
-      },
-      "next": {
-        "title": "Next book",
-        "book": "Book {number}",
-        "cta": "Go to book",
-        "allRead": "All books read",
-        "empty": "Add the first book"
+        "completed": "Series read"
       },
       "stats": {
         "title": "Series statistics",
@@ -1944,12 +2475,6 @@
         "unread": "Not read",
         "averageRating": "Average rating",
         "pages": "Pages in series"
-      },
-      "actions": {
-        "title": "Actions",
-        "edit": "Edit series",
-        "addBook": "Add a book to the series",
-        "delete": "Delete series"
       },
       "about": {
         "title": "About the series",
@@ -1968,7 +2493,8 @@
         "errorTitle": "Could not load the series",
         "errorDescription": "Try refreshing the page.",
         "back": "Back to series"
-      }
+      },
+      "duplicateParts": "Some books share the same part number: {parts}. The reading order may be inaccurate."
     },
     "editDialog": {
       "title": "Edit series",
@@ -2086,7 +2612,6 @@
       "metaTitle": "Custom lists",
       "title": "Custom lists",
       "subtitle": "Create themed collections and organize books your way",
-      "count": "{count, plural, one {# list} other {# lists}}",
       "create": "Create list",
       "search": {
         "placeholder": "Search lists…"
@@ -2217,7 +2742,6 @@
     "metaTitle": "Borrowed books",
     "title": "Borrowed books",
     "subtitle": "Keep track of books shared between you and other readers",
-    "count": "{count, plural, one {# book} other {# books}}",
     "listHeading": "Borrowed books list",
     "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
     "summary": {
@@ -2374,6 +2898,597 @@
         "retry": "Try again"
       },
       "loadingMore": "Loading…"
+    }
+  },
+  "notes": {
+    "archive": {
+      "metaTitle": "Notes",
+      "title": "Notes",
+      "subtitle": "All your thoughts, impressions, questions and ideas about books and series.",
+      "countBadge": "{count, plural, one {# note} other {# notes}}",
+      "addNote": "Add note",
+      "loadMore": "Load more",
+      "empty": {
+        "title": "You have no notes yet.",
+        "description": "Add thoughts about books and series to build your own reading archive.",
+        "cta": "Add note"
+      },
+      "emptySearch": {
+        "title": "Nothing found.",
+        "description": "Try changing your search query or filters.",
+        "clear": "Reset filters"
+      },
+      "emptyFilters": {
+        "title": "No notes match these filters.",
+        "description": "Try changing or resetting the filters.",
+        "clear": "Reset filters"
+      },
+      "scope": {
+        "book": "Notes for the book: {name}",
+        "series": "Notes for the series: {name}",
+        "fallback": {
+          "book": "Notes for a single book",
+          "series": "Notes for a single series"
+        },
+        "clear": "Show all"
+      },
+      "quickFilter": {
+        "all": "All",
+        "no_spoiler": "No spoilers",
+        "with_spoiler": "With spoilers",
+        "favorite": "Favorites",
+        "pinned": "Pinned"
+      },
+      "entityFilter": {
+        "all": "All entities",
+        "book": "Books",
+        "series": "Series"
+      },
+      "presence": {
+        "page": {
+          "any": "Page: all",
+          "yes": "With page",
+          "no": "Without page"
+        },
+        "chapter": {
+          "any": "Chapter: all",
+          "yes": "With chapter",
+          "no": "Without chapter"
+        }
+      },
+      "sort": {
+        "newest": "Newest first",
+        "oldest": "Oldest first",
+        "recently_updated": "Recently updated",
+        "title": "By book / series title",
+        "author": "By book author",
+        "category": "By category",
+        "page": "By page",
+        "pinned_first": "Pinned first",
+        "favorite_first": "Favorites first",
+        "no_spoiler_first": "Without spoilers first",
+        "with_spoiler_first": "With spoilers first"
+      },
+      "toolbar": {
+        "searchLabel": "Search notes",
+        "searchPlaceholder": "Search notes...",
+        "searchClear": "Clear search",
+        "sortLabel": "Sorting",
+        "quickFilterLabel": "Quick filters",
+        "entityLabel": "Entity type",
+        "categoryLabel": "Category",
+        "categoryAny": "All categories",
+        "pageLabel": "Page",
+        "chapterLabel": "Chapter"
+      },
+      "picker": {
+        "title": "Add note",
+        "description": "First choose what the note is about.",
+        "typeHint": "What is this note about?",
+        "typeBook": "Book",
+        "typeBookDescription": "A note about a specific book from your library.",
+        "typeSeries": "Series",
+        "typeSeriesDescription": "A note about the series as a whole, not a single book.",
+        "back": "Back",
+        "searchBookLabel": "Search for a book",
+        "searchBookPlaceholder": "Find a book...",
+        "searchSeriesLabel": "Search for a series",
+        "searchSeriesPlaceholder": "Find a series...",
+        "searching": "Loading...",
+        "empty": "Nothing found."
+      },
+      "sidebar": {
+        "label": "Notes statistics and quick filters",
+        "stats": {
+          "title": "Statistics",
+          "total": "Total notes",
+          "bookNotes": "For books",
+          "seriesNotes": "For series",
+          "withoutSpoiler": "Without spoilers",
+          "withSpoiler": "With spoilers",
+          "favorite": "Favorites",
+          "pinned": "Pinned",
+          "booksWithNotes": "Books with notes",
+          "seriesWithNotes": "Series with notes"
+        },
+        "quickFilters": {
+          "title": "Quick filters",
+          "favorite": "Favorites only",
+          "pinned": "Pinned only",
+          "no_spoiler": "Without spoilers",
+          "with_spoiler": "With spoilers",
+          "for_review": "For review",
+          "question": "Question"
+        },
+        "tip": {
+          "title": "Tip",
+          "text": "Pin your most important notes so you can quickly get back to the key thoughts before a review or the next book in a series."
+        },
+        "quickAction": {
+          "title": "Can't find the note you need?",
+          "text": "Use the search or add a new note to a book or series.",
+          "cta": "Add note"
+        }
+      }
+    },
+    "categories": {
+      "general_impression": "General impression",
+      "characters": "Characters",
+      "plot": "Plot",
+      "atmosphere": "Atmosphere",
+      "worldbuilding": "Worldbuilding",
+      "theme_idea": "Theme / idea",
+      "author_style": "Author's style",
+      "for_review": "For a review",
+      "question": "Question",
+      "other": "Other",
+      "custom": "Other: {value}"
+    },
+    "entity": {
+      "typeBook": "Book",
+      "typeSeries": "Series",
+      "books": "{count, plural, one {# book} other {# books}}",
+      "authorsUnknown": "Unknown author",
+      "bookCoverAlt": "Cover of book {title}",
+      "seriesCoverAlt": "Cover of series {name}"
+    },
+    "card": {
+      "menu": "Note actions",
+      "pinned": "Pinned",
+      "spoiler": "Spoiler",
+      "spoilerHidden": "This note contains a spoiler.",
+      "spoilerShow": "Show spoiler",
+      "spoilerHide": "Hide spoiler",
+      "spoilerRevealAria": "This note contains a spoiler. Click to show the text.",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "page": "p. {page}",
+      "updated": "Updated {date}",
+      "entityLink": {
+        "book": "Go to book",
+        "series": "Go to series"
+      }
+    },
+    "actions": {
+      "edit": "Edit",
+      "pin": "Pin note",
+      "unpin": "Unpin note",
+      "favorite": "Add note to favorites",
+      "unfavorite": "Remove note from favorites",
+      "delete": "Delete"
+    },
+    "form": {
+      "createTitle": "Add a note",
+      "createDescription": "The note will be saved to your reading archive.",
+      "editTitle": "Edit note",
+      "editDescription": "Change the fields you need and save the note.",
+      "optional": "(optional)",
+      "text": "Note text",
+      "textPlaceholder": "Write down your thoughts, impressions or important ideas...",
+      "category": "Category",
+      "categoryPlaceholder": "Choose a category",
+      "categoryClear": "Clear category",
+      "customCategory": "Custom category",
+      "customCategoryPlaceholder": "For example: romance arc, finale, favorite moment...",
+      "chapter": "Chapter",
+      "chapterPlaceholder": "For example: Chapter III",
+      "chapterPlaceholderSeries": "For example: Book 2, finale or Diana's arc",
+      "page": "Page",
+      "pagePlaceholder": "For example: 87",
+      "spoiler": "This is a spoiler",
+      "spoilerHelp": "Mark this if the note contains important plot details.",
+      "favorite": "Add note to favorites",
+      "favoriteHelp": "Favorite notes are easy to find with the filter.",
+      "pinned": "Pin note",
+      "pinnedHelp": "Pinned notes are shown first.",
+      "cancel": "Cancel",
+      "submitCreate": "Save note",
+      "submitEdit": "Save changes"
+    },
+    "errors": {
+      "textEmpty": "Enter the note text.",
+      "textTooLong": "A note cannot be longer than {max} characters.",
+      "pageNotPositive": "The page number must be greater than 0.",
+      "chapterTooLong": "The chapter name is too long.",
+      "customCategoryTooLong": "The custom category cannot be longer than {max} characters."
+    },
+    "deleteDialog": {
+      "title": "Delete note?",
+      "description": "This action cannot be undone. The note will be removed from your archive.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "deleting": "Deleting..."
+    },
+    "toast": {
+      "created": "Note added.",
+      "createError": "Could not save the note. Please try again.",
+      "updated": "Note updated.",
+      "updateError": "Could not update the note. Please try again.",
+      "deleted": "Note deleted.",
+      "deleteError": "Could not delete the note. Please try again.",
+      "favorited": "Note added to favorites.",
+      "unfavorited": "Note removed from favorites.",
+      "pinned": "Note pinned.",
+      "unpinned": "Note unpinned."
+    },
+    "states": {
+      "loading": "Loading notes...",
+      "errorTitle": "Could not load the notes.",
+      "errorDescription": "Try refreshing the page.",
+      "retry": "Refresh"
+    },
+    "blocks": {
+      "add": "Add note",
+      "addFirst": "Add your first note",
+      "book": {
+        "title": "My notes",
+        "subtitle": "Thoughts, questions and impressions you saved while reading.",
+        "emptyTitle": "You don’t have any notes for this book yet.",
+        "emptyDescription": "Write down thoughts, questions, review ideas or important details you’ll want to come back to.",
+        "viewAll": "View all notes for this book ({count})"
+      },
+      "series": {
+        "title": "Series notes",
+        "subtitle": "Overall events, character arcs and questions about the whole series.",
+        "emptyTitle": "You don’t have any notes for this series yet.",
+        "emptyDescription": "Keep important details, character arcs, questions and events worth recalling before the next book.",
+        "viewAll": "View all notes for this series ({count})"
+      }
+    }
+  },
+  "genresTags": {
+    "page": {
+      "metaTitle": "Genres / Tags",
+      "title": "Genres / Tags",
+      "subtitle": "Manage the genres, tags and mood of your library",
+      "addTag": "Add tag",
+      "hint": "Genres come from your books automatically, while tags are yours to create."
+    },
+    "summary": {
+      "genres": "Genres",
+      "tags": "Tags"
+    },
+    "tabs": {
+      "genres": "Genres",
+      "tags": "Tags"
+    },
+    "toolbar": {
+      "searchGenresLabel": "Search genres",
+      "searchGenresPlaceholder": "Search a genre…",
+      "searchTagsLabel": "Search tags",
+      "searchTagsPlaceholder": "Search a tag…",
+      "searchClear": "Clear search",
+      "sortLabel": "Sorting",
+      "genreFilterLabel": "Genre filter",
+      "genreGroupLabel": "Genre group",
+      "genreGroupAll": "All groups",
+      "tagFilterLabel": "Tag filter"
+    },
+    "genreSort": {
+      "books_count_desc": "By number of books",
+      "name_asc": "By name",
+      "read_count_desc": "By books read",
+      "queue_count_desc": "By books in queue",
+      "rating_desc": "By average rating"
+    },
+    "genreFilter": {
+      "all": "All genres",
+      "unread": "With unread books",
+      "in_queue": "In reading queue",
+      "finished": "With finished books"
+    },
+    "tagSort": {
+      "books_count_desc": "By number of books",
+      "name_asc": "By name",
+      "type_asc": "By tag type"
+    },
+    "tagFilter": {
+      "all": "All tags",
+      "trope": "Tropes",
+      "atmosphere": "Atmosphere",
+      "theme": "Themes",
+      "character": "Characters",
+      "format": "Format",
+      "custom": "Custom tags",
+      "unused": "Unused tags"
+    },
+    "types": {
+      "trope": "Trope",
+      "atmosphere": "Atmosphere",
+      "theme": "Theme",
+      "character": "Characters",
+      "format": "Format",
+      "custom": "Custom tag"
+    },
+    "colors": {
+      "parchment": "Parchment",
+      "terracotta": "Terracotta",
+      "honey": "Honey",
+      "sage": "Sage",
+      "forest": "Forest",
+      "sky": "Sky",
+      "lavender": "Lavender",
+      "rose": "Dusty rose"
+    },
+    "genres": {
+      "booksCount": "{count, plural, one {# book} other {# books}}",
+      "progress": "{read} of {total} read",
+      "inQueue": "{count} in queue",
+      "showAll": "Show all genres ({count})",
+      "showLess": "Show less",
+      "empty": {
+        "title": "Your books have no genres yet",
+        "description": "Add genres while creating or editing a book to find your books faster by mood and category.",
+        "action": "Go to library"
+      }
+    },
+    "tags": {
+      "popularTitle": "Popular tags",
+      "allTitle": "All tags",
+      "chipLabel": "{name}, {count, plural, one {# book} other {# books}}",
+      "menu": "Actions for tag “{name}”",
+      "edit": "Edit",
+      "delete": "Delete",
+      "showAll": "Show all tags ({count})",
+      "showLess": "Show less",
+      "empty": {
+        "title": "You have no tags yet",
+        "description": "Create your own tags to mark books by mood, tropes, themes or favourite storylines.",
+        "action": "Add tag"
+      },
+      "noResults": {
+        "title": "No tags match this search",
+        "description": "Try another name or create a new tag."
+      }
+    },
+    "tagDialog": {
+      "addTitle": "Add tag",
+      "addSubtitle": "Create your own tag for a mood, trope, theme or any book detail.",
+      "addSubmit": "Add tag",
+      "addSuccess": "Tag created",
+      "editTitle": "Edit tag",
+      "editSubtitle": "Change the tag name, type, colour or description.",
+      "editSubmit": "Save",
+      "editSuccess": "Tag updated",
+      "cancel": "Cancel",
+      "name": "Tag name",
+      "namePlaceholder": "For example, slow burn",
+      "type": "Tag type",
+      "color": "Tag colour",
+      "description": "Description",
+      "descriptionPlaceholder": "Briefly describe what this tag is for",
+      "optional": "optional"
+    },
+    "deleteDialog": {
+      "title": "Delete tag?",
+      "bodyUnused": "This tag is not used by any book yet. It will be deleted permanently.",
+      "bodyUsed": "This tag will be removed from every book that uses it. The books themselves will not be deleted.",
+      "booksCount": "{count, plural, one {# book uses this tag} other {# books use this tag}}",
+      "cancel": "Cancel",
+      "confirm": "Delete tag",
+      "deleting": "Deleting…",
+      "success": "Tag deleted"
+    },
+    "errors": {
+      "nameRequired": "Enter a tag name",
+      "nameTooShort": "Tag name must be at least 2 characters long",
+      "nameTooLong": "Tag name must be at most 40 characters long",
+      "nameInvalidChars": "Only letters, digits, spaces, hyphens and apostrophes are allowed",
+      "descriptionTooLong": "Description must be at most 300 characters long",
+      "duplicate": "This tag already exists",
+      "createFailed": "Could not create the tag",
+      "updateFailed": "Could not update the tag",
+      "deleteFailed": "Could not delete the tag"
+    },
+    "states": {
+      "error": {
+        "title": "Could not load genres and tags",
+        "description": "Try refreshing the page or repeating the request.",
+        "retry": "Try again"
+      },
+      "noResults": {
+        "title": "Nothing found",
+        "description": "Try changing your search or clearing the filters.",
+        "clear": "Clear filters"
+      }
+    }
+  },
+  "quotes": {
+    "actions": {
+      "add": "Add quote",
+      "cancel": "Cancel",
+      "copy": "Copy quote",
+      "delete": "Delete",
+      "edit": "Edit",
+      "menuLabel": "Quote actions",
+      "openBook": "Go to the book",
+      "retry": "Retry"
+    },
+    "bookPicker": {
+      "clear": "Clear the selected book",
+      "empty": "No books found",
+      "heading": "Your books",
+      "loadMore": "Show more",
+      "searching": "Searching books..."
+    },
+    "bookBlock": {
+      "title": "Quotes from this book",
+      "titleWithCount": "Quotes from this book · {count}",
+      "summary": "{total, plural, one {# quote} other {# quotes}} · {favorites, plural, one {# favorite} other {# favorites}} · {spoilers, plural, one {# with a spoiler} other {# with spoilers}}",
+      "viewAll": "View all quotes from this book",
+      "empty": {
+        "title": "This book has no quotes yet",
+        "description": "Save a beautiful passage, an important thought or a line you will want to come back to."
+      }
+    },
+    "card": {
+      "openBook": "To the book",
+      "pageLabel": "p. {page}",
+      "showLess": "Show less",
+      "showMore": "Show more"
+    },
+    "copy": {
+      "success": "Quote copied",
+      "error": "Could not copy the quote"
+    },
+    "delete": {
+      "title": "Delete this quote?",
+      "description": "This action cannot be undone. The quote will be removed from the book and from your quote archive.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "pending": "Deleting...",
+      "success": "Quote deleted",
+      "error": "Could not delete the quote"
+    },
+    "dialog": {
+      "addTitle": "Add a quote",
+      "addDescription": "Save a passage from the book with its chapter, page and your own comment.",
+      "editTitle": "Edit quote",
+      "editDescription": "Update the quote text, chapter, page, comment or flags.",
+      "book": "Book",
+      "bookPlaceholder": "Choose a book...",
+      "text": "Quote text",
+      "textPlaceholder": "Enter the quote text...",
+      "chapter": "Chapter",
+      "chapterPlaceholder": "For example: Chapter III",
+      "page": "Page",
+      "pagePlaceholder": "For example: 87",
+      "comment": "Comment",
+      "commentPlaceholder": "Your thoughts, impressions or context for this quote...",
+      "spoilerToggle": "This is a spoiler",
+      "spoilerToggleHelper": "Tick this if the quote reveals important plot details.",
+      "favoriteToggle": "Add to favorites",
+      "favoriteToggleHelper": "Save this quote to the “Favorites” section.",
+      "spoilerNote": "Quotes marked as spoilers stay hidden until the “Show spoiler” button is pressed.",
+      "addSubmit": "Save quote",
+      "editSubmit": "Save changes",
+      "addSuccess": "Quote added",
+      "editSuccess": "Quote updated",
+      "errors": {
+        "textRequired": "Add the quote text",
+        "textMax": "The quote text must be at most {max} characters long",
+        "chapterMax": "The chapter must be at most {max} characters long",
+        "commentMax": "The comment must be at most {max} characters long",
+        "pageWhole": "The page must be a whole number",
+        "pageMin": "The page must be greater than 0",
+        "pageMax": "The page must be at most {max}",
+        "generic": "Could not save the quote"
+      }
+    },
+    "discard": {
+      "title": "Leave without saving?",
+      "description": "Your changes will be lost.",
+      "cancel": "Cancel",
+      "confirm": "Leave without saving"
+    },
+    "empty": {
+      "title": "You have no quotes yet",
+      "description": "Save favorite lines from books, your own thoughts and passages that matter — they will show up here.",
+      "secondary": "Go to books"
+    },
+    "error": {
+      "load": "Could not load the quotes",
+      "description": "Try reloading the page or repeating the request later."
+    },
+    "filter": {
+      "all": "All",
+      "no_spoiler": "No spoilers",
+      "with_spoiler": "With spoilers",
+      "favorites": "Favorites",
+      "with_comment": "With a comment",
+      "without_comment": "Without a comment"
+    },
+    "favorite": {
+      "add": "Add quote to favorites",
+      "remove": "Remove quote from favorites",
+      "added": "Quote added to favorites",
+      "removed": "Quote removed from favorites",
+      "error": "Could not update the quote"
+    },
+    "loading": "Loading quotes...",
+    "metaTitle": "Quotes",
+    "title": "Quotes",
+    "subtitle": "Your personal archive of favorite lines from books",
+    "countBadge": "{count, plural, one {# quote} other {# quotes}}",
+    "noResults": {
+      "title": "Nothing found",
+      "description": "Try changing your search query or clearing the filters.",
+      "clear": "Reset filters"
+    },
+    "pagination": {
+      "label": "Quote pages",
+      "previous": "Previous",
+      "next": "Next",
+      "goToPage": "Go to page {page}"
+    },
+    "sidebar": {
+      "label": "Quotes overview",
+      "stats": {
+        "title": "Statistics",
+        "total": "Quotes in total",
+        "favorites": "Favorites",
+        "spoilers": "With spoilers",
+        "withoutSpoilers": "Without spoilers",
+        "withComment": "With comments",
+        "topBook": "Most quoted book",
+        "topAuthor": "Most quoted author"
+      },
+      "quickFilters": {
+        "title": "Quick filters",
+        "withComment": "Quotes with comments",
+        "favorites": "Favorites only",
+        "recent": "Recently added",
+        "clear": "Reset filters"
+      },
+      "cta": {
+        "title": "Add your first quote",
+        "description": "Keep the lines that inspire you, move you and leave a mark on your heart."
+      }
+    },
+    "sort": {
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "book_title": "By book title",
+      "book_author": "By author",
+      "page": "By page",
+      "favorites_first": "Favorites first",
+      "no_spoiler_first": "Spoiler-free first",
+      "with_spoiler_first": "Spoilers first"
+    },
+    "toolbar": {
+      "searchLabel": "Search quotes",
+      "searchPlaceholder": "Search quotes...",
+      "searchClear": "Clear search",
+      "filterLabel": "Quote quick filters",
+      "bookPlaceholder": "Book",
+      "sortLabel": "Sort quotes"
+    },
+    "spoiler": {
+      "badge": "Contains spoilers",
+      "noSpoilerBadge": "No spoilers",
+      "hiddenText": "This quote contains a spoiler",
+      "show": "Show spoiler",
+      "hide": "Hide spoiler"
     }
   }
 }

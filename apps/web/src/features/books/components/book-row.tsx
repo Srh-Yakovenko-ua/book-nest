@@ -13,13 +13,23 @@ import type { LibraryBook, LibraryBookLinkComponent } from "../model/library-boo
 
 import { BookLoanNote } from "./book-loan-note";
 
+type BookRowCoverAspect = "portrait" | "stretch";
+
 type BookRowProps = {
+  accent?: boolean;
   book: LibraryBook;
+  coverAspect?: BookRowCoverAspect;
   kebab?: React.ReactNode;
+  leading?: React.ReactNode;
   linkComponent?: LibraryBookLinkComponent;
+  note?: React.ReactNode;
   selected?: boolean;
   selectionControl?: React.ReactNode;
+  statusPlacement?: "column" | "note";
+  tone?: BookRowTone;
 };
+
+type BookRowTone = "next" | "read";
 
 type RowLinkComponent = "a" | LibraryBookLinkComponent;
 
@@ -30,7 +40,24 @@ const TOOLTIP_DELAY_MS = 400;
 const morePillClass =
   "relative z-10 inline-flex shrink-0 items-center rounded-full border border-border/60 bg-secondary/40 px-1.5 py-0.5 text-xs font-medium text-muted-foreground";
 
-export function BookRow({ book, kebab, linkComponent, selected, selectionControl }: BookRowProps) {
+const toneClass: Record<BookRowTone, string> = {
+  next: "border-primary bg-primary/5 hover:border-primary",
+  read: "border-success/40 bg-success-soft/40 hover:border-success/60",
+};
+
+export function BookRow({
+  accent,
+  book,
+  coverAspect = "stretch",
+  kebab,
+  leading,
+  linkComponent,
+  note,
+  selected,
+  selectionControl,
+  statusPlacement = "column",
+  tone,
+}: BookRowProps) {
   const LinkComp: RowLinkComponent = linkComponent ?? "a";
   const hasChips = (book.genres ?? []).length > 0 || (book.tags ?? []).length > 0;
 
@@ -38,6 +65,8 @@ export function BookRow({ book, kebab, linkComponent, selected, selectionControl
     <article
       className={cn(
         "group/book-row @container/book-row relative flex min-h-[9.5rem] items-stretch gap-3.5 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none",
+        accent && "border-accent-border",
+        tone === undefined ? undefined : toneClass[tone],
         selected && "ring-1 ring-primary",
       )}
       data-slot="book-row"
@@ -46,14 +75,23 @@ export function BookRow({ book, kebab, linkComponent, selected, selectionControl
         <div className="relative z-10 shrink-0">{selectionControl}</div>
       )}
 
-      <BookRowCover alt={book.cover?.alt ?? book.title} src={book.cover?.src} />
+      {leading === undefined ? null : <div className="relative z-10 shrink-0">{leading}</div>}
+
+      <BookRowCover
+        alt={book.cover?.alt ?? book.title}
+        aspect={coverAspect}
+        src={book.cover?.src}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col gap-3 @xl/book-row:flex-row @xl/book-row:flex-wrap @xl/book-row:items-start @xl/book-row:gap-x-4 @xl/book-row:gap-y-3 @3xl/book-row:flex-nowrap @3xl/book-row:items-stretch">
-        <BookRowMeta book={book} LinkComp={LinkComp} />
+        <BookRowMeta book={book} LinkComp={LinkComp} note={note} />
 
-        <div className="hidden w-px self-stretch bg-border @3xl/book-row:block" />
-
-        <BookRowStatuses book={book} />
+        {statusPlacement === "column" ? (
+          <>
+            <div className="hidden w-px self-stretch bg-border @3xl/book-row:block" />
+            <BookRowStatuses book={book} />
+          </>
+        ) : null}
 
         {hasChips ? (
           <>
@@ -109,23 +147,46 @@ function BookRowChips({ genres, tags }: { genres?: LibraryBook["genres"]; tags?:
   );
 }
 
-function BookRowCover({ alt, src }: { alt: string; src?: string }) {
+function BookRowCover({
+  alt,
+  aspect,
+  src,
+}: {
+  alt: string;
+  aspect: BookRowCoverAspect;
+  src?: string;
+}) {
+  const frameClass = aspect === "portrait" ? "aspect-[2/3] self-start" : "self-stretch";
+
   if (src === undefined) {
     return (
-      <div className="grid w-24 shrink-0 place-items-center self-stretch rounded-lg bg-accent text-accent-foreground/70">
+      <div
+        className={cn(
+          "grid w-24 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground/70",
+          frameClass,
+        )}
+      >
         <UiIcon name="book" size={32} />
       </div>
     );
   }
 
   return (
-    <div className="relative w-24 shrink-0 self-stretch overflow-hidden rounded-lg bg-accent">
+    <div className={cn("relative w-24 shrink-0 overflow-hidden rounded-lg bg-accent", frameClass)}>
       <Image alt={alt} className="object-cover" fill sizes="96px" src={src} unoptimized />
     </div>
   );
 }
 
-function BookRowMeta({ book, LinkComp }: { book: LibraryBook; LinkComp: RowLinkComponent }) {
+function BookRowMeta({
+  book,
+  LinkComp,
+  note,
+}: {
+  book: LibraryBook;
+  LinkComp: RowLinkComponent;
+  note?: React.ReactNode;
+}) {
   return (
     <div className="flex min-w-0 flex-col gap-1 @xl/book-row:min-w-[14rem] @xl/book-row:flex-1">
       <h3 className="line-clamp-2 font-heading text-sm leading-tight font-bold text-ink">
@@ -137,7 +198,15 @@ function BookRowMeta({ book, LinkComp }: { book: LibraryBook; LinkComp: RowLinkC
         </LinkComp>
       </h3>
 
-      <p className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</p>
+      {book.originalTitle === undefined ? null : (
+        <p className="truncate text-xs text-muted-foreground italic">{book.originalTitle}</p>
+      )}
+
+      {book.authors.length === 0 ? null : (
+        <p className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</p>
+      )}
+
+      {note}
 
       {book.series === undefined ? null : (
         <LinkComp
@@ -161,9 +230,9 @@ function BookRowMeta({ book, LinkComp }: { book: LibraryBook; LinkComp: RowLinkC
         </p>
       )}
 
-      {book.formats.length === 0 ? null : (
+      {(book.formats ?? []).length === 0 ? null : (
         <div className="flex min-w-0 items-center gap-x-3 overflow-hidden text-xs text-muted-foreground">
-          {book.formats.map((format) => (
+          {(book.formats ?? []).map((format) => (
             <span className="inline-flex shrink-0 items-center gap-1.5" key={format.value}>
               <UiIcon className="shrink-0 text-icon" name={format.icon} size={15} />
               {format.label}
@@ -187,7 +256,7 @@ function BookRowRail({
   rating,
   ratingLabel,
 }: {
-  inReadingQueue: boolean;
+  inReadingQueue?: boolean;
   kebab?: React.ReactNode;
   rating?: number;
   ratingLabel?: string;
@@ -199,7 +268,7 @@ function BookRowRail({
       {kebab === undefined ? null : <div className="relative z-10 shrink-0">{kebab}</div>}
 
       <div className="mt-auto flex flex-col items-end gap-2">
-        {inReadingQueue ? (
+        {inReadingQueue === true ? (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <UiIcon className="shrink-0" name="bookmark" size={14} />
             {t("card.inQueue")}

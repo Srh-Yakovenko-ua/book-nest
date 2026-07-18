@@ -23,21 +23,22 @@ export function SeriesDetails({ id }: SeriesDetailsProps) {
 
   if (isPending) {
     return (
-      <output aria-busy="true" aria-label={t("loading")} className="flex flex-col gap-6 lg:gap-8">
-        <Skeleton className="h-6 w-24 rounded-md" />
-        <Skeleton className="h-52 w-full rounded-2xl" />
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8">
-          <div className="flex flex-col gap-4">
-            <Skeleton className="h-9 w-56 rounded-lg" />
-            <Skeleton className="h-20 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
-          </div>
-          <div className="hidden flex-col gap-6 lg:flex">
-            <Skeleton className="h-48 w-full rounded-xl" />
-            <Skeleton className="h-40 w-full rounded-xl" />
-            <Skeleton className="h-52 w-full rounded-xl" />
-          </div>
+      <output
+        aria-busy="true"
+        aria-label={t("loading")}
+        className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8"
+      >
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-52 w-full rounded-2xl" />
+          <Skeleton className="h-9 w-56 rounded-lg" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+        </div>
+        <div className="hidden flex-col gap-6 lg:flex">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-52 w-full rounded-xl" />
         </div>
       </output>
     );
