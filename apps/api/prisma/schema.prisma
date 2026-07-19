@@ -58,6 +58,7 @@ model User {
   notes                     Note[]
   characters                Character[]
   characterGroups           CharacterGroup[]
+  characterTheories         CharacterTheory[]
 
   @@map("users")
 }
@@ -112,6 +113,7 @@ model Series {
   orderDisabledEntries SeriesOrderDisabledSeries[]
   notes                Note[]
   characterGroups      CharacterGroup[]
+  characterTheories    CharacterTheory[]
 
   @@unique([userId, normalizedName])
   @@index([userId])
@@ -254,6 +256,7 @@ model Book {
   bookCharacters                BookCharacter[]
   characterAliases              CharacterAlias[]
   characterGroupMemberships     CharacterGroupMembership[]
+  characterTheories             CharacterTheory[]
 
   @@unique([seriesId, partNumber])
   @@index([userId])
@@ -764,6 +767,7 @@ model Character {
   bookAppearances    BookCharacter[]
   tags               CharacterTag[]
   groupMemberships   CharacterGroupMembership[]
+  theories           CharacterTheory[]
 
   @@index([userId])
   @@index([userId, normalizedName])
@@ -906,4 +910,28 @@ model CharacterGroupMembership {
   @@index([characterId])
   @@index([bookId])
   @@map("character_group_memberships")
+}
+
+model CharacterTheory {
+  id          String     @id @default(uuid()) @db.Uuid
+  userId      String     @map("user_id") @db.Uuid
+  characterId String?    @map("character_id") @db.Uuid
+  bookId      String?    @map("book_id") @db.Uuid
+  seriesId    String?    @map("series_id") @db.Uuid
+  text        String
+  status      String     @default("unverified")
+  isSpoiler   Boolean    @default(false) @map("is_spoiler")
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character   Character? @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  book        Book?      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  series      Series?    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([characterId])
+  @@index([bookId])
+  @@index([seriesId])
+  @@index([userId, status])
+  @@map("character_theories")
 }

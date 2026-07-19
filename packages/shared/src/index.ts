@@ -5,6 +5,7 @@ export * from "./book-store-links.js";
 export * from "./books.js";
 export * from "./changelog.js";
 export * from "./character-groups.js";
+export * from "./character-theories.js";
 export * from "./characters.js";
 export * from "./common.js";
 export * from "./dedications.js";

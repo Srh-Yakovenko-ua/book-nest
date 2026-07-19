@@ -30,7 +30,7 @@ import {
   toCharacterGroupDetailsView,
   toCharacterGroupSummaryView,
 } from "../domain/character-group.mapper.js";
-import { resolveAllowedBookIds } from "../domain/series-representative.js";
+import { resolveContextAllowedBookIds } from "../domain/context-books.js";
 import { CharacterGroupsRepository } from "../infrastructure/character-groups.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 
@@ -403,30 +403,6 @@ export class CharacterGroupsService {
     return row;
   }
 
-  private async resolveContextAllowedBookIds({
-    contextBookId,
-    userId,
-  }: {
-    contextBookId: string;
-    userId: string;
-  }): Promise<string[]> {
-    const contextBook = await this.charactersRepository.findOwnedBookContext({
-      bookId: contextBookId,
-      userId,
-    });
-    if (contextBook === null) {
-      throw new NotFoundError("Book not found", { code: CHARACTER_GROUP_ERROR_CODES.bookNotFound });
-    }
-    if (contextBook.seriesId === null) {
-      return [contextBook.id];
-    }
-    const seriesBooks = await this.charactersRepository.listSeriesBooks({
-      seriesId: contextBook.seriesId,
-      userId,
-    });
-    return resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks });
-  }
-
   private toFullDetailsView(row: CharacterGroupDetailsRow): CharacterGroupDetailsView {
     return toCharacterGroupDetailsView({
       group: row,
@@ -444,7 +420,12 @@ export class CharacterGroupsService {
     row: CharacterGroupDetailsRow;
     userId: string;
   }): Promise<CharacterGroupDetailsView> {
-    const allowedBookIds = await this.resolveContextAllowedBookIds({ contextBookId, userId });
+    const allowedBookIds = await resolveContextAllowedBookIds({
+      contextBookId,
+      notFoundCode: CHARACTER_GROUP_ERROR_CODES.bookNotFound,
+      reader: this.charactersRepository,
+      userId,
+    });
     const presence = await this.characterGroupsRepository.listMembershipPresence({
       allowedBookIds,
       characterIds: [...new Set(row.memberships.map((membership) => membership.characterId))],
