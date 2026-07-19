@@ -125,6 +125,7 @@ const BundleCharacterSchema = z
     entityKind: CharacterEntityKindSchema,
     gender: CharacterGenderSchema,
     globalAttitude: CharacterAttitudeSchema.nullable(),
+    hideProfileAsSpoiler: z.boolean(),
     id: z.uuid(),
     isArchived: z.boolean(),
     isFavorite: z.boolean(),

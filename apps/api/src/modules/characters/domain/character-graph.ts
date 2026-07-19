@@ -596,6 +596,7 @@ function computeGroupClusters({
   const context = {
     allowedBookIds,
     hiddenPresenceCharacterIds: presenceHiddenIds,
+    hiddenProfileCharacterIds: new Set<string>(),
     revealedCharacterIds: nodeIds,
   };
 

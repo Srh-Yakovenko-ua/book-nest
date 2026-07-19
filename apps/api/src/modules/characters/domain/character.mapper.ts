@@ -75,6 +75,7 @@ export type CharacterSource = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
+  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -90,6 +91,7 @@ export type GlobalSummaryCharacterSource = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
+  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -232,6 +234,7 @@ export function toCharacterDetailsView({
         ? null
         : CharacterAttitudeSchema.parse(character.globalAttitude),
     hiddenFields,
+    hideProfileAsSpoiler: character.hideProfileAsSpoiler,
     id: character.id,
     isFavorite: character.isFavorite,
     name: character.name,
@@ -262,6 +265,7 @@ export function toCharacterGlobalSummaryView({
       character.globalAttitude === null
         ? null
         : CharacterAttitudeSchema.parse(character.globalAttitude),
+    hideProfileAsSpoiler: character.hideProfileAsSpoiler,
     id: character.id,
     isFavorite: character.isFavorite,
     name: character.name,

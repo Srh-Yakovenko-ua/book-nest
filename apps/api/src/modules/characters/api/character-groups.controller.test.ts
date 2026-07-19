@@ -424,6 +424,44 @@ describe("character group spoiler redaction", () => {
     expect(JSON.stringify(safe.body)).not.toContain("The Traitor");
   });
 
+  it("keeps a profile-hidden member in the owner's views but drops it in a reading context", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const visible = await createCharacter(accessToken, "Sansa Stark");
+    const hiddenRes = await authed("post", "/api/characters", accessToken).send({
+      character: { hideProfileAsSpoiler: true, name: "The Ghost Heir" },
+    });
+    expect(hiddenRes.status).toBe(HttpStatus.CREATED);
+    const hidden = hiddenRes.body.id;
+
+    const created = await createGroup(accessToken, {
+      members: [{ characterId: visible }, { characterId: hidden }],
+    });
+    const groupId = created.body.id;
+    expect(created.body.memberCount).toBe(2);
+
+    const full = await authed("get", `/api/character-groups/${groupId}`, accessToken);
+    expect(full.body.memberCount).toBe(2);
+    const fullMemberIds = full.body.members.map(
+      (member: { characterId: string }) => member.characterId,
+    );
+    expect(fullMemberIds).toEqual(expect.arrayContaining([visible, hidden]));
+
+    const list = await authed("get", "/api/character-groups", accessToken);
+    const listedGroup = list.body.items.find((group: { id: string }) => group.id === groupId);
+    expect(listedGroup.memberCount).toBe(2);
+
+    const safe = await authed(
+      "get",
+      `/api/character-groups/${groupId}?contextBookId=${bookId}`,
+      accessToken,
+    );
+    expect(safe.status).toBe(HttpStatus.OK);
+    expect(safe.body.memberCount).toBe(1);
+    expect(safe.body.members[0].characterId).toBe(visible);
+    expect(JSON.stringify(safe.body)).not.toContain("The Ghost Heir");
+  });
+
   it("masks a spoiler group name, description and customType in a reading context only", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);

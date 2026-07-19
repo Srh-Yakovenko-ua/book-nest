@@ -4,7 +4,12 @@ import { CharacterTheoryStatusSchema } from "@app/shared";
 
 export type CharacterTheorySource = {
   book: Nullable<{ id: string; title: string }>;
-  character: Nullable<{ deletedAt: Nullable<Date>; id: string; name: string }>;
+  character: Nullable<{
+    deletedAt: Nullable<Date>;
+    hideProfileAsSpoiler: boolean;
+    id: string;
+    name: string;
+  }>;
   createdAt: Date;
   id: string;
   isSpoiler: boolean;
@@ -16,7 +21,9 @@ export type CharacterTheorySource = {
 
 export function toCharacterTheoryView(theory: CharacterTheorySource): CharacterTheoryView {
   const status = CharacterTheoryStatusSchema.parse(theory.status);
-  const characterNameHidden = theory.character !== null && theory.character.deletedAt !== null;
+  const characterNameHidden =
+    theory.character !== null &&
+    (theory.character.deletedAt !== null || theory.character.hideProfileAsSpoiler);
   return {
     bookId: theory.book?.id ?? null,
     bookTitle: theory.book?.title ?? null,

@@ -65,6 +65,7 @@ const characterSelect = {
   entityKind: true,
   gender: true,
   globalAttitude: true,
+  hideProfileAsSpoiler: true,
   id: true,
   isFavorite: true,
   name: true,

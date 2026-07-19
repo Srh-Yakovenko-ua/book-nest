@@ -3,6 +3,7 @@ import type { Nullable } from "@app/shared";
 export type MembershipVisibilityContext = {
   allowedBookIds: Set<string>;
   hiddenPresenceCharacterIds: Set<string>;
+  hiddenProfileCharacterIds: Set<string>;
   revealedCharacterIds: Set<string>;
 };
 
@@ -20,6 +21,9 @@ export function isMembershipVisibleInContext({
   membership: MembershipVisibilitySource;
 }): boolean {
   if (membership.isSpoiler) {
+    return false;
+  }
+  if (context.hiddenProfileCharacterIds.has(membership.characterId)) {
     return false;
   }
   if (membership.bookId !== null && !context.allowedBookIds.has(membership.bookId)) {

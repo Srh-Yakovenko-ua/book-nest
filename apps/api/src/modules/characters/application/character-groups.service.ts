@@ -432,9 +432,15 @@ export class CharacterGroupsService {
       characterIds: [...new Set(row.memberships.map((membership) => membership.characterId))],
       userId,
     });
+    const hiddenProfileCharacterIds = new Set(
+      row.memberships
+        .filter((membership) => membership.character.hideProfileAsSpoiler)
+        .map((membership) => membership.characterId),
+    );
     const context = {
       allowedBookIds: new Set(allowedBookIds),
       hiddenPresenceCharacterIds: new Set(presence.hiddenPresenceCharacterIds),
+      hiddenProfileCharacterIds,
       revealedCharacterIds: new Set(presence.revealedCharacterIds),
     };
 

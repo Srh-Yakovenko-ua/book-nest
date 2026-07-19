@@ -381,3 +381,38 @@ describe("character theory soft-deleted target", () => {
     expect(JSON.stringify(list.body)).not.toContain("The Traitor");
   });
 });
+
+describe("character theories — whole-profile hidden characters", () => {
+  it("excludes a theory whose character is profile-hidden, then reveals it on un-hide", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const character = await createCharacter(accessToken, "The Secret Heir");
+    const created = await createTheory(accessToken, {
+      characterId: character,
+      text: "SECRET-TWIST reveals the true bloodline",
+    });
+    expect(created.status).toBe(HttpStatus.CREATED);
+
+    const before = await authed("get", "/api/character-theories", accessToken);
+    expect(before.body.totalCount).toBe(1);
+
+    const hide = await authed("patch", `/api/characters/${character}`, accessToken).send({
+      hideProfileAsSpoiler: true,
+    });
+    expect(hide.status).toBe(HttpStatus.OK);
+
+    const hidden = await authed("get", "/api/character-theories", accessToken);
+    expect(hidden.body.totalCount).toBe(0);
+    expect(hidden.body.items).toEqual([]);
+    expect(JSON.stringify(hidden.body)).not.toContain("SECRET-TWIST");
+    expect(JSON.stringify(hidden.body)).not.toContain("The Secret Heir");
+
+    const unhide = await authed("patch", `/api/characters/${character}`, accessToken).send({
+      hideProfileAsSpoiler: false,
+    });
+    expect(unhide.status).toBe(HttpStatus.OK);
+
+    const revealed = await authed("get", "/api/character-theories", accessToken);
+    expect(revealed.body.totalCount).toBe(1);
+    expect(revealed.body.items[0].id).toBe(created.body.id);
+  });
+});

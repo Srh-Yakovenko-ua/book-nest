@@ -84,7 +84,7 @@ function makeRow(overrides: Partial<CharacterTheoryRow> = {}): CharacterTheoryRo
   return {
     book: null,
     bookId: null,
-    character: { deletedAt: null, id: CHARACTER_ID, name: "Snape" },
+    character: { deletedAt: null, hideProfileAsSpoiler: false, id: CHARACTER_ID, name: "Snape" },
     characterId: CHARACTER_ID,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     id: THEORY_ID,

@@ -186,7 +186,11 @@ export class CharacterRelationshipsService {
       relationshipId,
       userId,
     });
-    if (row === null) {
+    if (
+      row === null ||
+      row.sourceCharacter.hideProfileAsSpoiler ||
+      row.targetCharacter.hideProfileAsSpoiler
+    ) {
       throw new NotFoundError("Character relationship not found", {
         code: CHARACTER_RELATIONSHIP_ERROR_CODES.notFound,
       });

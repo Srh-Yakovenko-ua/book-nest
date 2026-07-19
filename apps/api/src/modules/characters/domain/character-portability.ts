@@ -117,6 +117,7 @@ export type ExportCharacterRow = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
+  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -240,6 +241,7 @@ export type ImportCharacterRow = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
+  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -469,6 +471,7 @@ function planCharacter({
     entityKind: character.entityKind,
     gender: character.gender,
     globalAttitude: character.globalAttitude,
+    hideProfileAsSpoiler: character.hideProfileAsSpoiler,
     id: freshCharacterId,
     isFavorite: character.isFavorite,
     name: character.name,
@@ -877,6 +880,7 @@ function serializeCharacter(row: ExportCharacterRow): CharacterBundle["character
     gender: CharacterGenderSchema.parse(row.gender),
     globalAttitude:
       row.globalAttitude === null ? null : CharacterAttitudeSchema.parse(row.globalAttitude),
+    hideProfileAsSpoiler: row.hideProfileAsSpoiler,
     id: row.id,
     isArchived: row.archivedAt !== null,
     isFavorite: row.isFavorite,

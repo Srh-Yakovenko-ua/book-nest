@@ -111,6 +111,11 @@ export class CharactersController {
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "contextBookId", required: false })
   @ApiQuery({ name: "includeSpoilerSearch", required: false })
+  @ApiQuery({
+    description: "Owner opt-in to include whole-profile hidden characters in the results",
+    name: "includeHiddenProfiles",
+    required: false,
+  })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   @Get()
@@ -149,6 +154,11 @@ export class CharactersController {
   @ApiParam({ description: "Character id", name: "characterId" })
   @ApiQuery({ name: "contextBookId", required: false })
   @ApiQuery({ name: "revealFieldIds", required: false })
+  @ApiQuery({
+    description: "Owner opt-in to reveal a whole-profile hidden character instead of 404",
+    name: "includeHiddenProfiles",
+    required: false,
+  })
   @ApiQuery({
     description: "Reader chapter within the context book for page-level spoiler masking",
     name: "contextChapter",

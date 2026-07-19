@@ -158,6 +158,7 @@ export const CharacterInputSchema = z
     entityKind: CharacterEntityKindSchema.default("individual"),
     gender: CharacterGenderSchema.default("unknown"),
     globalAttitude: CharacterAttitudeSchema.nullish(),
+    hideProfileAsSpoiler: z.boolean().default(false),
     isFavorite: z.boolean().default(false),
     name: z.string().trim().min(1).max(CHARACTER_NAME_MAX),
     neutralDescription: optionalText(CHARACTER_LONG_TEXT_MAX),
@@ -251,6 +252,7 @@ export const UpdateCharacterSchema = z
     entityKind: CharacterEntityKindSchema.optional(),
     gender: CharacterGenderSchema.optional(),
     globalAttitude: CharacterAttitudeSchema.nullish(),
+    hideProfileAsSpoiler: z.boolean().optional(),
     isFavorite: z.boolean().optional(),
     name: z.string().trim().min(1).max(CHARACTER_NAME_MAX).optional(),
     neutralDescription: optionalText(CHARACTER_LONG_TEXT_MAX),
@@ -406,6 +408,7 @@ export const CharacterDetailsViewSchema = z.object({
   gender: CharacterGenderSchema,
   globalAttitude: CharacterAttitudeSchema.nullable(),
   hiddenFields: z.array(z.string()),
+  hideProfileAsSpoiler: z.boolean(),
   id: z.string(),
   isFavorite: z.boolean(),
   name: z.string(),
@@ -486,6 +489,7 @@ export const CharactersListQuerySchema = z.object({
   groupId: queryStringArray(z.string().uuid()),
   hasSpoilers: z.stringbool().optional(),
   importance: queryStringArray(BookCharacterImportanceSchema),
+  includeHiddenProfiles: z.stringbool().optional(),
   includeSpoilerSearch: z.stringbool().optional(),
   pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
   pageSize: z.coerce
@@ -570,6 +574,7 @@ export type CharacterRevealFieldKey = z.infer<typeof CharacterRevealFieldKeySche
 export const CharacterDetailsQuerySchema = z.object({
   ...readingPositionQueryFields,
   contextBookId: z.string().uuid().optional(),
+  includeHiddenProfiles: z.stringbool().optional(),
   revealFieldIds: queryStringArray(CharacterRevealFieldKeySchema),
 });
 
@@ -599,6 +604,7 @@ export const CharacterGlobalSummaryViewSchema = z.object({
   entityKind: CharacterEntityKindSchema,
   gender: CharacterGenderSchema,
   globalAttitude: CharacterAttitudeSchema.nullable(),
+  hideProfileAsSpoiler: z.boolean(),
   id: z.string(),
   isFavorite: z.boolean(),
   name: z.string(),

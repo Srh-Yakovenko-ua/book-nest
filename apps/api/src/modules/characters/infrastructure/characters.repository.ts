@@ -165,6 +165,7 @@ export type CreateCharacterData = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
+  hideProfileAsSpoiler: boolean;
   isFavorite: boolean;
   name: string;
   neutralDescription: Nullable<string>;
@@ -192,6 +193,7 @@ export type GlobalCharacterFilter = {
   groupIds: string[] | undefined;
   hasSpoilers: boolean | undefined;
   importances: string[] | undefined;
+  includeHiddenProfiles: boolean;
   includeSpoilerSearch: boolean;
   roleTypes: string[] | undefined;
   search: string | undefined;
@@ -268,6 +270,7 @@ export type UpdateCharacterData = {
   entityKind?: string;
   gender?: string;
   globalAttitude?: Nullable<string>;
+  hideProfileAsSpoiler?: boolean;
   isFavorite?: boolean;
   name?: string;
   neutralDescription?: Nullable<string>;
@@ -298,7 +301,7 @@ export class CharactersRepository {
     bookId: string;
     userId: string;
   }): Promise<BookCharacterSummaryAggregate> {
-    const characterScope = { deletedAt: null, userId };
+    const characterScope = { deletedAt: null, hideProfileAsSpoiler: false, userId };
     const visibleWhere: Prisma.BookCharacterWhereInput = {
       bookId,
       character: characterScope,
@@ -457,7 +460,12 @@ export class CharactersRepository {
       return Promise.resolve([]);
     }
 
-    const where: Prisma.CharacterWhereInput = { deletedAt: null, OR: or, userId };
+    const where: Prisma.CharacterWhereInput = {
+      deletedAt: null,
+      hideProfileAsSpoiler: false,
+      OR: or,
+      userId,
+    };
     if (excludeCharacterId !== undefined) {
       where.id = { not: excludeCharacterId };
     }
@@ -471,16 +479,23 @@ export class CharactersRepository {
 
   async findDuplicateNormalizedNames({
     archived,
+    includeHiddenProfiles,
     userId,
   }: {
     archived: boolean;
+    includeHiddenProfiles: boolean;
     userId: string;
   }): Promise<string[]> {
     const groups = await this.prisma.character.groupBy({
       _count: { normalizedName: true },
       by: ["normalizedName"],
       having: { normalizedName: { _count: { gt: 1 } } },
-      where: { archivedAt: archived ? { not: null } : null, deletedAt: null, userId },
+      where: {
+        archivedAt: archived ? { not: null } : null,
+        deletedAt: null,
+        userId,
+        ...(includeHiddenProfiles ? {} : { hideProfileAsSpoiler: false }),
+      },
     });
     return groups.map((group) => group.normalizedName);
   }
@@ -630,7 +645,7 @@ export class CharactersRepository {
           where: { bookId: { in: bookIds } },
         },
       },
-      where: { deletedAt: null, id: { in: characterIds }, userId },
+      where: { deletedAt: null, hideProfileAsSpoiler: false, id: { in: characterIds }, userId },
     });
   }
 
@@ -667,7 +682,7 @@ export class CharactersRepository {
   }): Promise<SeriesAppearanceRow[]> {
     const where: Prisma.BookCharacterWhereInput = {
       bookId: { in: bookIds },
-      character: { deletedAt: null, userId },
+      character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
       hidePresenceAsSpoiler: false,
     };
     if (search !== undefined) {
@@ -730,7 +745,7 @@ export class CharactersRepository {
       select: { characterId: true },
       where: {
         bookId: { in: bookIds },
-        character: { deletedAt: null, userId },
+        character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
         hidePresenceAsSpoiler: true,
       },
     });
@@ -753,6 +768,7 @@ export class CharactersRepository {
       archivedAt: null,
       bookAppearances: { none: { bookId } },
       deletedAt: null,
+      hideProfileAsSpoiler: false,
       userId,
     };
     if (search !== undefined) {
@@ -802,7 +818,7 @@ export class CharactersRepository {
   }): Promise<RosterRow[]> {
     const base: Prisma.BookCharacterWhereInput = {
       bookId,
-      character: { deletedAt: null, userId },
+      character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
       hidePresenceAsSpoiler: false,
     };
     const [central, major] = await Promise.all([
@@ -915,6 +931,7 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     groupIds,
     hasSpoilers,
     importances,
+    includeHiddenProfiles,
     includeSpoilerSearch,
     roleTypes,
     search,
@@ -929,6 +946,9 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     deletedAt: null,
     userId,
   };
+  if (!includeHiddenProfiles) {
+    where.hideProfileAsSpoiler = false;
+  }
   if (genders !== undefined) {
     where.gender = { in: genders };
   }
@@ -1073,7 +1093,7 @@ function buildRosterWhere({
 }: RosterFilter): Prisma.BookCharacterWhereInput {
   const where: Prisma.BookCharacterWhereInput = {
     bookId,
-    character: { deletedAt: null, userId },
+    character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
     hidePresenceAsSpoiler: false,
   };
 

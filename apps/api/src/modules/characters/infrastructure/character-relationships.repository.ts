@@ -12,9 +12,14 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 
 const detailsInclude = {
   bookStates: { orderBy: [{ createdAt: "asc" }] },
-  sourceCharacter: { select: { name: true } },
-  targetCharacter: { select: { name: true } },
+  sourceCharacter: { select: { hideProfileAsSpoiler: true, name: true } },
+  targetCharacter: { select: { hideProfileAsSpoiler: true, name: true } },
 } satisfies Prisma.CharacterRelationshipInclude;
+
+const visibleEndpointWhere = {
+  sourceCharacter: { hideProfileAsSpoiler: false },
+  targetCharacter: { hideProfileAsSpoiler: false },
+} satisfies Prisma.CharacterRelationshipWhereInput;
 
 export type CreateBookStateData = {
   bookId: string;
@@ -94,11 +99,20 @@ export class CharacterRelationshipsRepository {
   }
 
   async countOwnedCharacters(
-    { characterIds, userId }: { characterIds: string[]; userId: string },
+    {
+      characterIds,
+      excludeHiddenProfiles = false,
+      userId,
+    }: { characterIds: string[]; excludeHiddenProfiles?: boolean; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     return client.character.count({
-      where: { deletedAt: null, id: { in: characterIds }, userId },
+      where: {
+        deletedAt: null,
+        id: { in: characterIds },
+        userId,
+        ...(excludeHiddenProfiles ? { hideProfileAsSpoiler: false } : {}),
+      },
     });
   }
 
@@ -198,11 +212,15 @@ export class CharacterRelationshipsRepository {
     return this.prisma.characterRelationship.findMany({
       include: {
         bookStates: { orderBy: [{ createdAt: "asc" }], where: { bookId: { in: bookIds } } },
-        sourceCharacter: { select: { name: true } },
-        targetCharacter: { select: { name: true } },
+        sourceCharacter: { select: { hideProfileAsSpoiler: true, name: true } },
+        targetCharacter: { select: { hideProfileAsSpoiler: true, name: true } },
       },
       orderBy: [{ createdAt: "asc" }],
-      where: { bookStates: { some: { bookId: { in: bookIds } } }, userId },
+      where: {
+        ...visibleEndpointWhere,
+        bookStates: { some: { bookId: { in: bookIds } } },
+        userId,
+      },
     });
   }
 

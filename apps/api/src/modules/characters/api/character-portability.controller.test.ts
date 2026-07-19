@@ -305,3 +305,35 @@ describe("POST /api/characters/import", () => {
     expect(await prisma.character.count({ where: { userId } })).toBe(2);
   });
 });
+
+describe("character portability — whole-profile hidden characters", () => {
+  it("preserves hideProfileAsSpoiler across an export and import round-trip", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    await createCharacter(owner.accessToken, { hideProfileAsSpoiler: true, name: "The Ghost" });
+
+    const bundle = await exportBundle(owner.accessToken);
+    const exported = bundle.characters as { hideProfileAsSpoiler: boolean; name: string }[];
+    expect(exported).toHaveLength(1);
+    expect(exported[0]).toMatchObject({ hideProfileAsSpoiler: true, name: "The Ghost" });
+
+    const importer = await context.registerVerifyAndLogin({ email: "importer@example.com" });
+    const imported = await authed("post", "/api/characters/import", importer.accessToken).send(
+      bundle,
+    );
+    expect(imported.status).toBe(HttpStatus.OK);
+
+    const listDefault = await authed("get", "/api/characters", importer.accessToken);
+    expect(listDefault.body.items).toEqual([]);
+
+    const listRevealed = await authed(
+      "get",
+      "/api/characters?includeHiddenProfiles=true",
+      importer.accessToken,
+    );
+    expect(listRevealed.body.items).toHaveLength(1);
+    expect(listRevealed.body.items[0]).toMatchObject({
+      hideProfileAsSpoiler: true,
+      name: "The Ghost",
+    });
+  });
+});

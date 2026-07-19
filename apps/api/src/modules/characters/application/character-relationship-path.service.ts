@@ -84,6 +84,7 @@ export class CharacterRelationshipPathService {
     const uniqueIds = [...new Set(characterIds)];
     const owned = await this.relationshipsRepository.countOwnedCharacters({
       characterIds: uniqueIds,
+      excludeHiddenProfiles: true,
       userId,
     });
     if (owned !== uniqueIds.length) {

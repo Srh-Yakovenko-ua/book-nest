@@ -300,7 +300,7 @@ export class CharactersService {
       characterId,
       userId,
     });
-    if (row === null || row.bookAppearances.length === 0) {
+    if (row === null || row.hideProfileAsSpoiler || row.bookAppearances.length === 0) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
     return this.toDetailsView(row);
@@ -315,14 +315,16 @@ export class CharactersService {
     query: CharacterDetailsQuery;
     userId: string;
   }): Promise<CharacterDetailsView> {
+    const revealHiddenProfile = query.includeHiddenProfiles ?? false;
     if (query.contextBookId === undefined) {
-      return this.loadFullCharacterDetails({ characterId, userId });
+      return this.loadFullCharacterDetails({ characterId, revealHiddenProfile, userId });
     }
     return this.loadMaskedCharacterDetails({
       characterId,
       contextBookId: query.contextBookId,
       reader: readingPositionFromQuery(query),
       revealFieldIds: query.revealFieldIds ?? [],
+      revealHiddenProfile,
       userId,
     });
   }
@@ -392,7 +394,11 @@ export class CharactersService {
             characterId,
             userId,
           });
-    if (character === null || character.bookAppearances.length === 0) {
+    if (
+      character === null ||
+      character.hideProfileAsSpoiler ||
+      character.bookAppearances.length === 0
+    ) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
 
@@ -462,6 +468,7 @@ export class CharactersService {
     const duplicateNormalizedNames = query.possibleDuplicates
       ? await this.charactersRepository.findDuplicateNormalizedNames({
           archived: query.archived ?? false,
+          includeHiddenProfiles: query.includeHiddenProfiles ?? false,
           userId,
         })
       : undefined;
@@ -581,7 +588,7 @@ export class CharactersService {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
     await this.cancelPurge(characterId);
-    return this.loadFullCharacterDetails({ characterId, userId });
+    return this.loadFullCharacterDetails({ characterId, revealHiddenProfile: true, userId });
   }
 
   async seriesCharacterSummary({
@@ -1031,6 +1038,7 @@ export class CharactersService {
       entityKind: input.entityKind,
       gender: input.gender,
       globalAttitude: input.globalAttitude ?? null,
+      hideProfileAsSpoiler: input.hideProfileAsSpoiler,
       isFavorite: input.isFavorite,
       name: input.name,
       neutralDescription: emptyToNull(input.neutralDescription),
@@ -1090,6 +1098,9 @@ export class CharactersService {
     }
     if (input.globalAttitude !== undefined) {
       data.globalAttitude = input.globalAttitude ?? null;
+    }
+    if (input.hideProfileAsSpoiler !== undefined) {
+      data.hideProfileAsSpoiler = input.hideProfileAsSpoiler;
     }
     return data;
   }
@@ -1175,13 +1186,15 @@ export class CharactersService {
 
   private async loadFullCharacterDetails({
     characterId,
+    revealHiddenProfile,
     userId,
   }: {
     characterId: string;
+    revealHiddenProfile: boolean;
     userId: string;
   }): Promise<CharacterDetailsView> {
     const row = await this.charactersRepository.findOwnedCharacterDetails({ characterId, userId });
-    if (row === null) {
+    if (row === null || (row.hideProfileAsSpoiler && !revealHiddenProfile)) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
     return this.toDetailsView(row);
@@ -1192,12 +1205,14 @@ export class CharactersService {
     contextBookId,
     reader,
     revealFieldIds,
+    revealHiddenProfile,
     userId,
   }: {
     characterId: string;
     contextBookId: string;
     reader: ReadingPosition | undefined;
     revealFieldIds: CharacterRevealFieldKey[];
+    revealHiddenProfile: boolean;
     userId: string;
   }): Promise<CharacterDetailsView> {
     const contextBook = await this.charactersRepository.findOwnedBookContext({
@@ -1218,6 +1233,9 @@ export class CharactersService {
             characterId,
             userId,
           });
+    if (row !== null && row.hideProfileAsSpoiler && !revealHiddenProfile) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
     const visibleAppearances =
       row === null
         ? []
@@ -1375,6 +1393,7 @@ export class CharactersService {
       groupIds: query.groupId,
       hasSpoilers: query.hasSpoilers,
       importances: query.importance,
+      includeHiddenProfiles: query.includeHiddenProfiles ?? false,
       includeSpoilerSearch: query.includeSpoilerSearch ?? false,
       roleTypes: query.role,
       search: normalizeSearch(query.q),
