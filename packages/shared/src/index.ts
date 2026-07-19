@@ -8,6 +8,7 @@ export * from "./character-graph-layouts.js";
 export * from "./character-graph.js";
 export * from "./character-groups.js";
 export * from "./character-path.js";
+export * from "./character-portability.js";
 export * from "./character-relationships.js";
 export * from "./character-theories.js";
 export * from "./characters.js";
