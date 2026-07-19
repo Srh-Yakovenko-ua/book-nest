@@ -4,11 +4,13 @@ import type {
   BookCharacterView,
   CharacterDeletionPreview,
   CharacterDeletionResult,
+  CharacterDetailsQuery,
   CharacterDetailsView,
   CharacterDuplicateCandidatesQuery,
   CharacterDuplicateCandidatesView,
   CharacterGlobalSummaryView,
   CharacterInput,
+  CharacterRevealFieldKey,
   CharacterSeriesProfileView,
   CharactersListQuery,
   CharacterSuggestionsQuery,
@@ -21,6 +23,7 @@ import type {
   Paginator,
   SeriesCharacterProfileQuery,
   SeriesCharactersQuery,
+  SeriesReadingContextDefaultView,
   UpdateBookCharacter,
   UpdateCharacter,
 } from "@app/shared";
@@ -69,10 +72,12 @@ import {
   toCharacterGlobalSummaryView,
   toCharacterSeriesProfileView,
   toCharacterSummaryView,
+  toMaskedBookCharacterView,
 } from "../domain/character.mapper.js";
 import {
   pickSeriesRepresentatives,
   resolveAllowedBookIds,
+  resolveDefaultReadingContext,
   sortSeriesSummaries,
 } from "../domain/series-representative.js";
 import {
@@ -260,12 +265,47 @@ export class CharactersService {
     return this.toDetailsView(row);
   }
 
-  async getCharacterDetails(userId: string, characterId: string): Promise<CharacterDetailsView> {
-    const row = await this.charactersRepository.findOwnedCharacterDetails({ characterId, userId });
-    if (row === null) {
-      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+  async getCharacterDetails({
+    characterId,
+    query,
+    userId,
+  }: {
+    characterId: string;
+    query: CharacterDetailsQuery;
+    userId: string;
+  }): Promise<CharacterDetailsView> {
+    if (query.contextBookId === undefined) {
+      return this.loadFullCharacterDetails({ characterId, userId });
     }
-    return this.toDetailsView(row);
+    return this.loadMaskedCharacterDetails({
+      characterId,
+      contextBookId: query.contextBookId,
+      revealFieldIds: query.revealFieldIds ?? [],
+      userId,
+    });
+  }
+
+  async getDefaultSeriesReadingContext({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesReadingContextDefaultView> {
+    await this.assertSeriesOwned({ seriesId, userId });
+    const books = await this.charactersRepository.listSeriesBooksReadingContext({
+      seriesId,
+      userId,
+    });
+    this.warnOnAmbiguousSeriesOrder({ seriesBooks: books, seriesId });
+    return resolveDefaultReadingContext({
+      books: books.map((book) => ({
+        createdAt: book.createdAt,
+        finishedAt: book.readingProgress?.finishedAt ?? null,
+        id: book.id,
+        partNumber: book.partNumber,
+      })),
+    });
   }
 
   async getSeriesCharacterProfile({
@@ -491,7 +531,7 @@ export class CharactersService {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
     await this.cancelPurge(characterId);
-    return this.getCharacterDetails(userId, characterId);
+    return this.loadFullCharacterDetails({ characterId, userId });
   }
 
   async softDelete({
@@ -1007,12 +1047,90 @@ export class CharactersService {
     return row;
   }
 
+  private async loadFullCharacterDetails({
+    characterId,
+    userId,
+  }: {
+    characterId: string;
+    userId: string;
+  }): Promise<CharacterDetailsView> {
+    const row = await this.charactersRepository.findOwnedCharacterDetails({ characterId, userId });
+    if (row === null) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
+    return this.toDetailsView(row);
+  }
+
+  private async loadMaskedCharacterDetails({
+    characterId,
+    contextBookId,
+    revealFieldIds,
+    userId,
+  }: {
+    characterId: string;
+    contextBookId: string;
+    revealFieldIds: CharacterRevealFieldKey[];
+    userId: string;
+  }): Promise<CharacterDetailsView> {
+    const contextBook = await this.charactersRepository.findOwnedBookContext({
+      bookId: contextBookId,
+      userId,
+    });
+    if (contextBook === null) {
+      throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
+    }
+
+    const allowedBookIds = await this.resolveContextAllowedBookIds({ contextBook, userId });
+    const row =
+      allowedBookIds.length === 0
+        ? null
+        : await this.charactersRepository.findOwnedCharacterDetailsInBooks({
+            allowedBookIds,
+            characterId,
+            userId,
+          });
+    const visibleAppearances =
+      row === null
+        ? []
+        : row.bookAppearances.filter((appearance) => !appearance.hidePresenceAsSpoiler);
+    if (row === null || visibleAppearances.length === 0) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
+
+    const revealedFields = new Set(revealFieldIds);
+    const allowedBookIdSet = new Set(allowedBookIds);
+    const aliases = row.aliases.filter(
+      (alias) => !alias.isSpoiler && (alias.bookId === null || allowedBookIdSet.has(alias.bookId)),
+    );
+    return toCharacterDetailsView({
+      appearances: visibleAppearances.map((appearance) =>
+        this.mapMaskedAppearance({ appearance, revealedFields }),
+      ),
+      avatar: this.mediaViewOf(row.avatarMedia),
+      character: { ...row, aliases },
+    });
+  }
+
   private mapAppearance(
     appearance: CharacterDetailsRow["bookAppearances"][number],
   ): BookCharacterView {
     return toBookCharacterView({
       appearance,
       portrait: this.mediaViewOf(appearance.portraitMedia),
+    });
+  }
+
+  private mapMaskedAppearance({
+    appearance,
+    revealedFields,
+  }: {
+    appearance: CharacterDetailsRow["bookAppearances"][number];
+    revealedFields: ReadonlySet<CharacterRevealFieldKey>;
+  }): BookCharacterView {
+    return toMaskedBookCharacterView({
+      appearance,
+      portrait: this.mediaViewOf(appearance.portraitMedia),
+      revealedFields,
     });
   }
 
@@ -1068,6 +1186,24 @@ export class CharactersService {
     }
 
     return input.characterId;
+  }
+
+  private async resolveContextAllowedBookIds({
+    contextBook,
+    userId,
+  }: {
+    contextBook: BookContextRow;
+    userId: string;
+  }): Promise<string[]> {
+    if (contextBook.seriesId === null) {
+      return [contextBook.id];
+    }
+    const seriesBooks = await this.charactersRepository.listSeriesBooks({
+      seriesId: contextBook.seriesId,
+      userId,
+    });
+    this.warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId: contextBook.seriesId });
+    return resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks });
   }
 
   private toDetailsView(row: CharacterDetailsRow): CharacterDetailsView {

@@ -9,6 +9,7 @@ import { BookCharacterSuggestionsController } from "./api/book-character-suggest
 import { BookCharactersController } from "./api/book-characters.controller.js";
 import { CharactersController } from "./api/characters.controller.js";
 import { SeriesCharactersController } from "./api/series-characters.controller.js";
+import { SeriesReadingContextController } from "./api/series-reading-context.controller.js";
 import { CharacterPurgeProcessor } from "./application/character-purge.processor.js";
 import { CharactersService } from "./application/characters.service.js";
 import { CHARACTER_PURGE_QUEUE_NAME } from "./domain/character-purge.js";
@@ -20,6 +21,7 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     BookCharactersController,
     BookCharacterSuggestionsController,
     SeriesCharactersController,
+    SeriesReadingContextController,
   ],
   imports: [
     AuthModule,

@@ -375,7 +375,7 @@ export const BookCharacterViewSchema = z.object({
   sortOrder: z.number().int().nullable(),
   speciesOverride: z.string().nullable(),
   speciesOverrideIsSpoiler: z.boolean(),
-  status: BookCharacterStatusSchema,
+  status: BookCharacterStatusSchema.nullable(),
   statusCustomText: z.string().nullable(),
   statusIsSpoiler: z.boolean(),
   updatedAt: z.string(),
@@ -531,6 +531,41 @@ export const SeriesCharacterProfileQuerySchema = z.object({
 });
 
 export type SeriesCharacterProfileQuery = z.infer<typeof SeriesCharacterProfileQuerySchema>;
+
+export const CharacterRevealFieldKeySchema = z.enum([
+  "appearanceNotes",
+  "description",
+  "displayName",
+  "personalImpression",
+  "portrait",
+  "speciesOverride",
+  "status",
+]);
+
+export type CharacterRevealFieldKey = z.infer<typeof CharacterRevealFieldKeySchema>;
+
+export const CharacterDetailsQuerySchema = z.object({
+  contextBookId: z.string().uuid().optional(),
+  revealFieldIds: queryStringArray(CharacterRevealFieldKeySchema),
+});
+
+export type CharacterDetailsQuery = z.infer<typeof CharacterDetailsQuerySchema>;
+
+export const SeriesReadingContextSourceSchema = z.enum([
+  "last_finished_book",
+  "first_book",
+  "none",
+]);
+
+export type SeriesReadingContextSource = z.infer<typeof SeriesReadingContextSourceSchema>;
+
+export const SeriesReadingContextDefaultViewSchema = z.object({
+  contextBookId: z.string().nullable(),
+  partNumber: z.number().int().nullable(),
+  source: SeriesReadingContextSourceSchema,
+});
+
+export type SeriesReadingContextDefaultView = z.infer<typeof SeriesReadingContextDefaultViewSchema>;
 
 export const CharacterGlobalSummaryViewSchema = z.object({
   appearanceCount: z.number().int(),

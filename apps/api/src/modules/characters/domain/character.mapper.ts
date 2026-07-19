@@ -2,6 +2,7 @@ import type {
   BookCharacterView,
   CharacterDetailsView,
   CharacterGlobalSummaryView,
+  CharacterRevealFieldKey,
   CharacterSeriesProfileView,
   CharacterSummaryView,
   MediaView,
@@ -336,6 +337,75 @@ export function toCharacterSummaryView({
     name: character.name,
     portrait: appearance.portraitIsSpoiler ? null : portrait,
     status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),
+  };
+}
+
+export function toMaskedBookCharacterView({
+  appearance,
+  portrait,
+  revealedFields,
+}: {
+  appearance: CharacterAppearanceSource;
+  portrait: Nullable<MediaView>;
+  revealedFields: ReadonlySet<CharacterRevealFieldKey>;
+}): BookCharacterView {
+  const hiddenFields: string[] = [];
+  const isVisible = (field: CharacterRevealFieldKey, isSpoiler: boolean): boolean => {
+    if (!isSpoiler || revealedFields.has(field)) {
+      return true;
+    }
+    hiddenFields.push(field);
+    return false;
+  };
+
+  const showAppearanceNotes = isVisible("appearanceNotes", appearance.appearanceNotesIsSpoiler);
+  const showDescription = isVisible("description", appearance.descriptionIsSpoiler);
+  const showDisplayName = isVisible("displayName", appearance.displayNameIsSpoiler);
+  const showPersonalImpression = isVisible(
+    "personalImpression",
+    appearance.personalImpressionIsSpoiler,
+  );
+  const showPortrait = isVisible("portrait", appearance.portraitIsSpoiler);
+  const showSpeciesOverride = isVisible("speciesOverride", appearance.speciesOverrideIsSpoiler);
+  const showStatus = isVisible("status", appearance.statusIsSpoiler);
+
+  return {
+    appearanceNotes: showAppearanceNotes ? emptyToNull(appearance.appearanceNotes) : null,
+    appearanceNotesIsSpoiler: appearance.appearanceNotesIsSpoiler,
+    attitude:
+      appearance.attitude === null ? null : CharacterAttitudeSchema.parse(appearance.attitude),
+    bookId: appearance.bookId,
+    characterId: appearance.characterId,
+    createdAt: appearance.createdAt.toISOString(),
+    description: showDescription ? emptyToNull(appearance.description) : null,
+    descriptionIsSpoiler: appearance.descriptionIsSpoiler,
+    displayName: showDisplayName ? emptyToNull(appearance.displayName) : null,
+    displayNameIsSpoiler: appearance.displayNameIsSpoiler,
+    firstAppearanceAudioSeconds: appearance.firstAppearanceAudioSeconds,
+    firstAppearanceChapter: emptyToNull(appearance.firstAppearanceChapter),
+    firstAppearanceNote: emptyToNull(appearance.firstAppearanceNote),
+    firstAppearancePage: appearance.firstAppearancePage,
+    hiddenFields,
+    hidePresenceAsSpoiler: appearance.hidePresenceAsSpoiler,
+    id: appearance.id,
+    importance: BookCharacterImportanceSchema.parse(appearance.importance),
+    isPovCharacter: appearance.isPovCharacter,
+    narratorType:
+      appearance.narratorType === null
+        ? null
+        : BookCharacterNarratorTypeSchema.parse(appearance.narratorType),
+    personalImpression: showPersonalImpression ? emptyToNull(appearance.personalImpression) : null,
+    personalImpressionIsSpoiler: appearance.personalImpressionIsSpoiler,
+    portrait: showPortrait ? portrait : null,
+    portraitIsSpoiler: appearance.portraitIsSpoiler,
+    roles: appearance.roles.filter((role) => !role.isSpoiler).map((role) => toRoleView(role)),
+    sortOrder: appearance.sortOrder,
+    speciesOverride: showSpeciesOverride ? emptyToNull(appearance.speciesOverride) : null,
+    speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
+    status: showStatus ? BookCharacterStatusSchema.parse(appearance.status) : null,
+    statusCustomText: showStatus ? emptyToNull(appearance.statusCustomText) : null,
+    statusIsSpoiler: appearance.statusIsSpoiler,
+    updatedAt: appearance.updatedAt.toISOString(),
   };
 }
 

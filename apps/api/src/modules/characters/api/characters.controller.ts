@@ -8,6 +8,7 @@ import type {
 } from "@app/shared";
 
 import {
+  CharacterDetailsQuerySchema,
   CharacterDuplicateCandidatesQuerySchema,
   CharactersListQuerySchema,
   CreateCharacterSchema,
@@ -49,6 +50,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
 import { CharactersService } from "../application/characters.service.js";
+import { CharacterDetailsQueryDto } from "./input-dto/character-details-query.input-dto.js";
 import { CharactersListQueryDto } from "./input-dto/characters-list-query.input-dto.js";
 import { CreateCharacterInputDto } from "./input-dto/create-character.input-dto.js";
 import { DeleteCharacterQueryDto } from "./input-dto/delete-character-query.input-dto.js";
@@ -131,19 +133,23 @@ export class CharactersController {
     return this.charactersService.duplicateCandidates({ query, userId: user.id });
   }
 
-  @ApiNotFoundResponse({ description: "Character not found" })
+  @ApiNotFoundResponse({ description: "Character or context book not found" })
   @ApiOkResponse({
-    description: "The character with its appearances",
+    description:
+      "The character with its appearances, context-masked to a reading context when contextBookId is set",
     type: CharacterDetailsViewDto,
   })
   @ApiOperation({ summary: "Get a global character with its book appearances" })
   @ApiParam({ description: "Character id", name: "characterId" })
+  @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({ name: "revealFieldIds", required: false })
   @Get(":characterId")
   getById(
     @CurrentUser() user: AuthenticatedUser,
     @Param("characterId", ParseUUIDPipe) characterId: string,
+    @Query(new ZodQueryPipe(CharacterDetailsQuerySchema)) query: CharacterDetailsQueryDto,
   ): Promise<CharacterDetailsView> {
-    return this.charactersService.getCharacterDetails(user.id, characterId);
+    return this.charactersService.getCharacterDetails({ characterId, query, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "Character not found" })

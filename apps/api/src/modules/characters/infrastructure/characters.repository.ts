@@ -184,6 +184,13 @@ export type SeriesBookRow = {
   partNumber: Nullable<number>;
 };
 
+export type SeriesReadingContextBookRow = {
+  createdAt: Date;
+  id: string;
+  partNumber: Nullable<number>;
+  readingProgress: Nullable<{ finishedAt: Nullable<Date> }>;
+};
+
 export type UpdateBookCharacterData = {
   appearanceNotes?: Nullable<string>;
   appearanceNotesIsSpoiler?: boolean;
@@ -431,6 +438,26 @@ export class CharactersRepository {
     });
   }
 
+  findOwnedCharacterDetailsInBooks(
+    {
+      allowedBookIds,
+      characterId,
+      userId,
+    }: { allowedBookIds: string[]; characterId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<CharacterDetailsRow>> {
+    return client.character.findFirst({
+      include: {
+        ...detailsInclude,
+        bookAppearances: {
+          ...detailsInclude.bookAppearances,
+          where: { bookId: { in: allowedBookIds } },
+        },
+      },
+      where: { deletedAt: null, id: characterId, userId },
+    });
+  }
+
   findSeriesCharacterProfile(
     {
       allowedBookIds,
@@ -530,6 +557,25 @@ export class CharactersRepository {
     return this.prisma.book.findMany({
       orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
       select: { createdAt: true, id: true, partNumber: true },
+      where: { seriesId, userId },
+    });
+  }
+
+  listSeriesBooksReadingContext({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesReadingContextBookRow[]> {
+    return this.prisma.book.findMany({
+      orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
+      select: {
+        createdAt: true,
+        id: true,
+        partNumber: true,
+        readingProgress: { select: { finishedAt: true } },
+      },
       where: { seriesId, userId },
     });
   }

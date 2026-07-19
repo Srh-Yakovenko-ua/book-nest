@@ -3,7 +3,16 @@ import type {
   CharacterSummaryView,
   Nullable,
   SeriesCharactersSort,
+  SeriesReadingContextSource,
 } from "@app/shared";
+
+import { compareAsc } from "date-fns";
+
+export type DefaultReadingContext = {
+  contextBookId: Nullable<string>;
+  partNumber: Nullable<number>;
+  source: SeriesReadingContextSource;
+};
 
 export type SeriesAppearanceLike = {
   bookId: string;
@@ -17,6 +26,13 @@ export type SeriesBookLike = {
 };
 
 export type SeriesContextBook = {
+  id: string;
+  partNumber: Nullable<number>;
+};
+
+export type SeriesReadingContextBook = {
+  createdAt: Date;
+  finishedAt: Nullable<Date>;
   id: string;
   partNumber: Nullable<number>;
 };
@@ -89,6 +105,27 @@ export function resolveAllowedBookIds({
     .map((book) => book.id);
 }
 
+export function resolveDefaultReadingContext({
+  books,
+}: {
+  books: SeriesReadingContextBook[];
+}): DefaultReadingContext {
+  const finishedBooks = books.filter((book) => book.finishedAt !== null);
+  if (finishedBooks.length > 0) {
+    const lastFinished = finishedBooks.reduce(pickLaterReadingBook);
+    return {
+      contextBookId: lastFinished.id,
+      partNumber: lastFinished.partNumber,
+      source: "last_finished_book",
+    };
+  }
+  if (books.length > 0) {
+    const firstBook = books.reduce(pickEarlierReadingBook);
+    return { contextBookId: firstBook.id, partNumber: firstBook.partNumber, source: "first_book" };
+  }
+  return { contextBookId: null, partNumber: null, source: "none" };
+}
+
 export function sortSeriesSummaries({
   sort,
   summaries,
@@ -139,4 +176,28 @@ function comparePartNumberDesc(left: Nullable<number>, right: Nullable<number>):
     return -1;
   }
   return right - left;
+}
+
+function pickEarlierReadingBook(
+  current: SeriesReadingContextBook,
+  candidate: SeriesReadingContextBook,
+): SeriesReadingContextBook {
+  const currentPart = current.partNumber ?? Number.POSITIVE_INFINITY;
+  const candidatePart = candidate.partNumber ?? Number.POSITIVE_INFINITY;
+  if (candidatePart !== currentPart) {
+    return candidatePart < currentPart ? candidate : current;
+  }
+  return compareAsc(candidate.createdAt, current.createdAt) < 0 ? candidate : current;
+}
+
+function pickLaterReadingBook(
+  current: SeriesReadingContextBook,
+  candidate: SeriesReadingContextBook,
+): SeriesReadingContextBook {
+  const currentPart = current.partNumber ?? Number.NEGATIVE_INFINITY;
+  const candidatePart = candidate.partNumber ?? Number.NEGATIVE_INFINITY;
+  if (candidatePart !== currentPart) {
+    return candidatePart > currentPart ? candidate : current;
+  }
+  return compareAsc(candidate.createdAt, current.createdAt) >= 0 ? candidate : current;
 }
