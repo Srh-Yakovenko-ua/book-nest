@@ -43,7 +43,10 @@ const seriesProfileInclude = {
   aliases: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
   avatarMedia: true,
   bookAppearances: {
-    include: { portraitMedia: true },
+    include: {
+      portraitMedia: true,
+      roles: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
+    },
     orderBy: [{ createdAt: "asc" }],
   },
 } satisfies Prisma.CharacterInclude;

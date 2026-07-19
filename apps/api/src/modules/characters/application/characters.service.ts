@@ -363,6 +363,7 @@ export class CharactersService {
           !alias.isSpoiler && (alias.bookId === null || allowedBookIdSet.has(alias.bookId)),
       ),
       appearances: character.bookAppearances.map((appearance) => ({
+        attitude: appearance.attitude,
         bookId: appearance.bookId,
         createdAt: appearance.createdAt,
         displayName: appearance.displayName,
@@ -371,6 +372,7 @@ export class CharactersService {
         importance: appearance.importance,
         portrait: this.mediaViewOf(appearance.portraitMedia),
         portraitIsSpoiler: appearance.portraitIsSpoiler,
+        roles: appearance.roles,
         status: appearance.status,
         statusIsSpoiler: appearance.statusIsSpoiler,
       })),

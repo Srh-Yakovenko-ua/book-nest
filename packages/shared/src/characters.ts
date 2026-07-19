@@ -424,14 +424,19 @@ export type CharacterSummaryView = z.infer<typeof CharacterSummaryViewSchema>;
 export const PaginatedCharacterSummarySchema = createPaginatedSchema(CharacterSummaryViewSchema);
 
 export const SeriesCharacterAppearanceViewSchema = z.object({
+  attitude: CharacterAttitudeSchema.nullable(),
+  attitudeChangedFromPrevious: z.boolean(),
   bookCharacterId: z.string(),
   bookId: z.string(),
   displayName: z.string().nullable(),
   hiddenFields: z.array(z.string()),
   importance: BookCharacterImportanceSchema,
+  importanceChangedFromPrevious: z.boolean(),
   partNumber: z.number().int().nullable(),
   portrait: MediaViewSchema.nullable(),
+  roles: z.array(BookCharacterRoleViewSchema),
   status: BookCharacterStatusSchema.nullable(),
+  statusChangedFromPrevious: z.boolean(),
 });
 
 export type SeriesCharacterAppearanceView = z.infer<typeof SeriesCharacterAppearanceViewSchema>;

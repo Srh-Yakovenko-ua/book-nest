@@ -99,12 +99,14 @@ export type GlobalSummaryCharacterSource = {
 };
 
 export type SeriesProfileAppearanceSource = SummaryHiddenFieldFlags & {
+  attitude: Nullable<string>;
   bookId: string;
   createdAt: Date;
   displayName: Nullable<string>;
   id: string;
   importance: string;
   portrait: Nullable<MediaView>;
+  roles: CharacterRoleSource[];
   status: string;
 };
 
@@ -150,6 +152,11 @@ export type SummaryHiddenFieldFlags = {
   portraitIsSpoiler: boolean;
   statusIsSpoiler: boolean;
 };
+
+type SeriesAppearancePoint = Omit<
+  SeriesCharacterAppearanceView,
+  "attitudeChangedFromPrevious" | "importanceChangedFromPrevious" | "statusChangedFromPrevious"
+>;
 
 export function toBookCharacterView({
   appearance,
@@ -283,12 +290,13 @@ export function toCharacterSeriesProfileView({
         partNumberByBookId.get(right.bookId) ?? null,
       ) || compareAsc(left.createdAt, right.createdAt),
   );
-  const entries = ordered.map((appearance) =>
-    toSeriesAppearanceView({
+  const points = ordered.map((appearance) =>
+    toSeriesAppearancePoint({
       appearance,
       partNumber: partNumberByBookId.get(appearance.bookId) ?? null,
     }),
   );
+  const entries = attachArcChangeMarkers(points);
 
   const hiddenFields = [...new Set(entries.flatMap((entry) => entry.hiddenFields))];
   hiddenFields.sort((left, right) => left.localeCompare(right));
@@ -409,6 +417,19 @@ export function toMaskedBookCharacterView({
   };
 }
 
+function attachArcChangeMarkers(points: SeriesAppearancePoint[]): SeriesCharacterAppearanceView[] {
+  return points.map((point, index) => {
+    const previous = points[index - 1];
+    return {
+      ...point,
+      attitudeChangedFromPrevious: previous !== undefined && previous.attitude !== point.attitude,
+      importanceChangedFromPrevious:
+        previous !== undefined && previous.importance !== point.importance,
+      statusChangedFromPrevious: previous !== undefined && previous.status !== point.status,
+    };
+  });
+}
+
 function comparePartNumberAscNullsLast(left: Nullable<number>, right: Nullable<number>): number {
   if (left === right) {
     return 0;
@@ -483,14 +504,16 @@ function toRoleView(role: CharacterRoleSource): BookCharacterView["roles"][numbe
   };
 }
 
-function toSeriesAppearanceView({
+function toSeriesAppearancePoint({
   appearance,
   partNumber,
 }: {
   appearance: SeriesProfileAppearanceSource;
   partNumber: Nullable<number>;
-}): SeriesCharacterAppearanceView {
+}): SeriesAppearancePoint {
   return {
+    attitude:
+      appearance.attitude === null ? null : CharacterAttitudeSchema.parse(appearance.attitude),
     bookCharacterId: appearance.id,
     bookId: appearance.bookId,
     displayName: appearance.displayNameIsSpoiler ? null : emptyToNull(appearance.displayName),
@@ -498,6 +521,7 @@ function toSeriesAppearanceView({
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     partNumber,
     portrait: appearance.portraitIsSpoiler ? null : appearance.portrait,
+    roles: appearance.roles.filter((role) => !role.isSpoiler).map((role) => toRoleView(role)),
     status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),
   };
 }
