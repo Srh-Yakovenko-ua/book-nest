@@ -1,6 +1,7 @@
 import type {
   BookCharacterView,
   CharacterDetailsView,
+  CharacterFormView,
   CharacterGlobalSummaryView,
   CharacterRevealFieldKey,
   CharacterSeriesProfileView,
@@ -18,6 +19,7 @@ import {
   CharacterAliasTypeSchema,
   CharacterAttitudeSchema,
   CharacterEntityKindSchema,
+  CharacterFormTypeSchema,
   CharacterGenderSchema,
 } from "@app/shared";
 import { compareAsc } from "date-fns";
@@ -56,6 +58,18 @@ export type CharacterAppearanceSource = SpoilerFlags & {
   speciesOverride: Nullable<string>;
   status: string;
   statusCustomText: Nullable<string>;
+  updatedAt: Date;
+};
+
+export type CharacterFormSource = {
+  characterId: string;
+  createdAt: Date;
+  description: Nullable<string>;
+  formType: string;
+  id: string;
+  isSpoiler: boolean;
+  name: string;
+  position: number;
   updatedAt: Date;
 };
 
@@ -212,10 +226,12 @@ export function toCharacterDetailsView({
   appearances,
   avatar,
   character,
+  forms,
 }: {
   appearances: BookCharacterView[];
   avatar: Nullable<MediaView>;
   character: CharacterSource;
+  forms: CharacterFormView[];
 }): CharacterDetailsView {
   const hiddenFields = [...new Set(appearances.flatMap((appearance) => appearance.hiddenFields))];
   hiddenFields.sort((left, right) => left.localeCompare(right));
@@ -228,6 +244,7 @@ export function toCharacterDetailsView({
     createdAt: character.createdAt.toISOString(),
     customGender: emptyToNull(character.customGender),
     entityKind: CharacterEntityKindSchema.parse(character.entityKind),
+    forms,
     gender: CharacterGenderSchema.parse(character.gender),
     globalAttitude:
       character.globalAttitude === null
@@ -242,6 +259,27 @@ export function toCharacterDetailsView({
     pronouns: emptyToNull(character.pronouns),
     species: emptyToNull(character.species),
     updatedAt: character.updatedAt.toISOString(),
+  };
+}
+
+export function toCharacterFormView({
+  form,
+  portrait,
+}: {
+  form: CharacterFormSource;
+  portrait: Nullable<MediaView>;
+}): CharacterFormView {
+  return {
+    characterId: form.characterId,
+    createdAt: form.createdAt.toISOString(),
+    description: emptyToNull(form.description),
+    formType: CharacterFormTypeSchema.parse(form.formType),
+    id: form.id,
+    isSpoiler: form.isSpoiler,
+    name: form.name,
+    portrait,
+    position: form.position,
+    updatedAt: form.updatedAt.toISOString(),
   };
 }
 

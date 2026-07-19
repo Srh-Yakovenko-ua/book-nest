@@ -15,6 +15,7 @@ export type CharacterMergePlan = {
   counts: CharacterMergeCounts;
   dropAliasIds: string[];
   dropBookCharacterIds: string[];
+  dropFormIds: string[];
   dropMembershipIds: string[];
   droppedMediaIds: string[];
   dropRelationshipIds: string[];
@@ -22,6 +23,7 @@ export type CharacterMergePlan = {
   relationshipRepoints: RelationshipRepoint[];
   repointAliasIds: string[];
   repointBookCharacterIds: string[];
+  repointFormIds: string[];
   repointMembershipIds: string[];
   repointTagIds: string[];
 };
@@ -35,12 +37,14 @@ export type CharacterMergePlanInput = {
     portraitMediaId: Nullable<string>;
     roleCount: number;
   }[];
+  loserForms: { id: string; normalizedName: string; portraitMediaId: Nullable<string> }[];
   loserMemberships: { bookId: Nullable<string>; groupId: string; id: string }[];
   loserTagIds: string[];
   loserTheoryCount: number;
   relationshipCandidates: RelationshipCandidate[];
   survivorAliasKeys: { bookId: Nullable<string>; normalizedName: string; type: string }[];
   survivorBookIds: string[];
+  survivorFormKeys: string[];
   survivorMembershipKeys: { bookId: Nullable<string>; groupId: string }[];
   survivorRelationshipKeys: Set<string>;
   survivorTagIds: string[];
@@ -132,6 +136,10 @@ export function buildCharacterMergePlan(input: CharacterMergePlanInput): Charact
     loserEntries: input.loserTagIds.map((tagId) => ({ id: tagId, key: tagId })),
     survivorKeys: new Set(input.survivorTagIds),
   });
+  const forms = resolveKeyedRepoint({
+    loserEntries: input.loserForms.map((row) => ({ id: row.id, key: row.normalizedName })),
+    survivorKeys: new Set(input.survivorFormKeys),
+  });
   const relationshipPlan = resolveRelationshipPlan({
     candidates: input.relationshipCandidates,
     survivorKeys: input.survivorRelationshipKeys,
@@ -143,6 +151,9 @@ export function buildCharacterMergePlan(input: CharacterMergePlanInput): Charact
   const portraitById = new Map(
     input.loserBookCharacters.map((row) => [row.id, row.portraitMediaId] as const),
   );
+  const formPortraitById = new Map(
+    input.loserForms.map((row) => [row.id, row.portraitMediaId] as const),
+  );
   const sumRoles = (ids: string[]): number =>
     ids.reduce((total, id) => total + (roleCountById.get(id) ?? 0), 0);
 
@@ -151,6 +162,7 @@ export function buildCharacterMergePlan(input: CharacterMergePlanInput): Charact
       [
         input.loserAvatarMediaId,
         ...bookCharacters.dropIds.map((id) => portraitById.get(id) ?? null),
+        ...forms.dropIds.map((id) => formPortraitById.get(id) ?? null),
       ].filter((id): id is string => id !== null),
     ),
   ];
@@ -161,6 +173,7 @@ export function buildCharacterMergePlan(input: CharacterMergePlanInput): Charact
       dropped: bookCharacters.dropIds.length,
       moved: bookCharacters.repointIds.length,
     },
+    forms: { dropped: forms.dropIds.length, moved: forms.repointIds.length },
     memberships: { dropped: memberships.dropIds.length, moved: memberships.repointIds.length },
     relationships: {
       dropped: relationshipPlan.dropIds.length,
@@ -178,6 +191,7 @@ export function buildCharacterMergePlan(input: CharacterMergePlanInput): Charact
     counts,
     dropAliasIds: aliases.dropIds,
     dropBookCharacterIds: bookCharacters.dropIds,
+    dropFormIds: forms.dropIds,
     dropMembershipIds: memberships.dropIds,
     droppedMediaIds,
     dropRelationshipIds: relationshipPlan.dropIds,
@@ -185,6 +199,7 @@ export function buildCharacterMergePlan(input: CharacterMergePlanInput): Charact
     relationshipRepoints: relationshipPlan.repoints,
     repointAliasIds: aliases.repointIds,
     repointBookCharacterIds: bookCharacters.repointIds,
+    repointFormIds: forms.repointIds,
     repointMembershipIds: memberships.repointIds,
     repointTagIds: tags.repointIds,
   };

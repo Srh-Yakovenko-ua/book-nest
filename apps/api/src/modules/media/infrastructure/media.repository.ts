@@ -17,12 +17,14 @@ export class MediaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async countReferences(id: string): Promise<number> {
-    const [bookCovers, characterAvatars, bookCharacterPortraits] = await Promise.all([
-      this.prisma.book.count({ where: { coverMediaId: id } }),
-      this.prisma.character.count({ where: { avatarMediaId: id } }),
-      this.prisma.bookCharacter.count({ where: { portraitMediaId: id } }),
-    ]);
-    return bookCovers + characterAvatars + bookCharacterPortraits;
+    const [bookCovers, characterAvatars, bookCharacterPortraits, characterFormPortraits] =
+      await Promise.all([
+        this.prisma.book.count({ where: { coverMediaId: id } }),
+        this.prisma.character.count({ where: { avatarMediaId: id } }),
+        this.prisma.bookCharacter.count({ where: { portraitMediaId: id } }),
+        this.prisma.characterForm.count({ where: { portraitMediaId: id } }),
+      ]);
+    return bookCovers + characterAvatars + bookCharacterPortraits + characterFormPortraits;
   }
 
   create(data: Prisma.MediaAssetUncheckedCreateInput): Promise<MediaAssetModel> {

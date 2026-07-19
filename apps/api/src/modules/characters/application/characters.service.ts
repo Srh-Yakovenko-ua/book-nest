@@ -9,6 +9,7 @@ import type {
   CharacterDetailsView,
   CharacterDuplicateCandidatesQuery,
   CharacterDuplicateCandidatesView,
+  CharacterFormView,
   CharacterGlobalSummaryView,
   CharacterInput,
   CharacterRevealFieldKey,
@@ -80,6 +81,7 @@ import {
 import {
   toBookCharacterView,
   toCharacterDetailsView,
+  toCharacterFormView,
   toCharacterGlobalSummaryView,
   toCharacterSeriesProfileView,
   toCharacterSummaryView,
@@ -1267,6 +1269,7 @@ export class CharactersService {
       ),
       avatar: this.mediaViewOf(row.avatarMedia),
       character: { ...row, aliases },
+      forms: row.forms.filter((form) => !form.isSpoiler).map((form) => this.mapForm(form)),
     });
   }
 
@@ -1277,6 +1280,10 @@ export class CharactersService {
       appearance,
       portrait: this.mediaViewOf(appearance.portraitMedia),
     });
+  }
+
+  private mapForm(form: CharacterDetailsRow["forms"][number]): CharacterFormView {
+    return toCharacterFormView({ form, portrait: this.mediaViewOf(form.portraitMedia) });
   }
 
   private mapMaskedAppearance({
@@ -1370,6 +1377,7 @@ export class CharactersService {
       appearances: row.bookAppearances.map((appearance) => this.mapAppearance(appearance)),
       avatar: this.mediaViewOf(row.avatarMedia),
       character: row,
+      forms: row.forms.map((form) => this.mapForm(form)),
     });
   }
 
@@ -1446,6 +1454,7 @@ function collectMediaIds(character: CharacterPurgeRow): string[] {
   const ids = [
     character.avatarMediaId,
     ...character.bookAppearances.map((appearance) => appearance.portraitMediaId),
+    ...character.forms.map((form) => form.portraitMediaId),
   ];
   return [...new Set(ids.filter((id): id is string => id !== null))];
 }

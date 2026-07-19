@@ -17,6 +17,10 @@ const detailsInclude = {
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   },
+  forms: {
+    include: { portraitMedia: true },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+  },
 } satisfies Prisma.CharacterInclude;
 
 const rosterInclude = {
@@ -59,6 +63,7 @@ const purgeSelect = {
   avatarMediaId: true,
   bookAppearances: { select: { portraitMediaId: true } },
   deletedAt: true,
+  forms: { select: { portraitMediaId: true } },
 } satisfies Prisma.CharacterSelect;
 
 const graphNodeSelect = {

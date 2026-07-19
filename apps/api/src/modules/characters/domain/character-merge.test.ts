@@ -209,6 +209,10 @@ describe("buildCharacterMergePlan", () => {
         { bookId: "book-shared", id: "bc-drop", portraitMediaId: "media-portrait", roleCount: 2 },
         { bookId: "book-solo", id: "bc-move", portraitMediaId: null, roleCount: 1 },
       ],
+      loserForms: [
+        { id: "form-drop", normalizedName: "true form", portraitMediaId: "media-form" },
+        { id: "form-move", normalizedName: "alter ego", portraitMediaId: null },
+      ],
       loserMemberships: [
         { bookId: null, groupId: "group-shared", id: "m-drop" },
         { bookId: null, groupId: "group-solo", id: "m-move" },
@@ -218,6 +222,7 @@ describe("buildCharacterMergePlan", () => {
       relationshipCandidates: candidates,
       survivorAliasKeys: [{ bookId: null, normalizedName: "usul", type: "nickname" }],
       survivorBookIds: ["book-shared"],
+      survivorFormKeys: ["true form"],
       survivorMembershipKeys: [{ bookId: null, groupId: "group-shared" }],
       survivorRelationshipKeys: new Set(),
       survivorTagIds: ["tag-dup"],
@@ -228,6 +233,7 @@ describe("buildCharacterMergePlan", () => {
     expect(plan.counts).toEqual({
       aliases: { dropped: 1, moved: 1 },
       appearances: { dropped: 1, moved: 1 },
+      forms: { dropped: 1, moved: 1 },
       memberships: { dropped: 1, moved: 1 },
       relationships: { dropped: 1, moved: 1 },
       roles: { dropped: 2, moved: 1 },
@@ -238,12 +244,14 @@ describe("buildCharacterMergePlan", () => {
     expect(plan.repointBookCharacterIds).toEqual(["bc-move"]);
     expect(plan.dropAliasIds).toEqual(["alias-dup"]);
     expect(plan.repointAliasIds).toEqual(["alias-move"]);
+    expect(plan.dropFormIds).toEqual(["form-drop"]);
+    expect(plan.repointFormIds).toEqual(["form-move"]);
     expect(plan.dropTagIds).toEqual(["tag-dup"]);
     expect(plan.repointTagIds).toEqual(["tag-move"]);
     expect(plan.dropMembershipIds).toEqual(["m-drop"]);
     expect(plan.repointMembershipIds).toEqual(["m-move"]);
     expect(plan.relationshipRepoints.map((repoint) => repoint.id)).toEqual(["rel-move"]);
     expect(plan.dropRelationshipIds).toEqual(["rel-self"]);
-    expect(plan.droppedMediaIds.sort()).toEqual(["media-avatar", "media-portrait"]);
+    expect(plan.droppedMediaIds.sort()).toEqual(["media-avatar", "media-form", "media-portrait"]);
   });
 });

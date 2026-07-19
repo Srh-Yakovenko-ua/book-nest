@@ -13,6 +13,7 @@ import type {
 import type {
   LoserAliasRow,
   LoserBookCharacterRow,
+  LoserFormRow,
   LoserMembershipRow,
   SurvivorAliasKey,
   SurvivorMembershipKey,
@@ -39,6 +40,7 @@ const log = createLogger("characters.merge");
 type LoserRows = {
   loserAliases: LoserAliasRow[];
   loserBookCharacters: LoserBookCharacterRow[];
+  loserForms: LoserFormRow[];
   loserMemberships: LoserMembershipRow[];
   loserRelationshipCandidates: RelationshipCandidate[];
   loserRelationshipLockKeys: string[];
@@ -49,6 +51,7 @@ type LoserRows = {
 type SurvivorKeys = {
   survivorAliasKeys: SurvivorAliasKey[];
   survivorBookIds: string[];
+  survivorFormKeys: string[];
   survivorMembershipKeys: SurvivorMembershipKey[];
   survivorRelationshipKeys: Set<string>;
   survivorTagIds: string[];
@@ -176,6 +179,8 @@ export class CharacterMergeService {
     for (const repoint of plan.relationshipRepoints) {
       await this.mergeRepository.repointRelationship(repoint, tx);
     }
+    await this.mergeRepository.deleteForms({ ids: plan.dropFormIds }, tx);
+    await this.mergeRepository.repointForms({ ids: plan.repointFormIds, survivorId }, tx);
     await this.mergeRepository.repointTheories({ loserId, survivorId, userId }, tx);
   }
 
@@ -221,6 +226,7 @@ export class CharacterMergeService {
       loserMemberships,
       loserRelationships,
       loserTheoryCount,
+      loserForms,
     ] = await Promise.all([
       this.mergeRepository.findLoserBookCharacters({ characterId: loserId }, tx),
       this.mergeRepository.findLoserAliases({ characterId: loserId }, tx),
@@ -228,6 +234,7 @@ export class CharacterMergeService {
       this.mergeRepository.findLoserMemberships({ characterId: loserId }, tx),
       this.mergeRepository.findLoserRelationships({ characterId: loserId, userId }, tx),
       this.mergeRepository.countLoserTheories({ characterId: loserId, userId }, tx),
+      this.mergeRepository.findLoserForms({ characterId: loserId }, tx),
     ]);
     const { candidates, lockKeys } = computeRelationshipCandidates({
       loserId,
@@ -238,6 +245,7 @@ export class CharacterMergeService {
     return {
       loserAliases,
       loserBookCharacters,
+      loserForms,
       loserMemberships,
       loserRelationshipCandidates: candidates,
       loserRelationshipLockKeys: lockKeys,
@@ -263,16 +271,19 @@ export class CharacterMergeService {
       survivorTagIds,
       survivorMembershipKeys,
       survivorRelationships,
+      survivorFormKeys,
     ] = await Promise.all([
       this.mergeRepository.findSurvivorBookIds({ characterId: survivorId }, tx),
       this.mergeRepository.findSurvivorAliasKeys({ characterId: survivorId }, tx),
       this.mergeRepository.findSurvivorTagIds({ characterId: survivorId }, tx),
       this.mergeRepository.findSurvivorMembershipKeys({ characterId: survivorId }, tx),
       this.mergeRepository.findSurvivorRelationships({ loserId, survivorId, userId }, tx),
+      this.mergeRepository.findSurvivorFormKeys({ characterId: survivorId }, tx),
     ]);
     return {
       survivorAliasKeys,
       survivorBookIds,
+      survivorFormKeys,
       survivorMembershipKeys,
       survivorRelationshipKeys: buildSurvivorRelationshipKeys({
         rows: survivorRelationships,
@@ -381,12 +392,14 @@ export class CharacterMergeService {
       loserAliases: loserRows.loserAliases,
       loserAvatarMediaId: loser.avatarMediaId,
       loserBookCharacters: loserRows.loserBookCharacters,
+      loserForms: loserRows.loserForms,
       loserMemberships: loserRows.loserMemberships,
       loserTagIds: loserRows.loserTagIds,
       loserTheoryCount: loserRows.loserTheoryCount,
       relationshipCandidates: loserRows.loserRelationshipCandidates,
       survivorAliasKeys: survivorKeys.survivorAliasKeys,
       survivorBookIds: survivorKeys.survivorBookIds,
+      survivorFormKeys: survivorKeys.survivorFormKeys,
       survivorMembershipKeys: survivorKeys.survivorMembershipKeys,
       survivorRelationshipKeys: survivorKeys.survivorRelationshipKeys,
       survivorTagIds: survivorKeys.survivorTagIds,

@@ -20,6 +20,7 @@ import {
   CharacterAliasTypeSchema,
   CharacterAttitudeSchema,
   CharacterEntityKindSchema,
+  CharacterFormTypeSchema,
   CharacterGenderSchema,
 } from "./characters.js";
 
@@ -41,6 +42,7 @@ export const CHARACTER_BUNDLE_RELATIONSHIPS_MAX = 3000;
 export const CHARACTER_BUNDLE_THEORIES_MAX = 2000;
 export const CHARACTER_BUNDLE_ALIASES_PER_CHARACTER_MAX = 30;
 export const CHARACTER_BUNDLE_APPEARANCES_PER_CHARACTER_MAX = 200;
+export const CHARACTER_BUNDLE_FORMS_PER_CHARACTER_MAX = 50;
 export const CHARACTER_BUNDLE_ROLES_PER_APPEARANCE_MAX = 20;
 export const CHARACTER_BUNDLE_TAGS_PER_CHARACTER_MAX = 15;
 export const CHARACTER_BUNDLE_MEMBERS_PER_GROUP_MAX = 100;
@@ -114,6 +116,19 @@ const BundleAppearanceSchema = z
 
 export type BundleAppearance = z.infer<typeof BundleAppearanceSchema>;
 
+const BundleFormSchema = z
+  .object({
+    description: nullableText(BUNDLE_LONG_TEXT_MAX),
+    formType: CharacterFormTypeSchema,
+    isSpoiler: z.boolean(),
+    name: z.string().trim().min(1).max(BUNDLE_NAME_MAX),
+    portraitMediaId: externalRef().nullable(),
+    position: positionInt,
+  })
+  .strict();
+
+export type BundleForm = z.infer<typeof BundleFormSchema>;
+
 const BundleCharacterSchema = z
   .object({
     aliases: z.array(BundleAliasSchema).max(CHARACTER_BUNDLE_ALIASES_PER_CHARACTER_MAX),
@@ -123,6 +138,7 @@ const BundleCharacterSchema = z
     avatarMediaId: externalRef().nullable(),
     customGender: nullableText(BUNDLE_GENDER_CUSTOM_MAX),
     entityKind: CharacterEntityKindSchema,
+    forms: z.array(BundleFormSchema).max(CHARACTER_BUNDLE_FORMS_PER_CHARACTER_MAX),
     gender: CharacterGenderSchema,
     globalAttitude: CharacterAttitudeSchema.nullable(),
     hideProfileAsSpoiler: z.boolean(),
@@ -358,6 +374,7 @@ export const CharacterImportCreatedSchema = z.object({
   appearances: z.number().int().nonnegative(),
   bookStates: z.number().int().nonnegative(),
   characters: z.number().int().nonnegative(),
+  forms: z.number().int().nonnegative(),
   groups: z.number().int().nonnegative(),
   memberships: z.number().int().nonnegative(),
   relationships: z.number().int().nonnegative(),

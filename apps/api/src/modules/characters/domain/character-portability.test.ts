@@ -89,6 +89,7 @@ function makeCharacter(overrides: Partial<BundleCharacter> = {}): BundleCharacte
     avatarMediaId: null,
     customGender: null,
     entityKind: "individual",
+    forms: [],
     gender: "unknown",
     globalAttitude: null,
     hideProfileAsSpoiler: false,
@@ -172,6 +173,24 @@ describe("planCharacterImport", () => {
             makeAppearance({ bookId: BOOK_MISSING }),
           ],
           avatarMediaId: MEDIA_MISSING,
+          forms: [
+            {
+              description: null,
+              formType: "true_form",
+              isSpoiler: true,
+              name: "True Form",
+              portraitMediaId: null,
+              position: 0,
+            },
+            {
+              description: null,
+              formType: "other",
+              isSpoiler: false,
+              name: "true form",
+              portraitMediaId: null,
+              position: 1,
+            },
+          ],
           id: CHAR_A,
           name: "Paul",
           tagIds: [TAG_OWNED, TAG_MISSING],
@@ -218,6 +237,7 @@ describe("planCharacterImport", () => {
       appearances: 1,
       bookStates: 0,
       characters: 2,
+      forms: 1,
       groups: 1,
       memberships: 1,
       relationships: 1,
@@ -257,6 +277,15 @@ describe("planCharacterImport", () => {
     expect(plan.theories.every((theory) => theory.userId === USER_ID)).toBe(true);
     const theoryTargets = plan.theories.map((theory) => theory.characterId);
     expect(theoryTargets).toContain(freshA);
+
+    expect(plan.forms).toHaveLength(1);
+    expect(plan.forms[0]?.characterId).toBe(freshA);
+    expect(plan.forms[0]?.id).not.toBe(CHAR_A);
+    expect(plan.forms[0]).toMatchObject({
+      isSpoiler: true,
+      name: "True Form",
+      normalizedName: "true form",
+    });
   });
 
   it("re-links owned book, media, series and tag references", () => {
@@ -271,6 +300,16 @@ describe("planCharacterImport", () => {
         makeCharacter({
           appearances: [makeAppearance({ bookId: BOOK_OWNED, portraitMediaId: MEDIA_MISSING })],
           avatarMediaId: MEDIA_MISSING,
+          forms: [
+            {
+              description: null,
+              formType: "reincarnation",
+              isSpoiler: false,
+              name: "Reborn",
+              portraitMediaId: MEDIA_MISSING,
+              position: 0,
+            },
+          ],
           id: CHAR_A,
           tagIds: [TAG_OWNED],
         }),
@@ -288,6 +327,7 @@ describe("planCharacterImport", () => {
 
     expect(plan.characters[0]?.avatarMediaId).toBe(MEDIA_MISSING);
     expect(plan.bookCharacters[0]?.portraitMediaId).toBe(MEDIA_MISSING);
+    expect(plan.forms[0]?.portraitMediaId).toBe(MEDIA_MISSING);
     expect(plan.groups[0]?.seriesId).toBe(SERIES_MISSING);
     expect(plan.characterTags[0]?.tagId).toBe(TAG_OWNED);
     expect(plan.skipped.unlinkedMedia).toBe(0);
@@ -309,6 +349,16 @@ describe("serializeCharacterBundle", () => {
           bookAppearances: [],
           customGender: null,
           entityKind: "individual",
+          forms: [
+            {
+              description: "The revealed self",
+              formType: "true_form",
+              isSpoiler: true,
+              name: "True Form",
+              portraitMediaId: null,
+              position: 0,
+            },
+          ],
           gender: "male",
           globalAttitude: "favorite",
           hideProfileAsSpoiler: false,
@@ -335,6 +385,16 @@ describe("serializeCharacterBundle", () => {
     expect(bundle.exportedAt).toBe("2026-01-03T00:00:00.000Z");
     expect(bundle.characters[0]?.isArchived).toBe(true);
     expect(bundle.characters[0]?.tagIds).toEqual([TAG_OWNED]);
+    expect(bundle.characters[0]?.forms).toEqual([
+      {
+        description: "The revealed self",
+        formType: "true_form",
+        isSpoiler: true,
+        name: "True Form",
+        portraitMediaId: null,
+        position: 0,
+      },
+    ]);
     expect(CharacterBundleSchema.safeParse(bundle).success).toBe(true);
   });
 });

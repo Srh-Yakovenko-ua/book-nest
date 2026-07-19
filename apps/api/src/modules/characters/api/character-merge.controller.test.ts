@@ -2,6 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 
 import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -82,6 +83,16 @@ async function createCharacter(token: string, character: Record<string, unknown>
   return res.body.id;
 }
 
+async function createForm(
+  token: string,
+  characterId: string,
+  body: Record<string, unknown>,
+): Promise<string> {
+  const res = await authed("post", `/api/characters/${characterId}/forms`, token).send(body);
+  expect(res.status).toBe(HttpStatus.CREATED);
+  return res.body.id;
+}
+
 async function createRelationship(token: string, body: Record<string, unknown>): Promise<void> {
   const res = await authed("post", "/api/character-relationships", token).send(body);
   expect(res.status).toBe(HttpStatus.CREATED);
@@ -91,6 +102,21 @@ async function createTag(token: string, name: string): Promise<string> {
   const res = await authed("post", "/api/tags", token).send({ name });
   expect(res.status).toBe(HttpStatus.CREATED);
   return res.body.id;
+}
+
+async function insertMedia(userId: string): Promise<string> {
+  const asset = await prisma.mediaAsset.create({
+    data: {
+      contentType: "image/webp",
+      height: 100,
+      kind: "avatar",
+      sizeBytes: 1234,
+      storageKey: `media/avatar/${randomUUID()}/image.webp`,
+      userId,
+      width: 100,
+    },
+  });
+  return asset.id;
 }
 
 async function linkToBook(
@@ -195,6 +221,7 @@ describe("POST /api/characters/:characterId/merge", () => {
     const expectedCounts = {
       aliases: { dropped: 1, moved: 1 },
       appearances: { dropped: 1, moved: 1 },
+      forms: { dropped: 0, moved: 0 },
       memberships: { dropped: 1, moved: 1 },
       relationships: { dropped: 2, moved: 1 },
       roles: { dropped: 2, moved: 1 },
@@ -265,6 +292,40 @@ describe("POST /api/characters/:characterId/merge", () => {
 
     expect(await prisma.characterTheory.count({ where: { characterId: loser } })).toBe(0);
     expect(await prisma.characterTheory.count({ where: { characterId: survivor } })).toBe(1);
+  });
+
+  it("re-points loser forms, drops name collisions, and cleans up the dropped form portrait", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const survivor = await createCharacter(accessToken, { name: "Survivor" });
+    const loser = await createCharacter(accessToken, { name: "Loser" });
+
+    await createForm(accessToken, survivor, { name: "True Form" });
+    const droppedPortrait = await insertMedia(userId);
+    await createForm(accessToken, loser, {
+      name: "True Form",
+      portraitMediaId: droppedPortrait,
+    });
+    await createForm(accessToken, loser, { formType: "alter_ego", name: "Alter Ego" });
+
+    const merged = await authed("post", `/api/characters/${survivor}/merge`, accessToken).send({
+      otherId: loser,
+    });
+    expect(merged.status).toBe(HttpStatus.OK);
+    expect(merged.body.counts.forms).toEqual({ dropped: 1, moved: 1 });
+
+    expect(await prisma.character.findUnique({ where: { id: loser } })).toBeNull();
+    expect(await prisma.characterForm.count({ where: { characterId: loser } })).toBe(0);
+
+    const survivorForms = await prisma.characterForm.findMany({
+      select: { normalizedName: true },
+      where: { characterId: survivor },
+    });
+    expect(survivorForms.map((form) => form.normalizedName).sort()).toEqual([
+      "alter ego",
+      "true form",
+    ]);
+
+    expect(await prisma.mediaAsset.count({ where: { id: droppedPortrait } })).toBe(0);
   });
 
   it("rejects merging a character into itself", async () => {

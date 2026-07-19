@@ -25,6 +25,12 @@ export type LoserBookCharacterRow = {
   roleCount: number;
 };
 
+export type LoserFormRow = {
+  id: string;
+  normalizedName: string;
+  portraitMediaId: Nullable<string>;
+};
+
 export type LoserMembershipRow = {
   bookId: Nullable<string>;
   groupId: string;
@@ -57,41 +63,43 @@ export class CharacterMergeRepository {
     { characterId, userId }: { characterId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
-    const [aliases, memberships, theories, appearances, relationshipStates] = await Promise.all([
-      client.characterAlias.count({ where: { characterId, isSpoiler: true } }),
-      client.characterGroupMembership.count({ where: { characterId, isSpoiler: true } }),
-      client.characterTheory.count({ where: { characterId, isSpoiler: true, userId } }),
-      client.bookCharacter.count({
-        where: {
-          characterId,
-          OR: [
-            { appearanceNotesIsSpoiler: true },
-            { descriptionIsSpoiler: true },
-            { displayNameIsSpoiler: true },
-            { hidePresenceAsSpoiler: true },
-            { personalImpressionIsSpoiler: true },
-            { portraitIsSpoiler: true },
-            { speciesOverrideIsSpoiler: true },
-            { statusIsSpoiler: true },
-            { roles: { some: { isSpoiler: true } } },
-          ],
-        },
-      }),
-      client.characterRelationshipBookState.count({
-        where: {
-          OR: [
-            { hideRelationshipAsSpoiler: true },
-            { isDescriptionSpoiler: true },
-            { isTypeSpoiler: true },
-          ],
-          relationship: {
-            OR: [{ sourceCharacterId: characterId }, { targetCharacterId: characterId }],
-            userId,
+    const [aliases, memberships, theories, appearances, relationshipStates, forms] =
+      await Promise.all([
+        client.characterAlias.count({ where: { characterId, isSpoiler: true } }),
+        client.characterGroupMembership.count({ where: { characterId, isSpoiler: true } }),
+        client.characterTheory.count({ where: { characterId, isSpoiler: true, userId } }),
+        client.bookCharacter.count({
+          where: {
+            characterId,
+            OR: [
+              { appearanceNotesIsSpoiler: true },
+              { descriptionIsSpoiler: true },
+              { displayNameIsSpoiler: true },
+              { hidePresenceAsSpoiler: true },
+              { personalImpressionIsSpoiler: true },
+              { portraitIsSpoiler: true },
+              { speciesOverrideIsSpoiler: true },
+              { statusIsSpoiler: true },
+              { roles: { some: { isSpoiler: true } } },
+            ],
           },
-        },
-      }),
-    ]);
-    return aliases + memberships + theories + appearances + relationshipStates;
+        }),
+        client.characterRelationshipBookState.count({
+          where: {
+            OR: [
+              { hideRelationshipAsSpoiler: true },
+              { isDescriptionSpoiler: true },
+              { isTypeSpoiler: true },
+            ],
+            relationship: {
+              OR: [{ sourceCharacterId: characterId }, { targetCharacterId: characterId }],
+              userId,
+            },
+          },
+        }),
+        client.characterForm.count({ where: { characterId, isSpoiler: true } }),
+      ]);
+    return aliases + memberships + theories + appearances + relationshipStates + forms;
   }
 
   async countLoserTheories(
@@ -119,6 +127,16 @@ export class CharacterMergeRepository {
       return;
     }
     await client.bookCharacter.deleteMany({ where: { id: { in: ids } } });
+  }
+
+  async deleteForms(
+    { ids }: { ids: string[] },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+    await client.characterForm.deleteMany({ where: { id: { in: ids } } });
   }
 
   async deleteMemberships(
@@ -185,6 +203,17 @@ export class CharacterMergeRepository {
     }));
   }
 
+  findLoserForms(
+    { characterId }: { characterId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<LoserFormRow[]> {
+    return client.characterForm.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, normalizedName: true, portraitMediaId: true },
+      where: { characterId },
+    });
+  }
+
   async findLoserMemberships(
     { characterId }: { characterId: string },
     client: Prisma.TransactionClient = this.prisma,
@@ -249,6 +278,17 @@ export class CharacterMergeRepository {
       where: { characterId },
     });
     return rows.map((row) => row.bookId);
+  }
+
+  async findSurvivorFormKeys(
+    { characterId }: { characterId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<string[]> {
+    const rows = await client.characterForm.findMany({
+      select: { normalizedName: true },
+      where: { characterId },
+    });
+    return rows.map((row) => row.normalizedName);
   }
 
   async findSurvivorMembershipKeys(
@@ -324,6 +364,19 @@ export class CharacterMergeRepository {
       return;
     }
     await client.bookCharacter.updateMany({
+      data: { characterId: survivorId },
+      where: { id: { in: ids } },
+    });
+  }
+
+  async repointForms(
+    { ids, survivorId }: { ids: string[]; survivorId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+    await client.characterForm.updateMany({
       data: { characterId: survivorId },
       where: { id: { in: ids } },
     });

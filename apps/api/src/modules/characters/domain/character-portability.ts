@@ -15,6 +15,7 @@ import {
   CharacterAliasTypeSchema,
   CharacterAttitudeSchema,
   CharacterEntityKindSchema,
+  CharacterFormTypeSchema,
   CharacterGenderSchema,
   CharacterGroupTypeSchema,
   CharacterTheoryStatusSchema,
@@ -46,6 +47,7 @@ export type CharacterImportPlan = {
   characters: ImportCharacterRow[];
   characterTags: ImportCharacterTagRow[];
   created: CharacterImportCreated;
+  forms: ImportFormRow[];
   groups: ImportGroupRow[];
   memberships: ImportMembershipRow[];
   relationships: ImportRelationshipRow[];
@@ -115,6 +117,7 @@ export type ExportCharacterRow = {
   bookAppearances: ExportAppearanceRow[];
   customGender: Nullable<string>;
   entityKind: string;
+  forms: ExportFormRow[];
   gender: string;
   globalAttitude: Nullable<string>;
   hideProfileAsSpoiler: boolean;
@@ -125,6 +128,15 @@ export type ExportCharacterRow = {
   pronouns: Nullable<string>;
   species: Nullable<string>;
   tags: { tagId: string }[];
+};
+
+export type ExportFormRow = {
+  description: Nullable<string>;
+  formType: string;
+  isSpoiler: boolean;
+  name: string;
+  portraitMediaId: Nullable<string>;
+  position: number;
 };
 
 export type ExportGroupRow = {
@@ -257,6 +269,18 @@ export type ImportCharacterTagRow = {
   tagId: string;
 };
 
+export type ImportFormRow = {
+  characterId: string;
+  description: Nullable<string>;
+  formType: string;
+  id: string;
+  isSpoiler: boolean;
+  name: string;
+  normalizedName: string;
+  portraitMediaId: Nullable<string>;
+  position: number;
+};
+
 export type ImportGroupRow = {
   customType: Nullable<string>;
   description: Nullable<string>;
@@ -354,6 +378,7 @@ export function planCharacterImport({
     characters: [],
     characterTags: [],
     created,
+    forms: [],
     groups: [],
     memberships: [],
     relationships: [],
@@ -417,6 +442,7 @@ function emptyCreatedCounts(): CharacterImportCreated {
     appearances: 0,
     bookStates: 0,
     characters: 0,
+    forms: 0,
     groups: 0,
     memberships: 0,
     relationships: 0,
@@ -519,6 +545,34 @@ function planCharacter({
     }
     plan.characterTags.push({ characterId: freshCharacterId, tagId });
     plan.created.tags += 1;
+  }
+
+  const seenFormNames = new Set<string>();
+  for (const form of character.forms) {
+    const normalizedName = normalizeName(form.name);
+    if (seenFormNames.has(normalizedName)) {
+      continue;
+    }
+    seenFormNames.add(normalizedName);
+    const portraitMediaId = resolveOptionalOwned({
+      id: form.portraitMediaId,
+      owned: owned.mediaIds,
+    });
+    if (portraitMediaId.unlinked) {
+      plan.skipped.unlinkedMedia += 1;
+    }
+    plan.forms.push({
+      characterId: freshCharacterId,
+      description: emptyToNull(form.description),
+      formType: form.formType,
+      id: newId(),
+      isSpoiler: form.isSpoiler,
+      name: form.name,
+      normalizedName,
+      portraitMediaId: portraitMediaId.value,
+      position: form.position,
+    });
+    plan.created.forms += 1;
   }
 
   const seenAppearanceBookIds = new Set<string>();
@@ -877,6 +931,7 @@ function serializeCharacter(row: ExportCharacterRow): CharacterBundle["character
     avatarMediaId: row.avatarMediaId,
     customGender: row.customGender,
     entityKind: CharacterEntityKindSchema.parse(row.entityKind),
+    forms: row.forms.map(serializeForm),
     gender: CharacterGenderSchema.parse(row.gender),
     globalAttitude:
       row.globalAttitude === null ? null : CharacterAttitudeSchema.parse(row.globalAttitude),
@@ -889,6 +944,17 @@ function serializeCharacter(row: ExportCharacterRow): CharacterBundle["character
     pronouns: row.pronouns,
     species: row.species,
     tagIds: row.tags.map((tag) => tag.tagId),
+  };
+}
+
+function serializeForm(row: ExportFormRow): CharacterBundle["characters"][number]["forms"][number] {
+  return {
+    description: row.description,
+    formType: CharacterFormTypeSchema.parse(row.formType),
+    isSpoiler: row.isSpoiler,
+    name: row.name,
+    portraitMediaId: row.portraitMediaId,
+    position: row.position,
   };
 }
 

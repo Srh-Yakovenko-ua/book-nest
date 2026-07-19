@@ -56,6 +56,15 @@ const appearanceSelect = {
   statusIsSpoiler: true,
 } satisfies Prisma.BookCharacterSelect;
 
+const formSelect = {
+  description: true,
+  formType: true,
+  isSpoiler: true,
+  name: true,
+  portraitMediaId: true,
+  position: true,
+} satisfies Prisma.CharacterFormSelect;
+
 const characterSelect = {
   aliases: { orderBy: [{ position: "asc" }, { createdAt: "asc" }], select: aliasSelect },
   archivedAt: true,
@@ -63,6 +72,7 @@ const characterSelect = {
   bookAppearances: { orderBy: [{ createdAt: "asc" }], select: appearanceSelect },
   customGender: true,
   entityKind: true,
+  forms: { orderBy: [{ position: "asc" }, { createdAt: "asc" }], select: formSelect },
   gender: true,
   globalAttitude: true,
   hideProfileAsSpoiler: true,
@@ -186,6 +196,9 @@ export class CharacterPortabilityRepository {
     }
     if (plan.characterTags.length > 0) {
       await client.characterTag.createMany({ data: plan.characterTags });
+    }
+    if (plan.forms.length > 0) {
+      await client.characterForm.createMany({ data: plan.forms });
     }
     if (plan.groups.length > 0) {
       await client.characterGroup.createMany({ data: plan.groups });

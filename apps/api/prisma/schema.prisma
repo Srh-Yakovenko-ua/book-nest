@@ -653,6 +653,7 @@ model MediaAsset {
   coverOfBooks             Book[]
   avatarOfCharacters       Character[]
   portraitOfBookCharacters BookCharacter[]
+  portraitOfCharacterForms CharacterForm[]
 
   @@index([userId])
   @@map("media_assets")
@@ -769,6 +770,7 @@ model Character {
   avatarMedia           MediaAsset?                @relation(fields: [avatarMediaId], references: [id], onDelete: SetNull)
   aliases               CharacterAlias[]
   bookAppearances       BookCharacter[]
+  forms                 CharacterForm[]
   tags                  CharacterTag[]
   groupMemberships      CharacterGroupMembership[]
   theories              CharacterTheory[]
@@ -782,6 +784,27 @@ model Character {
   @@index([userId, deletedAt])
   @@index([avatarMediaId])
   @@map("characters")
+}
+
+model CharacterForm {
+  id              String      @id @default(uuid()) @db.Uuid
+  characterId     String      @map("character_id") @db.Uuid
+  name            String
+  normalizedName  String      @map("normalized_name")
+  description     String?
+  formType        String      @default("other") @map("form_type")
+  portraitMediaId String?     @map("portrait_media_id") @db.Uuid
+  isSpoiler       Boolean     @default(false) @map("is_spoiler")
+  position        Int         @default(0)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  character       Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  portraitMedia   MediaAsset? @relation(fields: [portraitMediaId], references: [id], onDelete: SetNull)
+
+  @@unique([characterId, normalizedName])
+  @@index([characterId])
+  @@index([portraitMediaId])
+  @@map("character_forms")
 }
 
 model CharacterAlias {

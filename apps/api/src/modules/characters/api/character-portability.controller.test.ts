@@ -2,6 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 
 import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -138,10 +139,34 @@ async function createCharacter(token: string, character: Record<string, unknown>
   return res.body.id;
 }
 
+async function createForm(
+  token: string,
+  characterId: string,
+  body: Record<string, unknown>,
+): Promise<void> {
+  const res = await authed("post", `/api/characters/${characterId}/forms`, token).send(body);
+  expect(res.status).toBe(HttpStatus.CREATED);
+}
+
 async function exportBundle(token: string): Promise<Record<string, unknown>> {
   const res = await authed("get", "/api/characters/export", token);
   expect(res.status).toBe(HttpStatus.OK);
   return res.body;
+}
+
+async function insertMedia(userId: string): Promise<string> {
+  const asset = await prisma.mediaAsset.create({
+    data: {
+      contentType: "image/webp",
+      height: 100,
+      kind: "avatar",
+      sizeBytes: 1234,
+      storageKey: `media/avatar/${randomUUID()}/image.webp`,
+      userId,
+      width: 100,
+    },
+  });
+  return asset.id;
 }
 
 async function linkToBook(
@@ -163,6 +188,7 @@ const EXPECTED_FULL_CREATED = {
   appearances: 2,
   bookStates: 0,
   characters: 2,
+  forms: 0,
   groups: 1,
   memberships: 2,
   relationships: 1,
@@ -227,6 +253,7 @@ describe("POST /api/characters/import", () => {
       appearances: 0,
       bookStates: 0,
       characters: 2,
+      forms: 0,
       groups: 1,
       memberships: 2,
       relationships: 1,
@@ -303,6 +330,50 @@ describe("POST /api/characters/import", () => {
     const res = await authed("post", "/api/characters/import", accessToken).send(bundle);
     expect(res.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
     expect(await prisma.character.count({ where: { userId } })).toBe(2);
+  });
+});
+
+describe("character portability — forms", () => {
+  it("round-trips forms with fresh ids, preserving spoilers and nulling unowned portraits", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const characterId = await createCharacter(owner.accessToken, { name: "Shapeshifter" });
+    const ownerPortrait = await insertMedia(owner.userId);
+    await createForm(owner.accessToken, characterId, {
+      formType: "true_form",
+      isSpoiler: true,
+      name: "True Form",
+    });
+    await createForm(owner.accessToken, characterId, {
+      formType: "disguise",
+      name: "Disguise",
+      portraitMediaId: ownerPortrait,
+    });
+
+    const bundle = await exportBundle(owner.accessToken);
+    const exportedForms = (bundle.characters as { forms: unknown[] }[])[0]?.forms;
+    expect(exportedForms).toHaveLength(2);
+
+    const importer = await context.registerVerifyAndLogin({ email: "importer@example.com" });
+    const imported = await authed("post", "/api/characters/import", importer.accessToken).send(
+      bundle,
+    );
+    expect(imported.status).toBe(HttpStatus.OK);
+    expect(imported.body.created.forms).toBe(2);
+    expect(imported.body.skipped.unlinkedMedia).toBe(1);
+
+    const importedForms = await prisma.characterForm.findMany({
+      orderBy: { position: "asc" },
+      where: { character: { userId: importer.userId } },
+    });
+    expect(importedForms).toHaveLength(2);
+    expect(importedForms.every((form) => form.id !== undefined)).toBe(true);
+    const trueForm = importedForms.find((form) => form.normalizedName === "true form");
+    expect(trueForm?.isSpoiler).toBe(true);
+    expect(importedForms.every((form) => form.portraitMediaId === null)).toBe(true);
+
+    expect(
+      await prisma.characterForm.count({ where: { character: { userId: owner.userId } } }),
+    ).toBe(2);
   });
 });
 
