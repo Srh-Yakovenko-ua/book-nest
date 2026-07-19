@@ -61,6 +61,14 @@ const purgeSelect = {
   deletedAt: true,
 } satisfies Prisma.CharacterSelect;
 
+const graphNodeSelect = {
+  entityKind: true,
+  id: true,
+  isFavorite: true,
+  name: true,
+  updatedAt: true,
+} satisfies Prisma.CharacterSelect;
+
 const GLOBAL_CHARACTER_ORDER_BY: Record<
   CharacterListSort,
   Prisma.CharacterOrderByWithRelationInput[]
@@ -191,6 +199,20 @@ export type GlobalCharacterFilter = {
   species: string[] | undefined;
   tagIds: string[] | undefined;
   userId: string;
+};
+
+export type GraphNodeRow = {
+  bookAppearances: {
+    bookId: string;
+    createdAt: Date;
+    hidePresenceAsSpoiler: boolean;
+    importance: string;
+  }[];
+  entityKind: string;
+  id: string;
+  isFavorite: boolean;
+  name: string;
+  updatedAt: Date;
 };
 
 export type RosterRow = Prisma.BookCharacterGetPayload<{ include: typeof rosterInclude }>;
@@ -585,6 +607,30 @@ export class CharactersRepository {
       skip,
       take,
       where: buildGlobalCharacterWhere(filter),
+    });
+  }
+
+  listGraphNodes({
+    bookIds,
+    characterIds,
+    userId,
+  }: {
+    bookIds: string[];
+    characterIds: string[];
+    userId: string;
+  }): Promise<GraphNodeRow[]> {
+    if (characterIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.character.findMany({
+      select: {
+        ...graphNodeSelect,
+        bookAppearances: {
+          select: { bookId: true, createdAt: true, hidePresenceAsSpoiler: true, importance: true },
+          where: { bookId: { in: bookIds } },
+        },
+      },
+      where: { deletedAt: null, id: { in: characterIds }, userId },
     });
   }
 

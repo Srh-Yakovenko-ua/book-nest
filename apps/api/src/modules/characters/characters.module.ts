@@ -5,6 +5,7 @@ import { AuthModule } from "../auth/index.js";
 import { BooksModule } from "../books/index.js";
 import { MediaModule } from "../media/index.js";
 import { TagsModule } from "../tags/index.js";
+import { BookCharacterGraphController } from "./api/book-character-graph.controller.js";
 import { BookCharacterRelationshipsController } from "./api/book-character-relationships.controller.js";
 import { BookCharacterSuggestionsController } from "./api/book-character-suggestions.controller.js";
 import { BookCharacterSummaryController } from "./api/book-character-summary.controller.js";
@@ -13,10 +14,12 @@ import { CharacterGroupsController } from "./api/character-groups.controller.js"
 import { CharacterRelationshipsController } from "./api/character-relationships.controller.js";
 import { CharacterTheoriesController } from "./api/character-theories.controller.js";
 import { CharactersController } from "./api/characters.controller.js";
+import { SeriesCharacterGraphController } from "./api/series-character-graph.controller.js";
 import { SeriesCharacterRelationshipsController } from "./api/series-character-relationships.controller.js";
 import { SeriesCharacterSummaryController } from "./api/series-character-summary.controller.js";
 import { SeriesCharactersController } from "./api/series-characters.controller.js";
 import { SeriesReadingContextController } from "./api/series-reading-context.controller.js";
+import { CharacterGraphService } from "./application/character-graph.service.js";
 import { CharacterGroupsService } from "./application/character-groups.service.js";
 import { CharacterPurgeProcessor } from "./application/character-purge.processor.js";
 import { CharacterRelationshipsService } from "./application/character-relationships.service.js";
@@ -38,7 +41,9 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     BookCharacterRelationshipsController,
     BookCharacterSuggestionsController,
     BookCharacterSummaryController,
+    BookCharacterGraphController,
     SeriesCharactersController,
+    SeriesCharacterGraphController,
     SeriesCharacterRelationshipsController,
     SeriesCharacterSummaryController,
     SeriesReadingContextController,
@@ -53,6 +58,7 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
   providers: [
     CharactersService,
     CharactersRepository,
+    CharacterGraphService,
     CharacterGroupsService,
     CharacterGroupsRepository,
     CharacterRelationshipsService,
