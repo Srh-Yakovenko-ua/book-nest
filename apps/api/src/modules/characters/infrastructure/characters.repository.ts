@@ -634,6 +634,18 @@ export class CharactersRepository {
     });
   }
 
+  listOwnedBooks({
+    userId,
+  }: {
+    userId: string;
+  }): Promise<{ id: string; partNumber: Nullable<number> }[]> {
+    return this.prisma.book.findMany({
+      orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
+      select: { id: true, partNumber: true },
+      where: { userId },
+    });
+  }
+
   listRoster({ skip, take, ...filter }: ListRosterInput): Promise<RosterRow[]> {
     return this.prisma.bookCharacter.findMany({
       include: rosterInclude,

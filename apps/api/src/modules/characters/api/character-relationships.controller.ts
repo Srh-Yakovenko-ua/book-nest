@@ -1,10 +1,12 @@
 import type {
   CharacterRelationshipDeletionResultView,
   CharacterRelationshipDetailsView,
+  CharacterRelationshipPathView,
 } from "@app/shared";
 
 import {
   CharacterRelationshipDetailsQuerySchema,
+  CharacterRelationshipPathQuerySchema,
   CreateCharacterRelationshipSchema,
   UpdateCharacterRelationshipSchema,
   UpsertRelationshipBookStateSchema,
@@ -46,13 +48,16 @@ import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CharacterRelationshipPathService } from "../application/character-relationship-path.service.js";
 import { CharacterRelationshipsService } from "../application/character-relationships.service.js";
 import { CharacterRelationshipDetailsQueryDto } from "./input-dto/character-relationship-details-query.input-dto.js";
+import { CharacterRelationshipPathQueryDto } from "./input-dto/character-relationship-path-query.input-dto.js";
 import { CreateCharacterRelationshipInputDto } from "./input-dto/create-character-relationship.input-dto.js";
 import { UpdateCharacterRelationshipInputDto } from "./input-dto/update-character-relationship.input-dto.js";
 import { UpsertRelationshipBookStateInputDto } from "./input-dto/upsert-relationship-book-state.input-dto.js";
 import { CharacterRelationshipDeletionResultViewDto } from "./view-dto/character-relationship-deletion-result.view-dto.js";
 import { CharacterRelationshipDetailsViewDto } from "./view-dto/character-relationship-details.view-dto.js";
+import { CharacterRelationshipPathViewDto } from "./view-dto/character-relationship-path.view-dto.js";
 
 const RELATIONSHIP_ACTION_TTL_SECONDS = 60;
 const RELATIONSHIP_ACTION_LIMIT = 60;
@@ -63,7 +68,32 @@ const RELATIONSHIP_ACTION_LIMIT = 60;
 @Controller("api/character-relationships")
 @UseGuards(JwtAccessGuard)
 export class CharacterRelationshipsController {
-  constructor(private readonly relationshipsService: CharacterRelationshipsService) {}
+  constructor(
+    private readonly relationshipsService: CharacterRelationshipsService,
+    private readonly pathService: CharacterRelationshipPathService,
+  ) {}
+
+  @ApiNotFoundResponse({ description: "A character endpoint was not found" })
+  @ApiOkResponse({
+    description: "The shortest spoiler-safe chain connecting two characters",
+    type: CharacterRelationshipPathViewDto,
+  })
+  @ApiOperation({ summary: "Find the shortest spoiler-safe path between two characters" })
+  @ApiQuery({ name: "fromId", required: true })
+  @ApiQuery({ name: "toId", required: true })
+  @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({ name: "mode", required: false })
+  @ApiQuery({ name: "categories", required: false })
+  @ApiQuery({ name: "relationshipTypes", required: false })
+  @ApiQuery({ name: "revealEdgeIds", required: false })
+  @Get("path")
+  findPath(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(CharacterRelationshipPathQuerySchema))
+    query: CharacterRelationshipPathQueryDto,
+  ): Promise<CharacterRelationshipPathView> {
+    return this.pathService.findPath({ query, userId: user.id });
+  }
 
   @ApiBadRequestResponse({ description: "Validation, self-reference or direction mismatch" })
   @ApiBody({ type: CreateCharacterRelationshipInputDto })

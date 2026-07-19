@@ -22,6 +22,7 @@ import { SeriesReadingContextController } from "./api/series-reading-context.con
 import { CharacterGraphService } from "./application/character-graph.service.js";
 import { CharacterGroupsService } from "./application/character-groups.service.js";
 import { CharacterPurgeProcessor } from "./application/character-purge.processor.js";
+import { CharacterRelationshipPathService } from "./application/character-relationship-path.service.js";
 import { CharacterRelationshipsService } from "./application/character-relationships.service.js";
 import { CharacterTheoriesService } from "./application/character-theories.service.js";
 import { CharactersService } from "./application/characters.service.js";
@@ -63,6 +64,7 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterGroupsRepository,
     CharacterRelationshipsService,
     CharacterRelationshipsRepository,
+    CharacterRelationshipPathService,
     CharacterTheoriesService,
     CharacterTheoriesRepository,
     CharacterPurgeProcessor,

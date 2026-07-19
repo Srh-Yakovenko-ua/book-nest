@@ -1,7 +1,6 @@
 import type {
   BookCharacterGraphQuery,
   CharacterGraphView,
-  Nullable,
   RelationshipCategory,
   RelationshipType,
   SeriesCharacterGraphQuery,
@@ -14,20 +13,19 @@ import {
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { GraphEdgeSource, GraphNodeSource } from "../domain/character-graph.js";
-import type { RelationshipDetailsRow } from "../infrastructure/character-relationships.repository.js";
-import type { GraphNodeRow } from "../infrastructure/characters.repository.js";
+import type { ResolvedReadingContext } from "../domain/context-books.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildCharacterGraph } from "../domain/character-graph.js";
 import { resolveAllowedBookIds } from "../domain/series-representative.js";
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
-
-type ResolvedContext = {
-  allowedBookIds: string[];
-  partNumberById: Map<string, Nullable<number>>;
-};
+import {
+  collectEndpointCharacterIds,
+  toGraphEdgeSource,
+  toGraphFilterSet,
+  toGraphNodeSource,
+} from "./graph-sources.js";
 
 @Injectable()
 export class CharacterGraphService {
@@ -71,7 +69,7 @@ export class CharacterGraphService {
     query,
     userId,
   }: {
-    context: ResolvedContext;
+    context: ResolvedReadingContext;
     query: BookCharacterGraphQuery;
     userId: string;
   }): Promise<CharacterGraphView> {
@@ -87,7 +85,7 @@ export class CharacterGraphService {
     });
 
     return buildCharacterGraph({
-      categoryFilter: toFilterSet<RelationshipCategory>(query.categories),
+      categoryFilter: toGraphFilterSet<RelationshipCategory>(query.categories),
       depth: query.depth,
       edgeLimit: CHARACTER_GRAPH_EDGE_LIMIT,
       edges: relationships.map(toGraphEdgeSource),
@@ -97,7 +95,7 @@ export class CharacterGraphService {
       nodes: nodeRows.map(toGraphNodeSource),
       partNumberById: context.partNumberById,
       revealEdgeIds: new Set(query.revealEdgeIds ?? []),
-      typeFilter: toFilterSet<RelationshipType>(query.relationshipTypes),
+      typeFilter: toGraphFilterSet<RelationshipType>(query.relationshipTypes),
     });
   }
 
@@ -107,7 +105,7 @@ export class CharacterGraphService {
   }: {
     bookId: string;
     userId: string;
-  }): Promise<ResolvedContext> {
+  }): Promise<ResolvedReadingContext> {
     const contextBook = await this.charactersRepository.findOwnedBookContext({ bookId, userId });
     if (contextBook === null) {
       throw new NotFoundError("Book not found", {
@@ -128,7 +126,7 @@ export class CharacterGraphService {
     contextBookId: string | undefined;
     seriesId: string;
     userId: string;
-  }): Promise<ResolvedContext> {
+  }): Promise<ResolvedReadingContext> {
     const owns = await this.charactersRepository.existsOwnedSeries({ seriesId, userId });
     if (!owns) {
       throw new NotFoundError("Series not found", {
@@ -151,44 +149,4 @@ export class CharacterGraphService {
       partNumberById,
     };
   }
-}
-
-function collectEndpointCharacterIds(relationships: RelationshipDetailsRow[]): string[] {
-  const ids = new Set<string>();
-  for (const relationship of relationships) {
-    ids.add(relationship.sourceCharacterId);
-    ids.add(relationship.targetCharacterId);
-  }
-  return [...ids];
-}
-
-function toFilterSet<Value>(values: undefined | Value[]): Nullable<Set<Value>> {
-  return values === undefined ? null : new Set(values);
-}
-
-function toGraphEdgeSource(relationship: RelationshipDetailsRow): GraphEdgeSource {
-  return {
-    bookStates: relationship.bookStates,
-    category: relationship.category,
-    customType: relationship.customType,
-    directionality: relationship.directionality,
-    id: relationship.id,
-    sourceCharacterId: relationship.sourceCharacterId,
-    sourceLabel: relationship.sourceLabel,
-    targetCharacterId: relationship.targetCharacterId,
-    targetLabel: relationship.targetLabel,
-    type: relationship.type,
-    updatedAt: relationship.updatedAt,
-  };
-}
-
-function toGraphNodeSource(node: GraphNodeRow): GraphNodeSource {
-  return {
-    appearances: node.bookAppearances,
-    entityKind: node.entityKind,
-    id: node.id,
-    isFavorite: node.isFavorite,
-    name: node.name,
-    updatedAt: node.updatedAt,
-  };
 }

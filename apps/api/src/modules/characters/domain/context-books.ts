@@ -14,6 +14,11 @@ export type ContextBookReader = {
   }): Promise<{ id: string; partNumber: Nullable<number> }[]>;
 };
 
+export type ResolvedReadingContext = {
+  allowedBookIds: string[];
+  partNumberById: Map<string, Nullable<number>>;
+};
+
 export async function resolveContextAllowedBookIds({
   contextBookId,
   notFoundCode,
@@ -25,13 +30,34 @@ export async function resolveContextAllowedBookIds({
   reader: ContextBookReader;
   userId: string;
 }): Promise<string[]> {
+  const context = await resolveReadingContext({ contextBookId, notFoundCode, reader, userId });
+  return context.allowedBookIds;
+}
+
+export async function resolveReadingContext({
+  contextBookId,
+  notFoundCode,
+  reader,
+  userId,
+}: {
+  contextBookId: string;
+  notFoundCode: string;
+  reader: ContextBookReader;
+  userId: string;
+}): Promise<ResolvedReadingContext> {
   const contextBook = await reader.findOwnedBookContext({ bookId: contextBookId, userId });
   if (contextBook === null) {
     throw new NotFoundError("Book not found", { code: notFoundCode });
   }
   if (contextBook.seriesId === null) {
-    return [contextBook.id];
+    return {
+      allowedBookIds: [contextBook.id],
+      partNumberById: new Map([[contextBook.id, contextBook.partNumber]]),
+    };
   }
   const seriesBooks = await reader.listSeriesBooks({ seriesId: contextBook.seriesId, userId });
-  return resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks });
+  return {
+    allowedBookIds: resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks }),
+    partNumberById: new Map(seriesBooks.map((book) => [book.id, book.partNumber])),
+  };
 }

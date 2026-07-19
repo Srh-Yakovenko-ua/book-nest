@@ -68,6 +68,24 @@ export type GraphNodeSource = {
   updatedAt: Date;
 };
 
+export type PreparedEdge = {
+  category: Nullable<RelationshipCategory>;
+  description: Nullable<string>;
+  descriptionHidden: boolean;
+  directionality: RelationshipDirectionality;
+  id: string;
+  intensity: Nullable<RelationshipIntensity>;
+  revealed: boolean;
+  source: string;
+  sourceLabel: Nullable<string>;
+  status: Nullable<RelationshipBookStateStatus>;
+  target: string;
+  targetLabel: Nullable<string>;
+  type: Nullable<RelationshipType>;
+  typeHidden: boolean;
+  updatedAt: Date;
+};
+
 type AncestryEdge = {
   ancestorId: string;
   descendantId: string;
@@ -87,90 +105,21 @@ type BuildCharacterGraphInput = {
   typeFilter: Nullable<Set<RelationshipType>>;
 };
 
-type PreparedEdge = {
-  category: Nullable<RelationshipCategory>;
-  description: Nullable<string>;
-  descriptionHidden: boolean;
-  directionality: RelationshipDirectionality;
-  id: string;
-  intensity: Nullable<RelationshipIntensity>;
-  revealed: boolean;
-  source: string;
-  sourceLabel: Nullable<string>;
-  status: Nullable<RelationshipBookStateStatus>;
-  target: string;
-  targetLabel: Nullable<string>;
-  type: Nullable<RelationshipType>;
-  typeHidden: boolean;
-  updatedAt: Date;
-};
-
 export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterGraphView {
   const nodeById = new Map(input.nodes.map((node) => [node.id, node]));
-  const presenceHiddenIds = collectPresenceHiddenIds(input.nodes);
-  const effectiveCategories = combineCategoryFilters({
+  const {
+    edges: preparedEdges,
+    hasHiddenEdges,
+    presenceHiddenIds,
+  } = computeVisibleGraphEdges({
     categoryFilter: input.categoryFilter,
-    modeCategories: computeModeCategories(input.mode),
+    edges: input.edges,
+    mode: input.mode,
+    nodes: input.nodes,
+    partNumberById: input.partNumberById,
+    revealEdgeIds: input.revealEdgeIds,
+    typeFilter: input.typeFilter,
   });
-
-  let hasHiddenEdges = false;
-  const preparedEdges: PreparedEdge[] = [];
-  for (const edge of input.edges) {
-    const effective = pickEffectiveBookState({
-      partNumberById: input.partNumberById,
-      states: edge.bookStates,
-    });
-    if (effective === null) {
-      continue;
-    }
-    if (effective.hideRelationshipAsSpoiler) {
-      hasHiddenEdges = true;
-      continue;
-    }
-    if (
-      presenceHiddenIds.has(edge.sourceCharacterId) ||
-      presenceHiddenIds.has(edge.targetCharacterId) ||
-      !nodeById.has(edge.sourceCharacterId) ||
-      !nodeById.has(edge.targetCharacterId)
-    ) {
-      continue;
-    }
-
-    const revealable = effective.isTypeSpoiler || effective.isDescriptionSpoiler;
-    const revealed = revealable && input.revealEdgeIds.has(edge.id);
-    const typeHidden = effective.isTypeSpoiler && !revealed;
-    const descriptionHidden = effective.isDescriptionSpoiler && !revealed;
-    const category = typeHidden ? null : RelationshipCategorySchema.parse(edge.category);
-    const type = typeHidden ? null : RelationshipTypeSchema.parse(edge.type);
-
-    if (
-      !passesCategoryFilter({ category, effectiveCategories }) ||
-      !passesTypeFilter({ type, typeFilter: input.typeFilter })
-    ) {
-      continue;
-    }
-
-    preparedEdges.push({
-      category,
-      description: descriptionHidden ? null : effective.description,
-      descriptionHidden,
-      directionality: RelationshipDirectionalitySchema.parse(edge.directionality),
-      id: edge.id,
-      intensity:
-        typeHidden || effective.intensity === null
-          ? null
-          : RelationshipIntensitySchema.parse(effective.intensity),
-      revealed,
-      source: edge.sourceCharacterId,
-      sourceLabel: typeHidden ? null : edge.sourceLabel,
-      status: RelationshipBookStateStatusSchema.parse(effective.status),
-      target: edge.targetCharacterId,
-      targetLabel: typeHidden ? null : edge.targetLabel,
-      type,
-      typeHidden,
-      updatedAt: maxDate(edge.updatedAt, effective.updatedAt),
-    });
-  }
 
   const focused = applyFocus({
     depth: input.depth,
@@ -227,6 +176,142 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
     mode: input.mode,
     nodes,
     updatedAt: computeUpdatedAt({ edges: bounded.edges, nodeById, nodeIds: bounded.nodeIds }),
+  };
+}
+
+export function computeDegrees(edges: PreparedEdge[]): Map<string, number> {
+  const degrees = new Map<string, number>();
+  for (const edge of edges) {
+    degrees.set(edge.source, (degrees.get(edge.source) ?? 0) + 1);
+    degrees.set(edge.target, (degrees.get(edge.target) ?? 0) + 1);
+  }
+  return degrees;
+}
+
+export function computeVisibleGraphEdges({
+  categoryFilter,
+  edges,
+  mode,
+  nodes,
+  partNumberById,
+  revealEdgeIds,
+  typeFilter,
+}: {
+  categoryFilter: Nullable<Set<RelationshipCategory>>;
+  edges: GraphEdgeSource[];
+  mode: CharacterGraphMode;
+  nodes: GraphNodeSource[];
+  partNumberById: Map<string, Nullable<number>>;
+  revealEdgeIds: Set<string>;
+  typeFilter: Nullable<Set<RelationshipType>>;
+}): { edges: PreparedEdge[]; hasHiddenEdges: boolean; presenceHiddenIds: Set<string> } {
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const presenceHiddenIds = collectPresenceHiddenIds(nodes);
+  const effectiveCategories = combineCategoryFilters({
+    categoryFilter,
+    modeCategories: computeModeCategories(mode),
+  });
+
+  let hasHiddenEdges = false;
+  const preparedEdges: PreparedEdge[] = [];
+  for (const edge of edges) {
+    const effective = pickEffectiveBookState({ partNumberById, states: edge.bookStates });
+    if (effective === null) {
+      continue;
+    }
+    if (effective.hideRelationshipAsSpoiler) {
+      hasHiddenEdges = true;
+      continue;
+    }
+    if (
+      presenceHiddenIds.has(edge.sourceCharacterId) ||
+      presenceHiddenIds.has(edge.targetCharacterId) ||
+      !nodeById.has(edge.sourceCharacterId) ||
+      !nodeById.has(edge.targetCharacterId)
+    ) {
+      continue;
+    }
+
+    const revealable = effective.isTypeSpoiler || effective.isDescriptionSpoiler;
+    const revealed = revealable && revealEdgeIds.has(edge.id);
+    const typeHidden = effective.isTypeSpoiler && !revealed;
+    const descriptionHidden = effective.isDescriptionSpoiler && !revealed;
+    const category = typeHidden ? null : RelationshipCategorySchema.parse(edge.category);
+    const type = typeHidden ? null : RelationshipTypeSchema.parse(edge.type);
+
+    if (
+      !passesCategoryFilter({ category, effectiveCategories }) ||
+      !passesTypeFilter({ type, typeFilter })
+    ) {
+      continue;
+    }
+
+    preparedEdges.push({
+      category,
+      description: descriptionHidden ? null : effective.description,
+      descriptionHidden,
+      directionality: RelationshipDirectionalitySchema.parse(edge.directionality),
+      id: edge.id,
+      intensity:
+        typeHidden || effective.intensity === null
+          ? null
+          : RelationshipIntensitySchema.parse(effective.intensity),
+      revealed,
+      source: edge.sourceCharacterId,
+      sourceLabel: typeHidden ? null : edge.sourceLabel,
+      status: RelationshipBookStateStatusSchema.parse(effective.status),
+      target: edge.targetCharacterId,
+      targetLabel: typeHidden ? null : edge.targetLabel,
+      type,
+      typeHidden,
+      updatedAt: maxDate(edge.updatedAt, effective.updatedAt),
+    });
+  }
+
+  return { edges: preparedEdges, hasHiddenEdges, presenceHiddenIds };
+}
+
+export function toGraphEdgeView(edge: PreparedEdge): CharacterGraphEdgeView {
+  return {
+    category: edge.category,
+    description: edge.description,
+    descriptionHidden: edge.descriptionHidden,
+    directionality: edge.directionality,
+    id: edge.id,
+    intensity: edge.intensity,
+    revealed: edge.revealed,
+    source: edge.source,
+    sourceLabel: edge.sourceLabel,
+    status: edge.status,
+    target: edge.target,
+    targetLabel: edge.targetLabel,
+    type: edge.type,
+    typeHidden: edge.typeHidden,
+  };
+}
+
+export function toGraphNodeView({
+  degree,
+  node,
+  partNumberById,
+}: {
+  degree: number;
+  node: GraphNodeSource;
+  partNumberById: Map<string, Nullable<number>>;
+}): CharacterGraphNodeView {
+  const visibleAppearances = node.appearances.filter(
+    (appearance) => !appearance.hidePresenceAsSpoiler,
+  );
+  const representative = pickEffectiveBookState({ partNumberById, states: visibleAppearances });
+  const importance: Nullable<BookCharacterImportance> =
+    representative === null ? null : BookCharacterImportanceSchema.parse(representative.importance);
+  return {
+    degree,
+    entityKind: CharacterEntityKindSchema.parse(node.entityKind),
+    id: node.id,
+    importance,
+    isFavorite: node.isFavorite,
+    name: node.name,
   };
 }
 
@@ -384,15 +469,6 @@ function combineCategoryFilters({
     return modeCategories;
   }
   return new Set([...modeCategories].filter((category) => categoryFilter.has(category)));
-}
-
-function computeDegrees(edges: PreparedEdge[]): Map<string, number> {
-  const degrees = new Map<string, number>();
-  for (const edge of edges) {
-    degrees.set(edge.source, (degrees.get(edge.source) ?? 0) + 1);
-    degrees.set(edge.target, (degrees.get(edge.target) ?? 0) + 1);
-  }
-  return degrees;
 }
 
 function computeGraphVersion({
@@ -560,48 +636,4 @@ function passesTypeFilter({
     return true;
   }
   return type !== null && typeFilter.has(type);
-}
-
-function toGraphEdgeView(edge: PreparedEdge): CharacterGraphEdgeView {
-  return {
-    category: edge.category,
-    description: edge.description,
-    descriptionHidden: edge.descriptionHidden,
-    directionality: edge.directionality,
-    id: edge.id,
-    intensity: edge.intensity,
-    revealed: edge.revealed,
-    source: edge.source,
-    sourceLabel: edge.sourceLabel,
-    status: edge.status,
-    target: edge.target,
-    targetLabel: edge.targetLabel,
-    type: edge.type,
-    typeHidden: edge.typeHidden,
-  };
-}
-
-function toGraphNodeView({
-  degree,
-  node,
-  partNumberById,
-}: {
-  degree: number;
-  node: GraphNodeSource;
-  partNumberById: Map<string, Nullable<number>>;
-}): CharacterGraphNodeView {
-  const visibleAppearances = node.appearances.filter(
-    (appearance) => !appearance.hidePresenceAsSpoiler,
-  );
-  const representative = pickEffectiveBookState({ partNumberById, states: visibleAppearances });
-  const importance: Nullable<BookCharacterImportance> =
-    representative === null ? null : BookCharacterImportanceSchema.parse(representative.importance);
-  return {
-    degree,
-    entityKind: CharacterEntityKindSchema.parse(node.entityKind),
-    id: node.id,
-    importance,
-    isFavorite: node.isFavorite,
-    name: node.name,
-  };
 }
