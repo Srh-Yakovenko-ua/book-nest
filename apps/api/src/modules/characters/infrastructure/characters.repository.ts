@@ -66,6 +66,14 @@ const GLOBAL_CHARACTER_ORDER_BY: Record<
   recently_updated: [{ updatedAt: "desc" }, { name: "asc" }],
 };
 
+export type BookCharacterSummaryAggregate = {
+  byImportance: { count: number; importance: string }[];
+  favoritesCount: number;
+  hiddenCount: number;
+  povCount: number;
+  totalVisibleCharacters: number;
+};
+
 export type BookContextRow = {
   id: string;
   partNumber: Nullable<number>;
@@ -250,6 +258,49 @@ type RosterFilter = {
 @Injectable()
 export class CharactersRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async aggregateBookCharacterSummary({
+    bookId,
+    userId,
+  }: {
+    bookId: string;
+    userId: string;
+  }): Promise<BookCharacterSummaryAggregate> {
+    const characterScope = { deletedAt: null, userId };
+    const visibleWhere: Prisma.BookCharacterWhereInput = {
+      bookId,
+      character: characterScope,
+      hidePresenceAsSpoiler: false,
+    };
+
+    const [totalVisibleCharacters, povCount, favoritesCount, hiddenCount, byImportanceRows] =
+      await Promise.all([
+        this.prisma.bookCharacter.count({ where: visibleWhere }),
+        this.prisma.bookCharacter.count({ where: { ...visibleWhere, isPovCharacter: true } }),
+        this.prisma.bookCharacter.count({
+          where: { ...visibleWhere, character: { ...characterScope, isFavorite: true } },
+        }),
+        this.prisma.bookCharacter.count({
+          where: { bookId, character: characterScope, hidePresenceAsSpoiler: true },
+        }),
+        this.prisma.bookCharacter.groupBy({
+          _count: { _all: true },
+          by: ["importance"],
+          where: visibleWhere,
+        }),
+      ]);
+
+    return {
+      byImportance: byImportanceRows.map((row) => ({
+        count: row._count._all,
+        importance: row.importance,
+      })),
+      favoritesCount,
+      hiddenCount,
+      povCount,
+      totalVisibleCharacters,
+    };
+  }
 
   async countDeletionImpact(
     { characterId }: { characterId: string },
@@ -583,6 +634,24 @@ export class CharactersRepository {
     });
   }
 
+  listSeriesHiddenCharacterIds({
+    bookIds,
+    userId,
+  }: {
+    bookIds: string[];
+    userId: string;
+  }): Promise<{ characterId: string }[]> {
+    return this.prisma.bookCharacter.findMany({
+      distinct: ["characterId"],
+      select: { characterId: true },
+      where: {
+        bookId: { in: bookIds },
+        character: { deletedAt: null, userId },
+        hidePresenceAsSpoiler: true,
+      },
+    });
+  }
+
   async listSuggestions({
     bookId,
     limit,
@@ -636,6 +705,37 @@ export class CharactersRepository {
       where: { ...baseWhere, id: { notIn: excludeIds } },
     });
     return [...sameSeries, ...others];
+  }
+
+  async listTopBookCharacters({
+    bookId,
+    limit,
+    userId,
+  }: {
+    bookId: string;
+    limit: number;
+    userId: string;
+  }): Promise<RosterRow[]> {
+    const base: Prisma.BookCharacterWhereInput = {
+      bookId,
+      character: { deletedAt: null, userId },
+      hidePresenceAsSpoiler: false,
+    };
+    const [central, major] = await Promise.all([
+      this.prisma.bookCharacter.findMany({
+        include: rosterInclude,
+        orderBy: { character: { name: "asc" } },
+        take: limit,
+        where: { ...base, importance: "central" },
+      }),
+      this.prisma.bookCharacter.findMany({
+        include: rosterInclude,
+        orderBy: { character: { name: "asc" } },
+        take: limit,
+        where: { ...base, importance: "major" },
+      }),
+    ]);
+    return [...central, ...major];
   }
 
   async replaceAliases(

@@ -607,3 +607,46 @@ export const CharacterSuggestionsViewSchema = z.object({
 });
 
 export type CharacterSuggestionsView = z.infer<typeof CharacterSuggestionsViewSchema>;
+
+export const CHARACTER_SUMMARY_TOP_LIMIT = 5;
+
+export const BookCharacterImportanceCountsSchema = z.object({
+  central: z.number().int().nonnegative(),
+  episodic: z.number().int().nonnegative(),
+  major: z.number().int().nonnegative(),
+  mentioned: z.number().int().nonnegative(),
+  supporting: z.number().int().nonnegative(),
+});
+
+export type BookCharacterImportanceCounts = z.infer<typeof BookCharacterImportanceCountsSchema>;
+
+export const BookCharacterSummaryViewSchema = z.object({
+  bookId: z.string(),
+  byImportance: BookCharacterImportanceCountsSchema,
+  favoritesCount: z.number().int().nonnegative(),
+  hasHiddenRecords: z.boolean(),
+  povCount: z.number().int().nonnegative(),
+  top: z.array(CharacterSummaryViewSchema),
+  totalVisibleCharacters: z.number().int().nonnegative(),
+});
+
+export type BookCharacterSummaryView = z.infer<typeof BookCharacterSummaryViewSchema>;
+
+export const SeriesCharacterSummaryQuerySchema = z.object({
+  contextBookId: z.string().uuid().optional(),
+});
+
+export type SeriesCharacterSummaryQuery = z.infer<typeof SeriesCharacterSummaryQuerySchema>;
+
+export const SeriesCharacterSummaryViewSchema = z.object({
+  byImportance: BookCharacterImportanceCountsSchema,
+  contextBookId: z.string().nullable(),
+  favoritesCount: z.number().int().nonnegative(),
+  hasHiddenRecords: z.boolean(),
+  povCount: z.number().int().nonnegative(),
+  seriesId: z.string(),
+  top: z.array(CharacterSummaryViewSchema),
+  totalVisibleCharacters: z.number().int().nonnegative(),
+});
+
+export type SeriesCharacterSummaryView = z.infer<typeof SeriesCharacterSummaryViewSchema>;

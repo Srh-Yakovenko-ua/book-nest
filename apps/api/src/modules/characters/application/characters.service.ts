@@ -1,6 +1,7 @@
 import type {
   BookCharacterProfileInput,
   BookCharactersQuery,
+  BookCharacterSummaryView,
   BookCharacterView,
   CharacterDeletionPreview,
   CharacterDeletionResult,
@@ -23,6 +24,8 @@ import type {
   Paginator,
   SeriesCharacterProfileQuery,
   SeriesCharactersQuery,
+  SeriesCharacterSummaryQuery,
+  SeriesCharacterSummaryView,
   SeriesReadingContextDefaultView,
   UpdateBookCharacter,
   UpdateCharacter,
@@ -32,6 +35,7 @@ import type { Queue } from "bullmq";
 import {
   CHARACTER_DUPLICATE_CANDIDATES_MAX,
   CHARACTER_ERROR_CODES,
+  CHARACTER_SUMMARY_TOP_LIMIT,
   normalizeName,
   normalizeSearch,
 } from "@app/shared";
@@ -66,6 +70,11 @@ import {
   CHARACTER_PURGE_WINDOW_MS,
   type CharacterPurgeJob,
 } from "../domain/character-purge.js";
+import {
+  buildBookCharacterSummary,
+  buildSeriesCharacterSummary,
+  isTopImportance,
+} from "../domain/character-summary.js";
 import {
   toBookCharacterView,
   toCharacterDetailsView,
@@ -125,6 +134,35 @@ export class CharactersService {
       userId,
     });
     return { suggestions: rows.map((row) => this.toGlobalSummaryView(row)) };
+  }
+
+  async bookCharacterSummary({
+    bookId,
+    userId,
+  }: {
+    bookId: string;
+    userId: string;
+  }): Promise<BookCharacterSummaryView> {
+    await this.assertBookOwned(userId, bookId);
+
+    const [aggregate, topRows] = await Promise.all([
+      this.charactersRepository.aggregateBookCharacterSummary({ bookId, userId }),
+      this.charactersRepository.listTopBookCharacters({
+        bookId,
+        limit: CHARACTER_SUMMARY_TOP_LIMIT,
+        userId,
+      }),
+    ]);
+
+    return buildBookCharacterSummary({
+      bookId,
+      byImportanceEntries: aggregate.byImportance,
+      favoritesCount: aggregate.favoritesCount,
+      hasHiddenRecords: aggregate.hiddenCount > 0,
+      povCount: aggregate.povCount,
+      topCandidates: topRows.map((row) => this.toSummaryView(row)),
+      totalVisibleCharacters: aggregate.totalVisibleCharacters,
+    });
   }
 
   async createGlobalCharacter(
@@ -534,6 +572,82 @@ export class CharactersService {
     }
     await this.cancelPurge(characterId);
     return this.loadFullCharacterDetails({ characterId, userId });
+  }
+
+  async seriesCharacterSummary({
+    query,
+    seriesId,
+    userId,
+  }: {
+    query: SeriesCharacterSummaryQuery;
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesCharacterSummaryView> {
+    await this.assertSeriesOwned({ seriesId, userId });
+
+    let contextBook: Nullable<BookContextRow> = null;
+    if (query.contextBookId !== undefined) {
+      const resolved = await this.charactersRepository.findOwnedBookContext({
+        bookId: query.contextBookId,
+        userId,
+      });
+      if (resolved === null || resolved.seriesId !== seriesId) {
+        throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
+      }
+      contextBook = resolved;
+    }
+
+    const seriesBooks = await this.charactersRepository.listSeriesBooks({ seriesId, userId });
+    this.warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId });
+
+    const allowedBookIds = resolveAllowedBookIds({
+      contextBook,
+      includeFuture: false,
+      seriesBooks,
+    });
+    const contextBookId = contextBook?.id ?? null;
+    if (allowedBookIds.length === 0) {
+      return buildSeriesCharacterSummary({
+        byImportanceEntries: [],
+        contextBookId,
+        favoritesCount: 0,
+        hasHiddenRecords: false,
+        povCount: 0,
+        seriesId,
+        topCandidates: [],
+        totalVisibleCharacters: 0,
+      });
+    }
+
+    const [appearances, hiddenCharacterIds] = await Promise.all([
+      this.charactersRepository.listSeriesAppearances({
+        bookIds: allowedBookIds,
+        search: undefined,
+        userId,
+      }),
+      this.charactersRepository.listSeriesHiddenCharacterIds({ bookIds: allowedBookIds, userId }),
+    ]);
+
+    const partNumberByBookId = new Map(seriesBooks.map((book) => [book.id, book.partNumber]));
+    const representatives = pickSeriesRepresentatives({
+      appearances,
+      contextBookId: query.contextBookId,
+      partNumberByBookId,
+    });
+    const visibleCharacterIds = new Set(representatives.map((row) => row.characterId));
+
+    return buildSeriesCharacterSummary({
+      byImportanceEntries: representatives.map((row) => ({ count: 1, importance: row.importance })),
+      contextBookId,
+      favoritesCount: representatives.filter((row) => row.character.isFavorite).length,
+      hasHiddenRecords: hiddenCharacterIds.some((row) => !visibleCharacterIds.has(row.characterId)),
+      povCount: representatives.filter((row) => row.isPovCharacter).length,
+      seriesId,
+      topCandidates: representatives
+        .filter((row) => isTopImportance(row.importance))
+        .map((row) => this.toSummaryView(row)),
+      totalVisibleCharacters: representatives.length,
+    });
   }
 
   async softDelete({
