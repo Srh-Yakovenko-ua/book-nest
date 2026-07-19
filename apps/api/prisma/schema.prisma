@@ -60,6 +60,7 @@ model User {
   characterGroups           CharacterGroup[]
   characterTheories         CharacterTheory[]
   characterRelationships    CharacterRelationship[]
+  characterGraphLayouts     CharacterGraphLayout[]
 
   @@map("users")
 }
@@ -964,6 +965,25 @@ model CharacterRelationship {
   @@index([targetCharacterId])
   @@index([userId, category])
   @@map("character_relationships")
+}
+
+model CharacterGraphLayout {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  scopeType     String   @map("scope_type")
+  scopeId       String?  @map("scope_id") @db.Uuid
+  mode          String
+  contextBookId String?  @map("context_book_id") @db.Uuid
+  layoutVersion String   @map("layout_version")
+  positions     Json
+  viewport      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, scopeType, scopeId])
+  @@map("character_graph_layouts")
 }
 
 model CharacterRelationshipBookState {

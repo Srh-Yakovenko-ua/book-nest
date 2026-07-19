@@ -4,6 +4,7 @@ export * from "./book-enums.js";
 export * from "./book-store-links.js";
 export * from "./books.js";
 export * from "./changelog.js";
+export * from "./character-graph-layouts.js";
 export * from "./character-graph.js";
 export * from "./character-groups.js";
 export * from "./character-path.js";
