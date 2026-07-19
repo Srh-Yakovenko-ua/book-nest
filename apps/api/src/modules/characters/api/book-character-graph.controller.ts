@@ -43,6 +43,21 @@ export class BookCharacterGraphController {
   @ApiQuery({ name: "relationshipTypes", required: false })
   @ApiQuery({ name: "revealEdgeIds", required: false })
   @ApiQuery({ enum: ["group", "importance"], name: "clusterBy", required: false })
+  @ApiQuery({
+    description: "Reader chapter within the book for page-level spoiler masking",
+    name: "contextChapter",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader page within the book for page-level spoiler masking",
+    name: "contextPage",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader audiobook seconds within the book for page-level spoiler masking",
+    name: "contextAudioSeconds",
+    required: false,
+  })
   @Get()
   get(
     @CurrentUser() user: AuthenticatedUser,

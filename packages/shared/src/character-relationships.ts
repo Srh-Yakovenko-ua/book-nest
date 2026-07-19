@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { CHARACTER_INT4_MAX } from "./characters.js";
+import { readingPositionQueryFields } from "./common.js";
 
 const RELATIONSHIP_LABEL_MAX = 120;
 const RELATIONSHIP_CUSTOM_TYPE_MAX = 60;
@@ -395,6 +396,7 @@ export const UpdateCharacterRelationshipSchema = z
 export type UpdateCharacterRelationship = z.infer<typeof UpdateCharacterRelationshipSchema>;
 
 export const CharacterRelationshipDetailsQuerySchema = z.object({
+  ...readingPositionQueryFields,
   contextBookId: z.uuid().optional(),
 });
 
@@ -403,12 +405,14 @@ export type CharacterRelationshipDetailsQuery = z.infer<
 >;
 
 export const BookCharacterRelationshipsQuerySchema = z.object({
+  ...readingPositionQueryFields,
   includeHistory: z.stringbool().optional(),
 });
 
 export type BookCharacterRelationshipsQuery = z.infer<typeof BookCharacterRelationshipsQuerySchema>;
 
 export const SeriesCharacterRelationshipsQuerySchema = z.object({
+  ...readingPositionQueryFields,
   contextBookId: z.uuid().optional(),
   includeHistory: z.stringbool().optional(),
 });

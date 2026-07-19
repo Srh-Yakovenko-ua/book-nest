@@ -1,5 +1,7 @@
 import type { Nullable } from "@app/shared";
 
+import type { ReadingPositionGate } from "./reading-position.js";
+
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { resolveAllowedBookIds } from "./series-representative.js";
 
@@ -17,6 +19,7 @@ export type ContextBookReader = {
 export type ResolvedReadingContext = {
   allowedBookIds: string[];
   partNumberById: Map<string, Nullable<number>>;
+  positionGate?: Nullable<ReadingPositionGate>;
 };
 
 export async function resolveContextAllowedBookIds({

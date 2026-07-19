@@ -31,9 +31,11 @@ import { compareAsc } from "date-fns";
 import { createHash } from "node:crypto";
 
 import type { RelationshipBookStateSource } from "./character-relationship.mapper.js";
+import type { ReadingPositionGate } from "./reading-position.js";
 
 import { isMembershipVisibleInContext } from "./character-group-visibility.js";
 import { pickEffectiveBookState } from "./character-relationship.mapper.js";
+import { isHiddenByReadingPosition } from "./reading-position.js";
 
 const GRAPH_VERSION_LENGTH = 16;
 
@@ -122,6 +124,7 @@ type BuildCharacterGraphInput = {
   nodeLimit: number;
   nodes: GraphNodeSource[];
   partNumberById: Map<string, Nullable<number>>;
+  positionGate?: Nullable<ReadingPositionGate>;
   revealEdgeIds: Set<string>;
   typeFilter: Nullable<Set<RelationshipType>>;
 };
@@ -150,6 +153,7 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
     mode: input.mode,
     nodes: input.nodes,
     partNumberById: input.partNumberById,
+    positionGate: input.positionGate,
     revealEdgeIds: input.revealEdgeIds,
     typeFilter: input.typeFilter,
   });
@@ -240,6 +244,7 @@ export function computeVisibleGraphEdges({
   mode,
   nodes,
   partNumberById,
+  positionGate,
   revealEdgeIds,
   typeFilter,
 }: {
@@ -248,6 +253,7 @@ export function computeVisibleGraphEdges({
   mode: CharacterGraphMode;
   nodes: GraphNodeSource[];
   partNumberById: Map<string, Nullable<number>>;
+  positionGate?: Nullable<ReadingPositionGate>;
   revealEdgeIds: Set<string>;
   typeFilter: Nullable<Set<RelationshipType>>;
 }): { edges: PreparedEdge[]; hasHiddenEdges: boolean; presenceHiddenIds: Set<string> } {
@@ -266,6 +272,20 @@ export function computeVisibleGraphEdges({
       continue;
     }
     if (effective.hideRelationshipAsSpoiler) {
+      hasHiddenEdges = true;
+      continue;
+    }
+    if (
+      isHiddenByReadingPosition({
+        content: {
+          audioSeconds: effective.introducedAudioSeconds,
+          chapter: effective.introducedChapter,
+          page: effective.introducedPage,
+        },
+        contentBookId: effective.bookId,
+        gate: positionGate ?? null,
+      })
+    ) {
       hasHiddenEdges = true;
       continue;
     }

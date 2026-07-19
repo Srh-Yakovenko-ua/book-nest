@@ -38,6 +38,21 @@ export class BookCharacterRelationshipsController {
   @ApiOperation({ summary: "List spoiler-safe relationships effective in a book" })
   @ApiParam({ description: "Book id", name: "bookId" })
   @ApiQuery({ name: "includeHistory", required: false })
+  @ApiQuery({
+    description: "Reader chapter within the book for page-level spoiler masking",
+    name: "contextChapter",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader page within the book for page-level spoiler masking",
+    name: "contextPage",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader audiobook seconds within the book for page-level spoiler masking",
+    name: "contextAudioSeconds",
+    required: false,
+  })
   @Get()
   list(
     @CurrentUser() user: AuthenticatedUser,

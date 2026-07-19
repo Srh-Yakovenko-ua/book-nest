@@ -149,6 +149,21 @@ export class CharactersController {
   @ApiParam({ description: "Character id", name: "characterId" })
   @ApiQuery({ name: "contextBookId", required: false })
   @ApiQuery({ name: "revealFieldIds", required: false })
+  @ApiQuery({
+    description: "Reader chapter within the context book for page-level spoiler masking",
+    name: "contextChapter",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader page within the context book for page-level spoiler masking",
+    name: "contextPage",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader audiobook seconds within the context book for page-level spoiler masking",
+    name: "contextAudioSeconds",
+    required: false,
+  })
   @Get(":characterId")
   getById(
     @CurrentUser() user: AuthenticatedUser,

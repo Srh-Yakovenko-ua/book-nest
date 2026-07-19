@@ -21,6 +21,7 @@ import {
   getRelationshipTypeCategory,
   getRelationshipTypeDirectionality,
   normalizeName,
+  readingPositionFromQuery,
   RelationshipCategorySchema,
   RelationshipDirectionalitySchema,
   RelationshipTypeSchema,
@@ -28,6 +29,7 @@ import {
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { ReadingPositionGate } from "../domain/reading-position.js";
 import type {
   RelationshipDetailsRow,
   UpdateBookStateData,
@@ -49,6 +51,7 @@ import {
   toRelationshipDetailsView,
   toRelationshipView,
 } from "../domain/character-relationship.mapper.js";
+import { buildReadingPositionGate, isHiddenByReadingPosition } from "../domain/reading-position.js";
 import { resolveAllowedBookIds } from "../domain/series-representative.js";
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
@@ -56,6 +59,7 @@ import { CharactersRepository } from "../infrastructure/characters.repository.js
 type ResolvedContext = {
   allowedBookIds: string[];
   partNumberById: Map<string, Nullable<number>>;
+  positionGate?: Nullable<ReadingPositionGate>;
 };
 
 @Injectable()
@@ -195,7 +199,11 @@ export class CharacterRelationshipsService {
       });
     }
     const context = await this.resolveBookContext({ contextBookId: query.contextBookId, userId });
-    const masked = this.maskDetailsForContext({ context, row });
+    const positionGate = buildReadingPositionGate({
+      contextBookId: query.contextBookId,
+      reader: readingPositionFromQuery(query),
+    });
+    const masked = this.maskDetailsForContext({ context: { ...context, positionGate }, row });
     if (masked === null) {
       throw new NotFoundError("Character relationship not found", {
         code: CHARACTER_RELATIONSHIP_ERROR_CODES.notFound,
@@ -219,7 +227,14 @@ export class CharacterRelationshipsService {
       userId,
     });
     return this.buildContextViews({
-      context: { allowedBookIds: [bookId], partNumberById: new Map([[bookId, null]]) },
+      context: {
+        allowedBookIds: [bookId],
+        partNumberById: new Map([[bookId, null]]),
+        positionGate: buildReadingPositionGate({
+          contextBookId: bookId,
+          reader: readingPositionFromQuery(query),
+        }),
+      },
       includeHistory: query.includeHistory ?? false,
       rows,
     });
@@ -240,11 +255,22 @@ export class CharacterRelationshipsService {
       seriesId,
       userId,
     });
+    const positionGate =
+      query.contextBookId === undefined
+        ? null
+        : buildReadingPositionGate({
+            contextBookId: query.contextBookId,
+            reader: readingPositionFromQuery(query),
+          });
     const rows = await this.relationshipsRepository.listRelationshipsInBooks({
       bookIds: context.allowedBookIds,
       userId,
     });
-    return this.buildContextViews({ context, includeHistory: query.includeHistory ?? false, rows });
+    return this.buildContextViews({
+      context: { ...context, positionGate },
+      includeHistory: query.includeHistory ?? false,
+      rows,
+    });
   }
 
   async remove({
@@ -574,6 +600,7 @@ export class CharacterRelationshipsService {
     includeHistory: boolean;
     rows: RelationshipDetailsRow[];
   }): CharacterRelationshipContextView[] {
+    const gate = context.positionGate ?? null;
     const views: CharacterRelationshipContextView[] = [];
     for (const row of rows) {
       const effective = pickEffectiveBookState({
@@ -583,8 +610,14 @@ export class CharacterRelationshipsService {
       if (effective !== null && effective.hideRelationshipAsSpoiler) {
         continue;
       }
+      if (effective !== null && isBookStateHiddenByReadingPosition({ gate, state: effective })) {
+        continue;
+      }
       const typeHidden = effective?.isTypeSpoiler ?? false;
-      const visibleStates = row.bookStates.filter((state) => !state.hideRelationshipAsSpoiler);
+      const visibleStates = row.bookStates.filter(
+        (state) =>
+          !state.hideRelationshipAsSpoiler && !isBookStateHiddenByReadingPosition({ gate, state }),
+      );
       views.push({
         effectiveState:
           effective === null
@@ -701,6 +734,7 @@ export class CharacterRelationshipsService {
     context: ResolvedContext;
     row: RelationshipDetailsRow;
   }): Nullable<CharacterRelationshipDetailsView> {
+    const gate = context.positionGate ?? null;
     const allowed = new Set(context.allowedBookIds);
     const allowedStates = row.bookStates.filter((state) => allowed.has(state.bookId));
     const effective = pickEffectiveBookState({
@@ -710,8 +744,14 @@ export class CharacterRelationshipsService {
     if (effective !== null && effective.hideRelationshipAsSpoiler) {
       return null;
     }
+    if (effective !== null && isBookStateHiddenByReadingPosition({ gate, state: effective })) {
+      return null;
+    }
     const typeHidden = effective?.isTypeSpoiler ?? false;
-    const visibleStates = allowedStates.filter((state) => !state.hideRelationshipAsSpoiler);
+    const visibleStates = allowedStates.filter(
+      (state) =>
+        !state.hideRelationshipAsSpoiler && !isBookStateHiddenByReadingPosition({ gate, state }),
+    );
     return {
       ...toRelationshipView({ relationship: row, typeHidden }),
       bookStates: visibleStates.map((state) =>
@@ -871,5 +911,28 @@ function dedupeBookStates(states: InitialRelationshipBookState[]): InitialRelati
     }
     seen.add(state.bookId);
     return true;
+  });
+}
+
+function isBookStateHiddenByReadingPosition({
+  gate,
+  state,
+}: {
+  gate: Nullable<ReadingPositionGate>;
+  state: {
+    bookId: string;
+    introducedAudioSeconds: Nullable<number>;
+    introducedChapter: Nullable<string>;
+    introducedPage: Nullable<number>;
+  };
+}): boolean {
+  return isHiddenByReadingPosition({
+    content: {
+      audioSeconds: state.introducedAudioSeconds,
+      chapter: state.introducedChapter,
+      page: state.introducedPage,
+    },
+    contentBookId: state.bookId,
+    gate,
   });
 }

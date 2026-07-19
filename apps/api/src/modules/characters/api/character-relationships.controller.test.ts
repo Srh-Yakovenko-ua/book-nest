@@ -525,6 +525,44 @@ describe("character relationship spoiler masking", () => {
     expect(list.body).toEqual([]);
   });
 
+  it("omits a relationship introduced after the reader position, then reveals it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, introducedPage: 200, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+
+    const before = await authed(
+      "get",
+      `/api/books/${bookId}/character-relationships?contextPage=3`,
+      accessToken,
+    );
+    expect(before.status).toBe(HttpStatus.OK);
+    expect(before.body).toEqual([]);
+
+    const after = await authed(
+      "get",
+      `/api/books/${bookId}/character-relationships?contextPage=250`,
+      accessToken,
+    );
+    expect(after.status).toBe(HttpStatus.OK);
+    expect(after.body).toHaveLength(1);
+
+    const bookLevel = await authed(
+      "get",
+      `/api/books/${bookId}/character-relationships`,
+      accessToken,
+    );
+    expect(bookLevel.body).toHaveLength(1);
+  });
+
   it("locks the type when the book state marks the type a spoiler", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);

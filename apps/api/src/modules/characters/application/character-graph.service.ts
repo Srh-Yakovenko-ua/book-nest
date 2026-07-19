@@ -10,6 +10,7 @@ import {
   CHARACTER_GRAPH_EDGE_LIMIT,
   CHARACTER_GRAPH_NODE_LIMIT,
   CHARACTER_RELATIONSHIP_ERROR_CODES,
+  readingPositionFromQuery,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
@@ -17,6 +18,7 @@ import type { ResolvedReadingContext } from "../domain/context-books.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildCharacterGraph } from "../domain/character-graph.js";
+import { buildReadingPositionGate } from "../domain/reading-position.js";
 import { resolveAllowedBookIds } from "../domain/series-representative.js";
 import { CharacterGroupsRepository } from "../infrastructure/character-groups.repository.js";
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
@@ -47,7 +49,11 @@ export class CharacterGraphService {
     userId: string;
   }): Promise<CharacterGraphView> {
     const context = await this.resolveBookContext({ bookId, userId });
-    return this.assembleGraph({ context, query, userId });
+    const positionGate = buildReadingPositionGate({
+      contextBookId: bookId,
+      reader: readingPositionFromQuery(query),
+    });
+    return this.assembleGraph({ context: { ...context, positionGate }, query, userId });
   }
 
   async getForSeries({
@@ -64,7 +70,14 @@ export class CharacterGraphService {
       seriesId,
       userId,
     });
-    return this.assembleGraph({ context, query, userId });
+    const positionGate =
+      query.contextBookId === undefined
+        ? null
+        : buildReadingPositionGate({
+            contextBookId: query.contextBookId,
+            reader: readingPositionFromQuery(query),
+          });
+    return this.assembleGraph({ context: { ...context, positionGate }, query, userId });
   }
 
   private async assembleGraph({
@@ -105,6 +118,7 @@ export class CharacterGraphService {
       nodeLimit: CHARACTER_GRAPH_NODE_LIMIT,
       nodes: nodeRows.map(toGraphNodeSource),
       partNumberById: context.partNumberById,
+      positionGate: context.positionGate ?? null,
       revealEdgeIds: new Set(query.revealEdgeIds ?? []),
       typeFilter: toGraphFilterSet<RelationshipType>(query.relationshipTypes),
     });

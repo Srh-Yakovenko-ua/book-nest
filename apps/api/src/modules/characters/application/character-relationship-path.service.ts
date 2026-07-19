@@ -1,6 +1,10 @@
 import type { CharacterRelationshipPathQuery, CharacterRelationshipPathView } from "@app/shared";
 
-import { CHARACTER_PATH_MAX_VISITED_NODES, CHARACTER_RELATIONSHIP_ERROR_CODES } from "@app/shared";
+import {
+  CHARACTER_PATH_MAX_VISITED_NODES,
+  CHARACTER_RELATIONSHIP_ERROR_CODES,
+  readingPositionFromQuery,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { ResolvedReadingContext } from "../domain/context-books.js";
@@ -8,6 +12,7 @@ import type { ResolvedReadingContext } from "../domain/context-books.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { findVisibleRelationshipPath } from "../domain/character-relationship-path.js";
 import { resolveReadingContext } from "../domain/context-books.js";
+import { buildReadingPositionGate } from "../domain/reading-position.js";
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import {
@@ -46,6 +51,14 @@ export class CharacterRelationshipPathService {
       userId,
     });
 
+    const positionGate =
+      query.contextBookId === undefined
+        ? null
+        : buildReadingPositionGate({
+            contextBookId: query.contextBookId,
+            reader: readingPositionFromQuery(query),
+          });
+
     return findVisibleRelationshipPath({
       categoryFilter: toGraphFilterSet(query.categories),
       edges: relationships.map(toGraphEdgeSource),
@@ -54,6 +67,7 @@ export class CharacterRelationshipPathService {
       mode: query.mode,
       nodes: nodeRows.map(toGraphNodeSource),
       partNumberById: context.partNumberById,
+      positionGate,
       revealEdgeIds: new Set(query.revealEdgeIds ?? []),
       toId: query.toId,
       typeFilter: toGraphFilterSet(query.relationshipTypes),

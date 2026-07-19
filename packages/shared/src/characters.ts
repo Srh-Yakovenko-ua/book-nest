@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
+import {
+  createPaginatedSchema,
+  LIST_PAGE_SIZE_MAX,
+  PAGE_NUMBER_MAX,
+  readingPositionQueryFields,
+} from "./common.js";
 import { queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TagViewSchema } from "./tags.js";
@@ -563,6 +568,7 @@ export const CharacterRevealFieldKeySchema = z.enum([
 export type CharacterRevealFieldKey = z.infer<typeof CharacterRevealFieldKeySchema>;
 
 export const CharacterDetailsQuerySchema = z.object({
+  ...readingPositionQueryFields,
   contextBookId: z.string().uuid().optional(),
   revealFieldIds: queryStringArray(CharacterRevealFieldKeySchema),
 });

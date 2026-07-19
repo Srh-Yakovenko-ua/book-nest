@@ -40,6 +40,44 @@ export const LIST_PAGE_SIZE_MAX = 100;
 
 export const PAGE_NUMBER_MAX = 21474836;
 
+export const READING_POSITION_INT_MAX = 2147483647;
+
+const readingPositionUnit = () =>
+  z.coerce.number().int().min(0).max(READING_POSITION_INT_MAX).optional();
+
+export const ReadingPositionSchema = z.object({
+  audioSeconds: readingPositionUnit(),
+  chapter: readingPositionUnit(),
+  page: readingPositionUnit(),
+});
+
+export type ReadingPosition = z.infer<typeof ReadingPositionSchema>;
+
+export const readingPositionQueryFields = {
+  contextAudioSeconds: ReadingPositionSchema.shape.audioSeconds,
+  contextChapter: ReadingPositionSchema.shape.chapter,
+  contextPage: ReadingPositionSchema.shape.page,
+};
+
+export const readingPositionFromQuery = (query: {
+  contextAudioSeconds?: number;
+  contextChapter?: number;
+  contextPage?: number;
+}): ReadingPosition | undefined => {
+  if (
+    query.contextAudioSeconds === undefined &&
+    query.contextChapter === undefined &&
+    query.contextPage === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    audioSeconds: query.contextAudioSeconds,
+    chapter: query.contextChapter,
+    page: query.contextPage,
+  };
+};
+
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>|<!--|<!\w/;
 
 export const noHtmlTags = (value: string): boolean => !HTML_TAG.test(value);

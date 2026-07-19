@@ -41,6 +41,21 @@ export class SeriesCharacterRelationshipsController {
   @ApiParam({ description: "Series id", name: "seriesId" })
   @ApiQuery({ name: "contextBookId", required: false })
   @ApiQuery({ name: "includeHistory", required: false })
+  @ApiQuery({
+    description: "Reader chapter within the context book for page-level spoiler masking",
+    name: "contextChapter",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader page within the context book for page-level spoiler masking",
+    name: "contextPage",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader audiobook seconds within the context book for page-level spoiler masking",
+    name: "contextAudioSeconds",
+    required: false,
+  })
   @Get()
   list(
     @CurrentUser() user: AuthenticatedUser,

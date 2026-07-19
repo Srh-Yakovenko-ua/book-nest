@@ -393,6 +393,80 @@ describe("book character graph", () => {
     ]);
   });
 
+  it("hides a not-yet-reached edge and its orphaned nodes from the graph", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, introducedPage: 200, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?contextPage=3`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.edges).toHaveLength(0);
+    expect(res.body.nodes).toHaveLength(0);
+    expect(res.body.hiddenContent.hasHiddenEdges).toBe(true);
+  });
+
+  it("reveals the edge and node degree once the reader page reaches it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, introducedPage: 200, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?contextPage=250`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.edges).toHaveLength(1);
+    expect(res.body.nodes).toHaveLength(2);
+    expect(res.body.nodes.every((node: { degree: number }) => node.degree === 1)).toBe(true);
+  });
+
+  it("keeps a positionless edge visible and ignores position without a reader position", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, introducedPage: 200, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+
+    const withoutPosition = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph`,
+      accessToken,
+    );
+    expect(withoutPosition.status).toBe(HttpStatus.OK);
+    expect(withoutPosition.body.edges).toHaveLength(1);
+    expect(withoutPosition.body.hiddenContent.hasHiddenEdges).toBe(false);
+  });
+
   it("returns 404 for a foreign book", async () => {
     const owner = await context.registerVerifyAndLogin();
     const intruder = await context.registerVerifyAndLogin({ email: "intruder@example.com" });

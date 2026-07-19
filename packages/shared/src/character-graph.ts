@@ -10,6 +10,7 @@ import {
   RelationshipTypeSchema,
 } from "./character-relationships.js";
 import { BookCharacterImportanceSchema, CharacterEntityKindSchema } from "./characters.js";
+import { readingPositionQueryFields } from "./common.js";
 import { queryStringArray } from "./internal.js";
 
 export const CHARACTER_GRAPH_DEPTH_MIN = 1;
@@ -27,6 +28,7 @@ export const CharacterGraphClusterBySchema = z.enum(["group", "importance"]);
 export type CharacterGraphClusterBy = z.infer<typeof CharacterGraphClusterBySchema>;
 
 const characterGraphQueryFields = {
+  ...readingPositionQueryFields,
   categories: queryStringArray(RelationshipCategorySchema),
   clusterBy: CharacterGraphClusterBySchema.optional(),
   depth: z.coerce

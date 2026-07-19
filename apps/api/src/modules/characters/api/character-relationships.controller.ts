@@ -86,6 +86,21 @@ export class CharacterRelationshipsController {
   @ApiQuery({ name: "categories", required: false })
   @ApiQuery({ name: "relationshipTypes", required: false })
   @ApiQuery({ name: "revealEdgeIds", required: false })
+  @ApiQuery({
+    description: "Reader chapter within the context book for page-level spoiler masking",
+    name: "contextChapter",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader page within the context book for page-level spoiler masking",
+    name: "contextPage",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader audiobook seconds within the context book for page-level spoiler masking",
+    name: "contextAudioSeconds",
+    required: false,
+  })
   @Get("path")
   findPath(
     @CurrentUser() user: AuthenticatedUser,
@@ -124,6 +139,21 @@ export class CharacterRelationshipsController {
   @ApiOperation({ summary: "Get a relationship with its spoiler-safe per-book state history" })
   @ApiParam({ description: "Relationship id", name: "relationshipId" })
   @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({
+    description: "Reader chapter within the context book for page-level spoiler masking",
+    name: "contextChapter",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader page within the context book for page-level spoiler masking",
+    name: "contextPage",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader audiobook seconds within the context book for page-level spoiler masking",
+    name: "contextAudioSeconds",
+    required: false,
+  })
   @Get(":relationshipId")
   getById(
     @CurrentUser() user: AuthenticatedUser,

@@ -9,6 +9,7 @@ import type {
 } from "@app/shared";
 
 import type { GraphEdgeSource, GraphNodeSource, PreparedEdge } from "./character-graph.js";
+import type { ReadingPositionGate } from "./reading-position.js";
 
 import {
   computeDegrees,
@@ -31,6 +32,7 @@ export function findVisibleRelationshipPath({
   mode,
   nodes,
   partNumberById,
+  positionGate,
   revealEdgeIds,
   toId,
   typeFilter,
@@ -42,6 +44,7 @@ export function findVisibleRelationshipPath({
   mode: CharacterGraphMode;
   nodes: GraphNodeSource[];
   partNumberById: Map<string, Nullable<number>>;
+  positionGate?: Nullable<ReadingPositionGate>;
   revealEdgeIds: Set<string>;
   toId: string;
   typeFilter: Nullable<Set<RelationshipType>>;
@@ -52,6 +55,7 @@ export function findVisibleRelationshipPath({
     mode,
     nodes,
     partNumberById,
+    positionGate,
     revealEdgeIds,
     typeFilter,
   });

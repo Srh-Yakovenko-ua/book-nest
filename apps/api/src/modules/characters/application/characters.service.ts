@@ -22,6 +22,7 @@ import type {
   MediaView,
   Nullable,
   Paginator,
+  ReadingPosition,
   SeriesCharacterProfileQuery,
   SeriesCharactersQuery,
   SeriesCharacterSummaryQuery,
@@ -38,6 +39,7 @@ import {
   CHARACTER_SUMMARY_TOP_LIMIT,
   normalizeName,
   normalizeSearch,
+  readingPositionFromQuery,
 } from "@app/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
@@ -83,6 +85,7 @@ import {
   toCharacterSummaryView,
   toMaskedBookCharacterView,
 } from "../domain/character.mapper.js";
+import { buildReadingPositionGate, isHiddenByReadingPosition } from "../domain/reading-position.js";
 import {
   pickSeriesRepresentatives,
   resolveAllowedBookIds,
@@ -318,6 +321,7 @@ export class CharactersService {
     return this.loadMaskedCharacterDetails({
       characterId,
       contextBookId: query.contextBookId,
+      reader: readingPositionFromQuery(query),
       revealFieldIds: query.revealFieldIds ?? [],
       userId,
     });
@@ -1186,11 +1190,13 @@ export class CharactersService {
   private async loadMaskedCharacterDetails({
     characterId,
     contextBookId,
+    reader,
     revealFieldIds,
     userId,
   }: {
     characterId: string;
     contextBookId: string;
+    reader: ReadingPosition | undefined;
     revealFieldIds: CharacterRevealFieldKey[];
     userId: string;
   }): Promise<CharacterDetailsView> {
@@ -1203,6 +1209,7 @@ export class CharactersService {
     }
 
     const allowedBookIds = await this.resolveContextAllowedBookIds({ contextBook, userId });
+    const positionGate = buildReadingPositionGate({ contextBookId, reader });
     const row =
       allowedBookIds.length === 0
         ? null
@@ -1214,7 +1221,19 @@ export class CharactersService {
     const visibleAppearances =
       row === null
         ? []
-        : row.bookAppearances.filter((appearance) => !appearance.hidePresenceAsSpoiler);
+        : row.bookAppearances.filter(
+            (appearance) =>
+              !appearance.hidePresenceAsSpoiler &&
+              !isHiddenByReadingPosition({
+                content: {
+                  audioSeconds: appearance.firstAppearanceAudioSeconds,
+                  chapter: appearance.firstAppearanceChapter,
+                  page: appearance.firstAppearancePage,
+                },
+                contentBookId: appearance.bookId,
+                gate: positionGate,
+              }),
+          );
     if (row === null || visibleAppearances.length === 0) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
