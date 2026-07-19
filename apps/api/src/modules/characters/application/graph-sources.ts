@@ -1,6 +1,11 @@
 import type { Nullable } from "@app/shared";
 
-import type { GraphEdgeSource, GraphNodeSource } from "../domain/character-graph.js";
+import type {
+  GraphEdgeSource,
+  GraphMembershipSource,
+  GraphNodeSource,
+} from "../domain/character-graph.js";
+import type { GraphMembershipRow } from "../infrastructure/character-groups.repository.js";
 import type { RelationshipDetailsRow } from "../infrastructure/character-relationships.repository.js";
 import type { GraphNodeRow } from "../infrastructure/characters.repository.js";
 
@@ -31,6 +36,20 @@ export function toGraphEdgeSource(relationship: RelationshipDetailsRow): GraphEd
 
 export function toGraphFilterSet<Value>(values: undefined | Value[]): Nullable<Set<Value>> {
   return values === undefined ? null : new Set(values);
+}
+
+export function toGraphMembershipSource(row: GraphMembershipRow): GraphMembershipSource {
+  return {
+    bookId: row.bookId,
+    characterId: row.characterId,
+    group: {
+      id: row.group.id,
+      isSpoiler: row.group.isSpoiler,
+      name: row.group.name,
+      type: row.group.type,
+    },
+    isSpoiler: row.isSpoiler,
+  };
 }
 
 export function toGraphNodeSource(node: GraphNodeRow): GraphNodeSource {

@@ -1,4 +1,5 @@
 import type {
+  CharacterGraphClusterBy,
   CharacterGraphMode,
   Nullable,
   RelationshipCategory,
@@ -7,7 +8,7 @@ import type {
 
 import { describe, expect, it } from "vitest";
 
-import type { GraphEdgeSource, GraphNodeSource } from "./character-graph.js";
+import type { GraphEdgeSource, GraphMembershipSource, GraphNodeSource } from "./character-graph.js";
 import type { RelationshipBookStateSource } from "./character-relationship.mapper.js";
 
 import { buildCharacterGraph } from "./character-graph.js";
@@ -16,13 +17,18 @@ const ALICE = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const BOB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const CAROL = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const BOOK = "20000000-0000-4000-8000-000000000001";
+const GROUP_STARK = "10000000-0000-4000-8000-000000000001";
+const GROUP_SECRET = "10000000-0000-4000-8000-000000000002";
 
 function build({
+  allowedBookIds = [BOOK],
   categoryFilter = null,
+  clusterBy = null,
   depth = 1,
   edgeLimit = 600,
   edges = [],
   focusCharacterId = null,
+  memberships = [],
   mode = "all",
   nodeLimit = 300,
   nodes = [],
@@ -30,11 +36,14 @@ function build({
   revealEdgeIds = new Set<string>(),
   typeFilter = null,
 }: {
+  allowedBookIds?: string[];
   categoryFilter?: Nullable<Set<RelationshipCategory>>;
+  clusterBy?: Nullable<CharacterGraphClusterBy>;
   depth?: number;
   edgeLimit?: number;
   edges?: GraphEdgeSource[];
   focusCharacterId?: Nullable<string>;
+  memberships?: GraphMembershipSource[];
   mode?: CharacterGraphMode;
   nodeLimit?: number;
   nodes?: GraphNodeSource[];
@@ -43,11 +52,14 @@ function build({
   typeFilter?: Nullable<Set<RelationshipType>>;
 }) {
   return buildCharacterGraph({
+    allowedBookIds,
     categoryFilter,
+    clusterBy,
     depth,
     edgeLimit,
     edges,
     focusCharacterId,
+    memberships,
     mode,
     nodeLimit,
     nodes,
@@ -70,6 +82,22 @@ function edgeSource(overrides: Partial<GraphEdgeSource>): GraphEdgeSource {
     targetLabel: null,
     type: "friend_of",
     updatedAt: new Date("2024-01-02T00:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function membershipSource(
+  overrides: Partial<GraphMembershipSource> & { characterId: string },
+): GraphMembershipSource {
+  return {
+    bookId: null,
+    group: {
+      id: GROUP_STARK,
+      isSpoiler: false,
+      name: "House Stark",
+      type: "house",
+    },
+    isSpoiler: false,
     ...overrides,
   };
 }
@@ -410,5 +438,177 @@ describe("buildCharacterGraph", () => {
       code: "family_cycle_detected",
       severity: "conflict",
     });
+  });
+
+  it("leaves the graph unclustered by default", () => {
+    const graph = build({
+      edges: [edgeSource({})],
+      memberships: [
+        membershipSource({ characterId: ALICE }),
+        membershipSource({ characterId: BOB }),
+      ],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+    });
+
+    expect(graph.clusterBy).toBeNull();
+    expect(graph.clusters).toEqual([]);
+    expect(graph.nodes.every((node) => node.clusterId === null)).toBe(true);
+  });
+
+  it("assigns clusterBy=group clusters from visible memberships with a legend", () => {
+    const graph = build({
+      clusterBy: "group",
+      edges: [edgeSource({})],
+      memberships: [
+        membershipSource({ characterId: ALICE }),
+        membershipSource({ characterId: BOB }),
+      ],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+    });
+
+    expect(graph.clusterBy).toBe("group");
+    expect(graph.nodes.every((node) => node.clusterId === GROUP_STARK)).toBe(true);
+    expect(graph.clusters).toEqual([
+      { groupType: "house", id: GROUP_STARK, kind: "group", name: "House Stark", size: 2 },
+    ]);
+  });
+
+  it("does not let a spoiler membership change a node's cluster in safe context", () => {
+    const graph = build({
+      clusterBy: "group",
+      edges: [edgeSource({})],
+      memberships: [
+        membershipSource({ characterId: ALICE }),
+        membershipSource({ characterId: BOB, isSpoiler: true }),
+      ],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+    });
+
+    expect(graph.nodes.find((node) => node.id === ALICE)?.clusterId).toBe(GROUP_STARK);
+    expect(graph.nodes.find((node) => node.id === BOB)?.clusterId).toBeNull();
+    expect(graph.clusters).toEqual([
+      { groupType: "house", id: GROUP_STARK, kind: "group", name: "House Stark", size: 1 },
+    ]);
+  });
+
+  it("keeps a presence-hidden character out of every cluster and its size count", () => {
+    const graph = build({
+      clusterBy: "group",
+      edges: [
+        edgeSource({ id: "rel-1", sourceCharacterId: ALICE, targetCharacterId: CAROL }),
+        edgeSource({
+          bookStates: [stateSource({ id: "state-2", relationshipId: "rel-2" })],
+          id: "rel-2",
+          sourceCharacterId: ALICE,
+          targetCharacterId: BOB,
+        }),
+      ],
+      memberships: [
+        membershipSource({ characterId: ALICE }),
+        membershipSource({ characterId: BOB }),
+        membershipSource({ characterId: CAROL }),
+      ],
+      nodes: [
+        nodeSource({ id: ALICE }),
+        nodeSource({
+          appearances: [
+            {
+              bookId: BOOK,
+              createdAt: new Date("2024-01-01T00:00:00.000Z"),
+              hidePresenceAsSpoiler: true,
+              importance: "central",
+            },
+          ],
+          id: BOB,
+        }),
+        nodeSource({ id: CAROL }),
+      ],
+    });
+
+    expect(graph.nodes.some((node) => node.id === BOB)).toBe(false);
+    expect(graph.clusters).toEqual([
+      { groupType: "house", id: GROUP_STARK, kind: "group", name: "House Stark", size: 2 },
+    ]);
+  });
+
+  it("masks a spoiler group name in the legend while the cluster still forms", () => {
+    const graph = build({
+      clusterBy: "group",
+      edges: [edgeSource({})],
+      memberships: [
+        membershipSource({
+          characterId: ALICE,
+          group: { id: GROUP_SECRET, isSpoiler: true, name: "The Faceless Men", type: "cult" },
+        }),
+        membershipSource({
+          characterId: BOB,
+          group: { id: GROUP_SECRET, isSpoiler: true, name: "The Faceless Men", type: "cult" },
+        }),
+      ],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+    });
+
+    expect(graph.nodes.every((node) => node.clusterId === GROUP_SECRET)).toBe(true);
+    expect(graph.clusters).toEqual([
+      { groupType: "cult", id: GROUP_SECRET, kind: "group", name: null, size: 2 },
+    ]);
+    expect(JSON.stringify(graph)).not.toContain("Faceless Men");
+  });
+
+  it("excludes a membership scoped to a book beyond the reading context", () => {
+    const graph = build({
+      allowedBookIds: [BOOK],
+      clusterBy: "group",
+      edges: [edgeSource({})],
+      memberships: [
+        membershipSource({ bookId: "30000000-0000-4000-8000-000000000009", characterId: ALICE }),
+        membershipSource({ characterId: BOB }),
+      ],
+      nodes: [nodeSource({ id: ALICE }), nodeSource({ id: BOB })],
+    });
+
+    expect(graph.nodes.find((node) => node.id === ALICE)?.clusterId).toBeNull();
+    expect(graph.nodes.find((node) => node.id === BOB)?.clusterId).toBe(GROUP_STARK);
+    expect(graph.clusters).toEqual([
+      { groupType: "house", id: GROUP_STARK, kind: "group", name: "House Stark", size: 1 },
+    ]);
+  });
+
+  it("buckets clusterBy=importance by the as-of-context importance", () => {
+    const graph = build({
+      clusterBy: "importance",
+      edges: [
+        edgeSource({ id: "rel-1", sourceCharacterId: ALICE, targetCharacterId: BOB }),
+        edgeSource({
+          bookStates: [stateSource({ id: "state-2", relationshipId: "rel-2" })],
+          id: "rel-2",
+          sourceCharacterId: ALICE,
+          targetCharacterId: CAROL,
+        }),
+      ],
+      nodes: [
+        nodeSource({
+          appearances: [
+            {
+              bookId: BOOK,
+              createdAt: new Date("2024-01-01T00:00:00.000Z"),
+              hidePresenceAsSpoiler: false,
+              importance: "central",
+            },
+          ],
+          id: ALICE,
+        }),
+        nodeSource({ id: BOB }),
+        nodeSource({ id: CAROL }),
+      ],
+    });
+
+    expect(graph.clusterBy).toBe("importance");
+    expect(graph.nodes.find((node) => node.id === ALICE)?.clusterId).toBe("central");
+    expect(graph.nodes.find((node) => node.id === BOB)?.clusterId).toBe("major");
+    expect(graph.clusters).toEqual([
+      { id: "central", importance: "central", kind: "importance", size: 1 },
+      { id: "major", importance: "major", kind: "importance", size: 2 },
+    ]);
   });
 });

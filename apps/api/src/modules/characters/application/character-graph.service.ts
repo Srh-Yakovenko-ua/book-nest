@@ -18,12 +18,14 @@ import type { ResolvedReadingContext } from "../domain/context-books.js";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildCharacterGraph } from "../domain/character-graph.js";
 import { resolveAllowedBookIds } from "../domain/series-representative.js";
+import { CharacterGroupsRepository } from "../infrastructure/character-groups.repository.js";
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import {
   collectEndpointCharacterIds,
   toGraphEdgeSource,
   toGraphFilterSet,
+  toGraphMembershipSource,
   toGraphNodeSource,
 } from "./graph-sources.js";
 
@@ -32,6 +34,7 @@ export class CharacterGraphService {
   constructor(
     private readonly relationshipsRepository: CharacterRelationshipsRepository,
     private readonly charactersRepository: CharactersRepository,
+    private readonly groupsRepository: CharacterGroupsRepository,
   ) {}
 
   async getForBook({
@@ -83,13 +86,21 @@ export class CharacterGraphService {
       characterIds: endpointIds,
       userId,
     });
+    const clusterBy = query.clusterBy ?? null;
+    const membershipRows =
+      clusterBy === "group"
+        ? await this.groupsRepository.listGraphMemberships({ characterIds: endpointIds, userId })
+        : [];
 
     return buildCharacterGraph({
+      allowedBookIds: context.allowedBookIds,
       categoryFilter: toGraphFilterSet<RelationshipCategory>(query.categories),
+      clusterBy,
       depth: query.depth,
       edgeLimit: CHARACTER_GRAPH_EDGE_LIMIT,
       edges: relationships.map(toGraphEdgeSource),
       focusCharacterId: query.focusCharacterId ?? null,
+      memberships: membershipRows.map(toGraphMembershipSource),
       mode: query.mode,
       nodeLimit: CHARACTER_GRAPH_NODE_LIMIT,
       nodes: nodeRows.map(toGraphNodeSource),

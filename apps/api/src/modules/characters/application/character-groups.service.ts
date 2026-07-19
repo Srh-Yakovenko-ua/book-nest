@@ -26,6 +26,7 @@ import { NotFoundError, ValidationError } from "../../../core/exceptions/errors.
 import { buildPaginator } from "../../../core/paginator.js";
 import { BooksRepository } from "../../books/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
+import { isMembershipVisibleInContext } from "../domain/character-group-visibility.js";
 import {
   toCharacterGroupDetailsView,
   toCharacterGroupSummaryView,
@@ -431,15 +432,14 @@ export class CharacterGroupsService {
       characterIds: [...new Set(row.memberships.map((membership) => membership.characterId))],
       userId,
     });
-    const revealed = new Set(presence.revealedCharacterIds);
-    const hiddenPresence = new Set(presence.hiddenPresenceCharacterIds);
-    const allowed = new Set(allowedBookIds);
+    const context = {
+      allowedBookIds: new Set(allowedBookIds),
+      hiddenPresenceCharacterIds: new Set(presence.hiddenPresenceCharacterIds),
+      revealedCharacterIds: new Set(presence.revealedCharacterIds),
+    };
 
-    const visibleMembers = row.memberships.filter(
-      (membership) =>
-        !membership.isSpoiler &&
-        (membership.bookId === null || allowed.has(membership.bookId)) &&
-        !(hiddenPresence.has(membership.characterId) && !revealed.has(membership.characterId)),
+    const visibleMembers = row.memberships.filter((membership) =>
+      isMembershipVisibleInContext({ context, membership }),
     );
 
     return toCharacterGroupDetailsView({

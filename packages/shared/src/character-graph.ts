@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { CharacterGroupTypeSchema } from "./character-groups.js";
 import {
   CharacterRelationshipDiagnosticViewSchema,
   RelationshipBookStateStatusSchema,
@@ -21,8 +22,13 @@ export const CharacterGraphModeSchema = z.enum(["family", "all"]);
 
 export type CharacterGraphMode = z.infer<typeof CharacterGraphModeSchema>;
 
+export const CharacterGraphClusterBySchema = z.enum(["group", "importance"]);
+
+export type CharacterGraphClusterBy = z.infer<typeof CharacterGraphClusterBySchema>;
+
 const characterGraphQueryFields = {
   categories: queryStringArray(RelationshipCategorySchema),
+  clusterBy: CharacterGraphClusterBySchema.optional(),
   depth: z.coerce
     .number()
     .int()
@@ -47,6 +53,7 @@ export const SeriesCharacterGraphQuerySchema = z.object({
 export type SeriesCharacterGraphQuery = z.infer<typeof SeriesCharacterGraphQuerySchema>;
 
 export const CharacterGraphNodeViewSchema = z.object({
+  clusterId: z.string().nullable(),
   degree: z.number().int().nonnegative(),
   entityKind: CharacterEntityKindSchema,
   id: z.string(),
@@ -56,6 +63,28 @@ export const CharacterGraphNodeViewSchema = z.object({
 });
 
 export type CharacterGraphNodeView = z.infer<typeof CharacterGraphNodeViewSchema>;
+
+export const CharacterGraphGroupClusterViewSchema = z.object({
+  groupType: CharacterGroupTypeSchema,
+  id: z.string(),
+  kind: z.literal("group"),
+  name: z.string().nullable(),
+  size: z.number().int().positive(),
+});
+
+export const CharacterGraphImportanceClusterViewSchema = z.object({
+  id: z.string(),
+  importance: BookCharacterImportanceSchema,
+  kind: z.literal("importance"),
+  size: z.number().int().positive(),
+});
+
+export const CharacterGraphClusterViewSchema = z.discriminatedUnion("kind", [
+  CharacterGraphGroupClusterViewSchema,
+  CharacterGraphImportanceClusterViewSchema,
+]);
+
+export type CharacterGraphClusterView = z.infer<typeof CharacterGraphClusterViewSchema>;
 
 export const CharacterGraphEdgeViewSchema = z.object({
   category: RelationshipCategorySchema.nullable(),
@@ -86,6 +115,8 @@ export const CharacterGraphHiddenContentViewSchema = z.object({
 export type CharacterGraphHiddenContentView = z.infer<typeof CharacterGraphHiddenContentViewSchema>;
 
 export const CharacterGraphViewSchema = z.object({
+  clusterBy: CharacterGraphClusterBySchema.nullable(),
+  clusters: z.array(CharacterGraphClusterViewSchema),
   diagnostics: z.array(CharacterRelationshipDiagnosticViewSchema),
   edges: z.array(CharacterGraphEdgeViewSchema),
   graphVersion: z.string(),

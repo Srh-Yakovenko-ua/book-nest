@@ -1,5 +1,7 @@
 import type {
   BookCharacterImportance,
+  CharacterGraphClusterBy,
+  CharacterGraphClusterView,
   CharacterGraphEdgeView,
   CharacterGraphMode,
   CharacterGraphNodeView,
@@ -17,6 +19,7 @@ import {
   BookCharacterImportanceSchema,
   CHARACTER_RELATIONSHIP_ERROR_CODES,
   CharacterEntityKindSchema,
+  CharacterGroupTypeSchema,
   getFamilyAncestryRole,
   RelationshipBookStateStatusSchema,
   RelationshipCategorySchema,
@@ -29,6 +32,7 @@ import { createHash } from "node:crypto";
 
 import type { RelationshipBookStateSource } from "./character-relationship.mapper.js";
 
+import { isMembershipVisibleInContext } from "./character-group-visibility.js";
 import { pickEffectiveBookState } from "./character-relationship.mapper.js";
 
 const GRAPH_VERSION_LENGTH = 16;
@@ -50,6 +54,20 @@ export type GraphEdgeSource = {
   targetLabel: Nullable<string>;
   type: string;
   updatedAt: Date;
+};
+
+export type GraphMembershipGroup = {
+  id: string;
+  isSpoiler: boolean;
+  name: string;
+  type: string;
+};
+
+export type GraphMembershipSource = {
+  bookId: Nullable<string>;
+  characterId: string;
+  group: GraphMembershipGroup;
+  isSpoiler: boolean;
 };
 
 export type GraphNodeAppearance = {
@@ -92,17 +110,32 @@ type AncestryEdge = {
 };
 
 type BuildCharacterGraphInput = {
+  allowedBookIds: string[];
   categoryFilter: Nullable<Set<RelationshipCategory>>;
+  clusterBy: Nullable<CharacterGraphClusterBy>;
   depth: number;
   edgeLimit: number;
   edges: GraphEdgeSource[];
   focusCharacterId: Nullable<string>;
+  memberships: GraphMembershipSource[];
   mode: CharacterGraphMode;
   nodeLimit: number;
   nodes: GraphNodeSource[];
   partNumberById: Map<string, Nullable<number>>;
   revealEdgeIds: Set<string>;
   typeFilter: Nullable<Set<RelationshipType>>;
+};
+
+type ClusterComputeInput = {
+  allowedBookIds: Set<string>;
+  memberships: GraphMembershipSource[];
+  nodes: CharacterGraphNodeView[];
+  presenceHiddenIds: Set<string>;
+};
+
+type ClusterResult = {
+  clusterIdByNodeId: Map<string, string>;
+  clusters: CharacterGraphClusterView[];
 };
 
 export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterGraphView {
@@ -137,7 +170,7 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
   });
 
   const degreeById = computeDegrees(bounded.edges);
-  const nodes = [...bounded.nodeIds]
+  const baseNodes = [...bounded.nodeIds]
     .map((id) => nodeById.get(id))
     .filter((node): node is GraphNodeSource => node !== undefined)
     .map((node) =>
@@ -153,11 +186,24 @@ export function buildCharacterGraph(input: BuildCharacterGraphInput): CharacterG
         left.name.localeCompare(right.name) ||
         left.id.localeCompare(right.id),
     );
+  const { clusterIdByNodeId, clusters } = computeClusters({
+    allowedBookIds: new Set(input.allowedBookIds),
+    clusterBy: input.clusterBy,
+    memberships: input.memberships,
+    nodes: baseNodes,
+    presenceHiddenIds,
+  });
+  const nodes = baseNodes.map((node) => ({
+    ...node,
+    clusterId: clusterIdByNodeId.get(node.id) ?? null,
+  }));
   const edges = bounded.edges
     .map((edge) => toGraphEdgeView(edge))
     .sort((left, right) => left.id.localeCompare(right.id));
 
   return {
+    clusterBy: input.clusterBy,
+    clusters,
     diagnostics: detectGraphFamilyDiagnostics(bounded.edges),
     edges,
     graphVersion: computeGraphVersion({
@@ -306,6 +352,7 @@ export function toGraphNodeView({
   const importance: Nullable<BookCharacterImportance> =
     representative === null ? null : BookCharacterImportanceSchema.parse(representative.importance);
   return {
+    clusterId: null,
     degree,
     entityKind: CharacterEntityKindSchema.parse(node.entityKind),
     id: node.id,
@@ -471,6 +518,23 @@ function combineCategoryFilters({
   return new Set([...modeCategories].filter((category) => categoryFilter.has(category)));
 }
 
+function computeClusters({
+  allowedBookIds,
+  clusterBy,
+  memberships,
+  nodes,
+  presenceHiddenIds,
+}: ClusterComputeInput & { clusterBy: Nullable<CharacterGraphClusterBy> }): ClusterResult {
+  if (clusterBy === null) {
+    return { clusterIdByNodeId: new Map(), clusters: [] };
+  }
+  const builders: Record<CharacterGraphClusterBy, () => ClusterResult> = {
+    group: () => computeGroupClusters({ allowedBookIds, memberships, nodes, presenceHiddenIds }),
+    importance: () => computeImportanceClusters({ nodes }),
+  };
+  return builders[clusterBy]();
+}
+
 function computeGraphVersion({
   depth,
   edges,
@@ -500,6 +564,86 @@ function computeGraphVersion({
     edgeSignature,
   ].join("|");
   return createHash("sha256").update(serialized).digest("hex").slice(0, GRAPH_VERSION_LENGTH);
+}
+
+function computeGroupClusters({
+  allowedBookIds,
+  memberships,
+  nodes,
+  presenceHiddenIds,
+}: ClusterComputeInput): ClusterResult {
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const context = {
+    allowedBookIds,
+    hiddenPresenceCharacterIds: presenceHiddenIds,
+    revealedCharacterIds: nodeIds,
+  };
+
+  const visibleByCharacter = new Map<string, GraphMembershipSource[]>();
+  for (const membership of memberships) {
+    if (!nodeIds.has(membership.characterId)) {
+      continue;
+    }
+    if (!isMembershipVisibleInContext({ context, membership })) {
+      continue;
+    }
+    const current = visibleByCharacter.get(membership.characterId) ?? [];
+    current.push(membership);
+    visibleByCharacter.set(membership.characterId, current);
+  }
+
+  const clusterIdByNodeId = new Map<string, string>();
+  const accumulator = new Map<string, { group: GraphMembershipGroup; size: number }>();
+  for (const node of nodes) {
+    const visible = visibleByCharacter.get(node.id);
+    if (visible === undefined) {
+      continue;
+    }
+    const representative = pickRepresentativeMembership(visible);
+    clusterIdByNodeId.set(node.id, representative.group.id);
+    const entry = accumulator.get(representative.group.id);
+    if (entry === undefined) {
+      accumulator.set(representative.group.id, { group: representative.group, size: 1 });
+    } else {
+      entry.size += 1;
+    }
+  }
+
+  const clusters: CharacterGraphClusterView[] = [...accumulator.values()]
+    .map(({ group, size }) => ({
+      groupType: CharacterGroupTypeSchema.parse(group.type),
+      id: group.id,
+      kind: "group" as const,
+      name: group.isSpoiler ? null : group.name,
+      size,
+    }))
+    .sort((left, right) => right.size - left.size || left.id.localeCompare(right.id));
+
+  return { clusterIdByNodeId, clusters };
+}
+
+function computeImportanceClusters({ nodes }: { nodes: CharacterGraphNodeView[] }): ClusterResult {
+  const clusterIdByNodeId = new Map<string, string>();
+  const sizeByImportance = new Map<BookCharacterImportance, number>();
+  for (const node of nodes) {
+    if (node.importance === null) {
+      continue;
+    }
+    clusterIdByNodeId.set(node.id, node.importance);
+    sizeByImportance.set(node.importance, (sizeByImportance.get(node.importance) ?? 0) + 1);
+  }
+
+  const order = BookCharacterImportanceSchema.options;
+  const clusters: CharacterGraphClusterView[] = [...sizeByImportance.entries()]
+    .map(([importance, size]) => ({
+      id: importance,
+      importance,
+      kind: "importance" as const,
+      size,
+    }))
+    .sort((left, right) => order.indexOf(left.importance) - order.indexOf(right.importance));
+
+  return { clusterIdByNodeId, clusters };
 }
 
 function computeModeCategories(mode: CharacterGraphMode): Nullable<Set<RelationshipCategory>> {
@@ -636,4 +780,10 @@ function passesTypeFilter({
     return true;
   }
   return type !== null && typeFilter.has(type);
+}
+
+function pickRepresentativeMembership(memberships: GraphMembershipSource[]): GraphMembershipSource {
+  return memberships.reduce((best, candidate) =>
+    candidate.group.id < best.group.id ? candidate : best,
+  );
 }

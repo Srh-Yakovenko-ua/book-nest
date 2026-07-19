@@ -22,6 +22,13 @@ const summaryInclude = {
   _count: { select: { memberships: true } },
 } satisfies Prisma.CharacterGroupInclude;
 
+const graphMembershipSelect = {
+  bookId: true,
+  characterId: true,
+  group: { select: { id: true, isSpoiler: true, name: true, type: true } },
+  isSpoiler: true,
+} satisfies Prisma.CharacterGroupMembershipSelect;
+
 export type CharacterGroupDetailsRow = Prisma.CharacterGroupGetPayload<{
   include: typeof detailsInclude;
 }>;
@@ -54,6 +61,10 @@ export type CreateMembershipData = {
   role: Nullable<string>;
   status: Nullable<string>;
 };
+
+export type GraphMembershipRow = Prisma.CharacterGroupMembershipGetPayload<{
+  select: typeof graphMembershipSelect;
+}>;
 
 export type GroupListFilter = {
   search: string | undefined;
@@ -177,6 +188,22 @@ export class CharacterGroupsRepository {
     return client.characterGroup.findFirst({
       include: detailsInclude,
       where: { id: groupId, userId },
+    });
+  }
+
+  listGraphMemberships({
+    characterIds,
+    userId,
+  }: {
+    characterIds: string[];
+    userId: string;
+  }): Promise<GraphMembershipRow[]> {
+    if (characterIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.characterGroupMembership.findMany({
+      select: graphMembershipSelect,
+      where: { characterId: { in: characterIds }, group: { userId } },
     });
   }
 

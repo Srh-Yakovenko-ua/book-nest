@@ -57,6 +57,29 @@ async function createCharacter(token: string, name: string): Promise<string> {
   return res.body.id;
 }
 
+async function createGroup({
+  isSpoiler = false,
+  members,
+  name,
+  token,
+  type,
+}: {
+  isSpoiler?: boolean;
+  members: { characterId: string }[];
+  name: string;
+  token: string;
+  type: string;
+}): Promise<string> {
+  const res = await authed("post", "/api/character-groups", token).send({
+    isSpoiler,
+    members,
+    name,
+    type,
+  });
+  expect(res.status).toBe(HttpStatus.CREATED);
+  return res.body.id;
+}
+
 async function createRelationship(token: string, body: Record<string, unknown>): Promise<string> {
   const res = await authed("post", "/api/character-relationships", token).send(body);
   expect(res.status).toBe(HttpStatus.CREATED);
@@ -254,6 +277,120 @@ describe("book character graph", () => {
     expect(revealed).toMatchObject({ revealed: true, type: "friend_of", typeHidden: false });
     expect(stillHidden).toMatchObject({ typeHidden: true });
     expect(JSON.stringify(stillHidden)).not.toContain("ally_of");
+  });
+
+  it("clusters visible nodes by group and returns a legend", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+    const groupId = await createGroup({
+      members: [{ characterId: alice }, { characterId: bob }],
+      name: "House Stark",
+      token: accessToken,
+      type: "house",
+    });
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?clusterBy=group`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.clusterBy).toBe("group");
+    expect(res.body.nodes.every((node: { clusterId: string }) => node.clusterId === groupId)).toBe(
+      true,
+    );
+    expect(res.body.clusters).toEqual([
+      { groupType: "house", id: groupId, kind: "group", name: "House Stark", size: 2 },
+    ]);
+  });
+
+  it("masks a spoiler group name in the legend while still forming the cluster", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+    const groupId = await createGroup({
+      isSpoiler: true,
+      members: [{ characterId: alice }, { characterId: bob }],
+      name: "The Faceless Men",
+      token: accessToken,
+      type: "cult",
+    });
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?clusterBy=group`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.nodes.every((node: { clusterId: string }) => node.clusterId === groupId)).toBe(
+      true,
+    );
+    expect(res.body.clusters).toEqual([
+      { groupType: "cult", id: groupId, kind: "group", name: null, size: 2 },
+    ]);
+    expect(JSON.stringify(res.body)).not.toContain("Faceless Men");
+  });
+
+  it("buckets clusterBy=importance by the effective importance", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const alice = await createCharacter(accessToken, "Alice");
+    const bob = await createCharacter(accessToken, "Bob");
+    await linkCharacter({
+      bookId,
+      bookProfile: { importance: "central" },
+      characterId: alice,
+      token: accessToken,
+    });
+    await linkCharacter({
+      bookId,
+      bookProfile: { importance: "major" },
+      characterId: bob,
+      token: accessToken,
+    });
+    await createRelationship(accessToken, {
+      category: "social",
+      directionality: "symmetric",
+      initialBookStates: [{ bookId, status: "active" }],
+      sourceCharacterId: alice,
+      targetCharacterId: bob,
+      type: "friend_of",
+    });
+
+    const res = await authed(
+      "get",
+      `/api/books/${bookId}/character-graph?clusterBy=importance`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.clusterBy).toBe("importance");
+    expect(res.body.nodes.find((node: { id: string }) => node.id === alice).clusterId).toBe(
+      "central",
+    );
+    expect(res.body.nodes.find((node: { id: string }) => node.id === bob).clusterId).toBe("major");
+    expect(res.body.clusters).toEqual([
+      { id: "central", importance: "central", kind: "importance", size: 1 },
+      { id: "major", importance: "major", kind: "importance", size: 1 },
+    ]);
   });
 
   it("returns 404 for a foreign book", async () => {

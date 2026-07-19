@@ -42,6 +42,7 @@ export class BookCharacterGraphController {
   @ApiQuery({ name: "categories", required: false })
   @ApiQuery({ name: "relationshipTypes", required: false })
   @ApiQuery({ name: "revealEdgeIds", required: false })
+  @ApiQuery({ enum: ["group", "importance"], name: "clusterBy", required: false })
   @Get()
   get(
     @CurrentUser() user: AuthenticatedUser,
