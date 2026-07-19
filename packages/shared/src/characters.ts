@@ -34,6 +34,12 @@ export const CHARACTER_ERROR_CODES = {
   validationFailed: "validation_failed",
 } as const;
 
+export const CHARACTER_MERGE_ERROR_CODES = {
+  conflict: "character_merge_conflict",
+  notFound: "character_merge_not_found",
+  sameCharacter: "character_merge_self",
+} as const;
+
 export const CharacterEntityKindSchema = z.enum(["individual", "collective", "unknown"]);
 
 export type CharacterEntityKind = z.infer<typeof CharacterEntityKindSchema>;
@@ -658,3 +664,62 @@ export const SeriesCharacterSummaryViewSchema = z.object({
 });
 
 export type SeriesCharacterSummaryView = z.infer<typeof SeriesCharacterSummaryViewSchema>;
+
+export const CharacterMergePreviewQuerySchema = z
+  .object({
+    otherId: z.string().uuid(),
+  })
+  .strict();
+
+export type CharacterMergePreviewQuery = z.infer<typeof CharacterMergePreviewQuerySchema>;
+
+export const CharacterMergeInputSchema = z
+  .object({
+    otherId: z.string().uuid(),
+  })
+  .strict();
+
+export type CharacterMergeInput = z.infer<typeof CharacterMergeInputSchema>;
+
+export const CharacterMergeEntityCountsSchema = z.object({
+  dropped: z.number().int().nonnegative(),
+  moved: z.number().int().nonnegative(),
+});
+
+export type CharacterMergeEntityCounts = z.infer<typeof CharacterMergeEntityCountsSchema>;
+
+export const CharacterMergeCountsSchema = z.object({
+  aliases: CharacterMergeEntityCountsSchema,
+  appearances: CharacterMergeEntityCountsSchema,
+  memberships: CharacterMergeEntityCountsSchema,
+  relationships: CharacterMergeEntityCountsSchema,
+  roles: CharacterMergeEntityCountsSchema,
+  tags: CharacterMergeEntityCountsSchema,
+  theories: CharacterMergeEntityCountsSchema,
+});
+
+export type CharacterMergeCounts = z.infer<typeof CharacterMergeCountsSchema>;
+
+export const CharacterMergePartySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+export type CharacterMergeParty = z.infer<typeof CharacterMergePartySchema>;
+
+export const CharacterMergePreviewViewSchema = z.object({
+  counts: CharacterMergeCountsSchema,
+  hasHiddenRecords: z.boolean(),
+  loser: CharacterMergePartySchema,
+  survivor: CharacterMergePartySchema,
+});
+
+export type CharacterMergePreviewView = z.infer<typeof CharacterMergePreviewViewSchema>;
+
+export const CharacterMergeResultViewSchema = z.object({
+  counts: CharacterMergeCountsSchema,
+  loserId: z.string(),
+  survivor: CharacterMergePartySchema,
+});
+
+export type CharacterMergeResultView = z.infer<typeof CharacterMergeResultViewSchema>;

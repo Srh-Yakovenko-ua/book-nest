@@ -12,6 +12,7 @@ import { BookCharacterSummaryController } from "./api/book-character-summary.con
 import { BookCharactersController } from "./api/book-characters.controller.js";
 import { CharacterGraphLayoutsController } from "./api/character-graph-layouts.controller.js";
 import { CharacterGroupsController } from "./api/character-groups.controller.js";
+import { CharacterMergeController } from "./api/character-merge.controller.js";
 import { CharacterRelationshipsController } from "./api/character-relationships.controller.js";
 import { CharacterTheoriesController } from "./api/character-theories.controller.js";
 import { CharactersController } from "./api/characters.controller.js";
@@ -23,6 +24,7 @@ import { SeriesReadingContextController } from "./api/series-reading-context.con
 import { CharacterGraphLayoutsService } from "./application/character-graph-layouts.service.js";
 import { CharacterGraphService } from "./application/character-graph.service.js";
 import { CharacterGroupsService } from "./application/character-groups.service.js";
+import { CharacterMergeService } from "./application/character-merge.service.js";
 import { CharacterPurgeProcessor } from "./application/character-purge.processor.js";
 import { CharacterRelationshipPathService } from "./application/character-relationship-path.service.js";
 import { CharacterRelationshipsService } from "./application/character-relationships.service.js";
@@ -31,6 +33,7 @@ import { CharactersService } from "./application/characters.service.js";
 import { CHARACTER_PURGE_QUEUE_NAME } from "./domain/character-purge.js";
 import { CharacterGraphLayoutsRepository } from "./infrastructure/character-graph-layouts.repository.js";
 import { CharacterGroupsRepository } from "./infrastructure/character-groups.repository.js";
+import { CharacterMergeRepository } from "./infrastructure/character-merge.repository.js";
 import { CharacterRelationshipsRepository } from "./infrastructure/character-relationships.repository.js";
 import { CharacterTheoriesRepository } from "./infrastructure/character-theories.repository.js";
 import { CharactersRepository } from "./infrastructure/characters.repository.js";
@@ -39,6 +42,7 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
   controllers: [
     CharactersController,
     CharacterGroupsController,
+    CharacterMergeController,
     CharacterRelationshipsController,
     CharacterTheoriesController,
     BookCharactersController,
@@ -68,6 +72,8 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterGraphLayoutsRepository,
     CharacterGroupsService,
     CharacterGroupsRepository,
+    CharacterMergeService,
+    CharacterMergeRepository,
     CharacterRelationshipsService,
     CharacterRelationshipsRepository,
     CharacterRelationshipPathService,
