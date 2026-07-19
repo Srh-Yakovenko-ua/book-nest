@@ -59,6 +59,7 @@ model User {
   characters                Character[]
   characterGroups           CharacterGroup[]
   characterTheories         CharacterTheory[]
+  characterRelationships    CharacterRelationship[]
 
   @@map("users")
 }
@@ -257,6 +258,7 @@ model Book {
   characterAliases              CharacterAlias[]
   characterGroupMemberships     CharacterGroupMembership[]
   characterTheories             CharacterTheory[]
+  characterRelationshipStates   CharacterRelationshipBookState[]
 
   @@unique([seriesId, partNumber])
   @@index([userId])
@@ -763,11 +765,13 @@ model Character {
   updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz
   user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   avatarMedia        MediaAsset?      @relation(fields: [avatarMediaId], references: [id], onDelete: SetNull)
-  aliases            CharacterAlias[]
-  bookAppearances    BookCharacter[]
-  tags               CharacterTag[]
-  groupMemberships   CharacterGroupMembership[]
-  theories           CharacterTheory[]
+  aliases                 CharacterAlias[]
+  bookAppearances         BookCharacter[]
+  tags                    CharacterTag[]
+  groupMemberships        CharacterGroupMembership[]
+  theories                CharacterTheory[]
+  outgoingRelationships   CharacterRelationship[]    @relation("outgoingRelationships")
+  incomingRelationships   CharacterRelationship[]    @relation("incomingRelationships")
 
   @@index([userId])
   @@index([userId, normalizedName])
@@ -934,4 +938,56 @@ model CharacterTheory {
   @@index([seriesId])
   @@index([userId, status])
   @@map("character_theories")
+}
+
+model CharacterRelationship {
+  id                String                           @id @default(uuid()) @db.Uuid
+  userId            String                           @map("user_id") @db.Uuid
+  sourceCharacterId String                           @map("source_character_id") @db.Uuid
+  targetCharacterId String                           @map("target_character_id") @db.Uuid
+  category          String
+  type              String
+  customType        String?                          @map("custom_type")
+  directionality    String                           @default("directed")
+  sourceLabel       String?                          @map("source_label")
+  targetLabel       String?                          @map("target_label")
+  isCanonical       Boolean                          @default(false) @map("is_canonical")
+  createdAt         DateTime                         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime                         @updatedAt @map("updated_at") @db.Timestamptz
+  user              User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceCharacter   Character                        @relation("outgoingRelationships", fields: [sourceCharacterId], references: [id], onDelete: Cascade)
+  targetCharacter   Character                        @relation("incomingRelationships", fields: [targetCharacterId], references: [id], onDelete: Cascade)
+  bookStates        CharacterRelationshipBookState[]
+
+  @@index([userId])
+  @@index([sourceCharacterId])
+  @@index([targetCharacterId])
+  @@index([userId, category])
+  @@map("character_relationships")
+}
+
+model CharacterRelationshipBookState {
+  id                        String                @id @default(uuid()) @db.Uuid
+  relationshipId            String                @map("relationship_id") @db.Uuid
+  bookId                    String                @map("book_id") @db.Uuid
+  status                    String                @default("active")
+  description               String?
+  intensity                 String?
+  isTypeSpoiler             Boolean               @default(false) @map("is_type_spoiler")
+  isDescriptionSpoiler      Boolean               @default(false) @map("is_description_spoiler")
+  hideRelationshipAsSpoiler Boolean               @default(false) @map("hide_relationship_as_spoiler")
+  introducedChapter         String?               @map("introduced_chapter")
+  introducedPage            Int?                  @map("introduced_page")
+  introducedAudioSeconds    Int?                  @map("introduced_audio_seconds")
+  endedChapter              String?               @map("ended_chapter")
+  endedPage                 Int?                  @map("ended_page")
+  endedAudioSeconds         Int?                  @map("ended_audio_seconds")
+  createdAt                 DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                 DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  relationship              CharacterRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+  book                      Book                  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([relationshipId, bookId])
+  @@index([bookId])
+  @@map("character_relationship_book_states")
 }

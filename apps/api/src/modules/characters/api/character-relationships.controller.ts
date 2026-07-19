@@ -1,0 +1,195 @@
+import type {
+  CharacterRelationshipDeletionResultView,
+  CharacterRelationshipDetailsView,
+} from "@app/shared";
+
+import {
+  CharacterRelationshipDetailsQuerySchema,
+  CreateCharacterRelationshipSchema,
+  UpdateCharacterRelationshipSchema,
+  UpsertRelationshipBookStateSchema,
+} from "@app/shared";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from "@nestjs/swagger";
+import { seconds, Throttle } from "@nestjs/throttler";
+
+import type { AuthenticatedUser } from "../../auth/index.js";
+
+import { HTTP_STATUS } from "../../../core/http-status.js";
+import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
+import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
+import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CharacterRelationshipsService } from "../application/character-relationships.service.js";
+import { CharacterRelationshipDetailsQueryDto } from "./input-dto/character-relationship-details-query.input-dto.js";
+import { CreateCharacterRelationshipInputDto } from "./input-dto/create-character-relationship.input-dto.js";
+import { UpdateCharacterRelationshipInputDto } from "./input-dto/update-character-relationship.input-dto.js";
+import { UpsertRelationshipBookStateInputDto } from "./input-dto/upsert-relationship-book-state.input-dto.js";
+import { CharacterRelationshipDeletionResultViewDto } from "./view-dto/character-relationship-deletion-result.view-dto.js";
+import { CharacterRelationshipDetailsViewDto } from "./view-dto/character-relationship-details.view-dto.js";
+
+const RELATIONSHIP_ACTION_TTL_SECONDS = 60;
+const RELATIONSHIP_ACTION_LIMIT = 60;
+
+@ApiBearerAuth()
+@ApiTags("character-relationships")
+@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+@Controller("api/character-relationships")
+@UseGuards(JwtAccessGuard)
+export class CharacterRelationshipsController {
+  constructor(private readonly relationshipsService: CharacterRelationshipsService) {}
+
+  @ApiBadRequestResponse({ description: "Validation, self-reference or direction mismatch" })
+  @ApiBody({ type: CreateCharacterRelationshipInputDto })
+  @ApiConflictResponse({ description: "Duplicate relationship or family cycle" })
+  @ApiCreatedResponse({
+    description: "The created relationship",
+    type: CharacterRelationshipDetailsViewDto,
+  })
+  @ApiNotFoundResponse({ description: "A character or book was not found" })
+  @ApiOperation({ summary: "Create a relationship edge, optionally with initial per-book states" })
+  @Post()
+  @Throttle({
+    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
+  })
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodBodyPipe(CreateCharacterRelationshipSchema))
+    body: CreateCharacterRelationshipInputDto,
+  ): Promise<CharacterRelationshipDetailsView> {
+    return this.relationshipsService.create({ input: body, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "Relationship or context book not found" })
+  @ApiOkResponse({
+    description: "The relationship, spoiler-masked to a reading context when contextBookId is set",
+    type: CharacterRelationshipDetailsViewDto,
+  })
+  @ApiOperation({ summary: "Get a relationship with its spoiler-safe per-book state history" })
+  @ApiParam({ description: "Relationship id", name: "relationshipId" })
+  @ApiQuery({ name: "contextBookId", required: false })
+  @Get(":relationshipId")
+  getById(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
+    @Query(new ZodQueryPipe(CharacterRelationshipDetailsQuerySchema))
+    query: CharacterRelationshipDetailsQueryDto,
+  ): Promise<CharacterRelationshipDetailsView> {
+    return this.relationshipsService.getDetails({ query, relationshipId, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: UpdateCharacterRelationshipInputDto })
+  @ApiConflictResponse({ description: "Duplicate relationship or family cycle" })
+  @ApiNotFoundResponse({ description: "Relationship not found" })
+  @ApiOkResponse({
+    description: "The updated relationship",
+    type: CharacterRelationshipDetailsViewDto,
+  })
+  @ApiOperation({ summary: "Update the semantic edge without wiping its per-book states" })
+  @ApiParam({ description: "Relationship id", name: "relationshipId" })
+  @Patch(":relationshipId")
+  @Throttle({
+    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
+  })
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
+    @Body(new ZodBodyPipe(UpdateCharacterRelationshipSchema))
+    body: UpdateCharacterRelationshipInputDto,
+  ): Promise<CharacterRelationshipDetailsView> {
+    return this.relationshipsService.update({ input: body, relationshipId, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "Relationship not found" })
+  @ApiOkResponse({
+    description: "The deleted relationship id and the number of book states removed",
+    type: CharacterRelationshipDeletionResultViewDto,
+  })
+  @ApiOperation({ summary: "Delete a relationship and its per-book states" })
+  @ApiParam({ description: "Relationship id", name: "relationshipId" })
+  @Delete(":relationshipId")
+  @Throttle({
+    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
+  })
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
+  ): Promise<CharacterRelationshipDeletionResultView> {
+    return this.relationshipsService.remove({ relationshipId, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: UpsertRelationshipBookStateInputDto })
+  @ApiNotFoundResponse({ description: "Relationship or book not found" })
+  @ApiOkResponse({
+    description: "The relationship with the upserted per-book state",
+    type: CharacterRelationshipDetailsViewDto,
+  })
+  @ApiOperation({ summary: "Create or replace the relationship state for one book" })
+  @ApiParam({ description: "Relationship id", name: "relationshipId" })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @HttpCode(HTTP_STATUS.OK)
+  @Put(":relationshipId/books/:bookId")
+  @Throttle({
+    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
+  })
+  upsertBookState(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+    @Body(new ZodBodyPipe(UpsertRelationshipBookStateSchema))
+    body: UpsertRelationshipBookStateInputDto,
+  ): Promise<CharacterRelationshipDetailsView> {
+    return this.relationshipsService.upsertBookState({
+      bookId,
+      input: body,
+      relationshipId,
+      userId: user.id,
+    });
+  }
+
+  @ApiNoContentResponse({ description: "The per-book state was removed" })
+  @ApiNotFoundResponse({ description: "Relationship or book state not found" })
+  @ApiOperation({ summary: "Delete the relationship state for one book" })
+  @ApiParam({ description: "Relationship id", name: "relationshipId" })
+  @ApiParam({ description: "Book id", name: "bookId" })
+  @Delete(":relationshipId/books/:bookId")
+  @HttpCode(HTTP_STATUS.NO_CONTENT)
+  @Throttle({
+    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
+  })
+  removeBookState(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+  ): Promise<void> {
+    return this.relationshipsService.removeBookState({ bookId, relationshipId, userId: user.id });
+  }
+}
