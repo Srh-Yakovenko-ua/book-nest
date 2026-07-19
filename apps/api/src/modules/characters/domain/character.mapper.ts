@@ -96,6 +96,7 @@ export type GlobalSummaryCharacterSource = {
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
   species: Nullable<string>;
+  tags: { tag: { id: string; name: string } }[];
 };
 
 export type SeriesProfileAppearanceSource = SummaryHiddenFieldFlags & {
@@ -267,6 +268,7 @@ export function toCharacterGlobalSummaryView({
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
     species: emptyToNull(character.species),
+    tags: character.tags.map((link) => ({ id: link.tag.id, name: link.tag.name })),
   };
 }
 

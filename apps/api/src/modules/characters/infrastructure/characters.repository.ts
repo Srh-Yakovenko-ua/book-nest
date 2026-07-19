@@ -29,6 +29,10 @@ const rosterInclude = {
 const globalSummaryInclude = {
   _count: { select: { bookAppearances: true } },
   avatarMedia: true,
+  tags: {
+    orderBy: [{ tag: { name: "asc" } }, { tag: { normalizedName: "asc" } }],
+    select: { tag: { select: { id: true, name: true } } },
+  },
 } satisfies Prisma.CharacterInclude;
 
 const seriesAppearanceInclude = {
@@ -172,14 +176,20 @@ export type CreateRoleData = {
 export type GlobalCharacterFilter = {
   archived: boolean;
   attitudes: string[] | undefined;
+  bookId: string | undefined;
   contextBookId: string | undefined;
+  duplicateNormalizedNames: string[] | undefined;
   favorite: boolean | undefined;
   genders: string[] | undefined;
+  groupIds: string[] | undefined;
+  hasSpoilers: boolean | undefined;
   importances: string[] | undefined;
   includeSpoilerSearch: boolean;
   roleTypes: string[] | undefined;
   search: string | undefined;
+  seriesId: string | undefined;
   species: string[] | undefined;
+  tagIds: string[] | undefined;
   userId: string;
 };
 
@@ -435,6 +445,22 @@ export class CharactersRepository {
       take: limit,
       where,
     });
+  }
+
+  async findDuplicateNormalizedNames({
+    archived,
+    userId,
+  }: {
+    archived: boolean;
+    userId: string;
+  }): Promise<string[]> {
+    const groups = await this.prisma.character.groupBy({
+      _count: { normalizedName: true },
+      by: ["normalizedName"],
+      having: { normalizedName: { _count: { gt: 1 } } },
+      where: { archivedAt: archived ? { not: null } : null, deletedAt: null, userId },
+    });
+    return groups.map((group) => group.normalizedName);
   }
 
   findForPurge(
@@ -823,14 +849,20 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
   const {
     archived,
     attitudes,
+    bookId,
     contextBookId,
+    duplicateNormalizedNames,
     favorite,
     genders,
+    groupIds,
+    hasSpoilers,
     importances,
     includeSpoilerSearch,
     roleTypes,
     search,
+    seriesId,
     species,
+    tagIds,
     userId,
   } = filter;
 
@@ -851,11 +883,24 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
   if (favorite !== undefined) {
     where.isFavorite = favorite;
   }
+  if (tagIds !== undefined) {
+    where.tags = { some: { tagId: { in: tagIds } } };
+  }
+  if (duplicateNormalizedNames !== undefined) {
+    where.normalizedName = { in: duplicateNormalizedNames };
+  }
 
   const scopeAppearance = (
     extra: Prisma.BookCharacterWhereInput,
   ): Prisma.BookCharacterWhereInput =>
     contextBookId === undefined ? extra : { ...extra, bookId: contextBookId };
+
+  const scopeMembership = (
+    extra: Prisma.CharacterGroupMembershipWhereInput,
+  ): Prisma.CharacterGroupMembershipWhereInput =>
+    contextBookId === undefined
+      ? extra
+      : { ...extra, OR: [{ bookId: null }, { bookId: contextBookId }] };
 
   const and: Prisma.CharacterWhereInput[] = [];
   if (importances !== undefined) {
@@ -874,6 +919,28 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
         }),
       },
     });
+  }
+  if (bookId !== undefined) {
+    and.push({ bookAppearances: { some: { bookId, hidePresenceAsSpoiler: false } } });
+  }
+  if (seriesId !== undefined) {
+    and.push({
+      bookAppearances: { some: { book: { seriesId }, hidePresenceAsSpoiler: false } },
+    });
+  }
+  if (groupIds !== undefined) {
+    and.push({
+      groupMemberships: {
+        some: scopeMembership({
+          groupId: { in: groupIds },
+          ...(includeSpoilerSearch ? {} : { isSpoiler: false }),
+        }),
+      },
+    });
+  }
+  if (hasSpoilers !== undefined) {
+    const spoilerContent = buildHasSpoilerContentWhere({ scopeAppearance, scopeMembership });
+    and.push(hasSpoilers ? spoilerContent : { NOT: spoilerContent });
   }
   if (contextBookId !== undefined) {
     and.push({
@@ -905,6 +972,40 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     where.AND = and;
   }
   return where;
+}
+
+function buildHasSpoilerContentWhere({
+  scopeAppearance,
+  scopeMembership,
+}: {
+  scopeAppearance: (extra: Prisma.BookCharacterWhereInput) => Prisma.BookCharacterWhereInput;
+  scopeMembership: (
+    extra: Prisma.CharacterGroupMembershipWhereInput,
+  ) => Prisma.CharacterGroupMembershipWhereInput;
+}): Prisma.CharacterWhereInput {
+  return {
+    OR: [
+      { aliases: { some: { isSpoiler: true } } },
+      { groupMemberships: { some: scopeMembership({ isSpoiler: true }) } },
+      {
+        bookAppearances: {
+          some: scopeAppearance({
+            OR: [
+              { appearanceNotesIsSpoiler: true },
+              { descriptionIsSpoiler: true },
+              { displayNameIsSpoiler: true },
+              { hidePresenceAsSpoiler: true },
+              { personalImpressionIsSpoiler: true },
+              { portraitIsSpoiler: true },
+              { speciesOverrideIsSpoiler: true },
+              { statusIsSpoiler: true },
+              { roles: { some: { isSpoiler: true } } },
+            ],
+          }),
+        },
+      },
+    ],
+  };
 }
 
 function buildRosterWhere({

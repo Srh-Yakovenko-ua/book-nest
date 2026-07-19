@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
 import { queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
+import { TagViewSchema } from "./tags.js";
 
 const CHARACTER_NAME_MAX = 200;
 const CHARACTER_SHORT_TEXT_MAX = 200;
@@ -467,9 +468,12 @@ export type CharacterListSort = z.infer<typeof CharacterListSortSchema>;
 export const CharactersListQuerySchema = z.object({
   archived: z.stringbool().optional(),
   attitude: queryStringArray(CharacterAttitudeSchema),
+  bookId: z.string().uuid().optional(),
   contextBookId: z.string().uuid().optional(),
   favorite: z.stringbool().optional(),
   gender: queryStringArray(CharacterGenderSchema),
+  groupId: queryStringArray(z.string().uuid()),
+  hasSpoilers: z.stringbool().optional(),
   importance: queryStringArray(BookCharacterImportanceSchema),
   includeSpoilerSearch: z.stringbool().optional(),
   pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
@@ -479,10 +483,13 @@ export const CharactersListQuerySchema = z.object({
     .min(1)
     .max(LIST_PAGE_SIZE_MAX)
     .default(CHARACTERS_DEFAULT_PAGE_SIZE),
+  possibleDuplicates: z.stringbool().optional(),
   q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
   role: queryStringArray(BookCharacterRoleTypeSchema),
+  seriesId: z.string().uuid().optional(),
   sort: CharacterListSortSchema.default("name"),
   species: queryStringArray(z.string().trim().min(1).max(CHARACTER_SPECIES_MAX)),
+  tagId: queryStringArray(z.string().uuid()),
 });
 
 export type CharactersListQuery = z.infer<typeof CharactersListQuerySchema>;
@@ -586,6 +593,7 @@ export const CharacterGlobalSummaryViewSchema = z.object({
   neutralDescription: z.string().nullable(),
   pronouns: z.string().nullable(),
   species: z.string().nullable(),
+  tags: z.array(TagViewSchema),
 });
 
 export type CharacterGlobalSummaryView = z.infer<typeof CharacterGlobalSummaryViewSchema>;

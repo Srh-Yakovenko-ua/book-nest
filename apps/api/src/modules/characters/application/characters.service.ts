@@ -455,7 +455,13 @@ export class CharactersService {
     if (query.contextBookId !== undefined) {
       await this.assertBookOwned(userId, query.contextBookId);
     }
-    const filter = this.toGlobalFilter({ query, userId });
+    const duplicateNormalizedNames = query.possibleDuplicates
+      ? await this.charactersRepository.findDuplicateNormalizedNames({
+          archived: query.archived ?? false,
+          userId,
+        })
+      : undefined;
+    const filter = this.toGlobalFilter({ duplicateNormalizedNames, query, userId });
 
     const [rows, totalCount] = await Promise.all([
       this.charactersRepository.listGlobalSummaries({
@@ -1331,23 +1337,31 @@ export class CharactersService {
   }
 
   private toGlobalFilter({
+    duplicateNormalizedNames,
     query,
     userId,
   }: {
+    duplicateNormalizedNames: string[] | undefined;
     query: CharactersListQuery;
     userId: string;
   }): GlobalCharacterFilter {
     return {
       archived: query.archived ?? false,
       attitudes: query.attitude,
+      bookId: query.bookId,
       contextBookId: query.contextBookId,
+      duplicateNormalizedNames,
       favorite: query.favorite,
       genders: query.gender,
+      groupIds: query.groupId,
+      hasSpoilers: query.hasSpoilers,
       importances: query.importance,
       includeSpoilerSearch: query.includeSpoilerSearch ?? false,
       roleTypes: query.role,
       search: normalizeSearch(query.q),
+      seriesId: query.seriesId,
       species: query.species,
+      tagIds: query.tagId,
       userId,
     };
   }
