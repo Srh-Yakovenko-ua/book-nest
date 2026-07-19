@@ -57,6 +57,7 @@ model User {
   quotes                    Quote[]
   notes                     Note[]
   characters                Character[]
+  characterGroups           CharacterGroup[]
 
   @@map("users")
 }
@@ -110,6 +111,7 @@ model Series {
   orderIgnoredIssues   SeriesOrderIgnoredIssue[]
   orderDisabledEntries SeriesOrderDisabledSeries[]
   notes                Note[]
+  characterGroups      CharacterGroup[]
 
   @@unique([userId, normalizedName])
   @@index([userId])
@@ -251,6 +253,7 @@ model Book {
   timelineEvents                BookTimelineEvent[]
   bookCharacters                BookCharacter[]
   characterAliases              CharacterAlias[]
+  characterGroupMemberships     CharacterGroupMembership[]
 
   @@unique([seriesId, partNumber])
   @@index([userId])
@@ -760,6 +763,7 @@ model Character {
   aliases            CharacterAlias[]
   bookAppearances    BookCharacter[]
   tags               CharacterTag[]
+  groupMemberships   CharacterGroupMembership[]
 
   @@index([userId])
   @@index([userId, normalizedName])
@@ -859,4 +863,47 @@ model CharacterTag {
   @@id([characterId, tagId])
   @@index([tagId])
   @@map("character_tags")
+}
+
+model CharacterGroup {
+  id             String                     @id @default(uuid()) @db.Uuid
+  userId         String                     @map("user_id") @db.Uuid
+  seriesId       String?                    @map("series_id") @db.Uuid
+  name           String
+  normalizedName String                     @map("normalized_name")
+  type           String                     @default("custom")
+  customType     String?                    @map("custom_type")
+  description    String?
+  isSpoiler      Boolean                    @default(false) @map("is_spoiler")
+  createdAt      DateTime                   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
+  user           User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series         Series?                    @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  memberships    CharacterGroupMembership[]
+
+  @@index([userId])
+  @@index([userId, seriesId])
+  @@index([userId, normalizedName])
+  @@map("character_groups")
+}
+
+model CharacterGroupMembership {
+  id          String         @id @default(uuid()) @db.Uuid
+  groupId     String         @map("group_id") @db.Uuid
+  characterId String         @map("character_id") @db.Uuid
+  bookId      String?        @map("book_id") @db.Uuid
+  role        String?
+  status      String?
+  isSpoiler   Boolean        @default(false) @map("is_spoiler")
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  group       CharacterGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  character   Character      @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  book        Book?          @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, characterId, bookId])
+  @@index([groupId])
+  @@index([characterId])
+  @@index([bookId])
+  @@map("character_group_memberships")
 }
