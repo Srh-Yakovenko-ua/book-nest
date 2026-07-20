@@ -29,7 +29,10 @@ import type {
   UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
 
-import { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import {
+  HEAVY_TRANSACTION_OPTIONS,
+  TransactionRunner,
+} from "../../../core/database/transaction-runner.js";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
@@ -305,7 +308,7 @@ export class BooksService {
           },
           client,
         );
-      });
+      }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
         error,
@@ -494,7 +497,7 @@ export class BooksService {
           },
           client,
         );
-      });
+      }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
         error,

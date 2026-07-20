@@ -6,7 +6,10 @@ import { randomUUID } from "node:crypto";
 
 import type { OwnedLibraryRefs } from "../domain/character-portability.js";
 
-import { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import {
+  HEAVY_TRANSACTION_OPTIONS,
+  TransactionRunner,
+} from "../../../core/database/transaction-runner.js";
 import { ValidationError } from "../../../core/exceptions/errors.js";
 import {
   classifyBundleParseError,
@@ -58,7 +61,10 @@ export class CharacterPortabilityService {
       owned,
       userId,
     });
-    await this.transactionRunner.run((tx) => this.portabilityRepository.insertGraph(plan, tx));
+    await this.transactionRunner.run(
+      (tx) => this.portabilityRepository.insertGraph(plan, tx),
+      HEAVY_TRANSACTION_OPTIONS,
+    );
     return { created: plan.created, formatVersion: bundle.formatVersion, skipped: plan.skipped };
   }
 

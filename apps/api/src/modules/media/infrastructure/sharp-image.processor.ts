@@ -17,6 +17,9 @@ import {
   InvalidImageError,
 } from "../domain/image-processor.port.js";
 
+sharp.concurrency(1);
+sharp.cache(false);
+
 const OUTPUT_CONTENT_TYPE = "image/webp";
 const WEBP_EFFORT = 6;
 const DEFAULT_MAX_INPUT_PIXELS = 80_000_000;

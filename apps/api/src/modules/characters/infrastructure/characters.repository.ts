@@ -580,6 +580,18 @@ export class CharactersRepository {
     });
   }
 
+  findPurgeCandidates(
+    { deletedBefore, limit }: { deletedBefore: Date; limit: number },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<{ id: string; userId: string }[]> {
+    return client.character.findMany({
+      orderBy: { deletedAt: "asc" },
+      select: { id: true, userId: true },
+      take: limit,
+      where: { deletedAt: { lt: deletedBefore } },
+    });
+  }
+
   findSeriesCharacterProfile(
     {
       allowedBookIds,
