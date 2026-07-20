@@ -49,8 +49,6 @@ const NON_REFRESHABLE_PATHS = [
   "/api/auth/nickname-available",
 ];
 
-let refreshPromise: null | Promise<string> = null;
-
 export async function request<T>(path: string, init?: RequestOptions): Promise<T> {
   const res = await send(path, init);
 
@@ -122,13 +120,10 @@ async function refreshAndRetry<T>(
   if (!bridge) return { handled: false };
 
   try {
-    refreshPromise ??= bridge.refresh();
-    await refreshPromise;
+    await bridge.refresh();
   } catch {
     bridge.onRefreshFailed();
     return { handled: false };
-  } finally {
-    refreshPromise = null;
   }
 
   const res = await send(path, init);
