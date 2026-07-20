@@ -48,19 +48,19 @@
     },
     "toolbar": {
       "searchLabel": "Пошук у черзі",
-      "searchPlaceholder": "Пошук у черзі…",
+      "searchPlaceholder": "Пошук за назвою, автором або серією",
       "clearSearch": "Очистити пошук",
-      "sortLabel": "Сортувати",
-      "sortOptions": {
-        "position": "Позиція в черзі"
-      },
-      "dragHint": "Перетягуйте книги або скористайтеся меню рядка, щоб змінити порядок",
-      "dragDisabledHint": "Очистіть пошук, щоб змінити порядок книг у черзі."
+      "dragHint": "Перетягніть книги або скористайтеся меню рядка, щоб змінити порядок",
+      "dragDisabledHint": "Drag-and-drop недоступний під час пошуку та фільтрації. Очисти фільтри, щоб змінити порядок черги."
+    },
+    "filters": {
+      "priority": "Пріоритет"
     },
     "item": {
       "position": "#{position}",
       "positionAria": "Позиція {position}",
       "reorderAria": "Змінити порядок «{title}»",
+      "dragDisabledTooltip": "Drag-and-drop недоступний під час фільтрації.",
       "readingNow": "Читаю зараз",
       "startReading": "Почати читати",
       "moreActions": "Більше дій для «{title}»",

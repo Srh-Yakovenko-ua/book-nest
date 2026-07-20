@@ -15,7 +15,7 @@ import { QueueDragHandle, ReadingQueueItem } from "./reading-queue-item";
 type ReadingQueueListProps = {
   canMove: boolean;
   draggable: boolean;
-  hasSearch: boolean;
+  filtered: boolean;
   items: ReadingQueueItemView[];
   labels: LibraryBookLabels;
   onDragCommit: () => void;
@@ -28,7 +28,7 @@ type ReadingQueueListProps = {
 export function ReadingQueueList({
   canMove,
   draggable,
-  hasSearch,
+  filtered,
   items,
   labels,
   onDragCommit,
@@ -74,13 +74,17 @@ export function ReadingQueueList({
           <ReadingQueueItem
             book={toLibraryBook(item.book, labels)}
             dragHandle={
-              <QueueDragHandle disabled label={t("reorderAria", { title: item.book.title })} />
+              <QueueDragHandle
+                disabled
+                disabledTooltip={t("dragDisabledTooltip")}
+                label={t("reorderAria", { title: item.book.title })}
+              />
             }
             onMoveDown={moveDown({ canMove, index, items, onMove })}
             onMoveUp={moveUp({ canMove, index, items, onMove })}
             onRemove={() => onRemove(item)}
             onStartReading={() => onStartReading(item)}
-            position={hasSearch ? item.position : index + 1}
+            position={filtered ? item.position : index + 1}
             queue={toReadingQueueCard(item.book, labels.ownershipLabel)}
           />
         </li>

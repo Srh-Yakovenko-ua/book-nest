@@ -19,10 +19,19 @@ import type { LibraryBookLabels } from "../model/library-book";
 
 import { useGenres } from "../api/use-genres";
 import { useReadingQueue, useReorderReadingQueue } from "../api/use-reading-queue";
+import { useTagsSearch } from "../api/use-tags-search";
 import { toQueuePickerItems } from "../model/queue-placement";
+import {
+  activeQueueFilterCount,
+  EMPTY_QUEUE_FILTERS,
+  hasActiveQueueFilters,
+  matchesQueueFilters,
+  type QueueFilterState,
+} from "../model/reading-queue-filters";
 import { useRemoveFromQueueWithUndo } from "../model/use-remove-from-queue-with-undo";
 import { AddBookToQueueDialog } from "./add-book-to-queue-dialog";
 import { QueueStats } from "./queue-stats";
+import { ReadingQueueFilters } from "./reading-queue-filters";
 import { ReadingQueueList } from "./reading-queue-list";
 import { ReadingQueueToolbar } from "./reading-queue-toolbar";
 import { SeriesOrderCheckBlock } from "./series-order-check-block";
@@ -47,10 +56,13 @@ export function ReadingQueueView() {
 
   const { data, isError, isPending, refetch } = useReadingQueue();
   const genres = useGenres();
+  const tags = useTagsSearch("");
   const removeFromQueue = useRemoveFromQueueWithUndo();
   const reorder = useReorderReadingQueue();
 
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<QueueFilterState>(EMPTY_QUEUE_FILTERS);
+  const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
   const [addOpen, setAddOpen] = useState(false);
   const [startTarget, setStartTarget] = useState<null | StartTarget>(null);
 
@@ -74,6 +86,15 @@ export function ReadingQueueView() {
     .filter((item): item is ReadingQueueItemView => item !== undefined);
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
+  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
+
+  function rememberEntity(id: string, name: string) {
+    setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
+  }
+
+  function resolveEntityName(id: string): string | undefined {
+    return entityLabels[id] ?? tagNameById.get(id);
+  }
 
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const previousServerOrderKey = useRef(serverOrderKey);
@@ -106,10 +127,21 @@ export function ReadingQueueView() {
 
   const normalizedQuery = search.trim().toLowerCase();
   const hasSearch = normalizedQuery !== "";
-  const displayItems = hasSearch
-    ? localItems.filter((item) => matchesQueueSearch(item, normalizedQuery))
-    : localItems;
-  const draggable = !hasSearch && !reorder.isPending;
+  const hasActiveFilters = hasActiveQueueFilters(filters);
+  const filterCount = activeQueueFilterCount(filters);
+  const displayItems = localItems.filter(
+    (item) =>
+      (!hasSearch || matchesQueueSearch(item, normalizedQuery)) &&
+      (!hasActiveFilters || matchesQueueFilters(item.book, filters)),
+  );
+  const draggable = !hasSearch && !hasActiveFilters && !reorder.isPending;
+  const canMove = !hasSearch && !hasActiveFilters;
+  const isFiltered = hasSearch || hasActiveFilters;
+
+  function clearQueueFilters() {
+    setSearch("");
+    setFilters(EMPTY_QUEUE_FILTERS);
+  }
 
   function commitOrder(items: ReadingQueueItemView[]) {
     reorder.mutate(
@@ -182,18 +214,27 @@ export function ReadingQueueView() {
               {t("listHeading")}
             </h2>
             <ReadingQueueToolbar
-              hasSearch={hasSearch}
+              dragDisabled={isFiltered}
+              filters={
+                <ReadingQueueFilters
+                  activeCount={filterCount}
+                  onApply={setFilters}
+                  onRememberEntity={rememberEntity}
+                  resolveEntityName={resolveEntityName}
+                  state={filters}
+                />
+              }
               onClearSearch={() => setSearch("")}
               onSearchChange={setSearch}
               search={search}
             />
-            {hasSearch && displayItems.length === 0 ? (
-              <EmptyState onPrimary={() => setSearch("")} state={noResultsState} />
+            {isFiltered && displayItems.length === 0 ? (
+              <EmptyState onPrimary={clearQueueFilters} state={noResultsState} />
             ) : (
               <ReadingQueueList
-                canMove={!hasSearch}
+                canMove={canMove}
                 draggable={draggable}
-                hasSearch={hasSearch}
+                filtered={isFiltered}
                 items={displayItems}
                 labels={labels}
                 onDragCommit={() => commitOrder(localItems)}

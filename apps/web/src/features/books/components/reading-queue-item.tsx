@@ -51,19 +51,21 @@ const dividerClass = "hidden w-px self-stretch bg-border @2xl/queue-card:block";
 
 export function QueueDragHandle({
   disabled = false,
+  disabledTooltip,
   label,
   onPointerDown,
 }: {
   disabled?: boolean;
+  disabledTooltip?: string;
   label: string;
   onPointerDown?: (event: PointerEvent) => void;
 }) {
-  return (
+  const handle = (
     <button
       aria-label={label}
       className={cn(
         "grid size-8 shrink-0 touch-none place-items-center self-center rounded-md text-muted-foreground opacity-70 transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:opacity-100",
-        disabled ? "cursor-not-allowed opacity-30" : "cursor-grab active:cursor-grabbing",
+        disabled ? "pointer-events-none opacity-30" : "cursor-grab active:cursor-grabbing",
       )}
       disabled={disabled}
       onPointerDown={onPointerDown}
@@ -72,6 +74,19 @@ export function QueueDragHandle({
       <UiIcon name="grip" size={16} />
     </button>
   );
+
+  if (disabled && disabledTooltip !== undefined) {
+    return (
+      <Tooltip delayDuration={TOOLTIP_DELAY_MS}>
+        <TooltipTrigger asChild>
+          <span className="inline-flex shrink-0 cursor-not-allowed self-center">{handle}</span>
+        </TooltipTrigger>
+        <TooltipContent side="right">{disabledTooltip}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return handle;
 }
 
 export function ReadingQueueItem({

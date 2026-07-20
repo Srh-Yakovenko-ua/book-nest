@@ -48,19 +48,19 @@
     },
     "toolbar": {
       "searchLabel": "Search the queue",
-      "searchPlaceholder": "Search the queue…",
+      "searchPlaceholder": "Search by title, author, or series",
       "clearSearch": "Clear search",
-      "sortLabel": "Sort",
-      "sortOptions": {
-        "position": "Queue position"
-      },
       "dragHint": "Drag books, or use the row menu, to reorder",
-      "dragDisabledHint": "Clear the search to reorder books in the queue."
+      "dragDisabledHint": "Drag-and-drop is unavailable while searching or filtering. Clear the filters to reorder the queue."
+    },
+    "filters": {
+      "priority": "Priority"
     },
     "item": {
       "position": "#{position}",
       "positionAria": "Position {position}",
       "reorderAria": "Reorder “{title}”",
+      "dragDisabledTooltip": "Drag-and-drop is unavailable while filtering.",
       "readingNow": "Reading now",
       "startReading": "Start reading",
       "moreActions": "More actions for “{title}”",

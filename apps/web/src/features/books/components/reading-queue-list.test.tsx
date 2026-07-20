@@ -56,7 +56,7 @@ function renderList(items: ReadingQueueItemView[], overrides: Record<string, unk
     <ReadingQueueList
       canMove
       draggable={false}
-      hasSearch={false}
+      filtered={false}
       items={items}
       labels={labels}
       onDragCommit={vi.fn()}
