@@ -22,7 +22,6 @@ import { useReadingQueue, useReorderReadingQueue } from "../api/use-reading-queu
 import { toQueuePickerItems } from "../model/queue-placement";
 import { useRemoveFromQueueWithUndo } from "../model/use-remove-from-queue-with-undo";
 import { AddBookToQueueDialog } from "./add-book-to-queue-dialog";
-import { NextToReadCard } from "./next-to-read-card";
 import { QueueStats } from "./queue-stats";
 import { ReadingQueueList } from "./reading-queue-list";
 import { ReadingQueueToolbar } from "./reading-queue-toolbar";
@@ -209,16 +208,6 @@ export function ReadingQueueView() {
           </div>
 
           <aside className="hidden flex-col gap-4 lg:flex">
-            <NextToReadCard
-              item={serverItems[0] ?? null}
-              labels={labels}
-              onStartReading={() => {
-                const next = serverItems[0];
-                if (next !== undefined) {
-                  setStartTarget({ id: next.book.id, title: next.book.title });
-                }
-              }}
-            />
             <QueueStats count={count} totalPagesCount={totalPagesCount} />
             <SeriesOrderCheckBlock />
           </aside>
@@ -271,7 +260,6 @@ function QueueSkeleton() {
         </div>
       </div>
       <div className="hidden flex-col gap-4 lg:flex">
-        <Skeleton className="h-44 w-full rounded-xl" />
         <Skeleton className="h-24 w-full rounded-xl" />
         <SeriesOrderCheckSkeleton />
       </div>

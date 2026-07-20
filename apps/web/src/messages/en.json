@@ -140,11 +140,6 @@
       "totalLength": "Total length",
       "pages": "{count, plural, one {# page} other {# pages}}"
     },
-    "nextToRead": {
-      "title": "Next to read",
-      "empty": "Add a book to the queue to see what’s next to read.",
-      "startReading": "Start reading"
-    },
     "seriesOrderCheck": {
       "title": "Check series order",
       "subtitle": "Found series where the reading order may be broken",
