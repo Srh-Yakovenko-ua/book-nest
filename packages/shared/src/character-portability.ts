@@ -364,7 +364,10 @@ export const CharacterBundleSchema = z
 export type CharacterBundle = z.infer<typeof CharacterBundleSchema>;
 
 export const CharacterExportQuerySchema = z.object({
-  includeArchived: z.stringbool().default(true),
+  includeArchived: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
 });
 
 export type CharacterExportQuery = z.infer<typeof CharacterExportQuerySchema>;
