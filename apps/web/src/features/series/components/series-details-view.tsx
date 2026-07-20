@@ -30,6 +30,7 @@ import { SeriesBooksSummary } from "./series-books-summary";
 import { SeriesBooksTab } from "./series-books-tab";
 import { SeriesDetailsAbout } from "./series-details-about";
 import { SeriesDetailsHero } from "./series-details-hero";
+import { SeriesOrderCheckToggle } from "./series-order-check-toggle";
 import { SeriesProgressCard } from "./series-progress-card";
 import { SeriesStatsCard } from "./series-stats-card";
 
@@ -128,12 +129,14 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
 
         <div className="details-sidebar-leaf flex flex-col gap-6 lg:hidden">
           <SeriesStatsCard stats={details.stats} />
+          <SeriesOrderCheckToggle seriesId={details.id} />
         </div>
       </div>
 
       <aside className="details-sidebar-leaf hidden flex-col gap-6 lg:flex">
         {fullyRead ? null : <SeriesProgressCard details={details} />}
         <SeriesStatsCard stats={details.stats} />
+        <SeriesOrderCheckToggle seriesId={details.id} />
       </aside>
 
       <EditSeriesDialog onOpenChange={setEditOpen} open={editOpen} series={details} />

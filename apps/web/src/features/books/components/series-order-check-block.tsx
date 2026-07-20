@@ -12,9 +12,9 @@ import { Button } from "@/components/ui/button";
 import type { SeriesOrderErrorKey, SeriesOrderFixTarget } from "../model/series-order-check";
 
 import {
-  useDisableSeriesOrderCheck,
   useIgnoreSeriesOrderIssue,
   useSeriesOrderIssues,
+  useSetSeriesOrderCheckPreference,
 } from "../api/use-series-order-check";
 import {
   isSeriesOrderFixStrategy,
@@ -42,7 +42,7 @@ export function SeriesOrderCheckBlock() {
 
   const issues = useSeriesOrderIssues({ limit: SERIES_ORDER_SIDEBAR_LIMIT });
   const ignoreIssue = useIgnoreSeriesOrderIssue();
-  const disableSeries = useDisableSeriesOrderCheck();
+  const setPreference = useSetSeriesOrderCheckPreference();
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
@@ -85,15 +85,18 @@ export function SeriesOrderCheckBlock() {
   }
 
   function handleDisable(target: DisableTarget) {
-    disableSeries.mutate(target.id, {
-      onError: handleMutationError,
-      onSuccess: () => {
-        setDisableTarget(null);
-        announce(t("success.disabled"));
-        toast.success(t("success.disabled"));
-        if (!allIssuesOpen) setPendingFocusReturn(true);
+    setPreference.mutate(
+      { enabled: false, seriesId: target.id },
+      {
+        onError: handleMutationError,
+        onSuccess: () => {
+          setDisableTarget(null);
+          announce(t("success.disabled"));
+          toast.success(t("success.disabled"));
+          if (!allIssuesOpen) setPendingFocusReturn(true);
+        },
       },
-    });
+    );
   }
 
   function handleAction({
@@ -177,7 +180,7 @@ export function SeriesOrderCheckBlock() {
       />
 
       <SeriesOrderDisableDialog
-        isPending={disableSeries.isPending}
+        isPending={setPreference.isPending}
         onConfirm={() => {
           if (disableTarget !== null) handleDisable(disableTarget);
         }}

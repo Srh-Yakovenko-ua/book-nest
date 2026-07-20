@@ -2470,6 +2470,11 @@
         "averageRating": "Average rating",
         "pages": "Pages in series"
       },
+      "orderCheck": {
+        "title": "Series reading order",
+        "label": "Check order in the queue",
+        "description": "When on, we warn you in the Reading queue if parts of this series are out of order."
+      },
       "about": {
         "title": "About the series",
         "description": "Description",

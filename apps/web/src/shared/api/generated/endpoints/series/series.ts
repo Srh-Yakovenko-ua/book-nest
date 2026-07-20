@@ -1240,6 +1240,209 @@ export function useSeriesControllerDelete<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
+export type seriesOrderPreferenceControllerGetPreferenceResponse200 = {
+  data: SeriesOrderPreferenceViewDto;
+  status: 200;
+};
+
+export type seriesOrderPreferenceControllerGetPreferenceResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type seriesOrderPreferenceControllerGetPreferenceResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesOrderPreferenceControllerGetPreferenceResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type seriesOrderPreferenceControllerGetPreferenceResponseSuccess =
+  seriesOrderPreferenceControllerGetPreferenceResponse200 & {
+    headers: Headers;
+  };
+export type seriesOrderPreferenceControllerGetPreferenceResponseError = (
+  | seriesOrderPreferenceControllerGetPreferenceResponse400
+  | seriesOrderPreferenceControllerGetPreferenceResponse401
+  | seriesOrderPreferenceControllerGetPreferenceResponse404
+) & {
+  headers: Headers;
+};
+
+export type seriesOrderPreferenceControllerGetPreferenceResponse =
+  | seriesOrderPreferenceControllerGetPreferenceResponseSuccess
+  | seriesOrderPreferenceControllerGetPreferenceResponseError;
+
+export const getSeriesOrderPreferenceControllerGetPreferenceUrl = (seriesId: string) => {
+  return `/api/series/${seriesId}/order-check-preference`;
+};
+
+/**
+ * @summary Read the series read-order check preference for a series
+ */
+export const seriesOrderPreferenceControllerGetPreference = async (
+  seriesId: string,
+  options?: RequestInit,
+): Promise<seriesOrderPreferenceControllerGetPreferenceResponse> => {
+  return customInstance<seriesOrderPreferenceControllerGetPreferenceResponse>(
+    getSeriesOrderPreferenceControllerGetPreferenceUrl(seriesId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getSeriesOrderPreferenceControllerGetPreferenceQueryKey = (seriesId: string) => {
+  return [`/api/series/${seriesId}/order-check-preference`] as const;
+};
+
+export const getSeriesOrderPreferenceControllerGetPreferenceQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getSeriesOrderPreferenceControllerGetPreferenceQueryKey(seriesId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>
+  > = ({ signal }) =>
+    seriesOrderPreferenceControllerGetPreference(seriesId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: seriesId !== null && seriesId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesOrderPreferenceControllerGetPreferenceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>
+>;
+export type SeriesOrderPreferenceControllerGetPreferenceQueryError = void;
+
+export function useSeriesOrderPreferenceControllerGetPreference<
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderPreferenceControllerGetPreference<
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+          TError,
+          Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesOrderPreferenceControllerGetPreference<
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Read the series read-order check preference for a series
+ */
+
+export function useSeriesOrderPreferenceControllerGetPreference<
+  TData = Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+  TError = void,
+>(
+  seriesId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof seriesOrderPreferenceControllerGetPreference>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesOrderPreferenceControllerGetPreferenceQueryOptions(
+    seriesId,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 export type seriesOrderPreferenceControllerSetPreferenceResponse200 = {
   data: SeriesOrderPreferenceViewDto;
   status: 200;
