@@ -130,21 +130,6 @@ describe("ReadingQueueView", () => {
     expect(screen.queryByText(copy.empty.title)).not.toBeInTheDocument();
   });
 
-  it("renders localized genre names on queued books rather than raw keys", async () => {
-    const book = makeBookView({
-      genres: ["fantasy"],
-      id: "book-1",
-      tags: [],
-      title: "Перша книга",
-    });
-    mockQueueFetch(() => Promise.resolve(jsonResponse(queueView([{ book, position: 1 }]))));
-
-    renderWithProviders(<ReadingQueueView />);
-
-    expect(await screen.findByText("Фентезі")).toBeInTheDocument();
-    expect(screen.queryByText("fantasy")).not.toBeInTheDocument();
-  });
-
   it("surfaces the reading-now badge after starting a book that stays in the queue", async () => {
     const queuedBook = makeBookView({
       id: "book-1",

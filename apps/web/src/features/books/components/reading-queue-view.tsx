@@ -255,7 +255,7 @@ function QueueSkeleton() {
         <Skeleton className="h-10 w-full rounded-md" />
         <div className="flex flex-col gap-2.5">
           {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-            <Skeleton className="h-[5.25rem] w-full rounded-xl" key={index} />
+            <Skeleton className="h-[9.5rem] w-full rounded-xl" key={index} />
           ))}
         </div>
       </div>

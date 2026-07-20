@@ -19,6 +19,19 @@ export const priorityCardVariants = cva(
   },
 );
 
+export const priorityChipVariants = cva(
+  "inline-flex w-fit items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold",
+  {
+    variants: {
+      tone: {
+        high: "border-primary/30 bg-primary/10 text-primary",
+        low: "border-success/40 bg-success-soft/60 text-success",
+        normal: "border-warning/40 bg-warning-soft/60 text-warning",
+      },
+    },
+  },
+);
+
 export const priorityIconBadgeVariants = cva(
   "flex shrink-0 items-center justify-center rounded-md",
   {

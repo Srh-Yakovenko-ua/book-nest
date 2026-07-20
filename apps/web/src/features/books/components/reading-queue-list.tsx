@@ -6,8 +6,10 @@ import { Reorder, useDragControls } from "motion/react";
 import { useTranslations } from "next-intl";
 
 import type { LibraryBook, LibraryBookLabels } from "../model/library-book";
+import type { ReadingQueueCard } from "../model/reading-queue-card";
 
 import { toLibraryBook } from "../model/library-book";
+import { toReadingQueueCard } from "../model/reading-queue-card";
 import { QueueDragHandle, ReadingQueueItem } from "./reading-queue-item";
 
 type ReadingQueueListProps = {
@@ -56,6 +58,7 @@ export function ReadingQueueList({
             onRemove={() => onRemove(item)}
             onStartReading={() => onStartReading(item)}
             position={index + 1}
+            queue={toReadingQueueCard(item.book, labels.ownershipLabel)}
             reorderLabel={t("reorderAria", { title: item.book.title })}
             value={item}
           />
@@ -78,6 +81,7 @@ export function ReadingQueueList({
             onRemove={() => onRemove(item)}
             onStartReading={() => onStartReading(item)}
             position={hasSearch ? item.position : index + 1}
+            queue={toReadingQueueCard(item.book, labels.ownershipLabel)}
           />
         </li>
       ))}
@@ -93,6 +97,7 @@ function DraggableQueueRow({
   onRemove,
   onStartReading,
   position,
+  queue,
   reorderLabel,
   value,
 }: {
@@ -103,6 +108,7 @@ function DraggableQueueRow({
   onRemove: () => void;
   onStartReading: () => void;
   position: number;
+  queue: ReadingQueueCard;
   reorderLabel: string;
   value: ReadingQueueItemView;
 }) {
@@ -126,6 +132,7 @@ function DraggableQueueRow({
         onRemove={onRemove}
         onStartReading={onStartReading}
         position={position}
+        queue={queue}
       />
     </Reorder.Item>
   );
