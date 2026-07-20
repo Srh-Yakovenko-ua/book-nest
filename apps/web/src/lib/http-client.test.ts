@@ -83,12 +83,19 @@ describe("request bearer attach", () => {
 });
 
 describe("request refresh-on-401 single-flight", () => {
-  it("refreshes once for concurrent 401s and retries each request", async () => {
+  it("routes concurrent 401s through one shared refresh and retries each request", async () => {
     let token = "old";
-    const refresh = vi.fn(() => {
+    const rotateToken = vi.fn(() => {
       token = "new";
       return Promise.resolve(token);
     });
+    let inFlight: null | Promise<string> = null;
+    const refresh = (): Promise<string> => {
+      inFlight ??= rotateToken().finally(() => {
+        inFlight = null;
+      });
+      return inFlight;
+    };
     registerAuthBridge({
       getAccessToken: () => token,
       onRefreshFailed: () => {},
@@ -109,7 +116,7 @@ describe("request refresh-on-401 single-flight", () => {
 
     expect(a.ok).toBe(true);
     expect(b.ok).toBe(true);
-    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(rotateToken).toHaveBeenCalledTimes(1);
   });
 
   it("clears session and propagates the 401 when refresh fails", async () => {
