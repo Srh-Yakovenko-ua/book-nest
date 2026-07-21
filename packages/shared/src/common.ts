@@ -78,7 +78,7 @@ export const readingPositionFromQuery = (query: {
   };
 };
 
-const HTML_TAG = /<\/?[a-zA-Z][^>]*>|<!--|<!\w/;
+const HTML_TAG = /<\/?[a-zA-Z][^<>]*>|<!--|<!\w/;
 
 export const noHtmlTags = (value: string): boolean => !HTML_TAG.test(value);
 
