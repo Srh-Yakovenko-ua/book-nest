@@ -59,6 +59,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -84,12 +89,36 @@ jobs:
           cache-from: type=gha,scope=api-${{ github.ref_name }}
           cache-to: type=gha,mode=max,scope=api-${{ github.ref_name }}
 
+      - name: Scan API image (Trivy)
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/booknest-api:${{ github.ref_name }}
+          format: sarif
+          output: trivy-api.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "true"
+          exit-code: "0"
+
+      - name: Upload API image scan to code scanning
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-api.sarif
+          category: trivy-image-api
+
   build-web:
     name: Build web image
     needs: [ci, changes]
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
 
     steps:
       - name: Checkout
@@ -127,6 +156,25 @@ jobs:
             API_BASE_URL=http://api-${{ github.ref_name }}:4000
           cache-from: type=gha,scope=web-${{ github.ref_name }}
           cache-to: type=gha,mode=max,scope=web-${{ github.ref_name }}
+
+      - name: Scan web image (Trivy)
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/booknest-web:${{ github.ref_name }}
+          format: sarif
+          output: trivy-web.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "true"
+          exit-code: "0"
+
+      - name: Upload web image scan to code scanning
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-web.sarif
+          category: trivy-image-web
 
   deploy:
     name: Deploy over SSH
