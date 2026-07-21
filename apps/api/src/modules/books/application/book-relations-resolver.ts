@@ -85,29 +85,6 @@ type QueuePlacement = {
   queuePriorityTargetDate: Nullable<Date>;
 };
 
-function toQueuePlacementDetails(details: QueuePriorityDetails): {
-  queuePriorityReason: Nullable<QueuePriorityReason>;
-  queuePriorityReasonCustomText: Nullable<string>;
-  queuePriorityTargetDate: Nullable<Date>;
-} {
-  return {
-    queuePriorityReason: details.reason,
-    queuePriorityReasonCustomText: details.customText,
-    queuePriorityTargetDate: details.targetDate === null ? null : parseIsoDate(details.targetDate),
-  };
-}
-
-function toQueuePriorityDetails(current: BookWithRelations): QueuePriorityDetails {
-  return {
-    customText: current.queuePriorityReasonCustomText,
-    reason:
-      current.queuePriorityReason === null
-        ? null
-        : QueuePriorityReasonSchema.parse(current.queuePriorityReason),
-    targetDate: toNullableIsoDate(current.queuePriorityTargetDate),
-  };
-}
-
 @Injectable()
 export class BookRelationsResolver {
   constructor(
@@ -581,4 +558,27 @@ export class BookRelationsResolver {
       ],
     });
   }
+}
+
+function toQueuePlacementDetails(details: QueuePriorityDetails): {
+  queuePriorityReason: Nullable<QueuePriorityReason>;
+  queuePriorityReasonCustomText: Nullable<string>;
+  queuePriorityTargetDate: Nullable<Date>;
+} {
+  return {
+    queuePriorityReason: details.reason,
+    queuePriorityReasonCustomText: details.customText,
+    queuePriorityTargetDate: details.targetDate === null ? null : parseIsoDate(details.targetDate),
+  };
+}
+
+function toQueuePriorityDetails(current: BookWithRelations): QueuePriorityDetails {
+  return {
+    customText: current.queuePriorityReasonCustomText,
+    reason:
+      current.queuePriorityReason === null
+        ? null
+        : QueuePriorityReasonSchema.parse(current.queuePriorityReason),
+    targetDate: toNullableIsoDate(current.queuePriorityTargetDate),
+  };
 }

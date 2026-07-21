@@ -77,6 +77,13 @@ type ResolveSeriesAuthorIdsInput = {
   userId: string;
 };
 
+type ResolveSeriesInput = {
+  fallbackAuthorIds?: string[];
+  newSeries?: NewSeriesInput;
+  seriesId?: string;
+  userId: string;
+};
+
 @Injectable()
 export class SeriesService {
   constructor(
@@ -436,13 +443,6 @@ export class SeriesService {
     return [...groups.values()];
   }
 }
-
-type ResolveSeriesInput = {
-  fallbackAuthorIds?: string[];
-  newSeries?: NewSeriesInput;
-  seriesId?: string;
-  userId: string;
-};
 
 function compareByUnfinishedRank(first: DecoratedSeries, second: DecoratedSeries): number {
   const progressDiff =

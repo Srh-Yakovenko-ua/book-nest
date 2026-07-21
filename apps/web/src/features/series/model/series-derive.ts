@@ -13,12 +13,7 @@ export type SeriesReadingFilter = "all" | SeriesReadingState;
 export type SeriesReadingState = "completed" | "empty" | "in_progress" | "not_started";
 
 export type SeriesSort =
-  | "activity_desc"
-  | "books_desc"
-  | "name_asc"
-  | "name_desc"
-  | "progress_asc"
-  | "progress_desc";
+  "activity_desc" | "books_desc" | "name_asc" | "name_desc" | "progress_asc" | "progress_desc";
 
 export type SeriesStatusFilter = "all" | SeriesStatus;
 

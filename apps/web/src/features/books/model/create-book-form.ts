@@ -15,8 +15,7 @@ export const CreateBookFormSchema = CreateBookInputSchema.superRefine(validateQu
 export const UpdateBookFormSchema = UpdateBookInputSchema.superRefine(validateQueuePriority);
 
 export type AuthorSelection =
-  | { id: string; kind: "catalog"; name: string }
-  | { kind: "custom"; name: string };
+  { id: string; kind: "catalog"; name: string } | { kind: "custom"; name: string };
 
 export type BookFormInitialSeries = {
   partNumber?: number;
@@ -28,8 +27,7 @@ export type CreateBookFormOutput = z.output<typeof CreateBookInputSchema>;
 export type CreateBookFormValues = z.input<typeof CreateBookInputSchema>;
 
 export type PublisherSelection =
-  | { id: string; kind: "catalog"; name: string }
-  | { kind: "custom"; name: string };
+  { id: string; kind: "catalog"; name: string } | { kind: "custom"; name: string };
 
 export type SeriesPartNumberConflict = {
   bookId: string;

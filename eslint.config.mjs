@@ -76,6 +76,7 @@ export default tseslint.config(
       "import-x/no-cycle": "warn",
       "import-x/no-duplicates": "warn",
       "import-x/no-self-import": "error",
+      "react-hooks/set-state-in-effect": "warn",
       "react/prop-types": "off",
       "react/react-in-jsx-scope": "off",
     },

@@ -110,7 +110,9 @@ describe("BooksToBuyView", () => {
     renderWithProviders(<BooksToBuyView />);
 
     expect(document.querySelector("[aria-busy]")).toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: "Фільтр за посиланнями та цінами" })).toBeNull();
+    expect(
+      screen.queryByRole("radiogroup", { name: "Фільтр за посиланнями та цінами" }),
+    ).toBeNull();
   });
 
   it("announces a failed wishlist load and hides the toolbar and sidebar", async () => {
@@ -120,7 +122,9 @@ describe("BooksToBuyView", () => {
 
     const alert = await screen.findByRole("alert");
     expect(within(alert).getByText("Не вдалося завантажити")).toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: "Фільтр за посиланнями та цінами" })).toBeNull();
+    expect(
+      screen.queryByRole("radiogroup", { name: "Фільтр за посиланнями та цінами" }),
+    ).toBeNull();
     expect(screen.queryByRole("complementary", { name: "Огляд покупок" })).toBeNull();
   });
 
@@ -142,7 +146,9 @@ describe("BooksToBuyView", () => {
     renderWithProviders(<BooksToBuyView />);
 
     expect(await screen.findByText("Збережи книги для майбутніх покупок")).toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: "Фільтр за посиланнями та цінами" })).toBeNull();
+    expect(
+      screen.queryByRole("radiogroup", { name: "Фільтр за посиланнями та цінами" }),
+    ).toBeNull();
   });
 
   it("shows the purchase overview alongside a loaded wishlist", async () => {
@@ -167,7 +173,9 @@ describe("BooksToBuyView", () => {
 
     renderWithProviders(<BooksToBuyView />);
 
-    const chips = await screen.findByRole("group", { name: "Фільтр за посиланнями та цінами" });
+    const chips = await screen.findByRole("radiogroup", {
+      name: "Фільтр за посиланнями та цінами",
+    });
     await userEvent.click(within(chips).getByRole("radio", { name: /Без посилань/ }));
 
     expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
@@ -195,7 +203,9 @@ describe("BooksToBuyView", () => {
 
     renderWithProviders(<BooksToBuyView />);
 
-    const chips = await screen.findByRole("group", { name: "Фільтр за посиланнями та цінами" });
+    const chips = await screen.findByRole("radiogroup", {
+      name: "Фільтр за посиланнями та цінами",
+    });
     expect(within(chips).getByRole("radio", { name: /Усі/ })).toHaveTextContent("2");
     expect(within(chips).getByRole("radio", { name: /Є посилання/ })).toHaveTextContent("1");
   });

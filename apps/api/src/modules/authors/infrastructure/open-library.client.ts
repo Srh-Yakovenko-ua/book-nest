@@ -79,44 +79,6 @@ export type OpenLibraryWork = {
 
 const logger = createLogger("authors.open-library");
 
-function coverUrlFromIds(covers: number[] | undefined): Nullable<string> {
-  const firstCoverId = covers?.find((coverId) => coverId !== MISSING_PHOTO_ID);
-  if (firstCoverId === undefined) {
-    return null;
-  }
-  return WORK_COVER_BY_ID(firstCoverId);
-}
-
-function normalizeBio(bio: string | undefined | { value: string }): Nullable<string> {
-  if (bio === undefined) {
-    return null;
-  }
-  const value = typeof bio === "string" ? bio : bio.value;
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
-}
-
-function parseBirthYear(birthDate: string | undefined): Nullable<number> {
-  if (birthDate === undefined) {
-    return null;
-  }
-  const match = BIRTH_YEAR.exec(birthDate);
-  const captured = match?.[1];
-  if (captured === undefined) {
-    return null;
-  }
-  const year = Number.parseInt(captured, 10);
-  return Number.isNaN(year) ? null : year;
-}
-
-function photoUrlFromIds(photos: number[] | undefined): Nullable<string> {
-  const firstPhotoId = photos?.[0];
-  if (firstPhotoId === undefined || firstPhotoId === MISSING_PHOTO_ID) {
-    return null;
-  }
-  return PHOTO_BY_ID(firstPhotoId);
-}
-
 @Injectable()
 export class OpenLibraryClient {
   async getAuthorByKey(olid: string): Promise<Nullable<OpenLibraryAuthorDetail>> {
@@ -250,4 +212,42 @@ export class OpenLibraryClient {
 
     return authors;
   }
+}
+
+function coverUrlFromIds(covers: number[] | undefined): Nullable<string> {
+  const firstCoverId = covers?.find((coverId) => coverId !== MISSING_PHOTO_ID);
+  if (firstCoverId === undefined) {
+    return null;
+  }
+  return WORK_COVER_BY_ID(firstCoverId);
+}
+
+function normalizeBio(bio: string | undefined | { value: string }): Nullable<string> {
+  if (bio === undefined) {
+    return null;
+  }
+  const value = typeof bio === "string" ? bio : bio.value;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+function parseBirthYear(birthDate: string | undefined): Nullable<number> {
+  if (birthDate === undefined) {
+    return null;
+  }
+  const match = BIRTH_YEAR.exec(birthDate);
+  const captured = match?.[1];
+  if (captured === undefined) {
+    return null;
+  }
+  const year = Number.parseInt(captured, 10);
+  return Number.isNaN(year) ? null : year;
+}
+
+function photoUrlFromIds(photos: number[] | undefined): Nullable<string> {
+  const firstPhotoId = photos?.[0];
+  if (firstPhotoId === undefined || firstPhotoId === MISSING_PHOTO_ID) {
+    return null;
+  }
+  return PHOTO_BY_ID(firstPhotoId);
 }

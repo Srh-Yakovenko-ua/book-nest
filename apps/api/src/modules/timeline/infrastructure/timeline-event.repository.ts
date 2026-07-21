@@ -79,8 +79,7 @@ export type EventNeighborRow = {
 };
 
 export type EventPositionScope =
-  | { bookId: string; kind: "book" }
-  | { kind: "timeline"; timelineId: string };
+  { bookId: string; kind: "book" } | { kind: "timeline"; timelineId: string };
 
 export type EventScalarRow = Prisma.BookTimelineEventGetPayload<Record<string, never>>;
 
