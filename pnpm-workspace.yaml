@@ -89,7 +89,7 @@ catalog:
   lint-staged: ^16.4.0
   lucide-react: ^1.24.0
   motion: ^12.42.2
-  nanoid: ^5.1.7
+  nanoid: ^6.0.0
   nestjs-zod: ^5.4.0
   next: ^16.2.10
   next-intl: ^4.13.2
