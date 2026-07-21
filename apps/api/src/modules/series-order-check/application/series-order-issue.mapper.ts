@@ -67,12 +67,12 @@ export function toSeriesOrderIssueView({
   return {
     affectedBook: toBookView(primary.affectedBook, coverByBookId),
     allowedActions: primary.allowedActions,
-    currentOrder: toCurrentOrder(issue.inPlayBooks),
+    currentOrder: toCurrentOrder(issue.inPlayBooks, coverByBookId),
     fingerprint,
     previousBook:
       primary.previousBook === null ? null : toBookView(primary.previousBook, coverByBookId),
     problemType: primary.problemType,
-    recommendedOrder: toRecommendedOrder(issue),
+    recommendedOrder: toRecommendedOrder(issue, coverByBookId),
     relatedProblems: issue.related.map(toRelatedProblem),
     series: { id: issue.series.id, title: issue.series.title },
     severity: primary.severity,
@@ -107,25 +107,35 @@ function toBookView(
   };
 }
 
-function toCurrentOrder(inPlayBooks: SeriesOrderDetectionBook[]): SeriesOrderPositionView[] {
+function toCurrentOrder(
+  inPlayBooks: SeriesOrderDetectionBook[],
+  coverByBookId: Map<string, Nullable<MediaView>>,
+): SeriesOrderPositionView[] {
   return [...inPlayBooks]
     .sort((first, second) => effectivePosition(first) - effectivePosition(second))
-    .map(toPositionView);
+    .map((book) => toPositionView(book, coverByBookId));
 }
 
-function toPositionView(book: SeriesOrderDetectionBook): SeriesOrderPositionView {
+function toPositionView(
+  book: SeriesOrderDetectionBook,
+  coverByBookId: Map<string, Nullable<MediaView>>,
+): SeriesOrderPositionView {
   return {
     bookId: book.id,
+    cover: coverByBookId.get(book.id) ?? null,
     queuePosition: book.queuePosition,
     seriesPosition: book.partNumber,
     title: book.title,
   };
 }
 
-function toRecommendedOrder(issue: SeriesOrderDetectedIssue): SeriesOrderPositionView[] {
+function toRecommendedOrder(
+  issue: SeriesOrderDetectedIssue,
+  coverByBookId: Map<string, Nullable<MediaView>>,
+): SeriesOrderPositionView[] {
   return [...issue.inPlayBooks, ...issue.addableBooks]
     .sort(compareByPartThenCreated)
-    .map(toPositionView);
+    .map((book) => toPositionView(book, coverByBookId));
 }
 
 function toRelatedProblem(conflict: SeriesOrderConflict): SeriesOrderRelatedProblem {

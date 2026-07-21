@@ -267,6 +267,19 @@ describe("GET /api/reading-queue/series-order-issues", () => {
     expect(issue.affectedBook.id).toBe(scenario.bookThreeId);
     expect(issue.previousBook.id).toBe(scenario.bookTwoId);
     expect(issue.fingerprint.length).toBeGreaterThan(0);
+
+    const positionViews = [...issue.currentOrder, ...issue.recommendedOrder];
+    expect(positionViews.length).toBeGreaterThan(0);
+    for (const positionView of positionViews) {
+      expect(positionView).toHaveProperty("cover");
+      expect(positionView.cover).toBeNull();
+    }
+
+    const recommendedBookTwo = issue.recommendedOrder.find(
+      (positionView: { bookId: string }) => positionView.bookId === scenario.bookTwoId,
+    );
+    expect(recommendedBookTwo).toBeDefined();
+    expect(recommendedBookTwo.cover).toBeNull();
   });
 
   it("returns no issue when the series order check is disabled", async () => {
