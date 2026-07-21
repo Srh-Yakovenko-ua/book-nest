@@ -52,9 +52,7 @@ export type SeriesOrderFixTarget = {
 export const SERIES_ORDER_SIDEBAR_LIMIT = SERIES_ORDER_ISSUES_LIMIT_DEFAULT;
 
 type DescribedProblemType =
-  | "current_reading_ahead_of_order"
-  | "multiple_previous_missing"
-  | "previous_book_paused";
+  "current_reading_ahead_of_order" | "multiple_previous_missing" | "previous_book_paused";
 
 const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;

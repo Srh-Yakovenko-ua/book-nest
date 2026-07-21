@@ -79,8 +79,7 @@ import { ReadingStatusSection } from "./reading-status-section";
 import { useSectionCompletion } from "./use-section-completion";
 
 type BookFormProps =
-  | { book: BookView; mode: "edit" }
-  | { initialSeries?: BookFormInitialSeries; mode: "create" };
+  { book: BookView; mode: "edit" } | { initialSeries?: BookFormInitialSeries; mode: "create" };
 
 type PendingDiscard = {
   apply: () => void;

@@ -49,21 +49,6 @@ const log = createLogger("media");
 const MIN_PRINTABLE_CODE_POINT = 0x20;
 const DELETE_CODE_POINT = 0x7f;
 
-function normalizeOriginalName(name: Nullable<string>): Nullable<string> {
-  if (name === null || name === undefined) {
-    return null;
-  }
-  const printable = Array.from(name).filter((char) => {
-    const code = char.codePointAt(0) ?? 0;
-    return code >= MIN_PRINTABLE_CODE_POINT && code !== DELETE_CODE_POINT;
-  });
-  const trimmed = printable.join("").trim();
-  if (trimmed === "") {
-    return null;
-  }
-  return Array.from(trimmed).slice(0, MAX_ORIGINAL_NAME_LENGTH).join("");
-}
-
 @Injectable()
 export class MediaService {
   constructor(
@@ -262,4 +247,19 @@ export class MediaService {
       throw error;
     }
   }
+}
+
+function normalizeOriginalName(name: Nullable<string>): Nullable<string> {
+  if (name === null || name === undefined) {
+    return null;
+  }
+  const printable = Array.from(name).filter((char) => {
+    const code = char.codePointAt(0) ?? 0;
+    return code >= MIN_PRINTABLE_CODE_POINT && code !== DELETE_CODE_POINT;
+  });
+  const trimmed = printable.join("").trim();
+  if (trimmed === "") {
+    return null;
+  }
+  return Array.from(trimmed).slice(0, MAX_ORIGINAL_NAME_LENGTH).join("");
 }

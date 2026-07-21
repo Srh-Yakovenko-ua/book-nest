@@ -34,9 +34,7 @@ export const NOTES_SORT_OPTIONS = NoteSortSchema.options;
 export const NOTES_PRESENCE_OPTIONS = ["any", "yes", "no"] as const;
 
 export type NotesCategorySelection =
-  | { kind: "any" }
-  | { kind: "category"; value: NoteCategory }
-  | { kind: "custom"; value: string };
+  { kind: "any" } | { kind: "category"; value: NoteCategory } | { kind: "custom"; value: string };
 
 export type NotesPresence = (typeof NOTES_PRESENCE_OPTIONS)[number];
 
@@ -46,8 +44,7 @@ export type NotesScope = {
 };
 
 export type NotesSidebarFilter =
-  | { kind: "category"; value: NoteCategory }
-  | { kind: "filter"; value: NoteFilter };
+  { kind: "category"; value: NoteCategory } | { kind: "filter"; value: NoteFilter };
 
 export const NOTES_SIDEBAR_FILTERS = [
   { kind: "filter", value: "favorite" },
