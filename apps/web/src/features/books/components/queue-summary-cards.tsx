@@ -2,7 +2,7 @@
 
 import type { Nullable, ReadingQueueSummaryView } from "@app/shared";
 
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,7 @@ export function QueueSummaryCards({
 }: QueueSummaryCardsProps) {
   const t = useTranslations("readingQueue.stats");
   const tUnit = useTranslations("books.library.summary");
+  const format = useFormatter();
 
   if (isLoading) return <QueueSummaryCardsSkeleton />;
   if (summary === null) return null;
@@ -55,7 +56,7 @@ export function QueueSummaryCards({
         })}
         size="compact"
         unit={tUnit("unitBook", { count: summary.totalCount })}
-        value={summary.totalCount.toLocaleString()}
+        value={format.number(summary.totalCount)}
         valueClassName={VALUE_CLASS}
       />
       <StatCard
@@ -66,7 +67,7 @@ export function QueueSummaryCards({
         microfact={t("availableNow.caption")}
         size="compact"
         unit={tUnit("unitBook", { count: summary.availableNowCount })}
-        value={summary.availableNowCount.toLocaleString()}
+        value={format.number(summary.availableNowCount)}
         valueClassName={VALUE_CLASS}
       />
       <StatCard
@@ -77,7 +78,7 @@ export function QueueSummaryCards({
         microfact={unavailableCaption}
         size="compact"
         unit={tUnit("unitBook", { count: summary.unavailableCount })}
-        value={summary.unavailableCount.toLocaleString()}
+        value={format.number(summary.unavailableCount)}
         valueClassName={VALUE_CLASS}
       />
       <StatCard
@@ -91,7 +92,7 @@ export function QueueSummaryCards({
         })}
         size="compact"
         unit={tUnit("unitSeries", { count: summary.seriesInQueueCount })}
-        value={summary.seriesInQueueCount.toLocaleString()}
+        value={format.number(summary.seriesInQueueCount)}
         valueClassName={VALUE_CLASS}
       />
     </div>
