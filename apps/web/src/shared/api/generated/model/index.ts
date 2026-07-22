@@ -388,6 +388,8 @@ export * from "./readingHistoryViewDtoSummaryHistoryCompleteness";
 export * from "./readingHistoryViewDtoSummaryLastActivity";
 export * from "./readingHistoryViewDtoSummaryReadingPeriod";
 export * from "./readingHistoryViewDtoSummaryStatus";
+export * from "./readingQueueSummaryViewDto";
+export * from "./readingQueueSummaryViewDtoUnavailableByOwnership";
 export * from "./readingQueueViewDto";
 export * from "./readingQueueViewDtoItemsItem";
 export * from "./readingQueueViewDtoItemsItemBook";

@@ -135,9 +135,25 @@
       }
     },
     "stats": {
-      "booksInQueue": "Books in queue",
-      "totalLength": "Total length",
-      "pages": "{count, plural, one {# page} other {# pages}}"
+      "total": {
+        "label": "Total in queue",
+        "caption": "{series} from series · {standalone} standalone"
+      },
+      "availableNow": {
+        "label": "Ready to read",
+        "caption": "Available and nothing blocks the start"
+      },
+      "unavailable": {
+        "label": "Not available",
+        "wantToBuy": "{count} to buy",
+        "inTransit": "{count} in transit",
+        "lentToSomeone": "{count} lent out",
+        "none": "{count} not owned"
+      },
+      "seriesInQueue": {
+        "label": "Series in queue",
+        "caption": "{withoutIssues} fine · {withIssues, plural, one {# needs attention} other {# need attention}}"
+      }
     },
     "seriesOrderCheck": {
       "title": "Check series order",

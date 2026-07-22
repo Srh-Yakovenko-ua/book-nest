@@ -5,19 +5,26 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { SeriesOrderIssuesViewDtoItemsItem } from "./seriesOrderIssuesViewDtoItemsItem";
 
-export interface SeriesOrderIssuesViewDto {
-  items: SeriesOrderIssuesViewDtoItemsItem[];
-  queueVersion: string;
+export type ReadingQueueSummaryViewDtoUnavailableByOwnership = {
   /**
    * @minimum 0
    * @maximum 9007199254740991
    */
-  seriesInQueueWithIssuesCount: number;
+  inTransit: number;
   /**
    * @minimum 0
    * @maximum 9007199254740991
    */
-  total: number;
-}
+  lentToSomeone: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  none: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  wantToBuy: number;
+};

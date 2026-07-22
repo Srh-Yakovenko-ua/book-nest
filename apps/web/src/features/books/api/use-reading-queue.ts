@@ -6,18 +6,20 @@ import type {
 } from "@app/shared";
 import type { QueryClient } from "@tanstack/react-query";
 
-import { ReadingQueueViewSchema } from "@app/shared";
+import { ReadingQueueSummaryViewSchema, ReadingQueueViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { seriesKeys } from "@/features/series/api/series-keys";
 import {
   getReadingQueueControllerGetQueueQueryKey,
+  getReadingQueueControllerSummaryQueryKey,
   getSeriesOrderCheckControllerListIssuesQueryKey,
   readingQueueControllerAddToQueue,
   readingQueueControllerRemoveFromQueue,
   readingQueueControllerReorder,
   readingQueueControllerStartReading,
   useReadingQueueControllerGetQueue,
+  useReadingQueueControllerSummary,
 } from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
 
 import { bookKeys } from "./book-keys";
@@ -51,6 +53,14 @@ export function useReadingQueuePosition(book: Pick<BookView, "id" | "isInReading
   });
 
   return query.data?.items.find((item) => item.book.id === book.id)?.position ?? null;
+}
+
+export function useReadingQueueSummary() {
+  return useReadingQueueControllerSummary({
+    query: {
+      select: (data: unknown) => ReadingQueueSummaryViewSchema.parse(data),
+    },
+  });
 }
 
 export function useRemoveFromQueue() {
@@ -89,6 +99,9 @@ export function useReorderReadingQueue() {
         void queryClient.invalidateQueries({
           queryKey: getSeriesOrderCheckControllerListIssuesQueryKey(),
         });
+        void queryClient.invalidateQueries({
+          queryKey: getReadingQueueControllerSummaryQueryKey(),
+        });
       },
       onSuccess: (view) => {
         queryClient.setQueryData(queueKey, view);
@@ -115,6 +128,9 @@ function applyReadingQueueView(queryClient: QueryClient, view: ReadingQueueView)
   void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
   void queryClient.invalidateQueries({
     queryKey: getSeriesOrderCheckControllerListIssuesQueryKey(),
+  });
+  void queryClient.invalidateQueries({
+    queryKey: getReadingQueueControllerSummaryQueryKey(),
   });
 }
 

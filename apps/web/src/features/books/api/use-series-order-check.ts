@@ -19,6 +19,7 @@ import type { ApiError } from "@/lib/http-client";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import {
   getReadingQueueControllerGetQueueQueryKey,
+  getReadingQueueControllerSummaryQueryKey,
   getSeriesOrderCheckControllerListIssuesQueryKey,
   seriesOrderCheckControllerApplyFix,
   seriesOrderCheckControllerIgnoreIssue,
@@ -52,6 +53,7 @@ export function useApplySeriesOrderFix() {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: seriesOrderIssuesRootKey });
       void queryClient.invalidateQueries({ queryKey: getReadingQueueControllerGetQueueQueryKey() });
+      void queryClient.invalidateQueries({ queryKey: getReadingQueueControllerSummaryQueryKey() });
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
     },

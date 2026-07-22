@@ -135,9 +135,25 @@
       }
     },
     "stats": {
-      "booksInQueue": "Книг у черзі",
-      "totalLength": "Загальний обсяг",
-      "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}"
+      "total": {
+        "label": "Усього в черзі",
+        "caption": "{series} із серій · {standalone} окремих"
+      },
+      "availableNow": {
+        "label": "Можна читати зараз",
+        "caption": "Є в наявності та немає перешкод для старту"
+      },
+      "unavailable": {
+        "label": "Немає в наявності",
+        "wantToBuy": "{count} хочу купити",
+        "inTransit": "{count} в дорозі",
+        "lentToSomeone": "{count, plural, one {# позичена} few {# позичені} many {# позичених} other {# позичених}}",
+        "none": "{count} немає"
+      },
+      "seriesInQueue": {
+        "label": "Серії в черзі",
+        "caption": "{withoutIssues} без проблем · {withIssues, plural, one {# потребує уваги} few {# потребують уваги} many {# потребують уваги} other {# потребують уваги}}"
+      }
     },
     "seriesOrderCheck": {
       "title": "Перевірити порядок серій",
