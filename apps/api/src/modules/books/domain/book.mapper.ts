@@ -64,6 +64,7 @@ export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>):
     originalTitle: book.originalTitle,
     ownershipStatus: OwnershipStatusSchema.parse(book.ownershipStatus),
     pagesCount: book.pagesCount,
+    pagesCountUnavailable: book.pagesCountUnavailable,
     partNumber: book.partNumber,
     publicationYear: book.publicationYear,
     publisher:

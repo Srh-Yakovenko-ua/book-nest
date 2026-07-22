@@ -3,11 +3,13 @@ import type {
   ReadingQueueItemView,
   ReadingQueueSummaryView,
   ReadingQueueView,
+  ReadingQueueVolumeSummaryView,
   ReorderReadingQueueInput,
 } from "@app/shared";
 
 import { OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { subDays } from "date-fns";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
@@ -17,6 +19,7 @@ import {
   computeReadingQueueSummary,
   type ReadingQueueSummaryDomainRow,
 } from "../domain/queue-summary.js";
+import { computeQueueVolume, PACE_WINDOW_DAYS } from "../domain/queue-volume.js";
 import { ReadingQueueRepository } from "../infrastructure/reading-queue.repository.js";
 
 const ALREADY_IN_QUEUE_MESSAGE = "Книга вже є в черзі читання";
@@ -157,5 +160,14 @@ export class ReadingQueueService {
     }));
 
     return computeReadingQueueSummary(domainRows);
+  }
+
+  async volumeSummary(userId: string): Promise<ReadingQueueVolumeSummaryView> {
+    const [rows, paceRow] = await Promise.all([
+      this.readingQueueRepository.loadVolumeRows(userId),
+      this.readingQueueRepository.loadPaceAggregate(userId, subDays(new Date(), PACE_WINDOW_DAYS)),
+    ]);
+
+    return computeQueueVolume({ paceRow, rows, today: new Date() });
   }
 }

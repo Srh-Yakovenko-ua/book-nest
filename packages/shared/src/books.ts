@@ -771,6 +771,45 @@ export const BulkActionResultSchema = z.object({
 
 export type BulkActionResult = z.infer<typeof BulkActionResultSchema>;
 
+export const QUEUE_VOLUME_BULK_MAX = 200;
+
+export const UpdatePagesCountItemSchema = z.discriminatedUnion("kind", [
+  z.object({
+    bookId: z.uuid(),
+    expectedUpdatedAt: z.iso.datetime(),
+    kind: z.literal("pages_count"),
+    pagesCount: BookPagesCountSchema,
+  }),
+  z.object({
+    bookId: z.uuid(),
+    expectedUpdatedAt: z.iso.datetime(),
+    kind: z.literal("pages_count_unavailable"),
+  }),
+]);
+
+export type UpdatePagesCountItem = z.infer<typeof UpdatePagesCountItemSchema>;
+
+export const BulkPagesCountInputSchema = z.object({
+  items: z.array(UpdatePagesCountItemSchema).min(1).max(QUEUE_VOLUME_BULK_MAX),
+});
+
+export type BulkPagesCountInput = z.infer<typeof BulkPagesCountInputSchema>;
+
+export const BulkPagesCountFailureReasonSchema = z.enum([
+  "below_current_page",
+  "not_found",
+  "stale",
+]);
+
+export type BulkPagesCountFailureReason = z.infer<typeof BulkPagesCountFailureReasonSchema>;
+
+export const BulkPagesCountResultSchema = z.object({
+  failed: z.array(z.object({ bookId: z.uuid(), reason: BulkPagesCountFailureReasonSchema })),
+  updated: z.array(z.uuid()),
+});
+
+export type BulkPagesCountResult = z.infer<typeof BulkPagesCountResultSchema>;
+
 export type ChangeReadingStatusInput = z.infer<typeof ChangeReadingStatusInputSchema>;
 
 export type CreateBookInput = z.infer<typeof CreateBookInputSchema>;
@@ -1133,6 +1172,7 @@ export const BookViewSchema = z.object({
   originalTitle: z.string().nullable(),
   ownershipStatus: OwnershipStatusSchema,
   pagesCount: z.number().nullable(),
+  pagesCountUnavailable: z.boolean(),
   partNumber: z.number().nullable(),
   publicationYear: z.number().nullable(),
   publisher: BookPublisherRefSchema.nullable(),

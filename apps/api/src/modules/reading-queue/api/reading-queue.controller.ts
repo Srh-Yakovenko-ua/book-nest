@@ -1,4 +1,8 @@
-import type { ReadingQueueSummaryView, ReadingQueueView } from "@app/shared";
+import type {
+  ReadingQueueSummaryView,
+  ReadingQueueView,
+  ReadingQueueVolumeSummaryView,
+} from "@app/shared";
 
 import {
   AddToReadingQueueInputSchema,
@@ -41,6 +45,7 @@ import { AddToReadingQueueInputDto } from "./input-dto/add-to-reading-queue.inpu
 import { ReorderReadingQueueInputDto } from "./input-dto/reorder-reading-queue.input-dto.js";
 import { StartReadingFromQueueInputDto } from "./input-dto/start-reading-from-queue.input-dto.js";
 import { ReadingQueueSummaryViewDto } from "./view-dto/reading-queue-summary.view-dto.js";
+import { ReadingQueueVolumeSummaryViewDto } from "./view-dto/reading-queue-volume-summary.view-dto.js";
 import { ReadingQueueViewDto } from "./view-dto/reading-queue.view-dto.js";
 
 const QUEUE_ACTION_TTL_SECONDS = 60;
@@ -75,6 +80,19 @@ export class ReadingQueueController {
   @UseGuards(JwtAccessGuard)
   summary(@CurrentUser() user: AuthenticatedUser): Promise<ReadingQueueSummaryView> {
     return this.readingQueueService.summary(user.id);
+  }
+
+  @ApiBearerAuth()
+  @ApiOkResponse({
+    description: "Remaining reading volume, coverage, and pace estimate for the reading queue",
+    type: ReadingQueueVolumeSummaryViewDto,
+  })
+  @ApiOperation({ summary: "Get the remaining reading volume of the reading queue" })
+  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @Get("volume-summary")
+  @UseGuards(JwtAccessGuard)
+  volumeSummary(@CurrentUser() user: AuthenticatedUser): Promise<ReadingQueueVolumeSummaryView> {
+    return this.readingQueueService.volumeSummary(user.id);
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
