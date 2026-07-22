@@ -44,6 +44,7 @@ export const withRelations = {
       authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
       books: {
         select: {
+          authors: { include: { author: true }, orderBy: { position: "asc" } },
           createdAt: true,
           id: true,
           partNumber: true,
