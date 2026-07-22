@@ -186,6 +186,7 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
           "lent_to_someone",
         ]),
         pagesCount: zod.number().nullable(),
+        pagesCountUnavailable: zod.boolean(),
         partNumber: zod.number().nullable(),
         publicationYear: zod.number().nullable(),
         publisher: zod
@@ -505,6 +506,7 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
           "lent_to_someone",
         ]),
         pagesCount: zod.number().nullable(),
+        pagesCountUnavailable: zod.boolean(),
         partNumber: zod.number().nullable(),
         publicationYear: zod.number().nullable(),
         publisher: zod
@@ -715,6 +717,134 @@ export const ReadingQueueControllerSummaryResponse = zod.object({
 });
 
 /**
+ * @summary Get the remaining reading volume of the reading queue
+ */
+export const readingQueueControllerVolumeSummaryResponseAudiobookOnlyCountMin = 0;
+export const readingQueueControllerVolumeSummaryResponseAudiobookOnlyCountMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponseCoverageCalculatedBooksMin = 0;
+export const readingQueueControllerVolumeSummaryResponseCoverageCalculatedBooksMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponseCoverageRatioMin = 0;
+export const readingQueueControllerVolumeSummaryResponseCoverageRatioMax = 1;
+
+export const readingQueueControllerVolumeSummaryResponseCoverageTotalBooksMin = 0;
+export const readingQueueControllerVolumeSummaryResponseCoverageTotalBooksMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponseEstimateDaysMaxExclusiveMin = 0;
+export const readingQueueControllerVolumeSummaryResponseEstimateDaysMaxMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponseEstimateDaysMinExclusiveMin = 0;
+export const readingQueueControllerVolumeSummaryResponseEstimateDaysMinMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponseEstimateDaysUntilForecastMin = 0;
+export const readingQueueControllerVolumeSummaryResponseEstimateDaysUntilForecastMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponsePaceActiveDaysInPeriodMin = 0;
+export const readingQueueControllerVolumeSummaryResponsePaceActiveDaysInPeriodMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponsePaceLastActivityAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingQueueControllerVolumeSummaryResponsePaceSourcePeriodDaysMin = 0;
+export const readingQueueControllerVolumeSummaryResponsePaceSourcePeriodDaysMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponsePagesInvalidBooksMin = 0;
+export const readingQueueControllerVolumeSummaryResponsePagesInvalidBooksMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponsePagesKnownRemainingMin = 0;
+export const readingQueueControllerVolumeSummaryResponsePagesKnownRemainingMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponsePagesMissingBooksMin = 0;
+export const readingQueueControllerVolumeSummaryResponsePagesMissingBooksMax = 9007199254740991;
+
+export const readingQueueControllerVolumeSummaryResponseQueueBooksCountMin = 0;
+export const readingQueueControllerVolumeSummaryResponseQueueBooksCountMax = 9007199254740991;
+
+export const ReadingQueueControllerVolumeSummaryResponse = zod.object({
+  audiobookOnlyCount: zod
+    .number()
+    .min(readingQueueControllerVolumeSummaryResponseAudiobookOnlyCountMin)
+    .max(readingQueueControllerVolumeSummaryResponseAudiobookOnlyCountMax),
+  coverage: zod.object({
+    calculatedBooks: zod
+      .number()
+      .min(readingQueueControllerVolumeSummaryResponseCoverageCalculatedBooksMin)
+      .max(readingQueueControllerVolumeSummaryResponseCoverageCalculatedBooksMax),
+    ratio: zod
+      .number()
+      .min(readingQueueControllerVolumeSummaryResponseCoverageRatioMin)
+      .max(readingQueueControllerVolumeSummaryResponseCoverageRatioMax),
+    totalBooks: zod
+      .number()
+      .min(readingQueueControllerVolumeSummaryResponseCoverageTotalBooksMin)
+      .max(readingQueueControllerVolumeSummaryResponseCoverageTotalBooksMax),
+  }),
+  estimate: zod.object({
+    daysMax: zod
+      .number()
+      .gt(readingQueueControllerVolumeSummaryResponseEstimateDaysMaxExclusiveMin)
+      .max(readingQueueControllerVolumeSummaryResponseEstimateDaysMaxMax)
+      .nullable(),
+    daysMin: zod
+      .number()
+      .gt(readingQueueControllerVolumeSummaryResponseEstimateDaysMinExclusiveMin)
+      .max(readingQueueControllerVolumeSummaryResponseEstimateDaysMinMax)
+      .nullable(),
+    daysUntilForecast: zod
+      .number()
+      .min(readingQueueControllerVolumeSummaryResponseEstimateDaysUntilForecastMin)
+      .max(readingQueueControllerVolumeSummaryResponseEstimateDaysUntilForecastMax)
+      .nullable(),
+    reasonUnavailable: zod
+      .union([
+        zod.literal("empty_queue"),
+        zod.literal("insufficient_coverage"),
+        zod.literal("insufficient_history"),
+        zod.literal("no_volume_data"),
+        zod.literal("stale_activity"),
+        zod.literal("zero_pace"),
+        zod.literal(null),
+      ])
+      .nullable(),
+  }),
+  hasMissingData: zod.boolean(),
+  pace: zod.object({
+    activeDaysInPeriod: zod
+      .number()
+      .min(readingQueueControllerVolumeSummaryResponsePaceActiveDaysInPeriodMin)
+      .max(readingQueueControllerVolumeSummaryResponsePaceActiveDaysInPeriodMax),
+    lastActivityAt: zod.iso
+      .date()
+      .regex(readingQueueControllerVolumeSummaryResponsePaceLastActivityAtRegExp)
+      .nullable(),
+    pagesPerCalendarDay: zod.number().nullable(),
+    sourcePeriodDays: zod
+      .number()
+      .min(readingQueueControllerVolumeSummaryResponsePaceSourcePeriodDaysMin)
+      .max(readingQueueControllerVolumeSummaryResponsePaceSourcePeriodDaysMax),
+  }),
+  pages: zod.object({
+    invalidBooks: zod
+      .number()
+      .min(readingQueueControllerVolumeSummaryResponsePagesInvalidBooksMin)
+      .max(readingQueueControllerVolumeSummaryResponsePagesInvalidBooksMax),
+    knownRemaining: zod
+      .number()
+      .min(readingQueueControllerVolumeSummaryResponsePagesKnownRemainingMin)
+      .max(readingQueueControllerVolumeSummaryResponsePagesKnownRemainingMax),
+    missingBooks: zod
+      .number()
+      .min(readingQueueControllerVolumeSummaryResponsePagesMissingBooksMin)
+      .max(readingQueueControllerVolumeSummaryResponsePagesMissingBooksMax),
+  }),
+  queueBooksCount: zod
+    .number()
+    .min(readingQueueControllerVolumeSummaryResponseQueueBooksCountMin)
+    .max(readingQueueControllerVolumeSummaryResponseQueueBooksCountMax),
+});
+
+/**
  * @summary Reorder the current user reading queue
  */
 export const readingQueueControllerReorderBodyOrderItemRegExp = new RegExp(
@@ -905,6 +1035,7 @@ export const ReadingQueueControllerReorderResponse = zod.object({
           "lent_to_someone",
         ]),
         pagesCount: zod.number().nullable(),
+        pagesCountUnavailable: zod.boolean(),
         partNumber: zod.number().nullable(),
         publicationYear: zod.number().nullable(),
         publisher: zod
@@ -1216,6 +1347,7 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
           "lent_to_someone",
         ]),
         pagesCount: zod.number().nullable(),
+        pagesCountUnavailable: zod.boolean(),
         partNumber: zod.number().nullable(),
         publicationYear: zod.number().nullable(),
         publisher: zod
@@ -1525,6 +1657,7 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
           "lent_to_someone",
         ]),
         pagesCount: zod.number().nullable(),
+        pagesCountUnavailable: zod.boolean(),
         partNumber: zod.number().nullable(),
         publicationYear: zod.number().nullable(),
         publisher: zod

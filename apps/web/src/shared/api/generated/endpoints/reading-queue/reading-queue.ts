@@ -23,6 +23,7 @@ import type {
   ApplySeriesOrderFixResponseDto,
   ReadingQueueSummaryViewDto,
   ReadingQueueViewDto,
+  ReadingQueueVolumeSummaryViewDto,
   ReorderReadingQueueInputDto,
   SeriesOrderCheckControllerListIssuesParams,
   SeriesOrderFixInputDto,
@@ -537,6 +538,174 @@ export function useReadingQueueControllerSummary<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getReadingQueueControllerSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type readingQueueControllerVolumeSummaryResponse200 = {
+  data: ReadingQueueVolumeSummaryViewDto;
+  status: 200;
+};
+
+export type readingQueueControllerVolumeSummaryResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type readingQueueControllerVolumeSummaryResponseSuccess =
+  readingQueueControllerVolumeSummaryResponse200 & {
+    headers: Headers;
+  };
+export type readingQueueControllerVolumeSummaryResponseError =
+  readingQueueControllerVolumeSummaryResponse401 & {
+    headers: Headers;
+  };
+
+export type readingQueueControllerVolumeSummaryResponse =
+  | readingQueueControllerVolumeSummaryResponseSuccess
+  | readingQueueControllerVolumeSummaryResponseError;
+
+export const getReadingQueueControllerVolumeSummaryUrl = () => {
+  return `/api/reading-queue/volume-summary`;
+};
+
+/**
+ * @summary Get the remaining reading volume of the reading queue
+ */
+export const readingQueueControllerVolumeSummary = async (
+  options?: RequestInit,
+): Promise<readingQueueControllerVolumeSummaryResponse> => {
+  return customInstance<readingQueueControllerVolumeSummaryResponse>(
+    getReadingQueueControllerVolumeSummaryUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getReadingQueueControllerVolumeSummaryQueryKey = () => {
+  return [`/api/reading-queue/volume-summary`] as const;
+};
+
+export const getReadingQueueControllerVolumeSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getReadingQueueControllerVolumeSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>> = ({
+    signal,
+  }) => readingQueueControllerVolumeSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ReadingQueueControllerVolumeSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>
+>;
+export type ReadingQueueControllerVolumeSummaryQueryError = void;
+
+export function useReadingQueueControllerVolumeSummary<
+  TData = Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+          TError,
+          Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingQueueControllerVolumeSummary<
+  TData = Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+          TError,
+          Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useReadingQueueControllerVolumeSummary<
+  TData = Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the remaining reading volume of the reading queue
+ */
+
+export function useReadingQueueControllerVolumeSummary<
+  TData = Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof readingQueueControllerVolumeSummary>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getReadingQueueControllerVolumeSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
