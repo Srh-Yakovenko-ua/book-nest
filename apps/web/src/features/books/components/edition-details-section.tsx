@@ -1,5 +1,7 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
@@ -42,7 +44,7 @@ const ISBN_MAX_LENGTH = 13;
 
 export function EditionDetailsSection({ control, errors, register }: EditionDetailsSectionProps) {
   const t = useTranslations("books");
-  const isbnField = register("isbn", { setValueAs: emptyToUndefined });
+  const isbnField = register("isbn", { setValueAs: emptyToNull });
 
   const initialIsbn = useWatch({ control, name: "isbn" });
   const initialTranslator = useWatch({ control, name: "translator" });
@@ -81,7 +83,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
             placeholder={t("editionDetails.fields.pagesCountPlaceholder")}
             step={1}
             type="number"
-            {...register("pagesCount", { setValueAs: emptyToInteger })}
+            {...register("pagesCount", { setValueAs: emptyToNullableInteger })}
           />
           <FieldError error={errors.pagesCount} id="book-pages-count-error" />
         </div>
@@ -170,7 +172,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
                 className="h-10"
                 id="book-translator"
                 placeholder={t("editionDetails.fields.translatorPlaceholder")}
-                {...register("translator", { setValueAs: emptyToUndefined })}
+                {...register("translator", { setValueAs: emptyToNull })}
               />
               <FieldError error={errors.translator} id="book-translator-error" />
             </div>
@@ -189,7 +191,7 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
                 className="h-10"
                 id="book-illustrator"
                 placeholder={t("editionDetails.fields.illustratorPlaceholder")}
-                {...register("illustrator", { setValueAs: emptyToUndefined })}
+                {...register("illustrator", { setValueAs: emptyToNull })}
               />
               <FieldError error={errors.illustrator} id="book-illustrator-error" />
             </div>
@@ -200,16 +202,16 @@ export function EditionDetailsSection({ control, errors, register }: EditionDeta
   );
 }
 
-function emptyToInteger(value: unknown): number | undefined {
-  if (typeof value !== "string") return undefined;
+function emptyToNull(value: unknown): Nullable<string> {
+  if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  if (trimmed.length === 0) return undefined;
-  const parsed = Number.parseInt(trimmed, 10);
-  return Number.isInteger(parsed) ? parsed : undefined;
+  return trimmed.length > 0 ? trimmed : null;
 }
 
-function emptyToUndefined(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
+function emptyToNullableInteger(value: unknown): Nullable<number> {
+  if (typeof value !== "string") return null;
   const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+  if (trimmed.length === 0) return null;
+  const parsed = Number.parseInt(trimmed, 10);
+  return Number.isInteger(parsed) ? parsed : null;
 }
