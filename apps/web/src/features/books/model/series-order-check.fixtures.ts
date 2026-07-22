@@ -5,6 +5,7 @@ import type {
   SeriesOrderFixPreviewView,
   SeriesOrderIssuesView,
   SeriesOrderIssueView,
+  SeriesOrderPositionView,
 } from "@app/shared";
 
 import {
@@ -128,20 +129,13 @@ export function makeSeriesOrderIssue(
     affectedBook: makeSeriesOrderBook(),
     allowedActions: ["ADD_NEXT_PREVIOUS_BEFORE", "IGNORE_ISSUE", "DISABLE_SERIES_CHECK"],
     currentOrder: [
-      {
-        bookId: "book-affected",
-        cover: null,
-        queuePosition: 1,
-        seriesPosition: 2,
-        title: AFFECTED_BOOK_TITLE,
-      },
-      {
+      makeSeriesOrderPosition(),
+      makeSeriesOrderPosition({
         bookId: "book-previous",
-        cover: null,
         queuePosition: null,
         seriesPosition: 1,
         title: PREVIOUS_BOOK_TITLE,
-      },
+      }),
     ],
     fingerprint: "fp-1",
     previousBook: makeSeriesOrderBook({
@@ -152,20 +146,13 @@ export function makeSeriesOrderIssue(
     }),
     problemType: "missing_previous_from_queue",
     recommendedOrder: [
-      {
+      makeSeriesOrderPosition({
         bookId: "book-previous",
-        cover: null,
         queuePosition: 1,
         seriesPosition: 1,
         title: PREVIOUS_BOOK_TITLE,
-      },
-      {
-        bookId: "book-affected",
-        cover: null,
-        queuePosition: 2,
-        seriesPosition: 2,
-        title: AFFECTED_BOOK_TITLE,
-      },
+      }),
+      makeSeriesOrderPosition({ queuePosition: 2 }),
     ],
     relatedProblems: [],
     series: { id: "series-1", title: SERIES_TITLE },
@@ -199,4 +186,17 @@ export function makeSeriesOrderIssuesView({
     queueVersion,
     total: total ?? items.length,
   });
+}
+
+export function makeSeriesOrderPosition(
+  overrides: Partial<SeriesOrderPositionView> = {},
+): SeriesOrderPositionView {
+  return {
+    bookId: "book-affected",
+    cover: null,
+    queuePosition: 1,
+    seriesPosition: 2,
+    title: AFFECTED_BOOK_TITLE,
+    ...overrides,
+  };
 }
