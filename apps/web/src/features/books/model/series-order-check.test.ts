@@ -87,6 +87,12 @@ describe("seriesOrderActionLabelKey", () => {
       "fixOrder",
     );
   });
+
+  it("asks to go back to the previous book when the current reading is ahead", () => {
+    expect(seriesOrderActionLabelKey("OPEN_PREVIOUS_BOOK", "current_reading_ahead_of_order")).toBe(
+      "resumeBook",
+    );
+  });
 });
 
 describe("seriesOrderActionHref", () => {
@@ -169,6 +175,23 @@ describe("visibleSeriesOrderActions", () => {
     expect(visibleSeriesOrderActions(issue)).toEqual(["REORDER_SERIES_SLOTS"]);
   });
 
+  it("hides the open-previous-book action because the title already links there", () => {
+    const issue = makeSeriesOrderIssue({
+      allowedActions: ["OPEN_PREVIOUS_BOOK", "RESUME_PREVIOUS_BOOK"],
+    });
+
+    expect(visibleSeriesOrderActions(issue)).toEqual(["RESUME_PREVIOUS_BOOK"]);
+  });
+
+  it("keeps the open-previous-book action when it is the only remedy for the problem", () => {
+    const issue = makeSeriesOrderIssue({
+      allowedActions: ["OPEN_PREVIOUS_BOOK"],
+      problemType: "current_reading_ahead_of_order",
+    });
+
+    expect(visibleSeriesOrderActions(issue)).toEqual(["OPEN_PREVIOUS_BOOK"]);
+  });
+
   it("hides previous-book actions when there is no previous book", () => {
     const issue = makeSeriesOrderIssue({
       allowedActions: ["OPEN_PREVIOUS_BOOK", "ADD_PREVIOUS_TO_WISHLIST", "REORDER_SERIES_SLOTS"],
@@ -230,7 +253,11 @@ describe("hasProblemDescription", () => {
   it.each([
     "current_reading_ahead_of_order",
     "multiple_previous_missing",
+    "previous_book_in_transit",
+    "previous_book_lent_out",
+    "previous_book_not_owned",
     "previous_book_paused",
+    "previous_book_want_to_buy",
   ] as const)("describes %s with a second line", (problemType) => {
     expect(hasProblemDescription(problemType)).toBe(true);
   });
@@ -239,10 +266,6 @@ describe("hasProblemDescription", () => {
     "missing_previous_from_queue",
     "multiple_books_out_of_order",
     "previous_book_after_later_book",
-    "previous_book_in_transit",
-    "previous_book_lent_out",
-    "previous_book_not_owned",
-    "previous_book_want_to_buy",
   ] as const satisfies readonly SeriesOrderProblemType[])(
     "shows %s with a title only",
     (problemType) => {

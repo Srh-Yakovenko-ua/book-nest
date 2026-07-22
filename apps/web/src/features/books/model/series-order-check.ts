@@ -66,12 +66,19 @@ export const SERIES_ORDER_SIDEBAR_LIMIT = SERIES_ORDER_ISSUES_LIMIT_DEFAULT;
 type DescribedProblemType =
   | "current_reading_ahead_of_order"
   | "multiple_previous_missing"
-  | "previous_book_paused";
+  | "previous_book_in_transit"
+  | "previous_book_lent_out"
+  | "previous_book_not_owned"
+  | "previous_book_paused"
+  | "previous_book_want_to_buy";
 
 const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 
 const MENU_ACTIONS: readonly SeriesOrderActionCode[] = ["IGNORE_ISSUE", "DISABLE_SERIES_CHECK"];
+
+const OPEN_PREVIOUS_BOOK_ONLY_ACTION_PROBLEM: SeriesOrderProblemType =
+  "current_reading_ahead_of_order";
 
 const NAVIGATION_ACTIONS: readonly SeriesOrderActionCode[] = [
   "OPEN_LOAN",
@@ -89,7 +96,11 @@ const PREVIOUS_BOOK_ACTIONS: readonly SeriesOrderActionCode[] = [
 const DESCRIBED_PROBLEM_TYPES: readonly SeriesOrderProblemType[] = [
   "current_reading_ahead_of_order",
   "multiple_previous_missing",
+  "previous_book_in_transit",
+  "previous_book_lent_out",
+  "previous_book_not_owned",
   "previous_book_paused",
+  "previous_book_want_to_buy",
 ] satisfies readonly DescribedProblemType[];
 
 const STALE_ERROR_KEYS: readonly SeriesOrderErrorKey[] = [
@@ -149,6 +160,9 @@ export function seriesOrderActionLabelKey(
 ): SeriesOrderActionLabelKey {
   if (code === "ADD_NEXT_PREVIOUS_BEFORE" && problemType === "multiple_previous_missing") {
     return "addNext";
+  }
+  if (code === "OPEN_PREVIOUS_BOOK" && problemType === OPEN_PREVIOUS_BOOK_ONLY_ACTION_PROBLEM) {
+    return "resumeBook";
   }
   return ACTION_LABEL_KEYS[code];
 }
@@ -218,6 +232,11 @@ export function toSeverityStatus(severity: SeriesOrderSeverity, label: string): 
 
 export function visibleSeriesOrderActions(issue: SeriesOrderIssueView): SeriesOrderActionCode[] {
   return issue.allowedActions.filter((code) => {
+    if (
+      code === "OPEN_PREVIOUS_BOOK" &&
+      issue.problemType !== OPEN_PREVIOUS_BOOK_ONLY_ACTION_PROBLEM
+    )
+      return false;
     if (MENU_ACTIONS.includes(code)) return false;
     if (issue.previousBook === null && PREVIOUS_BOOK_ACTIONS.includes(code)) return false;
     return true;

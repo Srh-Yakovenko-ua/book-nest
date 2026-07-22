@@ -1,6 +1,7 @@
 "use client";
 
 import type { SeriesOrderActionCode, SeriesOrderBookView, SeriesOrderIssueView } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -32,6 +33,8 @@ type SeriesOrderIssueCardProps = {
   pending: boolean;
 };
 
+const bookTitleTag = (chunks: ReactNode) => <span className="font-semibold">{chunks}</span>;
+
 export function SeriesOrderIssueCard({ issue, onAction, pending }: SeriesOrderIssueCardProps) {
   const t = useTranslations("readingQueue.seriesOrderCheck");
   const tActions = useTranslations("readingQueue.seriesOrderCheck.actions");
@@ -39,6 +42,7 @@ export function SeriesOrderIssueCard({ issue, onAction, pending }: SeriesOrderIs
 
   const textParams = {
     affectedBook: issue.affectedBook.title,
+    b: bookTitleTag,
     count: issue.unresolvedPreviousCount,
     previousBook: issue.previousBook?.title ?? "",
   };
@@ -89,11 +93,11 @@ export function SeriesOrderIssueCard({ issue, onAction, pending }: SeriesOrderIs
               {issue.series.title}
             </Link>
             <p className="text-sm leading-snug text-foreground">
-              {t(`problems.${issue.problemType}.title`, textParams)}
+              {t.rich(`problems.${issue.problemType}.title`, textParams)}
             </p>
             {hasProblemDescription(issue.problemType) ? (
               <p className="text-xs leading-snug text-muted-foreground">
-                {t(`problems.${issue.problemType}.description`, textParams)}
+                {t.rich(`problems.${issue.problemType}.description`, textParams)}
               </p>
             ) : null}
             {issue.relatedProblems.length === 0 ? null : (

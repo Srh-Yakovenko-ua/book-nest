@@ -197,34 +197,38 @@
       },
       "problems": {
         "missing_previous_from_queue": {
-          "title": "Перед «{affectedBook}» ще не завершено «{previousBook}»."
+          "title": "Перед <b>{affectedBook}</b> ще не завершено <b>{previousBook}</b>."
         },
         "previous_book_after_later_book": {
-          "title": "«{previousBook}» має бути раніше за «{affectedBook}»."
+          "title": "<b>{previousBook}</b> має бути раніше за <b>{affectedBook}</b>."
         },
         "multiple_previous_missing": {
-          "title": "Перед «{affectedBook}» залишилося {count, plural, one {# незакрита частина} few {# незакриті частини} many {# незакритих частин} other {# незакритих частин}}.",
-          "description": "Наступна за порядком — «{previousBook}»."
+          "title": "Перед <b>{affectedBook}</b> залишилося {count, plural, one {# незакрита частина} few {# незакриті частини} many {# незакритих частин} other {# незакритих частин}}.",
+          "description": "Наступна за порядком — <b>{previousBook}</b>."
         },
         "previous_book_paused": {
           "title": "Попередня частина ще не завершена.",
-          "description": "«{previousBook}» на паузі, а «{affectedBook}» уже попереду."
+          "description": "<b>{previousBook}</b> на паузі, а <b>{affectedBook}</b> уже попереду."
         },
         "current_reading_ahead_of_order": {
           "title": "Поточне читання випереджає порядок серії.",
-          "description": "Зараз читається «{affectedBook}», хоча «{previousBook}» ще не завершена."
+          "description": "Зараз читається <b>{affectedBook}</b>, хоча <b>{previousBook}</b> ще не завершена."
         },
         "previous_book_not_owned": {
-          "title": "Попередньої частини немає у власній бібліотеці."
+          "title": "Попередньої частини немає у власній бібліотеці.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> ще не у твоїй бібліотеці."
         },
         "previous_book_want_to_buy": {
-          "title": "Попередня частина ще не придбана."
+          "title": "Попередня частина ще не придбана.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> ще не куплена."
         },
         "previous_book_in_transit": {
-          "title": "Попередня частина вже в дорозі."
+          "title": "Попередня частина вже в дорозі.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> ще не доїхала."
         },
         "previous_book_lent_out": {
-          "title": "Попередня частина позичена комусь і зараз недоступна."
+          "title": "Попередня частина позичена комусь і зараз недоступна.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> зараз у когось."
         },
         "multiple_books_out_of_order": {
           "title": "У серії переплутано порядок."
@@ -248,7 +252,7 @@
       "preview": {
         "title": "Виправити порядок серії?",
         "addTitle": "Додати {count, plural, one {книгу} few {книги} many {книг} other {книги}} та виправити порядок серії?",
-        "addSubtitle": "«{bookTitle}» буде додано у правильне місце після попередніх книг серії.",
+        "addSubtitle": "<b>{bookTitle}</b> буде додано у правильне місце після попередніх книг серії.",
         "addSubtitleMany": "{count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}} буде додано за порядком серії.",
         "addedTitle": "Буде додано",
         "seriesBook": "Книга {position}",

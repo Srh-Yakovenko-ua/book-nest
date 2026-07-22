@@ -33,6 +33,11 @@ const card = soc.card;
 
 type IssueOverrides = Parameters<typeof makeSeriesOrderIssue>[0];
 
+function problemLine(expected: string) {
+  return (_content: string, element: Element | null) =>
+    element?.tagName === "P" && element.textContent === expected;
+}
+
 function renderCard(overrides: IssueOverrides = {}, { pending = false } = {}) {
   const onAction = vi.fn();
   const issue = makeSeriesOrderIssue(overrides);
@@ -44,11 +49,11 @@ describe("SeriesOrderIssueCard problem texts", () => {
   it.each([
     [
       "missing_previous_from_queue",
-      `Перед «${AFFECTED_BOOK_TITLE}» ще не завершено «${PREVIOUS_BOOK_TITLE}».`,
+      `Перед ${AFFECTED_BOOK_TITLE} ще не завершено ${PREVIOUS_BOOK_TITLE}.`,
     ],
     [
       "previous_book_after_later_book",
-      `«${PREVIOUS_BOOK_TITLE}» має бути раніше за «${AFFECTED_BOOK_TITLE}».`,
+      `${PREVIOUS_BOOK_TITLE} має бути раніше за ${AFFECTED_BOOK_TITLE}.`,
     ],
     ["previous_book_paused", "Попередня частина ще не завершена."],
     ["current_reading_ahead_of_order", "Поточне читання випереджає порядок серії."],
@@ -62,7 +67,7 @@ describe("SeriesOrderIssueCard problem texts", () => {
     (problemType, expected) => {
       renderCard({ problemType });
 
-      expect(screen.getByText(expected)).toBeInTheDocument();
+      expect(screen.getByText(problemLine(expected))).toBeInTheDocument();
     },
   );
 
@@ -70,7 +75,7 @@ describe("SeriesOrderIssueCard problem texts", () => {
     renderCard({ problemType: "multiple_previous_missing", unresolvedPreviousCount: 3 });
 
     expect(
-      screen.getByText(`Перед «${AFFECTED_BOOK_TITLE}» залишилося 3 незакриті частини.`),
+      screen.getByText(problemLine(`Перед ${AFFECTED_BOOK_TITLE} залишилося 3 незакриті частини.`)),
     ).toBeInTheDocument();
   });
 
@@ -87,18 +92,18 @@ describe("SeriesOrderIssueCard problem texts", () => {
   it.each([
     [
       "current_reading_ahead_of_order",
-      `Зараз читається «${AFFECTED_BOOK_TITLE}», хоча «${PREVIOUS_BOOK_TITLE}» ще не завершена.`,
+      `Зараз читається ${AFFECTED_BOOK_TITLE}, хоча ${PREVIOUS_BOOK_TITLE} ще не завершена.`,
     ],
     [
       "previous_book_paused",
-      `«${PREVIOUS_BOOK_TITLE}» на паузі, а «${AFFECTED_BOOK_TITLE}» уже попереду.`,
+      `${PREVIOUS_BOOK_TITLE} на паузі, а ${AFFECTED_BOOK_TITLE} уже попереду.`,
     ],
   ] as const satisfies readonly [SeriesOrderProblemType, string][])(
     "adds a description line for the %s problem",
     (problemType, expected) => {
       renderCard({ problemType });
 
-      expect(screen.getByText(expected)).toBeInTheDocument();
+      expect(screen.getByText(problemLine(expected))).toBeInTheDocument();
     },
   );
 
@@ -250,7 +255,9 @@ describe("SeriesOrderIssueCard books block", () => {
     expect(screen.getByText(soc.severity.error)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: SERIES_TITLE })).toBeInTheDocument();
     expect(
-      screen.getByText(`Перед «${AFFECTED_BOOK_TITLE}» ще не завершено «${PREVIOUS_BOOK_TITLE}».`),
+      screen.getByText(
+        problemLine(`Перед ${AFFECTED_BOOK_TITLE} ще не завершено ${PREVIOUS_BOOK_TITLE}.`),
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText(card.affectedBooks)).toBeInTheDocument();
     expect(screen.getByText(card.comparisonLabel)).toBeInTheDocument();
@@ -392,7 +399,6 @@ describe("SeriesOrderIssueCard actions", () => {
   });
 
   it.each([
-    ["OPEN_PREVIOUS_BOOK", actions.openBook],
     ["RESUME_PREVIOUS_BOOK", actions.resumeBook],
     ["OPEN_PURCHASE", actions.openPurchase],
     ["OPEN_ORDER", actions.openOrder],
@@ -401,6 +407,25 @@ describe("SeriesOrderIssueCard actions", () => {
     renderCard({ allowedActions: [code] });
 
     expect(screen.getByRole("link", { name: label })).toHaveAttribute(
+      "href",
+      "/books/book-previous",
+    );
+  });
+
+  it("drops the open-previous-book action because the title already links there", () => {
+    renderCard({ allowedActions: ["OPEN_PREVIOUS_BOOK"] });
+
+    expect(screen.queryByRole("link", { name: actions.openBook })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: actions.openBook })).not.toBeInTheDocument();
+  });
+
+  it("keeps the open-previous-book action as a resume link when reading is ahead of order", () => {
+    renderCard({
+      allowedActions: ["OPEN_PREVIOUS_BOOK"],
+      problemType: "current_reading_ahead_of_order",
+    });
+
+    expect(screen.getByRole("link", { name: actions.resumeBook })).toHaveAttribute(
       "href",
       "/books/book-previous",
     );

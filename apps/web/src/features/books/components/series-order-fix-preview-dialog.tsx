@@ -6,6 +6,7 @@ import type {
   SeriesOrderFixChange,
   SeriesOrderFixPreviewView,
 } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 import Image from "next/image";
@@ -162,7 +163,10 @@ function FixPreview({
             ? t("addSubtitleMany", { count: added.length })
             : firstAdded === undefined
               ? target.seriesTitle
-              : t("addSubtitle", { bookTitle: firstAdded.title })}
+              : t.rich("addSubtitle", {
+                  b: (chunks: ReactNode) => <span className="font-semibold">{chunks}</span>,
+                  bookTitle: firstAdded.title,
+                })}
         </DialogDescription>
       </DialogHeader>
 

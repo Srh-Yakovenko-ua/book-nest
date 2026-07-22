@@ -197,34 +197,38 @@
       },
       "problems": {
         "missing_previous_from_queue": {
-          "title": "“{previousBook}” is not finished yet, but “{affectedBook}” is already queued."
+          "title": "<b>{previousBook}</b> is not finished yet, but <b>{affectedBook}</b> is already queued."
         },
         "previous_book_after_later_book": {
-          "title": "“{previousBook}” should come before “{affectedBook}”."
+          "title": "<b>{previousBook}</b> should come before <b>{affectedBook}</b>."
         },
         "multiple_previous_missing": {
-          "title": "{count, plural, one {# unfinished part remains} other {# unfinished parts remain}} before “{affectedBook}”.",
-          "description": "Next in order is “{previousBook}”."
+          "title": "{count, plural, one {# unfinished part remains} other {# unfinished parts remain}} before <b>{affectedBook}</b>.",
+          "description": "Next in order is <b>{previousBook}</b>."
         },
         "previous_book_paused": {
           "title": "The previous part is not finished yet.",
-          "description": "“{previousBook}” is paused while “{affectedBook}” is already ahead."
+          "description": "<b>{previousBook}</b> is paused while <b>{affectedBook}</b> is already ahead."
         },
         "current_reading_ahead_of_order": {
           "title": "Current reading is ahead of the series order.",
-          "description": "You are reading “{affectedBook}” while “{previousBook}” is not finished."
+          "description": "You are reading <b>{affectedBook}</b> while <b>{previousBook}</b> is not finished."
         },
         "previous_book_not_owned": {
-          "title": "The previous part is not in your library."
+          "title": "The previous part is not in your library.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> is not in your library."
         },
         "previous_book_want_to_buy": {
-          "title": "The previous part has not been bought yet."
+          "title": "The previous part has not been bought yet.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> has not been bought."
         },
         "previous_book_in_transit": {
-          "title": "The previous part is already on its way."
+          "title": "The previous part is already on its way.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> has not arrived yet."
         },
         "previous_book_lent_out": {
-          "title": "The previous part is lent out and unavailable right now."
+          "title": "The previous part is lent out and unavailable right now.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> is still with someone else."
         },
         "multiple_books_out_of_order": {
           "title": "The series order is mixed up."
@@ -248,7 +252,7 @@
       "preview": {
         "title": "Fix the series order?",
         "addTitle": "Add {count, plural, one {a book} other {books}} and fix the series order?",
-        "addSubtitle": "“{bookTitle}” will be inserted in the right place after the earlier books in the series.",
+        "addSubtitle": "<b>{bookTitle}</b> will be inserted in the right place after the earlier books in the series.",
         "addSubtitleMany": "{count, plural, one {# book} other {# books}} will be added in series order.",
         "addedTitle": "Will be added",
         "seriesBook": "Book {position}",
