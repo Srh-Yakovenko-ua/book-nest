@@ -7,6 +7,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
+import { enforceQueueInvariant } from "./queue-invariant.js";
 
 export type BulkDeleteResult = {
   affected: number;
@@ -351,6 +352,9 @@ export class BulkBooksRepository {
         where: { book: { id: { in: bookIds }, userId } },
       });
     }
+
+    await enforceQueueInvariant(client, { readingStatus, userId });
+
     return updated.count;
   }
 }
