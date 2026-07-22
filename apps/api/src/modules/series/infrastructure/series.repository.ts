@@ -34,6 +34,7 @@ const seriesWithBookCountArgs = {
     authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
     books: {
       select: {
+        authors: { include: { author: true }, orderBy: { position: "asc" } },
         createdAt: true,
         id: true,
         partNumber: true,
@@ -260,7 +261,10 @@ function buildOwnedWhere({ authorIds, query, userId }: OwnedWhereInput): Prisma.
   }
 
   if (authorIds !== undefined && authorIds.length > 0) {
-    where.OR = [{ authors: { some: { authorId: { in: authorIds } } } }, { authors: { none: {} } }];
+    where.OR = [
+      { books: { some: { authors: { some: { authorId: { in: authorIds } } } } } },
+      { authors: { some: { authorId: { in: authorIds } } }, books: { none: {} } },
+    ];
   }
 
   return where;

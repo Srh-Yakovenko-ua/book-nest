@@ -54,6 +54,24 @@ function createSeries(userId: string, name: string, authorIds: string[]): Promis
   });
 }
 
+function createSeriesBook(
+  userId: string,
+  seriesId: string,
+  partNumber: number,
+  authorIds: string[],
+): Promise<{ id: string }> {
+  return prisma.book.create({
+    data: {
+      authors: { create: authorIds.map((authorId, index) => ({ authorId, position: index })) },
+      partNumber,
+      seriesId,
+      title: `Book ${partNumber}`,
+      userId,
+    },
+    select: { id: true },
+  });
+}
+
 function itemIds(body: { items: { id: string }[] }): string[] {
   return body.items.map((item) => item.id);
 }
@@ -65,7 +83,7 @@ function searchSeries(accessToken: string, queryString = ""): request.Test {
 }
 
 describe("GET /api/series?authorIds", () => {
-  it("returns the author's series and author-less series while excluding other authors' series", async () => {
+  it("returns the author's booked series while excluding author-less and other authors' series", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const authorA = await createAuthor(userId, "Author A");
     const authorB = await createAuthor(userId, "Author B");
@@ -78,8 +96,43 @@ describe("GET /api/series?authorIds", () => {
     expect(res.status).toBe(200);
     const ids = itemIds(res.body);
     expect(ids).toContain(linkedToA.id);
-    expect(ids).toContain(authorless.id);
+    expect(ids).not.toContain(authorless.id);
     expect(ids).not.toContain(linkedToB.id);
+  });
+
+  it("matches a series with no declared authors by the authors of its books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const authorA = await createAuthor(userId, "Author A");
+    const authorB = await createAuthor(userId, "Author B");
+    const derived = await createSeries(userId, "Derived", []);
+    await createSeriesBook(userId, derived.id, 1, [authorA.id]);
+    const otherAuthorSeries = await createSeries(userId, "Other", []);
+    await createSeriesBook(userId, otherAuthorSeries.id, 1, [authorB.id]);
+
+    const res = await searchSeries(accessToken, `?authorIds=${authorA.id}`);
+
+    expect(res.status).toBe(200);
+    const ids = itemIds(res.body);
+    expect(ids).toContain(derived.id);
+    expect(ids).not.toContain(otherAuthorSeries.id);
+  });
+
+  it("exposes the book authors deduped and ordered for a series with no declared authors", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const authorA = await createAuthor(userId, "Author A");
+    const authorB = await createAuthor(userId, "Author B");
+    const derived = await createSeries(userId, "Derived", []);
+    await createSeriesBook(userId, derived.id, 1, [authorB.id, authorA.id]);
+    await createSeriesBook(userId, derived.id, 2, [authorA.id]);
+
+    const res = await searchSeries(accessToken, `?authorIds=${authorA.id}`);
+
+    expect(res.status).toBe(200);
+    const item = res.body.items.find((entry: { id: string }) => entry.id === derived.id);
+    expect(item.authors).toEqual([
+      { id: authorB.id, name: "Author B" },
+      { id: authorA.id, name: "Author A" },
+    ]);
   });
 
   it("returns both author-linked and author-less series when no authorIds filter is given", async () => {

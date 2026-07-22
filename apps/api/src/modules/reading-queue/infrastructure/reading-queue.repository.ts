@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
 import { type BookWithRelations, withRelations } from "../../books/index.js";
 
 const summaryRowSelect = {
@@ -46,7 +47,7 @@ export class ReadingQueueRepository {
     userId: string,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
-    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
+    await acquireUserQueueLock(client, userId);
   }
 
   async clearPosition(

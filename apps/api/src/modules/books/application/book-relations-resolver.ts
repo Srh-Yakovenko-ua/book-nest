@@ -10,6 +10,7 @@ import type {
 import {
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+  isClosedReadingStatus,
   QueuePriorityReasonSchema,
   QueuePrioritySchema,
 } from "@app/shared";
@@ -510,7 +511,7 @@ export class BookRelationsResolver {
       targetDate: input.queuePriorityTargetDate,
     };
 
-    if (!input.addToReadingQueue) {
+    if (!input.addToReadingQueue || isClosedReadingStatus(input.readingStatus)) {
       const details = resolveQueuePriorityDetails({
         current: EMPTY_QUEUE_PRIORITY_DETAILS,
         input: detailsInput,

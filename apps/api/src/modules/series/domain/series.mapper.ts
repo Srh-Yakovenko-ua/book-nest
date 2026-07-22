@@ -26,12 +26,18 @@ import {
 } from "./series-preview.js";
 import { computeSeriesStats } from "./series-stats.js";
 
+type SeriesAuthorRef = { id: string; name: string };
+
 type SeriesDetailBook = SeriesWithDetails["books"][number];
+
+type SeriesViewBookRow = SeriesBookRow & {
+  authors: { author: SeriesAuthorRef; position: number }[];
+};
 
 type SeriesViewSource = {
   _count: { books: number };
-  authors: { author: { id: string; name: string } }[];
-  books: SeriesBookRow[];
+  authors: { author: SeriesAuthorRef }[];
+  books: SeriesViewBookRow[];
   createdAt: Date;
   description: Nullable<string>;
   genres: string[];
@@ -62,10 +68,7 @@ export function toSeriesView(series: SeriesViewSource): SeriesView {
   const { finishedInSeries, nextBook, readingInSeries } = summarizeSeriesBooks(books);
 
   return {
-    authors: series.authors.map((seriesAuthor) => ({
-      id: seriesAuthor.author.id,
-      name: seriesAuthor.author.name,
-    })),
+    authors: resolveSeriesAuthors(series),
     booksInSeries: series._count.books,
     createdAt: series.createdAt.toISOString(),
     description: series.description,
@@ -101,6 +104,29 @@ function collectSeriesPublishers(
   return Array.from(publishersById.values()).sort((first, second) =>
     first.name.localeCompare(second.name),
   );
+}
+
+function resolveSeriesAuthors(series: {
+  authors: { author: SeriesAuthorRef }[];
+  books: SeriesViewBookRow[];
+}): SeriesAuthorRef[] {
+  if (series.books.length === 0) {
+    return series.authors.map(({ author }) => ({ id: author.id, name: author.name }));
+  }
+
+  const authorsById = new Map<string, SeriesAuthorRef>();
+  for (const book of [...series.books].sort(compareByPartThenCreated)) {
+    const orderedAuthors = [...book.authors].sort(
+      (first, second) => first.position - second.position,
+    );
+    for (const { author } of orderedAuthors) {
+      if (!authorsById.has(author.id)) {
+        authorsById.set(author.id, { id: author.id, name: author.name });
+      }
+    }
+  }
+
+  return [...authorsById.values()];
 }
 
 function toSeriesBookView(book: SeriesDetailBook, cover: Nullable<MediaView>): SeriesBookView {

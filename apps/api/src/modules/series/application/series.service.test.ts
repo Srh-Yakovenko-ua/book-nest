@@ -57,6 +57,7 @@ type RepoMock = Partial<Record<keyof SeriesRepository, ReturnType<typeof vi.fn>>
 
 function bookRow(overrides: BookRowInput = {}): SeriesWithBookCount["books"][number] {
   return {
+    authors: [],
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     id: "book-1",
     partNumber: 1,
@@ -251,6 +252,7 @@ function seriesWithCount(
     _count: { books: booksInSeries },
     authors: [],
     books: Array.from({ length: finishedInSeries }, (unused, index) => ({
+      authors: [],
       createdAt: new Date("2026-02-01T10:00:00.000Z"),
       id: `b-${index}`,
       partNumber: index + 1,

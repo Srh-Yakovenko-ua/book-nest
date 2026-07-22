@@ -23,6 +23,7 @@ import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookSearchConditions } from "./book-search.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
+import { enforceQueueInvariant } from "./queue-invariant.js";
 
 const log = createLogger("books.repository");
 
@@ -43,6 +44,7 @@ export const withRelations = {
       authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
       books: {
         select: {
+          authors: { include: { author: true }, orderBy: { position: "asc" } },
           createdAt: true,
           id: true,
           partNumber: true,
@@ -406,6 +408,8 @@ export class BooksRepository {
     if (patch.book !== null) {
       await client.book.update({ data: patch.book, where: { id: bookId } });
     }
+
+    await enforceQueueInvariant(client, { readingStatus: patch.book?.readingStatus, userId });
 
     if (Object.keys(patch.progress).length > 0) {
       await client.bookReadingProgress.upsert({
@@ -1014,8 +1018,12 @@ export class BooksRepository {
     userId: string,
     bookId: string,
     data: UpdateBookData,
-    client: Prisma.TransactionClient = this.prisma,
+    client?: Prisma.TransactionClient,
   ): Promise<BookWithRelations> {
+    if (client === undefined) {
+      return this.prisma.$transaction((tx) => this.updateOwned(userId, bookId, data, tx));
+    }
+
     const updated = await client.book.updateMany({
       data: data.fields,
       where: { id: bookId, userId },
@@ -1027,6 +1035,10 @@ export class BooksRepository {
     if (data.queueRemoval !== null) {
       await this.shiftQueueUpAfter(userId, data.queueRemoval.fromPosition, client);
     }
+
+    const nextReadingStatus =
+      typeof data.fields.readingStatus === "string" ? data.fields.readingStatus : undefined;
+    await enforceQueueInvariant(client, { readingStatus: nextReadingStatus, userId });
 
     await applyBlockUpsert(client.bookReadingProgress, bookId, data.readingProgress);
     await applyBlockUpsert(client.bookPurchaseInfo, bookId, data.purchaseInfo);

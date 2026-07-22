@@ -998,12 +998,12 @@ describe("GET /api/reading-queue/volume-summary", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createOwnedBook(accessToken, { addToReadingQueue: true, pagesCount: 100, title: "One" });
     await createOwnedBook(accessToken, { addToReadingQueue: true, pagesCount: 100, title: "Two" });
-    await createOwnedBook(accessToken, {
+    const doneBookId = await createOwnedBook(accessToken, {
       addToReadingQueue: true,
       pagesCount: 100,
-      readingStatus: "finished",
       title: "Done",
     });
+    await prisma.book.update({ data: { readingStatus: "finished" }, where: { id: doneBookId } });
 
     const queue = await getQueue(accessToken);
     expect(queue.body.count).toBe(3);

@@ -333,6 +333,31 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
 
     expect(resolved).toMatchObject({ queuePosition: 5, queuePriority: "high" });
   });
+
+  it("keeps a book created with a closed status out of the queue despite addToReadingQueue", async () => {
+    const { repository, resolver } = buildResolver({ maxQueuePosition: 4 });
+
+    const resolved = await resolver.resolveForCreate({
+      input: createInput({ addToReadingQueue: true, readingStatus: "finished" }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+      userId: USER_ID,
+    });
+
+    expect(repository.maxQueuePosition).not.toHaveBeenCalled();
+    expect(resolved).toMatchObject({ queuePosition: null, queuePriority: null });
+  });
+
+  it("keeps a book created as dnf out of the queue despite addToReadingQueue", async () => {
+    const { resolver } = buildResolver({ maxQueuePosition: 4 });
+
+    const resolved = await resolver.resolveForCreate({
+      input: createInput({ addToReadingQueue: true, readingStatus: "dnf" }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+      userId: USER_ID,
+    });
+
+    expect(resolved).toMatchObject({ queuePosition: null, queuePriority: null });
+  });
 });
 
 describe("BookRelationsResolver.resolveForCreate series handling", () => {
