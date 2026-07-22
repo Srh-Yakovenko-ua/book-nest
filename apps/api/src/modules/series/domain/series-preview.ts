@@ -3,6 +3,8 @@ import type { Nullable, ReadingStatus, SeriesNextBook } from "@app/shared";
 import { ReadingStatusSchema } from "@app/shared";
 import { compareAsc } from "date-fns";
 
+export type EarlierPartCandidate = Pick<SeriesBookPreview, "partNumber" | "readingStatus">;
+
 export type SeriesBookPreview = {
   createdAt: Date;
   id: string;
@@ -57,7 +59,7 @@ export function computeHasUnreadEarlierParts({
   books,
   currentPartNumber,
 }: {
-  books: SeriesBookPreview[];
+  books: readonly EarlierPartCandidate[];
   currentPartNumber: Nullable<number>;
 }): Nullable<boolean> {
   if (currentPartNumber === null) {

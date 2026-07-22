@@ -30,6 +30,7 @@ import { CharacterGroupsService } from "./application/character-groups.service.j
 import { CharacterMergeService } from "./application/character-merge.service.js";
 import { CharacterPortabilityService } from "./application/character-portability.service.js";
 import { CharacterPurgeProcessor } from "./application/character-purge.processor.js";
+import { CharacterPurgeReconciler } from "./application/character-purge.reconciler.js";
 import { CharacterRelationshipPathService } from "./application/character-relationship-path.service.js";
 import { CharacterRelationshipsService } from "./application/character-relationships.service.js";
 import { CharacterTheoriesService } from "./application/character-theories.service.js";
@@ -92,6 +93,7 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterFormsService,
     CharacterFormsRepository,
     CharacterPurgeProcessor,
+    CharacterPurgeReconciler,
   ],
 })
 export class CharactersModule {}

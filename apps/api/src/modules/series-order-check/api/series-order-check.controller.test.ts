@@ -237,6 +237,25 @@ async function seedOutOfOrderScenario(accessToken: string): Promise<OutOfOrderSc
   };
 }
 
+async function seedReadingAheadNotQueuedScenario(
+  accessToken: string,
+): Promise<{ seriesId: string }> {
+  const bookThree = await createSeriesPartBook(accessToken, {
+    newSeries: { name: "Dune" },
+    partNumber: 3,
+    readingStatus: "reading",
+    title: "Children of Dune",
+  });
+  await createSeriesPartBook(accessToken, {
+    partNumber: 2,
+    readingStatus: "not_started",
+    seriesId: bookThree.seriesId,
+    title: "Dune Messiah",
+  });
+
+  return { seriesId: bookThree.seriesId };
+}
+
 function setSeriesOrderPreference(
   accessToken: string,
   seriesId: string,
@@ -257,6 +276,7 @@ describe("GET /api/reading-queue/series-order-issues", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(1);
+    expect(res.body.seriesInQueueWithIssuesCount).toBe(1);
     expect(res.body.items).toHaveLength(1);
     expect(typeof res.body.queueVersion).toBe("string");
     expect(res.body.queueVersion.length).toBeGreaterThan(0);
@@ -280,6 +300,20 @@ describe("GET /api/reading-queue/series-order-issues", () => {
     );
     expect(recommendedBookTwo).toBeDefined();
     expect(recommendedBookTwo.cover).toBeNull();
+  });
+
+  it("excludes a relevant issue from the in-queue count when its only book is reading and unqueued", async () => {
+    const user = await context.registerVerifyAndLogin();
+    await seedReadingAheadNotQueuedScenario(user.accessToken);
+
+    const res = await getIssues(user.accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.seriesInQueueWithIssuesCount).toBe(0);
+
+    const queueRes = await getQueue(user.accessToken);
+    expect(queueRes.body.count).toBe(0);
   });
 
   it("returns no issue when the series order check is disabled", async () => {

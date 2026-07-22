@@ -17,6 +17,9 @@ import {
   InvalidImageError,
 } from "../domain/image-processor.port.js";
 
+sharp.concurrency(1);
+sharp.cache(false);
+
 const OUTPUT_CONTENT_TYPE = "image/webp";
 const WEBP_EFFORT = 6;
 const DEFAULT_MAX_INPUT_PIXELS = 80_000_000;
@@ -27,33 +30,6 @@ const THUMB_MAX_EDGE = 300;
 const THUMB_QUALITY = 80;
 
 const ORIENTATIONS_WITH_SWAPPED_AXES = new Set([5, 6, 7, 8]);
-
-function assertCropWithinBounds({
-  crop,
-  orientedHeight,
-  orientedWidth,
-}: {
-  crop: MediaCrop;
-  orientedHeight: number;
-  orientedWidth: number;
-}): void {
-  const fitsHorizontally = crop.x >= 0 && crop.width > 0 && crop.x + crop.width <= orientedWidth;
-  const fitsVertically = crop.y >= 0 && crop.height > 0 && crop.y + crop.height <= orientedHeight;
-  if (!fitsHorizontally || !fitsVertically) {
-    throw new CropOutOfBoundsError();
-  }
-}
-
-function orientImageDimensions(input: {
-  height: number;
-  orientation: number | undefined;
-  width: number;
-}): { height: number; width: number } {
-  if (input.orientation !== undefined && ORIENTATIONS_WITH_SWAPPED_AXES.has(input.orientation)) {
-    return { height: input.width, width: input.height };
-  }
-  return { height: input.height, width: input.width };
-}
 
 @Injectable()
 export class SharpImageProcessor extends ImageProcessorPort {
@@ -119,4 +95,31 @@ export class SharpImageProcessor extends ImageProcessorPort {
 
     return normalized;
   }
+}
+
+function assertCropWithinBounds({
+  crop,
+  orientedHeight,
+  orientedWidth,
+}: {
+  crop: MediaCrop;
+  orientedHeight: number;
+  orientedWidth: number;
+}): void {
+  const fitsHorizontally = crop.x >= 0 && crop.width > 0 && crop.x + crop.width <= orientedWidth;
+  const fitsVertically = crop.y >= 0 && crop.height > 0 && crop.y + crop.height <= orientedHeight;
+  if (!fitsHorizontally || !fitsVertically) {
+    throw new CropOutOfBoundsError();
+  }
+}
+
+function orientImageDimensions(input: {
+  height: number;
+  orientation: number | undefined;
+  width: number;
+}): { height: number; width: number } {
+  if (input.orientation !== undefined && ORIENTATIONS_WITH_SWAPPED_AXES.has(input.orientation)) {
+    return { height: input.width, width: input.height };
+  }
+  return { height: input.height, width: input.width };
 }

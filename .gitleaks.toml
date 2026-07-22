@@ -1,0 +1,18 @@
+title = "book-nest gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test fixtures hold fake tokens, not real credentials"
+paths = [
+  '''.*\.test\.tsx?$''',
+  '''.*\.spec\.tsx?$''',
+]
+
+[[allowlists]]
+description = "CI placeholder secrets are not real credentials"
+regexes = [
+  '''ci-access-secret-0+''',
+  '''ci-refresh-secret-0+''',
+]

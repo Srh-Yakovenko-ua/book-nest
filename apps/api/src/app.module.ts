@@ -2,6 +2,7 @@ import type { MiddlewareConsumer, NestModule } from "@nestjs/common";
 
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
+import { ScheduleModule } from "@nestjs/schedule";
 import { seconds, ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { DatabaseModule } from "./core/database/database.module.js";
@@ -40,6 +41,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     ThrottlerModule.forRoot([
       { limit: GLOBAL_THROTTLE_LIMIT, ttl: seconds(GLOBAL_THROTTLE_TTL_SECONDS) },
     ]),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     QueueModule,
     HealthModule,

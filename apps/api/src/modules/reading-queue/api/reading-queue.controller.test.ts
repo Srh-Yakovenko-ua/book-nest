@@ -85,6 +85,12 @@ function getQueue(accessToken: string): request.Test {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
+function getSummary(accessToken: string): request.Test {
+  return request(app.getHttpServer())
+    .get("/api/reading-queue/summary")
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
 function positionsByTitle(res: request.Response): Array<[string, number]> {
   const items = res.body.items as Array<{ book: { title: string }; position: number }>;
   return items.map((item) => [item.book.title, item.position]);
@@ -101,6 +107,44 @@ function reorder(accessToken: string, order: string[]): request.Test {
     .put("/api/reading-queue/reorder")
     .set("Authorization", `Bearer ${accessToken}`)
     .send({ order });
+}
+
+async function seedSummaryQueue(accessToken: string): Promise<void> {
+  for (const ownershipStatus of ["owned", "none", "want_to_buy"] as const) {
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus,
+      title: `Standalone ${ownershipStatus}`,
+    });
+    expect(res.status).toBe(201);
+  }
+
+  const partOne = await createBook(accessToken, {
+    authors: [{ name: "Frank Herbert" }],
+    bookType: "series_part",
+    newSeries: { name: "Dune" },
+    ownershipStatus: "owned",
+    partNumber: 1,
+    readingStatus: "not_started",
+    title: "Dune",
+  });
+  expect(partOne.status).toBe(201);
+  const seriesId = partOne.body.series.id;
+
+  for (const partNumber of [2, 3]) {
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      bookType: "series_part",
+      ownershipStatus: "owned",
+      partNumber,
+      readingStatus: "not_started",
+      seriesId,
+      title: `Dune ${partNumber}`,
+    });
+    expect(res.status).toBe(201);
+  }
 }
 
 function startReading(
@@ -821,5 +865,57 @@ describe("POST /api/reading-queue/:bookId/start-reading", () => {
     expect(res.body.queuePriorityReason).toBeNull();
     expect(res.body.queuePriorityReasonCustomText).toBeNull();
     expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+});
+
+describe("GET /api/reading-queue/summary", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).get("/api/reading-queue/summary");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("aggregates the queue into consistent availability and series counts", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSummaryQueue(accessToken);
+
+    const res = await getSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      availableNowCount: 1,
+      blockedBySeriesOrderCount: 2,
+      seriesBooksCount: 2,
+      seriesInQueueCount: 1,
+      standaloneBooksCount: 3,
+      totalCount: 5,
+      unavailableByOwnership: { inTransit: 0, lentToSomeone: 0, none: 1, wantToBuy: 1 },
+      unavailableCount: 2,
+    });
+  });
+
+  it("keeps one user's summary isolated from another user's queue", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    await seedSummaryQueue(owner.accessToken);
+
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const strangerBook = await createOwnedBook(stranger.accessToken, {
+      ownershipStatus: "owned",
+      title: "Foundation",
+    });
+    expect(
+      (await addToQueue(stranger.accessToken, { bookId: strangerBook, placement: "end" })).status,
+    ).toBe(200);
+
+    const ownerSummary = await getSummary(owner.accessToken);
+    expect(ownerSummary.body.totalCount).toBe(5);
+
+    const strangerSummary = await getSummary(stranger.accessToken);
+    expect(strangerSummary.body.totalCount).toBe(1);
+    expect(strangerSummary.body.availableNowCount).toBe(1);
+    expect(strangerSummary.body.seriesInQueueCount).toBe(0);
   });
 });

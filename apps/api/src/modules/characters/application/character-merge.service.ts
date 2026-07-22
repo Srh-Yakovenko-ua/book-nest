@@ -19,7 +19,10 @@ import type {
   SurvivorMembershipKey,
 } from "../infrastructure/character-merge.repository.js";
 
-import { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import {
+  HEAVY_TRANSACTION_OPTIONS,
+  TransactionRunner,
+} from "../../../core/database/transaction-runner.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
@@ -368,7 +371,7 @@ export class CharacterMergeService {
           loserId: loser.id,
           survivor: { id: survivor.id, name: survivor.name },
         };
-      });
+      }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         throw new ConflictError("Merge conflicted with a concurrent change", {

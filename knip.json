@@ -42,7 +42,7 @@
       "project": ["src/**/*.ts", "!src/generated/**"],
       "entry": ["src/index.ts"],
       "prisma": false,
-      "ignoreDependencies": ["@nestjs/schedule", "@prisma/client", "pino-pretty", "ua-parser-js"]
+      "ignoreDependencies": ["@prisma/client", "pino-pretty", "ua-parser-js"]
     },
     "packages/shared": {
       "project": ["src/**/*.ts"]

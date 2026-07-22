@@ -188,9 +188,18 @@ export class SeriesOrderCheckService {
         toSeriesOrderIssueView({ coverByBookId, fingerprint, issue }),
       );
 
+    const queuedSeriesIds = new Set(
+      relevantBooks.flatMap((book) =>
+        book.queuePosition !== null && book.seriesId !== null ? [book.seriesId] : [],
+      ),
+    );
+
     return {
       items,
       queueVersion: computeQueueVersion(queueSignature),
+      seriesInQueueWithIssuesCount: fingerprintedIssues.filter(({ issue }) =>
+        queuedSeriesIds.has(issue.series.id),
+      ).length,
       total: fingerprintedIssues.length,
     };
   }

@@ -33,11 +33,7 @@ export type WishlistFilters = {
 };
 
 export type WishlistLinkFilter =
-  | "all"
-  | "has_links"
-  | "has_price"
-  | "without_links"
-  | "without_price";
+  "all" | "has_links" | "has_price" | "without_links" | "without_price";
 
 export type WishlistSort =
   | "added_asc"

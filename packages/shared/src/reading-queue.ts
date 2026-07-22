@@ -49,3 +49,27 @@ export const StartReadingFromQueueInputSchema = z.object({
 });
 
 export type StartReadingFromQueueInput = z.infer<typeof StartReadingFromQueueInputSchema>;
+
+export const ReadingQueueUnavailableBreakdownSchema = z.object({
+  inTransit: z.number().int().nonnegative(),
+  lentToSomeone: z.number().int().nonnegative(),
+  none: z.number().int().nonnegative(),
+  wantToBuy: z.number().int().nonnegative(),
+});
+
+export type ReadingQueueUnavailableBreakdown = z.infer<
+  typeof ReadingQueueUnavailableBreakdownSchema
+>;
+
+export const ReadingQueueSummaryViewSchema = z.object({
+  availableNowCount: z.number().int().nonnegative(),
+  blockedBySeriesOrderCount: z.number().int().nonnegative(),
+  seriesBooksCount: z.number().int().nonnegative(),
+  seriesInQueueCount: z.number().int().nonnegative(),
+  standaloneBooksCount: z.number().int().nonnegative(),
+  totalCount: z.number().int().nonnegative(),
+  unavailableByOwnership: ReadingQueueUnavailableBreakdownSchema,
+  unavailableCount: z.number().int().nonnegative(),
+});
+
+export type ReadingQueueSummaryView = z.infer<typeof ReadingQueueSummaryViewSchema>;

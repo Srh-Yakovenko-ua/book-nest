@@ -84,9 +84,7 @@ export type ActiveReadingRow = {
 };
 
 export type BlockUpsert<TCreate, TUpdate> =
-  | { create: TCreate; update: TUpdate }
-  | { delete: true }
-  | { skip: true };
+  { create: TCreate; update: TUpdate } | { delete: true } | { skip: true };
 
 export type BookWithRelations = Prisma.BookGetPayload<{
   include: typeof withRelations;
@@ -273,6 +271,54 @@ type CreateBookData = {
   tagIds: string[];
   title: string;
   translator: Nullable<string>;
+};
+
+type DedicationsSummaryResult = {
+  availableGenres: string[];
+  favoriteCount: number;
+  finishedCount: number;
+  topAuthor: Nullable<{ count: number; name: string }>;
+  topGenre: Nullable<{ count: number; genre: string }>;
+  totalCount: number;
+  unfinishedCount: number;
+};
+
+type FavoritesSummaryQuery = {
+  finishedStatuses: ReadingStatus[];
+  readingStatuses: ReadingStatus[];
+  userId: string;
+  wantToReadStatuses: ReadingStatus[];
+};
+
+type FavoritesSummaryResult = {
+  averageRating: Nullable<number>;
+  finished: number;
+  reading: number;
+  series: number;
+  solo: number;
+  topGenres: { count: number; genre: string }[];
+  topTags: { count: number; tag: string }[];
+  total: number;
+  unrated: number;
+  wantToRead: number;
+};
+
+type ListForLibraryInput = {
+  filter: LibraryFilter;
+  skip: number;
+  sort: LibrarySort;
+  take: number;
+};
+
+type SeriesPartNumberConflict = {
+  id: string;
+  title: string;
+};
+
+type SeriesPartNumberQuery = {
+  excludeBookId: Nullable<string>;
+  partNumber: number;
+  seriesId: string;
 };
 
 @Injectable()
@@ -1051,54 +1097,6 @@ export class BooksRepository {
     return client.book.findFirstOrThrow({ include: withRelations, where: { id: bookId, userId } });
   }
 }
-
-type DedicationsSummaryResult = {
-  availableGenres: string[];
-  favoriteCount: number;
-  finishedCount: number;
-  topAuthor: Nullable<{ count: number; name: string }>;
-  topGenre: Nullable<{ count: number; genre: string }>;
-  totalCount: number;
-  unfinishedCount: number;
-};
-
-type FavoritesSummaryQuery = {
-  finishedStatuses: ReadingStatus[];
-  readingStatuses: ReadingStatus[];
-  userId: string;
-  wantToReadStatuses: ReadingStatus[];
-};
-
-type FavoritesSummaryResult = {
-  averageRating: Nullable<number>;
-  finished: number;
-  reading: number;
-  series: number;
-  solo: number;
-  topGenres: { count: number; genre: string }[];
-  topTags: { count: number; tag: string }[];
-  total: number;
-  unrated: number;
-  wantToRead: number;
-};
-
-type ListForLibraryInput = {
-  filter: LibraryFilter;
-  skip: number;
-  sort: LibrarySort;
-  take: number;
-};
-
-type SeriesPartNumberConflict = {
-  id: string;
-  title: string;
-};
-
-type SeriesPartNumberQuery = {
-  excludeBookId: Nullable<string>;
-  partNumber: number;
-  seriesId: string;
-};
 
 const FAVORITE_TOP_LIMIT = 3;
 

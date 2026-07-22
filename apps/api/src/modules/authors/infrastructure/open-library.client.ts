@@ -7,15 +7,15 @@ import { createLogger } from "../../../core/logger.js";
 
 const SEARCH_ENDPOINT = "https://openlibrary.org/search/authors.json";
 const AUTHOR_BY_KEY_ENDPOINT = (olid: string): string =>
-  `https://openlibrary.org/authors/${olid}.json`;
+  `https://openlibrary.org/authors/${encodeURIComponent(olid)}.json`;
 const WORKS_BY_AUTHOR_ENDPOINT = (olid: string): string =>
-  `https://openlibrary.org/authors/${olid}/works.json`;
+  `https://openlibrary.org/authors/${encodeURIComponent(olid)}/works.json`;
 const REQUEST_TIMEOUT_MS = 8_000;
 const RESULT_LIMIT = 10;
 const WORKS_LIMIT = 50;
 const MISSING_PHOTO_ID = -1;
 const PHOTO_BY_OLID = (olid: string): string =>
-  `https://covers.openlibrary.org/a/olid/${olid}-M.jpg`;
+  `https://covers.openlibrary.org/a/olid/${encodeURIComponent(olid)}-M.jpg`;
 const PHOTO_BY_ID = (photoId: number): string =>
   `https://covers.openlibrary.org/a/id/${String(photoId)}-L.jpg`;
 const WORK_COVER_BY_ID = (coverId: number): string =>
@@ -78,44 +78,6 @@ export type OpenLibraryWork = {
 };
 
 const logger = createLogger("authors.open-library");
-
-function coverUrlFromIds(covers: number[] | undefined): Nullable<string> {
-  const firstCoverId = covers?.find((coverId) => coverId !== MISSING_PHOTO_ID);
-  if (firstCoverId === undefined) {
-    return null;
-  }
-  return WORK_COVER_BY_ID(firstCoverId);
-}
-
-function normalizeBio(bio: string | undefined | { value: string }): Nullable<string> {
-  if (bio === undefined) {
-    return null;
-  }
-  const value = typeof bio === "string" ? bio : bio.value;
-  const trimmed = value.trim();
-  return trimmed.length === 0 ? null : trimmed;
-}
-
-function parseBirthYear(birthDate: string | undefined): Nullable<number> {
-  if (birthDate === undefined) {
-    return null;
-  }
-  const match = BIRTH_YEAR.exec(birthDate);
-  const captured = match?.[1];
-  if (captured === undefined) {
-    return null;
-  }
-  const year = Number.parseInt(captured, 10);
-  return Number.isNaN(year) ? null : year;
-}
-
-function photoUrlFromIds(photos: number[] | undefined): Nullable<string> {
-  const firstPhotoId = photos?.[0];
-  if (firstPhotoId === undefined || firstPhotoId === MISSING_PHOTO_ID) {
-    return null;
-  }
-  return PHOTO_BY_ID(firstPhotoId);
-}
 
 @Injectable()
 export class OpenLibraryClient {
@@ -250,4 +212,42 @@ export class OpenLibraryClient {
 
     return authors;
   }
+}
+
+function coverUrlFromIds(covers: number[] | undefined): Nullable<string> {
+  const firstCoverId = covers?.find((coverId) => coverId !== MISSING_PHOTO_ID);
+  if (firstCoverId === undefined) {
+    return null;
+  }
+  return WORK_COVER_BY_ID(firstCoverId);
+}
+
+function normalizeBio(bio: string | undefined | { value: string }): Nullable<string> {
+  if (bio === undefined) {
+    return null;
+  }
+  const value = typeof bio === "string" ? bio : bio.value;
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+function parseBirthYear(birthDate: string | undefined): Nullable<number> {
+  if (birthDate === undefined) {
+    return null;
+  }
+  const match = BIRTH_YEAR.exec(birthDate);
+  const captured = match?.[1];
+  if (captured === undefined) {
+    return null;
+  }
+  const year = Number.parseInt(captured, 10);
+  return Number.isNaN(year) ? null : year;
+}
+
+function photoUrlFromIds(photos: number[] | undefined): Nullable<string> {
+  const firstPhotoId = photos?.[0];
+  if (firstPhotoId === undefined || firstPhotoId === MISSING_PHOTO_ID) {
+    return null;
+  }
+  return PHOTO_BY_ID(firstPhotoId);
 }
