@@ -1,16 +1,22 @@
 import type {
   AddToReadingQueueInput,
   ReadingQueueItemView,
+  ReadingQueueSummaryView,
   ReadingQueueView,
   ReorderReadingQueueInput,
 } from "@app/shared";
 
+import { OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { BookReadingService, BooksRepository, BookViewAssembler } from "../../books/index.js";
 import { computeQueueInsertPosition } from "../domain/queue-position.js";
+import {
+  computeReadingQueueSummary,
+  type ReadingQueueSummaryDomainRow,
+} from "../domain/queue-summary.js";
 import { ReadingQueueRepository } from "../infrastructure/reading-queue.repository.js";
 
 const ALREADY_IN_QUEUE_MESSAGE = "Книга вже є в черзі читання";
@@ -136,5 +142,20 @@ export class ReadingQueueService {
     });
 
     return this.getQueue(userId);
+  }
+
+  async summary(userId: string): Promise<ReadingQueueSummaryView> {
+    const rows = await this.readingQueueRepository.loadSummaryRows(userId);
+    const domainRows = rows.map<ReadingQueueSummaryDomainRow>((row) => ({
+      ownershipStatus: OwnershipStatusSchema.parse(row.ownershipStatus),
+      partNumber: row.partNumber,
+      seriesBooks: (row.series?.books ?? []).map((seriesBook) => ({
+        partNumber: seriesBook.partNumber,
+        readingStatus: ReadingStatusSchema.parse(seriesBook.readingStatus),
+      })),
+      seriesId: row.seriesId,
+    }));
+
+    return computeReadingQueueSummary(domainRows);
   }
 }

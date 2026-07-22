@@ -88,6 +88,7 @@ export type SeriesOrderIssueView = z.infer<typeof SeriesOrderIssueViewSchema>;
 export const SeriesOrderIssuesViewSchema = z.object({
   items: z.array(SeriesOrderIssueViewSchema),
   queueVersion: z.string(),
+  seriesInQueueWithIssuesCount: z.number().int().nonnegative(),
   total: z.number().int().nonnegative(),
 });
 export type SeriesOrderIssuesView = z.infer<typeof SeriesOrderIssuesViewSchema>;

@@ -175,15 +175,18 @@ export function makeSeriesOrderIssues(count: number): SeriesOrderIssueView[] {
 export function makeSeriesOrderIssuesView({
   items = [makeSeriesOrderIssue()],
   queueVersion = QUEUE_VERSION,
+  seriesInQueueWithIssuesCount,
   total,
 }: {
   items?: SeriesOrderIssueView[];
   queueVersion?: string;
+  seriesInQueueWithIssuesCount?: number;
   total?: number;
 } = {}): SeriesOrderIssuesView {
   return SeriesOrderIssuesViewSchema.parse({
     items,
     queueVersion,
+    seriesInQueueWithIssuesCount: seriesInQueueWithIssuesCount ?? items.length,
     total: total ?? items.length,
   });
 }
