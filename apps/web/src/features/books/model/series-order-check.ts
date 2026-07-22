@@ -1,7 +1,10 @@
 import type {
+  Nullable,
   SeriesOrderActionCode,
+  SeriesOrderBookView,
   SeriesOrderFixStrategy,
   SeriesOrderIssueView,
+  SeriesOrderPositionView,
   SeriesOrderProblemType,
   SeriesOrderSeverity,
 } from "@app/shared";
@@ -22,7 +25,6 @@ export type SeriesOrderActionLabelKey =
   | "addBefore"
   | "addNext"
   | "addToWishlist"
-  | "arrangeBySeries"
   | "disableSeries"
   | "fixOrder"
   | "ignore"
@@ -31,6 +33,13 @@ export type SeriesOrderActionLabelKey =
   | "openOrder"
   | "openPurchase"
   | "resumeBook";
+
+export type SeriesOrderComparisonRow = {
+  changed: boolean;
+  current: SeriesOrderPositionView;
+  queuePosition: Nullable<number>;
+  recommended: SeriesOrderPositionView;
+};
 
 export type SeriesOrderErrorKey =
   | "alreadyInQueue"
@@ -42,9 +51,12 @@ export type SeriesOrderErrorKey =
   | "queueStale";
 
 export type SeriesOrderFixTarget = {
+  affectedBook: SeriesOrderBookView;
   fingerprint: string;
+  previousBook: Nullable<SeriesOrderBookView>;
   problemType: SeriesOrderProblemType;
   queueVersion: string;
+  recommendedOrder: SeriesOrderPositionView[];
   seriesTitle: string;
   strategy: SeriesOrderFixStrategy;
 };
@@ -138,10 +150,45 @@ export function seriesOrderActionLabelKey(
   if (code === "ADD_NEXT_PREVIOUS_BEFORE" && problemType === "multiple_previous_missing") {
     return "addNext";
   }
-  if (code === "REORDER_SERIES_SLOTS" && problemType === "multiple_books_out_of_order") {
-    return "arrangeBySeries";
-  }
   return ACTION_LABEL_KEYS[code];
+}
+
+export function toRecommendedOrderPositions(
+  items: SeriesOrderPositionView[],
+): SeriesOrderPositionView[] {
+  const slots = items
+    .map((item) => item.queuePosition)
+    .filter((position): position is number => position !== null)
+    .sort((first, second) => first - second);
+  let cursor = 0;
+  return items.map((item) => {
+    if (item.queuePosition === null) return item;
+    const queuePosition = slots[cursor] ?? item.queuePosition;
+    cursor += 1;
+    return { ...item, queuePosition };
+  });
+}
+
+export function toSeriesOrderComparison(
+  currentOrder: SeriesOrderPositionView[],
+  recommendedOrder: SeriesOrderPositionView[],
+): SeriesOrderComparisonRow[] {
+  const recommendedBySlot = new Map<number, SeriesOrderPositionView>();
+  for (const item of toRecommendedOrderPositions(recommendedOrder)) {
+    if (item.queuePosition !== null) recommendedBySlot.set(item.queuePosition, item);
+  }
+  return currentOrder.map((current) => {
+    const recommended =
+      current.queuePosition === null
+        ? current
+        : (recommendedBySlot.get(current.queuePosition) ?? current);
+    return {
+      changed: recommended.bookId !== current.bookId,
+      current,
+      queuePosition: current.queuePosition,
+      recommended,
+    };
+  });
 }
 
 export function toSeriesOrderErrorKey(error: unknown): SeriesOrderErrorKey {

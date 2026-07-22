@@ -128,9 +128,16 @@ export function makeSeriesOrderIssue(
     affectedBook: makeSeriesOrderBook(),
     allowedActions: ["ADD_NEXT_PREVIOUS_BEFORE", "IGNORE_ISSUE", "DISABLE_SERIES_CHECK"],
     currentOrder: [
-      { bookId: "book-affected", queuePosition: 1, seriesPosition: 2, title: AFFECTED_BOOK_TITLE },
+      {
+        bookId: "book-affected",
+        cover: null,
+        queuePosition: 1,
+        seriesPosition: 2,
+        title: AFFECTED_BOOK_TITLE,
+      },
       {
         bookId: "book-previous",
+        cover: null,
         queuePosition: null,
         seriesPosition: 1,
         title: PREVIOUS_BOOK_TITLE,
@@ -145,8 +152,20 @@ export function makeSeriesOrderIssue(
     }),
     problemType: "missing_previous_from_queue",
     recommendedOrder: [
-      { bookId: "book-previous", queuePosition: 1, seriesPosition: 1, title: PREVIOUS_BOOK_TITLE },
-      { bookId: "book-affected", queuePosition: 2, seriesPosition: 2, title: AFFECTED_BOOK_TITLE },
+      {
+        bookId: "book-previous",
+        cover: null,
+        queuePosition: 1,
+        seriesPosition: 1,
+        title: PREVIOUS_BOOK_TITLE,
+      },
+      {
+        bookId: "book-affected",
+        cover: null,
+        queuePosition: 2,
+        seriesPosition: 2,
+        title: AFFECTED_BOOK_TITLE,
+      },
     ],
     relatedProblems: [],
     series: { id: "series-1", title: SERIES_TITLE },

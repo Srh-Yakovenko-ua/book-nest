@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import messages from "@/messages/uk.json";
-import { renderWithProviders, screen, userEvent } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import {
   AFFECTED_BOOK_TITLE,
@@ -14,6 +14,7 @@ import {
   makeSeriesOrderCover,
   makeSeriesOrderIssue,
   PREVIOUS_BOOK_TITLE,
+  SERIES_TITLE,
 } from "../model/series-order-check.fixtures";
 import { SeriesOrderIssueCard } from "./series-order-issue-card";
 
@@ -212,7 +213,7 @@ describe("SeriesOrderIssueCard books", () => {
   it("renders no image when the book has no cover", () => {
     renderCard({ previousBook: null });
 
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /Обкладинка/ })).not.toBeInTheDocument();
   });
 
   it("clamps a very long book title instead of overflowing", () => {
@@ -226,32 +227,137 @@ describe("SeriesOrderIssueCard books", () => {
   });
 });
 
-describe("SeriesOrderIssueCard order preview", () => {
-  it("shows the current and the recommended order of the series", () => {
+describe("SeriesOrderIssueCard books block", () => {
+  it("labels the block in the plural and keeps both role labels for two affected books", () => {
     renderCard();
 
-    expect(screen.getByText(soc.preview.current)).toBeInTheDocument();
-    expect(screen.getByText(soc.preview.recommended)).toBeInTheDocument();
+    expect(screen.getByText(card.affectedBooks)).toBeInTheDocument();
+    expect(screen.getByText(card.affectedBook)).toBeInTheDocument();
+    expect(screen.getByText(card.previousBook)).toBeInTheDocument();
   });
 
-  it("lists the recommended order in the sequence the backend sent", () => {
-    renderCard();
+  it("labels the block in the singular and drops the per-row label for a single book", () => {
+    renderCard({ allowedActions: ["REORDER_SERIES_SLOTS"], previousBook: null });
 
-    const lists = screen.getAllByRole("list");
-    const recommended = lists[lists.length - 1];
-    const titles = Array.from(recommended?.querySelectorAll("li") ?? []).map((li) =>
-      li.textContent?.replace(/\d+\.\s*/, "").trim(),
-    );
-
-    expect(titles?.[0]).toContain(PREVIOUS_BOOK_TITLE);
-    expect(titles?.[1]).toContain(AFFECTED_BOOK_TITLE);
+    expect(screen.queryByText(card.affectedBooks)).not.toBeInTheDocument();
+    expect(screen.getAllByText(card.affectedBook)).toHaveLength(1);
+    expect(screen.queryByText(card.previousBook)).not.toBeInTheDocument();
   });
 
-  it("omits an empty sequence", () => {
+  it("keeps the chip, series, problem text, books block, comparison and actions in one card", () => {
+    renderCard({ severity: "error" });
+
+    expect(screen.getByText(soc.severity.error)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: SERIES_TITLE })).toBeInTheDocument();
+    expect(
+      screen.getByText(`Перед «${AFFECTED_BOOK_TITLE}» ще не завершено «${PREVIOUS_BOOK_TITLE}».`),
+    ).toBeInTheDocument();
+    expect(screen.getByText(card.affectedBooks)).toBeInTheDocument();
+    expect(screen.getByText(card.comparisonLabel)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Додати попередню книгу" })).toBeInTheDocument();
+  });
+});
+
+describe("SeriesOrderIssueCard order comparison", () => {
+  const OUT_OF_ORDER = {
+    currentOrder: [
+      {
+        bookId: "b3",
+        cover: null,
+        queuePosition: 11,
+        seriesPosition: 3,
+        title: "Зруйнований палац",
+      },
+      { bookId: "b2", cover: null, queuePosition: 12, seriesPosition: 2, title: "Зламаний принц" },
+      {
+        bookId: "b1",
+        cover: null,
+        queuePosition: 13,
+        seriesPosition: 1,
+        title: "Паперова принцеса",
+      },
+    ],
+    recommendedOrder: [
+      {
+        bookId: "b1",
+        cover: null,
+        queuePosition: 13,
+        seriesPosition: 1,
+        title: "Паперова принцеса",
+      },
+      { bookId: "b2", cover: null, queuePosition: 12, seriesPosition: 2, title: "Зламаний принц" },
+      {
+        bookId: "b3",
+        cover: null,
+        queuePosition: 11,
+        seriesPosition: 3,
+        title: "Зруйнований палац",
+      },
+    ],
+  } satisfies IssueOverrides;
+
+  function comparisonRows() {
+    return Array.from(screen.getByRole("list").querySelectorAll("li"));
+  }
+
+  function renderComparison() {
+    return renderCard({
+      ...OUT_OF_ORDER,
+      allowedActions: ["REORDER_SERIES_SLOTS"],
+      problemType: "multiple_books_out_of_order",
+    });
+  }
+
+  it("labels the block as the current versus the correct order", () => {
+    renderComparison();
+
+    expect(screen.getByText(card.comparisonLabel)).toBeInTheDocument();
+  });
+
+  it("marks a reordered slot with an arrow and shows the book it should become", () => {
+    renderComparison();
+
+    const [firstRow] = comparisonRows();
+    if (firstRow === undefined) throw new Error("no comparison rows rendered");
+
+    expect(firstRow).toHaveTextContent("#11");
+    expect(within(firstRow).getByRole("img", { name: card.changesTo })).toBeInTheDocument();
+    expect(within(firstRow).getByText("Зруйнований палац")).toBeInTheDocument();
+    expect(within(firstRow).getByText("Паперова принцеса")).toBeInTheDocument();
+  });
+
+  it("marks an unchanged slot with a check and shows its book once", () => {
+    renderComparison();
+
+    const stableRow = comparisonRows()[1];
+    if (stableRow === undefined) throw new Error("no unchanged row rendered");
+
+    expect(stableRow).toHaveTextContent("#12");
+    expect(within(stableRow).getByRole("img", { name: card.staysInPlace })).toBeInTheDocument();
+    expect(within(stableRow).queryByRole("img", { name: card.changesTo })).not.toBeInTheDocument();
+    expect(within(stableRow).getAllByText("Зламаний принц")).toHaveLength(1);
+  });
+
+  it("hides the block when no slot needs to move", () => {
+    renderCard({
+      allowedActions: ["REORDER_SERIES_SLOTS"],
+      currentOrder: [
+        { bookId: "b1", cover: null, queuePosition: 1, seriesPosition: 1, title: "Перша" },
+        { bookId: "b2", cover: null, queuePosition: 2, seriesPosition: 2, title: "Друга" },
+      ],
+      recommendedOrder: [
+        { bookId: "b1", cover: null, queuePosition: 1, seriesPosition: 1, title: "Перша" },
+        { bookId: "b2", cover: null, queuePosition: 2, seriesPosition: 2, title: "Друга" },
+      ],
+    });
+
+    expect(screen.queryByText(card.comparisonLabel)).not.toBeInTheDocument();
+  });
+
+  it("hides the block when there is no order to show", () => {
     renderCard({ currentOrder: [], recommendedOrder: [] });
 
-    expect(screen.queryByText(soc.preview.current)).not.toBeInTheDocument();
-    expect(screen.queryByText(soc.preview.recommended)).not.toBeInTheDocument();
+    expect(screen.queryByText(card.comparisonLabel)).not.toBeInTheDocument();
   });
 });
 
@@ -267,16 +373,14 @@ describe("SeriesOrderIssueCard actions", () => {
   it("hides a fix action the backend did not allow", () => {
     renderCard({ allowedActions: ["ADD_NEXT_PREVIOUS_BEFORE"] });
 
-    expect(screen.queryByRole("button", { name: actions.arrangeBySeries })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: actions.fixOrder })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: actions.addAll })).not.toBeInTheDocument();
   });
 
   it("names the insert action after the affected book", () => {
     renderCard({ allowedActions: ["ADD_NEXT_PREVIOUS_BEFORE"] });
 
-    expect(
-      screen.getByRole("button", { name: `Додати перед «${AFFECTED_BOOK_TITLE}»` }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Додати попередню книгу" })).toBeInTheDocument();
   });
 
   it("reports the chosen fix action to the caller", async () => {

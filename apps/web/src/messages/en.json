@@ -141,13 +141,31 @@
     },
     "seriesOrderCheck": {
       "title": "Check series order",
-      "subtitle": "Found series where the reading order may be broken",
-      "viewAll": "View all",
+      "viewAll": "View all problems",
       "countLabel": "Series order issues found: {count}",
       "loading": "Checking series order…",
+      "resolved": "Series order checked — no problems found",
+      "attention": {
+        "title": "Needs attention",
+        "summary": "Found {count, plural, one {# issue} other {# issues}} in your series reading order. Check the books so you don't start the next part too early."
+      },
       "allIssues": {
         "title": "Series order",
         "description": "All series where the reading order may be broken."
+      },
+      "filters": {
+        "label": "Filter by severity",
+        "all": "All",
+        "error": "Errors",
+        "warning": "Warnings",
+        "info": "Info",
+        "noMatches": "No issues match this filter"
+      },
+      "sort": {
+        "label": "Sort",
+        "byQueue": "By queue position",
+        "byType": "By problem type",
+        "bySeries": "By series title"
       },
       "empty": {
         "title": "Series order checked",
@@ -160,6 +178,7 @@
       },
       "card": {
         "affectedBook": "Affected book",
+        "affectedBooks": "Problem books",
         "previousBook": "Previous book",
         "seriesPosition": "Book {position}",
         "seriesPositionUnknown": "Position unknown",
@@ -168,7 +187,10 @@
         "currentReading": "Currently reading",
         "relatedProblems": "{count, plural, one {# more conflict in this series} other {# more conflicts in this series}}",
         "moreActions": "More actions for the “{series}” series",
-        "coverAlt": "“{title}” cover"
+        "coverAlt": "“{title}” cover",
+        "comparisonLabel": "Current → correct order",
+        "changesTo": "should become",
+        "staysInPlace": "stays in place"
       },
       "order": {
         "listLabel": "Series book order"
@@ -210,9 +232,8 @@
       },
       "actions": {
         "retry": "Try again",
-        "fixOrder": "Fix the order",
-        "arrangeBySeries": "Arrange by series order",
-        "addBefore": "Add before “{affectedBook}”",
+        "fixOrder": "Fix series order",
+        "addBefore": "Add previous book",
         "addNext": "Add the next book",
         "addAll": "Add all in order",
         "openBook": "Open the previous book",
@@ -226,21 +247,26 @@
       },
       "preview": {
         "title": "Fix the series order?",
-        "current": "Now:",
-        "recommended": "Recommended:",
-        "afterFix": "After the fix:",
-        "added": "Will be added:",
-        "moved": "Will move:",
-        "addedItem": "“{title}” will be added at position {position}.",
-        "movedItem": "“{title}”: position {from} → {to}",
-        "unrelatedUnchanged": "Other books will stay at their positions.",
-        "shiftedUnrelated": "{count, plural, one {# unrelated book will shift} other {# unrelated books will shift}} to a new position.",
+        "addTitle": "Add {count, plural, one {a book} other {books}} and fix the series order?",
+        "addSubtitle": "“{bookTitle}” will be inserted in the right place after the earlier books in the series.",
+        "addSubtitleMany": "{count, plural, one {# book} other {# books}} will be added in series order.",
+        "addedTitle": "Will be added",
+        "seriesBook": "Book {position}",
+        "inSeries": "“{series}” series",
+        "newPosition": "New position: #{position}",
+        "seriesOrderTitle": "Series order after adding",
+        "queueChangesTitle": "How the queue changes",
+        "newBook": "New book",
+        "moreMoves": "{count, plural, one {# more book moves} other {# more books move}} further down the queue",
+        "showAllMoves": "Show all moves",
+        "collapseMoves": "Collapse",
+        "unchanged": "{count, plural, one {# book stays} other {# books stay}} in place.",
         "warningsTitle": "Please note",
         "loading": "Preparing the change preview…",
         "error": "Couldn’t prepare the change preview",
         "cancel": "Cancel",
         "confirm": "Confirm the action",
-        "confirmReorder": "Fix the order",
+        "confirmReorder": "Fix series order",
         "confirmInsert": "Add and fix"
       },
       "disable": {

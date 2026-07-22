@@ -5,9 +5,12 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { SeriesOrderIssuesViewDtoItemsItemRecommendedOrderItemCover } from "./seriesOrderIssuesViewDtoItemsItemRecommendedOrderItemCover";
 
 export type SeriesOrderIssuesViewDtoItemsItemRecommendedOrderItem = {
   bookId: string;
+  /** @nullable */
+  cover: SeriesOrderIssuesViewDtoItemsItemRecommendedOrderItemCover;
   /**
    * @minimum -9007199254740991
    * @maximum 9007199254740991

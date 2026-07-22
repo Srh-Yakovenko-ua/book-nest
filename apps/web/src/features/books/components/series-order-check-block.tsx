@@ -111,9 +111,12 @@ export function SeriesOrderCheckBlock() {
     if (isSeriesOrderFixStrategy(code)) {
       setBlockRadixFocusRestore(false);
       setFixTarget({
+        affectedBook: issue.affectedBook,
         fingerprint: issue.fingerprint,
+        previousBook: issue.previousBook,
         problemType: issue.problemType,
         queueVersion,
+        recommendedOrder: issue.recommendedOrder,
         seriesTitle: issue.series.title,
         strategy: code,
       });
@@ -220,28 +223,51 @@ export function SeriesOrderCheckBlock() {
       );
     }
 
-    if (view.items.length === 0) return null;
+    if (view.total === 0) {
+      return (
+        <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success-soft p-3 text-sm text-success">
+          <UiIcon className="text-success" name="check-circle" size={16} />
+          {t("resolved")}
+        </div>
+      );
+    }
 
     return (
       <section aria-labelledby="series-order-check-heading" className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-2">
-            <h2
-              className="font-heading text-sm font-semibold text-ink"
-              id="series-order-check-heading"
-              ref={headingRef}
-              tabIndex={-1}
-            >
-              {t("title")}
-            </h2>
+        <h2
+          className="font-heading text-sm font-semibold text-ink"
+          id="series-order-check-heading"
+          ref={headingRef}
+          tabIndex={-1}
+        >
+          {t("title")}
+        </h2>
+
+        <div className="flex flex-col gap-2 rounded-lg border border-warning/30 bg-warning-soft p-3">
+          <div className="flex items-center gap-2">
+            <UiIcon className="text-warning" name="alert-triangle" size={16} />
+            <span className="text-sm font-semibold text-warning">{t("attention.title")}</span>
             <span
               aria-label={t("countLabel", { count: view.total })}
-              className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-xs font-semibold text-accent-foreground tabular-nums"
+              className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-warning/15 px-1.5 text-xs font-semibold text-warning tabular-nums"
             >
               {view.total}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">{t("subtitle")}</p>
+          <p className="text-xs text-foreground/80">
+            {t("attention.summary", { count: view.total })}
+          </p>
+          {view.total > view.items.length ? (
+            <Button
+              className="self-start"
+              onClick={() => setAllIssuesOpen(true)}
+              size="sm"
+              variant="ghost"
+            >
+              {t("viewAll")}
+              <UiIcon name="arrow-right" size={14} />
+            </Button>
+          ) : null}
         </div>
 
         <ul className="flex flex-col gap-3">
@@ -255,18 +281,6 @@ export function SeriesOrderCheckBlock() {
             </li>
           ))}
         </ul>
-
-        {view.total > view.items.length ? (
-          <Button
-            className="self-start"
-            onClick={() => setAllIssuesOpen(true)}
-            size="sm"
-            variant="ghost"
-          >
-            {t("viewAll")}
-            <UiIcon name="arrow-right" size={14} />
-          </Button>
-        ) : null}
       </section>
     );
   }

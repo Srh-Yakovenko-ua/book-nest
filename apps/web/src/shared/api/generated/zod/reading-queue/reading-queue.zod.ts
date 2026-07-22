@@ -98,6 +98,7 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           latest: zod
@@ -131,6 +132,7 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           totalCount: zod.number(),
@@ -167,6 +169,8 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
             loanDate: zod.string().nullable(),
+            loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+            loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
             remindToReturn: zod.boolean(),
@@ -413,6 +417,7 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           latest: zod
@@ -446,6 +451,7 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           totalCount: zod.number(),
@@ -482,6 +488,8 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
             loanDate: zod.string().nullable(),
+            loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+            loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
             remindToReturn: zod.boolean(),
@@ -724,6 +732,7 @@ export const ReadingQueueControllerReorderResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           latest: zod
@@ -757,6 +766,7 @@ export const ReadingQueueControllerReorderResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           totalCount: zod.number(),
@@ -793,6 +803,8 @@ export const ReadingQueueControllerReorderResponse = zod.object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
             loanDate: zod.string().nullable(),
+            loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+            loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
             remindToReturn: zod.boolean(),
@@ -1031,6 +1043,7 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           latest: zod
@@ -1064,6 +1077,7 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           totalCount: zod.number(),
@@ -1100,6 +1114,8 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
             loanDate: zod.string().nullable(),
+            loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+            loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
             remindToReturn: zod.boolean(),
@@ -1336,6 +1352,7 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           latest: zod
@@ -1369,6 +1386,7 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
               storeName: zod.string().nullable(),
               trackingNumber: zod.string().nullable(),
               trackingUrl: zod.string().nullable(),
+              updatedAt: zod.string(),
             })
             .nullable(),
           totalCount: zod.number(),
@@ -1405,6 +1423,8 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
             contact: zod.string().nullable(),
             expectedReturnDate: zod.string().nullable(),
             loanDate: zod.string().nullable(),
+            loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+            loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
             remindToReturn: zod.boolean(),
@@ -1669,6 +1689,23 @@ export const SeriesOrderCheckControllerListIssuesResponse = zod.object({
       currentOrder: zod.array(
         zod.object({
           bookId: zod.string(),
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
           queuePosition: zod
             .number()
             .min(
@@ -1757,6 +1794,23 @@ export const SeriesOrderCheckControllerListIssuesResponse = zod.object({
       recommendedOrder: zod.array(
         zod.object({
           bookId: zod.string(),
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
           queuePosition: zod
             .number()
             .min(
@@ -2067,6 +2121,23 @@ export const SeriesOrderCheckControllerIgnoreIssueResponse = zod.object({
       currentOrder: zod.array(
         zod.object({
           bookId: zod.string(),
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
           queuePosition: zod
             .number()
             .min(
@@ -2159,6 +2230,23 @@ export const SeriesOrderCheckControllerIgnoreIssueResponse = zod.object({
       recommendedOrder: zod.array(
         zod.object({
           bookId: zod.string(),
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
           queuePosition: zod
             .number()
             .min(

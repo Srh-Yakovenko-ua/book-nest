@@ -56,6 +56,7 @@ export type SeriesOrderBookView = z.infer<typeof SeriesOrderBookViewSchema>;
 
 export const SeriesOrderPositionViewSchema = z.object({
   bookId: z.string(),
+  cover: MediaViewSchema.nullable(),
   queuePosition: z.number().int().nullable(),
   seriesPosition: z.number().int().nullable(),
   title: z.string(),
