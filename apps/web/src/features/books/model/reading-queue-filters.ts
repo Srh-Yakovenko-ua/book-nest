@@ -1,4 +1,4 @@
-import type { BookView, Nullable, QueuePriority } from "@app/shared";
+import type { BookView, Nullable, QueuePriority, ReadingQueueItemView } from "@app/shared";
 
 import type {
   BooksControllerListAgeCategoryItem,
@@ -112,6 +112,19 @@ export function matchesQueueFilters(book: BookView, state: QueueFilterState): bo
   if (!matchesRange(book.pagesCount, state.pagesMin, state.pagesMax)) return false;
   if (state.hasCover !== null && (book.cover != null) !== state.hasCover) return false;
   return true;
+}
+
+export function matchesQueueSearch(item: ReadingQueueItemView, query: string): boolean {
+  const { book } = item;
+  const haystack = [
+    book.title,
+    book.originalTitle ?? "",
+    book.series?.name ?? "",
+    ...book.authors.map((author) => author.name),
+    ...book.genres,
+    ...book.tags.map((tag) => tag.name),
+  ];
+  return haystack.some((part) => part.toLowerCase().includes(query));
 }
 
 function matchesRange(

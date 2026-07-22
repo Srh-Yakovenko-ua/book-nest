@@ -4,6 +4,7 @@ import type {
   OwnershipStatus,
   ReadingQueueItemView,
   ReadingQueueSummaryView,
+  ReadingQueueVolumeSummaryView,
   SeriesOrderIssuesView,
 } from "@app/shared";
 import type { ReactNode } from "react";
@@ -14,6 +15,7 @@ import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
 import { makeSeriesView } from "../../series/model/series.fixtures";
+import { makeQueueVolumeSummary } from "../model/queue-volume.fixtures";
 import { makeBookView } from "./book-details.fixtures";
 import { ReadingQueueView } from "./reading-queue-view";
 
@@ -29,6 +31,7 @@ const stats = messages.readingQueue.stats;
 const filters = messages.books.library.filters;
 const priority = messages.books.organization.priority;
 const readingStatus = messages.books.readingStatus.options;
+const volume = messages.readingQueue.volume;
 
 const AVAILABLE_OWNERSHIP: OwnershipStatus[] = ["owned", "borrowed_from_someone"];
 
@@ -75,17 +78,27 @@ function mixedAvailabilityItems(): ReadingQueueItemView[] {
   ];
 }
 
-function mockQueue(items: ReadingQueueItemView[]) {
-  mockQueueFetch(() => Promise.resolve(jsonResponse(queueView(items))), items);
+function mockQueue(
+  items: ReadingQueueItemView[],
+  volume: ReadingQueueVolumeSummaryView = makeQueueVolumeSummary(),
+) {
+  mockQueueFetch(() => Promise.resolve(jsonResponse(queueView(items))), items, volume);
 }
 
-function mockQueueFetch(respond: () => Promise<Response>, items: ReadingQueueItemView[] = []) {
+function mockQueueFetch(
+  respond: () => Promise<Response>,
+  items: ReadingQueueItemView[] = [],
+  volume: ReadingQueueVolumeSummaryView = makeQueueVolumeSummary(),
+) {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/api/reading-queue/summary")) {
         return Promise.resolve(jsonResponse(summaryOf(items)));
+      }
+      if (url.includes("/api/reading-queue/volume-summary")) {
+        return Promise.resolve(jsonResponse(volume));
       }
       if (url.includes("/api/reading-queue/series-order-issues")) {
         return Promise.resolve(jsonResponse(issuesView()));
@@ -367,5 +380,30 @@ describe("ReadingQueueView", () => {
     expect(screen.getAllByRole("article")).toHaveLength(3);
     expect(screen.getByText(copy.toolbar.dragHint)).toBeInTheDocument();
     expect(screen.queryByText(copy.toolbar.dragDisabledHint)).not.toBeInTheDocument();
+  });
+
+  it("renders the volume block in the sidebar and in the main column with distinct heading ids", async () => {
+    mockQueue(
+      mixedAvailabilityItems(),
+      makeQueueVolumeSummary({
+        coverage: { calculatedBooks: 3, ratio: 1, totalBooks: 3 },
+        estimate: {
+          daysMax: null,
+          daysMin: null,
+          daysUntilForecast: 19,
+          reasonUnavailable: "insufficient_history",
+        },
+        pages: { invalidBooks: 0, knownRemaining: 900, missingBooks: 0 },
+        queueBooksCount: 3,
+      }),
+    );
+
+    renderWithProviders(<ReadingQueueView />);
+
+    const headings = await screen.findAllByRole("heading", { name: volume.title });
+    expect(headings).toHaveLength(2);
+
+    const [sidebarId, mainId] = headings.map((heading) => heading.id);
+    expect(sidebarId).not.toBe(mainId);
   });
 });

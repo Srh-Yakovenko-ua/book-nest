@@ -310,6 +310,80 @@
         "ignored": "This warning is hidden for the current order",
         "disabled": "The order check for this series is turned off"
       }
+    },
+    "volume": {
+      "title": "Queue volume",
+      "booksInQueue": "{count, plural, one {# book} other {# books}} in the queue",
+      "pagesUnit": "{count, plural, one {page} other {pages}}",
+      "remainingCaption": "left to read",
+      "remainingPartialCaption": "at least — the data is still incomplete",
+      "coverage": "Counted {calculated} of {total} books",
+      "cta": "Complete the data",
+      "forecast": {
+        "label": "How long that is",
+        "daysSingle": "about {count, plural, one {# day} other {# days}}",
+        "daysRange": "about {min}–{max, plural, one {# day} other {# days}}",
+        "weeksSingle": "about {count, plural, one {# week} other {# weeks}}",
+        "weeksRange": "about {min}–{max, plural, one {# week} other {# weeks}}",
+        "monthsSingle": "about {count, plural, one {# month} other {# months}}",
+        "monthsRange": "about {min}–{max, plural, one {# month} other {# months}}",
+        "overYear": "over a year",
+        "countdown": "The forecast will appear in about {count, plural, one {# day} other {# days}}",
+        "noVolumeData": "No data to calculate from",
+        "staleActivity": "No progress updates for a long while",
+        "updateProgress": "Keep your reading progress up to date so a forecast can appear"
+      },
+      "insights": {
+        "missingPages": "{count, plural, one {# book} other {# books}} without a page count",
+        "invalidProgress": "{count, plural, one {# book has} other {# books have}} inconsistent progress",
+        "audiobookOnly": "{count, plural, one {# audiobook} other {# audiobooks}} — duration is coming later",
+        "closedInQueue": "{count, plural, one {# finished book is} other {# finished books are}} still in the queue"
+      },
+      "error": {
+        "load": "Could not calculate the queue volume",
+        "retry": "Try again"
+      }
+    },
+    "volumeModal": {
+      "title": "Complete the data",
+      "description": "Add the page counts — the forecast gets more accurate.",
+      "empty": "Every book in the queue already has the data",
+      "noResults": "Nothing found",
+      "searchLabel": "Search books",
+      "searchPlaceholder": "Title, author or series",
+      "formatLabel": "Format",
+      "formatAll": "All formats",
+      "progress": "Filled in {filled} of {total}",
+      "pagesLabel": "Pages",
+      "pagesPlaceholder": "e.g. 320",
+      "unavailableLabel": "Page count can't be determined",
+      "unavailableHint": "If the number can't be determined (an audiobook, a reflowable layout, an unnumbered scan), tick the checkbox. The book stays in the queue but won't affect volume or the forecast.",
+      "currentPage": "{count, plural, one {# page} other {# pages}} read",
+      "reason": {
+        "missingPageCount": "No page count",
+        "invalidProgress": "Progress is higher than the page count"
+      },
+      "failure": {
+        "stale": "This book changed. Refresh the list before saving"
+      },
+      "errors": {
+        "invalidNumber": "Enter a whole number",
+        "tooSmall": "The page count must be greater than 0",
+        "tooBig": "The page count cannot exceed {max}",
+        "belowCurrentPage": "The page count cannot be lower than the current progress — {count, plural, one {# page} other {# pages}}",
+        "nothingToSave": "Fill in at least one field",
+        "tooMany": "You can save at most {max} books at a time",
+        "notFound": "{count, plural, one {# book} other {# books}} no longer exist. The rest was saved",
+        "notSaved": "Nothing was saved",
+        "generic": "Could not save the data"
+      },
+      "saved": "Data saved. The queue volume is updated",
+      "savedPartial": "Saved {count, plural, one {# book} other {# books}}. The rest needs attention",
+      "submit": "Save",
+      "discard": {
+        "title": "Discard changes?",
+        "description": "Unsaved data will be lost."
+      }
     }
   },
   "appShell": {

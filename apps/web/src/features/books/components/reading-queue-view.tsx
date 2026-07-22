@@ -31,12 +31,14 @@ import {
   EMPTY_QUEUE_FILTERS,
   hasActiveQueueFilters,
   matchesQueueFilters,
+  matchesQueueSearch,
   type QueueFilterState,
 } from "../model/reading-queue-filters";
 import { SERIES_ORDER_SIDEBAR_LIMIT } from "../model/series-order-check";
 import { useRemoveFromQueueWithUndo } from "../model/use-remove-from-queue-with-undo";
 import { AddBookToQueueDialog } from "./add-book-to-queue-dialog";
 import { QueueSummaryCards, QueueSummaryCardsSkeleton } from "./queue-summary-cards";
+import { QueueVolumeBlock, QueueVolumeSkeleton } from "./queue-volume-block";
 import { ReadingQueueFilters } from "./reading-queue-filters";
 import { ReadingQueueList } from "./reading-queue-list";
 import { ReadingQueueToolbar } from "./reading-queue-toolbar";
@@ -227,6 +229,7 @@ export function ReadingQueueView() {
               <h2 className="sr-only" ref={listHeadingRef} tabIndex={-1}>
                 {t("listHeading")}
               </h2>
+              <QueueVolumeBlock className="lg:hidden" items={serverItems} />
               <ReadingQueueToolbar
                 dragDisabled={isFiltered}
                 filters={
@@ -263,6 +266,7 @@ export function ReadingQueueView() {
             </div>
 
             <aside className="hidden flex-col gap-4 lg:flex">
+              <QueueVolumeBlock items={serverItems} />
               <SeriesOrderCheckBlock />
             </aside>
           </div>
@@ -284,19 +288,6 @@ export function ReadingQueueView() {
   );
 }
 
-function matchesQueueSearch(item: ReadingQueueItemView, query: string): boolean {
-  const { book } = item;
-  const haystack = [
-    book.title,
-    book.originalTitle ?? "",
-    book.series?.name ?? "",
-    ...book.authors.map((author) => author.name),
-    ...book.genres,
-    ...book.tags.map((tag) => tag.name),
-  ];
-  return haystack.some((part) => part.toLowerCase().includes(query));
-}
-
 function QueueSkeleton() {
   const t = useTranslations("books.library");
   return (
@@ -309,6 +300,7 @@ function QueueSkeleton() {
           className="flex min-w-0 flex-col gap-4"
           role="status"
         >
+          <QueueVolumeSkeleton className="lg:hidden" />
           <Skeleton className="h-10 w-full rounded-md" />
           <div className="flex flex-col gap-2.5">
             {Array.from({ length: SKELETON_COUNT }, (_, index) => (
@@ -317,6 +309,7 @@ function QueueSkeleton() {
           </div>
         </div>
         <div className="hidden flex-col gap-4 lg:flex">
+          <QueueVolumeSkeleton />
           <SeriesOrderCheckSkeleton />
         </div>
       </div>

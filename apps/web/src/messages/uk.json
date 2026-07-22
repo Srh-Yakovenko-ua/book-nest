@@ -310,6 +310,80 @@
         "ignored": "Це попередження приховано для поточного порядку",
         "disabled": "Перевірку порядку для цієї серії вимкнено"
       }
+    },
+    "volume": {
+      "title": "Обсяг черги",
+      "booksInQueue": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}} у черзі",
+      "pagesUnit": "{count, plural, one {сторінка} few {сторінки} many {сторінок} other {сторінок}}",
+      "remainingCaption": "лишилось прочитати",
+      "remainingPartialCaption": "щонайменше — дані ще не повні",
+      "coverage": "Враховано {calculated} із {total} книг",
+      "cta": "Доповнити дані",
+      "forecast": {
+        "label": "Скільки це часу",
+        "daysSingle": "приблизно {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "daysRange": "приблизно {min}–{max, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "weeksSingle": "приблизно {count, plural, one {# тиждень} few {# тижні} many {# тижнів} other {# тижнів}}",
+        "weeksRange": "приблизно {min}–{max, plural, one {# тиждень} few {# тижні} many {# тижнів} other {# тижнів}}",
+        "monthsSingle": "приблизно {count, plural, one {# місяць} few {# місяці} many {# місяців} other {# місяців}}",
+        "monthsRange": "приблизно {min}–{max, plural, one {# місяць} few {# місяці} many {# місяців} other {# місяців}}",
+        "overYear": "понад рік",
+        "countdown": "Прогноз зʼявиться приблизно через {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "noVolumeData": "Немає даних для розрахунку",
+        "staleActivity": "Давно не було оновлень прогресу",
+        "updateProgress": "Оновлюйте прогрес читання, щоб зʼявився прогноз"
+      },
+      "insights": {
+        "missingPages": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}} без кількості сторінок",
+        "invalidProgress": "{count, plural, one {# книга має} few {# книги мають} many {# книг мають} other {# книг мають}} неузгоджений прогрес",
+        "audiobookOnly": "{count, plural, one {# аудіокнига} few {# аудіокниги} many {# аудіокниг} other {# аудіокниг}} — тривалість зʼявиться пізніше",
+        "closedInQueue": "{count, plural, one {# дочитана книга ще залишається} few {# дочитані книги ще залишаються} many {# дочитаних книг ще залишаються} other {# дочитаних книг ще залишаються}} в черзі"
+      },
+      "error": {
+        "load": "Не вдалося порахувати обсяг черги",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "volumeModal": {
+      "title": "Доповнити дані",
+      "description": "Вкажіть кількість сторінок — і прогноз стане точнішим.",
+      "empty": "Усі книги в черзі вже мають потрібні дані",
+      "noResults": "Нічого не знайдено",
+      "searchLabel": "Пошук книги",
+      "searchPlaceholder": "Назва, автор або серія",
+      "formatLabel": "Формат",
+      "formatAll": "Усі формати",
+      "progress": "Заповнено {filled} із {total}",
+      "pagesLabel": "Сторінок",
+      "pagesPlaceholder": "Напр. 320",
+      "unavailableLabel": "Кількість сторінок неможливо визначити",
+      "unavailableHint": "Якщо визначити число неможливо (аудіокнига, плаваюча верстка, скан без нумерації) — позначте це галочкою. Книга залишиться в черзі, але не впливатиме на обсяг і прогноз.",
+      "currentPage": "прочитано {count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",
+      "reason": {
+        "missingPageCount": "Немає кількості сторінок",
+        "invalidProgress": "Прогрес більший за кількість сторінок"
+      },
+      "failure": {
+        "stale": "Дані книги змінилися. Онови список перед збереженням"
+      },
+      "errors": {
+        "invalidNumber": "Введіть ціле число",
+        "tooSmall": "Кількість сторінок має бути більшою за 0",
+        "tooBig": "Кількість сторінок не може перевищувати {max}",
+        "belowCurrentPage": "Загальна кількість сторінок не може бути меншою за поточний прогрес — {count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",
+        "nothingToSave": "Заповніть хоча б одне поле",
+        "tooMany": "За один раз можна зберегти не більше {max} книг",
+        "notFound": "{count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}} більше не знайдено. Інші дані збережено",
+        "notSaved": "Дані не збережено",
+        "generic": "Не вдалося зберегти дані"
+      },
+      "saved": "Дані збережено. Обсяг черги оновлено",
+      "savedPartial": "Збережено {count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}}. Решта потребує уваги",
+      "submit": "Зберегти",
+      "discard": {
+        "title": "Скасувати зміни?",
+        "description": "Незбережені дані буде втрачено."
+      }
     }
   },
   "appShell": {
