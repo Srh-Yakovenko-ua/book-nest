@@ -1,10 +1,11 @@
-import type { BulkActionResult } from "@app/shared";
+import type { BulkActionResult, BulkPagesCountResult } from "@app/shared";
 
 import {
   BulkBookIdsSchema,
   BulkFavoriteInputSchema,
   BulkListsInputSchema,
   BulkOwnershipStatusInputSchema,
+  BulkPagesCountInputSchema,
   BulkReadingStatusInputSchema,
   BulkTagsInputSchema,
 } from "@app/shared";
@@ -31,9 +32,11 @@ import { BulkBookIdsDto } from "./input-dto/bulk-book-ids.input-dto.js";
 import { BulkFavoriteInputDto } from "./input-dto/bulk-favorite.input-dto.js";
 import { BulkListsInputDto } from "./input-dto/bulk-lists.input-dto.js";
 import { BulkOwnershipStatusInputDto } from "./input-dto/bulk-ownership-status.input-dto.js";
+import { BulkPagesCountInputDto } from "./input-dto/bulk-pages-count.input-dto.js";
 import { BulkReadingStatusInputDto } from "./input-dto/bulk-reading-status.input-dto.js";
 import { BulkTagsInputDto } from "./input-dto/bulk-tags.input-dto.js";
 import { BulkActionResultDto } from "./view-dto/bulk-action-result.view-dto.js";
+import { BulkPagesCountResultDto } from "./view-dto/bulk-pages-count-result.view-dto.js";
 
 const BULK_ACTION_TTL_SECONDS = 60;
 const BULK_ACTION_LIMIT = 30;
@@ -81,6 +84,21 @@ export class BulkBooksController {
     @Body(new ZodBodyPipe(BulkOwnershipStatusInputSchema)) body: BulkOwnershipStatusInputDto,
   ): Promise<BulkActionResult> {
     return this.bulkBooksService.setOwnershipStatus({ input: body, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: BulkPagesCountInputDto })
+  @ApiOkResponse({
+    description: "Per-book result of the page-count update",
+    type: BulkPagesCountResultDto,
+  })
+  @ApiOperation({ summary: "Update page counts for the selected books with partial success" })
+  @Patch("pages-count")
+  pagesCount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodBodyPipe(BulkPagesCountInputSchema)) body: BulkPagesCountInputDto,
+  ): Promise<BulkPagesCountResult> {
+    return this.bulkBooksService.updatePagesCount({ input: body, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

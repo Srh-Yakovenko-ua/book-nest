@@ -35,6 +35,7 @@ function book(overrides: Partial<QuoteWithBook["book"]> = {}): QuoteWithBook["bo
     originalTitle: null,
     ownershipStatus: "none",
     pagesCount: null,
+    pagesCountUnavailable: false,
     partNumber: null,
     publicationYear: null,
     publisherId: null,

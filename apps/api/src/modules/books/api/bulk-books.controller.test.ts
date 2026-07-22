@@ -1,6 +1,7 @@
 import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
+import { QUEUE_VOLUME_BULK_MAX } from "@app/shared";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -693,5 +694,220 @@ describe("POST /api/books/bulk/delete", () => {
     expect(res.body).toEqual({ affected: 1 });
     const strangerRow = await prisma.book.findUnique({ where: { id: strangerBook.id } });
     expect(strangerRow).not.toBeNull();
+  });
+});
+
+function seedPagesBook(input: {
+  authorId: string;
+  currentPage?: Nullable<number>;
+  pagesCount?: Nullable<number>;
+  pagesCountUnavailable?: boolean;
+  userId: string;
+}): Promise<{ id: string; updatedAt: Date }> {
+  const currentPage = input.currentPage ?? null;
+  return prisma.book.create({
+    data: {
+      authors: { create: [{ authorId: input.authorId, position: 0 }] },
+      pagesCount: input.pagesCount ?? null,
+      pagesCountUnavailable: input.pagesCountUnavailable ?? false,
+      readingProgress: currentPage === null ? undefined : { create: { currentPage } },
+      readingStatus: "reading",
+      title: "Pages book",
+      userId: input.userId,
+    },
+    select: { id: true, updatedAt: true },
+  });
+}
+
+describe("PATCH /api/books/bulk/pages-count", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer())
+      .patch("/api/books/bulk/pages-count")
+      .send({ items: [] });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("updates owned books and reports foreign books as not_found", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const strangerAuthor = await seedAuthor({ name: "Isaac Asimov", userId: stranger.userId });
+    const first = await seedPagesBook({ authorId: author.id, userId });
+    const second = await seedPagesBook({ authorId: author.id, userId });
+    const foreign = await seedPagesBook({ authorId: strangerAuthor.id, userId: stranger.userId });
+
+    const res = await patch(accessToken, "pages-count", {
+      items: [
+        {
+          bookId: first.id,
+          expectedUpdatedAt: first.updatedAt.toISOString(),
+          kind: "pages_count",
+          pagesCount: 300,
+        },
+        {
+          bookId: second.id,
+          expectedUpdatedAt: second.updatedAt.toISOString(),
+          kind: "pages_count",
+          pagesCount: 250,
+        },
+        {
+          bookId: foreign.id,
+          expectedUpdatedAt: foreign.updatedAt.toISOString(),
+          kind: "pages_count",
+          pagesCount: 100,
+        },
+      ],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.updated).toHaveLength(2);
+    expect(res.body.updated).toEqual(expect.arrayContaining([first.id, second.id]));
+    expect(res.body.failed).toEqual([{ bookId: foreign.id, reason: "not_found" }]);
+
+    const firstRow = await prisma.book.findUniqueOrThrow({
+      select: { pagesCount: true },
+      where: { id: first.id },
+    });
+    expect(firstRow.pagesCount).toBe(300);
+    const foreignRow = await prisma.book.findUniqueOrThrow({
+      select: { pagesCount: true },
+      where: { id: foreign.id },
+    });
+    expect(foreignRow.pagesCount).toBeNull();
+  });
+
+  it("fails as stale and does not write when the expected updatedAt does not match", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedPagesBook({ authorId: author.id, pagesCount: 100, userId });
+
+    const res = await patch(accessToken, "pages-count", {
+      items: [
+        {
+          bookId: book.id,
+          expectedUpdatedAt: new Date("2020-01-01T00:00:00.000Z").toISOString(),
+          kind: "pages_count",
+          pagesCount: 555,
+        },
+      ],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.updated).toEqual([]);
+    expect(res.body.failed).toEqual([{ bookId: book.id, reason: "stale" }]);
+
+    const row = await prisma.book.findUniqueOrThrow({
+      select: { pagesCount: true },
+      where: { id: book.id },
+    });
+    expect(row.pagesCount).toBe(100);
+  });
+
+  it("blocks a page count below the stored current page", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedPagesBook({
+      authorId: author.id,
+      currentPage: 250,
+      pagesCount: 400,
+      userId,
+    });
+
+    const res = await patch(accessToken, "pages-count", {
+      items: [
+        {
+          bookId: book.id,
+          expectedUpdatedAt: book.updatedAt.toISOString(),
+          kind: "pages_count",
+          pagesCount: 200,
+        },
+      ],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.updated).toEqual([]);
+    expect(res.body.failed).toEqual([{ bookId: book.id, reason: "below_current_page" }]);
+
+    const row = await prisma.book.findUniqueOrThrow({
+      select: { pagesCount: true },
+      where: { id: book.id },
+    });
+    expect(row.pagesCount).toBe(400);
+  });
+
+  it("clears the unavailable flag when a real page count is provided", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedPagesBook({ authorId: author.id, pagesCountUnavailable: true, userId });
+
+    const res = await patch(accessToken, "pages-count", {
+      items: [
+        {
+          bookId: book.id,
+          expectedUpdatedAt: book.updatedAt.toISOString(),
+          kind: "pages_count",
+          pagesCount: 288,
+        },
+      ],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.updated).toEqual([book.id]);
+    expect(res.body.failed).toEqual([]);
+
+    const row = await prisma.book.findUniqueOrThrow({
+      select: { pagesCount: true, pagesCountUnavailable: true },
+      where: { id: book.id },
+    });
+    expect(row.pagesCount).toBe(288);
+    expect(row.pagesCountUnavailable).toBe(false);
+  });
+
+  it("marks the pages count as unavailable without touching the stored page count", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedPagesBook({ authorId: author.id, pagesCount: 321, userId });
+
+    const res = await patch(accessToken, "pages-count", {
+      items: [
+        {
+          bookId: book.id,
+          expectedUpdatedAt: book.updatedAt.toISOString(),
+          kind: "pages_count_unavailable",
+        },
+      ],
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.updated).toEqual([book.id]);
+    expect(res.body.failed).toEqual([]);
+
+    const row = await prisma.book.findUniqueOrThrow({
+      select: { pagesCount: true, pagesCountUnavailable: true },
+      where: { id: book.id },
+    });
+    expect(row.pagesCountUnavailable).toBe(true);
+    expect(row.pagesCount).toBe(321);
+  });
+
+  it("returns 400 when more items than the bulk maximum are provided", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const items = Array.from({ length: QUEUE_VOLUME_BULK_MAX + 1 }, () => ({
+      bookId: randomUUID(),
+      expectedUpdatedAt: new Date().toISOString(),
+      kind: "pages_count",
+      pagesCount: 100,
+    }));
+
+    const res = await patch(accessToken, "pages-count", { items });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "items" })]),
+    );
   });
 });

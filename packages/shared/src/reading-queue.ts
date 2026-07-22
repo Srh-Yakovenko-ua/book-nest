@@ -73,3 +73,46 @@ export const ReadingQueueSummaryViewSchema = z.object({
 });
 
 export type ReadingQueueSummaryView = z.infer<typeof ReadingQueueSummaryViewSchema>;
+
+export const ReadingQueueVolumeUnavailableReasonSchema = z.enum([
+  "empty_queue",
+  "insufficient_coverage",
+  "insufficient_history",
+  "no_volume_data",
+  "stale_activity",
+  "zero_pace",
+]);
+
+export type ReadingQueueVolumeUnavailableReason = z.infer<
+  typeof ReadingQueueVolumeUnavailableReasonSchema
+>;
+
+export const ReadingQueueVolumeSummaryViewSchema = z.object({
+  audiobookOnlyCount: z.number().int().nonnegative(),
+  coverage: z.object({
+    calculatedBooks: z.number().int().nonnegative(),
+    ratio: z.number().min(0).max(1),
+    totalBooks: z.number().int().nonnegative(),
+  }),
+  estimate: z.object({
+    daysMax: z.number().int().positive().nullable(),
+    daysMin: z.number().int().positive().nullable(),
+    daysUntilForecast: z.number().int().nonnegative().nullable(),
+    reasonUnavailable: ReadingQueueVolumeUnavailableReasonSchema.nullable(),
+  }),
+  hasMissingData: z.boolean(),
+  pace: z.object({
+    activeDaysInPeriod: z.number().int().nonnegative(),
+    lastActivityAt: z.iso.date().nullable(),
+    pagesPerCalendarDay: z.number().nullable(),
+    sourcePeriodDays: z.number().int().nonnegative(),
+  }),
+  pages: z.object({
+    invalidBooks: z.number().int().nonnegative(),
+    knownRemaining: z.number().int().nonnegative(),
+    missingBooks: z.number().int().nonnegative(),
+  }),
+  queueBooksCount: z.number().int().nonnegative(),
+});
+
+export type ReadingQueueVolumeSummaryView = z.infer<typeof ReadingQueueVolumeSummaryViewSchema>;

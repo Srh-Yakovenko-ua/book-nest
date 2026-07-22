@@ -4,6 +4,8 @@ import type {
   BulkFavoriteInput,
   BulkListsInput,
   BulkOwnershipStatusInput,
+  BulkPagesCountInput,
+  BulkPagesCountResult,
   BulkReadingStatusInput,
   BulkTagsInput,
   QueuePriority,
@@ -11,6 +13,7 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { ListsService } from "../../lists/index.js";
 import { TagsService } from "../../tags/index.js";
@@ -32,6 +35,7 @@ export class BulkBooksService {
     private readonly tagsService: TagsService,
     private readonly listsService: ListsService,
     private readonly coverCleanup: BookCoverCleanup,
+    private readonly transactionRunner: TransactionRunner,
   ) {}
 
   async addTags({
@@ -173,6 +177,57 @@ export class BulkBooksService {
       userId,
     });
     return { affected };
+  }
+
+  async updatePagesCount({
+    input,
+    userId,
+  }: {
+    input: BulkPagesCountInput;
+    userId: string;
+  }): Promise<BulkPagesCountResult> {
+    return this.transactionRunner.run(async (tx) => {
+      const bookIds = input.items.map((item) => item.bookId);
+      const snapshots = await this.bulkBooksRepository.findPagesCountSnapshots(
+        { bookIds, userId },
+        tx,
+      );
+      const snapshotById = new Map(snapshots.map((snapshot) => [snapshot.id, snapshot]));
+
+      const failed: BulkPagesCountResult["failed"] = [];
+      const updated: string[] = [];
+
+      for (const item of input.items) {
+        const snapshot = snapshotById.get(item.bookId);
+        if (snapshot === undefined) {
+          failed.push({ bookId: item.bookId, reason: "not_found" });
+          continue;
+        }
+        if (snapshot.updatedAt.toISOString() !== item.expectedUpdatedAt) {
+          failed.push({ bookId: item.bookId, reason: "stale" });
+          continue;
+        }
+        if (item.kind === "pages_count") {
+          if (snapshot.currentPage !== null && snapshot.currentPage > item.pagesCount) {
+            failed.push({ bookId: item.bookId, reason: "below_current_page" });
+            continue;
+          }
+          await this.bulkBooksRepository.setPagesCount(
+            { bookId: item.bookId, pagesCount: item.pagesCount, userId },
+            tx,
+          );
+          updated.push(item.bookId);
+          continue;
+        }
+        await this.bulkBooksRepository.markPagesCountUnavailable(
+          { bookId: item.bookId, userId },
+          tx,
+        );
+        updated.push(item.bookId);
+      }
+
+      return { failed, updated };
+    });
   }
 
   private async deleteOrphanedCovers({

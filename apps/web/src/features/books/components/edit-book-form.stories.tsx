@@ -64,6 +64,7 @@ function makeBook(overrides: Partial<BookView> = {}): BookView {
     originalTitle: null,
     ownershipStatus: "owned",
     pagesCount: 304,
+    pagesCountUnavailable: false,
     partNumber: null,
     publicationYear: 1979,
     publisher: null,

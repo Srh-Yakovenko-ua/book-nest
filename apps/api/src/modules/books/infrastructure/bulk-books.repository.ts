@@ -1,4 +1,4 @@
-import type { OwnershipStatus, QueuePriority, ReadingStatus } from "@app/shared";
+import type { Nullable, OwnershipStatus, QueuePriority, ReadingStatus } from "@app/shared";
 
 import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
@@ -11,6 +11,12 @@ import { ListMembershipRepository } from "./list-membership.repository.js";
 export type BulkDeleteResult = {
   affected: number;
   coverMediaIds: string[];
+};
+
+export type PagesCountSnapshot = {
+  currentPage: Nullable<number>;
+  id: string;
+  updatedAt: Date;
 };
 
 @Injectable()
@@ -186,6 +192,43 @@ export class BulkBooksRepository {
     return ownedBooks.map((book) => book.id);
   }
 
+  async findPagesCountSnapshots(
+    {
+      bookIds,
+      userId,
+    }: {
+      bookIds: string[];
+      userId: string;
+    },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<PagesCountSnapshot[]> {
+    const books = await client.book.findMany({
+      select: { id: true, readingProgress: { select: { currentPage: true } }, updatedAt: true },
+      where: { id: { in: bookIds }, userId },
+    });
+    return books.map((book) => ({
+      currentPage: book.readingProgress?.currentPage ?? null,
+      id: book.id,
+      updatedAt: book.updatedAt,
+    }));
+  }
+
+  async markPagesCountUnavailable(
+    {
+      bookId,
+      userId,
+    }: {
+      bookId: string;
+      userId: string;
+    },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.book.updateMany({
+      data: { pagesCountUnavailable: true },
+      where: { id: bookId, userId },
+    });
+  }
+
   async setFavorite({
     bookIds,
     isFavorite,
@@ -259,6 +302,24 @@ export class BulkBooksRepository {
       });
     }
     return updated.count;
+  }
+
+  async setPagesCount(
+    {
+      bookId,
+      pagesCount,
+      userId,
+    }: {
+      bookId: string;
+      pagesCount: number;
+      userId: string;
+    },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.book.updateMany({
+      data: { pagesCount, pagesCountUnavailable: false },
+      where: { id: bookId, userId },
+    });
   }
 
   async setReadingStatus(
