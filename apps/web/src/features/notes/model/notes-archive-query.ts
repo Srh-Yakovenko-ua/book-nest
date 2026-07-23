@@ -15,7 +15,12 @@ import {
   NoteSortSchema,
   NotesQuerySchema,
 } from "@app/shared";
-import { type inferParserType, parseAsBoolean, parseAsString, parseAsStringLiteral } from "nuqs";
+import {
+  type inferParserType,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs/server";
 
 import { NOTE_CATEGORY_OPTIONS } from "./note-categories";
 

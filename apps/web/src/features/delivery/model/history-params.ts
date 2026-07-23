@@ -4,7 +4,7 @@ import {
   parseAsFloat,
   parseAsString,
   parseAsStringLiteral,
-} from "nuqs";
+} from "nuqs/server";
 
 import type { DeliveryControllerHistoryListParams } from "@/shared/api/generated/model";
 

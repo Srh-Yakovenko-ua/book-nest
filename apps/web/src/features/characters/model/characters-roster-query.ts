@@ -1,6 +1,11 @@
 import type { CharacterSummaryView } from "@app/shared";
 
-import { type inferParserType, parseAsInteger, parseAsString, parseAsStringLiteral } from "nuqs";
+import {
+  type inferParserType,
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs/server";
 
 import type { BookCharactersControllerListParams } from "@/shared/api/generated/model";
 

@@ -1,4 +1,9 @@
-import { type inferParserType, parseAsInteger, parseAsString, parseAsStringLiteral } from "nuqs";
+import {
+  type inferParserType,
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs/server";
 
 import type { LoansControllerListParams } from "@/shared/api/generated/model";
 

@@ -1,4 +1,4 @@
-import { parseAsStringLiteral } from "nuqs";
+import { parseAsStringLiteral } from "nuqs/server";
 
 export type GenresTagsTab = "genres" | "tags";
 
