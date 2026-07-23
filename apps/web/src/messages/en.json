@@ -329,6 +329,7 @@
         "monthsRange": "about {min}–{max, plural, one {# month} other {# months}}",
         "overYear": "over a year",
         "countdown": "The forecast will appear in about {count, plural, one {# day} other {# days}}",
+        "countdownReason": "We're still gathering your first month of reading history to gauge your pace.",
         "noVolumeData": "No data to calculate from",
         "staleActivity": "No progress updates for a long while",
         "updateProgress": "Keep your reading progress up to date so a forecast can appear"

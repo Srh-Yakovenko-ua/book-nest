@@ -215,9 +215,12 @@ function ForecastRow({ forecast }: { forecast: QueueVolumeForecast }) {
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="text-xs font-medium text-muted-foreground">{t("forecast.label")}</span>
         {forecast.kind === "countdown" ? (
-          <span className="text-sm text-foreground">
-            {t("forecast.countdown", { count: forecast.days })}
-          </span>
+          <>
+            <span className="text-sm text-foreground">
+              {t("forecast.countdown", { count: forecast.days })}
+            </span>
+            <span className="text-xs text-muted-foreground">{t("forecast.countdownReason")}</span>
+          </>
         ) : forecast.kind === "note" ? (
           <span className="text-sm text-foreground">{t(NOTE_KEYS[forecast.note])}</span>
         ) : (
