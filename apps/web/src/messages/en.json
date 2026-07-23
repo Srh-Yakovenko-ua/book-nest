@@ -48,22 +48,21 @@
     },
     "toolbar": {
       "searchLabel": "Search the queue",
-      "searchPlaceholder": "Search the queue…",
+      "searchPlaceholder": "Search by title, author, or series",
       "clearSearch": "Clear search",
-      "sortLabel": "Sort",
-      "sortOptions": {
-        "position": "Queue position"
-      },
       "dragHint": "Drag books, or use the row menu, to reorder",
-      "dragDisabledHint": "Clear the search to reorder books in the queue."
+      "dragDisabledHint": "Drag-and-drop is unavailable while searching or filtering. Clear the filters to reorder the queue."
+    },
+    "filters": {
+      "priority": "Priority"
     },
     "item": {
       "position": "#{position}",
       "positionAria": "Position {position}",
       "reorderAria": "Reorder “{title}”",
+      "dragDisabledTooltip": "Drag-and-drop is unavailable while filtering.",
       "readingNow": "Reading now",
       "startReading": "Start reading",
-      "viewBook": "View book",
       "moreActions": "More actions for “{title}”",
       "moveUp": "Move up",
       "moveDown": "Move down",
@@ -136,24 +135,53 @@
       }
     },
     "stats": {
-      "booksInQueue": "Books in queue",
-      "totalLength": "Total length",
-      "pages": "{count, plural, one {# page} other {# pages}}"
-    },
-    "nextToRead": {
-      "title": "Next to read",
-      "empty": "Add a book to the queue to see what’s next to read.",
-      "startReading": "Start reading"
+      "total": {
+        "label": "Total in queue",
+        "caption": "{series} from series · {standalone} standalone"
+      },
+      "availableNow": {
+        "label": "Ready to read",
+        "caption": "Available and nothing blocks the start"
+      },
+      "unavailable": {
+        "label": "Not available",
+        "wantToBuy": "{count} to buy",
+        "inTransit": "{count} in transit",
+        "lentToSomeone": "{count} lent out",
+        "none": "{count} not owned"
+      },
+      "seriesInQueue": {
+        "label": "Series in queue",
+        "caption": "{withoutIssues} fine · {withIssues, plural, one {# needs attention} other {# need attention}}"
+      }
     },
     "seriesOrderCheck": {
       "title": "Check series order",
-      "subtitle": "Found series where the reading order may be broken",
-      "viewAll": "View all",
+      "viewAll": "View all problems",
       "countLabel": "Series order issues found: {count}",
       "loading": "Checking series order…",
+      "resolved": "Series order checked — no problems found",
+      "attention": {
+        "title": "Needs attention",
+        "summary": "Found {count, plural, one {# issue} other {# issues}} in your series reading order. Check the books so you don't start the next part too early."
+      },
       "allIssues": {
         "title": "Series order",
         "description": "All series where the reading order may be broken."
+      },
+      "filters": {
+        "label": "Filter by severity",
+        "all": "All",
+        "error": "Errors",
+        "warning": "Warnings",
+        "info": "Info",
+        "noMatches": "No issues match this filter"
+      },
+      "sort": {
+        "label": "Sort",
+        "byQueue": "By queue position",
+        "byType": "By problem type",
+        "bySeries": "By series title"
       },
       "empty": {
         "title": "Series order checked",
@@ -166,6 +194,7 @@
       },
       "card": {
         "affectedBook": "Affected book",
+        "affectedBooks": "Problem books",
         "previousBook": "Previous book",
         "seriesPosition": "Book {position}",
         "seriesPositionUnknown": "Position unknown",
@@ -174,41 +203,48 @@
         "currentReading": "Currently reading",
         "relatedProblems": "{count, plural, one {# more conflict in this series} other {# more conflicts in this series}}",
         "moreActions": "More actions for the “{series}” series",
-        "coverAlt": "“{title}” cover"
+        "coverAlt": "“{title}” cover",
+        "comparisonLabel": "Current → correct order",
+        "changesTo": "should become",
+        "staysInPlace": "stays in place"
       },
       "order": {
         "listLabel": "Series book order"
       },
       "problems": {
         "missing_previous_from_queue": {
-          "title": "“{previousBook}” is not finished yet, but “{affectedBook}” is already queued."
+          "title": "<b>{previousBook}</b> is not finished yet, but <b>{affectedBook}</b> is already queued."
         },
         "previous_book_after_later_book": {
-          "title": "“{previousBook}” should come before “{affectedBook}”."
+          "title": "<b>{previousBook}</b> should come before <b>{affectedBook}</b>."
         },
         "multiple_previous_missing": {
-          "title": "{count, plural, one {# unfinished part remains} other {# unfinished parts remain}} before “{affectedBook}”.",
-          "description": "Next in order is “{previousBook}”."
+          "title": "{count, plural, one {# unfinished part remains} other {# unfinished parts remain}} before <b>{affectedBook}</b>.",
+          "description": "Next in order is <b>{previousBook}</b>."
         },
         "previous_book_paused": {
           "title": "The previous part is not finished yet.",
-          "description": "“{previousBook}” is paused while “{affectedBook}” is already ahead."
+          "description": "<b>{previousBook}</b> is paused while <b>{affectedBook}</b> is already ahead."
         },
         "current_reading_ahead_of_order": {
           "title": "Current reading is ahead of the series order.",
-          "description": "You are reading “{affectedBook}” while “{previousBook}” is not finished."
+          "description": "You are reading <b>{affectedBook}</b> while <b>{previousBook}</b> is not finished."
         },
         "previous_book_not_owned": {
-          "title": "The previous part is not in your library."
+          "title": "The previous part is not in your library.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> is not in your library."
         },
         "previous_book_want_to_buy": {
-          "title": "The previous part has not been bought yet."
+          "title": "The previous part has not been bought yet.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> has not been bought."
         },
         "previous_book_in_transit": {
-          "title": "The previous part is already on its way."
+          "title": "The previous part is already on its way.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> has not arrived yet."
         },
         "previous_book_lent_out": {
-          "title": "The previous part is lent out and unavailable right now."
+          "title": "The previous part is lent out and unavailable right now.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> is still with someone else."
         },
         "multiple_books_out_of_order": {
           "title": "The series order is mixed up."
@@ -216,9 +252,8 @@
       },
       "actions": {
         "retry": "Try again",
-        "fixOrder": "Fix the order",
-        "arrangeBySeries": "Arrange by series order",
-        "addBefore": "Add before “{affectedBook}”",
+        "fixOrder": "Fix series order",
+        "addBefore": "Add previous book",
         "addNext": "Add the next book",
         "addAll": "Add all in order",
         "openBook": "Open the previous book",
@@ -232,21 +267,26 @@
       },
       "preview": {
         "title": "Fix the series order?",
-        "current": "Now:",
-        "recommended": "Recommended:",
-        "afterFix": "After the fix:",
-        "added": "Will be added:",
-        "moved": "Will move:",
-        "addedItem": "“{title}” will be added at position {position}.",
-        "movedItem": "“{title}”: position {from} → {to}",
-        "unrelatedUnchanged": "Other books will stay at their positions.",
-        "shiftedUnrelated": "{count, plural, one {# unrelated book will shift} other {# unrelated books will shift}} to a new position.",
+        "addTitle": "Add {count, plural, one {a book} other {books}} and fix the series order?",
+        "addSubtitle": "<b>{bookTitle}</b> will be inserted in the right place after the earlier books in the series.",
+        "addSubtitleMany": "{count, plural, one {# book} other {# books}} will be added in series order.",
+        "addedTitle": "Will be added",
+        "seriesBook": "Book {position}",
+        "inSeries": "“{series}” series",
+        "newPosition": "New position: #{position}",
+        "seriesOrderTitle": "Series order after adding",
+        "queueChangesTitle": "How the queue changes",
+        "newBook": "New book",
+        "moreMoves": "{count, plural, one {# more book moves} other {# more books move}} further down the queue",
+        "showAllMoves": "Show all moves",
+        "collapseMoves": "Collapse",
+        "unchanged": "{count, plural, one {# book stays} other {# books stay}} in place.",
         "warningsTitle": "Please note",
         "loading": "Preparing the change preview…",
         "error": "Couldn’t prepare the change preview",
         "cancel": "Cancel",
         "confirm": "Confirm the action",
-        "confirmReorder": "Fix the order",
+        "confirmReorder": "Fix series order",
         "confirmInsert": "Add and fix"
       },
       "disable": {
@@ -269,6 +309,81 @@
         "fixed": "Series order fixed",
         "ignored": "This warning is hidden for the current order",
         "disabled": "The order check for this series is turned off"
+      }
+    },
+    "volume": {
+      "title": "Queue volume",
+      "booksInQueue": "{count, plural, one {# book} other {# books}} in the queue",
+      "pagesUnit": "{count, plural, one {page} other {pages}}",
+      "remainingCaption": "left to read",
+      "remainingPartialCaption": "at least — the data is still incomplete",
+      "coverage": "Counted {calculated} of {total} books",
+      "cta": "Complete the data",
+      "forecast": {
+        "label": "How long that is",
+        "daysSingle": "about {count, plural, one {# day} other {# days}}",
+        "daysRange": "about {min}–{max, plural, one {# day} other {# days}}",
+        "weeksSingle": "about {count, plural, one {# week} other {# weeks}}",
+        "weeksRange": "about {min}–{max, plural, one {# week} other {# weeks}}",
+        "monthsSingle": "about {count, plural, one {# month} other {# months}}",
+        "monthsRange": "about {min}–{max, plural, one {# month} other {# months}}",
+        "overYear": "over a year",
+        "countdown": "The forecast will appear in about {count, plural, one {# day} other {# days}}",
+        "countdownReason": "We're still gathering your first month of reading history to gauge your pace.",
+        "noVolumeData": "No data to calculate from",
+        "staleActivity": "No progress updates for a long while",
+        "updateProgress": "Keep your reading progress up to date so a forecast can appear"
+      },
+      "insights": {
+        "missingPages": "{count, plural, one {# book} other {# books}} without a page count",
+        "invalidProgress": "{count, plural, one {# book has} other {# books have}} inconsistent progress",
+        "audiobookOnly": "{count, plural, one {# audiobook} other {# audiobooks}} — duration is coming later",
+        "closedInQueue": "{count, plural, one {# finished book is} other {# finished books are}} still in the queue"
+      },
+      "error": {
+        "load": "Could not calculate the queue volume",
+        "retry": "Try again"
+      }
+    },
+    "volumeModal": {
+      "title": "Complete the data",
+      "description": "Add the page counts — the forecast gets more accurate.",
+      "empty": "Every book in the queue already has the data",
+      "noResults": "Nothing found",
+      "searchLabel": "Search books",
+      "searchPlaceholder": "Title, author or series",
+      "formatLabel": "Format",
+      "formatAll": "All formats",
+      "progress": "Filled in {filled} of {total}",
+      "pagesLabel": "Pages",
+      "pagesPlaceholder": "e.g. 320",
+      "unavailableLabel": "Page count can't be determined",
+      "unavailableHint": "If the number can't be determined (an audiobook, a reflowable layout, an unnumbered scan), tick the checkbox. The book stays in the queue but won't affect volume or the forecast.",
+      "currentPage": "{count, plural, one {# page} other {# pages}} read",
+      "reason": {
+        "missingPageCount": "No page count",
+        "invalidProgress": "Progress is higher than the page count"
+      },
+      "failure": {
+        "stale": "This book changed. Refresh the list before saving"
+      },
+      "errors": {
+        "invalidNumber": "Enter a whole number",
+        "tooSmall": "The page count must be greater than 0",
+        "tooBig": "The page count cannot exceed {max}",
+        "belowCurrentPage": "The page count cannot be lower than the current progress — {count, plural, one {# page} other {# pages}}",
+        "nothingToSave": "Fill in at least one field",
+        "tooMany": "You can save at most {max} books at a time",
+        "notFound": "{count, plural, one {# book} other {# books}} no longer exist. The rest was saved",
+        "notSaved": "Nothing was saved",
+        "generic": "Could not save the data"
+      },
+      "saved": "Data saved. The queue volume is updated",
+      "savedPartial": "Saved {count, plural, one {# book} other {# books}}. The rest needs attention",
+      "submit": "Save",
+      "discard": {
+        "title": "Discard changes?",
+        "description": "Unsaved data will be lost."
       }
     }
   },
@@ -2475,6 +2590,11 @@
         "unread": "Not read",
         "averageRating": "Average rating",
         "pages": "Pages in series"
+      },
+      "orderCheck": {
+        "title": "Series reading order",
+        "label": "Check order in the queue",
+        "description": "When on, we warn you in the Reading queue if parts of this series are out of order."
       },
       "about": {
         "title": "About the series",

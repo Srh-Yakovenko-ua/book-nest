@@ -1,25 +1,22 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 type ReadingQueueToolbarProps = {
-  hasSearch: boolean;
+  dragDisabled: boolean;
+  filters: ReactNode;
   onClearSearch: () => void;
   onSearchChange: (value: string) => void;
   search: string;
 };
 
 export function ReadingQueueToolbar({
-  hasSearch,
+  dragDisabled,
+  filters,
   onClearSearch,
   onSearchChange,
   search,
@@ -58,19 +55,20 @@ export function ReadingQueueToolbar({
           ) : null}
         </div>
 
-        <Select value="position">
-          <SelectTrigger aria-label={t("sortLabel")} className="h-10 w-full sm:w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="position">{t("sortOptions.position")}</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-2.5">{filters}</div>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        {hasSearch ? t("dragDisabledHint") : t("dragHint")}
-      </p>
+      {dragDisabled ? (
+        <div
+          className="flex items-start gap-2 rounded-md border border-info/30 bg-info-soft/60 px-3 py-2 text-xs text-info"
+          role="status"
+        >
+          <UiIcon aria-hidden className="mt-px shrink-0" name="info" size={14} />
+          <span>{t("dragDisabledHint")}</span>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">{t("dragHint")}</p>
+      )}
     </div>
   );
 }

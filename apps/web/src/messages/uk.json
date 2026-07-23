@@ -48,22 +48,21 @@
     },
     "toolbar": {
       "searchLabel": "Пошук у черзі",
-      "searchPlaceholder": "Пошук у черзі…",
+      "searchPlaceholder": "Пошук за назвою, автором або серією",
       "clearSearch": "Очистити пошук",
-      "sortLabel": "Сортувати",
-      "sortOptions": {
-        "position": "Позиція в черзі"
-      },
-      "dragHint": "Перетягуйте книги або скористайтеся меню рядка, щоб змінити порядок",
-      "dragDisabledHint": "Очистіть пошук, щоб змінити порядок книг у черзі."
+      "dragHint": "Перетягніть книги або скористайтеся меню рядка, щоб змінити порядок",
+      "dragDisabledHint": "Drag-and-drop недоступний під час пошуку та фільтрації. Очисти фільтри, щоб змінити порядок черги."
+    },
+    "filters": {
+      "priority": "Пріоритет"
     },
     "item": {
       "position": "#{position}",
       "positionAria": "Позиція {position}",
       "reorderAria": "Змінити порядок «{title}»",
+      "dragDisabledTooltip": "Drag-and-drop недоступний під час фільтрації.",
       "readingNow": "Читаю зараз",
       "startReading": "Почати читати",
-      "viewBook": "Переглянути книгу",
       "moreActions": "Більше дій для «{title}»",
       "moveUp": "Перемістити вгору",
       "moveDown": "Перемістити вниз",
@@ -136,24 +135,53 @@
       }
     },
     "stats": {
-      "booksInQueue": "Книг у черзі",
-      "totalLength": "Загальний обсяг",
-      "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}"
-    },
-    "nextToRead": {
-      "title": "Наступна до читання",
-      "empty": "Додайте книгу в чергу, щоб побачити наступну до читання.",
-      "startReading": "Почати читати"
+      "total": {
+        "label": "Усього в черзі",
+        "caption": "{series} із серій · {standalone} окремих"
+      },
+      "availableNow": {
+        "label": "Можна читати зараз",
+        "caption": "Є в наявності та немає перешкод для старту"
+      },
+      "unavailable": {
+        "label": "Немає в наявності",
+        "wantToBuy": "{count} хочу купити",
+        "inTransit": "{count} в дорозі",
+        "lentToSomeone": "{count, plural, one {# позичена} few {# позичені} many {# позичених} other {# позичених}}",
+        "none": "{count} немає"
+      },
+      "seriesInQueue": {
+        "label": "Серії в черзі",
+        "caption": "{withoutIssues} без проблем · {withIssues, plural, one {# потребує уваги} few {# потребують уваги} many {# потребують уваги} other {# потребують уваги}}"
+      }
     },
     "seriesOrderCheck": {
       "title": "Перевірити порядок серій",
-      "subtitle": "Знайдено серії, де порядок читання може бути порушений",
-      "viewAll": "Переглянути всі",
+      "viewAll": "Переглянути всі проблеми",
       "countLabel": "Знайдено проблем із порядком: {count}",
       "loading": "Перевіряємо порядок серій…",
+      "resolved": "Порядок серій перевірено — проблем не знайдено",
+      "attention": {
+        "title": "Потрібна увага",
+        "summary": "Знайдено {count, plural, one {# проблему} few {# проблеми} many {# проблем} other {# проблем}} у порядку читання серій. Перевір книги, щоб не почати наступну частину раніше."
+      },
       "allIssues": {
         "title": "Порядок серій",
         "description": "Усі серії, у яких порядок читання може бути порушений."
+      },
+      "filters": {
+        "label": "Фільтр за типом",
+        "all": "Усі",
+        "error": "Помилки",
+        "warning": "Попередження",
+        "info": "Інформація",
+        "noMatches": "Немає проблем цього типу"
+      },
+      "sort": {
+        "label": "Сортування",
+        "byQueue": "За позицією в черзі",
+        "byType": "За типом проблеми",
+        "bySeries": "За назвою серії"
       },
       "empty": {
         "title": "Порядок серій перевірено",
@@ -166,6 +194,7 @@
       },
       "card": {
         "affectedBook": "Проблемна книга",
+        "affectedBooks": "Проблемні книги",
         "previousBook": "Попередня книга",
         "seriesPosition": "Книга {position}",
         "seriesPositionUnknown": "Позиція невідома",
@@ -174,41 +203,48 @@
         "currentReading": "Читається зараз",
         "relatedProblems": "{count, plural, one {Ще # конфлікт у цій серії} few {Ще # конфлікти у цій серії} many {Ще # конфліктів у цій серії} other {Ще # конфліктів у цій серії}}",
         "moreActions": "Більше дій для серії «{series}»",
-        "coverAlt": "Обкладинка «{title}»"
+        "coverAlt": "Обкладинка «{title}»",
+        "comparisonLabel": "Поточний → правильний порядок",
+        "changesTo": "має стати",
+        "staysInPlace": "залишається на місці"
       },
       "order": {
         "listLabel": "Порядок книг серії"
       },
       "problems": {
         "missing_previous_from_queue": {
-          "title": "Перед «{affectedBook}» ще не завершено «{previousBook}»."
+          "title": "Перед <b>{affectedBook}</b> ще не завершено <b>{previousBook}</b>."
         },
         "previous_book_after_later_book": {
-          "title": "«{previousBook}» має бути раніше за «{affectedBook}»."
+          "title": "<b>{previousBook}</b> має бути раніше за <b>{affectedBook}</b>."
         },
         "multiple_previous_missing": {
-          "title": "Перед «{affectedBook}» залишилося {count, plural, one {# незакрита частина} few {# незакриті частини} many {# незакритих частин} other {# незакритих частин}}.",
-          "description": "Наступна за порядком — «{previousBook}»."
+          "title": "Перед <b>{affectedBook}</b> залишилося {count, plural, one {# незакрита частина} few {# незакриті частини} many {# незакритих частин} other {# незакритих частин}}.",
+          "description": "Наступна за порядком — <b>{previousBook}</b>."
         },
         "previous_book_paused": {
           "title": "Попередня частина ще не завершена.",
-          "description": "«{previousBook}» на паузі, а «{affectedBook}» уже попереду."
+          "description": "<b>{previousBook}</b> на паузі, а <b>{affectedBook}</b> уже попереду."
         },
         "current_reading_ahead_of_order": {
           "title": "Поточне читання випереджає порядок серії.",
-          "description": "Зараз читається «{affectedBook}», хоча «{previousBook}» ще не завершена."
+          "description": "Зараз читається <b>{affectedBook}</b>, хоча <b>{previousBook}</b> ще не завершена."
         },
         "previous_book_not_owned": {
-          "title": "Попередньої частини немає у власній бібліотеці."
+          "title": "Попередньої частини немає у власній бібліотеці.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> ще не у твоїй бібліотеці."
         },
         "previous_book_want_to_buy": {
-          "title": "Попередня частина ще не придбана."
+          "title": "Попередня частина ще не придбана.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> ще не куплена."
         },
         "previous_book_in_transit": {
-          "title": "Попередня частина вже в дорозі."
+          "title": "Попередня частина вже в дорозі.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> ще не доїхала."
         },
         "previous_book_lent_out": {
-          "title": "Попередня частина позичена комусь і зараз недоступна."
+          "title": "Попередня частина позичена комусь і зараз недоступна.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> зараз у когось."
         },
         "multiple_books_out_of_order": {
           "title": "У серії переплутано порядок."
@@ -216,9 +252,8 @@
       },
       "actions": {
         "retry": "Спробувати ще раз",
-        "fixOrder": "Виправити порядок",
-        "arrangeBySeries": "Розташувати за порядком серії",
-        "addBefore": "Додати перед «{affectedBook}»",
+        "fixOrder": "Виправити порядок серії",
+        "addBefore": "Додати попередню книгу",
         "addNext": "Додати наступну книгу",
         "addAll": "Додати всі за порядком",
         "openBook": "Відкрити попередню книгу",
@@ -232,21 +267,26 @@
       },
       "preview": {
         "title": "Виправити порядок серії?",
-        "current": "Зараз:",
-        "recommended": "Рекомендовано:",
-        "afterFix": "Після виправлення:",
-        "added": "Буде додано:",
-        "moved": "Перемістяться:",
-        "addedItem": "«{title}» буде додана на позицію {position}.",
-        "movedItem": "«{title}»: позиція {from} → {to}",
-        "unrelatedUnchanged": "Інші книги залишаться на своїх позиціях.",
-        "shiftedUnrelated": "{count, plural, one {# стороння книга зміститься} few {# сторонні книги змістяться} many {# сторонніх книг змістяться} other {# сторонніх книг змістяться}} на нову позицію.",
+        "addTitle": "Додати {count, plural, one {книгу} few {книги} many {книг} other {книги}} та виправити порядок серії?",
+        "addSubtitle": "<b>{bookTitle}</b> буде додано у правильне місце після попередніх книг серії.",
+        "addSubtitleMany": "{count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}} буде додано за порядком серії.",
+        "addedTitle": "Буде додано",
+        "seriesBook": "Книга {position}",
+        "inSeries": "серія «{series}»",
+        "newPosition": "Нова позиція: #{position}",
+        "seriesOrderTitle": "Порядок серії після додавання",
+        "queueChangesTitle": "Як зміниться черга",
+        "newBook": "Нова книга",
+        "moreMoves": "Ще {count, plural, one {# книга зміститься} few {# книги змістяться} many {# книг змістяться} other {# книг змістяться}} нижче у черзі",
+        "showAllMoves": "Показати всі переміщення",
+        "collapseMoves": "Згорнути",
+        "unchanged": "{count, plural, one {# книга залишиться} few {# книги залишаться} many {# книг залишаться} other {# книг залишаться}} на своїх позиціях.",
         "warningsTitle": "Зверніть увагу",
         "loading": "Готуємо перегляд змін…",
         "error": "Не вдалося підготувати перегляд змін",
         "cancel": "Скасувати",
         "confirm": "Підтвердити дію",
-        "confirmReorder": "Виправити порядок",
+        "confirmReorder": "Виправити порядок серії",
         "confirmInsert": "Додати й виправити"
       },
       "disable": {
@@ -269,6 +309,81 @@
         "fixed": "Порядок серії виправлено",
         "ignored": "Це попередження приховано для поточного порядку",
         "disabled": "Перевірку порядку для цієї серії вимкнено"
+      }
+    },
+    "volume": {
+      "title": "Обсяг черги",
+      "booksInQueue": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}} у черзі",
+      "pagesUnit": "{count, plural, one {сторінка} few {сторінки} many {сторінок} other {сторінок}}",
+      "remainingCaption": "лишилось прочитати",
+      "remainingPartialCaption": "щонайменше — дані ще не повні",
+      "coverage": "Враховано {calculated} із {total} книг",
+      "cta": "Доповнити дані",
+      "forecast": {
+        "label": "Скільки це часу",
+        "daysSingle": "приблизно {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "daysRange": "приблизно {min}–{max, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "weeksSingle": "приблизно {count, plural, one {# тиждень} few {# тижні} many {# тижнів} other {# тижнів}}",
+        "weeksRange": "приблизно {min}–{max, plural, one {# тиждень} few {# тижні} many {# тижнів} other {# тижнів}}",
+        "monthsSingle": "приблизно {count, plural, one {# місяць} few {# місяці} many {# місяців} other {# місяців}}",
+        "monthsRange": "приблизно {min}–{max, plural, one {# місяць} few {# місяці} many {# місяців} other {# місяців}}",
+        "overYear": "понад рік",
+        "countdown": "Прогноз зʼявиться приблизно через {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "countdownReason": "Ще збираємо перший місяць історії читання, щоб оцінити темп.",
+        "noVolumeData": "Немає даних для розрахунку",
+        "staleActivity": "Давно не було оновлень прогресу",
+        "updateProgress": "Оновлюйте прогрес читання, щоб зʼявився прогноз"
+      },
+      "insights": {
+        "missingPages": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}} без кількості сторінок",
+        "invalidProgress": "{count, plural, one {# книга має} few {# книги мають} many {# книг мають} other {# книг мають}} неузгоджений прогрес",
+        "audiobookOnly": "{count, plural, one {# аудіокнига} few {# аудіокниги} many {# аудіокниг} other {# аудіокниг}} — тривалість зʼявиться пізніше",
+        "closedInQueue": "{count, plural, one {# дочитана книга ще залишається} few {# дочитані книги ще залишаються} many {# дочитаних книг ще залишаються} other {# дочитаних книг ще залишаються}} в черзі"
+      },
+      "error": {
+        "load": "Не вдалося порахувати обсяг черги",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "volumeModal": {
+      "title": "Доповнити дані",
+      "description": "Вкажіть кількість сторінок — і прогноз стане точнішим.",
+      "empty": "Усі книги в черзі вже мають потрібні дані",
+      "noResults": "Нічого не знайдено",
+      "searchLabel": "Пошук книги",
+      "searchPlaceholder": "Назва, автор або серія",
+      "formatLabel": "Формат",
+      "formatAll": "Усі формати",
+      "progress": "Заповнено {filled} із {total}",
+      "pagesLabel": "Сторінок",
+      "pagesPlaceholder": "Напр. 320",
+      "unavailableLabel": "Кількість сторінок неможливо визначити",
+      "unavailableHint": "Якщо визначити число неможливо (аудіокнига, плаваюча верстка, скан без нумерації) — позначте це галочкою. Книга залишиться в черзі, але не впливатиме на обсяг і прогноз.",
+      "currentPage": "прочитано {count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",
+      "reason": {
+        "missingPageCount": "Немає кількості сторінок",
+        "invalidProgress": "Прогрес більший за кількість сторінок"
+      },
+      "failure": {
+        "stale": "Дані книги змінилися. Онови список перед збереженням"
+      },
+      "errors": {
+        "invalidNumber": "Введіть ціле число",
+        "tooSmall": "Кількість сторінок має бути більшою за 0",
+        "tooBig": "Кількість сторінок не може перевищувати {max}",
+        "belowCurrentPage": "Загальна кількість сторінок не може бути меншою за поточний прогрес — {count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",
+        "nothingToSave": "Заповніть хоча б одне поле",
+        "tooMany": "За один раз можна зберегти не більше {max} книг",
+        "notFound": "{count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}} більше не знайдено. Інші дані збережено",
+        "notSaved": "Дані не збережено",
+        "generic": "Не вдалося зберегти дані"
+      },
+      "saved": "Дані збережено. Обсяг черги оновлено",
+      "savedPartial": "Збережено {count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}}. Решта потребує уваги",
+      "submit": "Зберегти",
+      "discard": {
+        "title": "Скасувати зміни?",
+        "description": "Незбережені дані буде втрачено."
       }
     }
   },
@@ -2475,6 +2590,11 @@
         "unread": "Ще не прочитано",
         "averageRating": "Середній рейтинг",
         "pages": "Сторінок у серії"
+      },
+      "orderCheck": {
+        "title": "Порядок читання серії",
+        "label": "Перевіряти порядок у черзі",
+        "description": "Коли увімкнено, ми попереджаємо в Черзі читання, якщо частини цієї серії стоять не за порядком."
       },
       "about": {
         "title": "Про серію",

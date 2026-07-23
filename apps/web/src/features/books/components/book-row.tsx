@@ -210,7 +210,7 @@ function BookRowMeta({
 
       {book.series === undefined ? null : (
         <LinkComp
-          className="relative z-10 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground no-underline transition-colors hover:text-primary"
+          className="relative z-10 mt-1 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground no-underline transition-colors hover:text-primary"
           href={book.series.href}
         >
           <UiIcon className="shrink-0 text-icon" name="layers" size={15} />

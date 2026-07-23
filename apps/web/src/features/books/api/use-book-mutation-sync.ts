@@ -3,9 +3,9 @@ import type { BookView } from "@app/shared";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { seriesKeys } from "@/features/series/api/series-keys";
-import { getSeriesOrderCheckControllerListIssuesQueryKey } from "@/shared/api/generated/endpoints/reading-queue/reading-queue";
 
 import { bookKeys, matchesBooksExceptDetail } from "./book-keys";
+import { matchesReadingQueueKey } from "./reading-queue-keys";
 
 export function useBookMutationSync() {
   const queryClient = useQueryClient();
@@ -13,9 +13,7 @@ export function useBookMutationSync() {
   return (book: BookView) => {
     queryClient.setQueryData(bookKeys.detail(book.id), book);
     void queryClient.invalidateQueries({ predicate: matchesBooksExceptDetail(book.id) });
-    void queryClient.invalidateQueries({
-      queryKey: getSeriesOrderCheckControllerListIssuesQueryKey(),
-    });
+    void queryClient.invalidateQueries({ predicate: matchesReadingQueueKey });
     void queryClient.invalidateQueries({
       predicate: (query) => query.queryKey[0] === `/api/books/${book.id}/reading-history`,
     });

@@ -1,6 +1,7 @@
 "use client";
 
-import type { SeriesOrderActionCode, SeriesOrderIssueView } from "@app/shared";
+import type { SeriesOrderActionCode, SeriesOrderBookView, SeriesOrderIssueView } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -24,7 +25,7 @@ import {
   visibleSeriesOrderActions,
 } from "../model/series-order-check";
 import { SeriesOrderBookRow } from "./series-order-book-row";
-import { SeriesOrderSequence } from "./series-order-sequence";
+import { SeriesOrderComparison } from "./series-order-comparison";
 
 type SeriesOrderIssueCardProps = {
   issue: SeriesOrderIssueView;
@@ -32,14 +33,16 @@ type SeriesOrderIssueCardProps = {
   pending: boolean;
 };
 
+const bookTitleTag = (chunks: ReactNode) => <span className="font-semibold">{chunks}</span>;
+
 export function SeriesOrderIssueCard({ issue, onAction, pending }: SeriesOrderIssueCardProps) {
   const t = useTranslations("readingQueue.seriesOrderCheck");
   const tActions = useTranslations("readingQueue.seriesOrderCheck.actions");
   const tCard = useTranslations("readingQueue.seriesOrderCheck.card");
-  const tPreview = useTranslations("readingQueue.seriesOrderCheck.preview");
 
   const textParams = {
     affectedBook: issue.affectedBook.title,
+    b: bookTitleTag,
     count: issue.unresolvedPreviousCount,
     previousBook: issue.previousBook?.title ?? "",
   };
@@ -48,72 +51,85 @@ export function SeriesOrderIssueCard({ issue, onAction, pending }: SeriesOrderIs
   const canIgnore = issue.allowedActions.includes("IGNORE_ISSUE");
   const canDisable = issue.allowedActions.includes("DISABLE_SERIES_CHECK");
 
+  const books: { book: SeriesOrderBookView; label?: string }[] =
+    issue.previousBook === null
+      ? [{ book: issue.affectedBook }]
+      : [
+          { book: issue.affectedBook, label: tCard("affectedBook") },
+          { book: issue.previousBook, label: tCard("previousBook") },
+        ];
+
   return (
-    <Card className="gap-3 p-4">
-      <div className="flex items-start justify-between gap-2">
-        <StatusBadge entry={toSeverityStatus(issue.severity, t(`severity.${issue.severity}`))} />
-        {canDisable ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                aria-label={tCard("moreActions", { series: issue.series.title })}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <UiIcon name="more" size={16} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => onAction("DISABLE_SERIES_CHECK")}>
-                <UiIcon name="circle-slash" size={16} />
-                {tActions("disableSeries")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
-      </div>
+    <Card className="@container/issue-card relative gap-4 p-4">
+      {canDisable ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label={tCard("moreActions", { series: issue.series.title })}
+              className="absolute top-3 right-3 z-10"
+              size="icon-sm"
+              variant="ghost"
+            >
+              <UiIcon name="more" size={16} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-auto">
+            <DropdownMenuItem onSelect={() => onAction("DISABLE_SERIES_CHECK")}>
+              <UiIcon name="circle-slash" size={16} />
+              {tActions("disableSeries")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
 
-      <div className="flex flex-col gap-1">
-        <Link
-          className="truncate font-heading text-sm font-semibold text-ink no-underline transition-colors hover:text-primary"
-          href={`/series/${issue.series.id}`}
-          title={issue.series.title}
-        >
-          {issue.series.title}
-        </Link>
-        <p className="text-sm leading-snug text-foreground">
-          {t(`problems.${issue.problemType}.title`, textParams)}
-        </p>
-        {hasProblemDescription(issue.problemType) ? (
-          <p className="text-xs leading-snug text-muted-foreground">
-            {t(`problems.${issue.problemType}.description`, textParams)}
+      <div className="grid grid-cols-1 items-start gap-4 @2xl/issue-card:grid-cols-[3fr_2fr]">
+        <div className="flex flex-col items-start gap-2">
+          <StatusBadge entry={toSeverityStatus(issue.severity, t(`severity.${issue.severity}`))} />
+          <div className="flex flex-col gap-1">
+            <Link
+              className="truncate font-heading text-sm font-semibold text-ink no-underline transition-colors hover:text-primary"
+              href={`/series/${issue.series.id}`}
+            >
+              {issue.series.title}
+            </Link>
+            <p className="text-sm leading-snug text-foreground">
+              {t.rich(`problems.${issue.problemType}.title`, textParams)}
+            </p>
+            {hasProblemDescription(issue.problemType) ? (
+              <p className="text-xs leading-snug text-muted-foreground">
+                {t.rich(`problems.${issue.problemType}.description`, textParams)}
+              </p>
+            ) : null}
+            {issue.relatedProblems.length === 0 ? null : (
+              <p className="text-xs text-muted-foreground">
+                {tCard("relatedProblems", { count: issue.relatedProblems.length })}
+              </p>
+            )}
+          </div>
+          <div className="w-full">
+            <SeriesOrderComparison
+              currentOrder={issue.currentOrder}
+              recommendedOrder={issue.recommendedOrder}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2.5 rounded-md border border-border bg-secondary/40 p-2.5">
+          <p className="text-xs font-medium text-muted-foreground @2xl/issue-card:pr-8">
+            {books.length > 1 ? tCard("affectedBooks") : tCard("affectedBook")}
           </p>
-        ) : null}
-        {issue.relatedProblems.length === 0 ? null : (
-          <p className="text-xs text-muted-foreground">
-            {tCard("relatedProblems", { count: issue.relatedProblems.length })}
-          </p>
-        )}
+          {books.map(({ book, label }) => (
+            <SeriesOrderBookRow book={book} key={book.id} label={label} />
+          ))}
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 rounded-md border border-border bg-secondary/40 p-2.5">
-        <SeriesOrderBookRow book={issue.affectedBook} label={tCard("affectedBook")} />
-        {issue.previousBook === null ? null : (
-          <SeriesOrderBookRow book={issue.previousBook} label={tCard("previousBook")} />
-        )}
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <SeriesOrderSequence items={issue.currentOrder} label={tPreview("current")} />
-        <SeriesOrderSequence items={issue.recommendedOrder} label={tPreview("recommended")} />
-      </div>
-
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 @2xl/issue-card:flex-row @2xl/issue-card:flex-wrap @2xl/issue-card:items-center @2xl/issue-card:justify-center">
         {primary === undefined ? null : (
           <IssueAction
             code={primary}
             issue={issue}
-            label={tActions(seriesOrderActionLabelKey(primary, issue.problemType), textParams)}
+            label={tActions(seriesOrderActionLabelKey(primary, issue.problemType))}
             onAction={onAction}
             pending={pending}
             variant="default"
@@ -124,7 +140,7 @@ export function SeriesOrderIssueCard({ issue, onAction, pending }: SeriesOrderIs
             code={code}
             issue={issue}
             key={code}
-            label={tActions(seriesOrderActionLabelKey(code, issue.problemType), textParams)}
+            label={tActions(seriesOrderActionLabelKey(code, issue.problemType))}
             onAction={onAction}
             pending={pending}
             variant="secondary"
@@ -161,12 +177,12 @@ function IssueAction({
   variant: "default" | "ghost" | "secondary";
 }) {
   const href = seriesOrderActionHref(code, issue);
-  const className = "h-auto min-h-7 w-full py-1";
+  const className = "h-auto min-h-7 w-full py-1 @2xl/issue-card:w-auto";
   const text = <span className="line-clamp-2 min-w-0 break-words whitespace-normal">{label}</span>;
 
   if (href !== null) {
     return (
-      <Button asChild className={className} size="sm" title={label} variant={variant}>
+      <Button asChild className={className} size="sm" variant={variant}>
         <Link href={href}>{text}</Link>
       </Button>
     );
@@ -178,7 +194,6 @@ function IssueAction({
       disabled={pending}
       onClick={() => onAction(code)}
       size="sm"
-      title={label}
       variant={variant}
     >
       {text}

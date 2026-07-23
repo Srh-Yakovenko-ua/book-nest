@@ -6,14 +6,16 @@ import { Reorder, useDragControls } from "motion/react";
 import { useTranslations } from "next-intl";
 
 import type { LibraryBook, LibraryBookLabels } from "../model/library-book";
+import type { ReadingQueueCard } from "../model/reading-queue-card";
 
 import { toLibraryBook } from "../model/library-book";
+import { toReadingQueueCard } from "../model/reading-queue-card";
 import { QueueDragHandle, ReadingQueueItem } from "./reading-queue-item";
 
 type ReadingQueueListProps = {
   canMove: boolean;
   draggable: boolean;
-  hasSearch: boolean;
+  filtered: boolean;
   items: ReadingQueueItemView[];
   labels: LibraryBookLabels;
   onDragCommit: () => void;
@@ -26,7 +28,7 @@ type ReadingQueueListProps = {
 export function ReadingQueueList({
   canMove,
   draggable,
-  hasSearch,
+  filtered,
   items,
   labels,
   onDragCommit,
@@ -56,6 +58,7 @@ export function ReadingQueueList({
             onRemove={() => onRemove(item)}
             onStartReading={() => onStartReading(item)}
             position={index + 1}
+            queue={toReadingQueueCard(item.book, labels.ownershipLabel)}
             reorderLabel={t("reorderAria", { title: item.book.title })}
             value={item}
           />
@@ -71,13 +74,18 @@ export function ReadingQueueList({
           <ReadingQueueItem
             book={toLibraryBook(item.book, labels)}
             dragHandle={
-              <QueueDragHandle disabled label={t("reorderAria", { title: item.book.title })} />
+              <QueueDragHandle
+                disabled
+                disabledTooltip={t("dragDisabledTooltip")}
+                label={t("reorderAria", { title: item.book.title })}
+              />
             }
             onMoveDown={moveDown({ canMove, index, items, onMove })}
             onMoveUp={moveUp({ canMove, index, items, onMove })}
             onRemove={() => onRemove(item)}
             onStartReading={() => onStartReading(item)}
-            position={hasSearch ? item.position : index + 1}
+            position={filtered ? item.position : index + 1}
+            queue={toReadingQueueCard(item.book, labels.ownershipLabel)}
           />
         </li>
       ))}
@@ -93,6 +101,7 @@ function DraggableQueueRow({
   onRemove,
   onStartReading,
   position,
+  queue,
   reorderLabel,
   value,
 }: {
@@ -103,6 +112,7 @@ function DraggableQueueRow({
   onRemove: () => void;
   onStartReading: () => void;
   position: number;
+  queue: ReadingQueueCard;
   reorderLabel: string;
   value: ReadingQueueItemView;
 }) {
@@ -126,6 +136,7 @@ function DraggableQueueRow({
         onRemove={onRemove}
         onStartReading={onStartReading}
         position={position}
+        queue={queue}
       />
     </Reorder.Item>
   );

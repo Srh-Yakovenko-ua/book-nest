@@ -21,6 +21,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const item = messages.readingQueue.item;
+const priority = messages.books.organization.priority;
 
 const labels: LibraryBookLabels = {
   ageBadge18Plus: "18+",
@@ -55,7 +56,7 @@ function renderList(items: ReadingQueueItemView[], overrides: Record<string, unk
     <ReadingQueueList
       canMove
       draggable={false}
-      hasSearch={false}
+      filtered={false}
       items={items}
       labels={labels}
       onDragCommit={vi.fn()}
@@ -101,12 +102,49 @@ describe("ReadingQueueList", () => {
     expect(within(first).getByText("ownership:owned")).toBeInTheDocument();
   });
 
-  it("offers start reading and view book actions on each item", () => {
+  it("offers a start reading action on the first item", () => {
     renderList(threeItems());
 
     const first = articleAt(0);
     expect(within(first).getByRole("button", { name: item.startReading })).toBeInTheDocument();
-    expect(within(first).getByRole("link", { name: item.viewBook })).toBeInTheDocument();
+  });
+
+  it("shows the inline start-reading button only for the first item", async () => {
+    renderList(threeItems());
+
+    const first = articleAt(0);
+    expect(within(first).getByRole("button", { name: item.startReading })).toHaveTextContent(
+      item.startReading,
+    );
+
+    const second = articleAt(1);
+    expect(
+      within(second).queryByRole("button", { name: item.startReading }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(within(second).getByRole("button", { name: /Більше дій/ }));
+    expect(await screen.findByRole("menuitem", { name: item.startReading })).toBeInTheDocument();
+  });
+
+  it("shows the priority reason for a high-priority book", () => {
+    renderList([
+      queueItem(1, {
+        id: "book-1",
+        queuePriority: "high",
+        queuePriorityReason: "book_club",
+        title: "Перша",
+      }),
+    ]);
+
+    const first = articleAt(0);
+    expect(within(first).getByText(priority.high.label)).toBeInTheDocument();
+    expect(within(first).getByText(priority.reason.options.bookClub)).toBeInTheDocument();
+  });
+
+  it("renders the ownership status with the same tone as the library card", () => {
+    renderList([queueItem(1, { id: "book-1", ownershipStatus: "in_transit", title: "Перша" })]);
+
+    const badge = screen.getByText("ownership:in_transit").closest('[data-slot="status-badge"]');
+    expect(badge).toHaveAttribute("data-tone", "info");
   });
 
   it("calls onStartReading with the chosen item", async () => {
@@ -115,7 +153,8 @@ describe("ReadingQueueList", () => {
     renderList(items, { onStartReading });
 
     const second = articleAt(1);
-    await userEvent.click(within(second).getByRole("button", { name: item.startReading }));
+    await userEvent.click(within(second).getByRole("button", { name: /Більше дій/ }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: item.startReading }));
 
     expect(onStartReading).toHaveBeenCalledWith(items[1]);
   });
