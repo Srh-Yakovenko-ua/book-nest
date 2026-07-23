@@ -57,6 +57,7 @@ export * from "./booksControllerListFormatItem";
 export * from "./booksControllerListLanguageItem";
 export * from "./booksControllerListOwnerItem";
 export * from "./booksControllerListParams";
+export * from "./booksControllerListPublisherPresence";
 export * from "./booksControllerListSort";
 export * from "./booksControllerListStatusItem";
 export * from "./booksControllerOverviewOwnerItem";

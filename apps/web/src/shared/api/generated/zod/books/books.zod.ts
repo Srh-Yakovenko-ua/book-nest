@@ -710,6 +710,7 @@ export const BooksControllerListQueryParams = zod.object({
   publisher: zod
     .array(zod.uuid().regex(booksControllerListQueryPublisherItemRegExp))
     .max(booksControllerListQueryPublisherMax),
+  publisherPresence: zod.enum(["all", "assigned", "missing"]).optional(),
   q: zod.string().max(booksControllerListQueryQMax).optional(),
   ratingMax: zod
     .number()

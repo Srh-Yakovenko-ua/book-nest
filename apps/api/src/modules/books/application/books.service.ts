@@ -241,6 +241,7 @@ export class BooksService {
       pagesMax: query.pagesMax,
       pagesMin: query.pagesMin,
       publisherIds: query.publisher,
+      publisherPresence: query.publisherPresence,
       ratingMax: query.ratingMax,
       ratingMin: query.ratingMin,
       readingStatuses: query.status,

@@ -844,6 +844,10 @@ export const LibrarySortSchema = z.enum([
 
 export type LibrarySort = z.infer<typeof LibrarySortSchema>;
 
+export const PublisherPresenceSchema = z.enum(["all", "assigned", "missing"]);
+
+export type PublisherPresence = z.infer<typeof PublisherPresenceSchema>;
+
 export const LibraryBooksQuerySchema = z
   .object({
     ageCategory: queryStringArray(AgeCategorySchema),
@@ -866,6 +870,7 @@ export const LibraryBooksQuerySchema = z
     pagesMax: z.coerce.number().int().optional(),
     pagesMin: z.coerce.number().int().optional(),
     publisher: queryStringArray(z.uuid()),
+    publisherPresence: PublisherPresenceSchema.optional(),
     q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
     ratingMax: z.coerce
       .number()

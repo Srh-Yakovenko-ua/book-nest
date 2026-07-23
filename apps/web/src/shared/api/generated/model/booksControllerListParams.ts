@@ -10,6 +10,7 @@ import type { BooksControllerListBookType } from "./booksControllerListBookType"
 import type { BooksControllerListFormatItem } from "./booksControllerListFormatItem";
 import type { BooksControllerListLanguageItem } from "./booksControllerListLanguageItem";
 import type { BooksControllerListOwnerItem } from "./booksControllerListOwnerItem";
+import type { BooksControllerListPublisherPresence } from "./booksControllerListPublisherPresence";
 import type { BooksControllerListSort } from "./booksControllerListSort";
 import type { BooksControllerListStatusItem } from "./booksControllerListStatusItem";
 
@@ -70,6 +71,7 @@ export type BooksControllerListParams = {
    * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
    */
   publisher: string[];
+  publisherPresence?: BooksControllerListPublisherPresence;
   /**
    * @maxLength 200
    */
