@@ -910,6 +910,7 @@ export * from "./seriesDetailsViewDtoBooksItemTagsItem";
 export * from "./seriesDetailsViewDtoNextBook";
 export * from "./seriesDetailsViewDtoPublishersItem";
 export * from "./seriesDetailsViewDtoStats";
+export * from "./seriesDetailsViewDtoStatsFavoriteBook";
 export * from "./seriesDetailsViewDtoStatus";
 export * from "./seriesOrderCheckControllerListIssuesParams";
 export * from "./seriesOrderCheckPreferenceInputDto";

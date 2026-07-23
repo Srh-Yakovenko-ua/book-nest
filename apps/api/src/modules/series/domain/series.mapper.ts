@@ -59,7 +59,7 @@ export function toSeriesDetailsView(
     ...toSeriesView(series),
     books,
     publishers: collectSeriesPublishers(series.books),
-    stats: computeSeriesStats(books),
+    stats: computeSeriesStats(series.books.map(toStatsBook)),
   };
 }
 
@@ -152,6 +152,21 @@ function toSeriesBookView(book: SeriesDetailBook, cover: Nullable<MediaView>): S
     rating: book.readingProgress?.rating ?? null,
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
     tags: book.tags.map((bookTag) => ({ id: bookTag.tag.id, name: bookTag.tag.name })),
+    title: book.title,
+  };
+}
+
+function toStatsBook(book: SeriesDetailBook) {
+  return {
+    createdAt: book.createdAt,
+    finishedAt: book.readingProgress?.finishedAt ?? null,
+    id: book.id,
+    isFavorite: book.isFavorite,
+    pagesCount: book.pagesCount,
+    partNumber: book.partNumber,
+    rating: book.readingProgress?.rating ?? null,
+    readingStatus: ReadingStatusSchema.parse(book.readingStatus),
+    startedAt: book.readingProgress?.startedAt ?? null,
     title: book.title,
   };
 }

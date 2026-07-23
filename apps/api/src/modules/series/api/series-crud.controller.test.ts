@@ -444,11 +444,18 @@ describe("GET /api/series/:id", () => {
     const res = await getSeries(accessToken, seriesId);
 
     expect(res.body.stats).toEqual({
+      averagePages: 250,
       averageRating: 8,
       booksCount: 3,
+      favoriteBook: null,
       finishedCount: 1,
+      lastFinishedAt: "2026-02-05T00:00:00.000Z",
       pagesCount: 500,
       readingCount: 1,
+      readingDurationDays: 4,
+      readPagesCount: 300,
+      readPagesPartial: false,
+      startedAt: "2026-02-01T00:00:00.000Z",
       unreadCount: 1,
     });
   });
