@@ -1,4 +1,4 @@
-import type { SeriesBookView, SeriesDetailsView } from "@app/shared";
+import type { SeriesBookView, SeriesDetailsView, SeriesStatus } from "@app/shared";
 
 const PART_NUMBER_MAX = 999;
 
@@ -7,6 +7,11 @@ export type SeriesCoverBook = {
   src: string;
   title: string;
 };
+
+export type SeriesReleaseYears =
+  | { from: number; kind: "range"; to: number }
+  | { kind: "since"; year: number }
+  | { kind: "single"; year: number };
 
 export type SeriesSlot =
   | { book: SeriesBookView; isCurrent: boolean; key: string; kind: "added"; number: null | number }
@@ -103,6 +108,46 @@ export function readingOrder(books: SeriesBookView[]): SeriesBookView[] {
   return books
     .filter((book): book is SeriesBookView & { partNumber: number } => book.partNumber !== null)
     .sort((a, b) => a.partNumber - b.partNumber);
+}
+
+export function resolveSeriesGenres({
+  books,
+  seriesGenres,
+}: {
+  books: SeriesBookView[];
+  seriesGenres: readonly string[];
+}): string[] {
+  if (seriesGenres.length > 0) return [...seriesGenres];
+  const seen = new Set<string>();
+  const union: string[] = [];
+  for (const book of books) {
+    for (const key of book.genres) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      union.push(key);
+    }
+  }
+  return union;
+}
+
+export function resolveSeriesReleaseYears({
+  books,
+  status,
+}: {
+  books: SeriesBookView[];
+  status: SeriesStatus;
+}): null | SeriesReleaseYears {
+  if (status === "unknown") return null;
+  const ordered = readingOrder(books);
+  const first = ordered[0];
+  if (first === undefined || first.publicationYear === null) return null;
+  if (status === "ongoing") return { kind: "since", year: first.publicationYear };
+  const last = ordered[ordered.length - 1];
+  if (last === undefined || last.publicationYear === null) return null;
+  if (first.publicationYear === last.publicationYear) {
+    return { kind: "single", year: first.publicationYear };
+  }
+  return { from: first.publicationYear, kind: "range", to: last.publicationYear };
 }
 
 export function seriesCoverBooks(books: SeriesBookView[]): SeriesCoverBook[] {

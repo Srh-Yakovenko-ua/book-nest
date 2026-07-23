@@ -1,13 +1,74 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { MediaView, SeriesBookView, SeriesDetailsView, SeriesStatus } from "@app/shared";
+import type {
+  GenreView,
+  MediaView,
+  SeriesBookView,
+  SeriesDetailsView,
+  SeriesStatus,
+} from "@app/shared";
+import type { ReactNode } from "react";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, within } from "@/test-utils";
 
 import { makeSeriesBookView, makeSeriesDetailsView } from "../model/series.fixtures";
 import { SeriesDetailsHero } from "./series-details-hero";
+
+vi.mock("@/i18n/navigation", () => ({
+  getPathname: () => "/",
+  Link: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+  redirect: vi.fn(),
+  usePathname: () => "/",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
+const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    headers: { "Content-Type": "application/json" },
+    status,
+  });
+}
+
+function makeGenres(entries: { key: string; name: string }[]): GenreView[] {
+  return entries.map((entry) => ({
+    groupKey: "fiction",
+    groupName: "Художня література",
+    id: `genre-${entry.key}`,
+    isDefault: false,
+    key: entry.key,
+    name: entry.name,
+  }));
+}
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", fetchMock);
+  fetchMock.mockReset();
+  fetchMock.mockImplementation((input) => {
+    if (String(input).includes("/api/genres")) {
+      return Promise.resolve(
+        jsonResponse(
+          makeGenres([
+            { key: "fantasy", name: "Фентезі" },
+            { key: "romance", name: "Романтика" },
+            { key: "adventure", name: "Пригоди" },
+          ]),
+        ),
+      );
+    }
+    return Promise.resolve(jsonResponse({}));
+  });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.clearAllMocks();
+});
 
 function makeCover(id: string): MediaView {
   return {
@@ -61,7 +122,7 @@ const statusCases: [SeriesStatus, string][] = [
 ];
 
 describe("SeriesDetailsHero", () => {
-  it("renders the cover fan and moves the count onto it when books have covers", () => {
+  it("renders the cover fan and the total book count in the metadata row", () => {
     renderHero([
       makeSeriesBookView({ cover: makeCover("a"), id: "a", partNumber: 1, title: "Перша" }),
       makeSeriesBookView({ cover: makeCover("b"), id: "b", partNumber: 2, title: "Друга" }),
@@ -72,6 +133,7 @@ describe("SeriesDetailsHero", () => {
     expect(fan).toBeInTheDocument();
     expect(within(fan).getByText("2 з 5 додано")).toBeInTheDocument();
     expect(screen.getAllByText("2 з 5 додано")).toHaveLength(1);
+    expect(screen.getByText("5 книг")).toBeInTheDocument();
   });
 
   it("caps the fan at three layers while the counter keeps the real series count", () => {
@@ -91,12 +153,55 @@ describe("SeriesDetailsHero", () => {
     expect(within(fan).getByText("5 з 5 додано")).toBeInTheDocument();
   });
 
-  it("keeps the count chip in the text column when no book has a cover", () => {
-    renderHero([makeSeriesBookView({ id: "no-cover", partNumber: 1 })]);
+  it("shows the book counter and no cover fan when the books lack covers", () => {
+    renderHeroDetails({
+      books: [makeSeriesBookView({ id: "no-cover", partNumber: 1 })],
+      booksInSeries: 1,
+      publishers: [],
+      status: "unknown",
+      totalBooks: 4,
+    });
 
     expect(screen.queryByRole("img", { name: /Обкладинки книг/ })).not.toBeInTheDocument();
-    expect(screen.getByText("1 з 5 додано")).toBeInTheDocument();
+    expect(screen.getByText("4 книги")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "Емпіреї" })).toBeInTheDocument();
+  });
+
+  it("uses the declared total for the counter over the added book count", () => {
+    renderHeroDetails({
+      books: [],
+      booksInSeries: 2,
+      publishers: [],
+      status: "unknown",
+      totalBooks: 4,
+    });
+
+    expect(screen.getByText("4 книги")).toBeInTheDocument();
+    expect(screen.queryByText("2 книги")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the added book count when the total is unknown", () => {
+    renderHeroDetails({
+      books: [],
+      booksInSeries: 2,
+      publishers: [],
+      status: "unknown",
+      totalBooks: null,
+    });
+
+    expect(screen.getByText("2 книги")).toBeInTheDocument();
+  });
+
+  it("hides the book counter when the series has no books", () => {
+    renderHeroDetails({
+      books: [],
+      booksInSeries: 0,
+      publishers: [],
+      status: "unknown",
+      totalBooks: 0,
+    });
+
+    expect(screen.queryByText("0 книг")).not.toBeInTheDocument();
   });
 
   it.each(statusCases)("renders the %s status badge above the title", (status, label) => {
@@ -156,5 +261,183 @@ describe("SeriesDetailsHero", () => {
     expect(
       Boolean(readBadge.compareDocumentPosition(title) & readBadge.DOCUMENT_POSITION_FOLLOWING),
     ).toBe(true);
+  });
+
+  it("renders the declared series genres and ignores the book genres", async () => {
+    renderHeroDetails({
+      books: [makeSeriesBookView({ genres: ["fantasy", "romance"], id: "book-1" })],
+      genres: ["adventure"],
+    });
+
+    expect(await screen.findByText("Пригоди")).toBeInTheDocument();
+    expect(screen.queryByText("Фентезі")).not.toBeInTheDocument();
+    expect(screen.queryByText("Романтика")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the deduplicated union of book genres when the series declares none", async () => {
+    renderHeroDetails({
+      books: [
+        makeSeriesBookView({ genres: ["fantasy", "romance"], id: "book-1" }),
+        makeSeriesBookView({ genres: ["romance", "adventure"], id: "book-2" }),
+      ],
+      genres: [],
+    });
+
+    expect(await screen.findByText("Фентезі")).toBeInTheDocument();
+    expect(screen.getByText("Романтика")).toBeInTheDocument();
+    expect(screen.getByText("Пригоди")).toBeInTheDocument();
+  });
+
+  it("renders no genre chips when neither the series nor its books have genres", () => {
+    renderHeroDetails({
+      books: [makeSeriesBookView({ genres: [], id: "book-1" })],
+      genres: [],
+    });
+
+    expect(screen.queryByText("Фентезі")).not.toBeInTheDocument();
+  });
+
+  it("caps the genre chips at six and collapses the rest into an overflow chip", () => {
+    renderHeroDetails({
+      books: [],
+      genres: ["g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8"],
+    });
+
+    expect(screen.getByText("ще 2")).toBeInTheDocument();
+    expect(screen.queryByText("g7")).not.toBeInTheDocument();
+  });
+
+  it("shows the publication-year range of a completed series", () => {
+    renderHeroDetails({
+      books: [
+        makeSeriesBookView({ id: "a", partNumber: 1, publicationYear: 2021 }),
+        makeSeriesBookView({ id: "b", partNumber: 2, publicationYear: 2024 }),
+      ],
+      status: "completed",
+    });
+
+    expect(screen.getByText("2021–2024")).toBeInTheDocument();
+  });
+
+  it("shows a single publication year when a completed series shares it across its ends", () => {
+    renderHeroDetails({
+      books: [
+        makeSeriesBookView({ id: "a", partNumber: 1, publicationYear: 2024 }),
+        makeSeriesBookView({ id: "b", partNumber: 2, publicationYear: 2024 }),
+      ],
+      status: "completed",
+    });
+
+    expect(screen.getByText("2024")).toBeInTheDocument();
+  });
+
+  it("shows an open-ended year for an ongoing series", () => {
+    renderHeroDetails({
+      books: [makeSeriesBookView({ id: "a", partNumber: 1, publicationYear: 2021 })],
+      status: "ongoing",
+    });
+
+    expect(screen.getByText("З 2021 року")).toBeInTheDocument();
+  });
+
+  it("renders no year metadata for a series with an unknown status", () => {
+    renderHeroDetails({
+      books: [makeSeriesBookView({ id: "a", partNumber: 1, publicationYear: 2021 })],
+      publishers: [],
+      status: "unknown",
+    });
+
+    expect(screen.queryByText("2021")).not.toBeInTheDocument();
+    expect(screen.queryByText("З 2021 року")).not.toBeInTheDocument();
+  });
+
+  it("shows a single publisher name", () => {
+    renderHeroDetails({ publishers: [{ id: "p1", name: "Vivat" }] });
+
+    expect(screen.getByText("Vivat")).toBeInTheDocument();
+  });
+
+  it("joins several publisher names with commas", () => {
+    renderHeroDetails({
+      publishers: [
+        { id: "p1", name: "Vivat" },
+        { id: "p2", name: "КСД" },
+        { id: "p3", name: "Ranok" },
+      ],
+    });
+
+    expect(screen.getByText("Vivat, КСД, Ranok")).toBeInTheDocument();
+  });
+
+  it("caps publishers at three and collapses the rest into an overflow label", () => {
+    renderHeroDetails({
+      publishers: [
+        { id: "p1", name: "Vivat" },
+        { id: "p2", name: "КСД" },
+        { id: "p3", name: "Ranok" },
+        { id: "p4", name: "А-ба-ба-га-ла-ма-га" },
+        { id: "p5", name: "Наш формат" },
+      ],
+    });
+
+    expect(screen.getByText("Vivat, КСД, Ranok ще 2")).toBeInTheDocument();
+  });
+
+  it("renders no publisher metadata when the series has no publishers", () => {
+    renderHeroDetails({
+      books: [makeSeriesBookView({ id: "a", partNumber: 1, publicationYear: 2021 })],
+      publishers: [],
+      status: "completed",
+    });
+
+    expect(screen.queryByText("Vivat")).not.toBeInTheDocument();
+  });
+
+  it("orders the metadata as books, then years, then publishers with a separator between each", () => {
+    renderHeroDetails({
+      books: [makeSeriesBookView({ id: "a", partNumber: 1, publicationYear: 2021 })],
+      booksInSeries: 4,
+      publishers: [{ id: "p1", name: "Vivat" }],
+      status: "ongoing",
+      totalBooks: 4,
+    });
+
+    const count = screen.getByText("4 книги");
+    const year = screen.getByText("З 2021 року");
+    const publisher = screen.getByText("Vivat");
+
+    expect(screen.getAllByText("·")).toHaveLength(2);
+    expect(Boolean(count.compareDocumentPosition(year) & count.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
+    expect(
+      Boolean(year.compareDocumentPosition(publisher) & year.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
+  });
+
+  it("omits the separator when only publishers are present", () => {
+    renderHeroDetails({
+      books: [],
+      booksInSeries: 0,
+      publishers: [{ id: "p1", name: "Vivat" }],
+      status: "unknown",
+      totalBooks: 0,
+    });
+
+    expect(screen.getByText("Vivat")).toBeInTheDocument();
+    expect(screen.queryByText("·")).not.toBeInTheDocument();
+  });
+
+  it("omits the separator when only years are present", () => {
+    renderHeroDetails({
+      books: [makeSeriesBookView({ id: "a", partNumber: 1, publicationYear: 2021 })],
+      booksInSeries: 0,
+      publishers: [],
+      status: "ongoing",
+      totalBooks: 0,
+    });
+
+    expect(screen.getByText("З 2021 року")).toBeInTheDocument();
+    expect(screen.queryByText("·")).not.toBeInTheDocument();
   });
 });

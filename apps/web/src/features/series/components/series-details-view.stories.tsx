@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, waitFor } from "storybook/test";
 
+import { getQueryClient } from "@/lib/query-client";
+
 import {
   makeSeriesBookView,
   makeSeriesDetailsView,
@@ -9,7 +11,32 @@ import {
 } from "../model/series.fixtures";
 import { SeriesDetailsView } from "./series-details-view";
 
+const GENRES_FIXTURE = [
+  { key: "fantasy", name: "Фентезі" },
+  { key: "romance", name: "Романтика" },
+].map((genre, index) => ({
+  ...genre,
+  groupKey: "fiction",
+  groupName: "Художня література",
+  id: `genre-${index}`,
+  isDefault: true,
+}));
+
+function mockGenres() {
+  globalThis.fetch = ((input: RequestInfo | URL) => {
+    const path = typeof input === "string" ? input : input.toString();
+    const body = path.includes("/api/genres") ? GENRES_FIXTURE : {};
+    return Promise.resolve(
+      new Response(JSON.stringify(body), { headers: { "Content-Type": "application/json" } }),
+    );
+  }) as typeof fetch;
+}
+
 const meta = {
+  beforeEach: () => {
+    getQueryClient().clear();
+    mockGenres();
+  },
   component: SeriesDetailsView,
   parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
   tags: ["ai-generated"],
