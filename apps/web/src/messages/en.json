@@ -3610,5 +3610,291 @@
       "show": "Show spoiler",
       "hide": "Hide spoiler"
     }
+  },
+  "characters": {
+    "tab": "Characters",
+    "summary": {
+      "characters": "Characters: {count}",
+      "favorites": "Favorites: {count}",
+      "hidden": "Some records are hidden",
+      "pov": "POV: {count}"
+    },
+    "toolbar": {
+      "add": "Add character",
+      "palette": "Search",
+      "searchClear": "Clear search",
+      "searchLabel": "Search characters",
+      "searchPlaceholder": "Search by name…",
+      "sortLabel": "Sort"
+    },
+    "sort": {
+      "name": "By name",
+      "recommended": "Recommended"
+    },
+    "card": {
+      "delete": "Delete character entirely",
+      "details": "Details",
+      "edit": "Edit",
+      "favorite": "Add to favorites",
+      "hiddenFields": "Hidden fields: {count}",
+      "menu": "Character actions",
+      "unfavorite": "Remove from favorites",
+      "unlink": "Remove from this book"
+    },
+    "states": {
+      "errorDescription": "Couldn't load characters. Please try again.",
+      "errorTitle": "Failed to load",
+      "loading": "Loading characters",
+      "retry": "Try again"
+    },
+    "empty": {
+      "add": "Add character",
+      "description": "Add a character manually or link an existing one from your library.",
+      "title": "No characters yet"
+    },
+    "noResults": {
+      "clear": "Clear search",
+      "description": "Try adjusting your query.",
+      "title": "Nothing found"
+    },
+    "spoiler": {
+      "hidden": "Hidden (spoiler)",
+      "reveal": "Show",
+      "revealAria": "Show field: {field}"
+    },
+    "importance": {
+      "central": "Central",
+      "episodic": "Episodic",
+      "major": "Major",
+      "mentioned": "Mentioned",
+      "supporting": "Supporting"
+    },
+    "status": {
+      "active": "Alive",
+      "dead": "Dead",
+      "missing": "Missing",
+      "other": "Other",
+      "transformed": "Transformed",
+      "unknown": "Unknown"
+    },
+    "roleType": {
+      "antagonist": "Antagonist",
+      "custom": "Custom role",
+      "deuteragonist": "Deuteragonist",
+      "episodic": "Episodic",
+      "love_interest": "Love interest",
+      "mentioned": "Mentioned",
+      "protagonist": "Protagonist",
+      "supporting": "Supporting"
+    },
+    "gender": {
+      "agender_or_na": "Agender / N/A",
+      "custom": "Custom",
+      "female": "Female",
+      "male": "Male",
+      "non_binary": "Non-binary",
+      "unknown": "Unknown"
+    },
+    "attitude": {
+      "dislike": "Dislike",
+      "distrust": "Distrust",
+      "favorite": "Favorite",
+      "hate": "Hate",
+      "like": "Like",
+      "neutral": "Neutral",
+      "unsure": "Unsure"
+    },
+    "entityKind": {
+      "collective": "Collective",
+      "individual": "Individual",
+      "unknown": "Unknown"
+    },
+    "aliasType": {
+      "former_name": "Former name",
+      "nickname": "Nickname",
+      "other": "Other",
+      "pseudonym": "Pseudonym",
+      "title": "Title",
+      "translation": "Translation",
+      "true_name": "True name"
+    },
+    "narratorType": {
+      "first_person": "First person",
+      "other": "Other",
+      "third_person_limited": "Third person (limited)",
+      "third_person_omniscient": "Third person (omniscient)",
+      "unreliable": "Unreliable"
+    },
+    "details": {
+      "appearanceNotes": "Appearance notes",
+      "attitude": "Attitude",
+      "bookDescription": "Description in this book",
+      "bookSection": "In this book",
+      "description": "Description",
+      "displayName": "Display name",
+      "edit": "Edit",
+      "entityKind": "Type",
+      "favorite": "Favorite",
+      "gender": "Gender",
+      "generalSection": "General",
+      "hiddenRoles": "Hidden roles: {count}",
+      "otherAppearances": "Also in other books: {count}",
+      "personalImpression": "Personal impression",
+      "pov": "POV",
+      "povWithType": "POV · {type}",
+      "pronouns": "Pronouns",
+      "roles": "Roles",
+      "sheetDescription": "Character details",
+      "species": "Species",
+      "speciesOverride": "Species in this book",
+      "status": "Status",
+      "title": "Character"
+    },
+    "quickAdd": {
+      "add": "Add",
+      "createError": "Couldn't create the character",
+      "created": "Character added",
+      "duplicateQuestion": "Is this {name}?",
+      "linkExisting": "Link existing",
+      "moreFields": "More fields",
+      "nameLabel": "Character name",
+      "namePlaceholder": "New character name",
+      "noteLabel": "Short note",
+      "notePlaceholder": "Who is this? (optional)",
+      "title": "Quick add"
+    },
+    "form": {
+      "appearanceNotes": "Appearance notes",
+      "attitude": "Attitude in this book",
+      "avatar": "Avatar",
+      "bookDescription": "Description in this book",
+      "bookSection": "In this book",
+      "cancel": "Cancel",
+      "createDescription": "Create a new character for this book.",
+      "createTitle": "Add character",
+      "customGender": "Custom gender",
+      "discardCancel": "Keep editing",
+      "discardConfirm": "Discard",
+      "discardDescription": "Your changes will be lost.",
+      "discardTitle": "Discard changes?",
+      "displayName": "Display name",
+      "editDescription": "Update the character's data.",
+      "editTitle": "Edit character",
+      "entityKind": "Type",
+      "favorite": "Favorite character",
+      "firstAppearanceChapter": "First appearance chapter",
+      "firstAppearanceNote": "First appearance note",
+      "firstAppearancePage": "First appearance page",
+      "gender": "Gender",
+      "generalHint": "This data is used across all books where the character appears.",
+      "generalSection": "General",
+      "globalAttitude": "Attitude",
+      "hidePresence": "Hide presence",
+      "hidePresenceHelp": "The character won't appear in lists within this book's context.",
+      "importance": "Importance",
+      "name": "Name",
+      "namePlaceholder": "Character name",
+      "narratorType": "Narrator type",
+      "neutralDescription": "Description",
+      "optional": "optional",
+      "personalImpression": "Personal impression",
+      "portrait": "Portrait in this book",
+      "pov": "POV character",
+      "povHelp": "The story is narrated from this character's perspective.",
+      "pronouns": "Pronouns",
+      "removeAvatar": "Remove avatar",
+      "removePortrait": "Remove portrait",
+      "roles": "Roles",
+      "species": "Species",
+      "speciesOverride": "Species in this book",
+      "spoilerSection": "Spoilers",
+      "spoilerToggle": "Mark as spoiler",
+      "status": "Status",
+      "statusCustom": "Custom status",
+      "submitCreate": "Add",
+      "submitEdit": "Save",
+      "uploadAvatar": "Upload image",
+      "errors": {
+        "customGenderRequired": "Specify your custom gender",
+        "generic": "Couldn't save. Please try again.",
+        "nameRequired": "Enter a name",
+        "nameTooLong": "Name is too long (max {max})"
+      },
+      "aliases": "Alternative names"
+    },
+    "rolePicker": {
+      "add": "Add role",
+      "customPlaceholder": "Role name",
+      "remove": "Remove role",
+      "roleType": "Role",
+      "spoiler": "Spoiler"
+    },
+    "aliasEditor": {
+      "add": "Add name",
+      "name": "Name",
+      "namePlaceholder": "Alternative name",
+      "remove": "Remove name",
+      "scope": "Scope",
+      "scopeBook": "This book",
+      "scopeGlobal": "Global",
+      "spoiler": "Spoiler",
+      "type": "Type"
+    },
+    "existing": {
+      "createNew": "Create new",
+      "empty": "No matches",
+      "link": "Link",
+      "linkError": "Couldn't link the character",
+      "linked": "Character linked",
+      "sameSeries": "From this series",
+      "searchLabel": "Search existing characters",
+      "searchPlaceholder": "Type a name…",
+      "title": "Link existing"
+    },
+    "duplicate": {
+      "createAnyway": "Create anyway",
+      "question": "This character may already exist.",
+      "title": "Possible duplicates",
+      "use": "Use this one"
+    },
+    "delete": {
+      "aliases": "Names: {count}",
+      "appearances": "Book appearances: {count}",
+      "cancel": "Cancel",
+      "confirm": "Delete entirely",
+      "deleting": "Deleting…",
+      "description": "The character and all its data will be deleted. You can undo this action for a short time.",
+      "previewIntro": "Will be deleted:",
+      "roles": "Roles: {count}",
+      "tags": "Tags: {count}",
+      "title": "Delete character entirely"
+    },
+    "unlink": {
+      "cancel": "Cancel",
+      "confirm": "Remove",
+      "description": "The character will be removed from this book. The global profile and data in other books remain.",
+      "title": "Remove from this book",
+      "unlinking": "Removing…"
+    },
+    "palette": {
+      "empty": "Start typing a character name",
+      "loading": "Searching…",
+      "noResults": "Nothing found",
+      "placeholder": "Search characters…",
+      "title": "Search characters"
+    },
+    "toast": {
+      "createError": "Couldn't create the character",
+      "created": "Character added",
+      "deleteError": "Couldn't delete the character",
+      "deleted": "Character deleted",
+      "restoreError": "Couldn't restore the character",
+      "restored": "Character restored",
+      "undo": "Undo",
+      "unlinkError": "Couldn't remove the character",
+      "unlinked": "Character removed from the book",
+      "updateError": "Couldn't save changes",
+      "updated": "Changes saved"
+    }
   }
 }
