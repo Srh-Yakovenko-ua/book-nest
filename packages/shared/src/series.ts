@@ -129,11 +129,18 @@ export const SeriesBookViewSchema = z.object({
 export type SeriesBookView = z.infer<typeof SeriesBookViewSchema>;
 
 export const SeriesStatsViewSchema = z.object({
+  averagePages: z.number().nullable(),
   averageRating: z.number().nullable(),
   booksCount: z.number(),
+  favoriteBook: z.object({ id: z.string(), title: z.string() }).nullable(),
   finishedCount: z.number(),
+  lastFinishedAt: z.string().nullable(),
   pagesCount: z.number().nullable(),
   readingCount: z.number(),
+  readingDurationDays: z.number().nullable(),
+  readPagesCount: z.number().nullable(),
+  readPagesPartial: z.boolean(),
+  startedAt: z.string().nullable(),
   unreadCount: z.number(),
 });
 

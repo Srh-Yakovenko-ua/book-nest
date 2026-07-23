@@ -17,6 +17,7 @@ type BookRowCoverAspect = "portrait" | "stretch";
 
 type BookRowProps = {
   accent?: boolean;
+  actionsSlot?: React.ReactNode;
   book: LibraryBook;
   coverAspect?: BookRowCoverAspect;
   kebab?: React.ReactNode;
@@ -26,6 +27,7 @@ type BookRowProps = {
   selected?: boolean;
   selectionControl?: React.ReactNode;
   statusPlacement?: "column" | "note";
+  statusSlot?: React.ReactNode;
   tone?: BookRowTone;
 };
 
@@ -47,6 +49,7 @@ const toneClass: Record<BookRowTone, string> = {
 
 export function BookRow({
   accent,
+  actionsSlot,
   book,
   coverAspect = "stretch",
   kebab,
@@ -56,6 +59,7 @@ export function BookRow({
   selected,
   selectionControl,
   statusPlacement = "column",
+  statusSlot,
   tone,
 }: BookRowProps) {
   const LinkComp: RowLinkComponent = linkComponent ?? "a";
@@ -89,7 +93,7 @@ export function BookRow({
         {statusPlacement === "column" ? (
           <>
             <div className="hidden w-px self-stretch bg-border @3xl/book-row:block" />
-            <BookRowStatuses book={book} />
+            {statusSlot ?? <BookRowStatuses book={book} />}
           </>
         ) : null}
 
@@ -99,6 +103,15 @@ export function BookRow({
             <BookRowChips genres={book.genres} tags={book.tags} />
           </>
         ) : null}
+
+        {actionsSlot === undefined ? null : (
+          <>
+            <div className="hidden w-px self-stretch bg-border @3xl/book-row:block" />
+            <div className="flex flex-wrap content-start items-center gap-1.5 @xl/book-row:basis-full @3xl/book-row:min-w-0 @3xl/book-row:flex-1 @3xl/book-row:basis-0">
+              {actionsSlot}
+            </div>
+          </>
+        )}
       </div>
 
       <BookRowRail

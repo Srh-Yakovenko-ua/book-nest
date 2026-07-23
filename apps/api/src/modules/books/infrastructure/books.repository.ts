@@ -9,6 +9,7 @@ import type {
   LoanType,
   Nullable,
   OwnershipStatus,
+  PublisherPresence,
   ReadingStatus,
 } from "@app/shared";
 
@@ -148,6 +149,7 @@ export type LibraryFilter = {
   pagesMax?: number;
   pagesMin?: number;
   publisherIds?: string[];
+  publisherPresence?: PublisherPresence;
   ratingMax?: number;
   ratingMin?: number;
   readingStatuses?: ReadingStatus[];
@@ -1353,7 +1355,11 @@ function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
   if (filter.authorIds !== undefined) {
     where.authors = { some: { authorId: { in: filter.authorIds } } };
   }
-  if (filter.publisherIds !== undefined) {
+  if (filter.publisherPresence === "missing") {
+    where.publisherId = null;
+  } else if (filter.publisherPresence === "assigned") {
+    where.publisherId = { not: null };
+  } else if (filter.publisherIds !== undefined) {
     where.publisherId = { in: filter.publisherIds };
   }
   if (filter.ageCategories !== undefined) {

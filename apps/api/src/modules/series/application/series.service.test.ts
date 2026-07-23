@@ -1254,11 +1254,18 @@ describe("SeriesService.getById", () => {
 
     expect(details.books[1]?.rating).toBeNull();
     expect(details.stats).toEqual({
+      averagePages: 250,
       averageRating: 8,
       booksCount: 2,
+      favoriteBook: null,
       finishedCount: 1,
+      lastFinishedAt: null,
       pagesCount: 500,
       readingCount: 1,
+      readingDurationDays: null,
+      readPagesCount: 300,
+      readPagesPartial: false,
+      startedAt: null,
       unreadCount: 0,
     });
   });

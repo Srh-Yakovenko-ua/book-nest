@@ -5,14 +5,28 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { SeriesDetailsViewDtoStatsFavoriteBook } from "./seriesDetailsViewDtoStatsFavoriteBook";
 
 export type SeriesDetailsViewDtoStats = {
   /** @nullable */
+  averagePages: number | null;
+  /** @nullable */
   averageRating: number | null;
   booksCount: number;
+  /** @nullable */
+  favoriteBook: SeriesDetailsViewDtoStatsFavoriteBook;
   finishedCount: number;
+  /** @nullable */
+  lastFinishedAt: string | null;
   /** @nullable */
   pagesCount: number | null;
   readingCount: number;
+  /** @nullable */
+  readingDurationDays: number | null;
+  /** @nullable */
+  readPagesCount: number | null;
+  readPagesPartial: boolean;
+  /** @nullable */
+  startedAt: string | null;
   unreadCount: number;
 };

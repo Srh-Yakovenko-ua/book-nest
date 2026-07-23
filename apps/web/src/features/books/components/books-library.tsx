@@ -2,31 +2,20 @@
 
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
-import { toast } from "sonner";
 
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { Progress } from "@/components/ui/progress";
 import { Link, useRouter } from "@/i18n/navigation";
 
-import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
 
-import {
-  useBulkAddTags,
-  useBulkAddToList,
-  useBulkAddToReadingQueue,
-  useBulkDeleteBooks,
-  useBulkOwnershipStatus,
-  useBulkReadingStatus,
-  useBulkSetFavorite,
-  useRemoveFromReadingQueue,
-  useToggleFavorite,
-} from "../api/use-book-actions";
 import { useLibraryBooks } from "../api/use-books";
 import { useGenres } from "../api/use-genres";
 import { useLibraryOverview } from "../api/use-library-overview";
 import { useTagsSearch } from "../api/use-tags-search";
+import { useLibraryActions } from "../hooks/use-library-actions";
+import { useLibraryBookLabels } from "../hooks/use-library-book-labels";
 import { toLibraryBook } from "../model/library-book";
 import { LIBRARY_SORT_ORDER, type LibraryScope } from "../model/library-query";
 import {
@@ -47,11 +36,7 @@ import { LibrarySummarySidebar } from "./library-summary-sidebar";
 export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorites"> }) {
   const t = useTranslations("books.library");
   const tCover = useTranslations("books.cover");
-  const tFormat = useTranslations("books.format.options");
-  const tStatus = useTranslations("books.readingStatus.options");
-  const tOwnership = useTranslations("books.ownershipStatus.options");
   const tSortOptions = useTranslations("books.library.sort.options");
-  const tAgeCategory = useTranslations("books.classification.ageCategoryLabels");
   const router = useRouter();
 
   const library = useLibraryQuery(scope);
@@ -70,15 +55,8 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   const tags = useTagsSearch("");
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
 
-  const toggleFavorite = useToggleFavorite();
-  const setFavorite = useBulkSetFavorite();
-  const changeReadingStatus = useBulkReadingStatus();
-  const changeOwnership = useBulkOwnershipStatus();
-  const addToList = useBulkAddToList();
-  const addTags = useBulkAddTags();
-  const addToQueue = useBulkAddToReadingQueue();
-  const removeFromQueue = useRemoveFromReadingQueue();
-  const deleteBooks = useBulkDeleteBooks();
+  const actions = useLibraryActions();
+  const labels = useLibraryBookLabels();
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
   const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
@@ -103,22 +81,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   const totalCount = pages[0]?.totalCount ?? 0;
   const books: LibraryBook[] = pages
     .flatMap((page) => page.items)
-    .map((book) =>
-      toLibraryBook(book, {
-        ageBadge18Plus: tAgeCategory("18_plus"),
-        borrowedFrom: (name) => t("card.borrowedFrom", { name }),
-        formatLabel: (value) => tFormat(value),
-        genreName: (key) => genreNameByKey.get(key) ?? key,
-        lentTo: (name) => t("card.lentTo", { name }),
-        ownershipLabel: (value) => tOwnership(value),
-        pagesText: (value) => t("meta.pages", { value }),
-        progressAriaLabel: (current, total) => t("progress.ariaLabel", { current, total }),
-        progressUnit: t("progress.unit"),
-        ratingLabel: (value) => t("rating.ariaLabel", { value }),
-        seriesPosition: (position, total) => t("card.seriesPosition", { position, total }),
-        statusLabel: (value) => tStatus(value),
-      }),
-    );
+    .map((book) => toLibraryBook(book, labels));
 
   const summary = overview.data?.summary;
   const activeReading = overview.data?.activeReading;
@@ -209,50 +172,6 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
   ];
 
   const sortOptions = LIBRARY_SORT_ORDER.map((value) => ({ label: tSortOptions(value), value }));
-
-  async function runWithToast(action: () => Promise<unknown>, successMessage: string) {
-    try {
-      await action();
-      toast.success(successMessage);
-    } catch (error) {
-      toast.error(t("toast.error"));
-      throw error;
-    }
-  }
-
-  const actions: LibraryActions = {
-    onAddTags: (input) => runWithToast(() => addTags.mutateAsync(input), t("toast.tagsAdded")),
-    onAddToList: (input) =>
-      runWithToast(() => addToList.mutateAsync(input), t("toast.addedToList")),
-    onAddToQueue: (bookIds) =>
-      runWithToast(() => addToQueue.mutateAsync(bookIds), t("toast.queueAdded")),
-    onChangeOwnership: (input) =>
-      runWithToast(() => changeOwnership.mutateAsync(input), t("toast.ownershipChanged")),
-    onChangeReadingStatus: (input) =>
-      runWithToast(() => changeReadingStatus.mutateAsync(input), t("toast.readingStatusChanged")),
-    onDelete: (bookIds) =>
-      runWithToast(
-        () => deleteBooks.mutateAsync(bookIds),
-        t("toast.deleted", { count: bookIds.length }),
-      ),
-    onEdit: (bookId) => router.push(`/books/${bookId}/edit`),
-    onRemoveFromQueue: (id) =>
-      runWithToast(() => removeFromQueue.mutateAsync(id), t("toast.queueRemoved")),
-    onSetFavorite: (input) =>
-      runWithToast(
-        () => setFavorite.mutateAsync(input),
-        input.isFavorite ? t("toast.favoriteAdded") : t("toast.favoriteRemoved"),
-      ),
-    onToggleFavorite: ({ id, isFavorite }) =>
-      toggleFavorite.mutate(
-        { id, isFavorite },
-        {
-          onError: () => toast.error(t("toast.error")),
-          onSuccess: () =>
-            toast.success(isFavorite ? t("toast.favoriteAdded") : t("toast.favoriteRemoved")),
-        },
-      ),
-  };
 
   const emptyState: EmptyStateEntry = {
     desc: t(`empty.${scope}.description`),

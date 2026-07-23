@@ -532,11 +532,23 @@ export const SeriesControllerGetByIdResponse = zod.object({
     }),
   ),
   stats: zod.object({
+    averagePages: zod.number().nullable(),
     averageRating: zod.number().nullable(),
     booksCount: zod.number(),
+    favoriteBook: zod
+      .object({
+        id: zod.string(),
+        title: zod.string(),
+      })
+      .nullable(),
     finishedCount: zod.number(),
+    lastFinishedAt: zod.string().nullable(),
     pagesCount: zod.number().nullable(),
     readingCount: zod.number(),
+    readingDurationDays: zod.number().nullable(),
+    readPagesCount: zod.number().nullable(),
+    readPagesPartial: zod.boolean(),
+    startedAt: zod.string().nullable(),
     unreadCount: zod.number(),
   }),
 });

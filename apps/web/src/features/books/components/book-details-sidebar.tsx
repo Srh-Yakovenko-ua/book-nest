@@ -33,7 +33,7 @@ export function BookDetailsSidebar({ book }: BookDetailsSidebarProps) {
 
   return (
     <aside className="details-sidebar-leaf flex flex-col gap-6">
-      <Card className="shadow-detail-block">
+      <Card className="gap-4 shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
             <h2>{t("details.quickInfo.title")}</h2>
@@ -98,7 +98,7 @@ export function BookDetailsSidebar({ book }: BookDetailsSidebarProps) {
 
       <OwnershipBlock book={book} />
 
-      <Card className="shadow-detail-block">
+      <Card className="gap-4 shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
             <h2>{t("details.statuses.title")}</h2>
