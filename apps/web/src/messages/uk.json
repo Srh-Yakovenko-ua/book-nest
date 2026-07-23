@@ -23,7 +23,8 @@
     "notes": "Нотатки",
     "delivery": "Доставки",
     "dedications": "Присвяти",
-    "quotes": "Цитати"
+    "quotes": "Цитати",
+    "publishers": "Видавництва"
   },
   "readingQueue": {
     "title": "Черга читання",
@@ -3625,6 +3626,243 @@
       "hiddenText": "Ця цитата містить спойлер",
       "show": "Показати спойлер",
       "hide": "Приховати спойлер"
+    }
+  },
+  "publishers": {
+    "page": {
+      "metaTitle": "Видавництва",
+      "title": "Видавництва",
+      "subtitle": "Переглядай видавництва своєї бібліотеки, стеж за рейтингами й покупками",
+      "resultsTitle": "Список видавництв",
+      "addBook": "Додати книгу"
+    },
+    "summary": {
+      "publishers": "Видавництв",
+      "booksWithPublisher": "Книг із видавництвом",
+      "averageRating": "Середній рейтинг",
+      "ratedBooks": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
+      "noRating": "—",
+      "toBuy": "Книги до покупки",
+      "priceTotal": "{price} · {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "error": {
+        "title": "Не вдалося завантажити зведення",
+        "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "toolbar": {
+      "searchLabel": "Пошук видавництв",
+      "searchPlaceholder": "Пошук за назвою",
+      "searchClear": "Очистити пошук",
+      "sortLabel": "Сортування",
+      "orderLabel": "Порядок",
+      "viewLabel": "Вигляд",
+      "viewGrid": "Сітка",
+      "viewList": "Список",
+      "geographyLabel": "Географія",
+      "sourceLabel": "Джерело",
+      "clearFilters": "Скинути фільтри",
+      "order": {
+        "asc": "За зростанням",
+        "desc": "За спаданням"
+      },
+      "sort": {
+        "name": "Назва",
+        "booksCount": "Найбільше книг",
+        "readCount": "Найбільше прочитано",
+        "wantToBuyCount": "Найбільше до покупки",
+        "averageRating": "Найвищий рейтинг",
+        "lastBookAddedAt": "Нещодавно додані"
+      },
+      "geography": {
+        "all": "Уся географія",
+        "ua": "Україна",
+        "foreign": "Іноземні",
+        "unknown": "Невідомо"
+      },
+      "source": {
+        "all": "Усі джерела",
+        "global": "Загальні",
+        "custom": "Власні"
+      },
+      "filters": {
+        "hasBooksToBuy": "Є книги до покупки",
+        "hasRatedBooks": "Є оцінені книги",
+        "hasSeries": "Є серії"
+      }
+    },
+    "card": {
+      "geographyUnknown": "Країна невідома",
+      "custom": "Власне",
+      "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "read": "Прочитано: {count}",
+      "toBuy": "До покупки: {count}",
+      "noRating": "Без оцінок",
+      "noRatingShort": "—",
+      "ratedCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
+      "lastAdded": "Додано {date}",
+      "view": "Переглянути"
+    },
+    "row": {
+      "sourceCustom": "Власне",
+      "sourceGlobal": "Загальне",
+      "books": "Книги",
+      "read": "Прочитано",
+      "toBuy": "До покупки",
+      "rating": "Рейтинг",
+      "ratingCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
+      "lastAdded": "Додано",
+      "lastAddedNever": "—"
+    },
+    "pagination": {
+      "label": "Сторінки видавництв",
+      "previous": "Назад",
+      "next": "Далі",
+      "goToPage": "Сторінка {page}"
+    },
+    "banner": {
+      "title": "{count, plural, one {# книга без видавництва} few {# книги без видавництва} many {# книг без видавництва} other {# книг без видавництва}}",
+      "description": "Признач їм видавництво, щоб бачити повнішу статистику.",
+      "action": "Переглянути книги"
+    },
+    "states": {
+      "empty": {
+        "title": "Видавництв поки немає",
+        "description": "Додай першу книгу з указаним видавництвом, і воно автоматично зʼявиться тут.",
+        "addBook": "Додати книгу"
+      },
+      "noResults": {
+        "title": "Нічого не знайдено",
+        "description": "Спробуй змінити пошук або скинути активні фільтри.",
+        "clear": "Скинути фільтри"
+      },
+      "error": {
+        "title": "Не вдалося завантажити видавництва",
+        "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "details": {
+      "metaTitle": "Видавництво",
+      "breadcrumb": "Усі видавництва",
+      "countryUnknown": "Країна невідома",
+      "customBadge": "Власне",
+      "foundedYear": "Засновано {year}",
+      "website": "Сайт",
+      "editCustom": "Редагувати",
+      "delete": "Видалити",
+      "addBook": "Додати книгу",
+      "states": {
+        "loading": "Завантаження видавництва",
+        "notFoundTitle": "Видавництво не знайдено",
+        "notFoundDescription": "Можливо, його видалено або воно недоступне.",
+        "errorTitle": "Не вдалося завантажити видавництво",
+        "errorDescription": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+        "back": "До видавництв"
+      },
+      "tabs": {
+        "overview": "Огляд",
+        "books": "Книги",
+        "toBuy": "До покупки"
+      },
+      "kpi": {
+        "books": "Книги",
+        "read": "Прочитано",
+        "reading": "Читаю",
+        "wantToRead": "Хочу прочитати",
+        "toBuy": "До покупки",
+        "queue": "У черзі",
+        "rating": "Рейтинг",
+        "ratedCount": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
+        "noRating": "—",
+        "lastAdded": "Останнє додано",
+        "lastAddedNever": "—"
+      },
+      "overview": {
+        "latestBookTitle": "Остання книга",
+        "toBuyPreviewTitle": "До покупки",
+        "viewAllBooks": "Усі книги",
+        "viewAllToBuy": "Усе до покупки",
+        "emptyLatest": "Ще немає книг цього видавництва.",
+        "emptyToBuy": "Немає книг до покупки від цього видавництва."
+      },
+      "booksTab": {
+        "searchLabel": "Пошук книг",
+        "searchPlaceholder": "Пошук за назвою або автором",
+        "searchClear": "Очистити пошук",
+        "sortLabel": "Сортування",
+        "viewLabel": "Вигляд",
+        "viewGrid": "Сітка",
+        "viewList": "Список",
+        "counter": "Показано {shown} з {total}",
+        "loadMore": "Показати ще",
+        "empty": {
+          "title": "Ще немає книг",
+          "description": "Додай книгу з цим видавництвом, і вона зʼявиться тут.",
+          "cta": "Додати книгу"
+        },
+        "noResults": {
+          "title": "Нічого не знайдено",
+          "description": "Спробуй змінити пошук або скинути фільтри.",
+          "clear": "Скинути фільтри"
+        },
+        "error": {
+          "title": "Не вдалося завантажити книги",
+          "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+          "retry": "Спробувати ще раз"
+        }
+      },
+      "toBuyTab": {
+        "count": "{count, plural, one {# книга до покупки} few {# книги до покупки} many {# книг до покупки} other {# книг до покупки}}",
+        "withoutPrice": "{count, plural, one {# без ціни} few {# без ціни} many {# без ціни} other {# без ціни}}",
+        "empty": {
+          "title": "Немає книг до покупки",
+          "description": "Від цього видавництва поки немає книг у списку покупок.",
+          "cta": "Додати книгу"
+        },
+        "error": {
+          "title": "Не вдалося завантажити список",
+          "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+          "retry": "Спробувати ще раз"
+        }
+      },
+      "editDialog": {
+        "title": "Редагувати видавництво",
+        "description": "Онови назву та додаткові дані видавництва.",
+        "name": "Назва",
+        "namePlaceholder": "Назва видавництва",
+        "countryCode": "Код країни",
+        "countryCodePlaceholder": "UA",
+        "website": "Сайт",
+        "websitePlaceholder": "https://",
+        "foundedYear": "Рік заснування",
+        "foundedYearPlaceholder": "2000",
+        "optional": "необовʼязково",
+        "submit": "Зберегти",
+        "cancel": "Скасувати",
+        "duplicate": "Видавництво з такою назвою вже існує",
+        "invalidUrl": "Введи коректне посилання",
+        "invalidCountry": "Код країни — це дві латинські літери",
+        "invalidYear": "Введи коректний рік",
+        "invalidName": "Назва має містити щонайменше 2 символи",
+        "genericError": "Не вдалося зберегти зміни. Спробуй ще раз.",
+        "discardTitle": "Відхилити зміни?",
+        "discardDescription": "Незбережені зміни буде втрачено."
+      },
+      "deleteDialog": {
+        "title": "Видалити видавництво?",
+        "description": "Видавництво «{name}» буде видалено безповоротно.",
+        "confirm": "Видалити",
+        "cancel": "Скасувати",
+        "deleting": "Видалення…",
+        "linkedBooksError": "Не можна видалити видавництво, до якого привʼязані книги. Спочатку відвʼяжи книги.",
+        "genericError": "Не вдалося видалити видавництво. Спробуй ще раз."
+      },
+      "toast": {
+        "updated": "Видавництво оновлено",
+        "deleted": "Видавництво видалено",
+        "error": "Щось пішло не так"
+      }
     }
   }
 }

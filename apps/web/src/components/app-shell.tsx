@@ -10,6 +10,7 @@ import {
   HandHelping,
   Heart,
   Home,
+  Landmark,
   Layers,
   Library,
   LibraryBig,
@@ -63,6 +64,7 @@ type NavItem = {
     | "loans"
     | "myLibrary"
     | "notes"
+    | "publishers"
     | "quotes"
     | "readingQueue"
     | "series";
@@ -81,6 +83,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Truck, key: "delivery", to: "/delivery/in-transit" },
   { icon: Feather, key: "dedications", to: "/dedications" },
   { icon: BookCopy, key: "series", to: "/series" },
+  { icon: Landmark, key: "publishers", to: "/publishers" },
   { icon: Tags, key: "genresTags", to: "/genres-tags" },
   { icon: ListChecks, key: "lists", to: "/lists" },
   { icon: NotebookPen, key: "notes", to: "/notes" },
