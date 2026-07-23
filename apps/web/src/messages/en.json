@@ -2619,6 +2619,7 @@
     "editDialog": {
       "title": "Edit series",
       "description": "Update the series information.",
+      "authorsDerivedHint": "Series authors are derived from the authors of its books",
       "submit": "Save changes",
       "duplicate": "A series with this name already exists",
       "totalBooksTooLow": "Total books can't be fewer than the books already added to the series",
