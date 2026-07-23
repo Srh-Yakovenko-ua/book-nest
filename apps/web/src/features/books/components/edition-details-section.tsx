@@ -2,6 +2,7 @@
 
 import type { Nullable } from "@app/shared";
 
+import { BookPagesCountSchema } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
@@ -29,8 +30,8 @@ import { EDITION_DETAILS_FIELDS } from "../model/section-completeness";
 import { FormSection } from "./form-section";
 import { useSectionCompletion } from "./use-section-completion";
 
-const PAGES_MIN = 1;
-const PAGES_MAX = 10000;
+const PAGES_MIN = BookPagesCountSchema.minValue ?? 1;
+const PAGES_MAX = BookPagesCountSchema.maxValue ?? Number.MAX_SAFE_INTEGER;
 const PUBLICATION_YEAR_MAX = new Date().getUTCFullYear() + 1;
 const PUBLICATION_YEAR_MIN = 1000;
 

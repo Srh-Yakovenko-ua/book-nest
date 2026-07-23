@@ -40,6 +40,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  blockNegativeNumberKeys,
+  blockNegativeNumberPaste,
+} from "@/lib/block-negative-number-keys";
 import { cn } from "@/lib/utils";
 
 import type { QueueVolumeGapReason } from "../model/queue-volume";
@@ -554,7 +558,12 @@ function VolumeRow({
             disabled={unavailable}
             id={pagesId}
             inputMode="numeric"
+            max={PAGES_MAX}
+            min={PAGES_MIN}
+            onKeyDown={blockNegativeNumberKeys}
+            onPaste={blockNegativeNumberPaste}
             placeholder={t("pagesPlaceholder")}
+            step={1}
             type="number"
             {...register(`rows.${index}.pagesCount`)}
           />
