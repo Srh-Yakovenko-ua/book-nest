@@ -109,7 +109,7 @@ describe("CharacterFormDialog add flow", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Створити нового" }));
 
-    expect(screen.getByLabelText("Ім'я")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Ім'я" })).toBeInTheDocument();
   });
 });
 
@@ -120,8 +120,8 @@ describe("CharacterFormDialog validation", () => {
     await userEvent.click(screen.getByRole("button", { name: "Додати" }));
 
     expect(await screen.findByText("Вкажіть ім'я")).toBeInTheDocument();
-    expect(screen.getByLabelText("Ім'я")).toHaveAttribute("aria-invalid", "true");
-    expect(screen.getByLabelText("Ім'я")).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Ім'я" })).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("textbox", { name: "Ім'я" })).toHaveFocus();
     expect(postCount()).toBe(0);
   });
 
@@ -129,19 +129,19 @@ describe("CharacterFormDialog validation", () => {
     respondToCreate = () => jsonResponse({ message: "boom" }, 400);
     renderDialog({ initialName: "" });
 
-    await userEvent.type(screen.getByLabelText("Ім'я"), "Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: "Ім'я" }), "Ґеральт");
     await userEvent.click(screen.getByRole("button", { name: "Додати" }));
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("Не вдалося зберегти. Спробуйте ще раз."),
     );
-    expect(screen.getByLabelText("Ім'я")).toHaveValue("Ґеральт");
+    expect(screen.getByRole("textbox", { name: "Ім'я" })).toHaveValue("Ґеральт");
   });
 
   it("asks to confirm discarding a dirty form on close", async () => {
     renderDialog({ initialName: "" });
 
-    await userEvent.type(screen.getByLabelText("Ім'я"), "Ґеральт");
+    await userEvent.type(screen.getByRole("textbox", { name: "Ім'я" }), "Ґеральт");
     await userEvent.keyboard("{Escape}");
 
     expect(await screen.findByText("Відхилити зміни?")).toBeInTheDocument();
