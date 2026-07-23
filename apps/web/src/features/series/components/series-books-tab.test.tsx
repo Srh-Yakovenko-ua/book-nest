@@ -19,17 +19,20 @@ vi.mock("@/i18n/navigation", () => ({
 
 function renderTab({
   books,
+  canAddBook = true,
   nextBookId,
   onAddBook = vi.fn(),
   totalBooks = 5,
 }: {
   books: SeriesBookView[];
+  canAddBook?: boolean;
   nextBookId?: string;
   onAddBook?: (partNumber: null | number) => void;
   totalBooks?: null | number;
 }) {
   return renderWithProviders(
     <SeriesBooksTab
+      canAddBook={canAddBook}
       details={makeSeriesDetailsView({
         books,
         booksInSeries: books.length,

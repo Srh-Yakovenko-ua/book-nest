@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   authorsDifferFromSeries,
   duplicatePartNumbers,
+  nextAddablePartNumber,
   seriesCoverBooks,
 } from "./series-details-derive";
 import { makeSeriesBookView } from "./series.fixtures";
@@ -49,6 +50,64 @@ describe("duplicatePartNumbers", () => {
         makeSeriesBookView({ id: "d", partNumber: null }),
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("nextAddablePartNumber", () => {
+  it("suggests the next number after the highest for an open series", () => {
+    expect(
+      nextAddablePartNumber({
+        books: [
+          makeSeriesBookView({ id: "a", partNumber: 1 }),
+          makeSeriesBookView({ id: "b", partNumber: 4 }),
+        ],
+        totalBooks: null,
+      }),
+    ).toBe(5);
+  });
+
+  it("starts an empty series at one", () => {
+    expect(nextAddablePartNumber({ books: [], totalBooks: null })).toBe(1);
+  });
+
+  it("fills the first gap inside a limited series", () => {
+    expect(
+      nextAddablePartNumber({
+        books: [
+          makeSeriesBookView({ id: "a", partNumber: 1 }),
+          makeSeriesBookView({ id: "b", partNumber: 2 }),
+          makeSeriesBookView({ id: "c", partNumber: 4 }),
+        ],
+        totalBooks: 5,
+      }),
+    ).toBe(3);
+  });
+
+  it("returns null when every slot of a limited series is filled", () => {
+    expect(
+      nextAddablePartNumber({
+        books: [
+          makeSeriesBookView({ id: "a", partNumber: 1 }),
+          makeSeriesBookView({ id: "b", partNumber: 2 }),
+          makeSeriesBookView({ id: "c", partNumber: 3 }),
+        ],
+        totalBooks: 3,
+      }),
+    ).toBe(null);
+  });
+
+  it("picks an inner free slot past duplicate and out-of-range numbers", () => {
+    expect(
+      nextAddablePartNumber({
+        books: [
+          makeSeriesBookView({ id: "a", partNumber: 1 }),
+          makeSeriesBookView({ id: "b", partNumber: 2 }),
+          makeSeriesBookView({ id: "c", partNumber: 2 }),
+          makeSeriesBookView({ id: "d", partNumber: 5 }),
+        ],
+        totalBooks: 5,
+      }),
+    ).toBe(3);
   });
 });
 

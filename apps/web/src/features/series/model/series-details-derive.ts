@@ -85,6 +85,20 @@ export function duplicatePartNumbers(books: SeriesBookView[]): number[] {
   return [...duplicates].sort((a, b) => a - b);
 }
 
+export function nextAddablePartNumber({
+  books,
+  totalBooks,
+}: {
+  books: SeriesBookView[];
+  totalBooks: null | number;
+}): null | number {
+  if (totalBooks === null) return suggestedPartNumber(books);
+  for (let position = 1; position <= totalBooks; position += 1) {
+    if (!books.some((book) => book.partNumber === position)) return position;
+  }
+  return null;
+}
+
 export function readingOrder(books: SeriesBookView[]): SeriesBookView[] {
   return books
     .filter((book): book is SeriesBookView & { partNumber: number } => book.partNumber !== null)

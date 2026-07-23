@@ -21,6 +21,7 @@ import { seriesCoverBooks } from "../model/series-details-derive";
 import { SeriesCoverFan } from "./series-cover-fan";
 
 type SeriesDetailsHeroProps = {
+  canAddBook: boolean;
   details: SeriesDetailsView;
   onAddBook: () => void;
   onDelete: () => void;
@@ -28,6 +29,7 @@ type SeriesDetailsHeroProps = {
 };
 
 export function SeriesDetailsHero({
+  canAddBook,
   details,
   onAddBook,
   onDelete,
@@ -103,10 +105,12 @@ export function SeriesDetailsHero({
                 <UiIcon name="edit" size={16} />
                 {t("edit")}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onAddBook}>
-                <UiIcon name="plus" size={16} />
-                {t("addBook")}
-              </DropdownMenuItem>
+              {canAddBook ? (
+                <DropdownMenuItem onSelect={onAddBook}>
+                  <UiIcon name="plus" size={16} />
+                  {t("addBook")}
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={onDelete} variant="destructive">
                 <UiIcon name="trash" size={16} />

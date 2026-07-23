@@ -45,6 +45,7 @@ function renderHero(books: SeriesBookView[], totalBooks: null | number = 5) {
 function renderHeroDetails(overrides: Partial<SeriesDetailsView>) {
   return renderWithProviders(
     <SeriesDetailsHero
+      canAddBook
       details={makeSeriesDetailsView(overrides)}
       onAddBook={vi.fn()}
       onDelete={vi.fn()}

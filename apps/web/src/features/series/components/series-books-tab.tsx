@@ -17,6 +17,7 @@ import { seriesBookRouteState } from "../model/series-library-book";
 import { SeriesBookCard } from "./series-book-card";
 
 type SeriesBooksTabProps = {
+  canAddBook: boolean;
   details: SeriesDetailsView;
   onAddBook: (partNumber: null | number) => void;
 };
@@ -25,7 +26,7 @@ type SeriesTimelineSlot = Exclude<SeriesSlot, { kind: "open" }>;
 
 type SeriesTimelineState = "missing" | SeriesBookRouteState;
 
-export function SeriesBooksTab({ details, onAddBook }: SeriesBooksTabProps) {
+export function SeriesBooksTab({ canAddBook, details, onAddBook }: SeriesBooksTabProps) {
   const t = useTranslations("series.details");
 
   if (details.books.length === 0) {
@@ -87,10 +88,12 @@ export function SeriesBooksTab({ details, onAddBook }: SeriesBooksTabProps) {
         ))}
       </ol>
 
-      <Button className="self-start" onClick={() => onAddBook(null)} variant="outline">
-        <UiIcon name="plus" size={16} />
-        {t("addBookInline")}
-      </Button>
+      {canAddBook ? (
+        <Button className="self-start" onClick={() => onAddBook(null)} variant="outline">
+          <UiIcon name="plus" size={16} />
+          {t("addBookInline")}
+        </Button>
+      ) : null}
     </>
   );
 }
