@@ -3864,5 +3864,291 @@
         "error": "Щось пішло не так"
       }
     }
+  },
+  "characters": {
+    "tab": "Персонажі",
+    "summary": {
+      "characters": "Персонажів: {count}",
+      "favorites": "Улюблених: {count}",
+      "hidden": "Є приховані записи",
+      "pov": "POV: {count}"
+    },
+    "toolbar": {
+      "add": "Додати персонажа",
+      "palette": "Пошук",
+      "searchClear": "Очистити пошук",
+      "searchLabel": "Пошук персонажів",
+      "searchPlaceholder": "Пошук за іменем…",
+      "sortLabel": "Сортування"
+    },
+    "sort": {
+      "name": "За іменем",
+      "recommended": "Рекомендовано"
+    },
+    "card": {
+      "delete": "Видалити персонажа повністю",
+      "details": "Деталі",
+      "edit": "Редагувати",
+      "favorite": "Додати в улюблені",
+      "hiddenFields": "Приховані поля: {count}",
+      "menu": "Дії з персонажем",
+      "unfavorite": "Прибрати з улюблених",
+      "unlink": "Прибрати з цієї книги"
+    },
+    "states": {
+      "errorDescription": "Не вдалося завантажити персонажів. Спробуйте ще раз.",
+      "errorTitle": "Помилка завантаження",
+      "loading": "Завантаження персонажів",
+      "retry": "Спробувати ще раз"
+    },
+    "empty": {
+      "add": "Додати персонажа",
+      "description": "Додайте персонажа вручну або прив'яжіть наявного зі своєї бібліотеки.",
+      "title": "Персонажі ще не додані"
+    },
+    "noResults": {
+      "clear": "Очистити пошук",
+      "description": "Спробуйте змінити запит.",
+      "title": "Нічого не знайдено"
+    },
+    "spoiler": {
+      "hidden": "Приховано (спойлер)",
+      "reveal": "Показати",
+      "revealAria": "Показати поле: {field}"
+    },
+    "importance": {
+      "central": "Центральний",
+      "episodic": "Епізодичний",
+      "major": "Головний",
+      "mentioned": "Згаданий",
+      "supporting": "Другорядний"
+    },
+    "status": {
+      "active": "Живий",
+      "dead": "Мертвий",
+      "missing": "Зниклий",
+      "other": "Інше",
+      "transformed": "Перевтілений",
+      "unknown": "Невідомо"
+    },
+    "roleType": {
+      "antagonist": "Антагоніст",
+      "custom": "Своя роль",
+      "deuteragonist": "Девтерагоніст",
+      "episodic": "Епізодична",
+      "love_interest": "Любовний інтерес",
+      "mentioned": "Згаданий",
+      "protagonist": "Протагоніст",
+      "supporting": "Другорядна"
+    },
+    "gender": {
+      "agender_or_na": "Агендер / Н/З",
+      "custom": "Свій варіант",
+      "female": "Жіноча",
+      "male": "Чоловіча",
+      "non_binary": "Небінарна",
+      "unknown": "Невідомо"
+    },
+    "attitude": {
+      "dislike": "Не подобається",
+      "distrust": "Недовіра",
+      "favorite": "Улюблений",
+      "hate": "Ненависть",
+      "like": "Подобається",
+      "neutral": "Нейтрально",
+      "unsure": "Не визначився"
+    },
+    "entityKind": {
+      "collective": "Колектив",
+      "individual": "Особа",
+      "unknown": "Невідомо"
+    },
+    "aliasType": {
+      "former_name": "Колишнє ім'я",
+      "nickname": "Прізвисько",
+      "other": "Інше",
+      "pseudonym": "Псевдонім",
+      "title": "Титул",
+      "translation": "Переклад",
+      "true_name": "Справжнє ім'я"
+    },
+    "narratorType": {
+      "first_person": "Від першої особи",
+      "other": "Інше",
+      "third_person_limited": "Від третьої (обмежений)",
+      "third_person_omniscient": "Від третьої (всезнаючий)",
+      "unreliable": "Ненадійний"
+    },
+    "details": {
+      "appearanceNotes": "Нотатки про появу",
+      "attitude": "Ставлення",
+      "bookDescription": "Опис у книзі",
+      "bookSection": "У цій книзі",
+      "description": "Опис",
+      "displayName": "Відображуване ім'я",
+      "edit": "Редагувати",
+      "entityKind": "Тип",
+      "favorite": "Улюблений",
+      "gender": "Гендер",
+      "generalSection": "Загальні дані",
+      "hiddenRoles": "Приховані ролі: {count}",
+      "otherAppearances": "Також в інших книгах: {count}",
+      "personalImpression": "Особисте враження",
+      "pov": "POV",
+      "povWithType": "POV · {type}",
+      "pronouns": "Займенники",
+      "roles": "Ролі",
+      "sheetDescription": "Деталі персонажа",
+      "species": "Вид",
+      "speciesOverride": "Вид у книзі",
+      "status": "Статус",
+      "title": "Персонаж"
+    },
+    "quickAdd": {
+      "add": "Додати",
+      "createError": "Не вдалося створити персонажа",
+      "created": "Персонажа додано",
+      "duplicateQuestion": "Це {name}?",
+      "linkExisting": "Прив'язати наявного",
+      "moreFields": "Більше полів",
+      "nameLabel": "Ім'я персонажа",
+      "namePlaceholder": "Ім'я нового персонажа",
+      "noteLabel": "Короткий нотаток",
+      "notePlaceholder": "Хто це? (необов'язково)",
+      "title": "Швидке додавання"
+    },
+    "form": {
+      "appearanceNotes": "Нотатки про появу",
+      "attitude": "Ставлення у книзі",
+      "avatar": "Аватар",
+      "bookDescription": "Опис у книзі",
+      "bookSection": "У цій книзі",
+      "cancel": "Скасувати",
+      "createDescription": "Створіть нового персонажа для цієї книги.",
+      "createTitle": "Додати персонажа",
+      "customGender": "Свій гендер",
+      "discardCancel": "Продовжити редагування",
+      "discardConfirm": "Відхилити",
+      "discardDescription": "Введені дані буде втрачено.",
+      "discardTitle": "Відхилити зміни?",
+      "displayName": "Відображуване ім'я",
+      "editDescription": "Оновіть дані персонажа.",
+      "editTitle": "Редагувати персонажа",
+      "entityKind": "Тип",
+      "favorite": "Улюблений персонаж",
+      "firstAppearanceChapter": "Розділ першої появи",
+      "firstAppearanceNote": "Нотатка про першу появу",
+      "firstAppearancePage": "Сторінка першої появи",
+      "gender": "Гендер",
+      "generalHint": "Ці дані використовуються в усіх книгах, де додано персонажа.",
+      "generalSection": "Загальні дані",
+      "globalAttitude": "Ставлення",
+      "hidePresence": "Приховати присутність",
+      "hidePresenceHelp": "Персонаж не показуватиметься у списках у контексті цієї книги.",
+      "importance": "Важливість",
+      "name": "Ім'я",
+      "namePlaceholder": "Ім'я персонажа",
+      "narratorType": "Тип наратора",
+      "neutralDescription": "Опис",
+      "optional": "необов'язково",
+      "personalImpression": "Особисте враження",
+      "portrait": "Портрет у книзі",
+      "pov": "POV-персонаж",
+      "povHelp": "Оповідь ведеться від імені цього персонажа.",
+      "pronouns": "Займенники",
+      "removeAvatar": "Прибрати аватар",
+      "removePortrait": "Прибрати портрет",
+      "roles": "Ролі",
+      "species": "Вид",
+      "speciesOverride": "Вид у книзі",
+      "spoilerSection": "Спойлери",
+      "spoilerToggle": "Позначити як спойлер",
+      "status": "Статус",
+      "statusCustom": "Свій статус",
+      "submitCreate": "Додати",
+      "submitEdit": "Зберегти",
+      "uploadAvatar": "Завантажити зображення",
+      "errors": {
+        "customGenderRequired": "Вкажіть свій гендер",
+        "generic": "Не вдалося зберегти. Спробуйте ще раз.",
+        "nameRequired": "Вкажіть ім'я",
+        "nameTooLong": "Ім'я задовге (макс. {max})"
+      },
+      "aliases": "Альтернативні імена"
+    },
+    "rolePicker": {
+      "add": "Додати роль",
+      "customPlaceholder": "Назва ролі",
+      "remove": "Прибрати роль",
+      "roleType": "Роль",
+      "spoiler": "Спойлер"
+    },
+    "aliasEditor": {
+      "add": "Додати ім'я",
+      "name": "Ім'я",
+      "namePlaceholder": "Альтернативне ім'я",
+      "remove": "Прибрати ім'я",
+      "scope": "Область",
+      "scopeBook": "Ця книга",
+      "scopeGlobal": "Глобально",
+      "spoiler": "Спойлер",
+      "type": "Тип"
+    },
+    "existing": {
+      "createNew": "Створити нового",
+      "empty": "Немає збігів",
+      "link": "Прив'язати",
+      "linkError": "Не вдалося прив'язати персонажа",
+      "linked": "Персонажа прив'язано",
+      "sameSeries": "З цієї серії",
+      "searchLabel": "Пошук наявних персонажів",
+      "searchPlaceholder": "Введіть ім'я…",
+      "title": "Прив'язати наявного"
+    },
+    "duplicate": {
+      "createAnyway": "Все одно створити",
+      "question": "Можливо, цей персонаж уже існує.",
+      "title": "Можливі дублі",
+      "use": "Використати"
+    },
+    "delete": {
+      "aliases": "Імена: {count}",
+      "appearances": "Появи в книгах: {count}",
+      "cancel": "Скасувати",
+      "confirm": "Видалити повністю",
+      "deleting": "Видалення…",
+      "description": "Персонаж і всі його дані будуть видалені. Ви зможете скасувати цю дію протягом короткого часу.",
+      "previewIntro": "Буде видалено:",
+      "roles": "Ролі: {count}",
+      "tags": "Теги: {count}",
+      "title": "Видалити персонажа повністю"
+    },
+    "unlink": {
+      "cancel": "Скасувати",
+      "confirm": "Прибрати",
+      "description": "Персонажа буде прибрано з цієї книги. Глобальний профіль і дані в інших книгах залишаться.",
+      "title": "Прибрати з цієї книги",
+      "unlinking": "Прибирання…"
+    },
+    "palette": {
+      "empty": "Почніть вводити ім'я персонажа",
+      "loading": "Пошук…",
+      "noResults": "Нічого не знайдено",
+      "placeholder": "Пошук персонажів…",
+      "title": "Пошук персонажів"
+    },
+    "toast": {
+      "createError": "Не вдалося створити персонажа",
+      "created": "Персонажа додано",
+      "deleteError": "Не вдалося видалити персонажа",
+      "deleted": "Персонажа видалено",
+      "restoreError": "Не вдалося відновити персонажа",
+      "restored": "Персонажа відновлено",
+      "undo": "Скасувати",
+      "unlinkError": "Не вдалося прибрати персонажа",
+      "unlinked": "Персонажа прибрано з книги",
+      "updateError": "Не вдалося зберегти зміни",
+      "updated": "Зміни збережено"
+    }
   }
 }
