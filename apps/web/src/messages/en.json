@@ -2573,7 +2573,12 @@
         "part": "Part {number}",
         "partUnknown": "Part number not specified",
         "nextInOrder": "Next in order",
-        "progressPercent": "{percent}%"
+        "progressPercent": "{percent}%",
+        "progressLine": "{percent}% · {current} of {total} pp.",
+        "paused": "Paused · {current} of {total} pp.",
+        "pausedShort": "Paused",
+        "dnf": "Did not finish",
+        "history": "Reading history"
       },
       "progress": {
         "title": "Your progress in the series",
@@ -2587,12 +2592,19 @@
       },
       "stats": {
         "title": "Series statistics",
-        "total": "Total books",
+        "totalBooks": "Total books",
+        "inLibrary": "In library",
         "finished": "Read",
-        "reading": "Reading",
-        "unread": "Not read",
-        "averageRating": "Average rating",
-        "pages": "Pages in series"
+        "pagesRead": "Pages read",
+        "seriesPages": "Pages in series",
+        "averageRating": "Average book rating",
+        "favoriteBook": "Favorite book",
+        "averagePages": "Average pages",
+        "startedAt": "Series started",
+        "lastFinishedAt": "Last completion",
+        "readingDuration": "Read in",
+        "partialPagesLabel": "At least {count} pages read known",
+        "days": "{count, plural, one {# day} other {# days}}"
       },
       "orderCheck": {
         "title": "Series reading order",

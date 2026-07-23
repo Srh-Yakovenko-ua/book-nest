@@ -22,7 +22,7 @@ export function BookListsBlock({ book }: BookListsBlockProps) {
 
   return (
     <>
-      <Card className="shadow-detail-block">
+      <Card className="gap-4 shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
             <h2>{t("lists")}</h2>

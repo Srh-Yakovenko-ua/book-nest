@@ -2573,7 +2573,12 @@
         "part": "Частина {number}",
         "partUnknown": "Номер частини не вказано",
         "nextInOrder": "Наступна за порядком",
-        "progressPercent": "{percent}%"
+        "progressPercent": "{percent}%",
+        "progressLine": "{percent}% · {current} з {total} стор.",
+        "paused": "Призупинено · {current} з {total} стор.",
+        "pausedShort": "Призупинено",
+        "dnf": "Не дочитано",
+        "history": "Історія читання"
       },
       "progress": {
         "title": "Ваш прогрес у серії",
@@ -2587,12 +2592,19 @@
       },
       "stats": {
         "title": "Статистика серії",
-        "total": "Усього книг",
+        "totalBooks": "Усього книг",
+        "inLibrary": "У бібліотеці",
         "finished": "Прочитано",
-        "reading": "Читаю",
-        "unread": "Ще не прочитано",
-        "averageRating": "Середній рейтинг",
-        "pages": "Сторінок у серії"
+        "pagesRead": "Прочитано сторінок",
+        "seriesPages": "Сторінок у серії",
+        "averageRating": "Середня оцінка книг",
+        "favoriteBook": "Улюблена книга",
+        "averagePages": "У середньому сторінок",
+        "startedAt": "Почато серію",
+        "lastFinishedAt": "Останнє завершення",
+        "readingDuration": "Прочитано за",
+        "partialPagesLabel": "Відомо щонайменше {count} прочитаних сторінок",
+        "days": "{count, plural, one {# день} few {# дні} many {# днів} other {# дня}}"
       },
       "orderCheck": {
         "title": "Порядок читання серії",

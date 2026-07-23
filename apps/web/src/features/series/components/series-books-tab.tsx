@@ -4,13 +4,18 @@ import type { SeriesDetailsView } from "@app/shared";
 
 import { Check, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { useBook } from "@/features/books";
+import { StartReadingDialog } from "@/features/books/components/start-reading-dialog";
+import { UpdateReadingProgressDialog } from "@/features/books/components/update-reading-progress-dialog";
 import { cn } from "@/lib/utils";
 
 import type { SeriesSlot } from "../model/series-details-derive";
-import type { SeriesBookRouteState } from "../model/series-library-book";
+import type { SeriesBookRouteState, SeriesStartTarget } from "../model/series-library-book";
 
 import { buildSeriesSlots, duplicatePartNumbers } from "../model/series-details-derive";
 import { seriesBookRouteState } from "../model/series-library-book";
@@ -28,6 +33,8 @@ type SeriesTimelineState = "missing" | SeriesBookRouteState;
 
 export function SeriesBooksTab({ canAddBook, details, onAddBook }: SeriesBooksTabProps) {
   const t = useTranslations("series.details");
+  const [activeProgressBookId, setActiveProgressBookId] = useState<null | string>(null);
+  const [startTarget, setStartTarget] = useState<null | SeriesStartTarget>(null);
 
   if (details.books.length === 0) {
     return (
@@ -78,8 +85,11 @@ export function SeriesBooksTab({ canAddBook, details, onAddBook }: SeriesBooksTa
                 <SeriesMissingBookRow number={slot.number} onAddBook={onAddBook} />
               ) : (
                 <SeriesBookCard
+                  activeProgressBookId={activeProgressBookId}
                   book={slot.book}
                   isNextInOrder={details.nextBook?.id === slot.book.id}
+                  onStartReading={setStartTarget}
+                  onUpdateProgress={setActiveProgressBookId}
                   seriesAuthors={details.authors}
                 />
               )}
@@ -94,7 +104,50 @@ export function SeriesBooksTab({ canAddBook, details, onAddBook }: SeriesBooksTa
           {t("addBookInline")}
         </Button>
       ) : null}
+
+      {activeProgressBookId === null ? null : (
+        <SeriesUpdateProgressController
+          bookId={activeProgressBookId}
+          onClose={() => setActiveProgressBookId(null)}
+        />
+      )}
+
+      <StartReadingDialog
+        book={startTarget}
+        onOpenChange={(open) => {
+          if (!open) setStartTarget(null);
+        }}
+      />
     </>
+  );
+}
+
+function SeriesUpdateProgressController({
+  bookId,
+  onClose,
+}: {
+  bookId: string;
+  onClose: () => void;
+}) {
+  const tToast = useTranslations("series.toast");
+  const query = useBook(bookId);
+
+  useEffect(() => {
+    if (!query.isError) return;
+    toast.error(tToast("error"));
+    onClose();
+  }, [onClose, query.isError, tToast]);
+
+  if (query.data === undefined) return null;
+
+  return (
+    <UpdateReadingProgressDialog
+      book={query.data}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      open
+    />
   );
 }
 

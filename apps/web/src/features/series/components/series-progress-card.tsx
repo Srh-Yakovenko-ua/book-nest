@@ -21,7 +21,7 @@ export function SeriesProgressCard({ details }: SeriesProgressCardProps) {
   const percent = progress.fullyRead ? 100 : progress.percent;
 
   return (
-    <Card>
+    <Card className="gap-4">
       <CardHeader>
         <CardTitle asChild>
           <h2>{t("title")}</h2>

@@ -132,14 +132,14 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
         </TabsPrimitive.Root>
 
         <div className="details-sidebar-leaf flex flex-col gap-6 lg:hidden">
-          <SeriesStatsCard stats={details.stats} />
+          <SeriesStatsCard stats={details.stats} totalBooks={details.totalBooks} />
           <SeriesOrderCheckToggle seriesId={details.id} />
         </div>
       </div>
 
       <aside className="details-sidebar-leaf hidden flex-col gap-6 lg:flex">
         {fullyRead ? null : <SeriesProgressCard details={details} />}
-        <SeriesStatsCard stats={details.stats} />
+        <SeriesStatsCard stats={details.stats} totalBooks={details.totalBooks} />
         <SeriesOrderCheckToggle seriesId={details.id} />
       </aside>
 
