@@ -2627,9 +2627,9 @@
     },
     "deleteDialog": {
       "title": "Delete series?",
-      "bodyWithBooks": "This series has books. The series will be deleted, but the books will stay in your library without a series link.",
-      "bodyEmpty": "This series will be deleted from your library.",
-      "booksCount": "Books in series: {count}",
+      "body": "The series will be deleted. This can't be undone.",
+      "booksOutcome": "The books ({count}) will stay in your library as standalone, without a series.",
+      "notesWarning": "Notes attached to the series will be permanently deleted.",
       "confirm": "Delete series",
       "cancel": "Cancel",
       "deleting": "Deleting…"
