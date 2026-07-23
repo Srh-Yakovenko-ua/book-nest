@@ -28,8 +28,8 @@ export const WithBooks: Story = {
     await waitFor(() =>
       expect(body.getByRole("heading", { name: "Видалити серію?" })).toBeVisible(),
     );
-    await expect(body.getByText(/У цій серії є книги/)).toBeVisible();
-    await expect(body.getByText("Книг у серії: 5")).toBeVisible();
+    await expect(body.getByText(/Книги \(5\) залишаться у бібліотеці/)).toBeVisible();
+    await expect(body.getByText(/Нотатки, прикріплені до серії/)).toBeVisible();
   },
 };
 
@@ -38,7 +38,9 @@ export const EmptySeries: Story = {
   play: async () => {
     const body = within(document.body);
     await waitFor(() =>
-      expect(body.getByText("Цю серію буде видалено з вашої бібліотеки.")).toBeVisible(),
+      expect(body.getByText("Серію буде видалено. Дію не можна скасувати.")).toBeVisible(),
     );
+    await expect(body.queryByText(/залишаться у бібліотеці/)).toBeNull();
+    await expect(body.getByText(/Нотатки, прикріплені до серії/)).toBeVisible();
   },
 };

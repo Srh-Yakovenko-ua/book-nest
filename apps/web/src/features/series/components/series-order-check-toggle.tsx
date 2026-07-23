@@ -32,7 +32,7 @@ export function SeriesOrderCheckToggle({ seriesId }: SeriesOrderCheckToggleProps
   const descriptionId = `series-order-check-description-${generatedId}`;
 
   return (
-    <Card>
+    <Card className="gap-4">
       <CardHeader>
         <CardTitle asChild>
           <h2>{t("title")}</h2>

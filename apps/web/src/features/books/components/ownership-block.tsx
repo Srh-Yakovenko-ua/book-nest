@@ -135,7 +135,7 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
 
   return (
     <>
-      <Card className="shadow-detail-block">
+      <Card className="gap-4 shadow-detail-block">
         <CardHeader>
           <CardTitle asChild>
             <h2>{t("title")}</h2>

@@ -19,17 +19,20 @@ vi.mock("@/i18n/navigation", () => ({
 
 function renderTab({
   books,
+  canAddBook = true,
   nextBookId,
   onAddBook = vi.fn(),
   totalBooks = 5,
 }: {
   books: SeriesBookView[];
+  canAddBook?: boolean;
   nextBookId?: string;
   onAddBook?: (partNumber: null | number) => void;
   totalBooks?: null | number;
 }) {
   return renderWithProviders(
     <SeriesBooksTab
+      canAddBook={canAddBook}
       details={makeSeriesDetailsView({
         books,
         booksInSeries: books.length,
@@ -100,10 +103,24 @@ describe("SeriesBooksTab", () => {
     expect(rows()).toHaveLength(3);
   });
 
-  it("notes the missing part number on an unnumbered book", () => {
-    renderTab({ books: [makeSeriesBookView({ id: "a", partNumber: null })] });
+  it("shows the edition lines with format, pages and year", () => {
+    renderTab({
+      books: [
+        makeSeriesBookView({
+          formats: ["paper"],
+          id: "a",
+          pagesCount: 384,
+          partNumber: 1,
+          publicationYear: 2023,
+        }),
+      ],
+    });
 
-    expect(within(rowAt(0)).getByText("Номер частини не вказано")).toBeInTheDocument();
+    const row = within(rowAt(0));
+
+    expect(row.getByText("Паперова")).toBeInTheDocument();
+    expect(row.getByText("384 стор.")).toBeInTheDocument();
+    expect(row.getByText("2023")).toBeInTheDocument();
   });
 
   it("marks the next book in order", () => {
@@ -151,8 +168,26 @@ describe("SeriesBooksTab", () => {
       ],
     });
 
-    expect(within(rowAt(0)).getByText("стор. 180 з 640 · 28%")).toBeInTheDocument();
-    expect(within(rowAt(1)).queryByText(/стор\./)).not.toBeInTheDocument();
+    expect(within(rowAt(0)).getByText("28% · 180 з 640 стор.")).toBeInTheDocument();
+    expect(within(rowAt(0)).getByRole("progressbar")).toBeInTheDocument();
+    expect(within(rowAt(1)).queryByRole("progressbar")).not.toBeInTheDocument();
+  });
+
+  it("shows a static pause line without a progress bar", () => {
+    renderTab({
+      books: [
+        makeSeriesBookView({
+          currentPage: 192,
+          id: "a",
+          pagesCount: 416,
+          partNumber: 1,
+          readingStatus: "paused",
+        }),
+      ],
+    });
+
+    expect(within(rowAt(0)).getByText("Призупинено · 192 з 416 стор.")).toBeInTheDocument();
+    expect(within(rowAt(0)).queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
   it("gives dnf its own badge and no progress", () => {
@@ -169,8 +204,9 @@ describe("SeriesBooksTab", () => {
     });
 
     expect(within(rowAt(0)).getByText("Покинуто")).toBeInTheDocument();
+    expect(within(rowAt(0)).getByText("Не дочитано")).toBeInTheDocument();
     expect(within(rowAt(0)).queryByText("Прочитано")).not.toBeInTheDocument();
-    expect(within(rowAt(0)).queryByText(/стор\./)).not.toBeInTheDocument();
+    expect(within(rowAt(0)).queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
   it("hides authors that repeat the series authors and shows them when they differ", () => {

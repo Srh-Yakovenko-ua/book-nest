@@ -2537,6 +2537,9 @@
       "authorsUnknown": "Unknown author",
       "books": "{count, plural, one {# book} other {# books}}",
       "booksWithTotal": "{count} of {total} added",
+      "genresMore": "{count} more",
+      "sinceYear": "Since {year}",
+      "publishersMore": "{count} more",
       "edit": "Edit series",
       "addBook": "Add book",
       "delete": "Delete series",
@@ -2570,7 +2573,12 @@
         "part": "Part {number}",
         "partUnknown": "Part number not specified",
         "nextInOrder": "Next in order",
-        "progressPercent": "{percent}%"
+        "progressPercent": "{percent}%",
+        "progressLine": "{percent}% · {current} of {total} pp.",
+        "paused": "Paused · {current} of {total} pp.",
+        "pausedShort": "Paused",
+        "dnf": "Did not finish",
+        "history": "Reading history"
       },
       "progress": {
         "title": "Your progress in the series",
@@ -2584,12 +2592,19 @@
       },
       "stats": {
         "title": "Series statistics",
-        "total": "Total books",
+        "totalBooks": "Total books",
+        "inLibrary": "In library",
         "finished": "Read",
-        "reading": "Reading",
-        "unread": "Not read",
-        "averageRating": "Average rating",
-        "pages": "Pages in series"
+        "pagesRead": "Pages read",
+        "seriesPages": "Pages in series",
+        "averageRating": "Average book rating",
+        "favoriteBook": "Favorite book",
+        "averagePages": "Average pages",
+        "startedAt": "Series started",
+        "lastFinishedAt": "Last completion",
+        "readingDuration": "Read in",
+        "partialPagesLabel": "At least {count} pages read known",
+        "days": "{count, plural, one {# day} other {# days}}"
       },
       "orderCheck": {
         "title": "Series reading order",
@@ -2619,6 +2634,7 @@
     "editDialog": {
       "title": "Edit series",
       "description": "Update the series information.",
+      "authorsDerivedHint": "Series authors are derived from the authors of its books",
       "submit": "Save changes",
       "duplicate": "A series with this name already exists",
       "totalBooksTooLow": "Total books can't be fewer than the books already added to the series",
@@ -2626,9 +2642,9 @@
     },
     "deleteDialog": {
       "title": "Delete series?",
-      "bodyWithBooks": "This series has books. The series will be deleted, but the books will stay in your library without a series link.",
-      "bodyEmpty": "This series will be deleted from your library.",
-      "booksCount": "Books in series: {count}",
+      "body": "The series will be deleted. This can't be undone.",
+      "booksOutcome": "The books ({count}) will stay in your library as standalone, without a series.",
+      "notesWarning": "Notes attached to the series will be permanently deleted.",
       "confirm": "Delete series",
       "cancel": "Cancel",
       "deleting": "Deleting…"
