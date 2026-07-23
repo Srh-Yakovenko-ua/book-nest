@@ -3,6 +3,7 @@ import type { BookView, CreateBookInput } from "@app/shared";
 import { BookViewSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { publisherKeys } from "@/features/publishers/api/publisher-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import { booksControllerCreate } from "@/shared/api/generated/endpoints/books/books";
 
@@ -18,6 +19,8 @@ export function useCreateBook() {
       void queryClient.invalidateQueries({ queryKey: ["/api/books"] });
       void queryClient.invalidateQueries({ queryKey: ["lists"] });
       void queryClient.invalidateQueries({ queryKey: seriesKeys.root });
+      void queryClient.invalidateQueries({ queryKey: publisherKeys.root });
+      void queryClient.invalidateQueries({ queryKey: ["publishers"] });
     },
   });
 }

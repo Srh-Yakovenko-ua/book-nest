@@ -23,7 +23,8 @@
     "notes": "Notes",
     "delivery": "Deliveries",
     "dedications": "Dedications",
-    "quotes": "Quotes"
+    "quotes": "Quotes",
+    "publishers": "Publishers"
   },
   "readingQueue": {
     "title": "Reading queue",
@@ -3609,6 +3610,243 @@
       "hiddenText": "This quote contains a spoiler",
       "show": "Show spoiler",
       "hide": "Hide spoiler"
+    }
+  },
+  "publishers": {
+    "page": {
+      "metaTitle": "Publishers",
+      "title": "Publishers",
+      "subtitle": "Browse the publishers in your library and track ratings and purchases",
+      "resultsTitle": "Publishers list",
+      "addBook": "Add book"
+    },
+    "summary": {
+      "publishers": "Publishers",
+      "booksWithPublisher": "Books with a publisher",
+      "averageRating": "Average rating",
+      "ratedBooks": "{count, plural, one {# rating} other {# ratings}}",
+      "noRating": "—",
+      "toBuy": "Books to buy",
+      "priceTotal": "{price} · {count, plural, one {# book} other {# books}}",
+      "error": {
+        "title": "Couldn't load the summary",
+        "description": "Try refreshing the page or come back a little later.",
+        "retry": "Try again"
+      }
+    },
+    "toolbar": {
+      "searchLabel": "Search publishers",
+      "searchPlaceholder": "Search by name",
+      "searchClear": "Clear search",
+      "sortLabel": "Sort",
+      "orderLabel": "Order",
+      "viewLabel": "View",
+      "viewGrid": "Grid",
+      "viewList": "List",
+      "geographyLabel": "Geography",
+      "sourceLabel": "Source",
+      "clearFilters": "Clear filters",
+      "order": {
+        "asc": "Ascending",
+        "desc": "Descending"
+      },
+      "sort": {
+        "name": "Name",
+        "booksCount": "Most books",
+        "readCount": "Most read",
+        "wantToBuyCount": "Most to buy",
+        "averageRating": "Highest rating",
+        "lastBookAddedAt": "Recently added"
+      },
+      "geography": {
+        "all": "All geographies",
+        "ua": "Ukraine",
+        "foreign": "Foreign",
+        "unknown": "Unknown"
+      },
+      "source": {
+        "all": "All sources",
+        "global": "Global",
+        "custom": "Custom"
+      },
+      "filters": {
+        "hasBooksToBuy": "Has books to buy",
+        "hasRatedBooks": "Has rated books",
+        "hasSeries": "Has series"
+      }
+    },
+    "card": {
+      "geographyUnknown": "Country unknown",
+      "custom": "Custom",
+      "books": "{count, plural, one {# book} other {# books}}",
+      "read": "Read: {count}",
+      "toBuy": "To buy: {count}",
+      "noRating": "No ratings",
+      "noRatingShort": "—",
+      "ratedCount": "· {count, plural, one {# rating} other {# ratings}}",
+      "lastAdded": "Added {date}",
+      "view": "View"
+    },
+    "row": {
+      "sourceCustom": "Custom",
+      "sourceGlobal": "Global",
+      "books": "Books",
+      "read": "Read",
+      "toBuy": "To buy",
+      "rating": "Rating",
+      "ratingCount": "· {count, plural, one {# rating} other {# ratings}}",
+      "lastAdded": "Added",
+      "lastAddedNever": "—"
+    },
+    "pagination": {
+      "label": "Publisher pages",
+      "previous": "Previous",
+      "next": "Next",
+      "goToPage": "Page {page}"
+    },
+    "banner": {
+      "title": "{count, plural, one {# book without a publisher} other {# books without a publisher}}",
+      "description": "Assign them a publisher to see fuller statistics.",
+      "action": "View books"
+    },
+    "states": {
+      "empty": {
+        "title": "No publishers yet",
+        "description": "Add your first book with a publisher, and it will show up here automatically.",
+        "addBook": "Add book"
+      },
+      "noResults": {
+        "title": "Nothing found",
+        "description": "Try changing your search or clearing the active filters.",
+        "clear": "Clear filters"
+      },
+      "error": {
+        "title": "Couldn't load publishers",
+        "description": "Try refreshing the page or come back a little later.",
+        "retry": "Try again"
+      }
+    },
+    "details": {
+      "metaTitle": "Publisher",
+      "breadcrumb": "All publishers",
+      "countryUnknown": "Country unknown",
+      "customBadge": "Custom",
+      "foundedYear": "Founded {year}",
+      "website": "Website",
+      "editCustom": "Edit",
+      "delete": "Delete",
+      "addBook": "Add book",
+      "states": {
+        "loading": "Loading publisher",
+        "notFoundTitle": "Publisher not found",
+        "notFoundDescription": "It may have been deleted or is unavailable.",
+        "errorTitle": "Couldn't load the publisher",
+        "errorDescription": "Try refreshing the page or come back a little later.",
+        "back": "Back to publishers"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "books": "Books",
+        "toBuy": "To buy"
+      },
+      "kpi": {
+        "books": "Books",
+        "read": "Read",
+        "reading": "Reading",
+        "wantToRead": "Want to read",
+        "toBuy": "To buy",
+        "queue": "In queue",
+        "rating": "Rating",
+        "ratedCount": "{count, plural, one {# rating} other {# ratings}}",
+        "noRating": "—",
+        "lastAdded": "Last added",
+        "lastAddedNever": "—"
+      },
+      "overview": {
+        "latestBookTitle": "Latest book",
+        "toBuyPreviewTitle": "To buy",
+        "viewAllBooks": "All books",
+        "viewAllToBuy": "All to buy",
+        "emptyLatest": "No books from this publisher yet.",
+        "emptyToBuy": "No books to buy from this publisher."
+      },
+      "booksTab": {
+        "searchLabel": "Search books",
+        "searchPlaceholder": "Search by title or author",
+        "searchClear": "Clear search",
+        "sortLabel": "Sort",
+        "viewLabel": "View",
+        "viewGrid": "Grid",
+        "viewList": "List",
+        "counter": "Showing {shown} of {total}",
+        "loadMore": "Load more",
+        "empty": {
+          "title": "No books yet",
+          "description": "Add a book with this publisher and it will show up here.",
+          "cta": "Add book"
+        },
+        "noResults": {
+          "title": "Nothing found",
+          "description": "Try changing the search or clearing the filters.",
+          "clear": "Clear filters"
+        },
+        "error": {
+          "title": "Couldn't load the books",
+          "description": "Try refreshing the page or come back a little later.",
+          "retry": "Try again"
+        }
+      },
+      "toBuyTab": {
+        "count": "{count, plural, one {# book to buy} other {# books to buy}}",
+        "withoutPrice": "{count, plural, one {# without a price} other {# without a price}}",
+        "empty": {
+          "title": "No books to buy",
+          "description": "There are no books from this publisher on your buy list yet.",
+          "cta": "Add book"
+        },
+        "error": {
+          "title": "Couldn't load the list",
+          "description": "Try refreshing the page or come back a little later.",
+          "retry": "Try again"
+        }
+      },
+      "editDialog": {
+        "title": "Edit publisher",
+        "description": "Update the publisher's name and extra details.",
+        "name": "Name",
+        "namePlaceholder": "Publisher name",
+        "countryCode": "Country code",
+        "countryCodePlaceholder": "UA",
+        "website": "Website",
+        "websitePlaceholder": "https://",
+        "foundedYear": "Founded year",
+        "foundedYearPlaceholder": "2000",
+        "optional": "optional",
+        "submit": "Save",
+        "cancel": "Cancel",
+        "duplicate": "A publisher with this name already exists",
+        "invalidUrl": "Enter a valid link",
+        "invalidCountry": "Country code must be two Latin letters",
+        "invalidYear": "Enter a valid year",
+        "invalidName": "Name must be at least 2 characters long",
+        "genericError": "Couldn't save the changes. Try again.",
+        "discardTitle": "Discard changes?",
+        "discardDescription": "Your unsaved changes will be lost."
+      },
+      "deleteDialog": {
+        "title": "Delete publisher?",
+        "description": "The publisher “{name}” will be deleted permanently.",
+        "confirm": "Delete",
+        "cancel": "Cancel",
+        "deleting": "Deleting…",
+        "linkedBooksError": "You can't delete a publisher that still has linked books. Unlink the books first.",
+        "genericError": "Couldn't delete the publisher. Try again."
+      },
+      "toast": {
+        "updated": "Publisher updated",
+        "deleted": "Publisher deleted",
+        "error": "Something went wrong"
+      }
     }
   }
 }
