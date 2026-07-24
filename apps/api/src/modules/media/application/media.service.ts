@@ -49,21 +49,6 @@ const log = createLogger("media");
 const MIN_PRINTABLE_CODE_POINT = 0x20;
 const DELETE_CODE_POINT = 0x7f;
 
-function normalizeOriginalName(name: Nullable<string>): Nullable<string> {
-  if (name === null || name === undefined) {
-    return null;
-  }
-  const printable = Array.from(name).filter((char) => {
-    const code = char.codePointAt(0) ?? 0;
-    return code >= MIN_PRINTABLE_CODE_POINT && code !== DELETE_CODE_POINT;
-  });
-  const trimmed = printable.join("").trim();
-  if (trimmed === "") {
-    return null;
-  }
-  return Array.from(trimmed).slice(0, MAX_ORIGINAL_NAME_LENGTH).join("");
-}
-
 @Injectable()
 export class MediaService {
   constructor(
@@ -78,6 +63,10 @@ export class MediaService {
     if (asset === null) {
       throw new NotFoundError("Media not found");
     }
+  }
+
+  buildThumbUrlOrNull(asset: Nullable<MediaAssetModel>): Nullable<string> {
+    return this.buildViewOrNull(asset)?.urls.thumb ?? null;
   }
 
   buildView(asset: MediaAssetModel): MediaView {
@@ -97,6 +86,18 @@ export class MediaService {
       urls: buildDerivativeRecord((derivative) => (derivative === "thumb" ? thumbUrl : fullUrl)),
       width: asset.width,
     };
+  }
+
+  buildViewOrNull(asset: Nullable<MediaAssetModel>): Nullable<MediaView> {
+    if (asset === null) {
+      return null;
+    }
+    try {
+      return this.buildView(asset);
+    } catch (error) {
+      log.warn({ err: error, mediaId: asset.id }, "failed to build media view");
+      return null;
+    }
   }
 
   async delete({ id, userId }: MediaOwnerRef): Promise<void> {
@@ -135,7 +136,7 @@ export class MediaService {
       key: thumbObjectKey,
     });
 
-    const marked = await this.mediaRepository.markThumbGenerated(asset.id);
+    const marked = await this.mediaRepository.markThumbGenerated({ id: asset.id, now: new Date() });
     if (!marked) {
       log.info(
         { assetId },
@@ -262,4 +263,19 @@ export class MediaService {
       throw error;
     }
   }
+}
+
+function normalizeOriginalName(name: Nullable<string>): Nullable<string> {
+  if (name === null || name === undefined) {
+    return null;
+  }
+  const printable = Array.from(name).filter((char) => {
+    const code = char.codePointAt(0) ?? 0;
+    return code >= MIN_PRINTABLE_CODE_POINT && code !== DELETE_CODE_POINT;
+  });
+  const trimmed = printable.join("").trim();
+  if (trimmed === "") {
+    return null;
+  }
+  return Array.from(trimmed).slice(0, MAX_ORIGINAL_NAME_LENGTH).join("");
 }

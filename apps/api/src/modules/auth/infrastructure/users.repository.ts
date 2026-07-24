@@ -24,7 +24,7 @@ export class UsersRepository {
   }
 
   async deleteById(id: string, client: Prisma.TransactionClient = this.prisma): Promise<void> {
-    await client.user.delete({ where: { id } });
+    await client.user.deleteMany({ where: { id } });
   }
 
   findByEmail(

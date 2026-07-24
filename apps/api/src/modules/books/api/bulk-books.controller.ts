@@ -1,23 +1,22 @@
-import type { BulkActionResult } from "@app/shared";
+import type { BulkActionResult, BulkPagesCountResult } from "@app/shared";
 
 import {
   BulkBookIdsSchema,
   BulkFavoriteInputSchema,
   BulkListsInputSchema,
   BulkOwnershipStatusInputSchema,
+  BulkPagesCountInputSchema,
   BulkReadingStatusInputSchema,
   BulkTagsInputSchema,
 } from "@app/shared";
-import { Body, Controller, HttpCode, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, HttpCode, Patch, Post } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
@@ -25,25 +24,24 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { BulkBooksService } from "../application/bulk-books.service.js";
 import { BulkBookIdsDto } from "./input-dto/bulk-book-ids.input-dto.js";
 import { BulkFavoriteInputDto } from "./input-dto/bulk-favorite.input-dto.js";
 import { BulkListsInputDto } from "./input-dto/bulk-lists.input-dto.js";
 import { BulkOwnershipStatusInputDto } from "./input-dto/bulk-ownership-status.input-dto.js";
+import { BulkPagesCountInputDto } from "./input-dto/bulk-pages-count.input-dto.js";
 import { BulkReadingStatusInputDto } from "./input-dto/bulk-reading-status.input-dto.js";
 import { BulkTagsInputDto } from "./input-dto/bulk-tags.input-dto.js";
 import { BulkActionResultDto } from "./view-dto/bulk-action-result.view-dto.js";
+import { BulkPagesCountResultDto } from "./view-dto/bulk-pages-count-result.view-dto.js";
 
 const BULK_ACTION_TTL_SECONDS = 60;
 const BULK_ACTION_LIMIT = 30;
-
-@ApiBearerAuth()
 @ApiTags("books")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/books/bulk")
+@JwtProtected()
 @Throttle({ default: { limit: BULK_ACTION_LIMIT, ttl: seconds(BULK_ACTION_TTL_SECONDS) } })
-@UseGuards(JwtAccessGuard)
 export class BulkBooksController {
   constructor(private readonly bulkBooksService: BulkBooksService) {}
 
@@ -81,6 +79,21 @@ export class BulkBooksController {
     @Body(new ZodBodyPipe(BulkOwnershipStatusInputSchema)) body: BulkOwnershipStatusInputDto,
   ): Promise<BulkActionResult> {
     return this.bulkBooksService.setOwnershipStatus({ input: body, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: BulkPagesCountInputDto })
+  @ApiOkResponse({
+    description: "Per-book result of the page-count update",
+    type: BulkPagesCountResultDto,
+  })
+  @ApiOperation({ summary: "Update page counts for the selected books with partial success" })
+  @Patch("pages-count")
+  pagesCount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body(new ZodBodyPipe(BulkPagesCountInputSchema)) body: BulkPagesCountInputDto,
+  ): Promise<BulkPagesCountResult> {
+    return this.bulkBooksService.updatePagesCount({ input: body, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })

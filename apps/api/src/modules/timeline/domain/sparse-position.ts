@@ -3,8 +3,7 @@ import type { Nullable } from "@app/shared";
 export const TIMELINE_POSITION_STEP = 1024;
 
 export type SparsePositionResult =
-  | { needsRebalance: true; ok: false }
-  | { ok: true; position: number };
+  { needsRebalance: true; ok: false } | { ok: true; position: number };
 
 export function appendPosition(maxPosition: Nullable<number>): number {
   return (maxPosition ?? 0) + TIMELINE_POSITION_STEP;

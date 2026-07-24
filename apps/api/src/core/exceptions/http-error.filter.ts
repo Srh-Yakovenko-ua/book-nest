@@ -7,7 +7,7 @@ import { Catch, HttpException } from "@nestjs/common";
 import { ZodError } from "zod";
 
 import { env } from "../../config/env.js";
-import { HTTP_STATUS, type HttpStatus } from "../http-status.js";
+import { HTTP_STATUS, isHttpStatus } from "../http-status.js";
 import { createLogger } from "../logger.js";
 import { BadRequestError, HttpError, NotFoundError, ValidationError } from "./errors.js";
 
@@ -109,7 +109,10 @@ function toHttpError(err: unknown): HttpError {
   if (err instanceof HttpException) {
     const status = err.getStatus();
     if (status === HTTP_STATUS.NOT_FOUND) return new NotFoundError(err.message);
-    return new HttpError(status as HttpStatus, err.message);
+    return new HttpError(
+      isHttpStatus(status) ? status : HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      err.message,
+    );
   }
   if (err instanceof Error) return new HttpError(HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message);
   return new HttpError(HTTP_STATUS.INTERNAL_SERVER_ERROR, "Unknown error");

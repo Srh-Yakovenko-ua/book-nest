@@ -13,6 +13,7 @@ import type {
 import type { ReadingQueueRepository } from "../infrastructure/reading-queue.repository.js";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
+import { fakeOf } from "../../../test/fake.js";
 import { ReadingQueueService } from "./reading-queue.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -26,17 +27,16 @@ function buildService(rows: QueueRow[]): {
   viewOf: ReturnType<typeof vi.fn>;
 } {
   const listQueue = vi.fn().mockResolvedValue(rows);
-  const viewOf = vi.fn(
-    (book: QueueRow): BookView =>
-      ({ id: book.id, pagesCount: book.pagesCount }) as unknown as BookView,
+  const viewOf = vi.fn((book: QueueRow): BookView =>
+    fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
   );
-  const repository = { listQueue } as unknown as ReadingQueueRepository;
-  const assembler = { viewOf } as unknown as BookViewAssembler;
-  const booksRepository = {} as unknown as BooksRepository;
-  const transactionRunner = {} as unknown as TransactionRunner;
+  const repository = fakeOf<ReadingQueueRepository>({ listQueue });
+  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const booksRepository = fakeOf<BooksRepository>();
+  const transactionRunner = fakeOf<TransactionRunner>();
   const service = new ReadingQueueService(
     booksRepository,
-    {} as unknown as BookReadingService,
+    fakeOf<BookReadingService>(),
     assembler,
     repository,
     transactionRunner,
@@ -113,7 +113,7 @@ function buildAddToQueueService(): {
   shiftDownFrom: ReturnType<typeof vi.fn>;
   tx: Prisma.TransactionClient;
 } {
-  const tx = {} as unknown as Prisma.TransactionClient;
+  const tx = fakeOf<Prisma.TransactionClient>();
   const findOwnedByIdOrThrow = vi.fn();
   const maxQueuePosition = vi.fn().mockResolvedValue(0);
   const acquireUserQueueLock = vi.fn().mockResolvedValue(undefined);
@@ -122,27 +122,26 @@ function buildAddToQueueService(): {
   const shiftDownFrom = vi.fn().mockResolvedValue(undefined);
   const setPosition = vi.fn().mockResolvedValue(undefined);
   const listQueue = vi.fn().mockResolvedValue([]);
-  const viewOf = vi.fn(
-    (book: QueueRow): BookView =>
-      ({ id: book.id, pagesCount: book.pagesCount }) as unknown as BookView,
+  const viewOf = vi.fn((book: QueueRow): BookView =>
+    fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
   );
-  const run = vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(tx));
+  const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
-  const booksRepository = { findOwnedByIdOrThrow, maxQueuePosition } as unknown as BooksRepository;
-  const assembler = { viewOf } as unknown as BookViewAssembler;
-  const repository = {
+  const booksRepository = fakeOf<BooksRepository>({ findOwnedByIdOrThrow, maxQueuePosition });
+  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     count,
     findQueuePosition,
     listQueue,
     setPosition,
     shiftDownFrom,
-  } as unknown as ReadingQueueRepository;
-  const transactionRunner = { run } as unknown as TransactionRunner;
+  });
+  const transactionRunner = fakeOf<TransactionRunner>({ run });
 
   const service = new ReadingQueueService(
     booksRepository,
-    {} as unknown as BookReadingService,
+    fakeOf<BookReadingService>(),
     assembler,
     repository,
     transactionRunner,
@@ -162,7 +161,7 @@ function buildAddToQueueService(): {
 }
 
 function ownedBook(queuePosition: Nullable<number>): BookWithRelations {
-  return { queuePosition } as unknown as BookWithRelations;
+  return fakeOf<BookWithRelations>({ queuePosition });
 }
 
 describe("ReadingQueueService.addToQueue", () => {
@@ -288,33 +287,32 @@ function buildRemoveFromQueueService(): {
   shiftUpAfter: ReturnType<typeof vi.fn>;
   tx: Prisma.TransactionClient;
 } {
-  const tx = {} as unknown as Prisma.TransactionClient;
+  const tx = fakeOf<Prisma.TransactionClient>();
   const findOwnedByIdOrThrow = vi.fn();
   const acquireUserQueueLock = vi.fn().mockResolvedValue(undefined);
   const findQueuePosition = vi.fn().mockResolvedValue(null);
   const clearPosition = vi.fn().mockResolvedValue(undefined);
   const shiftUpAfter = vi.fn().mockResolvedValue(undefined);
   const listQueue = vi.fn().mockResolvedValue([]);
-  const viewOf = vi.fn(
-    (book: QueueRow): BookView =>
-      ({ id: book.id, pagesCount: book.pagesCount }) as unknown as BookView,
+  const viewOf = vi.fn((book: QueueRow): BookView =>
+    fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
   );
-  const run = vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(tx));
+  const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
-  const booksRepository = { findOwnedByIdOrThrow } as unknown as BooksRepository;
-  const assembler = { viewOf } as unknown as BookViewAssembler;
-  const repository = {
+  const booksRepository = fakeOf<BooksRepository>({ findOwnedByIdOrThrow });
+  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     clearPosition,
     findQueuePosition,
     listQueue,
     shiftUpAfter,
-  } as unknown as ReadingQueueRepository;
-  const transactionRunner = { run } as unknown as TransactionRunner;
+  });
+  const transactionRunner = fakeOf<TransactionRunner>({ run });
 
   const service = new ReadingQueueService(
     booksRepository,
-    {} as unknown as BookReadingService,
+    fakeOf<BookReadingService>(),
     assembler,
     repository,
     transactionRunner,
@@ -421,30 +419,29 @@ function buildReorderService(): {
   setPosition: ReturnType<typeof vi.fn>;
   tx: Prisma.TransactionClient;
 } {
-  const tx = {} as unknown as Prisma.TransactionClient;
+  const tx = fakeOf<Prisma.TransactionClient>();
   const acquireUserQueueLock = vi.fn().mockResolvedValue(undefined);
   const findQueuedBookIds = vi.fn().mockResolvedValue([]);
   const setPosition = vi.fn().mockResolvedValue(undefined);
   const listQueue = vi.fn().mockResolvedValue([]);
-  const viewOf = vi.fn(
-    (book: QueueRow): BookView =>
-      ({ id: book.id, pagesCount: book.pagesCount }) as unknown as BookView,
+  const viewOf = vi.fn((book: QueueRow): BookView =>
+    fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
   );
-  const run = vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(tx));
+  const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
-  const booksRepository = {} as unknown as BooksRepository;
-  const assembler = { viewOf } as unknown as BookViewAssembler;
-  const repository = {
+  const booksRepository = fakeOf<BooksRepository>();
+  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     findQueuedBookIds,
     listQueue,
     setPosition,
-  } as unknown as ReadingQueueRepository;
-  const transactionRunner = { run } as unknown as TransactionRunner;
+  });
+  const transactionRunner = fakeOf<TransactionRunner>({ run });
 
   const service = new ReadingQueueService(
     booksRepository,
-    {} as unknown as BookReadingService,
+    fakeOf<BookReadingService>(),
     assembler,
     repository,
     transactionRunner,
@@ -463,7 +460,7 @@ function buildStartReadingService(): {
   startReading: ReturnType<typeof vi.fn>;
   tx: Prisma.TransactionClient;
 } {
-  const tx = {} as unknown as Prisma.TransactionClient;
+  const tx = fakeOf<Prisma.TransactionClient>();
   const findOwnedByIdOrThrow = vi.fn();
   const acquireUserQueueLock = vi.fn().mockResolvedValue(undefined);
   const findQueuePosition = vi.fn().mockResolvedValue(null);
@@ -471,23 +468,22 @@ function buildStartReadingService(): {
   const clearPosition = vi.fn().mockResolvedValue(undefined);
   const shiftUpAfter = vi.fn().mockResolvedValue(undefined);
   const listQueue = vi.fn().mockResolvedValue([]);
-  const viewOf = vi.fn(
-    (book: QueueRow): BookView =>
-      ({ id: book.id, pagesCount: book.pagesCount }) as unknown as BookView,
+  const viewOf = vi.fn((book: QueueRow): BookView =>
+    fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
   );
-  const run = vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(tx));
+  const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
-  const booksRepository = { findOwnedByIdOrThrow } as unknown as BooksRepository;
-  const bookReadingService = { startReading } as unknown as BookReadingService;
-  const assembler = { viewOf } as unknown as BookViewAssembler;
-  const repository = {
+  const booksRepository = fakeOf<BooksRepository>({ findOwnedByIdOrThrow });
+  const bookReadingService = fakeOf<BookReadingService>({ startReading });
+  const assembler = fakeOf<BookViewAssembler>({ viewOf });
+  const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     clearPosition,
     findQueuePosition,
     listQueue,
     shiftUpAfter,
-  } as unknown as ReadingQueueRepository;
-  const transactionRunner = { run } as unknown as TransactionRunner;
+  });
+  const transactionRunner = fakeOf<TransactionRunner>({ run });
 
   const service = new ReadingQueueService(
     booksRepository,

@@ -10,13 +10,7 @@ export type StatusEntry = {
 };
 
 export type StatusTone =
-  | "accent"
-  | "danger"
-  | "info"
-  | "neutral"
-  | "primary"
-  | "success"
-  | "warning";
+  "accent" | "danger" | "info" | "neutral" | "primary" | "success" | "warning";
 
 export const readingStatuses = [
   {

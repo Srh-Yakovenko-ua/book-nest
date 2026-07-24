@@ -7,6 +7,7 @@ import type {
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { ListsService } from "../../lists/application/lists.service.js";
 import type { TagsService } from "../../tags/application/tags.service.js";
 import type { BulkBooksRepository } from "../infrastructure/bulk-books.repository.js";
@@ -76,12 +77,16 @@ function buildService(
   const coverCleanup = {
     deleteIfOrphaned: vi.fn().mockResolvedValue(undefined),
   };
+  const transactionRunner = {
+    run: vi.fn(),
+  };
 
   const service = new BulkBooksService(
     bulkBooksRepository as unknown as BulkBooksRepository,
     tagsService as unknown as TagsService,
     listsService as unknown as ListsService,
     coverCleanup as unknown as BookCoverCleanup,
+    transactionRunner as unknown as TransactionRunner,
   );
 
   return { bulkBooksRepository, coverCleanup, listsService, service, tagsService };
@@ -174,6 +179,7 @@ describe("BulkBooksService.addToLists", () => {
     expect(bulkBooksRepository.addToLists).toHaveBeenCalledWith({
       bookIds: [BOOK_A],
       listIds: [LIST_ID],
+      now: expect.any(Date),
       userId: USER_ID,
     });
     expect(result).toEqual({ affected: 1 });
@@ -259,6 +265,7 @@ describe("BulkBooksService.setOwnershipStatus", () => {
       clearDelivery: true,
       clearLoan: true,
       clearPurchase: true,
+      now: expect.any(Date),
       ownershipStatus: "none",
       userId: USER_ID,
     });

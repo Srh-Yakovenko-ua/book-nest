@@ -23,7 +23,8 @@
     "notes": "Нотатки",
     "delivery": "Доставки",
     "dedications": "Присвяти",
-    "quotes": "Цитати"
+    "quotes": "Цитати",
+    "publishers": "Видавництва"
   },
   "readingQueue": {
     "title": "Черга читання",
@@ -48,22 +49,21 @@
     },
     "toolbar": {
       "searchLabel": "Пошук у черзі",
-      "searchPlaceholder": "Пошук у черзі…",
+      "searchPlaceholder": "Пошук за назвою, автором або серією",
       "clearSearch": "Очистити пошук",
-      "sortLabel": "Сортувати",
-      "sortOptions": {
-        "position": "Позиція в черзі"
-      },
-      "dragHint": "Перетягуйте книги або скористайтеся меню рядка, щоб змінити порядок",
-      "dragDisabledHint": "Очистіть пошук, щоб змінити порядок книг у черзі."
+      "dragHint": "Перетягніть книги або скористайтеся меню рядка, щоб змінити порядок",
+      "dragDisabledHint": "Drag-and-drop недоступний під час пошуку та фільтрації. Очисти фільтри, щоб змінити порядок черги."
+    },
+    "filters": {
+      "priority": "Пріоритет"
     },
     "item": {
       "position": "#{position}",
       "positionAria": "Позиція {position}",
       "reorderAria": "Змінити порядок «{title}»",
+      "dragDisabledTooltip": "Drag-and-drop недоступний під час фільтрації.",
       "readingNow": "Читаю зараз",
       "startReading": "Почати читати",
-      "viewBook": "Переглянути книгу",
       "moreActions": "Більше дій для «{title}»",
       "moveUp": "Перемістити вгору",
       "moveDown": "Перемістити вниз",
@@ -136,24 +136,53 @@
       }
     },
     "stats": {
-      "booksInQueue": "Книг у черзі",
-      "totalLength": "Загальний обсяг",
-      "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}"
-    },
-    "nextToRead": {
-      "title": "Наступна до читання",
-      "empty": "Додайте книгу в чергу, щоб побачити наступну до читання.",
-      "startReading": "Почати читати"
+      "total": {
+        "label": "Усього в черзі",
+        "caption": "{series} із серій · {standalone} окремих"
+      },
+      "availableNow": {
+        "label": "Можна читати зараз",
+        "caption": "Є в наявності та немає перешкод для старту"
+      },
+      "unavailable": {
+        "label": "Немає в наявності",
+        "wantToBuy": "{count} хочу купити",
+        "inTransit": "{count} в дорозі",
+        "lentToSomeone": "{count, plural, one {# позичена} few {# позичені} many {# позичених} other {# позичених}}",
+        "none": "{count} немає"
+      },
+      "seriesInQueue": {
+        "label": "Серії в черзі",
+        "caption": "{withoutIssues} без проблем · {withIssues, plural, one {# потребує уваги} few {# потребують уваги} many {# потребують уваги} other {# потребують уваги}}"
+      }
     },
     "seriesOrderCheck": {
       "title": "Перевірити порядок серій",
-      "subtitle": "Знайдено серії, де порядок читання може бути порушений",
-      "viewAll": "Переглянути всі",
+      "viewAll": "Переглянути всі проблеми",
       "countLabel": "Знайдено проблем із порядком: {count}",
       "loading": "Перевіряємо порядок серій…",
+      "resolved": "Порядок серій перевірено — проблем не знайдено",
+      "attention": {
+        "title": "Потрібна увага",
+        "summary": "Знайдено {count, plural, one {# проблему} few {# проблеми} many {# проблем} other {# проблем}} у порядку читання серій. Перевір книги, щоб не почати наступну частину раніше."
+      },
       "allIssues": {
         "title": "Порядок серій",
         "description": "Усі серії, у яких порядок читання може бути порушений."
+      },
+      "filters": {
+        "label": "Фільтр за типом",
+        "all": "Усі",
+        "error": "Помилки",
+        "warning": "Попередження",
+        "info": "Інформація",
+        "noMatches": "Немає проблем цього типу"
+      },
+      "sort": {
+        "label": "Сортування",
+        "byQueue": "За позицією в черзі",
+        "byType": "За типом проблеми",
+        "bySeries": "За назвою серії"
       },
       "empty": {
         "title": "Порядок серій перевірено",
@@ -166,6 +195,7 @@
       },
       "card": {
         "affectedBook": "Проблемна книга",
+        "affectedBooks": "Проблемні книги",
         "previousBook": "Попередня книга",
         "seriesPosition": "Книга {position}",
         "seriesPositionUnknown": "Позиція невідома",
@@ -174,41 +204,48 @@
         "currentReading": "Читається зараз",
         "relatedProblems": "{count, plural, one {Ще # конфлікт у цій серії} few {Ще # конфлікти у цій серії} many {Ще # конфліктів у цій серії} other {Ще # конфліктів у цій серії}}",
         "moreActions": "Більше дій для серії «{series}»",
-        "coverAlt": "Обкладинка «{title}»"
+        "coverAlt": "Обкладинка «{title}»",
+        "comparisonLabel": "Поточний → правильний порядок",
+        "changesTo": "має стати",
+        "staysInPlace": "залишається на місці"
       },
       "order": {
         "listLabel": "Порядок книг серії"
       },
       "problems": {
         "missing_previous_from_queue": {
-          "title": "Перед «{affectedBook}» ще не завершено «{previousBook}»."
+          "title": "Перед <b>{affectedBook}</b> ще не завершено <b>{previousBook}</b>."
         },
         "previous_book_after_later_book": {
-          "title": "«{previousBook}» має бути раніше за «{affectedBook}»."
+          "title": "<b>{previousBook}</b> має бути раніше за <b>{affectedBook}</b>."
         },
         "multiple_previous_missing": {
-          "title": "Перед «{affectedBook}» залишилося {count, plural, one {# незакрита частина} few {# незакриті частини} many {# незакритих частин} other {# незакритих частин}}.",
-          "description": "Наступна за порядком — «{previousBook}»."
+          "title": "Перед <b>{affectedBook}</b> залишилося {count, plural, one {# незакрита частина} few {# незакриті частини} many {# незакритих частин} other {# незакритих частин}}.",
+          "description": "Наступна за порядком — <b>{previousBook}</b>."
         },
         "previous_book_paused": {
           "title": "Попередня частина ще не завершена.",
-          "description": "«{previousBook}» на паузі, а «{affectedBook}» уже попереду."
+          "description": "<b>{previousBook}</b> на паузі, а <b>{affectedBook}</b> уже попереду."
         },
         "current_reading_ahead_of_order": {
           "title": "Поточне читання випереджає порядок серії.",
-          "description": "Зараз читається «{affectedBook}», хоча «{previousBook}» ще не завершена."
+          "description": "Зараз читається <b>{affectedBook}</b>, хоча <b>{previousBook}</b> ще не завершена."
         },
         "previous_book_not_owned": {
-          "title": "Попередньої частини немає у власній бібліотеці."
+          "title": "Попередньої частини немає у власній бібліотеці.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> ще не у твоїй бібліотеці."
         },
         "previous_book_want_to_buy": {
-          "title": "Попередня частина ще не придбана."
+          "title": "Попередня частина ще не придбана.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> ще не куплена."
         },
         "previous_book_in_transit": {
-          "title": "Попередня частина вже в дорозі."
+          "title": "Попередня частина вже в дорозі.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> ще не доїхала."
         },
         "previous_book_lent_out": {
-          "title": "Попередня частина позичена комусь і зараз недоступна."
+          "title": "Попередня частина позичена комусь і зараз недоступна.",
+          "description": "<b>{affectedBook}</b> уже в черзі, а <b>{previousBook}</b> зараз у когось."
         },
         "multiple_books_out_of_order": {
           "title": "У серії переплутано порядок."
@@ -216,9 +253,8 @@
       },
       "actions": {
         "retry": "Спробувати ще раз",
-        "fixOrder": "Виправити порядок",
-        "arrangeBySeries": "Розташувати за порядком серії",
-        "addBefore": "Додати перед «{affectedBook}»",
+        "fixOrder": "Виправити порядок серії",
+        "addBefore": "Додати попередню книгу",
         "addNext": "Додати наступну книгу",
         "addAll": "Додати всі за порядком",
         "openBook": "Відкрити попередню книгу",
@@ -232,21 +268,26 @@
       },
       "preview": {
         "title": "Виправити порядок серії?",
-        "current": "Зараз:",
-        "recommended": "Рекомендовано:",
-        "afterFix": "Після виправлення:",
-        "added": "Буде додано:",
-        "moved": "Перемістяться:",
-        "addedItem": "«{title}» буде додана на позицію {position}.",
-        "movedItem": "«{title}»: позиція {from} → {to}",
-        "unrelatedUnchanged": "Інші книги залишаться на своїх позиціях.",
-        "shiftedUnrelated": "{count, plural, one {# стороння книга зміститься} few {# сторонні книги змістяться} many {# сторонніх книг змістяться} other {# сторонніх книг змістяться}} на нову позицію.",
+        "addTitle": "Додати {count, plural, one {книгу} few {книги} many {книг} other {книги}} та виправити порядок серії?",
+        "addSubtitle": "<b>{bookTitle}</b> буде додано у правильне місце після попередніх книг серії.",
+        "addSubtitleMany": "{count, plural, one {# книгу} few {# книги} many {# книг} other {# книги}} буде додано за порядком серії.",
+        "addedTitle": "Буде додано",
+        "seriesBook": "Книга {position}",
+        "inSeries": "серія «{series}»",
+        "newPosition": "Нова позиція: #{position}",
+        "seriesOrderTitle": "Порядок серії після додавання",
+        "queueChangesTitle": "Як зміниться черга",
+        "newBook": "Нова книга",
+        "moreMoves": "Ще {count, plural, one {# книга зміститься} few {# книги змістяться} many {# книг змістяться} other {# книг змістяться}} нижче у черзі",
+        "showAllMoves": "Показати всі переміщення",
+        "collapseMoves": "Згорнути",
+        "unchanged": "{count, plural, one {# книга залишиться} few {# книги залишаться} many {# книг залишаться} other {# книг залишаться}} на своїх позиціях.",
         "warningsTitle": "Зверніть увагу",
         "loading": "Готуємо перегляд змін…",
         "error": "Не вдалося підготувати перегляд змін",
         "cancel": "Скасувати",
         "confirm": "Підтвердити дію",
-        "confirmReorder": "Виправити порядок",
+        "confirmReorder": "Виправити порядок серії",
         "confirmInsert": "Додати й виправити"
       },
       "disable": {
@@ -269,6 +310,81 @@
         "fixed": "Порядок серії виправлено",
         "ignored": "Це попередження приховано для поточного порядку",
         "disabled": "Перевірку порядку для цієї серії вимкнено"
+      }
+    },
+    "volume": {
+      "title": "Обсяг черги",
+      "booksInQueue": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}} у черзі",
+      "pagesUnit": "{count, plural, one {сторінка} few {сторінки} many {сторінок} other {сторінок}}",
+      "remainingCaption": "лишилось прочитати",
+      "remainingPartialCaption": "щонайменше — дані ще не повні",
+      "coverage": "Враховано {calculated} із {total} книг",
+      "cta": "Доповнити дані",
+      "forecast": {
+        "label": "Скільки це часу",
+        "daysSingle": "приблизно {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "daysRange": "приблизно {min}–{max, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "weeksSingle": "приблизно {count, plural, one {# тиждень} few {# тижні} many {# тижнів} other {# тижнів}}",
+        "weeksRange": "приблизно {min}–{max, plural, one {# тиждень} few {# тижні} many {# тижнів} other {# тижнів}}",
+        "monthsSingle": "приблизно {count, plural, one {# місяць} few {# місяці} many {# місяців} other {# місяців}}",
+        "monthsRange": "приблизно {min}–{max, plural, one {# місяць} few {# місяці} many {# місяців} other {# місяців}}",
+        "overYear": "понад рік",
+        "countdown": "Прогноз зʼявиться приблизно через {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "countdownReason": "Ще збираємо перший місяць історії читання, щоб оцінити темп.",
+        "noVolumeData": "Немає даних для розрахунку",
+        "staleActivity": "Давно не було оновлень прогресу",
+        "updateProgress": "Оновлюйте прогрес читання, щоб зʼявився прогноз"
+      },
+      "insights": {
+        "missingPages": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}} без кількості сторінок",
+        "invalidProgress": "{count, plural, one {# книга має} few {# книги мають} many {# книг мають} other {# книг мають}} неузгоджений прогрес",
+        "audiobookOnly": "{count, plural, one {# аудіокнига} few {# аудіокниги} many {# аудіокниг} other {# аудіокниг}} — тривалість зʼявиться пізніше",
+        "closedInQueue": "{count, plural, one {# дочитана книга ще залишається} few {# дочитані книги ще залишаються} many {# дочитаних книг ще залишаються} other {# дочитаних книг ще залишаються}} в черзі"
+      },
+      "error": {
+        "load": "Не вдалося порахувати обсяг черги",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "volumeModal": {
+      "title": "Доповнити дані",
+      "description": "Вкажіть кількість сторінок — і прогноз стане точнішим.",
+      "empty": "Усі книги в черзі вже мають потрібні дані",
+      "noResults": "Нічого не знайдено",
+      "searchLabel": "Пошук книги",
+      "searchPlaceholder": "Назва, автор або серія",
+      "formatLabel": "Формат",
+      "formatAll": "Усі формати",
+      "progress": "Заповнено {filled} із {total}",
+      "pagesLabel": "Сторінок",
+      "pagesPlaceholder": "Напр. 320",
+      "unavailableLabel": "Кількість сторінок неможливо визначити",
+      "unavailableHint": "Якщо визначити число неможливо (аудіокнига, плаваюча верстка, скан без нумерації) — позначте це галочкою. Книга залишиться в черзі, але не впливатиме на обсяг і прогноз.",
+      "currentPage": "прочитано {count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",
+      "reason": {
+        "missingPageCount": "Немає кількості сторінок",
+        "invalidProgress": "Прогрес більший за кількість сторінок"
+      },
+      "failure": {
+        "stale": "Дані книги змінилися. Онови список перед збереженням"
+      },
+      "errors": {
+        "invalidNumber": "Введіть ціле число",
+        "tooSmall": "Кількість сторінок має бути більшою за 0",
+        "tooBig": "Кількість сторінок не може перевищувати {max}",
+        "belowCurrentPage": "Загальна кількість сторінок не може бути меншою за поточний прогрес — {count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",
+        "nothingToSave": "Заповніть хоча б одне поле",
+        "tooMany": "За один раз можна зберегти не більше {max} книг",
+        "notFound": "{count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}} більше не знайдено. Інші дані збережено",
+        "notSaved": "Дані не збережено",
+        "generic": "Не вдалося зберегти дані"
+      },
+      "saved": "Дані збережено. Обсяг черги оновлено",
+      "savedPartial": "Збережено {count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}}. Решта потребує уваги",
+      "submit": "Зберегти",
+      "discard": {
+        "title": "Скасувати зміни?",
+        "description": "Незбережені дані буде втрачено."
       }
     }
   },
@@ -1677,6 +1793,9 @@
           "trackingUrl": "Введіть коректне https-посилання.",
           "trackingUrlMax": "Не більше за {max} символів."
         }
+      },
+      "timeline": {
+        "tab": "Хронологія {count}"
       }
     }
   },
@@ -2422,6 +2541,9 @@
       "authorsUnknown": "Автор невідомий",
       "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
       "booksWithTotal": "{count} з {total} додано",
+      "genresMore": "ще {count}",
+      "sinceYear": "З {year} року",
+      "publishersMore": "ще {count}",
       "edit": "Редагувати серію",
       "addBook": "Додати книгу",
       "delete": "Видалити серію",
@@ -2455,7 +2577,12 @@
         "part": "Частина {number}",
         "partUnknown": "Номер частини не вказано",
         "nextInOrder": "Наступна за порядком",
-        "progressPercent": "{percent}%"
+        "progressPercent": "{percent}%",
+        "progressLine": "{percent}% · {current} з {total} стор.",
+        "paused": "Призупинено · {current} з {total} стор.",
+        "pausedShort": "Призупинено",
+        "dnf": "Не дочитано",
+        "history": "Історія читання"
       },
       "progress": {
         "title": "Ваш прогрес у серії",
@@ -2469,12 +2596,24 @@
       },
       "stats": {
         "title": "Статистика серії",
-        "total": "Усього книг",
+        "totalBooks": "Усього книг",
+        "inLibrary": "У бібліотеці",
         "finished": "Прочитано",
-        "reading": "Читаю",
-        "unread": "Ще не прочитано",
-        "averageRating": "Середній рейтинг",
-        "pages": "Сторінок у серії"
+        "pagesRead": "Прочитано сторінок",
+        "seriesPages": "Сторінок у серії",
+        "averageRating": "Середня оцінка книг",
+        "favoriteBook": "Улюблена книга",
+        "averagePages": "У середньому сторінок",
+        "startedAt": "Почато серію",
+        "lastFinishedAt": "Останнє завершення",
+        "readingDuration": "Прочитано за",
+        "partialPagesLabel": "Відомо щонайменше {count} прочитаних сторінок",
+        "days": "{count, plural, one {# день} few {# дні} many {# днів} other {# дня}}"
+      },
+      "orderCheck": {
+        "title": "Порядок читання серії",
+        "label": "Перевіряти порядок у черзі",
+        "description": "Коли увімкнено, ми попереджаємо в Черзі читання, якщо частини цієї серії стоять не за порядком."
       },
       "about": {
         "title": "Про серію",
@@ -2499,6 +2638,7 @@
     "editDialog": {
       "title": "Редагувати серію",
       "description": "Оновіть інформацію про серію.",
+      "authorsDerivedHint": "Авторів серії визначають автори її книг",
       "submit": "Зберегти зміни",
       "duplicate": "Серія з такою назвою вже існує",
       "totalBooksTooLow": "Загальна кількість книг не може бути меншою за кількість уже доданих книг у серію",
@@ -2506,9 +2646,9 @@
     },
     "deleteDialog": {
       "title": "Видалити серію?",
-      "bodyWithBooks": "У цій серії є книги. Серію буде видалено, але книги залишаться у вашій бібліотеці без прив'язки до серії.",
-      "bodyEmpty": "Цю серію буде видалено з вашої бібліотеки.",
-      "booksCount": "Книг у серії: {count}",
+      "body": "Серію буде видалено. Дію не можна скасувати.",
+      "booksOutcome": "Книги ({count}) залишаться у бібліотеці як окремі, без серії.",
+      "notesWarning": "Нотатки, прикріплені до серії, буде видалено без можливості відновлення.",
       "confirm": "Видалити серію",
       "cancel": "Скасувати",
       "deleting": "Видалення…"
@@ -3489,6 +3629,824 @@
       "hiddenText": "Ця цитата містить спойлер",
       "show": "Показати спойлер",
       "hide": "Приховати спойлер"
+    }
+  },
+  "timeline": {
+    "title": "Хронологія подій",
+    "subtitle": "Ключові моменти сюжету в порядку розвитку історії — щоб швидко згадати, що вже сталося, коли повернешся до книги.",
+    "allLines": "Усі лінії {count}",
+    "mainLine": "Основна часова лінія",
+    "newLine": "Нова часова лінія",
+    "manageLines": "Керувати лініями",
+    "addEvent": "Додати подію",
+    "newEvent": "Нова подія",
+    "editEvent": "Редагувати подію",
+    "viewLabel": "Вигляд",
+    "view": {
+      "stream": "Стрічка",
+      "list": "Список",
+      "overview": "Огляд"
+    },
+    "sort": {
+      "label": "Сортування",
+      "bookOrder": "За порядком у книзі",
+      "timelineOrder": "Внутрішня хронологія",
+      "importance": "За важливістю",
+      "newest": "Спочатку нові",
+      "oldest": "Спочатку старі"
+    },
+    "preset": {
+      "importantEvents": "Важливі події",
+      "keyOnly": "Тільки ключові"
+    },
+    "recap": "Що вже сталося",
+    "guard": "Ховати те, що попереду",
+    "guardReveal": "Показати",
+    "guardHidden": "Подія попереду позиції читання",
+    "positionMarker": "Ти зараз тут",
+    "noChapter": "Без розділу",
+    "eventType": {
+      "main": "Основна подія",
+      "mystery": "Розкриття таємниці",
+      "character_appearance": "Поява персонажа",
+      "death": "Смерть персонажа",
+      "betrayal": "Зрада",
+      "battle": "Битва",
+      "romance": "Романтична подія",
+      "conflict": "Конфлікт",
+      "travel": "Подорож",
+      "magic": "Магічна подія",
+      "politics": "Політична подія",
+      "conversation": "Важлива розмова",
+      "twist": "Фінальний поворот",
+      "other": "Інше"
+    },
+    "importance": {
+      "low": "Низька",
+      "medium": "Середня",
+      "high": "Висока",
+      "key": "Ключова"
+    },
+    "relationType": {
+      "follows_from": "Випливає з",
+      "foreshadows": "Передвіщає",
+      "related": "Пов’язане"
+    },
+    "relationTypeInverse": {
+      "follows_from": "Веде до",
+      "foreshadows": "Передвіщено подією",
+      "related": "Пов’язане"
+    },
+    "thread": {
+      "open": "Відкрите питання",
+      "resolved": "Розв’язано",
+      "resolvedBy": "Розв’язано подією"
+    },
+    "form": {
+      "titleLabel": "Назва події",
+      "titlePlaceholder": "Що відбувається?",
+      "summaryLabel": "Короткий опис",
+      "summaryPlaceholder": "Одне речення для картки",
+      "descriptionLabel": "Детальний опис",
+      "descriptionPlaceholder": "Розгорнутий опис події",
+      "chapterLabel": "Розділ",
+      "chapterPlaceholder": "Напр. Розділ 12",
+      "pageLabel": "Сторінка",
+      "pagePlaceholder": "Напр. 128",
+      "locationLabel": "Локація",
+      "locationPlaceholder": "Де це відбувається",
+      "storyTimeLabel": "Внутрішньосюжетний час",
+      "storyTimePlaceholder": "Напр. Третій день подорожі",
+      "eventTypeLabel": "Тип події",
+      "importanceLabel": "Важливість",
+      "personalNoteLabel": "Особиста нотатка",
+      "personalNotePlaceholder": "Лише для тебе",
+      "threadStatusLabel": "Сюжетна лінія",
+      "threadNone": "Не сюжетна лінія",
+      "timelineLabel": "Часова лінія",
+      "moreFields": "Більше полів",
+      "fewerFields": "Менше полів",
+      "saveEvent": "Зберегти подію",
+      "saveAndAddAnother": "Зберегти й додати ще",
+      "cancel": "Скасувати",
+      "saving": "Збереження…",
+      "charCounter": "{count}/{max}",
+      "dirtyCloseTitle": "Закрити без збереження?",
+      "dirtyCloseDescription": "Внесені зміни буде втрачено.",
+      "dirtyCloseConfirm": "Закрити",
+      "dirtyCloseCancel": "Продовжити редагування",
+      "createDescription": "Занотуй ключовий момент сюжету — решту полів можна лишити на потім.",
+      "editDescription": "Онови деталі події.",
+      "placeInBook": "Місце у книзі",
+      "additionalData": "Додаткові дані",
+      "timelineEditHint": "Щоб перенести подію до іншої лінії, скористайся дією «Перенести до лінії».",
+      "relationsLabel": "Пов’язані події",
+      "relationsHint": "Познач причинно-наслідкові зв’язки з іншими подіями книги.",
+      "relationTypeLabel": "Тип зв’язку",
+      "relationTargetPlaceholder": "Пошук події за назвою",
+      "relationRemove": "Прибрати зв’язок",
+      "relationsEmpty": "Ще немає зв’язків.",
+      "relationsIncoming": "Зворотні зв’язки",
+      "resolvedBySearchPlaceholder": "Пошук події-розв’язки",
+      "resolvedByClear": "Прибрати",
+      "resolvedByLoading": "Завантаження події…",
+      "searchEmpty": "Нічого не знайдено"
+    },
+    "filters": {
+      "title": "Фільтри",
+      "searchLabel": "Пошук подій",
+      "searchPlaceholder": "Пошук за назвою",
+      "typeLabel": "Тип події",
+      "importanceLabel": "Важливість",
+      "unresolved": "Нерозв’язані лінії",
+      "reset": "Скинути фільтри",
+      "apply": "Застосувати",
+      "allTypes": "Усі типи",
+      "statusLabel": "Статус лінії",
+      "description": "Звузь список подій за типом, важливістю та статусом.",
+      "selectPlaceholder": "Оберіть",
+      "searchOptions": "Пошук…",
+      "noOptions": "Нічого не знайдено",
+      "done": "Готово"
+    },
+    "list": {
+      "number": "№",
+      "event": "Подія",
+      "type": "Тип",
+      "place": "Розділ і сторінка",
+      "timeline": "Лінія",
+      "importance": "Важливість"
+    },
+    "detail": {
+      "description": "Детальний опис",
+      "related": "Пов’язані події",
+      "resolves": "Закриває питання",
+      "close": "Закрити",
+      "edit": "Редагувати",
+      "delete": "Видалити"
+    },
+    "states": {
+      "loading": "Завантаження хронології",
+      "errorText": "Не вдалося завантажити хронологію. Перевір з’єднання та спробуй ще раз.",
+      "retry": "Повторити",
+      "emptyTitle": "Тут поки немає подій",
+      "emptyText": "Додай ключові моменти сюжету, щоб легко згадати їх після перерви в читанні.",
+      "emptyAction": "Додати першу подію",
+      "lineEmptyTitle": "У цій часовій лінії ще немає подій",
+      "lineEmptyAddAction": "Додати подію",
+      "lineEmptyPickAction": "Обрати іншу лінію",
+      "filteredEmptyTitle": "За вибраними фільтрами нічого не знайдено",
+      "filteredEmptyAction": "Скинути фільтри",
+      "saving": "Збереження…",
+      "deleting": "Видалення…",
+      "loadMore": "Показати ще"
+    },
+    "manage": {
+      "title": "Керування лініями",
+      "createTitle": "Нова часова лінія",
+      "editTitle": "Редагувати лінію",
+      "rename": "Перейменувати",
+      "setDefault": "Призначити основною",
+      "isDefault": "Основна лінія",
+      "moveUp": "Перемістити вище",
+      "moveDown": "Перемістити нижче",
+      "delete": "Видалити лінію",
+      "nameLabel": "Назва лінії",
+      "namePlaceholder": "Напр. Спогади",
+      "descriptionLabel": "Опис",
+      "descriptionPlaceholder": "Необов’язкове пояснення",
+      "markerLabel": "Колірний маркер",
+      "markerNone": "Без маркера",
+      "save": "Зберегти",
+      "cancel": "Скасувати",
+      "deleteTitle": "Видалити часову лінію?",
+      "eventCountLine": "У цій лінії {count} подій.",
+      "strategyMove": "Перемістити події",
+      "strategyMoveDescription": "Події перейдуть до вибраної лінії.",
+      "strategyDelete": "Видалити разом із подіями",
+      "strategyDeleteDescription": "Лінію та всі її події буде видалено назавжди.",
+      "targetLineLabel": "Куди перемістити події",
+      "confirmDelete": "Видалити",
+      "description": "Створюй, перейменовуй, впорядковуй і видаляй часові лінії книги.",
+      "createDescription": "Створи окрему лінію для паралельного сюжету, флешбеків чи іншої перспективи.",
+      "editDescription": "Онови назву, опис або колірний маркер лінії.",
+      "optional": "необов’язково",
+      "nameRequired": "Введи назву лінії",
+      "duplicateName": "Лінія з такою назвою вже існує",
+      "defaultBadge": "Основна",
+      "eventCount": "{count, plural, one {# подія} few {# події} many {# подій} other {# подій}}",
+      "rowMenu": "Дії лінії",
+      "edit": "Редагувати",
+      "deleteDefaultHint": "Спершу признач іншу лінію основною, щоб видалити цю.",
+      "deleteEmptyDescription": "Цю лінію буде видалено. Скасувати цю дію неможливо.",
+      "deleteConfirmCheckbox": "Розумію, події буде видалено назавжди",
+      "done": "Готово"
+    },
+    "colorKey": {
+      "slate": "Сланцевий",
+      "stone": "Кам’яний",
+      "amber": "Бурштиновий",
+      "orange": "Помаранчевий",
+      "rose": "Рожевий",
+      "red": "Червоний",
+      "emerald": "Смарагдовий",
+      "teal": "Бірюзовий",
+      "sky": "Небесний",
+      "blue": "Синій",
+      "violet": "Фіолетовий",
+      "fuchsia": "Фуксія"
+    },
+    "overview": {
+      "byType": "За типом подій",
+      "byImportance": "За важливістю",
+      "byLine": "За лініями",
+      "chapterDensity": "Щільність за розділами",
+      "unresolved": "Нерозв’язані питання",
+      "beforeAfterPosition": "До і після позиції читання",
+      "eventsBefore": "До позиції",
+      "eventsAfter": "Попереду",
+      "eventsUnknown": "Позиція невідома",
+      "totalEvents": "Усього подій",
+      "empty": "Поки немає даних для огляду."
+    },
+    "toast": {
+      "created": "Подію додано",
+      "updated": "Подію оновлено",
+      "deleted": "Подію видалено",
+      "moved": "Подію переміщено",
+      "reordered": "Порядок оновлено",
+      "createError": "Не вдалося додати подію",
+      "updateError": "Не вдалося оновити подію",
+      "deleteError": "Не вдалося видалити подію",
+      "moveError": "Не вдалося перемістити подію",
+      "reorderError": "Не вдалося змінити порядок",
+      "relationAdded": "Зв’язок додано",
+      "relationRemoved": "Зв’язок видалено",
+      "relationError": "Не вдалося змінити зв’язок",
+      "lineCreated": "Лінію створено",
+      "lineUpdated": "Лінію оновлено",
+      "lineDeleted": "Лінію видалено",
+      "defaultChanged": "Основну лінію змінено",
+      "lineError": "Не вдалося змінити лінію",
+      "reorderConflict": "Порядок уже змінився. Онови сторінку та спробуй ще раз."
+    },
+    "errors": {
+      "titleEmpty": "Введи назву події",
+      "tooLong": "Максимум {max} символів",
+      "pageNotPositive": "Сторінка має бути більшою за 0",
+      "pageExceedsBook": "Не більше {max} сторінок у книзі"
+    },
+    "actions": {
+      "menu": "Дії події",
+      "view": "Переглянути",
+      "edit": "Редагувати",
+      "moveUp": "Перемістити вище",
+      "moveDown": "Перемістити нижче",
+      "moveToTop": "На початок",
+      "moveToBottom": "У кінець",
+      "moveToLine": "Перенести до лінії",
+      "delete": "Видалити",
+      "reorderDisabledHint": "Зміна порядку доступна лише при ручному сортуванні без активних фільтрів."
+    },
+    "moveDialog": {
+      "title": "Перенести подію",
+      "description": "Оберіть часову лінію, до якої перенести цю подію.",
+      "targetLabel": "Часова лінія",
+      "targetPlaceholder": "Оберіть лінію",
+      "confirm": "Перенести",
+      "cancel": "Скасувати",
+      "moving": "Перенесення…",
+      "noOtherLines": "Немає інших ліній для перенесення."
+    },
+    "deleteDialog": {
+      "title": "Видалити подію?",
+      "description": "Подію та її зв’язки буде видалено назавжди. Цю дію не можна скасувати.",
+      "confirm": "Видалити",
+      "cancel": "Скасувати",
+      "deleting": "Видалення…"
+    }
+  },
+  "publishers": {
+    "page": {
+      "metaTitle": "Видавництва",
+      "title": "Видавництва",
+      "subtitle": "Переглядай видавництва своєї бібліотеки, стеж за рейтингами й покупками",
+      "resultsTitle": "Список видавництв",
+      "addBook": "Додати книгу"
+    },
+    "summary": {
+      "publishers": "Видавництв",
+      "booksWithPublisher": "Книг із видавництвом",
+      "averageRating": "Середній рейтинг",
+      "ratedBooks": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
+      "noRating": "—",
+      "toBuy": "Книги до покупки",
+      "priceTotal": "{price} · {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "error": {
+        "title": "Не вдалося завантажити зведення",
+        "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "toolbar": {
+      "searchLabel": "Пошук видавництв",
+      "searchPlaceholder": "Пошук за назвою",
+      "searchClear": "Очистити пошук",
+      "sortLabel": "Сортування",
+      "orderLabel": "Порядок",
+      "viewLabel": "Вигляд",
+      "viewGrid": "Сітка",
+      "viewList": "Список",
+      "geographyLabel": "Географія",
+      "sourceLabel": "Джерело",
+      "clearFilters": "Скинути фільтри",
+      "order": {
+        "asc": "За зростанням",
+        "desc": "За спаданням"
+      },
+      "sort": {
+        "name": "Назва",
+        "booksCount": "Найбільше книг",
+        "readCount": "Найбільше прочитано",
+        "wantToBuyCount": "Найбільше до покупки",
+        "averageRating": "Найвищий рейтинг",
+        "lastBookAddedAt": "Нещодавно додані"
+      },
+      "geography": {
+        "all": "Уся географія",
+        "ua": "Україна",
+        "foreign": "Іноземні",
+        "unknown": "Невідомо"
+      },
+      "source": {
+        "all": "Усі джерела",
+        "global": "Загальні",
+        "custom": "Власні"
+      },
+      "filters": {
+        "hasBooksToBuy": "Є книги до покупки",
+        "hasRatedBooks": "Є оцінені книги",
+        "hasSeries": "Є серії"
+      }
+    },
+    "card": {
+      "geographyUnknown": "Країна невідома",
+      "custom": "Власне",
+      "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "read": "Прочитано: {count}",
+      "toBuy": "До покупки: {count}",
+      "noRating": "Без оцінок",
+      "noRatingShort": "—",
+      "ratedCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
+      "lastAdded": "Додано {date}",
+      "view": "Переглянути"
+    },
+    "row": {
+      "sourceCustom": "Власне",
+      "sourceGlobal": "Загальне",
+      "books": "Книги",
+      "read": "Прочитано",
+      "toBuy": "До покупки",
+      "rating": "Рейтинг",
+      "ratingCount": "· {count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
+      "lastAdded": "Додано",
+      "lastAddedNever": "—"
+    },
+    "pagination": {
+      "label": "Сторінки видавництв",
+      "previous": "Назад",
+      "next": "Далі",
+      "goToPage": "Сторінка {page}"
+    },
+    "banner": {
+      "title": "{count, plural, one {# книга без видавництва} few {# книги без видавництва} many {# книг без видавництва} other {# книг без видавництва}}",
+      "description": "Признач їм видавництво, щоб бачити повнішу статистику.",
+      "action": "Переглянути книги"
+    },
+    "states": {
+      "empty": {
+        "title": "Видавництв поки немає",
+        "description": "Додай першу книгу з указаним видавництвом, і воно автоматично зʼявиться тут.",
+        "addBook": "Додати книгу"
+      },
+      "noResults": {
+        "title": "Нічого не знайдено",
+        "description": "Спробуй змінити пошук або скинути активні фільтри.",
+        "clear": "Скинути фільтри"
+      },
+      "error": {
+        "title": "Не вдалося завантажити видавництва",
+        "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+        "retry": "Спробувати ще раз"
+      }
+    },
+    "details": {
+      "metaTitle": "Видавництво",
+      "breadcrumb": "Усі видавництва",
+      "countryUnknown": "Країна невідома",
+      "customBadge": "Власне",
+      "foundedYear": "Засновано {year}",
+      "website": "Сайт",
+      "editCustom": "Редагувати",
+      "delete": "Видалити",
+      "addBook": "Додати книгу",
+      "states": {
+        "loading": "Завантаження видавництва",
+        "notFoundTitle": "Видавництво не знайдено",
+        "notFoundDescription": "Можливо, його видалено або воно недоступне.",
+        "errorTitle": "Не вдалося завантажити видавництво",
+        "errorDescription": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+        "back": "До видавництв"
+      },
+      "tabs": {
+        "overview": "Огляд",
+        "books": "Книги",
+        "toBuy": "До покупки"
+      },
+      "kpi": {
+        "books": "Книги",
+        "read": "Прочитано",
+        "reading": "Читаю",
+        "wantToRead": "Хочу прочитати",
+        "toBuy": "До покупки",
+        "queue": "У черзі",
+        "rating": "Рейтинг",
+        "ratedCount": "{count, plural, one {# оцінка} few {# оцінки} many {# оцінок} other {# оцінок}}",
+        "noRating": "—",
+        "lastAdded": "Останнє додано",
+        "lastAddedNever": "—"
+      },
+      "overview": {
+        "latestBookTitle": "Остання книга",
+        "toBuyPreviewTitle": "До покупки",
+        "viewAllBooks": "Усі книги",
+        "viewAllToBuy": "Усе до покупки",
+        "emptyLatest": "Ще немає книг цього видавництва.",
+        "emptyToBuy": "Немає книг до покупки від цього видавництва."
+      },
+      "booksTab": {
+        "searchLabel": "Пошук книг",
+        "searchPlaceholder": "Пошук за назвою або автором",
+        "searchClear": "Очистити пошук",
+        "sortLabel": "Сортування",
+        "viewLabel": "Вигляд",
+        "viewGrid": "Сітка",
+        "viewList": "Список",
+        "counter": "Показано {shown} з {total}",
+        "loadMore": "Показати ще",
+        "empty": {
+          "title": "Ще немає книг",
+          "description": "Додай книгу з цим видавництвом, і вона зʼявиться тут.",
+          "cta": "Додати книгу"
+        },
+        "noResults": {
+          "title": "Нічого не знайдено",
+          "description": "Спробуй змінити пошук або скинути фільтри.",
+          "clear": "Скинути фільтри"
+        },
+        "error": {
+          "title": "Не вдалося завантажити книги",
+          "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+          "retry": "Спробувати ще раз"
+        }
+      },
+      "toBuyTab": {
+        "count": "{count, plural, one {# книга до покупки} few {# книги до покупки} many {# книг до покупки} other {# книг до покупки}}",
+        "withoutPrice": "{count, plural, one {# без ціни} few {# без ціни} many {# без ціни} other {# без ціни}}",
+        "empty": {
+          "title": "Немає книг до покупки",
+          "description": "Від цього видавництва поки немає книг у списку покупок.",
+          "cta": "Додати книгу"
+        },
+        "error": {
+          "title": "Не вдалося завантажити список",
+          "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
+          "retry": "Спробувати ще раз"
+        }
+      },
+      "editDialog": {
+        "title": "Редагувати видавництво",
+        "description": "Онови назву та додаткові дані видавництва.",
+        "name": "Назва",
+        "namePlaceholder": "Назва видавництва",
+        "countryCode": "Код країни",
+        "countryCodePlaceholder": "UA",
+        "website": "Сайт",
+        "websitePlaceholder": "https://",
+        "foundedYear": "Рік заснування",
+        "foundedYearPlaceholder": "2000",
+        "optional": "необовʼязково",
+        "submit": "Зберегти",
+        "cancel": "Скасувати",
+        "duplicate": "Видавництво з такою назвою вже існує",
+        "invalidUrl": "Введи коректне посилання",
+        "invalidCountry": "Код країни — це дві латинські літери",
+        "invalidYear": "Введи коректний рік",
+        "invalidName": "Назва має містити щонайменше 2 символи",
+        "genericError": "Не вдалося зберегти зміни. Спробуй ще раз.",
+        "discardTitle": "Відхилити зміни?",
+        "discardDescription": "Незбережені зміни буде втрачено."
+      },
+      "deleteDialog": {
+        "title": "Видалити видавництво?",
+        "description": "Видавництво «{name}» буде видалено безповоротно.",
+        "confirm": "Видалити",
+        "cancel": "Скасувати",
+        "deleting": "Видалення…",
+        "linkedBooksError": "Не можна видалити видавництво, до якого привʼязані книги. Спочатку відвʼяжи книги.",
+        "genericError": "Не вдалося видалити видавництво. Спробуй ще раз."
+      },
+      "toast": {
+        "updated": "Видавництво оновлено",
+        "deleted": "Видавництво видалено",
+        "error": "Щось пішло не так"
+      }
+    }
+  },
+  "characters": {
+    "tab": "Персонажі",
+    "summary": {
+      "characters": "Персонажів: {count}",
+      "favorites": "Улюблених: {count}",
+      "hidden": "Є приховані записи",
+      "pov": "POV: {count}"
+    },
+    "toolbar": {
+      "add": "Додати персонажа",
+      "palette": "Пошук",
+      "searchClear": "Очистити пошук",
+      "searchLabel": "Пошук персонажів",
+      "searchPlaceholder": "Пошук за іменем…",
+      "sortLabel": "Сортування"
+    },
+    "sort": {
+      "name": "За іменем",
+      "recommended": "Рекомендовано"
+    },
+    "card": {
+      "delete": "Видалити персонажа повністю",
+      "details": "Деталі",
+      "edit": "Редагувати",
+      "favorite": "Додати в улюблені",
+      "hiddenFields": "Приховані поля: {count}",
+      "menu": "Дії з персонажем",
+      "unfavorite": "Прибрати з улюблених",
+      "unlink": "Прибрати з цієї книги"
+    },
+    "states": {
+      "errorDescription": "Не вдалося завантажити персонажів. Спробуйте ще раз.",
+      "errorTitle": "Помилка завантаження",
+      "loading": "Завантаження персонажів",
+      "retry": "Спробувати ще раз"
+    },
+    "empty": {
+      "add": "Додати персонажа",
+      "description": "Додайте персонажа вручну або прив'яжіть наявного зі своєї бібліотеки.",
+      "title": "Персонажі ще не додані"
+    },
+    "noResults": {
+      "clear": "Очистити пошук",
+      "description": "Спробуйте змінити запит.",
+      "title": "Нічого не знайдено"
+    },
+    "spoiler": {
+      "hidden": "Приховано (спойлер)",
+      "reveal": "Показати",
+      "revealAria": "Показати поле: {field}"
+    },
+    "importance": {
+      "central": "Центральний",
+      "episodic": "Епізодичний",
+      "major": "Головний",
+      "mentioned": "Згаданий",
+      "supporting": "Другорядний"
+    },
+    "status": {
+      "active": "Живий",
+      "dead": "Мертвий",
+      "missing": "Зниклий",
+      "other": "Інше",
+      "transformed": "Перевтілений",
+      "unknown": "Невідомо"
+    },
+    "roleType": {
+      "antagonist": "Антагоніст",
+      "custom": "Своя роль",
+      "deuteragonist": "Девтерагоніст",
+      "episodic": "Епізодична",
+      "love_interest": "Любовний інтерес",
+      "mentioned": "Згаданий",
+      "protagonist": "Протагоніст",
+      "supporting": "Другорядна"
+    },
+    "gender": {
+      "agender_or_na": "Агендер / Н/З",
+      "custom": "Свій варіант",
+      "female": "Жіноча",
+      "male": "Чоловіча",
+      "non_binary": "Небінарна",
+      "unknown": "Невідомо"
+    },
+    "attitude": {
+      "dislike": "Не подобається",
+      "distrust": "Недовіра",
+      "favorite": "Улюблений",
+      "hate": "Ненависть",
+      "like": "Подобається",
+      "neutral": "Нейтрально",
+      "unsure": "Не визначився"
+    },
+    "entityKind": {
+      "collective": "Колектив",
+      "individual": "Особа",
+      "unknown": "Невідомо"
+    },
+    "aliasType": {
+      "former_name": "Колишнє ім'я",
+      "nickname": "Прізвисько",
+      "other": "Інше",
+      "pseudonym": "Псевдонім",
+      "title": "Титул",
+      "translation": "Переклад",
+      "true_name": "Справжнє ім'я"
+    },
+    "narratorType": {
+      "first_person": "Від першої особи",
+      "other": "Інше",
+      "third_person_limited": "Від третьої (обмежений)",
+      "third_person_omniscient": "Від третьої (всезнаючий)",
+      "unreliable": "Ненадійний"
+    },
+    "details": {
+      "appearanceNotes": "Нотатки про появу",
+      "attitude": "Ставлення",
+      "bookDescription": "Опис у книзі",
+      "bookSection": "У цій книзі",
+      "description": "Опис",
+      "displayName": "Відображуване ім'я",
+      "edit": "Редагувати",
+      "entityKind": "Тип",
+      "favorite": "Улюблений",
+      "gender": "Гендер",
+      "generalSection": "Загальні дані",
+      "hiddenRoles": "Приховані ролі: {count}",
+      "otherAppearances": "Також в інших книгах: {count}",
+      "personalImpression": "Особисте враження",
+      "pov": "POV",
+      "povWithType": "POV · {type}",
+      "pronouns": "Займенники",
+      "roles": "Ролі",
+      "sheetDescription": "Деталі персонажа",
+      "species": "Вид",
+      "speciesOverride": "Вид у книзі",
+      "status": "Статус",
+      "title": "Персонаж"
+    },
+    "quickAdd": {
+      "add": "Додати",
+      "createError": "Не вдалося створити персонажа",
+      "created": "Персонажа додано",
+      "duplicateQuestion": "Це {name}?",
+      "linkExisting": "Прив'язати наявного",
+      "moreFields": "Більше полів",
+      "nameLabel": "Ім'я персонажа",
+      "namePlaceholder": "Ім'я нового персонажа",
+      "noteLabel": "Короткий нотаток",
+      "notePlaceholder": "Хто це? (необов'язково)",
+      "title": "Швидке додавання"
+    },
+    "form": {
+      "appearanceNotes": "Нотатки про появу",
+      "attitude": "Ставлення у книзі",
+      "avatar": "Аватар",
+      "bookDescription": "Опис у книзі",
+      "bookSection": "У цій книзі",
+      "cancel": "Скасувати",
+      "createDescription": "Створіть нового персонажа для цієї книги.",
+      "createTitle": "Додати персонажа",
+      "customGender": "Свій гендер",
+      "discardCancel": "Продовжити редагування",
+      "discardConfirm": "Відхилити",
+      "discardDescription": "Введені дані буде втрачено.",
+      "discardTitle": "Відхилити зміни?",
+      "displayName": "Відображуване ім'я",
+      "editDescription": "Оновіть дані персонажа.",
+      "editTitle": "Редагувати персонажа",
+      "entityKind": "Тип",
+      "favorite": "Улюблений персонаж",
+      "firstAppearanceChapter": "Розділ першої появи",
+      "firstAppearanceNote": "Нотатка про першу появу",
+      "firstAppearancePage": "Сторінка першої появи",
+      "gender": "Гендер",
+      "generalHint": "Ці дані використовуються в усіх книгах, де додано персонажа.",
+      "generalSection": "Загальні дані",
+      "globalAttitude": "Ставлення",
+      "hidePresence": "Приховати присутність",
+      "hidePresenceHelp": "Персонаж не показуватиметься у списках у контексті цієї книги.",
+      "importance": "Важливість",
+      "name": "Ім'я",
+      "namePlaceholder": "Ім'я персонажа",
+      "narratorType": "Тип наратора",
+      "neutralDescription": "Опис",
+      "optional": "необов'язково",
+      "personalImpression": "Особисте враження",
+      "portrait": "Портрет у книзі",
+      "pov": "POV-персонаж",
+      "povHelp": "Оповідь ведеться від імені цього персонажа.",
+      "pronouns": "Займенники",
+      "removeAvatar": "Прибрати аватар",
+      "removePortrait": "Прибрати портрет",
+      "roles": "Ролі",
+      "species": "Вид",
+      "speciesOverride": "Вид у книзі",
+      "spoilerSection": "Спойлери",
+      "spoilerToggle": "Позначити як спойлер",
+      "status": "Статус",
+      "statusCustom": "Свій статус",
+      "submitCreate": "Додати",
+      "submitEdit": "Зберегти",
+      "uploadAvatar": "Завантажити зображення",
+      "errors": {
+        "customGenderRequired": "Вкажіть свій гендер",
+        "generic": "Не вдалося зберегти. Спробуйте ще раз.",
+        "nameRequired": "Вкажіть ім'я",
+        "nameTooLong": "Ім'я задовге (макс. {max})"
+      },
+      "aliases": "Альтернативні імена"
+    },
+    "rolePicker": {
+      "add": "Додати роль",
+      "customPlaceholder": "Назва ролі",
+      "remove": "Прибрати роль",
+      "roleType": "Роль",
+      "spoiler": "Спойлер"
+    },
+    "aliasEditor": {
+      "add": "Додати ім'я",
+      "name": "Ім'я",
+      "namePlaceholder": "Альтернативне ім'я",
+      "remove": "Прибрати ім'я",
+      "scope": "Область",
+      "scopeBook": "Ця книга",
+      "scopeGlobal": "Глобально",
+      "spoiler": "Спойлер",
+      "type": "Тип"
+    },
+    "existing": {
+      "createNew": "Створити нового",
+      "empty": "Немає збігів",
+      "link": "Прив'язати",
+      "linkError": "Не вдалося прив'язати персонажа",
+      "linked": "Персонажа прив'язано",
+      "sameSeries": "З цієї серії",
+      "searchLabel": "Пошук наявних персонажів",
+      "searchPlaceholder": "Введіть ім'я…",
+      "title": "Прив'язати наявного"
+    },
+    "duplicate": {
+      "createAnyway": "Все одно створити",
+      "question": "Можливо, цей персонаж уже існує.",
+      "title": "Можливі дублі",
+      "use": "Використати"
+    },
+    "delete": {
+      "aliases": "Імена: {count}",
+      "appearances": "Появи в книгах: {count}",
+      "cancel": "Скасувати",
+      "confirm": "Видалити повністю",
+      "deleting": "Видалення…",
+      "description": "Персонаж і всі його дані будуть видалені. Ви зможете скасувати цю дію протягом короткого часу.",
+      "previewIntro": "Буде видалено:",
+      "roles": "Ролі: {count}",
+      "tags": "Теги: {count}",
+      "title": "Видалити персонажа повністю"
+    },
+    "unlink": {
+      "cancel": "Скасувати",
+      "confirm": "Прибрати",
+      "description": "Персонажа буде прибрано з цієї книги. Глобальний профіль і дані в інших книгах залишаться.",
+      "title": "Прибрати з цієї книги",
+      "unlinking": "Прибирання…"
+    },
+    "palette": {
+      "empty": "Почніть вводити ім'я персонажа",
+      "loading": "Пошук…",
+      "noResults": "Нічого не знайдено",
+      "placeholder": "Пошук персонажів…",
+      "title": "Пошук персонажів"
+    },
+    "toast": {
+      "createError": "Не вдалося створити персонажа",
+      "created": "Персонажа додано",
+      "deleteError": "Не вдалося видалити персонажа",
+      "deleted": "Персонажа видалено",
+      "restoreError": "Не вдалося відновити персонажа",
+      "restored": "Персонажа відновлено",
+      "undo": "Скасувати",
+      "unlinkError": "Не вдалося прибрати персонажа",
+      "unlinked": "Персонажа прибрано з книги",
+      "updateError": "Не вдалося зберегти зміни",
+      "updated": "Зміни збережено"
     }
   }
 }

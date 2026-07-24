@@ -9,13 +9,13 @@ import type {
   Paginator,
 } from "@app/shared";
 
+import { normalizeName } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { AuthorModel } from "../../../generated/prisma/models.js";
 
 import { BadGatewayError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { normalizeName } from "../../../core/normalize-name.js";
-import { buildPaginator } from "../../../core/paginator.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { toAuthorView } from "../domain/author.mapper.js";
 import { AuthorsRepository } from "../infrastructure/authors.repository.js";
@@ -233,9 +233,8 @@ export class AuthorsService {
     const [authors, totalCount] = await Promise.all([
       this.authorsRepository.searchVisible({
         query: search,
-        skip: (pageNumber - 1) * pageSize,
-        take: pageSize,
         userId,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.authorsRepository.countVisible(userId, search),
     ]);

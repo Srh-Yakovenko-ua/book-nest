@@ -61,7 +61,9 @@ function createService(config: ServiceConfig = {}): {
   } as unknown as NotesRepository;
   const booksRepository = { existsOwned: existsBook } as unknown as BooksRepository;
   const seriesService = { existsOwned: existsSeries } as unknown as SeriesService;
-  const mediaService = { buildView: vi.fn() } as unknown as MediaService;
+  const mediaService = {
+    buildViewOrNull: vi.fn().mockReturnValue(null),
+  } as unknown as MediaService;
 
   const service = new NotesService(notesRepository, booksRepository, seriesService, mediaService);
 

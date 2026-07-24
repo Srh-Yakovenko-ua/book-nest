@@ -11,11 +11,9 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -24,29 +22,24 @@ import {
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { NotesService } from "../application/notes.service.js";
 import { CreateNoteInputDto } from "./input-dto/create-note.input-dto.js";
 import { UpdateNoteInputDto } from "./input-dto/update-note.input-dto.js";
 import { EntityNotesViewDto } from "./view-dto/entity-notes.view-dto.js";
 import { NoteViewDto } from "./view-dto/note.view-dto.js";
 
-const NOTE_ACTION_TTL_SECONDS = 60;
-const NOTE_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("notes")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller()
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class NoteController {
   constructor(private readonly notesService: NotesService) {}
 
@@ -72,7 +65,7 @@ export class NoteController {
   @ApiOperation({ summary: "Create a note for a book" })
   @ApiParam({ description: "Book id", name: "id" })
   @Post("api/books/:id/notes")
-  @Throttle({ default: { limit: NOTE_ACTION_LIMIT, ttl: seconds(NOTE_ACTION_TTL_SECONDS) } })
+  @Throttle(MUTATION_THROTTLE)
   createBookNote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
@@ -103,7 +96,7 @@ export class NoteController {
   @ApiOperation({ summary: "Create a note for a series" })
   @ApiParam({ description: "Series id", name: "id" })
   @Post("api/series/:id/notes")
-  @Throttle({ default: { limit: NOTE_ACTION_LIMIT, ttl: seconds(NOTE_ACTION_TTL_SECONDS) } })
+  @Throttle(MUTATION_THROTTLE)
   createSeriesNote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
@@ -121,7 +114,7 @@ export class NoteController {
   })
   @ApiParam({ description: "Note id", name: "noteId" })
   @Patch("api/notes/:noteId")
-  @Throttle({ default: { limit: NOTE_ACTION_LIMIT, ttl: seconds(NOTE_ACTION_TTL_SECONDS) } })
+  @Throttle(MUTATION_THROTTLE)
   editNote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("noteId", ParseUUIDPipe) noteId: string,
@@ -136,7 +129,7 @@ export class NoteController {
   @ApiParam({ description: "Note id", name: "noteId" })
   @Delete("api/notes/:noteId")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @Throttle({ default: { limit: NOTE_ACTION_LIMIT, ttl: seconds(NOTE_ACTION_TTL_SECONDS) } })
+  @Throttle(MUTATION_THROTTLE)
   deleteNote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("noteId", ParseUUIDPipe) noteId: string,

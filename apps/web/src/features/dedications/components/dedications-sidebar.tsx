@@ -24,9 +24,7 @@ const QUICK_FILTER_ICONS = {
 } as const satisfies Record<(typeof DEDICATION_QUICK_FILTERS)[number], UiIconName>;
 
 export type DedicationsSummaryState =
-  | { kind: "error" }
-  | { kind: "loading" }
-  | { kind: "ready"; summary: DedicationsSummaryView };
+  { kind: "error" } | { kind: "loading" } | { kind: "ready"; summary: DedicationsSummaryView };
 
 type DedicationsSidebarProps = {
   filter: DedicationFilter;

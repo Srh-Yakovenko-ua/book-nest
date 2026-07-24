@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { LoanTypeSchema, OwnershipStatusSchema } from "./book-enums.js";
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
+import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 import { MediaViewSchema } from "./media.js";
 
 const LOAN_SEARCH_MAX = 100;
@@ -9,6 +9,19 @@ const LOAN_SEARCH_MAX = 100;
 export const LoanUiStatusSchema = z.enum(["overdue", "return_soon", "no_return_date", "on_time"]);
 
 export type LoanUiStatus = z.infer<typeof LoanUiStatusSchema>;
+
+export const LoanInfoViewSchema = z.object({
+  contact: z.string().nullable(),
+  expectedReturnDate: z.string().nullable(),
+  loanDate: z.string().nullable(),
+  loanType: LoanTypeSchema,
+  loanUiStatus: LoanUiStatusSchema,
+  note: z.string().nullable(),
+  personName: z.string(),
+  remindToReturn: z.boolean(),
+});
+
+export type LoanInfoView = z.infer<typeof LoanInfoViewSchema>;
 
 export const LoanFilterSchema = z.enum([
   "all",
@@ -35,8 +48,7 @@ export type LoanSort = z.infer<typeof LoanSortSchema>;
 
 export const LoansQuerySchema = z.object({
   filter: LoanFilterSchema.default("all"),
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(10),
+  ...paginationQueryFields({ pageSizeDefault: 10 }),
   search: z.string().trim().max(LOAN_SEARCH_MAX).optional(),
   sort: LoanSortSchema.default("return_date"),
   type: LoanTypeSchema.optional(),

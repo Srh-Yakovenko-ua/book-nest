@@ -775,6 +775,150 @@ describe("GET /api/books filters", () => {
   });
 });
 
+describe("GET /api/books publisherPresence filter", () => {
+  async function seedMixedPublisherLibrary(userId: string): Promise<{ publisherId: string }> {
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const publisher = await seedPublisher({ name: "Penguin", userId });
+    await seedBook({
+      authorId: author.id,
+      publisherId: publisher.id,
+      title: "WithPublisher",
+      userId,
+    });
+    await seedBook({ authorId: author.id, title: "NoPublisherOne", userId });
+    await seedBook({ authorId: author.id, title: "NoPublisherTwo", userId });
+    return { publisherId: publisher.id };
+  }
+
+  it("returns only publisher-less books when presence is missing", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedMixedPublisherLibrary(userId);
+
+    const res = await listBooks(accessToken, "publisherPresence=missing");
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(2);
+    expect(titlesOf(res.body).sort()).toEqual(["NoPublisherOne", "NoPublisherTwo"]);
+  });
+
+  it("returns each missing-presence book with a null publisher", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedMixedPublisherLibrary(userId);
+
+    const res = await listBooks(accessToken, "publisherPresence=missing");
+
+    expect(res.body.items.map((item: { publisher: Nullable<unknown> }) => item.publisher)).toEqual([
+      null,
+      null,
+    ]);
+  });
+
+  it("returns only books that have a publisher when presence is assigned", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedMixedPublisherLibrary(userId);
+
+    const res = await listBooks(accessToken, "publisherPresence=assigned");
+
+    expect(res.body.totalCount).toBe(1);
+    expect(titlesOf(res.body)).toEqual(["WithPublisher"]);
+  });
+
+  it("returns each assigned-presence book with a non-null publisher", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { publisherId } = await seedMixedPublisherLibrary(userId);
+
+    const res = await listBooks(accessToken, "publisherPresence=assigned");
+
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].publisher).toMatchObject({ id: publisherId });
+  });
+
+  it("applies no presence filter when presence is all", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedMixedPublisherLibrary(userId);
+
+    const res = await listBooks(accessToken, "publisherPresence=all");
+
+    expect(res.body.totalCount).toBe(3);
+    expect(titlesOf(res.body).sort()).toEqual([
+      "NoPublisherOne",
+      "NoPublisherTwo",
+      "WithPublisher",
+    ]);
+  });
+
+  it("applies no presence filter when presence is omitted", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedMixedPublisherLibrary(userId);
+
+    const res = await listBooks(accessToken);
+
+    expect(res.body.totalCount).toBe(3);
+  });
+
+  it("still filters by publisher id when no presence is passed", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { publisherId } = await seedMixedPublisherLibrary(userId);
+
+    const res = await listBooks(accessToken, `publisher=${publisherId}`);
+
+    expect(res.body.totalCount).toBe(1);
+    expect(titlesOf(res.body)).toEqual(["WithPublisher"]);
+  });
+
+  it("lets missing presence override a publisher id passed alongside it", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const { publisherId } = await seedMixedPublisherLibrary(userId);
+
+    const res = await listBooks(accessToken, `publisherPresence=missing&publisher=${publisherId}`);
+
+    expect(res.body.totalCount).toBe(2);
+    expect(titlesOf(res.body).sort()).toEqual(["NoPublisherOne", "NoPublisherTwo"]);
+  });
+
+  it("lets assigned presence override a publisher id passed alongside it", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const otherAuthor = await seedAuthor({ name: "Isaac Asimov", userId });
+    const wanted = await seedPublisher({ name: "Penguin", userId });
+    const other = await seedPublisher({ name: "Vivat", userId });
+    await seedBook({ authorId: otherAuthor.id, publisherId: wanted.id, title: "Wanted", userId });
+    await seedBook({ authorId: otherAuthor.id, publisherId: other.id, title: "Other", userId });
+    await seedBook({ authorId: otherAuthor.id, title: "NoPublisher", userId });
+
+    const res = await listBooks(accessToken, `publisherPresence=assigned&publisher=${wanted.id}`);
+
+    expect(res.body.totalCount).toBe(2);
+    expect(titlesOf(res.body).sort()).toEqual(["Other", "Wanted"]);
+  });
+
+  it("rejects an unknown presence value with 400", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listBooks(accessToken, "publisherPresence=bogus");
+
+    expect(res.status).toBe(400);
+  });
+
+  it("never returns another user's publisher-less books for a missing presence query", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const strangerAuthor = await seedAuthor({ name: "Frank Herbert", userId: stranger.userId });
+    await seedBook({
+      authorId: strangerAuthor.id,
+      title: "TheirBareBook",
+      userId: stranger.userId,
+    });
+
+    const res = await listBooks(owner.accessToken, "publisherPresence=missing");
+
+    expect(res.body.totalCount).toBe(0);
+    expect(res.body.items).toEqual([]);
+  });
+});
+
 describe("GET /api/books hasRating filter", () => {
   it("returns a favorite that has no reading-progress row", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();

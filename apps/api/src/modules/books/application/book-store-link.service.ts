@@ -17,13 +17,13 @@ import type {
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { computeBestOffer } from "../domain/best-offer.js";
 import { toBookStoreLinkView } from "../domain/book-store-link.mapper.js";
 import { BookStoreLinkRepository } from "../infrastructure/book-store-link.repository.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
+import { assertBookOwned } from "./assert-book-owned.js";
 
-const BOOK_NOT_FOUND_MESSAGE = "Book not found";
 const LINK_NOT_FOUND_MESSAGE = "Store link not found";
 const DUPLICATE_URL_MESSAGE = "This book already has a store link with the same URL";
 const MAX_LINKS_MESSAGE = "This book has reached the maximum number of store links";
@@ -142,12 +142,12 @@ export class BookStoreLinkService {
     bookId: string;
     userId: string;
   }): Promise<void> {
-    const owned = await this.booksRepository.existsOwned({ bookId, userId });
-    if (!owned) {
-      throw new NotFoundError(BOOK_NOT_FOUND_MESSAGE, {
-        code: STORE_LINK_ERROR_CODES.BOOK_NOT_FOUND,
-      });
-    }
+    await assertBookOwned({
+      bookId,
+      booksRepository: this.booksRepository,
+      notFoundCode: STORE_LINK_ERROR_CODES.BOOK_NOT_FOUND,
+      userId,
+    });
   }
 
   private async createLink({
@@ -164,12 +164,13 @@ export class BookStoreLinkService {
     try {
       return await this.bookStoreLinkRepository.create({ bookId, client, data, userId });
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError(DUPLICATE_URL_MESSAGE, {
-          code: STORE_LINK_ERROR_CODES.DUPLICATE_URL,
-        });
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError(DUPLICATE_URL_MESSAGE, {
+            code: STORE_LINK_ERROR_CODES.DUPLICATE_URL,
+          }),
+      });
     }
   }
 
@@ -185,12 +186,13 @@ export class BookStoreLinkService {
     try {
       return await this.bookStoreLinkRepository.update({ data, id, userId });
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError(DUPLICATE_URL_MESSAGE, {
-          code: STORE_LINK_ERROR_CODES.DUPLICATE_URL,
-        });
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError(DUPLICATE_URL_MESSAGE, {
+            code: STORE_LINK_ERROR_CODES.DUPLICATE_URL,
+          }),
+      });
     }
   }
 }

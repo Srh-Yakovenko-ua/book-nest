@@ -3,7 +3,7 @@ import type { CustomListBooksQuery, CustomListDetail, ListBookView } from "@app/
 import { normalizeSearch } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import { buildPaginator } from "../../../core/paginator.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
 import { ListsService } from "../../lists/index.js";
 import {
@@ -42,10 +42,9 @@ export class ListDetailsService {
         listId,
         search,
         searchGenreKeys,
-        skip: (pageNumber - 1) * pageSize,
         sort,
-        take: pageSize,
         userId,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.listBooksRepository.countBooks({ listId, search, searchGenreKeys, userId }),
     ]);

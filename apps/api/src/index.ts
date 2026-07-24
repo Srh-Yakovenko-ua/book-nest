@@ -7,6 +7,16 @@ import { shutdownTracing } from "./core/tracing.js";
 const log = createLogger("startup");
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
+process.on("unhandledRejection", (reason) => {
+  log.error({ err: reason }, "unhandled promise rejection");
+  process.exit(1);
+});
+
+process.on("uncaughtException", (err) => {
+  log.error({ err }, "uncaught exception");
+  process.exit(1);
+});
+
 async function main(): Promise<void> {
   let app;
   try {

@@ -6,6 +6,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import type { SeriesModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { runInClient } from "../../../core/database/run-in-client.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 export type CreateSeriesData = {
@@ -34,6 +35,7 @@ const seriesWithBookCountArgs = {
     authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
     books: {
       select: {
+        authors: { include: { author: true }, orderBy: { position: "asc" } },
         createdAt: true,
         id: true,
         partNumber: true,
@@ -55,8 +57,12 @@ const seriesDetailsArgs = {
       include: {
         authors: { include: { author: true }, orderBy: { position: "asc" } },
         coverMedia: true,
+        deliveries: { orderBy: { createdAt: "desc" } },
+        loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
         publisher: true,
-        readingProgress: { select: { currentPage: true, rating: true } },
+        readingProgress: {
+          select: { currentPage: true, finishedAt: true, rating: true, startedAt: true },
+        },
         tags: { include: { tag: true } },
       },
     },
@@ -135,20 +141,17 @@ export class SeriesRepository {
     });
   }
 
-  async deleteOwned(userId: string, id: string, client?: Prisma.TransactionClient): Promise<void> {
-    if (client === undefined) {
-      await this.prisma.$transaction((tx) => this.deleteOwned(userId, id, tx));
-      return;
-    }
-
-    await client.book.updateMany({
-      data: { partNumber: null, seriesId: null },
-      where: { seriesId: id, userId },
+  deleteOwned(userId: string, id: string, client?: Prisma.TransactionClient): Promise<void> {
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      await tx.book.updateMany({
+        data: { partNumber: null, seriesId: null },
+        where: { seriesId: id, userId },
+      });
+      const deleted = await tx.series.deleteMany({ where: { id, userId } });
+      if (deleted.count === 0) {
+        throw new NotFoundError("Series not found");
+      }
     });
-    const deleted = await client.series.deleteMany({ where: { id, userId } });
-    if (deleted.count === 0) {
-      throw new NotFoundError("Series not found");
-    }
   }
 
   findAllOwned(userId: string): Promise<SeriesWithBookCount[]> {
@@ -206,31 +209,29 @@ export class SeriesRepository {
     });
   }
 
-  async updateOwned(
+  updateOwned(
     userId: string,
     id: string,
     data: UpdateSeriesData,
     client?: Prisma.TransactionClient,
   ): Promise<SeriesWithBookCount> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) => this.updateOwned(userId, id, data, tx));
-    }
-
-    const updated = await client.series.updateMany({ data: data.fields, where: { id, userId } });
-    if (updated.count === 0) {
-      throw new NotFoundError("Series not found");
-    }
-
-    if (data.authorIds !== undefined) {
-      await client.seriesAuthor.deleteMany({ where: { seriesId: id } });
-      if (data.authorIds.length > 0) {
-        await client.seriesAuthor.createMany({
-          data: data.authorIds.map((authorId) => ({ authorId, seriesId: id })),
-        });
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const updated = await tx.series.updateMany({ data: data.fields, where: { id, userId } });
+      if (updated.count === 0) {
+        throw new NotFoundError("Series not found");
       }
-    }
 
-    return client.series.findFirstOrThrow({ where: { id, userId }, ...seriesWithBookCountArgs });
+      if (data.authorIds !== undefined) {
+        await tx.seriesAuthor.deleteMany({ where: { seriesId: id } });
+        if (data.authorIds.length > 0) {
+          await tx.seriesAuthor.createMany({
+            data: data.authorIds.map((authorId) => ({ authorId, seriesId: id })),
+          });
+        }
+      }
+
+      return tx.series.findFirstOrThrow({ where: { id, userId }, ...seriesWithBookCountArgs });
+    });
   }
 
   async upsertByNormalized(
@@ -260,7 +261,10 @@ function buildOwnedWhere({ authorIds, query, userId }: OwnedWhereInput): Prisma.
   }
 
   if (authorIds !== undefined && authorIds.length > 0) {
-    where.OR = [{ authors: { some: { authorId: { in: authorIds } } } }, { authors: { none: {} } }];
+    where.OR = [
+      { books: { some: { authors: { some: { authorId: { in: authorIds } } } } } },
+      { authors: { some: { authorId: { in: authorIds } } }, books: { none: {} } },
+    ];
   }
 
   return where;

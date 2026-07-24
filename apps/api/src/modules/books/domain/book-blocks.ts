@@ -1,5 +1,6 @@
 import type {
   DeliveryInfoInput,
+  DeliveryStatus,
   LoanInfoInput,
   Nullable,
   OwnershipStatus,
@@ -38,7 +39,7 @@ const STATUSES_WITH_READING_PROGRESS: ReadonlySet<ReadingStatus> = new Set([
 
 const OWNERSHIP_STATUS_IN_TRANSIT: OwnershipStatus = "in_transit";
 
-const DEFAULT_DELIVERY_STATUS = "ordered";
+const DEFAULT_DELIVERY_STATUS: DeliveryStatus = "ordered";
 
 export const toCreateDate = (value: Nullable<string> | undefined): Nullable<Date> =>
   value === undefined || value === null ? null : parseIsoDate(value);

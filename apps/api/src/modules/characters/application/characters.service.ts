@@ -1,14 +1,18 @@
 import type {
   BookCharacterProfileInput,
   BookCharactersQuery,
+  BookCharacterSummaryView,
   BookCharacterView,
   CharacterDeletionPreview,
   CharacterDeletionResult,
+  CharacterDetailsQuery,
   CharacterDetailsView,
   CharacterDuplicateCandidatesQuery,
   CharacterDuplicateCandidatesView,
+  CharacterFormView,
   CharacterGlobalSummaryView,
   CharacterInput,
+  CharacterRevealFieldKey,
   CharacterSeriesProfileView,
   CharactersListQuery,
   CharacterSuggestionsQuery,
@@ -19,8 +23,12 @@ import type {
   MediaView,
   Nullable,
   Paginator,
+  ReadingPosition,
   SeriesCharacterProfileQuery,
   SeriesCharactersQuery,
+  SeriesCharacterSummaryQuery,
+  SeriesCharacterSummaryView,
+  SeriesReadingContextDefaultView,
   UpdateBookCharacter,
   UpdateCharacter,
 } from "@app/shared";
@@ -29,12 +37,14 @@ import type { Queue } from "bullmq";
 import {
   CHARACTER_DUPLICATE_CANDIDATES_MAX,
   CHARACTER_ERROR_CODES,
+  CHARACTER_SUMMARY_TOP_LIMIT,
   normalizeName,
   normalizeSearch,
+  readingPositionFromQuery,
 } from "@app/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
-import { addMilliseconds } from "date-fns";
+import { addMilliseconds, subMilliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
@@ -51,9 +61,9 @@ import type {
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
-import { BooksRepository } from "../../books/index.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
+import { assertBookOwned, BooksRepository } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { TagsService } from "../../tags/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
@@ -64,15 +74,24 @@ import {
   type CharacterPurgeJob,
 } from "../domain/character-purge.js";
 import {
+  buildBookCharacterSummary,
+  buildSeriesCharacterSummary,
+  isTopImportance,
+} from "../domain/character-summary.js";
+import {
   toBookCharacterView,
   toCharacterDetailsView,
+  toCharacterFormView,
   toCharacterGlobalSummaryView,
   toCharacterSeriesProfileView,
   toCharacterSummaryView,
+  toMaskedBookCharacterView,
 } from "../domain/character.mapper.js";
+import { buildReadingPositionGate, isHiddenByReadingPosition } from "../domain/reading-position.js";
 import {
   pickSeriesRepresentatives,
   resolveAllowedBookIds,
+  resolveDefaultReadingContext,
   sortSeriesSummaries,
 } from "../domain/series-representative.js";
 import {
@@ -120,6 +139,35 @@ export class CharactersService {
       userId,
     });
     return { suggestions: rows.map((row) => this.toGlobalSummaryView(row)) };
+  }
+
+  async bookCharacterSummary({
+    bookId,
+    userId,
+  }: {
+    bookId: string;
+    userId: string;
+  }): Promise<BookCharacterSummaryView> {
+    await this.assertBookOwned(userId, bookId);
+
+    const [aggregate, topRows] = await Promise.all([
+      this.charactersRepository.aggregateBookCharacterSummary({ bookId, userId }),
+      this.charactersRepository.listTopBookCharacters({
+        bookId,
+        limit: CHARACTER_SUMMARY_TOP_LIMIT,
+        userId,
+      }),
+    ]);
+
+    return buildBookCharacterSummary({
+      bookId,
+      byImportanceEntries: aggregate.byImportance,
+      favoritesCount: aggregate.favoritesCount,
+      hasHiddenRecords: aggregate.hiddenCount > 0,
+      povCount: aggregate.povCount,
+      topCandidates: topRows.map((row) => this.toSummaryView(row)),
+      totalVisibleCharacters: aggregate.totalVisibleCharacters,
+    });
   }
 
   async createGlobalCharacter(
@@ -254,18 +302,56 @@ export class CharactersService {
       characterId,
       userId,
     });
-    if (row === null || row.bookAppearances.length === 0) {
+    if (row === null || row.hideProfileAsSpoiler || row.bookAppearances.length === 0) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
     return this.toDetailsView(row);
   }
 
-  async getCharacterDetails(userId: string, characterId: string): Promise<CharacterDetailsView> {
-    const row = await this.charactersRepository.findOwnedCharacterDetails({ characterId, userId });
-    if (row === null) {
-      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+  async getCharacterDetails({
+    characterId,
+    query,
+    userId,
+  }: {
+    characterId: string;
+    query: CharacterDetailsQuery;
+    userId: string;
+  }): Promise<CharacterDetailsView> {
+    const revealHiddenProfile = query.includeHiddenProfiles ?? false;
+    if (query.contextBookId === undefined) {
+      return this.loadFullCharacterDetails({ characterId, revealHiddenProfile, userId });
     }
-    return this.toDetailsView(row);
+    return this.loadMaskedCharacterDetails({
+      characterId,
+      contextBookId: query.contextBookId,
+      reader: readingPositionFromQuery(query),
+      revealFieldIds: query.revealFieldIds ?? [],
+      revealHiddenProfile,
+      userId,
+    });
+  }
+
+  async getDefaultSeriesReadingContext({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesReadingContextDefaultView> {
+    await this.assertSeriesOwned({ seriesId, userId });
+    const books = await this.charactersRepository.listSeriesBooksReadingContext({
+      seriesId,
+      userId,
+    });
+    this.warnOnAmbiguousSeriesOrder({ seriesBooks: books, seriesId });
+    return resolveDefaultReadingContext({
+      books: books.map((book) => ({
+        createdAt: book.createdAt,
+        finishedAt: book.readingProgress?.finishedAt ?? null,
+        id: book.id,
+        partNumber: book.partNumber,
+      })),
+    });
   }
 
   async getSeriesCharacterProfile({
@@ -310,7 +396,11 @@ export class CharactersService {
             characterId,
             userId,
           });
-    if (character === null || character.bookAppearances.length === 0) {
+    if (
+      character === null ||
+      character.hideProfileAsSpoiler ||
+      character.bookAppearances.length === 0
+    ) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
 
@@ -323,6 +413,7 @@ export class CharactersService {
           !alias.isSpoiler && (alias.bookId === null || allowedBookIdSet.has(alias.bookId)),
       ),
       appearances: character.bookAppearances.map((appearance) => ({
+        attitude: appearance.attitude,
         bookId: appearance.bookId,
         createdAt: appearance.createdAt,
         displayName: appearance.displayName,
@@ -331,6 +422,7 @@ export class CharactersService {
         importance: appearance.importance,
         portrait: this.mediaViewOf(appearance.portraitMedia),
         portraitIsSpoiler: appearance.portraitIsSpoiler,
+        roles: appearance.roles,
         status: appearance.status,
         statusIsSpoiler: appearance.statusIsSpoiler,
       })),
@@ -351,8 +443,7 @@ export class CharactersService {
     const [items, totalCount] = await Promise.all([
       this.charactersRepository.listRoster({
         ...filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.charactersRepository.countRoster(filter),
     ]);
@@ -375,14 +466,20 @@ export class CharactersService {
     if (query.contextBookId !== undefined) {
       await this.assertBookOwned(userId, query.contextBookId);
     }
-    const filter = this.toGlobalFilter({ query, userId });
+    const duplicateNormalizedNames = query.possibleDuplicates
+      ? await this.charactersRepository.findDuplicateNormalizedNames({
+          archived: query.archived ?? false,
+          includeHiddenProfiles: query.includeHiddenProfiles ?? false,
+          userId,
+        })
+      : undefined;
+    const filter = this.toGlobalFilter({ duplicateNormalizedNames, query, userId });
 
     const [rows, totalCount] = await Promise.all([
       this.charactersRepository.listGlobalSummaries({
         filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
         sort: query.sort,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.charactersRepository.countGlobalSummaries(filter),
     ]);
@@ -449,9 +546,12 @@ export class CharactersService {
     const summaries = representatives.map((row) => this.toSummaryView(row));
     const sorted = sortSeriesSummaries({ sort: query.sort, summaries });
 
-    const start = (query.pageNumber - 1) * query.pageSize;
+    const { skip: start, take } = pageSlice({
+      pageNumber: query.pageNumber,
+      pageSize: query.pageSize,
+    });
     return buildPaginator({
-      items: sorted.slice(start, start + query.pageSize),
+      items: sorted.slice(start, start + take),
       pageNumber: query.pageNumber,
       pageSize: query.pageSize,
       totalCount: sorted.length,
@@ -464,8 +564,13 @@ export class CharactersService {
       return;
     }
 
+    const deletedBefore = subMilliseconds(new Date(), CHARACTER_PURGE_WINDOW_MS);
     const mediaIds = collectMediaIds(character);
-    const purged = await this.charactersRepository.hardDeleteIfDeleted({ characterId, userId });
+    const purged = await this.charactersRepository.hardDeleteIfDeleted({
+      characterId,
+      deletedBefore,
+      userId,
+    });
     if (purged === 0) {
       return;
     }
@@ -491,7 +596,83 @@ export class CharactersService {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
     await this.cancelPurge(characterId);
-    return this.getCharacterDetails(userId, characterId);
+    return this.loadFullCharacterDetails({ characterId, revealHiddenProfile: true, userId });
+  }
+
+  async seriesCharacterSummary({
+    query,
+    seriesId,
+    userId,
+  }: {
+    query: SeriesCharacterSummaryQuery;
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesCharacterSummaryView> {
+    await this.assertSeriesOwned({ seriesId, userId });
+
+    let contextBook: Nullable<BookContextRow> = null;
+    if (query.contextBookId !== undefined) {
+      const resolved = await this.charactersRepository.findOwnedBookContext({
+        bookId: query.contextBookId,
+        userId,
+      });
+      if (resolved === null || resolved.seriesId !== seriesId) {
+        throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
+      }
+      contextBook = resolved;
+    }
+
+    const seriesBooks = await this.charactersRepository.listSeriesBooks({ seriesId, userId });
+    this.warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId });
+
+    const allowedBookIds = resolveAllowedBookIds({
+      contextBook,
+      includeFuture: false,
+      seriesBooks,
+    });
+    const contextBookId = contextBook?.id ?? null;
+    if (allowedBookIds.length === 0) {
+      return buildSeriesCharacterSummary({
+        byImportanceEntries: [],
+        contextBookId,
+        favoritesCount: 0,
+        hasHiddenRecords: false,
+        povCount: 0,
+        seriesId,
+        topCandidates: [],
+        totalVisibleCharacters: 0,
+      });
+    }
+
+    const [appearances, hiddenCharacterIds] = await Promise.all([
+      this.charactersRepository.listSeriesAppearances({
+        bookIds: allowedBookIds,
+        search: undefined,
+        userId,
+      }),
+      this.charactersRepository.listSeriesHiddenCharacterIds({ bookIds: allowedBookIds, userId }),
+    ]);
+
+    const partNumberByBookId = new Map(seriesBooks.map((book) => [book.id, book.partNumber]));
+    const representatives = pickSeriesRepresentatives({
+      appearances,
+      contextBookId: query.contextBookId,
+      partNumberByBookId,
+    });
+    const visibleCharacterIds = new Set(representatives.map((row) => row.characterId));
+
+    return buildSeriesCharacterSummary({
+      byImportanceEntries: representatives.map((row) => ({ count: 1, importance: row.importance })),
+      contextBookId,
+      favoritesCount: representatives.filter((row) => row.character.isFavorite).length,
+      hasHiddenRecords: hiddenCharacterIds.some((row) => !visibleCharacterIds.has(row.characterId)),
+      povCount: representatives.filter((row) => row.isPovCharacter).length,
+      seriesId,
+      topCandidates: representatives
+        .filter((row) => isTopImportance(row.importance))
+        .map((row) => this.toSummaryView(row)),
+      totalVisibleCharacters: representatives.length,
+    });
   }
 
   async softDelete({
@@ -669,12 +850,12 @@ export class CharactersService {
   }
 
   private async assertBookOwned(userId: string, bookId: string): Promise<void> {
-    const owned = await this.booksRepository.existsOwned({ bookId, userId });
-    if (!owned) {
-      throw new NotFoundError("Book not found", {
-        code: CHARACTER_ERROR_CODES.bookNotFound,
-      });
-    }
+    await assertBookOwned({
+      bookId,
+      booksRepository: this.booksRepository,
+      notFoundCode: CHARACTER_ERROR_CODES.bookNotFound,
+      userId,
+    });
   }
 
   private async assertMediaOwned(userId: string, mediaId: Nullable<string>): Promise<void> {
@@ -865,6 +1046,7 @@ export class CharactersService {
       entityKind: input.entityKind,
       gender: input.gender,
       globalAttitude: input.globalAttitude ?? null,
+      hideProfileAsSpoiler: input.hideProfileAsSpoiler,
       isFavorite: input.isFavorite,
       name: input.name,
       neutralDescription: emptyToNull(input.neutralDescription),
@@ -924,6 +1106,9 @@ export class CharactersService {
     }
     if (input.globalAttitude !== undefined) {
       data.globalAttitude = input.globalAttitude ?? null;
+    }
+    if (input.hideProfileAsSpoiler !== undefined) {
+      data.hideProfileAsSpoiler = input.hideProfileAsSpoiler;
     }
     return data;
   }
@@ -987,12 +1172,13 @@ export class CharactersService {
     try {
       await this.charactersRepository.createBookCharacter(data, tx);
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("Character is already linked to this book", {
-          code: CHARACTER_ERROR_CODES.alreadyLinkedToBook,
-        });
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError("Character is already linked to this book", {
+            code: CHARACTER_ERROR_CODES.alreadyLinkedToBook,
+          }),
+      });
     }
   }
 
@@ -1007,6 +1193,93 @@ export class CharactersService {
     return row;
   }
 
+  private async loadFullCharacterDetails({
+    characterId,
+    revealHiddenProfile,
+    userId,
+  }: {
+    characterId: string;
+    revealHiddenProfile: boolean;
+    userId: string;
+  }): Promise<CharacterDetailsView> {
+    const row = await this.charactersRepository.findOwnedCharacterDetails({ characterId, userId });
+    if (row === null || (row.hideProfileAsSpoiler && !revealHiddenProfile)) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
+    return this.toDetailsView(row);
+  }
+
+  private async loadMaskedCharacterDetails({
+    characterId,
+    contextBookId,
+    reader,
+    revealFieldIds,
+    revealHiddenProfile,
+    userId,
+  }: {
+    characterId: string;
+    contextBookId: string;
+    reader: ReadingPosition | undefined;
+    revealFieldIds: CharacterRevealFieldKey[];
+    revealHiddenProfile: boolean;
+    userId: string;
+  }): Promise<CharacterDetailsView> {
+    const contextBook = await this.charactersRepository.findOwnedBookContext({
+      bookId: contextBookId,
+      userId,
+    });
+    if (contextBook === null) {
+      throw new NotFoundError("Book not found", { code: CHARACTER_ERROR_CODES.bookNotFound });
+    }
+
+    const allowedBookIds = await this.resolveContextAllowedBookIds({ contextBook, userId });
+    const positionGate = buildReadingPositionGate({ contextBookId, reader });
+    const row =
+      allowedBookIds.length === 0
+        ? null
+        : await this.charactersRepository.findOwnedCharacterDetailsInBooks({
+            allowedBookIds,
+            characterId,
+            userId,
+          });
+    if (row !== null && row.hideProfileAsSpoiler && !revealHiddenProfile) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
+    const visibleAppearances =
+      row === null
+        ? []
+        : row.bookAppearances.filter(
+            (appearance) =>
+              !appearance.hidePresenceAsSpoiler &&
+              !isHiddenByReadingPosition({
+                content: {
+                  audioSeconds: appearance.firstAppearanceAudioSeconds,
+                  chapter: appearance.firstAppearanceChapter,
+                  page: appearance.firstAppearancePage,
+                },
+                contentBookId: appearance.bookId,
+                gate: positionGate,
+              }),
+          );
+    if (row === null || visibleAppearances.length === 0) {
+      throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
+    }
+
+    const revealedFields = new Set(revealFieldIds);
+    const allowedBookIdSet = new Set(allowedBookIds);
+    const aliases = row.aliases.filter(
+      (alias) => !alias.isSpoiler && (alias.bookId === null || allowedBookIdSet.has(alias.bookId)),
+    );
+    return toCharacterDetailsView({
+      appearances: visibleAppearances.map((appearance) =>
+        this.mapMaskedAppearance({ appearance, revealedFields }),
+      ),
+      avatar: this.mediaViewOf(row.avatarMedia),
+      character: { ...row, aliases },
+      forms: row.forms.filter((form) => !form.isSpoiler).map((form) => this.mapForm(form)),
+    });
+  }
+
   private mapAppearance(
     appearance: CharacterDetailsRow["bookAppearances"][number],
   ): BookCharacterView {
@@ -1016,16 +1289,26 @@ export class CharactersService {
     });
   }
 
+  private mapForm(form: CharacterDetailsRow["forms"][number]): CharacterFormView {
+    return toCharacterFormView({ form, portrait: this.mediaViewOf(form.portraitMedia) });
+  }
+
+  private mapMaskedAppearance({
+    appearance,
+    revealedFields,
+  }: {
+    appearance: CharacterDetailsRow["bookAppearances"][number];
+    revealedFields: ReadonlySet<CharacterRevealFieldKey>;
+  }): BookCharacterView {
+    return toMaskedBookCharacterView({
+      appearance,
+      portrait: this.mediaViewOf(appearance.portraitMedia),
+      revealedFields,
+    });
+  }
+
   private mediaViewOf(asset: Nullable<MediaAssetModel>): Nullable<MediaView> {
-    if (asset === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(asset);
-    } catch (error) {
-      log.warn({ err: error, mediaId: asset.id }, "failed to build character media view");
-      return null;
-    }
+    return this.mediaService.buildViewOrNull(asset);
   }
 
   private async resolveCharacterForBook({
@@ -1070,32 +1353,60 @@ export class CharactersService {
     return input.characterId;
   }
 
+  private async resolveContextAllowedBookIds({
+    contextBook,
+    userId,
+  }: {
+    contextBook: BookContextRow;
+    userId: string;
+  }): Promise<string[]> {
+    if (contextBook.seriesId === null) {
+      return [contextBook.id];
+    }
+    const seriesBooks = await this.charactersRepository.listSeriesBooks({
+      seriesId: contextBook.seriesId,
+      userId,
+    });
+    this.warnOnAmbiguousSeriesOrder({ seriesBooks, seriesId: contextBook.seriesId });
+    return resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks });
+  }
+
   private toDetailsView(row: CharacterDetailsRow): CharacterDetailsView {
     return toCharacterDetailsView({
       appearances: row.bookAppearances.map((appearance) => this.mapAppearance(appearance)),
       avatar: this.mediaViewOf(row.avatarMedia),
       character: row,
+      forms: row.forms.map((form) => this.mapForm(form)),
     });
   }
 
   private toGlobalFilter({
+    duplicateNormalizedNames,
     query,
     userId,
   }: {
+    duplicateNormalizedNames: string[] | undefined;
     query: CharactersListQuery;
     userId: string;
   }): GlobalCharacterFilter {
     return {
       archived: query.archived ?? false,
       attitudes: query.attitude,
+      bookId: query.bookId,
       contextBookId: query.contextBookId,
+      duplicateNormalizedNames,
       favorite: query.favorite,
       genders: query.gender,
+      groupIds: query.groupId,
+      hasSpoilers: query.hasSpoilers,
       importances: query.importance,
+      includeHiddenProfiles: query.includeHiddenProfiles ?? false,
       includeSpoilerSearch: query.includeSpoilerSearch ?? false,
       roleTypes: query.role,
       search: normalizeSearch(query.q),
+      seriesId: query.seriesId,
       species: query.species,
+      tagIds: query.tagId,
       userId,
     };
   }
@@ -1142,6 +1453,7 @@ function collectMediaIds(character: CharacterPurgeRow): string[] {
   const ids = [
     character.avatarMediaId,
     ...character.bookAppearances.map((appearance) => appearance.portraitMediaId),
+    ...character.forms.map((form) => form.portraitMediaId),
   ];
   return [...new Set(ids.filter((id): id is string => id !== null))];
 }

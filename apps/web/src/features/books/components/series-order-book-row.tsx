@@ -10,7 +10,7 @@ import { Link } from "@/i18n/navigation";
 
 type SeriesOrderBookRowProps = {
   book: SeriesOrderBookView;
-  label: string;
+  label?: string;
 };
 
 export function SeriesOrderBookRow({ book, label }: SeriesOrderBookRowProps) {
@@ -20,9 +20,9 @@ export function SeriesOrderBookRow({ book, label }: SeriesOrderBookRowProps) {
     <div className="flex gap-2.5">
       <BookCover book={book} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className="text-xs text-muted-foreground">{label}</p>
+        {label === undefined ? null : <p className="text-xs text-muted-foreground">{label}</p>}
         <Link
-          className="line-clamp-2 text-sm leading-tight font-medium text-ink no-underline transition-colors hover:text-primary"
+          className="line-clamp-2 text-sm leading-tight font-medium text-ink underline decoration-muted-foreground/40 underline-offset-2 transition-colors hover:text-primary hover:decoration-primary"
           href={`/books/${book.id}`}
         >
           {book.title}

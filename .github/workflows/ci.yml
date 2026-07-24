@@ -25,9 +25,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -99,13 +101,18 @@ jobs:
       JWT_ACCESS_SECRET: ci-access-secret-0000000000000000000000000
       JWT_REFRESH_SECRET: ci-refresh-secret-000000000000000000000000
       NEXT_PUBLIC_SITE_URL: https://book-nest.net
+      R2_ACCESS_KEY_ID: ci-r2-access-key
+      R2_SECRET_ACCESS_KEY: ci-r2-secret-key
+      R2_ENDPOINT: https://ci-r2.book-nest.net
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
 
       - name: Setup Node
         uses: actions/setup-node@v6

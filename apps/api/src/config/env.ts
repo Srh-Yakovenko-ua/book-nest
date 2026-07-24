@@ -3,6 +3,12 @@ import { z } from "zod";
 
 config({ path: `.env.${process.env.APP_ENV ?? "local"}` });
 
+const LOCAL_R2_ACCESS_KEY_ID = "booknest";
+const LOCAL_R2_SECRET_ACCESS_KEY = "booknest_local_s3";
+const LOCAL_R2_ENDPOINT = "http://127.0.0.1:9000";
+const LOCAL_R2_PUBLIC_BASE_URL = "http://127.0.0.1:9000/book-nest-dev";
+const LOCAL_HOST_PATTERN = /localhost|127\.0\.0\.1|0\.0\.0\.0/;
+
 const envSchema = z
   .object({
     ACCESS_TOKEN_TTL: z.string().default("15m"),
@@ -39,10 +45,7 @@ const envSchema = z
       }),
     DATABASE_URL: z.string().url(),
     EMAIL_VERIFICATION_TTL_MINUTES: z.coerce.number().int().positive().default(60),
-    ENABLE_SWAGGER: z
-      .enum(["true", "false"])
-      .default("true")
-      .transform((value) => value === "true"),
+    ENABLE_SWAGGER: z.enum(["true", "false"]).optional(),
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_REFRESH_SECRET: z.string().min(32),
     LOG_LEVEL: z.enum(["debug", "error", "info", "warn"]).default("info"),
@@ -51,16 +54,16 @@ const envSchema = z
     OTEL_SERVICE_NAME: z.string().default("monorepo-api"),
     PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
     PORT: z.coerce.number().int().positive().default(4000),
-    R2_ACCESS_KEY_ID: z.string().default("booknest"),
+    R2_ACCESS_KEY_ID: z.string().default(LOCAL_R2_ACCESS_KEY_ID),
     R2_BUCKET: z.string().default("book-nest-dev"),
-    R2_ENDPOINT: z.string().url().default("http://127.0.0.1:9000"),
+    R2_ENDPOINT: z.string().url().default(LOCAL_R2_ENDPOINT),
     R2_FORCE_PATH_STYLE: z
       .enum(["true", "false"])
       .default("true")
       .transform((value) => value === "true"),
-    R2_PUBLIC_BASE_URL: z.string().url().default("http://127.0.0.1:9000/book-nest-dev"),
+    R2_PUBLIC_BASE_URL: z.string().url().default(LOCAL_R2_PUBLIC_BASE_URL),
     R2_REGION: z.string().default("auto"),
-    R2_SECRET_ACCESS_KEY: z.string().default("booknest_local_s3"),
+    R2_SECRET_ACCESS_KEY: z.string().default(LOCAL_R2_SECRET_ACCESS_KEY),
     REDIS_URL: z.string().url().default("redis://localhost:6379"),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
     REFRESH_TOKEN_TTL_DAYS_SHORT: z.coerce.number().int().positive().default(1),
@@ -81,11 +84,35 @@ const envSchema = z
     WIKIDATA_CONTACT: z.string().default("book-nest/1.0 (+https://book-nest.net)"),
   })
   .superRefine((raw, ctx) => {
-    if (raw.NODE_ENV === "production" && !raw.COOKIE_SECURE) {
+    if (raw.NODE_ENV !== "production") {
+      return;
+    }
+    if (!raw.COOKIE_SECURE) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "COOKIE_SECURE must be true when NODE_ENV=production",
         path: ["COOKIE_SECURE"],
+      });
+    }
+    if (raw.R2_ACCESS_KEY_ID === LOCAL_R2_ACCESS_KEY_ID) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "R2_ACCESS_KEY_ID must be set to a non-default value when NODE_ENV=production",
+        path: ["R2_ACCESS_KEY_ID"],
+      });
+    }
+    if (raw.R2_SECRET_ACCESS_KEY === LOCAL_R2_SECRET_ACCESS_KEY) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "R2_SECRET_ACCESS_KEY must be set to a non-default value when NODE_ENV=production",
+        path: ["R2_SECRET_ACCESS_KEY"],
+      });
+    }
+    if (LOCAL_HOST_PATTERN.test(raw.R2_ENDPOINT)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "R2_ENDPOINT must not point to localhost when NODE_ENV=production",
+        path: ["R2_ENDPOINT"],
       });
     }
   })
@@ -95,7 +122,10 @@ const envSchema = z
     corsOrigins: raw.CORS_ORIGINS,
     databaseUrl: raw.DATABASE_URL,
     emailVerificationTtlMinutes: raw.EMAIL_VERIFICATION_TTL_MINUTES,
-    enableSwagger: raw.ENABLE_SWAGGER,
+    enableSwagger:
+      raw.ENABLE_SWAGGER === undefined
+        ? raw.NODE_ENV !== "production"
+        : raw.ENABLE_SWAGGER === "true",
     jwtAccessSecret: raw.JWT_ACCESS_SECRET,
     jwtRefreshSecret: raw.JWT_REFRESH_SECRET,
     logLevel: raw.LOG_LEVEL,

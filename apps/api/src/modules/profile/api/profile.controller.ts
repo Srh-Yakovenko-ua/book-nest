@@ -1,24 +1,22 @@
 import type { ProfileView } from "@app/shared";
 
 import { UpdateProfileInputSchema } from "@app/shared";
-import { Body, Controller, Get, HttpCode, Patch, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Patch } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ProfileService } from "../application/profile.service.js";
 import { UpdateProfileInputDto } from "./input-dto/update-profile.input-dto.js";
 
@@ -26,28 +24,23 @@ import { UpdateProfileInputDto } from "./input-dto/update-profile.input-dto.js";
 @Controller("api/profile")
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
-
-  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: "Profile not found" })
   @ApiOkResponse({ description: "The current user profile" })
   @ApiOperation({ summary: "Return the current user profile" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   getProfile(@CurrentUser() user: AuthenticatedUser): Promise<ProfileView> {
     return this.profileService.getProfile(user.id);
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBearerAuth()
   @ApiBody({ type: UpdateProfileInputDto })
   @ApiConflictResponse({ description: "Nickname already taken" })
   @ApiOkResponse({ description: "The updated user profile" })
   @ApiOperation({ summary: "Update the current user profile" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @HttpCode(HTTP_STATUS.OK)
+  @JwtProtected()
   @Patch()
-  @UseGuards(JwtAccessGuard)
   updateProfile(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(UpdateProfileInputSchema)) body: UpdateProfileInputDto,

@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 import { useDeleteSeries } from "../api/use-delete-series";
 import { seriesProgress } from "../model/series-derive";
-import { suggestedPartNumber } from "../model/series-details-derive";
+import { nextAddablePartNumber, suggestedPartNumber } from "../model/series-details-derive";
 import { AddBookToSeriesDialog } from "./add-book-to-series-dialog";
 import { DeleteSeriesDialog } from "./delete-series-dialog";
 import { EditSeriesDialog } from "./edit-series-dialog";
@@ -30,6 +30,7 @@ import { SeriesBooksSummary } from "./series-books-summary";
 import { SeriesBooksTab } from "./series-books-tab";
 import { SeriesDetailsAbout } from "./series-details-about";
 import { SeriesDetailsHero } from "./series-details-hero";
+import { SeriesOrderCheckToggle } from "./series-order-check-toggle";
 import { SeriesProgressCard } from "./series-progress-card";
 import { SeriesStatsCard } from "./series-stats-card";
 
@@ -54,6 +55,9 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
 
   const deleteSeries = useDeleteSeries(details.id);
   const { fullyRead } = seriesProgress(details);
+
+  const nextPart = nextAddablePartNumber({ books: details.books, totalBooks: details.totalBooks });
+  const canAddBook = nextPart !== null;
 
   const tabItems: PageTabsItem[] = [
     { label: t("tabs.books"), value: "books" },
@@ -80,6 +84,7 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
     <div className="grid gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-8">
       <div className="flex min-w-0 flex-col gap-6">
         <SeriesDetailsHero
+          canAddBook={canAddBook}
           details={details}
           onAddBook={() => openAddBook(null)}
           onDelete={() => setDeleteOpen(true)}
@@ -118,7 +123,7 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
           </div>
 
           <PageTabsPanel className="flex flex-col gap-5" value="books">
-            <SeriesBooksTab details={details} onAddBook={openAddBook} />
+            <SeriesBooksTab canAddBook={canAddBook} details={details} onAddBook={openAddBook} />
           </PageTabsPanel>
           <PageTabsPanel className="flex flex-col gap-6" value="about">
             <SeriesDetailsAbout details={details} />
@@ -127,13 +132,15 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
         </TabsPrimitive.Root>
 
         <div className="details-sidebar-leaf flex flex-col gap-6 lg:hidden">
-          <SeriesStatsCard stats={details.stats} />
+          <SeriesStatsCard stats={details.stats} totalBooks={details.totalBooks} />
+          <SeriesOrderCheckToggle seriesId={details.id} />
         </div>
       </div>
 
       <aside className="details-sidebar-leaf hidden flex-col gap-6 lg:flex">
         {fullyRead ? null : <SeriesProgressCard details={details} />}
-        <SeriesStatsCard stats={details.stats} />
+        <SeriesStatsCard stats={details.stats} totalBooks={details.totalBooks} />
+        <SeriesOrderCheckToggle seriesId={details.id} />
       </aside>
 
       <EditSeriesDialog onOpenChange={setEditOpen} open={editOpen} series={details} />
@@ -147,7 +154,7 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
         open={deleteOpen}
       />
       <AddBookToSeriesDialog
-        defaultPartNumber={addPartNumber ?? suggestedPartNumber(details.books)}
+        defaultPartNumber={addPartNumber ?? nextPart ?? suggestedPartNumber(details.books)}
         onOpenChange={setAddOpen}
         open={addOpen}
         seriesId={details.id}

@@ -1,4 +1,5 @@
 import type { CreateBookInput, Nullable, UpdateBookInput } from "@app/shared";
+import type { Mock } from "vitest";
 
 import { BOOK_SERIES_PART_NUMBER_TAKEN_CODE } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
@@ -14,6 +15,7 @@ import type { BooksRepository, BookWithRelations } from "../infrastructure/books
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { fakeOf } from "../../../test/fake.js";
 import { BookRelationsResolver, type ResolvedAuthors } from "./book-relations-resolver.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -33,8 +35,9 @@ const DEFAULT_RESOLVED_AUTHORS: ResolvedAuthors = {
 };
 
 type Repository = {
-  findSeriesPartNumberConflict: ReturnType<typeof vi.fn>;
-  maxQueuePosition: ReturnType<typeof vi.fn>;
+  acquireUserQueueLock: Mock;
+  findSeriesPartNumberConflict: Mock;
+  maxQueuePosition: Mock;
 };
 
 function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations {
@@ -72,17 +75,18 @@ function buildResolver(
     tagIds?: string[];
   } = {},
 ): {
-  authorsService: { resolveReferences: ReturnType<typeof vi.fn> };
-  genresService: { assertGenresSelectable: ReturnType<typeof vi.fn> };
-  listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
-  mediaService: { assertOwned: ReturnType<typeof vi.fn> };
-  publishersService: { resolveOrCreate: ReturnType<typeof vi.fn> };
+  authorsService: { resolveReferences: Mock };
+  genresService: { assertGenresSelectable: Mock };
+  listsService: { resolveListsForBook: Mock };
+  mediaService: { assertOwned: Mock };
+  publishersService: { resolveOrCreate: Mock };
   repository: Repository;
   resolver: BookRelationsResolver;
-  seriesService: { resolveForBook: ReturnType<typeof vi.fn> };
-  tagsService: { resolveOrCreateMany: ReturnType<typeof vi.fn> };
+  seriesService: { resolveForBook: Mock };
+  tagsService: { resolveOrCreateMany: Mock };
 } {
   const repository: Repository = {
+    acquireUserQueueLock: vi.fn().mockResolvedValue(undefined),
     findSeriesPartNumberConflict: vi
       .fn()
       .mockResolvedValue(overrides.findSeriesPartNumberConflict ?? null),
@@ -116,14 +120,14 @@ function buildResolver(
   };
 
   const resolver = new BookRelationsResolver(
-    repository as unknown as BooksRepository,
-    authorsService as unknown as AuthorsService,
-    publishersService as unknown as PublishersService,
-    tagsService as unknown as TagsService,
-    seriesService as unknown as SeriesService,
-    listsService as unknown as ListsService,
-    genresService as unknown as GenresService,
-    mediaService as unknown as MediaService,
+    fakeOf<BooksRepository>(repository),
+    fakeOf<AuthorsService>(authorsService),
+    fakeOf<PublishersService>(publishersService),
+    fakeOf<TagsService>(tagsService),
+    fakeOf<SeriesService>(seriesService),
+    fakeOf<ListsService>(listsService),
+    fakeOf<GenresService>(genresService),
+    fakeOf<MediaService>(mediaService),
   );
 
   return {
@@ -258,9 +262,8 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
   it("validates ownership of the cover media when provided", async () => {
     const { mediaService, resolver } = buildResolver();
 
-    await resolver.resolveForCreate({
+    await resolver.assertCreatableRelations({
       input: createInput({ coverMediaId: MEDIA_ID }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -270,9 +273,8 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
   it("asserts the genres are selectable for the caller", async () => {
     const { genresService, resolver } = buildResolver();
 
-    await resolver.resolveForCreate({
+    await resolver.assertCreatableRelations({
       input: createInput({ genres: ["fentezi", "romantyka"] }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
       userId: USER_ID,
     });
 
@@ -287,9 +289,8 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
     genresService.assertGenresSelectable.mockRejectedValue(new BadRequestError("Invalid genres"));
 
     await expect(
-      resolver.resolveForCreate({
+      resolver.assertCreatableRelations({
         input: createInput({ genres: ["nope"] }),
-        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
         userId: USER_ID,
       }),
     ).rejects.toBeInstanceOf(BadRequestError);
@@ -332,6 +333,31 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
     });
 
     expect(resolved).toMatchObject({ queuePosition: 5, queuePriority: "high" });
+  });
+
+  it("keeps a book created with a closed status out of the queue despite addToReadingQueue", async () => {
+    const { repository, resolver } = buildResolver({ maxQueuePosition: 4 });
+
+    const resolved = await resolver.resolveForCreate({
+      input: createInput({ addToReadingQueue: true, readingStatus: "finished" }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+      userId: USER_ID,
+    });
+
+    expect(repository.maxQueuePosition).not.toHaveBeenCalled();
+    expect(resolved).toMatchObject({ queuePosition: null, queuePriority: null });
+  });
+
+  it("keeps a book created as dnf out of the queue despite addToReadingQueue", async () => {
+    const { resolver } = buildResolver({ maxQueuePosition: 4 });
+
+    const resolved = await resolver.resolveForCreate({
+      input: createInput({ addToReadingQueue: true, readingStatus: "dnf" }),
+      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+      userId: USER_ID,
+    });
+
+    expect(resolved).toMatchObject({ queuePosition: null, queuePriority: null });
   });
 });
 
@@ -542,6 +568,10 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("validates ownership of a replacement cover and sets the field", async () => {
     const { mediaService, resolver } = buildResolver();
 
+    await resolver.assertUpdatableRelations({
+      input: { coverMediaId: MEDIA_ID },
+      userId: USER_ID,
+    });
     const resolved = await resolver.resolveForUpdate({
       bookId: BOOK_ID,
       current: bookRow(),
@@ -766,11 +796,8 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("asserts the genres are selectable when genres are provided", async () => {
     const { genresService, resolver } = buildResolver();
 
-    await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
+    await resolver.assertUpdatableRelations({
       input: { genres: ["fentezi", "romantyka"] },
-      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 
@@ -783,11 +810,8 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("does not assert genres when the genres field is absent", async () => {
     const { genresService, resolver } = buildResolver();
 
-    await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
+    await resolver.assertUpdatableRelations({
       input: { title: "Renamed" },
-      resolvedAuthors: undefined,
       userId: USER_ID,
     });
 

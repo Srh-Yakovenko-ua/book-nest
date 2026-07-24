@@ -8,22 +8,27 @@ import type {
 
 export function makeSeriesBookView(overrides: Partial<SeriesBookView> = {}): SeriesBookView {
   return {
+    activeDelivery: null,
     ageCategory: "16_plus",
     authors: [{ id: "author-1", name: "Ребекка Яррос" }],
     createdAt: "2026-01-01T00:00:00.000Z",
     currentPage: null,
+    finishedAt: null,
     formats: ["paper"],
     genres: ["fantasy", "romance"],
     id: "series-book-1",
     isFavorite: false,
     isInReadingQueue: false,
+    loanInfo: null,
     originalTitle: null,
     ownershipStatus: "owned",
     pagesCount: 512,
     partNumber: 1,
     publicationYear: 2023,
+    publisher: null,
     rating: null,
     readingStatus: "finished",
+    startedAt: null,
     tags: [{ id: "tag-1", name: "дракони" }],
     title: "Четверте крило",
     ...overrides,
@@ -106,11 +111,18 @@ export function makeSeriesOverview(
 
 export function makeSeriesStats(overrides: Partial<SeriesStatsView> = {}): SeriesStatsView {
   return {
+    averagePages: 507,
     averageRating: 8.5,
     booksCount: 3,
+    favoriteBook: { id: "series-book-1", title: "Четверте крило" },
     finishedCount: 1,
+    lastFinishedAt: "2026-01-05T00:00:00.000Z",
     pagesCount: 1520,
     readingCount: 1,
+    readingDurationDays: 4,
+    readPagesCount: 512,
+    readPagesPartial: false,
+    startedAt: "2026-01-01T00:00:00.000Z",
     unreadCount: 1,
     ...overrides,
   };

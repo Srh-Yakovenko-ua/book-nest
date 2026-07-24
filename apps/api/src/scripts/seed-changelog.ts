@@ -343,6 +343,66 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Значок 18+",
     version: null,
   },
+  {
+    bodyEn:
+      "Browse the publishers in your library with their ratings and purchases, open a page for each one, and manage your own custom publishers.",
+    bodyUk:
+      "Переглядайте видавництва своєї бібліотеки з їхніми рейтингами й покупками, відкривайте сторінку кожного та керуйте власними видавництвами.",
+    category: "feature",
+    publishedAt: "2026-07-24T00:00:00.000Z",
+    slug: "publishers",
+    titleEn: "Publishers",
+    titleUk: "Видавництва",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Keep a cast of characters for each book — add them with roles, mark favorites, and hide spoilers.",
+    bodyUk:
+      "Ведіть список персонажів для кожної книги — додавайте їх із ролями, позначайте улюблених і ховайте спойлери.",
+    category: "feature",
+    publishedAt: "2026-07-24T00:00:01.000Z",
+    slug: "characters",
+    titleEn: "Characters",
+    titleUk: "Персонажі",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Build a timeline of a book's key events to remember what happened, with support for several parallel timelines.",
+    bodyUk:
+      "Створюйте хронологію ключових подій книги, щоб пам'ятати, що сталося, з підтримкою кількох паралельних ліній.",
+    category: "feature",
+    publishedAt: "2026-07-24T00:00:02.000Z",
+    slug: "book-timeline",
+    titleEn: "Event timeline",
+    titleUk: "Хронологія подій",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Your reading queue now shows summary cards and its total page volume, and you can filter it by status, format, genre, rating, and more.",
+    bodyUk:
+      "Черга читання тепер показує картки підсумків і загальний обсяг сторінок, а фільтрувати її можна за статусом, форматом, жанром, рейтингом та іншим.",
+    category: "improvement",
+    publishedAt: "2026-07-24T00:00:03.000Z",
+    slug: "reading-queue-insights",
+    titleEn: "Reading-queue insights and filters",
+    titleUk: "Огляд і фільтри черги читання",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The series page now highlights read pages, your reading window, and favorite book in the series, plus genres, years, and publishers.",
+    bodyUk:
+      "Сторінка серії тепер показує прочитані сторінки, період читання й улюблену книгу серії, а також жанри, роки та видавництва.",
+    category: "improvement",
+    publishedAt: "2026-07-24T00:00:04.000Z",
+    slug: "series-details-stats",
+    titleEn: "Richer series details",
+    titleUk: "Докладніша сторінка серії",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

@@ -4,17 +4,13 @@ import { type ReactNode, useEffect } from "react";
 
 import { registerAuthBridge } from "@/lib/auth-bridge";
 
-import { refreshSession } from "../api/session";
+import { singleFlightRefresh } from "../lib/single-flight-refresh";
 import { useAuthStore } from "../model/auth-store";
 
 registerAuthBridge({
   getAccessToken: () => useAuthStore.getState().accessToken,
   onRefreshFailed: () => useAuthStore.getState().clearSession(),
-  refresh: async () => {
-    const result = await refreshSession();
-    useAuthStore.getState().setSession(result.accessToken, result.user);
-    return result.accessToken;
-  },
+  refresh: singleFlightRefresh,
 });
 
 let bootstrapped = false;
@@ -24,12 +20,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (bootstrapped) return;
     bootstrapped = true;
 
-    const { clearSession, setSession, setStatus } = useAuthStore.getState();
+    const { clearSession, setStatus } = useAuthStore.getState();
     setStatus("loading");
 
-    void refreshSession()
-      .then((result) => setSession(result.accessToken, result.user))
-      .catch(() => clearSession());
+    void singleFlightRefresh().catch(() => clearSession());
   }, []);
 
   return children;

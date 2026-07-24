@@ -8,6 +8,7 @@ import type {
 } from "@app/shared";
 
 import {
+  CharacterDetailsQuerySchema,
   CharacterDuplicateCandidatesQuerySchema,
   CharactersListQuerySchema,
   CreateCharacterSchema,
@@ -25,11 +26,9 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
@@ -38,17 +37,18 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharactersService } from "../application/characters.service.js";
+import { CharacterDetailsQueryDto } from "./input-dto/character-details-query.input-dto.js";
 import { CharactersListQueryDto } from "./input-dto/characters-list-query.input-dto.js";
 import { CreateCharacterInputDto } from "./input-dto/create-character.input-dto.js";
 import { DeleteCharacterQueryDto } from "./input-dto/delete-character-query.input-dto.js";
@@ -60,14 +60,9 @@ import { CharacterDetailsViewDto } from "./view-dto/character-details.view-dto.j
 import { CharacterDuplicateCandidatesDto } from "./view-dto/character-duplicate-candidates.view-dto.js";
 import { PaginatedCharacterGlobalSummaryDto } from "./view-dto/paginated-character-global-summary.view-dto.js";
 
-const CHARACTER_ACTION_TTL_SECONDS = 60;
-const CHARACTER_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("characters")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/characters")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class CharactersController {
   constructor(private readonly charactersService: CharactersService) {}
 
@@ -77,9 +72,7 @@ export class CharactersController {
   @ApiNotFoundResponse({ description: "Book or media not found" })
   @ApiOperation({ summary: "Create a global character, optionally with a first book appearance" })
   @Post()
-  @Throttle({
-    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(CreateCharacterSchema)) body: CreateCharacterInputDto,
@@ -93,16 +86,27 @@ export class CharactersController {
   })
   @ApiOperation({ summary: "List the current user's characters as spoiler-safe global summaries" })
   @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "bookId", required: false })
+  @ApiQuery({ name: "seriesId", required: false })
   @ApiQuery({ name: "role", required: false })
   @ApiQuery({ name: "importance", required: false })
   @ApiQuery({ name: "species", required: false })
   @ApiQuery({ name: "gender", required: false })
   @ApiQuery({ name: "attitude", required: false })
+  @ApiQuery({ name: "groupId", required: false })
+  @ApiQuery({ name: "tagId", required: false })
   @ApiQuery({ name: "favorite", required: false })
+  @ApiQuery({ name: "hasSpoilers", required: false })
+  @ApiQuery({ name: "possibleDuplicates", required: false })
   @ApiQuery({ name: "archived", required: false })
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "contextBookId", required: false })
   @ApiQuery({ name: "includeSpoilerSearch", required: false })
+  @ApiQuery({
+    description: "Owner opt-in to include whole-profile hidden characters in the results",
+    name: "includeHiddenProfiles",
+    required: false,
+  })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   @Get()
@@ -131,19 +135,43 @@ export class CharactersController {
     return this.charactersService.duplicateCandidates({ query, userId: user.id });
   }
 
-  @ApiNotFoundResponse({ description: "Character not found" })
+  @ApiNotFoundResponse({ description: "Character or context book not found" })
   @ApiOkResponse({
-    description: "The character with its appearances",
+    description:
+      "The character with its appearances, context-masked to a reading context when contextBookId is set",
     type: CharacterDetailsViewDto,
   })
   @ApiOperation({ summary: "Get a global character with its book appearances" })
   @ApiParam({ description: "Character id", name: "characterId" })
+  @ApiQuery({ name: "contextBookId", required: false })
+  @ApiQuery({ name: "revealFieldIds", required: false })
+  @ApiQuery({
+    description: "Owner opt-in to reveal a whole-profile hidden character instead of 404",
+    name: "includeHiddenProfiles",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader chapter within the context book for page-level spoiler masking",
+    name: "contextChapter",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader page within the context book for page-level spoiler masking",
+    name: "contextPage",
+    required: false,
+  })
+  @ApiQuery({
+    description: "Reader audiobook seconds within the context book for page-level spoiler masking",
+    name: "contextAudioSeconds",
+    required: false,
+  })
   @Get(":characterId")
   getById(
     @CurrentUser() user: AuthenticatedUser,
     @Param("characterId", ParseUUIDPipe) characterId: string,
+    @Query(new ZodQueryPipe(CharacterDetailsQuerySchema)) query: CharacterDetailsQueryDto,
   ): Promise<CharacterDetailsView> {
-    return this.charactersService.getCharacterDetails(user.id, characterId);
+    return this.charactersService.getCharacterDetails({ characterId, query, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "Character not found" })
@@ -168,9 +196,7 @@ export class CharactersController {
   @ApiOperation({ summary: "Update the global fields of a character" })
   @ApiParam({ description: "Character id", name: "characterId" })
   @Patch(":characterId")
-  @Throttle({
-    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   updateGlobal(
     @CurrentUser() user: AuthenticatedUser,
     @Param("characterId", ParseUUIDPipe) characterId: string,
@@ -189,9 +215,7 @@ export class CharactersController {
   @ApiParam({ description: "Character id", name: "characterId" })
   @ApiQuery({ description: "Must be true to confirm the delete", name: "confirm", required: true })
   @Delete(":characterId")
-  @Throttle({
-    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   softDelete(
     @CurrentUser() user: AuthenticatedUser,
     @Param("characterId", ParseUUIDPipe) characterId: string,
@@ -206,9 +230,7 @@ export class CharactersController {
   @ApiParam({ description: "Character id", name: "characterId" })
   @HttpCode(HTTP_STATUS.OK)
   @Post(":characterId/restore")
-  @Throttle({
-    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   restore(
     @CurrentUser() user: AuthenticatedUser,
     @Param("characterId", ParseUUIDPipe) characterId: string,

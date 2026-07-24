@@ -22,11 +22,7 @@ export type GenreGroupOption = {
 };
 
 export type GenreSort =
-  | "books_count_desc"
-  | "name_asc"
-  | "queue_count_desc"
-  | "rating_desc"
-  | "read_count_desc";
+  "books_count_desc" | "name_asc" | "queue_count_desc" | "rating_desc" | "read_count_desc";
 
 export const GENRE_FILTERS = [
   "all",

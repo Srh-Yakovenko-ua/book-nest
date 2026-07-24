@@ -9,16 +9,39 @@ import type {
 
 import { NOTE_PAGE_MAX } from "@app/shared";
 import { Injectable } from "@nestjs/common";
-
-import type { Prisma } from "../../../generated/prisma/client.js";
+import { z } from "zod";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+import { buildBookTextSearchConditions } from "../../books/index.js";
 import {
   BOOK_NOTES_ORDER_BY,
   notesListOrderBy,
   SERIES_NOTES_ORDER_BY,
 } from "../domain/note-sort.js";
 import { type NoteSummaryCounts } from "../domain/note-summary.js";
+
+const NOTE_ENTITY_TYPE_BOOK = "book";
+
+const NoteSummaryCountsRowSchema = z.object({
+  bookNotesCount: z.number(),
+  booksWithNotesCount: z.number(),
+  favoriteCount: z.number(),
+  pinnedCount: z.number(),
+  seriesWithNotesCount: z.number(),
+  total: z.number(),
+  withSpoilerCount: z.number(),
+});
+
+const EMPTY_NOTE_COUNTS: z.infer<typeof NoteSummaryCountsRowSchema> = {
+  bookNotesCount: 0,
+  booksWithNotesCount: 0,
+  favoriteCount: 0,
+  pinnedCount: 0,
+  seriesWithNotesCount: 0,
+  total: 0,
+  withSpoilerCount: 0,
+};
 
 const noteEntityArgs = {
   include: {
@@ -144,44 +167,40 @@ export class NotesRepository {
   }
 
   async summaryCounts(userId: string): Promise<NoteSummaryCounts> {
-    const base: Prisma.NoteWhereInput = { userId };
-
-    const [
-      total,
-      bookNotesCount,
-      withSpoilerCount,
-      favoriteCount,
-      pinnedCount,
-      bookGroups,
-      seriesGroups,
-      customCategoryRows,
-    ] = await Promise.all([
-      this.prisma.note.count({ where: base }),
-      this.prisma.note.count({ where: { ...base, entityType: "book" } }),
-      this.prisma.note.count({ where: { ...base, isSpoiler: true } }),
-      this.prisma.note.count({ where: { ...base, isFavorite: true } }),
-      this.prisma.note.count({ where: { ...base, isPinned: true } }),
-      this.prisma.note.groupBy({ by: ["bookId"], where: { ...base, bookId: { not: null } } }),
-      this.prisma.note.groupBy({ by: ["seriesId"], where: { ...base, seriesId: { not: null } } }),
+    const [countsRows, customCategoryRows] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*))::int AS "total",
+          (count(*) FILTER (WHERE note.entity_type = ${NOTE_ENTITY_TYPE_BOOK}))::int AS "bookNotesCount",
+          (count(*) FILTER (WHERE note.is_spoiler = true))::int AS "withSpoilerCount",
+          (count(*) FILTER (WHERE note.is_favorite = true))::int AS "favoriteCount",
+          (count(*) FILTER (WHERE note.is_pinned = true))::int AS "pinnedCount",
+          (count(DISTINCT note.book_id))::int AS "booksWithNotesCount",
+          (count(DISTINCT note.series_id))::int AS "seriesWithNotesCount"
+        FROM notes note
+        WHERE note.user_id = ${userId}::uuid
+      `),
       this.prisma.note.findMany({
         distinct: ["customCategory"],
         orderBy: { customCategory: "asc" },
         select: { customCategory: true },
-        where: { ...base, customCategory: { not: null } },
+        where: { customCategory: { not: null }, userId },
       }),
     ]);
+
+    const counts = z.array(NoteSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_NOTE_COUNTS;
 
     return {
       availableCustomCategories: customCategoryRows
         .map((row) => row.customCategory)
         .filter((value): value is string => value !== null),
-      bookNotesCount,
-      booksWithNotesCount: bookGroups.length,
-      favoriteCount,
-      pinnedCount,
-      seriesWithNotesCount: seriesGroups.length,
-      total,
-      withSpoilerCount,
+      bookNotesCount: counts.bookNotesCount,
+      booksWithNotesCount: counts.booksWithNotesCount,
+      favoriteCount: counts.favoriteCount,
+      pinnedCount: counts.pinnedCount,
+      seriesWithNotesCount: counts.seriesWithNotesCount,
+      total: counts.total,
+      withSpoilerCount: counts.withSpoilerCount,
     };
   }
 
@@ -221,9 +240,7 @@ function buildNoteSearchConditions(search: string): Prisma.NoteWhereInput[] {
   const contains = { contains: search, mode: "insensitive" } as const;
   const conditions: Prisma.NoteWhereInput[] = [
     { text: contains },
-    { book: { firstAuthorName: contains } },
-    { book: { originalTitle: contains } },
-    { book: { title: contains } },
+    ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
     { category: contains },
     { chapter: contains },
     { customCategory: contains },

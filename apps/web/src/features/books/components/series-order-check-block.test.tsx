@@ -9,8 +9,8 @@ import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import {
-  AFFECTED_BOOK_TITLE,
   makeApplySeriesOrderFixResponse,
+  makeSeriesOrderBook,
   makeSeriesOrderFixPreview,
   makeSeriesOrderIssue,
   makeSeriesOrderIssues,
@@ -36,8 +36,10 @@ vi.mock("sonner", () => ({
 const soc = messages.readingQueue.seriesOrderCheck;
 const actions = soc.actions;
 const preview = soc.preview;
+const filters = soc.filters;
+const sort = soc.sort;
 
-const ADD_BEFORE_LABEL = `Додати перед «${AFFECTED_BOOK_TITLE}»`;
+const ADD_BEFORE_LABEL = "Додати попередню книгу";
 
 const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>();
 
@@ -158,13 +160,20 @@ describe("SeriesOrderCheckBlock states", () => {
     expect(await screen.findByRole("link", { name: "Відновлена серія" })).toBeInTheDocument();
   });
 
-  it("shows nothing but an empty live region when the queue has no order problems", async () => {
+  it("shows a green resolved state and an empty live region when the queue has no order problems", async () => {
     withIssues({ items: [] });
     renderWithProviders(<SeriesOrderCheckBlock />);
 
-    await waitFor(() => expect(issuesGetCount()).toBeGreaterThan(0));
+    expect(await screen.findByText(soc.resolved)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("status")).toBeEmptyDOMElement());
     expect(screen.queryByRole("heading", { name: soc.title })).not.toBeInTheDocument();
+  });
+
+  it("shows the attention callout when the queue has order problems", async () => {
+    withIssues({ items: makeSeriesOrderIssues(3), total: 7 });
+    renderWithProviders(<SeriesOrderCheckBlock />);
+
+    expect(await screen.findByText(soc.attention.title)).toBeInTheDocument();
   });
 
   it("asks the backend for three issues in the sidebar", async () => {
@@ -263,31 +272,70 @@ describe("SeriesOrderCheckBlock fix preview", () => {
     });
   });
 
-  it("shows the queue before and after the fix", async () => {
+  it("shows what will be added and how the queue shifts", async () => {
     renderWithProviders(<SeriesOrderCheckBlock />);
     const dialog = await openPreview();
 
-    expect(await within(dialog).findByText(preview.afterFix)).toBeInTheDocument();
-    expect(within(dialog).getByText(`«Перша книга» буде додана на позицію 1.`)).toBeInTheDocument();
-    expect(within(dialog).getByText("«Друга книга»: позиція 1 → 2")).toBeInTheDocument();
+    expect(await within(dialog).findByText(preview.addedTitle)).toBeInTheDocument();
+    expect(within(dialog).getByText(preview.queueChangesTitle)).toBeInTheDocument();
+    expect(within(dialog).getByText("Нова позиція: #1")).toBeInTheDocument();
+    expect(within(dialog).getByText(preview.newBook)).toBeInTheDocument();
   });
 
-  it("reassures that unrelated books keep their positions", async () => {
-    renderWithProviders(<SeriesOrderCheckBlock />);
-    const dialog = await openPreview();
-
-    expect(await within(dialog).findByText(preview.unrelatedUnchanged)).toBeInTheDocument();
-  });
-
-  it("warns how many unrelated books will shift", async () => {
+  it("tells the reader how many books keep their position", async () => {
     handlePreview = () =>
-      Promise.resolve(jsonResponse(makeSeriesOrderFixPreview({ shiftedUnrelatedBooksCount: 2 })));
+      Promise.resolve(
+        jsonResponse(
+          makeSeriesOrderFixPreview({
+            before: [
+              { belongsToAffectedSeries: true, bookId: "b1", queuePosition: 1, title: "Книга 1" },
+              { belongsToAffectedSeries: false, bookId: "b2", queuePosition: 2, title: "Книга 2" },
+              { belongsToAffectedSeries: false, bookId: "b3", queuePosition: 3, title: "Книга 3" },
+              { belongsToAffectedSeries: false, bookId: "b4", queuePosition: 4, title: "Книга 4" },
+            ],
+            changes: [
+              { bookId: "new", fromPosition: null, title: "Нова", toPosition: 1, type: "add" },
+              { bookId: "b1", fromPosition: 1, title: "Книга 1", toPosition: 2, type: "move" },
+            ],
+          }),
+        ),
+      );
     renderWithProviders(<SeriesOrderCheckBlock />);
     const dialog = await openPreview();
 
     expect(
-      await within(dialog).findByText("2 сторонні книги змістяться на нову позицію."),
+      await within(dialog).findByText("3 книги залишаться на своїх позиціях."),
     ).toBeInTheDocument();
+  });
+
+  it("collapses a long list of moves behind a show-all toggle", async () => {
+    const moves = Array.from({ length: 7 }, (_, index) => ({
+      bookId: `m-${index}`,
+      fromPosition: index + 1,
+      title: `Переміщена ${index + 1}`,
+      toPosition: index + 2,
+      type: "move" as const,
+    }));
+    handlePreview = () =>
+      Promise.resolve(
+        jsonResponse(
+          makeSeriesOrderFixPreview({
+            changes: [
+              { bookId: "new", fromPosition: null, title: "Нова", toPosition: 1, type: "add" },
+              ...moves,
+            ],
+          }),
+        ),
+      );
+    renderWithProviders(<SeriesOrderCheckBlock />);
+    const dialog = await openPreview();
+
+    expect(await within(dialog).findByText("Переміщена 1")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Переміщена 7")).not.toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: preview.showAllMoves }));
+
+    expect(within(dialog).getByText("Переміщена 7")).toBeInTheDocument();
   });
 
   it("shows the warnings the backend attached to the preview", async () => {
@@ -319,7 +367,7 @@ describe("SeriesOrderCheckBlock fix preview", () => {
       ],
     });
     renderWithProviders(<SeriesOrderCheckBlock />);
-    const dialog = await openPreview(actions.arrangeBySeries);
+    const dialog = await openPreview(actions.fixOrder);
 
     expect(
       await within(dialog).findByRole("button", { name: preview.confirmReorder }),
@@ -400,7 +448,7 @@ describe("SeriesOrderCheckBlock applying a fix", () => {
       ],
     });
     renderWithProviders(<SeriesOrderCheckBlock />);
-    const dialog = await openPreview(actions.arrangeBySeries);
+    const dialog = await openPreview(actions.fixOrder);
 
     await userEvent.click(
       await within(dialog).findByRole("button", { name: preview.confirmReorder }),
@@ -666,5 +714,127 @@ describe("SeriesOrderCheckBlock ownership actions", () => {
       "href",
       "/books/book-previous",
     );
+  });
+});
+
+describe("SeriesOrderCheckBlock all issues toolbar", () => {
+  function dialogSeriesTitles(dialog: HTMLElement): string[] {
+    return within(dialog)
+      .getAllByRole("link")
+      .filter((link) => link.getAttribute("href")?.startsWith("/series/"))
+      .map((link) => link.textContent ?? "");
+  }
+
+  function makeToolbarIssues() {
+    return [
+      makeSeriesOrderIssue({
+        affectedBook: makeSeriesOrderBook({ queuePosition: 1 }),
+        fingerprint: "fp-error",
+        series: { id: "s-gamma", title: "Гамма" },
+        severity: "error",
+      }),
+      makeSeriesOrderIssue({
+        affectedBook: makeSeriesOrderBook({ queuePosition: 3 }),
+        fingerprint: "fp-warning",
+        series: { id: "s-alpha", title: "Альфа" },
+        severity: "warning",
+      }),
+      makeSeriesOrderIssue({
+        affectedBook: makeSeriesOrderBook({ queuePosition: 2 }),
+        fingerprint: "fp-info",
+        series: { id: "s-beta", title: "Бета" },
+        severity: "info",
+      }),
+    ];
+  }
+
+  async function openAllIssues() {
+    await userEvent.click(await screen.findByRole("button", { name: new RegExp(soc.viewAll) }));
+    return screen.findByRole("dialog", { name: soc.allIssues.title });
+  }
+
+  async function chooseSort(dialog: HTMLElement, name: string) {
+    await userEvent.click(within(dialog).getByRole("combobox", { name: sort.label }));
+    await userEvent.click(await screen.findByRole("option", { name }));
+  }
+
+  it("shows a chip with a count for every severity that is present", async () => {
+    withIssues({ items: makeToolbarIssues(), total: 7 });
+    renderWithProviders(<SeriesOrderCheckBlock />);
+    const dialog = await openAllIssues();
+
+    expect(within(dialog).getByRole("radio", { name: `${filters.all} 3` })).toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: `${filters.error} 1` })).toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: `${filters.warning} 1` })).toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: `${filters.info} 1` })).toBeInTheDocument();
+  });
+
+  it("hides a severity chip when no issue has that severity", async () => {
+    withIssues({ items: [makeSeriesOrderIssue({ severity: "warning" })], total: 7 });
+    renderWithProviders(<SeriesOrderCheckBlock />);
+    const dialog = await openAllIssues();
+
+    expect(within(dialog).getByRole("radio", { name: `${filters.warning} 1` })).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("radio", { name: new RegExp(filters.error) }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("radio", { name: new RegExp(filters.info) }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("filters the list down to the chosen severity", async () => {
+    withIssues({ items: makeToolbarIssues(), total: 7 });
+    renderWithProviders(<SeriesOrderCheckBlock />);
+    const dialog = await openAllIssues();
+
+    await userEvent.click(within(dialog).getByRole("radio", { name: `${filters.error} 1` }));
+
+    expect(within(dialog).getByRole("link", { name: "Гамма" })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("link", { name: "Альфа" })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("link", { name: "Бета" })).not.toBeInTheDocument();
+  });
+
+  it("marks the active severity chip as pressed", async () => {
+    withIssues({ items: makeToolbarIssues(), total: 7 });
+    renderWithProviders(<SeriesOrderCheckBlock />);
+    const dialog = await openAllIssues();
+
+    const errorChip = within(dialog).getByRole("radio", { name: `${filters.error} 1` });
+    await userEvent.click(errorChip);
+
+    expect(errorChip).toHaveAttribute("data-state", "on");
+    expect(within(dialog).getByRole("radio", { name: `${filters.all} 3` })).toHaveAttribute(
+      "data-state",
+      "off",
+    );
+  });
+
+  it("orders the issues by queue position by default", async () => {
+    withIssues({ items: makeToolbarIssues(), total: 7 });
+    renderWithProviders(<SeriesOrderCheckBlock />);
+    const dialog = await openAllIssues();
+
+    expect(dialogSeriesTitles(dialog)).toEqual(["Гамма", "Бета", "Альфа"]);
+  });
+
+  it("re-sorts the issues by problem severity", async () => {
+    withIssues({ items: makeToolbarIssues(), total: 7 });
+    renderWithProviders(<SeriesOrderCheckBlock />);
+    const dialog = await openAllIssues();
+
+    await chooseSort(dialog, sort.byType);
+
+    expect(dialogSeriesTitles(dialog)).toEqual(["Гамма", "Альфа", "Бета"]);
+  });
+
+  it("re-sorts the issues by series title", async () => {
+    withIssues({ items: makeToolbarIssues(), total: 7 });
+    renderWithProviders(<SeriesOrderCheckBlock />);
+    const dialog = await openAllIssues();
+
+    await chooseSort(dialog, sort.bySeries);
+
+    expect(dialogSeriesTitles(dialog)).toEqual(["Альфа", "Бета", "Гамма"]);
   });
 });

@@ -18,6 +18,8 @@ import {
 import type { SeriesWithDetails } from "../infrastructure/series.repository.js";
 import type { SeriesBookRow } from "./series-preview.js";
 
+import { toNullableIsoDate } from "../../../core/iso-date.js";
+import { toDeliverySummaryView, toLoanInfoView } from "../../books/index.js";
 import {
   compareByPartThenCreated,
   computeSeriesLastActivityAt,
@@ -26,12 +28,18 @@ import {
 } from "./series-preview.js";
 import { computeSeriesStats } from "./series-stats.js";
 
+type SeriesAuthorRef = { id: string; name: string };
+
 type SeriesDetailBook = SeriesWithDetails["books"][number];
+
+type SeriesViewBookRow = SeriesBookRow & {
+  authors: { author: SeriesAuthorRef; position: number }[];
+};
 
 type SeriesViewSource = {
   _count: { books: number };
-  authors: { author: { id: string; name: string } }[];
-  books: SeriesBookRow[];
+  authors: { author: SeriesAuthorRef }[];
+  books: SeriesViewBookRow[];
   createdAt: Date;
   description: Nullable<string>;
   genres: string[];
@@ -42,18 +50,25 @@ type SeriesViewSource = {
   updatedAt: Date;
 };
 
-export function toSeriesDetailsView(
-  series: SeriesWithDetails,
-  covers: Map<string, Nullable<MediaView>>,
-): SeriesDetailsView {
+export function toSeriesDetailsView({
+  covers,
+  series,
+  today,
+}: {
+  covers: Map<string, Nullable<MediaView>>;
+  series: SeriesWithDetails;
+  today: Date;
+}): SeriesDetailsView {
   const orderedBooks = [...series.books].sort(compareByPartThenCreated);
-  const books = orderedBooks.map((book) => toSeriesBookView(book, covers.get(book.id) ?? null));
+  const books = orderedBooks.map((book) =>
+    toSeriesBookView({ book, cover: covers.get(book.id) ?? null, today }),
+  );
 
   return {
     ...toSeriesView(series),
     books,
     publishers: collectSeriesPublishers(series.books),
-    stats: computeSeriesStats(books),
+    stats: computeSeriesStats(series.books.map(toStatsBook)),
   };
 }
 
@@ -62,10 +77,7 @@ export function toSeriesView(series: SeriesViewSource): SeriesView {
   const { finishedInSeries, nextBook, readingInSeries } = summarizeSeriesBooks(books);
 
   return {
-    authors: series.authors.map((seriesAuthor) => ({
-      id: seriesAuthor.author.id,
-      name: seriesAuthor.author.name,
-    })),
+    authors: resolveSeriesAuthors(series),
     booksInSeries: series._count.books,
     createdAt: series.createdAt.toISOString(),
     description: series.description,
@@ -103,8 +115,40 @@ function collectSeriesPublishers(
   );
 }
 
-function toSeriesBookView(book: SeriesDetailBook, cover: Nullable<MediaView>): SeriesBookView {
+function resolveSeriesAuthors(series: {
+  authors: { author: SeriesAuthorRef }[];
+  books: SeriesViewBookRow[];
+}): SeriesAuthorRef[] {
+  if (series.books.length === 0) {
+    return series.authors.map(({ author }) => ({ id: author.id, name: author.name }));
+  }
+
+  const authorsById = new Map<string, SeriesAuthorRef>();
+  for (const book of [...series.books].sort(compareByPartThenCreated)) {
+    const orderedAuthors = [...book.authors].sort(
+      (first, second) => first.position - second.position,
+    );
+    for (const { author } of orderedAuthors) {
+      if (!authorsById.has(author.id)) {
+        authorsById.set(author.id, { id: author.id, name: author.name });
+      }
+    }
+  }
+
+  return [...authorsById.values()];
+}
+
+function toSeriesBookView({
+  book,
+  cover,
+  today,
+}: {
+  book: SeriesDetailBook;
+  cover: Nullable<MediaView>;
+  today: Date;
+}): SeriesBookView {
   return {
+    activeDelivery: toDeliverySummaryView(book.deliveries).active,
     ageCategory: AgeCategorySchema.parse(book.ageCategory),
     authors: book.authors.map((bookAuthor) => ({
       id: bookAuthor.author.id,
@@ -113,19 +157,39 @@ function toSeriesBookView(book: SeriesDetailBook, cover: Nullable<MediaView>): S
     cover,
     createdAt: book.createdAt.toISOString(),
     currentPage: book.readingProgress?.currentPage ?? null,
+    finishedAt: toNullableIsoDate(book.readingProgress?.finishedAt ?? null),
     formats: BookFormatsSchema.parse(book.formats),
     genres: BookGenresSchema.parse(book.genres),
     id: book.id,
     isFavorite: book.isFavorite,
     isInReadingQueue: book.queuePosition !== null,
+    loanInfo: toLoanInfoView({ loans: book.loans, today }),
     originalTitle: book.originalTitle,
     ownershipStatus: OwnershipStatusSchema.parse(book.ownershipStatus),
     pagesCount: book.pagesCount,
     partNumber: book.partNumber,
     publicationYear: book.publicationYear,
+    publisher:
+      book.publisher === null ? null : { id: book.publisher.id, name: book.publisher.name },
     rating: book.readingProgress?.rating ?? null,
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
+    startedAt: toNullableIsoDate(book.readingProgress?.startedAt ?? null),
     tags: book.tags.map((bookTag) => ({ id: bookTag.tag.id, name: bookTag.tag.name })),
+    title: book.title,
+  };
+}
+
+function toStatsBook(book: SeriesDetailBook) {
+  return {
+    createdAt: book.createdAt,
+    finishedAt: book.readingProgress?.finishedAt ?? null,
+    id: book.id,
+    isFavorite: book.isFavorite,
+    pagesCount: book.pagesCount,
+    partNumber: book.partNumber,
+    rating: book.readingProgress?.rating ?? null,
+    readingStatus: ReadingStatusSchema.parse(book.readingStatus),
+    startedAt: book.readingProgress?.startedAt ?? null,
     title: book.title,
   };
 }

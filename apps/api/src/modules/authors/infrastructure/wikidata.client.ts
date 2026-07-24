@@ -31,27 +31,6 @@ export type WikidataAuthorFacts = {
   deathYear: Nullable<number>;
 };
 
-function buildFactsQuery(qid: string): string {
-  return `SELECT ?iso ?birth ?death WHERE {
-  OPTIONAL { wd:${qid} wdt:P27 ?country . ?country wdt:P297 ?iso . }
-  OPTIONAL { wd:${qid} wdt:P569 ?birth . }
-  OPTIONAL { wd:${qid} wdt:P570 ?death . }
-} LIMIT 1`;
-}
-
-function parseYear(isoDateTime: string | undefined): Nullable<number> {
-  if (isoDateTime === undefined) {
-    return null;
-  }
-  const match = ISO_YEAR.exec(isoDateTime);
-  const captured = match?.[0];
-  if (captured === undefined) {
-    return null;
-  }
-  const year = Number.parseInt(captured, 10);
-  return Number.isNaN(year) ? null : year;
-}
-
 @Injectable()
 export class WikidataClient {
   async getAuthorFactsByQid(qid: string): Promise<Nullable<WikidataAuthorFacts>> {
@@ -78,7 +57,7 @@ export class WikidataClient {
       }
       payload = await response.json();
     } catch (error) {
-      logger.warn({ error: String(error), qid }, "wikidata facts request failed");
+      logger.warn({ err: error, qid }, "wikidata facts request failed");
       return null;
     }
 
@@ -100,4 +79,25 @@ export class WikidataClient {
       deathYear: parseYear(binding.death?.value),
     };
   }
+}
+
+function buildFactsQuery(qid: string): string {
+  return `SELECT ?iso ?birth ?death WHERE {
+  OPTIONAL { wd:${qid} wdt:P27 ?country . ?country wdt:P297 ?iso . }
+  OPTIONAL { wd:${qid} wdt:P569 ?birth . }
+  OPTIONAL { wd:${qid} wdt:P570 ?death . }
+} LIMIT 1`;
+}
+
+function parseYear(isoDateTime: string | undefined): Nullable<number> {
+  if (isoDateTime === undefined) {
+    return null;
+  }
+  const match = ISO_YEAR.exec(isoDateTime);
+  const captured = match?.[0];
+  if (captured === undefined) {
+    return null;
+  }
+  const year = Number.parseInt(captured, 10);
+  return Number.isNaN(year) ? null : year;
 }

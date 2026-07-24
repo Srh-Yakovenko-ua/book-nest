@@ -17,12 +17,14 @@ export class MediaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async countReferences(id: string): Promise<number> {
-    const [bookCovers, characterAvatars, bookCharacterPortraits] = await Promise.all([
-      this.prisma.book.count({ where: { coverMediaId: id } }),
-      this.prisma.character.count({ where: { avatarMediaId: id } }),
-      this.prisma.bookCharacter.count({ where: { portraitMediaId: id } }),
-    ]);
-    return bookCovers + characterAvatars + bookCharacterPortraits;
+    const [bookCovers, characterAvatars, bookCharacterPortraits, characterFormPortraits] =
+      await Promise.all([
+        this.prisma.book.count({ where: { coverMediaId: id } }),
+        this.prisma.character.count({ where: { avatarMediaId: id } }),
+        this.prisma.bookCharacter.count({ where: { portraitMediaId: id } }),
+        this.prisma.characterForm.count({ where: { portraitMediaId: id } }),
+      ]);
+    return bookCovers + characterAvatars + bookCharacterPortraits + characterFormPortraits;
   }
 
   create(data: Prisma.MediaAssetUncheckedCreateInput): Promise<MediaAssetModel> {
@@ -45,9 +47,9 @@ export class MediaRepository {
     return this.prisma.mediaAsset.findFirst({ where: { id, userId } });
   }
 
-  async markThumbGenerated(id: string): Promise<boolean> {
+  async markThumbGenerated({ id, now }: { id: string; now: Date }): Promise<boolean> {
     const result = await this.prisma.mediaAsset.updateMany({
-      data: { thumbGeneratedAt: new Date() },
+      data: { thumbGeneratedAt: now },
       where: { id },
     });
     return result.count > 0;

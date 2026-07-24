@@ -2,6 +2,7 @@ import type { MiddlewareConsumer, NestModule } from "@nestjs/common";
 
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
+import { ScheduleModule } from "@nestjs/schedule";
 import { seconds, ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { DatabaseModule } from "./core/database/database.module.js";
@@ -18,7 +19,7 @@ import { DeliveryModule } from "./modules/delivery/index.js";
 import { GenresModule } from "./modules/genres/genres.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { ListsModule } from "./modules/lists/lists.module.js";
-import { LoansModule } from "./modules/loans/index.js";
+import { LoansModule } from "./modules/loans/loans.module.js";
 import { MediaModule } from "./modules/media/media.module.js";
 import { NotesModule } from "./modules/notes/notes.module.js";
 import { MetricsMiddleware } from "./modules/observability/metrics.middleware.js";
@@ -40,6 +41,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     ThrottlerModule.forRoot([
       { limit: GLOBAL_THROTTLE_LIMIT, ttl: seconds(GLOBAL_THROTTLE_TTL_SECONDS) },
     ]),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     QueueModule,
     HealthModule,

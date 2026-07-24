@@ -29,9 +29,12 @@ import type {
   UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
 
-import { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import {
+  HEAVY_TRANSACTION_OPTIONS,
+  TransactionRunner,
+} from "../../../core/database/transaction-runner.js";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { buildPaginator } from "../../../core/paginator.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
 import {
   buildDeliveryInfoData,
@@ -87,137 +90,6 @@ type ActiveReadingBook = NonNullable<ActiveReadingView>["book"];
 
 type ActiveReadingView = LibraryOverviewView["activeReading"];
 
-function assignScalarFields(
-  fields: Prisma.BookUncheckedUpdateManyInput,
-  input: UpdateBookInput,
-): void {
-  for (const key of SCALAR_KEYS) {
-    const value = input[key];
-    if (value !== undefined) {
-      Object.assign(fields, { [key]: value });
-    }
-  }
-}
-
-function buildActiveReading(activeBooks: ActiveReadingRow[]): ActiveReadingView {
-  if (activeBooks.length === 0) {
-    return undefined;
-  }
-  const pagesAhead = activeBooks.reduce((total, activeBook) => {
-    if (activeBook.pagesCount === null || activeBook.currentPage === null) {
-      return total;
-    }
-    return total + Math.max(0, activeBook.pagesCount - activeBook.currentPage);
-  }, 0);
-  return { book: resolveSingleActiveBook(activeBooks), pagesAhead };
-}
-
-function intersectOwnership({
-  allowed,
-  scope,
-}: {
-  allowed: OwnershipStatus[];
-  scope?: OwnershipStatus[];
-}): OwnershipStatus[] {
-  if (scope === undefined) {
-    return allowed;
-  }
-  return allowed.filter((status) => scope.includes(status));
-}
-
-function normalizeDedication(value: Nullable<string>): Nullable<string> {
-  if (value === null || value.length === 0) {
-    return null;
-  }
-  return value;
-}
-
-function resolveDeliveryBlock(
-  ownershipStatus: OwnershipStatus,
-  deliveryInfo: UpdateBookInput["deliveryInfo"],
-  now: Date,
-): DeliveryBlockChange {
-  if (!ownershipStatusUsesDelivery(ownershipStatus)) {
-    return { cancelledAt: now, kind: "cancel" };
-  }
-  if (deliveryInfo === undefined) {
-    return { kind: "skip" };
-  }
-  return {
-    create: buildDeliveryInfoData(deliveryInfo),
-    kind: "upsertActive",
-    update: buildDeliveryInfoUpdateData(deliveryInfo),
-  };
-}
-
-function resolveLoanBlock(
-  ownershipStatus: OwnershipStatus,
-  loanInfo: UpdateBookInput["loanInfo"],
-  now: Date,
-): LoanBlockChange {
-  if (!ownershipStatusUsesLoan(ownershipStatus)) {
-    return { kind: "return", returnedAt: now };
-  }
-  const type = LoanTypeSchema.parse(ownershipStatus);
-  if (loanInfo === undefined) {
-    return { kind: "syncType", type };
-  }
-  return {
-    create: buildLoanInfoData(loanInfo),
-    kind: "upsertActive",
-    type,
-    update: buildLoanInfoUpdateData(loanInfo),
-  };
-}
-
-function resolvePurchaseBlock(
-  ownershipStatus: OwnershipStatus,
-  purchaseInfo: UpdateBookInput["purchaseInfo"],
-): BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData> {
-  if (!ownershipStatusKeepsPurchase(ownershipStatus)) {
-    return { delete: true };
-  }
-  if (purchaseInfo === undefined) {
-    return { skip: true };
-  }
-  return {
-    create: buildPurchaseInfoData(purchaseInfo),
-    update: buildPurchaseInfoUpdateData(purchaseInfo),
-  };
-}
-
-function resolveReadingProgressBlock(
-  readingStatus: ReadingStatus,
-  readingProgress: UpdateBookInput["readingProgress"],
-): BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData> {
-  if (!readingStatusUsesProgress(readingStatus)) {
-    return { delete: true };
-  }
-  if (readingProgress === undefined) {
-    return { skip: true };
-  }
-  return {
-    create: buildReadingProgressData(readingProgress),
-    update: buildReadingProgressUpdateData(readingProgress),
-  };
-}
-
-function resolveSingleActiveBook(activeBooks: ActiveReadingRow[]): ActiveReadingBook {
-  if (activeBooks.length !== 1) {
-    return null;
-  }
-  const [onlyBook] = activeBooks;
-  if (onlyBook === undefined || onlyBook.pagesCount === null) {
-    return null;
-  }
-  return {
-    currentPage: onlyBook.currentPage ?? 0,
-    id: onlyBook.id,
-    pagesCount: onlyBook.pagesCount,
-    title: onlyBook.title,
-  };
-}
-
 @Injectable()
 export class BooksService {
   constructor(
@@ -254,6 +126,8 @@ export class BooksService {
       references: input.authors,
       userId,
     });
+
+    await this.relationsResolver.assertCreatableRelations({ input, userId });
 
     let placement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
@@ -303,9 +177,10 @@ export class BooksService {
             title: input.title,
             translator: input.translator ?? null,
           },
+          now,
           client,
         );
-      });
+      }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
         error,
@@ -369,6 +244,7 @@ export class BooksService {
       pagesMax: query.pagesMax,
       pagesMin: query.pagesMin,
       publisherIds: query.publisher,
+      publisherPresence: query.publisherPresence,
       ratingMax: query.ratingMax,
       ratingMin: query.ratingMin,
       readingStatuses: query.status,
@@ -383,9 +259,8 @@ export class BooksService {
     const [books, totalCount] = await Promise.all([
       this.booksRepository.listForLibrary({
         filter,
-        skip: (pageNumber - 1) * pageSize,
         sort,
-        take: pageSize,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.booksRepository.countForLibrary({ filter }),
     ]);
@@ -462,6 +337,8 @@ export class BooksService {
         ? undefined
         : await this.relationsResolver.resolveAuthors({ references: input.authors, userId });
 
+    await this.relationsResolver.assertUpdatableRelations({ input, userId });
+
     let seriesPlacement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
@@ -492,9 +369,10 @@ export class BooksService {
             readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
             tagIds: resolved.tagIds,
           },
+          now,
           client,
         );
-      });
+      }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({
         error,
@@ -726,4 +604,135 @@ export class BooksService {
       wantToRead,
     };
   }
+}
+
+function assignScalarFields(
+  fields: Prisma.BookUncheckedUpdateManyInput,
+  input: UpdateBookInput,
+): void {
+  for (const key of SCALAR_KEYS) {
+    const value = input[key];
+    if (value !== undefined) {
+      Object.assign(fields, { [key]: value });
+    }
+  }
+}
+
+function buildActiveReading(activeBooks: ActiveReadingRow[]): ActiveReadingView {
+  if (activeBooks.length === 0) {
+    return undefined;
+  }
+  const pagesAhead = activeBooks.reduce((total, activeBook) => {
+    if (activeBook.pagesCount === null || activeBook.currentPage === null) {
+      return total;
+    }
+    return total + Math.max(0, activeBook.pagesCount - activeBook.currentPage);
+  }, 0);
+  return { book: resolveSingleActiveBook(activeBooks), pagesAhead };
+}
+
+function intersectOwnership({
+  allowed,
+  scope,
+}: {
+  allowed: OwnershipStatus[];
+  scope?: OwnershipStatus[];
+}): OwnershipStatus[] {
+  if (scope === undefined) {
+    return allowed;
+  }
+  return allowed.filter((status) => scope.includes(status));
+}
+
+function normalizeDedication(value: Nullable<string>): Nullable<string> {
+  if (value === null || value.length === 0) {
+    return null;
+  }
+  return value;
+}
+
+function resolveDeliveryBlock(
+  ownershipStatus: OwnershipStatus,
+  deliveryInfo: UpdateBookInput["deliveryInfo"],
+  now: Date,
+): DeliveryBlockChange {
+  if (!ownershipStatusUsesDelivery(ownershipStatus)) {
+    return { cancelledAt: now, kind: "cancel" };
+  }
+  if (deliveryInfo === undefined) {
+    return { kind: "skip" };
+  }
+  return {
+    create: buildDeliveryInfoData(deliveryInfo),
+    kind: "upsertActive",
+    update: buildDeliveryInfoUpdateData(deliveryInfo),
+  };
+}
+
+function resolveLoanBlock(
+  ownershipStatus: OwnershipStatus,
+  loanInfo: UpdateBookInput["loanInfo"],
+  now: Date,
+): LoanBlockChange {
+  if (!ownershipStatusUsesLoan(ownershipStatus)) {
+    return { kind: "return", returnedAt: now };
+  }
+  const type = LoanTypeSchema.parse(ownershipStatus);
+  if (loanInfo === undefined) {
+    return { kind: "syncType", type };
+  }
+  return {
+    create: buildLoanInfoData(loanInfo),
+    kind: "upsertActive",
+    type,
+    update: buildLoanInfoUpdateData(loanInfo),
+  };
+}
+
+function resolvePurchaseBlock(
+  ownershipStatus: OwnershipStatus,
+  purchaseInfo: UpdateBookInput["purchaseInfo"],
+): BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData> {
+  if (!ownershipStatusKeepsPurchase(ownershipStatus)) {
+    return { delete: true };
+  }
+  if (purchaseInfo === undefined) {
+    return { skip: true };
+  }
+  return {
+    create: buildPurchaseInfoData(purchaseInfo),
+    update: buildPurchaseInfoUpdateData(purchaseInfo),
+  };
+}
+
+function resolveReadingProgressBlock(
+  readingStatus: ReadingStatus,
+  readingProgress: UpdateBookInput["readingProgress"],
+): BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData> {
+  if (!readingStatusUsesProgress(readingStatus)) {
+    return { delete: true };
+  }
+  if (readingProgress === undefined) {
+    return { skip: true };
+  }
+  return {
+    create: buildReadingProgressData(readingProgress),
+    update: buildReadingProgressUpdateData(readingProgress),
+  };
+}
+
+function resolveSingleActiveBook(activeBooks: ActiveReadingRow[]): ActiveReadingBook {
+  if (activeBooks.length !== 1) {
+    return null;
+  }
+  const [onlyBook] = activeBooks;
+  if (onlyBook === undefined || onlyBook.pagesCount === null) {
+    return null;
+  }
+  return {
+    currentPage: onlyBook.currentPage ?? 0,
+    id: onlyBook.id,
+    pagesCount: onlyBook.pagesCount,
+    title: onlyBook.title,
+  };
 }

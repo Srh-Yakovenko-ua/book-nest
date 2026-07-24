@@ -11,14 +11,6 @@ type BookSearchConditionsInput = {
   searchGenreKeys?: string[];
 };
 
-export function buildAuthorSearchConditions(search: string): Prisma.BookWhereInput[] {
-  const contains = { contains: search, mode: "insensitive" } as const;
-  return [
-    { authors: { some: { author: { name: contains } } } },
-    { authors: { some: { author: { names: { some: { name: contains } } } } } },
-  ];
-}
-
 export function buildBookSearchConditions({
   includeDedication,
   search,
@@ -55,6 +47,11 @@ export function buildBookSearchConditions({
   return conditions;
 }
 
+export function buildBookTextSearchConditions(search: string): Prisma.BookWhereInput[] {
+  const contains = { contains: search, mode: "insensitive" } as const;
+  return [{ title: contains }, { originalTitle: contains }, ...buildAuthorSearchConditions(search)];
+}
+
 export function normalizeSearchQuery(value: string | undefined): string | undefined {
   const collapsed = normalizeSearch(value);
   if (collapsed === undefined) {
@@ -64,6 +61,14 @@ export function normalizeSearchQuery(value: string | undefined): string | undefi
     return undefined;
   }
   return collapsed;
+}
+
+function buildAuthorSearchConditions(search: string): Prisma.BookWhereInput[] {
+  const contains = { contains: search, mode: "insensitive" } as const;
+  return [
+    { authors: { some: { author: { name: contains } } } },
+    { authors: { some: { author: { names: { some: { name: contains } } } } } },
+  ];
 }
 
 function isIsbnFragment(value: string): boolean {

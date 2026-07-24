@@ -8,7 +8,7 @@ import {
   parseAsInteger,
   parseAsString,
   parseAsStringLiteral,
-} from "nuqs";
+} from "nuqs/server";
 
 import type { BooksControllerListParams } from "@/shared/api/generated/model";
 

@@ -19,6 +19,18 @@ export const HTTPS_PROTOCOL = /^https$/;
 
 export const HTTP_OR_HTTPS_PROTOCOL = /^https?$/;
 
+export const boundedUrlSchema = (options: {
+  maxLength: number;
+  protocol: RegExp;
+  urlError: string;
+}) =>
+  z
+    .string()
+    .trim()
+    .max(options.maxLength, `URL must be at most ${options.maxLength} characters long`)
+    .refine(noHtmlTags, "HTML tags are not allowed")
+    .pipe(z.url({ error: options.urlError, protocol: options.protocol }));
+
 export const RECENT_USED_LIMIT_DEFAULT = 8;
 export const RECENT_USED_LIMIT_MAX = 20;
 

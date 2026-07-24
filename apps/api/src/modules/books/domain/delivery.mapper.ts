@@ -4,15 +4,11 @@ import {
   type DeliverySummaryView,
   type DeliveryView,
   isActiveDeliveryStatus,
-  type Nullable,
 } from "@app/shared";
 
 import type { BookDeliveryModel } from "../../../generated/prisma/models.js";
 
-import { toNullableIsoDate } from "../../../core/iso-date.js";
-
-const toNullableInstant = (value: Nullable<Date>): Nullable<string> =>
-  value === null ? null : value.toISOString();
+import { toNullableIsoDate, toNullableIsoDateTime } from "../../../core/iso-date.js";
 
 export function toDeliverySummaryView(deliveries: BookDeliveryModel[]): DeliverySummaryView {
   const views = deliveries.map(toDeliveryView);
@@ -24,7 +20,7 @@ export function toDeliverySummaryView(deliveries: BookDeliveryModel[]): Delivery
 
 export function toDeliveryView(delivery: BookDeliveryModel): DeliveryView {
   return {
-    cancelledAt: toNullableInstant(delivery.cancelledAt),
+    cancelledAt: toNullableIsoDateTime(delivery.cancelledAt),
     cancelReason: delivery.cancelReason,
     createdAt: delivery.createdAt.toISOString(),
     currency: delivery.currency === null ? null : CurrencySchema.parse(delivery.currency),
@@ -35,7 +31,7 @@ export function toDeliveryView(delivery: BookDeliveryModel): DeliveryView {
     orderDate: toNullableIsoDate(delivery.orderDate),
     orderNumber: delivery.orderNumber,
     price: delivery.price === null ? null : delivery.price.toNumber(),
-    receivedAt: toNullableInstant(delivery.receivedAt),
+    receivedAt: toNullableIsoDateTime(delivery.receivedAt),
     status: DeliveryStatusSchema.parse(delivery.status),
     storeName: delivery.storeName,
     trackingNumber: delivery.trackingNumber,

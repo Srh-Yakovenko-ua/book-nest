@@ -2,12 +2,19 @@ import { describe, expect, it } from "vitest";
 
 import type { SeriesLibraryBookLabels } from "./series-library-book";
 
-import { seriesBookProgress, toSeriesLibraryBook } from "./series-library-book";
+import {
+  seriesBookEdition,
+  seriesBookPersonalState,
+  toSeriesLibraryBook,
+} from "./series-library-book";
 import { makeSeriesBookView } from "./series.fixtures";
 
 const labels: SeriesLibraryBookLabels = {
+  ageBadge18Plus: "18+",
   authorsUnknown: "Автор невідомий",
+  formatLabel: (value) => `format:${value}`,
   ownershipLabel: (value) => `ownership:${value}`,
+  pagesText: (value) => `${value} pages`,
   ratingLabel: (value) => `rating:${value}`,
   statusLabel: (value) => `status:${value}`,
 };
@@ -50,6 +57,13 @@ describe("toSeriesLibraryBook", () => {
     expect(mapped.year).toBeUndefined();
   });
 
+  it("adds the 18+ badge only for adult books", () => {
+    expect(mapBook(makeSeriesBookView({ ageCategory: "18_plus" })).ageBadge).toBe("18+");
+    expect(
+      mapBook(makeSeriesBookView({ ageCategory: "no_restrictions" })).ageBadge,
+    ).toBeUndefined();
+  });
+
   it("keeps a real rating and drops null or zero ratings", () => {
     expect(mapBook(makeSeriesBookView({ rating: 9 })).rating).toBe(9);
     expect(mapBook(makeSeriesBookView({ rating: 9 })).ratingLabel).toBe("rating:9");
@@ -72,49 +86,118 @@ describe("toSeriesLibraryBook", () => {
   });
 });
 
-describe("seriesBookProgress", () => {
-  it("computes progress for a book being read", () => {
+describe("seriesBookEdition", () => {
+  it("builds an icon line per format, pages and year", () => {
+    const book = makeSeriesBookView({ formats: ["paper"], pagesCount: 384, publicationYear: 2023 });
+
+    expect(seriesBookEdition({ book, labels })).toEqual([
+      { icon: "book", label: "format:paper" },
+      { icon: "pages", label: "384 pages" },
+      { icon: "calendar", label: "2023" },
+    ]);
+  });
+
+  it("keeps a line for each format", () => {
+    const book = makeSeriesBookView({
+      formats: ["paper", "audiobook"],
+      pagesCount: null,
+      publicationYear: null,
+    });
+
+    expect(seriesBookEdition({ book, labels })).toEqual([
+      { icon: "book", label: "format:paper" },
+      { icon: "headphones", label: "format:audiobook" },
+    ]);
+  });
+
+  it("omits missing values without leaving gaps", () => {
+    const book = makeSeriesBookView({ formats: [], pagesCount: null, publicationYear: 2020 });
+
+    expect(seriesBookEdition({ book, labels })).toEqual([{ icon: "calendar", label: "2020" }]);
+  });
+
+  it("returns an empty list when no edition data exists", () => {
+    const book = makeSeriesBookView({ formats: [], pagesCount: null, publicationYear: null });
+
+    expect(seriesBookEdition({ book, labels })).toEqual([]);
+  });
+});
+
+describe("seriesBookPersonalState", () => {
+  it("returns a progress state for a book being read", () => {
     const book = makeSeriesBookView({
       currentPage: 180,
       pagesCount: 640,
       readingStatus: "reading",
     });
 
-    expect(seriesBookProgress(book)).toEqual({ current: 180, percent: 28, total: 640 });
+    expect(seriesBookPersonalState(book)).toEqual({
+      kind: "progress",
+      pages: { current: 180, total: 640 },
+      percent: 28,
+    });
   });
 
-  it("computes progress while rereading", () => {
+  it("returns a progress state while rereading", () => {
     const book = makeSeriesBookView({
       currentPage: 50,
       pagesCount: 100,
       readingStatus: "rereading",
     });
 
-    expect(seriesBookProgress(book)?.percent).toBe(50);
+    expect(seriesBookPersonalState(book)).toEqual({
+      kind: "progress",
+      pages: { current: 50, total: 100 },
+      percent: 50,
+    });
   });
 
-  it("returns nothing when the pages are unknown", () => {
+  it("omits progress when the pages are unknown while reading", () => {
     expect(
-      seriesBookProgress(
+      seriesBookPersonalState(
         makeSeriesBookView({ currentPage: 10, pagesCount: null, readingStatus: "reading" }),
       ),
     ).toBeUndefined();
     expect(
-      seriesBookProgress(
+      seriesBookPersonalState(
         makeSeriesBookView({ currentPage: null, pagesCount: 300, readingStatus: "reading" }),
       ),
     ).toBeUndefined();
     expect(
-      seriesBookProgress(
+      seriesBookPersonalState(
         makeSeriesBookView({ currentPage: 10, pagesCount: 0, readingStatus: "reading" }),
       ),
     ).toBeUndefined();
   });
 
-  it("returns nothing for statuses that are not being read now", () => {
-    for (const readingStatus of ["finished", "dnf", "paused", "not_started"] as const) {
+  it("keeps the pause page when paused", () => {
+    expect(
+      seriesBookPersonalState(
+        makeSeriesBookView({ currentPage: 192, pagesCount: 416, readingStatus: "paused" }),
+      ),
+    ).toEqual({ kind: "paused", pages: { current: 192, total: 416 } });
+  });
+
+  it("falls back to a bare pause state without pages", () => {
+    expect(
+      seriesBookPersonalState(
+        makeSeriesBookView({ currentPage: null, pagesCount: 416, readingStatus: "paused" }),
+      ),
+    ).toEqual({ kind: "paused", pages: null });
+  });
+
+  it("marks a dnf book as not finished", () => {
+    expect(seriesBookPersonalState(makeSeriesBookView({ readingStatus: "dnf" }))).toEqual({
+      kind: "dnf",
+    });
+  });
+
+  it("has no personal state for statuses without one", () => {
+    for (const readingStatus of ["finished", "not_started", "want_to_read"] as const) {
       expect(
-        seriesBookProgress(makeSeriesBookView({ currentPage: 10, pagesCount: 100, readingStatus })),
+        seriesBookPersonalState(
+          makeSeriesBookView({ currentPage: 10, pagesCount: 100, readingStatus }),
+        ),
       ).toBeUndefined();
     }
   });

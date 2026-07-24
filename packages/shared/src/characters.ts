@@ -1,8 +1,13 @@
 import { z } from "zod";
 
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
+import {
+  createPaginatedSchema,
+  paginationQueryFields,
+  readingPositionQueryFields,
+} from "./common.js";
 import { queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
+import { TagViewSchema } from "./tags.js";
 
 const CHARACTER_NAME_MAX = 200;
 const CHARACTER_SHORT_TEXT_MAX = 200;
@@ -31,6 +36,19 @@ export const CHARACTER_ERROR_CODES = {
   seriesNotFound: "character_series_not_found",
   tagNotFound: "character_tag_not_found",
   validationFailed: "validation_failed",
+} as const;
+
+export const CHARACTER_MERGE_ERROR_CODES = {
+  conflict: "character_merge_conflict",
+  notFound: "character_merge_not_found",
+  sameCharacter: "character_merge_self",
+} as const;
+
+export const CHARACTER_FORM_ERROR_CODES = {
+  characterNotFound: "character_form_character_not_found",
+  duplicateName: "character_form_duplicate_name",
+  mediaOwnershipMismatch: "media_ownership_mismatch",
+  notFound: "character_form_not_found",
 } as const;
 
 export const CharacterEntityKindSchema = z.enum(["individual", "collective", "unknown"]);
@@ -71,6 +89,17 @@ export const CharacterAliasTypeSchema = z.enum([
 ]);
 
 export type CharacterAliasType = z.infer<typeof CharacterAliasTypeSchema>;
+
+export const CharacterFormTypeSchema = z.enum([
+  "reincarnation",
+  "transformation",
+  "alter_ego",
+  "true_form",
+  "disguise",
+  "other",
+]);
+
+export type CharacterFormType = z.infer<typeof CharacterFormTypeSchema>;
 
 export const BookCharacterImportanceSchema = z.enum([
   "central",
@@ -146,6 +175,7 @@ export const CharacterInputSchema = z
     entityKind: CharacterEntityKindSchema.default("individual"),
     gender: CharacterGenderSchema.default("unknown"),
     globalAttitude: CharacterAttitudeSchema.nullish(),
+    hideProfileAsSpoiler: z.boolean().default(false),
     isFavorite: z.boolean().default(false),
     name: z.string().trim().min(1).max(CHARACTER_NAME_MAX),
     neutralDescription: optionalText(CHARACTER_LONG_TEXT_MAX),
@@ -239,6 +269,7 @@ export const UpdateCharacterSchema = z
     entityKind: CharacterEntityKindSchema.optional(),
     gender: CharacterGenderSchema.optional(),
     globalAttitude: CharacterAttitudeSchema.nullish(),
+    hideProfileAsSpoiler: z.boolean().optional(),
     isFavorite: z.boolean().optional(),
     name: z.string().trim().min(1).max(CHARACTER_NAME_MAX).optional(),
     neutralDescription: optionalText(CHARACTER_LONG_TEXT_MAX),
@@ -293,14 +324,34 @@ export const UpdateBookCharacterSchema = z
 
 export type UpdateBookCharacter = z.infer<typeof UpdateBookCharacterSchema>;
 
+export const CreateCharacterFormSchema = z
+  .object({
+    description: optionalText(CHARACTER_LONG_TEXT_MAX),
+    formType: CharacterFormTypeSchema.default("other"),
+    isSpoiler: z.boolean().default(false),
+    name: z.string().trim().min(1).max(CHARACTER_NAME_MAX),
+    portraitMediaId: z.string().uuid().nullish(),
+    position: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).optional(),
+  })
+  .strict();
+
+export type CreateCharacterForm = z.infer<typeof CreateCharacterFormSchema>;
+
+export const UpdateCharacterFormSchema = z
+  .object({
+    description: optionalText(CHARACTER_LONG_TEXT_MAX),
+    formType: CharacterFormTypeSchema.optional(),
+    isSpoiler: z.boolean().optional(),
+    name: z.string().trim().min(1).max(CHARACTER_NAME_MAX).optional(),
+    portraitMediaId: z.string().uuid().nullish(),
+    position: z.coerce.number().int().min(0).max(CHARACTER_INT4_MAX).optional(),
+  })
+  .strict();
+
+export type UpdateCharacterForm = z.infer<typeof UpdateCharacterFormSchema>;
+
 export const BookCharactersQuerySchema = z.object({
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(CHARACTERS_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   search: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
 });
 
@@ -375,13 +426,34 @@ export const BookCharacterViewSchema = z.object({
   sortOrder: z.number().int().nullable(),
   speciesOverride: z.string().nullable(),
   speciesOverrideIsSpoiler: z.boolean(),
-  status: BookCharacterStatusSchema,
+  status: BookCharacterStatusSchema.nullable(),
   statusCustomText: z.string().nullable(),
   statusIsSpoiler: z.boolean(),
   updatedAt: z.string(),
 });
 
 export type BookCharacterView = z.infer<typeof BookCharacterViewSchema>;
+
+export const CharacterFormViewSchema = z.object({
+  characterId: z.string(),
+  createdAt: z.string(),
+  description: z.string().nullable(),
+  formType: CharacterFormTypeSchema,
+  id: z.string(),
+  isSpoiler: z.boolean(),
+  name: z.string(),
+  portrait: MediaViewSchema.nullable(),
+  position: z.number().int(),
+  updatedAt: z.string(),
+});
+
+export type CharacterFormView = z.infer<typeof CharacterFormViewSchema>;
+
+export const CharacterFormListViewSchema = z.object({
+  forms: z.array(CharacterFormViewSchema),
+});
+
+export type CharacterFormListView = z.infer<typeof CharacterFormListViewSchema>;
 
 export const CharacterDetailsViewSchema = z.object({
   aliases: z.array(CharacterAliasViewSchema),
@@ -391,9 +463,11 @@ export const CharacterDetailsViewSchema = z.object({
   createdAt: z.string(),
   customGender: z.string().nullable(),
   entityKind: CharacterEntityKindSchema,
+  forms: z.array(CharacterFormViewSchema),
   gender: CharacterGenderSchema,
   globalAttitude: CharacterAttitudeSchema.nullable(),
   hiddenFields: z.array(z.string()),
+  hideProfileAsSpoiler: z.boolean(),
   id: z.string(),
   isFavorite: z.boolean(),
   name: z.string(),
@@ -424,14 +498,19 @@ export type CharacterSummaryView = z.infer<typeof CharacterSummaryViewSchema>;
 export const PaginatedCharacterSummarySchema = createPaginatedSchema(CharacterSummaryViewSchema);
 
 export const SeriesCharacterAppearanceViewSchema = z.object({
+  attitude: CharacterAttitudeSchema.nullable(),
+  attitudeChangedFromPrevious: z.boolean(),
   bookCharacterId: z.string(),
   bookId: z.string(),
   displayName: z.string().nullable(),
   hiddenFields: z.array(z.string()),
   importance: BookCharacterImportanceSchema,
+  importanceChangedFromPrevious: z.boolean(),
   partNumber: z.number().int().nullable(),
   portrait: MediaViewSchema.nullable(),
+  roles: z.array(BookCharacterRoleViewSchema),
   status: BookCharacterStatusSchema.nullable(),
+  statusChangedFromPrevious: z.boolean(),
 });
 
 export type SeriesCharacterAppearanceView = z.infer<typeof SeriesCharacterAppearanceViewSchema>;
@@ -462,22 +541,23 @@ export type CharacterListSort = z.infer<typeof CharacterListSortSchema>;
 export const CharactersListQuerySchema = z.object({
   archived: z.stringbool().optional(),
   attitude: queryStringArray(CharacterAttitudeSchema),
+  bookId: z.string().uuid().optional(),
   contextBookId: z.string().uuid().optional(),
   favorite: z.stringbool().optional(),
   gender: queryStringArray(CharacterGenderSchema),
+  groupId: queryStringArray(z.string().uuid()),
+  hasSpoilers: z.stringbool().optional(),
   importance: queryStringArray(BookCharacterImportanceSchema),
+  includeHiddenProfiles: z.stringbool().optional(),
   includeSpoilerSearch: z.stringbool().optional(),
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(CHARACTERS_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
+  possibleDuplicates: z.stringbool().optional(),
   q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
   role: queryStringArray(BookCharacterRoleTypeSchema),
+  seriesId: z.string().uuid().optional(),
   sort: CharacterListSortSchema.default("name"),
   species: queryStringArray(z.string().trim().min(1).max(CHARACTER_SPECIES_MAX)),
+  tagId: queryStringArray(z.string().uuid()),
 });
 
 export type CharactersListQuery = z.infer<typeof CharactersListQuerySchema>;
@@ -512,13 +592,7 @@ export type SeriesCharactersSort = z.infer<typeof SeriesCharactersSortSchema>;
 export const SeriesCharactersQuerySchema = z.object({
   contextBookId: z.string().uuid().optional(),
   includeFuture: z.stringbool().optional(),
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(CHARACTERS_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
   sort: SeriesCharactersSortSchema.default("name"),
 });
@@ -532,6 +606,43 @@ export const SeriesCharacterProfileQuerySchema = z.object({
 
 export type SeriesCharacterProfileQuery = z.infer<typeof SeriesCharacterProfileQuerySchema>;
 
+export const CharacterRevealFieldKeySchema = z.enum([
+  "appearanceNotes",
+  "description",
+  "displayName",
+  "personalImpression",
+  "portrait",
+  "speciesOverride",
+  "status",
+]);
+
+export type CharacterRevealFieldKey = z.infer<typeof CharacterRevealFieldKeySchema>;
+
+export const CharacterDetailsQuerySchema = z.object({
+  ...readingPositionQueryFields,
+  contextBookId: z.string().uuid().optional(),
+  includeHiddenProfiles: z.stringbool().optional(),
+  revealFieldIds: queryStringArray(CharacterRevealFieldKeySchema),
+});
+
+export type CharacterDetailsQuery = z.infer<typeof CharacterDetailsQuerySchema>;
+
+export const SeriesReadingContextSourceSchema = z.enum([
+  "last_finished_book",
+  "first_book",
+  "none",
+]);
+
+export type SeriesReadingContextSource = z.infer<typeof SeriesReadingContextSourceSchema>;
+
+export const SeriesReadingContextDefaultViewSchema = z.object({
+  contextBookId: z.string().nullable(),
+  partNumber: z.number().int().nullable(),
+  source: SeriesReadingContextSourceSchema,
+});
+
+export type SeriesReadingContextDefaultView = z.infer<typeof SeriesReadingContextDefaultViewSchema>;
+
 export const CharacterGlobalSummaryViewSchema = z.object({
   appearanceCount: z.number().int(),
   archivedAt: z.string().nullable(),
@@ -540,12 +651,14 @@ export const CharacterGlobalSummaryViewSchema = z.object({
   entityKind: CharacterEntityKindSchema,
   gender: CharacterGenderSchema,
   globalAttitude: CharacterAttitudeSchema.nullable(),
+  hideProfileAsSpoiler: z.boolean(),
   id: z.string(),
   isFavorite: z.boolean(),
   name: z.string(),
   neutralDescription: z.string().nullable(),
   pronouns: z.string().nullable(),
   species: z.string().nullable(),
+  tags: z.array(TagViewSchema),
 });
 
 export type CharacterGlobalSummaryView = z.infer<typeof CharacterGlobalSummaryViewSchema>;
@@ -567,3 +680,106 @@ export const CharacterSuggestionsViewSchema = z.object({
 });
 
 export type CharacterSuggestionsView = z.infer<typeof CharacterSuggestionsViewSchema>;
+
+export const CHARACTER_SUMMARY_TOP_LIMIT = 5;
+
+export const BookCharacterImportanceCountsSchema = z.object({
+  central: z.number().int().nonnegative(),
+  episodic: z.number().int().nonnegative(),
+  major: z.number().int().nonnegative(),
+  mentioned: z.number().int().nonnegative(),
+  supporting: z.number().int().nonnegative(),
+});
+
+export type BookCharacterImportanceCounts = z.infer<typeof BookCharacterImportanceCountsSchema>;
+
+export const BookCharacterSummaryViewSchema = z.object({
+  bookId: z.string(),
+  byImportance: BookCharacterImportanceCountsSchema,
+  favoritesCount: z.number().int().nonnegative(),
+  hasHiddenRecords: z.boolean(),
+  povCount: z.number().int().nonnegative(),
+  top: z.array(CharacterSummaryViewSchema),
+  totalVisibleCharacters: z.number().int().nonnegative(),
+});
+
+export type BookCharacterSummaryView = z.infer<typeof BookCharacterSummaryViewSchema>;
+
+export const SeriesCharacterSummaryQuerySchema = z.object({
+  contextBookId: z.string().uuid().optional(),
+});
+
+export type SeriesCharacterSummaryQuery = z.infer<typeof SeriesCharacterSummaryQuerySchema>;
+
+export const SeriesCharacterSummaryViewSchema = z.object({
+  byImportance: BookCharacterImportanceCountsSchema,
+  contextBookId: z.string().nullable(),
+  favoritesCount: z.number().int().nonnegative(),
+  hasHiddenRecords: z.boolean(),
+  povCount: z.number().int().nonnegative(),
+  seriesId: z.string(),
+  top: z.array(CharacterSummaryViewSchema),
+  totalVisibleCharacters: z.number().int().nonnegative(),
+});
+
+export type SeriesCharacterSummaryView = z.infer<typeof SeriesCharacterSummaryViewSchema>;
+
+export const CharacterMergePreviewQuerySchema = z
+  .object({
+    otherId: z.string().uuid(),
+  })
+  .strict();
+
+export type CharacterMergePreviewQuery = z.infer<typeof CharacterMergePreviewQuerySchema>;
+
+export const CharacterMergeInputSchema = z
+  .object({
+    otherId: z.string().uuid(),
+  })
+  .strict();
+
+export type CharacterMergeInput = z.infer<typeof CharacterMergeInputSchema>;
+
+export const CharacterMergeEntityCountsSchema = z.object({
+  dropped: z.number().int().nonnegative(),
+  moved: z.number().int().nonnegative(),
+});
+
+export type CharacterMergeEntityCounts = z.infer<typeof CharacterMergeEntityCountsSchema>;
+
+export const CharacterMergeCountsSchema = z.object({
+  aliases: CharacterMergeEntityCountsSchema,
+  appearances: CharacterMergeEntityCountsSchema,
+  forms: CharacterMergeEntityCountsSchema,
+  memberships: CharacterMergeEntityCountsSchema,
+  relationships: CharacterMergeEntityCountsSchema,
+  roles: CharacterMergeEntityCountsSchema,
+  tags: CharacterMergeEntityCountsSchema,
+  theories: CharacterMergeEntityCountsSchema,
+});
+
+export type CharacterMergeCounts = z.infer<typeof CharacterMergeCountsSchema>;
+
+export const CharacterMergePartySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+
+export type CharacterMergeParty = z.infer<typeof CharacterMergePartySchema>;
+
+export const CharacterMergePreviewViewSchema = z.object({
+  counts: CharacterMergeCountsSchema,
+  hasHiddenRecords: z.boolean(),
+  loser: CharacterMergePartySchema,
+  survivor: CharacterMergePartySchema,
+});
+
+export type CharacterMergePreviewView = z.infer<typeof CharacterMergePreviewViewSchema>;
+
+export const CharacterMergeResultViewSchema = z.object({
+  counts: CharacterMergeCountsSchema,
+  loserId: z.string(),
+  survivor: CharacterMergePartySchema,
+});
+
+export type CharacterMergeResultView = z.infer<typeof CharacterMergeResultViewSchema>;

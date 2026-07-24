@@ -12,6 +12,7 @@ import type {
 
 import { compareDesc, max } from "date-fns";
 
+import { toNullableIsoDateTime } from "../../../core/iso-date.js";
 import { compareByPartThenCreated } from "./series-preview.js";
 
 export type ContinuationBook = {
@@ -207,7 +208,7 @@ function resolveRankReason(book: ContinuationBook): SeriesContinuationRankReason
 function toContinuationItem(continuation: AssembledContinuation): FavoriteSeriesContinuationItem {
   return {
     favoriteBooksCount: continuation.favoriteBooksCount,
-    lastFavoriteAddedAt: toIsoString(continuation.lastFavoriteAddedAt),
+    lastFavoriteAddedAt: toNullableIsoDateTime(continuation.lastFavoriteAddedAt),
     nextBook: toNextBookView(continuation.nextBook),
     progress: continuation.progress,
     rankReason: continuation.rankReason,
@@ -215,15 +216,11 @@ function toContinuationItem(continuation: AssembledContinuation): FavoriteSeries
   };
 }
 
-function toIsoString(date: Nullable<Date>): Nullable<string> {
-  return date === null ? null : date.toISOString();
-}
-
 function toNextBookView(book: ContinuationBook): SeriesContinuationNextBook {
   return {
     authors: book.authors,
     cover: book.cover,
-    favoriteAddedAt: toIsoString(book.favoriteAddedAt),
+    favoriteAddedAt: toNullableIsoDateTime(book.favoriteAddedAt),
     id: book.id,
     isFavorite: book.isFavorite,
     ownershipStatus: book.ownershipStatus,
@@ -247,7 +244,10 @@ function toReadingProgressView(
 
   const percentage =
     book.pagesCount !== null && book.pagesCount > 0
-      ? Math.round((book.currentPage / book.pagesCount) * FULL_PERCENTAGE)
+      ? Math.min(
+          FULL_PERCENTAGE,
+          Math.round((book.currentPage / book.pagesCount) * FULL_PERCENTAGE),
+        )
       : null;
 
   return { currentPage: book.currentPage, percentage, totalPages: book.pagesCount };

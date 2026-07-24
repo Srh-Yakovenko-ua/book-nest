@@ -10,11 +10,9 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiNoContentResponse,
   ApiNotFoundResponse,
@@ -22,24 +20,21 @@ import {
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ListMembershipService } from "../application/list-membership.service.js";
 import { AddBooksToListInputDto } from "./input-dto/add-books-to-list.input-dto.js";
 import { MoveListBookInputDto } from "./input-dto/move-list-book.input-dto.js";
 import { AddBooksToListResultDto } from "./view-dto/add-books-to-list-result.view-dto.js";
 
-@ApiBearerAuth()
 @ApiTags("lists")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/lists")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class ListMembershipController {
   constructor(private readonly listMembershipService: ListMembershipService) {}
 

@@ -5,7 +5,7 @@ import type { DeliveryRepository } from "../infrastructure/delivery.repository.j
 
 import { DeliveryService } from "./delivery.service.js";
 
-const mediaStub = { buildView: vi.fn() } as unknown as MediaService;
+const mediaStub = { buildViewOrNull: vi.fn().mockReturnValue(null) } as unknown as MediaService;
 
 describe("DeliveryService.inTransitSummary", () => {
   it("maps the repository counts onto the summary view", async () => {

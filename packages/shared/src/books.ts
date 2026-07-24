@@ -9,9 +9,7 @@ import {
   BookLanguageSchema,
   BookTypeSchema,
   CurrencySchema,
-  DeliveryStatusSchema,
   LoanDirectionSchema,
-  LoanTypeSchema,
   OwnershipStatusSchema,
   ownershipStatusUsesLoan,
   QUEUE_PRIORITY_REASON_CUSTOM_TEXT_MAX,
@@ -24,13 +22,14 @@ import {
   collapseSpaces,
   createPaginatedSchema,
   LIST_PAGE_SIZE_MAX,
-  noHtmlTags,
   type Nullable,
-  PAGE_NUMBER_MAX,
+  paginationQueryFields,
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
+import { DeliverySummaryViewSchema } from "./delivery-view.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
 import {
+  boundedUrlSchema,
   HTTP_OR_HTTPS_PROTOCOL,
   NoHtmlString,
   notInFutureDate,
@@ -39,7 +38,7 @@ import {
   RECENT_USED_LIMIT_MAX,
 } from "./internal.js";
 import { BookListViewSchema, NewListInputSchema } from "./lists.js";
-import { LoanUiStatusSchema } from "./loans.js";
+import { LoanInfoViewSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
 import { BookPublisherRefSchema } from "./publishers.js";
 import { NewSeriesInputSchema, SeriesViewSchema } from "./series.js";
@@ -240,12 +239,11 @@ export const OwnershipStoreNameSchema = z
     NoHtmlString.max(OWNERSHIP_STORE_NAME_MAX, "Store name must be at most 100 characters long"),
   );
 
-export const OwnershipStoreUrlSchema = z
-  .string()
-  .trim()
-  .max(OWNERSHIP_STORE_URL_MAX, "URL must be at most 300 characters long")
-  .refine(noHtmlTags, "HTML tags are not allowed")
-  .pipe(z.url({ error: "Enter a valid link", protocol: HTTP_OR_HTTPS_PROTOCOL }));
+export const OwnershipStoreUrlSchema = boundedUrlSchema({
+  maxLength: OWNERSHIP_STORE_URL_MAX,
+  protocol: HTTP_OR_HTTPS_PROTOCOL,
+  urlError: "Enter a valid link",
+});
 
 const OwnershipOrderNumberSchema = z
   .string()
@@ -771,6 +769,45 @@ export const BulkActionResultSchema = z.object({
 
 export type BulkActionResult = z.infer<typeof BulkActionResultSchema>;
 
+export const QUEUE_VOLUME_BULK_MAX = 200;
+
+export const UpdatePagesCountItemSchema = z.discriminatedUnion("kind", [
+  z.object({
+    bookId: z.uuid(),
+    expectedUpdatedAt: z.iso.datetime(),
+    kind: z.literal("pages_count"),
+    pagesCount: BookPagesCountSchema,
+  }),
+  z.object({
+    bookId: z.uuid(),
+    expectedUpdatedAt: z.iso.datetime(),
+    kind: z.literal("pages_count_unavailable"),
+  }),
+]);
+
+export type UpdatePagesCountItem = z.infer<typeof UpdatePagesCountItemSchema>;
+
+export const BulkPagesCountInputSchema = z.object({
+  items: z.array(UpdatePagesCountItemSchema).min(1).max(QUEUE_VOLUME_BULK_MAX),
+});
+
+export type BulkPagesCountInput = z.infer<typeof BulkPagesCountInputSchema>;
+
+export const BulkPagesCountFailureReasonSchema = z.enum([
+  "below_current_page",
+  "not_found",
+  "stale",
+]);
+
+export type BulkPagesCountFailureReason = z.infer<typeof BulkPagesCountFailureReasonSchema>;
+
+export const BulkPagesCountResultSchema = z.object({
+  failed: z.array(z.object({ bookId: z.uuid(), reason: BulkPagesCountFailureReasonSchema })),
+  updated: z.array(z.uuid()),
+});
+
+export type BulkPagesCountResult = z.infer<typeof BulkPagesCountResultSchema>;
+
 export type ChangeReadingStatusInput = z.infer<typeof ChangeReadingStatusInputSchema>;
 
 export type CreateBookInput = z.infer<typeof CreateBookInputSchema>;
@@ -805,6 +842,10 @@ export const LibrarySortSchema = z.enum([
 
 export type LibrarySort = z.infer<typeof LibrarySortSchema>;
 
+export const PublisherPresenceSchema = z.enum(["all", "assigned", "missing"]);
+
+export type PublisherPresence = z.infer<typeof PublisherPresenceSchema>;
+
 export const LibraryBooksQuerySchema = z
   .object({
     ageCategory: queryStringArray(AgeCategorySchema),
@@ -817,16 +858,11 @@ export const LibraryBooksQuerySchema = z
     isFavorite: z.stringbool().optional(),
     language: queryStringArray(BookLanguageSchema),
     owner: queryStringArray(OwnershipStatusSchema),
-    pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-    pageSize: z.coerce
-      .number()
-      .int()
-      .min(1)
-      .max(LIST_PAGE_SIZE_MAX)
-      .default(LIBRARY_PAGE_SIZE_DEFAULT),
+    ...paginationQueryFields({ pageSizeDefault: LIBRARY_PAGE_SIZE_DEFAULT }),
     pagesMax: z.coerce.number().int().optional(),
     pagesMin: z.coerce.number().int().optional(),
     publisher: queryStringArray(z.uuid()),
+    publisherPresence: PublisherPresenceSchema.optional(),
     q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
     ratingMax: z.coerce
       .number()
@@ -904,19 +940,6 @@ export const RecentPurchaseStoresQuerySchema = z.object({
 export type RecentPurchaseStores = string[];
 
 export type RecentPurchaseStoresQuery = z.infer<typeof RecentPurchaseStoresQuerySchema>;
-
-export const LoanInfoViewSchema = z.object({
-  contact: z.string().nullable(),
-  expectedReturnDate: z.string().nullable(),
-  loanDate: z.string().nullable(),
-  loanType: LoanTypeSchema,
-  loanUiStatus: LoanUiStatusSchema,
-  note: z.string().nullable(),
-  personName: z.string(),
-  remindToReturn: z.boolean(),
-});
-
-export type LoanInfoView = z.infer<typeof LoanInfoViewSchema>;
 
 export const PurchaseInfoViewSchema = z.object({
   currency: CurrencySchema.nullable(),
@@ -1078,36 +1101,6 @@ export const ReadingHistoryViewSchema = z.object({
 
 export type ReadingHistoryView = z.infer<typeof ReadingHistoryViewSchema>;
 
-export const DeliveryViewSchema = z.object({
-  cancelledAt: z.string().nullable(),
-  cancelReason: z.string().nullable(),
-  createdAt: z.string(),
-  currency: CurrencySchema.nullable(),
-  deliveryService: z.string().nullable(),
-  expectedDeliveryDate: z.string().nullable(),
-  id: z.string(),
-  note: z.string().nullable(),
-  orderDate: z.string().nullable(),
-  orderNumber: z.string().nullable(),
-  price: z.number().nullable(),
-  receivedAt: z.string().nullable(),
-  status: DeliveryStatusSchema,
-  storeName: z.string().nullable(),
-  trackingNumber: z.string().nullable(),
-  trackingUrl: z.string().nullable(),
-  updatedAt: z.string(),
-});
-
-export type DeliveryView = z.infer<typeof DeliveryViewSchema>;
-
-export const DeliverySummaryViewSchema = z.object({
-  active: DeliveryViewSchema.nullable(),
-  latest: DeliveryViewSchema.nullable(),
-  totalCount: z.number(),
-});
-
-export type DeliverySummaryView = z.infer<typeof DeliverySummaryViewSchema>;
-
 export const BookViewSchema = z.object({
   ageCategory: AgeCategorySchema,
   authors: z.array(BookAuthorRefSchema),
@@ -1133,6 +1126,7 @@ export const BookViewSchema = z.object({
   originalTitle: z.string().nullable(),
   ownershipStatus: OwnershipStatusSchema,
   pagesCount: z.number().nullable(),
+  pagesCountUnavailable: z.boolean(),
   partNumber: z.number().nullable(),
   publicationYear: z.number().nullable(),
   publisher: BookPublisherRefSchema.nullable(),
