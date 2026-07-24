@@ -1,11 +1,10 @@
-import { DeliveryServiceSchema, type Nullable } from "@app/shared";
+import { DeliveryServiceSchema, normalizeName, type Nullable } from "@app/shared";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 
 import { env } from "../config/env.js";
 import { createLogger } from "../core/logger.js";
-import { normalizeName } from "../core/normalize-name.js";
 import { PrismaClient } from "../generated/prisma/client.js";
 
 const logger = createLogger("seed.delivery-services");

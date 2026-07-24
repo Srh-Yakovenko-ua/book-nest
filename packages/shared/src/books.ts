@@ -24,13 +24,13 @@ import {
   collapseSpaces,
   createPaginatedSchema,
   LIST_PAGE_SIZE_MAX,
-  noHtmlTags,
   type Nullable,
-  PAGE_NUMBER_MAX,
+  paginationQueryFields,
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
 import {
+  boundedUrlSchema,
   HTTP_OR_HTTPS_PROTOCOL,
   NoHtmlString,
   notInFutureDate,
@@ -240,12 +240,11 @@ export const OwnershipStoreNameSchema = z
     NoHtmlString.max(OWNERSHIP_STORE_NAME_MAX, "Store name must be at most 100 characters long"),
   );
 
-export const OwnershipStoreUrlSchema = z
-  .string()
-  .trim()
-  .max(OWNERSHIP_STORE_URL_MAX, "URL must be at most 300 characters long")
-  .refine(noHtmlTags, "HTML tags are not allowed")
-  .pipe(z.url({ error: "Enter a valid link", protocol: HTTP_OR_HTTPS_PROTOCOL }));
+export const OwnershipStoreUrlSchema = boundedUrlSchema({
+  maxLength: OWNERSHIP_STORE_URL_MAX,
+  protocol: HTTP_OR_HTTPS_PROTOCOL,
+  urlError: "Enter a valid link",
+});
 
 const OwnershipOrderNumberSchema = z
   .string()
@@ -860,13 +859,7 @@ export const LibraryBooksQuerySchema = z
     isFavorite: z.stringbool().optional(),
     language: queryStringArray(BookLanguageSchema),
     owner: queryStringArray(OwnershipStatusSchema),
-    pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-    pageSize: z.coerce
-      .number()
-      .int()
-      .min(1)
-      .max(LIST_PAGE_SIZE_MAX)
-      .default(LIBRARY_PAGE_SIZE_DEFAULT),
+    ...paginationQueryFields({ pageSizeDefault: LIBRARY_PAGE_SIZE_DEFAULT }),
     pagesMax: z.coerce.number().int().optional(),
     pagesMin: z.coerce.number().int().optional(),
     publisher: queryStringArray(z.uuid()),

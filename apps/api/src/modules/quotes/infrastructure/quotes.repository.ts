@@ -2,12 +2,27 @@ import type { Nullable, QuoteFilter, QuoteSort } from "@app/shared";
 
 import { QUOTE_PAGE_MAX } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
 import type { QuoteBookCount, QuotesSummaryData } from "../domain/quotes-summary.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { buildAuthorSearchConditions } from "../../books/index.js";
+import { buildBookTextSearchConditions } from "../../books/index.js";
+
+const QuotesSummaryCountsRowSchema = z.object({
+  favorites: z.number(),
+  spoiler: z.number(),
+  total: z.number(),
+  withComment: z.number(),
+});
+
+const EMPTY_QUOTE_COUNTS: z.infer<typeof QuotesSummaryCountsRowSchema> = {
+  favorites: 0,
+  spoiler: 0,
+  total: 0,
+  withComment: 0,
+};
 
 const quoteWithBook = {
   include: { book: { include: { coverMedia: true } } },
@@ -87,8 +102,9 @@ export class QuotesRepository {
   async delete(
     { quoteId }: { quoteId: string },
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<void> {
-    await client.quote.delete({ where: { id: quoteId } });
+  ): Promise<number> {
+    const deleted = await client.quote.deleteMany({ where: { id: quoteId } });
+    return deleted.count;
   }
 
   findOwnedBook(userId: string, bookId: string): Promise<Nullable<OwnedBook>> {
@@ -132,21 +148,27 @@ export class QuotesRepository {
   }
 
   async summaryData(userId: string): Promise<QuotesSummaryData> {
-    const base: Prisma.QuoteWhereInput = { userId };
-    const [total, favorites, spoiler, withComment, groups] = await Promise.all([
-      this.prisma.quote.count({ where: base }),
-      this.prisma.quote.count({ where: { ...base, isFavorite: true } }),
-      this.prisma.quote.count({ where: { ...base, isSpoiler: true } }),
-      this.prisma.quote.count({ where: { ...base, comment: { not: null } } }),
-      this.prisma.quote.groupBy({ _count: { _all: true }, by: ["bookId"], where: base }),
+    const [countsRows, groups] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*))::int AS "total",
+          (count(*) FILTER (WHERE quote.is_favorite = true))::int AS "favorites",
+          (count(*) FILTER (WHERE quote.is_spoiler = true))::int AS "spoiler",
+          (count(*) FILTER (WHERE quote.comment IS NOT NULL))::int AS "withComment"
+        FROM quotes quote
+        WHERE quote.user_id = ${userId}::uuid
+      `),
+      this.prisma.quote.groupBy({ _count: { _all: true }, by: ["bookId"], where: { userId } }),
     ]);
+
+    const counts = z.array(QuotesSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_QUOTE_COUNTS;
 
     return {
       bookCounts: await this.resolveBookCounts(userId, groups),
-      favorites,
-      spoiler,
-      total,
-      withComment,
+      favorites: counts.favorites,
+      spoiler: counts.spoiler,
+      total: counts.total,
+      withComment: counts.withComment,
     };
   }
 
@@ -240,9 +262,7 @@ function buildQuoteSearchConditions(search: string): Prisma.QuoteWhereInput[] {
     { text: contains },
     { comment: contains },
     { chapter: contains },
-    { book: { title: contains } },
-    { book: { originalTitle: contains } },
-    ...buildAuthorSearchConditions(search).map((condition) => ({ book: condition })),
+    ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
   ];
 
   const pageMatch = Number.parseInt(search, 10);

@@ -1,15 +1,13 @@
 import type { CharacterBundle, CharacterImportResultView } from "@app/shared";
 
 import { CharacterExportQuerySchema } from "@app/shared";
-import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Query } from "@nestjs/common";
 import {
-  ApiBearerAuth,
   ApiBody,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
@@ -18,7 +16,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterPortabilityService } from "../application/character-portability.service.js";
 import { CharacterExportQueryDto } from "./input-dto/character-export-query.input-dto.js";
 import { CharacterImportBundleDto } from "./input-dto/character-import.input-dto.js";
@@ -28,12 +26,9 @@ import { CharacterImportResultDto } from "./view-dto/character-import-result.vie
 const PORTABILITY_TTL_SECONDS = 60;
 const CHARACTER_EXPORT_LIMIT = 20;
 const CHARACTER_IMPORT_LIMIT = 10;
-
-@ApiBearerAuth()
 @ApiTags("characters")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/characters")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class CharacterPortabilityController {
   constructor(private readonly portabilityService: CharacterPortabilityService) {}
 

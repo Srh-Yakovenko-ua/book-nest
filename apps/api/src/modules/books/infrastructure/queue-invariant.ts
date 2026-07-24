@@ -15,7 +15,7 @@ export async function enforceQueueInvariant(
     return;
   }
 
-  await acquireUserQueueLock(client, args.userId);
+  await acquireUserQueueLock(args.userId, client);
 
   const clearedCount = await clearClosedQueuePlacements(client, args.userId);
   if (clearedCount === 0) {

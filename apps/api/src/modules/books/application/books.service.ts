@@ -34,7 +34,7 @@ import {
   TransactionRunner,
 } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { buildPaginator } from "../../../core/paginator.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
 import {
   buildDeliveryInfoData,
@@ -127,6 +127,8 @@ export class BooksService {
       userId,
     });
 
+    await this.relationsResolver.assertCreatableRelations({ input, userId });
+
     let placement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
@@ -175,6 +177,7 @@ export class BooksService {
             title: input.title,
             translator: input.translator ?? null,
           },
+          now,
           client,
         );
       }, HEAVY_TRANSACTION_OPTIONS);
@@ -256,9 +259,8 @@ export class BooksService {
     const [books, totalCount] = await Promise.all([
       this.booksRepository.listForLibrary({
         filter,
-        skip: (pageNumber - 1) * pageSize,
         sort,
-        take: pageSize,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.booksRepository.countForLibrary({ filter }),
     ]);
@@ -335,6 +337,8 @@ export class BooksService {
         ? undefined
         : await this.relationsResolver.resolveAuthors({ references: input.authors, userId });
 
+    await this.relationsResolver.assertUpdatableRelations({ input, userId });
+
     let seriesPlacement: SeriesPlacement = { partNumber: null, seriesId: null };
     let book: BookWithRelations;
     try {
@@ -365,6 +369,7 @@ export class BooksService {
             readingProgress: resolveReadingProgressBlock(readingStatus, input.readingProgress),
             tagIds: resolved.tagIds,
           },
+          now,
           client,
         );
       }, HEAVY_TRANSACTION_OPTIONS);

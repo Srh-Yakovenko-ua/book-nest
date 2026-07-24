@@ -1,14 +1,31 @@
 import type { Job } from "bullmq";
 
-import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 
+import { createLogger } from "../../../core/logger.js";
+import { workerConnection } from "../../../core/queue/queue.module.js";
 import { GenerateThumbJobSchema, MEDIA_QUEUE_NAME } from "../domain/media-queue.js";
 import { MediaService } from "./media.service.js";
 
-@Processor(MEDIA_QUEUE_NAME)
+const log = createLogger("media.thumbnail-processor");
+
+@Processor(MEDIA_QUEUE_NAME, { connection: workerConnection })
 export class MediaThumbnailProcessor extends WorkerHost {
   constructor(private readonly mediaService: MediaService) {
     super();
+  }
+
+  @OnWorkerEvent("failed")
+  onFailed(job: Job<unknown> | undefined, error: Error): void {
+    log.error(
+      {
+        attemptsMade: job?.attemptsMade,
+        err: error,
+        jobId: job?.id,
+        jobName: job?.name,
+      },
+      "media thumbnail job failed",
+    );
   }
 
   async process(job: Job<unknown>): Promise<void> {

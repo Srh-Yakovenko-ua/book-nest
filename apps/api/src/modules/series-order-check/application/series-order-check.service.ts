@@ -19,7 +19,6 @@ import {
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type {
   SeriesOrderDetectedIssue,
   SeriesOrderDetectionBook,
@@ -276,7 +275,9 @@ export class SeriesOrderCheckService {
   }
 
   private buildCoverMap(relevantBooks: RelevantSeriesBook[]): Map<string, Nullable<MediaView>> {
-    return new Map(relevantBooks.map((book) => [book.id, this.coverViewOf(book)]));
+    return new Map(
+      relevantBooks.map((book) => [book.id, this.mediaService.buildViewOrNull(book.coverMedia)]),
+    );
   }
 
   private buildDetectionSeries({
@@ -336,21 +337,6 @@ export class SeriesOrderCheckService {
     return detectSeriesOrderIssues(seriesList)
       .map((issue) => ({ fingerprint: computeSeriesOrderFingerprint({ issue, userId }), issue }))
       .filter(({ fingerprint }) => !ignored.has(fingerprint));
-  }
-
-  private coverViewOf(book: {
-    coverMedia: Nullable<MediaAssetModel>;
-    id: string;
-  }): Nullable<MediaView> {
-    if (book.coverMedia === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(book.coverMedia);
-    } catch (error) {
-      log.warn({ bookId: book.id, err: error }, "failed to build cover view");
-      return null;
-    }
   }
 
   private findIssueOrThrow({

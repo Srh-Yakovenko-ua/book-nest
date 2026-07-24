@@ -25,11 +25,9 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -40,17 +38,17 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { TimelineEventService } from "../application/timeline-event.service.js";
 import { CreateEventRelationInputDto } from "./input-dto/create-event-relation.input-dto.js";
 import { CreateTimelineEventInputDto } from "./input-dto/create-timeline-event.input-dto.js";
@@ -64,14 +62,9 @@ import { TimelineEventDetailViewDto } from "./view-dto/timeline-event-detail.vie
 import { TimelineEventViewDto } from "./view-dto/timeline-event.view-dto.js";
 import { TimelineOverviewViewDto } from "./view-dto/timeline-overview.view-dto.js";
 
-const TIMELINE_ACTION_TTL_SECONDS = 60;
-const TIMELINE_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("timeline-events")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller()
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class TimelineEventsController {
   constructor(private readonly timelineEventService: TimelineEventService) {}
 
@@ -125,9 +118,7 @@ export class TimelineEventsController {
   @ApiParam({ description: "Book id", name: "bookId" })
   @ApiUnprocessableEntityResponse({ description: "Invalid page, timeline or resolving event" })
   @Post("api/books/:bookId/timeline-events")
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   createEvent(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
@@ -159,9 +150,7 @@ export class TimelineEventsController {
   @ApiParam({ description: "Event id", name: "eventId" })
   @ApiUnprocessableEntityResponse({ description: "Invalid page or resolving event" })
   @Patch("api/timeline-events/:eventId")
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   updateEvent(
     @CurrentUser() user: AuthenticatedUser,
     @Param("eventId", ParseUUIDPipe) eventId: string,
@@ -176,9 +165,7 @@ export class TimelineEventsController {
   @ApiParam({ description: "Event id", name: "eventId" })
   @Delete("api/timeline-events/:eventId")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   deleteEvent(
     @CurrentUser() user: AuthenticatedUser,
     @Param("eventId", ParseUUIDPipe) eventId: string,
@@ -195,9 +182,7 @@ export class TimelineEventsController {
   @ApiUnprocessableEntityResponse({ description: "The neighbor event is invalid" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("api/timeline-events/:eventId/reorder")
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   reorderEvent(
     @CurrentUser() user: AuthenticatedUser,
     @Param("eventId", ParseUUIDPipe) eventId: string,
@@ -215,9 +200,7 @@ export class TimelineEventsController {
   @ApiUnprocessableEntityResponse({ description: "The target timeline or neighbor is invalid" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("api/timeline-events/:eventId/move")
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   moveEvent(
     @CurrentUser() user: AuthenticatedUser,
     @Param("eventId", ParseUUIDPipe) eventId: string,
@@ -235,9 +218,7 @@ export class TimelineEventsController {
   @ApiParam({ description: "Source event id", name: "eventId" })
   @ApiUnprocessableEntityResponse({ description: "Self relation or cross-book target" })
   @Post("api/timeline-events/:eventId/relations")
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   createRelation(
     @CurrentUser() user: AuthenticatedUser,
     @Param("eventId", ParseUUIDPipe) eventId: string,
@@ -252,9 +233,7 @@ export class TimelineEventsController {
   @ApiParam({ description: "Relation id", name: "relationId" })
   @Delete("api/timeline-event-relations/:relationId")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   deleteRelation(
     @CurrentUser() user: AuthenticatedUser,
     @Param("relationId", ParseUUIDPipe) relationId: string,

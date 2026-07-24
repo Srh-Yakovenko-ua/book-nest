@@ -4,6 +4,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { CharacterGraphLayoutModel } from "../../../generated/prisma/models.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
@@ -39,7 +40,10 @@ export class CharacterGraphLayoutsRepository {
       key.mode,
       key.contextBookId ?? LOCK_SENTINEL,
     ].join(":");
-    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+    await acquireAdvisoryLock(
+      { classId: ADVISORY_LOCK_CLASS.characterGraphLayouts, key: lockKey },
+      client,
+    );
   }
 
   createLayout(

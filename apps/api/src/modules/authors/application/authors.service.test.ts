@@ -15,6 +15,7 @@ import type { WikidataAuthorFacts, WikidataClient } from "../infrastructure/wiki
 
 import { HttpError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { fakeOf } from "../../../test/fake.js";
 import { AuthorsService } from "./authors.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -101,9 +102,9 @@ function buildService(overrides: {
   };
 
   const service = new AuthorsService(
-    repository as unknown as AuthorsRepository,
-    openLibraryClient as unknown as OpenLibraryClient,
-    wikidataClient as unknown as WikidataClient,
+    fakeOf<AuthorsRepository>(repository),
+    fakeOf<OpenLibraryClient>(openLibraryClient),
+    fakeOf<WikidataClient>(wikidataClient),
   );
 
   return { repository, service };
@@ -352,14 +353,14 @@ function buildMaterializeService(overrides: {
     .mockResolvedValue(overrides.detail === undefined ? authorDetail() : overrides.detail);
   const getAuthorFactsByQid = vi.fn().mockResolvedValue(overrides.facts ?? null);
 
-  const repository = {
+  const repository = fakeOf<AuthorsRepository>({
     createGlobal,
     findGlobalByNormalizedName,
     findGlobalByOpenLibraryKey,
     findGlobalByWikidataId,
-  } as unknown as AuthorsRepository;
-  const openLibraryClient = { getAuthorByKey } as unknown as OpenLibraryClient;
-  const wikidataClient = { getAuthorFactsByQid } as unknown as WikidataClient;
+  });
+  const openLibraryClient = fakeOf<OpenLibraryClient>({ getAuthorByKey });
+  const wikidataClient = fakeOf<WikidataClient>({ getAuthorFactsByQid });
 
   const service = new AuthorsService(repository, openLibraryClient, wikidataClient);
 
@@ -529,16 +530,16 @@ function buildReferencesService(overrides: {
   service: AuthorsService;
 } {
   const findBaseByIds = vi.fn().mockResolvedValue(overrides.findBaseByIds ?? []);
-  const repository = {
+  const repository = fakeOf<AuthorsRepository>({
     findBaseByIds,
     findByNormalized: vi.fn().mockResolvedValue(overrides.findByNormalized ?? null),
     findGlobalByOpenLibraryKey: vi
       .fn()
       .mockResolvedValue(overrides.findGlobalByOpenLibraryKey ?? null),
     findVisibleById: vi.fn((unused: string, id: string) => Promise.resolve(author({ id }))),
-  } as unknown as AuthorsRepository;
-  const openLibraryClient = {} as unknown as OpenLibraryClient;
-  const wikidataClient = {} as unknown as WikidataClient;
+  });
+  const openLibraryClient = fakeOf<OpenLibraryClient>();
+  const wikidataClient = fakeOf<WikidataClient>();
 
   const service = new AuthorsService(repository, openLibraryClient, wikidataClient);
 

@@ -14,6 +14,8 @@ const log = createLogger("characters.purge-reconciler");
 
 @Injectable()
 export class CharacterPurgeReconciler {
+  private isRunning = false;
+
   constructor(
     private readonly charactersRepository: CharactersRepository,
     private readonly charactersService: CharactersService,
@@ -21,6 +23,19 @@ export class CharacterPurgeReconciler {
 
   @Cron(CronExpression.EVERY_HOUR)
   async sweep(): Promise<void> {
+    if (this.isRunning) {
+      log.warn("character purge reconciliation still running, skipping this tick");
+      return;
+    }
+    this.isRunning = true;
+    try {
+      await this.runSweep();
+    } finally {
+      this.isRunning = false;
+    }
+  }
+
+  private async runSweep(): Promise<void> {
     const deletedBefore = subMilliseconds(new Date(), CHARACTER_PURGE_WINDOW_MS);
 
     let candidates: { id: string; userId: string }[];

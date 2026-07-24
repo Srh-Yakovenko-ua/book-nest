@@ -16,11 +16,9 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -30,7 +28,6 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
@@ -39,7 +36,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterTheoriesService } from "../application/character-theories.service.js";
 import { CharacterTheoriesQueryDto } from "./input-dto/character-theories-query.input-dto.js";
 import { CreateCharacterTheoryInputDto } from "./input-dto/create-character-theory.input-dto.js";
@@ -49,12 +46,9 @@ import { PaginatedCharacterTheoriesDto } from "./view-dto/paginated-character-th
 
 const CHARACTER_THEORY_ACTION_TTL_SECONDS = 60;
 const CHARACTER_THEORY_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("character-theories")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/character-theories")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class CharacterTheoriesController {
   constructor(private readonly characterTheoriesService: CharacterTheoriesService) {}
 

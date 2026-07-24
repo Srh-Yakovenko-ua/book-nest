@@ -1,8 +1,10 @@
 import type { Prisma } from "../../generated/prisma/client.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "./advisory-lock.js";
+
 export async function acquireUserQueueLock(
-  client: Prisma.TransactionClient,
   userId: string,
+  client: Prisma.TransactionClient,
 ): Promise<void> {
-  await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
+  await acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.queue, key: userId }, client);
 }

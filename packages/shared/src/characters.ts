@@ -2,8 +2,7 @@ import { z } from "zod";
 
 import {
   createPaginatedSchema,
-  LIST_PAGE_SIZE_MAX,
-  PAGE_NUMBER_MAX,
+  paginationQueryFields,
   readingPositionQueryFields,
 } from "./common.js";
 import { queryStringArray } from "./internal.js";
@@ -352,13 +351,7 @@ export const UpdateCharacterFormSchema = z
 export type UpdateCharacterForm = z.infer<typeof UpdateCharacterFormSchema>;
 
 export const BookCharactersQuerySchema = z.object({
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(CHARACTERS_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   search: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
 });
 
@@ -557,13 +550,7 @@ export const CharactersListQuerySchema = z.object({
   importance: queryStringArray(BookCharacterImportanceSchema),
   includeHiddenProfiles: z.stringbool().optional(),
   includeSpoilerSearch: z.stringbool().optional(),
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(CHARACTERS_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   possibleDuplicates: z.stringbool().optional(),
   q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
   role: queryStringArray(BookCharacterRoleTypeSchema),
@@ -605,13 +592,7 @@ export type SeriesCharactersSort = z.infer<typeof SeriesCharactersSortSchema>;
 export const SeriesCharactersQuerySchema = z.object({
   contextBookId: z.string().uuid().optional(),
   includeFuture: z.stringbool().optional(),
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(CHARACTERS_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: CHARACTERS_DEFAULT_PAGE_SIZE }),
   q: z.string().trim().max(CHARACTER_SEARCH_MAX).optional(),
   sort: SeriesCharactersSortSchema.default("name"),
 });

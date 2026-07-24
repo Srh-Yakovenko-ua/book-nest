@@ -10,13 +10,10 @@ import { LoanTypeSchema, normalizeSearch, OwnershipStatusSchema } from "@app/sha
 import { Injectable } from "@nestjs/common";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
-import { createLogger } from "../../../core/logger.js";
-import { buildPaginator } from "../../../core/paginator.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
 import { getLoanUiStatus, loanDateBounds } from "../domain/loan-ui-status.js";
 import { LoansRepository, type LoanWithBook } from "../infrastructure/loans.repository.js";
-
-const log = createLogger("loans.view");
 
 @Injectable()
 export class LoansService {
@@ -46,9 +43,8 @@ export class LoansService {
     const [items, totalCount] = await Promise.all([
       this.loansRepository.listLoans({
         ...filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
         sort: query.sort,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.loansRepository.countLoans(filter),
     ]);
@@ -75,21 +71,9 @@ export class LoansService {
     };
   }
 
-  private coverViewOf(coverMedia: LoanWithBook["book"]["coverMedia"]): LoanBookPreview["cover"] {
-    if (coverMedia === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(coverMedia);
-    } catch (error) {
-      log.warn({ err: error, mediaId: coverMedia.id }, "failed to build loan cover view");
-      return null;
-    }
-  }
-
   private toBookPreview(book: LoanWithBook["book"]): LoanBookPreview {
     return {
-      cover: this.coverViewOf(book.coverMedia),
+      cover: this.mediaService.buildViewOrNull(book.coverMedia),
       firstAuthorName: book.firstAuthorName,
       id: book.id,
       originalTitle: book.originalTitle,

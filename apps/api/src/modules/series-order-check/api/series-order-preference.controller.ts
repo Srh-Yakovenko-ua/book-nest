@@ -1,40 +1,27 @@
 import type { SeriesOrderPreferenceView } from "@app/shared";
 
 import { SeriesOrderCheckPreferenceInputSchema } from "@app/shared";
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  ParseUUIDPipe,
-  Put,
-  UseGuards,
-} from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Put } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { SeriesOrderCheckService } from "../application/series-order-check.service.js";
 import { SeriesOrderCheckPreferenceInputDto } from "./input-dto/series-order-check-preference.input-dto.js";
 import { SeriesOrderPreferenceViewDto } from "./view-dto/series-order-preference.view-dto.js";
-
-const PREFERENCE_ACTION_TTL_SECONDS = 60;
-const PREFERENCE_ACTION_LIMIT = 60;
 
 @ApiTags("series")
 @Controller("api/series")
@@ -42,7 +29,6 @@ export class SeriesOrderPreferenceController {
   constructor(private readonly seriesOrderCheckService: SeriesOrderCheckService) {}
 
   @ApiBadRequestResponse({ description: "Invalid series id" })
-  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: "Series not found" })
   @ApiOkResponse({
     description: "The current series order check preference",
@@ -50,12 +36,9 @@ export class SeriesOrderPreferenceController {
   })
   @ApiOperation({ summary: "Read the series read-order check preference for a series" })
   @ApiParam({ description: "The series id", name: "seriesId" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get(":seriesId/order-check-preference")
-  @Throttle({
-    default: { limit: PREFERENCE_ACTION_LIMIT, ttl: seconds(PREFERENCE_ACTION_TTL_SECONDS) },
-  })
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
+  @Throttle(MUTATION_THROTTLE)
   getPreference(
     @CurrentUser() user: AuthenticatedUser,
     @Param("seriesId", ParseUUIDPipe) seriesId: string,
@@ -67,7 +50,6 @@ export class SeriesOrderPreferenceController {
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBearerAuth()
   @ApiBody({ type: SeriesOrderCheckPreferenceInputDto })
   @ApiNotFoundResponse({ description: "Series not found" })
   @ApiOkResponse({
@@ -76,13 +58,10 @@ export class SeriesOrderPreferenceController {
   })
   @ApiOperation({ summary: "Enable or disable the series read-order check for a series" })
   @ApiParam({ description: "The series id", name: "seriesId" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @HttpCode(HTTP_STATUS.OK)
+  @JwtProtected()
   @Put(":seriesId/order-check-preference")
-  @Throttle({
-    default: { limit: PREFERENCE_ACTION_LIMIT, ttl: seconds(PREFERENCE_ACTION_TTL_SECONDS) },
-  })
-  @UseGuards(JwtAccessGuard)
+  @Throttle(MUTATION_THROTTLE)
   setPreference(
     @CurrentUser() user: AuthenticatedUser,
     @Param("seriesId", ParseUUIDPipe) seriesId: string,

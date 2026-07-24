@@ -9,9 +9,16 @@ import { Injectable } from "@nestjs/common";
 import type { StoredObject } from "../domain/storage.port.js";
 
 import { env } from "../../../config/env.js";
+import { BadGatewayError } from "../../../core/exceptions/errors.js";
+import { createLogger } from "../../../core/logger.js";
 import { StoragePort } from "../domain/storage.port.js";
 
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
+const CONNECTION_TIMEOUT_MS = 3_000;
+const REQUEST_TIMEOUT_MS = 10_000;
+const MAX_ATTEMPTS = 3;
+
+const logger = createLogger("media.s3-storage");
 
 @Injectable()
 export class S3StorageAdapter extends StoragePort {
@@ -22,7 +29,13 @@ export class S3StorageAdapter extends StoragePort {
     },
     endpoint: env.r2Endpoint,
     forcePathStyle: env.r2ForcePathStyle,
+    maxAttempts: MAX_ATTEMPTS,
     region: env.r2Region,
+    requestHandler: {
+      connectionTimeout: CONNECTION_TIMEOUT_MS,
+      requestTimeout: REQUEST_TIMEOUT_MS,
+      throwOnRequestTimeout: true,
+    },
   });
 
   async delete(keys: string[]): Promise<void> {
@@ -40,7 +53,8 @@ export class S3StorageAdapter extends StoragePort {
   async get(key: string): Promise<Buffer> {
     const result = await this.client.send(new GetObjectCommand({ Bucket: env.r2Bucket, Key: key }));
     if (result.Body === undefined) {
-      throw new Error(`Storage object has no body: ${key}`);
+      logger.error({ key }, "storage object has no body");
+      throw new BadGatewayError("Storage object is unavailable");
     }
     const bytes = await result.Body.transformToByteArray();
     return Buffer.from(bytes);

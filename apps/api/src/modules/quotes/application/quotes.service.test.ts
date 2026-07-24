@@ -55,7 +55,7 @@ function book(overrides: Partial<QuoteWithBook["book"]> = {}): QuoteWithBook["bo
 }
 
 function buildService(): {
-  mediaService: { buildView: ReturnType<typeof vi.fn> };
+  mediaService: { buildViewOrNull: ReturnType<typeof vi.fn> };
   repository: {
     bookCounts: ReturnType<typeof vi.fn>;
     count: ReturnType<typeof vi.fn>;
@@ -83,7 +83,7 @@ function buildService(): {
     update: vi.fn().mockResolvedValue(quote()),
   };
 
-  const mediaService = { buildView: vi.fn() };
+  const mediaService = { buildViewOrNull: vi.fn().mockReturnValue(null) };
 
   const service = new QuotesService(
     repository as unknown as QuotesRepository,
@@ -226,7 +226,7 @@ describe("QuotesService.createForBook", () => {
       isFavorite: true,
       isSpoiler: true,
     });
-    expect(mediaService.buildView).not.toHaveBeenCalled();
+    expect(mediaService.buildViewOrNull).toHaveBeenCalledWith(null);
   });
 });
 

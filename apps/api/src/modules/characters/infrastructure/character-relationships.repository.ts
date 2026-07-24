@@ -8,6 +8,7 @@ import type {
   CharacterRelationshipModel,
 } from "../../../generated/prisma/models.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
 const detailsInclude = {
@@ -88,7 +89,7 @@ export class CharacterRelationshipsRepository {
     { key }: { key: string },
     client: Prisma.TransactionClient,
   ): Promise<void> {
-    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+    await acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.characterRelationships, key }, client);
   }
 
   async countBookStates(

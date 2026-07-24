@@ -17,14 +17,13 @@ const LINK_ID = "22222222-2222-4222-8222-222222222222";
 const TRANSACTION_CLIENT = Symbol("transaction-client");
 
 function buildService(overrides: {
-  count?: number;
   create?: UserSocialLinkModel;
   findById?: Nullable<UserSocialLinkModel>;
   listByUserId?: UserSocialLinkModel[];
   update?: UserSocialLinkModel;
 }): {
   repository: {
-    countByUserId: ReturnType<typeof vi.fn>;
+    acquireUserLock: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     deleteById: ReturnType<typeof vi.fn>;
     findById: ReturnType<typeof vi.fn>;
@@ -35,9 +34,9 @@ function buildService(overrides: {
 } {
   const listByUserId = overrides.listByUserId ?? [];
   const repository = {
-    countByUserId: vi.fn().mockResolvedValue(overrides.count ?? listByUserId.length),
+    acquireUserLock: vi.fn().mockResolvedValue(undefined),
     create: vi.fn().mockResolvedValue(overrides.create ?? socialLink()),
-    deleteById: vi.fn().mockResolvedValue(socialLink()),
+    deleteById: vi.fn().mockResolvedValue(1),
     findById: vi.fn().mockResolvedValue(overrides.findById ?? null),
     listByUserId: vi.fn().mockResolvedValue(listByUserId),
     update: vi.fn().mockResolvedValue(overrides.update ?? socialLink()),
@@ -115,16 +114,20 @@ describe("SocialLinkService.create", () => {
     );
   });
 
-  it("counts links inside the transaction with the transaction client", async () => {
-    const { repository, service } = buildService({ count: 0, listByUserId: [] });
+  it("acquires the per-user lock and reads links inside the transaction", async () => {
+    const { repository, service } = buildService({ listByUserId: [] });
 
     await service.create(USER_ID, { platform: "INSTAGRAM", username: "reader" });
 
-    expect(repository.countByUserId).toHaveBeenCalledWith(USER_ID, TRANSACTION_CLIENT);
+    expect(repository.acquireUserLock).toHaveBeenCalledWith(USER_ID, TRANSACTION_CLIENT);
+    expect(repository.listByUserId).toHaveBeenCalledWith(USER_ID, TRANSACTION_CLIENT);
   });
 
   it("throws BadRequestError when the user already has 10 links and never inserts", async () => {
-    const { repository, service } = buildService({ count: 10, listByUserId: [] });
+    const links = Array.from({ length: 10 }, (_unused, index) =>
+      socialLink({ id: `link-${index}`, platform: "OTHER", url: `https://example.com/${index}` }),
+    );
+    const { repository, service } = buildService({ listByUserId: links });
 
     await expect(
       service.create(USER_ID, { platform: "WEBSITE", url: "https://new.com" }),

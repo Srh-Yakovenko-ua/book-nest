@@ -1,11 +1,15 @@
 import type { Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { DeliveryServiceModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { visibleToUser } from "../../../core/database/two-tier-visibility.js";
+
+const RecentDeliveryServiceNameRowSchema = z.object({ name: z.string() });
 
 type CountInput = {
   query: string | undefined;
@@ -59,7 +63,7 @@ export class DeliveryServicesRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<DeliveryServiceModel>> {
     return client.deliveryService.findFirst({
-      where: { normalizedName, OR: [{ userId: null }, { userId }] },
+      where: { normalizedName, ...visibleToUser(userId) },
     });
   }
 
@@ -72,7 +76,7 @@ export class DeliveryServicesRepository {
     }
     return this.prisma.deliveryService.findMany({
       orderBy: { userId: { nulls: "first", sort: "asc" } },
-      where: { normalizedName: { in: normalizedNames }, OR: [{ userId: null }, { userId }] },
+      where: { normalizedName: { in: normalizedNames }, ...visibleToUser(userId) },
     });
   }
 
@@ -83,16 +87,18 @@ export class DeliveryServicesRepository {
     limit: number;
     userId: string;
   }): Promise<string[]> {
-    const rows = await this.prisma.$queryRaw<{ name: string }[]>`
+    const rows = await this.prisma.$queryRaw`
       SELECT lower(bd.delivery_service) AS "name"
       FROM book_deliveries bd
-      JOIN books b ON b.id = bd.book_id
-      WHERE b.user_id = ${userId}::uuid AND bd.delivery_service IS NOT NULL
+      WHERE bd.user_id = ${userId}::uuid AND bd.delivery_service IS NOT NULL
       GROUP BY lower(bd.delivery_service)
       ORDER BY max(bd.created_at) DESC
       LIMIT ${limit}
     `;
-    return rows.map((row) => row.name);
+    return z
+      .array(RecentDeliveryServiceNameRowSchema)
+      .parse(rows)
+      .map((row) => row.name);
   }
 
   search({ query, skip, take, userId }: SearchInput): Promise<DeliveryServiceModel[]> {
@@ -125,5 +131,5 @@ function buildVisibleWhere(
       ? {}
       : { name: { contains: query, mode: "insensitive" } };
 
-  return { ...nameFilter, OR: [{ userId: null }, { userId }] };
+  return { ...nameFilter, ...visibleToUser(userId) };
 }

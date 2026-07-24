@@ -1,30 +1,21 @@
 import type { NotesSummaryView, NoteView, Paginator } from "@app/shared";
 
 import { NotesQuerySchema } from "@app/shared";
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiQuery,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from "@nestjs/swagger";
+import { Controller, Get, Query } from "@nestjs/common";
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { NotesService } from "../application/notes.service.js";
 import { NotesQueryDto } from "./input-dto/notes-query.input-dto.js";
 import { NotesSummaryViewDto } from "./view-dto/notes-summary.view-dto.js";
 import { PaginatedNotesDto } from "./view-dto/paginated-notes.view-dto.js";
 
-@ApiBearerAuth()
 @ApiTags("notes")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/notes")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class NotesController {
   constructor(private readonly notesService: NotesService) {}
 

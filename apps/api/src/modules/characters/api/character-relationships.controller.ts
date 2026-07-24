@@ -23,11 +23,9 @@ import {
   Post,
   Put,
   Query,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -38,16 +36,16 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterRelationshipPathService } from "../application/character-relationship-path.service.js";
 import { CharacterRelationshipsService } from "../application/character-relationships.service.js";
 import { CharacterRelationshipDetailsQueryDto } from "./input-dto/character-relationship-details-query.input-dto.js";
@@ -59,14 +57,9 @@ import { CharacterRelationshipDeletionResultViewDto } from "./view-dto/character
 import { CharacterRelationshipDetailsViewDto } from "./view-dto/character-relationship-details.view-dto.js";
 import { CharacterRelationshipPathViewDto } from "./view-dto/character-relationship-path.view-dto.js";
 
-const RELATIONSHIP_ACTION_TTL_SECONDS = 60;
-const RELATIONSHIP_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("character-relationships")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/character-relationships")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class CharacterRelationshipsController {
   constructor(
     private readonly relationshipsService: CharacterRelationshipsService,
@@ -120,9 +113,7 @@ export class CharacterRelationshipsController {
   @ApiNotFoundResponse({ description: "A character or book was not found" })
   @ApiOperation({ summary: "Create a relationship edge, optionally with initial per-book states" })
   @Post()
-  @Throttle({
-    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(CreateCharacterRelationshipSchema))
@@ -175,9 +166,7 @@ export class CharacterRelationshipsController {
   @ApiOperation({ summary: "Update the semantic edge without wiping its per-book states" })
   @ApiParam({ description: "Relationship id", name: "relationshipId" })
   @Patch(":relationshipId")
-  @Throttle({
-    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
@@ -195,9 +184,7 @@ export class CharacterRelationshipsController {
   @ApiOperation({ summary: "Delete a relationship and its per-book states" })
   @ApiParam({ description: "Relationship id", name: "relationshipId" })
   @Delete(":relationshipId")
-  @Throttle({
-    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   remove(
     @CurrentUser() user: AuthenticatedUser,
     @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
@@ -217,9 +204,7 @@ export class CharacterRelationshipsController {
   @ApiParam({ description: "Book id", name: "bookId" })
   @HttpCode(HTTP_STATUS.OK)
   @Put(":relationshipId/books/:bookId")
-  @Throttle({
-    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   upsertBookState(
     @CurrentUser() user: AuthenticatedUser,
     @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
@@ -242,9 +227,7 @@ export class CharacterRelationshipsController {
   @ApiParam({ description: "Book id", name: "bookId" })
   @Delete(":relationshipId/books/:bookId")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @Throttle({
-    default: { limit: RELATIONSHIP_ACTION_LIMIT, ttl: seconds(RELATIONSHIP_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   removeBookState(
     @CurrentUser() user: AuthenticatedUser,
     @Param("relationshipId", ParseUUIDPipe) relationshipId: string,

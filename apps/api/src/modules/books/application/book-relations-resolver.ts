@@ -99,6 +99,34 @@ export class BookRelationsResolver {
     private readonly mediaService: MediaService,
   ) {}
 
+  async assertCreatableRelations({
+    input,
+    userId,
+  }: {
+    input: CreateBookInput;
+    userId: string;
+  }): Promise<void> {
+    await this.genresService.assertGenresSelectable(userId, input.genres);
+    if (input.coverMediaId != null) {
+      await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
+    }
+  }
+
+  async assertUpdatableRelations({
+    input,
+    userId,
+  }: {
+    input: UpdateBookInput;
+    userId: string;
+  }): Promise<void> {
+    if (input.genres !== undefined) {
+      await this.genresService.assertGenresSelectable(userId, input.genres);
+    }
+    if (input.coverMediaId != null) {
+      await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
+    }
+  }
+
   async mapSeriesPartNumberWriteError({
     error,
     excludeBookId,
@@ -199,11 +227,6 @@ export class BookRelationsResolver {
       },
       client,
     );
-    await this.genresService.assertGenresSelectable(userId, input.genres);
-
-    if (input.coverMediaId != null) {
-      await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
-    }
 
     return {
       authorIds: resolvedAuthors.authorIds,
@@ -257,9 +280,6 @@ export class BookRelationsResolver {
     }
 
     if (input.coverMediaId !== undefined) {
-      if (input.coverMediaId !== null) {
-        await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
-      }
       fields.coverMediaId = input.coverMediaId;
     }
 
@@ -299,10 +319,6 @@ export class BookRelationsResolver {
       client,
     );
 
-    if (input.genres !== undefined) {
-      await this.genresService.assertGenresSelectable(userId, input.genres);
-    }
-
     return { authorIds, fields, listIds, queueRemoval, seriesPlacement, tagIds };
   }
 
@@ -340,6 +356,7 @@ export class BookRelationsResolver {
     }
 
     if (input.addToReadingQueue === true && !isQueued) {
+      await this.booksRepository.acquireUserQueueLock(userId, client);
       const lastPosition = await this.booksRepository.maxQueuePosition(userId, client);
       const queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
       fields.queuePosition = lastPosition + 1;
@@ -520,6 +537,7 @@ export class BookRelationsResolver {
       return { queuePosition: null, queuePriority: null, ...toQueuePlacementDetails(details) };
     }
 
+    await this.booksRepository.acquireUserQueueLock(userId, client);
     const lastPosition = await this.booksRepository.maxQueuePosition(userId, client);
     const queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
     const details = resolveQueuePriorityDetails({

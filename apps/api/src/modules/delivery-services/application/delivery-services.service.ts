@@ -1,12 +1,12 @@
 import type { DeliveryServiceView, Paginator, TaxonomySearchPaginationQuery } from "@app/shared";
 
+import { normalizeName } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { normalizeName } from "../../../core/normalize-name.js";
-import { buildPaginator } from "../../../core/paginator.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { toDeliveryServiceView } from "../domain/delivery-service.mapper.js";
 import { DeliveryServicesRepository } from "../infrastructure/delivery-services.repository.js";
 
@@ -94,9 +94,8 @@ export class DeliveryServicesService {
     const [rows, totalCount] = await Promise.all([
       this.deliveryServicesRepository.search({
         query: search,
-        skip: (pageNumber - 1) * pageSize,
-        take: pageSize,
         userId,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.deliveryServicesRepository.count({ query: search, userId }),
     ]);

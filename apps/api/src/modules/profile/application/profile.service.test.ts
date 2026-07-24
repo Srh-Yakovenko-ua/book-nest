@@ -3,7 +3,7 @@ import type { Nullable, UpdateProfileInput } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type { UserSocialLinkModel } from "../../../generated/prisma/models.js";
+import type { UserModel, UserSocialLinkModel } from "../../../generated/prisma/models.js";
 import type {
   ProfileRepository,
   ProfileWithSocialLinks,
@@ -13,30 +13,43 @@ import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js
 import { Prisma as PrismaNamespace } from "../../../generated/prisma/client.js";
 import { ProfileService } from "./profile.service.js";
 
+type ProfileUpdateFields = Partial<
+  Pick<
+    UserModel,
+    | "bio"
+    | "dateOfBirth"
+    | "favoriteBookQuote"
+    | "favoriteGenres"
+    | "lastName"
+    | "name"
+    | "nickname"
+  >
+>;
+
 function applyUpdate(
   base: ProfileWithSocialLinks,
-  data: Prisma.UserUpdateInput,
+  data: ProfileUpdateFields,
 ): ProfileWithSocialLinks {
   const next: ProfileWithSocialLinks = { ...base };
-  if (data.name !== undefined) next.name = data.name as string;
-  if (data.lastName !== undefined) next.lastName = data.lastName as Nullable<string>;
-  if (data.nickname !== undefined) next.nickname = data.nickname as Nullable<string>;
-  if (data.bio !== undefined) next.bio = data.bio as Nullable<string>;
+  if (data.name !== undefined) next.name = data.name;
+  if (data.lastName !== undefined) next.lastName = data.lastName;
+  if (data.nickname !== undefined) next.nickname = data.nickname;
+  if (data.bio !== undefined) next.bio = data.bio;
   if (data.favoriteBookQuote !== undefined) {
-    next.favoriteBookQuote = data.favoriteBookQuote as Nullable<string>;
+    next.favoriteBookQuote = data.favoriteBookQuote;
   }
   if (data.favoriteGenres !== undefined) {
-    next.favoriteGenres = data.favoriteGenres as string[];
+    next.favoriteGenres = data.favoriteGenres;
   }
   if (data.dateOfBirth !== undefined) {
-    next.dateOfBirth = data.dateOfBirth as Nullable<Date>;
+    next.dateOfBirth = data.dateOfBirth;
   }
   return next;
 }
 
 function buildService(overrides: {
   findByUserId?: Nullable<ProfileWithSocialLinks>;
-  update?: (userId: string, data: Prisma.UserUpdateInput) => Promise<ProfileWithSocialLinks>;
+  update?: (userId: string, data: ProfileUpdateFields) => Promise<ProfileWithSocialLinks>;
   updateError?: unknown;
 }): {
   repository: { findByUserId: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
@@ -49,7 +62,7 @@ function buildService(overrides: {
           .fn()
           .mockImplementation(
             overrides.update ??
-              ((_userId: string, data: Prisma.UserUpdateInput) =>
+              ((_userId: string, data: ProfileUpdateFields) =>
                 Promise.resolve(applyUpdate(userModel(), data))),
           );
 

@@ -25,7 +25,7 @@ import {
 } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
 import {
   buildCharacterMergePlan,
@@ -373,12 +373,13 @@ export class CharacterMergeService {
         };
       }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("Merge conflicted with a concurrent change", {
-          code: CHARACTER_MERGE_ERROR_CODES.conflict,
-        });
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError("Merge conflicted with a concurrent change", {
+            code: CHARACTER_MERGE_ERROR_CODES.conflict,
+          }),
+      });
     }
   }
 

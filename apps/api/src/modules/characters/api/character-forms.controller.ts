@@ -11,11 +11,9 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -25,7 +23,6 @@ import {
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
@@ -33,7 +30,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterFormsService } from "../application/character-forms.service.js";
 import { CreateCharacterFormInputDto } from "./input-dto/create-character-form.input-dto.js";
 import { UpdateCharacterFormInputDto } from "./input-dto/update-character-form.input-dto.js";
@@ -42,12 +39,9 @@ import { CharacterFormViewDto } from "./view-dto/character-form.view-dto.js";
 
 const CHARACTER_FORM_ACTION_TTL_SECONDS = 60;
 const CHARACTER_FORM_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("character-forms")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/characters/:characterId/forms")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class CharacterFormsController {
   constructor(private readonly characterFormsService: CharacterFormsService) {}
 

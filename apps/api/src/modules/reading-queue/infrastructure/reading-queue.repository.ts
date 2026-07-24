@@ -47,7 +47,7 @@ export class ReadingQueueRepository {
     userId: string,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
-    await acquireUserQueueLock(client, userId);
+    await acquireUserQueueLock(userId, client);
   }
 
   async clearPosition(

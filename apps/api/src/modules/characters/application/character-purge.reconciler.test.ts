@@ -73,4 +73,29 @@ describe("CharacterPurgeReconciler.sweep", () => {
 
     expect(purge).not.toHaveBeenCalled();
   });
+
+  it("skips a concurrent sweep while a previous one is still running", async () => {
+    let releaseFirst: (candidates: { id: string; userId: string }[]) => void = () => {};
+    const findPurgeCandidates = vi.fn().mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          releaseFirst = resolve;
+        }),
+    );
+    const purge = vi.fn().mockResolvedValue(undefined);
+    const reconciler = new CharacterPurgeReconciler(
+      { findPurgeCandidates } as unknown as CharactersRepository,
+      { purge } as unknown as CharactersService,
+    );
+
+    const firstSweep = reconciler.sweep();
+    await reconciler.sweep();
+
+    expect(findPurgeCandidates).toHaveBeenCalledTimes(1);
+
+    releaseFirst([]);
+    await firstSweep;
+
+    expect(findPurgeCandidates).toHaveBeenCalledTimes(1);
+  });
 });

@@ -2,7 +2,7 @@ import type { DeliveryUiStatus, Nullable } from "@app/shared";
 
 import { addDays, differenceInCalendarDays } from "date-fns";
 
-import { parseIsoDate, toIsoDate } from "../../../core/iso-date.js";
+import { startOfUtcDay } from "../../../core/iso-date.js";
 
 const ARRIVING_SOON_DAYS = 7;
 const DAYS_FROM_MONDAY_TO_SUNDAY = 6;
@@ -15,7 +15,7 @@ export type DeliveryDateBounds = {
 };
 
 export function deliveryDateBounds(now: Date): DeliveryDateBounds {
-  const today = parseIsoDate(toIsoDate(now));
+  const today = startOfUtcDay(now);
   const soonEnd = addDays(today, ARRIVING_SOON_DAYS);
   const mondayOffset = (today.getUTCDay() + 6) % 7;
   const weekStart = addDays(today, -mondayOffset);

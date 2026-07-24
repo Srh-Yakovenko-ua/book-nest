@@ -24,11 +24,9 @@ import {
   ParseUUIDPipe,
   Patch,
   Query,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiForbiddenResponse,
@@ -39,16 +37,16 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { PublishersService } from "../application/publishers.service.js";
 import { LibraryPublisherDetailQueryDto } from "./input-dto/library-publisher-detail-query.input-dto.js";
 import { LibraryPublishersQueryDto } from "./input-dto/library-publishers-query.input-dto.js";
@@ -59,28 +57,20 @@ import { LibraryPublisherDetailDto } from "./view-dto/library-publisher-detail.v
 import { LibraryPublishersPageDto } from "./view-dto/library-publishers-page.view-dto.js";
 import { LibraryPublishersSummaryDto } from "./view-dto/library-publishers-summary.view-dto.js";
 
-const MUTATE_PUBLISHER_TTL_SECONDS = 60;
-const MUTATE_PUBLISHER_LIMIT = 60;
-
 @ApiTags("publishers")
 @Controller("api/publishers")
 export class PublishersController {
   constructor(private readonly publishersService: PublishersService) {}
-
-  @ApiBearerAuth()
   @ApiOkResponse({
     description: "Aggregate publisher metrics over the current user library",
     type: LibraryPublishersSummaryDto,
   })
   @ApiOperation({ summary: "Get the publishers summary for the current user library" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("library/summary")
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   librarySummary(@CurrentUser() user: AuthenticatedUser): Promise<LibraryPublishersSummary> {
     return this.publishersService.librarySummary({ userId: user.id });
   }
-
-  @ApiBearerAuth()
   @ApiOkResponse({
     description: "A page of publishers represented in the current user library",
     type: LibraryPublishersPageDto,
@@ -101,24 +91,20 @@ export class PublishersController {
   })
   @ApiQuery({ enum: ["asc", "desc"], name: "order", required: false })
   @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("library")
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   libraryList(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(LibraryPublishersQuerySchema)) query: LibraryPublishersQueryDto,
   ): Promise<Paginator<LibraryPublisherListItem>> {
     return this.publishersService.libraryList({ query, userId: user.id });
   }
-
-  @ApiBearerAuth()
   @ApiOkResponse({ description: "Publishers the current user recently used in their own books" })
   @ApiOperation({ summary: "List recently used publishers for the current user" })
   @ApiQuery({ name: "limit", required: false })
   @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("recent")
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   recent(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(RecentPublishersQuerySchema)) query: RecentPublishersQueryDto,
@@ -129,17 +115,14 @@ export class PublishersController {
       userId: user.id,
     });
   }
-
-  @ApiBearerAuth()
   @ApiOkResponse({ description: "A page of publishers visible to the current user" })
   @ApiOperation({ summary: "Search publishers (global seeds + own custom)" })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   search(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(PublisherSearchPaginationQuerySchema))
@@ -147,8 +130,6 @@ export class PublishersController {
   ): Promise<Paginator<PublisherView>> {
     return this.publishersService.search(user.id, query);
   }
-
-  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: "Publisher not found or not represented in the library" })
   @ApiOkResponse({
     description: "The publisher with the current user library stats",
@@ -157,9 +138,8 @@ export class PublishersController {
   @ApiOperation({ summary: "Get a publisher with the current user library stats" })
   @ApiParam({ name: "publisherId" })
   @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get(":publisherId/library-detail")
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   libraryDetail(
     @CurrentUser() user: AuthenticatedUser,
     @Param("publisherId", ParseUUIDPipe) publisherId: string,
@@ -174,7 +154,6 @@ export class PublishersController {
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBearerAuth()
   @ApiBody({ type: UpdatePublisherDto })
   @ApiConflictResponse({ description: "A publisher with this name already exists" })
   @ApiForbiddenResponse({ description: "Global publishers cannot be edited" })
@@ -185,12 +164,9 @@ export class PublishersController {
   })
   @ApiOperation({ summary: "Edit a custom publisher owned by the current user" })
   @ApiParam({ name: "publisherId" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @JwtProtected()
   @Patch(":publisherId")
-  @Throttle({
-    default: { limit: MUTATE_PUBLISHER_LIMIT, ttl: seconds(MUTATE_PUBLISHER_TTL_SECONDS) },
-  })
-  @UseGuards(JwtAccessGuard)
+  @Throttle(MUTATION_THROTTLE)
   updateCustom(
     @CurrentUser() user: AuthenticatedUser,
     @Param("publisherId", ParseUUIDPipe) publisherId: string,
@@ -198,21 +174,16 @@ export class PublishersController {
   ): Promise<LibraryPublisherDetail> {
     return this.publishersService.updateCustom({ input: body, publisherId, userId: user.id });
   }
-
-  @ApiBearerAuth()
   @ApiConflictResponse({ description: "The publisher still has linked books" })
   @ApiForbiddenResponse({ description: "Global publishers cannot be deleted" })
   @ApiNoContentResponse({ description: "The custom publisher was deleted" })
   @ApiNotFoundResponse({ description: "Publisher not found" })
   @ApiOperation({ summary: "Delete a custom publisher owned by the current user" })
   @ApiParam({ name: "publisherId" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Delete(":publisherId")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @Throttle({
-    default: { limit: MUTATE_PUBLISHER_LIMIT, ttl: seconds(MUTATE_PUBLISHER_TTL_SECONDS) },
-  })
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
+  @Throttle(MUTATION_THROTTLE)
   deleteCustom(
     @CurrentUser() user: AuthenticatedUser,
     @Param("publisherId", ParseUUIDPipe) publisherId: string,

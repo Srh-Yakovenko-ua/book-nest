@@ -1,31 +1,27 @@
 import type { CharacterGraphView } from "@app/shared";
 
 import { BookCharacterGraphQuerySchema } from "@app/shared";
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
 import {
-  ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterGraphService } from "../application/character-graph.service.js";
 import { BookCharacterGraphQueryDto } from "./input-dto/book-character-graph-query.input-dto.js";
 import { CharacterGraphViewDto } from "./view-dto/character-graph.view-dto.js";
 
-@ApiBearerAuth()
 @ApiTags("character-relationships")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/books/:bookId/character-graph")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class BookCharacterGraphController {
   constructor(private readonly graphService: CharacterGraphService) {}
 

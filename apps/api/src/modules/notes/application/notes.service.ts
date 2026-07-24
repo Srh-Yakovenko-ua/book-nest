@@ -1,7 +1,6 @@
 import type {
   CreateNoteInput,
   EntityNotesView,
-  MediaView,
   NoteCategory,
   NotesQuery,
   NotesSummaryView,
@@ -14,12 +13,9 @@ import type {
 import { normalizeSearch, NOTE_ERROR_CODES, NoteCategorySchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { MediaAssetModel } from "../../../generated/prisma/models.js";
-
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { createLogger } from "../../../core/logger.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { BooksRepository } from "../../books/index.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { assertBookOwned, BooksRepository } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { SeriesService } from "../../series/index.js";
 import { emptyToNull, resolveCustomCategory } from "../domain/note-fields.js";
@@ -30,8 +26,6 @@ import {
   type NoteWithEntity,
   type UpdateNoteFields,
 } from "../infrastructure/notes.repository.js";
-
-const log = createLogger("notes.view");
 
 @Injectable()
 export class NotesService {
@@ -131,9 +125,8 @@ export class NotesService {
     const [items, totalCount] = await Promise.all([
       this.notesRepository.listNotes({
         ...filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
         sort: query.sort,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.notesRepository.countNotes(filter),
     ]);
@@ -158,10 +151,12 @@ export class NotesService {
   }
 
   private async assertBookOwned(userId: string, bookId: string): Promise<void> {
-    const owned = await this.booksRepository.existsOwned({ bookId, userId });
-    if (!owned) {
-      throw new NotFoundError("Book not found", { code: NOTE_ERROR_CODES.bookNotFound });
-    }
+    await assertBookOwned({
+      bookId,
+      booksRepository: this.booksRepository,
+      notFoundCode: NOTE_ERROR_CODES.bookNotFound,
+      userId,
+    });
   }
 
   private async assertSeriesOwned(userId: string, seriesId: string): Promise<void> {
@@ -208,22 +203,10 @@ export class NotesService {
     return fields;
   }
 
-  private coverViewOf(coverMedia: Nullable<MediaAssetModel>): Nullable<MediaView> {
-    if (coverMedia === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(coverMedia);
-    } catch (error) {
-      log.warn({ err: error, mediaId: coverMedia.id }, "failed to build note cover view");
-      return null;
-    }
-  }
-
   private toView(note: NoteWithEntity): NoteView {
     const covers: NoteEntityCovers = {
-      book: this.coverViewOf(note.book?.coverMedia ?? null),
-      series: this.coverViewOf(note.series?.books[0]?.coverMedia ?? null),
+      book: this.mediaService.buildViewOrNull(note.book?.coverMedia ?? null),
+      series: this.mediaService.buildViewOrNull(note.series?.books[0]?.coverMedia ?? null),
     };
     return toNoteView(note, covers);
   }

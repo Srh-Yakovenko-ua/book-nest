@@ -65,6 +65,10 @@ export class MediaService {
     }
   }
 
+  buildThumbUrlOrNull(asset: Nullable<MediaAssetModel>): Nullable<string> {
+    return this.buildViewOrNull(asset)?.urls.thumb ?? null;
+  }
+
   buildView(asset: MediaAssetModel): MediaView {
     const fullUrl = this.storage.publicUrl(asset.storageKey);
     const thumbUrl =
@@ -82,6 +86,18 @@ export class MediaService {
       urls: buildDerivativeRecord((derivative) => (derivative === "thumb" ? thumbUrl : fullUrl)),
       width: asset.width,
     };
+  }
+
+  buildViewOrNull(asset: Nullable<MediaAssetModel>): Nullable<MediaView> {
+    if (asset === null) {
+      return null;
+    }
+    try {
+      return this.buildView(asset);
+    } catch (error) {
+      log.warn({ err: error, mediaId: asset.id }, "failed to build media view");
+      return null;
+    }
   }
 
   async delete({ id, userId }: MediaOwnerRef): Promise<void> {
@@ -120,7 +136,7 @@ export class MediaService {
       key: thumbObjectKey,
     });
 
-    const marked = await this.mediaRepository.markThumbGenerated(asset.id);
+    const marked = await this.mediaRepository.markThumbGenerated({ id: asset.id, now: new Date() });
     if (!marked) {
       log.info(
         { assetId },

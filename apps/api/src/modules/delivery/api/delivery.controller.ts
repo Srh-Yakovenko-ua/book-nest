@@ -14,24 +14,17 @@ import {
   DeliveryInTransitQuerySchema,
   DeliveryStatisticsQuerySchema,
 } from "@app/shared";
-import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from "@nestjs/common";
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOkResponse,
-  ApiOperation,
-  ApiQuery,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Body, Controller, Get, HttpCode, Post, Query } from "@nestjs/common";
+import { ApiBody, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { DeliveryService } from "../application/delivery.service.js";
 import { BulkReceiveDeliveriesInputDto } from "./input-dto/bulk-receive-deliveries.input-dto.js";
 import { DeliveryHistoryQueryDto } from "./input-dto/delivery-history-query.input-dto.js";
@@ -44,14 +37,9 @@ import { DeliveryInTransitSummaryViewDto } from "./view-dto/delivery-in-transit-
 import { DeliveryStatisticsViewDto } from "./view-dto/delivery-statistics.view-dto.js";
 import { PaginatedDeliveriesDto } from "./view-dto/paginated-deliveries.view-dto.js";
 
-const DELIVERY_ACTION_TTL_SECONDS = 60;
-const DELIVERY_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("delivery")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/delivery")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class DeliveryController {
   constructor(private readonly deliveryService: DeliveryService) {}
 
@@ -157,9 +145,7 @@ export class DeliveryController {
   @ApiOperation({ summary: "Mark the active deliveries of many books as received in one batch" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("receive")
-  @Throttle({
-    default: { limit: DELIVERY_ACTION_LIMIT, ttl: seconds(DELIVERY_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   bulkReceive(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(BulkReceiveDeliveriesInputSchema)) body: BulkReceiveDeliveriesInputDto,

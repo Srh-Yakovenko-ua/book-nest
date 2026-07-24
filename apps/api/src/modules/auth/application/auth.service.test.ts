@@ -14,6 +14,7 @@ import {
   ForbiddenError,
   UnauthorizedError,
 } from "../../../core/exceptions/errors.js";
+import { Prisma } from "../../../generated/prisma/client.js";
 import { AuthService } from "./auth.service.js";
 
 const baseInput: RegistrationInput = {
@@ -38,16 +39,21 @@ type Mocks = {
 
 function buildService(overrides: {
   compare?: boolean;
+  createError?: unknown;
   findByEmail?: Nullable<UserModel>;
   findByNickname?: Nullable<UserModel>;
   sendVerification?: EmailVerificationService["sendVerification"];
 }): { mocks: Mocks; service: AuthService } {
+  const create =
+    overrides.createError === undefined
+      ? vi
+          .fn()
+          .mockImplementation((data: { email: string; name: string }) =>
+            Promise.resolve(createdUser({ email: data.email, name: data.name })),
+          )
+      : vi.fn().mockRejectedValue(overrides.createError);
   const usersRepository = {
-    create: vi
-      .fn()
-      .mockImplementation((data: { email: string; name: string }) =>
-        Promise.resolve(createdUser({ email: data.email, name: data.name })),
-      ),
+    create,
     deleteById: vi.fn().mockResolvedValue(undefined),
     findByEmail: vi.fn().mockResolvedValue(overrides.findByEmail ?? null),
     findByNickname: vi.fn().mockResolvedValue(overrides.findByNickname ?? null),
@@ -262,7 +268,41 @@ describe("AuthService.register", () => {
 
     expect(output.status).toBe("verification_sent");
   });
+
+  it("maps a concurrent email unique-violation to an email field error", async () => {
+    const { service } = buildService({ createError: uniqueConstraintError("users_email_key") });
+
+    const error = await service.register(baseInput).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(BadRequestError);
+    expect((error as BadRequestError).fields).toEqual([
+      expect.objectContaining({ field: "email" }),
+    ]);
+  });
+
+  it("maps a concurrent nickname unique-violation to a nickname field error", async () => {
+    const { service } = buildService({
+      createError: uniqueConstraintError("users_nickname_key"),
+    });
+
+    const error = await service
+      .register({ ...baseInput, nickname: "reader" })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(BadRequestError);
+    expect((error as BadRequestError).fields).toEqual([
+      expect.objectContaining({ field: "nickname" }),
+    ]);
+  });
 });
+
+function uniqueConstraintError(constraint: string): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError("unique violation", {
+    clientVersion: "test",
+    code: "P2002",
+    meta: { target: constraint },
+  });
+}
 
 describe("AuthService.login", () => {
   it("returns the refresh token and an auth result for a verified user with the correct password", async () => {

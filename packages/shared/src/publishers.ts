@@ -2,8 +2,9 @@ import { z } from "zod";
 
 import type { Nullable, Paginator } from "./common.js";
 
-import { createPaginatedSchema, noHtmlTags } from "./common.js";
+import { createPaginatedSchema } from "./common.js";
 import {
+  boundedUrlSchema,
   HTTP_OR_HTTPS_PROTOCOL,
   RECENT_USED_LIMIT_DEFAULT,
   RECENT_USED_LIMIT_MAX,
@@ -167,12 +168,11 @@ export const PublisherCountryCodeSchema = z
   .toUpperCase()
   .pipe(z.string().regex(COUNTRY_CODE_PATTERN, "Country code must be a 2-letter ISO code"));
 
-export const PublisherWebsiteUrlSchema = z
-  .string()
-  .trim()
-  .max(PUBLISHER_WEBSITE_URL_MAX, "URL must be at most 300 characters long")
-  .refine(noHtmlTags, "HTML tags are not allowed")
-  .pipe(z.url({ error: "Enter a valid link", protocol: HTTP_OR_HTTPS_PROTOCOL }));
+export const PublisherWebsiteUrlSchema = boundedUrlSchema({
+  maxLength: PUBLISHER_WEBSITE_URL_MAX,
+  protocol: HTTP_OR_HTTPS_PROTOCOL,
+  urlError: "Enter a valid link",
+});
 
 export const PublisherFoundedYearSchema = z
   .number()

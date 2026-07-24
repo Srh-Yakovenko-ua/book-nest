@@ -25,10 +25,11 @@ import type {
 } from "../infrastructure/timeline-event.repository.js";
 import type { BookReadingContext } from "../infrastructure/timeline.repository.js";
 
+import { assertNotStale } from "../../../core/assert-not-stale.js";
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { isRecordNotFoundError, rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { importanceRank, resolveImportanceFilter } from "../domain/importance.js";
 import { appendPosition, computeSparsePosition } from "../domain/sparse-position.js";
 import { emptyToNull, resolveReadingPosition } from "../domain/timeline-fields.js";
@@ -130,18 +131,22 @@ export class TimelineEventService {
       });
       return toCreatedRelationView(created);
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("This relation already exists", {
-          code: TIMELINE_ERROR_CODES.duplicateRelation,
-        });
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError("This relation already exists", {
+            code: TIMELINE_ERROR_CODES.duplicateRelation,
+          }),
+      });
     }
   }
 
   async deleteEvent(userId: string, eventId: string): Promise<void> {
     await this.requireOwnedEvent(userId, eventId);
-    await this.timelineEventRepository.deleteEvent(eventId);
+    const removed = await this.timelineEventRepository.deleteEvent(eventId);
+    if (removed === 0) {
+      throw new NotFoundError("Event not found", { code: TIMELINE_ERROR_CODES.eventNotFound });
+    }
   }
 
   async deleteRelation(userId: string, relationId: string): Promise<void> {
@@ -186,9 +191,8 @@ export class TimelineEventService {
     const [items, totalCount] = await Promise.all([
       this.timelineEventRepository.listEvents({
         ...filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
         sort: query.sort,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.timelineEventRepository.countEvents(filter),
     ]);
@@ -326,8 +330,15 @@ export class TimelineEventService {
       });
     }
 
-    const updated = await this.timelineEventRepository.update({ eventId, fields });
-    return toEventView(updated);
+    try {
+      const updated = await this.timelineEventRepository.update({ eventId, fields });
+      return toEventView(updated);
+    } catch (error) {
+      if (isRecordNotFoundError(error)) {
+        throw new NotFoundError("Event not found", { code: TIMELINE_ERROR_CODES.eventNotFound });
+      }
+      throw error;
+    }
   }
 
   private applyTextFields(fields: UpdateEventFields, input: UpdateTimelineEventInput): void {
@@ -358,11 +369,14 @@ export class TimelineEventService {
     event: EventScalarRow,
     expectedUpdatedAt: string | undefined,
   ): void {
-    if (expectedUpdatedAt !== undefined && event.updatedAt.toISOString() !== expectedUpdatedAt) {
-      throw new ConflictError("The event changed, reload and retry", {
-        code: TIMELINE_ERROR_CODES.reorderConflict,
-      });
-    }
+    assertNotStale({
+      actual: event.updatedAt,
+      expected: expectedUpdatedAt,
+      toError: () =>
+        new ConflictError("The event changed, reload and retry", {
+          code: TIMELINE_ERROR_CODES.reorderConflict,
+        }),
+    });
   }
 
   private assertPageWithinBook(pageNumber: Nullable<number>, pagesCount: Nullable<number>): void {
@@ -631,12 +645,13 @@ export class TimelineEventService {
     try {
       return await write();
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("The event order changed, reload and retry", {
-          code: TIMELINE_ERROR_CODES.reorderConflict,
-        });
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError("The event order changed, reload and retry", {
+            code: TIMELINE_ERROR_CODES.reorderConflict,
+          }),
+      });
     }
   }
 

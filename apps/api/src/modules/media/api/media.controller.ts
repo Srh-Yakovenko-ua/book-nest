@@ -10,12 +10,10 @@ import {
   ParseUUIDPipe,
   Post,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import {
-  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
@@ -23,7 +21,6 @@ import {
   ApiNotFoundResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
@@ -31,7 +28,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { MediaService } from "../application/media.service.js";
 import { MEDIA_ERROR_CODES, mediaError } from "../domain/media-error-code.js";
 import { MediaViewDto } from "./view-dto/media.view-dto.js";
@@ -47,15 +44,13 @@ type UploadedImage = {
 
 @ApiTags("media")
 @Controller("api/media")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
-  @ApiBearerAuth()
   @ApiNoContentResponse({ description: "The media asset was deleted" })
   @ApiNotFoundResponse({ description: "Media not found" })
   @ApiOperation({ summary: "Delete a media asset of the current user" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Delete(":id")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
   delete(
@@ -65,7 +60,6 @@ export class MediaController {
     return this.mediaService.delete({ id, userId: user.id });
   }
 
-  @ApiBearerAuth()
   @ApiBody({
     schema: {
       properties: {
@@ -84,7 +78,6 @@ export class MediaController {
   @ApiConsumes("multipart/form-data")
   @ApiCreatedResponse({ description: "The processed media asset", type: MediaViewDto })
   @ApiOperation({ summary: "Upload an image and get the processed media asset" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @HttpCode(HTTP_STATUS.CREATED)
   @Post()
   @Throttle({ default: { limit: UPLOAD_LIMIT, ttl: seconds(UPLOAD_TTL_SECONDS) } })

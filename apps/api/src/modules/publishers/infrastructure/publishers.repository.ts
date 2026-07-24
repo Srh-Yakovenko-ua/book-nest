@@ -5,9 +5,12 @@ import type {
   LibraryPublishersSort,
   LibraryPublishersSource,
   Nullable,
+  OwnershipStatus,
+  ReadingStatus,
 } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
 import type { PublisherModel } from "../../../generated/prisma/models.js";
 import type {
@@ -17,17 +20,55 @@ import type {
 } from "../domain/publisher-library.mapper.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { visibleToUser } from "../../../core/database/two-tier-visibility.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
-const READING_STATUS_FINISHED = "finished";
-const READING_STATUS_READING = "reading";
-const READING_STATUS_WANT_TO_READ = "want_to_read";
-const OWNERSHIP_STATUS_WANT_TO_BUY = "want_to_buy";
+const READING_STATUS_FINISHED: ReadingStatus = "finished";
+const READING_STATUS_READING: ReadingStatus = "reading";
+const READING_STATUS_WANT_TO_READ: ReadingStatus = "want_to_read";
+const OWNERSHIP_STATUS_WANT_TO_BUY: OwnershipStatus = "want_to_buy";
 const COUNTRY_CODE_UA = "UA";
 const SLOW_LIBRARY_QUERY_MS = 200;
 
 const logger = createLogger("publishers.repository");
+
+const LibraryStatsRowSchema = z.object({
+  averageRating: z.number().nullable(),
+  booksCount: z.number(),
+  countryCode: z.string().nullable(),
+  foundedYear: z.number().nullable(),
+  id: z.string(),
+  isCustom: z.boolean(),
+  lastBookAddedAt: z.string().nullable(),
+  lastBookReadAt: z.string().nullable(),
+  name: z.string(),
+  queueCount: z.number(),
+  ratedBooksCount: z.number(),
+  readCount: z.number(),
+  readingCount: z.number(),
+  seriesCount: z.number(),
+  wantToBuyCount: z.number(),
+  wantToReadCount: z.number(),
+  websiteUrl: z.string().nullable(),
+});
+
+const PriceTotalRowSchema = z.object({
+  amount: z.string(),
+  currency: z.string(),
+  pricedBooksCount: z.number(),
+});
+
+const SummaryCountsRowSchema = z.object({
+  averageBookRating: z.number().nullable(),
+  booksWithoutPublisherCount: z.number(),
+  booksWithPublisherCount: z.number(),
+  publishersCount: z.number(),
+  ratedBooksCount: z.number(),
+  wantToBuyBooksCount: z.number(),
+});
+
+const LibraryCountRowSchema = z.object({ count: z.number() });
 
 const EMPTY_SUMMARY_COUNTS: SummaryCountsRow = {
   averageBookRating: null,
@@ -215,9 +256,10 @@ export class PublishersRepository {
   async deleteWithNames(
     publisherId: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<void> {
+  ): Promise<number> {
     await client.publisherName.deleteMany({ where: { publisherId } });
-    await client.publisher.delete({ where: { id: publisherId } });
+    const deleted = await client.publisher.deleteMany({ where: { id: publisherId } });
+    return deleted.count;
   }
 
   findById(id: string): Promise<Nullable<PublisherModel>> {
@@ -230,7 +272,7 @@ export class PublishersRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<PublisherModel>> {
     return client.publisher.findFirst({
-      where: { normalizedName, OR: [{ userId: null }, { userId }] },
+      where: { normalizedName, ...visibleToUser(userId) },
     });
   }
 
@@ -240,13 +282,13 @@ export class PublishersRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<PublisherModel>> {
     return client.publisher.findFirst({
-      where: { id, OR: [{ userId: null }, { userId }] },
+      where: { id, ...visibleToUser(userId) },
     });
   }
 
   findVisibleByIds({ ids, userId }: VisibleByIdsInput): Promise<PublisherWithPrimaryNames[]> {
     return this.prisma.publisher.findMany({
-      where: { id: { in: ids }, OR: [{ userId: null }, { userId }] },
+      where: { id: { in: ids }, ...visibleToUser(userId) },
       ...primaryNamesArgs,
     });
   }
@@ -280,7 +322,7 @@ export class PublishersRepository {
 
   async summaryCounts(userId: string): Promise<SummaryCountsRow> {
     const rows = await timeQuery("summaryCounts", () =>
-      this.prisma.$queryRaw<SummaryCountsRow[]>(Prisma.sql`
+      this.prisma.$queryRaw(Prisma.sql`
         SELECT
           (count(DISTINCT b.publisher_id))::int AS "publishersCount",
           (count(*) FILTER (WHERE b.publisher_id IS NOT NULL))::int AS "booksWithPublisherCount",
@@ -293,12 +335,12 @@ export class PublishersRepository {
         WHERE b.user_id = ${userId}::uuid
       `),
     );
-    return rows[0] ?? EMPTY_SUMMARY_COUNTS;
+    return z.array(SummaryCountsRowSchema).parse(rows)[0] ?? EMPTY_SUMMARY_COUNTS;
   }
 
-  summaryPriceTotals(userId: string): Promise<PriceTotalRow[]> {
-    return timeQuery("summaryPriceTotals", () =>
-      this.prisma.$queryRaw<PriceTotalRow[]>(Prisma.sql`
+  async summaryPriceTotals(userId: string): Promise<PriceTotalRow[]> {
+    const rows = await timeQuery("summaryPriceTotals", () =>
+      this.prisma.$queryRaw(Prisma.sql`
         SELECT
           pi.currency AS "currency",
           (round(sum(pi.expected_price), 2))::text AS "amount",
@@ -312,6 +354,7 @@ export class PublishersRepository {
         ORDER BY pi.currency ASC
       `),
     );
+    return z.array(PriceTotalRowSchema).parse(rows);
   }
 
   updateCustom(
@@ -434,7 +477,7 @@ function buildVisibleWhere(userId: string, query: string | undefined): Prisma.Pu
       ? {}
       : { searchText: { contains: query, mode: "insensitive" } };
 
-  return { ...searchFilter, OR: [{ userId: null }, { userId }] };
+  return { ...searchFilter, ...visibleToUser(userId) };
 }
 
 function geographyCondition(geography: LibraryPublishersGeography): Nullable<Prisma.Sql> {
@@ -452,11 +495,11 @@ function geographyCondition(geography: LibraryPublishersGeography): Nullable<Pri
   }
 }
 
-function runLibraryAggregate(
+async function runLibraryAggregate(
   prisma: PrismaService,
   { having, limit, locale, offset, orderBy, where }: RunLibraryAggregateInput,
 ): Promise<LibraryStatsRow[]> {
-  return prisma.$queryRaw<LibraryStatsRow[]>(Prisma.sql`
+  const rows = await prisma.$queryRaw(Prisma.sql`
     SELECT
       p.id AS "id",
       COALESCE(
@@ -492,13 +535,14 @@ function runLibraryAggregate(
     ORDER BY ${orderBy}
     LIMIT ${limit} OFFSET ${offset}
   `);
+  return z.array(LibraryStatsRowSchema).parse(rows);
 }
 
 async function runLibraryCount(
   prisma: PrismaService,
   { having, where }: RunLibraryCountInput,
 ): Promise<number> {
-  const rows = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql`
+  const rows = await prisma.$queryRaw(Prisma.sql`
     SELECT (count(*))::int AS "count"
     FROM (
       SELECT b.publisher_id
@@ -510,7 +554,7 @@ async function runLibraryCount(
       ${having}
     ) grouped
   `);
-  return rows[0]?.count ?? 0;
+  return z.array(LibraryCountRowSchema).parse(rows)[0]?.count ?? 0;
 }
 
 function sourceCondition(source: LibraryPublishersSource, userId: string): Nullable<Prisma.Sql> {

@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
+import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -20,11 +21,32 @@ const isoDay = (offsetDays: number): string =>
 
 let context: AuthTestContext;
 let app: INestApplication;
+let prisma: PrismaService;
 
 beforeAll(async () => {
   context = await createAuthTestContext([AuthModule, BooksModule, ListsModule, LoansModule]);
   app = context.app;
+  prisma = app.get(PrismaService);
 });
+
+async function addAlternateAuthorName(
+  bookId: string,
+  alternate: { locale: string; name: string; normalizedName: string },
+): Promise<void> {
+  const link = await prisma.bookAuthor.findFirstOrThrow({
+    select: { authorId: true },
+    where: { bookId },
+  });
+  await prisma.authorName.create({
+    data: {
+      authorId: link.authorId,
+      isPrimary: false,
+      locale: alternate.locale,
+      name: alternate.name,
+      normalizedName: alternate.normalizedName,
+    },
+  });
+}
 
 beforeEach(() => {
   context.reset();
@@ -609,6 +631,31 @@ describe("GET /api/loans search", () => {
 
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].book.originalTitle).toBe("Le Petit Prince");
+  });
+
+  it("searches by an alternate-locale author name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Andrzej Sapkowski" }],
+      ownershipStatus: "none",
+      title: "The Witcher",
+    });
+    const bookId = created.body.id;
+    await addAlternateAuthorName(bookId, {
+      locale: "uk",
+      name: "Анджей Сапковський",
+      normalizedName: "анджей сапковський",
+    });
+    await startLoan(accessToken, bookId, {
+      direction: "borrowed",
+      loanDate: isoDay(0),
+      personName: "Olha",
+    });
+
+    const res = await listLoans(accessToken, `?search=${encodeURIComponent("Сапковський")}`);
+
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].book.id).toBe(bookId);
   });
 
   it("matches the search term case-insensitively", async () => {

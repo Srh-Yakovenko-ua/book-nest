@@ -9,6 +9,7 @@ import type {
   SurvivorRelationshipRow,
 } from "../domain/character-merge.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
 export type LoserAliasRow = {
@@ -56,7 +57,10 @@ export class CharacterMergeRepository {
     { userId }: { userId: string },
     client: Prisma.TransactionClient,
   ): Promise<void> {
-    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`char-merge:${userId}`}))`;
+    await acquireAdvisoryLock(
+      { classId: ADVISORY_LOCK_CLASS.characterMerge, key: `char-merge:${userId}` },
+      client,
+    );
   }
 
   async countHiddenLoserRecords(

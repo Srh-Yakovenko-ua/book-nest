@@ -2,6 +2,8 @@ import type { BookView, Nullable } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { BooksRepository } from "../infrastructure/books.repository.js";
@@ -14,9 +16,12 @@ const EXISTING_STARTED_AT = new Date("2026-01-01T00:00:00.000Z");
 const UPDATE_DATE = "2026-07-07";
 const EXPECTED_EVENT_DATE = new Date("2026-07-07T00:00:00.000Z");
 
+const TRANSACTION_CLIENT = {} as unknown as Prisma.TransactionClient;
+
 type AssemblerMock = { loadView: ReturnType<typeof vi.fn> };
 
 type RepositoryMock = {
+  acquireBookLock: ReturnType<typeof vi.fn>;
   findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
   findReadingEvents: ReturnType<typeof vi.fn>;
   recordReadingProgress: ReturnType<typeof vi.fn>;
@@ -30,6 +35,7 @@ function buildService(repository: RepositoryMock, assembler: AssemblerMock): Boo
   return new BookReadingService(
     repository as unknown as BooksRepository,
     assembler as unknown as BookViewAssembler,
+    transactionRunnerMock(),
   );
 }
 
@@ -51,10 +57,19 @@ function ownedBook(args: {
 
 function repositoryMock(): RepositoryMock {
   return {
+    acquireBookLock: vi.fn().mockResolvedValue(undefined),
     findOwnedByIdOrThrow: vi.fn(),
     findReadingEvents: vi.fn(),
     recordReadingProgress: vi.fn().mockResolvedValue(undefined),
   };
+}
+
+function transactionRunnerMock(): TransactionRunner {
+  return {
+    run: vi.fn((callback: (client: Prisma.TransactionClient) => Promise<unknown>) =>
+      callback(TRANSACTION_CLIENT),
+    ),
+  } as unknown as TransactionRunner;
 }
 
 describe("BookReadingService.updateReadingProgress history event", () => {
@@ -68,14 +83,17 @@ describe("BookReadingService.updateReadingProgress history event", () => {
       updateDate: UPDATE_DATE,
     });
 
-    expect(repository.recordReadingProgress).toHaveBeenCalledWith({
-      bookId: BOOK_ID,
-      event: { date: EXPECTED_EVENT_DATE, page: 120, pagesRead: 70 },
-      patch: expect.objectContaining({
-        progress: expect.objectContaining({ currentPage: 120 }),
-      }),
-      userId: USER_ID,
-    });
+    expect(repository.recordReadingProgress).toHaveBeenCalledWith(
+      {
+        bookId: BOOK_ID,
+        event: { date: EXPECTED_EVENT_DATE, page: 120, pagesRead: 70 },
+        patch: expect.objectContaining({
+          progress: expect.objectContaining({ currentPage: 120 }),
+        }),
+        userId: USER_ID,
+      },
+      TRANSACTION_CLIENT,
+    );
   });
 
   it("counts the whole current page as pages read on the first-ever progress update", async () => {
@@ -92,6 +110,7 @@ describe("BookReadingService.updateReadingProgress history event", () => {
       expect.objectContaining({
         event: { date: EXPECTED_EVENT_DATE, page: 45, pagesRead: 45 },
       }),
+      TRANSACTION_CLIENT,
     );
   });
 
@@ -107,6 +126,7 @@ describe("BookReadingService.updateReadingProgress history event", () => {
 
     expect(repository.recordReadingProgress).toHaveBeenCalledWith(
       expect.objectContaining({ event: null }),
+      TRANSACTION_CLIENT,
     );
   });
 
@@ -127,6 +147,7 @@ describe("BookReadingService.updateReadingProgress history event", () => {
       expect.objectContaining({
         event: { date: EXPECTED_EVENT_DATE, page: 320, pagesRead: 220 },
       }),
+      TRANSACTION_CLIENT,
     );
   });
 });

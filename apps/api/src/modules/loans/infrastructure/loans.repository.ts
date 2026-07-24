@@ -1,10 +1,34 @@
 import type { LoanFilter, LoanSort, LoanType } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-
-import type { Prisma } from "../../../generated/prisma/client.js";
+import { z } from "zod";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { toIsoDate } from "../../../core/iso-date.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+import { buildBookTextSearchConditions } from "../../books/index.js";
+
+const LOAN_STATUS_ACTIVE = "active";
+const LOAN_TYPE_BORROWED = "borrowed_from_someone";
+const LOAN_TYPE_LENT = "lent_to_someone";
+
+const LoanSummaryCountsRowSchema = z.object({
+  borrowedCount: z.number(),
+  lentCount: z.number(),
+  overdueCount: z.number(),
+  returnThisWeek: z.number(),
+  withoutReturnDate: z.number(),
+  withReminder: z.number(),
+});
+
+const EMPTY_LOAN_COUNTS: z.infer<typeof LoanSummaryCountsRowSchema> = {
+  borrowedCount: 0,
+  lentCount: 0,
+  overdueCount: 0,
+  returnThisWeek: 0,
+  withoutReturnDate: 0,
+  withReminder: 0,
+};
 
 const loanBookInclude = {
   include: { book: { include: { coverMedia: true, publisher: true } } },
@@ -62,34 +86,27 @@ export class LoansRepository {
   }
 
   async summary({ today, userId, weekEnd, weekStart }: SummaryInput): Promise<LoanSummaryCounts> {
-    const base: Prisma.BookLoanWhereInput = { status: "active", userId };
+    const todayIso = toIsoDate(today);
+    const weekStartIso = toIsoDate(weekStart);
+    const weekEndIso = toIsoDate(weekEnd);
 
-    const [
-      borrowedCount,
-      lentCount,
-      overdueCount,
-      returnThisWeek,
-      withReminder,
-      withoutReturnDate,
-    ] = await Promise.all([
-      this.prisma.bookLoan.count({ where: { ...base, type: "borrowed_from_someone" } }),
-      this.prisma.bookLoan.count({ where: { ...base, type: "lent_to_someone" } }),
-      this.prisma.bookLoan.count({ where: { ...base, expectedReturnDate: { lt: today } } }),
-      this.prisma.bookLoan.count({
-        where: { ...base, expectedReturnDate: { gte: weekStart, lte: weekEnd } },
-      }),
-      this.prisma.bookLoan.count({ where: { ...base, remindToReturn: true } }),
-      this.prisma.bookLoan.count({ where: { ...base, expectedReturnDate: null } }),
-    ]);
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT
+        (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_BORROWED}))::int AS "borrowedCount",
+        (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_LENT}))::int AS "lentCount",
+        (count(*) FILTER (WHERE loan.expected_return_date < ${todayIso}::date))::int AS "overdueCount",
+        (count(*) FILTER (
+          WHERE loan.expected_return_date >= ${weekStartIso}::date
+            AND loan.expected_return_date <= ${weekEndIso}::date
+        ))::int AS "returnThisWeek",
+        (count(*) FILTER (WHERE loan.remind_to_return = true))::int AS "withReminder",
+        (count(*) FILTER (WHERE loan.expected_return_date IS NULL))::int AS "withoutReturnDate"
+      FROM book_loans loan
+      WHERE loan.user_id = ${userId}::uuid
+        AND loan.status = ${LOAN_STATUS_ACTIVE}
+    `);
 
-    return {
-      borrowedCount,
-      lentCount,
-      overdueCount,
-      returnThisWeek,
-      withoutReturnDate,
-      withReminder,
-    };
+    return z.array(LoanSummaryCountsRowSchema).parse(rows)[0] ?? EMPTY_LOAN_COUNTS;
   }
 }
 
@@ -150,9 +167,7 @@ function applyLoanFilter({
 function buildLoanSearchConditions(search: string): Prisma.BookLoanWhereInput[] {
   const contains = { contains: search, mode: "insensitive" } as const;
   return [
-    { book: { title: contains } },
-    { book: { originalTitle: contains } },
-    { book: { firstAuthorName: contains } },
+    ...buildBookTextSearchConditions(search).map((condition) => ({ book: condition })),
     { personName: contains },
     { contact: contains },
     { note: contains },

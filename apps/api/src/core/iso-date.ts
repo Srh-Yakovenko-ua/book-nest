@@ -20,10 +20,18 @@ export function parseIsoDate(value: string): Date {
   return fromZonedTime(`${value}T00:00:00.000`, UTC_TIME_ZONE);
 }
 
+export function startOfUtcDay(date: Date): Date {
+  return parseIsoDate(toIsoDate(date));
+}
+
 export function toIsoDate(date: Date): string {
   return formatInTimeZone(date, UTC_TIME_ZONE, ISO_DATE_FORMAT);
 }
 
 export function toNullableIsoDate(value: Nullable<Date>): Nullable<string> {
   return value === null ? null : toIsoDate(value);
+}
+
+export function toNullableIsoDateTime(value: Nullable<Date>): Nullable<string> {
+  return value === null ? null : value.toISOString();
 }

@@ -19,11 +19,9 @@ import {
   Post,
   Put,
   Query,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -33,7 +31,6 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
@@ -42,7 +39,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterGroupsService } from "../application/character-groups.service.js";
 import { CharacterGroupDetailsQueryDto } from "./input-dto/character-group-details-query.input-dto.js";
 import { CharacterGroupsListQueryDto } from "./input-dto/character-groups-list-query.input-dto.js";
@@ -54,12 +51,9 @@ import { PaginatedCharacterGroupSummaryDto } from "./view-dto/paginated-characte
 
 const CHARACTER_GROUP_ACTION_TTL_SECONDS = 60;
 const CHARACTER_GROUP_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("character-groups")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/character-groups")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class CharacterGroupsController {
   constructor(private readonly characterGroupsService: CharacterGroupsService) {}
 

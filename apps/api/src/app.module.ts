@@ -19,7 +19,7 @@ import { DeliveryModule } from "./modules/delivery/index.js";
 import { GenresModule } from "./modules/genres/genres.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { ListsModule } from "./modules/lists/lists.module.js";
-import { LoansModule } from "./modules/loans/index.js";
+import { LoansModule } from "./modules/loans/loans.module.js";
 import { MediaModule } from "./modules/media/media.module.js";
 import { NotesModule } from "./modules/notes/notes.module.js";
 import { MetricsMiddleware } from "./modules/observability/metrics.middleware.js";

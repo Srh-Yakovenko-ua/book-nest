@@ -1,30 +1,21 @@
 import type { LoanListItemView, LoansSummaryView, Paginator } from "@app/shared";
 
 import { LoansQuerySchema } from "@app/shared";
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiQuery,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from "@nestjs/swagger";
+import { Controller, Get, Query } from "@nestjs/common";
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { LoansService } from "../application/loans.service.js";
 import { LoansQueryDto } from "./input-dto/loans-query.input-dto.js";
 import { LoansSummaryViewDto } from "./view-dto/loans-summary.view-dto.js";
 import { PaginatedLoansDto } from "./view-dto/paginated-loans.view-dto.js";
 
-@ApiBearerAuth()
 @ApiTags("loans")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/loans")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class LoansController {
   constructor(private readonly loansService: LoansService) {}
 

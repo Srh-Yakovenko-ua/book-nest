@@ -1,9 +1,14 @@
+import type { OwnershipStatus, ReadingStatus } from "@app/shared";
+
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
 import type { GenreModel, MediaAssetModel } from "../../../generated/prisma/models.js";
 import type { GenreStatsAggregateRow } from "../domain/genre-stats.mapper.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { runInClient } from "../../../core/database/run-in-client.js";
+import { visibleToUser } from "../../../core/database/two-tier-visibility.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
 export type GenreCoverRow = {
@@ -11,15 +16,26 @@ export type GenreCoverRow = {
   genres: string[];
 };
 
-const READ_STATUS = "finished";
-const WANT_TO_BUY_STATUS = "want_to_buy";
+const READ_STATUS: ReadingStatus = "finished";
+const WANT_TO_BUY_STATUS: OwnershipStatus = "want_to_buy";
+
+const GenreStatsAggregateRowSchema = z.object({
+  averageRating: z.number().nullable(),
+  booksCount: z.number(),
+  key: z.string(),
+  readCount: z.number(),
+  readingQueueCount: z.number(),
+  wantToBuyCount: z.number(),
+});
+
+const GenreKeyRowSchema = z.object({ key: z.string() });
 
 @Injectable()
 export class GenresRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  aggregateGenreStats(userId: string): Promise<GenreStatsAggregateRow[]> {
-    return this.prisma.$queryRaw<GenreStatsAggregateRow[]>(Prisma.sql`
+  async aggregateGenreStats(userId: string): Promise<GenreStatsAggregateRow[]> {
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
         genre_key AS "key",
         count(*)::int AS "booksCount",
@@ -34,6 +50,7 @@ export class GenresRepository {
       GROUP BY genre_key
       ORDER BY count(*) DESC, genre_key ASC
     `);
+    return z.array(GenreStatsAggregateRowSchema).parse(rows);
   }
 
   createCustom(
@@ -51,26 +68,24 @@ export class GenresRepository {
     });
   }
 
-  async deleteOwnedWithBookCleanup(
+  deleteOwnedWithBookCleanup(
     userId: string,
     id: string,
     client?: Prisma.TransactionClient,
   ): Promise<number> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) => this.deleteOwnedWithBookCleanup(userId, id, tx));
-    }
-
-    const genre = await client.genre.findFirst({ select: { key: true }, where: { id, userId } });
-    if (genre === null) return 0;
-    await client.$executeRaw`UPDATE "books" SET "genres" = array_remove("genres", ${genre.key}) WHERE "user_id" = ${userId}::uuid AND ${genre.key} = ANY("genres")`;
-    await client.genre.delete({ where: { id } });
-    return 1;
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const genre = await tx.genre.findFirst({ select: { key: true }, where: { id, userId } });
+      if (genre === null) return 0;
+      await tx.$executeRaw`UPDATE "books" SET "genres" = array_remove("genres", ${genre.key}) WHERE "user_id" = ${userId}::uuid AND ${genre.key} = ANY("genres")`;
+      const deleted = await tx.genre.deleteMany({ where: { id, userId } });
+      return deleted.count;
+    });
   }
 
   async existsSelectableName(userId: string, normalizedName: string): Promise<boolean> {
     const found = await this.prisma.genre.findFirst({
       select: { id: true },
-      where: { normalizedName, OR: [{ userId: null }, { userId }] },
+      where: { normalizedName, ...visibleToUser(userId) },
     });
     return found !== null;
   }
@@ -80,7 +95,7 @@ export class GenresRepository {
       select: { key: true },
       where: {
         AND: [
-          { OR: [{ userId: null }, { userId }] },
+          visibleToUser(userId),
           {
             OR: [
               { name: { contains: query, mode: "insensitive" } },
@@ -106,14 +121,14 @@ export class GenresRepository {
     return this.prisma.genre.findMany({
       orderBy: { userId: { nulls: "first", sort: "asc" } },
       select: { key: true, name: true },
-      where: { key: { in: keys }, OR: [{ userId: null }, { userId }] },
+      where: { key: { in: keys }, ...visibleToUser(userId) },
     });
   }
 
   async findSelectableKeys(userId: string, keys: string[]): Promise<string[]> {
     const rows = await this.prisma.genre.findMany({
       select: { key: true },
-      where: { key: { in: keys }, OR: [{ userId: null }, { userId }] },
+      where: { key: { in: keys }, ...visibleToUser(userId) },
     });
     return rows.map((row) => row.key);
   }
@@ -123,14 +138,14 @@ export class GenresRepository {
       return Promise.resolve([]);
     }
     return this.prisma.genre.findMany({
-      where: { key: { in: keys }, OR: [{ userId: null }, { userId }] },
+      where: { key: { in: keys }, ...visibleToUser(userId) },
     });
   }
 
   listAvailable(userId: string): Promise<GenreModel[]> {
     return this.prisma.genre.findMany({
       orderBy: [{ groupKey: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
-      where: { OR: [{ userId: null }, { userId }] },
+      where: visibleToUser(userId),
     });
   }
 
@@ -153,7 +168,7 @@ export class GenresRepository {
   }
 
   async recentGenreKeys({ limit, userId }: { limit: number; userId: string }): Promise<string[]> {
-    const rows = await this.prisma.$queryRaw<{ key: string }[]>`
+    const rows = await this.prisma.$queryRaw`
       SELECT genre_key AS "key"
       FROM books book, unnest(book.genres) AS genre_key
       WHERE book.user_id = ${userId}::uuid
@@ -161,6 +176,9 @@ export class GenresRepository {
       ORDER BY max(book.created_at) DESC
       LIMIT ${limit}
     `;
-    return rows.map((row) => row.key);
+    return z
+      .array(GenreKeyRowSchema)
+      .parse(rows)
+      .map((row) => row.key);
   }
 }
