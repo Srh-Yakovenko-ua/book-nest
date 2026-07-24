@@ -10,7 +10,13 @@ import type {
   ReadingStatus,
 } from "@app/shared";
 
-import { addIsoDays, differenceInIsoDays, toIsoDate } from "../../../core/iso-date.js";
+import {
+  addIsoDays,
+  differenceInIsoDays,
+  toIsoDate,
+  toNullableIsoDate,
+  toNullableIsoDateTime,
+} from "../../../core/iso-date.js";
 
 const SEVEN_DAY_WINDOW = 7;
 const FOURTEEN_DAY_WINDOW = 14;
@@ -71,12 +77,12 @@ export function toReadingHistoryView(args: {
   const lastDay = days.at(-1) ?? null;
   const latestEventDate = lastDay?.date ?? null;
 
-  const startDate = toNullableCalendarDay(progress.startedAt) ?? earliestEventDate;
+  const startDate = toNullableIsoDate(progress.startedAt) ?? earliestEventDate;
   const endDate = resolvePeriodEndDate({
-    abandonedAt: toNullableCalendarDay(progress.abandonedAt),
-    finishedAt: toNullableCalendarDay(progress.finishedAt),
+    abandonedAt: toNullableIsoDate(progress.abandonedAt),
+    finishedAt: toNullableIsoDate(progress.finishedAt),
     latestEventDate,
-    pausedAt: toNullableCalendarDay(progress.pausedAt),
+    pausedAt: toNullableIsoDate(progress.pausedAt),
     status: readingStatus,
     todayIso,
   });
@@ -128,10 +134,10 @@ export function toReadingHistoryView(args: {
 
   const activity = buildActivity({
     anchorDate: resolveActivityAnchorDate({
-      abandonedAt: toNullableCalendarDay(progress.abandonedAt),
-      finishedAt: toNullableCalendarDay(progress.finishedAt),
+      abandonedAt: toNullableIsoDate(progress.abandonedAt),
+      finishedAt: toNullableIsoDate(progress.finishedAt),
       latestEventDate,
-      pausedAt: toNullableCalendarDay(progress.pausedAt),
+      pausedAt: toNullableIsoDate(progress.pausedAt),
       status: readingStatus,
       todayIso,
     }),
@@ -473,12 +479,4 @@ function toHistoryDay(day: DayGroup, sort: ReadingHistorySort): ReadingHistoryDa
     startPage: day.startPage,
     updatesCount: day.updatesCount,
   };
-}
-
-function toNullableCalendarDay(value: Nullable<Date>): Nullable<string> {
-  return value === null ? null : toIsoDate(value);
-}
-
-function toNullableIsoDateTime(value: Nullable<Date>): Nullable<string> {
-  return value === null ? null : value.toISOString();
 }

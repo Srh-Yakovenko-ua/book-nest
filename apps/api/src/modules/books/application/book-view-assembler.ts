@@ -1,13 +1,11 @@
-import type { BookView, MediaView, Nullable } from "@app/shared";
+import type { BookView } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
-import { createLogger } from "../../../core/logger.js";
+import { startOfUtcDay } from "../../../core/iso-date.js";
 import { MediaService } from "../../media/index.js";
 import { toBookView } from "../domain/book.mapper.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
-
-const log = createLogger("books.view");
 
 @Injectable()
 export class BookViewAssembler {
@@ -22,18 +20,10 @@ export class BookViewAssembler {
   }
 
   viewOf(book: BookWithRelations): BookView {
-    return toBookView(book, this.coverViewOf(book));
-  }
-
-  private coverViewOf(book: BookWithRelations): Nullable<MediaView> {
-    if (book.coverMedia === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(book.coverMedia);
-    } catch (error) {
-      log.warn({ bookId: book.id, err: error }, "failed to build cover view");
-      return null;
-    }
+    return toBookView({
+      book,
+      cover: this.mediaService.buildViewOrNull(book.coverMedia),
+      today: startOfUtcDay(new Date()),
+    });
   }
 }

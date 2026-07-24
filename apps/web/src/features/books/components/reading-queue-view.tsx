@@ -18,12 +18,28 @@ import { useRouter } from "@/i18n/navigation";
 import type { LibraryBookLabels } from "../model/library-book";
 
 import { useGenres } from "../api/use-genres";
-import { useReadingQueue, useReorderReadingQueue } from "../api/use-reading-queue";
+import {
+  useReadingQueue,
+  useReadingQueueSummary,
+  useReorderReadingQueue,
+} from "../api/use-reading-queue";
+import { useSeriesOrderIssues } from "../api/use-series-order-check";
+import { useTagsSearch } from "../api/use-tags-search";
 import { toQueuePickerItems } from "../model/queue-placement";
+import {
+  activeQueueFilterCount,
+  EMPTY_QUEUE_FILTERS,
+  hasActiveQueueFilters,
+  matchesQueueFilters,
+  matchesQueueSearch,
+  type QueueFilterState,
+} from "../model/reading-queue-filters";
+import { SERIES_ORDER_SIDEBAR_LIMIT } from "../model/series-order-check";
 import { useRemoveFromQueueWithUndo } from "../model/use-remove-from-queue-with-undo";
 import { AddBookToQueueDialog } from "./add-book-to-queue-dialog";
-import { NextToReadCard } from "./next-to-read-card";
-import { QueueStats } from "./queue-stats";
+import { QueueSummaryCards, QueueSummaryCardsSkeleton } from "./queue-summary-cards";
+import { QueueVolumeBlock, QueueVolumeSkeleton } from "./queue-volume-block";
+import { ReadingQueueFilters } from "./reading-queue-filters";
 import { ReadingQueueList } from "./reading-queue-list";
 import { ReadingQueueToolbar } from "./reading-queue-toolbar";
 import { SeriesOrderCheckBlock } from "./series-order-check-block";
@@ -47,17 +63,21 @@ export function ReadingQueueView() {
   const router = useRouter();
 
   const { data, isError, isPending, refetch } = useReadingQueue();
+  const summary = useReadingQueueSummary();
+  const seriesOrderIssues = useSeriesOrderIssues({ limit: SERIES_ORDER_SIDEBAR_LIMIT });
   const genres = useGenres();
+  const tags = useTagsSearch("");
   const removeFromQueue = useRemoveFromQueueWithUndo();
   const reorder = useReorderReadingQueue();
 
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<QueueFilterState>(EMPTY_QUEUE_FILTERS);
+  const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
   const [addOpen, setAddOpen] = useState(false);
   const [startTarget, setStartTarget] = useState<null | StartTarget>(null);
 
   const serverItems = data?.items ?? [];
   const count = data?.count ?? 0;
-  const totalPagesCount = data?.totalPagesCount ?? 0;
 
   const serverOrderKey = serverItems.map((item) => item.book.id).join("\n");
   const [localOrder, setLocalOrder] = useState<string[]>(() =>
@@ -75,6 +95,15 @@ export function ReadingQueueView() {
     .filter((item): item is ReadingQueueItemView => item !== undefined);
 
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
+  const tagNameById = new Map((tags.data ?? []).map((tag) => [tag.id, tag.name]));
+
+  function rememberEntity(id: string, name: string) {
+    setEntityLabels((prev) => (prev[id] === name ? prev : { ...prev, [id]: name }));
+  }
+
+  function resolveEntityName(id: string): string | undefined {
+    return entityLabels[id] ?? tagNameById.get(id);
+  }
 
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const previousServerOrderKey = useRef(serverOrderKey);
@@ -107,10 +136,21 @@ export function ReadingQueueView() {
 
   const normalizedQuery = search.trim().toLowerCase();
   const hasSearch = normalizedQuery !== "";
-  const displayItems = hasSearch
-    ? localItems.filter((item) => matchesQueueSearch(item, normalizedQuery))
-    : localItems;
-  const draggable = !hasSearch && !reorder.isPending;
+  const hasActiveFilters = hasActiveQueueFilters(filters);
+  const filterCount = activeQueueFilterCount(filters);
+  const displayItems = localItems.filter(
+    (item) =>
+      (!hasSearch || matchesQueueSearch(item, normalizedQuery)) &&
+      (!hasActiveFilters || matchesQueueFilters(item.book, filters)),
+  );
+  const isFiltered = hasSearch || hasActiveFilters;
+  const draggable = !isFiltered && !reorder.isPending;
+  const canMove = !isFiltered;
+
+  function clearQueueFilters() {
+    setSearch("");
+    setFilters(EMPTY_QUEUE_FILTERS);
+  }
 
   function commitOrder(items: ReadingQueueItemView[]) {
     reorder.mutate(
@@ -177,52 +217,60 @@ export function ReadingQueueView() {
           state={emptyState}
         />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-          <div className="flex min-w-0 flex-col gap-4">
-            <h2 className="sr-only" ref={listHeadingRef} tabIndex={-1}>
-              {t("listHeading")}
-            </h2>
-            <ReadingQueueToolbar
-              hasSearch={hasSearch}
-              onClearSearch={() => setSearch("")}
-              onSearchChange={setSearch}
-              search={search}
-            />
-            {hasSearch && displayItems.length === 0 ? (
-              <EmptyState onPrimary={() => setSearch("")} state={noResultsState} />
-            ) : (
-              <ReadingQueueList
-                canMove={!hasSearch}
-                draggable={draggable}
-                hasSearch={hasSearch}
-                items={displayItems}
-                labels={labels}
-                onDragCommit={() => commitOrder(localItems)}
-                onMove={handleMove}
-                onRemove={(item) => removeFromQueue.remove(item.book.id, item.position)}
-                onReorderLocal={(items) => setLocalOrder(items.map((item) => item.book.id))}
-                onStartReading={(item) =>
-                  setStartTarget({ id: item.book.id, title: item.book.title })
-                }
-              />
-            )}
-          </div>
+        <>
+          <QueueSummaryCards
+            isLoading={summary.isPending}
+            seriesWithIssuesCount={seriesOrderIssues.data?.seriesInQueueWithIssuesCount ?? 0}
+            summary={summary.data ?? null}
+          />
 
-          <aside className="hidden flex-col gap-4 lg:flex">
-            <NextToReadCard
-              item={serverItems[0] ?? null}
-              labels={labels}
-              onStartReading={() => {
-                const next = serverItems[0];
-                if (next !== undefined) {
-                  setStartTarget({ id: next.book.id, title: next.book.title });
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+            <div className="flex min-w-0 flex-col gap-4">
+              <h2 className="sr-only" ref={listHeadingRef} tabIndex={-1}>
+                {t("listHeading")}
+              </h2>
+              <QueueVolumeBlock className="lg:hidden" items={serverItems} />
+              <ReadingQueueToolbar
+                dragDisabled={isFiltered}
+                filters={
+                  <ReadingQueueFilters
+                    activeCount={filterCount}
+                    onApply={setFilters}
+                    onRememberEntity={rememberEntity}
+                    resolveEntityName={resolveEntityName}
+                    state={filters}
+                  />
                 }
-              }}
-            />
-            <QueueStats count={count} totalPagesCount={totalPagesCount} />
-            <SeriesOrderCheckBlock />
-          </aside>
-        </div>
+                onClearSearch={() => setSearch("")}
+                onSearchChange={setSearch}
+                search={search}
+              />
+              {isFiltered && displayItems.length === 0 ? (
+                <EmptyState onPrimary={clearQueueFilters} state={noResultsState} />
+              ) : (
+                <ReadingQueueList
+                  canMove={canMove}
+                  draggable={draggable}
+                  filtered={isFiltered}
+                  items={displayItems}
+                  labels={labels}
+                  onDragCommit={() => commitOrder(localItems)}
+                  onMove={handleMove}
+                  onRemove={(item) => removeFromQueue.remove(item.book.id, item.position)}
+                  onReorderLocal={(items) => setLocalOrder(items.map((item) => item.book.id))}
+                  onStartReading={(item) =>
+                    setStartTarget({ id: item.book.id, title: item.book.title })
+                  }
+                />
+              )}
+            </div>
+
+            <aside className="hidden flex-col gap-4 lg:flex">
+              <QueueVolumeBlock items={serverItems} />
+              <SeriesOrderCheckBlock />
+            </aside>
+          </div>
+        </>
       )}
 
       <AddBookToQueueDialog
@@ -240,41 +288,31 @@ export function ReadingQueueView() {
   );
 }
 
-function matchesQueueSearch(item: ReadingQueueItemView, query: string): boolean {
-  const { book } = item;
-  const haystack = [
-    book.title,
-    book.originalTitle ?? "",
-    book.series?.name ?? "",
-    ...book.authors.map((author) => author.name),
-    ...book.genres,
-    ...book.tags.map((tag) => tag.name),
-  ];
-  return haystack.some((part) => part.toLowerCase().includes(query));
-}
-
 function QueueSkeleton() {
   const t = useTranslations("books.library");
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-      <div
-        aria-busy
-        aria-label={t("loading")}
-        className="flex min-w-0 flex-col gap-4"
-        role="status"
-      >
-        <Skeleton className="h-10 w-full rounded-md" />
-        <div className="flex flex-col gap-2.5">
-          {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-            <Skeleton className="h-[5.25rem] w-full rounded-xl" key={index} />
-          ))}
+    <>
+      <QueueSummaryCardsSkeleton />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        <div
+          aria-busy
+          aria-label={t("loading")}
+          className="flex min-w-0 flex-col gap-4"
+          role="status"
+        >
+          <QueueVolumeSkeleton className="lg:hidden" />
+          <Skeleton className="h-10 w-full rounded-md" />
+          <div className="flex flex-col gap-2.5">
+            {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+              <Skeleton className="h-[9.5rem] w-full rounded-xl" key={index} />
+            ))}
+          </div>
+        </div>
+        <div className="hidden flex-col gap-4 lg:flex">
+          <QueueVolumeSkeleton />
+          <SeriesOrderCheckSkeleton />
         </div>
       </div>
-      <div className="hidden flex-col gap-4 lg:flex">
-        <Skeleton className="h-44 w-full rounded-xl" />
-        <Skeleton className="h-24 w-full rounded-xl" />
-        <SeriesOrderCheckSkeleton />
-      </div>
-    </div>
+    </>
   );
 }

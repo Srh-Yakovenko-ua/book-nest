@@ -5,8 +5,6 @@ import {
   BookLanguageSchema,
   type BookView,
   CurrencySchema,
-  type LoanInfoView,
-  LoanTypeSchema,
   type MediaView,
   type Nullable,
   OwnershipStatusSchema,
@@ -19,17 +17,25 @@ import {
 
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
-import { parseIsoDate, toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
+import { toNullableIsoDate, toNullableIsoDateTime } from "../../../core/iso-date.js";
 import { toBookListView } from "../../lists/index.js";
-import { getLoanUiStatus } from "../../loans/index.js";
 import {
   computeHasUnreadEarlierParts,
   toSeriesBookPreview,
   toSeriesView,
 } from "../../series/index.js";
 import { toDeliverySummaryView } from "./delivery.mapper.js";
+import { toLoanInfoView } from "./loan.mapper.js";
 
-export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>): BookView {
+export function toBookView({
+  book,
+  cover,
+  today,
+}: {
+  book: BookWithRelations;
+  cover: Nullable<MediaView>;
+  today: Date;
+}): BookView {
   return {
     ageCategory: AgeCategorySchema.parse(book.ageCategory),
     authors: book.authors.map((bookAuthor) => ({
@@ -42,7 +48,7 @@ export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>):
     dedication: book.dedication,
     delivery: toDeliverySummaryView(book.deliveries),
     description: book.description,
-    favoriteAddedAt: book.favoriteAddedAt === null ? null : book.favoriteAddedAt.toISOString(),
+    favoriteAddedAt: toNullableIsoDateTime(book.favoriteAddedAt),
     formats: BookFormatsSchema.parse(book.formats),
     genres: BookGenresSchema.parse(book.genres),
     hasUnreadEarlierSeriesParts:
@@ -60,10 +66,11 @@ export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>):
     isInReadingQueue: book.queuePosition !== null,
     language: BookLanguageSchema.parse(book.language),
     lists: book.lists.map((item) => toBookListView(item.list)),
-    loanInfo: toLoanInfoView(book.loans),
+    loanInfo: toLoanInfoView({ loans: book.loans, today }),
     originalTitle: book.originalTitle,
     ownershipStatus: OwnershipStatusSchema.parse(book.ownershipStatus),
     pagesCount: book.pagesCount,
+    pagesCountUnavailable: book.pagesCountUnavailable,
     partNumber: book.partNumber,
     publicationYear: book.publicationYear,
     publisher:
@@ -85,26 +92,6 @@ export function toBookView(book: BookWithRelations, cover: Nullable<MediaView>):
     translator: book.translator,
     updatedAt: book.updatedAt.toISOString(),
     userId: book.userId,
-  };
-}
-
-function toLoanInfoView(loans: BookWithRelations["loans"]): Nullable<LoanInfoView> {
-  const loan = loans[0] ?? null;
-  if (loan === null) {
-    return null;
-  }
-
-  const today = parseIsoDate(toIsoDate(new Date()));
-
-  return {
-    contact: loan.contact,
-    expectedReturnDate: toNullableIsoDate(loan.expectedReturnDate),
-    loanDate: toNullableIsoDate(loan.loanDate),
-    loanType: LoanTypeSchema.parse(loan.type),
-    loanUiStatus: getLoanUiStatus({ expectedReturnDate: loan.expectedReturnDate, today }),
-    note: loan.note,
-    personName: loan.personName,
-    remindToReturn: loan.remindToReturn,
   };
 }
 

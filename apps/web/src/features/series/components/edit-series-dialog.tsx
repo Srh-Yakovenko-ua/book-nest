@@ -23,7 +23,14 @@ import { FieldError } from "@/components/ui/field-error";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BOOK_GENRES_MAX, GenresField, SeriesStatusChips } from "@/features/books";
+import {
+  type AuthorSelection,
+  authorSelectionToReference,
+  AuthorsField,
+  BOOK_GENRES_MAX,
+  GenresField,
+  SeriesStatusChips,
+} from "@/features/books";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -78,6 +85,10 @@ function EditSeriesForm({
   const t = useTranslations("series.editDialog");
   const tToast = useTranslations("series.toast");
   const updateSeries = useUpdateSeries(series.id);
+  const hasBooks = series.booksInSeries > 0;
+  const [authors, setAuthors] = useState<AuthorSelection[]>(
+    series.authors.map((author) => ({ id: author.id, kind: "catalog", name: author.name })),
+  );
   const [serverError, setServerError] = useState<null | string>(null);
 
   const {
@@ -107,6 +118,7 @@ function EditSeriesForm({
       name: values.name,
       status: values.status,
       totalBooks: values.totalBooks ?? null,
+      ...(hasBooks ? {} : { authors: authors.map(authorSelectionToReference) }),
     };
     updateSeries.mutate(payload, {
       onError: (error) => {
@@ -142,6 +154,37 @@ function EditSeriesForm({
           {...register("name")}
         />
         <FieldError error={errors.name} id="edit-series-name-error" />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={hasBooks ? undefined : "edit-series-authors"}>
+          {tFields("authors")}
+          {hasBooks ? null : (
+            <>
+              {" "}
+              <span className="text-xs font-normal text-muted-foreground">
+                {tFields("optional")}
+              </span>
+            </>
+          )}
+        </Label>
+        {hasBooks ? (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs text-muted-foreground">{t("authorsDerivedHint")}</p>
+            {series.authors.length > 0 ? (
+              <p className="text-sm text-foreground">
+                {series.authors.map((author) => author.name).join(", ")}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <AuthorsField
+            id="edit-series-authors"
+            invalid={false}
+            onChange={setAuthors}
+            value={authors}
+          />
+        )}
       </div>
 
       <div className="flex flex-col gap-2">

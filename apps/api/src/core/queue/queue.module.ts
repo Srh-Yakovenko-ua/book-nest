@@ -1,4 +1,4 @@
-import type { QueueOptions } from "bullmq";
+import type { ConnectionOptions, QueueOptions } from "bullmq";
 
 import { BullModule } from "@nestjs/bullmq";
 import { Global, Module } from "@nestjs/common";
@@ -9,8 +9,17 @@ const JOB_ATTEMPTS = 3;
 const BACKOFF_DELAY_MS = 1000;
 const KEEP_LAST_FAILED_JOBS = 100;
 
+export const workerConnection: ConnectionOptions = {
+  maxRetriesPerRequest: null,
+  url: env.redisUrl,
+};
+
 const queueConfig: QueueOptions = {
-  connection: { maxRetriesPerRequest: null, url: env.redisUrl },
+  connection: {
+    enableOfflineQueue: false,
+    maxRetriesPerRequest: null,
+    url: env.redisUrl,
+  },
   defaultJobOptions: {
     attempts: JOB_ATTEMPTS,
     backoff: { delay: BACKOFF_DELAY_MS, type: "exponential" },

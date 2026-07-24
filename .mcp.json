@@ -1,9 +1,5 @@
 {
   "mcpServers": {
-    "supabase": {
-      "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=jkgpkqltqdnrtlyebvan&features=docs%2Cdatabase%2Caccount%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching%2Cstorage"
-    },
     "mailtrap": {
       "type": "stdio",
       "command": "npx",

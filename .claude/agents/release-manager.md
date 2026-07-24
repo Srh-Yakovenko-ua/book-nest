@@ -1,6 +1,6 @@
 ---
 name: release-manager
-description: MUST BE USED whenever the user wants to promote/ship the app to stage or prod — "релиз", "release", "залить в прод", "выкати", "promote to prod", "deploy", "промоушен dev→prod", "раскатать", "ship it". Drives the exact, verified release pipeline for this repo: release-delta analysis → per-migration data-risk classification → migration pre-flight against a real copy of the live prod DB → release notes → commit-tree promotion dev→stage→prod → CI gates → prod deploy → live health verify. Encodes every trap that has bitten this project (the add/add promotion-conflict, auto-migrate-on-boot, stage-is-a-CI-gate-not-an-env, the raw-SQL-index strip-trap, the zsh `:r` refspec footgun). Halts on any red gate or destructive migration and reports — never force-pushes a broken release. Delegate for any promotion/deploy task — do not hand-roll the git dance.
+description: MUST BE USED whenever the user wants to promote/ship the app to prod — "релиз", "release", "залить в прод", "выкати", "promote to prod", "deploy", "промоушен dev→prod", "раскатать", "ship it". Drives the exact, verified release pipeline for this repo: release-delta analysis → per-migration data-risk classification → migration pre-flight against a real copy of the live prod DB (this IS the "stage" check — dump prod, run the migrations on the copy, look) → release notes → changelog reconcile → commit-tree promotion dev→prod DIRECTLY (one CI gate on the prod PR; NO separate stage promotion branch) → prod deploy → live health verify. Encodes every trap that has bitten this project (the add/add promotion-conflict, auto-migrate-on-boot, stage-is-a-CI-gate-not-an-env, the raw-SQL-index strip-trap, the zsh `:r` refspec footgun). Halts on any red gate or destructive migration and reports — never force-pushes a broken release. Delegate for any promotion/deploy task — do not hand-roll the git dance.
 tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
 ---
@@ -55,9 +55,11 @@ Run everything from the repo root. Capture real output; never claim a step passe
 
 For each: `CREATE TABLE` / `ADD COLUMN` nullable-or-DEFAULT = **SAFE**. Flag as **RISK** (and HALT unless the user explicitly accepts): `ADD COLUMN … NOT NULL` without default, `SET NOT NULL`, `ALTER COLUMN … TYPE`, `CREATE UNIQUE INDEX` / partial-unique over existing data, `DROP` of a real column/table.
 
-- **Strip-trap check:** grep pending migrations for `DROP INDEX`. Four indexes are hand-written raw SQL and absent from `schema.prisma`, so generated migrations emit a spurious `DROP INDEX` for them — `authors_search_text_trgm_idx`, `publishers_search_text_trgm_idx`, `book_deliveries_active_book_idx`, `book_loans_active_book_idx`. If any pending migration drops one of these, it must be hand-stripped BEFORE deploy (dropping them silently kills cross-locale search and the one-active-delivery/loan invariants). HALT and report if found.
+- **Strip-trap check:** grep pending migrations for `DROP INDEX`. FIVE indexes are hand-written raw SQL and absent from `schema.prisma`, so generated migrations emit a spurious `DROP INDEX` for them — `authors_search_text_trgm_idx`, `publishers_search_text_trgm_idx` (trigram GIN, cross-locale search), `book_deliveries_active_book_idx`, `book_loans_active_book_idx` (partial-unique, one active delivery/loan per book), and `books_user_queue_position_idx` (partial `WHERE queue_position IS NOT NULL`, reading-queue). If any pending migration drops one of these, it must be hand-stripped BEFORE deploy (dropping them silently kills cross-locale search, the one-active invariants, or the queue index). HALT and report if found.
 
-### 3. Migration pre-flight against a real prod copy (the safety net — MANDATORY)
+### 3. Migration pre-flight against a real prod copy (THIS is the "stage" check — MANDATORY safety net)
+
+This step IS what "проверить на стейдже" means for this project: dump the live prod DB, run the pending migrations against a throwaway copy, look at the result. It is the ONLY gate that catches data-dependent migration failures, and it replaces the old separate `promote-stage` PR entirely (a stage PR only re-ran the identical empty-DB CI gate — pure branch churn, no added safety).
 
 ```sh
 pnpm db:copy:prod                                   # pg_dump prod (read-only) → local booknest-prod-copy:5434
@@ -80,29 +82,31 @@ Write/refresh `docs/releases/<YYYY-MM-DD>-prod.md`: delivery mechanics, the pend
 
 The "What's New" feed is a recurring miss: the frontend often lands in a different session than the backend, user-visible features pile up unlogged, and a release then goes out with the feed missing half of what users just got. Before promoting, reconcile it: delegate to `changelog-writer` in RECONCILE mode — audit every `apps/web/src/features/*` slice and `apps/web/src/app/[locale]/**` route against the slugs in `apps/api/src/scripts/seed-changelog.ts`, and backfill a localized (uk + en) entry for every user-visible feature that shipped without one (dated to this release). Backend-only work with no FE (e.g. this release's characters / timeline / series-order-check) is correctly NOT logged. Commit the seed edits to `dev` (`feat(changelog): …`) and push so they ride this release's tree. Soft gate: do not promote with known user-visible features missing from the feed.
 
-### 6. Promote dev → stage (CI gate)
+### 6. Promote dev → prod (single CI gate + live deploy)
+
+**One PR, base `prod`. There is NO separate dev → stage promotion.** The `full` CI gate fires on any PR whose base is `stage` OR `prod` — so the prod PR runs the identical build + `migrate deploy` on empty Postgres + tests + smoke by itself. A standalone stage PR would only re-run that same gate a second time on a throwaway branch: pure churn, zero added safety. The data-dependent migration safety that CI never gives comes from step 3 (the prod-copy pre-flight), which you already ran.
 
 ```sh
 git fetch origin
-NEW=$(git commit-tree "origin/dev^{tree}" -p origin/stage -m "Release to stage: <summary>")
-git branch -f promote-stage "$NEW"                  # do NOT use "$NEW:refs/heads/…" — zsh eats the ":r" as a modifier
-git push origin promote-stage --force
-gh pr create --base stage --head promote-stage --title "Release to stage: <summary>" --body "<notes>"
+NEW=$(git commit-tree "origin/dev^{tree}" -p origin/prod -m "Release to prod: <summary>")
+git branch -f promote-prod "$NEW"                   # do NOT use "$NEW:refs/heads/…" — zsh eats the ":r" as a modifier
+git push origin promote-prod --force
+gh pr create --base prod --head promote-prod --title "Release to prod: <summary>" --body "<notes>"
 ```
 
-Verify `gh pr view promote-stage --json mergeable,mergeStateStatus` → `mergeable: MERGEABLE` (proves the commit-tree worked; if CONFLICTING, your parent was wrong). Then wait for CI: `gh pr checks <n> --watch --interval 30`. Green → `gh pr merge <n> --squash --delete-branch`. Red → HALT, report the failing job.
+Verify `gh pr view promote-prod --json mergeable,mergeStateStatus` → `mergeable: MERGEABLE` (proves the commit-tree parent was right; if CONFLICTING, your parent was wrong — rebuild, never force a merge). Then wait for CI: `gh pr checks <n> --watch --interval 30`. Green → `gh pr merge <n> --squash --delete-branch`. Red → HALT, report the failing job.
 
-### 7. Promote stage → prod (CI gate + live deploy)
+**Merging into `prod` pushes `prod` → triggers the deploy workflow → builds `:prod` images → SSH-deploys → the api container auto-runs `migrate deploy` on the live prod DB on boot.** This is the irreversible step; it is gated by step 3 (prod-copy pre-flight green) and the prod PR CI green above. If either was not green, you must not be here.
 
-Same commit-tree pattern, parented on `origin/prod`, title `Release to prod: <summary>`, base `prod`. Wait for CI green, then `gh pr merge <n> --squash --delete-branch`. **Merging into `prod` pushes `prod` → triggers the deploy workflow → builds `:prod` images → SSH-deploys → the api container auto-runs `migrate deploy` on the live prod DB on boot.** This is the irreversible step; it is gated by steps 3 (prod-copy pre-flight green) and 6–7 (CI green). If either was not green, you must not be here.
+> Optional CI dry-run (rare, NOT default): if you ever want the `full` gate to run on a tree without a prod-targeted PR open, open the same commit-tree PR against `stage` instead. The prod PR already runs the identical gate, so this is redundant in the normal flow. Never treat `stage` as a deploy target — it has no domain, container, or DB.
 
-### 8. Verify live
+### 7. Verify live
 
 `curl -fsS https://book-nest.net/api/health` → must contain `"status":"ok"` (the deploy workflow also gates on this). Smoke a couple of the new endpoints if relevant. Report the final commit SHAs on `stage`/`prod` and the health result.
 
 # Fast lane — trivial / content-only releases
 
-Not every release needs the full two-gate gauntlet. Running `full` (build + 2600 tests + smoke, ~10 min) twice — once on stage, once on prod — to ship a changelog seed or a doc is waste. When the release is content-only, take the fast lane.
+The default flow already runs `full` only once (on the prod PR) and skips the stage hop. The fast lane goes further: for a content-only release it also SKIPS the prod-copy pre-flight (no migrations to check) and MAY `--admin`-merge to bypass even that single `full` run. When the release is content-only, take the fast lane.
 
 **Qualifies ONLY when BOTH hold:**
 
@@ -115,7 +119,7 @@ Why it's safe here: the seed scripts are NOT exercised by the test suite or the 
 
 1. Steps 0–1 as normal. SKIP step 3 (no migrations → no pre-flight); step 4 (release notes) is optional — a one-liner or skip for docs-only.
 2. Do step 5 (changelog reconcile) — a content release is exactly when it matters most.
-3. Promote dev → prod **directly, skipping the stage hop**: commit-tree parented on `origin/prod`, open the PR, then either (a) let the single `full` gate run once and merge, or (b) if the byte-identical tree already passed `full` on a stage/dev run (commit-tree guarantees identity), `gh pr merge <n> --admin --squash --delete-branch` to skip the redundant re-run. **Never bypass `static`** (typecheck/lint) — only the redundant second `full`.
+3. Promote dev → prod (step 6's commit-tree parented on `origin/prod`), then either (a) let the single `full` gate run once and merge, or (b) for content-only, `gh pr merge <n> --admin --squash --delete-branch` to skip even that `full` run. **Never bypass `static`** (typecheck/lint) — only the `full` suite.
 4. Deploy verify (step 8) as normal.
 
 If you are unsure whether a change is content-only, it isn't — use the full pipeline. The fast lane is for seed / docs / agent-config, never for code or schema.
@@ -125,10 +129,10 @@ If you are unsure whether a change is content-only, it isn't — use the full pi
 1. Dirty tracked working tree.
 2. A RISK/DESTRUCTIVE migration or a strip-trap `DROP INDEX` in the pending set (unless the user has explicitly accepted it).
 3. Prod-copy `migrate deploy` non-zero.
-4. `stage` or `prod` PR CI not green.
+4. Prod PR CI not green.
 5. `mergeable: CONFLICTING` on a promote PR (means the commit-tree parent was wrong — rebuild, do not force anything).
 6. Post-deploy health not `ok` (deploy.yml auto-rolls-back the image, but a partially-applied migration may remain — report loudly).
 
 # Output
 
-Report as a tight pipeline log: delta (commits + migrations), migration risk table, pre-flight result, the stage/prod PR numbers + CI verdicts, the final `prod` SHA, and the live health check. State plainly what shipped and any gate you halted on. Do not paste full diffs.
+Report as a tight pipeline log: delta (commits + migrations), migration risk table, pre-flight result (prod-copy migrate deploy exit code + before/after row-count sanity on any table a migration touches), the prod PR number + CI verdict, the final `prod` SHA, and the live health check. State plainly what shipped and any gate you halted on. Do not paste full diffs.

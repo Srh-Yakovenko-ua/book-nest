@@ -1,4 +1,4 @@
-import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs";
+import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs/server";
 
 import type { DeliveryControllerInTransitListParams } from "@/shared/api/generated/model";
 

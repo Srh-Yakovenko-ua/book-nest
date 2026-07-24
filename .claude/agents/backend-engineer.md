@@ -136,8 +136,9 @@ modules/posts/
 - Pure business logic — no `req`/`res`, no `console.log`. Inject a clock/now-provider when time matters for testability.
 - Throws typed errors from `core/exceptions/errors.ts` (`NotFoundError`, `BadRequestError`, `UnauthorizedError`, `ForbiddenError`). Never `new Error(...)`.
 - **Maps `Prisma model → ViewModel` itself** — repositories never return ViewModel. Mapper functions (`toUserView`, `toPostView`) live in the feature's `domain/` mapper (or at the bottom of the service file for small features).
-- Multi-step writes that must be atomic go through **`TransactionRunner.run(async (tx) => …)`** from `core/database` — services never inject `PrismaService` or call `$transaction` directly. Thread `tx` into the repository methods. Don't do read-modify-write across separate awaits without one.
-- Functions with 3+ parameters take a single destructured object — no positional `(a, b, c, d)`.
+- Multi-step writes that must be atomic go through **`TransactionRunner.run(async (tx) => …)`** from `core/database` — services never inject `PrismaService` or call `$transaction` directly. Thread `tx` into the repository methods. Don't do read-modify-write across separate awaits without one. P2034 (write conflict/deadlock) is retried by the runner — don't hand-roll retries.
+- Functions with 2+ parameters take a single destructured options object — no positional `(a, b, c)`. The only exemptions: Nest decorator-injected handler params and the repository-layer trailing `client: Prisma.TransactionClient = this.prisma`.
+- **Time is captured once at the service boundary**: `const now = new Date()` (or `startOfUtcDay(now)` for calendar logic) in the service method, then threaded into mappers and repositories as a parameter. Mappers and repositories never call `new Date()` themselves.
 
 ## Repositories (infrastructure/)
 
@@ -177,13 +178,28 @@ modules/posts/
 
 ## Cross-cutting (core/)
 
-- **Guards** (when auth lands) — `@UseGuards(JwtAuthGuard, AdminGuard)` on the controller method. Composition order matters: the first guard runs first.
+- **Guards** — protected endpoints use the composed `@JwtProtected()` decorator (`modules/auth/api/guards/jwt-protected.decorator.ts`: guard + `@ApiBearerAuth` + `@ApiUnauthorizedResponse` in one) — never re-stack the three by hand. Optional auth uses `OptionalJwtAccessGuard`.
 - **Pipes** — `new ZodBodyPipe(Schema)` / `new ZodQueryPipe(Schema)` at the param. They throw `ZodError`, which `HttpErrorFilter` maps to 400/422.
 - **Exceptions** — only throw subclasses of `HttpError` from `core/exceptions/errors.ts`.
 - **Logging** — `createLogger("posts.service")`, never `console.log`. Pino is structured (JSON in prod, pretty in dev). Request-id is propagated by `RequestLoggerMiddleware`.
 - **Env** — read from `config/env.ts` only. Never `process.env.X` elsewhere.
-- **Pagination** — use `buildPaginator(...)` from `core/paginator.ts`.
-- **Rate limiting** — `@nestjs/throttler` for auth-sensitive endpoints (login, token, password reset) once those exist.
+- **Pagination** — `buildPaginator(...)` and `pageSlice({ pageNumber, pageSize })` from `core/paginator.ts`; query-schema fields come from `paginationQueryFields(...)` in `@app/shared` — never re-declare the pageNumber/pageSize Zod fragment.
+- **Rate limiting** — `@Throttle(MUTATION_THROTTLE)` / `@Throttle(READ_THROTTLE)` presets from `core/throttle.ts`; declare a custom literal only when an endpoint genuinely needs a stricter limit (auth, create-book, bulk, upload/export/import keep their own).
+
+### Core helpers canon (reuse, never re-inline)
+
+Established 2026-07-23 by the backend architecture review (report: `apps/api/md/backend-review-2026-07-23.md`). If you find yourself writing any of these inline, stop and import the helper:
+
+- `core/database/advisory-lock.ts` — `acquireAdvisoryLock({ classId, key }, client)` with the frozen `ADVISORY_LOCK_CLASS` map; never write raw `pg_advisory_xact_lock`. New lockable feature = new classId entry. `acquireUserQueueLock(userId, client)` wraps it for the reading queue.
+- `core/database/run-in-client.ts` — the "run on given client or open own transaction" seam for repositories; no hand-rolled `if (client === undefined) return this.prisma.$transaction(...)`.
+- `core/database/two-tier-visibility.ts` — `visibleToUser(userId)` for the global-plus-custom taxonomy `where`.
+- `core/prisma-errors.ts` — `isUniqueConstraintError`, `isRecordNotFoundError`, `isWriteConflictError`, `rethrowUniqueConstraintAs`; map P2025/P2002 with these, never string-match.
+- `core/assert-not-stale.ts` — optimistic-concurrency check against `expectedUpdatedAt`.
+- `core/iso-date.ts` — `toIsoDate`, `toNullableIsoDate`, `toNullableIsoDateTime`, `startOfUtcDay`; no inline `?.toISOString() ?? null`.
+- `MediaService.buildViewOrNull(asset)` — the safe cover/avatar view (logs internally, returns `Nullable<MediaView>`).
+- `modules/books/application/assert-book-owned.ts` — ownership pre-check with a feature-specific not-found code.
+- State transitions are guarded writes: `updateMany` with the expected status in the `where`, `count === 0` → conflict/404 — never read-check-write across awaits.
+- Search over books reuses `buildBookTextSearchConditions` from books' `book-search.ts` (matches title, originalTitle and all author locales).
 
 ## Background jobs (BullMQ + Redis)
 

@@ -4,7 +4,7 @@ import type { SeriesDetailsView as SeriesDetailsViewModel } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen } from "@/test-utils";
 
@@ -21,6 +21,26 @@ vi.mock("@/i18n/navigation", () => ({
   ),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL) => {
+      if (String(input).includes("/api/genres")) {
+        return Promise.resolve(
+          new Response("[]", { headers: { "Content-Type": "application/json" } }),
+        );
+      }
+      return Promise.resolve(
+        new Response("{}", { headers: { "Content-Type": "application/json" } }),
+      );
+    }),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function makeFullyReadSeries(): SeriesDetailsViewModel {
   return makeSeriesDetailsView({

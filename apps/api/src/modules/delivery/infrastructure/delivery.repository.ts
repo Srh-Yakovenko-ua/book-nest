@@ -14,12 +14,49 @@ import {
   DeliveryStatusSchema,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
-import type { Prisma } from "../../../generated/prisma/client.js";
 import type { RecordDeliveryTransition } from "../../books/index.js";
 import type { StatisticsRecord } from "../domain/delivery-statistics.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { runInClient } from "../../../core/database/run-in-client.js";
+import { toIsoDate } from "../../../core/iso-date.js";
+import { createLogger } from "../../../core/logger.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+
+const log = createLogger("delivery.repository");
+
+const DELIVERY_STATUS_RECEIVED = "received";
+const DELIVERY_STATUS_CANCELLED = "cancelled";
+const OWNERSHIP_STATUS_IN_TRANSIT = "in_transit";
+const STATISTICS_MAX_RECORDS = 5000;
+
+const HistorySummaryCountsRowSchema = z.object({
+  activeCount: z.number(),
+  cancelledCount: z.number(),
+  receivedCount: z.number(),
+  totalOrders: z.number(),
+});
+
+const EMPTY_HISTORY_SUMMARY_COUNTS: z.infer<typeof HistorySummaryCountsRowSchema> = {
+  activeCount: 0,
+  cancelledCount: 0,
+  receivedCount: 0,
+  totalOrders: 0,
+};
+
+const InTransitSummaryCountsRowSchema = z.object({
+  activeCount: z.number(),
+  delayedCount: z.number(),
+  expectedThisWeek: z.number(),
+});
+
+const EMPTY_IN_TRANSIT_SUMMARY_COUNTS: z.infer<typeof InTransitSummaryCountsRowSchema> = {
+  activeCount: 0,
+  delayedCount: 0,
+  expectedThisWeek: 0,
+};
 
 const deliveryBookInclude = {
   include: {
@@ -126,45 +163,57 @@ type SummaryInput = {
 export class DeliveryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async bulkReceive(
+  bulkReceive(
     { bookIds, transition, userId }: BulkReceiveInput,
     client?: Prisma.TransactionClient,
   ): Promise<BulkReceiveOutcome[]> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) =>
-        this.bulkReceive({ bookIds, transition, userId }, tx),
-      );
-    }
-
-    const outcomes: BulkReceiveOutcome[] = [];
-
-    for (const bookId of bookIds) {
-      const owned = await client.book.findFirst({
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const ownedRows = await tx.book.findMany({
         select: { id: true },
-        where: { id: bookId, userId },
+        where: { id: { in: bookIds }, userId },
       });
-      if (owned === null) {
-        outcomes.push({ bookId, reason: "not_found", status: "skipped" });
-        continue;
+      const ownedIds = new Set(ownedRows.map((row) => row.id));
+
+      const activeRows =
+        ownedIds.size === 0
+          ? []
+          : await tx.bookDelivery.findMany({
+              select: { bookId: true },
+              where: {
+                bookId: { in: [...ownedIds] },
+                status: { in: [...DELIVERY_ACTIVE_STATUSES] },
+                userId,
+              },
+            });
+      const receivedIds = new Set(activeRows.map((row) => row.bookId));
+
+      if (receivedIds.size > 0) {
+        await tx.bookDelivery.updateMany({
+          data: transition.delivery,
+          where: {
+            bookId: { in: [...receivedIds] },
+            status: { in: [...DELIVERY_ACTIVE_STATUSES] },
+            userId,
+          },
+        });
+        if (transition.book !== null) {
+          await tx.book.updateMany({
+            data: transition.book,
+            where: { id: { in: [...receivedIds] }, userId },
+          });
+        }
       }
 
-      const updated = await client.bookDelivery.updateMany({
-        data: transition.delivery,
-        where: { book: { userId }, bookId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
+      return bookIds.map((bookId): BulkReceiveOutcome => {
+        if (!ownedIds.has(bookId)) {
+          return { bookId, reason: "not_found", status: "skipped" };
+        }
+        if (!receivedIds.has(bookId)) {
+          return { bookId, reason: "not_active", status: "skipped" };
+        }
+        return { bookId, status: "received" };
       });
-      if (updated.count === 0) {
-        outcomes.push({ bookId, reason: "not_active", status: "skipped" });
-        continue;
-      }
-
-      if (transition.book !== null) {
-        await client.book.update({ data: transition.book, where: { id: bookId } });
-      }
-
-      outcomes.push({ bookId, status: "received" });
-    }
-
-    return outcomes;
+    });
   }
 
   countActive(input: InTransitFilterInput): Promise<number> {
@@ -182,36 +231,42 @@ export class DeliveryRepository {
     includeCancelled: boolean;
     userId: string;
   }): Promise<HistorySummaryData> {
-    const base: Prisma.BookDeliveryWhereInput = { book: { userId } };
-    const currencyWhere: Prisma.BookDeliveryWhereInput = { ...base, price: { not: null } };
+    const currencyWhere: Prisma.BookDeliveryWhereInput = { price: { not: null }, userId };
     if (!includeCancelled) {
-      currencyWhere.status = { not: "cancelled" };
+      currencyWhere.status = { not: DELIVERY_STATUS_CANCELLED };
     }
 
-    const [totalOrders, activeCount, receivedCount, cancelledCount, currencyGroups] =
-      await Promise.all([
-        this.prisma.bookDelivery.count({ where: base }),
-        this.prisma.bookDelivery.count({
-          where: { ...base, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
-        }),
-        this.prisma.bookDelivery.count({ where: { ...base, status: "received" } }),
-        this.prisma.bookDelivery.count({ where: { ...base, status: "cancelled" } }),
-        this.prisma.bookDelivery.groupBy({
-          _sum: { price: true },
-          by: ["currency"],
-          where: currencyWhere,
-        }),
-      ]);
+    const [countsRows, currencyGroups] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*))::int AS "totalOrders",
+          (count(*) FILTER (
+            WHERE bd.status IN (${Prisma.join([...DELIVERY_ACTIVE_STATUSES])})
+          ))::int AS "activeCount",
+          (count(*) FILTER (WHERE bd.status = ${DELIVERY_STATUS_RECEIVED}))::int AS "receivedCount",
+          (count(*) FILTER (WHERE bd.status = ${DELIVERY_STATUS_CANCELLED}))::int AS "cancelledCount"
+        FROM book_deliveries bd
+        WHERE bd.user_id = ${userId}::uuid
+      `),
+      this.prisma.bookDelivery.groupBy({
+        _sum: { price: true },
+        by: ["currency"],
+        where: currencyWhere,
+      }),
+    ]);
+
+    const counts =
+      z.array(HistorySummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_HISTORY_SUMMARY_COUNTS;
 
     return {
-      activeCount,
-      cancelledCount,
+      activeCount: counts.activeCount,
+      cancelledCount: counts.cancelledCount,
       currencyTotals: currencyGroups.map((group) => ({
         currency: group.currency,
         total: group._sum.price === null ? 0 : group._sum.price.toNumber(),
       })),
-      receivedCount,
-      totalOrders,
+      receivedCount: counts.receivedCount,
+      totalOrders: counts.totalOrders,
     };
   }
 
@@ -243,7 +298,7 @@ export class DeliveryRepository {
     to,
     userId,
   }: StatisticsFilterInput): Promise<StatisticsRecord[]> {
-    const where: Prisma.BookDeliveryWhereInput = { book: { userId } };
+    const where: Prisma.BookDeliveryWhereInput = { userId };
 
     if (store !== undefined) {
       where.storeName = { equals: store, mode: "insensitive" };
@@ -272,8 +327,15 @@ export class DeliveryRepository {
         status: true,
         storeName: true,
       },
+      take: STATISTICS_MAX_RECORDS,
       where,
     });
+    if (rows.length === STATISTICS_MAX_RECORDS) {
+      log.warn(
+        { cap: STATISTICS_MAX_RECORDS, userId },
+        "delivery statistics truncated at the safety cap",
+      );
+    }
 
     return rows.map((row) => ({
       bookId: row.bookId,
@@ -293,32 +355,46 @@ export class DeliveryRepository {
     weekStart,
   }: SummaryInput): Promise<InTransitSummaryData> {
     const base = activeInTransitBase(userId);
+    const todayIso = toIsoDate(today);
+    const weekStartIso = toIsoDate(weekStart);
+    const weekEndIso = toIsoDate(weekEnd);
 
-    const [activeCount, delayedCount, expectedThisWeek, storeGroups, currencyGroups] =
-      await Promise.all([
-        this.prisma.bookDelivery.count({ where: base }),
-        this.prisma.bookDelivery.count({
-          where: { ...base, expectedDeliveryDate: { lt: today } },
-        }),
-        this.prisma.bookDelivery.count({
-          where: { ...base, expectedDeliveryDate: { gte: weekStart, lte: weekEnd } },
-        }),
-        this.prisma.bookDelivery.groupBy({ by: ["storeName"], where: base }),
-        this.prisma.bookDelivery.groupBy({
-          _sum: { price: true },
-          by: ["currency"],
-          where: { ...base, price: { not: null } },
-        }),
-      ]);
+    const [countsRows, storeGroups, currencyGroups] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*))::int AS "activeCount",
+          (count(*) FILTER (WHERE bd.expected_delivery_date < ${todayIso}::date))::int
+            AS "delayedCount",
+          (count(*) FILTER (
+            WHERE bd.expected_delivery_date >= ${weekStartIso}::date
+              AND bd.expected_delivery_date <= ${weekEndIso}::date
+          ))::int AS "expectedThisWeek"
+        FROM book_deliveries bd
+        JOIN books b ON b.id = bd.book_id
+        WHERE bd.user_id = ${userId}::uuid
+          AND b.ownership_status = ${OWNERSHIP_STATUS_IN_TRANSIT}
+          AND bd.status IN (${Prisma.join([...DELIVERY_ACTIVE_STATUSES])})
+      `),
+      this.prisma.bookDelivery.groupBy({ by: ["storeName"], where: base }),
+      this.prisma.bookDelivery.groupBy({
+        _sum: { price: true },
+        by: ["currency"],
+        where: { ...base, price: { not: null } },
+      }),
+    ]);
+
+    const counts =
+      z.array(InTransitSummaryCountsRowSchema).parse(countsRows)[0] ??
+      EMPTY_IN_TRANSIT_SUMMARY_COUNTS;
 
     return {
-      activeCount,
+      activeCount: counts.activeCount,
       currencyTotals: currencyGroups.map((group) => ({
         currency: group.currency,
         total: group._sum.price === null ? 0 : group._sum.price.toNumber(),
       })),
-      delayedCount,
-      expectedThisWeek,
+      delayedCount: counts.delayedCount,
+      expectedThisWeek: counts.expectedThisWeek,
       storeNames: storeGroups.map((group) => group.storeName),
     };
   }
@@ -515,7 +591,7 @@ function buildHistoryWhere({
   to,
   userId,
 }: HistoryFilterInput): Prisma.BookDeliveryWhereInput {
-  const where: Prisma.BookDeliveryWhereInput = { book: { userId } };
+  const where: Prisma.BookDeliveryWhereInput = { userId };
 
   applyHistoryTab({ tab, where });
 

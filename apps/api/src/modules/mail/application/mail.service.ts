@@ -20,6 +20,11 @@ type SendInput = {
 const LOGO_CID = "booknest-logo";
 const LOGO_FILENAME = "booknest-logo-horizontal.png";
 const DEFAULT_USER_NAME = "читачу";
+const SMTP_CONNECTION_TIMEOUT_MS = 10_000;
+const SMTP_GREETING_TIMEOUT_MS = 10_000;
+const SMTP_SOCKET_TIMEOUT_MS = 20_000;
+const MASK_VISIBLE_CHARS = 2;
+const MASKED_PLACEHOLDER = "***";
 
 const logger = createLogger("mail");
 
@@ -31,9 +36,12 @@ export class MailService {
   constructor() {
     this.transporter = nodemailer.createTransport({
       auth: env.smtpUser === undefined ? undefined : { pass: env.smtpPass, user: env.smtpUser },
+      connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
+      greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
       host: env.smtpHost,
       port: env.smtpPort,
       secure: env.smtpSecure,
+      socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
     });
 
     const logoPath = new URL("../assets/booknest-logo-horizontal.png", import.meta.url);
@@ -59,9 +67,9 @@ export class MailService {
 
     try {
       await this.send({ html, subject, text, to });
-      logger.info({ to }, "password changed email sent");
+      logger.info({ to: maskEmail(to) }, "password changed email sent");
     } catch (error) {
-      logger.error({ error, to }, "failed to send password changed email");
+      logger.error({ error, to: maskEmail(to) }, "failed to send password changed email");
     }
   }
 
@@ -85,9 +93,9 @@ export class MailService {
 
     try {
       await this.send({ html, subject, text, to });
-      logger.info({ to }, "password reset email sent");
+      logger.info({ to: maskEmail(to) }, "password reset email sent");
     } catch (error) {
-      logger.error({ error, to }, "failed to send password reset email");
+      logger.error({ error, to: maskEmail(to) }, "failed to send password reset email");
     }
   }
 
@@ -118,9 +126,9 @@ export class MailService {
         text,
         to,
       });
-      logger.info({ to }, "verification email sent");
+      logger.info({ to: maskEmail(to) }, "verification email sent");
     } catch (error) {
-      logger.error({ error, to }, "failed to send verification email");
+      logger.error({ error, to: maskEmail(to) }, "failed to send verification email");
     }
   }
 
@@ -145,9 +153,9 @@ export class MailService {
         text,
         to,
       });
-      logger.info({ to }, "welcome email sent");
+      logger.info({ to: maskEmail(to) }, "welcome email sent");
     } catch (error) {
-      logger.error({ error, to }, "failed to send welcome email");
+      logger.error({ error, to: maskEmail(to) }, "failed to send welcome email");
     }
   }
 
@@ -161,4 +169,13 @@ export class MailService {
       to,
     });
   }
+}
+
+function maskEmail(email: string): string {
+  const atIndex = email.lastIndexOf("@");
+  if (atIndex <= 0) {
+    return MASKED_PLACEHOLDER;
+  }
+  const visible = email.slice(0, Math.min(MASK_VISIBLE_CHARS, atIndex));
+  return `${visible}${MASKED_PLACEHOLDER}${email.slice(atIndex)}`;
 }

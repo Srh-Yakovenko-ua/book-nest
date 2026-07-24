@@ -60,7 +60,7 @@ function searchSeries(accessToken: string): request.Test {
 }
 
 describe("POST /api/books series author linking", () => {
-  it("links a new series to the explicit newSeries authors and exposes them in the series view", async () => {
+  it("seeds the explicit newSeries authors while the series view derives authors from its book", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const authorA = await createAuthor(userId, "Author A");
     const authorB = await createAuthor(userId, "Author B");
@@ -83,10 +83,7 @@ describe("POST /api/books series author linking", () => {
 
     const search = await searchSeries(accessToken);
     const item = search.body.items.find((entry: { id: string }) => entry.id === seriesId);
-    expect(item.authors.map((author: { name: string }) => author.name).sort()).toEqual([
-      "Author A",
-      "Author B",
-    ]);
+    expect(item.authors.map((author: { name: string }) => author.name)).toEqual(["Sarah J. Maas"]);
   });
 
   it("inherits the book's resolved authors when newSeries omits an authors field", async () => {
@@ -114,7 +111,7 @@ describe("POST /api/books series author linking", () => {
     ]);
   });
 
-  it("uses the explicit newSeries authors over the book's authors when both differ", async () => {
+  it("seeds the explicit newSeries authors, not the book's, into the link table", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const seriesAuthor = await createAuthor(userId, "Series Author");
 

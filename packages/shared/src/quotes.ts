@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
+import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 import { MediaViewSchema } from "./media.js";
 
 const QUOTE_TEXT_MAX = 1000;
@@ -82,13 +82,7 @@ export type QuoteSort = z.infer<typeof QuoteSortSchema>;
 export const QuotesQuerySchema = z.object({
   bookId: z.uuid().optional(),
   filter: QuoteFilterSchema.default("all"),
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(QUOTES_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: QUOTES_DEFAULT_PAGE_SIZE }),
   q: z.string().trim().max(QUOTE_SEARCH_MAX).optional(),
   sort: QuoteSortSchema.default("newest"),
 });

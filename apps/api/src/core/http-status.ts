@@ -17,3 +17,9 @@ export const HTTP_STATUS = {
 } as const;
 
 export type HttpStatus = ValueOf<typeof HTTP_STATUS>;
+
+const HTTP_STATUS_VALUES: ReadonlySet<number> = new Set(Object.values(HTTP_STATUS));
+
+export function isHttpStatus(value: number): value is HttpStatus {
+  return HTTP_STATUS_VALUES.has(value);
+}

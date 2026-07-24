@@ -2,10 +2,11 @@ import type { BookView } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { GuardedChangeOutcome } from "../infrastructure/books.repository.js";
 import type { BooksRepository } from "../infrastructure/books.repository.js";
 import type { BookViewAssembler } from "./book-view-assembler.js";
 
-import { ConflictError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { computeOwnershipChange } from "../domain/ownership-transition.js";
 import { BookOwnershipService } from "./book-ownership.service.js";
 
@@ -14,9 +15,9 @@ const BOOK_ID = "22222222-2222-4222-8222-222222222222";
 
 const VIEW = { id: BOOK_ID } as unknown as BookView;
 
-function setup(ownershipStatus: string) {
+function setup(ownershipStatus: string, outcome: GuardedChangeOutcome = "applied") {
   const findOwnedByIdOrThrow = vi.fn().mockResolvedValue({ ownershipStatus });
-  const applyOwnershipChange = vi.fn().mockResolvedValue(undefined);
+  const applyOwnershipChange = vi.fn().mockResolvedValue(outcome);
   const booksRepository = {
     applyOwnershipChange,
     findOwnedByIdOrThrow,
@@ -35,10 +36,15 @@ describe("BookOwnershipService.removeFromWishlist", () => {
 
     const result = await service.removeFromWishlist({ bookId: BOOK_ID, userId: USER_ID });
 
-    expect(applyOwnershipChange).toHaveBeenCalledWith(USER_ID, BOOK_ID, {
-      book: { ownershipStatus: "none" },
-      purchaseInfo: "delete",
-    });
+    expect(applyOwnershipChange).toHaveBeenCalledWith(
+      USER_ID,
+      BOOK_ID,
+      {
+        book: { ownershipStatus: "none" },
+        purchaseInfo: "delete",
+      },
+      { expectedStatuses: ["want_to_buy"] },
+    );
     expect(loadView).toHaveBeenCalledWith({ bookId: BOOK_ID, userId: USER_ID });
     expect(result).toBe(VIEW);
   });
@@ -52,7 +58,25 @@ describe("BookOwnershipService.removeFromWishlist", () => {
       USER_ID,
       BOOK_ID,
       computeOwnershipChange({ kind: "remove-owned" }),
+      { expectedStatuses: ["want_to_buy"] },
     );
+  });
+
+  it("surfaces a NOT_IN_WISHLIST conflict when the guarded write loses the status race", async () => {
+    const { service } = setup("want_to_buy", "status-conflict");
+
+    const result = service.removeFromWishlist({ bookId: BOOK_ID, userId: USER_ID });
+
+    await expect(result).rejects.toBeInstanceOf(ConflictError);
+    await expect(result).rejects.toMatchObject({ code: "NOT_IN_WISHLIST" });
+  });
+
+  it("surfaces a NotFoundError when the guarded write finds the book gone", async () => {
+    const { service } = setup("want_to_buy", "not-found");
+
+    await expect(
+      service.removeFromWishlist({ bookId: BOOK_ID, userId: USER_ID }),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it.each(["owned", "none", "in_transit"])(

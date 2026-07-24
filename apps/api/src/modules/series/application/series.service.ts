@@ -15,6 +15,7 @@ import type {
 } from "@app/shared";
 
 import {
+  normalizeName,
   OwnershipStatusSchema,
   QueuePrioritySchema,
   ReadingStatusSchema,
@@ -24,7 +25,6 @@ import { Injectable } from "@nestjs/common";
 import { differenceInMilliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type {
   ContinuationBook,
   ContinuationSeriesGroup,
@@ -36,10 +36,9 @@ import type {
 } from "../infrastructure/series.repository.js";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
-import { createLogger } from "../../../core/logger.js";
-import { normalizeName } from "../../../core/normalize-name.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { startOfUtcDay } from "../../../core/iso-date.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { AuthorsService } from "../../authors/index.js";
 import { GenresService } from "../../genres/index.js";
 import { MediaService } from "../../media/index.js";
@@ -59,8 +58,6 @@ const SERIES_TOTAL_BELOW_BOOKS_MESSAGE =
 const SERIES_TOTAL_BELOW_PART_MESSAGE = "Total books cannot be less than an existing part number";
 const OVERVIEW_TOP_LIMIT = 3;
 
-const log = createLogger("series.view");
-
 type DecoratedSeries = {
   books: SeriesBookPreview[];
   series: SeriesWithBookCount;
@@ -74,6 +71,13 @@ type ResolvedSeries = {
 type ResolveSeriesAuthorIdsInput = {
   fallbackAuthorIds: string[] | undefined;
   references: BookAuthorReference[] | undefined;
+  userId: string;
+};
+
+type ResolveSeriesInput = {
+  fallbackAuthorIds?: string[];
+  newSeries?: NewSeriesInput;
+  seriesId?: string;
   userId: string;
 };
 
@@ -116,10 +120,10 @@ export class SeriesService {
       });
       return toSeriesView(created);
     } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      throw new ConflictError(SERIES_NAME_TAKEN_MESSAGE);
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () => new ConflictError(SERIES_NAME_TAKEN_MESSAGE),
+      });
     }
   }
 
@@ -152,9 +156,9 @@ export class SeriesService {
       throw new NotFoundError("Series not found");
     }
     const covers = new Map<string, Nullable<MediaView>>(
-      series.books.map((book) => [book.id, this.coverViewOf(book)]),
+      series.books.map((book) => [book.id, this.mediaService.buildViewOrNull(book.coverMedia)]),
     );
-    return toSeriesDetailsView(series, covers);
+    return toSeriesDetailsView({ covers, series, today: startOfUtcDay(new Date()) });
   }
 
   async overview(userId: string): Promise<SeriesOverviewView> {
@@ -251,9 +255,8 @@ export class SeriesService {
       this.seriesRepository.searchOwned({
         authorIds,
         query: search,
-        skip: (pageNumber - 1) * pageSize,
-        take: pageSize,
         userId,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.seriesRepository.countOwned({ authorIds, query: search, userId }),
     ]);
@@ -311,10 +314,10 @@ export class SeriesService {
       const updated = await this.seriesRepository.updateOwned(userId, id, { authorIds, fields });
       return toSeriesView(updated);
     } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      throw new ConflictError(SERIES_NAME_TAKEN_MESSAGE);
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () => new ConflictError(SERIES_NAME_TAKEN_MESSAGE),
+      });
     }
   }
 
@@ -353,21 +356,6 @@ export class SeriesService {
     }
   }
 
-  private coverViewOf(book: {
-    coverMedia: Nullable<MediaAssetModel>;
-    id: string;
-  }): Nullable<MediaView> {
-    if (book.coverMedia === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(book.coverMedia);
-    } catch (error) {
-      log.warn({ bookId: book.id, err: error }, "failed to build cover view");
-      return null;
-    }
-  }
-
   private async resolveSeriesAuthorIds({
     fallbackAuthorIds,
     references,
@@ -390,7 +378,7 @@ export class SeriesService {
         id: bookAuthor.author.id,
         name: bookAuthor.author.name,
       })),
-      cover: this.coverViewOf(row),
+      cover: this.mediaService.buildViewOrNull(row.coverMedia),
       createdAt: row.createdAt,
       currentPage: row.readingProgress?.currentPage ?? null,
       favoriteAddedAt: row.favoriteAddedAt,
@@ -436,13 +424,6 @@ export class SeriesService {
     return [...groups.values()];
   }
 }
-
-type ResolveSeriesInput = {
-  fallbackAuthorIds?: string[];
-  newSeries?: NewSeriesInput;
-  seriesId?: string;
-  userId: string;
-};
 
 function compareByUnfinishedRank(first: DecoratedSeries, second: DecoratedSeries): number {
   const progressDiff =

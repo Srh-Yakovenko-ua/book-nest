@@ -13,7 +13,7 @@ const GENRE_ID = "22222222-2222-4222-8222-222222222222";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 function buildService(): {
-  mediaService: { buildView: ReturnType<typeof vi.fn> };
+  mediaService: { buildThumbUrlOrNull: ReturnType<typeof vi.fn> };
   repository: {
     aggregateGenreStats: ReturnType<typeof vi.fn>;
     createCustom: ReturnType<typeof vi.fn>;
@@ -41,7 +41,7 @@ function buildService(): {
     recentGenreKeys: vi.fn().mockResolvedValue([]),
   };
   const mediaService = {
-    buildView: vi.fn((asset: { id: string }) => ({ urls: { thumb: `https://cdn/${asset.id}` } })),
+    buildThumbUrlOrNull: vi.fn((asset: { id: string }) => `https://cdn/${asset.id}`),
   };
   const service = new GenresService(
     repository as unknown as GenresRepository,
@@ -376,12 +376,9 @@ describe("GenresService.stats", () => {
       { coverMedia: { id: "broken" }, genres: ["fantasy"] },
       { coverMedia: { id: "ok" }, genres: ["fantasy"] },
     ]);
-    mediaService.buildView.mockImplementation((asset: { id: string }) => {
-      if (asset.id === "broken") {
-        throw new Error("missing storage key");
-      }
-      return { urls: { thumb: `https://cdn/${asset.id}` } };
-    });
+    mediaService.buildThumbUrlOrNull.mockImplementation((asset: { id: string }) =>
+      asset.id === "broken" ? null : `https://cdn/${asset.id}`,
+    );
 
     const result = await service.stats(USER_ID);
 

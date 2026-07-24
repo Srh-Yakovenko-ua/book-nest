@@ -15,6 +15,7 @@ type Props = {
 };
 
 const seriesIdParam = z.uuid();
+const publisherIdParam = z.uuid();
 const partNumberParam = z.coerce.number().int().min(1).max(999);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -32,6 +33,7 @@ export default async function NewBookPage({ params, searchParams }: Props) {
 
   const query = await searchParams;
   const seriesId = seriesIdParam.safeParse(query.seriesId).data;
+  const publisherId = publisherIdParam.safeParse(query.publisherId).data;
   const partNumber = partNumberParam.safeParse(query.partNumber).data;
 
   return (
@@ -48,7 +50,7 @@ export default async function NewBookPage({ params, searchParams }: Props) {
         </p>
       </header>
 
-      <CreateBookForm partNumber={partNumber} seriesId={seriesId} />
+      <CreateBookForm partNumber={partNumber} publisherId={publisherId} seriesId={seriesId} />
     </main>
   );
 }

@@ -34,9 +34,7 @@ knip catches all of these in one command.
     "apps/web": {
       "project": ["src/**/*.{ts,tsx}"],
       "ignore": ["src/components/ui/**", "src/test-utils.tsx"],
-      "ignoreDependencies": [
-        /* forward-loaded packages */
-      ]
+      "ignoreDependencies": [/* forward-loaded packages */]
     },
     "apps/api": { "project": ["src/**/*.ts"] },
     "packages/shared": { "project": ["src/**/*.ts"] }

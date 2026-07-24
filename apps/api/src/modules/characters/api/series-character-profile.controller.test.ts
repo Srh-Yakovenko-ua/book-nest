@@ -344,4 +344,118 @@ describe("series character profile", () => {
     expect(aliasNames).not.toContain("FutureName");
     expect(JSON.stringify(res.body)).not.toContain("Kwisatz");
   });
+
+  it("surfaces per-appearance attitude and non-spoiler roles and flags attitude changes across the arc", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
+    const thirdBook = await addSeriesBook(accessToken, seriesId, 3, "Children of Dune");
+    const characterId = await createInBook(
+      accessToken,
+      firstBook,
+      { name: "Paul Atreides" },
+      { attitude: "distrust", roles: [{ roleType: "antagonist" }] },
+    );
+    await linkExisting(accessToken, secondBook, characterId, {
+      attitude: "distrust",
+      roles: [{ roleType: "supporting" }],
+    });
+    await linkExisting(accessToken, thirdBook, characterId, {
+      attitude: "favorite",
+      roles: [
+        { roleType: "protagonist" },
+        { customRole: "Secret Messiah", isSpoiler: true, roleType: "custom" },
+      ],
+    });
+
+    const res = await authed(
+      "get",
+      `/api/series/${seriesId}/characters/${characterId}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.appearances).toHaveLength(3);
+
+    const [first, second, third] = res.body.appearances;
+    expect(first).toMatchObject({ attitude: "distrust", attitudeChangedFromPrevious: false });
+    expect(first.roles.map((role: { roleType: string }) => role.roleType)).toEqual(["antagonist"]);
+    expect(second).toMatchObject({ attitude: "distrust", attitudeChangedFromPrevious: false });
+    expect(third).toMatchObject({ attitude: "favorite", attitudeChangedFromPrevious: true });
+    expect(third.roles.map((role: { roleType: string }) => role.roleType)).toEqual(["protagonist"]);
+    expect(JSON.stringify(res.body)).not.toContain("Secret Messiah");
+  });
+
+  it("flags importance and status changes relative to the previous visible appearance", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
+    const characterId = await createInBook(
+      accessToken,
+      firstBook,
+      { name: "Paul Atreides" },
+      { importance: "supporting", status: "active" },
+    );
+    await linkExisting(accessToken, secondBook, characterId, {
+      importance: "central",
+      status: "active",
+    });
+
+    const res = await authed(
+      "get",
+      `/api/series/${seriesId}/characters/${characterId}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    const [first, second] = res.body.appearances;
+    expect(first).toMatchObject({
+      attitudeChangedFromPrevious: false,
+      importanceChangedFromPrevious: false,
+      statusChangedFromPrevious: false,
+    });
+    expect(second).toMatchObject({
+      importanceChangedFromPrevious: true,
+      statusChangedFromPrevious: false,
+    });
+  });
+
+  it("never reflects a change into a book beyond the reading context in a visible marker", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId: firstBook, seriesId } = await createSeriesFirstBook(accessToken, "Dune Saga");
+    const secondBook = await addSeriesBook(accessToken, seriesId, 2, "Dune Messiah");
+    const thirdBook = await addSeriesBook(accessToken, seriesId, 3, "Children of Dune");
+    const characterId = await createInBook(
+      accessToken,
+      firstBook,
+      { name: "Paul Atreides" },
+      { attitude: "neutral" },
+    );
+    await linkExisting(accessToken, secondBook, characterId, { attitude: "neutral" });
+    await linkExisting(accessToken, thirdBook, characterId, { attitude: "hate" });
+
+    const masked = await authed(
+      "get",
+      `/api/series/${seriesId}/characters/${characterId}?contextBookId=${secondBook}`,
+      accessToken,
+    );
+    expect(masked.status).toBe(HttpStatus.OK);
+    expect(masked.body.appearances).toHaveLength(2);
+    expect(
+      masked.body.appearances.every(
+        (appearance: { attitudeChangedFromPrevious: boolean }) =>
+          appearance.attitudeChangedFromPrevious === false,
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(masked.body)).not.toContain("hate");
+
+    const withFuture = await authed(
+      "get",
+      `/api/series/${seriesId}/characters/${characterId}?contextBookId=${secondBook}&includeFuture=true`,
+      accessToken,
+    );
+    expect(withFuture.body.appearances).toHaveLength(3);
+    expect(withFuture.body.appearances[2]).toMatchObject({
+      attitude: "hate",
+      attitudeChangedFromPrevious: true,
+    });
+  });
 });

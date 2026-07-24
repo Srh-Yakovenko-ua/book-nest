@@ -80,7 +80,11 @@ import { useSectionCompletion } from "./use-section-completion";
 
 type BookFormProps =
   | { book: BookView; mode: "edit" }
-  | { initialSeries?: BookFormInitialSeries; mode: "create" };
+  | {
+      initialPublisher?: PublisherSelection;
+      initialSeries?: BookFormInitialSeries;
+      mode: "create";
+    };
 
 type PendingDiscard = {
   apply: () => void;
@@ -112,7 +116,8 @@ export function BookForm(props: BookFormProps) {
   const bookId = props.mode === "edit" ? props.book.id : null;
   const initial = props.mode === "edit" ? bookViewToFormState(props.book) : null;
   const initialSeries = props.mode === "create" ? (props.initialSeries ?? null) : null;
-  const createDefaults = initialSeries
+  const initialPublisher = props.mode === "create" ? (props.initialPublisher ?? null) : null;
+  const createSeriesDefaults = initialSeries
     ? ({
         ...createBookFormDefaults,
         authors: initialSeries.selection.authors.map(authorSelectionToReference),
@@ -121,6 +126,13 @@ export function BookForm(props: BookFormProps) {
         seriesId: initialSeries.selection.id,
       } satisfies Partial<CreateBookFormValues>)
     : createBookFormDefaults;
+  const createDefaults =
+    initialPublisher !== null && initialPublisher.kind === "catalog"
+      ? ({
+          ...createSeriesDefaults,
+          publisherId: initialPublisher.id,
+        } satisfies Partial<CreateBookFormValues>)
+      : createSeriesDefaults;
 
   const locale = useLocale();
   const draftKey = bookId === null ? "book-form-draft:create" : `book-form-draft:edit:${bookId}`;
@@ -141,7 +153,7 @@ export function BookForm(props: BookFormProps) {
       [],
   );
   const [publisherSelection, setPublisherSelection] = useState<null | PublisherSelection>(
-    restoredDraft?.publisherSelection ?? initial?.publisherSelection ?? null,
+    restoredDraft?.publisherSelection ?? initial?.publisherSelection ?? initialPublisher ?? null,
   );
   const [seriesSelection, setSeriesSelection] = useState<null | SeriesSelection>(
     restoredDraft?.seriesSelection ?? initial?.seriesSelection ?? initialSeries?.selection ?? null,

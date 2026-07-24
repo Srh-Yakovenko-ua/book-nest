@@ -782,3 +782,80 @@ describe("mutation ownership (IDOR)", () => {
     expect(foreignPortrait.body.code).toBe("media_ownership_mismatch");
   });
 });
+
+describe("page-level spoiler masking (character details)", () => {
+  async function createGlobalWithAppearance(
+    token: string,
+    bookId: string,
+    profile: Record<string, unknown>,
+  ): Promise<string> {
+    const res = await authed("post", "/api/characters", token).send({
+      character: { name: "Late Arrival" },
+      firstAppearance: { bookId, bookProfile: bookProfile(profile) },
+    });
+    expect(res.status).toBe(HttpStatus.CREATED);
+    return res.body.id;
+  }
+
+  it("masks an appearance the reader has not yet reached in the context book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const characterId = await createGlobalWithAppearance(accessToken, bookId, {
+      firstAppearancePage: 200,
+    });
+
+    const before = await authed(
+      "get",
+      `/api/characters/${characterId}?contextBookId=${bookId}&contextPage=3`,
+      accessToken,
+    );
+    expect(before.status).toBe(HttpStatus.NOT_FOUND);
+  });
+
+  it("reveals the appearance once the reader page reaches it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const characterId = await createGlobalWithAppearance(accessToken, bookId, {
+      firstAppearancePage: 200,
+    });
+
+    const after = await authed(
+      "get",
+      `/api/characters/${characterId}?contextBookId=${bookId}&contextPage=250`,
+      accessToken,
+    );
+    expect(after.status).toBe(HttpStatus.OK);
+    expect(after.body.appearances).toHaveLength(1);
+    expect(after.body.appearances[0].firstAppearancePage).toBe(200);
+  });
+
+  it("still shows a positionless appearance once the book is reached", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const characterId = await createGlobalWithAppearance(accessToken, bookId, {});
+
+    const res = await authed(
+      "get",
+      `/api/characters/${characterId}?contextBookId=${bookId}&contextPage=3`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.appearances).toHaveLength(1);
+  });
+
+  it("keeps book-level behavior unchanged when no reader position is sent", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+    const characterId = await createGlobalWithAppearance(accessToken, bookId, {
+      firstAppearancePage: 200,
+    });
+
+    const res = await authed(
+      "get",
+      `/api/characters/${characterId}?contextBookId=${bookId}`,
+      accessToken,
+    );
+    expect(res.status).toBe(HttpStatus.OK);
+    expect(res.body.appearances).toHaveLength(1);
+  });
+});

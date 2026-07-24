@@ -4,6 +4,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { appendBookToList } from "./book-list-membership.js";
 
 export type ListMembership = {
@@ -67,7 +68,7 @@ export class ListMembershipRepository {
     client: Prisma.TransactionClient,
     { listId }: ListLockInput,
   ): Promise<void> {
-    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${listId}))`;
+    await acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.listMembership, key: listId }, client);
   }
 
   append(client: Prisma.TransactionClient, { bookId, listId }: ListBookInput): Promise<void> {

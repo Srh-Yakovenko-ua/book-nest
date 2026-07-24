@@ -5,7 +5,12 @@ import {
   DEDICATIONS_PAGE_SIZE_DEFAULT,
   DedicationSortSchema,
 } from "@app/shared";
-import { type inferParserType, parseAsInteger, parseAsString, parseAsStringLiteral } from "nuqs";
+import {
+  type inferParserType,
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs/server";
 
 import type { BooksControllerDedicationsParams } from "@/shared/api/generated/model";
 

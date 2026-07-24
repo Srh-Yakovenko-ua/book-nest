@@ -1,6 +1,11 @@
 import type { QuotesQuery } from "@app/shared";
 
-import { type inferParserType, parseAsInteger, parseAsString, parseAsStringLiteral } from "nuqs";
+import {
+  type inferParserType,
+  parseAsInteger,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs/server";
 
 import { QUOTE_FILTER_OPTIONS, QUOTE_SORT_OPTIONS } from "./quote-options";
 

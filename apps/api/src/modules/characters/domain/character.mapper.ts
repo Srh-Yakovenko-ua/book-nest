@@ -1,7 +1,9 @@
 import type {
   BookCharacterView,
   CharacterDetailsView,
+  CharacterFormView,
   CharacterGlobalSummaryView,
+  CharacterRevealFieldKey,
   CharacterSeriesProfileView,
   CharacterSummaryView,
   MediaView,
@@ -17,10 +19,12 @@ import {
   CharacterAliasTypeSchema,
   CharacterAttitudeSchema,
   CharacterEntityKindSchema,
+  CharacterFormTypeSchema,
   CharacterGenderSchema,
 } from "@app/shared";
 import { compareAsc } from "date-fns";
 
+import { toNullableIsoDateTime } from "../../../core/iso-date.js";
 import { emptyToNull } from "./character-fields.js";
 
 export type CharacterAliasSource = {
@@ -58,6 +62,18 @@ export type CharacterAppearanceSource = SpoilerFlags & {
   updatedAt: Date;
 };
 
+export type CharacterFormSource = {
+  characterId: string;
+  createdAt: Date;
+  description: Nullable<string>;
+  formType: string;
+  id: string;
+  isSpoiler: boolean;
+  name: string;
+  position: number;
+  updatedAt: Date;
+};
+
 export type CharacterRoleSource = {
   customRole: Nullable<string>;
   id: string;
@@ -74,6 +90,7 @@ export type CharacterSource = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
+  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
@@ -89,21 +106,25 @@ export type GlobalSummaryCharacterSource = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
+  hideProfileAsSpoiler: boolean;
   id: string;
   isFavorite: boolean;
   name: string;
   neutralDescription: Nullable<string>;
   pronouns: Nullable<string>;
   species: Nullable<string>;
+  tags: { tag: { id: string; name: string } }[];
 };
 
 export type SeriesProfileAppearanceSource = SummaryHiddenFieldFlags & {
+  attitude: Nullable<string>;
   bookId: string;
   createdAt: Date;
   displayName: Nullable<string>;
   id: string;
   importance: string;
   portrait: Nullable<MediaView>;
+  roles: CharacterRoleSource[];
   status: string;
 };
 
@@ -149,6 +170,11 @@ export type SummaryHiddenFieldFlags = {
   portraitIsSpoiler: boolean;
   statusIsSpoiler: boolean;
 };
+
+type SeriesAppearancePoint = Omit<
+  SeriesCharacterAppearanceView,
+  "attitudeChangedFromPrevious" | "importanceChangedFromPrevious" | "statusChangedFromPrevious"
+>;
 
 export function toBookCharacterView({
   appearance,
@@ -201,10 +227,12 @@ export function toCharacterDetailsView({
   appearances,
   avatar,
   character,
+  forms,
 }: {
   appearances: BookCharacterView[];
   avatar: Nullable<MediaView>;
   character: CharacterSource;
+  forms: CharacterFormView[];
 }): CharacterDetailsView {
   const hiddenFields = [...new Set(appearances.flatMap((appearance) => appearance.hiddenFields))];
   hiddenFields.sort((left, right) => left.localeCompare(right));
@@ -212,17 +240,19 @@ export function toCharacterDetailsView({
   return {
     aliases: character.aliases.map((alias) => toAliasView(alias)),
     appearances,
-    archivedAt: character.archivedAt === null ? null : character.archivedAt.toISOString(),
+    archivedAt: toNullableIsoDateTime(character.archivedAt),
     avatar,
     createdAt: character.createdAt.toISOString(),
     customGender: emptyToNull(character.customGender),
     entityKind: CharacterEntityKindSchema.parse(character.entityKind),
+    forms,
     gender: CharacterGenderSchema.parse(character.gender),
     globalAttitude:
       character.globalAttitude === null
         ? null
         : CharacterAttitudeSchema.parse(character.globalAttitude),
     hiddenFields,
+    hideProfileAsSpoiler: character.hideProfileAsSpoiler,
     id: character.id,
     isFavorite: character.isFavorite,
     name: character.name,
@@ -230,6 +260,27 @@ export function toCharacterDetailsView({
     pronouns: emptyToNull(character.pronouns),
     species: emptyToNull(character.species),
     updatedAt: character.updatedAt.toISOString(),
+  };
+}
+
+export function toCharacterFormView({
+  form,
+  portrait,
+}: {
+  form: CharacterFormSource;
+  portrait: Nullable<MediaView>;
+}): CharacterFormView {
+  return {
+    characterId: form.characterId,
+    createdAt: form.createdAt.toISOString(),
+    description: emptyToNull(form.description),
+    formType: CharacterFormTypeSchema.parse(form.formType),
+    id: form.id,
+    isSpoiler: form.isSpoiler,
+    name: form.name,
+    portrait,
+    position: form.position,
+    updatedAt: form.updatedAt.toISOString(),
   };
 }
 
@@ -244,7 +295,7 @@ export function toCharacterGlobalSummaryView({
 }): CharacterGlobalSummaryView {
   return {
     appearanceCount,
-    archivedAt: character.archivedAt === null ? null : character.archivedAt.toISOString(),
+    archivedAt: toNullableIsoDateTime(character.archivedAt),
     avatar,
     customGender: emptyToNull(character.customGender),
     entityKind: CharacterEntityKindSchema.parse(character.entityKind),
@@ -253,12 +304,14 @@ export function toCharacterGlobalSummaryView({
       character.globalAttitude === null
         ? null
         : CharacterAttitudeSchema.parse(character.globalAttitude),
+    hideProfileAsSpoiler: character.hideProfileAsSpoiler,
     id: character.id,
     isFavorite: character.isFavorite,
     name: character.name,
     neutralDescription: emptyToNull(character.neutralDescription),
     pronouns: emptyToNull(character.pronouns),
     species: emptyToNull(character.species),
+    tags: character.tags.map((link) => ({ id: link.tag.id, name: link.tag.name })),
   };
 }
 
@@ -282,12 +335,13 @@ export function toCharacterSeriesProfileView({
         partNumberByBookId.get(right.bookId) ?? null,
       ) || compareAsc(left.createdAt, right.createdAt),
   );
-  const entries = ordered.map((appearance) =>
-    toSeriesAppearanceView({
+  const points = ordered.map((appearance) =>
+    toSeriesAppearancePoint({
       appearance,
       partNumber: partNumberByBookId.get(appearance.bookId) ?? null,
     }),
   );
+  const entries = attachArcChangeMarkers(points);
 
   const hiddenFields = [...new Set(entries.flatMap((entry) => entry.hiddenFields))];
   hiddenFields.sort((left, right) => left.localeCompare(right));
@@ -337,6 +391,88 @@ export function toCharacterSummaryView({
     portrait: appearance.portraitIsSpoiler ? null : portrait,
     status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),
   };
+}
+
+export function toMaskedBookCharacterView({
+  appearance,
+  portrait,
+  revealedFields,
+}: {
+  appearance: CharacterAppearanceSource;
+  portrait: Nullable<MediaView>;
+  revealedFields: ReadonlySet<CharacterRevealFieldKey>;
+}): BookCharacterView {
+  const hiddenFields: string[] = [];
+  const isVisible = (field: CharacterRevealFieldKey, isSpoiler: boolean): boolean => {
+    if (!isSpoiler || revealedFields.has(field)) {
+      return true;
+    }
+    hiddenFields.push(field);
+    return false;
+  };
+
+  const showAppearanceNotes = isVisible("appearanceNotes", appearance.appearanceNotesIsSpoiler);
+  const showDescription = isVisible("description", appearance.descriptionIsSpoiler);
+  const showDisplayName = isVisible("displayName", appearance.displayNameIsSpoiler);
+  const showPersonalImpression = isVisible(
+    "personalImpression",
+    appearance.personalImpressionIsSpoiler,
+  );
+  const showPortrait = isVisible("portrait", appearance.portraitIsSpoiler);
+  const showSpeciesOverride = isVisible("speciesOverride", appearance.speciesOverrideIsSpoiler);
+  const showStatus = isVisible("status", appearance.statusIsSpoiler);
+
+  return {
+    appearanceNotes: showAppearanceNotes ? emptyToNull(appearance.appearanceNotes) : null,
+    appearanceNotesIsSpoiler: appearance.appearanceNotesIsSpoiler,
+    attitude:
+      appearance.attitude === null ? null : CharacterAttitudeSchema.parse(appearance.attitude),
+    bookId: appearance.bookId,
+    characterId: appearance.characterId,
+    createdAt: appearance.createdAt.toISOString(),
+    description: showDescription ? emptyToNull(appearance.description) : null,
+    descriptionIsSpoiler: appearance.descriptionIsSpoiler,
+    displayName: showDisplayName ? emptyToNull(appearance.displayName) : null,
+    displayNameIsSpoiler: appearance.displayNameIsSpoiler,
+    firstAppearanceAudioSeconds: appearance.firstAppearanceAudioSeconds,
+    firstAppearanceChapter: emptyToNull(appearance.firstAppearanceChapter),
+    firstAppearanceNote: emptyToNull(appearance.firstAppearanceNote),
+    firstAppearancePage: appearance.firstAppearancePage,
+    hiddenFields,
+    hidePresenceAsSpoiler: appearance.hidePresenceAsSpoiler,
+    id: appearance.id,
+    importance: BookCharacterImportanceSchema.parse(appearance.importance),
+    isPovCharacter: appearance.isPovCharacter,
+    narratorType:
+      appearance.narratorType === null
+        ? null
+        : BookCharacterNarratorTypeSchema.parse(appearance.narratorType),
+    personalImpression: showPersonalImpression ? emptyToNull(appearance.personalImpression) : null,
+    personalImpressionIsSpoiler: appearance.personalImpressionIsSpoiler,
+    portrait: showPortrait ? portrait : null,
+    portraitIsSpoiler: appearance.portraitIsSpoiler,
+    roles: appearance.roles.filter((role) => !role.isSpoiler).map((role) => toRoleView(role)),
+    sortOrder: appearance.sortOrder,
+    speciesOverride: showSpeciesOverride ? emptyToNull(appearance.speciesOverride) : null,
+    speciesOverrideIsSpoiler: appearance.speciesOverrideIsSpoiler,
+    status: showStatus ? BookCharacterStatusSchema.parse(appearance.status) : null,
+    statusCustomText: showStatus ? emptyToNull(appearance.statusCustomText) : null,
+    statusIsSpoiler: appearance.statusIsSpoiler,
+    updatedAt: appearance.updatedAt.toISOString(),
+  };
+}
+
+function attachArcChangeMarkers(points: SeriesAppearancePoint[]): SeriesCharacterAppearanceView[] {
+  return points.map((point, index) => {
+    const previous = points[index - 1];
+    return {
+      ...point,
+      attitudeChangedFromPrevious: previous !== undefined && previous.attitude !== point.attitude,
+      importanceChangedFromPrevious:
+        previous !== undefined && previous.importance !== point.importance,
+      statusChangedFromPrevious: previous !== undefined && previous.status !== point.status,
+    };
+  });
 }
 
 function comparePartNumberAscNullsLast(left: Nullable<number>, right: Nullable<number>): number {
@@ -413,14 +549,16 @@ function toRoleView(role: CharacterRoleSource): BookCharacterView["roles"][numbe
   };
 }
 
-function toSeriesAppearanceView({
+function toSeriesAppearancePoint({
   appearance,
   partNumber,
 }: {
   appearance: SeriesProfileAppearanceSource;
   partNumber: Nullable<number>;
-}): SeriesCharacterAppearanceView {
+}): SeriesAppearancePoint {
   return {
+    attitude:
+      appearance.attitude === null ? null : CharacterAttitudeSchema.parse(appearance.attitude),
     bookCharacterId: appearance.id,
     bookId: appearance.bookId,
     displayName: appearance.displayNameIsSpoiler ? null : emptyToNull(appearance.displayName),
@@ -428,6 +566,7 @@ function toSeriesAppearanceView({
     importance: BookCharacterImportanceSchema.parse(appearance.importance),
     partNumber,
     portrait: appearance.portraitIsSpoiler ? null : appearance.portrait,
+    roles: appearance.roles.filter((role) => !role.isSpoiler).map((role) => toRoleView(role)),
     status: appearance.statusIsSpoiler ? null : BookCharacterStatusSchema.parse(appearance.status),
   };
 }

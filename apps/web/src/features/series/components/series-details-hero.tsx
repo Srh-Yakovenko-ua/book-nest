@@ -1,10 +1,12 @@
 "use client";
 
 import type { SeriesDetailsView } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
+import { Fragment } from "react";
 
-import { UiIcon } from "@/components/icons";
+import { GenreIcon, isGenreIconName, UiIcon, type UiIconName } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,13 +16,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { useGenres } from "@/features/books";
 import { seriesStatuses } from "@/lib/book-status";
 
 import { seriesProgress } from "../model/series-derive";
-import { seriesCoverBooks } from "../model/series-details-derive";
+import {
+  resolveSeriesGenres,
+  resolveSeriesReleaseYears,
+  seriesCoverBooks,
+} from "../model/series-details-derive";
 import { SeriesCoverFan } from "./series-cover-fan";
 
+const GENRE_LIMIT = 6;
+const PUBLISHER_LIMIT = 3;
+
 type SeriesDetailsHeroProps = {
+  canAddBook: boolean;
   details: SeriesDetailsView;
   onAddBook: () => void;
   onDelete: () => void;
@@ -28,6 +39,7 @@ type SeriesDetailsHeroProps = {
 };
 
 export function SeriesDetailsHero({
+  canAddBook,
   details,
   onAddBook,
   onDelete,
@@ -45,6 +57,44 @@ export function SeriesDetailsHero({
   const description = details.description?.trim() ?? "";
   const coverBooks = seriesCoverBooks(details.books);
   const hasCoverFan = coverBooks.length > 0;
+  const genres = useGenres();
+  const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
+  const genreKeys = resolveSeriesGenres({ books: details.books, seriesGenres: details.genres });
+  const overflowGenreCount = genreKeys.length - GENRE_LIMIT;
+  const releaseYears = resolveSeriesReleaseYears({ books: details.books, status: details.status });
+  let yearsText: null | string = null;
+  if (releaseYears !== null) {
+    switch (releaseYears.kind) {
+      case "range":
+        yearsText = `${releaseYears.from}–${releaseYears.to}`;
+        break;
+      case "since":
+        yearsText = t("sinceYear", { year: releaseYears.year });
+        break;
+      case "single":
+        yearsText = String(releaseYears.year);
+        break;
+    }
+  }
+  const publisherNames = details.publishers.map((publisher) => publisher.name);
+  const shownPublishers = publisherNames.slice(0, PUBLISHER_LIMIT);
+  const overflowPublishers = publisherNames.length - shownPublishers.length;
+  const publishersText =
+    overflowPublishers > 0
+      ? `${shownPublishers.join(", ")} ${t("publishersMore", { count: overflowPublishers })}`
+      : shownPublishers.join(", ");
+  const bookCount = details.totalBooks ?? details.booksInSeries;
+
+  const metaItems: { icon: UiIconName; key: string; label: ReactNode }[] = [];
+  if (bookCount > 0) {
+    metaItems.push({ icon: "book", key: "books", label: t("books", { count: bookCount }) });
+  }
+  if (yearsText !== null) {
+    metaItems.push({ icon: "calendar", key: "years", label: yearsText });
+  }
+  if (details.publishers.length > 0) {
+    metaItems.push({ icon: "building", key: "publishers", label: publishersText });
+  }
 
   return (
     <section className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-soft sm:flex-row sm:gap-7 md:p-7">
@@ -77,19 +127,28 @@ export function SeriesDetailsHero({
               {details.name}
             </h1>
             <p className="text-base font-medium text-foreground/90">{authorsLine}</p>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              {hasCoverFan ? null : (
-                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <UiIcon className="text-icon" name="book" size={15} />
-                  {details.totalBooks === null
-                    ? t("books", { count: details.booksInSeries })
-                    : t("booksWithTotal", {
-                        count: details.booksInSeries,
-                        total: details.totalBooks,
-                      })}
-                </span>
-              )}
-            </div>
+            {genreKeys.length > 0 ? (
+              <SeriesGenreList
+                genreKeys={genreKeys.slice(0, GENRE_LIMIT)}
+                genreNameByKey={genreNameByKey}
+                moreLabel={
+                  overflowGenreCount > 0 ? t("genresMore", { count: overflowGenreCount }) : null
+                }
+              />
+            ) : null}
+            {metaItems.length > 0 ? (
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                {metaItems.map((item, index) => (
+                  <Fragment key={item.key}>
+                    {index > 0 ? <span aria-hidden>·</span> : null}
+                    <span className="flex items-center gap-1.5">
+                      <UiIcon aria-hidden className="text-icon" name={item.icon} size={15} />
+                      {item.label}
+                    </span>
+                  </Fragment>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <DropdownMenu>
@@ -103,10 +162,12 @@ export function SeriesDetailsHero({
                 <UiIcon name="edit" size={16} />
                 {t("edit")}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onAddBook}>
-                <UiIcon name="plus" size={16} />
-                {t("addBook")}
-              </DropdownMenuItem>
+              {canAddBook ? (
+                <DropdownMenuItem onSelect={onAddBook}>
+                  <UiIcon name="plus" size={16} />
+                  {t("addBook")}
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={onDelete} variant="destructive">
                 <UiIcon name="trash" size={16} />
@@ -123,5 +184,36 @@ export function SeriesDetailsHero({
         )}
       </div>
     </section>
+  );
+}
+
+function SeriesGenreList({
+  genreKeys,
+  genreNameByKey,
+  moreLabel,
+}: {
+  genreKeys: string[];
+  genreNameByKey: Map<string, string>;
+  moreLabel: null | string;
+}) {
+  return (
+    <ul className="flex flex-wrap gap-1.5">
+      {genreKeys.map((key) => (
+        <li
+          className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-tag px-2.5 py-1 text-xs font-medium text-tag-foreground"
+          key={key}
+        >
+          {isGenreIconName(key) ? (
+            <GenreIcon className="shrink-0 text-brand/90" name={key} size={14} />
+          ) : null}
+          <span className="min-w-0 truncate">{genreNameByKey.get(key) ?? key}</span>
+        </li>
+      ))}
+      {moreLabel === null ? null : (
+        <li className="inline-flex items-center rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+          {moreLabel}
+        </li>
+      )}
+    </ul>
   );
 }

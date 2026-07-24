@@ -11,11 +11,9 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -23,30 +21,24 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { QuotesService } from "../application/quotes.service.js";
 import { CreateQuoteInputDto } from "./input-dto/create-quote.input-dto.js";
 import { UpdateQuoteInputDto } from "./input-dto/update-quote.input-dto.js";
 import { BookQuotesViewDto } from "./view-dto/book-quotes.view-dto.js";
 import { QuoteViewDto } from "./view-dto/quote.view-dto.js";
 
-const QUOTE_ACTION_TTL_SECONDS = 60;
-const QUOTE_ACTION_LIMIT = 60;
-const QUOTE_READ_LIMIT = 120;
-
-@ApiBearerAuth()
 @ApiTags("quotes")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/books")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class BookQuotesController {
   constructor(private readonly quotesService: QuotesService) {}
 
@@ -57,7 +49,7 @@ export class BookQuotesController {
   @ApiOperation({ summary: "Add a quote to a book" })
   @HttpCode(HTTP_STATUS.CREATED)
   @Post(":bookId/quotes")
-  @Throttle({ default: { limit: QUOTE_ACTION_LIMIT, ttl: seconds(QUOTE_ACTION_TTL_SECONDS) } })
+  @Throttle(MUTATION_THROTTLE)
   createQuote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
@@ -70,7 +62,7 @@ export class BookQuotesController {
   @ApiOkResponse({ description: "The book's quotes with summary counts", type: BookQuotesViewDto })
   @ApiOperation({ summary: "List the quotes of a book" })
   @Get(":bookId/quotes")
-  @Throttle({ default: { limit: QUOTE_READ_LIMIT, ttl: seconds(QUOTE_ACTION_TTL_SECONDS) } })
+  @Throttle(READ_THROTTLE)
   listBookQuotes(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
@@ -85,7 +77,7 @@ export class BookQuotesController {
   @ApiOperation({ summary: "Edit a book quote, including its spoiler and favorite flags" })
   @HttpCode(HTTP_STATUS.OK)
   @Patch(":bookId/quotes/:quoteId")
-  @Throttle({ default: { limit: QUOTE_ACTION_LIMIT, ttl: seconds(QUOTE_ACTION_TTL_SECONDS) } })
+  @Throttle(MUTATION_THROTTLE)
   updateQuote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
@@ -100,7 +92,7 @@ export class BookQuotesController {
   @ApiOperation({ summary: "Delete a book quote" })
   @Delete(":bookId/quotes/:quoteId")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @Throttle({ default: { limit: QUOTE_ACTION_LIMIT, ttl: seconds(QUOTE_ACTION_TTL_SECONDS) } })
+  @Throttle(MUTATION_THROTTLE)
   async deleteQuote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,

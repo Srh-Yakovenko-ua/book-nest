@@ -23,7 +23,8 @@
     "notes": "Notes",
     "delivery": "Deliveries",
     "dedications": "Dedications",
-    "quotes": "Quotes"
+    "quotes": "Quotes",
+    "publishers": "Publishers"
   },
   "readingQueue": {
     "title": "Reading queue",
@@ -48,22 +49,21 @@
     },
     "toolbar": {
       "searchLabel": "Search the queue",
-      "searchPlaceholder": "Search the queue…",
+      "searchPlaceholder": "Search by title, author, or series",
       "clearSearch": "Clear search",
-      "sortLabel": "Sort",
-      "sortOptions": {
-        "position": "Queue position"
-      },
       "dragHint": "Drag books, or use the row menu, to reorder",
-      "dragDisabledHint": "Clear the search to reorder books in the queue."
+      "dragDisabledHint": "Drag-and-drop is unavailable while searching or filtering. Clear the filters to reorder the queue."
+    },
+    "filters": {
+      "priority": "Priority"
     },
     "item": {
       "position": "#{position}",
       "positionAria": "Position {position}",
       "reorderAria": "Reorder “{title}”",
+      "dragDisabledTooltip": "Drag-and-drop is unavailable while filtering.",
       "readingNow": "Reading now",
       "startReading": "Start reading",
-      "viewBook": "View book",
       "moreActions": "More actions for “{title}”",
       "moveUp": "Move up",
       "moveDown": "Move down",
@@ -136,24 +136,53 @@
       }
     },
     "stats": {
-      "booksInQueue": "Books in queue",
-      "totalLength": "Total length",
-      "pages": "{count, plural, one {# page} other {# pages}}"
-    },
-    "nextToRead": {
-      "title": "Next to read",
-      "empty": "Add a book to the queue to see what’s next to read.",
-      "startReading": "Start reading"
+      "total": {
+        "label": "Total in queue",
+        "caption": "{series} from series · {standalone} standalone"
+      },
+      "availableNow": {
+        "label": "Ready to read",
+        "caption": "Available and nothing blocks the start"
+      },
+      "unavailable": {
+        "label": "Not available",
+        "wantToBuy": "{count} to buy",
+        "inTransit": "{count} in transit",
+        "lentToSomeone": "{count} lent out",
+        "none": "{count} not owned"
+      },
+      "seriesInQueue": {
+        "label": "Series in queue",
+        "caption": "{withoutIssues} fine · {withIssues, plural, one {# needs attention} other {# need attention}}"
+      }
     },
     "seriesOrderCheck": {
       "title": "Check series order",
-      "subtitle": "Found series where the reading order may be broken",
-      "viewAll": "View all",
+      "viewAll": "View all problems",
       "countLabel": "Series order issues found: {count}",
       "loading": "Checking series order…",
+      "resolved": "Series order checked — no problems found",
+      "attention": {
+        "title": "Needs attention",
+        "summary": "Found {count, plural, one {# issue} other {# issues}} in your series reading order. Check the books so you don't start the next part too early."
+      },
       "allIssues": {
         "title": "Series order",
         "description": "All series where the reading order may be broken."
+      },
+      "filters": {
+        "label": "Filter by severity",
+        "all": "All",
+        "error": "Errors",
+        "warning": "Warnings",
+        "info": "Info",
+        "noMatches": "No issues match this filter"
+      },
+      "sort": {
+        "label": "Sort",
+        "byQueue": "By queue position",
+        "byType": "By problem type",
+        "bySeries": "By series title"
       },
       "empty": {
         "title": "Series order checked",
@@ -166,6 +195,7 @@
       },
       "card": {
         "affectedBook": "Affected book",
+        "affectedBooks": "Problem books",
         "previousBook": "Previous book",
         "seriesPosition": "Book {position}",
         "seriesPositionUnknown": "Position unknown",
@@ -174,41 +204,48 @@
         "currentReading": "Currently reading",
         "relatedProblems": "{count, plural, one {# more conflict in this series} other {# more conflicts in this series}}",
         "moreActions": "More actions for the “{series}” series",
-        "coverAlt": "“{title}” cover"
+        "coverAlt": "“{title}” cover",
+        "comparisonLabel": "Current → correct order",
+        "changesTo": "should become",
+        "staysInPlace": "stays in place"
       },
       "order": {
         "listLabel": "Series book order"
       },
       "problems": {
         "missing_previous_from_queue": {
-          "title": "“{previousBook}” is not finished yet, but “{affectedBook}” is already queued."
+          "title": "<b>{previousBook}</b> is not finished yet, but <b>{affectedBook}</b> is already queued."
         },
         "previous_book_after_later_book": {
-          "title": "“{previousBook}” should come before “{affectedBook}”."
+          "title": "<b>{previousBook}</b> should come before <b>{affectedBook}</b>."
         },
         "multiple_previous_missing": {
-          "title": "{count, plural, one {# unfinished part remains} other {# unfinished parts remain}} before “{affectedBook}”.",
-          "description": "Next in order is “{previousBook}”."
+          "title": "{count, plural, one {# unfinished part remains} other {# unfinished parts remain}} before <b>{affectedBook}</b>.",
+          "description": "Next in order is <b>{previousBook}</b>."
         },
         "previous_book_paused": {
           "title": "The previous part is not finished yet.",
-          "description": "“{previousBook}” is paused while “{affectedBook}” is already ahead."
+          "description": "<b>{previousBook}</b> is paused while <b>{affectedBook}</b> is already ahead."
         },
         "current_reading_ahead_of_order": {
           "title": "Current reading is ahead of the series order.",
-          "description": "You are reading “{affectedBook}” while “{previousBook}” is not finished."
+          "description": "You are reading <b>{affectedBook}</b> while <b>{previousBook}</b> is not finished."
         },
         "previous_book_not_owned": {
-          "title": "The previous part is not in your library."
+          "title": "The previous part is not in your library.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> is not in your library."
         },
         "previous_book_want_to_buy": {
-          "title": "The previous part has not been bought yet."
+          "title": "The previous part has not been bought yet.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> has not been bought."
         },
         "previous_book_in_transit": {
-          "title": "The previous part is already on its way."
+          "title": "The previous part is already on its way.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> has not arrived yet."
         },
         "previous_book_lent_out": {
-          "title": "The previous part is lent out and unavailable right now."
+          "title": "The previous part is lent out and unavailable right now.",
+          "description": "<b>{affectedBook}</b> is already queued while <b>{previousBook}</b> is still with someone else."
         },
         "multiple_books_out_of_order": {
           "title": "The series order is mixed up."
@@ -216,9 +253,8 @@
       },
       "actions": {
         "retry": "Try again",
-        "fixOrder": "Fix the order",
-        "arrangeBySeries": "Arrange by series order",
-        "addBefore": "Add before “{affectedBook}”",
+        "fixOrder": "Fix series order",
+        "addBefore": "Add previous book",
         "addNext": "Add the next book",
         "addAll": "Add all in order",
         "openBook": "Open the previous book",
@@ -232,21 +268,26 @@
       },
       "preview": {
         "title": "Fix the series order?",
-        "current": "Now:",
-        "recommended": "Recommended:",
-        "afterFix": "After the fix:",
-        "added": "Will be added:",
-        "moved": "Will move:",
-        "addedItem": "“{title}” will be added at position {position}.",
-        "movedItem": "“{title}”: position {from} → {to}",
-        "unrelatedUnchanged": "Other books will stay at their positions.",
-        "shiftedUnrelated": "{count, plural, one {# unrelated book will shift} other {# unrelated books will shift}} to a new position.",
+        "addTitle": "Add {count, plural, one {a book} other {books}} and fix the series order?",
+        "addSubtitle": "<b>{bookTitle}</b> will be inserted in the right place after the earlier books in the series.",
+        "addSubtitleMany": "{count, plural, one {# book} other {# books}} will be added in series order.",
+        "addedTitle": "Will be added",
+        "seriesBook": "Book {position}",
+        "inSeries": "“{series}” series",
+        "newPosition": "New position: #{position}",
+        "seriesOrderTitle": "Series order after adding",
+        "queueChangesTitle": "How the queue changes",
+        "newBook": "New book",
+        "moreMoves": "{count, plural, one {# more book moves} other {# more books move}} further down the queue",
+        "showAllMoves": "Show all moves",
+        "collapseMoves": "Collapse",
+        "unchanged": "{count, plural, one {# book stays} other {# books stay}} in place.",
         "warningsTitle": "Please note",
         "loading": "Preparing the change preview…",
         "error": "Couldn’t prepare the change preview",
         "cancel": "Cancel",
         "confirm": "Confirm the action",
-        "confirmReorder": "Fix the order",
+        "confirmReorder": "Fix series order",
         "confirmInsert": "Add and fix"
       },
       "disable": {
@@ -269,6 +310,81 @@
         "fixed": "Series order fixed",
         "ignored": "This warning is hidden for the current order",
         "disabled": "The order check for this series is turned off"
+      }
+    },
+    "volume": {
+      "title": "Queue volume",
+      "booksInQueue": "{count, plural, one {# book} other {# books}} in the queue",
+      "pagesUnit": "{count, plural, one {page} other {pages}}",
+      "remainingCaption": "left to read",
+      "remainingPartialCaption": "at least — the data is still incomplete",
+      "coverage": "Counted {calculated} of {total} books",
+      "cta": "Complete the data",
+      "forecast": {
+        "label": "How long that is",
+        "daysSingle": "about {count, plural, one {# day} other {# days}}",
+        "daysRange": "about {min}–{max, plural, one {# day} other {# days}}",
+        "weeksSingle": "about {count, plural, one {# week} other {# weeks}}",
+        "weeksRange": "about {min}–{max, plural, one {# week} other {# weeks}}",
+        "monthsSingle": "about {count, plural, one {# month} other {# months}}",
+        "monthsRange": "about {min}–{max, plural, one {# month} other {# months}}",
+        "overYear": "over a year",
+        "countdown": "The forecast will appear in about {count, plural, one {# day} other {# days}}",
+        "countdownReason": "We're still gathering your first month of reading history to gauge your pace.",
+        "noVolumeData": "No data to calculate from",
+        "staleActivity": "No progress updates for a long while",
+        "updateProgress": "Keep your reading progress up to date so a forecast can appear"
+      },
+      "insights": {
+        "missingPages": "{count, plural, one {# book} other {# books}} without a page count",
+        "invalidProgress": "{count, plural, one {# book has} other {# books have}} inconsistent progress",
+        "audiobookOnly": "{count, plural, one {# audiobook} other {# audiobooks}} — duration is coming later",
+        "closedInQueue": "{count, plural, one {# finished book is} other {# finished books are}} still in the queue"
+      },
+      "error": {
+        "load": "Could not calculate the queue volume",
+        "retry": "Try again"
+      }
+    },
+    "volumeModal": {
+      "title": "Complete the data",
+      "description": "Add the page counts — the forecast gets more accurate.",
+      "empty": "Every book in the queue already has the data",
+      "noResults": "Nothing found",
+      "searchLabel": "Search books",
+      "searchPlaceholder": "Title, author or series",
+      "formatLabel": "Format",
+      "formatAll": "All formats",
+      "progress": "Filled in {filled} of {total}",
+      "pagesLabel": "Pages",
+      "pagesPlaceholder": "e.g. 320",
+      "unavailableLabel": "Page count can't be determined",
+      "unavailableHint": "If the number can't be determined (an audiobook, a reflowable layout, an unnumbered scan), tick the checkbox. The book stays in the queue but won't affect volume or the forecast.",
+      "currentPage": "{count, plural, one {# page} other {# pages}} read",
+      "reason": {
+        "missingPageCount": "No page count",
+        "invalidProgress": "Progress is higher than the page count"
+      },
+      "failure": {
+        "stale": "This book changed. Refresh the list before saving"
+      },
+      "errors": {
+        "invalidNumber": "Enter a whole number",
+        "tooSmall": "The page count must be greater than 0",
+        "tooBig": "The page count cannot exceed {max}",
+        "belowCurrentPage": "The page count cannot be lower than the current progress — {count, plural, one {# page} other {# pages}}",
+        "nothingToSave": "Fill in at least one field",
+        "tooMany": "You can save at most {max} books at a time",
+        "notFound": "{count, plural, one {# book} other {# books}} no longer exist. The rest was saved",
+        "notSaved": "Nothing was saved",
+        "generic": "Could not save the data"
+      },
+      "saved": "Data saved. The queue volume is updated",
+      "savedPartial": "Saved {count, plural, one {# book} other {# books}}. The rest needs attention",
+      "submit": "Save",
+      "discard": {
+        "title": "Discard changes?",
+        "description": "Unsaved data will be lost."
       }
     }
   },
@@ -1677,6 +1793,9 @@
           "trackingUrl": "Enter a valid https link.",
           "trackingUrlMax": "No more than {max} characters."
         }
+      },
+      "timeline": {
+        "tab": "Timeline {count}"
       }
     }
   },
@@ -2422,6 +2541,9 @@
       "authorsUnknown": "Unknown author",
       "books": "{count, plural, one {# book} other {# books}}",
       "booksWithTotal": "{count} of {total} added",
+      "genresMore": "{count} more",
+      "sinceYear": "Since {year}",
+      "publishersMore": "{count} more",
       "edit": "Edit series",
       "addBook": "Add book",
       "delete": "Delete series",
@@ -2455,7 +2577,12 @@
         "part": "Part {number}",
         "partUnknown": "Part number not specified",
         "nextInOrder": "Next in order",
-        "progressPercent": "{percent}%"
+        "progressPercent": "{percent}%",
+        "progressLine": "{percent}% · {current} of {total} pp.",
+        "paused": "Paused · {current} of {total} pp.",
+        "pausedShort": "Paused",
+        "dnf": "Did not finish",
+        "history": "Reading history"
       },
       "progress": {
         "title": "Your progress in the series",
@@ -2469,12 +2596,24 @@
       },
       "stats": {
         "title": "Series statistics",
-        "total": "Total books",
+        "totalBooks": "Total books",
+        "inLibrary": "In library",
         "finished": "Read",
-        "reading": "Reading",
-        "unread": "Not read",
-        "averageRating": "Average rating",
-        "pages": "Pages in series"
+        "pagesRead": "Pages read",
+        "seriesPages": "Pages in series",
+        "averageRating": "Average book rating",
+        "favoriteBook": "Favorite book",
+        "averagePages": "Average pages",
+        "startedAt": "Series started",
+        "lastFinishedAt": "Last completion",
+        "readingDuration": "Read in",
+        "partialPagesLabel": "At least {count} pages read known",
+        "days": "{count, plural, one {# day} other {# days}}"
+      },
+      "orderCheck": {
+        "title": "Series reading order",
+        "label": "Check order in the queue",
+        "description": "When on, we warn you in the Reading queue if parts of this series are out of order."
       },
       "about": {
         "title": "About the series",
@@ -2499,6 +2638,7 @@
     "editDialog": {
       "title": "Edit series",
       "description": "Update the series information.",
+      "authorsDerivedHint": "Series authors are derived from the authors of its books",
       "submit": "Save changes",
       "duplicate": "A series with this name already exists",
       "totalBooksTooLow": "Total books can't be fewer than the books already added to the series",
@@ -2506,9 +2646,9 @@
     },
     "deleteDialog": {
       "title": "Delete series?",
-      "bodyWithBooks": "This series has books. The series will be deleted, but the books will stay in your library without a series link.",
-      "bodyEmpty": "This series will be deleted from your library.",
-      "booksCount": "Books in series: {count}",
+      "body": "The series will be deleted. This can't be undone.",
+      "booksOutcome": "The books ({count}) will stay in your library as standalone, without a series.",
+      "notesWarning": "Notes attached to the series will be permanently deleted.",
       "confirm": "Delete series",
       "cancel": "Cancel",
       "deleting": "Deleting…"
@@ -3489,6 +3629,824 @@
       "hiddenText": "This quote contains a spoiler",
       "show": "Show spoiler",
       "hide": "Hide spoiler"
+    }
+  },
+  "timeline": {
+    "title": "Event timeline",
+    "subtitle": "Key story beats in the order the plot unfolds — so you can quickly recall what already happened when you return to the book.",
+    "allLines": "All timelines {count}",
+    "mainLine": "Main timeline",
+    "newLine": "New timeline",
+    "manageLines": "Manage timelines",
+    "addEvent": "Add event",
+    "newEvent": "New event",
+    "editEvent": "Edit event",
+    "viewLabel": "View",
+    "view": {
+      "stream": "Timeline view",
+      "list": "List view",
+      "overview": "Overview"
+    },
+    "sort": {
+      "label": "Sort",
+      "bookOrder": "Book order",
+      "timelineOrder": "Timeline order",
+      "importance": "By importance",
+      "newest": "Newest first",
+      "oldest": "Oldest first"
+    },
+    "preset": {
+      "importantEvents": "Important events",
+      "keyOnly": "Key events only"
+    },
+    "recap": "What happened so far",
+    "guard": "Hide what’s ahead",
+    "guardReveal": "Reveal",
+    "guardHidden": "Event ahead of your position",
+    "positionMarker": "You are here",
+    "noChapter": "No chapter",
+    "eventType": {
+      "main": "Main event",
+      "mystery": "Mystery reveal",
+      "character_appearance": "Character appearance",
+      "death": "Character death",
+      "betrayal": "Betrayal",
+      "battle": "Battle",
+      "romance": "Romantic moment",
+      "conflict": "Conflict",
+      "travel": "Journey",
+      "magic": "Magic event",
+      "politics": "Political event",
+      "conversation": "Key conversation",
+      "twist": "Final twist",
+      "other": "Other"
+    },
+    "importance": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "key": "Key"
+    },
+    "relationType": {
+      "follows_from": "Follows from",
+      "foreshadows": "Foreshadows",
+      "related": "Related"
+    },
+    "relationTypeInverse": {
+      "follows_from": "Leads to",
+      "foreshadows": "Foreshadowed by",
+      "related": "Related"
+    },
+    "thread": {
+      "open": "Open thread",
+      "resolved": "Resolved",
+      "resolvedBy": "Resolved by"
+    },
+    "form": {
+      "titleLabel": "Event title",
+      "titlePlaceholder": "What happens?",
+      "summaryLabel": "Short summary",
+      "summaryPlaceholder": "One line for the card",
+      "descriptionLabel": "Detailed description",
+      "descriptionPlaceholder": "A fuller description of the event",
+      "chapterLabel": "Chapter",
+      "chapterPlaceholder": "e.g. Chapter 12",
+      "pageLabel": "Page",
+      "pagePlaceholder": "e.g. 128",
+      "locationLabel": "Location",
+      "locationPlaceholder": "Where it takes place",
+      "storyTimeLabel": "In-story time",
+      "storyTimePlaceholder": "e.g. Third day of the journey",
+      "eventTypeLabel": "Event type",
+      "importanceLabel": "Importance",
+      "personalNoteLabel": "Personal note",
+      "personalNotePlaceholder": "Just for you",
+      "threadStatusLabel": "Story thread",
+      "threadNone": "Not a thread",
+      "timelineLabel": "Timeline",
+      "moreFields": "More fields",
+      "fewerFields": "Fewer fields",
+      "saveEvent": "Save event",
+      "saveAndAddAnother": "Save and add another",
+      "cancel": "Cancel",
+      "saving": "Saving…",
+      "charCounter": "{count}/{max}",
+      "dirtyCloseTitle": "Close without saving?",
+      "dirtyCloseDescription": "Your changes will be lost.",
+      "dirtyCloseConfirm": "Close",
+      "dirtyCloseCancel": "Keep editing",
+      "createDescription": "Log a key story moment — you can fill in the rest later.",
+      "editDescription": "Update the event details.",
+      "placeInBook": "Place in the book",
+      "additionalData": "Additional details",
+      "timelineEditHint": "To move the event to another line, use the “Move to line” action.",
+      "relationsLabel": "Related events",
+      "relationsHint": "Mark cause-and-effect links with other events in the book.",
+      "relationTypeLabel": "Relation type",
+      "relationTargetPlaceholder": "Search events by title",
+      "relationRemove": "Remove relation",
+      "relationsEmpty": "No relations yet.",
+      "relationsIncoming": "Incoming relations",
+      "resolvedBySearchPlaceholder": "Search the resolving event",
+      "resolvedByClear": "Remove",
+      "resolvedByLoading": "Loading event…",
+      "searchEmpty": "Nothing found"
+    },
+    "filters": {
+      "title": "Filters",
+      "searchLabel": "Search events",
+      "searchPlaceholder": "Search by title",
+      "typeLabel": "Event type",
+      "importanceLabel": "Importance",
+      "unresolved": "Unresolved threads",
+      "reset": "Reset filters",
+      "apply": "Apply",
+      "allTypes": "All types",
+      "statusLabel": "Thread status",
+      "description": "Narrow the events by type, importance and status.",
+      "selectPlaceholder": "Select",
+      "searchOptions": "Search…",
+      "noOptions": "Nothing found",
+      "done": "Done"
+    },
+    "list": {
+      "number": "#",
+      "event": "Event",
+      "type": "Type",
+      "place": "Chapter & page",
+      "timeline": "Timeline",
+      "importance": "Importance"
+    },
+    "detail": {
+      "description": "Detailed description",
+      "related": "Related events",
+      "resolves": "Resolves threads",
+      "close": "Close",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "states": {
+      "loading": "Loading the timeline",
+      "errorText": "Couldn’t load the timeline. Check your connection and try again.",
+      "retry": "Retry",
+      "emptyTitle": "No events here yet",
+      "emptyText": "Add the key story beats so you can easily recall them after a break.",
+      "emptyAction": "Add the first event",
+      "lineEmptyTitle": "This timeline has no events yet",
+      "lineEmptyAddAction": "Add event",
+      "lineEmptyPickAction": "Pick another timeline",
+      "filteredEmptyTitle": "Nothing matches the selected filters",
+      "filteredEmptyAction": "Reset filters",
+      "saving": "Saving…",
+      "deleting": "Deleting…",
+      "loadMore": "Load more"
+    },
+    "manage": {
+      "title": "Manage timelines",
+      "createTitle": "New timeline",
+      "editTitle": "Edit timeline",
+      "rename": "Rename",
+      "setDefault": "Make default",
+      "isDefault": "Default timeline",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "delete": "Delete timeline",
+      "nameLabel": "Timeline name",
+      "namePlaceholder": "e.g. Flashbacks",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional explanation",
+      "markerLabel": "Color marker",
+      "markerNone": "No marker",
+      "save": "Save",
+      "cancel": "Cancel",
+      "deleteTitle": "Delete this timeline?",
+      "eventCountLine": "This timeline has {count} events.",
+      "strategyMove": "Move events",
+      "strategyMoveDescription": "Events will move to the selected timeline.",
+      "strategyDelete": "Delete with events",
+      "strategyDeleteDescription": "The timeline and all of its events will be deleted permanently.",
+      "targetLineLabel": "Where to move events",
+      "confirmDelete": "Delete",
+      "description": "Create, rename, reorder, and delete the book's timelines.",
+      "createDescription": "Create a separate line for a parallel plot, flashbacks, or another perspective.",
+      "editDescription": "Update the name, description, or color marker of the line.",
+      "optional": "optional",
+      "nameRequired": "Enter a timeline name",
+      "duplicateName": "A timeline with this name already exists",
+      "defaultBadge": "Default",
+      "eventCount": "{count, plural, one {# event} other {# events}}",
+      "rowMenu": "Timeline actions",
+      "edit": "Edit",
+      "deleteDefaultHint": "Make another line the default first to delete this one.",
+      "deleteEmptyDescription": "This timeline will be deleted. This action cannot be undone.",
+      "deleteConfirmCheckbox": "I understand the events will be deleted permanently",
+      "done": "Done"
+    },
+    "colorKey": {
+      "slate": "Slate",
+      "stone": "Stone",
+      "amber": "Amber",
+      "orange": "Orange",
+      "rose": "Rose",
+      "red": "Red",
+      "emerald": "Emerald",
+      "teal": "Teal",
+      "sky": "Sky",
+      "blue": "Blue",
+      "violet": "Violet",
+      "fuchsia": "Fuchsia"
+    },
+    "overview": {
+      "byType": "By event type",
+      "byImportance": "By importance",
+      "byLine": "By timeline",
+      "chapterDensity": "Density by chapter",
+      "unresolved": "Unresolved threads",
+      "beforeAfterPosition": "Before and after your position",
+      "eventsBefore": "Before position",
+      "eventsAfter": "Ahead",
+      "eventsUnknown": "Position unknown",
+      "totalEvents": "Total events",
+      "empty": "No overview data yet."
+    },
+    "toast": {
+      "created": "Event added",
+      "updated": "Event updated",
+      "deleted": "Event deleted",
+      "moved": "Event moved",
+      "reordered": "Order updated",
+      "createError": "Couldn’t add the event",
+      "updateError": "Couldn’t update the event",
+      "deleteError": "Couldn’t delete the event",
+      "moveError": "Couldn’t move the event",
+      "reorderError": "Couldn’t change the order",
+      "relationAdded": "Relation added",
+      "relationRemoved": "Relation removed",
+      "relationError": "Couldn’t change the relation",
+      "lineCreated": "Timeline created",
+      "lineUpdated": "Timeline updated",
+      "lineDeleted": "Timeline deleted",
+      "defaultChanged": "Default timeline changed",
+      "lineError": "Couldn’t change the timeline",
+      "reorderConflict": "The order has already changed. Refresh the page and try again."
+    },
+    "errors": {
+      "titleEmpty": "Enter an event title",
+      "tooLong": "Maximum {max} characters",
+      "pageNotPositive": "Page must be greater than 0",
+      "pageExceedsBook": "No more than {max} pages in the book"
+    },
+    "actions": {
+      "menu": "Event actions",
+      "view": "View",
+      "edit": "Edit",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "moveToTop": "Move to top",
+      "moveToBottom": "Move to bottom",
+      "moveToLine": "Move to line",
+      "delete": "Delete",
+      "reorderDisabledHint": "Reordering is available only with manual sorting and no active filters."
+    },
+    "moveDialog": {
+      "title": "Move event",
+      "description": "Choose the timeline to move this event to.",
+      "targetLabel": "Timeline",
+      "targetPlaceholder": "Choose a line",
+      "confirm": "Move",
+      "cancel": "Cancel",
+      "moving": "Moving…",
+      "noOtherLines": "No other lines to move to."
+    },
+    "deleteDialog": {
+      "title": "Delete event?",
+      "description": "The event and its relations will be permanently deleted. This action cannot be undone.",
+      "confirm": "Delete",
+      "cancel": "Cancel",
+      "deleting": "Deleting…"
+    }
+  },
+  "publishers": {
+    "page": {
+      "metaTitle": "Publishers",
+      "title": "Publishers",
+      "subtitle": "Browse the publishers in your library and track ratings and purchases",
+      "resultsTitle": "Publishers list",
+      "addBook": "Add book"
+    },
+    "summary": {
+      "publishers": "Publishers",
+      "booksWithPublisher": "Books with a publisher",
+      "averageRating": "Average rating",
+      "ratedBooks": "{count, plural, one {# rating} other {# ratings}}",
+      "noRating": "—",
+      "toBuy": "Books to buy",
+      "priceTotal": "{price} · {count, plural, one {# book} other {# books}}",
+      "error": {
+        "title": "Couldn't load the summary",
+        "description": "Try refreshing the page or come back a little later.",
+        "retry": "Try again"
+      }
+    },
+    "toolbar": {
+      "searchLabel": "Search publishers",
+      "searchPlaceholder": "Search by name",
+      "searchClear": "Clear search",
+      "sortLabel": "Sort",
+      "orderLabel": "Order",
+      "viewLabel": "View",
+      "viewGrid": "Grid",
+      "viewList": "List",
+      "geographyLabel": "Geography",
+      "sourceLabel": "Source",
+      "clearFilters": "Clear filters",
+      "order": {
+        "asc": "Ascending",
+        "desc": "Descending"
+      },
+      "sort": {
+        "name": "Name",
+        "booksCount": "Most books",
+        "readCount": "Most read",
+        "wantToBuyCount": "Most to buy",
+        "averageRating": "Highest rating",
+        "lastBookAddedAt": "Recently added"
+      },
+      "geography": {
+        "all": "All geographies",
+        "ua": "Ukraine",
+        "foreign": "Foreign",
+        "unknown": "Unknown"
+      },
+      "source": {
+        "all": "All sources",
+        "global": "Global",
+        "custom": "Custom"
+      },
+      "filters": {
+        "hasBooksToBuy": "Has books to buy",
+        "hasRatedBooks": "Has rated books",
+        "hasSeries": "Has series"
+      }
+    },
+    "card": {
+      "geographyUnknown": "Country unknown",
+      "custom": "Custom",
+      "books": "{count, plural, one {# book} other {# books}}",
+      "read": "Read: {count}",
+      "toBuy": "To buy: {count}",
+      "noRating": "No ratings",
+      "noRatingShort": "—",
+      "ratedCount": "· {count, plural, one {# rating} other {# ratings}}",
+      "lastAdded": "Added {date}",
+      "view": "View"
+    },
+    "row": {
+      "sourceCustom": "Custom",
+      "sourceGlobal": "Global",
+      "books": "Books",
+      "read": "Read",
+      "toBuy": "To buy",
+      "rating": "Rating",
+      "ratingCount": "· {count, plural, one {# rating} other {# ratings}}",
+      "lastAdded": "Added",
+      "lastAddedNever": "—"
+    },
+    "pagination": {
+      "label": "Publisher pages",
+      "previous": "Previous",
+      "next": "Next",
+      "goToPage": "Page {page}"
+    },
+    "banner": {
+      "title": "{count, plural, one {# book without a publisher} other {# books without a publisher}}",
+      "description": "Assign them a publisher to see fuller statistics.",
+      "action": "View books"
+    },
+    "states": {
+      "empty": {
+        "title": "No publishers yet",
+        "description": "Add your first book with a publisher, and it will show up here automatically.",
+        "addBook": "Add book"
+      },
+      "noResults": {
+        "title": "Nothing found",
+        "description": "Try changing your search or clearing the active filters.",
+        "clear": "Clear filters"
+      },
+      "error": {
+        "title": "Couldn't load publishers",
+        "description": "Try refreshing the page or come back a little later.",
+        "retry": "Try again"
+      }
+    },
+    "details": {
+      "metaTitle": "Publisher",
+      "breadcrumb": "All publishers",
+      "countryUnknown": "Country unknown",
+      "customBadge": "Custom",
+      "foundedYear": "Founded {year}",
+      "website": "Website",
+      "editCustom": "Edit",
+      "delete": "Delete",
+      "addBook": "Add book",
+      "states": {
+        "loading": "Loading publisher",
+        "notFoundTitle": "Publisher not found",
+        "notFoundDescription": "It may have been deleted or is unavailable.",
+        "errorTitle": "Couldn't load the publisher",
+        "errorDescription": "Try refreshing the page or come back a little later.",
+        "back": "Back to publishers"
+      },
+      "tabs": {
+        "overview": "Overview",
+        "books": "Books",
+        "toBuy": "To buy"
+      },
+      "kpi": {
+        "books": "Books",
+        "read": "Read",
+        "reading": "Reading",
+        "wantToRead": "Want to read",
+        "toBuy": "To buy",
+        "queue": "In queue",
+        "rating": "Rating",
+        "ratedCount": "{count, plural, one {# rating} other {# ratings}}",
+        "noRating": "—",
+        "lastAdded": "Last added",
+        "lastAddedNever": "—"
+      },
+      "overview": {
+        "latestBookTitle": "Latest book",
+        "toBuyPreviewTitle": "To buy",
+        "viewAllBooks": "All books",
+        "viewAllToBuy": "All to buy",
+        "emptyLatest": "No books from this publisher yet.",
+        "emptyToBuy": "No books to buy from this publisher."
+      },
+      "booksTab": {
+        "searchLabel": "Search books",
+        "searchPlaceholder": "Search by title or author",
+        "searchClear": "Clear search",
+        "sortLabel": "Sort",
+        "viewLabel": "View",
+        "viewGrid": "Grid",
+        "viewList": "List",
+        "counter": "Showing {shown} of {total}",
+        "loadMore": "Load more",
+        "empty": {
+          "title": "No books yet",
+          "description": "Add a book with this publisher and it will show up here.",
+          "cta": "Add book"
+        },
+        "noResults": {
+          "title": "Nothing found",
+          "description": "Try changing the search or clearing the filters.",
+          "clear": "Clear filters"
+        },
+        "error": {
+          "title": "Couldn't load the books",
+          "description": "Try refreshing the page or come back a little later.",
+          "retry": "Try again"
+        }
+      },
+      "toBuyTab": {
+        "count": "{count, plural, one {# book to buy} other {# books to buy}}",
+        "withoutPrice": "{count, plural, one {# without a price} other {# without a price}}",
+        "empty": {
+          "title": "No books to buy",
+          "description": "There are no books from this publisher on your buy list yet.",
+          "cta": "Add book"
+        },
+        "error": {
+          "title": "Couldn't load the list",
+          "description": "Try refreshing the page or come back a little later.",
+          "retry": "Try again"
+        }
+      },
+      "editDialog": {
+        "title": "Edit publisher",
+        "description": "Update the publisher's name and extra details.",
+        "name": "Name",
+        "namePlaceholder": "Publisher name",
+        "countryCode": "Country code",
+        "countryCodePlaceholder": "UA",
+        "website": "Website",
+        "websitePlaceholder": "https://",
+        "foundedYear": "Founded year",
+        "foundedYearPlaceholder": "2000",
+        "optional": "optional",
+        "submit": "Save",
+        "cancel": "Cancel",
+        "duplicate": "A publisher with this name already exists",
+        "invalidUrl": "Enter a valid link",
+        "invalidCountry": "Country code must be two Latin letters",
+        "invalidYear": "Enter a valid year",
+        "invalidName": "Name must be at least 2 characters long",
+        "genericError": "Couldn't save the changes. Try again.",
+        "discardTitle": "Discard changes?",
+        "discardDescription": "Your unsaved changes will be lost."
+      },
+      "deleteDialog": {
+        "title": "Delete publisher?",
+        "description": "The publisher “{name}” will be deleted permanently.",
+        "confirm": "Delete",
+        "cancel": "Cancel",
+        "deleting": "Deleting…",
+        "linkedBooksError": "You can't delete a publisher that still has linked books. Unlink the books first.",
+        "genericError": "Couldn't delete the publisher. Try again."
+      },
+      "toast": {
+        "updated": "Publisher updated",
+        "deleted": "Publisher deleted",
+        "error": "Something went wrong"
+      }
+    }
+  },
+  "characters": {
+    "tab": "Characters",
+    "summary": {
+      "characters": "Characters: {count}",
+      "favorites": "Favorites: {count}",
+      "hidden": "Some records are hidden",
+      "pov": "POV: {count}"
+    },
+    "toolbar": {
+      "add": "Add character",
+      "palette": "Search",
+      "searchClear": "Clear search",
+      "searchLabel": "Search characters",
+      "searchPlaceholder": "Search by name…",
+      "sortLabel": "Sort"
+    },
+    "sort": {
+      "name": "By name",
+      "recommended": "Recommended"
+    },
+    "card": {
+      "delete": "Delete character entirely",
+      "details": "Details",
+      "edit": "Edit",
+      "favorite": "Add to favorites",
+      "hiddenFields": "Hidden fields: {count}",
+      "menu": "Character actions",
+      "unfavorite": "Remove from favorites",
+      "unlink": "Remove from this book"
+    },
+    "states": {
+      "errorDescription": "Couldn't load characters. Please try again.",
+      "errorTitle": "Failed to load",
+      "loading": "Loading characters",
+      "retry": "Try again"
+    },
+    "empty": {
+      "add": "Add character",
+      "description": "Add a character manually or link an existing one from your library.",
+      "title": "No characters yet"
+    },
+    "noResults": {
+      "clear": "Clear search",
+      "description": "Try adjusting your query.",
+      "title": "Nothing found"
+    },
+    "spoiler": {
+      "hidden": "Hidden (spoiler)",
+      "reveal": "Show",
+      "revealAria": "Show field: {field}"
+    },
+    "importance": {
+      "central": "Central",
+      "episodic": "Episodic",
+      "major": "Major",
+      "mentioned": "Mentioned",
+      "supporting": "Supporting"
+    },
+    "status": {
+      "active": "Alive",
+      "dead": "Dead",
+      "missing": "Missing",
+      "other": "Other",
+      "transformed": "Transformed",
+      "unknown": "Unknown"
+    },
+    "roleType": {
+      "antagonist": "Antagonist",
+      "custom": "Custom role",
+      "deuteragonist": "Deuteragonist",
+      "episodic": "Episodic",
+      "love_interest": "Love interest",
+      "mentioned": "Mentioned",
+      "protagonist": "Protagonist",
+      "supporting": "Supporting"
+    },
+    "gender": {
+      "agender_or_na": "Agender / N/A",
+      "custom": "Custom",
+      "female": "Female",
+      "male": "Male",
+      "non_binary": "Non-binary",
+      "unknown": "Unknown"
+    },
+    "attitude": {
+      "dislike": "Dislike",
+      "distrust": "Distrust",
+      "favorite": "Favorite",
+      "hate": "Hate",
+      "like": "Like",
+      "neutral": "Neutral",
+      "unsure": "Unsure"
+    },
+    "entityKind": {
+      "collective": "Collective",
+      "individual": "Individual",
+      "unknown": "Unknown"
+    },
+    "aliasType": {
+      "former_name": "Former name",
+      "nickname": "Nickname",
+      "other": "Other",
+      "pseudonym": "Pseudonym",
+      "title": "Title",
+      "translation": "Translation",
+      "true_name": "True name"
+    },
+    "narratorType": {
+      "first_person": "First person",
+      "other": "Other",
+      "third_person_limited": "Third person (limited)",
+      "third_person_omniscient": "Third person (omniscient)",
+      "unreliable": "Unreliable"
+    },
+    "details": {
+      "appearanceNotes": "Appearance notes",
+      "attitude": "Attitude",
+      "bookDescription": "Description in this book",
+      "bookSection": "In this book",
+      "description": "Description",
+      "displayName": "Display name",
+      "edit": "Edit",
+      "entityKind": "Type",
+      "favorite": "Favorite",
+      "gender": "Gender",
+      "generalSection": "General",
+      "hiddenRoles": "Hidden roles: {count}",
+      "otherAppearances": "Also in other books: {count}",
+      "personalImpression": "Personal impression",
+      "pov": "POV",
+      "povWithType": "POV · {type}",
+      "pronouns": "Pronouns",
+      "roles": "Roles",
+      "sheetDescription": "Character details",
+      "species": "Species",
+      "speciesOverride": "Species in this book",
+      "status": "Status",
+      "title": "Character"
+    },
+    "quickAdd": {
+      "add": "Add",
+      "createError": "Couldn't create the character",
+      "created": "Character added",
+      "duplicateQuestion": "Is this {name}?",
+      "linkExisting": "Link existing",
+      "moreFields": "More fields",
+      "nameLabel": "Character name",
+      "namePlaceholder": "New character name",
+      "noteLabel": "Short note",
+      "notePlaceholder": "Who is this? (optional)",
+      "title": "Quick add"
+    },
+    "form": {
+      "appearanceNotes": "Appearance notes",
+      "attitude": "Attitude in this book",
+      "avatar": "Avatar",
+      "bookDescription": "Description in this book",
+      "bookSection": "In this book",
+      "cancel": "Cancel",
+      "createDescription": "Create a new character for this book.",
+      "createTitle": "Add character",
+      "customGender": "Custom gender",
+      "discardCancel": "Keep editing",
+      "discardConfirm": "Discard",
+      "discardDescription": "Your changes will be lost.",
+      "discardTitle": "Discard changes?",
+      "displayName": "Display name",
+      "editDescription": "Update the character's data.",
+      "editTitle": "Edit character",
+      "entityKind": "Type",
+      "favorite": "Favorite character",
+      "firstAppearanceChapter": "First appearance chapter",
+      "firstAppearanceNote": "First appearance note",
+      "firstAppearancePage": "First appearance page",
+      "gender": "Gender",
+      "generalHint": "This data is used across all books where the character appears.",
+      "generalSection": "General",
+      "globalAttitude": "Attitude",
+      "hidePresence": "Hide presence",
+      "hidePresenceHelp": "The character won't appear in lists within this book's context.",
+      "importance": "Importance",
+      "name": "Name",
+      "namePlaceholder": "Character name",
+      "narratorType": "Narrator type",
+      "neutralDescription": "Description",
+      "optional": "optional",
+      "personalImpression": "Personal impression",
+      "portrait": "Portrait in this book",
+      "pov": "POV character",
+      "povHelp": "The story is narrated from this character's perspective.",
+      "pronouns": "Pronouns",
+      "removeAvatar": "Remove avatar",
+      "removePortrait": "Remove portrait",
+      "roles": "Roles",
+      "species": "Species",
+      "speciesOverride": "Species in this book",
+      "spoilerSection": "Spoilers",
+      "spoilerToggle": "Mark as spoiler",
+      "status": "Status",
+      "statusCustom": "Custom status",
+      "submitCreate": "Add",
+      "submitEdit": "Save",
+      "uploadAvatar": "Upload image",
+      "errors": {
+        "customGenderRequired": "Specify your custom gender",
+        "generic": "Couldn't save. Please try again.",
+        "nameRequired": "Enter a name",
+        "nameTooLong": "Name is too long (max {max})"
+      },
+      "aliases": "Alternative names"
+    },
+    "rolePicker": {
+      "add": "Add role",
+      "customPlaceholder": "Role name",
+      "remove": "Remove role",
+      "roleType": "Role",
+      "spoiler": "Spoiler"
+    },
+    "aliasEditor": {
+      "add": "Add name",
+      "name": "Name",
+      "namePlaceholder": "Alternative name",
+      "remove": "Remove name",
+      "scope": "Scope",
+      "scopeBook": "This book",
+      "scopeGlobal": "Global",
+      "spoiler": "Spoiler",
+      "type": "Type"
+    },
+    "existing": {
+      "createNew": "Create new",
+      "empty": "No matches",
+      "link": "Link",
+      "linkError": "Couldn't link the character",
+      "linked": "Character linked",
+      "sameSeries": "From this series",
+      "searchLabel": "Search existing characters",
+      "searchPlaceholder": "Type a name…",
+      "title": "Link existing"
+    },
+    "duplicate": {
+      "createAnyway": "Create anyway",
+      "question": "This character may already exist.",
+      "title": "Possible duplicates",
+      "use": "Use this one"
+    },
+    "delete": {
+      "aliases": "Names: {count}",
+      "appearances": "Book appearances: {count}",
+      "cancel": "Cancel",
+      "confirm": "Delete entirely",
+      "deleting": "Deleting…",
+      "description": "The character and all its data will be deleted. You can undo this action for a short time.",
+      "previewIntro": "Will be deleted:",
+      "roles": "Roles: {count}",
+      "tags": "Tags: {count}",
+      "title": "Delete character entirely"
+    },
+    "unlink": {
+      "cancel": "Cancel",
+      "confirm": "Remove",
+      "description": "The character will be removed from this book. The global profile and data in other books remain.",
+      "title": "Remove from this book",
+      "unlinking": "Removing…"
+    },
+    "palette": {
+      "empty": "Start typing a character name",
+      "loading": "Searching…",
+      "noResults": "Nothing found",
+      "placeholder": "Search characters…",
+      "title": "Search characters"
+    },
+    "toast": {
+      "createError": "Couldn't create the character",
+      "created": "Character added",
+      "deleteError": "Couldn't delete the character",
+      "deleted": "Character deleted",
+      "restoreError": "Couldn't restore the character",
+      "restored": "Character restored",
+      "undo": "Undo",
+      "unlinkError": "Couldn't remove the character",
+      "unlinked": "Character removed from the book",
+      "updateError": "Couldn't save changes",
+      "updated": "Changes saved"
     }
   }
 }

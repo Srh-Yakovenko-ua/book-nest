@@ -27,19 +27,19 @@ export class SocialLinkService {
   ) {}
 
   async create(userId: string, input: CreateSocialLinkInput): Promise<SocialLinkView> {
-    const existing = await this.socialLinkRepository.listByUserId(userId);
-
-    if (input.platform !== OTHER_PLATFORM && hasPlatform(existing, input.platform)) {
-      throw new ConflictError("This platform is already linked");
-    }
-
-    if (input.url !== undefined && hasUrl(existing, input.url)) {
-      throw new ConflictError("This link is already added");
-    }
-
     const created = await this.transactionRunner.run(async (tx) => {
-      const count = await this.socialLinkRepository.countByUserId(userId, tx);
-      if (count >= MAX_SOCIAL_LINKS) {
+      await this.socialLinkRepository.acquireUserLock(userId, tx);
+      const existing = await this.socialLinkRepository.listByUserId(userId, tx);
+
+      if (input.platform !== OTHER_PLATFORM && hasPlatform(existing, input.platform)) {
+        throw new ConflictError("This platform is already linked");
+      }
+
+      if (input.url !== undefined && hasUrl(existing, input.url)) {
+        throw new ConflictError("This link is already added");
+      }
+
+      if (existing.length >= MAX_SOCIAL_LINKS) {
         throw new BadRequestError("Maximum of 10 social links");
       }
 
@@ -64,7 +64,10 @@ export class SocialLinkService {
       throw new NotFoundError("Social link not found");
     }
 
-    await this.socialLinkRepository.deleteById(linkId);
+    const removed = await this.socialLinkRepository.deleteById(linkId);
+    if (removed === 0) {
+      throw new NotFoundError("Social link not found");
+    }
   }
 
   async update(

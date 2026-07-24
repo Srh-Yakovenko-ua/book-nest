@@ -19,10 +19,9 @@ import {
   ResetPasswordInputSchema,
   VerifyEmailSchema,
 } from "@app/shared";
-import { Body, Controller, Get, HttpCode, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Query, Req, Res } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
   ApiForbiddenResponse,
@@ -48,7 +47,7 @@ import { PasswordResetService } from "../application/password-reset.service.js";
 import { SessionService } from "../application/session.service.js";
 import { toUserView } from "../domain/user.mapper.js";
 import { CurrentUser } from "./guards/current-user.decorator.js";
-import { JwtAccessGuard } from "./guards/jwt-access.guard.js";
+import { JwtProtected } from "./guards/jwt-protected.decorator.js";
 import { ForgotPasswordInputDto } from "./input-dto/forgot-password.input-dto.js";
 import { LoginInputDto } from "./input-dto/login.input-dto.js";
 import { RegistrationInputDto } from "./input-dto/registration.input-dto.js";
@@ -88,12 +87,10 @@ export class AuthController {
     private readonly sessionService: SessionService,
   ) {}
 
-  @ApiBearerAuth()
   @ApiOkResponse({ description: "The currently authenticated user" })
   @ApiOperation({ summary: "Return the currently authenticated user" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("me")
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   me(@CurrentUser() user: AuthenticatedUser): UserView {
     return toUserView(user);
   }

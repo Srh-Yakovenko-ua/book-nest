@@ -1,4 +1,4 @@
-import type { OwnershipStatus, QueuePriority, ReadingStatus } from "@app/shared";
+import type { Nullable, OwnershipStatus, QueuePriority, ReadingStatus } from "@app/shared";
 
 import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
@@ -6,11 +6,20 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
+import { runInClient } from "../../../core/database/run-in-client.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
+import { enforceQueueInvariant } from "./queue-invariant.js";
 
 export type BulkDeleteResult = {
   affected: number;
   coverMediaIds: string[];
+};
+
+export type PagesCountSnapshot = {
+  currentPage: Nullable<number>;
+  id: string;
+  updatedAt: Date;
 };
 
 @Injectable()
@@ -20,7 +29,7 @@ export class BulkBooksRepository {
     private readonly membershipRepository: ListMembershipRepository,
   ) {}
 
-  async addTags(
+  addTags(
     {
       bookIds,
       tagIds,
@@ -32,70 +41,67 @@ export class BulkBooksRepository {
     },
     client?: Prisma.TransactionClient,
   ): Promise<number> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) => this.addTags({ bookIds, tagIds, userId }, tx));
-    }
-
-    const ownedBooks = await client.book.findMany({
-      select: { id: true },
-      where: { id: { in: bookIds }, userId },
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const ownedBooks = await tx.book.findMany({
+        select: { id: true },
+        where: { id: { in: bookIds }, userId },
+      });
+      if (ownedBooks.length === 0) {
+        return 0;
+      }
+      await tx.bookTag.createMany({
+        data: ownedBooks.flatMap((book) => tagIds.map((tagId) => ({ bookId: book.id, tagId }))),
+        skipDuplicates: true,
+      });
+      return ownedBooks.length;
     });
-    if (ownedBooks.length === 0) {
-      return 0;
-    }
-    await client.bookTag.createMany({
-      data: ownedBooks.flatMap((book) => tagIds.map((tagId) => ({ bookId: book.id, tagId }))),
-      skipDuplicates: true,
-    });
-    return ownedBooks.length;
   }
 
-  async addToLists(
+  addToLists(
     {
       bookIds,
       listIds,
+      now,
       userId,
     }: {
       bookIds: string[];
       listIds: string[];
+      now: Date;
       userId: string;
     },
     client?: Prisma.TransactionClient,
   ): Promise<number> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) => this.addToLists({ bookIds, listIds, userId }, tx));
-    }
-
-    const ownedBooks = await client.book.findMany({
-      select: { id: true },
-      where: { id: { in: bookIds }, userId },
-    });
-    if (ownedBooks.length === 0) {
-      return 0;
-    }
-
-    const ownedIds = new Set(ownedBooks.map((book) => book.id));
-    const orderedOwnedIds = [...new Set(bookIds)].filter((bookId) => ownedIds.has(bookId));
-
-    const now = new Date();
-    const sortedListIds = [...new Set(listIds)].sort();
-    for (const listId of sortedListIds) {
-      await this.membershipRepository.acquireListLock(client, { listId });
-    }
-    for (const listId of sortedListIds) {
-      const added = await this.membershipRepository.appendMany(client, {
-        bookIds: orderedOwnedIds,
-        listId,
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const ownedBooks = await tx.book.findMany({
+        select: { id: true },
+        where: { id: { in: bookIds }, userId },
       });
-      if (added > 0) {
-        await this.membershipRepository.touchList(client, { listId, now, userId });
+      if (ownedBooks.length === 0) {
+        return 0;
       }
-    }
 
-    return ownedBooks.length;
+      const ownedIds = new Set(ownedBooks.map((book) => book.id));
+      const orderedOwnedIds = [...new Set(bookIds)].filter((bookId) => ownedIds.has(bookId));
+
+      const sortedListIds = [...new Set(listIds)].sort();
+      for (const listId of sortedListIds) {
+        await this.membershipRepository.acquireListLock(tx, { listId });
+      }
+      for (const listId of sortedListIds) {
+        const added = await this.membershipRepository.appendMany(tx, {
+          bookIds: orderedOwnedIds,
+          listId,
+        });
+        if (added > 0) {
+          await this.membershipRepository.touchList(tx, { listId, now, userId });
+        }
+      }
+
+      return ownedBooks.length;
+    });
   }
 
-  async addToReadingQueue(
+  addToReadingQueue(
     {
       bookIds,
       queuePriority,
@@ -107,44 +113,42 @@ export class BulkBooksRepository {
     },
     client?: Prisma.TransactionClient,
   ): Promise<number> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) =>
-        this.addToReadingQueue({ bookIds, queuePriority, userId }, tx),
-      );
-    }
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      await acquireUserQueueLock(userId, tx);
 
-    const ownedUnqueued = await client.book.findMany({
-      select: { id: true },
-      where: { id: { in: bookIds }, queuePosition: null, userId },
-    });
-    if (ownedUnqueued.length === 0) {
-      return 0;
-    }
-
-    const inputOrder = new Map(bookIds.map((bookId, index) => [bookId, index]));
-    const ordered = [...ownedUnqueued].sort(
-      (left, right) => (inputOrder.get(left.id) ?? 0) - (inputOrder.get(right.id) ?? 0),
-    );
-
-    const aggregate = await client.book.aggregate({
-      _max: { queuePosition: true },
-      where: { userId },
-    });
-    const basePosition = aggregate._max.queuePosition ?? 0;
-
-    let offset = 0;
-    for (const book of ordered) {
-      offset += 1;
-      await client.book.updateMany({
-        data: { queuePosition: basePosition + offset, queuePriority },
-        where: { id: book.id, userId },
+      const ownedUnqueued = await tx.book.findMany({
+        select: { id: true },
+        where: { id: { in: bookIds }, queuePosition: null, userId },
       });
-    }
+      if (ownedUnqueued.length === 0) {
+        return 0;
+      }
 
-    return ordered.length;
+      const inputOrder = new Map(bookIds.map((bookId, index) => [bookId, index]));
+      const ordered = [...ownedUnqueued].sort(
+        (left, right) => (inputOrder.get(left.id) ?? 0) - (inputOrder.get(right.id) ?? 0),
+      );
+
+      const aggregate = await tx.book.aggregate({
+        _max: { queuePosition: true },
+        where: { userId },
+      });
+      const basePosition = aggregate._max.queuePosition ?? 0;
+
+      let offset = 0;
+      for (const book of ordered) {
+        offset += 1;
+        await tx.book.updateMany({
+          data: { queuePosition: basePosition + offset, queuePriority },
+          where: { id: book.id, userId },
+        });
+      }
+
+      return ordered.length;
+    });
   }
 
-  async deleteOwned(
+  deleteOwned(
     {
       bookIds,
       userId,
@@ -154,22 +158,22 @@ export class BulkBooksRepository {
     },
     client?: Prisma.TransactionClient,
   ): Promise<BulkDeleteResult> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) => this.deleteOwned({ bookIds, userId }, tx));
-    }
-
-    const books = await client.book.findMany({
-      select: { coverMediaId: true },
-      where: { id: { in: bookIds }, userId },
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const books = await tx.book.findMany({
+        select: { coverMediaId: true },
+        where: { id: { in: bookIds }, userId },
+      });
+      if (books.length === 0) {
+        return { affected: 0, coverMediaIds: [] };
+      }
+      const deleted = await tx.book.deleteMany({ where: { id: { in: bookIds }, userId } });
+      const coverMediaIds = [
+        ...new Set(
+          books.flatMap((book) => (book.coverMediaId === null ? [] : [book.coverMediaId])),
+        ),
+      ];
+      return { affected: deleted.count, coverMediaIds };
     });
-    if (books.length === 0) {
-      return { affected: 0, coverMediaIds: [] };
-    }
-    const deleted = await client.book.deleteMany({ where: { id: { in: bookIds }, userId } });
-    const coverMediaIds = [
-      ...new Set(books.flatMap((book) => (book.coverMediaId === null ? [] : [book.coverMediaId]))),
-    ];
-    return { affected: deleted.count, coverMediaIds };
   }
 
   async findOwnedIds({
@@ -183,7 +187,48 @@ export class BulkBooksRepository {
       select: { id: true },
       where: { id: { in: bookIds }, userId },
     });
-    return ownedBooks.map((book) => book.id);
+    const ownedIds = new Set(ownedBooks.map((book) => book.id));
+    return [...new Set(bookIds)].filter((id) => ownedIds.has(id));
+  }
+
+  async findPagesCountSnapshots(
+    {
+      bookIds,
+      userId,
+    }: {
+      bookIds: string[];
+      userId: string;
+    },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<PagesCountSnapshot[]> {
+    const books = await client.book.findMany({
+      select: { id: true, readingProgress: { select: { currentPage: true } }, updatedAt: true },
+      where: { id: { in: bookIds }, userId },
+    });
+    return books.map((book) => ({
+      currentPage: book.readingProgress?.currentPage ?? null,
+      id: book.id,
+      updatedAt: book.updatedAt,
+    }));
+  }
+
+  async markPagesCountUnavailable(
+    {
+      bookId,
+      expectedUpdatedAt,
+      userId,
+    }: {
+      bookId: string;
+      expectedUpdatedAt: Date;
+      userId: string;
+    },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const updated = await client.book.updateMany({
+      data: { pagesCountUnavailable: true },
+      where: { id: bookId, updatedAt: expectedUpdatedAt, userId },
+    });
+    return updated.count;
   }
 
   async setFavorite({
@@ -204,12 +249,13 @@ export class BulkBooksRepository {
     return updated.count;
   }
 
-  async setOwnershipStatus(
+  setOwnershipStatus(
     {
       bookIds,
       clearDelivery,
       clearLoan,
       clearPurchase,
+      now,
       ownershipStatus,
       userId,
     }: {
@@ -217,51 +263,67 @@ export class BulkBooksRepository {
       clearDelivery: boolean;
       clearLoan: boolean;
       clearPurchase: boolean;
+      now: Date;
       ownershipStatus: OwnershipStatus;
       userId: string;
     },
     client?: Prisma.TransactionClient,
   ): Promise<number> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) =>
-        this.setOwnershipStatus(
-          { bookIds, clearDelivery, clearLoan, clearPurchase, ownershipStatus, userId },
-          tx,
-        ),
-      );
-    }
-
-    const updated = await client.book.updateMany({
-      data: { ownershipStatus },
-      where: { id: { in: bookIds }, userId },
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const updated = await tx.book.updateMany({
+        data: { ownershipStatus },
+        where: { id: { in: bookIds }, userId },
+      });
+      if (updated.count === 0) {
+        return 0;
+      }
+      if (clearDelivery) {
+        await tx.bookDelivery.updateMany({
+          data: { cancelledAt: now, status: "cancelled" },
+          where: {
+            bookId: { in: bookIds },
+            status: { in: [...DELIVERY_ACTIVE_STATUSES] },
+            userId,
+          },
+        });
+      }
+      if (clearLoan) {
+        await tx.bookLoan.updateMany({
+          data: { returnedAt: now, status: "returned" },
+          where: { bookId: { in: bookIds }, status: "active", userId },
+        });
+      }
+      if (clearPurchase) {
+        await tx.bookPurchaseInfo.deleteMany({
+          where: { book: { id: { in: bookIds }, userId } },
+        });
+      }
+      return updated.count;
     });
-    if (updated.count === 0) {
-      return 0;
-    }
-    if (clearDelivery) {
-      await client.bookDelivery.updateMany({
-        data: { cancelledAt: new Date(), status: "cancelled" },
-        where: {
-          book: { id: { in: bookIds }, userId },
-          status: { in: [...DELIVERY_ACTIVE_STATUSES] },
-        },
-      });
-    }
-    if (clearLoan) {
-      await client.bookLoan.updateMany({
-        data: { returnedAt: new Date(), status: "returned" },
-        where: { book: { id: { in: bookIds }, userId }, status: "active" },
-      });
-    }
-    if (clearPurchase) {
-      await client.bookPurchaseInfo.deleteMany({
-        where: { book: { id: { in: bookIds }, userId } },
-      });
-    }
+  }
+
+  async setPagesCount(
+    {
+      bookId,
+      expectedUpdatedAt,
+      pagesCount,
+      userId,
+    }: {
+      bookId: string;
+      expectedUpdatedAt: Date;
+      pagesCount: number;
+      userId: string;
+    },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const updated = await client.book.updateMany({
+      data: { pagesCount, pagesCountUnavailable: false },
+      where: { id: bookId, updatedAt: expectedUpdatedAt, userId },
+    });
     return updated.count;
   }
 
-  async setReadingStatus(
+  setReadingStatus(
     {
       bookIds,
       clearProgress,
@@ -275,21 +337,20 @@ export class BulkBooksRepository {
     },
     client?: Prisma.TransactionClient,
   ): Promise<number> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) =>
-        this.setReadingStatus({ bookIds, clearProgress, readingStatus, userId }, tx),
-      );
-    }
-
-    const updated = await client.book.updateMany({
-      data: { readingStatus },
-      where: { id: { in: bookIds }, userId },
-    });
-    if (clearProgress && updated.count > 0) {
-      await client.bookReadingProgress.deleteMany({
-        where: { book: { id: { in: bookIds }, userId } },
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const updated = await tx.book.updateMany({
+        data: { readingStatus },
+        where: { id: { in: bookIds }, userId },
       });
-    }
-    return updated.count;
+      if (clearProgress && updated.count > 0) {
+        await tx.bookReadingProgress.deleteMany({
+          where: { book: { id: { in: bookIds }, userId } },
+        });
+      }
+
+      await enforceQueueInvariant(tx, { readingStatus, userId });
+
+      return updated.count;
+    });
   }
 }

@@ -11,22 +11,14 @@ import {
   CatalogLocaleSchema,
   RecentAuthorsQuerySchema,
 } from "@app/shared";
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiParam,
-  ApiQuery,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from "@nestjs/swagger";
+import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
+import { ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { AuthorsService } from "../application/authors.service.js";
 import { AuthorLookupQueryDto } from "./input-dto/author-lookup-query.input-dto.js";
 import { AuthorSearchPaginationQueryDto } from "./input-dto/author-search-query.input-dto.js";
@@ -39,30 +31,24 @@ const LOOKUP_LIMIT = 30;
 @Controller("api/authors")
 export class AuthorsController {
   constructor(private readonly authorsService: AuthorsService) {}
-
-  @ApiBearerAuth()
   @ApiOkResponse({ description: "Author candidates from Open Library with an in-database flag" })
   @ApiOperation({ summary: "Look up authors from Open Library" })
   @ApiQuery({ name: "q", required: true })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("lookup")
+  @JwtProtected()
   @Throttle({ default: { limit: LOOKUP_LIMIT, ttl: seconds(LOOKUP_TTL_SECONDS) } })
-  @UseGuards(JwtAccessGuard)
   lookup(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(AuthorLookupQuerySchema)) query: AuthorLookupQueryDto,
   ): Promise<AuthorLookupResult[]> {
     return this.authorsService.lookup(user.id, query.q);
   }
-
-  @ApiBearerAuth()
   @ApiOkResponse({ description: "Authors the current user recently used in their own books" })
   @ApiOperation({ summary: "List recently used authors for the current user" })
   @ApiQuery({ name: "limit", required: false })
   @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("recent")
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   recent(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(RecentAuthorsQuerySchema)) query: RecentAuthorsQueryDto,
@@ -73,32 +59,26 @@ export class AuthorsController {
       userId: user.id,
     });
   }
-
-  @ApiBearerAuth()
   @ApiOkResponse({ description: "Books by this author proxied live from Open Library" })
   @ApiOperation({ summary: "List an author's books from Open Library" })
   @ApiParam({ name: "id" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get(":id/books")
+  @JwtProtected()
   @Throttle({ default: { limit: LOOKUP_LIMIT, ttl: seconds(LOOKUP_TTL_SECONDS) } })
-  @UseGuards(JwtAccessGuard)
   listBooks(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) authorId: string,
   ): Promise<AuthorBookSuggestionView[]> {
     return this.authorsService.listBookSuggestions(user.id, authorId);
   }
-
-  @ApiBearerAuth()
   @ApiOkResponse({ description: "A page of authors visible to the current user" })
   @ApiOperation({ summary: "Search authors (global seeds + own custom)" })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   @ApiQuery({ enum: CatalogLocaleSchema.options, name: "locale", required: false })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   search(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(AuthorSearchPaginationQuerySchema))

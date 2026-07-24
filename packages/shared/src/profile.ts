@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { noHtmlTags, type Nullable } from "./common.js";
-import { HTTPS_PROTOCOL, NoHtmlString, notInFutureDate } from "./internal.js";
+import { type Nullable } from "./common.js";
+import { boundedUrlSchema, HTTPS_PROTOCOL, NoHtmlString, notInFutureDate } from "./internal.js";
 
 const PROFILE_NAME_MIN = 2;
 const PROFILE_NAME_MAX = 50;
@@ -113,12 +113,11 @@ const SocialUsernameSchema = z
       .regex(SOCIAL_USERNAME_NO_SPACES, "Username must not contain spaces"),
   );
 
-const SocialUrlSchema = z
-  .string()
-  .trim()
-  .max(SOCIAL_URL_MAX, "URL must be at most 300 characters long")
-  .refine(noHtmlTags, "HTML tags are not allowed")
-  .pipe(z.url({ error: "Enter a valid https link", protocol: HTTPS_PROTOCOL }));
+const SocialUrlSchema = boundedUrlSchema({
+  maxLength: SOCIAL_URL_MAX,
+  protocol: HTTPS_PROTOCOL,
+  urlError: "Enter a valid https link",
+});
 
 const SocialLabelSchema = z
   .string()

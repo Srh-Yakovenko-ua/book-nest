@@ -18,7 +18,7 @@ const FOREIGN_LIST_ID = "44444444-4444-4444-8444-444444444444";
 const COVER_ID = "55555555-5555-4555-8555-555555555555";
 
 function buildService(): {
-  mediaService: { buildView: ReturnType<typeof vi.fn> };
+  mediaService: { buildViewOrNull: ReturnType<typeof vi.fn> };
   repository: {
     countOwned: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -44,7 +44,11 @@ function buildService(): {
     upsertByNormalized: vi.fn(),
   };
 
-  const mediaService = { buildView: vi.fn().mockReturnValue(mediaView()) };
+  const mediaService = {
+    buildViewOrNull: vi.fn((asset: Nullable<MediaAssetModel>) =>
+      asset === null ? null : mediaView(),
+    ),
+  };
 
   const service = new ListsService(
     repository as unknown as ListsRepository,
@@ -371,7 +375,7 @@ describe("ListsService.search", () => {
       pageSize: 10,
       totalCount: 1,
     });
-    expect(mediaService.buildView).toHaveBeenCalledTimes(1);
+    expect(mediaService.buildViewOrNull).toHaveBeenCalledTimes(2);
     expect(repository.searchOwnedCards).toHaveBeenCalledWith({
       query: "autumn",
       skip: 0,

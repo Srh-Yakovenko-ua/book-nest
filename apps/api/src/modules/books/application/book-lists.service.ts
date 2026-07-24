@@ -6,7 +6,9 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { isForeignKeyConstraintError } from "../../../core/prisma-errors.js";
 import { BookListsRepository } from "../infrastructure/book-lists.repository.js";
+import { BooksRepository } from "../infrastructure/books.repository.js";
 import { ListMembershipRepository } from "../infrastructure/list-membership.repository.js";
+import { assertBookOwned } from "./assert-book-owned.js";
 
 const BOOK_NOT_FOUND_MESSAGE = "Book not found";
 
@@ -25,6 +27,7 @@ type SetListsInput = {
 export class BookListsService {
   constructor(
     private readonly bookListsRepository: BookListsRepository,
+    private readonly booksRepository: BooksRepository,
     private readonly membershipRepository: ListMembershipRepository,
     private readonly transactionRunner: TransactionRunner,
   ) {}
@@ -86,10 +89,7 @@ export class BookListsService {
   }
 
   private async assertBookOwned({ bookId, userId }: BookScopeInput): Promise<void> {
-    const owned = await this.bookListsRepository.bookBelongsToUser({ bookId, userId });
-    if (!owned) {
-      throw new NotFoundError(BOOK_NOT_FOUND_MESSAGE);
-    }
+    await assertBookOwned({ bookId, booksRepository: this.booksRepository, userId });
   }
 
   private async buildView({ bookId, userId }: BookScopeInput): Promise<BookListsView> {

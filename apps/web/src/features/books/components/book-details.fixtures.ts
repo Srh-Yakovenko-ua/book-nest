@@ -27,6 +27,7 @@ export function makeBookView(overrides: Partial<BookView> = {}): BookView {
     originalTitle: "Ostatnie życzenie",
     ownershipStatus: "owned",
     pagesCount: 336,
+    pagesCountUnavailable: false,
     partNumber: null,
     publicationYear: 2016,
     publisher: { id: "22222222-2222-4222-8222-222222222222", name: "Клуб Сімейного Дозвілля" },

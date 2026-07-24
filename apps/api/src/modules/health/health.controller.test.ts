@@ -1,15 +1,22 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { getQueueToken } from "@nestjs/bullmq";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createTestApp } from "../../test/create-test-app.js";
+import { HEALTH_QUEUE_NAME } from "./health-queue.js";
 import { HealthModule } from "./health.module.js";
 
 let app: INestApplication;
 
+const queueStub = { client: Promise.resolve({ info: async () => "redis_version:7.0.0" }) };
+
 beforeAll(async () => {
-  app = await createTestApp([HealthModule]);
+  app = await createTestApp(
+    [HealthModule],
+    [{ provide: getQueueToken(HEALTH_QUEUE_NAME), useValue: queueStub }],
+  );
 });
 
 afterAll(async () => {
@@ -23,6 +30,7 @@ describe("GET /api/health", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("ok");
     expect(["ok", "down"]).toContain(res.body.postgres);
+    expect(res.body.redis).toBe("ok");
     expect(typeof res.body.uptimeSeconds).toBe("number");
     expect(typeof res.body.timestamp).toBe("string");
   });

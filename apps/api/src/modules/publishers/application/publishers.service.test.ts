@@ -2,6 +2,8 @@ import type { Nullable } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import type { Prisma } from "../../../generated/prisma/client.js";
 import type { PublisherModel } from "../../../generated/prisma/models.js";
 import type {
   PublishersRepository,
@@ -52,7 +54,16 @@ function buildService(overrides: {
     upsertByNormalized,
   };
 
-  const service = new PublishersService(repository as unknown as PublishersRepository);
+  const transactionRunner = {
+    run: vi.fn((fn: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+      fn({} as Prisma.TransactionClient),
+    ),
+  };
+
+  const service = new PublishersService(
+    repository as unknown as PublishersRepository,
+    transactionRunner as unknown as TransactionRunner,
+  );
 
   return { repository, service };
 }

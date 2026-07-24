@@ -10,6 +10,7 @@ import type {
 import {
   BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE,
   BOOK_SERIES_PART_NUMBER_TAKEN_CODE,
+  isClosedReadingStatus,
   QueuePriorityReasonSchema,
   QueuePrioritySchema,
 } from "@app/shared";
@@ -85,29 +86,6 @@ type QueuePlacement = {
   queuePriorityTargetDate: Nullable<Date>;
 };
 
-function toQueuePlacementDetails(details: QueuePriorityDetails): {
-  queuePriorityReason: Nullable<QueuePriorityReason>;
-  queuePriorityReasonCustomText: Nullable<string>;
-  queuePriorityTargetDate: Nullable<Date>;
-} {
-  return {
-    queuePriorityReason: details.reason,
-    queuePriorityReasonCustomText: details.customText,
-    queuePriorityTargetDate: details.targetDate === null ? null : parseIsoDate(details.targetDate),
-  };
-}
-
-function toQueuePriorityDetails(current: BookWithRelations): QueuePriorityDetails {
-  return {
-    customText: current.queuePriorityReasonCustomText,
-    reason:
-      current.queuePriorityReason === null
-        ? null
-        : QueuePriorityReasonSchema.parse(current.queuePriorityReason),
-    targetDate: toNullableIsoDate(current.queuePriorityTargetDate),
-  };
-}
-
 @Injectable()
 export class BookRelationsResolver {
   constructor(
@@ -120,6 +98,34 @@ export class BookRelationsResolver {
     private readonly genresService: GenresService,
     private readonly mediaService: MediaService,
   ) {}
+
+  async assertCreatableRelations({
+    input,
+    userId,
+  }: {
+    input: CreateBookInput;
+    userId: string;
+  }): Promise<void> {
+    await this.genresService.assertGenresSelectable(userId, input.genres);
+    if (input.coverMediaId != null) {
+      await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
+    }
+  }
+
+  async assertUpdatableRelations({
+    input,
+    userId,
+  }: {
+    input: UpdateBookInput;
+    userId: string;
+  }): Promise<void> {
+    if (input.genres !== undefined) {
+      await this.genresService.assertGenresSelectable(userId, input.genres);
+    }
+    if (input.coverMediaId != null) {
+      await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
+    }
+  }
 
   async mapSeriesPartNumberWriteError({
     error,
@@ -221,11 +227,6 @@ export class BookRelationsResolver {
       },
       client,
     );
-    await this.genresService.assertGenresSelectable(userId, input.genres);
-
-    if (input.coverMediaId != null) {
-      await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
-    }
 
     return {
       authorIds: resolvedAuthors.authorIds,
@@ -279,9 +280,6 @@ export class BookRelationsResolver {
     }
 
     if (input.coverMediaId !== undefined) {
-      if (input.coverMediaId !== null) {
-        await this.mediaService.assertOwned({ id: input.coverMediaId, userId });
-      }
       fields.coverMediaId = input.coverMediaId;
     }
 
@@ -321,10 +319,6 @@ export class BookRelationsResolver {
       client,
     );
 
-    if (input.genres !== undefined) {
-      await this.genresService.assertGenresSelectable(userId, input.genres);
-    }
-
     return { authorIds, fields, listIds, queueRemoval, seriesPlacement, tagIds };
   }
 
@@ -362,6 +356,7 @@ export class BookRelationsResolver {
     }
 
     if (input.addToReadingQueue === true && !isQueued) {
+      await this.booksRepository.acquireUserQueueLock(userId, client);
       const lastPosition = await this.booksRepository.maxQueuePosition(userId, client);
       const queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
       fields.queuePosition = lastPosition + 1;
@@ -533,7 +528,7 @@ export class BookRelationsResolver {
       targetDate: input.queuePriorityTargetDate,
     };
 
-    if (!input.addToReadingQueue) {
+    if (!input.addToReadingQueue || isClosedReadingStatus(input.readingStatus)) {
       const details = resolveQueuePriorityDetails({
         current: EMPTY_QUEUE_PRIORITY_DETAILS,
         input: detailsInput,
@@ -542,6 +537,7 @@ export class BookRelationsResolver {
       return { queuePosition: null, queuePriority: null, ...toQueuePlacementDetails(details) };
     }
 
+    await this.booksRepository.acquireUserQueueLock(userId, client);
     const lastPosition = await this.booksRepository.maxQueuePosition(userId, client);
     const queuePriority = input.queuePriority ?? DEFAULT_QUEUE_PRIORITY;
     const details = resolveQueuePriorityDetails({
@@ -581,4 +577,27 @@ export class BookRelationsResolver {
       ],
     });
   }
+}
+
+function toQueuePlacementDetails(details: QueuePriorityDetails): {
+  queuePriorityReason: Nullable<QueuePriorityReason>;
+  queuePriorityReasonCustomText: Nullable<string>;
+  queuePriorityTargetDate: Nullable<Date>;
+} {
+  return {
+    queuePriorityReason: details.reason,
+    queuePriorityReasonCustomText: details.customText,
+    queuePriorityTargetDate: details.targetDate === null ? null : parseIsoDate(details.targetDate),
+  };
+}
+
+function toQueuePriorityDetails(current: BookWithRelations): QueuePriorityDetails {
+  return {
+    customText: current.queuePriorityReasonCustomText,
+    reason:
+      current.queuePriorityReason === null
+        ? null
+        : QueuePriorityReasonSchema.parse(current.queuePriorityReason),
+    targetDate: toNullableIsoDate(current.queuePriorityTargetDate),
+  };
 }

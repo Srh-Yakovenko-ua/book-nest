@@ -19,11 +19,12 @@ import type {
 } from "./book-relations-resolver.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { fakeOf } from "../../../test/fake.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 import { BooksService } from "./books.service.js";
 
-const TX = {} as unknown as Prisma.TransactionClient;
+const TX = fakeOf<Prisma.TransactionClient>();
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_USER_ID = "99999999-9999-4999-8999-999999999999";
@@ -79,6 +80,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     originalTitle: null,
     ownershipStatus: "none",
     pagesCount: null,
+    pagesCountUnavailable: false,
     partNumber: null,
     publicationYear: null,
     publisher: { id: PUBLISHER_ID, name: "Penguin", normalizedName: "penguin" },
@@ -120,6 +122,8 @@ function buildService(
     searchKeys: ReturnType<typeof vi.fn>;
   };
   relationsResolver: {
+    assertCreatableRelations: ReturnType<typeof vi.fn>;
+    assertUpdatableRelations: ReturnType<typeof vi.fn>;
     mapSeriesPartNumberWriteError: ReturnType<typeof vi.fn>;
     resolveAuthors: ReturnType<typeof vi.fn>;
     resolveForCreate: ReturnType<typeof vi.fn>;
@@ -128,7 +132,7 @@ function buildService(
   repository: Repository;
   service: BooksService;
 } {
-  const repository: Repository = {
+  const repository = {
     countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
     deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
@@ -150,6 +154,8 @@ function buildService(
   };
 
   const relationsResolver = {
+    assertCreatableRelations: vi.fn().mockResolvedValue(undefined),
+    assertUpdatableRelations: vi.fn().mockResolvedValue(undefined),
     mapSeriesPartNumberWriteError: vi
       .fn()
       .mockImplementation(({ error }: { error: unknown }) => Promise.resolve(error)),
@@ -160,10 +166,10 @@ function buildService(
     resolveForUpdate: vi.fn().mockResolvedValue(resolvedUpdate()),
   };
 
-  const mediaService = { buildView: vi.fn() };
+  const mediaService = { buildViewOrNull: vi.fn().mockReturnValue(null) };
   const viewAssembler = new BookViewAssembler(
-    repository as unknown as BooksRepository,
-    mediaService as unknown as MediaService,
+    fakeOf<BooksRepository>(repository),
+    fakeOf<MediaService>(mediaService),
   );
   const coverCleanup = { deleteIfOrphaned: vi.fn().mockResolvedValue(undefined) };
   const genresService = {
@@ -171,16 +177,16 @@ function buildService(
     searchKeys: vi.fn().mockResolvedValue([]),
   };
   const transactionRunner = {
-    run: vi.fn((fn: (client: Prisma.TransactionClient) => Promise<unknown>) => fn(TX)),
+    run: <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(TX),
   };
 
   const service = new BooksService(
-    repository as unknown as BooksRepository,
-    relationsResolver as unknown as BookRelationsResolver,
+    fakeOf<BooksRepository>(repository),
+    fakeOf<BookRelationsResolver>(relationsResolver),
     viewAssembler,
-    coverCleanup as unknown as BookCoverCleanup,
-    genresService as unknown as GenresService,
-    transactionRunner as unknown as TransactionRunner,
+    fakeOf<BookCoverCleanup>(coverCleanup),
+    fakeOf<GenresService>(genresService),
+    fakeOf<TransactionRunner>(transactionRunner),
   );
 
   return { coverCleanup, genresService, relationsResolver, repository, service };
@@ -339,6 +345,7 @@ describe("BooksService.create", () => {
         seriesId: SERIES_ID,
         tagIds: [TAG_ID],
       }),
+      expect.any(Date),
       TX,
     );
   });
@@ -388,6 +395,7 @@ describe("BooksService.create", () => {
       originalTitle: null,
       ownershipStatus: "none",
       pagesCount: null,
+      pagesCountUnavailable: false,
       partNumber: null,
       publicationYear: null,
       publisher: { id: PUBLISHER_ID, name: "Penguin" },
@@ -433,6 +441,7 @@ describe("BooksService.create", () => {
           startedAt: new Date("2026-02-01T00:00:00.000Z"),
         },
       }),
+      expect.any(Date),
       TX,
     );
   });
@@ -451,6 +460,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ readingProgress: null }),
+      expect.any(Date),
       TX,
     );
   });
@@ -480,6 +490,7 @@ describe("BooksService.create", () => {
           storeUrl: null,
         },
       }),
+      expect.any(Date),
       TX,
     );
   });
@@ -513,6 +524,7 @@ describe("BooksService.create", () => {
         },
         purchaseInfo: null,
       }),
+      expect.any(Date),
       TX,
     );
   });
@@ -542,6 +554,7 @@ describe("BooksService.create", () => {
         },
         purchaseInfo: null,
       }),
+      expect.any(Date),
       TX,
     );
   });
@@ -554,6 +567,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ coverMediaId: MEDIA_ID }),
+      expect.any(Date),
       TX,
     );
   });
@@ -566,6 +580,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ favoriteAddedAt: expect.any(Date), isFavorite: true }),
+      expect.any(Date),
       TX,
     );
   });
@@ -578,6 +593,7 @@ describe("BooksService.create", () => {
     expect(repository.create).toHaveBeenCalledWith(
       USER_ID,
       expect.objectContaining({ favoriteAddedAt: null, isFavorite: false }),
+      expect.any(Date),
       TX,
     );
   });
@@ -1278,12 +1294,12 @@ describe("BooksService.overview activeReading", () => {
     };
     const genresService = { findNamesByKeys: vi.fn().mockResolvedValue([]) };
     const service = new BooksService(
-      repository as unknown as BooksRepository,
-      {} as unknown as BookRelationsResolver,
-      { viewOf: vi.fn() } as unknown as BookViewAssembler,
-      { deleteIfOrphaned: vi.fn() } as unknown as BookCoverCleanup,
-      genresService as unknown as GenresService,
-      {} as unknown as TransactionRunner,
+      fakeOf<BooksRepository>(repository),
+      fakeOf<BookRelationsResolver>(),
+      fakeOf<BookViewAssembler>({ viewOf: vi.fn() }),
+      fakeOf<BookCoverCleanup>({ deleteIfOrphaned: vi.fn() }),
+      fakeOf<GenresService>(genresService),
+      fakeOf<TransactionRunner>(),
     );
     return { repository, service };
   }

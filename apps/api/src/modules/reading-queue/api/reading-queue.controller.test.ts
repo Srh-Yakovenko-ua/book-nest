@@ -1,10 +1,12 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { subDays } from "date-fns";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
+import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -13,10 +15,12 @@ import { ReadingQueueModule } from "../reading-queue.module.js";
 
 let context: AuthTestContext;
 let app: INestApplication;
+let prisma: PrismaService;
 
 beforeAll(async () => {
   context = await createAuthTestContext([AuthModule, BooksModule, ReadingQueueModule]);
   app = context.app;
+  prisma = app.get(PrismaService);
 });
 
 beforeEach(() => {
@@ -85,6 +89,18 @@ function getQueue(accessToken: string): request.Test {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
+function getSummary(accessToken: string): request.Test {
+  return request(app.getHttpServer())
+    .get("/api/reading-queue/summary")
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
+function getVolumeSummary(accessToken: string): request.Test {
+  return request(app.getHttpServer())
+    .get("/api/reading-queue/volume-summary")
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
 function positionsByTitle(res: request.Response): Array<[string, number]> {
   const items = res.body.items as Array<{ book: { title: string }; position: number }>;
   return items.map((item) => [item.book.title, item.position]);
@@ -101,6 +117,59 @@ function reorder(accessToken: string, order: string[]): request.Test {
     .put("/api/reading-queue/reorder")
     .set("Authorization", `Bearer ${accessToken}`)
     .send({ order });
+}
+
+function seedReadingEvent(input: {
+  bookId: string;
+  date: Date;
+  pagesRead: number;
+}): Promise<unknown> {
+  return prisma.bookReadingProgressEvent.create({
+    data: {
+      bookId: input.bookId,
+      date: input.date,
+      page: input.pagesRead,
+      pagesRead: input.pagesRead,
+    },
+  });
+}
+
+async function seedSummaryQueue(accessToken: string): Promise<void> {
+  for (const ownershipStatus of ["owned", "none", "want_to_buy"] as const) {
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus,
+      title: `Standalone ${ownershipStatus}`,
+    });
+    expect(res.status).toBe(201);
+  }
+
+  const partOne = await createBook(accessToken, {
+    authors: [{ name: "Frank Herbert" }],
+    bookType: "series_part",
+    newSeries: { name: "Dune" },
+    ownershipStatus: "owned",
+    partNumber: 1,
+    readingStatus: "not_started",
+    title: "Dune",
+  });
+  expect(partOne.status).toBe(201);
+  const seriesId = partOne.body.series.id;
+
+  for (const partNumber of [2, 3]) {
+    const res = await createBook(accessToken, {
+      addToReadingQueue: true,
+      authors: [{ name: "Frank Herbert" }],
+      bookType: "series_part",
+      ownershipStatus: "owned",
+      partNumber,
+      readingStatus: "not_started",
+      seriesId,
+      title: `Dune ${partNumber}`,
+    });
+    expect(res.status).toBe(201);
+  }
 }
 
 function startReading(
@@ -821,5 +890,175 @@ describe("POST /api/reading-queue/:bookId/start-reading", () => {
     expect(res.body.queuePriorityReason).toBeNull();
     expect(res.body.queuePriorityReasonCustomText).toBeNull();
     expect(res.body.queuePriorityTargetDate).toBeNull();
+  });
+});
+
+describe("GET /api/reading-queue/summary", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).get("/api/reading-queue/summary");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("aggregates the queue into consistent availability and series counts", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSummaryQueue(accessToken);
+
+    const res = await getSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      availableNowCount: 1,
+      blockedBySeriesOrderCount: 2,
+      seriesBooksCount: 2,
+      seriesInQueueCount: 1,
+      standaloneBooksCount: 3,
+      totalCount: 5,
+      unavailableByOwnership: { inTransit: 0, lentToSomeone: 0, none: 1, wantToBuy: 1 },
+      unavailableCount: 2,
+    });
+  });
+
+  it("keeps one user's summary isolated from another user's queue", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    await seedSummaryQueue(owner.accessToken);
+
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const strangerBook = await createOwnedBook(stranger.accessToken, {
+      ownershipStatus: "owned",
+      title: "Foundation",
+    });
+    expect(
+      (await addToQueue(stranger.accessToken, { bookId: strangerBook, placement: "end" })).status,
+    ).toBe(200);
+
+    const ownerSummary = await getSummary(owner.accessToken);
+    expect(ownerSummary.body.totalCount).toBe(5);
+
+    const strangerSummary = await getSummary(stranger.accessToken);
+    expect(strangerSummary.body.totalCount).toBe(1);
+    expect(strangerSummary.body.availableNowCount).toBe(1);
+    expect(strangerSummary.body.seriesInQueueCount).toBe(0);
+  });
+});
+
+describe("GET /api/reading-queue/volume-summary", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).get("/api/reading-queue/volume-summary");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns exact volume numbers for a seeded queue without reading history", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    for (const pagesCount of [100, 200, 300]) {
+      await createOwnedBook(accessToken, {
+        addToReadingQueue: true,
+        pagesCount,
+        title: `Book ${pagesCount}`,
+      });
+    }
+    await createOwnedBook(accessToken, {
+      addToReadingQueue: true,
+      formats: ["audiobook"],
+      title: "Audiobook only",
+    });
+    await createOwnedBook(accessToken, {
+      addToReadingQueue: true,
+      formats: ["paper"],
+      title: "Missing pages",
+    });
+
+    const res = await getVolumeSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.queueBooksCount).toBe(5);
+    expect(res.body.coverage).toEqual({ calculatedBooks: 3, ratio: 0.75, totalBooks: 4 });
+    expect(res.body.pages).toEqual({ invalidBooks: 0, knownRemaining: 600, missingBooks: 1 });
+    expect(res.body.audiobookOnlyCount).toBe(1);
+    expect(res.body.hasMissingData).toBe(true);
+    expect(res.body.pace).toEqual({
+      activeDaysInPeriod: 0,
+      lastActivityAt: null,
+      pagesPerCalendarDay: null,
+      sourcePeriodDays: 0,
+    });
+    expect(res.body.estimate).toEqual({
+      daysMax: null,
+      daysMin: null,
+      daysUntilForecast: 30,
+      reasonUnavailable: "insufficient_history",
+    });
+  });
+
+  it("excludes finished books that remain in the queue from the volume count", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createOwnedBook(accessToken, { addToReadingQueue: true, pagesCount: 100, title: "One" });
+    await createOwnedBook(accessToken, { addToReadingQueue: true, pagesCount: 100, title: "Two" });
+    const doneBookId = await createOwnedBook(accessToken, {
+      addToReadingQueue: true,
+      pagesCount: 100,
+      title: "Done",
+    });
+    await prisma.book.update({ data: { readingStatus: "finished" }, where: { id: doneBookId } });
+
+    const queue = await getQueue(accessToken);
+    expect(queue.body.count).toBe(3);
+
+    const res = await getVolumeSummary(accessToken);
+    expect(res.status).toBe(200);
+    expect(res.body.queueBooksCount).toBe(2);
+    expect(res.body.coverage.calculatedBooks).toBe(2);
+    expect(res.body.pages.knownRemaining).toBe(200);
+  });
+
+  it("isolates one user's queue and reading history from another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const strangerBook = await createOwnedBook(stranger.accessToken, {
+      addToReadingQueue: true,
+      pagesCount: 500,
+      title: "Stranger book",
+    });
+    for (const daysAgo of [1, 3, 5]) {
+      await seedReadingEvent({
+        bookId: strangerBook,
+        date: subDays(new Date(), daysAgo),
+        pagesRead: 50,
+      });
+    }
+
+    const ownerBook = await createOwnedBook(owner.accessToken, {
+      addToReadingQueue: true,
+      pagesCount: 400,
+      title: "Owner book",
+    });
+    await seedReadingEvent({ bookId: ownerBook, date: subDays(new Date(), 2), pagesRead: 80 });
+
+    const res = await getVolumeSummary(owner.accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.queueBooksCount).toBe(1);
+    expect(res.body.pages.knownRemaining).toBe(400);
+    expect(res.body.pace.activeDaysInPeriod).toBe(1);
+    expect(res.body.pace.pagesPerCalendarDay).not.toBeNull();
+  });
+
+  it("matches the volume-summary route instead of the dynamic :bookId route", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getVolumeSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("queueBooksCount");
+    expect(res.body).toHaveProperty("coverage");
+    expect(res.body).toHaveProperty("estimate");
   });
 });

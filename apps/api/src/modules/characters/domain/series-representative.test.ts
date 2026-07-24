@@ -2,11 +2,12 @@ import type { CharacterSummaryView } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
-import type { SeriesAppearanceLike } from "./series-representative.js";
+import type { SeriesAppearanceLike, SeriesReadingContextBook } from "./series-representative.js";
 
 import {
   pickSeriesRepresentatives,
   resolveAllowedBookIds,
+  resolveDefaultReadingContext,
   sortSeriesSummaries,
 } from "./series-representative.js";
 
@@ -199,6 +200,81 @@ describe("pickSeriesRepresentatives", () => {
       partNumberByBookId,
     });
     expect(result.map((row) => row.characterId).sort()).toEqual(["chani", "paul"]);
+  });
+});
+
+describe("resolveDefaultReadingContext", () => {
+  function readingBook(
+    overrides: Partial<SeriesReadingContextBook> & { id: string },
+  ): SeriesReadingContextBook {
+    return {
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      finishedAt: null,
+      partNumber: null,
+      ...overrides,
+    };
+  }
+
+  it("returns a none context for a series with no books", () => {
+    expect(resolveDefaultReadingContext({ books: [] })).toEqual({
+      contextBookId: null,
+      partNumber: null,
+      source: "none",
+    });
+  });
+
+  it("picks the finished book with the greatest part number", () => {
+    const result = resolveDefaultReadingContext({
+      books: [
+        readingBook({ finishedAt: new Date("2026-02-01"), id: BOOK_ONE, partNumber: 1 }),
+        readingBook({ finishedAt: new Date("2026-03-01"), id: BOOK_THREE, partNumber: 3 }),
+        readingBook({ finishedAt: new Date("2026-02-15"), id: BOOK_TWO, partNumber: 2 }),
+      ],
+    });
+    expect(result).toEqual({
+      contextBookId: BOOK_THREE,
+      partNumber: 3,
+      source: "last_finished_book",
+    });
+  });
+
+  it("ignores unfinished later books when choosing the last finished", () => {
+    const result = resolveDefaultReadingContext({
+      books: [
+        readingBook({ finishedAt: new Date("2026-02-01"), id: BOOK_ONE, partNumber: 1 }),
+        readingBook({ id: BOOK_TWO, partNumber: 2 }),
+        readingBook({ id: BOOK_THREE, partNumber: 3 }),
+      ],
+    });
+    expect(result).toEqual({
+      contextBookId: BOOK_ONE,
+      partNumber: 1,
+      source: "last_finished_book",
+    });
+  });
+
+  it("prefers a numbered finished book over an unnumbered finished book", () => {
+    const result = resolveDefaultReadingContext({
+      books: [
+        readingBook({ finishedAt: new Date("2026-05-01"), id: BOOK_UNNUMBERED, partNumber: null }),
+        readingBook({ finishedAt: new Date("2026-02-01"), id: BOOK_TWO, partNumber: 2 }),
+      ],
+    });
+    expect(result).toEqual({
+      contextBookId: BOOK_TWO,
+      partNumber: 2,
+      source: "last_finished_book",
+    });
+  });
+
+  it("falls back to the first book when nothing is finished", () => {
+    const result = resolveDefaultReadingContext({
+      books: [
+        readingBook({ id: BOOK_TWO, partNumber: 2 }),
+        readingBook({ id: BOOK_ONE, partNumber: 1 }),
+      ],
+    });
+    expect(result).toEqual({ contextBookId: BOOK_ONE, partNumber: 1, source: "first_book" });
   });
 });
 

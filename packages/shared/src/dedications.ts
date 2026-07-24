@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { LIBRARY_SEARCH_MAX } from "./books.js";
-import { LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
+import { paginationQueryFields } from "./common.js";
 import { GenreKeySchema } from "./genres.js";
 
 export const DEDICATIONS_PAGE_SIZE_DEFAULT = 12;
@@ -30,13 +30,7 @@ export type DedicationSort = z.infer<typeof DedicationSortSchema>;
 export const DedicationsQuerySchema = z.object({
   filter: DedicationFilterSchema.default("all"),
   genre: GenreKeySchema.optional(),
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(DEDICATIONS_PAGE_SIZE_DEFAULT),
+  ...paginationQueryFields({ pageSizeDefault: DEDICATIONS_PAGE_SIZE_DEFAULT }),
   q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
   sort: DedicationSortSchema.default("newest"),
 });

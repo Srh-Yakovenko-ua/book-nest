@@ -18,11 +18,9 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -33,17 +31,17 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { TimelineService } from "../application/timeline.service.js";
 import { CreateTimelineInputDto } from "./input-dto/create-timeline.input-dto.js";
 import { DeleteTimelineQueryDto } from "./input-dto/delete-timeline-query.input-dto.js";
@@ -54,14 +52,9 @@ import { TimelineListViewDto } from "./view-dto/timeline-list.view-dto.js";
 import { TimelineSummaryViewDto } from "./view-dto/timeline-summary.view-dto.js";
 import { TimelineViewDto } from "./view-dto/timeline.view-dto.js";
 
-const TIMELINE_ACTION_TTL_SECONDS = 60;
-const TIMELINE_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("timelines")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller()
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class TimelinesController {
   constructor(private readonly timelineService: TimelineService) {}
 
@@ -103,9 +96,7 @@ export class TimelinesController {
   @ApiOperation({ summary: "Create a timeline for a book" })
   @ApiParam({ description: "Book id", name: "bookId" })
   @Post("api/books/:bookId/timelines")
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   createTimeline(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
@@ -123,9 +114,7 @@ export class TimelinesController {
   @ApiUnprocessableEntityResponse({ description: "The neighbor timeline is invalid" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("api/books/:bookId/timelines/reorder")
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   reorderTimelines(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
@@ -142,9 +131,7 @@ export class TimelinesController {
   @ApiOperation({ summary: "Update a timeline's name, description or color" })
   @ApiParam({ description: "Timeline id", name: "timelineId" })
   @Patch("api/timelines/:timelineId")
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   updateTimeline(
     @CurrentUser() user: AuthenticatedUser,
     @Param("timelineId", ParseUUIDPipe) timelineId: string,
@@ -164,9 +151,7 @@ export class TimelinesController {
   @ApiParam({ description: "Timeline id", name: "timelineId" })
   @HttpCode(HTTP_STATUS.OK)
   @Post("api/timelines/:timelineId/set-default")
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   setDefault(
     @CurrentUser() user: AuthenticatedUser,
     @Param("timelineId", ParseUUIDPipe) timelineId: string,
@@ -189,9 +174,7 @@ export class TimelinesController {
   })
   @Delete("api/timelines/:timelineId")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @Throttle({
-    default: { limit: TIMELINE_ACTION_LIMIT, ttl: seconds(TIMELINE_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   deleteTimeline(
     @CurrentUser() user: AuthenticatedUser,
     @Param("timelineId", ParseUUIDPipe) timelineId: string,

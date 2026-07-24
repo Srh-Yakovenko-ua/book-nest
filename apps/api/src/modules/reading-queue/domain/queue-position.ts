@@ -4,8 +4,7 @@ export const QUEUE_POSITION_TOO_LARGE_MESSAGE =
   "Позиція не може бути більшою за кількість книг у черзі + 1";
 
 export type QueueInsertPositionResult =
-  | { message: string; ok: false }
-  | { ok: true; position: number };
+  { message: string; ok: false } | { ok: true; position: number };
 
 export function computeQueueInsertPosition({
   count,

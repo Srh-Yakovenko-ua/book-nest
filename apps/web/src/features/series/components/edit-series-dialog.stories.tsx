@@ -1,20 +1,25 @@
+import type { SeriesView } from "@app/shared";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
+import { getQueryClient } from "@/lib/query-client";
+
 import { makeSeriesView } from "../model/series.fixtures";
 import { EditSeriesDialog } from "./edit-series-dialog";
 
-function Harness() {
+const EMPTY_AUTHORS_PAGE = { items: [], page: 1, pagesCount: 1, pageSize: 20, totalCount: 0 };
+
+function Harness({
+  series = makeSeriesView({ name: "Відьмак", totalBooks: 8 }),
+}: {
+  series?: SeriesView;
+}) {
   const [open, setOpen] = useState(true);
   return (
     <>
-      <EditSeriesDialog
-        onOpenChange={setOpen}
-        open={open}
-        series={makeSeriesView({ name: "Відьмак", totalBooks: 8 })}
-      />
+      <EditSeriesDialog onOpenChange={setOpen} open={open} series={series} />
       <p data-testid="open-state">{open ? "open" : "closed"}</p>
     </>
   );
@@ -28,11 +33,22 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 function mockFetch(status: number, body: unknown) {
-  globalThis.fetch = (() => Promise.resolve(jsonResponse(status, body))) as typeof fetch;
+  getQueryClient().clear();
+  globalThis.fetch = ((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/api/authors/recent")) return Promise.resolve(jsonResponse(200, []));
+    if (url.includes("/api/authors")) {
+      return Promise.resolve(jsonResponse(200, EMPTY_AUTHORS_PAGE));
+    }
+    return Promise.resolve(jsonResponse(status, body));
+  }) as typeof fetch;
 }
 
 const meta = {
   args: { onOpenChange: () => {}, open: true, series: makeSeriesView() },
+  beforeEach: () => {
+    mockFetch(200, makeSeriesView());
+  },
   component: EditSeriesDialog,
   parameters: { layout: "fullscreen" },
   render: () => <Harness />,
@@ -71,4 +87,38 @@ export const SubmitSuccessCloses: Story = {
     await userEvent.click(body.getByRole("button", { name: "Зберегти зміни" }));
     await waitFor(() => expect(body.getByTestId("open-state")).toHaveTextContent("closed"));
   },
+};
+
+export const EmptySeriesShowsEditableAuthors: Story = {
+  play: async () => {
+    const body = within(document.body);
+    await waitFor(() =>
+      expect(body.getByRole("heading", { name: "Редагувати серію" })).toBeVisible(),
+    );
+    await expect(
+      body.queryByText("Авторів серії визначають автори її книг"),
+    ).not.toBeInTheDocument();
+  },
+  render: () => (
+    <Harness series={makeSeriesView({ authors: [], booksInSeries: 0, name: "Відьмак" })} />
+  ),
+};
+
+export const SeriesWithBooksShowsDerivedAuthors: Story = {
+  play: async () => {
+    const body = within(document.body);
+    await waitFor(() =>
+      expect(body.getByText("Авторів серії визначають автори її книг")).toBeVisible(),
+    );
+    await expect(body.getByText("Ребекка Яррос")).toBeVisible();
+  },
+  render: () => (
+    <Harness
+      series={makeSeriesView({
+        authors: [{ id: "author-1", name: "Ребекка Яррос" }],
+        booksInSeries: 4,
+        name: "Емпіреї",
+      })}
+    />
+  ),
 };

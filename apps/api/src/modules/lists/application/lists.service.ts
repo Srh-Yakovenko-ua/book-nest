@@ -8,23 +8,20 @@ import type {
   UpdateListInput,
 } from "@app/shared";
 
+import { normalizeName } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { createLogger } from "../../../core/logger.js";
-import { normalizeName } from "../../../core/normalize-name.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
 import { toCustomListCard } from "../domain/custom-list-card.mapper.js";
 import { type BookListCard, ListsRepository } from "../infrastructure/lists.repository.js";
 
 const LIST_NAME_TAKEN_MESSAGE = "List with this name already exists";
 const LIST_NOT_FOUND_MESSAGE = "List not found";
-
-const log = createLogger("lists.service");
 
 export type ListDetailHeader = {
   bookCount: number;
@@ -119,10 +116,10 @@ export class ListsService {
       });
       return this.toCard(created);
     } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      throw new ConflictError(LIST_NAME_TAKEN_MESSAGE);
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () => new ConflictError(LIST_NAME_TAKEN_MESSAGE),
+      });
     }
   }
 
@@ -184,10 +181,9 @@ export class ListsService {
     const [lists, totalCount] = await Promise.all([
       this.listsRepository.searchOwnedCards({
         query: search,
-        skip: (pageNumber - 1) * pageSize,
         sort,
-        take: pageSize,
         userId,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.listsRepository.countOwned({ query: search, userId }),
     ]);
@@ -221,10 +217,10 @@ export class ListsService {
       });
       return this.toCard(updated);
     } catch (error) {
-      if (!isUniqueConstraintError(error)) {
-        throw error;
-      }
-      throw new ConflictError(LIST_NAME_TAKEN_MESSAGE);
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () => new ConflictError(LIST_NAME_TAKEN_MESSAGE),
+      });
     }
   }
 
@@ -269,13 +265,9 @@ export class ListsService {
   private toCard(list: BookListCard): CustomListCard {
     const previewCovers: MediaView[] = [];
     for (const item of list.items) {
-      if (item.book.coverMedia === null) {
-        continue;
-      }
-      try {
-        previewCovers.push(this.mediaService.buildView(item.book.coverMedia));
-      } catch (error) {
-        log.warn({ err: error, listId: list.id }, "failed to build preview cover view");
+      const cover = this.mediaService.buildViewOrNull(item.book.coverMedia);
+      if (cover !== null) {
+        previewCovers.push(cover);
       }
     }
     return toCustomListCard({ list, previewCovers });

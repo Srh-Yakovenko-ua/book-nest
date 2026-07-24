@@ -8,8 +8,11 @@ import { parseAsStringLiteral, useQueryState } from "nuqs";
 import type { PageTabsItem } from "@/components/page-tabs";
 
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
+import { Badge } from "@/components/ui/badge";
+import { BookCharactersTab, useBookCharacterSummary } from "@/features/characters";
 import { BookNotesBlock } from "@/features/notes";
 import { BookQuotesBlock } from "@/features/quotes";
+import { BookTimelineBlock, useTimelineSummary } from "@/features/timeline";
 
 import { BookDetailsAbout } from "./book-details-about";
 import { BookDetailsEdition } from "./book-details-edition";
@@ -23,17 +26,37 @@ type BookDetailsViewProps = {
   book: BookView;
 };
 
-const DETAIL_TABS = ["overview", "history"] as const;
+const DETAIL_TABS = ["overview", "history", "characters", "timeline"] as const;
+
+type DetailTab = (typeof DETAIL_TABS)[number];
 
 const tabParser = parseAsStringLiteral(DETAIL_TABS).withDefault("overview");
 
 export function BookDetailsView({ book }: BookDetailsViewProps) {
   const t = useTranslations("books.details");
+  const tCharacters = useTranslations("characters");
   const [tab, setTab] = useQueryState("tab", tabParser);
+  const charactersSummary = useBookCharacterSummary(book.id);
+  const charactersCount = charactersSummary.data?.totalVisibleCharacters ?? 0;
+  const timelineSummaryQuery = useTimelineSummary(book.id);
 
   const items: PageTabsItem[] = [
     { label: t("reading.tabOverview"), value: "overview" },
     { label: t("readingHistory.tab"), value: "history" },
+    {
+      badge:
+        charactersCount > 0 ? (
+          <Badge className="ml-1.5" variant="secondary">
+            {charactersCount}
+          </Badge>
+        ) : undefined,
+      label: tCharacters("tab"),
+      value: "characters",
+    },
+    {
+      label: t("timeline.tab", { count: timelineSummaryQuery.data?.totalEvents ?? 0 }),
+      value: "timeline",
+    },
   ];
 
   return (
@@ -44,7 +67,7 @@ export function BookDetailsView({ book }: BookDetailsViewProps) {
 
         <PageTabs
           items={items}
-          onValueChange={(value) => void setTab(value === "history" ? "history" : "overview")}
+          onValueChange={(value) => void setTab(toDetailTab(value))}
           value={tab}
         >
           <PageTabsPanel className="flex flex-col gap-6" value="overview">
@@ -57,10 +80,20 @@ export function BookDetailsView({ book }: BookDetailsViewProps) {
           <PageTabsPanel value="history">
             <ReadingHistoryTab book={book} isActive={tab === "history"} key={book.id} />
           </PageTabsPanel>
+          <PageTabsPanel value="characters">
+            <BookCharactersTab book={book} key={book.id} />
+          </PageTabsPanel>
+          <PageTabsPanel value="timeline">
+            <BookTimelineBlock book={book} key={book.id} />
+          </PageTabsPanel>
         </PageTabs>
       </div>
 
       <BookDetailsSidebar book={book} />
     </div>
   );
+}
+
+function toDetailTab(value: string): DetailTab {
+  return DETAIL_TABS.find((detailTab) => detailTab === value) ?? "overview";
 }

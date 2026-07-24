@@ -1,6 +1,27 @@
-import type { Nullable, ReadingStatus, SeriesBookView, SeriesStatsView } from "@app/shared";
+import type { Nullable, ReadingStatus, SeriesStatsView } from "@app/shared";
 
-type StatsBook = Pick<SeriesBookView, "pagesCount" | "rating" | "readingStatus">;
+import { differenceInCalendarDays, max, min } from "date-fns";
+
+import { toNullableIsoDateTime } from "../../../core/iso-date.js";
+import { compareByPartThenCreated } from "./series-preview.js";
+
+type ReadPages = {
+  readPagesCount: Nullable<number>;
+  readPagesPartial: boolean;
+};
+
+type StatsBook = {
+  createdAt: Date;
+  finishedAt: Nullable<Date>;
+  id: string;
+  isFavorite: boolean;
+  pagesCount: Nullable<number>;
+  partNumber: Nullable<number>;
+  rating: Nullable<number>;
+  readingStatus: ReadingStatus;
+  startedAt: Nullable<Date>;
+  title: string;
+};
 
 const FINISHED_READING_STATUS: ReadingStatus = "finished";
 
@@ -25,14 +46,40 @@ export function computeSeriesStats(books: StatsBook[]): SeriesStatsView {
       !READING_READING_STATUSES.has(book.readingStatus),
   ).length;
 
+  const startedAt = computeMinStartedAt(books);
+  const lastFinishedAt = computeMaxFinishedAt(books);
+  const readPages = computeReadPages(books);
+
   return {
+    averagePages: computeAveragePages(books),
     averageRating: computeAverageRating(books),
     booksCount,
+    favoriteBook: selectFavoriteBook(books),
     finishedCount,
+    lastFinishedAt: toNullableIsoDateTime(lastFinishedAt),
     pagesCount: computePagesCount(books),
     readingCount,
+    readingDurationDays: computeReadingDurationDays({ lastFinishedAt, startedAt }),
+    readPagesCount: readPages.readPagesCount,
+    readPagesPartial: readPages.readPagesPartial,
+    startedAt: toNullableIsoDateTime(startedAt),
     unreadCount,
   };
+}
+
+function collectPagesCounts(books: StatsBook[]): number[] {
+  return books
+    .map((book) => book.pagesCount)
+    .filter((pagesCount): pagesCount is number => pagesCount !== null);
+}
+
+function computeAveragePages(books: StatsBook[]): Nullable<number> {
+  const pages = collectPagesCounts(books);
+  if (pages.length === 0) {
+    return null;
+  }
+  const total = pages.reduce((sum, pagesCount) => sum + pagesCount, 0);
+  return Math.round(total / pages.length);
 }
 
 function computeAverageRating(books: StatsBook[]): Nullable<number> {
@@ -46,12 +93,64 @@ function computeAverageRating(books: StatsBook[]): Nullable<number> {
   return Math.round((total / ratings.length) * RATING_ROUNDING_FACTOR) / RATING_ROUNDING_FACTOR;
 }
 
+function computeMaxFinishedAt(books: StatsBook[]): Nullable<Date> {
+  const finishedDates = books
+    .map((book) => book.finishedAt)
+    .filter((finishedAt): finishedAt is Date => finishedAt !== null);
+  if (finishedDates.length === 0) {
+    return null;
+  }
+  return max(finishedDates);
+}
+
+function computeMinStartedAt(books: StatsBook[]): Nullable<Date> {
+  const startedDates = books
+    .map((book) => book.startedAt)
+    .filter((startedAt): startedAt is Date => startedAt !== null);
+  if (startedDates.length === 0) {
+    return null;
+  }
+  return min(startedDates);
+}
+
 function computePagesCount(books: StatsBook[]): Nullable<number> {
-  const pages = books
-    .map((book) => book.pagesCount)
-    .filter((pagesCount): pagesCount is number => pagesCount !== null);
+  const pages = collectPagesCounts(books);
   if (pages.length === 0) {
     return null;
   }
   return pages.reduce((sum, pagesCount) => sum + pagesCount, 0);
+}
+
+function computeReadingDurationDays({
+  lastFinishedAt,
+  startedAt,
+}: {
+  lastFinishedAt: Nullable<Date>;
+  startedAt: Nullable<Date>;
+}): Nullable<number> {
+  if (startedAt === null || lastFinishedAt === null) {
+    return null;
+  }
+  const durationDays = differenceInCalendarDays(lastFinishedAt, startedAt);
+  return durationDays < 0 ? null : durationDays;
+}
+
+function computeReadPages(books: StatsBook[]): ReadPages {
+  const finishedBooks = books.filter((book) => book.readingStatus === FINISHED_READING_STATUS);
+  const pages = collectPagesCounts(finishedBooks);
+  if (pages.length === 0) {
+    return { readPagesCount: null, readPagesPartial: false };
+  }
+  return {
+    readPagesCount: pages.reduce((sum, pagesCount) => sum + pagesCount, 0),
+    readPagesPartial: finishedBooks.some((book) => book.pagesCount === null),
+  };
+}
+
+function selectFavoriteBook(books: StatsBook[]): Nullable<{ id: string; title: string }> {
+  const favorite = [...books].sort(compareByPartThenCreated).find((book) => book.isFavorite);
+  if (favorite === undefined) {
+    return null;
+  }
+  return { id: favorite.id, title: favorite.title };
 }

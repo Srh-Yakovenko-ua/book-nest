@@ -1,11 +1,29 @@
 import type { CharacterListSort, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
-import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookCharacterModel, CharacterModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+
+const CHARACTER_IMPORTANCE_CENTRAL = "central";
+const CHARACTER_IMPORTANCE_MAJOR = "major";
+
+const BookCharacterSummaryCountsRowSchema = z.object({
+  favoritesCount: z.number(),
+  hiddenCount: z.number(),
+  povCount: z.number(),
+  totalVisibleCharacters: z.number(),
+});
+
+const EMPTY_BOOK_CHARACTER_COUNTS: z.infer<typeof BookCharacterSummaryCountsRowSchema> = {
+  favoritesCount: 0,
+  hiddenCount: 0,
+  povCount: 0,
+  totalVisibleCharacters: 0,
+};
 
 const detailsInclude = {
   aliases: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
@@ -16,6 +34,10 @@ const detailsInclude = {
       roles: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  },
+  forms: {
+    include: { portraitMedia: true },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
   },
 } satisfies Prisma.CharacterInclude;
 
@@ -29,6 +51,10 @@ const rosterInclude = {
 const globalSummaryInclude = {
   _count: { select: { bookAppearances: true } },
   avatarMedia: true,
+  tags: {
+    orderBy: [{ tag: { name: "asc" } }, { tag: { normalizedName: "asc" } }],
+    select: { tag: { select: { id: true, name: true } } },
+  },
 } satisfies Prisma.CharacterInclude;
 
 const seriesAppearanceInclude = {
@@ -43,7 +69,10 @@ const seriesProfileInclude = {
   aliases: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
   avatarMedia: true,
   bookAppearances: {
-    include: { portraitMedia: true },
+    include: {
+      portraitMedia: true,
+      roles: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
+    },
     orderBy: [{ createdAt: "asc" }],
   },
 } satisfies Prisma.CharacterInclude;
@@ -52,6 +81,15 @@ const purgeSelect = {
   avatarMediaId: true,
   bookAppearances: { select: { portraitMediaId: true } },
   deletedAt: true,
+  forms: { select: { portraitMediaId: true } },
+} satisfies Prisma.CharacterSelect;
+
+const graphNodeSelect = {
+  entityKind: true,
+  id: true,
+  isFavorite: true,
+  name: true,
+  updatedAt: true,
 } satisfies Prisma.CharacterSelect;
 
 const GLOBAL_CHARACTER_ORDER_BY: Record<
@@ -61,6 +99,14 @@ const GLOBAL_CHARACTER_ORDER_BY: Record<
   name: [{ name: "asc" }, { createdAt: "asc" }],
   recently_added: [{ createdAt: "desc" }, { name: "asc" }],
   recently_updated: [{ updatedAt: "desc" }, { name: "asc" }],
+};
+
+export type BookCharacterSummaryAggregate = {
+  byImportance: { count: number; importance: string }[];
+  favoritesCount: number;
+  hiddenCount: number;
+  povCount: number;
+  totalVisibleCharacters: number;
 };
 
 export type BookContextRow = {
@@ -142,6 +188,7 @@ export type CreateCharacterData = {
   entityKind: string;
   gender: string;
   globalAttitude: Nullable<string>;
+  hideProfileAsSpoiler: boolean;
   isFavorite: boolean;
   name: string;
   neutralDescription: Nullable<string>;
@@ -161,15 +208,36 @@ export type CreateRoleData = {
 export type GlobalCharacterFilter = {
   archived: boolean;
   attitudes: string[] | undefined;
+  bookId: string | undefined;
   contextBookId: string | undefined;
+  duplicateNormalizedNames: string[] | undefined;
   favorite: boolean | undefined;
   genders: string[] | undefined;
+  groupIds: string[] | undefined;
+  hasSpoilers: boolean | undefined;
   importances: string[] | undefined;
+  includeHiddenProfiles: boolean;
   includeSpoilerSearch: boolean;
   roleTypes: string[] | undefined;
   search: string | undefined;
+  seriesId: string | undefined;
   species: string[] | undefined;
+  tagIds: string[] | undefined;
   userId: string;
+};
+
+export type GraphNodeRow = {
+  bookAppearances: {
+    bookId: string;
+    createdAt: Date;
+    hidePresenceAsSpoiler: boolean;
+    importance: string;
+  }[];
+  entityKind: string;
+  id: string;
+  isFavorite: boolean;
+  name: string;
+  updatedAt: Date;
 };
 
 export type RosterRow = Prisma.BookCharacterGetPayload<{ include: typeof rosterInclude }>;
@@ -182,6 +250,13 @@ export type SeriesBookRow = {
   createdAt: Date;
   id: string;
   partNumber: Nullable<number>;
+};
+
+export type SeriesReadingContextBookRow = {
+  createdAt: Date;
+  id: string;
+  partNumber: Nullable<number>;
+  readingProgress: Nullable<{ finishedAt: Nullable<Date> }>;
 };
 
 export type UpdateBookCharacterData = {
@@ -218,6 +293,7 @@ export type UpdateCharacterData = {
   entityKind?: string;
   gender?: string;
   globalAttitude?: Nullable<string>;
+  hideProfileAsSpoiler?: boolean;
   isFavorite?: boolean;
   name?: string;
   neutralDescription?: Nullable<string>;
@@ -240,6 +316,65 @@ type RosterFilter = {
 @Injectable()
 export class CharactersRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async aggregateBookCharacterSummary({
+    bookId,
+    userId,
+  }: {
+    bookId: string;
+    userId: string;
+  }): Promise<BookCharacterSummaryAggregate> {
+    const characterScope = { deletedAt: null, hideProfileAsSpoiler: false, userId };
+    const visibleWhere: Prisma.BookCharacterWhereInput = {
+      bookId,
+      character: characterScope,
+      hidePresenceAsSpoiler: false,
+    };
+
+    const [countsRows, byImportanceRows] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*) FILTER (WHERE book_character.hide_presence_as_spoiler = false))::int
+            AS "totalVisibleCharacters",
+          (count(*) FILTER (
+            WHERE book_character.hide_presence_as_spoiler = false
+              AND book_character.is_pov_character = true
+          ))::int AS "povCount",
+          (count(*) FILTER (
+            WHERE book_character.hide_presence_as_spoiler = false
+              AND character.is_favorite = true
+          ))::int AS "favoritesCount",
+          (count(*) FILTER (WHERE book_character.hide_presence_as_spoiler = true))::int
+            AS "hiddenCount"
+        FROM book_characters book_character
+        JOIN characters character ON character.id = book_character.character_id
+        WHERE book_character.book_id = ${bookId}::uuid
+          AND character.deleted_at IS NULL
+          AND character.hide_profile_as_spoiler = false
+          AND character.user_id = ${userId}::uuid
+      `),
+      this.prisma.bookCharacter.groupBy({
+        _count: { _all: true },
+        by: ["importance"],
+        where: visibleWhere,
+      }),
+    ]);
+
+    const counts =
+      z.array(BookCharacterSummaryCountsRowSchema).parse(countsRows)[0] ??
+      EMPTY_BOOK_CHARACTER_COUNTS;
+
+    return {
+      byImportance: byImportanceRows.map((row) => ({
+        count: row._count._all,
+        importance: row.importance,
+      })),
+      favoritesCount: counts.favoritesCount,
+      hiddenCount: counts.hiddenCount,
+      povCount: counts.povCount,
+      totalVisibleCharacters: counts.totalVisibleCharacters,
+    };
+  }
 
   async countDeletionImpact(
     { characterId }: { characterId: string },
@@ -364,7 +499,12 @@ export class CharactersRepository {
       return Promise.resolve([]);
     }
 
-    const where: Prisma.CharacterWhereInput = { deletedAt: null, OR: or, userId };
+    const where: Prisma.CharacterWhereInput = {
+      deletedAt: null,
+      hideProfileAsSpoiler: false,
+      OR: or,
+      userId,
+    };
     if (excludeCharacterId !== undefined) {
       where.id = { not: excludeCharacterId };
     }
@@ -374,6 +514,29 @@ export class CharactersRepository {
       take: limit,
       where,
     });
+  }
+
+  async findDuplicateNormalizedNames({
+    archived,
+    includeHiddenProfiles,
+    userId,
+  }: {
+    archived: boolean;
+    includeHiddenProfiles: boolean;
+    userId: string;
+  }): Promise<string[]> {
+    const groups = await this.prisma.character.groupBy({
+      _count: { normalizedName: true },
+      by: ["normalizedName"],
+      having: { normalizedName: { _count: { gt: 1 } } },
+      where: {
+        archivedAt: archived ? { not: null } : null,
+        deletedAt: null,
+        userId,
+        ...(includeHiddenProfiles ? {} : { hideProfileAsSpoiler: false }),
+      },
+    });
+    return groups.map((group) => group.normalizedName);
   }
 
   findForPurge(
@@ -431,6 +594,38 @@ export class CharactersRepository {
     });
   }
 
+  findOwnedCharacterDetailsInBooks(
+    {
+      allowedBookIds,
+      characterId,
+      userId,
+    }: { allowedBookIds: string[]; characterId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<CharacterDetailsRow>> {
+    return client.character.findFirst({
+      include: {
+        ...detailsInclude,
+        bookAppearances: {
+          ...detailsInclude.bookAppearances,
+          where: { bookId: { in: allowedBookIds } },
+        },
+      },
+      where: { deletedAt: null, id: characterId, userId },
+    });
+  }
+
+  findPurgeCandidates(
+    { deletedBefore, limit }: { deletedBefore: Date; limit: number },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<{ id: string; userId: string }[]> {
+    return client.character.findMany({
+      orderBy: { deletedAt: "asc" },
+      select: { id: true, userId: true },
+      take: limit,
+      where: { deletedAt: { lt: deletedBefore } },
+    });
+  }
+
   findSeriesCharacterProfile(
     {
       allowedBookIds,
@@ -452,11 +647,15 @@ export class CharactersRepository {
   }
 
   async hardDeleteIfDeleted(
-    { characterId, userId }: { characterId: string; userId: string },
+    {
+      characterId,
+      deletedBefore,
+      userId,
+    }: { characterId: string; deletedBefore: Date; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     const result = await client.character.deleteMany({
-      where: { deletedAt: { not: null }, id: characterId, userId },
+      where: { deletedAt: { lt: deletedBefore }, id: characterId, userId },
     });
     return result.count;
   }
@@ -481,6 +680,42 @@ export class CharactersRepository {
     });
   }
 
+  listGraphNodes({
+    bookIds,
+    characterIds,
+    userId,
+  }: {
+    bookIds: string[];
+    characterIds: string[];
+    userId: string;
+  }): Promise<GraphNodeRow[]> {
+    if (characterIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.character.findMany({
+      select: {
+        ...graphNodeSelect,
+        bookAppearances: {
+          select: { bookId: true, createdAt: true, hidePresenceAsSpoiler: true, importance: true },
+          where: { bookId: { in: bookIds } },
+        },
+      },
+      where: { deletedAt: null, hideProfileAsSpoiler: false, id: { in: characterIds }, userId },
+    });
+  }
+
+  listOwnedBooks({
+    userId,
+  }: {
+    userId: string;
+  }): Promise<{ id: string; partNumber: Nullable<number> }[]> {
+    return this.prisma.book.findMany({
+      orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
+      select: { id: true, partNumber: true },
+      where: { userId },
+    });
+  }
+
   listRoster({ skip, take, ...filter }: ListRosterInput): Promise<RosterRow[]> {
     return this.prisma.bookCharacter.findMany({
       include: rosterInclude,
@@ -502,7 +737,7 @@ export class CharactersRepository {
   }): Promise<SeriesAppearanceRow[]> {
     const where: Prisma.BookCharacterWhereInput = {
       bookId: { in: bookIds },
-      character: { deletedAt: null, userId },
+      character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
       hidePresenceAsSpoiler: false,
     };
     if (search !== undefined) {
@@ -534,6 +769,43 @@ export class CharactersRepository {
     });
   }
 
+  listSeriesBooksReadingContext({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<SeriesReadingContextBookRow[]> {
+    return this.prisma.book.findMany({
+      orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
+      select: {
+        createdAt: true,
+        id: true,
+        partNumber: true,
+        readingProgress: { select: { finishedAt: true } },
+      },
+      where: { seriesId, userId },
+    });
+  }
+
+  listSeriesHiddenCharacterIds({
+    bookIds,
+    userId,
+  }: {
+    bookIds: string[];
+    userId: string;
+  }): Promise<{ characterId: string }[]> {
+    return this.prisma.bookCharacter.findMany({
+      distinct: ["characterId"],
+      select: { characterId: true },
+      where: {
+        bookId: { in: bookIds },
+        character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
+        hidePresenceAsSpoiler: true,
+      },
+    });
+  }
+
   async listSuggestions({
     bookId,
     limit,
@@ -551,6 +823,7 @@ export class CharactersRepository {
       archivedAt: null,
       bookAppearances: { none: { bookId } },
       deletedAt: null,
+      hideProfileAsSpoiler: false,
       userId,
     };
     if (search !== undefined) {
@@ -587,6 +860,28 @@ export class CharactersRepository {
       where: { ...baseWhere, id: { notIn: excludeIds } },
     });
     return [...sameSeries, ...others];
+  }
+
+  async listTopBookCharacters({
+    bookId,
+    limit,
+    userId,
+  }: {
+    bookId: string;
+    limit: number;
+    userId: string;
+  }): Promise<RosterRow[]> {
+    return this.prisma.bookCharacter.findMany({
+      include: rosterInclude,
+      orderBy: [{ importance: "asc" }, { character: { name: "asc" } }],
+      take: limit,
+      where: {
+        bookId,
+        character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
+        hidePresenceAsSpoiler: false,
+        importance: { in: [CHARACTER_IMPORTANCE_CENTRAL, CHARACTER_IMPORTANCE_MAJOR] },
+      },
+    });
   }
 
   async replaceAliases(
@@ -674,14 +969,21 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
   const {
     archived,
     attitudes,
+    bookId,
     contextBookId,
+    duplicateNormalizedNames,
     favorite,
     genders,
+    groupIds,
+    hasSpoilers,
     importances,
+    includeHiddenProfiles,
     includeSpoilerSearch,
     roleTypes,
     search,
+    seriesId,
     species,
+    tagIds,
     userId,
   } = filter;
 
@@ -690,6 +992,9 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     deletedAt: null,
     userId,
   };
+  if (!includeHiddenProfiles) {
+    where.hideProfileAsSpoiler = false;
+  }
   if (genders !== undefined) {
     where.gender = { in: genders };
   }
@@ -702,11 +1007,24 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
   if (favorite !== undefined) {
     where.isFavorite = favorite;
   }
+  if (tagIds !== undefined) {
+    where.tags = { some: { tagId: { in: tagIds } } };
+  }
+  if (duplicateNormalizedNames !== undefined) {
+    where.normalizedName = { in: duplicateNormalizedNames };
+  }
 
   const scopeAppearance = (
     extra: Prisma.BookCharacterWhereInput,
   ): Prisma.BookCharacterWhereInput =>
     contextBookId === undefined ? extra : { ...extra, bookId: contextBookId };
+
+  const scopeMembership = (
+    extra: Prisma.CharacterGroupMembershipWhereInput,
+  ): Prisma.CharacterGroupMembershipWhereInput =>
+    contextBookId === undefined
+      ? extra
+      : { ...extra, OR: [{ bookId: null }, { bookId: contextBookId }] };
 
   const and: Prisma.CharacterWhereInput[] = [];
   if (importances !== undefined) {
@@ -725,6 +1043,28 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
         }),
       },
     });
+  }
+  if (bookId !== undefined) {
+    and.push({ bookAppearances: { some: { bookId, hidePresenceAsSpoiler: false } } });
+  }
+  if (seriesId !== undefined) {
+    and.push({
+      bookAppearances: { some: { book: { seriesId }, hidePresenceAsSpoiler: false } },
+    });
+  }
+  if (groupIds !== undefined) {
+    and.push({
+      groupMemberships: {
+        some: scopeMembership({
+          groupId: { in: groupIds },
+          ...(includeSpoilerSearch ? {} : { isSpoiler: false }),
+        }),
+      },
+    });
+  }
+  if (hasSpoilers !== undefined) {
+    const spoilerContent = buildHasSpoilerContentWhere({ scopeAppearance, scopeMembership });
+    and.push(hasSpoilers ? spoilerContent : { NOT: spoilerContent });
   }
   if (contextBookId !== undefined) {
     and.push({
@@ -758,6 +1098,40 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
   return where;
 }
 
+function buildHasSpoilerContentWhere({
+  scopeAppearance,
+  scopeMembership,
+}: {
+  scopeAppearance: (extra: Prisma.BookCharacterWhereInput) => Prisma.BookCharacterWhereInput;
+  scopeMembership: (
+    extra: Prisma.CharacterGroupMembershipWhereInput,
+  ) => Prisma.CharacterGroupMembershipWhereInput;
+}): Prisma.CharacterWhereInput {
+  return {
+    OR: [
+      { aliases: { some: { isSpoiler: true } } },
+      { groupMemberships: { some: scopeMembership({ isSpoiler: true }) } },
+      {
+        bookAppearances: {
+          some: scopeAppearance({
+            OR: [
+              { appearanceNotesIsSpoiler: true },
+              { descriptionIsSpoiler: true },
+              { displayNameIsSpoiler: true },
+              { hidePresenceAsSpoiler: true },
+              { personalImpressionIsSpoiler: true },
+              { portraitIsSpoiler: true },
+              { speciesOverrideIsSpoiler: true },
+              { statusIsSpoiler: true },
+              { roles: { some: { isSpoiler: true } } },
+            ],
+          }),
+        },
+      },
+    ],
+  };
+}
+
 function buildRosterWhere({
   bookId,
   search,
@@ -765,7 +1139,7 @@ function buildRosterWhere({
 }: RosterFilter): Prisma.BookCharacterWhereInput {
   const where: Prisma.BookCharacterWhereInput = {
     bookId,
-    character: { deletedAt: null, userId },
+    character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
     hidePresenceAsSpoiler: false,
   };
 

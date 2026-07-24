@@ -12,6 +12,7 @@ export type ApiErrorResult = {
 
 export type ApiHealth = {
   postgres: "down" | "ok";
+  redis: "down" | "ok";
   status: "degraded" | "down" | "ok";
   timestamp: string;
   uptimeSeconds: number;
@@ -40,7 +41,45 @@ export const LIST_PAGE_SIZE_MAX = 100;
 
 export const PAGE_NUMBER_MAX = 21474836;
 
-const HTML_TAG = /<\/?[a-zA-Z][^>]*>|<!--|<!\w/;
+export const READING_POSITION_INT_MAX = 2147483647;
+
+const readingPositionUnit = () =>
+  z.coerce.number().int().min(0).max(READING_POSITION_INT_MAX).optional();
+
+export const ReadingPositionSchema = z.object({
+  audioSeconds: readingPositionUnit(),
+  chapter: readingPositionUnit(),
+  page: readingPositionUnit(),
+});
+
+export type ReadingPosition = z.infer<typeof ReadingPositionSchema>;
+
+export const readingPositionQueryFields = {
+  contextAudioSeconds: ReadingPositionSchema.shape.audioSeconds,
+  contextChapter: ReadingPositionSchema.shape.chapter,
+  contextPage: ReadingPositionSchema.shape.page,
+};
+
+export const readingPositionFromQuery = (query: {
+  contextAudioSeconds?: number;
+  contextChapter?: number;
+  contextPage?: number;
+}): ReadingPosition | undefined => {
+  if (
+    query.contextAudioSeconds === undefined &&
+    query.contextChapter === undefined &&
+    query.contextPage === undefined
+  ) {
+    return undefined;
+  }
+  return {
+    audioSeconds: query.contextAudioSeconds,
+    chapter: query.contextChapter,
+    page: query.contextPage,
+  };
+};
+
+const HTML_TAG = /<\/?[a-zA-Z][^<>]*>|<!--|<!\w/;
 
 export const noHtmlTags = (value: string): boolean => !HTML_TAG.test(value);
 
@@ -72,3 +111,22 @@ export const createPaginatedSchema = <ItemSchema extends z.ZodType>(item: ItemSc
     pageSize: z.number().int(),
     totalCount: z.number().int(),
   });
+
+export const paginationQueryFields = (options: {
+  pageNumberMax?: number;
+  pageSizeDefault: number;
+  pageSizeMax?: number;
+}) => ({
+  pageNumber: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(options.pageNumberMax ?? PAGE_NUMBER_MAX)
+    .default(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(options.pageSizeMax ?? LIST_PAGE_SIZE_MAX)
+    .default(options.pageSizeDefault),
+});
