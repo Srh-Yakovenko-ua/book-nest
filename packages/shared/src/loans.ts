@@ -10,6 +10,19 @@ export const LoanUiStatusSchema = z.enum(["overdue", "return_soon", "no_return_d
 
 export type LoanUiStatus = z.infer<typeof LoanUiStatusSchema>;
 
+export const LoanInfoViewSchema = z.object({
+  contact: z.string().nullable(),
+  expectedReturnDate: z.string().nullable(),
+  loanDate: z.string().nullable(),
+  loanType: LoanTypeSchema,
+  loanUiStatus: LoanUiStatusSchema,
+  note: z.string().nullable(),
+  personName: z.string(),
+  remindToReturn: z.boolean(),
+});
+
+export type LoanInfoView = z.infer<typeof LoanInfoViewSchema>;
+
 export const LoanFilterSchema = z.enum([
   "all",
   "return_soon",

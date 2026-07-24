@@ -123,25 +123,28 @@ describe("Blogs API", () => {
 
 When a service method has non-trivial logic independent of the DB — date math, transforming inputs, branching — instantiate the service directly with a fake repository. Faster than booting Nest.
 
+Build typed partial fakes with **`fakeOf<T>(impl)` from `src/test/fake.ts`** — it takes a `Partial<T>` and returns `T`, so collaborator fakes stay type-checked against the real class without `as unknown as` casts:
+
 ```ts
 import { describe, expect, it, vi } from "vitest";
 
 import type { PostLikesRepository } from "../infrastructure/post-likes.repository.js";
 import type { PostsRepository } from "../infrastructure/posts.repository.js";
 
+import { fakeOf } from "../../../test/fake.js";
 import { PostsLikesService } from "./posts-likes.service.js";
 
 describe("PostsLikesService.computeNewestThreeLikes", () => {
   it("returns the 3 most recent likes ordered by createdAt desc", () => {
-    const repo = {
+    const repo = fakeOf<PostLikesRepository>({
       findRecentLikesForPost: vi.fn().mockResolvedValue([
         { createdAt: new Date("2026-01-03"), userId: "u3", login: "carol" },
         { createdAt: new Date("2026-01-02"), userId: "u2", login: "bob" },
         { createdAt: new Date("2026-01-01"), userId: "u1", login: "alice" },
       ]),
-    } as unknown as PostLikesRepository;
+    });
 
-    const service = new PostsLikesService({} as PostsRepository, repo);
+    const service = new PostsLikesService(fakeOf<PostsRepository>({}), repo);
     // ... assert mapping result
   });
 });

@@ -9,8 +9,10 @@ import {
   ReadingStatusSchema,
 } from "./book-enums.js";
 import { collapseHorizontalSpaces, collapseSpaces, createPaginatedSchema } from "./common.js";
+import { DeliveryViewSchema } from "./delivery-view.js";
 import { BookGenresSchema } from "./genres.js";
 import { NoHtmlString, queryStringArray } from "./internal.js";
+import { LoanInfoViewSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
 import { BookPublisherRefSchema } from "./publishers.js";
 import { TagViewSchema } from "./tags.js";
@@ -105,23 +107,28 @@ export const SeriesViewSchema = z.object({
 export type SeriesView = z.infer<typeof SeriesViewSchema>;
 
 export const SeriesBookViewSchema = z.object({
+  activeDelivery: DeliveryViewSchema.nullable(),
   ageCategory: AgeCategorySchema,
   authors: z.array(BookAuthorRefSchema),
   cover: MediaViewSchema.nullable().optional(),
   createdAt: z.string(),
   currentPage: z.number().nullable(),
+  finishedAt: z.string().nullable(),
   formats: z.array(BookFormatSchema),
   genres: z.array(z.string()),
   id: z.string(),
   isFavorite: z.boolean(),
   isInReadingQueue: z.boolean(),
+  loanInfo: LoanInfoViewSchema.nullable(),
   originalTitle: z.string().nullable(),
   ownershipStatus: OwnershipStatusSchema,
   pagesCount: z.number().nullable(),
   partNumber: z.number().nullable(),
   publicationYear: z.number().nullable(),
+  publisher: BookPublisherRefSchema.nullable(),
   rating: z.number().nullable(),
   readingStatus: ReadingStatusSchema,
+  startedAt: z.string().nullable(),
   tags: z.array(TagViewSchema),
   title: z.string(),
 });

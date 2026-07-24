@@ -5,8 +5,6 @@ import {
   BookLanguageSchema,
   type BookView,
   CurrencySchema,
-  type LoanInfoView,
-  LoanTypeSchema,
   type MediaView,
   type Nullable,
   OwnershipStatusSchema,
@@ -21,13 +19,13 @@ import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { toNullableIsoDate, toNullableIsoDateTime } from "../../../core/iso-date.js";
 import { toBookListView } from "../../lists/index.js";
-import { getLoanUiStatus } from "../../loans/index.js";
 import {
   computeHasUnreadEarlierParts,
   toSeriesBookPreview,
   toSeriesView,
 } from "../../series/index.js";
 import { toDeliverySummaryView } from "./delivery.mapper.js";
+import { toLoanInfoView } from "./loan.mapper.js";
 
 export function toBookView({
   book,
@@ -94,30 +92,6 @@ export function toBookView({
     translator: book.translator,
     updatedAt: book.updatedAt.toISOString(),
     userId: book.userId,
-  };
-}
-
-function toLoanInfoView({
-  loans,
-  today,
-}: {
-  loans: BookWithRelations["loans"];
-  today: Date;
-}): Nullable<LoanInfoView> {
-  const loan = loans[0] ?? null;
-  if (loan === null) {
-    return null;
-  }
-
-  return {
-    contact: loan.contact,
-    expectedReturnDate: toNullableIsoDate(loan.expectedReturnDate),
-    loanDate: toNullableIsoDate(loan.loanDate),
-    loanType: LoanTypeSchema.parse(loan.type),
-    loanUiStatus: getLoanUiStatus({ expectedReturnDate: loan.expectedReturnDate, today }),
-    note: loan.note,
-    personName: loan.personName,
-    remindToReturn: loan.remindToReturn,
   };
 }
 

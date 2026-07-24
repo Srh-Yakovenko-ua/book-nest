@@ -36,6 +36,7 @@ import type {
 } from "../infrastructure/series.repository.js";
 
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
+import { startOfUtcDay } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { AuthorsService } from "../../authors/index.js";
@@ -157,7 +158,7 @@ export class SeriesService {
     const covers = new Map<string, Nullable<MediaView>>(
       series.books.map((book) => [book.id, this.mediaService.buildViewOrNull(book.coverMedia)]),
     );
-    return toSeriesDetailsView(series, covers);
+    return toSeriesDetailsView({ covers, series, today: startOfUtcDay(new Date()) });
   }
 
   async overview(userId: string): Promise<SeriesOverviewView> {

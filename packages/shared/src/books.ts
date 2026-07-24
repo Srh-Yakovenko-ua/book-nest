@@ -9,9 +9,7 @@ import {
   BookLanguageSchema,
   BookTypeSchema,
   CurrencySchema,
-  DeliveryStatusSchema,
   LoanDirectionSchema,
-  LoanTypeSchema,
   OwnershipStatusSchema,
   ownershipStatusUsesLoan,
   QUEUE_PRIORITY_REASON_CUSTOM_TEXT_MAX,
@@ -28,6 +26,7 @@ import {
   paginationQueryFields,
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
+import { DeliverySummaryViewSchema } from "./delivery-view.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
 import {
   boundedUrlSchema,
@@ -39,7 +38,7 @@ import {
   RECENT_USED_LIMIT_MAX,
 } from "./internal.js";
 import { BookListViewSchema, NewListInputSchema } from "./lists.js";
-import { LoanUiStatusSchema } from "./loans.js";
+import { LoanInfoViewSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
 import { BookPublisherRefSchema } from "./publishers.js";
 import { NewSeriesInputSchema, SeriesViewSchema } from "./series.js";
@@ -942,19 +941,6 @@ export type RecentPurchaseStores = string[];
 
 export type RecentPurchaseStoresQuery = z.infer<typeof RecentPurchaseStoresQuerySchema>;
 
-export const LoanInfoViewSchema = z.object({
-  contact: z.string().nullable(),
-  expectedReturnDate: z.string().nullable(),
-  loanDate: z.string().nullable(),
-  loanType: LoanTypeSchema,
-  loanUiStatus: LoanUiStatusSchema,
-  note: z.string().nullable(),
-  personName: z.string(),
-  remindToReturn: z.boolean(),
-});
-
-export type LoanInfoView = z.infer<typeof LoanInfoViewSchema>;
-
 export const PurchaseInfoViewSchema = z.object({
   currency: CurrencySchema.nullable(),
   expectedPrice: z.number().nullable(),
@@ -1114,36 +1100,6 @@ export const ReadingHistoryViewSchema = z.object({
 });
 
 export type ReadingHistoryView = z.infer<typeof ReadingHistoryViewSchema>;
-
-export const DeliveryViewSchema = z.object({
-  cancelledAt: z.string().nullable(),
-  cancelReason: z.string().nullable(),
-  createdAt: z.string(),
-  currency: CurrencySchema.nullable(),
-  deliveryService: z.string().nullable(),
-  expectedDeliveryDate: z.string().nullable(),
-  id: z.string(),
-  note: z.string().nullable(),
-  orderDate: z.string().nullable(),
-  orderNumber: z.string().nullable(),
-  price: z.number().nullable(),
-  receivedAt: z.string().nullable(),
-  status: DeliveryStatusSchema,
-  storeName: z.string().nullable(),
-  trackingNumber: z.string().nullable(),
-  trackingUrl: z.string().nullable(),
-  updatedAt: z.string(),
-});
-
-export type DeliveryView = z.infer<typeof DeliveryViewSchema>;
-
-export const DeliverySummaryViewSchema = z.object({
-  active: DeliveryViewSchema.nullable(),
-  latest: DeliveryViewSchema.nullable(),
-  totalCount: z.number(),
-});
-
-export type DeliverySummaryView = z.infer<typeof DeliverySummaryViewSchema>;
 
 export const BookViewSchema = z.object({
   ageCategory: AgeCategorySchema,

@@ -6,9 +6,10 @@ import {
   OwnershipStatusSchema,
   ReadingStatusSchema,
 } from "./book-enums.js";
-import { BulkBookIdsSchema, DeliveryViewSchema } from "./books.js";
+import { BulkBookIdsSchema } from "./books.js";
 import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
+import { DeliveryViewSchema } from "./delivery-view.js";
 import { notInFutureDate } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 

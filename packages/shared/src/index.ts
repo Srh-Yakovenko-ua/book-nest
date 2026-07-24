@@ -15,6 +15,7 @@ export * from "./characters.js";
 export * from "./common.js";
 export * from "./dedications.js";
 export * from "./delivery-services.js";
+export * from "./delivery-view.js";
 export * from "./delivery.js";
 export * from "./genres.js";
 export * from "./lists.js";

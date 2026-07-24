@@ -4,7 +4,8 @@ export { BookViewAssembler } from "./application/book-view-assembler.js";
 export { BooksModule } from "./books.module.js";
 export { readingStatusUsesProgress } from "./domain/book-blocks.js";
 export { computeReceiveDelivery } from "./domain/delivery-transition.js";
-export { toDeliveryView } from "./domain/delivery.mapper.js";
+export { toDeliverySummaryView, toDeliveryView } from "./domain/delivery.mapper.js";
+export { toLoanInfoView } from "./domain/loan.mapper.js";
 export { type RecordDeliveryTransition } from "./infrastructure/book-deliveries.repository.js";
 export { buildBookTextSearchConditions } from "./infrastructure/book-search.js";
 export {
