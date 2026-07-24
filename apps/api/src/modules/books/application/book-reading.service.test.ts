@@ -1,11 +1,14 @@
 import type { BookView, Nullable } from "@app/shared";
+import type { Mock } from "vitest";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { fakeOf } from "../../../test/fake.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
 import { BookReadingService } from "./book-reading.service.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
@@ -16,26 +19,29 @@ const TODAY = new Date("2026-07-07T09:00:00.000Z");
 const TODAY_START = new Date("2026-07-07T00:00:00.000Z");
 const EXISTING_STARTED_AT = new Date("2026-01-01T00:00:00.000Z");
 
+const TRANSACTION_CLIENT = fakeOf<Prisma.TransactionClient>();
+
 type ReadingProgressRow = NonNullable<BookWithRelations["readingProgress"]>;
 
 type RepositoryMock = {
-  applyReadingChange: ReturnType<typeof vi.fn>;
-  findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
+  applyReadingChange: Mock;
+  findOwnedByIdOrThrow: Mock;
 };
 
 function buildService(repository: RepositoryMock): BookReadingService {
   return new BookReadingService(
-    repository as unknown as BooksRepository,
-    {} as unknown as BookViewAssembler,
+    fakeOf<BooksRepository>(repository),
+    fakeOf<BookViewAssembler>(),
+    transactionRunnerMock(),
   );
 }
 
 function ownedBook(readingProgress: Nullable<ReadingProgressRow>): BookWithRelations {
-  return { pagesCount: 320, readingProgress } as unknown as BookWithRelations;
+  return fakeOf<BookWithRelations>({ pagesCount: 320, readingProgress });
 }
 
 function readingProgressRow(startedAt: Nullable<Date>): ReadingProgressRow {
-  return { startedAt } as unknown as ReadingProgressRow;
+  return fakeOf<ReadingProgressRow>({ startedAt });
 }
 
 function repositoryMock(): RepositoryMock {
@@ -43,6 +49,13 @@ function repositoryMock(): RepositoryMock {
     applyReadingChange: vi.fn().mockResolvedValue(undefined),
     findOwnedByIdOrThrow: vi.fn(),
   };
+}
+
+function transactionRunnerMock(): TransactionRunner {
+  return fakeOf<TransactionRunner>({
+    run: <T>(callback: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> =>
+      callback(TRANSACTION_CLIENT),
+  });
 }
 
 describe("BookReadingService.startReading", () => {
@@ -112,7 +125,7 @@ describe("BookReadingService.startReading", () => {
     const repository = repositoryMock();
     repository.findOwnedByIdOrThrow.mockResolvedValue(ownedBook(null));
     const service = buildService(repository);
-    const client = {} as unknown as Prisma.TransactionClient;
+    const client = fakeOf<Prisma.TransactionClient>();
 
     await service.startReading(USER_ID, BOOK_ID, client);
 
@@ -127,26 +140,33 @@ describe("BookReadingService.startReading", () => {
 
 describe("BookReadingService.changeReadingStatus clearEvents", () => {
   function buildStatusService(repository: {
-    findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
-    recordReadingStatusChange: ReturnType<typeof vi.fn>;
+    acquireBookLock: Mock;
+    findOwnedByIdOrThrow: Mock;
+    recordReadingStatusChange: Mock;
   }): BookReadingService {
     return new BookReadingService(
-      repository as unknown as BooksRepository,
-      {
-        loadView: vi.fn().mockResolvedValue({} as BookView),
-      } as unknown as BookViewAssembler,
+      fakeOf<BooksRepository>(repository),
+      fakeOf<BookViewAssembler>({ loadView: vi.fn().mockResolvedValue({} as BookView) }),
+      transactionRunnerMock(),
     );
   }
 
   function statusRepositoryMock(): {
-    findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
-    recordReadingStatusChange: ReturnType<typeof vi.fn>;
+    acquireBookLock: Mock;
+    findOwnedByIdOrThrow: Mock;
+    recordReadingStatusChange: Mock;
   } {
     return {
-      findOwnedByIdOrThrow: vi.fn().mockResolvedValue({
-        pagesCount: 320,
-        readingProgress: { currentPage: 120, startedAt: EXISTING_STARTED_AT },
-      } as unknown as BookWithRelations),
+      acquireBookLock: vi.fn().mockResolvedValue(undefined),
+      findOwnedByIdOrThrow: vi.fn().mockResolvedValue(
+        fakeOf<BookWithRelations>({
+          pagesCount: 320,
+          readingProgress: fakeOf<ReadingProgressRow>({
+            currentPage: 120,
+            startedAt: EXISTING_STARTED_AT,
+          }),
+        }),
+      ),
       recordReadingStatusChange: vi.fn().mockResolvedValue(undefined),
     };
   }
@@ -162,6 +182,7 @@ describe("BookReadingService.changeReadingStatus clearEvents", () => {
 
     expect(repository.recordReadingStatusChange).toHaveBeenCalledWith(
       expect.objectContaining({ clearEvents: true }),
+      TRANSACTION_CLIENT,
     );
   });
 
@@ -173,6 +194,7 @@ describe("BookReadingService.changeReadingStatus clearEvents", () => {
 
     expect(repository.recordReadingStatusChange).toHaveBeenCalledWith(
       expect.objectContaining({ clearEvents: false }),
+      TRANSACTION_CLIENT,
     );
   });
 
@@ -184,6 +206,7 @@ describe("BookReadingService.changeReadingStatus clearEvents", () => {
 
     expect(repository.recordReadingStatusChange).toHaveBeenCalledWith(
       expect.objectContaining({ clearEvents: false }),
+      TRANSACTION_CLIENT,
     );
   });
 
@@ -198,6 +221,7 @@ describe("BookReadingService.changeReadingStatus clearEvents", () => {
 
     expect(repository.recordReadingStatusChange).toHaveBeenCalledWith(
       expect.objectContaining({ clearEvents: false }),
+      TRANSACTION_CLIENT,
     );
   });
 });

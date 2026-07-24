@@ -47,9 +47,9 @@ export class MediaRepository {
     return this.prisma.mediaAsset.findFirst({ where: { id, userId } });
   }
 
-  async markThumbGenerated(id: string): Promise<boolean> {
+  async markThumbGenerated({ id, now }: { id: string; now: Date }): Promise<boolean> {
     const result = await this.prisma.mediaAsset.updateMany({
-      data: { thumbGeneratedAt: new Date() },
+      data: { thumbGeneratedAt: now },
       where: { id },
     });
     return result.count > 0;

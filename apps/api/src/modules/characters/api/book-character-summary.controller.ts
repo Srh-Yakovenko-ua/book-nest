@@ -1,27 +1,23 @@
 import type { BookCharacterSummaryView } from "@app/shared";
 
-import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseUUIDPipe } from "@nestjs/common";
 import {
-  ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharactersService } from "../application/characters.service.js";
 import { BookCharacterSummaryViewDto } from "./view-dto/book-character-summary.view-dto.js";
 
-@ApiBearerAuth()
 @ApiTags("characters")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/books/:bookId/character-summary")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class BookCharacterSummaryController {
   constructor(private readonly charactersService: CharactersService) {}
 

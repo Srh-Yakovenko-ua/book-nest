@@ -24,6 +24,7 @@ import {
 } from "@app/shared";
 import { compareAsc } from "date-fns";
 
+import { toNullableIsoDateTime } from "../../../core/iso-date.js";
 import { emptyToNull } from "./character-fields.js";
 
 export type CharacterAliasSource = {
@@ -239,7 +240,7 @@ export function toCharacterDetailsView({
   return {
     aliases: character.aliases.map((alias) => toAliasView(alias)),
     appearances,
-    archivedAt: character.archivedAt === null ? null : character.archivedAt.toISOString(),
+    archivedAt: toNullableIsoDateTime(character.archivedAt),
     avatar,
     createdAt: character.createdAt.toISOString(),
     customGender: emptyToNull(character.customGender),
@@ -294,7 +295,7 @@ export function toCharacterGlobalSummaryView({
 }): CharacterGlobalSummaryView {
   return {
     appearanceCount,
-    archivedAt: character.archivedAt === null ? null : character.archivedAt.toISOString(),
+    archivedAt: toNullableIsoDateTime(character.archivedAt),
     avatar,
     customGender: emptyToNull(character.customGender),
     entityKind: CharacterEntityKindSchema.parse(character.entityKind),

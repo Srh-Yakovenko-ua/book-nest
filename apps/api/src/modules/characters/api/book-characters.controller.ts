@@ -21,11 +21,9 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -36,16 +34,16 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharactersService } from "../application/characters.service.js";
 import { BookCharactersQueryDto } from "./input-dto/book-characters-query.input-dto.js";
 import { CreateCharacterInBookInputDto } from "./input-dto/create-character-in-book.input-dto.js";
@@ -53,14 +51,9 @@ import { UpdateBookCharacterInputDto } from "./input-dto/update-book-character.i
 import { CharacterDetailsViewDto } from "./view-dto/character-details.view-dto.js";
 import { PaginatedCharactersDto } from "./view-dto/paginated-characters.view-dto.js";
 
-const CHARACTER_ACTION_TTL_SECONDS = 60;
-const CHARACTER_ACTION_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("characters")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/books/:bookId/characters")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class BookCharactersController {
   constructor(private readonly charactersService: CharactersService) {}
 
@@ -94,9 +87,7 @@ export class BookCharactersController {
   @ApiOperation({ summary: "Add a new or existing character to a book" })
   @ApiParam({ description: "Book id", name: "bookId" })
   @Post()
-  @Throttle({
-    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
@@ -135,9 +126,7 @@ export class BookCharactersController {
   @ApiParam({ description: "Book id", name: "bookId" })
   @ApiParam({ description: "Character id", name: "characterId" })
   @Patch(":characterId")
-  @Throttle({
-    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   updateInBook(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
@@ -154,9 +143,7 @@ export class BookCharactersController {
   @ApiParam({ description: "Character id", name: "characterId" })
   @Delete(":characterId")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @Throttle({
-    default: { limit: CHARACTER_ACTION_LIMIT, ttl: seconds(CHARACTER_ACTION_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   unlink(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,

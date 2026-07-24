@@ -23,11 +23,9 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -37,7 +35,6 @@ import {
   ApiOperation,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
@@ -47,7 +44,8 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { SeriesService } from "../application/series.service.js";
 import { FavoriteSeriesContinuationsQueryDto } from "./input-dto/favorite-series-continuations-query.input-dto.js";
 import { NewSeriesInputDto } from "./input-dto/new-series.input-dto.js";
@@ -61,41 +59,33 @@ import { SeriesViewDto } from "./view-dto/series.view-dto.js";
 
 const CREATE_SERIES_TTL_SECONDS = 60;
 const CREATE_SERIES_LIMIT = 30;
-const UPDATE_SERIES_TTL_SECONDS = 60;
-const UPDATE_SERIES_LIMIT = 60;
-
 @ApiTags("series")
 @Controller("api/series")
 export class SeriesController {
   constructor(private readonly seriesService: SeriesService) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBearerAuth()
   @ApiBody({ type: NewSeriesInputDto })
   @ApiConflictResponse({ description: "A series with this name already exists" })
   @ApiCreatedResponse({ description: "The created series", type: SeriesViewDto })
   @ApiOperation({ summary: "Create a series in the current user library" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @JwtProtected()
   @Post()
   @Throttle({ default: { limit: CREATE_SERIES_LIMIT, ttl: seconds(CREATE_SERIES_TTL_SECONDS) } })
-  @UseGuards(JwtAccessGuard)
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(NewSeriesInputSchema)) body: NewSeriesInputDto,
   ): Promise<SeriesView> {
     return this.seriesService.create(user.id, body);
   }
-
-  @ApiBearerAuth()
   @ApiOkResponse({ description: "A page of the current user series", type: PaginatedSeriesDto })
   @ApiOperation({ summary: "Search the current user series" })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "authorIds", required: false })
   @ApiQuery({ name: "pageNumber", required: false })
   @ApiQuery({ name: "pageSize", required: false })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get()
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   search(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(SeriesSearchQuerySchema))
@@ -103,30 +93,24 @@ export class SeriesController {
   ): Promise<Paginator<SeriesView>> {
     return this.seriesService.search(user.id, query);
   }
-
-  @ApiBearerAuth()
   @ApiOkResponse({
     description: "Series overview for the current user",
     type: SeriesOverviewViewDto,
   })
   @ApiOperation({ summary: "Get the current user series overview" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("overview")
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   overview(@CurrentUser() user: AuthenticatedUser): Promise<SeriesOverviewView> {
     return this.seriesService.overview(user.id);
   }
-
-  @ApiBearerAuth()
   @ApiOkResponse({
     description: "Continue-your-favorite-series items for the current user",
     type: FavoriteSeriesContinuationsViewDto,
   })
   @ApiOperation({ summary: "Get the next book to read in the current user favorite series" })
   @ApiQuery({ name: "limit", required: false })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get("favorite-continuations")
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   favoriteContinuations(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(FavoriteSeriesContinuationsQuerySchema))
@@ -134,14 +118,11 @@ export class SeriesController {
   ): Promise<FavoriteSeriesContinuationsView> {
     return this.seriesService.favoriteContinuations(user.id, query);
   }
-
-  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: "Series not found" })
   @ApiOkResponse({ description: "The requested series with its books", type: SeriesDetailsViewDto })
   @ApiOperation({ summary: "Get a series by id" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get(":id")
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   getById(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
@@ -150,17 +131,15 @@ export class SeriesController {
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBearerAuth()
   @ApiBody({ type: UpdateSeriesInputDto })
   @ApiConflictResponse({ description: "A series with this name already exists" })
   @ApiNotFoundResponse({ description: "Series not found" })
   @ApiOkResponse({ description: "The updated series", type: SeriesViewDto })
   @ApiOperation({ summary: "Update a series in the current user library" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @ApiUnprocessableEntityResponse({ description: "The series update violates a domain rule" })
+  @JwtProtected()
   @Patch(":id")
-  @Throttle({ default: { limit: UPDATE_SERIES_LIMIT, ttl: seconds(UPDATE_SERIES_TTL_SECONDS) } })
-  @UseGuards(JwtAccessGuard)
+  @Throttle(MUTATION_THROTTLE)
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
@@ -168,16 +147,13 @@ export class SeriesController {
   ): Promise<SeriesView> {
     return this.seriesService.update(user.id, id, body);
   }
-
-  @ApiBearerAuth()
   @ApiNoContentResponse({ description: "The series was deleted" })
   @ApiNotFoundResponse({ description: "Series not found" })
   @ApiOperation({ summary: "Delete a series by id" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Delete(":id")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @Throttle({ default: { limit: UPDATE_SERIES_LIMIT, ttl: seconds(UPDATE_SERIES_TTL_SECONDS) } })
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
+  @Throttle(MUTATION_THROTTLE)
   delete(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,

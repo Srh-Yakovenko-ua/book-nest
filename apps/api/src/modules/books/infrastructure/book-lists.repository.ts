@@ -11,11 +11,6 @@ export type BookListWithMembership = Prisma.BookListGetPayload<{
   };
 }>;
 
-type BookOwnershipInput = {
-  bookId: string;
-  userId: string;
-};
-
 type ListsWithMembershipInput = {
   bookId: string;
   userId: string;
@@ -29,14 +24,6 @@ type OwnedListIdsInput = {
 @Injectable()
 export class BookListsRepository {
   constructor(private readonly prisma: PrismaService) {}
-
-  async bookBelongsToUser({ bookId, userId }: BookOwnershipInput): Promise<boolean> {
-    const book = await this.prisma.book.findFirst({
-      select: { id: true },
-      where: { id: bookId, userId },
-    });
-    return book !== null;
-  }
 
   findListsWithMembership({
     bookId,

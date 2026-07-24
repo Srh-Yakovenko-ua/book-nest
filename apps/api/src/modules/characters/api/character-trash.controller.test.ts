@@ -2,6 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 
 import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus } from "@nestjs/common";
+import { subMilliseconds } from "date-fns";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -375,6 +376,13 @@ describe("GET /api/characters/:characterId/deletion-preview", () => {
   });
 });
 
+async function backdatePurgeWindow(characterId: string): Promise<void> {
+  await prisma.character.update({
+    data: { deletedAt: subMilliseconds(new Date(), CHARACTER_PURGE_WINDOW_MS + 60_000) },
+    where: { id: characterId },
+  });
+}
+
 describe("character purge", () => {
   it("physically deletes a soft-deleted character and cascades its book links", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
@@ -389,6 +397,7 @@ describe("character purge", () => {
     await authed("delete", `/api/characters/${characterId}?confirm=true`, accessToken).expect(
       HttpStatus.OK,
     );
+    await backdatePurgeWindow(characterId);
 
     await service.purge({ characterId, userId });
 
@@ -409,6 +418,21 @@ describe("character purge", () => {
       HttpStatus.OK,
     );
     await authed("post", `/api/characters/${characterId}/restore`, accessToken).expect(
+      HttpStatus.OK,
+    );
+
+    await service.purge({ characterId, userId });
+
+    expect(await prisma.character.count({ where: { id: characterId } })).toBe(1);
+  });
+
+  it("keeps a soft-deleted character whose grace window has not elapsed", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const created = await authed("post", "/api/characters", accessToken).send({
+      character: { name: "Paul Atreides" },
+    });
+    const characterId = created.body.id;
+    await authed("delete", `/api/characters/${characterId}?confirm=true`, accessToken).expect(
       HttpStatus.OK,
     );
 
@@ -438,6 +462,7 @@ describe("character purge", () => {
     await authed("delete", `/api/characters/${characterId}?confirm=true`, accessToken).expect(
       HttpStatus.OK,
     );
+    await backdatePurgeWindow(characterId);
 
     await service.purge({ characterId, userId });
 

@@ -1,20 +1,9 @@
 import type { CharacterMergePreviewView, CharacterMergeResultView } from "@app/shared";
 
 import { CharacterMergeInputSchema, CharacterMergePreviewQuerySchema } from "@app/shared";
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  ParseUUIDPipe,
-  Post,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiNotFoundResponse,
@@ -23,7 +12,6 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
@@ -32,7 +20,8 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterMergeService } from "../application/character-merge.service.js";
 import { MergeCharacterInputDto } from "./input-dto/merge-character.input-dto.js";
 import { CharacterMergePreviewQueryDto } from "./input-dto/merge-preview-query.input-dto.js";
@@ -41,13 +30,9 @@ import { CharacterMergeResultDto } from "./view-dto/character-merge-result.view-
 
 const CHARACTER_MERGE_TTL_SECONDS = 60;
 const CHARACTER_MERGE_LIMIT = 30;
-const CHARACTER_MERGE_PREVIEW_LIMIT = 60;
-
-@ApiBearerAuth()
 @ApiTags("characters")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/characters")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class CharacterMergeController {
   constructor(private readonly characterMergeService: CharacterMergeService) {}
 
@@ -61,9 +46,7 @@ export class CharacterMergeController {
   @ApiParam({ description: "Survivor character id", name: "characterId" })
   @ApiQuery({ description: "The character to merge in (loser)", name: "otherId", required: true })
   @Get(":characterId/merge-preview")
-  @Throttle({
-    default: { limit: CHARACTER_MERGE_PREVIEW_LIMIT, ttl: seconds(CHARACTER_MERGE_TTL_SECONDS) },
-  })
+  @Throttle(MUTATION_THROTTLE)
   preview(
     @CurrentUser() user: AuthenticatedUser,
     @Param("characterId", ParseUUIDPipe) characterId: string,

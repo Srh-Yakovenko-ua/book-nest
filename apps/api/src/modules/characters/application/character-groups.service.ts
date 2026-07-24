@@ -23,8 +23,8 @@ import type {
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { BooksRepository } from "../../books/index.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { assertBookOwned, BooksRepository } from "../../books/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
 import { isMembershipVisibleInContext } from "../domain/character-group-visibility.js";
 import {
@@ -136,8 +136,7 @@ export class CharacterGroupsService {
     const [rows, totalCount] = await Promise.all([
       this.characterGroupsRepository.listOwnedGroups({
         filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.characterGroupsRepository.countOwnedGroups(filter),
     ]);
@@ -294,10 +293,12 @@ export class CharacterGroupsService {
     bookId: string;
     userId: string;
   }): Promise<void> {
-    const owned = await this.booksRepository.existsOwned({ bookId, userId });
-    if (!owned) {
-      throw new NotFoundError("Book not found", { code: CHARACTER_GROUP_ERROR_CODES.bookNotFound });
-    }
+    await assertBookOwned({
+      bookId,
+      booksRepository: this.booksRepository,
+      notFoundCode: CHARACTER_GROUP_ERROR_CODES.bookNotFound,
+      userId,
+    });
   }
 
   private async assertCharactersOwned(

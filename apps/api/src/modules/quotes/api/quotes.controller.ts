@@ -1,35 +1,24 @@
 import type { Paginator, QuotesSummaryView, QuoteView } from "@app/shared";
 
 import { QuotesQuerySchema } from "@app/shared";
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiQuery,
-  ApiTags,
-  ApiUnauthorizedResponse,
-} from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Controller, Get, Query } from "@nestjs/common";
+import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { READ_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { QuotesService } from "../application/quotes.service.js";
 import { QuotesQueryDto } from "./input-dto/quotes-query.input-dto.js";
 import { PaginatedQuotesDto } from "./view-dto/paginated-quotes.view-dto.js";
 import { QuotesSummaryViewDto } from "./view-dto/quotes-summary.view-dto.js";
 
-const QUOTE_READ_TTL_SECONDS = 60;
-const QUOTE_READ_LIMIT = 120;
-
-@ApiBearerAuth()
 @ApiTags("quotes")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/quotes")
-@Throttle({ default: { limit: QUOTE_READ_LIMIT, ttl: seconds(QUOTE_READ_TTL_SECONDS) } })
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
+@Throttle(READ_THROTTLE)
 export class QuotesController {
   constructor(private readonly quotesService: QuotesService) {}
 

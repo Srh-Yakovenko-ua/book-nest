@@ -1,11 +1,29 @@
 import type { CharacterListSort, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
-import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookCharacterModel, CharacterModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+
+const CHARACTER_IMPORTANCE_CENTRAL = "central";
+const CHARACTER_IMPORTANCE_MAJOR = "major";
+
+const BookCharacterSummaryCountsRowSchema = z.object({
+  favoritesCount: z.number(),
+  hiddenCount: z.number(),
+  povCount: z.number(),
+  totalVisibleCharacters: z.number(),
+});
+
+const EMPTY_BOOK_CHARACTER_COUNTS: z.infer<typeof BookCharacterSummaryCountsRowSchema> = {
+  favoritesCount: 0,
+  hiddenCount: 0,
+  povCount: 0,
+  totalVisibleCharacters: 0,
+};
 
 const detailsInclude = {
   aliases: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
@@ -313,32 +331,48 @@ export class CharactersRepository {
       hidePresenceAsSpoiler: false,
     };
 
-    const [totalVisibleCharacters, povCount, favoritesCount, hiddenCount, byImportanceRows] =
-      await Promise.all([
-        this.prisma.bookCharacter.count({ where: visibleWhere }),
-        this.prisma.bookCharacter.count({ where: { ...visibleWhere, isPovCharacter: true } }),
-        this.prisma.bookCharacter.count({
-          where: { ...visibleWhere, character: { ...characterScope, isFavorite: true } },
-        }),
-        this.prisma.bookCharacter.count({
-          where: { bookId, character: characterScope, hidePresenceAsSpoiler: true },
-        }),
-        this.prisma.bookCharacter.groupBy({
-          _count: { _all: true },
-          by: ["importance"],
-          where: visibleWhere,
-        }),
-      ]);
+    const [countsRows, byImportanceRows] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*) FILTER (WHERE book_character.hide_presence_as_spoiler = false))::int
+            AS "totalVisibleCharacters",
+          (count(*) FILTER (
+            WHERE book_character.hide_presence_as_spoiler = false
+              AND book_character.is_pov_character = true
+          ))::int AS "povCount",
+          (count(*) FILTER (
+            WHERE book_character.hide_presence_as_spoiler = false
+              AND character.is_favorite = true
+          ))::int AS "favoritesCount",
+          (count(*) FILTER (WHERE book_character.hide_presence_as_spoiler = true))::int
+            AS "hiddenCount"
+        FROM book_characters book_character
+        JOIN characters character ON character.id = book_character.character_id
+        WHERE book_character.book_id = ${bookId}::uuid
+          AND character.deleted_at IS NULL
+          AND character.hide_profile_as_spoiler = false
+          AND character.user_id = ${userId}::uuid
+      `),
+      this.prisma.bookCharacter.groupBy({
+        _count: { _all: true },
+        by: ["importance"],
+        where: visibleWhere,
+      }),
+    ]);
+
+    const counts =
+      z.array(BookCharacterSummaryCountsRowSchema).parse(countsRows)[0] ??
+      EMPTY_BOOK_CHARACTER_COUNTS;
 
     return {
       byImportance: byImportanceRows.map((row) => ({
         count: row._count._all,
         importance: row.importance,
       })),
-      favoritesCount,
-      hiddenCount,
-      povCount,
-      totalVisibleCharacters,
+      favoritesCount: counts.favoritesCount,
+      hiddenCount: counts.hiddenCount,
+      povCount: counts.povCount,
+      totalVisibleCharacters: counts.totalVisibleCharacters,
     };
   }
 
@@ -613,11 +647,15 @@ export class CharactersRepository {
   }
 
   async hardDeleteIfDeleted(
-    { characterId, userId }: { characterId: string; userId: string },
+    {
+      characterId,
+      deletedBefore,
+      userId,
+    }: { characterId: string; deletedBefore: Date; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     const result = await client.character.deleteMany({
-      where: { deletedAt: { not: null }, id: characterId, userId },
+      where: { deletedAt: { lt: deletedBefore }, id: characterId, userId },
     });
     return result.count;
   }
@@ -833,26 +871,17 @@ export class CharactersRepository {
     limit: number;
     userId: string;
   }): Promise<RosterRow[]> {
-    const base: Prisma.BookCharacterWhereInput = {
-      bookId,
-      character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
-      hidePresenceAsSpoiler: false,
-    };
-    const [central, major] = await Promise.all([
-      this.prisma.bookCharacter.findMany({
-        include: rosterInclude,
-        orderBy: { character: { name: "asc" } },
-        take: limit,
-        where: { ...base, importance: "central" },
-      }),
-      this.prisma.bookCharacter.findMany({
-        include: rosterInclude,
-        orderBy: { character: { name: "asc" } },
-        take: limit,
-        where: { ...base, importance: "major" },
-      }),
-    ]);
-    return [...central, ...major];
+    return this.prisma.bookCharacter.findMany({
+      include: rosterInclude,
+      orderBy: [{ importance: "asc" }, { character: { name: "asc" } }],
+      take: limit,
+      where: {
+        bookId,
+        character: { deletedAt: null, hideProfileAsSpoiler: false, userId },
+        hidePresenceAsSpoiler: false,
+        importance: { in: [CHARACTER_IMPORTANCE_CENTRAL, CHARACTER_IMPORTANCE_MAJOR] },
+      },
+    });
   }
 
   async replaceAliases(

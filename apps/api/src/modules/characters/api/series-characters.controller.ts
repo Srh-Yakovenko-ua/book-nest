@@ -1,33 +1,29 @@
 import type { CharacterSeriesProfileView, CharacterSummaryView, Paginator } from "@app/shared";
 
 import { SeriesCharacterProfileQuerySchema, SeriesCharactersQuerySchema } from "@app/shared";
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
 import {
-  ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharactersService } from "../application/characters.service.js";
 import { SeriesCharacterProfileQueryDto } from "./input-dto/series-character-profile-query.input-dto.js";
 import { SeriesCharactersQueryDto } from "./input-dto/series-characters-query.input-dto.js";
 import { CharacterSeriesProfileViewDto } from "./view-dto/character-series-profile.view-dto.js";
 import { PaginatedCharactersDto } from "./view-dto/paginated-characters.view-dto.js";
 
-@ApiBearerAuth()
 @ApiTags("characters")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/series/:seriesId/characters")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class SeriesCharactersController {
   constructor(private readonly charactersService: CharactersService) {}
 

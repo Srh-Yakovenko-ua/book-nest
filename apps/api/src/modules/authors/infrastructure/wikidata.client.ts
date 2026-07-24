@@ -57,7 +57,7 @@ export class WikidataClient {
       }
       payload = await response.json();
     } catch (error) {
-      logger.warn({ error: String(error), qid }, "wikidata facts request failed");
+      logger.warn({ err: error, qid }, "wikidata facts request failed");
       return null;
     }
 

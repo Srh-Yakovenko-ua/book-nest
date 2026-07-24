@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { TIMELINE_POSITION_STEP } from "../domain/sparse-position.js";
 import { DEFAULT_TIMELINE_NAME } from "../domain/timeline-fields.js";
@@ -46,7 +47,7 @@ export class TimelineRepository {
     bookId: string,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
-    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${bookId}))`;
+    await acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.timeline, key: bookId }, client);
   }
 
   countTimelines(bookId: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {

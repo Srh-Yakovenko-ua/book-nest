@@ -1,4 +1,5 @@
 import type { MediaView, Nullable } from "@app/shared";
+import type { Mock } from "vitest";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -18,6 +19,7 @@ import {
   ValidationError,
 } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { fakeOf } from "../../../test/fake.js";
 import { AuthorsService } from "../../authors/application/authors.service.js";
 import { SeriesService } from "./series.service.js";
 
@@ -53,7 +55,7 @@ type DetailBookInput = {
   updatedAt?: Date;
 };
 
-type RepoMock = Partial<Record<keyof SeriesRepository, ReturnType<typeof vi.fn>>>;
+type RepoMock = Partial<Record<keyof SeriesRepository, Mock>>;
 
 function bookRow(overrides: BookRowInput = {}): SeriesWithBookCount["books"][number] {
   return {
@@ -108,14 +110,14 @@ function detailedSeries(
 }
 
 function makeService(options: {
-  assertGenresSelectable?: ReturnType<typeof vi.fn>;
-  buildView?: ReturnType<typeof vi.fn>;
+  assertGenresSelectable?: Mock;
+  buildViewOrNull?: Mock;
   repository: RepoMock;
-  resolveReferences?: ReturnType<typeof vi.fn>;
+  resolveReferences?: Mock;
 }): {
-  authorsService: { resolveReferences: ReturnType<typeof vi.fn> };
-  genresService: { assertGenresSelectable: ReturnType<typeof vi.fn> };
-  mediaService: { buildView: ReturnType<typeof vi.fn> };
+  authorsService: { resolveReferences: Mock };
+  genresService: { assertGenresSelectable: Mock };
+  mediaService: { buildViewOrNull: Mock };
   service: SeriesService;
 } {
   const resolveReferences = options.resolveReferences ?? vi.fn().mockResolvedValue([]);
@@ -123,13 +125,15 @@ function makeService(options: {
   const assertGenresSelectable =
     options.assertGenresSelectable ?? vi.fn().mockResolvedValue(undefined);
   const genresService = { assertGenresSelectable };
-  const buildView = options.buildView ?? vi.fn((asset: { id: string }) => mediaView(asset.id));
-  const mediaService = { buildView };
+  const buildViewOrNull =
+    options.buildViewOrNull ??
+    vi.fn((asset: Nullable<{ id: string }>) => (asset === null ? null : mediaView(asset.id)));
+  const mediaService = { buildViewOrNull };
   const service = new SeriesService(
-    options.repository as unknown as SeriesRepository,
-    authorsService as unknown as AuthorsService,
-    genresService as unknown as GenresService,
-    mediaService as unknown as MediaService,
+    fakeOf<SeriesRepository>(options.repository),
+    fakeOf<AuthorsService>(authorsService),
+    fakeOf<GenresService>(genresService),
+    fakeOf<MediaService>(mediaService),
   );
   return { authorsService, genresService, mediaService, service };
 }
@@ -174,17 +178,17 @@ function buildService(overrides: {
   upsertByNormalized?: Error | SeriesModel;
 }): {
   authorsService: {
-    resolveReferences: ReturnType<typeof vi.fn>;
+    resolveReferences: Mock;
   };
   genresService: {
-    assertGenresSelectable: ReturnType<typeof vi.fn>;
+    assertGenresSelectable: Mock;
   };
   repository: {
-    countOwned: ReturnType<typeof vi.fn>;
-    findByNormalized: ReturnType<typeof vi.fn>;
-    findOwnedById: ReturnType<typeof vi.fn>;
-    searchOwned: ReturnType<typeof vi.fn>;
-    upsertByNormalized: ReturnType<typeof vi.fn>;
+    countOwned: Mock;
+    findByNormalized: Mock;
+    findOwnedById: Mock;
+    searchOwned: Mock;
+    upsertByNormalized: Mock;
   };
   service: SeriesService;
 } {
@@ -213,14 +217,16 @@ function buildService(overrides: {
   };
 
   const mediaService = {
-    buildView: vi.fn((asset: { id: string }) => mediaView(asset.id)),
+    buildViewOrNull: vi.fn((asset: Nullable<{ id: string }>) =>
+      asset === null ? null : mediaView(asset.id),
+    ),
   };
 
   const service = new SeriesService(
-    repository as unknown as SeriesRepository,
-    authorsService as unknown as AuthorsService,
-    genresService as unknown as GenresService,
-    mediaService as unknown as MediaService,
+    fakeOf<SeriesRepository>(repository),
+    fakeOf<AuthorsService>(authorsService),
+    fakeOf<GenresService>(genresService),
+    fakeOf<MediaService>(mediaService),
   );
 
   return { authorsService, genresService, repository, service };

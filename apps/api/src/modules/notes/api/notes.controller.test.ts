@@ -19,10 +19,12 @@ const MISSING_ID = "99999999-9999-4999-8999-999999999999";
 
 let context: AuthTestContext;
 let app: INestApplication;
+let prisma: PrismaService;
 
 beforeAll(async () => {
   context = await createAuthTestContext([AuthModule, BooksModule, SeriesModule, NotesModule]);
   app = context.app;
+  prisma = app.get(PrismaService);
 });
 
 beforeEach(() => {
@@ -36,6 +38,25 @@ afterEach(async () => {
 afterAll(async () => {
   await context.close();
 });
+
+async function addAlternateAuthorName(
+  bookId: string,
+  alternate: { locale: string; name: string; normalizedName: string },
+): Promise<void> {
+  const link = await prisma.bookAuthor.findFirstOrThrow({
+    select: { authorId: true },
+    where: { bookId },
+  });
+  await prisma.authorName.create({
+    data: {
+      authorId: link.authorId,
+      isPrimary: false,
+      locale: alternate.locale,
+      name: alternate.name,
+      normalizedName: alternate.normalizedName,
+    },
+  });
+}
 
 function authed(
   method: "delete" | "get" | "patch" | "post",
@@ -352,6 +373,29 @@ describe("notes archive", () => {
 
     const withoutPage = await authed("get", "/api/notes?hasPage=false", accessToken);
     expect(withoutPage.body.totalCount).toBe(1);
+  });
+
+  it("finds book notes by an alternate-locale author name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken, {
+      authors: [{ name: "Andrzej Sapkowski" }],
+      title: "The Witcher",
+    });
+    await addAlternateAuthorName(bookId, {
+      locale: "uk",
+      name: "Анджей Сапковський",
+      normalizedName: "анджей сапковський",
+    });
+    await createBookNote(accessToken, bookId, noteBody());
+
+    const res = await authed(
+      "get",
+      `/api/notes?search=${encodeURIComponent("Сапковський")}`,
+      accessToken,
+    );
+
+    expect(res.body.totalCount).toBe(1);
+    expect(res.body.items[0].book.id).toBe(bookId);
   });
 });
 

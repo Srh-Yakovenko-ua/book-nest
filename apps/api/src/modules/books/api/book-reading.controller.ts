@@ -5,37 +5,26 @@ import {
   ReadingHistoryQuerySchema,
   UpdateReadingProgressInputSchema,
 } from "@app/shared";
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  ParseUUIDPipe,
-  Post,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from "@nestjs/swagger";
-import { seconds, Throttle } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { BookReadingService } from "../application/book-reading.service.js";
 import { ChangeReadingStatusInputDto } from "./input-dto/change-reading-status.input-dto.js";
 import { ReadingHistoryQueryDto } from "./input-dto/reading-history-query.input-dto.js";
@@ -43,18 +32,12 @@ import { UpdateReadingProgressInputDto } from "./input-dto/update-reading-progre
 import { BookViewDto } from "./view-dto/book.view-dto.js";
 import { ReadingHistoryViewDto } from "./view-dto/reading-history.view-dto.js";
 
-const READING_ACTION_TTL_SECONDS = 60;
-const READING_ACTION_LIMIT = 60;
-const READING_HISTORY_TTL_SECONDS = 60;
-const READING_HISTORY_LIMIT = 120;
-
 @ApiTags("books")
 @Controller("api/books")
 export class BookReadingController {
   constructor(private readonly bookReadingService: BookReadingService) {}
 
   @ApiBadRequestResponse({ description: "Invalid query params" })
-  @ApiBearerAuth()
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({
     description: "Reading progress summary, activity graph and grouped history",
@@ -65,12 +48,9 @@ export class BookReadingController {
   @ApiQuery({ name: "page", required: false })
   @ApiQuery({ name: "limit", required: false })
   @ApiQuery({ name: "sort", required: false })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Get(":id/reading-history")
-  @Throttle({
-    default: { limit: READING_HISTORY_LIMIT, ttl: seconds(READING_HISTORY_TTL_SECONDS) },
-  })
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
   getReadingHistory(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
@@ -80,19 +60,17 @@ export class BookReadingController {
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBearerAuth()
   @ApiBody({ type: ChangeReadingStatusInputDto })
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({ description: "The book with the applied reading status", type: BookViewDto })
   @ApiOperation({
     summary: "Change the reading status of a book with server-enforced side effects",
   })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @ApiUnprocessableEntityResponse({ description: "Current page exceeds the page count" })
   @HttpCode(HTTP_STATUS.OK)
+  @JwtProtected()
   @Post(":id/reading-status")
-  @Throttle({ default: { limit: READING_ACTION_LIMIT, ttl: seconds(READING_ACTION_TTL_SECONDS) } })
-  @UseGuards(JwtAccessGuard)
+  @Throttle(MUTATION_THROTTLE)
   changeReadingStatus(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
@@ -102,19 +80,17 @@ export class BookReadingController {
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBearerAuth()
   @ApiBody({ type: UpdateReadingProgressInputDto })
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({ description: "The book with the updated reading progress", type: BookViewDto })
   @ApiOperation({ summary: "Update the reading progress of a book with auto status transitions" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @ApiUnprocessableEntityResponse({
     description: "Current page exceeds the page count or is lower than the saved progress",
   })
   @HttpCode(HTTP_STATUS.OK)
+  @JwtProtected()
   @Post(":id/reading-progress")
-  @Throttle({ default: { limit: READING_ACTION_LIMIT, ttl: seconds(READING_ACTION_TTL_SECONDS) } })
-  @UseGuards(JwtAccessGuard)
+  @Throttle(MUTATION_THROTTLE)
   updateReadingProgress(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,

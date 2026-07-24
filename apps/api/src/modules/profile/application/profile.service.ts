@@ -6,7 +6,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { parseIsoDate } from "../../../core/iso-date.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { toProfileView } from "../domain/profile.mapper.js";
 import { ProfileRepository } from "../infrastructure/profile.repository.js";
 
@@ -30,10 +30,10 @@ export class ProfileService {
       const user = await this.profileRepository.update(userId, data);
       return toProfileView(user);
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("Nickname already taken");
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () => new ConflictError("Nickname already taken"),
+      });
     }
   }
 }

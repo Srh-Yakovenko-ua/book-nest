@@ -2,7 +2,6 @@ import type {
   CharacterFormListView,
   CharacterFormView,
   CreateCharacterForm,
-  MediaView,
   Nullable,
   UpdateCharacterForm,
 } from "@app/shared";
@@ -10,7 +9,6 @@ import type {
 import { CHARACTER_FORM_ERROR_CODES, normalizeName } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type {
   CharacterFormRow,
   UpdateCharacterFormData,
@@ -18,7 +16,7 @@ import type {
 
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
 import { toCharacterFormView } from "../domain/character.mapper.js";
@@ -126,12 +124,13 @@ export class CharacterFormsService {
     try {
       return await this.characterFormsRepository.update({ data, formId });
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("A form with this name already exists for this character", {
-          code: CHARACTER_FORM_ERROR_CODES.duplicateName,
-        });
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError("A form with this name already exists for this character", {
+            code: CHARACTER_FORM_ERROR_CODES.duplicateName,
+          }),
+      });
     }
   }
 
@@ -242,28 +241,20 @@ export class CharacterFormsService {
     try {
       return await this.characterFormsRepository.create(data);
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("A form with this name already exists for this character", {
-          code: CHARACTER_FORM_ERROR_CODES.duplicateName,
-        });
-      }
-      throw error;
-    }
-  }
-
-  private mediaViewOf(asset: Nullable<MediaAssetModel>): Nullable<MediaView> {
-    if (asset === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(asset);
-    } catch (error) {
-      log.warn({ err: error, mediaId: asset.id }, "failed to build character form media view");
-      return null;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError("A form with this name already exists for this character", {
+            code: CHARACTER_FORM_ERROR_CODES.duplicateName,
+          }),
+      });
     }
   }
 
   private toFormView(row: CharacterFormRow): CharacterFormView {
-    return toCharacterFormView({ form: row, portrait: this.mediaViewOf(row.portraitMedia) });
+    return toCharacterFormView({
+      form: row,
+      portrait: this.mediaService.buildViewOrNull(row.portraitMedia),
+    });
   }
 }

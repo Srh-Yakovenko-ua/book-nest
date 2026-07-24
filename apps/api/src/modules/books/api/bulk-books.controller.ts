@@ -9,16 +9,14 @@ import {
   BulkReadingStatusInputSchema,
   BulkTagsInputSchema,
 } from "@app/shared";
-import { Body, Controller, HttpCode, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, HttpCode, Patch, Post } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
 
@@ -26,7 +24,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { BulkBooksService } from "../application/bulk-books.service.js";
 import { BulkBookIdsDto } from "./input-dto/bulk-book-ids.input-dto.js";
 import { BulkFavoriteInputDto } from "./input-dto/bulk-favorite.input-dto.js";
@@ -40,13 +38,10 @@ import { BulkPagesCountResultDto } from "./view-dto/bulk-pages-count-result.view
 
 const BULK_ACTION_TTL_SECONDS = 60;
 const BULK_ACTION_LIMIT = 30;
-
-@ApiBearerAuth()
 @ApiTags("books")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/books/bulk")
+@JwtProtected()
 @Throttle({ default: { limit: BULK_ACTION_LIMIT, ttl: seconds(BULK_ACTION_TTL_SECONDS) } })
-@UseGuards(JwtAccessGuard)
 export class BulkBooksController {
   constructor(private readonly bulkBooksService: BulkBooksService) {}
 

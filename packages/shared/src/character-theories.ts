@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
+import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 
 const CHARACTER_THEORY_TEXT_MAX = 5000;
 const CHARACTER_THEORY_SEARCH_MAX = 100;
@@ -85,13 +85,7 @@ export const CharacterTheoriesQuerySchema = z.object({
   bookId: z.uuid().optional(),
   characterId: z.uuid().optional(),
   contextBookId: z.uuid().optional(),
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(CHARACTER_THEORIES_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: CHARACTER_THEORIES_DEFAULT_PAGE_SIZE }),
   search: z.string().trim().max(CHARACTER_THEORY_SEARCH_MAX).optional(),
   seriesId: z.uuid().optional(),
   sort: CharacterTheorySortSchema.default("newest"),

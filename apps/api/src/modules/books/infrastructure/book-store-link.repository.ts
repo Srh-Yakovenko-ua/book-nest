@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookStoreLinkModel } from "../../../generated/prisma/models.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
 export type StoreLinkUpdateData = Partial<StoreLinkWriteData>;
@@ -39,7 +40,7 @@ export class BookStoreLinkRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async acquireBookStoreLinkLock({ bookId, client }: AcquireLockArgs): Promise<void> {
-    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${bookId}))`;
+    await acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.storeLinks, key: bookId }, client);
   }
 
   countByBook({ bookId, client, userId }: CountByBookArgs): Promise<number> {

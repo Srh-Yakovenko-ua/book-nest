@@ -1,4 +1,4 @@
-import { Injectable, type OnModuleDestroy, type OnModuleInit } from "@nestjs/common";
+import { Injectable, type OnApplicationShutdown, type OnModuleInit } from "@nestjs/common";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { env } from "../../config/env.js";
@@ -10,7 +10,7 @@ const STATEMENT_TIMEOUT_MS = 30_000;
 const IDLE_IN_TRANSACTION_TIMEOUT_MS = 60_000;
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleDestroy, OnModuleInit {
+export class PrismaService extends PrismaClient implements OnApplicationShutdown, OnModuleInit {
   constructor() {
     super({
       adapter: new PrismaPg({
@@ -23,7 +23,7 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy, OnMo
     });
   }
 
-  async onModuleDestroy(): Promise<void> {
+  async onApplicationShutdown(): Promise<void> {
     await this.$disconnect();
   }
 

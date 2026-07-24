@@ -11,6 +11,7 @@ import type {
   UpdatePublisherInput,
 } from "@app/shared";
 
+import { normalizeName } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -18,9 +19,8 @@ import type { PublisherModel } from "../../../generated/prisma/models.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, ForbiddenError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { normalizeName } from "../../../core/normalize-name.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import {
   toLibraryPublisherDetail,
   toLibraryPublisherDetailFromModel,
@@ -91,7 +91,10 @@ export class PublishersService {
           code: "PUBLISHER_HAS_BOOKS",
         });
       }
-      await this.publishersRepository.deleteWithNames(publisherId, tx);
+      const deleted = await this.publishersRepository.deleteWithNames(publisherId, tx);
+      if (deleted === 0) {
+        throw new NotFoundError("Publisher not found");
+      }
     });
   }
 
@@ -129,9 +132,8 @@ export class PublishersService {
         ...having,
         locale,
         order,
-        skip: (pageNumber - 1) * pageSize,
         sort,
-        take: pageSize,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.publishersRepository.countLibrary({ ...filters, ...having }),
     ]);
@@ -215,9 +217,8 @@ export class PublishersService {
     const [publishers, totalCount] = await Promise.all([
       this.publishersRepository.searchVisible({
         query: search,
-        skip: (pageNumber - 1) * pageSize,
-        take: pageSize,
         userId,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.publishersRepository.countVisible(userId, search),
     ]);
@@ -305,12 +306,13 @@ export class PublishersService {
         return row;
       });
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("A publisher with this name already exists", {
-          code: "PUBLISHER_DUPLICATE_NAME",
-        });
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError("A publisher with this name already exists", {
+            code: "PUBLISHER_DUPLICATE_NAME",
+          }),
+      });
     }
   }
 }

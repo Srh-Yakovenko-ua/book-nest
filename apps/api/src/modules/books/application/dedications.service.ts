@@ -2,7 +2,7 @@ import type { BookView, DedicationsQuery, DedicationsSummaryView, Paginator } fr
 
 import { Injectable } from "@nestjs/common";
 
-import { buildPaginator } from "../../../core/paginator.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
 import { normalizeSearchQuery } from "../infrastructure/book-search.js";
 import { BooksRepository, type DedicationsFilter } from "../infrastructure/books.repository.js";
@@ -41,9 +41,8 @@ export class DedicationsService {
     const [books, totalCount] = await Promise.all([
       this.booksRepository.listDedicationsForQuery({
         filter,
-        skip: (pageNumber - 1) * pageSize,
         sort,
-        take: pageSize,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.booksRepository.countDedicationsForQuery({ filter }),
     ]);

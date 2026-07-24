@@ -44,7 +44,7 @@ import {
 } from "@app/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
-import { addMilliseconds } from "date-fns";
+import { addMilliseconds, subMilliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
@@ -61,9 +61,9 @@ import type {
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
-import { BooksRepository } from "../../books/index.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
+import { assertBookOwned, BooksRepository } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { TagsService } from "../../tags/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
@@ -443,8 +443,7 @@ export class CharactersService {
     const [items, totalCount] = await Promise.all([
       this.charactersRepository.listRoster({
         ...filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.charactersRepository.countRoster(filter),
     ]);
@@ -479,9 +478,8 @@ export class CharactersService {
     const [rows, totalCount] = await Promise.all([
       this.charactersRepository.listGlobalSummaries({
         filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
         sort: query.sort,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.charactersRepository.countGlobalSummaries(filter),
     ]);
@@ -548,9 +546,12 @@ export class CharactersService {
     const summaries = representatives.map((row) => this.toSummaryView(row));
     const sorted = sortSeriesSummaries({ sort: query.sort, summaries });
 
-    const start = (query.pageNumber - 1) * query.pageSize;
+    const { skip: start, take } = pageSlice({
+      pageNumber: query.pageNumber,
+      pageSize: query.pageSize,
+    });
     return buildPaginator({
-      items: sorted.slice(start, start + query.pageSize),
+      items: sorted.slice(start, start + take),
       pageNumber: query.pageNumber,
       pageSize: query.pageSize,
       totalCount: sorted.length,
@@ -563,8 +564,13 @@ export class CharactersService {
       return;
     }
 
+    const deletedBefore = subMilliseconds(new Date(), CHARACTER_PURGE_WINDOW_MS);
     const mediaIds = collectMediaIds(character);
-    const purged = await this.charactersRepository.hardDeleteIfDeleted({ characterId, userId });
+    const purged = await this.charactersRepository.hardDeleteIfDeleted({
+      characterId,
+      deletedBefore,
+      userId,
+    });
     if (purged === 0) {
       return;
     }
@@ -844,12 +850,12 @@ export class CharactersService {
   }
 
   private async assertBookOwned(userId: string, bookId: string): Promise<void> {
-    const owned = await this.booksRepository.existsOwned({ bookId, userId });
-    if (!owned) {
-      throw new NotFoundError("Book not found", {
-        code: CHARACTER_ERROR_CODES.bookNotFound,
-      });
-    }
+    await assertBookOwned({
+      bookId,
+      booksRepository: this.booksRepository,
+      notFoundCode: CHARACTER_ERROR_CODES.bookNotFound,
+      userId,
+    });
   }
 
   private async assertMediaOwned(userId: string, mediaId: Nullable<string>): Promise<void> {
@@ -1166,12 +1172,13 @@ export class CharactersService {
     try {
       await this.charactersRepository.createBookCharacter(data, tx);
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("Character is already linked to this book", {
-          code: CHARACTER_ERROR_CODES.alreadyLinkedToBook,
-        });
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () =>
+          new ConflictError("Character is already linked to this book", {
+            code: CHARACTER_ERROR_CODES.alreadyLinkedToBook,
+          }),
+      });
     }
   }
 
@@ -1301,15 +1308,7 @@ export class CharactersService {
   }
 
   private mediaViewOf(asset: Nullable<MediaAssetModel>): Nullable<MediaView> {
-    if (asset === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(asset);
-    } catch (error) {
-      log.warn({ err: error, mediaId: asset.id }, "failed to build character media view");
-      return null;
-    }
+    return this.mediaService.buildViewOrNull(asset);
   }
 
   private async resolveCharacterForBook({

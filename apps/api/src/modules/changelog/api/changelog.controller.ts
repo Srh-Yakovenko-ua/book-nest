@@ -9,7 +9,6 @@ import {
   ApiOperation,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
@@ -18,7 +17,7 @@ import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import {
   CurrentUser,
-  JwtAccessGuard,
+  JwtProtected,
   OptionalCurrentUser,
   OptionalJwtAccessGuard,
 } from "../../auth/index.js";
@@ -56,13 +55,11 @@ export class ChangelogController {
     });
   }
 
-  @ApiBearerAuth()
   @ApiNoContentResponse({ description: "The caller's changelog read marker was updated" })
   @ApiOperation({ summary: "Mark the changelog as seen for the current user" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @HttpCode(HTTP_STATUS.NO_CONTENT)
+  @JwtProtected()
   @Post("seen")
-  @UseGuards(JwtAccessGuard)
   markSeen(@CurrentUser() user: AuthenticatedUser): Promise<void> {
     return this.changelogService.markSeen({ userId: user.id });
   }

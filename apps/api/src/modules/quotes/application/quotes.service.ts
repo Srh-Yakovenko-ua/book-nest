@@ -1,7 +1,6 @@
 import type {
   BookQuotesView,
   CreateQuoteInput,
-  MediaView,
   Nullable,
   Paginator,
   QuotesQuery,
@@ -14,8 +13,7 @@ import { normalizeSearch } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { createLogger } from "../../../core/logger.js";
-import { buildPaginator } from "../../../core/paginator.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
 import { buildQuotesSummary } from "../domain/quotes-summary.js";
 import {
@@ -29,8 +27,6 @@ import {
 const BOOK_NOT_FOUND_MESSAGE = "Book not found";
 const QUOTE_NOT_FOUND_MESSAGE = "Quote not found";
 const PAGE_EXCEEDS_BOOK_MESSAGE = "Page must not exceed the book's page count";
-
-const log = createLogger("quotes");
 
 @Injectable()
 export class QuotesService {
@@ -72,7 +68,10 @@ export class QuotesService {
     await this.findOwnedBookOrThrow(userId, bookId);
     await this.findOwnedQuoteOrThrow({ bookId, quoteId, userId });
 
-    await this.quotesRepository.delete({ quoteId });
+    const removed = await this.quotesRepository.delete({ quoteId });
+    if (removed === 0) {
+      throw new NotFoundError(QUOTE_NOT_FOUND_MESSAGE);
+    }
   }
 
   async list({
@@ -92,9 +91,8 @@ export class QuotesService {
     const [items, totalCount] = await Promise.all([
       this.quotesRepository.list({
         ...filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
         sort: query.sort,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.quotesRepository.count(filter),
     ]);
@@ -166,18 +164,6 @@ export class QuotesService {
     }
   }
 
-  private coverViewOf(coverMedia: QuoteWithBook["book"]["coverMedia"]): Nullable<MediaView> {
-    if (coverMedia === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(coverMedia);
-    } catch (error) {
-      log.warn({ err: error, mediaId: coverMedia.id }, "failed to build quote cover view");
-      return null;
-    }
-  }
-
   private async findOwnedBookOrThrow(userId: string, bookId: string): Promise<OwnedBook> {
     const book = await this.quotesRepository.findOwnedBook(userId, bookId);
     if (book === null) {
@@ -205,7 +191,7 @@ export class QuotesService {
   private toQuoteView(quote: QuoteWithBook): QuoteView {
     return {
       book: {
-        cover: this.coverViewOf(quote.book.coverMedia),
+        cover: this.mediaService.buildViewOrNull(quote.book.coverMedia),
         firstAuthorName: quote.book.firstAuthorName,
         id: quote.book.id,
         title: quote.book.title,

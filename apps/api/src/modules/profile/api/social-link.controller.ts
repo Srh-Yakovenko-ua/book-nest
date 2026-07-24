@@ -10,11 +10,9 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  UseGuards,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -23,14 +21,13 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { SocialLinkService } from "../application/social-link.service.js";
 import { CreateSocialLinkInputDto } from "./input-dto/create-social-link.input-dto.js";
 import { UpdateSocialLinkInputDto } from "./input-dto/update-social-link.input-dto.js";
@@ -41,14 +38,12 @@ export class SocialLinkController {
   constructor(private readonly socialLinkService: SocialLinkService) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBearerAuth()
   @ApiBody({ type: CreateSocialLinkInputDto })
   @ApiConflictResponse({ description: "Platform or link already added" })
   @ApiCreatedResponse({ description: "The created social link" })
   @ApiOperation({ summary: "Add a social link to the current user profile" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
+  @JwtProtected()
   @Post()
-  @UseGuards(JwtAccessGuard)
   create(
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(CreateSocialLinkInputSchema)) body: CreateSocialLinkInputDto,
@@ -57,16 +52,14 @@ export class SocialLinkController {
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
-  @ApiBearerAuth()
   @ApiBody({ type: UpdateSocialLinkInputDto })
   @ApiConflictResponse({ description: "Platform or link already added" })
   @ApiNotFoundResponse({ description: "Social link not found" })
   @ApiOkResponse({ description: "The updated social link" })
   @ApiOperation({ summary: "Update a social link of the current user profile" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @HttpCode(HTTP_STATUS.OK)
+  @JwtProtected()
   @Patch(":id")
-  @UseGuards(JwtAccessGuard)
   update(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
@@ -74,15 +67,12 @@ export class SocialLinkController {
   ): Promise<SocialLinkView> {
     return this.socialLinkService.update(user.id, id, body);
   }
-
-  @ApiBearerAuth()
   @ApiNoContentResponse({ description: "The social link was deleted" })
   @ApiNotFoundResponse({ description: "Social link not found" })
   @ApiOperation({ summary: "Delete a social link of the current user profile" })
-  @ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
   @Delete(":id")
   @HttpCode(HTTP_STATUS.NO_CONTENT)
-  @UseGuards(JwtAccessGuard)
+  @JwtProtected()
   delete(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,

@@ -8,6 +8,7 @@ import type {
   CharacterGroupModel,
 } from "../../../generated/prisma/models.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
 const detailsInclude = {
@@ -102,7 +103,7 @@ export class CharacterGroupsRepository {
     client: Prisma.TransactionClient,
   ): Promise<void> {
     const key = `cgm:${groupId}:${characterId}:${bookId ?? "global"}`;
-    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+    await acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.characterGroups, key }, client);
   }
 
   async countOwnedCharacters(

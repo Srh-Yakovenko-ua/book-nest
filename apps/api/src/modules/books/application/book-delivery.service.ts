@@ -121,6 +121,9 @@ export class BookDeliveryService {
     if (outcome === "book-not-found") {
       throw new NotFoundError("Book not found");
     }
+    if (outcome === "status-conflict") {
+      throw new ConflictError(START_DELIVERY_MESSAGE);
+    }
 
     return this.viewAssembler.loadView({ bookId, userId });
   }
@@ -197,7 +200,13 @@ export class BookDeliveryService {
     try {
       return await this.transactionRunner.run(async (tx) => {
         await this.ensureCustomDeliveryService({ deliveryService, userId }, tx);
-        return this.bookDeliveriesRepository.applyCreate(userId, bookId, transition, tx);
+        return this.bookDeliveriesRepository.applyCreate(
+          userId,
+          bookId,
+          transition,
+          [...START_DELIVERY_STATUSES],
+          tx,
+        );
       });
     } catch (error) {
       if (isActiveDeliveryConflict(error)) {

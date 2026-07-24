@@ -12,6 +12,7 @@ import type {
 } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
+import { parseISO } from "date-fns";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
@@ -88,6 +89,7 @@ export class BulkBooksService {
     const affected = await this.bulkBooksRepository.addToLists({
       bookIds: ownedBookIds,
       listIds,
+      now: new Date(),
       userId,
     });
     return { affected };
@@ -157,6 +159,7 @@ export class BulkBooksService {
       clearDelivery: !ownershipStatusUsesDelivery(input.ownershipStatus),
       clearLoan: true,
       clearPurchase: !ownershipStatusKeepsPurchase(input.ownershipStatus),
+      now: new Date(),
       ownershipStatus: input.ownershipStatus,
       userId,
     });
@@ -207,22 +210,31 @@ export class BulkBooksService {
           failed.push({ bookId: item.bookId, reason: "stale" });
           continue;
         }
+        const expectedUpdatedAt = parseISO(item.expectedUpdatedAt);
         if (item.kind === "pages_count") {
           if (snapshot.currentPage !== null && snapshot.currentPage > item.pagesCount) {
             failed.push({ bookId: item.bookId, reason: "below_current_page" });
             continue;
           }
-          await this.bulkBooksRepository.setPagesCount(
-            { bookId: item.bookId, pagesCount: item.pagesCount, userId },
+          const changed = await this.bulkBooksRepository.setPagesCount(
+            { bookId: item.bookId, expectedUpdatedAt, pagesCount: item.pagesCount, userId },
             tx,
           );
+          if (changed === 0) {
+            failed.push({ bookId: item.bookId, reason: "stale" });
+            continue;
+          }
           updated.push(item.bookId);
           continue;
         }
-        await this.bulkBooksRepository.markPagesCountUnavailable(
-          { bookId: item.bookId, userId },
+        const changed = await this.bulkBooksRepository.markPagesCountUnavailable(
+          { bookId: item.bookId, expectedUpdatedAt, userId },
           tx,
         );
+        if (changed === 0) {
+          failed.push({ bookId: item.bookId, reason: "stale" });
+          continue;
+        }
         updated.push(item.bookId);
       }
 

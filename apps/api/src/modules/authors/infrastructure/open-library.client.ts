@@ -94,7 +94,7 @@ export class OpenLibraryClient {
       }
       payload = await response.json();
     } catch (error) {
-      logger.warn({ error: String(error), olid }, "open library author fetch failed");
+      logger.warn({ err: error, olid }, "open library author fetch failed");
       return null;
     }
 
@@ -137,7 +137,7 @@ export class OpenLibraryClient {
       }
       payload = await response.json();
     } catch (error) {
-      logger.warn({ error: String(error), olid }, "open library works request failed");
+      logger.warn({ err: error, olid }, "open library works request failed");
       return [];
     }
 
@@ -183,7 +183,7 @@ export class OpenLibraryClient {
       }
       payload = await response.json();
     } catch (error) {
-      logger.warn({ error: String(error) }, "open library search request failed");
+      logger.warn({ err: error }, "open library search request failed");
       return [];
     }
 

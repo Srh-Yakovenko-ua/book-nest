@@ -1,31 +1,27 @@
 import type { CharacterRelationshipContextView } from "@app/shared";
 
 import { BookCharacterRelationshipsQuerySchema } from "@app/shared";
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
 import {
-  ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterRelationshipsService } from "../application/character-relationships.service.js";
 import { BookCharacterRelationshipsQueryDto } from "./input-dto/book-character-relationships-query.input-dto.js";
 import { CharacterRelationshipContextViewDto } from "./view-dto/character-relationship-context.view-dto.js";
 
-@ApiBearerAuth()
 @ApiTags("character-relationships")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/books/:bookId/character-relationships")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class BookCharacterRelationshipsController {
   constructor(private readonly relationshipsService: CharacterRelationshipsService) {}
 

@@ -12,6 +12,7 @@ export type ApiErrorResult = {
 
 export type ApiHealth = {
   postgres: "down" | "ok";
+  redis: "down" | "ok";
   status: "degraded" | "down" | "ok";
   timestamp: string;
   uptimeSeconds: number;
@@ -110,3 +111,22 @@ export const createPaginatedSchema = <ItemSchema extends z.ZodType>(item: ItemSc
     pageSize: z.number().int(),
     totalCount: z.number().int(),
   });
+
+export const paginationQueryFields = (options: {
+  pageNumberMax?: number;
+  pageSizeDefault: number;
+  pageSizeMax?: number;
+}) => ({
+  pageNumber: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(options.pageNumberMax ?? PAGE_NUMBER_MAX)
+    .default(1),
+  pageSize: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(options.pageSizeMax ?? LIST_PAGE_SIZE_MAX)
+    .default(options.pageSizeDefault),
+});

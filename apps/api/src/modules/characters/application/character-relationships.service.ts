@@ -38,7 +38,7 @@ import type {
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { BooksRepository } from "../../books/index.js";
+import { assertBookOwned, BooksRepository } from "../../books/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
 import {
   buildRelationshipLockKey,
@@ -513,12 +513,12 @@ export class CharacterRelationshipsService {
     bookId: string;
     userId: string;
   }): Promise<void> {
-    const owned = await this.booksRepository.existsOwned({ bookId, userId });
-    if (!owned) {
-      throw new NotFoundError("Book not found", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.bookNotFound,
-      });
-    }
+    await assertBookOwned({
+      bookId,
+      booksRepository: this.booksRepository,
+      notFoundCode: CHARACTER_RELATIONSHIP_ERROR_CODES.bookNotFound,
+      userId,
+    });
   }
 
   private async assertCharactersOwned({

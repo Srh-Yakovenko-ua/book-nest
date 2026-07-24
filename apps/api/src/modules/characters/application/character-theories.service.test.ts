@@ -1,4 +1,4 @@
-import type { CharacterTheoriesQuery, CreateCharacterTheoryInput } from "@app/shared";
+import type { CharacterTheoriesQuery, CreateCharacterTheoryInput, Nullable } from "@app/shared";
 
 import { CHARACTER_THEORY_ERROR_CODES } from "@app/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -26,7 +26,7 @@ type ServiceConfig = {
   bookExists?: boolean;
   characterOwned?: boolean;
   deleteCount?: number;
-  findResult?: CharacterTheoryRow | null;
+  findResult?: Nullable<CharacterTheoryRow>;
   seriesBooks?: { createdAt: Date; id: string; partNumber: null | number }[];
   seriesExists?: boolean;
 };

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
+import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 
 const CHARACTER_GROUP_NAME_MAX = 200;
 const CHARACTER_GROUP_CUSTOM_TYPE_MAX = 60;
@@ -106,13 +106,7 @@ export const UpsertCharacterGroupMembershipSchema = z
 export type UpsertCharacterGroupMembership = z.infer<typeof UpsertCharacterGroupMembershipSchema>;
 
 export const CharacterGroupsListQuerySchema = z.object({
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(LIST_PAGE_SIZE_MAX)
-    .default(CHARACTER_GROUPS_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: CHARACTER_GROUPS_DEFAULT_PAGE_SIZE }),
   q: z.string().trim().max(CHARACTER_GROUP_SEARCH_MAX).optional(),
   seriesId: z.string().uuid().optional(),
   type: CharacterGroupTypeSchema.optional(),

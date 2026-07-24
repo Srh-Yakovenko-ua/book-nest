@@ -24,8 +24,7 @@ import {
 import { Injectable } from "@nestjs/common";
 
 import { parseIsoDate } from "../../../core/iso-date.js";
-import { createLogger } from "../../../core/logger.js";
-import { buildPaginator } from "../../../core/paginator.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { computeReceiveDelivery, toDeliveryView } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { computeDeliveryStatistics, STATISTICS_TOP_LIMIT } from "../domain/delivery-statistics.js";
@@ -35,8 +34,6 @@ import {
   type DeliveryWithBook,
   type InTransitCurrencyTotal,
 } from "../infrastructure/delivery.repository.js";
-
-const log = createLogger("delivery.view");
 
 const DEFAULT_CURRENCY: Currency = "UAH";
 
@@ -106,9 +103,8 @@ export class DeliveryService {
     const [items, totalCount] = await Promise.all([
       this.deliveryRepository.listHistory({
         ...filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
         sort: query.sort,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.deliveryRepository.countHistory(filter),
     ]);
@@ -163,9 +159,8 @@ export class DeliveryService {
     const [items, totalCount] = await Promise.all([
       this.deliveryRepository.listActive({
         ...filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
         sort: query.sort,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.deliveryRepository.countActive(filter),
     ]);
@@ -214,23 +209,9 @@ export class DeliveryService {
     });
   }
 
-  private coverViewOf(
-    coverMedia: DeliveryWithBook["book"]["coverMedia"],
-  ): DeliveryBookPreview["cover"] {
-    if (coverMedia === null) {
-      return null;
-    }
-    try {
-      return this.mediaService.buildView(coverMedia);
-    } catch (error) {
-      log.warn({ err: error, mediaId: coverMedia.id }, "failed to build delivery cover view");
-      return null;
-    }
-  }
-
   private toBookPreview(book: DeliveryWithBook["book"]): DeliveryBookPreview {
     return {
-      cover: this.coverViewOf(book.coverMedia),
+      cover: this.mediaService.buildViewOrNull(book.coverMedia),
       firstAuthorName: book.firstAuthorName,
       genres: book.genres,
       id: book.id,

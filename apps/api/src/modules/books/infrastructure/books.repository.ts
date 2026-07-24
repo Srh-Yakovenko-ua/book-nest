@@ -15,10 +15,14 @@ import type {
 
 import { DELIVERY_ACTIVE_STATUSES, LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
 import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.repository.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
+import { runInClient } from "../../../core/database/run-in-client.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -29,6 +33,55 @@ import { enforceQueueInvariant } from "./queue-invariant.js";
 const log = createLogger("books.repository");
 
 const WISHLIST_MAX_BOOKS = 1000;
+const READING_STATUS_FINISHED = "finished";
+
+const CountRowSchema = z.object({ count: z.number() });
+
+const GenreKeyRowSchema = z.object({ key: z.string() });
+
+const GenreCountRowSchema = z.object({ count: z.bigint(), key: z.string() });
+
+const AuthorCountRowSchema = z.object({ count: z.bigint(), name: z.string() });
+
+const FavoriteGenreCountRowSchema = z.object({ count: z.bigint(), genre: z.string() });
+
+const FavoriteTagCountRowSchema = z.object({ count: z.bigint(), tag: z.string() });
+
+const StoreNameRowSchema = z.object({ storeName: z.string() });
+
+const FavoritesSummaryCountsRowSchema = z.object({
+  finished: z.number(),
+  reading: z.number(),
+  series: z.number(),
+  solo: z.number(),
+  total: z.number(),
+  unrated: z.number(),
+  wantToRead: z.number(),
+});
+
+const EMPTY_FAVORITES_COUNTS: z.infer<typeof FavoritesSummaryCountsRowSchema> = {
+  finished: 0,
+  reading: 0,
+  series: 0,
+  solo: 0,
+  total: 0,
+  unrated: 0,
+  wantToRead: 0,
+};
+
+const DedicationsSummaryCountsRowSchema = z.object({
+  favoriteCount: z.number(),
+  finishedCount: z.number(),
+  totalCount: z.number(),
+  unfinishedCount: z.number(),
+});
+
+const EMPTY_DEDICATIONS_COUNTS: z.infer<typeof DedicationsSummaryCountsRowSchema> = {
+  favoriteCount: 0,
+  finishedCount: 0,
+  totalCount: 0,
+  unfinishedCount: 0,
+};
 
 export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
@@ -135,6 +188,8 @@ export type DeliveryBlockChange =
   | { create: CreateDeliveryData; kind: "upsertActive"; update: UpdateDeliveryData }
   | { kind: "skip" };
 
+export type GuardedChangeOutcome = "applied" | "not-found" | "status-conflict";
+
 export type LibraryFilter = {
   ageCategories?: AgeCategory[];
   authorIds?: string[];
@@ -199,6 +254,8 @@ export type ReadingProgressEventData = {
 };
 
 export type ReadingSnapshotRow = Prisma.BookGetPayload<{ select: typeof readingSnapshotSelect }>;
+
+export type StatusGuard = { expectedStatuses: OwnershipStatus[] };
 
 export type UpdateActiveLoanData = {
   contact: Nullable<string>;
@@ -332,48 +389,67 @@ export class BooksRepository {
     private readonly membershipRepository: ListMembershipRepository,
   ) {}
 
-  async applyLoanChange(userId: string, bookId: string, patch: LoanChangePatch): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      const owned = await tx.book.findFirst({
-        select: { id: true },
-        where: { id: bookId, userId },
-      });
-      if (owned === null) {
-        throw new NotFoundError("Book not found");
-      }
+  async acquireBookLock(
+    bookId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.reading, key: bookId }, client);
+  }
 
-      if (Object.keys(patch.book).length > 0) {
-        await tx.book.update({ data: patch.book, where: { id: bookId } });
+  async acquireUserQueueLock(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await acquireUserQueueLock(userId, client);
+  }
+
+  applyLoanChange(
+    userId: string,
+    bookId: string,
+    patch: LoanChangePatch,
+    guard: StatusGuard,
+    client?: Prisma.TransactionClient,
+  ): Promise<GuardedChangeOutcome> {
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const guarded = await this.applyGuardedStatusChange(tx, {
+        bookId,
+        expectedStatuses: guard.expectedStatuses,
+        fields: patch.book,
+        userId,
+      });
+      if (guarded !== "applied") {
+        return guarded;
       }
 
       if (patch.kind === "create") {
         await tx.bookLoan.create({ data: { ...patch.loan, bookId, status: "active", userId } });
-        return;
+        return "applied";
       }
 
       await tx.bookLoan.updateMany({
         data: { returnedAt: patch.returnedAt, status: "returned" },
         where: { bookId, status: "active" },
       });
+      return "applied";
     });
   }
 
-  async applyOwnershipChange(
+  applyOwnershipChange(
     userId: string,
     bookId: string,
     patch: OwnershipChangePatch,
-  ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      const owned = await tx.book.findFirst({
-        select: { id: true },
-        where: { id: bookId, userId },
+    guard: StatusGuard,
+    client?: Prisma.TransactionClient,
+  ): Promise<GuardedChangeOutcome> {
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const guarded = await this.applyGuardedStatusChange(tx, {
+        bookId,
+        expectedStatuses: guard.expectedStatuses,
+        fields: patch.book,
+        userId,
       });
-      if (owned === null) {
-        throw new NotFoundError("Book not found");
-      }
-
-      if (Object.keys(patch.book).length > 0) {
-        await tx.book.update({ data: patch.book, where: { id: bookId } });
+      if (guarded !== "applied") {
+        return guarded;
       }
 
       if (patch.purchaseInfo === "delete") {
@@ -385,41 +461,39 @@ export class BooksRepository {
           where: { bookId },
         });
       }
+      return "applied";
     });
   }
 
-  async applyReadingChange(
+  applyReadingChange(
     userId: string,
     bookId: string,
     patch: ReadingChangePatch,
     client?: Prisma.TransactionClient,
   ): Promise<void> {
-    if (client === undefined) {
-      await this.prisma.$transaction((tx) => this.applyReadingChange(userId, bookId, patch, tx));
-      return;
-    }
-
-    const owned = await client.book.findFirst({
-      select: { id: true },
-      where: { id: bookId, userId },
-    });
-    if (owned === null) {
-      throw new NotFoundError("Book not found");
-    }
-
-    if (patch.book !== null) {
-      await client.book.update({ data: patch.book, where: { id: bookId } });
-    }
-
-    await enforceQueueInvariant(client, { readingStatus: patch.book?.readingStatus, userId });
-
-    if (Object.keys(patch.progress).length > 0) {
-      await client.bookReadingProgress.upsert({
-        create: { ...patch.progress, bookId },
-        update: patch.progress,
-        where: { bookId },
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const owned = await tx.book.findFirst({
+        select: { id: true },
+        where: { id: bookId, userId },
       });
-    }
+      if (owned === null) {
+        throw new NotFoundError("Book not found");
+      }
+
+      if (patch.book !== null) {
+        await tx.book.update({ data: patch.book, where: { id: bookId } });
+      }
+
+      await enforceQueueInvariant(tx, { readingStatus: patch.book?.readingStatus, userId });
+
+      if (Object.keys(patch.progress).length > 0) {
+        await tx.bookReadingProgress.upsert({
+          create: { ...patch.progress, bookId },
+          update: patch.progress,
+          where: { bookId },
+        });
+      }
+    });
   }
 
   countByCoverMediaId(coverMediaId: string): Promise<number> {
@@ -468,12 +542,18 @@ export class BooksRepository {
     ownershipStatuses?: OwnershipStatus[];
     userId: string;
   }): Promise<number> {
-    const rows = await this.prisma.bookAuthor.findMany({
-      distinct: ["authorId"],
-      select: { authorId: true },
-      where: { book: buildLibraryWhere({ ownershipStatuses, userId }) },
-    });
-    return rows.length;
+    const ownershipFilter =
+      ownershipStatuses === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND book.ownership_status IN (${Prisma.join(ownershipStatuses)})`;
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT (count(DISTINCT book_author.author_id))::int AS "count"
+      FROM book_authors book_author
+      JOIN books book ON book.id = book_author.book_id
+      WHERE book.user_id = ${userId}::uuid
+        ${ownershipFilter}
+    `);
+    return z.array(CountRowSchema).parse(rows)[0]?.count ?? 0;
   }
 
   async countDistinctSeries({
@@ -483,12 +563,18 @@ export class BooksRepository {
     ownershipStatuses?: OwnershipStatus[];
     userId: string;
   }): Promise<number> {
-    const rows = await this.prisma.book.findMany({
-      distinct: ["seriesId"],
-      select: { seriesId: true },
-      where: { ...buildLibraryWhere({ ownershipStatuses, userId }), seriesId: { not: null } },
-    });
-    return rows.length;
+    const ownershipFilter =
+      ownershipStatuses === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND book.ownership_status IN (${Prisma.join(ownershipStatuses)})`;
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT (count(DISTINCT book.series_id))::int AS "count"
+      FROM books book
+      WHERE book.user_id = ${userId}::uuid
+        AND book.series_id IS NOT NULL
+        ${ownershipFilter}
+    `);
+    return z.array(CountRowSchema).parse(rows)[0]?.count ?? 0;
   }
 
   countFavorites({
@@ -510,6 +596,7 @@ export class BooksRepository {
   async create(
     userId: string,
     data: CreateBookData,
+    now: Date,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<BookWithRelations> {
     const {
@@ -550,7 +637,6 @@ export class BooksRepository {
     });
 
     if (listIds.length > 0) {
-      const now = new Date();
       const sortedListIds = [...new Set(listIds)].sort();
       for (const listId of sortedListIds) {
         await this.membershipRepository.acquireListLock(client, { listId });
@@ -567,20 +653,19 @@ export class BooksRepository {
   }
 
   async dedicationsSummary({ userId }: { userId: string }): Promise<DedicationsSummaryResult> {
-    const [
-      totalCount,
-      favoriteCount,
-      finishedCount,
-      unfinishedCount,
-      genreRows,
-      topGenreRows,
-      topAuthorRows,
-    ] = await Promise.all([
-      this.prisma.book.count({ where: buildDedicationsWhere({ filter: "all", userId }) }),
-      this.prisma.book.count({ where: buildDedicationsWhere({ filter: "favorites", userId }) }),
-      this.prisma.book.count({ where: buildDedicationsWhere({ filter: "finished", userId }) }),
-      this.prisma.book.count({ where: buildDedicationsWhere({ filter: "unfinished", userId }) }),
-      this.prisma.$queryRaw<{ key: string }[]>`
+    const [countsRows, genreRows, topGenreRows, topAuthorRows] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*))::int AS "totalCount",
+          (count(*) FILTER (WHERE book.is_favorite_dedication = true))::int AS "favoriteCount",
+          (count(*) FILTER (WHERE book.reading_status = ${READING_STATUS_FINISHED}))::int AS "finishedCount",
+          (count(*) FILTER (WHERE book.reading_status <> ${READING_STATUS_FINISHED}))::int AS "unfinishedCount"
+        FROM books book
+        WHERE book.user_id = ${userId}::uuid
+          AND book.dedication IS NOT NULL
+          AND book.dedication <> ''
+      `),
+      this.prisma.$queryRaw`
         SELECT DISTINCT genre AS key
         FROM books book, unnest(book.genres) AS genre
         WHERE book.user_id = ${userId}::uuid
@@ -588,7 +673,7 @@ export class BooksRepository {
           AND book.dedication <> ''
         ORDER BY key ASC
       `,
-      this.prisma.$queryRaw<{ count: bigint; key: string }[]>`
+      this.prisma.$queryRaw`
         SELECT genre AS key, count(*) AS count
         FROM books book, unnest(book.genres) AS genre
         WHERE book.user_id = ${userId}::uuid
@@ -598,7 +683,7 @@ export class BooksRepository {
         ORDER BY count DESC, key ASC
         LIMIT 1
       `,
-      this.prisma.$queryRaw<{ count: bigint; name: string }[]>`
+      this.prisma.$queryRaw`
         SELECT author.name AS name, count(*) AS count
         FROM book_authors book_author
         JOIN authors author ON author.id = book_author.author_id
@@ -612,19 +697,22 @@ export class BooksRepository {
       `,
     ]);
 
-    const topGenre = topGenreRows[0];
-    const topAuthor = topAuthorRows[0];
+    const counts =
+      z.array(DedicationsSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_DEDICATIONS_COUNTS;
+    const availableGenreRows = z.array(GenreKeyRowSchema).parse(genreRows);
+    const topGenre = z.array(GenreCountRowSchema).parse(topGenreRows)[0];
+    const topAuthor = z.array(AuthorCountRowSchema).parse(topAuthorRows)[0];
 
     return {
-      availableGenres: genreRows.map((row) => row.key),
-      favoriteCount,
-      finishedCount,
+      availableGenres: availableGenreRows.map((row) => row.key),
+      favoriteCount: counts.favoriteCount,
+      finishedCount: counts.finishedCount,
       topAuthor:
         topAuthor === undefined ? null : { count: Number(topAuthor.count), name: topAuthor.name },
       topGenre:
         topGenre === undefined ? null : { count: Number(topGenre.count), genre: topGenre.key },
-      totalCount,
-      unfinishedCount,
+      totalCount: counts.totalCount,
+      unfinishedCount: counts.unfinishedCount,
     };
   }
 
@@ -646,32 +734,29 @@ export class BooksRepository {
     userId,
     wantToReadStatuses,
   }: FavoritesSummaryQuery): Promise<FavoritesSummaryResult> {
-    const [
-      total,
-      reading,
-      finished,
-      wantToRead,
-      series,
-      solo,
-      unrated,
-      ratingAggregate,
-      topGenreRows,
-      topTagRows,
-    ] = await Promise.all([
-      this.countFavorites({ userId }),
-      this.countByReadingStatuses({ isFavorite: true, statuses: readingStatuses, userId }),
-      this.countByReadingStatuses({ isFavorite: true, statuses: finishedStatuses, userId }),
-      this.countByReadingStatuses({ isFavorite: true, statuses: wantToReadStatuses, userId }),
-      this.countForLibrary({ filter: { bookType: "series_part", isFavorite: true, userId } }),
-      this.countForLibrary({ filter: { bookType: "solo", isFavorite: true, userId } }),
-      this.countForLibrary({
-        filter: { hasRating: false, isFavorite: true, readingStatuses: finishedStatuses, userId },
-      }),
+    const [countsRows, ratingAggregate, topGenreRows, topTagRows] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*))::int AS "total",
+          (count(*) FILTER (WHERE book.reading_status IN (${Prisma.join(readingStatuses)})))::int AS "reading",
+          (count(*) FILTER (WHERE book.reading_status IN (${Prisma.join(finishedStatuses)})))::int AS "finished",
+          (count(*) FILTER (WHERE book.reading_status IN (${Prisma.join(wantToReadStatuses)})))::int AS "wantToRead",
+          (count(*) FILTER (WHERE book.series_id IS NOT NULL))::int AS "series",
+          (count(*) FILTER (WHERE book.series_id IS NULL))::int AS "solo",
+          (count(*) FILTER (
+            WHERE book.reading_status IN (${Prisma.join(finishedStatuses)})
+              AND progress.rating IS NULL
+          ))::int AS "unrated"
+        FROM books book
+        LEFT JOIN book_reading_progress progress ON progress.book_id = book.id
+        WHERE book.user_id = ${userId}::uuid
+          AND book.is_favorite = true
+      `),
       this.prisma.bookReadingProgress.aggregate({
         _avg: { rating: true },
         where: { book: { isFavorite: true, userId }, rating: { not: null } },
       }),
-      this.prisma.$queryRaw<{ count: bigint; genre: string }[]>`
+      this.prisma.$queryRaw`
         SELECT g AS genre, count(*) AS count
         FROM books book, unnest(book.genres) AS g
         WHERE book.user_id = ${userId}::uuid
@@ -680,7 +765,7 @@ export class BooksRepository {
         ORDER BY count DESC, genre ASC
         LIMIT ${FAVORITE_TOP_LIMIT}
       `,
-      this.prisma.$queryRaw<{ count: bigint; tag: string }[]>`
+      this.prisma.$queryRaw`
         SELECT tag.name AS tag, count(*) AS count
         FROM book_tags book_tag
         JOIN tags tag ON tag.id = book_tag.tag_id
@@ -694,29 +779,42 @@ export class BooksRepository {
       `,
     ]);
 
+    const counts =
+      z.array(FavoritesSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_FAVORITES_COUNTS;
+    const topGenres = z.array(FavoriteGenreCountRowSchema).parse(topGenreRows);
+    const topTags = z.array(FavoriteTagCountRowSchema).parse(topTagRows);
+
     return {
       averageRating: ratingAggregate._avg.rating,
-      finished,
-      reading,
-      series,
-      solo,
-      topGenres: topGenreRows.map((row) => ({ count: Number(row.count), genre: row.genre })),
-      topTags: topTagRows.map((row) => ({ count: Number(row.count), tag: row.tag })),
-      total,
-      unrated,
-      wantToRead,
+      finished: counts.finished,
+      reading: counts.reading,
+      series: counts.series,
+      solo: counts.solo,
+      topGenres: topGenres.map((row) => ({ count: Number(row.count), genre: row.genre })),
+      topTags: topTags.map((row) => ({ count: Number(row.count), tag: row.tag })),
+      total: counts.total,
+      unrated: counts.unrated,
+      wantToRead: counts.wantToRead,
     };
   }
 
-  findOwnedById(userId: string, id: string): Promise<Nullable<BookWithRelations>> {
-    return this.prisma.book.findFirst({
+  findOwnedById(
+    userId: string,
+    id: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<BookWithRelations>> {
+    return client.book.findFirst({
       include: withRelations,
       where: { id, userId },
     });
   }
 
-  async findOwnedByIdOrThrow(userId: string, id: string): Promise<BookWithRelations> {
-    const book = await this.findOwnedById(userId, id);
+  async findOwnedByIdOrThrow(
+    userId: string,
+    id: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookWithRelations> {
+    const book = await this.findOwnedById(userId, id, client);
     if (book === null) {
       throw new NotFoundError("Book not found");
     }
@@ -873,7 +971,7 @@ export class BooksRepository {
     limit: number;
     userId: string;
   }): Promise<string[]> {
-    const rows = await this.prisma.$queryRaw<{ storeName: string }[]>`
+    const rows = await this.prisma.$queryRaw`
       SELECT purchase.store_name AS "storeName"
       FROM book_purchase_info purchase
       JOIN books book ON book.id = purchase.book_id
@@ -884,16 +982,22 @@ export class BooksRepository {
       ORDER BY max(book.created_at) DESC
       LIMIT ${limit}
     `;
-    return rows.map((row) => row.storeName);
+    return z
+      .array(StoreNameRowSchema)
+      .parse(rows)
+      .map((row) => row.storeName);
   }
 
-  async recordReadingProgress(args: {
-    bookId: string;
-    event: Nullable<ReadingProgressEventData>;
-    patch: ReadingChangePatch;
-    userId: string;
-  }): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+  recordReadingProgress(
+    args: {
+      bookId: string;
+      event: Nullable<ReadingProgressEventData>;
+      patch: ReadingChangePatch;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<void> {
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
       await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
 
       if (args.event !== null) {
@@ -909,14 +1013,17 @@ export class BooksRepository {
     });
   }
 
-  async recordReadingStatusChange(args: {
-    bookId: string;
-    clearEvents: boolean;
-    event: Nullable<ReadingProgressEventData>;
-    patch: ReadingChangePatch;
-    userId: string;
-  }): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+  recordReadingStatusChange(
+    args: {
+      bookId: string;
+      clearEvents: boolean;
+      event: Nullable<ReadingProgressEventData>;
+      patch: ReadingChangePatch;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<void> {
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
       await this.applyReadingChange(args.userId, args.bookId, args.patch, tx);
 
       if (args.clearEvents) {
@@ -960,7 +1067,7 @@ export class BooksRepository {
       ownershipStatuses === undefined
         ? Prisma.empty
         : Prisma.sql`AND ownership_status IN (${Prisma.join(ownershipStatuses)})`;
-    const rows = await this.prisma.$queryRaw<{ count: bigint; key: string }[]>(Prisma.sql`
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT unnest(genres) AS key, count(*) AS count
       FROM books
       WHERE user_id = ${userId}::uuid
@@ -969,7 +1076,10 @@ export class BooksRepository {
       ORDER BY count DESC, key ASC
       LIMIT ${limit}
     `);
-    return rows.map((row) => ({ count: Number(row.count), key: row.key }));
+    return z
+      .array(GenreCountRowSchema)
+      .parse(rows)
+      .map((row) => ({ count: Number(row.count), key: row.key }));
   }
 
   async topTags({
@@ -1016,99 +1126,130 @@ export class BooksRepository {
     }
   }
 
-  async updateOwned(
+  updateOwned(
     userId: string,
     bookId: string,
     data: UpdateBookData,
+    now: Date,
     client?: Prisma.TransactionClient,
   ): Promise<BookWithRelations> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) => this.updateOwned(userId, bookId, data, tx));
-    }
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      if (data.queueRemoval !== null) {
+        await acquireUserQueueLock(userId, tx);
+      }
 
-    const updated = await client.book.updateMany({
-      data: data.fields,
-      where: { id: bookId, userId },
-    });
-    if (updated.count === 0) {
-      throw new NotFoundError("Book not found");
-    }
-
-    if (data.queueRemoval !== null) {
-      await this.shiftQueueUpAfter(userId, data.queueRemoval.fromPosition, client);
-    }
-
-    const nextReadingStatus =
-      typeof data.fields.readingStatus === "string" ? data.fields.readingStatus : undefined;
-    await enforceQueueInvariant(client, { readingStatus: nextReadingStatus, userId });
-
-    await applyBlockUpsert(client.bookReadingProgress, bookId, data.readingProgress);
-    await applyBlockUpsert(client.bookPurchaseInfo, bookId, data.purchaseInfo);
-    await applyDeliveryBlock(client, bookId, userId, data.deliveryInfo);
-    await applyLoanBlock(client, bookId, userId, data.loanInfo);
-
-    if (data.authorIds !== undefined) {
-      await client.bookAuthor.deleteMany({ where: { bookId } });
-      await client.bookAuthor.createMany({
-        data: data.authorIds.map((authorId, position) => ({ authorId, bookId, position })),
+      const updated = await tx.book.updateMany({
+        data: data.fields,
+        where: { id: bookId, userId },
       });
-    }
+      if (updated.count === 0) {
+        throw new NotFoundError("Book not found");
+      }
 
-    if (data.tagIds !== undefined) {
-      await client.bookTag.deleteMany({ where: { bookId } });
-      if (data.tagIds.length > 0) {
-        await client.bookTag.createMany({
-          data: data.tagIds.map((tagId) => ({ bookId, tagId })),
+      if (data.queueRemoval !== null) {
+        await this.shiftQueueUpAfter(userId, data.queueRemoval.fromPosition, tx);
+      }
+
+      const nextReadingStatus =
+        typeof data.fields.readingStatus === "string" ? data.fields.readingStatus : undefined;
+      await enforceQueueInvariant(tx, { readingStatus: nextReadingStatus, userId });
+
+      await applyBlockUpsert(tx.bookReadingProgress, bookId, data.readingProgress);
+      await applyBlockUpsert(tx.bookPurchaseInfo, bookId, data.purchaseInfo);
+      await applyDeliveryBlock(tx, bookId, userId, data.deliveryInfo);
+      await applyLoanBlock(tx, bookId, userId, data.loanInfo);
+
+      if (data.authorIds !== undefined) {
+        await tx.bookAuthor.deleteMany({ where: { bookId } });
+        await tx.bookAuthor.createMany({
+          data: data.authorIds.map((authorId, position) => ({ authorId, bookId, position })),
         });
       }
-    }
 
-    if (data.listIds !== undefined) {
-      const targetListIds = new Set(data.listIds);
-      const current = await client.bookListItem.findMany({
-        select: { listId: true },
-        where: { bookId },
-      });
-      const currentListIds = new Set(current.map((item) => item.listId));
-
-      const toRemove = current
-        .map((item) => item.listId)
-        .filter((listId) => !targetListIds.has(listId));
-      const toAdd = data.listIds.filter((listId) => !currentListIds.has(listId));
-
-      if (toAdd.length > 0 || toRemove.length > 0) {
-        const now = new Date();
-        const affectedListIds = [...new Set([...toAdd, ...toRemove])].sort();
-        for (const listId of affectedListIds) {
-          await this.membershipRepository.acquireListLock(client, { listId });
-        }
-
-        for (const listId of toRemove) {
-          const membership = await this.membershipRepository.findMembership(client, {
-            bookId,
-            listId,
+      if (data.tagIds !== undefined) {
+        await tx.bookTag.deleteMany({ where: { bookId } });
+        if (data.tagIds.length > 0) {
+          await tx.bookTag.createMany({
+            data: data.tagIds.map((tagId) => ({ bookId, tagId })),
           });
-          if (membership === null) {
-            continue;
-          }
-          await this.membershipRepository.deleteMembership(client, { bookId, listId });
-          await this.membershipRepository.shiftUpAfter(client, {
-            listId,
-            position: membership.position,
-          });
-        }
-
-        for (const listId of toAdd) {
-          await this.membershipRepository.append(client, { bookId, listId });
-        }
-
-        for (const listId of affectedListIds) {
-          await this.membershipRepository.touchList(client, { listId, now, userId });
         }
       }
+
+      if (data.listIds !== undefined) {
+        const targetListIds = new Set(data.listIds);
+        const current = await tx.bookListItem.findMany({
+          select: { listId: true },
+          where: { bookId },
+        });
+        const currentListIds = new Set(current.map((item) => item.listId));
+
+        const toRemove = current
+          .map((item) => item.listId)
+          .filter((listId) => !targetListIds.has(listId));
+        const toAdd = data.listIds.filter((listId) => !currentListIds.has(listId));
+
+        if (toAdd.length > 0 || toRemove.length > 0) {
+          const affectedListIds = [...new Set([...toAdd, ...toRemove])].sort();
+          for (const listId of affectedListIds) {
+            await this.membershipRepository.acquireListLock(tx, { listId });
+          }
+
+          for (const listId of toRemove) {
+            const membership = await this.membershipRepository.findMembership(tx, {
+              bookId,
+              listId,
+            });
+            if (membership === null) {
+              continue;
+            }
+            await this.membershipRepository.deleteMembership(tx, { bookId, listId });
+            await this.membershipRepository.shiftUpAfter(tx, {
+              listId,
+              position: membership.position,
+            });
+          }
+
+          for (const listId of toAdd) {
+            await this.membershipRepository.append(tx, { bookId, listId });
+          }
+
+          for (const listId of affectedListIds) {
+            await this.membershipRepository.touchList(tx, { listId, now, userId });
+          }
+        }
+      }
+
+      return tx.book.findFirstOrThrow({ include: withRelations, where: { id: bookId, userId } });
+    });
+  }
+
+  private async applyGuardedStatusChange(
+    client: Prisma.TransactionClient,
+    {
+      bookId,
+      expectedStatuses,
+      fields,
+      userId,
+    }: {
+      bookId: string;
+      expectedStatuses: OwnershipStatus[];
+      fields: { ownershipStatus?: OwnershipStatus };
+      userId: string;
+    },
+  ): Promise<GuardedChangeOutcome> {
+    const updated = await client.book.updateMany({
+      data: fields,
+      where: { id: bookId, ownershipStatus: { in: expectedStatuses }, userId },
+    });
+    if (updated.count > 0) {
+      return "applied";
     }
 
-    return client.book.findFirstOrThrow({ include: withRelations, where: { id: bookId, userId } });
+    const exists = await client.book.findFirst({
+      select: { id: true },
+      where: { id: bookId, userId },
+    });
+    return exists === null ? "not-found" : "status-conflict";
   }
 }
 

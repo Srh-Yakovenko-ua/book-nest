@@ -16,8 +16,8 @@ import type {
 } from "../infrastructure/character-theories.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { BooksRepository } from "../../books/index.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { assertBookOwned, BooksRepository } from "../../books/index.js";
 import { toCharacterTheoryView } from "../domain/character-theory.mapper.js";
 import { resolveContextAllowedBookIds } from "../domain/context-books.js";
 import { CharacterTheoriesRepository } from "../infrastructure/character-theories.repository.js";
@@ -75,9 +75,8 @@ export class CharacterTheoriesService {
     const [items, totalCount] = await Promise.all([
       this.characterTheoriesRepository.listTheories({
         filter,
-        skip: (query.pageNumber - 1) * query.pageSize,
         sort: query.sort,
-        take: query.pageSize,
+        ...pageSlice({ pageNumber: query.pageNumber, pageSize: query.pageSize }),
       }),
       this.characterTheoriesRepository.countTheories(filter),
     ]);
@@ -125,12 +124,12 @@ export class CharacterTheoriesService {
     bookId: string;
     userId: string;
   }): Promise<void> {
-    const owned = await this.booksRepository.existsOwned({ bookId, userId });
-    if (!owned) {
-      throw new NotFoundError("Book not found", {
-        code: CHARACTER_THEORY_ERROR_CODES.bookNotFound,
-      });
-    }
+    await assertBookOwned({
+      bookId,
+      booksRepository: this.booksRepository,
+      notFoundCode: CHARACTER_THEORY_ERROR_CODES.bookNotFound,
+      userId,
+    });
   }
 
   private async assertCharacterOwned({

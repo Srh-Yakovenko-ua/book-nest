@@ -1,6 +1,6 @@
 import type { Nullable } from "@app/shared";
 
-import { normalizeName } from "../core/normalize-name.js";
+import { normalizeName } from "@app/shared";
 
 export type PublisherNameSeed = {
   isPrimary: boolean;

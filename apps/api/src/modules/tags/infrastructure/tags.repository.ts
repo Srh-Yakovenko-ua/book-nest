@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { TagModel } from "../../../generated/prisma/models.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
 type CountTagsInput = {
@@ -53,7 +54,10 @@ export class TagsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async acquireCreateLock(userId: string, client: Prisma.TransactionClient): Promise<void> {
-    await client.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`tag:create:${userId}`}))`;
+    await acquireAdvisoryLock(
+      { classId: ADVISORY_LOCK_CLASS.tags, key: `tag:create:${userId}` },
+      client,
+    );
   }
 
   countBooksByTag(userId: string): Promise<{ count: number; tagId: string }[]> {

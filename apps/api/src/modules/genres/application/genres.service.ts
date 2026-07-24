@@ -1,12 +1,11 @@
-import type { CreateGenreInput, GenreStatsView, GenreView, Nullable } from "@app/shared";
+import type { CreateGenreInput, GenreStatsView, GenreView } from "@app/shared";
 
+import { normalizeName } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { createLogger } from "../../../core/logger.js";
-import { normalizeName } from "../../../core/normalize-name.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
 import { toGenreStatsViews } from "../domain/genre-stats.mapper.js";
 import { toGenreView } from "../domain/genre.mapper.js";
@@ -16,8 +15,6 @@ const CUSTOM_GENRE_GROUP_KEY = "custom";
 const CUSTOM_GENRE_GROUP_NAME = "Мої жанри";
 const GENRE_COVER_PREVIEW_LIMIT = 4;
 const GENRE_COVER_SCAN_LIMIT = 500;
-
-const log = createLogger("genres.service");
 
 @Injectable()
 export class GenresService {
@@ -53,10 +50,10 @@ export class GenresService {
       });
       return toGenreView(genre);
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError("A genre with this name already exists");
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () => new ConflictError("A genre with this name already exists"),
+      });
     }
   }
 
@@ -118,7 +115,7 @@ export class GenresService {
   ): Map<string, string[]> {
     const urlsByKey = new Map<string, Set<string>>();
     for (const row of coverRows) {
-      const thumbUrl = this.thumbUrlOf(row.coverMedia);
+      const thumbUrl = this.mediaService.buildThumbUrlOrNull(row.coverMedia);
       if (thumbUrl === null) {
         continue;
       }
@@ -131,14 +128,5 @@ export class GenresService {
       }
     }
     return new Map([...urlsByKey].map(([key, urls]) => [key, [...urls]]));
-  }
-
-  private thumbUrlOf(coverMedia: Parameters<MediaService["buildView"]>[0]): Nullable<string> {
-    try {
-      return this.mediaService.buildView(coverMedia).urls.thumb;
-    } catch (error) {
-      log.warn({ err: error, mediaId: coverMedia.id }, "failed to build cover thumbnail url");
-      return null;
-    }
   }
 }

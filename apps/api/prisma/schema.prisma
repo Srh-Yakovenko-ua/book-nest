@@ -118,7 +118,6 @@ model Series {
   characterTheories    CharacterTheory[]
 
   @@unique([userId, normalizedName])
-  @@index([userId])
   @@map("series")
 }
 
@@ -263,8 +262,11 @@ model Book {
   characterRelationshipStates   CharacterRelationshipBookState[]
 
   @@unique([seriesId, partNumber])
-  @@index([userId])
   @@index([userId, firstAuthorName])
+  @@index([userId, createdAt(sort: Desc), id])
+  @@index([userId, ownershipStatus])
+  @@index([userId, readingStatus])
+  @@index([publisherId])
   @@index([seriesId])
   @@index([coverMediaId])
   @@map("books")
@@ -365,7 +367,7 @@ model BookDelivery {
   book                 Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
-  @@index([userId])
+  @@index([userId, status])
   @@map("book_deliveries")
 }
 
@@ -388,7 +390,7 @@ model BookLoan {
   book               Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
-  @@index([userId])
+  @@index([userId, status])
   @@map("book_loans")
 }
 
@@ -431,7 +433,6 @@ model Note {
   book           Book?    @relation(fields: [bookId], references: [id], onDelete: Cascade)
   series         Series?  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@index([bookId])
   @@index([seriesId])
   @@index([userId, entityType])
@@ -454,7 +455,6 @@ model Tag {
   characters     CharacterTag[]
 
   @@unique([userId, normalizedName])
-  @@index([userId])
   @@map("tags")
 }
 
@@ -485,7 +485,6 @@ model Genre {
 
   @@unique([userId, normalizedName])
   @@index([key])
-  @@index([userId])
   @@map("genres")
 }
 
@@ -502,7 +501,6 @@ model DeliveryService {
   user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, normalizedName])
-  @@index([userId])
   @@map("delivery_services")
 }
 
@@ -518,7 +516,6 @@ model BookList {
   items          BookListItem[]
 
   @@unique([userId, normalizedName])
-  @@index([userId])
   @@map("book_lists")
 }
 
@@ -778,7 +775,6 @@ model Character {
   outgoingRelationships CharacterRelationship[]    @relation("outgoingRelationships")
   incomingRelationships CharacterRelationship[]    @relation("incomingRelationships")
 
-  @@index([userId])
   @@index([userId, normalizedName])
   @@index([userId, isFavorite])
   @@index([userId, archivedAt])
@@ -915,7 +911,6 @@ model CharacterGroup {
   series         Series?                    @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   memberships    CharacterGroupMembership[]
 
-  @@index([userId])
   @@index([userId, seriesId])
   @@index([userId, normalizedName])
   @@map("character_groups")
@@ -958,7 +953,6 @@ model CharacterTheory {
   book        Book?      @relation(fields: [bookId], references: [id], onDelete: Cascade)
   series      Series?    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@index([characterId])
   @@index([bookId])
   @@index([seriesId])
@@ -985,7 +979,6 @@ model CharacterRelationship {
   targetCharacter   Character                        @relation("incomingRelationships", fields: [targetCharacterId], references: [id], onDelete: Cascade)
   bookStates        CharacterRelationshipBookState[]
 
-  @@index([userId])
   @@index([sourceCharacterId])
   @@index([targetCharacterId])
   @@index([userId, category])
@@ -1006,7 +999,6 @@ model CharacterGraphLayout {
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@index([userId, scopeType, scopeId])
   @@map("character_graph_layouts")
 }

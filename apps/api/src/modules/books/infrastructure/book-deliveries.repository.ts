@@ -7,6 +7,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookDeliveryModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { runInClient } from "../../../core/database/run-in-client.js";
 
 export type CreateDeliveryData = {
   currency: Nullable<Currency>;
@@ -22,7 +23,7 @@ export type CreateDeliveryData = {
   trackingUrl: Nullable<string>;
 };
 
-export type CreateDeliveryOutcome = "book-not-found" | "created";
+export type CreateDeliveryOutcome = "book-not-found" | "created" | "status-conflict";
 
 export type CreateDeliveryTransition = {
   book: DeliveryBookPatch;
@@ -59,67 +60,62 @@ type DeliveryBookPatch = { ownershipStatus?: OwnershipStatus };
 export class BookDeliveriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async applyCreate(
+  applyCreate(
     userId: string,
     bookId: string,
     transition: CreateDeliveryTransition,
+    expectedStatuses: OwnershipStatus[],
     client?: Prisma.TransactionClient,
   ): Promise<CreateDeliveryOutcome> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) => this.applyCreate(userId, bookId, transition, tx));
-    }
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const guarded = await tx.book.updateMany({
+        data: transition.book,
+        where: { id: bookId, ownershipStatus: { in: expectedStatuses }, userId },
+      });
+      if (guarded.count === 0) {
+        const exists = await tx.book.findFirst({
+          select: { id: true },
+          where: { id: bookId, userId },
+        });
+        return exists === null ? "book-not-found" : "status-conflict";
+      }
 
-    const owned = await client.book.findFirst({
-      select: { id: true },
-      where: { id: bookId, userId },
+      await tx.bookDelivery.create({ data: { ...transition.delivery, bookId, userId } });
+
+      return "created";
     });
-    if (owned === null) {
-      return "book-not-found";
-    }
-
-    await client.bookDelivery.create({ data: { ...transition.delivery, bookId, userId } });
-
-    if (Object.keys(transition.book).length > 0) {
-      await client.book.update({ data: transition.book, where: { id: bookId } });
-    }
-
-    return "created";
   }
 
-  async applyRecordChange(
+  applyRecordChange(
     userId: string,
     bookId: string,
     deliveryId: string,
     transition: RecordDeliveryTransition,
     client?: Prisma.TransactionClient,
   ): Promise<RecordDeliveryOutcome> {
-    if (client === undefined) {
-      return this.prisma.$transaction((tx) =>
-        this.applyRecordChange(userId, bookId, deliveryId, transition, tx),
-      );
-    }
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const record = await tx.bookDelivery.findFirst({
+        select: { id: true },
+        where: { book: { userId }, bookId, id: deliveryId },
+      });
+      if (record === null) {
+        return "not-found";
+      }
 
-    const record = await client.bookDelivery.findFirst({
-      select: { id: true },
-      where: { book: { userId }, bookId, id: deliveryId },
+      const updated = await tx.bookDelivery.updateMany({
+        data: transition.delivery,
+        where: { id: deliveryId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
+      });
+      if (updated.count === 0) {
+        return "not-active";
+      }
+
+      if (transition.book !== null) {
+        await tx.book.update({ data: transition.book, where: { id: bookId } });
+      }
+
+      return "applied";
     });
-    if (record === null) {
-      return "not-found";
-    }
-
-    const updated = await client.bookDelivery.updateMany({
-      data: transition.delivery,
-      where: { id: deliveryId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
-    });
-    if (updated.count === 0) {
-      return "not-active";
-    }
-
-    if (transition.book !== null) {
-      await client.book.update({ data: transition.book, where: { id: bookId } });
-    }
-
-    return "applied";
   }
 
   async listForOwnedBook({

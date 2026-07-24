@@ -10,6 +10,7 @@ import type {
   UpdateTagInput,
 } from "@app/shared";
 
+import { normalizeName } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -17,9 +18,8 @@ import type { TagModel } from "../../../generated/prisma/models.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { normalizeName } from "../../../core/normalize-name.js";
-import { buildPaginator } from "../../../core/paginator.js";
-import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
+import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { toTagCatalogView, toTagStatsView, toTagView } from "../domain/tag.mapper.js";
 import { TagsRepository } from "../infrastructure/tags.repository.js";
 
@@ -80,10 +80,10 @@ export class TagsService {
       });
       return toTagCatalogView(created);
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError(TAG_ALREADY_EXISTS_MESSAGE);
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () => new ConflictError(TAG_ALREADY_EXISTS_MESSAGE),
+      });
     }
   }
 
@@ -123,9 +123,8 @@ export class TagsService {
     const [tags, totalCount] = await Promise.all([
       this.tagsRepository.searchOwned({
         query: search,
-        skip: (pageNumber - 1) * pageSize,
-        take: pageSize,
         userId,
+        ...pageSlice({ pageNumber, pageSize }),
       }),
       this.tagsRepository.countOwned({ query: search, userId }),
     ]);
@@ -160,10 +159,10 @@ export class TagsService {
       });
       return toTagCatalogView(updated);
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictError(TAG_ALREADY_EXISTS_MESSAGE);
-      }
-      throw error;
+      rethrowUniqueConstraintAs({
+        error,
+        toError: () => new ConflictError(TAG_ALREADY_EXISTS_MESSAGE),
+      });
     }
   }
 

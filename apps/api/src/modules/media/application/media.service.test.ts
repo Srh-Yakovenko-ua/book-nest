@@ -417,7 +417,10 @@ describe("MediaService.generateThumbnail", () => {
       contentType: "image/webp",
       key: "media/book_cover/x/thumb.webp",
     });
-    expect(repository.markThumbGenerated).toHaveBeenCalledWith(ASSET_ID);
+    expect(repository.markThumbGenerated).toHaveBeenCalledWith({
+      id: ASSET_ID,
+      now: expect.any(Date),
+    });
     expect(storage.delete).not.toHaveBeenCalled();
   });
 

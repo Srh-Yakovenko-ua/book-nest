@@ -1,11 +1,15 @@
 import type { Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { AuthorModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { visibleToUser } from "../../../core/database/two-tier-visibility.js";
+
+const RecentAuthorIdRowSchema = z.object({ authorId: z.string() });
 
 const primaryNamesArgs = {
   include: { names: { where: { isPrimary: true } } },
@@ -85,13 +89,13 @@ export class AuthorsRepository {
   findBaseByIds({ ids, userId }: VisibleByIdsInput): Promise<{ id: string; name: string }[]> {
     return this.prisma.author.findMany({
       select: { id: true, name: true },
-      where: { id: { in: ids }, OR: [{ userId: null }, { userId }] },
+      where: { id: { in: ids }, ...visibleToUser(userId) },
     });
   }
 
   findByNormalized(userId: string, normalizedName: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({
-      where: { normalizedName, OR: [{ userId: null }, { userId }] },
+      where: { normalizedName, ...visibleToUser(userId) },
     });
   }
 
@@ -104,11 +108,10 @@ export class AuthorsRepository {
       { openLibraryKey: { in: openLibraryKeys } },
       { normalizedName: { in: normalizedNames } },
     ];
-    const visibilityClauses: Prisma.AuthorWhereInput[] = [{ userId: null }, { userId }];
 
     return this.prisma.author.findMany({
       select: { normalizedName: true, openLibraryKey: true },
-      where: { AND: [{ OR: candidateMatches }, { OR: visibilityClauses }] },
+      where: { AND: [{ OR: candidateMatches }, visibleToUser(userId)] },
     });
   }
 
@@ -126,26 +129,26 @@ export class AuthorsRepository {
 
   findVisibleById(userId: string, id: string): Promise<Nullable<AuthorModel>> {
     return this.prisma.author.findFirst({
-      where: { id, OR: [{ userId: null }, { userId }] },
+      where: { id, ...visibleToUser(userId) },
     });
   }
 
   findVisibleByIdsWithNames({ ids, userId }: VisibleByIdsInput): Promise<AuthorWithPrimaryNames[]> {
     return this.prisma.author.findMany({
-      where: { id: { in: ids }, OR: [{ userId: null }, { userId }] },
+      where: { id: { in: ids }, ...visibleToUser(userId) },
       ...primaryNamesArgs,
     });
   }
 
   findVisibleByIdWithNames(userId: string, id: string): Promise<Nullable<AuthorWithPrimaryNames>> {
     return this.prisma.author.findFirst({
-      where: { id, OR: [{ userId: null }, { userId }] },
+      where: { id, ...visibleToUser(userId) },
       ...primaryNamesArgs,
     });
   }
 
   async recentAuthorIds({ limit, userId }: RecentAuthorsInput): Promise<string[]> {
-    const rows = await this.prisma.$queryRaw<{ authorId: string }[]>`
+    const rows = await this.prisma.$queryRaw`
       SELECT book_author.author_id AS "authorId"
       FROM book_authors book_author
       JOIN books book ON book.id = book_author.book_id
@@ -154,7 +157,10 @@ export class AuthorsRepository {
       ORDER BY max(book.created_at) DESC
       LIMIT ${limit}
     `;
-    return rows.map((row) => row.authorId);
+    return z
+      .array(RecentAuthorIdRowSchema)
+      .parse(rows)
+      .map((row) => row.authorId);
   }
 
   searchVisible({
@@ -200,5 +206,5 @@ function buildVisibleWhere(userId: string, query: string | undefined): Prisma.Au
       ? {}
       : { searchText: { contains: query, mode: "insensitive" } };
 
-  return { ...searchFilter, OR: [{ userId: null }, { userId }] };
+  return { ...searchFilter, ...visibleToUser(userId) };
 }

@@ -4,13 +4,15 @@ import { TagTypeSchema } from "@app/shared";
 
 import type { TagModel } from "../../../generated/prisma/models.js";
 
+import { toNullableIsoDateTime } from "../../../core/iso-date.js";
+
 export function toTagCatalogView(tag: TagModel): TagCatalogView {
   return {
     color: tag.color,
     createdAt: tag.createdAt.toISOString(),
     description: tag.description,
     id: tag.id,
-    lastUsedAt: tag.lastUsedAt === null ? null : tag.lastUsedAt.toISOString(),
+    lastUsedAt: toNullableIsoDateTime(tag.lastUsedAt),
     name: tag.name,
     normalizedName: tag.normalizedName,
     type: TagTypeSchema.parse(tag.type),
@@ -30,7 +32,7 @@ export function toTagStatsView({
     color: tag.color,
     description: tag.description,
     id: tag.id,
-    lastUsedAt: tag.lastUsedAt === null ? null : tag.lastUsedAt.toISOString(),
+    lastUsedAt: toNullableIsoDateTime(tag.lastUsedAt),
     name: tag.name,
     normalizedName: tag.normalizedName,
     type: TagTypeSchema.parse(tag.type),

@@ -5,14 +5,15 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserSocialLinkModel } from "../../../generated/prisma/models.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 
 @Injectable()
 export class SocialLinkRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  countByUserId(userId: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {
-    return client.userSocialLink.count({ where: { userId } });
+  async acquireUserLock(userId: string, client: Prisma.TransactionClient): Promise<void> {
+    await acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.socialLinks, key: userId }, client);
   }
 
   create(
@@ -23,16 +24,20 @@ export class SocialLinkRepository {
     return client.userSocialLink.create({ data: { ...data, userId } });
   }
 
-  deleteById(id: string): Promise<UserSocialLinkModel> {
-    return this.prisma.userSocialLink.delete({ where: { id } });
+  async deleteById(id: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {
+    const deleted = await client.userSocialLink.deleteMany({ where: { id } });
+    return deleted.count;
   }
 
   findById(id: string): Promise<Nullable<UserSocialLinkModel>> {
     return this.prisma.userSocialLink.findUnique({ where: { id } });
   }
 
-  listByUserId(userId: string): Promise<UserSocialLinkModel[]> {
-    return this.prisma.userSocialLink.findMany({
+  listByUserId(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<UserSocialLinkModel[]> {
+    return client.userSocialLink.findMany({
       orderBy: { createdAt: "asc" },
       where: { userId },
     });

@@ -1,32 +1,28 @@
 import type { BookListsView } from "@app/shared";
 
 import { SetBookListsInputSchema } from "@app/shared";
-import { Body, Controller, Get, Param, ParseUUIDPipe, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseUUIDPipe, Put } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiBody,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { BookListsService } from "../application/book-lists.service.js";
 import { SetBookListsInputDto } from "./input-dto/set-book-lists.input-dto.js";
 import { BookListsViewDto } from "./view-dto/book-lists.view-dto.js";
 
-@ApiBearerAuth()
 @ApiTags("books")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/books")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class BookListsController {
   constructor(private readonly bookListsService: BookListsService) {}
 

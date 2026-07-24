@@ -21,3 +21,10 @@ export function buildPaginator<T>({
     totalCount,
   };
 }
+
+export function pageSlice({ pageNumber, pageSize }: { pageNumber: number; pageSize: number }): {
+  skip: number;
+  take: number;
+} {
+  return { skip: (pageNumber - 1) * pageSize, take: pageSize };
+}

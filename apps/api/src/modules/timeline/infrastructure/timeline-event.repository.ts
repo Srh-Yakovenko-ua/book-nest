@@ -1,12 +1,30 @@
 import type { Nullable, TimelineEventSort } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-
-import type { Prisma } from "../../../generated/prisma/client.js";
+import { z } from "zod";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { Prisma } from "../../../generated/prisma/client.js";
 import { timelineEventsOrderBy } from "../domain/event-sort.js";
 import { TIMELINE_POSITION_STEP } from "../domain/sparse-position.js";
+
+const THREAD_STATUS_OPEN = "open";
+
+const TimelineOverviewCountsRowSchema = z.object({
+  eventsAfterPosition: z.number(),
+  eventsBeforePosition: z.number(),
+  eventsWithoutPage: z.number(),
+  totalEvents: z.number(),
+  unresolvedCount: z.number(),
+});
+
+const EMPTY_TIMELINE_OVERVIEW_COUNTS: z.infer<typeof TimelineOverviewCountsRowSchema> = {
+  eventsAfterPosition: 0,
+  eventsBeforePosition: 0,
+  eventsWithoutPage: 0,
+  totalEvents: 0,
+  unresolvedCount: 0,
+};
 
 const eventViewArgs = {
   include: { timeline: { select: { colorKey: true, name: true } } },
@@ -140,17 +158,20 @@ export class TimelineEventRepository {
     bookId: string;
     currentPage: Nullable<number>;
   }): Promise<TimelineOverviewAggregate> {
-    const [
-      totalEvents,
-      unresolvedCount,
-      eventsWithoutPage,
-      byTypeRows,
-      byImportanceRows,
-      chapterRows,
-    ] = await Promise.all([
-      this.prisma.bookTimelineEvent.count({ where: { bookId } }),
-      this.prisma.bookTimelineEvent.count({ where: { bookId, threadStatus: "open" } }),
-      this.prisma.bookTimelineEvent.count({ where: { bookId, pageNumber: null } }),
+    const [countsRows, byTypeRows, byImportanceRows, chapterRows] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*))::int AS "totalEvents",
+          (count(*) FILTER (WHERE event.thread_status = ${THREAD_STATUS_OPEN}))::int
+            AS "unresolvedCount",
+          (count(*) FILTER (WHERE event.page_number IS NULL))::int AS "eventsWithoutPage",
+          (count(*) FILTER (WHERE event.page_number <= ${currentPage}))::int
+            AS "eventsBeforePosition",
+          (count(*) FILTER (WHERE event.page_number > ${currentPage}))::int
+            AS "eventsAfterPosition"
+        FROM book_timeline_events event
+        WHERE event.book_id = ${bookId}::uuid
+      `),
       this.prisma.bookTimelineEvent.groupBy({
         _count: { _all: true },
         by: ["eventType"],
@@ -169,12 +190,18 @@ export class TimelineEventRepository {
       }),
     ]);
 
-    const positionSplit = await this.splitByPosition({
-      bookId,
-      currentPage,
-      eventsWithoutPage,
-      totalEvents,
-    });
+    const counts =
+      z.array(TimelineOverviewCountsRowSchema).parse(countsRows)[0] ??
+      EMPTY_TIMELINE_OVERVIEW_COUNTS;
+
+    const positionSplit =
+      currentPage === null
+        ? { after: 0, before: 0, unknown: counts.totalEvents }
+        : {
+            after: counts.eventsAfterPosition,
+            before: counts.eventsBeforePosition,
+            unknown: counts.eventsWithoutPage,
+          };
 
     return {
       byImportance: byImportanceRows.map((row) => ({
@@ -186,8 +213,8 @@ export class TimelineEventRepository {
       eventsAfterPosition: positionSplit.after,
       eventsBeforePosition: positionSplit.before,
       eventsUnknownPosition: positionSplit.unknown,
-      totalEvents,
-      unresolvedCount,
+      totalEvents: counts.totalEvents,
+      unresolvedCount: counts.unresolvedCount,
     };
   }
 
@@ -219,8 +246,9 @@ export class TimelineEventRepository {
   async deleteEvent(
     eventId: string,
     client: Prisma.TransactionClient = this.prisma,
-  ): Promise<void> {
-    await client.bookTimelineEvent.delete({ where: { id: eventId } });
+  ): Promise<number> {
+    const deleted = await client.bookTimelineEvent.deleteMany({ where: { id: eventId } });
+    return deleted.count;
   }
 
   async deleteRelation(relationId: string): Promise<number> {
@@ -517,31 +545,6 @@ export class TimelineEventRepository {
       where: { id: eventId },
       ...eventViewArgs,
     });
-  }
-
-  private async splitByPosition({
-    bookId,
-    currentPage,
-    eventsWithoutPage,
-    totalEvents,
-  }: {
-    bookId: string;
-    currentPage: Nullable<number>;
-    eventsWithoutPage: number;
-    totalEvents: number;
-  }): Promise<{ after: number; before: number; unknown: number }> {
-    if (currentPage === null) {
-      return { after: 0, before: 0, unknown: totalEvents };
-    }
-    const [before, after] = await Promise.all([
-      this.prisma.bookTimelineEvent.count({
-        where: { bookId, pageNumber: { lte: currentPage } },
-      }),
-      this.prisma.bookTimelineEvent.count({
-        where: { bookId, pageNumber: { gt: currentPage } },
-      }),
-    ]);
-    return { after, before, unknown: eventsWithoutPage };
   }
 }
 

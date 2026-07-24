@@ -1,32 +1,28 @@
 import type { CharacterGraphView } from "@app/shared";
 
 import { SeriesCharacterGraphQuerySchema } from "@app/shared";
-import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
-import { CurrentUser, JwtAccessGuard } from "../../auth/index.js";
+import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterGraphService } from "../application/character-graph.service.js";
 import { SeriesCharacterGraphQueryDto } from "./input-dto/series-character-graph-query.input-dto.js";
 import { CharacterGraphViewDto } from "./view-dto/character-graph.view-dto.js";
 
-@ApiBearerAuth()
 @ApiTags("character-relationships")
-@ApiUnauthorizedResponse({ description: "Missing or invalid access token" })
 @Controller("api/series/:seriesId/character-graph")
-@UseGuards(JwtAccessGuard)
+@JwtProtected()
 export class SeriesCharacterGraphController {
   constructor(private readonly graphService: CharacterGraphService) {}
 

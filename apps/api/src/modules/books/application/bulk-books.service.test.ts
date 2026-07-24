@@ -179,6 +179,7 @@ describe("BulkBooksService.addToLists", () => {
     expect(bulkBooksRepository.addToLists).toHaveBeenCalledWith({
       bookIds: [BOOK_A],
       listIds: [LIST_ID],
+      now: expect.any(Date),
       userId: USER_ID,
     });
     expect(result).toEqual({ affected: 1 });
@@ -264,6 +265,7 @@ describe("BulkBooksService.setOwnershipStatus", () => {
       clearDelivery: true,
       clearLoan: true,
       clearPurchase: true,
+      now: expect.any(Date),
       ownershipStatus: "none",
       userId: USER_ID,
     });

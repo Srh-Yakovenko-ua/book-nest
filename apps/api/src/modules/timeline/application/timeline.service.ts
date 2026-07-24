@@ -16,10 +16,11 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UpdateTimelineFields } from "../infrastructure/timeline.repository.js";
 
+import { assertNotStale } from "../../../core/assert-not-stale.js";
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
-import { BooksRepository } from "../../books/index.js";
+import { assertBookOwned, BooksRepository } from "../../books/index.js";
 import { appendPosition, computeSparsePosition } from "../domain/sparse-position.js";
 import { emptyToNull } from "../domain/timeline-fields.js";
 import { toTimelineView } from "../domain/timeline.mapper.js";
@@ -137,11 +138,14 @@ export class TimelineService {
           code: TIMELINE_ERROR_CODES.timelineNotFound,
         });
       }
-      if (moving.updatedAt.toISOString() !== input.expectedUpdatedAt) {
-        throw new ConflictError("The timeline order changed, reload and retry", {
-          code: TIMELINE_ERROR_CODES.reorderConflict,
-        });
-      }
+      assertNotStale({
+        actual: moving.updatedAt,
+        expected: input.expectedUpdatedAt,
+        toError: () =>
+          new ConflictError("The timeline order changed, reload and retry", {
+            code: TIMELINE_ERROR_CODES.reorderConflict,
+          }),
+      });
 
       const position = await this.resolveTimelinePosition({
         afterTimelineId: input.afterTimelineId,
@@ -176,14 +180,14 @@ export class TimelineService {
           code: TIMELINE_ERROR_CODES.timelineNotFound,
         });
       }
-      if (
-        input.expectedUpdatedAt !== undefined &&
-        fresh.updatedAt.toISOString() !== input.expectedUpdatedAt
-      ) {
-        throw new ConflictError("The timeline changed, reload and retry", {
-          code: TIMELINE_ERROR_CODES.reorderConflict,
-        });
-      }
+      assertNotStale({
+        actual: fresh.updatedAt,
+        expected: input.expectedUpdatedAt,
+        toError: () =>
+          new ConflictError("The timeline changed, reload and retry", {
+            code: TIMELINE_ERROR_CODES.reorderConflict,
+          }),
+      });
       await this.timelineRepository.setDefault({ bookId: owned.bookId, timelineId }, tx);
     });
 
@@ -238,10 +242,12 @@ export class TimelineService {
   }
 
   private async assertBookOwned(userId: string, bookId: string): Promise<void> {
-    const owned = await this.booksRepository.existsOwned({ bookId, userId });
-    if (!owned) {
-      throw new NotFoundError("Book not found", { code: TIMELINE_ERROR_CODES.bookNotFound });
-    }
+    await assertBookOwned({
+      bookId,
+      booksRepository: this.booksRepository,
+      notFoundCode: TIMELINE_ERROR_CODES.bookNotFound,
+      userId,
+    });
   }
 
   private async deleteNonEmptyTimeline({

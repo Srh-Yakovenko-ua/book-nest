@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { createPaginatedSchema, LIST_PAGE_SIZE_MAX, PAGE_NUMBER_MAX } from "./common.js";
+import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 import { MediaViewSchema } from "./media.js";
 
 const NOTE_TEXT_MAX = 5000;
@@ -96,8 +96,7 @@ export const NotesQuerySchema = z.object({
   filter: NoteFilterSchema.default("all"),
   hasChapter: NoteBooleanQuerySchema.optional(),
   hasPage: NoteBooleanQuerySchema.optional(),
-  pageNumber: z.coerce.number().int().min(1).max(PAGE_NUMBER_MAX).default(1),
-  pageSize: z.coerce.number().int().min(1).max(LIST_PAGE_SIZE_MAX).default(NOTES_DEFAULT_PAGE_SIZE),
+  ...paginationQueryFields({ pageSizeDefault: NOTES_DEFAULT_PAGE_SIZE }),
   search: z.string().trim().max(NOTE_SEARCH_MAX).optional(),
   seriesId: z.string().uuid().optional(),
   sort: NoteSortSchema.default("pinned_first"),
