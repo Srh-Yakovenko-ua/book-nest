@@ -3,13 +3,13 @@ import type { CreateCharacterRelationship } from "@app/shared";
 import { CHARACTER_RELATIONSHIP_ERROR_CODES } from "@app/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { BooksRepository } from "../../books/index.js";
 import type { RelationshipDetailsRow } from "../infrastructure/character-relationships.repository.js";
 import type { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
-import type { CharactersRepository } from "../infrastructure/characters.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import { CharacterAccessAsserter } from "./character-access.asserter.js";
 import { CharacterRelationshipsService } from "./character-relationships.service.js";
+import { RelationshipContextService } from "./relationship-context.service.js";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 const ALICE = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -58,7 +58,6 @@ function createService(config: Config = {}): {
   const findOwnedRelationshipBare = vi
     .fn()
     .mockResolvedValue({ category: "social", customType: null, id: REL_ID, type: "friend_of" });
-  const findOwnedRelationshipDetails = vi.fn().mockResolvedValue(makeDetailsRow());
 
   const relationshipsRepository = {
     acquireRelationshipLock,
@@ -68,21 +67,22 @@ function createService(config: Config = {}): {
     findDuplicateCandidates,
     findFamilyAncestryEdges,
     findOwnedRelationshipBare,
-    findOwnedRelationshipDetails,
     updateRelationship,
   } as unknown as CharacterRelationshipsRepository;
-  const charactersRepository = {} as unknown as CharactersRepository;
-  const booksRepository = {
-    existsOwned: vi.fn().mockResolvedValue(true),
-  } as unknown as BooksRepository;
+  const accessAsserter = {
+    assertBookOwned: vi.fn().mockResolvedValue(undefined),
+  } as unknown as CharacterAccessAsserter;
+  const contextService = {
+    loadDetails: vi.fn().mockResolvedValue(makeDetailsRow()),
+  } as unknown as RelationshipContextService;
   const transactionRunner = {
     run: (fn: (tx: unknown) => Promise<unknown>) => fn({}),
   } as unknown as TransactionRunner;
 
   const service = new CharacterRelationshipsService(
     relationshipsRepository,
-    charactersRepository,
-    booksRepository,
+    accessAsserter,
+    contextService,
     transactionRunner,
   );
   return { createBookStates, createRelationship, service, updateRelationship };

@@ -21,6 +21,7 @@ import { ListDetailsController } from "./api/list-details.controller.js";
 import { ListMembershipController } from "./api/list-membership.controller.js";
 import { BookCoverCleanup } from "./application/book-cover-cleanup.js";
 import { BookDeliveryService } from "./application/book-delivery.service.js";
+import { BookLibraryReadService } from "./application/book-library-read.service.js";
 import { BookListsService } from "./application/book-lists.service.js";
 import { BookLoanService } from "./application/book-loan.service.js";
 import { BookOwnershipService } from "./application/book-ownership.service.js";
@@ -69,6 +70,7 @@ import { ListMembershipRepository } from "./infrastructure/list-membership.repos
   ],
   providers: [
     BooksService,
+    BookLibraryReadService,
     BookRelationsResolver,
     BookViewAssembler,
     BookCoverCleanup,

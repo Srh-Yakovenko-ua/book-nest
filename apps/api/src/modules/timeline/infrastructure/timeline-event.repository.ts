@@ -3,6 +3,8 @@ import type { Nullable, TimelineEventSort } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import type { UpdateEventFields } from "../domain/timeline-fields.js";
+
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { timelineEventsOrderBy } from "../domain/event-sort.js";
@@ -123,22 +125,6 @@ export type TimelineOverviewAggregate = {
   eventsUnknownPosition: number;
   totalEvents: number;
   unresolvedCount: number;
-};
-
-export type UpdateEventFields = {
-  chapter?: Nullable<string>;
-  description?: Nullable<string>;
-  eventType?: string;
-  importance?: string;
-  importanceRank?: number;
-  location?: Nullable<string>;
-  pageNumber?: Nullable<number>;
-  personalNote?: Nullable<string>;
-  resolvedByEventId?: Nullable<string>;
-  storyTime?: Nullable<string>;
-  summary?: Nullable<string>;
-  threadStatus?: Nullable<string>;
-  title?: string;
 };
 
 type ListEventsInput = EventsFilter & {

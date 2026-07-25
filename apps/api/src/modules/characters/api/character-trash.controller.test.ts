@@ -15,7 +15,7 @@ import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { StoragePort } from "../../media/domain/storage.port.js";
-import { CharactersService } from "../application/characters.service.js";
+import { CharacterLifecycleService } from "../application/character-lifecycle.service.js";
 import { CharactersModule } from "../characters.module.js";
 import {
   CHARACTER_PURGE_QUEUE_NAME,
@@ -48,7 +48,7 @@ const storageStub = {
 let context: AuthTestContext;
 let app: INestApplication;
 let prisma: PrismaService;
-let service: CharactersService;
+let service: CharacterLifecycleService;
 
 beforeAll(async () => {
   context = await createAuthTestContext(
@@ -60,7 +60,7 @@ beforeAll(async () => {
   );
   app = context.app;
   prisma = app.get(PrismaService);
-  service = app.get(CharactersService);
+  service = app.get(CharacterLifecycleService);
 });
 
 beforeEach(() => {

@@ -49,6 +49,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { BookLibraryReadService } from "../application/book-library-read.service.js";
 import { BooksService } from "../application/books.service.js";
 import { DedicationsService } from "../application/dedications.service.js";
 import { WishlistService } from "../application/wishlist.service.js";
@@ -72,6 +73,7 @@ const CREATE_BOOK_LIMIT = 30;
 export class BooksController {
   constructor(
     private readonly booksService: BooksService,
+    private readonly libraryReadService: BookLibraryReadService,
     private readonly wishlistService: WishlistService,
     private readonly dedicationsService: DedicationsService,
   ) {}
@@ -98,7 +100,7 @@ export class BooksController {
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(LibraryBooksQuerySchema)) query: LibraryBooksQueryDto,
   ): Promise<Paginator<BookView>> {
-    return this.booksService.list(user.id, query);
+    return this.libraryReadService.list({ query, userId: user.id });
   }
   @ApiOkResponse({
     description: "Library overview for the current user",
@@ -118,7 +120,7 @@ export class BooksController {
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(LibraryOverviewQuerySchema)) query: LibraryOverviewQueryDto,
   ): Promise<LibraryOverviewView> {
-    return this.booksService.overview(user.id, query);
+    return this.libraryReadService.overview({ query, userId: user.id });
   }
   @ApiOkResponse({
     description: "Store names the current user recently used in purchase details",
@@ -132,7 +134,7 @@ export class BooksController {
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(RecentPurchaseStoresQuerySchema)) query: RecentPurchaseStoresQueryDto,
   ): Promise<RecentPurchaseStores> {
-    return this.booksService.recentPurchaseStores({ limit: query.limit, userId: user.id });
+    return this.libraryReadService.recentPurchaseStores({ limit: query.limit, userId: user.id });
   }
   @ApiOkResponse({
     description: "Favorites summary for the current user",
@@ -142,7 +144,7 @@ export class BooksController {
   @Get("favorites-summary")
   @JwtProtected()
   favoritesSummary(@CurrentUser() user: AuthenticatedUser): Promise<FavoritesSummaryView> {
-    return this.booksService.favoritesSummary(user.id);
+    return this.libraryReadService.favoritesSummary(user.id);
   }
   @ApiOkResponse({
     description: "The current user books-to-buy wishlist with a per-currency summary",

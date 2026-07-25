@@ -2,7 +2,7 @@ import type { Job } from "bullmq";
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { CharactersService } from "./characters.service.js";
+import type { CharacterLifecycleService } from "./character-lifecycle.service.js";
 
 import { CharacterPurgeProcessor } from "./character-purge.processor.js";
 
@@ -14,7 +14,9 @@ function buildProcessor(): {
   processor: CharacterPurgeProcessor;
 } {
   const charactersService = { purge: vi.fn().mockResolvedValue(undefined) };
-  const processor = new CharacterPurgeProcessor(charactersService as unknown as CharactersService);
+  const processor = new CharacterPurgeProcessor(
+    charactersService as unknown as CharacterLifecycleService,
+  );
   return { charactersService, processor };
 }
 

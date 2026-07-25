@@ -8,7 +8,7 @@ import {
   CHARACTER_PURGE_WINDOW_MS,
 } from "../domain/character-purge.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
-import { CharactersService } from "./characters.service.js";
+import { CharacterLifecycleService } from "./character-lifecycle.service.js";
 
 const log = createLogger("characters.purge-reconciler");
 
@@ -18,7 +18,7 @@ export class CharacterPurgeReconciler {
 
   constructor(
     private readonly charactersRepository: CharactersRepository,
-    private readonly charactersService: CharactersService,
+    private readonly lifecycleService: CharacterLifecycleService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -56,7 +56,7 @@ export class CharacterPurgeReconciler {
     const purgedIds: string[] = [];
     for (const candidate of candidates) {
       try {
-        await this.charactersService.purge({
+        await this.lifecycleService.purge({
           characterId: candidate.id,
           userId: candidate.userId,
         });

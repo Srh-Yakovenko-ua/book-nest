@@ -49,7 +49,9 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { TimelineEventOrderingService } from "../application/timeline-event-ordering.service.js";
 import { TimelineEventService } from "../application/timeline-event.service.js";
+import { TimelineRelationService } from "../application/timeline-relation.service.js";
 import { CreateEventRelationInputDto } from "./input-dto/create-event-relation.input-dto.js";
 import { CreateTimelineEventInputDto } from "./input-dto/create-timeline-event.input-dto.js";
 import { MoveTimelineEventInputDto } from "./input-dto/move-timeline-event.input-dto.js";
@@ -66,7 +68,11 @@ import { TimelineOverviewViewDto } from "./view-dto/timeline-overview.view-dto.j
 @Controller()
 @JwtProtected()
 export class TimelineEventsController {
-  constructor(private readonly timelineEventService: TimelineEventService) {}
+  constructor(
+    private readonly timelineEventService: TimelineEventService,
+    private readonly timelineEventOrderingService: TimelineEventOrderingService,
+    private readonly timelineRelationService: TimelineRelationService,
+  ) {}
 
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({
@@ -188,7 +194,7 @@ export class TimelineEventsController {
     @Param("eventId", ParseUUIDPipe) eventId: string,
     @Body(new ZodBodyPipe(ReorderTimelineEventInputSchema)) body: ReorderTimelineEventInputDto,
   ): Promise<TimelineEventView> {
-    return this.timelineEventService.reorderEvent(user.id, eventId, body);
+    return this.timelineEventOrderingService.reorderEvent(user.id, eventId, body);
   }
 
   @ApiBody({ type: MoveTimelineEventInputDto })
@@ -206,7 +212,7 @@ export class TimelineEventsController {
     @Param("eventId", ParseUUIDPipe) eventId: string,
     @Body(new ZodBodyPipe(MoveTimelineEventInputSchema)) body: MoveTimelineEventInputDto,
   ): Promise<TimelineEventView> {
-    return this.timelineEventService.moveEvent(user.id, eventId, body);
+    return this.timelineEventOrderingService.moveEvent(user.id, eventId, body);
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
@@ -224,7 +230,7 @@ export class TimelineEventsController {
     @Param("eventId", ParseUUIDPipe) eventId: string,
     @Body(new ZodBodyPipe(CreateEventRelationInputSchema)) body: CreateEventRelationInputDto,
   ): Promise<CreatedEventRelationView> {
-    return this.timelineEventService.createRelation(user.id, eventId, body);
+    return this.timelineRelationService.createRelation(user.id, eventId, body);
   }
 
   @ApiNoContentResponse({ description: "The relation was deleted" })
@@ -238,6 +244,6 @@ export class TimelineEventsController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("relationId", ParseUUIDPipe) relationId: string,
   ): Promise<void> {
-    return this.timelineEventService.deleteRelation(user.id, relationId);
+    return this.timelineRelationService.deleteRelation(user.id, relationId);
   }
 }

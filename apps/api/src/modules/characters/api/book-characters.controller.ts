@@ -44,7 +44,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
-import { CharactersService } from "../application/characters.service.js";
+import { BookCharactersService } from "../application/book-characters.service.js";
 import { BookCharactersQueryDto } from "./input-dto/book-characters-query.input-dto.js";
 import { CreateCharacterInBookInputDto } from "./input-dto/create-character-in-book.input-dto.js";
 import { UpdateBookCharacterInputDto } from "./input-dto/update-book-character.input-dto.js";
@@ -55,7 +55,7 @@ import { PaginatedCharactersDto } from "./view-dto/paginated-characters.view-dto
 @Controller("api/books/:bookId/characters")
 @JwtProtected()
 export class BookCharactersController {
-  constructor(private readonly charactersService: CharactersService) {}
+  constructor(private readonly bookCharactersService: BookCharactersService) {}
 
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({
@@ -73,7 +73,7 @@ export class BookCharactersController {
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Query(new ZodQueryPipe(BookCharactersQuerySchema)) query: BookCharactersQueryDto,
   ): Promise<Paginator<CharacterSummaryView>> {
-    return this.charactersService.listBookRoster(user.id, bookId, query);
+    return this.bookCharactersService.listBookRoster({ bookId, query, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
@@ -93,7 +93,7 @@ export class BookCharactersController {
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Body(new ZodBodyPipe(CreateCharacterInBookSchema)) body: CreateCharacterInBook,
   ): Promise<CharacterDetailsView> {
-    return this.charactersService.createInBook(user.id, bookId, body);
+    return this.bookCharactersService.createInBook({ bookId, input: body, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "Book or character not found" })
@@ -110,7 +110,11 @@ export class BookCharactersController {
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Param("characterId", ParseUUIDPipe) characterId: string,
   ): Promise<CharacterDetailsView> {
-    return this.charactersService.getBookCharacterDetails(user.id, bookId, characterId);
+    return this.bookCharactersService.getBookCharacterDetails({
+      bookId,
+      characterId,
+      userId: user.id,
+    });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed or a global field was sent" })
@@ -133,7 +137,12 @@ export class BookCharactersController {
     @Param("characterId", ParseUUIDPipe) characterId: string,
     @Body(new ZodBodyPipe(UpdateBookCharacterSchema)) body: UpdateBookCharacterInputDto,
   ): Promise<CharacterDetailsView> {
-    return this.charactersService.updateBook({ bookId, characterId, input: body, userId: user.id });
+    return this.bookCharactersService.updateBook({
+      bookId,
+      characterId,
+      input: body,
+      userId: user.id,
+    });
   }
 
   @ApiNoContentResponse({ description: "The character was unlinked from the book" })
@@ -149,6 +158,6 @@ export class BookCharactersController {
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Param("characterId", ParseUUIDPipe) characterId: string,
   ): Promise<void> {
-    return this.charactersService.unlink({ bookId, characterId, userId: user.id });
+    return this.bookCharactersService.unlink({ bookId, characterId, userId: user.id });
   }
 }
