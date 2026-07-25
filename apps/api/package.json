@@ -59,7 +59,6 @@
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
     "sharp": "catalog:",
-    "ua-parser-js": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -42,7 +42,7 @@
       "project": ["src/**/*.ts", "!src/generated/**"],
       "entry": ["src/index.ts"],
       "prisma": false,
-      "ignoreDependencies": ["@prisma/client", "pino-pretty", "ua-parser-js"]
+      "ignoreDependencies": ["@prisma/client", "pino-pretty"]
     },
     "packages/shared": {
       "project": ["src/**/*.ts"]

@@ -1,28 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { readFileSync } from "node:fs";
-import nodemailer, { type Transporter } from "nodemailer";
 
 import { env } from "../../../config/env.js";
 import { createLogger } from "../../../core/logger.js";
+import { MailPort } from "../domain/mail.port.js";
 import { renderEmailVerification } from "./templates/email-verification.js";
 import { renderPasswordChanged } from "./templates/password-changed.js";
 import { renderPasswordReset } from "./templates/password-reset.js";
 import { renderWelcomeEmail } from "./templates/welcome-email.js";
 
-type SendInput = {
-  attachments?: { cid: string; content: Buffer; filename: string }[];
-  html: string;
-  subject: string;
-  text: string;
-  to: string;
-};
-
 const LOGO_CID = "booknest-logo";
 const LOGO_FILENAME = "booknest-logo-horizontal.png";
 const DEFAULT_USER_NAME = "читачу";
-const SMTP_CONNECTION_TIMEOUT_MS = 10_000;
-const SMTP_GREETING_TIMEOUT_MS = 10_000;
-const SMTP_SOCKET_TIMEOUT_MS = 20_000;
 const MASK_VISIBLE_CHARS = 2;
 const MASKED_PLACEHOLDER = "***";
 
@@ -31,19 +20,8 @@ const logger = createLogger("mail");
 @Injectable()
 export class MailService {
   private readonly logoBuffer: Buffer;
-  private readonly transporter: Transporter;
 
-  constructor() {
-    this.transporter = nodemailer.createTransport({
-      auth: env.smtpUser === undefined ? undefined : { pass: env.smtpPass, user: env.smtpUser },
-      connectionTimeout: SMTP_CONNECTION_TIMEOUT_MS,
-      greetingTimeout: SMTP_GREETING_TIMEOUT_MS,
-      host: env.smtpHost,
-      port: env.smtpPort,
-      secure: env.smtpSecure,
-      socketTimeout: SMTP_SOCKET_TIMEOUT_MS,
-    });
-
+  constructor(private readonly mail: MailPort) {
     const logoPath = new URL("../assets/booknest-logo-horizontal.png", import.meta.url);
     this.logoBuffer = readFileSync(logoPath);
   }
@@ -66,7 +44,7 @@ export class MailService {
     });
 
     try {
-      await this.send({ html, subject, text, to });
+      await this.mail.send({ html, subject, text, to });
       logger.info({ to: maskEmail(to) }, "password changed email sent");
     } catch (error) {
       logger.error({ error, to: maskEmail(to) }, "failed to send password changed email");
@@ -92,7 +70,7 @@ export class MailService {
     });
 
     try {
-      await this.send({ html, subject, text, to });
+      await this.mail.send({ html, subject, text, to });
       logger.info({ to: maskEmail(to) }, "password reset email sent");
     } catch (error) {
       logger.error({ error, to: maskEmail(to) }, "failed to send password reset email");
@@ -119,7 +97,7 @@ export class MailService {
     });
 
     try {
-      await this.send({
+      await this.mail.send({
         attachments: [{ cid: LOGO_CID, content: this.logoBuffer, filename: LOGO_FILENAME }],
         html,
         subject,
@@ -146,7 +124,7 @@ export class MailService {
     });
 
     try {
-      await this.send({
+      await this.mail.send({
         attachments: [{ cid: LOGO_CID, content: this.logoBuffer, filename: LOGO_FILENAME }],
         html,
         subject,
@@ -157,17 +135,6 @@ export class MailService {
     } catch (error) {
       logger.error({ error, to: maskEmail(to) }, "failed to send welcome email");
     }
-  }
-
-  private async send({ attachments, html, subject, text, to }: SendInput): Promise<void> {
-    await this.transporter.sendMail({
-      attachments,
-      from: env.mailFrom,
-      html,
-      subject,
-      text,
-      to,
-    });
   }
 }
 

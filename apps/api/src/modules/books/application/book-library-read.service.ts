@@ -22,15 +22,31 @@ import { normalizeSearchQuery } from "../infrastructure/book-search.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 
-const OVERVIEW_TOP_LIMIT = 3;
-const OVERVIEW_RECENT_LIMIT = 3;
-const READING_IN_PROGRESS_STATUSES: ReadingStatus[] = ["reading", "rereading"];
-const FINISHED_STATUSES: ReadingStatus[] = ["finished"];
-const WANT_TO_READ_STATUSES: ReadingStatus[] = ["want_to_read"];
-const WANT_TO_BUY_STATUSES: OwnershipStatus[] = ["want_to_buy"];
-const IN_TRANSIT_STATUSES: OwnershipStatus[] = ["in_transit"];
-const BORROWED_STATUSES: OwnershipStatus[] = ["borrowed_from_someone", "lent_to_someone"];
-const PHYSICAL_OWNERSHIP_STATUSES: OwnershipStatus[] = ["owned", ...BORROWED_STATUSES];
+type LibraryOverviewConfig = {
+  readonly borrowedStatuses: OwnershipStatus[];
+  readonly finishedStatuses: ReadingStatus[];
+  readonly inTransitStatuses: OwnershipStatus[];
+  readonly physicalOwnershipStatuses: OwnershipStatus[];
+  readonly readingInProgressStatuses: ReadingStatus[];
+  readonly recentLimit: number;
+  readonly topLimit: number;
+  readonly wantToBuyStatuses: OwnershipStatus[];
+  readonly wantToReadStatuses: ReadingStatus[];
+};
+
+const BORROWED_OWNERSHIP_STATUSES: OwnershipStatus[] = ["borrowed_from_someone", "lent_to_someone"];
+
+const LIBRARY_OVERVIEW: LibraryOverviewConfig = {
+  borrowedStatuses: BORROWED_OWNERSHIP_STATUSES,
+  finishedStatuses: ["finished"],
+  inTransitStatuses: ["in_transit"],
+  physicalOwnershipStatuses: ["owned", ...BORROWED_OWNERSHIP_STATUSES],
+  readingInProgressStatuses: ["reading", "rereading"],
+  recentLimit: 3,
+  topLimit: 3,
+  wantToBuyStatuses: ["want_to_buy"],
+  wantToReadStatuses: ["want_to_read"],
+};
 
 @Injectable()
 export class BookLibraryReadService {
@@ -42,10 +58,10 @@ export class BookLibraryReadService {
 
   favoritesSummary(userId: string): Promise<FavoritesSummaryView> {
     return this.booksRepository.favoritesSummary({
-      finishedStatuses: FINISHED_STATUSES,
-      readingStatuses: READING_IN_PROGRESS_STATUSES,
+      finishedStatuses: LIBRARY_OVERVIEW.finishedStatuses,
+      readingStatuses: LIBRARY_OVERVIEW.readingInProgressStatuses,
       userId,
-      wantToReadStatuses: WANT_TO_READ_STATUSES,
+      wantToReadStatuses: LIBRARY_OVERVIEW.wantToReadStatuses,
     });
   }
 
@@ -117,11 +133,15 @@ export class BookLibraryReadService {
     const [summary, activeReading, topGenreKeys, topTags, recentBooks] = await Promise.all([
       this.buildOverviewSummary({ ownershipStatuses, userId }),
       this.buildActiveReading({ ownershipStatuses, userId }),
-      this.booksRepository.topGenreKeys({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
-      this.booksRepository.topTags({ limit: OVERVIEW_TOP_LIMIT, ownershipStatuses, userId }),
+      this.booksRepository.topGenreKeys({
+        limit: LIBRARY_OVERVIEW.topLimit,
+        ownershipStatuses,
+        userId,
+      }),
+      this.booksRepository.topTags({ limit: LIBRARY_OVERVIEW.topLimit, ownershipStatuses, userId }),
       this.booksRepository.listRecentlyAdded({
         ownershipStatuses,
-        take: OVERVIEW_RECENT_LIMIT,
+        take: LIBRARY_OVERVIEW.recentLimit,
         userId,
       }),
     ]);
@@ -165,7 +185,7 @@ export class BookLibraryReadService {
   }): Promise<ActiveReadingView> {
     const activeBooks = await this.booksRepository.listActiveReading({
       ownershipStatuses,
-      statuses: READING_IN_PROGRESS_STATUSES,
+      statuses: LIBRARY_OVERVIEW.readingInProgressStatuses,
       userId,
     });
     return buildActiveReadingView(activeBooks);
@@ -196,18 +216,18 @@ export class BookLibraryReadService {
       this.booksRepository.countByUser({ ownershipStatuses, userId }),
       this.booksRepository.countByReadingStatuses({
         ownershipStatuses,
-        statuses: READING_IN_PROGRESS_STATUSES,
+        statuses: LIBRARY_OVERVIEW.readingInProgressStatuses,
         userId,
       }),
       this.booksRepository.countByReadingStatuses({
         ownershipStatuses,
-        statuses: FINISHED_STATUSES,
+        statuses: LIBRARY_OVERVIEW.finishedStatuses,
         userId,
       }),
       this.booksRepository.countFavorites({ ownershipStatuses, userId }),
       this.booksRepository.countByReadingStatuses({
         ownershipStatuses,
-        statuses: WANT_TO_READ_STATUSES,
+        statuses: LIBRARY_OVERVIEW.wantToReadStatuses,
         userId,
       }),
       this.booksRepository.countForLibrary({
@@ -216,13 +236,22 @@ export class BookLibraryReadService {
       this.booksRepository.countForLibrary({
         filter: { bookType: "solo", ownershipStatuses, userId },
       }),
-      this.booksRepository.countByUser({ ownershipStatuses: WANT_TO_BUY_STATUSES, userId }),
-      this.booksRepository.countByUser({ ownershipStatuses: IN_TRANSIT_STATUSES, userId }),
-      this.booksRepository.countByUser({ ownershipStatuses: BORROWED_STATUSES, userId }),
+      this.booksRepository.countByUser({
+        ownershipStatuses: LIBRARY_OVERVIEW.wantToBuyStatuses,
+        userId,
+      }),
+      this.booksRepository.countByUser({
+        ownershipStatuses: LIBRARY_OVERVIEW.inTransitStatuses,
+        userId,
+      }),
+      this.booksRepository.countByUser({
+        ownershipStatuses: LIBRARY_OVERVIEW.borrowedStatuses,
+        userId,
+      }),
       this.booksRepository.countDistinctAuthors({ ownershipStatuses, userId }),
       this.booksRepository.countByUser({
         ownershipStatuses: intersectOwnership({
-          allowed: PHYSICAL_OWNERSHIP_STATUSES,
+          allowed: LIBRARY_OVERVIEW.physicalOwnershipStatuses,
           scope: ownershipStatuses,
         }),
         userId,

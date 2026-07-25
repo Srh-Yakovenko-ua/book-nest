@@ -1,8 +1,9 @@
 import type { CreateNoteInput, Nullable } from "@app/shared";
 
+import { NOTE_ERROR_CODES } from "@app/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { BooksRepository } from "../../books/index.js";
+import type { BookAccessService } from "../../books/index.js";
 import type { MediaService } from "../../media/index.js";
 import type { SeriesService } from "../../series/index.js";
 import type { NoteSummaryCounts } from "../domain/note-summary.js";
@@ -38,8 +39,8 @@ type ServiceConfig = {
 };
 
 function createService(config: ServiceConfig = {}): {
+  assertOwned: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
-  existsBook: ReturnType<typeof vi.fn>;
   existsSeries: ReturnType<typeof vi.fn>;
   service: NotesService;
   update: ReturnType<typeof vi.fn>;
@@ -49,7 +50,11 @@ function createService(config: ServiceConfig = {}): {
   const findOwnedById = vi.fn().mockResolvedValue(config.findResult ?? null);
   const update = vi.fn().mockResolvedValue(config.updateResult ?? makeBookNote());
   const summaryCounts = vi.fn().mockResolvedValue(config.summaryResult ?? EMPTY_COUNTS);
-  const existsBook = vi.fn().mockResolvedValue(config.bookExists ?? true);
+  const assertOwned = vi.fn(async ({ notFoundCode }: { notFoundCode?: string }): Promise<void> => {
+    if (config.bookExists === false) {
+      throw new NotFoundError("Book not found", { code: notFoundCode });
+    }
+  });
   const existsSeries = vi.fn().mockResolvedValue(config.seriesExists ?? true);
 
   const notesRepository = {
@@ -59,15 +64,15 @@ function createService(config: ServiceConfig = {}): {
     summaryCounts,
     update,
   } as unknown as NotesRepository;
-  const booksRepository = { existsOwned: existsBook } as unknown as BooksRepository;
+  const bookAccess = { assertOwned } as unknown as BookAccessService;
   const seriesService = { existsOwned: existsSeries } as unknown as SeriesService;
   const mediaService = {
     buildViewOrNull: vi.fn().mockReturnValue(null),
   } as unknown as MediaService;
 
-  const service = new NotesService(notesRepository, booksRepository, seriesService, mediaService);
+  const service = new NotesService(notesRepository, bookAccess, seriesService, mediaService);
 
-  return { create, existsBook, existsSeries, service, update };
+  return { assertOwned, create, existsSeries, service, update };
 }
 
 function makeBookNote(overrides: Partial<NoteWithEntity> = {}): NoteWithEntity {
@@ -110,12 +115,16 @@ beforeEach(() => {
 
 describe("NotesService ownership", () => {
   it("rejects creating a book note when the book is not owned", async () => {
-    const { create, existsBook, service } = createService({ bookExists: false });
+    const { assertOwned, create, service } = createService({ bookExists: false });
 
     await expect(service.createBookNote(USER_ID, BOOK_ID, baseInput)).rejects.toBeInstanceOf(
       NotFoundError,
     );
-    expect(existsBook).toHaveBeenCalledWith({ bookId: BOOK_ID, userId: USER_ID });
+    expect(assertOwned).toHaveBeenCalledWith({
+      bookId: BOOK_ID,
+      notFoundCode: NOTE_ERROR_CODES.bookNotFound,
+      userId: USER_ID,
+    });
     expect(create).not.toHaveBeenCalled();
   });
 

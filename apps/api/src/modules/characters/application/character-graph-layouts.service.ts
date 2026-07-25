@@ -13,7 +13,7 @@ import type { CharacterGraphLayoutKey } from "../infrastructure/character-graph-
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
-import { assertBookOwned, BooksRepository } from "../../books/index.js";
+import { BookAccessService } from "../../books/index.js";
 import { toCharacterGraphLayoutView } from "../domain/character-graph-layout.mapper.js";
 import { CharacterGraphLayoutsRepository } from "../infrastructure/character-graph-layouts.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
@@ -23,7 +23,7 @@ export class CharacterGraphLayoutsService {
   constructor(
     private readonly layoutsRepository: CharacterGraphLayoutsRepository,
     private readonly charactersRepository: CharactersRepository,
-    private readonly booksRepository: BooksRepository,
+    private readonly bookAccess: BookAccessService,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -97,9 +97,8 @@ export class CharacterGraphLayoutsService {
     bookId: string;
     userId: string;
   }): Promise<void> {
-    await assertBookOwned({
+    await this.bookAccess.assertOwned({
       bookId,
-      booksRepository: this.booksRepository,
       notFoundCode: CHARACTER_GRAPH_LAYOUT_ERROR_CODES.bookNotFound,
       userId,
     });

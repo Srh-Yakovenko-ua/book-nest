@@ -20,7 +20,7 @@ import { assertNotStale } from "../../../core/assert-not-stale.js";
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
-import { assertBookOwned, BooksRepository } from "../../books/index.js";
+import { BookAccessService } from "../../books/index.js";
 import { appendPosition, computeSparsePosition } from "../domain/sparse-position.js";
 import { emptyToNull } from "../domain/timeline-fields.js";
 import { toTimelineView } from "../domain/timeline.mapper.js";
@@ -30,7 +30,7 @@ import { TimelineRepository, type TimelineRow } from "../infrastructure/timeline
 @Injectable()
 export class TimelineService {
   constructor(
-    private readonly booksRepository: BooksRepository,
+    private readonly bookAccess: BookAccessService,
     private readonly timelineRepository: TimelineRepository,
     private readonly timelineEventRepository: TimelineEventRepository,
     private readonly transactionRunner: TransactionRunner,
@@ -242,9 +242,8 @@ export class TimelineService {
   }
 
   private async assertBookOwned(userId: string, bookId: string): Promise<void> {
-    await assertBookOwned({
+    await this.bookAccess.assertOwned({
       bookId,
-      booksRepository: this.booksRepository,
       notFoundCode: TIMELINE_ERROR_CODES.bookNotFound,
       userId,
     });

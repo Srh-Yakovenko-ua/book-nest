@@ -13,7 +13,7 @@ import { subDays } from "date-fns";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
-import { BookReadingService, BooksRepository, BookViewAssembler } from "../../books/index.js";
+import { BookAccessService, BookReadingService, BookViewAssembler } from "../../books/index.js";
 import { computeQueueInsertPosition } from "../domain/queue-position.js";
 import {
   computeReadingQueueSummary,
@@ -29,7 +29,7 @@ const INVALID_ORDER_MESSAGE = "Некоректний порядок черги"
 @Injectable()
 export class ReadingQueueService {
   constructor(
-    private readonly booksRepository: BooksRepository,
+    private readonly bookAccess: BookAccessService,
     private readonly bookReadingService: BookReadingService,
     private readonly bookViewAssembler: BookViewAssembler,
     private readonly readingQueueRepository: ReadingQueueRepository,
@@ -37,7 +37,7 @@ export class ReadingQueueService {
   ) {}
 
   async addToQueue(userId: string, input: AddToReadingQueueInput): Promise<ReadingQueueView> {
-    await this.booksRepository.findOwnedByIdOrThrow(userId, input.bookId);
+    await this.bookAccess.findOwnedByIdOrThrow({ bookId: input.bookId, userId });
 
     await this.transactionRunner.run(async (tx) => {
       await this.readingQueueRepository.acquireUserQueueLock(userId, tx);
@@ -52,7 +52,7 @@ export class ReadingQueueService {
       }
 
       const count = await this.readingQueueRepository.count(userId, tx);
-      const maxPosition = await this.booksRepository.maxQueuePosition(userId, tx);
+      const maxPosition = await this.bookAccess.maxQueuePosition({ client: tx, userId });
       const result = computeQueueInsertPosition({
         count,
         maxPosition,
@@ -83,7 +83,7 @@ export class ReadingQueueService {
   }
 
   async removeFromQueue(userId: string, bookId: string): Promise<ReadingQueueView> {
-    await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
+    await this.bookAccess.findOwnedByIdOrThrow({ bookId, userId });
 
     await this.transactionRunner.run(async (tx) => {
       await this.readingQueueRepository.acquireUserQueueLock(userId, tx);
@@ -131,7 +131,7 @@ export class ReadingQueueService {
     bookId: string,
     removeFromQueue: boolean,
   ): Promise<ReadingQueueView> {
-    await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
+    await this.bookAccess.findOwnedByIdOrThrow({ bookId, userId });
 
     await this.transactionRunner.run(async (tx) => {
       await this.readingQueueRepository.acquireUserQueueLock(userId, tx);

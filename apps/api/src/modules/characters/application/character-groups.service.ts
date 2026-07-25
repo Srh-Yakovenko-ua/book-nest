@@ -24,7 +24,7 @@ import type {
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
-import { assertBookOwned, BooksRepository } from "../../books/index.js";
+import { BookAccessService } from "../../books/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
 import { isMembershipVisibleInContext } from "../domain/character-group-visibility.js";
 import {
@@ -40,7 +40,7 @@ export class CharacterGroupsService {
   constructor(
     private readonly characterGroupsRepository: CharacterGroupsRepository,
     private readonly charactersRepository: CharactersRepository,
-    private readonly booksRepository: BooksRepository,
+    private readonly bookAccess: BookAccessService,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -293,9 +293,8 @@ export class CharacterGroupsService {
     bookId: string;
     userId: string;
   }): Promise<void> {
-    await assertBookOwned({
+    await this.bookAccess.assertOwned({
       bookId,
-      booksRepository: this.booksRepository,
       notFoundCode: CHARACTER_GROUP_ERROR_CODES.bookNotFound,
       userId,
     });

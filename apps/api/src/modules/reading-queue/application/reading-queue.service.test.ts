@@ -5,8 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
+  BookAccessService,
   BookReadingService,
-  BooksRepository,
   BookViewAssembler,
   BookWithRelations,
 } from "../../books/index.js";
@@ -32,10 +32,10 @@ function buildService(rows: QueueRow[]): {
   );
   const repository = fakeOf<ReadingQueueRepository>({ listQueue });
   const assembler = fakeOf<BookViewAssembler>({ viewOf });
-  const booksRepository = fakeOf<BooksRepository>();
+  const bookAccess = fakeOf<BookAccessService>();
   const transactionRunner = fakeOf<TransactionRunner>();
   const service = new ReadingQueueService(
-    booksRepository,
+    bookAccess,
     fakeOf<BookReadingService>(),
     assembler,
     repository,
@@ -127,7 +127,7 @@ function buildAddToQueueService(): {
   );
   const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
-  const booksRepository = fakeOf<BooksRepository>({ findOwnedByIdOrThrow, maxQueuePosition });
+  const bookAccess = fakeOf<BookAccessService>({ findOwnedByIdOrThrow, maxQueuePosition });
   const assembler = fakeOf<BookViewAssembler>({ viewOf });
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
@@ -140,7 +140,7 @@ function buildAddToQueueService(): {
   const transactionRunner = fakeOf<TransactionRunner>({ run });
 
   const service = new ReadingQueueService(
-    booksRepository,
+    bookAccess,
     fakeOf<BookReadingService>(),
     assembler,
     repository,
@@ -299,7 +299,7 @@ function buildRemoveFromQueueService(): {
   );
   const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
-  const booksRepository = fakeOf<BooksRepository>({ findOwnedByIdOrThrow });
+  const bookAccess = fakeOf<BookAccessService>({ findOwnedByIdOrThrow });
   const assembler = fakeOf<BookViewAssembler>({ viewOf });
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
@@ -311,7 +311,7 @@ function buildRemoveFromQueueService(): {
   const transactionRunner = fakeOf<TransactionRunner>({ run });
 
   const service = new ReadingQueueService(
-    booksRepository,
+    bookAccess,
     fakeOf<BookReadingService>(),
     assembler,
     repository,
@@ -429,7 +429,7 @@ function buildReorderService(): {
   );
   const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
-  const booksRepository = fakeOf<BooksRepository>();
+  const bookAccess = fakeOf<BookAccessService>();
   const assembler = fakeOf<BookViewAssembler>({ viewOf });
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
@@ -440,7 +440,7 @@ function buildReorderService(): {
   const transactionRunner = fakeOf<TransactionRunner>({ run });
 
   const service = new ReadingQueueService(
-    booksRepository,
+    bookAccess,
     fakeOf<BookReadingService>(),
     assembler,
     repository,
@@ -473,7 +473,7 @@ function buildStartReadingService(): {
   );
   const run = <T>(fn: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => fn(tx);
 
-  const booksRepository = fakeOf<BooksRepository>({ findOwnedByIdOrThrow });
+  const bookAccess = fakeOf<BookAccessService>({ findOwnedByIdOrThrow });
   const bookReadingService = fakeOf<BookReadingService>({ startReading });
   const assembler = fakeOf<BookViewAssembler>({ viewOf });
   const repository = fakeOf<ReadingQueueRepository>({
@@ -486,7 +486,7 @@ function buildStartReadingService(): {
   const transactionRunner = fakeOf<TransactionRunner>({ run });
 
   const service = new ReadingQueueService(
-    booksRepository,
+    bookAccess,
     bookReadingService,
     assembler,
     repository,

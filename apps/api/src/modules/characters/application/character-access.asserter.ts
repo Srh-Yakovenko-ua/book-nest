@@ -6,7 +6,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
-import { assertBookOwned, BooksRepository } from "../../books/index.js";
+import { BookAccessService } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { TagsService } from "../../tags/index.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
@@ -14,7 +14,7 @@ import { CharactersRepository } from "../infrastructure/characters.repository.js
 @Injectable()
 export class CharacterAccessAsserter {
   constructor(
-    private readonly booksRepository: BooksRepository,
+    private readonly bookAccess: BookAccessService,
     private readonly mediaService: MediaService,
     private readonly tagsService: TagsService,
     private readonly charactersRepository: CharactersRepository,
@@ -48,9 +48,8 @@ export class CharacterAccessAsserter {
     notFoundCode?: string;
     userId: string;
   }): Promise<void> {
-    await assertBookOwned({
+    await this.bookAccess.assertOwned({
       bookId,
-      booksRepository: this.booksRepository,
       notFoundCode,
       userId,
     });

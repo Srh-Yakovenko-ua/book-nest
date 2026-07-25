@@ -19,6 +19,7 @@ import { BooksController } from "./api/books.controller.js";
 import { BulkBooksController } from "./api/bulk-books.controller.js";
 import { ListDetailsController } from "./api/list-details.controller.js";
 import { ListMembershipController } from "./api/list-membership.controller.js";
+import { BookAccessService } from "./application/book-access.service.js";
 import { BookCoverCleanup } from "./application/book-cover-cleanup.js";
 import { BookDeliveryService } from "./application/book-delivery.service.js";
 import { BookLibraryReadService } from "./application/book-library-read.service.js";
@@ -56,7 +57,7 @@ import { ListMembershipRepository } from "./infrastructure/list-membership.repos
     ListMembershipController,
     BookListsController,
   ],
-  exports: [BookReadingService, BookViewAssembler, BooksRepository],
+  exports: [BookAccessService, BookReadingService, BookViewAssembler],
   imports: [
     AuthModule,
     AuthorsModule,
@@ -70,6 +71,7 @@ import { ListMembershipRepository } from "./infrastructure/list-membership.repos
   ],
   providers: [
     BooksService,
+    BookAccessService,
     BookLibraryReadService,
     BookRelationsResolver,
     BookViewAssembler,

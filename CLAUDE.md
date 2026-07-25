@@ -137,7 +137,7 @@ Business logic stays independent of HTTP **and** of the data layer, so each laye
 7. **DRY the knowledge, not the resemblance.** One source of truth for a business rule / type / contract, but leave incidental similarity alone (e.g. FE `lib/env.ts` vs BE `config/env.ts`). Extract on the third real use, not the second. Optimize for changeability: easy-to-delete > easy-to-extend. Full reference: [`docs/code-principles.md`](./docs/code-principles.md).
 8. **Layered architecture is sacred.** BE: no Prisma in controllers, no Prisma outside repositories, no `req`/`res` in services, repositories never return a ViewModel. FE: no fetch in components — go through the feature's `api/`.
 9. **Early return over nested if.** Discriminated unions over multiple optional booleans. Make invalid states unrepresentable.
-10. **One concern per file**, one default export where applicable.
+10. **One concern per file**, one default export where applicable. **Group related constants into one cohesive object** (grouped by concept — not a junk-drawer), never a scatter of top-level `const`s / exports; extending it adds a key, not an import. See [`docs/code-principles.md`](./docs/code-principles.md) §3.10.
 
 **Working style**
 

@@ -15,7 +15,7 @@ import { Injectable } from "@nestjs/common";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
-import { assertBookOwned, BooksRepository } from "../../books/index.js";
+import { BookAccessService } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { SeriesService } from "../../series/index.js";
 import { emptyToNull, resolveCustomCategory } from "../domain/note-fields.js";
@@ -31,7 +31,7 @@ import {
 export class NotesService {
   constructor(
     private readonly notesRepository: NotesRepository,
-    private readonly booksRepository: BooksRepository,
+    private readonly bookAccess: BookAccessService,
     private readonly seriesService: SeriesService,
     private readonly mediaService: MediaService,
   ) {}
@@ -151,9 +151,8 @@ export class NotesService {
   }
 
   private async assertBookOwned(userId: string, bookId: string): Promise<void> {
-    await assertBookOwned({
+    await this.bookAccess.assertOwned({
       bookId,
-      booksRepository: this.booksRepository,
       notFoundCode: NOTE_ERROR_CODES.bookNotFound,
       userId,
     });

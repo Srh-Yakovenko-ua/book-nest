@@ -1,10 +1,8 @@
 import type { ChangelogCategory, Nullable } from "@app/shared";
 
-import { PrismaPg } from "@prisma/adapter-pg";
-
-import { env } from "../config/env.js";
 import { createLogger } from "../core/logger.js";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { createSeedClient } from "./seed-client.js";
 
 const logger = createLogger("seed.changelog");
 
@@ -408,9 +406,7 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
 
 async function seedChangelog(): Promise<void> {
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: env.databaseUrl }),
-  });
+  const prisma = createSeedClient();
 
   try {
     await seedEntries(prisma);
