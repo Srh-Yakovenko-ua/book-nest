@@ -6,6 +6,7 @@ import type {
   NewSeriesInput,
   Nullable,
   Paginator,
+  SeriesCoverPreview,
   SeriesDetailsView,
   SeriesOverviewView,
   SeriesSearchQuery,
@@ -43,7 +44,12 @@ import { AuthorsService } from "../../authors/index.js";
 import { GenresService } from "../../genres/index.js";
 import { MediaService } from "../../media/index.js";
 import { assembleContinuations } from "../domain/favorite-continuations.js";
-import { computeSeriesLastActivityAt, toSeriesBookPreview } from "../domain/series-preview.js";
+import {
+  compareByPartThenCreated,
+  computeSeriesLastActivityAt,
+  countFinishedBooks,
+  toSeriesBookPreview,
+} from "../domain/series-preview.js";
 import {
   computeSeriesProgress,
   isSeriesFullyRead,
@@ -56,7 +62,10 @@ const SERIES_NAME_TAKEN_MESSAGE = "Series with this name already exists";
 const SERIES_TOTAL_BELOW_BOOKS_MESSAGE =
   "Total books cannot be less than the number of books already in the series";
 const SERIES_TOTAL_BELOW_PART_MESSAGE = "Total books cannot be less than an existing part number";
-const OVERVIEW_TOP_LIMIT = 3;
+const SERIES_LIST_LIMITS = {
+  coverPreview: 3,
+  overviewTop: 3,
+} as const;
 
 type DecoratedSeries = {
   books: SeriesBookPreview[];
@@ -118,7 +127,10 @@ export class SeriesService {
         },
         userId,
       });
-      return toSeriesView(created);
+      return toSeriesView({
+        covers: this.buildSeriesCoverPreviews(created.books),
+        series: created,
+      });
     } catch (error) {
       rethrowUniqueConstraintAs({
         error,
@@ -176,6 +188,15 @@ export class SeriesService {
       isSeriesUnfinished({ books: entry.books, totalBooks: entry.series.totalBooks }),
     );
 
+    const finishedBooksInSeries = decorated.reduce(
+      (sum, entry) => sum + countFinishedBooks(entry.books),
+      0,
+    );
+    const booksLeftInUnfinishedSeries = unfinished.reduce(
+      (sum, entry) => sum + (entry.books.length - countFinishedBooks(entry.books)),
+      0,
+    );
+
     const statusCounts: Record<SeriesStatus, number> = { completed: 0, ongoing: 0, unknown: 0 };
     for (const series of allSeries) {
       statusCounts[SeriesStatusSchema.parse(series.status)] += 1;
@@ -183,11 +204,18 @@ export class SeriesService {
 
     const topUnfinished = [...unfinished]
       .sort(compareByUnfinishedRank)
-      .slice(0, OVERVIEW_TOP_LIMIT)
-      .map((entry) => toSeriesView(entry.series));
+      .slice(0, SERIES_LIST_LIMITS.overviewTop)
+      .map((entry) =>
+        toSeriesView({
+          covers: this.buildSeriesCoverPreviews(entry.series.books),
+          series: entry.series,
+        }),
+      );
 
     return {
       booksInSeries,
+      booksLeftInUnfinishedSeries,
+      finishedBooksInSeries,
       fullyReadSeries: decorated.filter((entry) =>
         isSeriesFullyRead({ books: entry.books, totalBooks: entry.series.totalBooks }),
       ).length,
@@ -262,7 +290,12 @@ export class SeriesService {
     ]);
 
     return buildPaginator({
-      items: series.map(toSeriesView),
+      items: series.map((seriesRow) =>
+        toSeriesView({
+          covers: this.buildSeriesCoverPreviews(seriesRow.books),
+          series: seriesRow,
+        }),
+      ),
       pageNumber,
       pageSize,
       totalCount,
@@ -312,7 +345,10 @@ export class SeriesService {
 
     try {
       const updated = await this.seriesRepository.updateOwned(userId, id, { authorIds, fields });
-      return toSeriesView(updated);
+      return toSeriesView({
+        covers: this.buildSeriesCoverPreviews(updated.books),
+        series: updated,
+      });
     } catch (error) {
       rethrowUniqueConstraintAs({
         error,
@@ -354,6 +390,16 @@ export class SeriesService {
     if (totalBooks < maxPartNumber) {
       throw new ValidationError(SERIES_TOTAL_BELOW_PART_MESSAGE);
     }
+  }
+
+  private buildSeriesCoverPreviews(books: SeriesWithBookCount["books"]): SeriesCoverPreview[] {
+    return [...books]
+      .sort(compareByPartThenCreated)
+      .flatMap((book) => {
+        const cover = this.mediaService.buildViewOrNull(book.coverMedia);
+        return cover === null ? [] : [{ bookId: book.id, cover, title: book.title }];
+      })
+      .slice(0, SERIES_LIST_LIMITS.coverPreview);
   }
 
   private async resolveSeriesAuthorIds({

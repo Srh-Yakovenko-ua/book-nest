@@ -88,9 +88,18 @@ export const SeriesNextBookSchema = z.object({
 
 export type SeriesNextBook = z.infer<typeof SeriesNextBookSchema>;
 
+export const SeriesCoverPreviewSchema = z.object({
+  bookId: z.string(),
+  cover: MediaViewSchema,
+  title: z.string(),
+});
+
+export type SeriesCoverPreview = z.infer<typeof SeriesCoverPreviewSchema>;
+
 export const SeriesViewSchema = z.object({
   authors: z.array(BookAuthorRefSchema),
   booksInSeries: z.number(),
+  covers: z.array(SeriesCoverPreviewSchema),
   createdAt: z.string(),
   description: z.string().nullable(),
   finishedInSeries: z.number(),
@@ -163,6 +172,8 @@ export type SeriesDetailsView = z.infer<typeof SeriesDetailsViewSchema>;
 
 export const SeriesOverviewViewSchema = z.object({
   booksInSeries: z.number(),
+  booksLeftInUnfinishedSeries: z.number().optional(),
+  finishedBooksInSeries: z.number().optional(),
   fullyReadSeries: z.number(),
   statusCounts: z.object({
     completed: z.number(),

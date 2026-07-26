@@ -132,6 +132,7 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
   return {
     authors: [{ id: "author-1", name: "Ребекка Яррос" }],
     booksInSeries: 3,
+    covers: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
     finishedInSeries: 1,

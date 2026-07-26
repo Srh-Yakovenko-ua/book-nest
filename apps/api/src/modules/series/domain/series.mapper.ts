@@ -2,6 +2,7 @@ import type {
   MediaView,
   Nullable,
   SeriesBookView,
+  SeriesCoverPreview,
   SeriesDetailsView,
   SeriesView,
 } from "@app/shared";
@@ -15,6 +16,7 @@ import {
   SeriesStatusSchema,
 } from "@app/shared";
 
+import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type { SeriesWithDetails } from "../infrastructure/series.repository.js";
 import type { SeriesBookRow } from "./series-preview.js";
 
@@ -34,6 +36,7 @@ type SeriesDetailBook = SeriesWithDetails["books"][number];
 
 type SeriesViewBookRow = SeriesBookRow & {
   authors: { author: SeriesAuthorRef; position: number }[];
+  coverMedia?: Nullable<MediaAssetModel>;
 };
 
 type SeriesViewSource = {
@@ -65,20 +68,27 @@ export function toSeriesDetailsView({
   );
 
   return {
-    ...toSeriesView(series),
+    ...toSeriesView({ series }),
     books,
     publishers: collectSeriesPublishers(series.books),
     stats: computeSeriesStats(series.books.map(toStatsBook)),
   };
 }
 
-export function toSeriesView(series: SeriesViewSource): SeriesView {
+export function toSeriesView({
+  covers = [],
+  series,
+}: {
+  covers?: SeriesCoverPreview[];
+  series: SeriesViewSource;
+}): SeriesView {
   const books = series.books.map(toSeriesBookPreview);
   const { finishedInSeries, nextBook, readingInSeries } = summarizeSeriesBooks(books);
 
   return {
     authors: resolveSeriesAuthors(series),
     booksInSeries: series._count.books,
+    covers,
     createdAt: series.createdAt.toISOString(),
     description: series.description,
     finishedInSeries,

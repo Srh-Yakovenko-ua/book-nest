@@ -3,7 +3,7 @@ import type { Mock } from "vitest";
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { SeriesModel } from "../../../generated/prisma/models.js";
+import type { MediaAssetModel, SeriesModel } from "../../../generated/prisma/models.js";
 import type { GenresService } from "../../genres/application/genres.service.js";
 import type { MediaService } from "../../media/application/media.service.js";
 import type {
@@ -24,6 +24,7 @@ import { AuthorsService } from "../../authors/application/authors.service.js";
 import { SeriesService } from "./series.service.js";
 
 type BookRowInput = {
+  coverMedia?: Nullable<MediaAssetModel>;
   createdAt?: Date;
   id?: string;
   partNumber?: Nullable<number>;
@@ -60,6 +61,7 @@ type RepoMock = Partial<Record<keyof SeriesRepository, Mock>>;
 function bookRow(overrides: BookRowInput = {}): SeriesWithBookCount["books"][number] {
   return {
     authors: [],
+    coverMedia: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
     id: "book-1",
     partNumber: 1,
@@ -68,6 +70,10 @@ function bookRow(overrides: BookRowInput = {}): SeriesWithBookCount["books"][num
     updatedAt: new Date("2026-02-01T10:00:00.000Z"),
     ...overrides,
   };
+}
+
+function coverAsset(id: string): MediaAssetModel {
+  return fakeOf<MediaAssetModel>({ id });
 }
 
 function detailedSeries(
@@ -261,6 +267,7 @@ function seriesWithCount(
     authors: [],
     books: Array.from({ length: finishedInSeries }, (unused, index) => ({
       authors: [],
+      coverMedia: null,
       createdAt: new Date("2026-02-01T10:00:00.000Z"),
       id: `b-${index}`,
       partNumber: index + 1,
@@ -519,6 +526,7 @@ describe("SeriesService.search", () => {
         {
           authors: [],
           booksInSeries: 2,
+          covers: [],
           createdAt: "2026-02-01T10:00:00.000Z",
           description: "saga",
           finishedInSeries: 0,
@@ -615,6 +623,90 @@ describe("SeriesService.search", () => {
 
     expect(repository.searchOwned).toHaveBeenCalledWith(expect.objectContaining({ authorIds }));
     expect(repository.countOwned).toHaveBeenCalledWith(expect.objectContaining({ authorIds }));
+  });
+});
+
+describe("SeriesService.search covers", () => {
+  it("builds covers ordered by part number only for books that have a cover", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: coverAsset("media-2"), id: "book-2", partNumber: 2 }),
+            bookRow({ coverMedia: coverAsset("media-1"), id: "book-1", partNumber: 1 }),
+            bookRow({ coverMedia: null, id: "book-3", partNumber: 3 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.covers).toEqual([
+      { bookId: "book-1", cover: mediaView("media-1"), title: "Book" },
+      { bookId: "book-2", cover: mediaView("media-2"), title: "Book" },
+    ]);
+  });
+
+  it("returns an empty covers array when no book has a cover", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: null, id: "book-1", partNumber: 1 }),
+            bookRow({ coverMedia: null, id: "book-2", partNumber: 2 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.covers).toEqual([]);
+  });
+
+  it("caps covers at three when more than three books have a cover", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: coverAsset("media-1"), id: "book-1", partNumber: 1 }),
+            bookRow({ coverMedia: coverAsset("media-2"), id: "book-2", partNumber: 2 }),
+            bookRow({ coverMedia: coverAsset("media-3"), id: "book-3", partNumber: 3 }),
+            bookRow({ coverMedia: coverAsset("media-4"), id: "book-4", partNumber: 4 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.covers.map((cover) => cover.bookId)).toEqual([
+      "book-1",
+      "book-2",
+      "book-3",
+    ]);
+  });
+
+  it("orders books with a null part number after the numbered ones", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: coverAsset("media-null"), id: "book-null", partNumber: null }),
+            bookRow({ coverMedia: coverAsset("media-1"), id: "book-1", partNumber: 1 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.covers.map((cover) => cover.bookId)).toEqual(["book-1", "book-null"]);
   });
 });
 
@@ -1073,10 +1165,41 @@ describe("SeriesService.overview", () => {
 
     expect(overview).toMatchObject({
       booksInSeries: 7,
+      booksLeftInUnfinishedSeries: 1,
+      finishedBooksInSeries: 3,
       fullyReadSeries: 1,
       totalSeries: 3,
       unfinishedSeries: 1,
     });
+  });
+
+  it("aggregates finished books across all series and unread books only for unfinished ones", async () => {
+    const repository = {
+      countBooksInSeries: vi.fn().mockResolvedValue(5),
+      findAllOwned: vi.fn().mockResolvedValue([
+        ownedWithCount({
+          books: [
+            bookRow({ id: "done-1", partNumber: 1, readingStatus: "finished" }),
+            bookRow({ id: "done-2", partNumber: 2, readingStatus: "finished" }),
+          ],
+          id: "series-done",
+        }),
+        ownedWithCount({
+          books: [
+            bookRow({ id: "wip-1", partNumber: 1, readingStatus: "finished" }),
+            bookRow({ id: "wip-2", partNumber: 2, readingStatus: "reading" }),
+            bookRow({ id: "wip-3", partNumber: 3, readingStatus: "not_started" }),
+          ],
+          id: "series-wip",
+        }),
+      ]),
+    };
+    const { service } = makeService({ repository });
+
+    const overview = await service.overview(USER_ID);
+
+    expect(overview.finishedBooksInSeries).toBe(3);
+    expect(overview.booksLeftInUnfinishedSeries).toBe(2);
   });
 
   it("tallies the status counts across every series", async () => {

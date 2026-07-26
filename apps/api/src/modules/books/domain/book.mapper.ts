@@ -86,7 +86,7 @@ export function toBookView({
     queuePriorityTargetDate: toNullableIsoDate(book.queuePriorityTargetDate),
     readingProgress: toReadingProgressView(book.readingProgress),
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
-    series: book.series === null ? null : toSeriesView(book.series),
+    series: book.series === null ? null : toSeriesView({ series: book.series }),
     tags: book.tags.map((bookTag) => ({ id: bookTag.tag.id, name: bookTag.tag.name })),
     title: book.title,
     translator: book.translator,

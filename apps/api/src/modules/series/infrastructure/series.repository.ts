@@ -36,6 +36,7 @@ const seriesWithBookCountArgs = {
     books: {
       select: {
         authors: { include: { author: true }, orderBy: { position: "asc" } },
+        coverMedia: true,
         createdAt: true,
         id: true,
         partNumber: true,
