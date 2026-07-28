@@ -2,7 +2,7 @@
 
 import type { SeriesBookView, SeriesDetailsView } from "@app/shared";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,19 +21,24 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useUpdateBook } from "@/features/books/api/use-update-book";
 import { BookRow } from "@/features/books/components/book-row";
 import { Link } from "@/i18n/navigation";
+import { formatDate, formatDateLong } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import type {
   SeriesBookPrimaryAction,
+  SeriesDeliveryContext,
   SeriesEditionLine,
   SeriesLibraryBookLabels,
+  SeriesLoanContext,
   SeriesPersonalState,
   SeriesStartTarget,
 } from "../model/series-library-book";
 
 import {
   isReadingNow,
+  seriesBookDeliveryContext,
   seriesBookEdition,
+  seriesBookLoanContext,
   seriesBookPersonalState,
   seriesBookPrimaryAction,
   seriesBookRouteState,
@@ -48,6 +53,7 @@ type SeriesBookCardProps = {
   onStartReading: (target: SeriesStartTarget) => void;
   onUpdateProgress: (bookId: string) => void;
   seriesAuthors: SeriesDetailsView["authors"];
+  seriesPublishers: SeriesDetailsView["publishers"];
 };
 
 export function SeriesBookCard({
@@ -57,6 +63,7 @@ export function SeriesBookCard({
   onStartReading,
   onUpdateProgress,
   seriesAuthors,
+  seriesPublishers,
 }: SeriesBookCardProps) {
   const t = useTranslations("series.details.row");
   const tLibrary = useTranslations("books.library");
@@ -81,8 +88,10 @@ export function SeriesBookCard({
   };
 
   const libraryBook = toSeriesLibraryBook({ book, labels, seriesAuthors });
-  const edition = seriesBookEdition({ book, labels });
+  const edition = seriesBookEdition({ book, labels, seriesPublishers });
   const personalState = seriesBookPersonalState(book);
+  const loanContext = seriesBookLoanContext(book);
+  const deliveryContext = seriesBookDeliveryContext(book);
   const routeState = seriesBookRouteState({ isNextInOrder, readingStatus: book.readingStatus });
   const primaryAction = seriesBookPrimaryAction({
     isNextInOrder,
@@ -111,8 +120,8 @@ export function SeriesBookCard({
       <BookRow
         accent={routeState === "unread" && isReadingNow(book.readingStatus)}
         actionsSlot={
-          primaryAction === undefined ? undefined : (
-            <div className="relative z-10">
+          <div className="relative z-10">
+            {primaryAction === undefined ? null : (
               <SeriesBookPrimaryActionButton
                 action={primaryAction}
                 historyHref={`/books/${book.id}?tab=history`}
@@ -120,8 +129,8 @@ export function SeriesBookCard({
                 onStartReading={() => onStartReading({ id: book.id, title: book.title })}
                 onUpdateProgress={() => onUpdateProgress(book.id)}
               />
-            </div>
-          )
+            )}
+          </div>
         }
         book={libraryBook}
         coverAspect="portrait"
@@ -175,7 +184,9 @@ export function SeriesBookCard({
         statusPlacement="column"
         statusSlot={
           <SeriesStatusZone
+            deliveryContext={deliveryContext}
             isInReadingQueue={book.isInReadingQueue}
+            loanContext={loanContext}
             ownership={libraryBook.ownership}
             personalState={personalState}
             status={libraryBook.status}
@@ -260,12 +271,75 @@ function SeriesBookPrimaryActionButton({
   );
 }
 
+function SeriesDeliveryContextLines({ context }: { context: SeriesDeliveryContext }) {
+  const t = useTranslations("series.details.row");
+  const locale = useLocale();
+
+  return (
+    <>
+      {context.expectedDeliveryDate === null ? null : (
+        <span className="text-xs text-muted-foreground">
+          {t("inTransit", { date: formatDate(context.expectedDeliveryDate, locale) })}
+        </span>
+      )}
+
+      {context.service === null ? null : context.trackingUrl === null ? (
+        <span className="text-xs text-muted-foreground">{context.service}</span>
+      ) : (
+        <a
+          className="relative z-10 inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
+          href={context.trackingUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <UiIcon className="shrink-0 text-icon" name="external" size={14} />
+          {context.service}
+        </a>
+      )}
+    </>
+  );
+}
+
+function SeriesLoanContextLines({ context }: { context: SeriesLoanContext }) {
+  const t = useTranslations("series.details.row");
+  const locale = useLocale();
+
+  if (context.kind === "borrowed") {
+    return (
+      <span className="text-xs text-muted-foreground">
+        {t("borrowedFrom", { name: context.personName })}
+      </span>
+    );
+  }
+
+  return (
+    <>
+      <span className="text-xs text-muted-foreground">
+        {t("lentTo", { name: context.personName })}
+      </span>
+
+      {context.expectedReturn === null ? null : (
+        <span className="text-xs text-muted-foreground">
+          {t("expectedReturn", { date: formatDate(context.expectedReturn, locale) })}
+        </span>
+      )}
+    </>
+  );
+}
+
 function SeriesPersonalStateRow({ state }: { state: SeriesPersonalState }) {
   const t = useTranslations("series.details.row");
+  const locale = useLocale();
 
   switch (state.kind) {
     case "dnf":
       return <span className="text-xs text-muted-foreground">{t("dnf")}</span>;
+    case "finished":
+      return (
+        <span className="text-xs text-muted-foreground">
+          {t("finishedOn", { date: formatDateLong(state.finishedAt, locale) })}
+        </span>
+      );
     case "paused":
       return (
         <span className="text-xs text-muted-foreground tabular-nums">
@@ -277,6 +351,13 @@ function SeriesPersonalStateRow({ state }: { state: SeriesPersonalState }) {
     case "progress":
       return (
         <div className="flex flex-col gap-1">
+          {state.startedAt === null ? null : (
+            <span className="text-xs text-muted-foreground">
+              {t(state.rereading ? "rereadingSince" : "readingSince", {
+                date: formatDateLong(state.startedAt, locale),
+              })}
+            </span>
+          )}
           <Progress
             aria-label={t("progress", { current: state.pages.current, total: state.pages.total })}
             aria-valuenow={state.percent}
@@ -298,12 +379,16 @@ function SeriesPersonalStateRow({ state }: { state: SeriesPersonalState }) {
 }
 
 function SeriesStatusZone({
+  deliveryContext,
   isInReadingQueue,
+  loanContext,
   ownership,
   personalState,
   status,
 }: {
+  deliveryContext?: SeriesDeliveryContext;
   isInReadingQueue: boolean;
+  loanContext?: SeriesLoanContext;
   ownership?: LibraryBook["ownership"];
   personalState?: SeriesPersonalState;
   status: LibraryBook["status"];
@@ -311,12 +396,7 @@ function SeriesStatusZone({
   const tQueue = useTranslations("books.details.queue");
 
   return (
-    <div
-      className={cn(
-        "flex shrink-0 flex-col gap-2 @xl/book-row:w-40",
-        personalState === undefined && "justify-center",
-      )}
-    >
+    <div className="flex shrink-0 flex-col gap-2 @xl/book-row:w-40">
       <div className="flex flex-wrap items-center gap-1.5">
         <StatusBadge entry={status} />
 
@@ -330,6 +410,12 @@ function SeriesStatusZone({
       </div>
 
       {personalState === undefined ? null : <SeriesPersonalStateRow state={personalState} />}
+
+      {loanContext === undefined ? null : <SeriesLoanContextLines context={loanContext} />}
+
+      {deliveryContext === undefined ? null : (
+        <SeriesDeliveryContextLines context={deliveryContext} />
+      )}
     </div>
   );
 }

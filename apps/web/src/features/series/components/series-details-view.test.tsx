@@ -72,16 +72,17 @@ function renderView(details: SeriesDetailsViewModel) {
 }
 
 describe("SeriesDetailsView", () => {
-  it("hides the progress card once the whole series is read", () => {
+  it("shows the completion state once the whole series is read", () => {
     renderView(makeFullyReadSeries());
 
-    expect(screen.queryByText("Ваш прогрес у серії")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Прогрес читання").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Серію прочитано повністю").length).toBeGreaterThan(0);
   });
 
   it("keeps the progress card while the series is unfinished", () => {
     renderView(makeSeriesDetailsView());
 
-    expect(screen.getAllByText("Ваш прогрес у серії").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Прогрес читання").length).toBeGreaterThan(0);
   });
 
   it("keeps the progress card for an empty series so its empty state stays visible", () => {
@@ -104,7 +105,7 @@ describe("SeriesDetailsView", () => {
       }),
     );
 
-    expect(screen.getAllByText("Ваш прогрес у серії").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Прогрес ще недоступний").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Прогрес читання").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Читання серії ще не розпочато").length).toBeGreaterThan(0);
   });
 });

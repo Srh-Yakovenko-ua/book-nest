@@ -455,6 +455,29 @@ export const SeriesControllerGetByIdResponse = zod.object({
   totalBooks: zod.number().nullable(),
   books: zod.array(
     zod.object({
+      activeDelivery: zod
+        .object({
+          cancelledAt: zod.string().nullable(),
+          cancelReason: zod.string().nullable(),
+          createdAt: zod.string(),
+          currency: zod
+            .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+            .nullable(),
+          deliveryService: zod.string().nullable(),
+          expectedDeliveryDate: zod.string().nullable(),
+          id: zod.string(),
+          note: zod.string().nullable(),
+          orderDate: zod.string().nullable(),
+          orderNumber: zod.string().nullable(),
+          price: zod.number().nullable(),
+          receivedAt: zod.string().nullable(),
+          status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
+          storeName: zod.string().nullable(),
+          trackingNumber: zod.string().nullable(),
+          trackingUrl: zod.string().nullable(),
+          updatedAt: zod.string(),
+        })
+        .nullable(),
       ageCategory: zod.enum([
         "not_specified",
         "no_restrictions",
@@ -489,11 +512,24 @@ export const SeriesControllerGetByIdResponse = zod.object({
         .nullish(),
       createdAt: zod.string(),
       currentPage: zod.number().nullable(),
+      finishedAt: zod.string().nullable(),
       formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
       genres: zod.array(zod.string()),
       id: zod.string(),
       isFavorite: zod.boolean(),
       isInReadingQueue: zod.boolean(),
+      loanInfo: zod
+        .object({
+          contact: zod.string().nullable(),
+          expectedReturnDate: zod.string().nullable(),
+          loanDate: zod.string().nullable(),
+          loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+          loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
+          note: zod.string().nullable(),
+          personName: zod.string(),
+          remindToReturn: zod.boolean(),
+        })
+        .nullable(),
       originalTitle: zod.string().nullable(),
       ownershipStatus: zod.enum([
         "none",
@@ -506,6 +542,12 @@ export const SeriesControllerGetByIdResponse = zod.object({
       pagesCount: zod.number().nullable(),
       partNumber: zod.number().nullable(),
       publicationYear: zod.number().nullable(),
+      publisher: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+        })
+        .nullable(),
       rating: zod.number().nullable(),
       readingStatus: zod.enum([
         "not_started",
@@ -516,6 +558,7 @@ export const SeriesControllerGetByIdResponse = zod.object({
         "dnf",
         "rereading",
       ]),
+      startedAt: zod.string().nullable(),
       tags: zod.array(
         zod.object({
           id: zod.string(),

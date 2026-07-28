@@ -1,10 +1,49 @@
 import type {
+  DeliveryView,
+  LoanInfoView,
   SeriesBookView,
   SeriesDetailsView,
   SeriesOverviewView,
   SeriesStatsView,
   SeriesView,
 } from "@app/shared";
+
+export function makeDelivery(overrides: Partial<DeliveryView> = {}): DeliveryView {
+  return {
+    cancelledAt: null,
+    cancelReason: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    currency: null,
+    deliveryService: null,
+    expectedDeliveryDate: null,
+    id: "delivery-1",
+    note: null,
+    orderDate: null,
+    orderNumber: null,
+    price: null,
+    receivedAt: null,
+    status: "in_transit",
+    storeName: null,
+    trackingNumber: null,
+    trackingUrl: null,
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+export function makeLoanInfo(overrides: Partial<LoanInfoView> = {}): LoanInfoView {
+  return {
+    contact: null,
+    expectedReturnDate: null,
+    loanDate: null,
+    loanType: "lent_to_someone",
+    loanUiStatus: "no_return_date",
+    note: null,
+    personName: "Олена",
+    remindToReturn: false,
+    ...overrides,
+  };
+}
 
 export function makeSeriesBookView(overrides: Partial<SeriesBookView> = {}): SeriesBookView {
   return {

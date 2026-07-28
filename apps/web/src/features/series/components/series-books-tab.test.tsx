@@ -1,13 +1,18 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { SeriesBookView } from "@app/shared";
+import type { SeriesBookView, SeriesDetailsView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { describe, expect, it, vi } from "vitest";
 
 import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
 
-import { makeSeriesBookView, makeSeriesDetailsView } from "../model/series.fixtures";
+import {
+  makeDelivery,
+  makeLoanInfo,
+  makeSeriesBookView,
+  makeSeriesDetailsView,
+} from "../model/series.fixtures";
 import { SeriesBooksTab } from "./series-books-tab";
 
 vi.mock("@/i18n/navigation", () => ({
@@ -19,25 +24,25 @@ vi.mock("@/i18n/navigation", () => ({
 
 function renderTab({
   books,
-  canAddBook = true,
   nextBookId,
   onAddBook = vi.fn(),
+  publishers,
   totalBooks = 5,
 }: {
   books: SeriesBookView[];
-  canAddBook?: boolean;
   nextBookId?: string;
   onAddBook?: (partNumber: null | number) => void;
+  publishers?: SeriesDetailsView["publishers"];
   totalBooks?: null | number;
 }) {
   return renderWithProviders(
     <SeriesBooksTab
-      canAddBook={canAddBook}
       details={makeSeriesDetailsView({
         books,
         booksInSeries: books.length,
         nextBook:
           nextBookId === undefined ? null : { id: nextBookId, partNumber: null, title: "Наступна" },
+        publishers,
         totalBooks,
       })}
       onAddBook={onAddBook}
@@ -190,6 +195,84 @@ describe("SeriesBooksTab", () => {
     expect(within(rowAt(0)).queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
+  it("shows the finished date for a completed book", () => {
+    renderTab({
+      books: [
+        makeSeriesBookView({
+          finishedAt: "2026-03-14",
+          id: "a",
+          partNumber: 1,
+          readingStatus: "finished",
+        }),
+      ],
+    });
+
+    expect(within(rowAt(0)).getByText(/Прочитано .*2026/)).toBeInTheDocument();
+  });
+
+  it("shows the start date above the progress bar for a book being read", () => {
+    renderTab({
+      books: [
+        makeSeriesBookView({
+          currentPage: 180,
+          id: "a",
+          pagesCount: 640,
+          partNumber: 1,
+          readingStatus: "reading",
+          startedAt: "2026-05-02",
+        }),
+      ],
+    });
+
+    expect(within(rowAt(0)).getByText(/Читаю з .*2026/)).toBeInTheDocument();
+    expect(within(rowAt(0)).getByRole("progressbar")).toBeInTheDocument();
+  });
+
+  it("shows the lender and expected return for a lent book", () => {
+    renderTab({
+      books: [
+        makeSeriesBookView({
+          id: "a",
+          loanInfo: makeLoanInfo({ expectedReturnDate: "2026-08-18", personName: "Олена" }),
+          ownershipStatus: "lent_to_someone",
+          partNumber: 1,
+        }),
+      ],
+    });
+
+    expect(within(rowAt(0)).getByText("Позичена · Олена")).toBeInTheDocument();
+    expect(within(rowAt(0)).getByText(/Очікуване повернення/)).toBeInTheDocument();
+  });
+
+  it("shows the delivery estimate for a book in transit", () => {
+    renderTab({
+      books: [
+        makeSeriesBookView({
+          activeDelivery: makeDelivery({ expectedDeliveryDate: "2026-08-01" }),
+          id: "a",
+          ownershipStatus: "in_transit",
+          partNumber: 1,
+        }),
+      ],
+    });
+
+    expect(within(rowAt(0)).getByText(/В дорозі · очікується/)).toBeInTheDocument();
+  });
+
+  it("shows a differing publisher when the series spans several publishers", () => {
+    renderTab({
+      books: [
+        makeSeriesBookView({ id: "a", partNumber: 1, publisher: { id: "p2", name: "Ранок" } }),
+      ],
+      publishers: [
+        { id: "p1", name: "Vivat" },
+        { id: "p2", name: "Ранок" },
+      ],
+    });
+
+    expect(within(rowAt(0)).getByText("Ранок")).toBeInTheDocument();
+  });
+
   it("gives dnf its own badge and no progress", () => {
     renderTab({
       books: [
@@ -282,12 +365,29 @@ describe("SeriesBooksTab", () => {
     renderTab({
       books: [makeSeriesBookView({ id: "a", partNumber: 1 })],
       onAddBook,
-      totalBooks: 3,
+      totalBooks: null,
     });
 
     await userEvent.click(screen.getByRole("button", { name: "Додати книгу в цю серію" }));
 
     expect(onAddBook).toHaveBeenCalledWith(null);
+  });
+
+  it("hides the plain add button when the total is known and a slot is still missing", () => {
+    renderTab({
+      books: [
+        makeSeriesBookView({ id: "a", partNumber: 1 }),
+        makeSeriesBookView({ id: "b", partNumber: 2 }),
+      ],
+      totalBooks: 3,
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Додати книгу в цю серію" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Додати книгу 3 до бібліотеки" }),
+    ).toBeInTheDocument();
   });
 
   it("keeps a single add affordance when the series length is unknown", () => {

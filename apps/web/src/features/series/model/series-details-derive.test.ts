@@ -6,6 +6,7 @@ import {
   authorsDifferFromSeries,
   duplicatePartNumbers,
   nextAddablePartNumber,
+  publisherDiffersFromSeries,
   resolveSeriesGenres,
   resolveSeriesReleaseYears,
   seriesCoverBooks,
@@ -167,6 +168,34 @@ describe("authorsDifferFromSeries", () => {
   it("treats two empty author sets as equal", () => {
     expect(authorsDifferFromSeries({ bookAuthors: [], seriesAuthors: [] })).toBe(false);
     expect(authorsDifferFromSeries({ bookAuthors: [], seriesAuthors })).toBe(true);
+  });
+});
+
+describe("publisherDiffersFromSeries", () => {
+  const publisher = { id: "publisher-1", name: "Vivat" };
+
+  it("shows a book publisher only when the series spreads across several publishers", () => {
+    expect(
+      publisherDiffersFromSeries({
+        bookPublisher: publisher,
+        seriesPublishers: [publisher, { id: "publisher-2", name: "Ранок" }],
+      }),
+    ).toBe(true);
+  });
+
+  it("stays quiet when the series shares a single publisher", () => {
+    expect(
+      publisherDiffersFromSeries({ bookPublisher: publisher, seriesPublishers: [publisher] }),
+    ).toBe(false);
+  });
+
+  it("stays quiet when the book carries no publisher", () => {
+    expect(
+      publisherDiffersFromSeries({
+        bookPublisher: null,
+        seriesPublishers: [publisher, { id: "publisher-2", name: "Ранок" }],
+      }),
+    ).toBe(false);
   });
 });
 
