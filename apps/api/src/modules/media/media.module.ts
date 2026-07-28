@@ -2,6 +2,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/index.js";
+import { RealtimeModule } from "../realtime/index.js";
 import { MediaController } from "./api/media.controller.js";
 import { MediaThumbnailProcessor } from "./application/media-thumbnail.processor.js";
 import { MediaService } from "./application/media.service.js";
@@ -15,7 +16,7 @@ import { SharpImageProcessor } from "./infrastructure/sharp-image.processor.js";
 @Module({
   controllers: [MediaController],
   exports: [MediaService],
-  imports: [AuthModule, BullModule.registerQueue({ name: MEDIA_QUEUE_NAME })],
+  imports: [AuthModule, BullModule.registerQueue({ name: MEDIA_QUEUE_NAME }), RealtimeModule],
   providers: [
     MediaRepository,
     MediaService,

@@ -28,6 +28,7 @@ import { ProfileModule } from "./modules/profile/profile.module.js";
 import { PublishersModule } from "./modules/publishers/publishers.module.js";
 import { QuotesModule } from "./modules/quotes/index.js";
 import { ReadingQueueModule } from "./modules/reading-queue/index.js";
+import { RealtimeModule } from "./modules/realtime/index.js";
 import { SeriesOrderCheckModule } from "./modules/series-order-check/index.js";
 import { SeriesModule } from "./modules/series/series.module.js";
 import { TagsModule } from "./modules/tags/tags.module.js";
@@ -55,6 +56,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     ListsModule,
     BooksModule,
     GenresModule,
+    RealtimeModule,
     MediaModule,
     DeliveryServicesModule,
     ReadingQueueModule,

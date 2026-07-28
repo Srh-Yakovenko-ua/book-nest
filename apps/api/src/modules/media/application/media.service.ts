@@ -1,7 +1,12 @@
 import type { MediaCrop, MediaKind, MediaView, Nullable } from "@app/shared";
 import type { Queue } from "bullmq";
 
-import { MEDIA_MAX_UPLOAD_BYTES, MEDIA_MAX_UPLOAD_MB, MediaKindSchema } from "@app/shared";
+import {
+  MEDIA_MAX_UPLOAD_BYTES,
+  MEDIA_MAX_UPLOAD_MB,
+  MediaKindSchema,
+  REALTIME_CONTRACT,
+} from "@app/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
@@ -15,6 +20,7 @@ import type { MediaOwnerRef } from "../infrastructure/media.repository.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
+import { RealtimePort } from "../../realtime/index.js";
 import { detectImageMimeType, isAllowedImageMimeType } from "../domain/allowed-image.js";
 import { buildDerivativeRecord } from "../domain/derivatives.js";
 import {
@@ -54,6 +60,7 @@ export class MediaService {
   constructor(
     private readonly imageProcessor: ImageProcessorPort,
     private readonly mediaRepository: MediaRepository,
+    private readonly realtime: RealtimePort,
     private readonly storage: StoragePort,
     @InjectQueue(MEDIA_QUEUE_NAME) private readonly thumbnailQueue: Queue<GenerateThumbJob>,
   ) {}
@@ -136,14 +143,26 @@ export class MediaService {
       key: thumbObjectKey,
     });
 
-    const marked = await this.mediaRepository.markThumbGenerated({ id: asset.id, now: new Date() });
+    const now = new Date();
+    const marked = await this.mediaRepository.markThumbGenerated({ id: asset.id, now });
     if (!marked) {
       log.info(
         { assetId },
         "media asset deleted during thumbnail generation, removing orphan thumb",
       );
       await this.removeObjects([thumbObjectKey]);
+      return;
     }
+
+    const media = this.buildViewOrNull({ ...asset, thumbGeneratedAt: now });
+    if (media === null) {
+      return;
+    }
+
+    this.realtime.emitToUser({
+      event: { media, type: REALTIME_CONTRACT.events.mediaThumbnailReady },
+      userId: asset.userId,
+    });
   }
 
   async upload({ crop, file, kind, userId }: UploadCommand): Promise<MediaView> {

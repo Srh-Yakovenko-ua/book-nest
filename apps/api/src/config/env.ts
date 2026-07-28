@@ -151,6 +151,7 @@ const envSchema = z
     smtpSecure: raw.SMTP_SECURE,
     smtpUser: raw.SMTP_USER,
     tracingEnabled: raw.TRACING_ENABLED,
+    trustProxy: raw.NODE_ENV === "production",
     webBaseUrl: raw.WEB_BASE_URL,
     wikidataContact: raw.WIKIDATA_CONTACT,
   }));
