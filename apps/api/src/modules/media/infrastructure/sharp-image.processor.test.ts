@@ -1,3 +1,4 @@
+import { crc32 } from "node:zlib";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 
@@ -5,6 +6,18 @@ import { CropOutOfBoundsError, ImageTooLargeError } from "../domain/image-proces
 import { SharpImageProcessor } from "./sharp-image.processor.js";
 
 const processor = new SharpImageProcessor();
+
+const PNG_IHDR_OFFSETS = {
+  crc: 29,
+  height: 20,
+  type: 12,
+  width: 16,
+} as const;
+
+const PIXEL_CAP = {
+  squareEdge: 5000,
+  squareEdgeOverCap: 5001,
+} as const;
 
 function orientedJpeg({
   height,
@@ -19,6 +32,23 @@ function orientedJpeg({
     .withMetadata({ orientation })
     .jpeg()
     .toBuffer();
+}
+
+async function pngDeclaringDimensions({
+  height,
+  width,
+}: {
+  height: number;
+  width: number;
+}): Promise<Buffer> {
+  const png = await solidPng(4, 4);
+  png.writeUInt32BE(width, PNG_IHDR_OFFSETS.width);
+  png.writeUInt32BE(height, PNG_IHDR_OFFSETS.height);
+  png.writeUInt32BE(
+    crc32(png.subarray(PNG_IHDR_OFFSETS.type, PNG_IHDR_OFFSETS.crc)) >>> 0,
+    PNG_IHDR_OFFSETS.crc,
+  );
+  return png;
 }
 
 function solidPng(width: number, height: number): Promise<Buffer> {
@@ -61,6 +91,28 @@ describe("SharpImageProcessor.processFull", () => {
     const overCap = await solidPng(20, 20);
 
     await expect(cappedProcessor.processFull({ input: overCap })).rejects.toBeInstanceOf(
+      ImageTooLargeError,
+    );
+  });
+
+  it("rejects a header-declared bomb over the default cap without decoding its pixels", async () => {
+    const declaredBomb = await pngDeclaringDimensions({
+      height: PIXEL_CAP.squareEdge,
+      width: PIXEL_CAP.squareEdgeOverCap,
+    });
+
+    await expect(processor.processFull({ input: declaredBomb })).rejects.toBeInstanceOf(
+      ImageTooLargeError,
+    );
+  });
+
+  it("admits a header-declared image exactly at the default cap and fails only once decoding starts", async () => {
+    const atCap = await pngDeclaringDimensions({
+      height: PIXEL_CAP.squareEdge,
+      width: PIXEL_CAP.squareEdge,
+    });
+
+    await expect(processor.processFull({ input: atCap })).rejects.not.toBeInstanceOf(
       ImageTooLargeError,
     );
   });

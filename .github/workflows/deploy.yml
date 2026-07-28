@@ -184,7 +184,10 @@ jobs:
           DEV_R2_SECRET_ACCESS_KEY: ${{ secrets.DEV_R2_SECRET_ACCESS_KEY }}
           PROD_R2_ACCESS_KEY_ID: ${{ secrets.PROD_R2_ACCESS_KEY_ID }}
           PROD_R2_SECRET_ACCESS_KEY: ${{ secrets.PROD_R2_SECRET_ACCESS_KEY }}
+          MAILPIT_BASIC_AUTH_HASH: ${{ secrets.MAILPIT_BASIC_AUTH_HASH }}
         run: |
+          : "${MAILPIT_BASIC_AUTH_HASH:?repository secret MAILPIT_BASIC_AUTH_HASH is not set — generate one with 'docker run --rm caddy:2-alpine caddy hash-password --plaintext <password>'}"
+
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ci
           chmod 600 ~/.ssh/id_ci
@@ -216,6 +219,7 @@ jobs:
             echo "PROD_R2_SECRET_ACCESS_KEY=${PROD_R2_SECRET_ACCESS_KEY}"
             echo "API_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-api"
             echo "WEB_IMAGE=ghcr.io/srh-yakovenko-ua/booknest-web"
+            echo "MAILPIT_BASIC_AUTH_HASH=${MAILPIT_BASIC_AUTH_HASH}"
           } > /tmp/server.env
 
           $SSHC "$USER@$HOST" "mkdir -p ~/booknest"

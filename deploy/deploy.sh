@@ -36,8 +36,8 @@ fi
 docker compose pull $services
 docker compose up -d $services
 
-docker compose up -d cloudbeaver
-docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>/dev/null || docker compose up -d caddy
+docker compose up -d caddy
+docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>/dev/null || docker compose up -d --force-recreate caddy
 
 if [ -n "$api" ]; then
 	cid="$(docker compose ps -q "$api")"

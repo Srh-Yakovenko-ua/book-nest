@@ -5,6 +5,10 @@
 book-nest.net {
 	encode zstd gzip
 
+	handle /api/metrics {
+		respond 404
+	}
+
 	handle /api/* {
 		reverse_proxy api-prod:4000
 	}
@@ -16,6 +20,10 @@ book-nest.net {
 
 dev.book-nest.net {
 	encode zstd gzip
+
+	handle /api/metrics {
+		respond 404
+	}
 
 	handle /api/* {
 		reverse_proxy api-dev:4000
@@ -30,14 +38,8 @@ mail.book-nest.net {
 	encode zstd gzip
 
 	basic_auth {
-		team $2a$14$EZ3HR9NPntLMz3KroDAGa.33SGtXx4jAQPWZJl5qhAraMuHd1aWfW
+		team {env.MAILPIT_BASIC_AUTH_HASH}
 	}
 
 	reverse_proxy mailpit:8025
-}
-
-db.book-nest.net {
-	encode zstd gzip
-
-	reverse_proxy cloudbeaver:8978
 }

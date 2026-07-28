@@ -20,34 +20,37 @@ import {
 sharp.concurrency(1);
 sharp.cache(false);
 
-const OUTPUT_CONTENT_TYPE = "image/webp";
-const WEBP_EFFORT = 6;
-const DEFAULT_MAX_INPUT_PIXELS = 80_000_000;
-
-const FULL_MAX_EDGE = 1600;
-const FULL_QUALITY = 88;
-const THUMB_MAX_EDGE = 300;
-const THUMB_QUALITY = 80;
+const IMAGE_PIPELINE = {
+  full: { maxEdge: 1600, quality: 88 },
+  maxInputPixels: 25_000_000,
+  outputContentType: "image/webp",
+  thumb: { maxEdge: 300, quality: 80 },
+  webpEffort: 6,
+} as const;
 
 const ORIENTATIONS_WITH_SWAPPED_AXES = new Set([5, 6, 7, 8]);
 
 @Injectable()
 export class SharpImageProcessor extends ImageProcessorPort {
-  constructor(private readonly maxInputPixels: number = DEFAULT_MAX_INPUT_PIXELS) {
+  constructor(private readonly maxInputPixels: number = IMAGE_PIPELINE.maxInputPixels) {
     super();
   }
 
   generateThumbnail({ input }: GenerateThumbnailOptions): Promise<ProcessedImage> {
     return this.encode({
-      maxEdge: THUMB_MAX_EDGE,
+      maxEdge: IMAGE_PIPELINE.thumb.maxEdge,
       pipeline: sharp(input, { limitInputPixels: this.maxInputPixels }),
-      quality: THUMB_QUALITY,
+      quality: IMAGE_PIPELINE.thumb.quality,
     });
   }
 
   async processFull({ crop, input }: ProcessImageOptions): Promise<ProcessedImage> {
     const normalized = await this.normalize({ crop, input });
-    return this.encode({ maxEdge: FULL_MAX_EDGE, pipeline: normalized, quality: FULL_QUALITY });
+    return this.encode({
+      maxEdge: IMAGE_PIPELINE.full.maxEdge,
+      pipeline: normalized,
+      quality: IMAGE_PIPELINE.full.quality,
+    });
   }
 
   private async encode({
@@ -61,12 +64,12 @@ export class SharpImageProcessor extends ImageProcessorPort {
   }): Promise<ProcessedImage> {
     const { data, info } = await pipeline
       .resize({ fit: "inside", height: maxEdge, width: maxEdge, withoutEnlargement: true })
-      .webp({ effort: WEBP_EFFORT, quality })
+      .webp({ effort: IMAGE_PIPELINE.webpEffort, quality })
       .toBuffer({ resolveWithObject: true });
 
     return {
       body: data,
-      contentType: OUTPUT_CONTENT_TYPE,
+      contentType: IMAGE_PIPELINE.outputContentType,
       height: info.height,
       width: info.width,
     };

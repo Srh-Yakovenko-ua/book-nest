@@ -7,6 +7,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      MAILPIT_BASIC_AUTH_HASH: ${MAILPIT_BASIC_AUTH_HASH:?set MAILPIT_BASIC_AUTH_HASH in .env}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -261,9 +263,7 @@ services:
     volumes:
       - cloudbeaver-data:/opt/cloudbeaver/workspace
     networks:
-      - edge
       - dev-internal
-      - prod-internal
     mem_limit: 512m
 
 networks:
