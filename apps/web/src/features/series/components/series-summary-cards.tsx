@@ -1,17 +1,24 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import type { UiIconName } from "@/components/icons";
+import type { StatCardIconTone } from "@/components/ui/stat-card";
 
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCard } from "@/components/ui/stat-card";
+import { cn } from "@/lib/utils";
 
 import { SeriesOverviewError } from "./series-overview-error";
 
 export type SeriesSummaryCard = {
   icon: UiIconName;
+  iconTone?: StatCardIconTone;
   label: string;
+  microfact?: ReactNode;
   value: number;
+  valueClassName?: string;
 };
 
 type SeriesSummaryCardsProps = {
@@ -37,11 +44,15 @@ export function SeriesSummaryCards({
         ? Array.from({ length: cards.length }, (_, index) => <SummaryCardSkeleton key={index} />)
         : cards.map((card) => (
             <StatCard
+              className="stat-card-branch"
               icon={card.icon}
+              iconTone={card.iconTone}
               key={card.label}
               label={card.label}
+              microfact={card.microfact}
               size="compact"
               value={card.value.toLocaleString()}
+              valueClassName={cn("text-3xl break-words", card.valueClassName)}
             />
           ))}
     </div>
@@ -55,6 +66,7 @@ function SummaryCardSkeleton() {
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <Skeleton className="h-3.5 w-20" />
         <Skeleton className="h-6 w-12" />
+        <Skeleton className="h-3 w-24" />
       </div>
     </Card>
   );

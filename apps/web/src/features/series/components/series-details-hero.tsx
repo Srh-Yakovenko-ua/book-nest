@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { StatusBadge, statusBadgeVariants } from "@/components/ui/status-badge";
 import { useGenres } from "@/features/books";
 import { seriesStatuses } from "@/lib/book-status";
 
@@ -29,6 +29,8 @@ import { SeriesCoverFan } from "./series-cover-fan";
 
 const GENRE_LIMIT = 6;
 const PUBLISHER_LIMIT = 3;
+const DESCRIPTION_CLAMP_LENGTH = 180;
+const DESCRIPTION_CLAMP_LINES = 3;
 
 type SeriesDetailsHeroProps = {
   canAddBook: boolean;
@@ -36,6 +38,7 @@ type SeriesDetailsHeroProps = {
   onAddBook: () => void;
   onDelete: () => void;
   onEdit: () => void;
+  onReadFullDescription: () => void;
 };
 
 export function SeriesDetailsHero({
@@ -44,9 +47,11 @@ export function SeriesDetailsHero({
   onAddBook,
   onDelete,
   onEdit,
+  onReadFullDescription,
 }: SeriesDetailsHeroProps) {
   const t = useTranslations("series.details");
   const tStatus = useTranslations("series.status");
+  const tAge = useTranslations("books.classification.ageCategoryLabels");
 
   const statusBase =
     seriesStatuses.find((entry) => entry.value === details.status) ?? seriesStatuses[2];
@@ -55,6 +60,7 @@ export function SeriesDetailsHero({
       ? details.authors.map((author) => author.name).join(", ")
       : t("authorsUnknown");
   const description = details.description?.trim() ?? "";
+  const hasAdultBook = details.books.some((book) => book.ageCategory === "18_plus");
   const coverBooks = seriesCoverBooks(details.books);
   const hasCoverFan = coverBooks.length > 0;
   const genres = useGenres();
@@ -107,7 +113,7 @@ export function SeriesDetailsHero({
         />
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col gap-4">
+      <div className="hero-content-branch flex min-w-0 flex-1 flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -121,6 +127,9 @@ export function SeriesDetailsHero({
                     value: "series-read",
                   }}
                 />
+              ) : null}
+              {hasAdultBook ? (
+                <span className={statusBadgeVariants({ tone: "danger" })}>{tAge("18_plus")}</span>
               ) : null}
             </div>
             <h1 className="font-heading text-2xl leading-tight font-semibold text-ink md:text-3xl">
@@ -178,12 +187,30 @@ export function SeriesDetailsHero({
         </div>
 
         {description.length === 0 ? null : (
-          <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-            {description}
-          </p>
+          <div className="flex flex-col gap-1.5">
+            <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+              {description}
+            </p>
+            {isDescriptionLong(description) ? (
+              <button
+                className="inline-flex cursor-pointer items-center gap-1 self-end text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                onClick={onReadFullDescription}
+                type="button"
+              >
+                {t("readFullDescription")}
+                <UiIcon aria-hidden name="arrow-right" size={14} />
+              </button>
+            ) : null}
+          </div>
         )}
       </div>
     </section>
+  );
+}
+
+function isDescriptionLong(text: string): boolean {
+  return (
+    text.length > DESCRIPTION_CLAMP_LENGTH || text.split("\n").length > DESCRIPTION_CLAMP_LINES
   );
 }
 

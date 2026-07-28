@@ -51,10 +51,30 @@ export function AllSeries() {
   const hasActiveQuery = search.trim() !== "" || statusFilter !== "all" || readingFilter !== "all";
 
   const summaryCards: SeriesSummaryCard[] = [
-    { icon: "layers", label: t("total"), value: overview.data?.totalSeries ?? 0 },
-    { icon: "check-circle", label: t("fullyRead"), value: overview.data?.fullyReadSeries ?? 0 },
-    { icon: "book", label: t("unfinished"), value: overview.data?.unfinishedSeries ?? 0 },
-    { icon: "library", label: t("booksInSeries"), value: overview.data?.booksInSeries ?? 0 },
+    {
+      icon: "layers",
+      iconTone: "primary",
+      label: t("total"),
+      value: overview.data?.totalSeries ?? 0,
+    },
+    {
+      icon: "check-circle",
+      iconTone: "success",
+      label: t("fullyRead"),
+      value: overview.data?.fullyReadSeries ?? 0,
+    },
+    {
+      icon: "book",
+      iconTone: "info",
+      label: t("unfinished"),
+      value: overview.data?.unfinishedSeries ?? 0,
+    },
+    {
+      icon: "library",
+      iconTone: "primary",
+      label: t("booksInSeries"),
+      value: overview.data?.booksInSeries ?? 0,
+    },
   ];
 
   function clearFilters() {

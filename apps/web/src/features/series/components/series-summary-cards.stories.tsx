@@ -7,10 +7,10 @@ import type { SeriesSummaryCard } from "./series-summary-cards";
 import { SeriesSummaryCards } from "./series-summary-cards";
 
 const cards: SeriesSummaryCard[] = [
-  { icon: "layers", label: "Усього серій", value: 8 },
-  { icon: "check-circle", label: "Прочитано", value: 2 },
-  { icon: "book", label: "Недочитані", value: 5 },
-  { icon: "library", label: "Книг у серіях", value: 14 },
+  { icon: "layers", iconTone: "primary", label: "Усього серій", value: 8 },
+  { icon: "check-circle", iconTone: "success", label: "Прочитано", value: 2 },
+  { icon: "book", iconTone: "info", label: "Недочитані", value: 5 },
+  { icon: "library", iconTone: "primary", label: "Книг у серіях", value: 14 },
 ];
 
 const meta = {

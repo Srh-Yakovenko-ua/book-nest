@@ -2555,9 +2555,11 @@
         "remaining": "{count} left",
         "notAdded": "{count} not added yet"
       },
+      "readFullDescription": "Read full description",
       "tabs": {
         "books": "Books in series",
-        "about": "About the series"
+        "about": "About the series",
+        "notes": "Notes"
       },
       "booksEmpty": {
         "title": "This series has no books yet",
@@ -2565,8 +2567,9 @@
       },
       "missingRow": {
         "title": "Book {number}",
-        "hint": "Not in your library yet",
-        "action": "Add",
+        "notAdded": "This part hasn't been added yet",
+        "hint": "Add a new book or find it in your library.",
+        "action": "Add book",
         "actionAria": "Add book {number} to your library"
       },
       "row": {
@@ -2582,17 +2585,28 @@
         "paused": "Paused · {current} of {total} pp.",
         "pausedShort": "Paused",
         "dnf": "Did not finish",
-        "history": "Reading history"
+        "history": "Reading history",
+        "finishedOn": "Finished {date}",
+        "readingSince": "Reading since {date}",
+        "rereadingSince": "Rereading since {date}",
+        "lentTo": "Lent out · {name}",
+        "borrowedFrom": "Borrowed from {name}",
+        "expectedReturn": "Expected back — {date}",
+        "inTransit": "In transit · expected {date}"
       },
       "progress": {
-        "title": "Your progress in the series",
-        "booksOfTotal": "{finished} of {total} books",
-        "booksAdded": "{finished} of {count} added",
-        "finished": "Read {count}",
-        "reading": "Reading {count}",
-        "unread": "Not read {count}",
-        "unavailable": "Progress not available yet",
-        "completed": "Series read"
+        "title": "Reading progress",
+        "completed": "Series read",
+        "statusReadingTitle": "Now reading “{title}”",
+        "statusNextTitle": "Next to read — “{title}”",
+        "statusPosition": "Book {position} in the series",
+        "statusBookPercent": "{percent}% of the book",
+        "statusMissingTitle": "All added books are read",
+        "statusMissingDetail": "Book {position} isn't added to the library yet.",
+        "statusNotStarted": "You haven't started this series yet",
+        "statusCompleted": "Series fully read",
+        "statusOngoingTitle": "All available books are read",
+        "statusOngoingDetail": "The series is still ongoing"
       },
       "stats": {
         "title": "Series statistics",
@@ -2617,13 +2631,8 @@
       },
       "about": {
         "title": "About the series",
-        "description": "Description",
         "descriptionEmpty": "No description added yet.",
-        "status": "Cycle status",
-        "authors": "Authors",
-        "totalBooks": "Total books",
-        "createdAt": "Added",
-        "unknown": "—"
+        "addedToBookNest": "Added to BookNest {date}"
       },
       "states": {
         "loading": "Loading series…",
@@ -2663,6 +2672,13 @@
     "addBookDialog": {
       "title": "Add a book to the series",
       "description": "Pick a book from your library and set its part number.",
+      "chooseTitle": "Add a book to the series",
+      "chooseDescription": "Choose how to add this part.",
+      "optionSearchTitle": "Find among my books",
+      "optionSearchSubtitle": "Link a book that's already in your library",
+      "optionCreateTitle": "Create a new book",
+      "optionCreateSubtitle": "Add details for a new book",
+      "back": "Back",
       "searchLabel": "Search books",
       "searchPlaceholder": "Search by title…",
       "searching": "Searching…",

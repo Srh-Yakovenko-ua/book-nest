@@ -111,6 +111,7 @@ function renderHeroDetails(overrides: Partial<SeriesDetailsView>) {
       onAddBook={vi.fn()}
       onDelete={vi.fn()}
       onEdit={vi.fn()}
+      onReadFullDescription={vi.fn()}
     />,
   );
 }

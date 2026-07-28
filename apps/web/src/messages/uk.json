@@ -2555,9 +2555,11 @@
         "remaining": "{count} залишилося",
         "notAdded": "ще {count} не додано"
       },
+      "readFullDescription": "Читати повний опис",
       "tabs": {
         "books": "Книги серії",
-        "about": "Про серію"
+        "about": "Про серію",
+        "notes": "Нотатки"
       },
       "booksEmpty": {
         "title": "У цій серії ще немає книг",
@@ -2565,8 +2567,9 @@
       },
       "missingRow": {
         "title": "Книга {number}",
-        "hint": "Ще немає у твоїй бібліотеці",
-        "action": "Додати",
+        "notAdded": "Дані про цю частину ще не додані",
+        "hint": "Додай нову книгу або знайди її у своїй бібліотеці.",
+        "action": "Додати книгу",
         "actionAria": "Додати книгу {number} до бібліотеки"
       },
       "row": {
@@ -2582,17 +2585,28 @@
         "paused": "Призупинено · {current} з {total} стор.",
         "pausedShort": "Призупинено",
         "dnf": "Не дочитано",
-        "history": "Історія читання"
+        "history": "Історія читання",
+        "finishedOn": "Прочитано {date}",
+        "readingSince": "Читаю з {date}",
+        "rereadingSince": "Перечитую з {date}",
+        "lentTo": "Позичена · {name}",
+        "borrowedFrom": "Позичено в {name}",
+        "expectedReturn": "Очікуване повернення — {date}",
+        "inTransit": "В дорозі · очікується {date}"
       },
       "progress": {
-        "title": "Ваш прогрес у серії",
-        "booksOfTotal": "{finished} з {total} книг",
-        "booksAdded": "{finished} з {count} доданих",
-        "finished": "Прочитано {count}",
-        "reading": "Читаю {count}",
-        "unread": "Ще не прочитано {count}",
-        "unavailable": "Прогрес ще недоступний",
-        "completed": "Серію прочитано"
+        "title": "Прогрес читання",
+        "completed": "Серію прочитано",
+        "statusReadingTitle": "Зараз читається «{title}»",
+        "statusNextTitle": "Наступна до читання — «{title}»",
+        "statusPosition": "Книга {position} у серії",
+        "statusBookPercent": "{percent}% книги",
+        "statusMissingTitle": "Усі додані книги прочитані",
+        "statusMissingDetail": "Книга {position} ще не додана до бібліотеки.",
+        "statusNotStarted": "Читання серії ще не розпочато",
+        "statusCompleted": "Серію прочитано повністю",
+        "statusOngoingTitle": "Усі доступні книги прочитані",
+        "statusOngoingDetail": "Серія ще виходить"
       },
       "stats": {
         "title": "Статистика серії",
@@ -2617,13 +2631,8 @@
       },
       "about": {
         "title": "Про серію",
-        "description": "Опис",
         "descriptionEmpty": "Опис ще не додано.",
-        "status": "Статус циклу",
-        "authors": "Автори",
-        "totalBooks": "Загалом книг",
-        "createdAt": "Додано",
-        "unknown": "—"
+        "addedToBookNest": "Додано до BookNest {date}"
       },
       "states": {
         "loading": "Завантаження серії…",
@@ -2663,6 +2672,13 @@
     "addBookDialog": {
       "title": "Додати книгу в серію",
       "description": "Оберіть книгу з бібліотеки та вкажіть номер частини.",
+      "chooseTitle": "Додати книгу до серії",
+      "chooseDescription": "Оберіть, як додати цю частину серії.",
+      "optionSearchTitle": "Знайти серед моїх книг",
+      "optionSearchSubtitle": "Прив'язати книгу, яка вже є у бібліотеці",
+      "optionCreateTitle": "Створити нову книгу",
+      "optionCreateSubtitle": "Додати дані про нову книгу",
+      "back": "Назад",
       "searchLabel": "Пошук книг",
       "searchPlaceholder": "Пошук за назвою…",
       "searching": "Пошук…",
