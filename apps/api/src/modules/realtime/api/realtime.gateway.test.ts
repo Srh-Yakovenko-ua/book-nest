@@ -19,22 +19,37 @@ import { RealtimeConnectionService } from "../application/realtime-connection.se
 import { RealtimePort } from "../domain/realtime.port.js";
 import { RealtimeModule } from "../realtime.module.js";
 
-const ALLOWED_ORIGIN = "http://localhost:5173";
-const FORBIDDEN_ORIGIN = "https://evil.example";
-const CONNECT_TIMEOUT_MS = 5_000;
-const WEBSOCKET_KEY_BYTES = 16;
-const WEBSOCKET_MASK_BYTES = 4;
-const WEBSOCKET_TEXT_FINAL_FRAME = 0x81;
-const WEBSOCKET_MASK_FLAG = 0x80;
-const WEBSOCKET_CLOSE_OPCODE = 0x88;
-const SOCKET_IO_CONNECT_PACKET = "40";
-const ENGINE_PONG_PACKET = "3";
-const ENGINE_HANDSHAKE_MARKER = '"sid"';
-const FLOOD_FRAMES = 5_000;
-const MAX_ADMISSIONS_UNDER_FLOOD = 2;
-const EXPECTED_ADMISSIONS_AFTER_HEARTBEATS = 1;
-const RAW_SETTLE_MS = 250;
-const DELIVERY_SETTLE_MS = 150;
+const HANDSHAKE_ORIGIN = {
+  allowed: "http://localhost:5173",
+  forbidden: "https://evil.example",
+} as const satisfies Record<string, string>;
+
+const WAIT_MS = {
+  connect: 5_000,
+  deliverySettle: 150,
+  rawSettle: 250,
+} as const satisfies Record<string, number>;
+
+const WEBSOCKET_WIRE = {
+  closeOpcode: 0x88,
+  handshakeKeyBytes: 16,
+  maskBytes: 4,
+  maskFlag: 0x80,
+  textFinalOpcode: 0x81,
+} as const satisfies Record<string, number>;
+
+const SOCKET_IO_WIRE = {
+  connectPacket: "40",
+  enginePongPacket: "3",
+  handshakeMarker: '"sid"',
+} as const satisfies Record<string, string>;
+
+const CONNECT_FLOOD = {
+  expectedAdmissionsAfterHeartbeats: 1,
+  frames: 5_000,
+  maxAdmissions: 2,
+} as const satisfies Record<string, number>;
+
 const APPLICATION_ERROR_CODES: readonly string[] = Object.values(REALTIME_CONTRACT.errorCodes);
 
 let context: AuthTestContext;
@@ -55,13 +70,13 @@ function attemptRawUpgrade({
         headers: {
           Connection: "Upgrade",
           Origin: origin,
-          "Sec-WebSocket-Key": randomBytes(WEBSOCKET_KEY_BYTES).toString("base64"),
+          "Sec-WebSocket-Key": randomBytes(WEBSOCKET_WIRE.handshakeKeyBytes).toString("base64"),
           "Sec-WebSocket-Version": "13",
           Upgrade: "websocket",
         },
       },
     );
-    const timer = setTimeout(() => reject(new Error("raw upgrade timed out")), CONNECT_TIMEOUT_MS);
+    const timer = setTimeout(() => reject(new Error("raw upgrade timed out")), WAIT_MS.connect);
     upgradeRequest.on("response", (response) => {
       clearTimeout(timer);
       let body = "";
@@ -97,13 +112,13 @@ function connectSocket({ origin, token }: { origin?: string; token?: string }): 
 }
 
 function maskedTextFrame(body: Buffer): Buffer {
-  const mask = randomBytes(WEBSOCKET_MASK_BYTES);
+  const mask = randomBytes(WEBSOCKET_WIRE.maskBytes);
   const masked = Buffer.alloc(body.length);
   for (let index = 0; index < body.length; index += 1) {
-    masked[index] = (body[index] ?? 0) ^ (mask[index % WEBSOCKET_MASK_BYTES] ?? 0);
+    masked[index] = (body[index] ?? 0) ^ (mask[index % WEBSOCKET_WIRE.maskBytes] ?? 0);
   }
   return Buffer.concat([
-    Buffer.from([WEBSOCKET_TEXT_FINAL_FRAME, WEBSOCKET_MASK_FLAG | body.length]),
+    Buffer.from([WEBSOCKET_WIRE.textFinalOpcode, WEBSOCKET_WIRE.maskFlag | body.length]),
     mask,
     masked,
   ]);
@@ -140,16 +155,13 @@ function pipelineRawPackets({
       {
         headers: {
           Connection: "Upgrade",
-          "Sec-WebSocket-Key": randomBytes(WEBSOCKET_KEY_BYTES).toString("base64"),
+          "Sec-WebSocket-Key": randomBytes(WEBSOCKET_WIRE.handshakeKeyBytes).toString("base64"),
           "Sec-WebSocket-Version": "13",
           Upgrade: "websocket",
         },
       },
     );
-    const timer = setTimeout(
-      () => reject(new Error("raw connection timed out")),
-      CONNECT_TIMEOUT_MS,
-    );
+    const timer = setTimeout(() => reject(new Error("raw connection timed out")), WAIT_MS.connect);
     upgradeRequest.on("upgrade", (_response, socket, head: Buffer) => {
       let burstWritten = false;
       let replies = "";
@@ -163,14 +175,14 @@ function pipelineRawPackets({
       const readChunk = (chunk: Buffer): void => {
         const text = chunk.toString("latin1");
         replies += text;
-        if (chunk.includes(WEBSOCKET_CLOSE_OPCODE)) {
+        if (chunk.includes(WEBSOCKET_WIRE.closeOpcode)) {
           settle(true);
           return;
         }
-        if (burstWritten || !text.includes(ENGINE_HANDSHAKE_MARKER)) return;
+        if (burstWritten || !text.includes(SOCKET_IO_WIRE.handshakeMarker)) return;
         burstWritten = true;
         socket.write(burst);
-        settleTimer = setTimeout(() => settle(false), RAW_SETTLE_MS);
+        settleTimer = setTimeout(() => settle(false), WAIT_MS.rawSettle);
       };
       socket.on("data", readChunk);
       socket.on("close", () => settle(true));
@@ -190,12 +202,12 @@ function pipelineRawPackets({
 }
 
 function settleDeliveries(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, DELIVERY_SETTLE_MS));
+  return new Promise((resolve) => setTimeout(resolve, WAIT_MS.deliverySettle));
 }
 
 function waitForConnect(socket: Socket): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("handshake timed out")), CONNECT_TIMEOUT_MS);
+    const timer = setTimeout(() => reject(new Error("handshake timed out")), WAIT_MS.connect);
     socket.once("connect", () => {
       clearTimeout(timer);
       resolve();
@@ -209,7 +221,7 @@ function waitForConnect(socket: Socket): Promise<void> {
 
 function waitForRealtimeEvent(socket: Socket): Promise<unknown> {
   return new Promise<unknown>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("event timed out")), CONNECT_TIMEOUT_MS);
+    const timer = setTimeout(() => reject(new Error("event timed out")), WAIT_MS.connect);
     socket.once(REALTIME_CONTRACT.channel, (payload: unknown) => {
       clearTimeout(timer);
       resolve(payload);
@@ -219,7 +231,7 @@ function waitForRealtimeEvent(socket: Socket): Promise<unknown> {
 
 function waitForRejection(socket: Socket): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("rejection timed out")), CONNECT_TIMEOUT_MS);
+    const timer = setTimeout(() => reject(new Error("rejection timed out")), WAIT_MS.connect);
     socket.once("connect", () => {
       clearTimeout(timer);
       reject(new Error("expected the handshake to be rejected"));
@@ -258,7 +270,7 @@ describe("RealtimeGateway handshake", () => {
   it("accepts a socket carrying a valid access token", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const socket = connectSocket({ origin: ALLOWED_ORIGIN, token: accessToken });
+    const socket = connectSocket({ origin: HANDSHAKE_ORIGIN.allowed, token: accessToken });
 
     await expect(waitForConnect(socket)).resolves.toBeUndefined();
     expect(socket.connected).toBe(true);
@@ -268,7 +280,7 @@ describe("RealtimeGateway handshake", () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const socket = io(serverUrl, {
-      extraHeaders: { Authorization: `Bearer ${accessToken}`, Origin: ALLOWED_ORIGIN },
+      extraHeaders: { Authorization: `Bearer ${accessToken}`, Origin: HANDSHAKE_ORIGIN.allowed },
       path: REALTIME_CONTRACT.path,
       reconnection: false,
       transports: ["websocket"],
@@ -279,13 +291,13 @@ describe("RealtimeGateway handshake", () => {
   });
 
   it("rejects a socket without a token", async () => {
-    const socket = connectSocket({ origin: ALLOWED_ORIGIN });
+    const socket = connectSocket({ origin: HANDSHAKE_ORIGIN.allowed });
 
     await expect(waitForRejection(socket)).resolves.toBe(REALTIME_CONTRACT.errorCodes.unauthorized);
   });
 
   it("rejects a socket with an invalid token", async () => {
-    const socket = connectSocket({ origin: ALLOWED_ORIGIN, token: "not-a-jwt" });
+    const socket = connectSocket({ origin: HANDSHAKE_ORIGIN.allowed, token: "not-a-jwt" });
 
     await expect(waitForRejection(socket)).resolves.toBe(REALTIME_CONTRACT.errorCodes.unauthorized);
   });
@@ -294,7 +306,7 @@ describe("RealtimeGateway handshake", () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     await app.get(PrismaService).user.delete({ where: { id: userId } });
 
-    const socket = connectSocket({ origin: ALLOWED_ORIGIN, token: accessToken });
+    const socket = connectSocket({ origin: HANDSHAKE_ORIGIN.allowed, token: accessToken });
 
     await expect(waitForRejection(socket)).resolves.toBe(REALTIME_CONTRACT.errorCodes.unauthorized);
   });
@@ -302,21 +314,21 @@ describe("RealtimeGateway handshake", () => {
   it("refuses a disallowed origin before the websocket upgrade completes", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
-    const socket = connectSocket({ origin: FORBIDDEN_ORIGIN, token: accessToken });
+    const socket = connectSocket({ origin: HANDSHAKE_ORIGIN.forbidden, token: accessToken });
 
     const message = await waitForRejection(socket);
     expect(APPLICATION_ERROR_CODES).not.toContain(message);
   });
 
   it("aborts the disallowed-origin handshake with the reason in the http response", async () => {
-    const refused = await attemptRawUpgrade({ origin: FORBIDDEN_ORIGIN });
+    const refused = await attemptRawUpgrade({ origin: HANDSHAKE_ORIGIN.forbidden });
 
     expect(refused.status).toBe(HttpStatus.BAD_REQUEST);
     expect(refused.body).toBe(REALTIME_CONTRACT.errorCodes.forbiddenOrigin);
   });
 
   it("completes the upgrade for an allowed origin", async () => {
-    const accepted = await attemptRawUpgrade({ origin: ALLOWED_ORIGIN });
+    const accepted = await attemptRawUpgrade({ origin: HANDSHAKE_ORIGIN.allowed });
 
     expect(accepted.status).toBe(HttpStatus.SWITCHING_PROTOCOLS);
   });
@@ -325,11 +337,11 @@ describe("RealtimeGateway handshake", () => {
     const admit = vi.spyOn(app.get(RealtimeConnectionService), "admit");
 
     const flood = await pipelineRawPackets({
-      packets: Array.from({ length: FLOOD_FRAMES }, () => SOCKET_IO_CONNECT_PACKET),
+      packets: Array.from({ length: CONNECT_FLOOD.frames }, () => SOCKET_IO_WIRE.connectPacket),
     });
 
     expect(flood.closedByServer).toBe(true);
-    expect(admit.mock.calls.length).toBeLessThanOrEqual(MAX_ADMISSIONS_UNDER_FLOOD);
+    expect(admit.mock.calls.length).toBeLessThanOrEqual(CONNECT_FLOOD.maxAdmissions);
   });
 
   it("does not let engine heartbeats consume the inbound budget", async () => {
@@ -337,12 +349,12 @@ describe("RealtimeGateway handshake", () => {
 
     const heartbeats = await pipelineRawPackets({
       packets: [
-        ...Array.from({ length: FLOOD_FRAMES }, () => ENGINE_PONG_PACKET),
-        SOCKET_IO_CONNECT_PACKET,
+        ...Array.from({ length: CONNECT_FLOOD.frames }, () => SOCKET_IO_WIRE.enginePongPacket),
+        SOCKET_IO_WIRE.connectPacket,
       ],
     });
 
-    expect(admit).toHaveBeenCalledTimes(EXPECTED_ADMISSIONS_AFTER_HEARTBEATS);
+    expect(admit).toHaveBeenCalledTimes(CONNECT_FLOOD.expectedAdmissionsAfterHeartbeats);
     expect(heartbeats.replies).toContain(REALTIME_CONTRACT.errorCodes.unauthorized);
   });
 });
@@ -352,8 +364,14 @@ describe("RealtimePort.emitToUser", () => {
     const owner = await context.registerVerifyAndLogin();
     const other = await context.registerVerifyAndLogin();
 
-    const ownerSocket = connectSocket({ origin: ALLOWED_ORIGIN, token: owner.accessToken });
-    const otherSocket = connectSocket({ origin: ALLOWED_ORIGIN, token: other.accessToken });
+    const ownerSocket = connectSocket({
+      origin: HANDSHAKE_ORIGIN.allowed,
+      token: owner.accessToken,
+    });
+    const otherSocket = connectSocket({
+      origin: HANDSHAKE_ORIGIN.allowed,
+      token: other.accessToken,
+    });
     await waitForConnect(ownerSocket);
     await waitForConnect(otherSocket);
 
