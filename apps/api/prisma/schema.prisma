@@ -512,12 +512,13 @@ model BookList {
   name           String
   normalizedName String         @map("normalized_name")
   description    String?
+  deletedAt      DateTime?      @map("deleted_at") @db.Timestamptz
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   items          BookListItem[]
 
-  @@unique([userId, normalizedName])
+  @@index([userId, deletedAt])
   @@map("book_lists")
 }
 

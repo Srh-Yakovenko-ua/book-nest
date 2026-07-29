@@ -90,7 +90,7 @@ export const withRelations = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
   coverMedia: true,
   deliveries: { orderBy: { createdAt: "desc" } },
-  lists: { include: { list: true } },
+  lists: { include: { list: true }, where: { list: SOFT_DELETE_SCOPE.active } },
   loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
   publisher: true,
   purchaseInfo: true,

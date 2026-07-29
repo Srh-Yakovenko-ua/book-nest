@@ -48,11 +48,6 @@ type CreateInput = {
   userId: string;
 };
 
-type DeleteInput = {
-  listId: string;
-  userId: string;
-};
-
 type FindDetailHeaderInput = {
   listId: string;
   userId: string;
@@ -123,11 +118,12 @@ export class ListsService {
     }
   }
 
-  async delete({ listId, userId }: DeleteInput): Promise<void> {
-    const deletedCount = await this.listsRepository.deleteOwned({ id: listId, userId });
-    if (deletedCount === 0) {
+  async findCard({ listId, userId }: { listId: string; userId: string }): Promise<CustomListCard> {
+    const list = await this.listsRepository.findOwnedCardById({ listId, userId });
+    if (list === null) {
       throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
     }
+    return this.toCard(list);
   }
 
   async findDetailHeader({ listId, userId }: FindDetailHeaderInput): Promise<ListDetailHeader> {
@@ -240,6 +236,7 @@ export class ListsService {
     client?: Prisma.TransactionClient,
   ): Promise<string> {
     const normalizedName = normalizeName(newList.name);
+    await this.listsRepository.acquireCreateLock(userId, client);
     const existing = await this.listsRepository.findByNormalized(
       { normalizedName, userId },
       client,
@@ -248,7 +245,7 @@ export class ListsService {
       return existing.id;
     }
 
-    const created = await this.listsRepository.upsertByNormalized(
+    const created = await this.listsRepository.createByNormalized(
       {
         data: {
           description: newList.description ?? null,

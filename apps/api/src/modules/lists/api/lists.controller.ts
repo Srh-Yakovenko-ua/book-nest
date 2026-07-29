@@ -1,12 +1,21 @@
-import type { CustomListCard, Paginator } from "@app/shared";
+import type {
+  CustomListCard,
+  ListDeletionResult,
+  PaginatedTrashedLists,
+  Paginator,
+} from "@app/shared";
 
-import { CustomListsQuerySchema, NewListInputSchema, UpdateListInputSchema } from "@app/shared";
+import {
+  CustomListsQuerySchema,
+  NewListInputSchema,
+  TrashedListsQuerySchema,
+  UpdateListInputSchema,
+} from "@app/shared";
 import {
   Body,
   Controller,
   Delete,
   Get,
-  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -18,7 +27,6 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
-  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -28,21 +36,53 @@ import {
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
-import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { ListLifecycleService } from "../application/list-lifecycle.service.js";
 import { ListsService } from "../application/lists.service.js";
 import { CustomListsQueryDto } from "./input-dto/custom-lists-query.input-dto.js";
 import { NewListInputDto } from "./input-dto/new-list.input-dto.js";
+import { TrashedListsQueryDto } from "./input-dto/trashed-lists-query.input-dto.js";
 import { UpdateListInputDto } from "./input-dto/update-list.input-dto.js";
 import { CustomListCardDto } from "./view-dto/custom-list-card.view-dto.js";
+import { ListDeletionResultDto } from "./view-dto/list-deletion-result.view-dto.js";
 import { PaginatedCustomListsDto } from "./view-dto/paginated-custom-lists.view-dto.js";
+import { PaginatedTrashedListsDto } from "./view-dto/paginated-trashed-lists.view-dto.js";
 
 @ApiTags("lists")
 @Controller("api/lists")
 export class ListsController {
-  constructor(private readonly listsService: ListsService) {}
+  constructor(
+    private readonly listsService: ListsService,
+    private readonly lifecycleService: ListLifecycleService,
+  ) {}
+
+  @ApiOkResponse({
+    description: "A page of the current user trashed lists",
+    type: PaginatedTrashedListsDto,
+  })
+  @ApiOperation({ summary: "List book lists waiting in the trash before their scheduled purge" })
+  @Get("trash")
+  @JwtProtected()
+  listTrash(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(TrashedListsQuerySchema)) query: TrashedListsQueryDto,
+  ): Promise<PaginatedTrashedLists> {
+    return this.lifecycleService.listTrash({ query, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "List not found in the trash" })
+  @ApiOkResponse({ description: "The restored list", type: CustomListCardDto })
+  @ApiOperation({ summary: "Restore a book list from the trash" })
+  @JwtProtected()
+  @Post(":listId/restore")
+  restore(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listId", ParseUUIDPipe) listId: string,
+  ): Promise<CustomListCard> {
+    return this.lifecycleService.restore({ listId, userId: user.id });
+  }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBody({ type: NewListInputDto })
@@ -91,16 +131,18 @@ export class ListsController {
   ): Promise<CustomListCard> {
     return this.listsService.update({ input: body, listId, userId: user.id });
   }
-  @ApiNoContentResponse({ description: "The list was deleted" })
   @ApiNotFoundResponse({ description: "List not found" })
-  @ApiOperation({ summary: "Delete a book list of the current user" })
+  @ApiOkResponse({
+    description: "The list was moved to the trash and scheduled for purge",
+    type: ListDeletionResultDto,
+  })
+  @ApiOperation({ summary: "Move a book list to the trash" })
   @Delete(":listId")
-  @HttpCode(HTTP_STATUS.NO_CONTENT)
   @JwtProtected()
   delete(
     @CurrentUser() user: AuthenticatedUser,
     @Param("listId", ParseUUIDPipe) listId: string,
-  ): Promise<void> {
-    return this.listsService.delete({ listId, userId: user.id });
+  ): Promise<ListDeletionResult> {
+    return this.lifecycleService.softDelete({ listId, userId: user.id });
   }
 }

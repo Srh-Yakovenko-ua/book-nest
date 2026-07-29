@@ -5,10 +5,12 @@ import {
   collapseSpaces,
   createPaginatedSchema,
   LIST_PAGE_SIZE_MAX,
+  paginationQueryFields,
 } from "./common.js";
 import { NoHtmlString } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
+import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const LIST_NAME_MIN = 2;
 const LIST_NAME_MAX = 80;
@@ -150,3 +152,29 @@ export const SetBookListsInputSchema = z.object({
 });
 
 export type SetBookListsInput = z.infer<typeof SetBookListsInputSchema>;
+
+export const ListDeletionResultSchema = TrashDeletionResultSchema.extend({
+  listId: z.string(),
+});
+
+export type ListDeletionResult = z.infer<typeof ListDeletionResultSchema>;
+
+export const TrashedListViewSchema = z.object({
+  bookCount: z.number().int(),
+  deletedAt: z.iso.datetime(),
+  id: z.string(),
+  name: z.string(),
+  purgeAt: z.iso.datetime(),
+});
+
+export type TrashedListView = z.infer<typeof TrashedListViewSchema>;
+
+export const TrashedListsQuerySchema = z.object({
+  ...paginationQueryFields({ pageSizeDefault: TRASH_PAGE_SIZE_DEFAULT }),
+});
+
+export type TrashedListsQuery = z.infer<typeof TrashedListsQuerySchema>;
+
+export const PaginatedTrashedListsSchema = createPaginatedSchema(TrashedListViewSchema);
+
+export type PaginatedTrashedLists = z.infer<typeof PaginatedTrashedListsSchema>;

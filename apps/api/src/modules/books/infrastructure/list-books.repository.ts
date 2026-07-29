@@ -83,7 +83,7 @@ function buildListItemWhere({
 }: CountListBooksInput): Prisma.BookListItemWhereInput {
   const where: Prisma.BookListItemWhereInput = {
     book: SOFT_DELETE_SCOPE.active,
-    list: { userId },
+    list: { ...SOFT_DELETE_SCOPE.active, userId },
     listId,
   };
   const conditions = buildBookSearchConditions({ search, searchGenreKeys });
