@@ -38,7 +38,7 @@ mail.book-nest.net {
 	encode zstd gzip
 
 	basic_auth {
-		team {env.MAILPIT_BASIC_AUTH_HASH}
+		team $2a$14$EZ3HR9NPntLMz3KroDAGa.33SGtXx4jAQPWZJl5qhAraMuHd1aWfW
 	}
 
 	reverse_proxy mailpit:8025
