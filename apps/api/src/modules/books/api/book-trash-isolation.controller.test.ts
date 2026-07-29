@@ -79,7 +79,7 @@ async function createGenre(token: string): Promise<string> {
 }
 
 describe("a trashed book disappears from every derived surface", () => {
-  it("drops out of the reading queue and its summary", async () => {
+  it("leaves the reading queue on delete and comes back outside it", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken, { addToReadingQueue: true });
 
@@ -94,7 +94,22 @@ describe("a trashed book disappears from every derived surface", () => {
     await authed("post", `/api/books/${bookId}/restore`, accessToken).expect(HttpStatus.CREATED);
 
     const afterRestore = await authed("get", "/api/reading-queue", accessToken);
-    expect(afterRestore.body.items).toHaveLength(1);
+    expect(afterRestore.body.items).toEqual([]);
+
+    const book = await authed("get", `/api/books/${bookId}`, accessToken);
+    expect(book.body.isInReadingQueue).toBe(false);
+  });
+
+  it("closes its queue slot so the remaining books stay densely numbered", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const first = await createBook(accessToken, { addToReadingQueue: true, title: "First" });
+    await createBook(accessToken, { addToReadingQueue: true, title: "Second" });
+    await createBook(accessToken, { addToReadingQueue: true, title: "Third" });
+
+    await authed("delete", `/api/books/${first}`, accessToken).expect(HttpStatus.OK);
+
+    const queue = await authed("get", "/api/reading-queue", accessToken);
+    expect(queue.body.items.map((item: { position: number }) => item.position)).toEqual([1, 2]);
   });
 
   it("stops counting towards genre and tag statistics", async () => {

@@ -10,6 +10,7 @@ const LOCAL_R2_PUBLIC_BASE_URL = "http://127.0.0.1:9000/book-nest-dev";
 const LOCAL_HOST_PATTERN = /localhost|127\.0\.0\.1|0\.0\.0\.0/;
 const MEDIA_CONCURRENCY_CEILING = { decode: 2, upload: 8 } as const;
 const TRASH_RETENTION_DAYS_CEILING = 365;
+const TRASH_RETENTION_DAYS_FLOOR = 30;
 
 const envSchema = z
   .object({
@@ -97,7 +98,7 @@ const envSchema = z
     TRASH_RETENTION_DAYS: z.coerce
       .number()
       .int()
-      .positive()
+      .min(TRASH_RETENTION_DAYS_FLOOR)
       .max(TRASH_RETENTION_DAYS_CEILING)
       .default(90),
     WEB_BASE_URL: z.string().url().default("http://localhost:3000"),

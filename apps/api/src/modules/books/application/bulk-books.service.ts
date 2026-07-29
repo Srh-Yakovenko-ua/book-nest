@@ -79,18 +79,19 @@ export class BulkBooksService {
     if (ownedBookIds.length === 0) {
       return { affected: 0 };
     }
-    const listIds = await this.listsService.resolveListsForBook({
-      input: { listIds: input.listIds, newLists: input.newLists },
-      userId,
-    });
-    if (listIds.length === 0) {
-      return { affected: 0 };
-    }
-    const affected = await this.bulkBooksRepository.addToLists({
-      bookIds: ownedBookIds,
-      listIds,
-      now: new Date(),
-      userId,
+
+    const affected = await this.transactionRunner.run(async (tx) => {
+      const listIds = await this.listsService.resolveListsForBook(
+        { input: { listIds: input.listIds, newLists: input.newLists }, userId },
+        tx,
+      );
+      if (listIds.length === 0) {
+        return 0;
+      }
+      return this.bulkBooksRepository.addToLists(
+        { bookIds: ownedBookIds, listIds, now: new Date(), userId },
+        tx,
+      );
     });
     return { affected };
   }

@@ -160,7 +160,7 @@ export class CharacterPortabilityRepository {
     }
     const rows = await this.prisma.series.findMany({
       select: { id: true },
-      where: { id: { in: seriesIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: seriesIds }, userId },
     });
     return new Set(rows.map((row) => row.id));
   }

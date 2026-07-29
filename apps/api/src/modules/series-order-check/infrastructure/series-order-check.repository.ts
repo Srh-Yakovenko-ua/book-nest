@@ -84,7 +84,7 @@ export class SeriesOrderCheckRepository {
   ): Promise<Nullable<string>> {
     const row = await client.series.findFirst({
       select: { id: true },
-      where: { id: seriesId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: seriesId, userId },
     });
     return row?.id ?? null;
   }

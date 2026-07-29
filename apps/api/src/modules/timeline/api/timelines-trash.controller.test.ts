@@ -210,3 +210,47 @@ describe("timeline trash", () => {
     expect(await prisma.bookTimeline.findUnique({ where: { id: timelineId } })).toBeNull();
   });
 });
+
+describe("timeline names while trashed", () => {
+  it("frees the name for a new timeline and returns 409 if the old one is restored", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, timelineId } = await createBookWithTimeline(accessToken, "Contested");
+
+    await authed("delete", `/api/timelines/${timelineId}`, accessToken).expect(HttpStatus.OK);
+
+    const recreated = await authed("post", `/api/books/${bookId}/timelines`, accessToken).send({
+      name: "Contested",
+    });
+    expect(recreated.status).toBe(HttpStatus.CREATED);
+
+    const res = await authed("post", `/api/timelines/${timelineId}/restore`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.CONFLICT);
+  });
+});
+
+describe("timeline trash tenant isolation", () => {
+  it("never leaks or restores another user trashed timeline", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const { timelineId } = await createBookWithTimeline(owner.accessToken, "Private");
+    await authed("delete", `/api/timelines/${timelineId}`, owner.accessToken).expect(HttpStatus.OK);
+
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const listing = await authed("get", "/api/timelines/trash", stranger.accessToken);
+    expect(listing.body.totalCount).toBe(0);
+
+    const restore = await authed(
+      "post",
+      `/api/timelines/${timelineId}/restore`,
+      stranger.accessToken,
+    );
+    expect(restore.status).toBe(HttpStatus.NOT_FOUND);
+    expect(
+      await prisma.bookTimeline.findUniqueOrThrow({ where: { id: timelineId } }),
+    ).toMatchObject({ deletedAt: expect.any(Date) });
+  });
+});

@@ -33,11 +33,13 @@ import {
   ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
+import { Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
+import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ListLifecycleService } from "../application/list-lifecycle.service.js";
 import { ListsService } from "../application/lists.service.js";
@@ -65,6 +67,7 @@ export class ListsController {
   @ApiOperation({ summary: "List book lists waiting in the trash before their scheduled purge" })
   @Get("trash")
   @JwtProtected()
+  @Throttle(READ_THROTTLE)
   listTrash(
     @CurrentUser() user: AuthenticatedUser,
     @Query(new ZodQueryPipe(TrashedListsQuerySchema)) query: TrashedListsQueryDto,
@@ -77,6 +80,7 @@ export class ListsController {
   @ApiOperation({ summary: "Restore a book list from the trash" })
   @JwtProtected()
   @Post(":listId/restore")
+  @Throttle(MUTATION_THROTTLE)
   restore(
     @CurrentUser() user: AuthenticatedUser,
     @Param("listId", ParseUUIDPipe) listId: string,
@@ -139,6 +143,7 @@ export class ListsController {
   @ApiOperation({ summary: "Move a book list to the trash" })
   @Delete(":listId")
   @JwtProtected()
+  @Throttle(MUTATION_THROTTLE)
   delete(
     @CurrentUser() user: AuthenticatedUser,
     @Param("listId", ParseUUIDPipe) listId: string,

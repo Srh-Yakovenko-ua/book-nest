@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { QuoteBookCount, QuotesSummaryData } from "../domain/quotes-summary.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookTextSearchConditions } from "../../books/index.js";
 
@@ -73,7 +73,7 @@ const trashedQuoteSelect = {
   text: true,
 } satisfies Prisma.QuoteSelect;
 
-export type TrashedQuoteRow = TrashedQuoteSelection & { deletedAt: Date };
+export type TrashedQuoteRow = Trashed<TrashedQuoteSelection>;
 
 type TrashedQuoteSelection = Prisma.QuoteGetPayload<{ select: typeof trashedQuoteSelect }>;
 
@@ -102,7 +102,9 @@ export class QuotesRepository {
   }
 
   countTrashed({ userId }: { userId: string }): Promise<number> {
-    return this.prisma.quote.count({ where: { ...SOFT_DELETE_SCOPE.trashed, userId } });
+    return this.prisma.quote.count({
+      where: { ...SOFT_DELETE_SCOPE.trashed, book: SOFT_DELETE_SCOPE.active, userId },
+    });
   }
 
   create(
@@ -223,15 +225,29 @@ export class QuotesRepository {
       select: trashedQuoteSelect,
       skip,
       take,
-      where: { ...SOFT_DELETE_SCOPE.trashed, userId },
+      where: { ...SOFT_DELETE_SCOPE.trashed, book: SOFT_DELETE_SCOPE.active, userId },
     });
-    return rows.filter(isTrashedQuote);
+    return rows.filter(isTrashed);
   }
 
-  async restore({ quoteId, userId }: { quoteId: string; userId: string }): Promise<number> {
+  async restore({
+    bookId,
+    quoteId,
+    userId,
+  }: {
+    bookId: string;
+    quoteId: string;
+    userId: string;
+  }): Promise<number> {
     const restored = await this.prisma.quote.updateMany({
       data: { deletedAt: null },
-      where: { ...SOFT_DELETE_SCOPE.trashed, book: SOFT_DELETE_SCOPE.active, id: quoteId, userId },
+      where: {
+        ...SOFT_DELETE_SCOPE.trashed,
+        book: SOFT_DELETE_SCOPE.active,
+        bookId,
+        id: quoteId,
+        userId,
+      },
     });
     return restored.count;
   }
@@ -330,10 +346,6 @@ export class QuotesRepository {
       ];
     });
   }
-}
-
-function isTrashedQuote(row: TrashedQuoteSelection): row is TrashedQuoteRow {
-  return row.deletedAt !== null;
 }
 
 const ID_TIEBREAKER: Prisma.QuoteOrderByWithRelationInput = { id: "asc" };

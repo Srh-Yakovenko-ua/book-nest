@@ -119,13 +119,7 @@ function buildTheoriesWhere({
   status,
   userId,
 }: TheoryListFilter): Prisma.CharacterTheoryWhereInput {
-  const where: Prisma.CharacterTheoryWhereInput = {
-    AND: [
-      { OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }] },
-      { OR: [{ seriesId: null }, { series: SOFT_DELETE_SCOPE.active }] },
-    ],
-    userId,
-  };
+  const where: Prisma.CharacterTheoryWhereInput = { userId };
   if (characterId !== undefined) {
     where.characterId = characterId;
   }
@@ -140,6 +134,8 @@ function buildTheoriesWhere({
   }
 
   const and: Prisma.CharacterTheoryWhereInput[] = [
+    { OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }] },
+    { OR: [{ seriesId: null }, { series: SOFT_DELETE_SCOPE.active }] },
     { OR: [{ characterId: null }, { character: { hideProfileAsSpoiler: false } }] },
   ];
   if (contextAllowedBookIds !== undefined) {

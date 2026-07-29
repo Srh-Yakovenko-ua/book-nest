@@ -14,7 +14,11 @@ import type { BulkBooksRepository } from "../infrastructure/bulk-books.repositor
 import type { BookPurgeScheduler } from "./book-purge.scheduler.js";
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+import { fakeOf } from "../../../test/fake.js";
 import { BulkBooksService } from "./bulk-books.service.js";
+
+const TX = fakeOf<Prisma.TransactionClient>();
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const BOOK_A = "22222222-2222-4222-8222-222222222201";
@@ -73,7 +77,7 @@ function buildService(
     scheduleMany: vi.fn().mockResolvedValue(undefined),
   };
   const transactionRunner = {
-    run: vi.fn(),
+    run: vi.fn(<T>(work: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => work(TX)),
   };
 
   const service = new BulkBooksService(
@@ -167,16 +171,14 @@ describe("BulkBooksService.addToLists", () => {
 
     const result = await service.addToLists({ input, userId: USER_ID });
 
-    expect(listsService.resolveListsForBook).toHaveBeenCalledWith({
-      input: { listIds: [LIST_ID], newLists: undefined },
-      userId: USER_ID,
-    });
-    expect(bulkBooksRepository.addToLists).toHaveBeenCalledWith({
-      bookIds: [BOOK_A],
-      listIds: [LIST_ID],
-      now: expect.any(Date),
-      userId: USER_ID,
-    });
+    expect(listsService.resolveListsForBook).toHaveBeenCalledWith(
+      { input: { listIds: [LIST_ID], newLists: undefined }, userId: USER_ID },
+      TX,
+    );
+    expect(bulkBooksRepository.addToLists).toHaveBeenCalledWith(
+      { bookIds: [BOOK_A], listIds: [LIST_ID], now: expect.any(Date), userId: USER_ID },
+      TX,
+    );
     expect(result).toEqual({ affected: 1 });
   });
 });

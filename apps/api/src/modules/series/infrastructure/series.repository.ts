@@ -8,7 +8,7 @@ import type { SeriesModel } from "../../../generated/prisma/models.js";
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
-import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 export type CreateSeriesData = {
@@ -121,13 +121,13 @@ type SearchSeriesInput = {
 };
 
 const trashedSeriesSelect = {
-  _count: { select: { books: true } },
+  _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
   deletedAt: true,
   id: true,
   name: true,
 } satisfies Prisma.SeriesSelect;
 
-export type TrashedSeriesRow = TrashedSeriesSelection & { deletedAt: Date };
+export type TrashedSeriesRow = Trashed<TrashedSeriesSelection>;
 
 type TrashedSeriesSelection = Prisma.SeriesGetPayload<{ select: typeof trashedSeriesSelect }>;
 
@@ -135,10 +135,7 @@ type TrashedSeriesSelection = Prisma.SeriesGetPayload<{ select: typeof trashedSe
 export class SeriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async acquireCreateLock(
-    userId: string,
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<void> {
+  async acquireCreateLock(userId: string, client: Prisma.TransactionClient): Promise<void> {
     await acquireAdvisoryLock(
       { classId: ADVISORY_LOCK_CLASS.series, key: `series:create:${userId}` },
       client,
@@ -305,7 +302,7 @@ export class SeriesRepository {
       take,
       where: { ...SOFT_DELETE_SCOPE.trashed, userId },
     });
-    return rows.filter(isTrashedSeries);
+    return rows.filter(isTrashed);
   }
 
   async restore({ seriesId, userId }: { seriesId: string; userId: string }): Promise<number> {
@@ -402,8 +399,4 @@ function buildOwnedWhere({ authorIds, query, userId }: OwnedWhereInput): Prisma.
   }
 
   return where;
-}
-
-function isTrashedSeries(row: TrashedSeriesSelection): row is TrashedSeriesRow {
-  return row.deletedAt !== null;
 }

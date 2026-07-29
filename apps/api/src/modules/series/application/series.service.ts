@@ -224,7 +224,7 @@ export class SeriesService {
 
   async resolveForBook(
     input: ResolveSeriesInput,
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<ResolvedSeries> {
     const { fallbackAuthorIds, newSeries, seriesId, userId } = input;
 

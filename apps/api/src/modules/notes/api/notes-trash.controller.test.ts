@@ -196,3 +196,25 @@ describe("note trash", () => {
     expect(await prisma.note.findUnique({ where: { id: noteId } })).toBeNull();
   });
 });
+
+describe("note trash tenant isolation", () => {
+  it("never leaks or restores another user trashed note", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const { noteId } = await createBookWithNote(owner.accessToken, "Private");
+    await authed("delete", `/api/notes/${noteId}`, owner.accessToken).expect(HttpStatus.OK);
+
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const listing = await authed("get", "/api/notes/trash", stranger.accessToken);
+    expect(listing.body.totalCount).toBe(0);
+
+    const restore = await authed("post", `/api/notes/${noteId}/restore`, stranger.accessToken);
+    expect(restore.status).toBe(HttpStatus.NOT_FOUND);
+    expect(await prisma.note.findUniqueOrThrow({ where: { id: noteId } })).toMatchObject({
+      deletedAt: expect.any(Date),
+    });
+  });
+});

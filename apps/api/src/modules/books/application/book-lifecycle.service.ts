@@ -7,9 +7,10 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { MediaService } from "../../media/index.js";
 import { type BookPurgeJob, collectMediaIds } from "../domain/book-purge.js";
@@ -19,6 +20,9 @@ import { BookPurgeScheduler } from "./book-purge.scheduler.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 
 const log = createLogger("books.lifecycle");
+
+const PART_NUMBER_TAKEN_MESSAGE =
+  "That part number is taken by another book in the series; free it before restoring";
 
 @Injectable()
 export class BookLifecycleService {
@@ -78,7 +82,7 @@ export class BookLifecycleService {
   }
 
   async restore({ bookId, userId }: { bookId: string; userId: string }): Promise<BookView> {
-    const restored = await this.booksRepository.restore({ bookId, userId });
+    const restored = await this.restoreRow({ bookId, userId });
     if (restored === 0) {
       throw new NotFoundError("Book not found");
     }
@@ -107,5 +111,22 @@ export class BookLifecycleService {
       deletedAt: deletedAt.toISOString(),
       purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
     };
+  }
+
+  private async restoreRow({
+    bookId,
+    userId,
+  }: {
+    bookId: string;
+    userId: string;
+  }): Promise<number> {
+    try {
+      return await this.booksRepository.restore({ bookId, userId });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictError(PART_NUMBER_TAKEN_MESSAGE);
+      }
+      throw error;
+    }
   }
 }

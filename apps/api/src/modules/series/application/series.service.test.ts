@@ -175,6 +175,8 @@ function ownedWithCount(
   };
 }
 
+const TX = fakeOf<Prisma.TransactionClient>();
+
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const SERIES_ID = "22222222-2222-4222-8222-222222222222";
 const OTHER_ID = "33333333-3333-4333-8333-333333333333";
@@ -293,7 +295,7 @@ describe("SeriesService.resolveForBook by id", () => {
   it("returns the id when an owned series is found", async () => {
     const { service } = buildService({ findOwnedById: series({ id: SERIES_ID }) });
 
-    const resolved = await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID });
+    const resolved = await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }, TX);
 
     expect(resolved.id).toBe(SERIES_ID);
   });
@@ -301,7 +303,7 @@ describe("SeriesService.resolveForBook by id", () => {
   it("returns the total books when an owned series is found", async () => {
     const { service } = buildService({ findOwnedById: series({ id: SERIES_ID, totalBooks: 3 }) });
 
-    const resolved = await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID });
+    const resolved = await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }, TX);
 
     expect(resolved.totalBooks).toBe(3);
   });
@@ -310,14 +312,14 @@ describe("SeriesService.resolveForBook by id", () => {
     const { service } = buildService({ findOwnedById: null });
 
     await expect(
-      service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }),
+      service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }, TX),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("does not upsert a new series when resolving by id", async () => {
     const { repository, service } = buildService({ findOwnedById: series() });
 
-    await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID });
+    await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }, TX);
 
     expect(repository.createByNormalized).not.toHaveBeenCalled();
   });
@@ -329,10 +331,13 @@ describe("SeriesService.resolveForBook by newSeries", () => {
       findByNormalized: series({ id: OTHER_ID }),
     });
 
-    const resolved = await service.resolveForBook({
-      newSeries: { genres: [], name: "Throne of Glass", status: "completed", totalBooks: 8 },
-      userId: USER_ID,
-    });
+    const resolved = await service.resolveForBook(
+      {
+        newSeries: { genres: [], name: "Throne of Glass", status: "completed", totalBooks: 8 },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.id).toBe(OTHER_ID);
     expect(repository.createByNormalized).not.toHaveBeenCalled();
@@ -341,12 +346,15 @@ describe("SeriesService.resolveForBook by newSeries", () => {
   it("matches an existing series case-insensitively and whitespace-collapsed", async () => {
     const { repository, service } = buildService({ findByNormalized: series({ id: OTHER_ID }) });
 
-    await service.resolveForBook({
-      newSeries: { genres: [], name: "  Throne   OF Glass ", status: "unknown" },
-      userId: USER_ID,
-    });
+    await service.resolveForBook(
+      {
+        newSeries: { genres: [], name: "  Throne   OF Glass ", status: "unknown" },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
-    expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "throne of glass", undefined);
+    expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "throne of glass", TX);
   });
 
   it("creates a series with the provided fields when no match exists", async () => {
@@ -356,16 +364,19 @@ describe("SeriesService.resolveForBook by newSeries", () => {
       findByNormalized: null,
     });
 
-    const resolved = await service.resolveForBook({
-      newSeries: {
-        description: "saga",
-        genres: ["fantasy"],
-        name: "Throne of Glass",
-        status: "ongoing",
-        totalBooks: 3,
+    const resolved = await service.resolveForBook(
+      {
+        newSeries: {
+          description: "saga",
+          genres: ["fantasy"],
+          name: "Throne of Glass",
+          status: "ongoing",
+          totalBooks: 3,
+        },
+        userId: USER_ID,
       },
-      userId: USER_ID,
-    });
+      TX,
+    );
 
     expect(resolved.id).toBe(SERIES_ID);
     expect(repository.createByNormalized).toHaveBeenCalledWith(
@@ -381,7 +392,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
         },
         userId: USER_ID,
       },
-      undefined,
+      TX,
     );
   });
 
@@ -392,17 +403,22 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     });
 
     await expect(
-      service.resolveForBook({
-        newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
-        userId: USER_ID,
-      }),
+      service.resolveForBook(
+        {
+          newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
+          userId: USER_ID,
+        },
+        TX,
+      ),
     ).rejects.toThrow("connection lost");
   });
 
   it("throws NotFoundError when neither id nor newSeries is provided", async () => {
     const { service } = buildService({});
 
-    await expect(service.resolveForBook({ userId: USER_ID })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.resolveForBook({ userId: USER_ID }, TX)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 });
 
@@ -420,15 +436,18 @@ describe("SeriesService.resolveForBook author linking", () => {
       { id: AUTHOR_B, name: "Leigh Bardugo" },
     ]);
 
-    await service.resolveForBook({
-      newSeries: {
-        authors: [{ id: AUTHOR_A }, { id: AUTHOR_B }],
-        genres: [],
-        name: "Throne of Glass",
-        status: "unknown",
+    await service.resolveForBook(
+      {
+        newSeries: {
+          authors: [{ id: AUTHOR_A }, { id: AUTHOR_B }],
+          genres: [],
+          name: "Throne of Glass",
+          status: "unknown",
+        },
+        userId: USER_ID,
       },
-      userId: USER_ID,
-    });
+      TX,
+    );
 
     expect(authorsService.resolveReferences).toHaveBeenCalledWith({
       references: [{ id: AUTHOR_A }, { id: AUTHOR_B }],
@@ -443,7 +462,7 @@ describe("SeriesService.resolveForBook author linking", () => {
         }),
         userId: USER_ID,
       },
-      undefined,
+      TX,
     );
   });
 
@@ -453,11 +472,14 @@ describe("SeriesService.resolveForBook author linking", () => {
       findByNormalized: null,
     });
 
-    await service.resolveForBook({
-      fallbackAuthorIds: [AUTHOR_A, AUTHOR_B],
-      newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
-      userId: USER_ID,
-    });
+    await service.resolveForBook(
+      {
+        fallbackAuthorIds: [AUTHOR_A, AUTHOR_B],
+        newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(authorsService.resolveReferences).toHaveBeenCalledWith({
       references: [],
@@ -465,7 +487,7 @@ describe("SeriesService.resolveForBook author linking", () => {
     });
     expect(repository.createByNormalized).toHaveBeenCalledWith(
       expect.objectContaining({ authorIds: [AUTHOR_A, AUTHOR_B] }),
-      undefined,
+      TX,
     );
   });
 
@@ -476,31 +498,37 @@ describe("SeriesService.resolveForBook author linking", () => {
     });
     authorsService.resolveReferences.mockResolvedValue([{ id: AUTHOR_A, name: "Sarah J. Maas" }]);
 
-    await service.resolveForBook({
-      fallbackAuthorIds: [AUTHOR_B],
-      newSeries: {
-        authors: [{ id: AUTHOR_A }],
-        genres: [],
-        name: "Throne of Glass",
-        status: "unknown",
+    await service.resolveForBook(
+      {
+        fallbackAuthorIds: [AUTHOR_B],
+        newSeries: {
+          authors: [{ id: AUTHOR_A }],
+          genres: [],
+          name: "Throne of Glass",
+          status: "unknown",
+        },
+        userId: USER_ID,
       },
-      userId: USER_ID,
-    });
+      TX,
+    );
 
     expect(repository.createByNormalized).toHaveBeenCalledWith(
       expect.objectContaining({ authorIds: [AUTHOR_A] }),
-      undefined,
+      TX,
     );
   });
 
   it("does not link any authors when resolving an existing series by id", async () => {
     const { repository, service } = buildService({ findOwnedById: series() });
 
-    await service.resolveForBook({
-      fallbackAuthorIds: [AUTHOR_A],
-      seriesId: SERIES_ID,
-      userId: USER_ID,
-    });
+    await service.resolveForBook(
+      {
+        fallbackAuthorIds: [AUTHOR_A],
+        seriesId: SERIES_ID,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(repository.createByNormalized).not.toHaveBeenCalled();
   });

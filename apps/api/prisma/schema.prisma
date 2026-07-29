@@ -119,6 +119,7 @@ model Series {
   characterTheories    CharacterTheory[]
 
   @@index([userId, deletedAt])
+  @@index([deletedAt])
   @@map("series")
 }
 
@@ -268,6 +269,7 @@ model Book {
   @@index([userId, ownershipStatus])
   @@index([userId, readingStatus])
   @@index([userId, deletedAt])
+  @@index([deletedAt])
   @@index([publisherId])
   @@index([seriesId])
   @@index([coverMediaId])
@@ -440,6 +442,7 @@ model Note {
   @@index([seriesId])
   @@index([userId, entityType])
   @@index([userId, deletedAt])
+  @@index([deletedAt])
   @@map("notes")
 }
 
@@ -521,6 +524,7 @@ model BookList {
   items          BookListItem[]
 
   @@index([userId, deletedAt])
+  @@index([deletedAt])
   @@map("book_lists")
 }
 
@@ -681,6 +685,7 @@ model Quote {
   @@index([bookId])
   @@index([userId])
   @@index([userId, deletedAt])
+  @@index([deletedAt])
   @@map("quotes")
 }
 
@@ -700,6 +705,7 @@ model BookTimeline {
 
   @@index([bookId])
   @@index([bookId, deletedAt])
+  @@index([deletedAt])
   @@map("book_timelines")
 }
 

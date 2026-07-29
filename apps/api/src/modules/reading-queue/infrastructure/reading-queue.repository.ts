@@ -107,7 +107,7 @@ export class ReadingQueueRepository {
   listQueue(userId: string): Promise<BookWithRelations[]> {
     return this.prisma.book.findMany({
       include: withRelations,
-      orderBy: { queuePosition: "asc" },
+      orderBy: [{ queuePosition: "asc" }, { id: "asc" }],
       where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId },
     });
   }

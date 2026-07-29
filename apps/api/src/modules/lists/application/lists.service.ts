@@ -145,7 +145,7 @@ export class ListsService {
 
   async resolveListsForBook(
     { input, userId }: ResolveListsForBookInput,
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<string[]> {
     const resolvedIds = new Set<string>();
 
@@ -233,7 +233,7 @@ export class ListsService {
 
   private async resolveOrCreate(
     { newList, userId }: ResolveOrCreateInput,
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<string> {
     const normalizedName = normalizeName(newList.name);
     await this.listsRepository.acquireCreateLock(userId, client);

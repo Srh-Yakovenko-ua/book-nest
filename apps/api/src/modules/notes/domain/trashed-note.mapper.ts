@@ -1,4 +1,4 @@
-import type { TrashedNoteView } from "@app/shared";
+import type { NoteEntityType, Nullable, TrashedNoteView } from "@app/shared";
 
 import { NoteEntityTypeSchema } from "@app/shared";
 
@@ -6,11 +6,18 @@ import type { TrashedNoteRow } from "../infrastructure/notes.repository.js";
 
 import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 
+const ENTITY_TITLE = {
+  book: (note: TrashedNoteRow) => note.book?.title ?? null,
+  series: (note: TrashedNoteRow) => note.series?.name ?? null,
+} satisfies Record<NoteEntityType, (note: TrashedNoteRow) => Nullable<string>>;
+
 export function toTrashedNoteView(note: TrashedNoteRow): TrashedNoteView {
+  const entityType = NoteEntityTypeSchema.parse(note.entityType);
+
   return {
     deletedAt: note.deletedAt.toISOString(),
-    entityTitle: note.book?.title ?? note.series?.name ?? null,
-    entityType: NoteEntityTypeSchema.parse(note.entityType),
+    entityTitle: ENTITY_TITLE[entityType](note),
+    entityType,
     id: note.id,
     purgeAt: TRASH_RETENTION.purgeAfter(note.deletedAt).toISOString(),
     text: note.text,

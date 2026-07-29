@@ -202,3 +202,31 @@ describe("quote trash", () => {
     expect(await prisma.quote.findUnique({ where: { id: quoteId } })).toBeNull();
   });
 });
+
+describe("quote trash tenant isolation", () => {
+  it("never leaks or restores another user trashed quote", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const { bookId, quoteId } = await createBookWithQuote(owner.accessToken, "Private");
+    await authed("delete", `/api/books/${bookId}/quotes/${quoteId}`, owner.accessToken).expect(
+      HttpStatus.OK,
+    );
+
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+
+    const listing = await authed("get", "/api/quotes/trash", stranger.accessToken);
+    expect(listing.body.totalCount).toBe(0);
+
+    const restore = await authed(
+      "post",
+      `/api/books/${bookId}/quotes/${quoteId}/restore`,
+      stranger.accessToken,
+    );
+    expect(restore.status).toBe(HttpStatus.NOT_FOUND);
+    expect(await prisma.quote.findUniqueOrThrow({ where: { id: quoteId } })).toMatchObject({
+      deletedAt: expect.any(Date),
+    });
+  });
+});

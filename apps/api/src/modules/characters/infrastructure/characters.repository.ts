@@ -447,7 +447,7 @@ export class CharactersRepository {
   }): Promise<boolean> {
     const found = await this.prisma.series.findFirst({
       select: { id: true },
-      where: { id: seriesId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: seriesId, userId },
     });
     return found !== null;
   }

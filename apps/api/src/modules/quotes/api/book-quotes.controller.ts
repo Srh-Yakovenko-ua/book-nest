@@ -116,9 +116,9 @@ export class BookQuotesController {
   @Throttle(MUTATION_THROTTLE)
   restoreQuote(
     @CurrentUser() user: AuthenticatedUser,
-    @Param("bookId", ParseUUIDPipe) _bookId: string,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
     @Param("quoteId", ParseUUIDPipe) quoteId: string,
   ): Promise<void> {
-    return this.lifecycleService.restore({ quoteId, userId: user.id });
+    return this.lifecycleService.restore({ bookId, quoteId, userId: user.id });
   }
 }

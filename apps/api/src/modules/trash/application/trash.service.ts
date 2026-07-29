@@ -1,12 +1,21 @@
 import type { PaginatedTrash, TrashEntityType, TrashQuery, TrashSummaryView } from "@app/shared";
 
-import { TrashEntityTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { toTrashItemView } from "../domain/trash-item.mapper.js";
-import { TrashRepository } from "../infrastructure/trash.repository.js";
+import { type TrashCountRow, TrashRepository } from "../infrastructure/trash.repository.js";
+
+const EMPTY_TRASH_COUNTS = {
+  book: 0,
+  book_list: 0,
+  character: 0,
+  note: 0,
+  quote: 0,
+  series: 0,
+  timeline: 0,
+} satisfies Record<TrashEntityType, number>;
 
 @Injectable()
 export class TrashService {
@@ -21,9 +30,7 @@ export class TrashService {
 
     const countsByType = this.groupCounts(counts);
     const totalCount =
-      query.entityType === undefined
-        ? Object.values(countsByType).reduce((total, count) => total + count, 0)
-        : (countsByType[query.entityType] ?? 0);
+      query.entityType === undefined ? sumCounts(countsByType) : countsByType[query.entityType];
 
     return buildPaginator({
       items: rows.map(toTrashItemView),
@@ -39,17 +46,19 @@ export class TrashService {
     return {
       countsByType,
       retentionDays: TRASH_RETENTION.days,
-      totalCount: Object.values(countsByType).reduce((total, count) => total + count, 0),
+      totalCount: sumCounts(countsByType),
     };
   }
 
-  private groupCounts(
-    rows: { count: number; entityType: string }[],
-  ): Partial<Record<TrashEntityType, number>> {
-    const counts: Partial<Record<TrashEntityType, number>> = {};
+  private groupCounts(rows: TrashCountRow[]): Record<TrashEntityType, number> {
+    const counts = { ...EMPTY_TRASH_COUNTS };
     for (const row of rows) {
-      counts[TrashEntityTypeSchema.parse(row.entityType)] = row.count;
+      counts[row.entityType] = row.count;
     }
     return counts;
   }
+}
+
+function sumCounts(counts: Record<TrashEntityType, number>): number {
+  return Object.values(counts).reduce((total, count) => total + count, 0);
 }

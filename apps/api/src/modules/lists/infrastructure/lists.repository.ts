@@ -7,7 +7,7 @@ import type { BookListModel } from "../../../generated/prisma/models.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 const PREVIEW_COVERS_LIMIT = 4;
@@ -25,7 +25,7 @@ export type CreateBookListData = {
   normalizedName: string;
 };
 
-export type TrashedListRow = TrashedListSelection & { deletedAt: Date };
+export type TrashedListRow = Trashed<TrashedListSelection>;
 
 export type UpdateBookListData = {
   description: Nullable<string>;
@@ -61,10 +61,7 @@ type SearchListCardsInput = {
 export class ListsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async acquireCreateLock(
-    userId: string,
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<void> {
+  async acquireCreateLock(userId: string, client: Prisma.TransactionClient): Promise<void> {
     await acquireAdvisoryLock(
       { classId: ADVISORY_LOCK_CLASS.bookLists, key: `list:create:${userId}` },
       client,
@@ -199,7 +196,7 @@ export class ListsRepository {
       take,
       where: { ...SOFT_DELETE_SCOPE.trashed, userId },
     });
-    return rows.filter(isTrashedList);
+    return rows.filter(isTrashed);
   }
 
   async restore({ listId, userId }: { listId: string; userId: string }): Promise<number> {
@@ -292,8 +289,4 @@ function buildOwnedWhere(userId: string, query: string | undefined): Prisma.Book
     ],
     userId,
   };
-}
-
-function isTrashedList(row: TrashedListSelection): row is TrashedListRow {
-  return row.deletedAt !== null;
 }

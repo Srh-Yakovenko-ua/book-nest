@@ -7,8 +7,9 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { toTrashedListView } from "../domain/trashed-list.mapper.js";
 import { ListsRepository } from "../infrastructure/lists.repository.js";
@@ -16,6 +17,7 @@ import { ListPurgeScheduler } from "./list-purge.scheduler.js";
 import { ListsService } from "./lists.service.js";
 
 const LIST_NOT_FOUND_MESSAGE = "List not found";
+const LIST_NAME_TAKEN_MESSAGE = "A list with this name already exists; rename it before restoring";
 
 @Injectable()
 export class ListLifecycleService {
@@ -60,7 +62,7 @@ export class ListLifecycleService {
   }
 
   async restore({ listId, userId }: { listId: string; userId: string }): Promise<CustomListCard> {
-    const restored = await this.listsRepository.restore({ listId, userId });
+    const restored = await this.restoreRow({ listId, userId });
     if (restored === 0) {
       throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
     }
@@ -89,5 +91,22 @@ export class ListLifecycleService {
       listId,
       purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
     };
+  }
+
+  private async restoreRow({
+    listId,
+    userId,
+  }: {
+    listId: string;
+    userId: string;
+  }): Promise<number> {
+    try {
+      return await this.listsRepository.restore({ listId, userId });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictError(LIST_NAME_TAKEN_MESSAGE);
+      }
+      throw error;
+    }
   }
 }

@@ -52,8 +52,16 @@ export class QuoteLifecycleService {
     });
   }
 
-  async restore({ quoteId, userId }: { quoteId: string; userId: string }): Promise<void> {
-    const restored = await this.quotesRepository.restore({ quoteId, userId });
+  async restore({
+    bookId,
+    quoteId,
+    userId,
+  }: {
+    bookId: string;
+    quoteId: string;
+    userId: string;
+  }): Promise<void> {
+    const restored = await this.quotesRepository.restore({ bookId, quoteId, userId });
     if (restored === 0) {
       throw new NotFoundError(QUOTE_NOT_FOUND_MESSAGE);
     }

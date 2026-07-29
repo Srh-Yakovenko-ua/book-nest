@@ -66,6 +66,13 @@ function authed(
 }
 
 async function trashOneOfEach(token: string): Promise<{ bookId: string; seriesId: string }> {
+  const keeper = await authed("post", "/api/books", token).send({
+    authors: [{ name: "Frank Herbert" }],
+    ownershipStatus: "owned",
+    title: "Keeper",
+  });
+  expect(keeper.status).toBe(HttpStatus.CREATED);
+
   const book = await authed("post", "/api/books", token).send({
     authors: [{ name: "Frank Herbert" }],
     bookType: "series_part",
@@ -79,16 +86,16 @@ async function trashOneOfEach(token: string): Promise<{ bookId: string; seriesId
 
   const list = await authed("post", "/api/lists", token).send({ name: "Autumn" });
   expect(list.status).toBe(HttpStatus.CREATED);
-  const quote = await authed("post", `/api/books/${book.body.id}/quotes`, token).send({
+  const quote = await authed("post", `/api/books/${keeper.body.id}/quotes`, token).send({
     text: "Fear is the mind-killer",
   });
   expect(quote.status).toBe(HttpStatus.CREATED);
-  const note = await authed("post", `/api/books/${book.body.id}/notes`, token).send({
+  const note = await authed("post", `/api/books/${keeper.body.id}/notes`, token).send({
     text: "A thought",
   });
   expect(note.status).toBe(HttpStatus.CREATED);
 
-  await authed("delete", `/api/books/${book.body.id}/quotes/${quote.body.id}`, token).expect(
+  await authed("delete", `/api/books/${keeper.body.id}/quotes/${quote.body.id}`, token).expect(
     HttpStatus.OK,
   );
   await authed("delete", `/api/notes/${note.body.id}`, token).expect(HttpStatus.OK);
@@ -111,9 +118,11 @@ describe("GET /api/trash/summary", () => {
     expect(res.body.countsByType).toEqual({
       book: 1,
       book_list: 1,
+      character: 0,
       note: 1,
       quote: 1,
       series: 1,
+      timeline: 0,
     });
     expect(res.body.totalCount).toBe(5);
   });
@@ -124,7 +133,7 @@ describe("GET /api/trash/summary", () => {
     const res = await authed("get", "/api/trash/summary", accessToken);
 
     expect(res.body.totalCount).toBe(0);
-    expect(res.body.countsByType).toEqual({});
+    expect(Object.values(res.body.countsByType)).toEqual([0, 0, 0, 0, 0, 0, 0]);
   });
 });
 
@@ -158,7 +167,7 @@ describe("GET /api/trash", () => {
 
     expect(res.body.totalCount).toBe(1);
     expect(res.body.items[0]).toMatchObject({
-      context: "Dune",
+      context: "Keeper",
       entityType: "quote",
       title: "Fear is the mind-killer",
     });
@@ -176,5 +185,34 @@ describe("GET /api/trash", () => {
 
     expect(res.body.totalCount).toBe(0);
     expect(res.body.items).toEqual([]);
+  });
+});
+
+describe("trash feed and restorability agree", () => {
+  it("hides a trashed child whose parent is also trashed, since it cannot be restored", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const book = await authed("post", "/api/books", accessToken).send({
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "owned",
+      title: "Dead end",
+    });
+    const note = await authed("post", `/api/books/${book.body.id}/notes`, accessToken).send({
+      text: "Dead end note",
+    });
+
+    await authed("delete", `/api/notes/${note.body.id}`, accessToken).expect(HttpStatus.OK);
+    const withParentAlive = await authed("get", "/api/trash", accessToken);
+    expect(
+      withParentAlive.body.items.some((item: { id: string }) => item.id === note.body.id),
+    ).toBe(true);
+
+    await authed("delete", `/api/books/${book.body.id}`, accessToken).expect(HttpStatus.OK);
+
+    const res = await authed("get", "/api/trash", accessToken);
+    expect(res.body.items.some((item: { id: string }) => item.id === note.body.id)).toBe(false);
+    expect(res.body.countsByType?.note ?? 0).toBe(0);
+
+    const restore = await authed("post", `/api/notes/${note.body.id}/restore`, accessToken);
+    expect(restore.status).toBe(HttpStatus.NOT_FOUND);
   });
 });

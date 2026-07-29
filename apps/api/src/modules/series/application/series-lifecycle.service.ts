@@ -7,8 +7,9 @@ import type {
 
 import { Injectable } from "@nestjs/common";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { toTrashedSeriesView } from "../domain/trashed-series.mapper.js";
 import { SeriesRepository } from "../infrastructure/series.repository.js";
@@ -16,6 +17,8 @@ import { SeriesPurgeScheduler } from "./series-purge.scheduler.js";
 import { SeriesService } from "./series.service.js";
 
 const SERIES_NOT_FOUND_MESSAGE = "Series not found";
+const SERIES_NAME_TAKEN_MESSAGE =
+  "A series with this name already exists; rename it before restoring";
 
 @Injectable()
 export class SeriesLifecycleService {
@@ -66,7 +69,7 @@ export class SeriesLifecycleService {
     seriesId: string;
     userId: string;
   }): Promise<SeriesDetailsView> {
-    const restored = await this.seriesRepository.restore({ seriesId, userId });
+    const restored = await this.restoreRow({ seriesId, userId });
     if (restored === 0) {
       throw new NotFoundError(SERIES_NOT_FOUND_MESSAGE);
     }
@@ -95,5 +98,22 @@ export class SeriesLifecycleService {
       purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
       seriesId,
     };
+  }
+
+  private async restoreRow({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<number> {
+    try {
+      return await this.seriesRepository.restore({ seriesId, userId });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictError(SERIES_NAME_TAKEN_MESSAGE);
+      }
+      throw error;
+    }
   }
 }

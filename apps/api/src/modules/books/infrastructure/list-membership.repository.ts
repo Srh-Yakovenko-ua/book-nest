@@ -112,7 +112,7 @@ export class ListMembershipRepository {
   }
 
   countItems(client: Prisma.TransactionClient, { listId }: ItemsCountInput): Promise<number> {
-    return client.bookListItem.count({ where: { listId } });
+    return client.bookListItem.count({ where: { book: SOFT_DELETE_SCOPE.active, listId } });
   }
 
   async deleteMembership(
@@ -150,8 +150,8 @@ export class ListMembershipRepository {
   ): Promise<Nullable<ListMembership>> {
     const where =
       direction === "up"
-        ? { listId, position: { lt: position } }
-        : { listId, position: { gt: position } };
+        ? { book: SOFT_DELETE_SCOPE.active, listId, position: { lt: position } }
+        : { book: SOFT_DELETE_SCOPE.active, listId, position: { gt: position } };
     return client.bookListItem.findFirst({
       orderBy: { position: direction === "up" ? "desc" : "asc" },
       select: { bookId: true, position: true },

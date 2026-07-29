@@ -275,3 +275,19 @@ describe("series purge", () => {
     expect(await prisma.series.findUnique({ where: { id: fresh.seriesId } })).not.toBeNull();
   });
 });
+
+describe("restoring a series whose name was taken meanwhile", () => {
+  it("returns 409 instead of failing on the partial unique index", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { seriesId } = await createSeriesWithBook(accessToken, "Contested");
+
+    await authed("delete", `/api/series/${seriesId}`, accessToken).expect(HttpStatus.OK);
+    await authed("post", "/api/series", accessToken)
+      .send({ authors: [], genres: [], name: "Contested", status: "unknown" })
+      .expect(HttpStatus.CREATED);
+
+    const res = await authed("post", `/api/series/${seriesId}/restore`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.CONFLICT);
+  });
+});

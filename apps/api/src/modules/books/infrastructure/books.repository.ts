@@ -23,17 +23,25 @@ import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
-import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookSearchConditions } from "./book-search.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
-import { enforceQueueInvariant } from "./queue-invariant.js";
+import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
 
 const log = createLogger("books.repository");
 
 const ACTIVE_BOOK_SQL = Prisma.sql`AND book.deleted_at IS NULL`;
+
+const CLEARED_QUEUE_PLACEMENT = {
+  queuePosition: null,
+  queuePriority: null,
+  queuePriorityReason: null,
+  queuePriorityReasonCustomText: null,
+  queuePriorityTargetDate: null,
+} satisfies Prisma.BookUncheckedUpdateManyInput;
 
 const WISHLIST_MAX_BOOKS = 1000;
 const READING_STATUS_FINISHED = "finished";
@@ -278,7 +286,7 @@ export type ReadingSnapshotRow = Prisma.BookGetPayload<{ select: typeof readingS
 
 export type StatusGuard = { expectedStatuses: OwnershipStatus[] };
 
-export type TrashedBookRow = TrashedBookSelection & { deletedAt: Date };
+export type TrashedBookRow = Trashed<TrashedBookSelection>;
 
 export type UpdateActiveLoanData = {
   contact: Nullable<string>;
@@ -786,7 +794,10 @@ export class BooksRepository {
       `),
       this.prisma.bookReadingProgress.aggregate({
         _avg: { rating: true },
-        where: { book: { isFavorite: true, userId }, rating: { not: null } },
+        where: {
+          book: { ...SOFT_DELETE_SCOPE.active, isFavorite: true, userId },
+          rating: { not: null },
+        },
       }),
       this.prisma.$queryRaw`
         SELECT g AS genre, count(*) AS count
@@ -1056,7 +1067,7 @@ export class BooksRepository {
   ): Promise<number> {
     const result = await client.book.aggregate({
       _max: { queuePosition: true },
-      where: { userId },
+      where: { ...SOFT_DELETE_SCOPE.active, userId },
     });
     return result._max.queuePosition ?? 0;
   }
@@ -1160,20 +1171,29 @@ export class BooksRepository {
     });
   }
 
-  async softDelete({
-    bookId,
-    deletedAt,
-    userId,
-  }: {
-    bookId: string;
-    deletedAt: Date;
-    userId: string;
-  }): Promise<number> {
-    const deleted = await this.prisma.book.updateMany({
-      data: { deletedAt },
-      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
+  softDelete(
+    {
+      bookId,
+      deletedAt,
+      userId,
+    }: {
+      bookId: string;
+      deletedAt: Date;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<number> {
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      await acquireUserQueueLock(userId, tx);
+      const deleted = await tx.book.updateMany({
+        data: { deletedAt, ...CLEARED_QUEUE_PLACEMENT },
+        where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
+      });
+      if (deleted.count > 0) {
+        await resequenceQueue(tx, userId);
+      }
+      return deleted.count;
     });
-    return deleted.count;
   }
 
   async topGenreKeys({
@@ -1684,8 +1704,4 @@ function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
   }
 
   return where;
-}
-
-function isTrashed(row: TrashedBookSelection): row is TrashedBookRow {
-  return row.deletedAt !== null;
 }

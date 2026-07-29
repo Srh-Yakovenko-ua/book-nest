@@ -246,3 +246,19 @@ describe("list purge", () => {
     expect(await prisma.bookList.findUnique({ where: { id: fresh.listId } })).not.toBeNull();
   });
 });
+
+describe("restoring a list whose name was taken meanwhile", () => {
+  it("returns 409 instead of failing on the partial unique index", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { listId } = await createListWithBook(accessToken, "Contested");
+
+    await authed("delete", `/api/lists/${listId}`, accessToken).expect(HttpStatus.OK);
+    await authed("post", "/api/lists", accessToken)
+      .send({ name: "Contested" })
+      .expect(HttpStatus.CREATED);
+
+    const res = await authed("post", `/api/lists/${listId}/restore`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.CONFLICT);
+  });
+});

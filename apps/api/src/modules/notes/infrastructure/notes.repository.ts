@@ -12,7 +12,7 @@ import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookTextSearchConditions } from "../../books/index.js";
 import {
@@ -136,7 +136,7 @@ const trashedNoteSelect = {
   text: true,
 } satisfies Prisma.NoteSelect;
 
-export type TrashedNoteRow = TrashedNoteSelection & { deletedAt: Date };
+export type TrashedNoteRow = Trashed<TrashedNoteSelection>;
 
 type TrashedNoteSelection = Prisma.NoteGetPayload<{ select: typeof trashedNoteSelect }>;
 
@@ -149,7 +149,9 @@ export class NotesRepository {
   }
 
   countTrashed({ userId }: { userId: string }): Promise<number> {
-    return this.prisma.note.count({ where: { ...SOFT_DELETE_SCOPE.trashed, userId } });
+    return this.prisma.note.count({
+      where: { AND: [{ ...SOFT_DELETE_SCOPE.trashed, userId }, NOTE_ON_ACTIVE_ENTITY] },
+    });
   }
 
   create(data: CreateNoteData): Promise<NoteWithEntity> {
@@ -246,9 +248,9 @@ export class NotesRepository {
       select: trashedNoteSelect,
       skip,
       take,
-      where: { ...SOFT_DELETE_SCOPE.trashed, userId },
+      where: { AND: [{ ...SOFT_DELETE_SCOPE.trashed, userId }, NOTE_ON_ACTIVE_ENTITY] },
     });
-    return rows.filter(isTrashedNote);
+    return rows.filter(isTrashed);
   }
 
   async restore({ noteId, userId }: { noteId: string; userId: string }): Promise<number> {
@@ -427,8 +429,4 @@ function buildNotesWhere({
   }
 
   return where;
-}
-
-function isTrashedNote(row: TrashedNoteSelection): row is TrashedNoteRow {
-  return row.deletedAt !== null;
 }

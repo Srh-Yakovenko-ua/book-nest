@@ -100,11 +100,18 @@ export class TimelineService {
 
       const eventCount = await this.timelineEventRepository.countInTimeline(timelineId, tx);
       if (eventCount === 0) {
-        await this.timelineRepository.softDelete({ deletedAt, timelineId }, tx);
+        await this.timelineRepository.softDelete({ deletedAt, timelineId, userId }, tx);
         return;
       }
 
-      await this.deleteNonEmptyTimeline({ bookId: owned.bookId, deletedAt, query, timelineId, tx });
+      await this.deleteNonEmptyTimeline({
+        bookId: owned.bookId,
+        deletedAt,
+        query,
+        timelineId,
+        tx,
+        userId,
+      });
     });
 
     await this.purgeScheduler.schedule({ timelineId, userId });
@@ -268,12 +275,14 @@ export class TimelineService {
     query,
     timelineId,
     tx,
+    userId,
   }: {
     bookId: string;
     deletedAt: Date;
     query: DeleteTimelineQuery;
     timelineId: string;
     tx: Prisma.TransactionClient;
+    userId: string;
   }): Promise<void> {
     if (query.strategy === undefined) {
       throw new ValidationError("A delete strategy is required for a timeline with events", {
@@ -281,7 +290,7 @@ export class TimelineService {
       });
     }
     if (query.strategy === "delete") {
-      await this.timelineRepository.softDelete({ deletedAt, timelineId }, tx);
+      await this.timelineRepository.softDelete({ deletedAt, timelineId, userId }, tx);
       return;
     }
 
@@ -304,7 +313,7 @@ export class TimelineService {
       { baseOrder, fromTimelineId: timelineId, toTimelineId: target.id },
       tx,
     );
-    await this.timelineRepository.softDelete({ deletedAt, timelineId }, tx);
+    await this.timelineRepository.softDelete({ deletedAt, timelineId, userId }, tx);
   }
 
   private mapUniqueNameError(error: unknown): unknown {

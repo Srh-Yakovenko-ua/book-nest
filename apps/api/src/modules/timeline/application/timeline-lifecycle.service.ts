@@ -3,14 +3,17 @@ import type { PaginatedTrashedTimelines, TrashedTimelinesQuery } from "@app/shar
 import { TIMELINE_ERROR_CODES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
+import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
 import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { toTrashedTimelineView } from "../domain/trashed-timeline.mapper.js";
 import { TimelineRepository } from "../infrastructure/timeline.repository.js";
 import { TimelinePurgeScheduler } from "./timeline-purge.scheduler.js";
 
 const TIMELINE_NOT_FOUND_MESSAGE = "Timeline not found";
+const TIMELINE_NAME_TAKEN_MESSAGE =
+  "A timeline with this name already exists for this book; rename it before restoring";
 
 @Injectable()
 export class TimelineLifecycleService {
@@ -54,7 +57,7 @@ export class TimelineLifecycleService {
   }
 
   async restore({ timelineId, userId }: { timelineId: string; userId: string }): Promise<void> {
-    const restored = await this.timelineRepository.restore({ timelineId, userId });
+    const restored = await this.restoreRow({ timelineId, userId });
     if (restored === 0) {
       throw new NotFoundError(TIMELINE_NOT_FOUND_MESSAGE, {
         code: TIMELINE_ERROR_CODES.timelineNotFound,
@@ -62,5 +65,24 @@ export class TimelineLifecycleService {
     }
 
     await this.purgeScheduler.cancel(timelineId);
+  }
+
+  private async restoreRow({
+    timelineId,
+    userId,
+  }: {
+    timelineId: string;
+    userId: string;
+  }): Promise<number> {
+    try {
+      return await this.timelineRepository.restore({ timelineId, userId });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictError(TIMELINE_NAME_TAKEN_MESSAGE, {
+          code: TIMELINE_ERROR_CODES.duplicateName,
+        });
+      }
+      throw error;
+    }
   }
 }

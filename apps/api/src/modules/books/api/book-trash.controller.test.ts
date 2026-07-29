@@ -270,3 +270,66 @@ describe("POST /api/books/bulk/delete", () => {
     expect(rows).toHaveLength(2);
   });
 });
+
+describe("restoring into a slot that was taken while the row sat in the trash", () => {
+  it("returns 409 instead of failing on the partial unique index", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const firstId = await createBook(accessToken, {
+      bookType: "series_part",
+      newSeries: { name: "Contested" },
+      partNumber: 1,
+    });
+    const seriesId = (
+      await prisma.book.findUniqueOrThrow({ select: { seriesId: true }, where: { id: firstId } })
+    ).seriesId;
+
+    await authed("delete", `/api/books/${firstId}`, accessToken).expect(HttpStatus.OK);
+    await authed("post", "/api/books", accessToken)
+      .send({
+        authors: [{ name: "Frank Herbert" }],
+        bookType: "series_part",
+        ownershipStatus: "owned",
+        partNumber: 1,
+        seriesId,
+        title: "Took the slot",
+      })
+      .expect(HttpStatus.CREATED);
+
+    const res = await authed("post", `/api/books/${firstId}/restore`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.CONFLICT);
+
+    const stillTrashed = await authed("get", "/api/books/trash", accessToken);
+    expect(stillTrashed.body.totalCount).toBe(1);
+  });
+
+  it("restores once the slot is freed again", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const firstId = await createBook(accessToken, {
+      bookType: "series_part",
+      newSeries: { name: "Freed" },
+      partNumber: 1,
+    });
+    const seriesId = (
+      await prisma.book.findUniqueOrThrow({ select: { seriesId: true }, where: { id: firstId } })
+    ).seriesId;
+
+    await authed("delete", `/api/books/${firstId}`, accessToken).expect(HttpStatus.OK);
+    const replacement = await authed("post", "/api/books", accessToken).send({
+      authors: [{ name: "Frank Herbert" }],
+      bookType: "series_part",
+      ownershipStatus: "owned",
+      partNumber: 1,
+      seriesId,
+      title: "Temporary",
+    });
+    await authed("patch", `/api/books/${replacement.body.id}`, accessToken)
+      .send({ partNumber: 2 })
+      .expect(HttpStatus.OK);
+
+    const res = await authed("post", `/api/books/${firstId}/restore`, accessToken);
+
+    expect(res.status).toBe(HttpStatus.CREATED);
+    expect(res.body).toMatchObject({ id: firstId, partNumber: 1 });
+  });
+});

@@ -7,7 +7,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
-import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { TIMELINE_POSITION_STEP } from "../domain/sparse-position.js";
 import { DEFAULT_TIMELINE_NAME } from "../domain/timeline-fields.js";
 
@@ -19,15 +19,11 @@ const trashedTimelineSelect = {
   name: true,
 } satisfies Prisma.BookTimelineSelect;
 
-export type TrashedTimelineRow = TrashedTimelineSelection & { deletedAt: Date };
+export type TrashedTimelineRow = Trashed<TrashedTimelineSelection>;
 
 type TrashedTimelineSelection = Prisma.BookTimelineGetPayload<{
   select: typeof trashedTimelineSelect;
 }>;
-
-function isTrashedTimeline(row: TrashedTimelineSelection): row is TrashedTimelineRow {
-  return row.deletedAt !== null;
-}
 
 const timelineWithCountArgs = {
   include: { _count: { select: { events: true } } },
@@ -75,7 +71,7 @@ export class TimelineRepository {
 
   countTrashed({ userId }: { userId: string }): Promise<number> {
     return this.prisma.bookTimeline.count({
-      where: { ...SOFT_DELETE_SCOPE.trashed, book: { userId } },
+      where: { ...SOFT_DELETE_SCOPE.trashed, book: { ...SOFT_DELETE_SCOPE.active, userId } },
     });
   }
 
@@ -219,9 +215,12 @@ export class TimelineRepository {
       select: trashedTimelineSelect,
       skip,
       take,
-      where: { ...SOFT_DELETE_SCOPE.trashed, book: { userId } },
+      where: {
+        ...SOFT_DELETE_SCOPE.trashed,
+        book: { ...SOFT_DELETE_SCOPE.active, userId },
+      },
     });
-    return rows.filter(isTrashedTimeline);
+    return rows.filter(isTrashed);
   }
 
   listWithCounts(bookId: string): Promise<TimelineWithCount[]> {
@@ -294,12 +293,12 @@ export class TimelineRepository {
   }
 
   async softDelete(
-    { deletedAt, timelineId }: { deletedAt: Date; timelineId: string },
+    { deletedAt, timelineId, userId }: { deletedAt: Date; timelineId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     const deleted = await client.bookTimeline.updateMany({
       data: { deletedAt },
-      where: { ...SOFT_DELETE_SCOPE.active, id: timelineId },
+      where: { ...SOFT_DELETE_SCOPE.active, book: { userId }, id: timelineId },
     });
     return deleted.count;
   }

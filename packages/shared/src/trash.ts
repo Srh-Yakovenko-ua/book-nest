@@ -46,7 +46,7 @@ export const PaginatedTrashSchema = createPaginatedSchema(TrashItemViewSchema);
 export type PaginatedTrash = z.infer<typeof PaginatedTrashSchema>;
 
 export const TrashSummaryViewSchema = z.object({
-  countsByType: z.partialRecord(TrashEntityTypeSchema, z.number().int()),
+  countsByType: z.record(TrashEntityTypeSchema, z.number().int()),
   retentionDays: z.number().int(),
   totalCount: z.number().int(),
 });

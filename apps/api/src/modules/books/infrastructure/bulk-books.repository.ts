@@ -10,7 +10,7 @@ import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
-import { enforceQueueInvariant } from "./queue-invariant.js";
+import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
 
 export type PagesCountSnapshot = {
   currentPage: Nullable<number>;
@@ -127,7 +127,7 @@ export class BulkBooksRepository {
 
       const aggregate = await tx.book.aggregate({
         _max: { queuePosition: true },
-        where: { userId },
+        where: { ...SOFT_DELETE_SCOPE.active, userId },
       });
       const basePosition = aggregate._max.queuePosition ?? 0;
 
@@ -343,10 +343,19 @@ export class BulkBooksRepository {
         return [];
       }
       const ownedIds = owned.map((book) => book.id);
+      await acquireUserQueueLock(userId, tx);
       await tx.book.updateMany({
-        data: { deletedAt },
+        data: {
+          deletedAt,
+          queuePosition: null,
+          queuePriority: null,
+          queuePriorityReason: null,
+          queuePriorityReasonCustomText: null,
+          queuePriorityTargetDate: null,
+        },
         where: { ...SOFT_DELETE_SCOPE.active, id: { in: ownedIds }, userId },
       });
+      await resequenceQueue(tx, userId);
       return ownedIds;
     });
   }
