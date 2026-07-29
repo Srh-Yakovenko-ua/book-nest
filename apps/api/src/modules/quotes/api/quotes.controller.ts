@@ -1,6 +1,6 @@
-import type { Paginator, QuotesSummaryView, QuoteView } from "@app/shared";
+import type { PaginatedTrashedQuotes, Paginator, QuotesSummaryView, QuoteView } from "@app/shared";
 
-import { QuotesQuerySchema } from "@app/shared";
+import { QuotesQuerySchema, TrashedQuotesQuerySchema } from "@app/shared";
 import { Controller, Get, Query } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
@@ -10,9 +10,12 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { QuoteLifecycleService } from "../application/quote-lifecycle.service.js";
 import { QuotesService } from "../application/quotes.service.js";
 import { QuotesQueryDto } from "./input-dto/quotes-query.input-dto.js";
+import { TrashedQuotesQueryDto } from "./input-dto/trashed-quotes-query.input-dto.js";
 import { PaginatedQuotesDto } from "./view-dto/paginated-quotes.view-dto.js";
+import { PaginatedTrashedQuotesDto } from "./view-dto/paginated-trashed-quotes.view-dto.js";
 import { QuotesSummaryViewDto } from "./view-dto/quotes-summary.view-dto.js";
 
 @ApiTags("quotes")
@@ -20,7 +23,24 @@ import { QuotesSummaryViewDto } from "./view-dto/quotes-summary.view-dto.js";
 @JwtProtected()
 @Throttle(READ_THROTTLE)
 export class QuotesController {
-  constructor(private readonly quotesService: QuotesService) {}
+  constructor(
+    private readonly quotesService: QuotesService,
+    private readonly lifecycleService: QuoteLifecycleService,
+  ) {}
+
+  @ApiOkResponse({
+    description: "A page of the current user trashed quotes",
+    type: PaginatedTrashedQuotesDto,
+  })
+  @ApiOperation({ summary: "List quotes waiting in the trash before their scheduled purge" })
+  @Get("trash")
+  @Throttle(READ_THROTTLE)
+  listTrash(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(TrashedQuotesQuerySchema)) query: TrashedQuotesQueryDto,
+  ): Promise<PaginatedTrashedQuotes> {
+    return this.lifecycleService.listTrash({ query, userId: user.id });
+  }
 
   @ApiOkResponse({
     description: "Aggregate statistics over the current user's quotes",

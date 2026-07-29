@@ -97,7 +97,7 @@ const noteBody = (overrides: Record<string, unknown> = {}): Record<string, unkno
 });
 
 describe("book notes CRUD", () => {
-  it("creates, lists, edits and deletes a book note", async () => {
+  it("creates, lists, edits and trashes a book note", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
 
@@ -135,7 +135,7 @@ describe("book notes CRUD", () => {
     expect(edited.body.isPinned).toBe(true);
 
     const removed = await authed("delete", `/api/notes/${created.body.id}`, accessToken);
-    expect(removed.status).toBe(HttpStatus.NO_CONTENT);
+    expect(removed.status).toBe(HttpStatus.OK);
 
     const empty = await authed("get", `/api/books/${bookId}/notes`, accessToken);
     expect(empty.body.totalCount).toBe(0);

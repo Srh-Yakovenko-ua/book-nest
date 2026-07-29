@@ -416,28 +416,30 @@ model BookStoreLink {
 }
 
 model Note {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  entityType     String   @map("entity_type")
-  bookId         String?  @map("book_id") @db.Uuid
-  seriesId       String?  @map("series_id") @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  entityType     String    @map("entity_type")
+  bookId         String?   @map("book_id") @db.Uuid
+  seriesId       String?   @map("series_id") @db.Uuid
   text           String
   category       String?
-  customCategory String?  @map("custom_category")
+  customCategory String?   @map("custom_category")
   chapter        String?
   page           Int?
-  isSpoiler      Boolean  @default(false) @map("is_spoiler")
-  isFavorite     Boolean  @default(false) @map("is_favorite")
-  isPinned       Boolean  @default(false) @map("is_pinned")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book           Book?    @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  series         Series?  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  isSpoiler      Boolean   @default(false) @map("is_spoiler")
+  isFavorite     Boolean   @default(false) @map("is_favorite")
+  isPinned       Boolean   @default(false) @map("is_pinned")
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book           Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  series         Series?   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
   @@index([seriesId])
   @@index([userId, entityType])
+  @@index([userId, deletedAt])
   @@map("notes")
 }
 
@@ -661,22 +663,24 @@ model MediaAsset {
 }
 
 model Quote {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  bookId     String   @map("book_id") @db.Uuid
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  bookId     String    @map("book_id") @db.Uuid
   text       String
   chapter    String?
   page       Int?
   comment    String?
-  isSpoiler  Boolean  @default(false) @map("is_spoiler")
-  isFavorite Boolean  @default(false) @map("is_favorite")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  isSpoiler  Boolean   @default(false) @map("is_spoiler")
+  isFavorite Boolean   @default(false) @map("is_favorite")
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book       Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
   @@index([userId])
+  @@index([userId, deletedAt])
   @@map("quotes")
 }
 

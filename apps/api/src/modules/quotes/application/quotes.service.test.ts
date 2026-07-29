@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { MediaService } from "../../media/index.js";
 import type { OwnedBook, QuoteWithBook } from "../infrastructure/quotes.repository.js";
 import type { QuotesRepository } from "../infrastructure/quotes.repository.js";
+import type { QuoteLifecycleService } from "./quote-lifecycle.service.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { QuotesService } from "./quotes.service.js";
@@ -56,12 +57,12 @@ function book(overrides: Partial<QuoteWithBook["book"]> = {}): QuoteWithBook["bo
 }
 
 function buildService(): {
+  lifecycleService: { softDelete: ReturnType<typeof vi.fn> };
   mediaService: { buildViewOrNull: ReturnType<typeof vi.fn> };
   repository: {
     bookCounts: ReturnType<typeof vi.fn>;
     count: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
-    delete: ReturnType<typeof vi.fn>;
     findOwnedBook: ReturnType<typeof vi.fn>;
     findOwnedQuote: ReturnType<typeof vi.fn>;
     list: ReturnType<typeof vi.fn>;
@@ -75,7 +76,6 @@ function buildService(): {
     bookCounts: vi.fn().mockResolvedValue({ favorites: 0, spoiler: 0, total: 0 }),
     count: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue(quote()),
-    delete: vi.fn().mockResolvedValue(undefined),
     findOwnedBook: vi.fn().mockResolvedValue(ownedBook()),
     findOwnedQuote: vi.fn().mockResolvedValue(quote()),
     list: vi.fn().mockResolvedValue([]),
@@ -86,12 +86,21 @@ function buildService(): {
 
   const mediaService = { buildViewOrNull: vi.fn().mockReturnValue(null) };
 
+  const lifecycleService = {
+    softDelete: vi.fn().mockResolvedValue({
+      deletedAt: NOW.toISOString(),
+      purgeAt: NOW.toISOString(),
+      quoteId: QUOTE_ID,
+    }),
+  };
+
   const service = new QuotesService(
     repository as unknown as QuotesRepository,
     mediaService as unknown as MediaService,
+    lifecycleService as unknown as QuoteLifecycleService,
   );
 
-  return { mediaService, repository, service };
+  return { lifecycleService, mediaService, repository, service };
 }
 
 function createInput(overrides: Partial<CreateQuoteInput> = {}): CreateQuoteInput {
@@ -129,6 +138,7 @@ function quote(overrides: Partial<QuoteWithBook> = {}): QuoteWithBook {
     chapter: null,
     comment: null,
     createdAt: NOW,
+    deletedAt: null,
     id: QUOTE_ID,
     isFavorite: false,
     isSpoiler: false,
@@ -363,31 +373,34 @@ describe("QuotesService.updateForBook", () => {
 
 describe("QuotesService.deleteForBook", () => {
   it("throws NotFoundError when the book is not owned", async () => {
-    const { repository, service } = buildService();
+    const { lifecycleService, repository, service } = buildService();
     repository.findOwnedBook.mockResolvedValue(null);
 
     await expect(
       service.deleteForBook({ bookId: BOOK_ID, quoteId: QUOTE_ID, userId: USER_ID }),
     ).rejects.toBeInstanceOf(NotFoundError);
-    expect(repository.delete).not.toHaveBeenCalled();
+    expect(lifecycleService.softDelete).not.toHaveBeenCalled();
   });
 
   it("throws NotFoundError when the quote is not owned", async () => {
-    const { repository, service } = buildService();
+    const { lifecycleService, repository, service } = buildService();
     repository.findOwnedQuote.mockResolvedValue(null);
 
     await expect(
       service.deleteForBook({ bookId: BOOK_ID, quoteId: QUOTE_ID, userId: USER_ID }),
     ).rejects.toBeInstanceOf(NotFoundError);
-    expect(repository.delete).not.toHaveBeenCalled();
+    expect(lifecycleService.softDelete).not.toHaveBeenCalled();
   });
 
-  it("deletes the quote after verifying ownership", async () => {
-    const { repository, service } = buildService();
+  it("moves the quote to the trash after verifying ownership", async () => {
+    const { lifecycleService, service } = buildService();
 
     await service.deleteForBook({ bookId: BOOK_ID, quoteId: QUOTE_ID, userId: USER_ID });
 
-    expect(repository.delete).toHaveBeenCalledWith({ quoteId: QUOTE_ID });
+    expect(lifecycleService.softDelete).toHaveBeenCalledWith({
+      quoteId: QUOTE_ID,
+      userId: USER_ID,
+    });
   });
 });
 

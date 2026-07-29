@@ -83,6 +83,7 @@ function makeBookNote(overrides: Partial<NoteWithEntity> = {}): NoteWithEntity {
     chapter: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     customCategory: null,
+    deletedAt: null,
     entityType: "book",
     id: NOTE_ID,
     isFavorite: false,
@@ -145,12 +146,6 @@ describe("NotesService ownership", () => {
       NotFoundError,
     );
     expect(update).not.toHaveBeenCalled();
-  });
-
-  it("rejects deleting a note that was not removed", async () => {
-    const { service } = createService({ deleteCount: 0 });
-
-    await expect(service.delete(USER_ID, NOTE_ID)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 

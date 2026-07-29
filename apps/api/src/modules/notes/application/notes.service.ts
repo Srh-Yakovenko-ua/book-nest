@@ -84,13 +84,6 @@ export class NotesService {
     return this.toView(created);
   }
 
-  async delete(userId: string, noteId: string): Promise<void> {
-    const deleted = await this.notesRepository.deleteOwned(userId, noteId);
-    if (deleted === 0) {
-      throw new NotFoundError("Note not found", { code: NOTE_ERROR_CODES.noteNotFound });
-    }
-  }
-
   async editNote(userId: string, noteId: string, input: UpdateNoteInput): Promise<NoteView> {
     const current = await this.notesRepository.findOwnedById(userId, noteId);
     if (current === null) {

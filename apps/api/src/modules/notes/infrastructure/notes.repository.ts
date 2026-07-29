@@ -44,7 +44,7 @@ const EMPTY_NOTE_COUNTS: z.infer<typeof NoteSummaryCountsRowSchema> = {
   withSpoilerCount: 0,
 };
 
-const NOTE_ON_ACTIVE_BOOK: Prisma.NoteWhereInput = {
+const NOTE_ON_ACTIVE_ENTITY: Prisma.NoteWhereInput = {
   AND: [
     { OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }] },
     { OR: [{ seriesId: null }, { series: SOFT_DELETE_SCOPE.active }] },
@@ -127,6 +127,19 @@ type ListNotesInput = NotesFilterInput & {
   take: number;
 };
 
+const trashedNoteSelect = {
+  book: { select: { title: true } },
+  deletedAt: true,
+  entityType: true,
+  id: true,
+  series: { select: { name: true } },
+  text: true,
+} satisfies Prisma.NoteSelect;
+
+export type TrashedNoteRow = TrashedNoteSelection & { deletedAt: Date };
+
+type TrashedNoteSelection = Prisma.NoteGetPayload<{ select: typeof trashedNoteSelect }>;
+
 @Injectable()
 export class NotesRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -135,26 +148,68 @@ export class NotesRepository {
     return this.prisma.note.count({ where: buildNotesWhere(filter) });
   }
 
+  countTrashed({ userId }: { userId: string }): Promise<number> {
+    return this.prisma.note.count({ where: { ...SOFT_DELETE_SCOPE.trashed, userId } });
+  }
+
   create(data: CreateNoteData): Promise<NoteWithEntity> {
     return this.prisma.note.create({ data, ...noteEntityArgs });
   }
 
-  async deleteOwned(userId: string, noteId: string): Promise<number> {
-    const result = await this.prisma.note.deleteMany({ where: { id: noteId, userId } });
-    return result.count;
+  findForPurge({
+    noteId,
+    userId,
+  }: {
+    noteId: string;
+    userId: string;
+  }): Promise<Nullable<{ deletedAt: Nullable<Date> }>> {
+    return this.prisma.note.findFirst({
+      select: { deletedAt: true },
+      where: { id: noteId, userId },
+    });
   }
 
   findOwnedById(userId: string, noteId: string): Promise<Nullable<NoteWithEntity>> {
     return this.prisma.note.findFirst({
-      where: { AND: [{ id: noteId, userId }, NOTE_ON_ACTIVE_BOOK] },
+      where: { AND: [{ ...SOFT_DELETE_SCOPE.active, id: noteId, userId }, NOTE_ON_ACTIVE_ENTITY] },
       ...noteEntityArgs,
     });
+  }
+
+  findPurgeCandidates({
+    deletedBefore,
+    limit,
+  }: {
+    deletedBefore: Date;
+    limit: number;
+  }): Promise<{ id: string; userId: string }[]> {
+    return this.prisma.note.findMany({
+      orderBy: { deletedAt: "asc" },
+      select: { id: true, userId: true },
+      take: limit,
+      where: { deletedAt: { lt: deletedBefore } },
+    });
+  }
+
+  async hardDeleteIfTrashed({
+    deletedBefore,
+    noteId,
+    userId,
+  }: {
+    deletedBefore: Date;
+    noteId: string;
+    userId: string;
+  }): Promise<number> {
+    const purged = await this.prisma.note.deleteMany({
+      where: { deletedAt: { lt: deletedBefore }, id: noteId, userId },
+    });
+    return purged.count;
   }
 
   listByBook(userId: string, bookId: string): Promise<NoteWithEntity[]> {
     return this.prisma.note.findMany({
       orderBy: BOOK_NOTES_ORDER_BY,
-      where: { book: SOFT_DELETE_SCOPE.active, bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, bookId, userId },
       ...noteEntityArgs,
     });
   }
@@ -162,7 +217,7 @@ export class NotesRepository {
   listBySeries(userId: string, seriesId: string): Promise<NoteWithEntity[]> {
     return this.prisma.note.findMany({
       orderBy: SERIES_NOTES_ORDER_BY,
-      where: { series: SOFT_DELETE_SCOPE.active, seriesId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, series: SOFT_DELETE_SCOPE.active, seriesId, userId },
       ...noteEntityArgs,
     });
   }
@@ -175,6 +230,49 @@ export class NotesRepository {
       where: buildNotesWhere(filter),
       ...noteEntityArgs,
     });
+  }
+
+  async listTrashed({
+    skip,
+    take,
+    userId,
+  }: {
+    skip: number;
+    take: number;
+    userId: string;
+  }): Promise<TrashedNoteRow[]> {
+    const rows = await this.prisma.note.findMany({
+      orderBy: [{ deletedAt: "desc" }, { id: "asc" }],
+      select: trashedNoteSelect,
+      skip,
+      take,
+      where: { ...SOFT_DELETE_SCOPE.trashed, userId },
+    });
+    return rows.filter(isTrashedNote);
+  }
+
+  async restore({ noteId, userId }: { noteId: string; userId: string }): Promise<number> {
+    const restored = await this.prisma.note.updateMany({
+      data: { deletedAt: null },
+      where: { AND: [{ ...SOFT_DELETE_SCOPE.trashed, id: noteId, userId }, NOTE_ON_ACTIVE_ENTITY] },
+    });
+    return restored.count;
+  }
+
+  async softDelete({
+    deletedAt,
+    noteId,
+    userId,
+  }: {
+    deletedAt: Date;
+    noteId: string;
+    userId: string;
+  }): Promise<number> {
+    const deleted = await this.prisma.note.updateMany({
+      data: { deletedAt },
+      where: { ...SOFT_DELETE_SCOPE.active, id: noteId, userId },
+    });
+    return deleted.count;
   }
 
   async summaryCounts(userId: string): Promise<NoteSummaryCounts> {
@@ -192,6 +290,7 @@ export class NotesRepository {
         LEFT JOIN books book ON book.id = note.book_id
         LEFT JOIN series series ON series.id = note.series_id
         WHERE note.user_id = ${userId}::uuid
+          AND note.deleted_at IS NULL
           AND (note.book_id IS NULL OR book.deleted_at IS NULL)
           AND (note.series_id IS NULL OR series.deleted_at IS NULL)
       `),
@@ -199,7 +298,12 @@ export class NotesRepository {
         distinct: ["customCategory"],
         orderBy: { customCategory: "asc" },
         select: { customCategory: true },
-        where: { AND: [{ customCategory: { not: null }, userId }, NOTE_ON_ACTIVE_BOOK] },
+        where: {
+          AND: [
+            { ...SOFT_DELETE_SCOPE.active, customCategory: { not: null }, userId },
+            NOTE_ON_ACTIVE_ENTITY,
+          ],
+        },
       }),
     ]);
 
@@ -222,7 +326,7 @@ export class NotesRepository {
   update({ fields, noteId, userId }: UpdateNoteArgs): Promise<NoteWithEntity> {
     return this.prisma.note.update({
       data: fields,
-      where: { id: noteId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: noteId, userId },
       ...noteEntityArgs,
     });
   }
@@ -287,7 +391,11 @@ function buildNotesWhere({
   seriesId,
   userId,
 }: NotesFilterInput): Prisma.NoteWhereInput {
-  const where: Prisma.NoteWhereInput = { AND: [NOTE_ON_ACTIVE_BOOK], userId };
+  const where: Prisma.NoteWhereInput = {
+    AND: [NOTE_ON_ACTIVE_ENTITY],
+    ...SOFT_DELETE_SCOPE.active,
+    userId,
+  };
 
   if (entityType !== "all") {
     where.entityType = entityType;
@@ -319,4 +427,8 @@ function buildNotesWhere({
   }
 
   return where;
+}
+
+function isTrashedNote(row: TrashedNoteSelection): row is TrashedNoteRow {
+  return row.deletedAt !== null;
 }

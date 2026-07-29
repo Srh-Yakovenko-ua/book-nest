@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 import { MediaViewSchema } from "./media.js";
+import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const QUOTE_TEXT_MAX = 1000;
 const QUOTE_CHAPTER_MAX = 80;
@@ -151,3 +152,29 @@ export const QuotesSummaryViewSchema = z.object({
 });
 
 export type QuotesSummaryView = z.infer<typeof QuotesSummaryViewSchema>;
+
+export const QuoteDeletionResultSchema = TrashDeletionResultSchema.extend({
+  quoteId: z.string(),
+});
+
+export type QuoteDeletionResult = z.infer<typeof QuoteDeletionResultSchema>;
+
+export const TrashedQuoteViewSchema = z.object({
+  bookTitle: z.string(),
+  deletedAt: z.iso.datetime(),
+  id: z.string(),
+  purgeAt: z.iso.datetime(),
+  text: z.string(),
+});
+
+export type TrashedQuoteView = z.infer<typeof TrashedQuoteViewSchema>;
+
+export const TrashedQuotesQuerySchema = z.object({
+  ...paginationQueryFields({ pageSizeDefault: TRASH_PAGE_SIZE_DEFAULT }),
+});
+
+export type TrashedQuotesQuery = z.infer<typeof TrashedQuotesQuerySchema>;
+
+export const PaginatedTrashedQuotesSchema = createPaginatedSchema(TrashedQuoteViewSchema);
+
+export type PaginatedTrashedQuotes = z.infer<typeof PaginatedTrashedQuotesSchema>;

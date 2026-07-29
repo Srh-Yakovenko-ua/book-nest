@@ -66,12 +66,28 @@ type ListQuotesInput = QuotesFilterInput & {
   take: number;
 };
 
+const trashedQuoteSelect = {
+  book: { select: { title: true } },
+  deletedAt: true,
+  id: true,
+  text: true,
+} satisfies Prisma.QuoteSelect;
+
+export type TrashedQuoteRow = TrashedQuoteSelection & { deletedAt: Date };
+
+type TrashedQuoteSelection = Prisma.QuoteGetPayload<{ select: typeof trashedQuoteSelect }>;
+
 @Injectable()
 export class QuotesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async bookCounts(userId: string, bookId: string): Promise<BookQuoteCounts> {
-    const base: Prisma.QuoteWhereInput = { bookId, userId };
+    const base: Prisma.QuoteWhereInput = {
+      ...SOFT_DELETE_SCOPE.active,
+      book: SOFT_DELETE_SCOPE.active,
+      bookId,
+      userId,
+    };
     const [total, favorites, spoiler] = await Promise.all([
       this.prisma.quote.count({ where: base }),
       this.prisma.quote.count({ where: { ...base, isFavorite: true } }),
@@ -83,6 +99,10 @@ export class QuotesRepository {
 
   count(filter: QuotesFilterInput): Promise<number> {
     return this.prisma.quote.count({ where: buildQuotesWhere(filter) });
+  }
+
+  countTrashed({ userId }: { userId: string }): Promise<number> {
+    return this.prisma.quote.count({ where: { ...SOFT_DELETE_SCOPE.trashed, userId } });
   }
 
   create(
@@ -100,12 +120,17 @@ export class QuotesRepository {
     return client.quote.create({ data: { ...data, bookId, userId }, ...quoteWithBook });
   }
 
-  async delete(
-    { quoteId }: { quoteId: string },
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<number> {
-    const deleted = await client.quote.deleteMany({ where: { id: quoteId } });
-    return deleted.count;
+  findForPurge({
+    quoteId,
+    userId,
+  }: {
+    quoteId: string;
+    userId: string;
+  }): Promise<Nullable<{ deletedAt: Nullable<Date> }>> {
+    return this.prisma.quote.findFirst({
+      select: { deletedAt: true },
+      where: { id: quoteId, userId },
+    });
   }
 
   findOwnedBook(userId: string, bookId: string): Promise<Nullable<OwnedBook>> {
@@ -125,9 +150,45 @@ export class QuotesRepository {
     userId: string;
   }): Promise<Nullable<QuoteWithBook>> {
     return this.prisma.quote.findFirst({
-      where: { book: SOFT_DELETE_SCOPE.active, bookId, id: quoteId, userId },
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        book: SOFT_DELETE_SCOPE.active,
+        bookId,
+        id: quoteId,
+        userId,
+      },
       ...quoteWithBook,
     });
+  }
+
+  findPurgeCandidates({
+    deletedBefore,
+    limit,
+  }: {
+    deletedBefore: Date;
+    limit: number;
+  }): Promise<{ id: string; userId: string }[]> {
+    return this.prisma.quote.findMany({
+      orderBy: { deletedAt: "asc" },
+      select: { id: true, userId: true },
+      take: limit,
+      where: { deletedAt: { lt: deletedBefore } },
+    });
+  }
+
+  async hardDeleteIfTrashed({
+    deletedBefore,
+    quoteId,
+    userId,
+  }: {
+    deletedBefore: Date;
+    quoteId: string;
+    userId: string;
+  }): Promise<number> {
+    const purged = await this.prisma.quote.deleteMany({
+      where: { deletedAt: { lt: deletedBefore }, id: quoteId, userId },
+    });
+    return purged.count;
   }
 
   list({ skip, sort, take, ...filter }: ListQuotesInput): Promise<QuoteWithBook[]> {
@@ -143,9 +204,52 @@ export class QuotesRepository {
   listForBook(userId: string, bookId: string): Promise<QuoteWithBook[]> {
     return this.prisma.quote.findMany({
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-      where: { book: SOFT_DELETE_SCOPE.active, bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, bookId, userId },
       ...quoteWithBook,
     });
+  }
+
+  async listTrashed({
+    skip,
+    take,
+    userId,
+  }: {
+    skip: number;
+    take: number;
+    userId: string;
+  }): Promise<TrashedQuoteRow[]> {
+    const rows = await this.prisma.quote.findMany({
+      orderBy: [{ deletedAt: "desc" }, { id: "asc" }],
+      select: trashedQuoteSelect,
+      skip,
+      take,
+      where: { ...SOFT_DELETE_SCOPE.trashed, userId },
+    });
+    return rows.filter(isTrashedQuote);
+  }
+
+  async restore({ quoteId, userId }: { quoteId: string; userId: string }): Promise<number> {
+    const restored = await this.prisma.quote.updateMany({
+      data: { deletedAt: null },
+      where: { ...SOFT_DELETE_SCOPE.trashed, book: SOFT_DELETE_SCOPE.active, id: quoteId, userId },
+    });
+    return restored.count;
+  }
+
+  async softDelete({
+    deletedAt,
+    quoteId,
+    userId,
+  }: {
+    deletedAt: Date;
+    quoteId: string;
+    userId: string;
+  }): Promise<number> {
+    const deleted = await this.prisma.quote.updateMany({
+      data: { deletedAt },
+      where: { ...SOFT_DELETE_SCOPE.active, id: quoteId, userId },
+    });
+    return deleted.count;
   }
 
   async summaryData(userId: string): Promise<QuotesSummaryData> {
@@ -159,12 +263,13 @@ export class QuotesRepository {
         FROM quotes quote
         JOIN books book ON book.id = quote.book_id
         WHERE quote.user_id = ${userId}::uuid
+          AND quote.deleted_at IS NULL
           AND book.deleted_at IS NULL
       `),
       this.prisma.quote.groupBy({
         _count: { _all: true },
         by: ["bookId"],
-        where: { book: SOFT_DELETE_SCOPE.active, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, userId },
       }),
     ]);
 
@@ -225,6 +330,10 @@ export class QuotesRepository {
       ];
     });
   }
+}
+
+function isTrashedQuote(row: TrashedQuoteSelection): row is TrashedQuoteRow {
+  return row.deletedAt !== null;
 }
 
 const ID_TIEBREAKER: Prisma.QuoteOrderByWithRelationInput = { id: "asc" };
@@ -295,7 +404,11 @@ function buildQuotesWhere({
   search,
   userId,
 }: QuotesFilterInput): Prisma.QuoteWhereInput {
-  const where: Prisma.QuoteWhereInput = { book: SOFT_DELETE_SCOPE.active, userId };
+  const where: Prisma.QuoteWhereInput = {
+    ...SOFT_DELETE_SCOPE.active,
+    book: SOFT_DELETE_SCOPE.active,
+    userId,
+  };
 
   if (bookId !== undefined) {
     where.bookId = bookId;

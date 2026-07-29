@@ -345,13 +345,13 @@ describe("PATCH /api/books/:bookId/quotes/:quoteId", () => {
 });
 
 describe("DELETE /api/books/:bookId/quotes/:quoteId", () => {
-  it("deletes the quote and removes it from both the book and global lists", async () => {
+  it("trashes the quote and removes it from both the book and global lists", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const created = await addQuote(accessToken, bookId, { text: "temporary" });
 
     const deleteRes = await deleteQuote(accessToken, bookId, created.body.id);
-    expect(deleteRes.status).toBe(204);
+    expect(deleteRes.status).toBe(200);
 
     const bookQuotes = await listBookQuotes(accessToken, bookId);
     expect(bookQuotes.body.totalCount).toBe(0);
