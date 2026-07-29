@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { SeriesModel } from "../../../generated/prisma/models.js";
 
+import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
@@ -119,9 +120,30 @@ type SearchSeriesInput = {
   userId: string;
 };
 
+const trashedSeriesSelect = {
+  _count: { select: { books: true } },
+  deletedAt: true,
+  id: true,
+  name: true,
+} satisfies Prisma.SeriesSelect;
+
+export type TrashedSeriesRow = TrashedSeriesSelection & { deletedAt: Date };
+
+type TrashedSeriesSelection = Prisma.SeriesGetPayload<{ select: typeof trashedSeriesSelect }>;
+
 @Injectable()
 export class SeriesRepository {
   constructor(private readonly prisma: PrismaService) {}
+
+  async acquireCreateLock(
+    userId: string,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await acquireAdvisoryLock(
+      { classId: ADVISORY_LOCK_CLASS.series, key: `series:create:${userId}` },
+      client,
+    );
+  }
 
   countBooksInSeries(userId: string): Promise<number> {
     return this.prisma.book.count({
@@ -131,6 +153,10 @@ export class SeriesRepository {
 
   countOwned({ authorIds, query, userId }: CountSeriesInput): Promise<number> {
     return this.prisma.series.count({ where: buildOwnedWhere({ authorIds, query, userId }) });
+  }
+
+  countTrashed({ userId }: { userId: string }): Promise<number> {
+    return this.prisma.series.count({ where: { ...SOFT_DELETE_SCOPE.trashed, userId } });
   }
 
   create(
@@ -147,21 +173,25 @@ export class SeriesRepository {
     });
   }
 
-  deleteOwned(userId: string, id: string, client?: Prisma.TransactionClient): Promise<void> {
-    return runInClient({ client, prisma: this.prisma }, async (tx) => {
-      await tx.book.updateMany({
-        data: { partNumber: null, seriesId: null },
-        where: { ...SOFT_DELETE_SCOPE.active, seriesId: id, userId },
+  async createByNormalized(
+    { authorIds, data, userId }: CreateSeriesInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<SeriesModel> {
+    const series = await client.series.create({ data: { ...data, userId } });
+    if (authorIds.length > 0) {
+      await client.seriesAuthor.createMany({
+        data: authorIds.map((authorId) => ({ authorId, seriesId: series.id })),
+        skipDuplicates: true,
       });
-      const deleted = await tx.series.deleteMany({ where: { id, userId } });
-      if (deleted.count === 0) {
-        throw new NotFoundError("Series not found");
-      }
-    });
+    }
+    return series;
   }
 
   findAllOwned(userId: string): Promise<SeriesWithBookCount[]> {
-    return this.prisma.series.findMany({ where: { userId }, ...seriesWithBookCountArgs });
+    return this.prisma.series.findMany({
+      where: { ...SOFT_DELETE_SCOPE.active, userId },
+      ...seriesWithBookCountArgs,
+    });
   }
 
   findByNormalized(
@@ -169,7 +199,9 @@ export class SeriesRepository {
     normalizedName: string,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<SeriesModel>> {
-    return client.series.findFirst({ where: { normalizedName, userId } });
+    return client.series.findFirst({
+      where: { ...SOFT_DELETE_SCOPE.active, normalizedName, userId },
+    });
   }
 
   findFavoriteContinuationBooks(userId: string): Promise<FavoriteContinuationBookRow[]> {
@@ -184,20 +216,104 @@ export class SeriesRepository {
     });
   }
 
+  findForPurge({
+    seriesId,
+    userId,
+  }: {
+    seriesId: string;
+    userId: string;
+  }): Promise<Nullable<{ deletedAt: Nullable<Date> }>> {
+    return this.prisma.series.findFirst({
+      select: { deletedAt: true },
+      where: { id: seriesId, userId },
+    });
+  }
+
   findOwnedById(
     userId: string,
     id: string,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<SeriesModel>> {
-    return client.series.findFirst({ where: { id, userId } });
+    return client.series.findFirst({ where: { ...SOFT_DELETE_SCOPE.active, id, userId } });
   }
 
   findOwnedDetailsById(userId: string, id: string): Promise<Nullable<SeriesWithDetails>> {
-    return this.prisma.series.findFirst({ where: { id, userId }, ...seriesDetailsArgs });
+    return this.prisma.series.findFirst({
+      where: { ...SOFT_DELETE_SCOPE.active, id, userId },
+      ...seriesDetailsArgs,
+    });
   }
 
   findOwnedWithCountById(userId: string, id: string): Promise<Nullable<SeriesWithBookCount>> {
-    return this.prisma.series.findFirst({ where: { id, userId }, ...seriesWithBookCountArgs });
+    return this.prisma.series.findFirst({
+      where: { ...SOFT_DELETE_SCOPE.active, id, userId },
+      ...seriesWithBookCountArgs,
+    });
+  }
+
+  findPurgeCandidates({
+    deletedBefore,
+    limit,
+  }: {
+    deletedBefore: Date;
+    limit: number;
+  }): Promise<{ id: string; userId: string }[]> {
+    return this.prisma.series.findMany({
+      orderBy: { deletedAt: "asc" },
+      select: { id: true, userId: true },
+      take: limit,
+      where: { deletedAt: { lt: deletedBefore } },
+    });
+  }
+
+  hardDeleteIfTrashed(
+    { deletedBefore, seriesId, userId }: { deletedBefore: Date; seriesId: string; userId: string },
+    client?: Prisma.TransactionClient,
+  ): Promise<number> {
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const purgeable = await tx.series.findFirst({
+        select: { id: true },
+        where: { deletedAt: { lt: deletedBefore }, id: seriesId, userId },
+      });
+      if (purgeable === null) {
+        return 0;
+      }
+      await tx.book.updateMany({
+        data: { partNumber: null, seriesId: null },
+        where: { seriesId, userId },
+      });
+      const purged = await tx.series.deleteMany({
+        where: { deletedAt: { lt: deletedBefore }, id: seriesId, userId },
+      });
+      return purged.count;
+    });
+  }
+
+  async listTrashed({
+    skip,
+    take,
+    userId,
+  }: {
+    skip: number;
+    take: number;
+    userId: string;
+  }): Promise<TrashedSeriesRow[]> {
+    const rows = await this.prisma.series.findMany({
+      orderBy: [{ deletedAt: "desc" }, { id: "asc" }],
+      select: trashedSeriesSelect,
+      skip,
+      take,
+      where: { ...SOFT_DELETE_SCOPE.trashed, userId },
+    });
+    return rows.filter(isTrashedSeries);
+  }
+
+  async restore({ seriesId, userId }: { seriesId: string; userId: string }): Promise<number> {
+    const restored = await this.prisma.series.updateMany({
+      data: { deletedAt: null },
+      where: { ...SOFT_DELETE_SCOPE.trashed, id: seriesId, userId },
+    });
+    return restored.count;
   }
 
   searchOwned({
@@ -216,6 +332,22 @@ export class SeriesRepository {
     });
   }
 
+  async softDelete({
+    deletedAt,
+    seriesId,
+    userId,
+  }: {
+    deletedAt: Date;
+    seriesId: string;
+    userId: string;
+  }): Promise<number> {
+    const deleted = await this.prisma.series.updateMany({
+      data: { deletedAt },
+      where: { ...SOFT_DELETE_SCOPE.active, id: seriesId, userId },
+    });
+    return deleted.count;
+  }
+
   updateOwned(
     userId: string,
     id: string,
@@ -223,7 +355,10 @@ export class SeriesRepository {
     client?: Prisma.TransactionClient,
   ): Promise<SeriesWithBookCount> {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
-      const updated = await tx.series.updateMany({ data: data.fields, where: { id, userId } });
+      const updated = await tx.series.updateMany({
+        data: data.fields,
+        where: { ...SOFT_DELETE_SCOPE.active, id, userId },
+      });
       if (updated.count === 0) {
         throw new NotFoundError("Series not found");
       }
@@ -237,31 +372,16 @@ export class SeriesRepository {
         }
       }
 
-      return tx.series.findFirstOrThrow({ where: { id, userId }, ...seriesWithBookCountArgs });
-    });
-  }
-
-  async upsertByNormalized(
-    { authorIds, data, userId }: CreateSeriesInput,
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<SeriesModel> {
-    const series = await client.series.upsert({
-      create: { ...data, userId },
-      update: { normalizedName: data.normalizedName },
-      where: { userId_normalizedName: { normalizedName: data.normalizedName, userId } },
-    });
-    if (authorIds.length > 0) {
-      await client.seriesAuthor.createMany({
-        data: authorIds.map((authorId) => ({ authorId, seriesId: series.id })),
-        skipDuplicates: true,
+      return tx.series.findFirstOrThrow({
+        where: { ...SOFT_DELETE_SCOPE.active, id, userId },
+        ...seriesWithBookCountArgs,
       });
-    }
-    return series;
+    });
   }
 }
 
 function buildOwnedWhere({ authorIds, query, userId }: OwnedWhereInput): Prisma.SeriesWhereInput {
-  const where: Prisma.SeriesWhereInput = { userId };
+  const where: Prisma.SeriesWhereInput = { ...SOFT_DELETE_SCOPE.active, userId };
 
   if (query !== undefined && query.length > 0) {
     where.name = { contains: query, mode: "insensitive" };
@@ -282,4 +402,8 @@ function buildOwnedWhere({ authorIds, query, userId }: OwnedWhereInput): Prisma.
   }
 
   return where;
+}
+
+function isTrashedSeries(row: TrashedSeriesSelection): row is TrashedSeriesRow {
+  return row.deletedAt !== null;
 }

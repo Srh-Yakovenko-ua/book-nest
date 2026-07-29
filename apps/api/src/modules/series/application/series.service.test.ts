@@ -180,10 +180,10 @@ const SERIES_ID = "22222222-2222-4222-8222-222222222222";
 const OTHER_ID = "33333333-3333-4333-8333-333333333333";
 
 function buildService(overrides: {
+  createByNormalized?: Error | SeriesModel;
   findByNormalized?: Nullable<SeriesModel>;
   findOwnedById?: Nullable<SeriesModel>;
   searchOwned?: SeriesWithBookCount[];
-  upsertByNormalized?: Error | SeriesModel;
 }): {
   authorsService: {
     resolveReferences: Mock;
@@ -192,28 +192,31 @@ function buildService(overrides: {
     assertGenresSelectable: Mock;
   };
   repository: {
+    acquireCreateLock: Mock;
     countOwned: Mock;
+    createByNormalized: Mock;
     findByNormalized: Mock;
     findOwnedById: Mock;
     searchOwned: Mock;
-    upsertByNormalized: Mock;
   };
   service: SeriesService;
 } {
-  const upsertByNormalized = vi.fn();
-  if (overrides.upsertByNormalized instanceof Error) {
-    upsertByNormalized.mockRejectedValue(overrides.upsertByNormalized);
+  const acquireCreateLock = vi.fn().mockResolvedValue(undefined);
+  const createByNormalized = vi.fn();
+  if (overrides.createByNormalized instanceof Error) {
+    createByNormalized.mockRejectedValue(overrides.createByNormalized);
   } else {
-    upsertByNormalized.mockResolvedValue(overrides.upsertByNormalized ?? series());
+    createByNormalized.mockResolvedValue(overrides.createByNormalized ?? series());
   }
 
   const searchOwned = overrides.searchOwned ?? [];
   const repository = {
+    acquireCreateLock,
     countOwned: vi.fn().mockResolvedValue(searchOwned.length),
+    createByNormalized,
     findByNormalized: vi.fn().mockResolvedValue(overrides.findByNormalized ?? null),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
     searchOwned: vi.fn().mockResolvedValue(searchOwned),
-    upsertByNormalized,
   };
 
   const authorsService = {
@@ -243,6 +246,7 @@ function buildService(overrides: {
 function series(overrides: Partial<SeriesModel> = {}): SeriesModel {
   return {
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    deletedAt: null,
     description: null,
     genres: [],
     id: SERIES_ID,
@@ -315,7 +319,7 @@ describe("SeriesService.resolveForBook by id", () => {
 
     await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID });
 
-    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+    expect(repository.createByNormalized).not.toHaveBeenCalled();
   });
 });
 
@@ -331,7 +335,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     });
 
     expect(resolved.id).toBe(OTHER_ID);
-    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+    expect(repository.createByNormalized).not.toHaveBeenCalled();
   });
 
   it("matches an existing series case-insensitively and whitespace-collapsed", async () => {
@@ -345,11 +349,11 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "throne of glass", undefined);
   });
 
-  it("upserts a series with the provided fields when no match exists", async () => {
+  it("creates a series with the provided fields when no match exists", async () => {
     const created = series({ id: SERIES_ID });
     const { repository, service } = buildService({
+      createByNormalized: created,
       findByNormalized: null,
-      upsertByNormalized: created,
     });
 
     const resolved = await service.resolveForBook({
@@ -364,7 +368,7 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     });
 
     expect(resolved.id).toBe(SERIES_ID);
-    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+    expect(repository.createByNormalized).toHaveBeenCalledWith(
       {
         authorIds: [],
         data: {
@@ -381,10 +385,10 @@ describe("SeriesService.resolveForBook by newSeries", () => {
     );
   });
 
-  it("propagates errors raised by the upsert", async () => {
+  it("propagates errors raised by the create", async () => {
     const { service } = buildService({
+      createByNormalized: new Error("connection lost"),
       findByNormalized: null,
-      upsertByNormalized: new Error("connection lost"),
     });
 
     await expect(
@@ -406,10 +410,10 @@ describe("SeriesService.resolveForBook author linking", () => {
   const AUTHOR_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const AUTHOR_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-  it("links the resolved newSeries authors to the upserted series in resolver order", async () => {
+  it("links the resolved newSeries authors to the created series in resolver order", async () => {
     const { authorsService, repository, service } = buildService({
+      createByNormalized: series({ id: SERIES_ID }),
       findByNormalized: null,
-      upsertByNormalized: series({ id: SERIES_ID }),
     });
     authorsService.resolveReferences.mockResolvedValue([
       { id: AUTHOR_A, name: "Sarah J. Maas" },
@@ -430,7 +434,7 @@ describe("SeriesService.resolveForBook author linking", () => {
       references: [{ id: AUTHOR_A }, { id: AUTHOR_B }],
       userId: USER_ID,
     });
-    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+    expect(repository.createByNormalized).toHaveBeenCalledWith(
       {
         authorIds: [AUTHOR_A, AUTHOR_B],
         data: expect.objectContaining({
@@ -445,8 +449,8 @@ describe("SeriesService.resolveForBook author linking", () => {
 
   it("falls back to the book's authors when newSeries omits an authors field", async () => {
     const { authorsService, repository, service } = buildService({
+      createByNormalized: series({ id: SERIES_ID }),
       findByNormalized: null,
-      upsertByNormalized: series({ id: SERIES_ID }),
     });
 
     await service.resolveForBook({
@@ -459,7 +463,7 @@ describe("SeriesService.resolveForBook author linking", () => {
       references: [],
       userId: USER_ID,
     });
-    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+    expect(repository.createByNormalized).toHaveBeenCalledWith(
       expect.objectContaining({ authorIds: [AUTHOR_A, AUTHOR_B] }),
       undefined,
     );
@@ -467,8 +471,8 @@ describe("SeriesService.resolveForBook author linking", () => {
 
   it("prefers explicit newSeries authors over the book's fallback authors", async () => {
     const { authorsService, repository, service } = buildService({
+      createByNormalized: series({ id: SERIES_ID }),
       findByNormalized: null,
-      upsertByNormalized: series({ id: SERIES_ID }),
     });
     authorsService.resolveReferences.mockResolvedValue([{ id: AUTHOR_A, name: "Sarah J. Maas" }]);
 
@@ -483,7 +487,7 @@ describe("SeriesService.resolveForBook author linking", () => {
       userId: USER_ID,
     });
 
-    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+    expect(repository.createByNormalized).toHaveBeenCalledWith(
       expect.objectContaining({ authorIds: [AUTHOR_A] }),
       undefined,
     );
@@ -498,7 +502,7 @@ describe("SeriesService.resolveForBook author linking", () => {
       userId: USER_ID,
     });
 
-    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+    expect(repository.createByNormalized).not.toHaveBeenCalled();
   });
 });
 

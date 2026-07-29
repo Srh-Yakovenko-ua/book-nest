@@ -8,6 +8,7 @@ export const ADVISORY_LOCK_CLASS = Object.freeze({
   listMembership: 4,
   queue: 1,
   reading: 11,
+  series: 12,
   socialLinks: 10,
   storeLinks: 3,
   tags: 2,

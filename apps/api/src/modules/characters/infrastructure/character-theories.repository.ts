@@ -120,7 +120,10 @@ function buildTheoriesWhere({
   userId,
 }: TheoryListFilter): Prisma.CharacterTheoryWhereInput {
   const where: Prisma.CharacterTheoryWhereInput = {
-    OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }],
+    AND: [
+      { OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }] },
+      { OR: [{ seriesId: null }, { series: SOFT_DELETE_SCOPE.active }] },
+    ],
     userId,
   };
   if (characterId !== undefined) {

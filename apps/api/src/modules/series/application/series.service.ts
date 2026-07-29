@@ -139,10 +139,6 @@ export class SeriesService {
     }
   }
 
-  async delete(userId: string, id: string): Promise<void> {
-    await this.seriesRepository.deleteOwned(userId, id);
-  }
-
   async existsOwned({ seriesId, userId }: { seriesId: string; userId: string }): Promise<boolean> {
     const series = await this.seriesRepository.findOwnedById(userId, seriesId);
     return series !== null;
@@ -245,6 +241,7 @@ export class SeriesService {
     }
 
     const normalizedName = normalizeName(newSeries.name);
+    await this.seriesRepository.acquireCreateLock(userId, client);
     const existing = await this.seriesRepository.findByNormalized(userId, normalizedName, client);
     if (existing !== null) {
       return { id: existing.id, totalBooks: existing.totalBooks };
@@ -258,7 +255,7 @@ export class SeriesService {
       userId,
     });
 
-    const created = await this.seriesRepository.upsertByNormalized(
+    const created = await this.seriesRepository.createByNormalized(
       {
         authorIds,
         data: {

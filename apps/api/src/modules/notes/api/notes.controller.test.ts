@@ -527,8 +527,11 @@ describe("cascade and invariants", () => {
     await authed("post", `/api/books/${bookId}/restore`, accessToken).expect(HttpStatus.CREATED);
     expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(2);
 
-    await authed("delete", `/api/series/${seriesId}`, accessToken).expect(HttpStatus.NO_CONTENT);
+    await authed("delete", `/api/series/${seriesId}`, accessToken).expect(HttpStatus.OK);
     expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(1);
+
+    await authed("post", `/api/series/${seriesId}/restore`, accessToken).expect(HttpStatus.CREATED);
+    expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(2);
   });
 
   it("cascades note deletion when the owning user is removed", async () => {

@@ -106,6 +106,7 @@ model Series {
   totalBooks           Int?                        @map("total_books")
   description          String?
   genres               String[]                    @default([])
+  deletedAt            DateTime?                   @map("deleted_at") @db.Timestamptz
   createdAt            DateTime                    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime                    @updatedAt @map("updated_at") @db.Timestamptz
   user                 User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -117,7 +118,7 @@ model Series {
   characterGroups      CharacterGroup[]
   characterTheories    CharacterTheory[]
 
-  @@unique([userId, normalizedName])
+  @@index([userId, deletedAt])
   @@map("series")
 }
 

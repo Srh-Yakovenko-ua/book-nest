@@ -45,7 +45,10 @@ const EMPTY_NOTE_COUNTS: z.infer<typeof NoteSummaryCountsRowSchema> = {
 };
 
 const NOTE_ON_ACTIVE_BOOK: Prisma.NoteWhereInput = {
-  OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }],
+  AND: [
+    { OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }] },
+    { OR: [{ seriesId: null }, { series: SOFT_DELETE_SCOPE.active }] },
+  ],
 };
 
 const noteEntityArgs = {
@@ -159,7 +162,7 @@ export class NotesRepository {
   listBySeries(userId: string, seriesId: string): Promise<NoteWithEntity[]> {
     return this.prisma.note.findMany({
       orderBy: SERIES_NOTES_ORDER_BY,
-      where: { seriesId, userId },
+      where: { series: SOFT_DELETE_SCOPE.active, seriesId, userId },
       ...noteEntityArgs,
     });
   }
@@ -187,8 +190,10 @@ export class NotesRepository {
           (count(DISTINCT note.series_id))::int AS "seriesWithNotesCount"
         FROM notes note
         LEFT JOIN books book ON book.id = note.book_id
+        LEFT JOIN series series ON series.id = note.series_id
         WHERE note.user_id = ${userId}::uuid
           AND (note.book_id IS NULL OR book.deleted_at IS NULL)
+          AND (note.series_id IS NULL OR series.deleted_at IS NULL)
       `),
       this.prisma.note.findMany({
         distinct: ["customCategory"],

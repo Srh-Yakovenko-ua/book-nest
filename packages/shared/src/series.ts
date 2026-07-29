@@ -8,7 +8,12 @@ import {
   QueuePrioritySchema,
   ReadingStatusSchema,
 } from "./book-enums.js";
-import { collapseHorizontalSpaces, collapseSpaces, createPaginatedSchema } from "./common.js";
+import {
+  collapseHorizontalSpaces,
+  collapseSpaces,
+  createPaginatedSchema,
+  paginationQueryFields,
+} from "./common.js";
 import { DeliveryViewSchema } from "./delivery-view.js";
 import { BookGenresSchema } from "./genres.js";
 import { NoHtmlString, queryStringArray } from "./internal.js";
@@ -17,6 +22,7 @@ import { MediaViewSchema } from "./media.js";
 import { BookPublisherRefSchema } from "./publishers.js";
 import { TagViewSchema } from "./tags.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
+import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const SERIES_NAME_MIN = 2;
 const SERIES_NAME_MAX = 120;
@@ -272,3 +278,29 @@ export const FavoriteSeriesContinuationsViewSchema = z.object({
 });
 
 export type FavoriteSeriesContinuationsView = z.infer<typeof FavoriteSeriesContinuationsViewSchema>;
+
+export const SeriesDeletionResultSchema = TrashDeletionResultSchema.extend({
+  seriesId: z.string(),
+});
+
+export type SeriesDeletionResult = z.infer<typeof SeriesDeletionResultSchema>;
+
+export const TrashedSeriesViewSchema = z.object({
+  booksCount: z.number().int(),
+  deletedAt: z.iso.datetime(),
+  id: z.string(),
+  name: z.string(),
+  purgeAt: z.iso.datetime(),
+});
+
+export type TrashedSeriesView = z.infer<typeof TrashedSeriesViewSchema>;
+
+export const TrashedSeriesQuerySchema = z.object({
+  ...paginationQueryFields({ pageSizeDefault: TRASH_PAGE_SIZE_DEFAULT }),
+});
+
+export type TrashedSeriesQuery = z.infer<typeof TrashedSeriesQuerySchema>;
+
+export const PaginatedTrashedSeriesSchema = createPaginatedSchema(TrashedSeriesViewSchema);
+
+export type PaginatedTrashedSeries = z.infer<typeof PaginatedTrashedSeriesSchema>;
