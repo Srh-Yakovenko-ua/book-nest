@@ -2,7 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 
 import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus } from "@nestjs/common";
-import { subMilliseconds } from "date-fns";
+import { subDays } from "date-fns";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -10,6 +10,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -17,10 +18,7 @@ import { BooksModule } from "../../books/books.module.js";
 import { StoragePort } from "../../media/domain/storage.port.js";
 import { CharacterLifecycleService } from "../application/character-lifecycle.service.js";
 import { CharactersModule } from "../characters.module.js";
-import {
-  CHARACTER_PURGE_QUEUE_NAME,
-  CHARACTER_PURGE_WINDOW_MS,
-} from "../domain/character-purge.js";
+import { CHARACTER_PURGE_QUEUE_NAME } from "../domain/character-purge.js";
 
 const MISSING_ID = "99999999-9999-4999-8999-999999999999";
 
@@ -199,7 +197,7 @@ describe("DELETE /api/characters/:characterId (soft delete)", () => {
     expect(addCalls[0]).toMatchObject({
       data: { characterId, userId },
       name: "character-purge",
-      opts: { delay: CHARACTER_PURGE_WINDOW_MS, jobId: characterId },
+      opts: { delay: TRASH_RETENTION.purgeDelayMs, jobId: characterId },
     });
   });
 
@@ -378,7 +376,7 @@ describe("GET /api/characters/:characterId/deletion-preview", () => {
 
 async function backdatePurgeWindow(characterId: string): Promise<void> {
   await prisma.character.update({
-    data: { deletedAt: subMilliseconds(new Date(), CHARACTER_PURGE_WINDOW_MS + 60_000) },
+    data: { deletedAt: subDays(new Date(), TRASH_RETENTION.days + 1) },
     where: { id: characterId },
   });
 }

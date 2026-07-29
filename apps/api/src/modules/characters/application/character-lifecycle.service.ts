@@ -8,15 +8,14 @@ import type { Queue } from "bullmq";
 import { CHARACTER_ERROR_CODES } from "@app/shared";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
-import { addMilliseconds, subMilliseconds } from "date-fns";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { MediaService } from "../../media/index.js";
 import {
   CHARACTER_PURGE_JOB,
   CHARACTER_PURGE_QUEUE_NAME,
-  CHARACTER_PURGE_WINDOW_MS,
   type CharacterPurgeJob,
   collectMediaIds,
 } from "../domain/character-purge.js";
@@ -55,7 +54,7 @@ export class CharacterLifecycleService {
       return;
     }
 
-    const deletedBefore = subMilliseconds(new Date(), CHARACTER_PURGE_WINDOW_MS);
+    const deletedBefore = TRASH_RETENTION.purgeThreshold(new Date());
     const mediaIds = collectMediaIds(character);
     const purged = await this.charactersRepository.hardDeleteIfDeleted({
       characterId,
@@ -110,7 +109,7 @@ export class CharacterLifecycleService {
     return {
       characterId,
       deletedAt: deletedAt.toISOString(),
-      purgeAt: addMilliseconds(deletedAt, CHARACTER_PURGE_WINDOW_MS).toISOString(),
+      purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
     };
   }
 
@@ -128,7 +127,7 @@ export class CharacterLifecycleService {
       await this.purgeQueue.add(
         CHARACTER_PURGE_JOB,
         { characterId, userId },
-        { delay: CHARACTER_PURGE_WINDOW_MS, jobId: characterId },
+        { delay: TRASH_RETENTION.purgeDelayMs, jobId: characterId },
       );
     } catch (error) {
       log.warn({ characterId, err: error }, "failed to enqueue character purge job");

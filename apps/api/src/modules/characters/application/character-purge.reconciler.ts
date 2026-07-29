@@ -1,12 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
-import { subMilliseconds } from "date-fns";
 
 import { createLogger } from "../../../core/logger.js";
-import {
-  CHARACTER_PURGE_RECONCILE_BATCH,
-  CHARACTER_PURGE_WINDOW_MS,
-} from "../domain/character-purge.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
+import { CHARACTER_PURGE_RECONCILE_BATCH } from "../domain/character-purge.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
 import { CharacterLifecycleService } from "./character-lifecycle.service.js";
 
@@ -36,7 +33,7 @@ export class CharacterPurgeReconciler {
   }
 
   private async runSweep(): Promise<void> {
-    const deletedBefore = subMilliseconds(new Date(), CHARACTER_PURGE_WINDOW_MS);
+    const deletedBefore = TRASH_RETENTION.purgeThreshold(new Date());
 
     let candidates: { id: string; userId: string }[];
     try {
