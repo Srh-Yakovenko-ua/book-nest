@@ -25,7 +25,6 @@ import {
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
 import { BulkBooksRepository } from "../infrastructure/bulk-books.repository.js";
-import { BookCoverCleanup } from "./book-cover-cleanup.js";
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
 
@@ -35,7 +34,6 @@ export class BulkBooksService {
     private readonly bulkBooksRepository: BulkBooksRepository,
     private readonly tagsService: TagsService,
     private readonly listsService: ListsService,
-    private readonly coverCleanup: BookCoverCleanup,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -117,12 +115,12 @@ export class BulkBooksService {
     input: BulkBookIds;
     userId: string;
   }): Promise<BulkActionResult> {
-    const { affected, coverMediaIds } = await this.bulkBooksRepository.deleteOwned({
+    const deletedIds = await this.bulkBooksRepository.softDelete({
       bookIds: input.bookIds,
+      deletedAt: new Date(),
       userId,
     });
-    await this.deleteOrphanedCovers({ coverMediaIds, userId });
-    return { affected };
+    return { affected: deletedIds.length };
   }
 
   async setFavorite({
@@ -240,17 +238,5 @@ export class BulkBooksService {
 
       return { failed, updated };
     });
-  }
-
-  private async deleteOrphanedCovers({
-    coverMediaIds,
-    userId,
-  }: {
-    coverMediaIds: string[];
-    userId: string;
-  }): Promise<void> {
-    for (const mediaId of coverMediaIds) {
-      await this.coverCleanup.deleteIfOrphaned({ mediaId, userId });
-    }
   }
 }

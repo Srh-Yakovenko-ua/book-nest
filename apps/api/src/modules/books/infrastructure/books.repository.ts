@@ -23,6 +23,7 @@ import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -31,6 +32,8 @@ import { ListMembershipRepository } from "./list-membership.repository.js";
 import { enforceQueueInvariant } from "./queue-invariant.js";
 
 const log = createLogger("books.repository");
+
+const ACTIVE_BOOK_SQL = Prisma.sql`AND book.deleted_at IS NULL`;
 
 const WISHLIST_MAX_BOOKS = 1000;
 const READING_STATUS_FINISHED = "finished";
@@ -94,7 +97,7 @@ export const withRelations = {
   readingProgress: true,
   series: {
     include: {
-      _count: { select: { books: true } },
+      _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
       authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
       books: {
         select: {
@@ -106,6 +109,7 @@ export const withRelations = {
           title: true,
           updatedAt: true,
         },
+        where: SOFT_DELETE_SCOPE.active,
       },
     },
   },
@@ -116,6 +120,15 @@ export const wishlistWithRelations = {
   ...withRelations,
   storeLinks: { orderBy: { createdAt: "asc" } },
 } satisfies Prisma.BookInclude;
+
+const trashedSelect = {
+  authors: { include: { author: true }, orderBy: { position: "asc" } },
+  coverMedia: true,
+  deletedAt: true,
+  id: true,
+  series: { select: { name: true } },
+  title: true,
+} satisfies Prisma.BookSelect;
 
 const readingSnapshotSelect = {
   pagesCount: true,
@@ -257,6 +270,8 @@ export type ReadingSnapshotRow = Prisma.BookGetPayload<{ select: typeof readingS
 
 export type StatusGuard = { expectedStatuses: OwnershipStatus[] };
 
+export type TrashedBookRow = TrashedBookSelection & { deletedAt: Date };
+
 export type UpdateActiveLoanData = {
   contact: Nullable<string>;
   expectedReturnDate: Nullable<Date>;
@@ -382,6 +397,8 @@ type SeriesPartNumberQuery = {
   seriesId: string;
 };
 
+type TrashedBookSelection = Prisma.BookGetPayload<{ select: typeof trashedSelect }>;
+
 @Injectable()
 export class BooksRepository {
   constructor(
@@ -474,7 +491,7 @@ export class BooksRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       const owned = await tx.book.findFirst({
         select: { id: true },
-        where: { id: bookId, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
       });
       if (owned === null) {
         throw new NotFoundError("Book not found");
@@ -551,6 +568,7 @@ export class BooksRepository {
       FROM book_authors book_author
       JOIN books book ON book.id = book_author.book_id
       WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
         ${ownershipFilter}
     `);
     return z.array(CountRowSchema).parse(rows)[0]?.count ?? 0;
@@ -571,6 +589,7 @@ export class BooksRepository {
       SELECT (count(DISTINCT book.series_id))::int AS "count"
       FROM books book
       WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
         AND book.series_id IS NOT NULL
         ${ownershipFilter}
     `);
@@ -591,6 +610,10 @@ export class BooksRepository {
 
   countForLibrary({ filter }: { filter: LibraryFilter }): Promise<number> {
     return this.prisma.book.count({ where: buildLibraryWhere(filter) });
+  }
+
+  countTrashed({ userId }: { userId: string }): Promise<number> {
+    return this.prisma.book.count({ where: { ...SOFT_DELETE_SCOPE.trashed, userId } });
   }
 
   async create(
@@ -662,6 +685,7 @@ export class BooksRepository {
           (count(*) FILTER (WHERE book.reading_status <> ${READING_STATUS_FINISHED}))::int AS "unfinishedCount"
         FROM books book
         WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
           AND book.dedication IS NOT NULL
           AND book.dedication <> ''
       `),
@@ -669,6 +693,7 @@ export class BooksRepository {
         SELECT DISTINCT genre AS key
         FROM books book, unnest(book.genres) AS genre
         WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
           AND book.dedication IS NOT NULL
           AND book.dedication <> ''
         ORDER BY key ASC
@@ -677,6 +702,7 @@ export class BooksRepository {
         SELECT genre AS key, count(*) AS count
         FROM books book, unnest(book.genres) AS genre
         WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
           AND book.dedication IS NOT NULL
           AND book.dedication <> ''
         GROUP BY genre
@@ -689,6 +715,7 @@ export class BooksRepository {
         JOIN authors author ON author.id = book_author.author_id
         JOIN books book ON book.id = book_author.book_id
         WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
           AND book.dedication IS NOT NULL
           AND book.dedication <> ''
         GROUP BY author.name
@@ -716,14 +743,10 @@ export class BooksRepository {
     };
   }
 
-  deleteOwned(userId: string, id: string): Promise<number> {
-    return this.prisma.book.deleteMany({ where: { id, userId } }).then((result) => result.count);
-  }
-
   async existsOwned({ bookId, userId }: { bookId: string; userId: string }): Promise<boolean> {
     const book = await this.prisma.book.findFirst({
       select: { id: true },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
     return book !== null;
   }
@@ -750,6 +773,7 @@ export class BooksRepository {
         FROM books book
         LEFT JOIN book_reading_progress progress ON progress.book_id = book.id
         WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
           AND book.is_favorite = true
       `),
       this.prisma.bookReadingProgress.aggregate({
@@ -760,6 +784,7 @@ export class BooksRepository {
         SELECT g AS genre, count(*) AS count
         FROM books book, unnest(book.genres) AS g
         WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
           AND book.is_favorite = true
         GROUP BY g
         ORDER BY count DESC, genre ASC
@@ -771,6 +796,7 @@ export class BooksRepository {
         JOIN tags tag ON tag.id = book_tag.tag_id
         JOIN books book ON book.id = book_tag.book_id
         WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
           AND tag.user_id = ${userId}::uuid
           AND book.is_favorite = true
         GROUP BY tag.name
@@ -805,7 +831,7 @@ export class BooksRepository {
   ): Promise<Nullable<BookWithRelations>> {
     return client.book.findFirst({
       include: withRelations,
-      where: { id, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id, userId },
     });
   }
 
@@ -828,14 +854,14 @@ export class BooksRepository {
     return this.prisma.bookReadingProgressEvent.findMany({
       orderBy: [{ date: "asc" }, { createdAt: "asc" }, { id: "asc" }],
       select: { createdAt: true, date: true, id: true, page: true, pagesRead: true },
-      where: { bookId: args.bookId },
+      where: { book: SOFT_DELETE_SCOPE.active, bookId: args.bookId },
     });
   }
 
   async findReadingSnapshotOrThrow(userId: string, bookId: string): Promise<ReadingSnapshotRow> {
     const book = await this.prisma.book.findFirst({
       select: readingSnapshotSelect,
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
     if (book === null) {
       throw new NotFoundError("Book not found");
@@ -852,6 +878,7 @@ export class BooksRepository {
     return client.book.findFirst({
       select: { id: true, title: true },
       where: {
+        ...SOFT_DELETE_SCOPE.active,
         id: excludeBookId === null ? undefined : { not: excludeBookId },
         partNumber,
         seriesId,
@@ -933,6 +960,25 @@ export class BooksRepository {
     });
   }
 
+  async listTrashed({
+    skip,
+    take,
+    userId,
+  }: {
+    skip: number;
+    take: number;
+    userId: string;
+  }): Promise<TrashedBookRow[]> {
+    const rows = await this.prisma.book.findMany({
+      orderBy: [{ deletedAt: "desc" }, { id: "asc" }],
+      select: trashedSelect,
+      skip,
+      take,
+      where: { ...SOFT_DELETE_SCOPE.trashed, userId },
+    });
+    return rows.filter(isTrashed);
+  }
+
   async listWishlistBooks({
     client,
     userId,
@@ -945,7 +991,7 @@ export class BooksRepository {
       include: wishlistWithRelations,
       orderBy: LIBRARY_ORDER_BY.created_desc,
       take: WISHLIST_MAX_BOOKS,
-      where: { ownershipStatus: "want_to_buy", userId },
+      where: { ...SOFT_DELETE_SCOPE.active, ownershipStatus: "want_to_buy", userId },
     });
     if (rows.length === WISHLIST_MAX_BOOKS) {
       log.warn({ cap: WISHLIST_MAX_BOOKS, userId }, "wishlist truncated at the safety cap");
@@ -976,6 +1022,7 @@ export class BooksRepository {
       FROM book_purchase_info purchase
       JOIN books book ON book.id = purchase.book_id
       WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
         AND purchase.store_name IS NOT NULL
         AND btrim(purchase.store_name) <> ''
       GROUP BY purchase.store_name
@@ -1043,6 +1090,14 @@ export class BooksRepository {
     });
   }
 
+  async restore({ bookId, userId }: { bookId: string; userId: string }): Promise<number> {
+    const restored = await this.prisma.book.updateMany({
+      data: { deletedAt: null },
+      where: { ...SOFT_DELETE_SCOPE.trashed, id: bookId, userId },
+    });
+    return restored.count;
+  }
+
   async shiftQueueUpAfter(
     userId: string,
     position: number,
@@ -1050,8 +1105,24 @@ export class BooksRepository {
   ): Promise<void> {
     await client.book.updateMany({
       data: { queuePosition: { decrement: 1 } },
-      where: { queuePosition: { gt: position }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { gt: position }, userId },
     });
+  }
+
+  async softDelete({
+    bookId,
+    deletedAt,
+    userId,
+  }: {
+    bookId: string;
+    deletedAt: Date;
+    userId: string;
+  }): Promise<number> {
+    const deleted = await this.prisma.book.updateMany({
+      data: { deletedAt },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
+    });
+    return deleted.count;
   }
 
   async topGenreKeys({
@@ -1071,6 +1142,7 @@ export class BooksRepository {
       SELECT unnest(genres) AS key, count(*) AS count
       FROM books
       WHERE user_id = ${userId}::uuid
+        AND deleted_at IS NULL
         ${ownershipFilter}
       GROUP BY key
       ORDER BY count DESC, key ASC
@@ -1119,7 +1191,7 @@ export class BooksRepository {
   ): Promise<void> {
     const updated = await this.prisma.bookLoan.updateMany({
       data,
-      where: { book: { userId }, bookId, status: "active" },
+      where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, bookId, status: "active" },
     });
     if (updated.count === 0) {
       throw new NotFoundError("Loan not found");
@@ -1140,7 +1212,7 @@ export class BooksRepository {
 
       const updated = await tx.book.updateMany({
         data: data.fields,
-        where: { id: bookId, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
       });
       if (updated.count === 0) {
         throw new NotFoundError("Book not found");
@@ -1219,7 +1291,10 @@ export class BooksRepository {
         }
       }
 
-      return tx.book.findFirstOrThrow({ include: withRelations, where: { id: bookId, userId } });
+      return tx.book.findFirstOrThrow({
+        include: withRelations,
+        where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
+      });
     });
   }
 
@@ -1239,7 +1314,12 @@ export class BooksRepository {
   ): Promise<GuardedChangeOutcome> {
     const updated = await client.book.updateMany({
       data: fields,
-      where: { id: bookId, ownershipStatus: { in: expectedStatuses }, userId },
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        id: bookId,
+        ownershipStatus: { in: expectedStatuses },
+        userId,
+      },
     });
     if (updated.count > 0) {
       return "applied";
@@ -1247,7 +1327,7 @@ export class BooksRepository {
 
     const exists = await client.book.findFirst({
       select: { id: true },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
     return exists === null ? "not-found" : "status-conflict";
   }
@@ -1434,6 +1514,7 @@ async function applyLoanBlock(
 function buildDedicationsWhere(input: DedicationsFilter): Prisma.BookWhereInput {
   const where: Prisma.BookWhereInput = {
     AND: [{ dedication: { not: null } }, { dedication: { not: "" } }],
+    ...SOFT_DELETE_SCOPE.active,
     userId: input.userId,
   };
 
@@ -1476,7 +1557,7 @@ function buildIntRange({
 }
 
 function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
-  const where: Prisma.BookWhereInput = { userId: filter.userId };
+  const where: Prisma.BookWhereInput = { ...SOFT_DELETE_SCOPE.active, userId: filter.userId };
 
   if (filter.readingStatuses !== undefined) {
     where.readingStatus = { in: filter.readingStatuses };
@@ -1552,4 +1633,8 @@ function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
   }
 
   return where;
+}
+
+function isTrashed(row: TrashedBookSelection): row is TrashedBookRow {
+  return row.deletedAt !== null;
 }

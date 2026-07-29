@@ -9,6 +9,7 @@ const LOCAL_R2_ENDPOINT = "http://127.0.0.1:9000";
 const LOCAL_R2_PUBLIC_BASE_URL = "http://127.0.0.1:9000/book-nest-dev";
 const LOCAL_HOST_PATTERN = /localhost|127\.0\.0\.1|0\.0\.0\.0/;
 const MEDIA_CONCURRENCY_CEILING = { decode: 2, upload: 8 } as const;
+const TRASH_RETENTION_DAYS_CEILING = 365;
 
 const envSchema = z
   .object({
@@ -93,6 +94,12 @@ const envSchema = z
       .enum(["true", "false"])
       .default("false")
       .transform((value) => value === "true"),
+    TRASH_RETENTION_DAYS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(TRASH_RETENTION_DAYS_CEILING)
+      .default(90),
     WEB_BASE_URL: z.string().url().default("http://localhost:3000"),
     WIKIDATA_CONTACT: z.string().default("book-nest/1.0 (+https://book-nest.net)"),
   })
@@ -166,6 +173,7 @@ const envSchema = z
     smtpSecure: raw.SMTP_SECURE,
     smtpUser: raw.SMTP_USER,
     tracingEnabled: raw.TRACING_ENABLED,
+    trashRetentionDays: raw.TRASH_RETENTION_DAYS,
     trustProxy: raw.NODE_ENV === "production",
     webBaseUrl: raw.WEB_BASE_URL,
     wikidataContact: raw.WIKIDATA_CONTACT,

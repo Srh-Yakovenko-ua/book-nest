@@ -13,7 +13,6 @@ import type { TagsService } from "../../tags/application/tags.service.js";
 import type { BulkBooksRepository } from "../infrastructure/bulk-books.repository.js";
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
-import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BulkBooksService } from "./bulk-books.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -21,17 +20,16 @@ const BOOK_A = "22222222-2222-4222-8222-222222222201";
 const BOOK_B = "22222222-2222-4222-8222-222222222202";
 const TAG_ID = "33333333-3333-4333-8333-333333333301";
 const LIST_ID = "44444444-4444-4444-8444-444444444401";
-const MEDIA_ID = "55555555-5555-4555-8555-555555555501";
 
 type BulkRepository = {
   addTags: ReturnType<typeof vi.fn>;
   addToLists: ReturnType<typeof vi.fn>;
   addToReadingQueue: ReturnType<typeof vi.fn>;
-  deleteOwned: ReturnType<typeof vi.fn>;
   findOwnedIds: ReturnType<typeof vi.fn>;
   setFavorite: ReturnType<typeof vi.fn>;
   setOwnershipStatus: ReturnType<typeof vi.fn>;
   setReadingStatus: ReturnType<typeof vi.fn>;
+  softDelete: ReturnType<typeof vi.fn>;
 };
 
 function buildService(
@@ -39,18 +37,16 @@ function buildService(
     addTags?: number;
     addToLists?: number;
     addToReadingQueue?: number;
-    deleteAffected?: number;
-    deleteCoverMediaIds?: string[];
     listIds?: string[];
     ownedBookIds?: string[];
     setFavorite?: number;
     setOwnershipStatus?: number;
     setReadingStatus?: number;
+    softDeletedIds?: string[];
     tagIds?: string[];
   } = {},
 ): {
   bulkBooksRepository: BulkRepository;
-  coverCleanup: { deleteIfOrphaned: ReturnType<typeof vi.fn> };
   listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
   service: BulkBooksService;
   tagsService: { resolveOrCreateMany: ReturnType<typeof vi.fn> };
@@ -59,23 +55,17 @@ function buildService(
     addTags: vi.fn().mockResolvedValue(overrides.addTags ?? 0),
     addToLists: vi.fn().mockResolvedValue(overrides.addToLists ?? 0),
     addToReadingQueue: vi.fn().mockResolvedValue(overrides.addToReadingQueue ?? 0),
-    deleteOwned: vi.fn().mockResolvedValue({
-      affected: overrides.deleteAffected ?? 0,
-      coverMediaIds: overrides.deleteCoverMediaIds ?? [],
-    }),
     findOwnedIds: vi.fn().mockResolvedValue(overrides.ownedBookIds ?? [BOOK_A]),
     setFavorite: vi.fn().mockResolvedValue(overrides.setFavorite ?? 0),
     setOwnershipStatus: vi.fn().mockResolvedValue(overrides.setOwnershipStatus ?? 0),
     setReadingStatus: vi.fn().mockResolvedValue(overrides.setReadingStatus ?? 0),
+    softDelete: vi.fn().mockResolvedValue(overrides.softDeletedIds ?? []),
   };
   const tagsService = {
     resolveOrCreateMany: vi.fn().mockResolvedValue(overrides.tagIds ?? []),
   };
   const listsService = {
     resolveListsForBook: vi.fn().mockResolvedValue(overrides.listIds ?? []),
-  };
-  const coverCleanup = {
-    deleteIfOrphaned: vi.fn().mockResolvedValue(undefined),
   };
   const transactionRunner = {
     run: vi.fn(),
@@ -85,11 +75,10 @@ function buildService(
     bulkBooksRepository as unknown as BulkBooksRepository,
     tagsService as unknown as TagsService,
     listsService as unknown as ListsService,
-    coverCleanup as unknown as BookCoverCleanup,
     transactionRunner as unknown as TransactionRunner,
   );
 
-  return { bulkBooksRepository, coverCleanup, listsService, service, tagsService };
+  return { bulkBooksRepository, listsService, service, tagsService };
 }
 
 describe("BulkBooksService.addTags", () => {
@@ -320,30 +309,27 @@ describe("BulkBooksService.setOwnershipStatus", () => {
 });
 
 describe("BulkBooksService.delete", () => {
-  it("delegates cover cleanup for each removed cover media id", async () => {
-    const { coverCleanup, service } = buildService({
-      deleteAffected: 1,
-      deleteCoverMediaIds: [MEDIA_ID],
-    });
+  it("counts the books the repository actually moved to the trash", async () => {
+    const { bulkBooksRepository, service } = buildService({ softDeletedIds: [BOOK_A, BOOK_B] });
 
-    const result = await service.delete({ input: { bookIds: [BOOK_A] }, userId: USER_ID });
-
-    expect(coverCleanup.deleteIfOrphaned).toHaveBeenCalledWith({
-      mediaId: MEDIA_ID,
+    const result = await service.delete({
+      input: { bookIds: [BOOK_A, BOOK_B] },
       userId: USER_ID,
     });
-    expect(result).toEqual({ affected: 1 });
+
+    expect(bulkBooksRepository.softDelete).toHaveBeenCalledWith({
+      bookIds: [BOOK_A, BOOK_B],
+      deletedAt: expect.any(Date),
+      userId: USER_ID,
+    });
+    expect(result).toEqual({ affected: 2 });
   });
 
-  it("returns the affected count and attempts no cover cleanup when nothing was deleted", async () => {
-    const { coverCleanup, service } = buildService({
-      deleteAffected: 0,
-      deleteCoverMediaIds: [],
-    });
+  it("reports zero affected when no owned book matched", async () => {
+    const { service } = buildService({ softDeletedIds: [] });
 
     const result = await service.delete({ input: { bookIds: [BOOK_A] }, userId: USER_ID });
 
     expect(result).toEqual({ affected: 0 });
-    expect(coverCleanup.deleteIfOrphaned).not.toHaveBeenCalled();
   });
 });

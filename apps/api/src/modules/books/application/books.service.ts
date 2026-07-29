@@ -141,17 +141,6 @@ export class BooksService {
     return this.viewAssembler.viewOf(book);
   }
 
-  async delete(userId: string, bookId: string): Promise<void> {
-    const book = await this.booksRepository.findOwnedById(userId, bookId);
-    if (book === null) {
-      throw new NotFoundError("Book not found");
-    }
-    await this.booksRepository.deleteOwned(userId, bookId);
-    if (book.coverMediaId !== null) {
-      await this.coverCleanup.deleteIfOrphaned({ mediaId: book.coverMediaId, userId });
-    }
-  }
-
   async getById(userId: string, bookId: string): Promise<BookView> {
     const book = await this.booksRepository.findOwnedById(userId, bookId);
     if (book === null) {

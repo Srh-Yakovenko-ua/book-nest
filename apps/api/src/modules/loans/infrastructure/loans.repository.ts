@@ -4,6 +4,7 @@ import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { toIsoDate } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookTextSearchConditions } from "../../books/index.js";
@@ -102,7 +103,9 @@ export class LoansRepository {
         (count(*) FILTER (WHERE loan.remind_to_return = true))::int AS "withReminder",
         (count(*) FILTER (WHERE loan.expected_return_date IS NULL))::int AS "withoutReturnDate"
       FROM book_loans loan
+      JOIN books book ON book.id = loan.book_id
       WHERE loan.user_id = ${userId}::uuid
+        AND book.deleted_at IS NULL
         AND loan.status = ${LOAN_STATUS_ACTIVE}
     `);
 
@@ -182,7 +185,11 @@ function buildLoansWhere({
   type,
   userId,
 }: LoansFilterInput): Prisma.BookLoanWhereInput {
-  const where: Prisma.BookLoanWhereInput = { status: "active", userId };
+  const where: Prisma.BookLoanWhereInput = {
+    book: SOFT_DELETE_SCOPE.active,
+    status: "active",
+    userId,
+  };
 
   if (type !== undefined) {
     where.type = type;

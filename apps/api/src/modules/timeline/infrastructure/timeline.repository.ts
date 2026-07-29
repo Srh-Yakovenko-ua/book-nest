@@ -7,6 +7,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { TIMELINE_POSITION_STEP } from "../domain/sparse-position.js";
 import { DEFAULT_TIMELINE_NAME } from "../domain/timeline-fields.js";
 
@@ -98,7 +99,7 @@ export class TimelineRepository {
         readingProgress: { select: { currentPage: true } },
         readingStatus: true,
       },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
     if (book === null) {
       return null;
@@ -121,7 +122,9 @@ export class TimelineRepository {
     { timelineId, userId }: { timelineId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<TimelineRow>> {
-    return client.bookTimeline.findFirst({ where: { book: { userId }, id: timelineId } });
+    return client.bookTimeline.findFirst({
+      where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, id: timelineId },
+    });
   }
 
   findTimelineInBook(

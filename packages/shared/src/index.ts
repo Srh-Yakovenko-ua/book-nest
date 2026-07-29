@@ -32,3 +32,4 @@ export * from "./series.js";
 export * from "./tags.js";
 export * from "./taxonomy.js";
 export * from "./timeline.js";
+export * from "./trash.js";

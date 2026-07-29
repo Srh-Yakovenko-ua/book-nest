@@ -1,8 +1,10 @@
 import type {
+  BookDeletionResult,
   BookView,
   DedicationsSummaryView,
   FavoritesSummaryView,
   LibraryOverviewView,
+  PaginatedTrashedBooks,
   Paginator,
   RecentPurchaseStores,
   WishlistView,
@@ -15,6 +17,7 @@ import {
   LibraryOverviewQuerySchema,
   OwnershipStatusSchema,
   RecentPurchaseStoresQuerySchema,
+  TrashedBooksQuerySchema,
   UpdateBookInputSchema,
 } from "@app/shared";
 import {
@@ -22,7 +25,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -33,7 +35,6 @@ import {
   ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
-  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -44,12 +45,12 @@ import { seconds, Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
-import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { BookLibraryReadService } from "../application/book-library-read.service.js";
+import { BookLifecycleService } from "../application/book-lifecycle.service.js";
 import { BooksService } from "../application/books.service.js";
 import { DedicationsService } from "../application/dedications.service.js";
 import { WishlistService } from "../application/wishlist.service.js";
@@ -58,12 +59,15 @@ import { DedicationsQueryDto } from "./input-dto/dedications-query.input-dto.js"
 import { LibraryBooksQueryDto } from "./input-dto/library-books-query.input-dto.js";
 import { LibraryOverviewQueryDto } from "./input-dto/library-overview-query.input-dto.js";
 import { RecentPurchaseStoresQueryDto } from "./input-dto/recent-purchase-stores-query.input-dto.js";
+import { TrashedBooksQueryDto } from "./input-dto/trashed-books-query.input-dto.js";
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
+import { BookDeletionResultDto } from "./view-dto/book-deletion-result.view-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
 import { DedicationsSummaryViewDto } from "./view-dto/dedications.view-dto.js";
 import { FavoritesSummaryViewDto } from "./view-dto/favorites-summary.view-dto.js";
 import { LibraryOverviewViewDto } from "./view-dto/library-overview.view-dto.js";
 import { PaginatedBooksDto } from "./view-dto/paginated-books.view-dto.js";
+import { PaginatedTrashedBooksDto } from "./view-dto/paginated-trashed-books.view-dto.js";
 import { WishlistViewDto } from "./view-dto/wishlist.view-dto.js";
 
 const CREATE_BOOK_TTL_SECONDS = 60;
@@ -73,6 +77,7 @@ const CREATE_BOOK_LIMIT = 30;
 export class BooksController {
   constructor(
     private readonly booksService: BooksService,
+    private readonly lifecycleService: BookLifecycleService,
     private readonly libraryReadService: BookLibraryReadService,
     private readonly wishlistService: WishlistService,
     private readonly dedicationsService: DedicationsService,
@@ -182,6 +187,21 @@ export class BooksController {
   dedicationsSummary(@CurrentUser() user: AuthenticatedUser): Promise<DedicationsSummaryView> {
     return this.dedicationsService.getDedicationsSummary({ userId: user.id });
   }
+  @ApiOkResponse({
+    description: "A page of the current user trashed books",
+    type: PaginatedTrashedBooksDto,
+  })
+  @ApiOperation({ summary: "List books waiting in the trash before their scheduled purge" })
+  @Get("trash")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  listTrash(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(TrashedBooksQuerySchema)) query: TrashedBooksQueryDto,
+  ): Promise<PaginatedTrashedBooks> {
+    return this.lifecycleService.listTrash({ query, userId: user.id });
+  }
+
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({ description: "The requested book", type: BookViewDto })
   @ApiOperation({ summary: "Get a book by id" })
@@ -209,16 +229,32 @@ export class BooksController {
   ): Promise<BookView> {
     return this.booksService.update(user.id, id, body);
   }
-  @ApiNoContentResponse({ description: "The book was deleted" })
   @ApiNotFoundResponse({ description: "Book not found" })
-  @ApiOperation({ summary: "Delete a book by id" })
+  @ApiOkResponse({
+    description: "The book was moved to the trash and scheduled for purge",
+    type: BookDeletionResultDto,
+  })
+  @ApiOperation({ summary: "Move a book to the trash" })
   @Delete(":id")
-  @HttpCode(HTTP_STATUS.NO_CONTENT)
   @JwtProtected()
+  @Throttle(MUTATION_THROTTLE)
   delete(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
-  ): Promise<void> {
-    return this.booksService.delete(user.id, id);
+  ): Promise<BookDeletionResult> {
+    return this.lifecycleService.softDelete({ bookId: id, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "Book not found in the trash" })
+  @ApiOkResponse({ description: "The restored book", type: BookViewDto })
+  @ApiOperation({ summary: "Restore a book from the trash" })
+  @JwtProtected()
+  @Post(":id/restore")
+  @Throttle(MUTATION_THROTTLE)
+  restore(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<BookView> {
+    return this.lifecycleService.restore({ bookId: id, userId: user.id });
   }
 }

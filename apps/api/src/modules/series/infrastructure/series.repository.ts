@@ -7,6 +7,7 @@ import type { SeriesModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 export type CreateSeriesData = {
@@ -31,7 +32,7 @@ type CreateSeriesInput = {
 
 const seriesWithBookCountArgs = {
   include: {
-    _count: { select: { books: true } },
+    _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
     authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
     books: {
       select: {
@@ -44,6 +45,7 @@ const seriesWithBookCountArgs = {
         title: true,
         updatedAt: true,
       },
+      where: SOFT_DELETE_SCOPE.active,
     },
   },
 } satisfies Prisma.SeriesDefaultArgs;
@@ -52,7 +54,7 @@ export type SeriesWithBookCount = Prisma.SeriesGetPayload<typeof seriesWithBookC
 
 const seriesDetailsArgs = {
   include: {
-    _count: { select: { books: true } },
+    _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
     authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
     books: {
       include: {
@@ -66,6 +68,7 @@ const seriesDetailsArgs = {
         },
         tags: { include: { tag: true } },
       },
+      where: SOFT_DELETE_SCOPE.active,
     },
   },
 } satisfies Prisma.SeriesDefaultArgs;
@@ -121,7 +124,9 @@ export class SeriesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   countBooksInSeries(userId: string): Promise<number> {
-    return this.prisma.book.count({ where: { seriesId: { not: null }, userId } });
+    return this.prisma.book.count({
+      where: { ...SOFT_DELETE_SCOPE.active, seriesId: { not: null }, userId },
+    });
   }
 
   countOwned({ authorIds, query, userId }: CountSeriesInput): Promise<number> {
@@ -146,7 +151,7 @@ export class SeriesRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       await tx.book.updateMany({
         data: { partNumber: null, seriesId: null },
-        where: { seriesId: id, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, seriesId: id, userId },
       });
       const deleted = await tx.series.deleteMany({ where: { id, userId } });
       if (deleted.count === 0) {
@@ -170,7 +175,8 @@ export class SeriesRepository {
   findFavoriteContinuationBooks(userId: string): Promise<FavoriteContinuationBookRow[]> {
     return this.prisma.book.findMany({
       where: {
-        series: { books: { some: { isFavorite: true, userId } } },
+        ...SOFT_DELETE_SCOPE.active,
+        series: { books: { some: { ...SOFT_DELETE_SCOPE.active, isFavorite: true, userId } } },
         seriesId: { not: null },
         userId,
       },
@@ -263,8 +269,15 @@ function buildOwnedWhere({ authorIds, query, userId }: OwnedWhereInput): Prisma.
 
   if (authorIds !== undefined && authorIds.length > 0) {
     where.OR = [
-      { books: { some: { authors: { some: { authorId: { in: authorIds } } } } } },
-      { authors: { some: { authorId: { in: authorIds } } }, books: { none: {} } },
+      {
+        books: {
+          some: { ...SOFT_DELETE_SCOPE.active, authors: { some: { authorId: { in: authorIds } } } },
+        },
+      },
+      {
+        authors: { some: { authorId: { in: authorIds } } },
+        books: { none: SOFT_DELETE_SCOPE.active },
+      },
     ];
   }
 

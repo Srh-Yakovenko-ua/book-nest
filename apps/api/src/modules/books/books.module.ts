@@ -23,6 +23,7 @@ import { BookAccessService } from "./application/book-access.service.js";
 import { BookCoverCleanup } from "./application/book-cover-cleanup.js";
 import { BookDeliveryService } from "./application/book-delivery.service.js";
 import { BookLibraryReadService } from "./application/book-library-read.service.js";
+import { BookLifecycleService } from "./application/book-lifecycle.service.js";
 import { BookListsService } from "./application/book-lists.service.js";
 import { BookLoanService } from "./application/book-loan.service.js";
 import { BookOwnershipService } from "./application/book-ownership.service.js";
@@ -73,6 +74,7 @@ import { ListMembershipRepository } from "./infrastructure/list-membership.repos
     BooksService,
     BookAccessService,
     BookLibraryReadService,
+    BookLifecycleService,
     BookRelationsResolver,
     BookViewAssembler,
     BookCoverCleanup,

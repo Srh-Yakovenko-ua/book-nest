@@ -6,6 +6,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookListModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 
 const PREVIEW_COVERS_LIMIT = 4;
@@ -24,12 +25,12 @@ export type UpdateBookListData = {
 
 const listCardArgs = {
   include: {
-    _count: { select: { items: true } },
+    _count: { select: { items: { where: { book: SOFT_DELETE_SCOPE.active } } } },
     items: {
       include: { book: { select: { coverMedia: true } } },
       orderBy: { position: "asc" },
       take: PREVIEW_COVERS_LIMIT,
-      where: { book: { coverMediaId: { not: null } } },
+      where: { book: { ...SOFT_DELETE_SCOPE.active, coverMediaId: { not: null } } },
     },
   },
 } satisfies Prisma.BookListDefaultArgs;
@@ -49,7 +50,9 @@ export class ListsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   countItems(listId: string): Promise<number> {
-    return this.prisma.bookListItem.count({ where: { listId } });
+    return this.prisma.bookListItem.count({
+      where: { book: SOFT_DELETE_SCOPE.active, listId },
+    });
   }
 
   countOwned({ query, userId }: { query: string | undefined; userId: string }): Promise<number> {

@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { appendBookToList } from "./book-list-membership.js";
 
 export type ListMembership = {
@@ -164,7 +165,7 @@ export class ListMembershipRepository {
   ): Promise<string[]> {
     const owned = await client.book.findMany({
       select: { id: true },
-      where: { id: { in: bookIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
     });
     return owned.map((book) => book.id);
   }

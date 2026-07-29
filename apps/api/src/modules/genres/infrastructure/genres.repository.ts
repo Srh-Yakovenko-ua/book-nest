@@ -8,6 +8,7 @@ import type { GenreStatsAggregateRow } from "../domain/genre-stats.mapper.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { visibleToUser } from "../../../core/database/two-tier-visibility.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
@@ -47,6 +48,7 @@ export class GenresRepository {
       CROSS JOIN unnest(book.genres) AS genre_key
       LEFT JOIN book_reading_progress progress ON progress.book_id = book.id
       WHERE book.user_id = ${userId}::uuid
+        AND book.deleted_at IS NULL
       GROUP BY genre_key
       ORDER BY count(*) DESC, genre_key ASC
     `);
@@ -160,7 +162,12 @@ export class GenresRepository {
       orderBy: { createdAt: "desc" },
       select: { coverMedia: true, genres: true },
       take: scanLimit,
-      where: { coverMediaId: { not: null }, genres: { isEmpty: false }, userId },
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        coverMediaId: { not: null },
+        genres: { isEmpty: false },
+        userId,
+      },
     });
     return rows.flatMap((row) =>
       row.coverMedia === null ? [] : [{ coverMedia: row.coverMedia, genres: row.genres }],
@@ -172,6 +179,7 @@ export class GenresRepository {
       SELECT genre_key AS "key"
       FROM books book, unnest(book.genres) AS genre_key
       WHERE book.user_id = ${userId}::uuid
+        AND book.deleted_at IS NULL
       GROUP BY genre_key
       ORDER BY max(book.created_at) DESC
       LIMIT ${limit}

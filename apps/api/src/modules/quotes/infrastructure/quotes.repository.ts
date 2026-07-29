@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { QuoteBookCount, QuotesSummaryData } from "../domain/quotes-summary.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookTextSearchConditions } from "../../books/index.js";
 
@@ -110,7 +111,7 @@ export class QuotesRepository {
   findOwnedBook(userId: string, bookId: string): Promise<Nullable<OwnedBook>> {
     return this.prisma.book.findFirst({
       select: { id: true, pagesCount: true },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
   }
 
@@ -124,7 +125,7 @@ export class QuotesRepository {
     userId: string;
   }): Promise<Nullable<QuoteWithBook>> {
     return this.prisma.quote.findFirst({
-      where: { bookId, id: quoteId, userId },
+      where: { book: SOFT_DELETE_SCOPE.active, bookId, id: quoteId, userId },
       ...quoteWithBook,
     });
   }
@@ -142,7 +143,7 @@ export class QuotesRepository {
   listForBook(userId: string, bookId: string): Promise<QuoteWithBook[]> {
     return this.prisma.quote.findMany({
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-      where: { bookId, userId },
+      where: { book: SOFT_DELETE_SCOPE.active, bookId, userId },
       ...quoteWithBook,
     });
   }
@@ -156,9 +157,15 @@ export class QuotesRepository {
           (count(*) FILTER (WHERE quote.is_spoiler = true))::int AS "spoiler",
           (count(*) FILTER (WHERE quote.comment IS NOT NULL))::int AS "withComment"
         FROM quotes quote
+        JOIN books book ON book.id = quote.book_id
         WHERE quote.user_id = ${userId}::uuid
+          AND book.deleted_at IS NULL
       `),
-      this.prisma.quote.groupBy({ _count: { _all: true }, by: ["bookId"], where: { userId } }),
+      this.prisma.quote.groupBy({
+        _count: { _all: true },
+        by: ["bookId"],
+        where: { book: SOFT_DELETE_SCOPE.active, userId },
+      }),
     ]);
 
     const counts = z.array(QuotesSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_QUOTE_COUNTS;
@@ -195,7 +202,11 @@ export class QuotesRepository {
 
     const books = await this.prisma.book.findMany({
       select: { firstAuthorName: true, id: true, title: true },
-      where: { id: { in: groups.map((group) => group.bookId) }, userId },
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        id: { in: groups.map((group) => group.bookId) },
+        userId,
+      },
     });
     const bookById = new Map(books.map((book) => [book.id, book]));
 
@@ -284,7 +295,7 @@ function buildQuotesWhere({
   search,
   userId,
 }: QuotesFilterInput): Prisma.QuoteWhereInput {
-  const where: Prisma.QuoteWhereInput = { userId };
+  const where: Prisma.QuoteWhereInput = { book: SOFT_DELETE_SCOPE.active, userId };
 
   if (bookId !== undefined) {
     where.bookId = bookId;

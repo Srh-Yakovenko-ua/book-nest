@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { THEORY_LIST_ORDER_BY } from "../domain/character-theory-sort.js";
 
 const theoryInclude = {
@@ -118,7 +119,10 @@ function buildTheoriesWhere({
   status,
   userId,
 }: TheoryListFilter): Prisma.CharacterTheoryWhereInput {
-  const where: Prisma.CharacterTheoryWhereInput = { userId };
+  const where: Prisma.CharacterTheoryWhereInput = {
+    OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }],
+    userId,
+  };
   if (characterId !== undefined) {
     where.characterId = characterId;
   }

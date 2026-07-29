@@ -512,7 +512,7 @@ describe("custom category filter", () => {
 });
 
 describe("cascade and invariants", () => {
-  it("removes notes when their book or series is deleted", async () => {
+  it("hides book notes while the book sits in the trash and restores them with it", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const seriesId = await createSeries(accessToken);
@@ -521,11 +521,14 @@ describe("cascade and invariants", () => {
 
     expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(2);
 
-    await authed("delete", `/api/books/${bookId}`, accessToken).expect(HttpStatus.NO_CONTENT);
+    await authed("delete", `/api/books/${bookId}`, accessToken).expect(HttpStatus.OK);
     expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(1);
 
+    await authed("post", `/api/books/${bookId}/restore`, accessToken).expect(HttpStatus.CREATED);
+    expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(2);
+
     await authed("delete", `/api/series/${seriesId}`, accessToken).expect(HttpStatus.NO_CONTENT);
-    expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(0);
+    expect((await authed("get", "/api/notes", accessToken)).body.totalCount).toBe(1);
   });
 
   it("cascades note deletion when the owning user is removed", async () => {

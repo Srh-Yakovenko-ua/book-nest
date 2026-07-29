@@ -377,18 +377,32 @@ describe("create-in-book transaction", () => {
 });
 
 describe("cascade and invariants", () => {
-  it("removes book appearances but keeps the global character when the book is deleted", async () => {
+  it("hides book appearances but keeps the global character when the book is trashed", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
 
     const created = await createNewInBook(accessToken, bookId, { name: "Paul Atreides" });
     const characterId = created.body.id;
 
-    await authed("delete", `/api/books/${bookId}`, accessToken).expect(HttpStatus.NO_CONTENT);
+    await authed("delete", `/api/books/${bookId}`, accessToken).expect(HttpStatus.OK);
 
     const global = await authed("get", `/api/characters/${characterId}`, accessToken);
     expect(global.status).toBe(HttpStatus.OK);
     expect(global.body.appearances).toHaveLength(0);
+  });
+
+  it("brings the appearances back when the book is restored", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBook(accessToken);
+
+    const created = await createNewInBook(accessToken, bookId, { name: "Paul Atreides" });
+    const characterId = created.body.id;
+
+    await authed("delete", `/api/books/${bookId}`, accessToken).expect(HttpStatus.OK);
+    await authed("post", `/api/books/${bookId}/restore`, accessToken).expect(HttpStatus.CREATED);
+
+    const global = await authed("get", `/api/characters/${characterId}`, accessToken);
+    expect(global.body.appearances).toHaveLength(1);
   });
 
   it("cascades character deletion when the owning user is removed", async () => {

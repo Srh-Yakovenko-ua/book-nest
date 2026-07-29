@@ -38,7 +38,6 @@ const MEDIA_ID = "88888888-8888-4888-8888-888888888801";
 type Repository = {
   countForLibrary: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
-  deleteOwned: ReturnType<typeof vi.fn>;
   favoritesSummary: ReturnType<typeof vi.fn>;
   findOwnedById: ReturnType<typeof vi.fn>;
   listForLibrary: ReturnType<typeof vi.fn>;
@@ -106,7 +105,6 @@ function buildService(
   overrides: {
     countForLibrary?: number;
     create?: BookWithRelations;
-    deleteOwned?: number;
     favoritesSummary?: FavoritesSummaryView;
     findOwnedById?: Nullable<BookWithRelations>;
     listForLibrary?: BookWithRelations[];
@@ -129,7 +127,6 @@ function buildService(
   const repository = {
     countForLibrary: vi.fn().mockResolvedValue(overrides.countForLibrary ?? 0),
     create: vi.fn().mockResolvedValue(overrides.create ?? bookRow()),
-    deleteOwned: vi.fn().mockResolvedValue(overrides.deleteOwned ?? 0),
     favoritesSummary: vi.fn().mockResolvedValue(
       overrides.favoritesSummary ?? {
         averageRating: null,
@@ -628,45 +625,6 @@ describe("BooksService.getById", () => {
     const { service } = buildService({ findOwnedById: null });
 
     await expect(service.getById(OTHER_USER_ID, BOOK_ID)).rejects.toBeInstanceOf(NotFoundError);
-  });
-});
-
-describe("BooksService.delete", () => {
-  it("throws NotFoundError when no owned book matched the delete", async () => {
-    const { service } = buildService({ findOwnedById: null });
-
-    await expect(service.delete(OTHER_USER_ID, BOOK_ID)).rejects.toBeInstanceOf(NotFoundError);
-  });
-
-  it("deletes the book scoped to the caller when it is owned", async () => {
-    const { repository, service } = buildService({ findOwnedById: bookRow() });
-
-    await service.delete(USER_ID, BOOK_ID);
-
-    expect(repository.deleteOwned).toHaveBeenCalledWith(USER_ID, BOOK_ID);
-  });
-
-  it("delegates cover cleanup for the deleted book cover", async () => {
-    const { coverCleanup, service } = buildService({
-      findOwnedById: bookRow({ coverMediaId: MEDIA_ID }),
-    });
-
-    await service.delete(USER_ID, BOOK_ID);
-
-    expect(coverCleanup.deleteIfOrphaned).toHaveBeenCalledWith({
-      mediaId: MEDIA_ID,
-      userId: USER_ID,
-    });
-  });
-
-  it("does not run cover cleanup when the deleted book had no cover", async () => {
-    const { coverCleanup, service } = buildService({
-      findOwnedById: bookRow({ coverMediaId: null }),
-    });
-
-    await service.delete(USER_ID, BOOK_ID);
-
-    expect(coverCleanup.deleteIfOrphaned).not.toHaveBeenCalled();
   });
 });
 

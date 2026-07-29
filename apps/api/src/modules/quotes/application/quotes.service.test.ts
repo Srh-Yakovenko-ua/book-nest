@@ -21,6 +21,7 @@ function book(overrides: Partial<QuoteWithBook["book"]> = {}): QuoteWithBook["bo
     coverMediaId: null,
     createdAt: NOW,
     dedication: null,
+    deletedAt: null,
     description: null,
     favoriteAddedAt: null,
     firstAuthorName: "Frank Herbert",

@@ -44,6 +44,7 @@ import { BookPublisherRefSchema } from "./publishers.js";
 import { NewSeriesInputSchema, SeriesViewSchema } from "./series.js";
 import { BookTagsInputSchema, TagViewSchema } from "./tags.js";
 import { TaxonomyNameSchema } from "./taxonomy.js";
+import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const BOOK_TITLE_MIN = 1;
 const BOOK_TITLE_MAX = 150;
@@ -1219,6 +1220,34 @@ export const PaginatedBooksSchema = createPaginatedSchema(BookViewSchema);
 export const ListBookViewSchema = BookViewSchema.extend({ position: z.number() });
 
 export type ListBookView = z.infer<typeof ListBookViewSchema>;
+
+export const BookDeletionResultSchema = TrashDeletionResultSchema.extend({
+  bookId: z.string(),
+});
+
+export type BookDeletionResult = z.infer<typeof BookDeletionResultSchema>;
+
+export const TrashedBookViewSchema = z.object({
+  authors: z.array(BookAuthorRefSchema),
+  cover: MediaViewSchema.nullable(),
+  deletedAt: z.iso.datetime(),
+  id: z.string(),
+  purgeAt: z.iso.datetime(),
+  seriesTitle: z.string().nullable(),
+  title: z.string(),
+});
+
+export type TrashedBookView = z.infer<typeof TrashedBookViewSchema>;
+
+export const TrashedBooksQuerySchema = z.object({
+  ...paginationQueryFields({ pageSizeDefault: TRASH_PAGE_SIZE_DEFAULT }),
+});
+
+export type TrashedBooksQuery = z.infer<typeof TrashedBooksQuerySchema>;
+
+export const PaginatedTrashedBooksSchema = createPaginatedSchema(TrashedBookViewSchema);
+
+export type PaginatedTrashedBooks = z.infer<typeof PaginatedTrashedBooksSchema>;
 
 export const CustomListDetailSchema = z.object({
   bookCount: z.number(),

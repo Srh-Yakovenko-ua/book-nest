@@ -3,6 +3,7 @@ import { CLOSED_READING_STATUSES, isClosedReadingStatus, ReadingStatusSchema } f
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 
 export async function enforceQueueInvariant(
   client: Prisma.TransactionClient,
@@ -38,6 +39,7 @@ async function clearClosedQueuePlacements(
       queuePriorityTargetDate: null,
     },
     where: {
+      ...SOFT_DELETE_SCOPE.active,
       queuePosition: { not: null },
       readingStatus: { in: [...CLOSED_READING_STATUSES] },
       userId,
@@ -53,7 +55,7 @@ async function resequenceQueue(client: Prisma.TransactionClient, userId: string)
     FROM (
       SELECT id, ROW_NUMBER() OVER (ORDER BY queue_position) AS rn
       FROM books
-      WHERE user_id = ${userId}::uuid AND queue_position IS NOT NULL
+      WHERE user_id = ${userId}::uuid AND queue_position IS NOT NULL AND deleted_at IS NULL
     ) ranked
     WHERE b.id = ranked.id AND b.queue_position <> ranked.rn
   `;

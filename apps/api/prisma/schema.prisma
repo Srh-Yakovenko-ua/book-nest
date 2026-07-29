@@ -236,6 +236,7 @@ model Book {
   queuePriorityTargetDate       DateTime?                        @map("queue_priority_target_date") @db.Date
   queuePosition                 Int?                             @map("queue_position")
   coverMediaId                  String?                          @map("cover_media_id") @db.Uuid
+  deletedAt                     DateTime?                        @map("deleted_at") @db.Timestamptz
   createdAt                     DateTime                         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                     DateTime                         @updatedAt @map("updated_at") @db.Timestamptz
   user                          User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -261,11 +262,11 @@ model Book {
   characterTheories             CharacterTheory[]
   characterRelationshipStates   CharacterRelationshipBookState[]
 
-  @@unique([seriesId, partNumber])
   @@index([userId, firstAuthorName])
   @@index([userId, createdAt(sort: Desc), id])
   @@index([userId, ownershipStatus])
   @@index([userId, readingStatus])
+  @@index([userId, deletedAt])
   @@index([publisherId])
   @@index([seriesId])
   @@index([coverMediaId])

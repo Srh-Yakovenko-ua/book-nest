@@ -20,6 +20,7 @@ import type {
 } from "../domain/publisher-library.mapper.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { visibleToUser } from "../../../core/database/two-tier-visibility.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -228,7 +229,7 @@ export class PublishersRepository {
   }
 
   countBooks(publisherId: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {
-    return client.book.count({ where: { publisherId } });
+    return client.book.count({ where: { ...SOFT_DELETE_SCOPE.active, publisherId } });
   }
 
   countLibrary(input: CountLibraryInput): Promise<number> {
@@ -299,7 +300,7 @@ export class PublishersRepository {
       by: ["publisherId"],
       orderBy: { _max: { createdAt: "desc" } },
       take: limit,
-      where: { publisherId: { not: null }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, publisherId: { not: null }, userId },
     });
 
     return grouped.flatMap((row) => (row.publisherId === null ? [] : [row.publisherId]));
@@ -333,6 +334,7 @@ export class PublishersRepository {
         FROM books b
         LEFT JOIN book_reading_progress bp ON bp.book_id = b.id
         WHERE b.user_id = ${userId}::uuid
+          AND b.deleted_at IS NULL
       `),
     );
     return z.array(SummaryCountsRowSchema).parse(rows)[0] ?? EMPTY_SUMMARY_COUNTS;
@@ -348,6 +350,7 @@ export class PublishersRepository {
         FROM book_purchase_info pi
         JOIN books b ON b.id = pi.book_id
         WHERE b.user_id = ${userId}::uuid
+          AND b.deleted_at IS NULL
           AND pi.expected_price IS NOT NULL
           AND pi.currency IS NOT NULL
         GROUP BY pi.currency
@@ -451,6 +454,7 @@ function buildLibraryOrderBy(
 function buildLibraryWhere(filters: LibraryFilters): Prisma.Sql {
   const conditions: Prisma.Sql[] = [
     Prisma.sql`b.user_id = ${filters.userId}::uuid`,
+    Prisma.sql`b.deleted_at IS NULL`,
     Prisma.sql`b.publisher_id IS NOT NULL`,
     Prisma.sql`(p.user_id IS NULL OR p.user_id = ${filters.userId}::uuid)`,
   ];

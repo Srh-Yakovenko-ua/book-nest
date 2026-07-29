@@ -12,6 +12,7 @@ import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookTextSearchConditions } from "../../books/index.js";
 import {
@@ -43,12 +44,16 @@ const EMPTY_NOTE_COUNTS: z.infer<typeof NoteSummaryCountsRowSchema> = {
   withSpoilerCount: 0,
 };
 
+const NOTE_ON_ACTIVE_BOOK: Prisma.NoteWhereInput = {
+  OR: [{ bookId: null }, { book: SOFT_DELETE_SCOPE.active }],
+};
+
 const noteEntityArgs = {
   include: {
     book: { select: { coverMedia: true, firstAuthorName: true, id: true, title: true } },
     series: {
       select: {
-        _count: { select: { books: true } },
+        _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
         authors: {
           orderBy: { author: { name: "asc" } },
           select: { author: { select: { name: true } } },
@@ -57,7 +62,7 @@ const noteEntityArgs = {
           orderBy: [{ partNumber: "asc" }, { createdAt: "asc" }],
           select: { coverMedia: true },
           take: 1,
-          where: { coverMediaId: { not: null } },
+          where: { ...SOFT_DELETE_SCOPE.active, coverMediaId: { not: null } },
         },
         id: true,
         name: true,
@@ -137,13 +142,16 @@ export class NotesRepository {
   }
 
   findOwnedById(userId: string, noteId: string): Promise<Nullable<NoteWithEntity>> {
-    return this.prisma.note.findFirst({ where: { id: noteId, userId }, ...noteEntityArgs });
+    return this.prisma.note.findFirst({
+      where: { AND: [{ id: noteId, userId }, NOTE_ON_ACTIVE_BOOK] },
+      ...noteEntityArgs,
+    });
   }
 
   listByBook(userId: string, bookId: string): Promise<NoteWithEntity[]> {
     return this.prisma.note.findMany({
       orderBy: BOOK_NOTES_ORDER_BY,
-      where: { bookId, userId },
+      where: { book: SOFT_DELETE_SCOPE.active, bookId, userId },
       ...noteEntityArgs,
     });
   }
@@ -178,13 +186,15 @@ export class NotesRepository {
           (count(DISTINCT note.book_id))::int AS "booksWithNotesCount",
           (count(DISTINCT note.series_id))::int AS "seriesWithNotesCount"
         FROM notes note
+        LEFT JOIN books book ON book.id = note.book_id
         WHERE note.user_id = ${userId}::uuid
+          AND (note.book_id IS NULL OR book.deleted_at IS NULL)
       `),
       this.prisma.note.findMany({
         distinct: ["customCategory"],
         orderBy: { customCategory: "asc" },
         select: { customCategory: true },
-        where: { customCategory: { not: null }, userId },
+        where: { AND: [{ customCategory: { not: null }, userId }, NOTE_ON_ACTIVE_BOOK] },
       }),
     ]);
 
@@ -272,7 +282,7 @@ function buildNotesWhere({
   seriesId,
   userId,
 }: NotesFilterInput): Prisma.NoteWhereInput {
-  const where: Prisma.NoteWhereInput = { userId };
+  const where: Prisma.NoteWhereInput = { AND: [NOTE_ON_ACTIVE_BOOK], userId };
 
   if (entityType !== "all") {
     where.entityType = entityType;

@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { buildBookSearchConditions } from "./book-search.js";
 import { LIBRARY_ORDER_BY, withRelations } from "./books.repository.js";
 
@@ -80,10 +81,14 @@ function buildListItemWhere({
   searchGenreKeys,
   userId,
 }: CountListBooksInput): Prisma.BookListItemWhereInput {
-  const where: Prisma.BookListItemWhereInput = { list: { userId }, listId };
+  const where: Prisma.BookListItemWhereInput = {
+    book: SOFT_DELETE_SCOPE.active,
+    list: { userId },
+    listId,
+  };
   const conditions = buildBookSearchConditions({ search, searchGenreKeys });
   if (conditions !== undefined) {
-    where.book = { OR: conditions };
+    where.book = { ...SOFT_DELETE_SCOPE.active, OR: conditions };
   }
   return where;
 }

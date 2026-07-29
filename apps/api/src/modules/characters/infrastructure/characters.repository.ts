@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { BookCharacterModel, CharacterModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
 const CHARACTER_IMPORTANCE_CENTRAL = "central";
@@ -34,6 +35,7 @@ const detailsInclude = {
       roles: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    where: { book: SOFT_DELETE_SCOPE.active },
   },
   forms: {
     include: { portraitMedia: true },
@@ -49,7 +51,7 @@ const rosterInclude = {
 } satisfies Prisma.BookCharacterInclude;
 
 const globalSummaryInclude = {
-  _count: { select: { bookAppearances: true } },
+  _count: { select: { bookAppearances: { where: { book: SOFT_DELETE_SCOPE.active } } } },
   avatarMedia: true,
   tags: {
     orderBy: [{ tag: { name: "asc" } }, { tag: { normalizedName: "asc" } }],
@@ -74,6 +76,7 @@ const seriesProfileInclude = {
       roles: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
     },
     orderBy: [{ createdAt: "asc" }],
+    where: { book: SOFT_DELETE_SCOPE.active },
   },
 } satisfies Prisma.CharacterInclude;
 
@@ -459,7 +462,10 @@ export class CharactersRepository {
     return this.prisma.character.findFirst({
       select: {
         aliases: { select: { normalizedName: true } },
-        bookAppearances: { select: { book: { select: { seriesId: true } } } },
+        bookAppearances: {
+          select: { book: { select: { seriesId: true } } },
+          where: { book: SOFT_DELETE_SCOPE.active },
+        },
         name: true,
         normalizedName: true,
       },
@@ -491,7 +497,11 @@ export class CharactersRepository {
       or.push({
         AND: [
           { name: { contains: similarName, mode: "insensitive" } },
-          { bookAppearances: { some: { book: { seriesId: { in: seriesIds } } } } },
+          {
+            bookAppearances: {
+              some: { book: { ...SOFT_DELETE_SCOPE.active, seriesId: { in: seriesIds } } },
+            },
+          },
         ],
       });
     }
@@ -567,7 +577,7 @@ export class CharactersRepository {
   }): Promise<Nullable<BookContextRow>> {
     return this.prisma.book.findFirst({
       select: { id: true, partNumber: true, seriesId: true },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
   }
 
@@ -587,7 +597,10 @@ export class CharactersRepository {
         ...detailsInclude,
         bookAppearances: {
           ...detailsInclude.bookAppearances,
-          where: bookId === undefined ? undefined : { bookId },
+          where:
+            bookId === undefined
+              ? { book: SOFT_DELETE_SCOPE.active }
+              : { book: SOFT_DELETE_SCOPE.active, bookId },
         },
       },
       where: { deletedAt: null, id: characterId, userId },
@@ -607,7 +620,7 @@ export class CharactersRepository {
         ...detailsInclude,
         bookAppearances: {
           ...detailsInclude.bookAppearances,
-          where: { bookId: { in: allowedBookIds } },
+          where: { book: SOFT_DELETE_SCOPE.active, bookId: { in: allowedBookIds } },
         },
       },
       where: { deletedAt: null, id: characterId, userId },
@@ -639,7 +652,11 @@ export class CharactersRepository {
         ...seriesProfileInclude,
         bookAppearances: {
           ...seriesProfileInclude.bookAppearances,
-          where: { bookId: { in: allowedBookIds }, hidePresenceAsSpoiler: false },
+          where: {
+            book: SOFT_DELETE_SCOPE.active,
+            bookId: { in: allowedBookIds },
+            hidePresenceAsSpoiler: false,
+          },
         },
       },
       where: { deletedAt: null, id: characterId, userId },
@@ -697,7 +714,7 @@ export class CharactersRepository {
         ...graphNodeSelect,
         bookAppearances: {
           select: { bookId: true, createdAt: true, hidePresenceAsSpoiler: true, importance: true },
-          where: { bookId: { in: bookIds } },
+          where: { book: SOFT_DELETE_SCOPE.active, bookId: { in: bookIds } },
         },
       },
       where: { deletedAt: null, hideProfileAsSpoiler: false, id: { in: characterIds }, userId },
@@ -712,7 +729,7 @@ export class CharactersRepository {
     return this.prisma.book.findMany({
       orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
       select: { id: true, partNumber: true },
-      where: { userId },
+      where: { ...SOFT_DELETE_SCOPE.active, userId },
     });
   }
 
@@ -765,7 +782,7 @@ export class CharactersRepository {
     return this.prisma.book.findMany({
       orderBy: [{ partNumber: { nulls: "last", sort: "asc" } }, { createdAt: "asc" }],
       select: { createdAt: true, id: true, partNumber: true },
-      where: { seriesId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, seriesId, userId },
     });
   }
 
@@ -784,7 +801,7 @@ export class CharactersRepository {
         partNumber: true,
         readingProgress: { select: { finishedAt: true } },
       },
-      where: { seriesId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, seriesId, userId },
     });
   }
 
@@ -843,7 +860,10 @@ export class CharactersRepository {
             take: limit,
             where: {
               ...baseWhere,
-              bookAppearances: { none: { bookId }, some: { book: { seriesId } } },
+              bookAppearances: {
+                none: { bookId },
+                some: { book: { ...SOFT_DELETE_SCOPE.active, seriesId } },
+              },
             },
           });
 
@@ -1045,11 +1065,17 @@ function buildGlobalCharacterWhere(filter: GlobalCharacterFilter): Prisma.Charac
     });
   }
   if (bookId !== undefined) {
-    and.push({ bookAppearances: { some: { bookId, hidePresenceAsSpoiler: false } } });
+    and.push({
+      bookAppearances: {
+        some: { book: SOFT_DELETE_SCOPE.active, bookId, hidePresenceAsSpoiler: false },
+      },
+    });
   }
   if (seriesId !== undefined) {
     and.push({
-      bookAppearances: { some: { book: { seriesId }, hidePresenceAsSpoiler: false } },
+      bookAppearances: {
+        some: { book: { ...SOFT_DELETE_SCOPE.active, seriesId }, hidePresenceAsSpoiler: false },
+      },
     });
   }
   if (groupIds !== undefined) {

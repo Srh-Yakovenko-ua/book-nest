@@ -8,6 +8,7 @@ import type { BookDeliveryModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 
 export type CreateDeliveryData = {
   currency: Nullable<Currency>;
@@ -70,12 +71,17 @@ export class BookDeliveriesRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       const guarded = await tx.book.updateMany({
         data: transition.book,
-        where: { id: bookId, ownershipStatus: { in: expectedStatuses }, userId },
+        where: {
+          ...SOFT_DELETE_SCOPE.active,
+          id: bookId,
+          ownershipStatus: { in: expectedStatuses },
+          userId,
+        },
       });
       if (guarded.count === 0) {
         const exists = await tx.book.findFirst({
           select: { id: true },
-          where: { id: bookId, userId },
+          where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
         });
         return exists === null ? "book-not-found" : "status-conflict";
       }
@@ -96,7 +102,7 @@ export class BookDeliveriesRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       const record = await tx.bookDelivery.findFirst({
         select: { id: true },
-        where: { book: { userId }, bookId, id: deliveryId },
+        where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, bookId, id: deliveryId },
       });
       if (record === null) {
         return "not-found";
@@ -127,7 +133,7 @@ export class BookDeliveriesRepository {
   }): Promise<Nullable<BookDeliveryModel[]>> {
     const owned = await this.prisma.book.findFirst({
       select: { id: true },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
     if (owned === null) {
       return null;

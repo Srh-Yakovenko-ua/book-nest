@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { UpdateEventFields } from "../domain/timeline-fields.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { timelineEventsOrderBy } from "../domain/event-sort.js";
 import { TIMELINE_POSITION_STEP } from "../domain/sparse-position.js";
@@ -272,7 +273,7 @@ export class TimelineEventRepository {
     userId: string;
   }): Promise<Nullable<EventDetailRow>> {
     return this.prisma.bookTimelineEvent.findFirst({
-      where: { book: { userId }, id: eventId },
+      where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, id: eventId },
       ...eventDetailArgs,
     });
   }
@@ -281,7 +282,9 @@ export class TimelineEventRepository {
     { eventId, userId }: { eventId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<EventScalarRow>> {
-    return client.bookTimelineEvent.findFirst({ where: { book: { userId }, id: eventId } });
+    return client.bookTimelineEvent.findFirst({
+      where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, id: eventId },
+    });
   }
 
   findOwnedRelation({
@@ -293,7 +296,10 @@ export class TimelineEventRepository {
   }): Promise<Nullable<{ id: string }>> {
     return this.prisma.bookTimelineEventRelation.findFirst({
       select: { id: true },
-      where: { id: relationId, sourceEvent: { book: { userId } } },
+      where: {
+        id: relationId,
+        sourceEvent: { book: { ...SOFT_DELETE_SCOPE.active, userId } },
+      },
     });
   }
 
