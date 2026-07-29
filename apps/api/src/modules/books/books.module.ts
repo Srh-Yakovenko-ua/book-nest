@@ -1,3 +1,4 @@
+import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/index.js";
@@ -27,6 +28,9 @@ import { BookLifecycleService } from "./application/book-lifecycle.service.js";
 import { BookListsService } from "./application/book-lists.service.js";
 import { BookLoanService } from "./application/book-loan.service.js";
 import { BookOwnershipService } from "./application/book-ownership.service.js";
+import { BookPurgeProcessor } from "./application/book-purge.processor.js";
+import { BookPurgeReconciler } from "./application/book-purge.reconciler.js";
+import { BookPurgeScheduler } from "./application/book-purge.scheduler.js";
 import { BookReadingService } from "./application/book-reading.service.js";
 import { BookRelationsResolver } from "./application/book-relations-resolver.js";
 import { BookStoreLinkService } from "./application/book-store-link.service.js";
@@ -37,6 +41,7 @@ import { DedicationsService } from "./application/dedications.service.js";
 import { ListDetailsService } from "./application/list-details.service.js";
 import { ListMembershipService } from "./application/list-membership.service.js";
 import { WishlistService } from "./application/wishlist.service.js";
+import { BOOK_PURGE_QUEUE_NAME } from "./domain/book-purge.js";
 import { BookDeliveriesRepository } from "./infrastructure/book-deliveries.repository.js";
 import { BookListsRepository } from "./infrastructure/book-lists.repository.js";
 import { BookStoreLinkRepository } from "./infrastructure/book-store-link.repository.js";
@@ -69,12 +74,16 @@ import { ListMembershipRepository } from "./infrastructure/list-membership.repos
     GenresModule,
     MediaModule,
     DeliveryServicesModule,
+    BullModule.registerQueue({ name: BOOK_PURGE_QUEUE_NAME }),
   ],
   providers: [
     BooksService,
     BookAccessService,
     BookLibraryReadService,
     BookLifecycleService,
+    BookPurgeScheduler,
+    BookPurgeProcessor,
+    BookPurgeReconciler,
     BookRelationsResolver,
     BookViewAssembler,
     BookCoverCleanup,

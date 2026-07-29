@@ -25,6 +25,7 @@ import {
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
 import { BulkBooksRepository } from "../infrastructure/bulk-books.repository.js";
+import { BookPurgeScheduler } from "./book-purge.scheduler.js";
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
 
@@ -34,6 +35,7 @@ export class BulkBooksService {
     private readonly bulkBooksRepository: BulkBooksRepository,
     private readonly tagsService: TagsService,
     private readonly listsService: ListsService,
+    private readonly purgeScheduler: BookPurgeScheduler,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -120,6 +122,7 @@ export class BulkBooksService {
       deletedAt: new Date(),
       userId,
     });
+    await this.purgeScheduler.scheduleMany({ bookIds: deletedIds, userId });
     return { affected: deletedIds.length };
   }
 

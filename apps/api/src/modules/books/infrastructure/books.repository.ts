@@ -130,6 +130,12 @@ const trashedSelect = {
   title: true,
 } satisfies Prisma.BookSelect;
 
+const purgeSelect = {
+  bookCharacters: { select: { portraitMediaId: true } },
+  coverMediaId: true,
+  deletedAt: true,
+} satisfies Prisma.BookSelect;
+
 const readingSnapshotSelect = {
   pagesCount: true,
   readingProgress: {
@@ -154,6 +160,8 @@ export type ActiveReadingRow = {
 
 export type BlockUpsert<TCreate, TUpdate> =
   { create: TCreate; update: TUpdate } | { delete: true } | { skip: true };
+
+export type BookPurgeRow = Prisma.BookGetPayload<{ select: typeof purgeSelect }>;
 
 export type BookWithRelations = Prisma.BookGetPayload<{
   include: typeof withRelations;
@@ -824,6 +832,19 @@ export class BooksRepository {
     };
   }
 
+  findForPurge({
+    bookId,
+    userId,
+  }: {
+    bookId: string;
+    userId: string;
+  }): Promise<Nullable<BookPurgeRow>> {
+    return this.prisma.book.findFirst({
+      select: purgeSelect,
+      where: { id: bookId, userId },
+    });
+  }
+
   findOwnedById(
     userId: string,
     id: string,
@@ -846,6 +867,21 @@ export class BooksRepository {
     }
 
     return book;
+  }
+
+  findPurgeCandidates({
+    deletedBefore,
+    limit,
+  }: {
+    deletedBefore: Date;
+    limit: number;
+  }): Promise<{ id: string; userId: string }[]> {
+    return this.prisma.book.findMany({
+      orderBy: { deletedAt: "asc" },
+      select: { id: true, userId: true },
+      take: limit,
+      where: { deletedAt: { lt: deletedBefore } },
+    });
   }
 
   findReadingEvents(args: {
@@ -885,6 +921,21 @@ export class BooksRepository {
         userId,
       },
     });
+  }
+
+  async hardDeleteIfTrashed({
+    bookId,
+    deletedBefore,
+    userId,
+  }: {
+    bookId: string;
+    deletedBefore: Date;
+    userId: string;
+  }): Promise<number> {
+    const purged = await this.prisma.book.deleteMany({
+      where: { deletedAt: { lt: deletedBefore }, id: bookId, userId },
+    });
+    return purged.count;
   }
 
   async listActiveReading({

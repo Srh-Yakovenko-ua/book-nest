@@ -11,6 +11,7 @@ import type { TransactionRunner } from "../../../core/database/transaction-runne
 import type { ListsService } from "../../lists/application/lists.service.js";
 import type { TagsService } from "../../tags/application/tags.service.js";
 import type { BulkBooksRepository } from "../infrastructure/bulk-books.repository.js";
+import type { BookPurgeScheduler } from "./book-purge.scheduler.js";
 
 import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { BulkBooksService } from "./bulk-books.service.js";
@@ -48,6 +49,7 @@ function buildService(
 ): {
   bulkBooksRepository: BulkRepository;
   listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
+  purgeScheduler: { scheduleMany: ReturnType<typeof vi.fn> };
   service: BulkBooksService;
   tagsService: { resolveOrCreateMany: ReturnType<typeof vi.fn> };
 } {
@@ -67,6 +69,9 @@ function buildService(
   const listsService = {
     resolveListsForBook: vi.fn().mockResolvedValue(overrides.listIds ?? []),
   };
+  const purgeScheduler = {
+    scheduleMany: vi.fn().mockResolvedValue(undefined),
+  };
   const transactionRunner = {
     run: vi.fn(),
   };
@@ -75,10 +80,11 @@ function buildService(
     bulkBooksRepository as unknown as BulkBooksRepository,
     tagsService as unknown as TagsService,
     listsService as unknown as ListsService,
+    purgeScheduler as unknown as BookPurgeScheduler,
     transactionRunner as unknown as TransactionRunner,
   );
 
-  return { bulkBooksRepository, listsService, service, tagsService };
+  return { bulkBooksRepository, listsService, purgeScheduler, service, tagsService };
 }
 
 describe("BulkBooksService.addTags", () => {
@@ -310,7 +316,9 @@ describe("BulkBooksService.setOwnershipStatus", () => {
 
 describe("BulkBooksService.delete", () => {
   it("counts the books the repository actually moved to the trash", async () => {
-    const { bulkBooksRepository, service } = buildService({ softDeletedIds: [BOOK_A, BOOK_B] });
+    const { bulkBooksRepository, purgeScheduler, service } = buildService({
+      softDeletedIds: [BOOK_A, BOOK_B],
+    });
 
     const result = await service.delete({
       input: { bookIds: [BOOK_A, BOOK_B] },
@@ -320,6 +328,10 @@ describe("BulkBooksService.delete", () => {
     expect(bulkBooksRepository.softDelete).toHaveBeenCalledWith({
       bookIds: [BOOK_A, BOOK_B],
       deletedAt: expect.any(Date),
+      userId: USER_ID,
+    });
+    expect(purgeScheduler.scheduleMany).toHaveBeenCalledWith({
+      bookIds: [BOOK_A, BOOK_B],
       userId: USER_ID,
     });
     expect(result).toEqual({ affected: 2 });
