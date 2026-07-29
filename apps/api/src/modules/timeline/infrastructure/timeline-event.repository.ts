@@ -157,23 +157,25 @@ export class TimelineEventRepository {
           (count(*) FILTER (WHERE event.page_number > ${currentPage}))::int
             AS "eventsAfterPosition"
         FROM book_timeline_events event
+        JOIN book_timelines timeline ON timeline.id = event.timeline_id
         WHERE event.book_id = ${bookId}::uuid
+          AND timeline.deleted_at IS NULL
       `),
       this.prisma.bookTimelineEvent.groupBy({
         _count: { _all: true },
         by: ["eventType"],
-        where: { bookId },
+        where: { bookId, timeline: SOFT_DELETE_SCOPE.active },
       }),
       this.prisma.bookTimelineEvent.groupBy({
         _count: { _all: true },
         by: ["importance"],
-        where: { bookId },
+        where: { bookId, timeline: SOFT_DELETE_SCOPE.active },
       }),
       this.prisma.bookTimelineEvent.groupBy({
         _count: { _all: true },
         by: ["chapter"],
         orderBy: { chapter: "asc" },
-        where: { bookId },
+        where: { bookId, timeline: SOFT_DELETE_SCOPE.active },
       }),
     ]);
 
@@ -273,7 +275,11 @@ export class TimelineEventRepository {
     userId: string;
   }): Promise<Nullable<EventDetailRow>> {
     return this.prisma.bookTimelineEvent.findFirst({
-      where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, id: eventId },
+      where: {
+        book: { ...SOFT_DELETE_SCOPE.active, userId },
+        id: eventId,
+        timeline: SOFT_DELETE_SCOPE.active,
+      },
       ...eventDetailArgs,
     });
   }
@@ -283,7 +289,11 @@ export class TimelineEventRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<EventScalarRow>> {
     return client.bookTimelineEvent.findFirst({
-      where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, id: eventId },
+      where: {
+        book: { ...SOFT_DELETE_SCOPE.active, userId },
+        id: eventId,
+        timeline: SOFT_DELETE_SCOPE.active,
+      },
     });
   }
 
@@ -541,7 +551,10 @@ export class TimelineEventRepository {
 }
 
 function buildEventsWhere(filter: EventsFilter): Prisma.BookTimelineEventWhereInput {
-  const where: Prisma.BookTimelineEventWhereInput = { bookId: filter.bookId };
+  const where: Prisma.BookTimelineEventWhereInput = {
+    bookId: filter.bookId,
+    timeline: SOFT_DELETE_SCOPE.active,
+  };
   const and: Prisma.BookTimelineEventWhereInput[] = [];
 
   if (filter.timelineId !== undefined) {

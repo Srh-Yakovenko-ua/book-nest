@@ -692,12 +692,14 @@ model BookTimeline {
   colorKey    String?             @map("color_key")
   position    Int
   isDefault   Boolean             @default(false) @map("is_default")
+  deletedAt   DateTime?           @map("deleted_at") @db.Timestamptz
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
   book        Book                @relation(fields: [bookId], references: [id], onDelete: Cascade)
   events      BookTimelineEvent[]
 
   @@index([bookId])
+  @@index([bookId, deletedAt])
   @@map("book_timelines")
 }
 
