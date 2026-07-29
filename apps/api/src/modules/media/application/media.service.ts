@@ -33,6 +33,7 @@ import { MEDIA_ERROR_CODES, mediaError } from "../domain/media-error-code.js";
 import { thumbKey } from "../domain/media-keys.js";
 import { GENERATE_THUMB_JOB, MEDIA_QUEUE_NAME } from "../domain/media-queue.js";
 import { StoragePort } from "../domain/storage.port.js";
+import { MediaAdmission } from "../infrastructure/media-admission.js";
 import { MediaRepository } from "../infrastructure/media.repository.js";
 
 export type UploadCommand = {
@@ -59,6 +60,7 @@ const DELETE_CODE_POINT = 0x7f;
 export class MediaService {
   constructor(
     private readonly imageProcessor: ImageProcessorPort,
+    private readonly mediaAdmission: MediaAdmission,
     private readonly mediaRepository: MediaRepository,
     private readonly realtime: RealtimePort,
     private readonly storage: StoragePort,
@@ -135,7 +137,9 @@ export class MediaService {
     }
 
     const original = await this.storage.get(asset.storageKey);
-    const thumbnail = await this.imageProcessor.generateThumbnail({ input: original });
+    const thumbnail = await this.mediaAdmission.runWorkerDecode({
+      task: () => this.imageProcessor.generateThumbnail({ input: original }),
+    });
     const thumbObjectKey = thumbKey(asset.storageKey);
     await this.storage.put({
       body: thumbnail.body,
@@ -221,15 +225,7 @@ export class MediaService {
     }
   }
 
-  private async enqueueThumbnail(payload: GenerateThumbJob): Promise<void> {
-    try {
-      await this.thumbnailQueue.add(GENERATE_THUMB_JOB, payload);
-    } catch (error) {
-      log.warn({ assetId: payload.assetId, err: error }, "failed to enqueue thumbnail job");
-    }
-  }
-
-  private async processFullImage({
+  private async decodeFullImage({
     buffer,
     crop,
   }: {
@@ -251,6 +247,26 @@ export class MediaService {
       log.warn({ err: error }, "image processing failed");
       throw mediaError("Image is corrupted or unsupported", MEDIA_ERROR_CODES.corruptedImage);
     }
+  }
+
+  private async enqueueThumbnail(payload: GenerateThumbJob): Promise<void> {
+    try {
+      await this.thumbnailQueue.add(GENERATE_THUMB_JOB, payload);
+    } catch (error) {
+      log.warn({ assetId: payload.assetId, err: error }, "failed to enqueue thumbnail job");
+    }
+  }
+
+  private processFullImage({
+    buffer,
+    crop,
+  }: {
+    buffer: Buffer;
+    crop?: MediaCrop;
+  }): Promise<ProcessedImage> {
+    return this.mediaAdmission.runHttpDecode({
+      task: () => this.decodeFullImage({ buffer, crop }),
+    });
   }
 
   private async removeAsset(asset: MediaAssetModel): Promise<void> {

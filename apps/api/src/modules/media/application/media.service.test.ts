@@ -15,6 +15,7 @@ import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.
 import { fakeOf } from "../../../test/fake.js";
 import { CropOutOfBoundsError, ImageTooLargeError } from "../domain/image-processor.port.js";
 import { GENERATE_THUMB_JOB } from "../domain/media-queue.js";
+import { MediaAdmission } from "../infrastructure/media-admission.js";
 import { MediaService } from "./media.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -93,6 +94,7 @@ function buildService(): {
   };
   const service = new MediaService(
     imageProcessor as unknown as ImageProcessorPort,
+    new MediaAdmission(),
     repository as unknown as MediaRepository,
     fakeOf<RealtimePort>(realtime),
     storage as unknown as StoragePort,

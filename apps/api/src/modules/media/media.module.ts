@@ -9,6 +9,7 @@ import { MediaService } from "./application/media.service.js";
 import { ImageProcessorPort } from "./domain/image-processor.port.js";
 import { MEDIA_QUEUE_NAME } from "./domain/media-queue.js";
 import { StoragePort } from "./domain/storage.port.js";
+import { MediaAdmission } from "./infrastructure/media-admission.js";
 import { MediaRepository } from "./infrastructure/media.repository.js";
 import { S3StorageAdapter } from "./infrastructure/s3-storage.adapter.js";
 import { SharpImageProcessor } from "./infrastructure/sharp-image.processor.js";
@@ -18,6 +19,7 @@ import { SharpImageProcessor } from "./infrastructure/sharp-image.processor.js";
   exports: [MediaService],
   imports: [AuthModule, BullModule.registerQueue({ name: MEDIA_QUEUE_NAME }), RealtimeModule],
   providers: [
+    MediaAdmission,
     MediaRepository,
     MediaService,
     MediaThumbnailProcessor,

@@ -7,9 +7,16 @@ import { Catch, HttpException } from "@nestjs/common";
 import { ZodError } from "zod";
 
 import { env } from "../../config/env.js";
+import { SemaphoreUnavailableError } from "../bounded-semaphore.js";
 import { HTTP_STATUS, isHttpStatus } from "../http-status.js";
 import { createLogger } from "../logger.js";
-import { BadRequestError, HttpError, NotFoundError, ValidationError } from "./errors.js";
+import {
+  BadRequestError,
+  HttpError,
+  NotFoundError,
+  ServiceUnavailableError,
+  ValidationError,
+} from "./errors.js";
 
 const log = createLogger("error-handler");
 const isProduction = env.nodeEnv === "production";
@@ -22,19 +29,29 @@ export class HttpErrorFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
 
     const httpError = toHttpError(exception);
+    const expectedBackpressure = isExpectedBackpressure(httpError);
 
-    log[httpError.status >= HTTP_STATUS.INTERNAL_SERVER_ERROR ? "error" : "warn"](
+    log[
+      !expectedBackpressure && httpError.status >= HTTP_STATUS.INTERNAL_SERVER_ERROR
+        ? "error"
+        : "warn"
+    ](
       {
         err: {
           message: httpError.message,
           name: httpError.name,
-          stack: exception instanceof Error ? exception.stack : undefined,
+          stack:
+            expectedBackpressure || !(exception instanceof Error) ? undefined : exception.stack,
         },
         requestId: request.requestId,
         status: httpError.status,
       },
       httpError.message,
     );
+
+    if (httpError instanceof ServiceUnavailableError) {
+      response.setHeader("Retry-After", String(httpError.retryAfterSeconds));
+    }
 
     if (httpError instanceof BadRequestError && httpError.fields && httpError.fields.length > 0) {
       const fieldBody: ApiErrorResult = { errorsMessages: httpError.fields };
@@ -48,10 +65,7 @@ export class HttpErrorFilter implements ExceptionFilter {
     }
 
     const body: ApiError = {
-      message:
-        isProduction && httpError.status >= HTTP_STATUS.INTERNAL_SERVER_ERROR
-          ? "Internal server error"
-          : httpError.message,
+      message: hidesInternals(httpError) ? "Internal server error" : httpError.message,
       ...(httpError.code !== undefined && { code: httpError.code }),
       ...(request.requestId !== undefined && { requestId: request.requestId }),
     };
@@ -84,12 +98,21 @@ function fromMulterError(err: Error & { code: string }): HttpError {
   return new BadRequestError("File upload failed", { code: err.code });
 }
 
+function hidesInternals(httpError: HttpError): boolean {
+  if (httpError instanceof ServiceUnavailableError) return false;
+  return isProduction && httpError.status >= HTTP_STATUS.INTERNAL_SERVER_ERROR;
+}
+
 function isBodyParserError(
   err: unknown,
 ): err is Error & { message: string; status: number; type: string } {
   return (
     err instanceof Error && "type" in err && typeof (err as { type: unknown }).type === "string"
   );
+}
+
+function isExpectedBackpressure(httpError: HttpError): boolean {
+  return httpError instanceof ServiceUnavailableError;
 }
 
 function isMulterError(err: unknown): err is Error & { code: string } {
@@ -103,6 +126,8 @@ function isMulterError(err: unknown): err is Error & { code: string } {
 
 function toHttpError(err: unknown): HttpError {
   if (err instanceof HttpError) return err;
+  if (err instanceof SemaphoreUnavailableError)
+    return new ServiceUnavailableError({ code: "SERVER_BUSY" });
   if (err instanceof ZodError) return new ValidationError(formatZodError(err));
   if (isMulterError(err)) return fromMulterError(err);
   if (isBodyParserError(err)) return fromBodyParserError(err);

@@ -8,6 +8,7 @@ const LOCAL_R2_SECRET_ACCESS_KEY = "booknest_local_s3";
 const LOCAL_R2_ENDPOINT = "http://127.0.0.1:9000";
 const LOCAL_R2_PUBLIC_BASE_URL = "http://127.0.0.1:9000/book-nest-dev";
 const LOCAL_HOST_PATTERN = /localhost|127\.0\.0\.1|0\.0\.0\.0/;
+const MEDIA_CONCURRENCY_CEILING = { decode: 2, upload: 8 } as const;
 
 const envSchema = z
   .object({
@@ -50,6 +51,18 @@ const envSchema = z
     JWT_REFRESH_SECRET: z.string().min(32),
     LOG_LEVEL: z.enum(["debug", "error", "info", "warn"]).default("info"),
     MAIL_FROM: z.string().default("BookNest <no-reply@book-nest.net>"),
+    MEDIA_DECODE_CONCURRENCY: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(MEDIA_CONCURRENCY_CEILING.decode)
+      .default(1),
+    MEDIA_UPLOAD_CONCURRENCY: z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(MEDIA_CONCURRENCY_CEILING.upload)
+      .default(3),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     OTEL_SERVICE_NAME: z.string().default("monorepo-api"),
     PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
@@ -130,6 +143,8 @@ const envSchema = z
     jwtRefreshSecret: raw.JWT_REFRESH_SECRET,
     logLevel: raw.LOG_LEVEL,
     mailFrom: raw.MAIL_FROM,
+    mediaDecodeConcurrency: raw.MEDIA_DECODE_CONCURRENCY,
+    mediaUploadConcurrency: raw.MEDIA_UPLOAD_CONCURRENCY,
     nodeEnv: raw.NODE_ENV,
     otelServiceName: raw.OTEL_SERVICE_NAME,
     passwordResetTtlMinutes: raw.PASSWORD_RESET_TTL_MINUTES,
