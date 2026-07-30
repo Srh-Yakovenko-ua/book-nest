@@ -640,13 +640,108 @@ export const NoteControllerEditNoteResponse = zod.object({
 });
 
 /**
- * @summary Delete a note
+ * @summary Move a note to the trash
  */
 export const NoteControllerDeleteNoteParams = zod.object({
   noteId: zod.string().describe("Note id"),
 });
 
-export const NoteControllerDeleteNoteResponse = zod.void();
+export const noteControllerDeleteNoteResponseDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const noteControllerDeleteNoteResponsePurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+
+export const NoteControllerDeleteNoteResponse = zod.object({
+  deletedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(noteControllerDeleteNoteResponseDeletedAtRegExp),
+  purgeAt: zod.iso.datetime({ offset: true }).regex(noteControllerDeleteNoteResponsePurgeAtRegExp),
+  noteId: zod.string(),
+});
+
+/**
+ * @summary Restore a note from the trash
+ */
+export const NoteControllerRestoreNoteParams = zod.object({
+  noteId: zod.string().describe("Note id"),
+});
+
+export const NoteControllerRestoreNoteResponse = zod.void();
+
+/**
+ * @summary List notes waiting in the trash before their scheduled purge
+ */
+export const notesControllerListTrashQueryPageNumberDefault = 1;
+export const notesControllerListTrashQueryPageNumberMax = 21474836;
+
+export const notesControllerListTrashQueryPageSizeDefault = 20;
+export const notesControllerListTrashQueryPageSizeMax = 100;
+
+export const NotesControllerListTrashQueryParams = zod.object({
+  pageNumber: zod
+    .number()
+    .min(1)
+    .max(notesControllerListTrashQueryPageNumberMax)
+    .default(notesControllerListTrashQueryPageNumberDefault),
+  pageSize: zod
+    .number()
+    .min(1)
+    .max(notesControllerListTrashQueryPageSizeMax)
+    .default(notesControllerListTrashQueryPageSizeDefault),
+});
+
+export const notesControllerListTrashResponseItemsItemDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const notesControllerListTrashResponseItemsItemPurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const notesControllerListTrashResponsePageMin = -9007199254740991;
+export const notesControllerListTrashResponsePageMax = 9007199254740991;
+
+export const notesControllerListTrashResponsePagesCountMin = -9007199254740991;
+export const notesControllerListTrashResponsePagesCountMax = 9007199254740991;
+
+export const notesControllerListTrashResponsePageSizeMin = -9007199254740991;
+export const notesControllerListTrashResponsePageSizeMax = 9007199254740991;
+
+export const notesControllerListTrashResponseTotalCountMin = -9007199254740991;
+export const notesControllerListTrashResponseTotalCountMax = 9007199254740991;
+
+export const NotesControllerListTrashResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      deletedAt: zod.iso
+        .datetime({ offset: true })
+        .regex(notesControllerListTrashResponseItemsItemDeletedAtRegExp),
+      entityTitle: zod.string().nullable(),
+      entityType: zod.enum(["book", "series"]),
+      id: zod.string(),
+      purgeAt: zod.iso
+        .datetime({ offset: true })
+        .regex(notesControllerListTrashResponseItemsItemPurgeAtRegExp),
+      text: zod.string(),
+    }),
+  ),
+  page: zod
+    .number()
+    .min(notesControllerListTrashResponsePageMin)
+    .max(notesControllerListTrashResponsePageMax),
+  pagesCount: zod
+    .number()
+    .min(notesControllerListTrashResponsePagesCountMin)
+    .max(notesControllerListTrashResponsePagesCountMax),
+  pageSize: zod
+    .number()
+    .min(notesControllerListTrashResponsePageSizeMin)
+    .max(notesControllerListTrashResponsePageSizeMax),
+  totalCount: zod
+    .number()
+    .min(notesControllerListTrashResponseTotalCountMin)
+    .max(notesControllerListTrashResponseTotalCountMax),
+});
 
 /**
  * @summary Get summary counts for the current user's notes

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { WishlistViewDtoBooksItemSeriesAuthorsItem } from "./wishlistViewDtoBooksItemSeriesAuthorsItem";
+import type { WishlistViewDtoBooksItemSeriesCoversItem } from "./wishlistViewDtoBooksItemSeriesCoversItem";
 import type { WishlistViewDtoBooksItemSeriesNextBook } from "./wishlistViewDtoBooksItemSeriesNextBook";
 import type { WishlistViewDtoBooksItemSeriesStatus } from "./wishlistViewDtoBooksItemSeriesStatus";
 
@@ -15,6 +16,7 @@ import type { WishlistViewDtoBooksItemSeriesStatus } from "./wishlistViewDtoBook
 export type WishlistViewDtoBooksItemSeries = {
   authors: WishlistViewDtoBooksItemSeriesAuthorsItem[];
   booksInSeries: number;
+  covers: WishlistViewDtoBooksItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;

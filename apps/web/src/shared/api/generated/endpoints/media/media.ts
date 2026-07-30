@@ -212,10 +212,17 @@ export type mediaControllerUploadResponse401 = {
   status: 401;
 };
 
+export type mediaControllerUploadResponse503 = {
+  data: void;
+  status: 503;
+};
+
 export type mediaControllerUploadResponseSuccess = mediaControllerUploadResponse201 & {
   headers: Headers;
 };
-export type mediaControllerUploadResponseError = mediaControllerUploadResponse401 & {
+export type mediaControllerUploadResponseError = (
+  mediaControllerUploadResponse401 | mediaControllerUploadResponse503
+) & {
   headers: Headers;
 };
 

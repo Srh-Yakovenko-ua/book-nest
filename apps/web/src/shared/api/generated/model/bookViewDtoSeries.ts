@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { BookViewDtoSeriesAuthorsItem } from "./bookViewDtoSeriesAuthorsItem";
+import type { BookViewDtoSeriesCoversItem } from "./bookViewDtoSeriesCoversItem";
 import type { BookViewDtoSeriesNextBook } from "./bookViewDtoSeriesNextBook";
 import type { BookViewDtoSeriesStatus } from "./bookViewDtoSeriesStatus";
 
@@ -15,6 +16,7 @@ import type { BookViewDtoSeriesStatus } from "./bookViewDtoSeriesStatus";
 export type BookViewDtoSeries = {
   authors: BookViewDtoSeriesAuthorsItem[];
   booksInSeries: number;
+  covers: BookViewDtoSeriesCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;

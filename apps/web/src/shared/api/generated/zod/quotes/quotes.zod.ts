@@ -217,14 +217,111 @@ export const BookQuotesControllerUpdateQuoteResponse = zod.object({
 });
 
 /**
- * @summary Delete a book quote
+ * @summary Move a book quote to the trash
  */
 export const BookQuotesControllerDeleteQuoteParams = zod.object({
   bookId: zod.string(),
   quoteId: zod.string(),
 });
 
-export const BookQuotesControllerDeleteQuoteResponse = zod.void();
+export const bookQuotesControllerDeleteQuoteResponseDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const bookQuotesControllerDeleteQuoteResponsePurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+
+export const BookQuotesControllerDeleteQuoteResponse = zod.object({
+  deletedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(bookQuotesControllerDeleteQuoteResponseDeletedAtRegExp),
+  purgeAt: zod.iso
+    .datetime({ offset: true })
+    .regex(bookQuotesControllerDeleteQuoteResponsePurgeAtRegExp),
+  quoteId: zod.string(),
+});
+
+/**
+ * @summary Restore a book quote from the trash
+ */
+export const BookQuotesControllerRestoreQuoteParams = zod.object({
+  bookId: zod.string(),
+  quoteId: zod.string(),
+});
+
+export const BookQuotesControllerRestoreQuoteResponse = zod.void();
+
+/**
+ * @summary List quotes waiting in the trash before their scheduled purge
+ */
+export const quotesControllerListTrashQueryPageNumberDefault = 1;
+export const quotesControllerListTrashQueryPageNumberMax = 21474836;
+
+export const quotesControllerListTrashQueryPageSizeDefault = 20;
+export const quotesControllerListTrashQueryPageSizeMax = 100;
+
+export const QuotesControllerListTrashQueryParams = zod.object({
+  pageNumber: zod
+    .number()
+    .min(1)
+    .max(quotesControllerListTrashQueryPageNumberMax)
+    .default(quotesControllerListTrashQueryPageNumberDefault),
+  pageSize: zod
+    .number()
+    .min(1)
+    .max(quotesControllerListTrashQueryPageSizeMax)
+    .default(quotesControllerListTrashQueryPageSizeDefault),
+});
+
+export const quotesControllerListTrashResponseItemsItemDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const quotesControllerListTrashResponseItemsItemPurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const quotesControllerListTrashResponsePageMin = -9007199254740991;
+export const quotesControllerListTrashResponsePageMax = 9007199254740991;
+
+export const quotesControllerListTrashResponsePagesCountMin = -9007199254740991;
+export const quotesControllerListTrashResponsePagesCountMax = 9007199254740991;
+
+export const quotesControllerListTrashResponsePageSizeMin = -9007199254740991;
+export const quotesControllerListTrashResponsePageSizeMax = 9007199254740991;
+
+export const quotesControllerListTrashResponseTotalCountMin = -9007199254740991;
+export const quotesControllerListTrashResponseTotalCountMax = 9007199254740991;
+
+export const QuotesControllerListTrashResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      bookTitle: zod.string(),
+      deletedAt: zod.iso
+        .datetime({ offset: true })
+        .regex(quotesControllerListTrashResponseItemsItemDeletedAtRegExp),
+      id: zod.string(),
+      purgeAt: zod.iso
+        .datetime({ offset: true })
+        .regex(quotesControllerListTrashResponseItemsItemPurgeAtRegExp),
+      text: zod.string(),
+    }),
+  ),
+  page: zod
+    .number()
+    .min(quotesControllerListTrashResponsePageMin)
+    .max(quotesControllerListTrashResponsePageMax),
+  pagesCount: zod
+    .number()
+    .min(quotesControllerListTrashResponsePagesCountMin)
+    .max(quotesControllerListTrashResponsePagesCountMax),
+  pageSize: zod
+    .number()
+    .min(quotesControllerListTrashResponsePageSizeMin)
+    .max(quotesControllerListTrashResponsePageSizeMax),
+  totalCount: zod
+    .number()
+    .min(quotesControllerListTrashResponseTotalCountMin)
+    .max(quotesControllerListTrashResponseTotalCountMax),
+});
 
 /**
  * @summary Get summary statistics for the current user's quotes

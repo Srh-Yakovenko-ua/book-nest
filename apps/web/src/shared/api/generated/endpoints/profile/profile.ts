@@ -20,6 +20,7 @@ import type {
 
 import type {
   CreateSocialLinkInputDto,
+  SettingsViewDto,
   UpdateProfileInputDto,
   UpdateSettingsInputDto,
   UpdateSocialLinkInputDto,
@@ -908,7 +909,7 @@ export function useSocialLinkControllerDelete<
 }
 
 export type settingsControllerGetSettingsResponse200 = {
-  data: void;
+  data: SettingsViewDto;
   status: 200;
 };
 
@@ -1059,7 +1060,7 @@ export function useSettingsControllerGetSettings<
 }
 
 export type settingsControllerUpdateSettingsResponse200 = {
-  data: void;
+  data: SettingsViewDto;
   status: 200;
 };
 

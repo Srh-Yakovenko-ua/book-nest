@@ -103,11 +103,40 @@ export const SocialLinkControllerDeleteResponse = zod.void();
 /**
  * @summary Return the current user settings
  */
-export const SettingsControllerGetSettingsResponse = zod.unknown();
+export const settingsControllerGetSettingsResponseLoanReminderLeadDaysDefault = 3;
+export const settingsControllerGetSettingsResponseLoanReminderLeadDaysMax = 14;
+
+export const settingsControllerGetSettingsResponseTimezoneDefault = `Europe/Kyiv`;
+
+export const SettingsControllerGetSettingsResponse = zod.object({
+  accentColor: zod.enum(["brown", "orange", "yellow", "green", "blue", "purple"]),
+  confirmBeforeDelete: zod.boolean(),
+  dateFormat: zod.enum(["DD.MM.YYYY", "MM/DD/YYYY", "YYYY-MM-DD"]),
+  emailNotifications: zod.object({
+    borrowedBookReminders: zod.boolean(),
+    deliveryReminders: zod.boolean(),
+    monthlyReadingReport: zod.boolean(),
+    readingGoalReminders: zod.boolean(),
+    readingReminders: zod.boolean(),
+    weeklyReadingSummary: zod.boolean(),
+  }),
+  language: zod.enum(["uk", "en"]),
+  libraryViewMode: zod.enum(["grid", "list"]),
+  loanReminderLeadDays: zod
+    .number()
+    .min(1)
+    .max(settingsControllerGetSettingsResponseLoanReminderLeadDaysMax)
+    .default(settingsControllerGetSettingsResponseLoanReminderLeadDaysDefault),
+  themeMode: zod.enum(["light", "dark", "system"]),
+  timezone: zod.string().default(settingsControllerGetSettingsResponseTimezoneDefault),
+  weekStartDay: zod.enum(["monday", "sunday"]),
+});
 
 /**
  * @summary Update the current user settings
  */
+export const settingsControllerUpdateSettingsBodyLoanReminderLeadDaysMax = 14;
+
 export const SettingsControllerUpdateSettingsBody = zod.object({
   accentColor: zod.enum(["brown", "orange", "yellow", "green", "blue", "purple"]).optional(),
   confirmBeforeDelete: zod.boolean().optional(),
@@ -124,9 +153,41 @@ export const SettingsControllerUpdateSettingsBody = zod.object({
     .optional(),
   language: zod.enum(["uk", "en"]).optional(),
   libraryViewMode: zod.enum(["grid", "list"]).optional(),
+  loanReminderLeadDays: zod
+    .number()
+    .min(1)
+    .max(settingsControllerUpdateSettingsBodyLoanReminderLeadDaysMax)
+    .optional(),
   themeMode: zod.enum(["light", "dark", "system"]).optional(),
   timezone: zod.string().optional(),
   weekStartDay: zod.enum(["monday", "sunday"]).optional(),
 });
 
-export const SettingsControllerUpdateSettingsResponse = zod.unknown();
+export const settingsControllerUpdateSettingsResponseLoanReminderLeadDaysDefault = 3;
+export const settingsControllerUpdateSettingsResponseLoanReminderLeadDaysMax = 14;
+
+export const settingsControllerUpdateSettingsResponseTimezoneDefault = `Europe/Kyiv`;
+
+export const SettingsControllerUpdateSettingsResponse = zod.object({
+  accentColor: zod.enum(["brown", "orange", "yellow", "green", "blue", "purple"]),
+  confirmBeforeDelete: zod.boolean(),
+  dateFormat: zod.enum(["DD.MM.YYYY", "MM/DD/YYYY", "YYYY-MM-DD"]),
+  emailNotifications: zod.object({
+    borrowedBookReminders: zod.boolean(),
+    deliveryReminders: zod.boolean(),
+    monthlyReadingReport: zod.boolean(),
+    readingGoalReminders: zod.boolean(),
+    readingReminders: zod.boolean(),
+    weeklyReadingSummary: zod.boolean(),
+  }),
+  language: zod.enum(["uk", "en"]),
+  libraryViewMode: zod.enum(["grid", "list"]),
+  loanReminderLeadDays: zod
+    .number()
+    .min(1)
+    .max(settingsControllerUpdateSettingsResponseLoanReminderLeadDaysMax)
+    .default(settingsControllerUpdateSettingsResponseLoanReminderLeadDaysDefault),
+  themeMode: zod.enum(["light", "dark", "system"]),
+  timezone: zod.string().default(settingsControllerUpdateSettingsResponseTimezoneDefault),
+  weekStartDay: zod.enum(["monday", "sunday"]),
+});

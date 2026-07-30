@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { ReadingQueueViewDtoItemsItemBookSeriesAuthorsItem } from "./readingQueueViewDtoItemsItemBookSeriesAuthorsItem";
+import type { ReadingQueueViewDtoItemsItemBookSeriesCoversItem } from "./readingQueueViewDtoItemsItemBookSeriesCoversItem";
 import type { ReadingQueueViewDtoItemsItemBookSeriesNextBook } from "./readingQueueViewDtoItemsItemBookSeriesNextBook";
 import type { ReadingQueueViewDtoItemsItemBookSeriesStatus } from "./readingQueueViewDtoItemsItemBookSeriesStatus";
 
@@ -15,6 +16,7 @@ import type { ReadingQueueViewDtoItemsItemBookSeriesStatus } from "./readingQueu
 export type ReadingQueueViewDtoItemsItemBookSeries = {
   authors: ReadingQueueViewDtoItemsItemBookSeriesAuthorsItem[];
   booksInSeries: number;
+  covers: ReadingQueueViewDtoItemsItemBookSeriesCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;

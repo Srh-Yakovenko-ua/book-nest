@@ -314,7 +314,7 @@ export const TimelinesControllerUpdateTimelineResponse = zod.object({
 });
 
 /**
- * @summary Delete a timeline, optionally moving or deleting its events
+ * @summary Move a timeline to the trash, optionally moving its events elsewhere first
  */
 export const TimelinesControllerDeleteTimelineParams = zod.object({
   timelineId: zod.string().describe("Timeline id"),
@@ -332,7 +332,22 @@ export const TimelinesControllerDeleteTimelineQueryParams = zod.object({
     .optional(),
 });
 
-export const TimelinesControllerDeleteTimelineResponse = zod.void();
+export const timelinesControllerDeleteTimelineResponseDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const timelinesControllerDeleteTimelineResponsePurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+
+export const TimelinesControllerDeleteTimelineResponse = zod.object({
+  deletedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(timelinesControllerDeleteTimelineResponseDeletedAtRegExp),
+  purgeAt: zod.iso
+    .datetime({ offset: true })
+    .regex(timelinesControllerDeleteTimelineResponsePurgeAtRegExp),
+  timelineId: zod.string(),
+});
 
 /**
  * @summary Mark a timeline as the default line for its book
@@ -395,3 +410,91 @@ export const TimelinesControllerSetDefaultResponse = zod.object({
     }),
   ),
 });
+
+/**
+ * @summary List timelines waiting in the trash before their scheduled purge
+ */
+export const timelinesControllerListTrashQueryPageNumberDefault = 1;
+export const timelinesControllerListTrashQueryPageNumberMax = 21474836;
+
+export const timelinesControllerListTrashQueryPageSizeDefault = 20;
+export const timelinesControllerListTrashQueryPageSizeMax = 100;
+
+export const TimelinesControllerListTrashQueryParams = zod.object({
+  pageNumber: zod
+    .number()
+    .min(1)
+    .max(timelinesControllerListTrashQueryPageNumberMax)
+    .default(timelinesControllerListTrashQueryPageNumberDefault),
+  pageSize: zod
+    .number()
+    .min(1)
+    .max(timelinesControllerListTrashQueryPageSizeMax)
+    .default(timelinesControllerListTrashQueryPageSizeDefault),
+});
+
+export const timelinesControllerListTrashResponseItemsItemDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const timelinesControllerListTrashResponseItemsItemEventCountMin = -9007199254740991;
+export const timelinesControllerListTrashResponseItemsItemEventCountMax = 9007199254740991;
+
+export const timelinesControllerListTrashResponseItemsItemPurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const timelinesControllerListTrashResponsePageMin = -9007199254740991;
+export const timelinesControllerListTrashResponsePageMax = 9007199254740991;
+
+export const timelinesControllerListTrashResponsePagesCountMin = -9007199254740991;
+export const timelinesControllerListTrashResponsePagesCountMax = 9007199254740991;
+
+export const timelinesControllerListTrashResponsePageSizeMin = -9007199254740991;
+export const timelinesControllerListTrashResponsePageSizeMax = 9007199254740991;
+
+export const timelinesControllerListTrashResponseTotalCountMin = -9007199254740991;
+export const timelinesControllerListTrashResponseTotalCountMax = 9007199254740991;
+
+export const TimelinesControllerListTrashResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      bookTitle: zod.string(),
+      deletedAt: zod.iso
+        .datetime({ offset: true })
+        .regex(timelinesControllerListTrashResponseItemsItemDeletedAtRegExp),
+      eventCount: zod
+        .number()
+        .min(timelinesControllerListTrashResponseItemsItemEventCountMin)
+        .max(timelinesControllerListTrashResponseItemsItemEventCountMax),
+      id: zod.string(),
+      name: zod.string(),
+      purgeAt: zod.iso
+        .datetime({ offset: true })
+        .regex(timelinesControllerListTrashResponseItemsItemPurgeAtRegExp),
+    }),
+  ),
+  page: zod
+    .number()
+    .min(timelinesControllerListTrashResponsePageMin)
+    .max(timelinesControllerListTrashResponsePageMax),
+  pagesCount: zod
+    .number()
+    .min(timelinesControllerListTrashResponsePagesCountMin)
+    .max(timelinesControllerListTrashResponsePagesCountMax),
+  pageSize: zod
+    .number()
+    .min(timelinesControllerListTrashResponsePageSizeMin)
+    .max(timelinesControllerListTrashResponsePageSizeMax),
+  totalCount: zod
+    .number()
+    .min(timelinesControllerListTrashResponseTotalCountMin)
+    .max(timelinesControllerListTrashResponseTotalCountMax),
+});
+
+/**
+ * @summary Restore a timeline from the trash
+ */
+export const TimelinesControllerRestoreTimelineParams = zod.object({
+  timelineId: zod.string().describe("Timeline id"),
+});
+
+export const TimelinesControllerRestoreTimelineResponse = zod.void();

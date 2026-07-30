@@ -7,6 +7,7 @@
  */
 import type { SeriesDetailsViewDtoAuthorsItem } from "./seriesDetailsViewDtoAuthorsItem";
 import type { SeriesDetailsViewDtoBooksItem } from "./seriesDetailsViewDtoBooksItem";
+import type { SeriesDetailsViewDtoCoversItem } from "./seriesDetailsViewDtoCoversItem";
 import type { SeriesDetailsViewDtoNextBook } from "./seriesDetailsViewDtoNextBook";
 import type { SeriesDetailsViewDtoPublishersItem } from "./seriesDetailsViewDtoPublishersItem";
 import type { SeriesDetailsViewDtoStats } from "./seriesDetailsViewDtoStats";
@@ -15,6 +16,7 @@ import type { SeriesDetailsViewDtoStatus } from "./seriesDetailsViewDtoStatus";
 export interface SeriesDetailsViewDto {
   authors: SeriesDetailsViewDtoAuthorsItem[];
   booksInSeries: number;
+  covers: SeriesDetailsViewDtoCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;

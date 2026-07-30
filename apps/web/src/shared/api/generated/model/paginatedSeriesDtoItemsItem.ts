@@ -6,12 +6,14 @@
  * OpenAPI spec version: 1.0
  */
 import type { PaginatedSeriesDtoItemsItemAuthorsItem } from "./paginatedSeriesDtoItemsItemAuthorsItem";
+import type { PaginatedSeriesDtoItemsItemCoversItem } from "./paginatedSeriesDtoItemsItemCoversItem";
 import type { PaginatedSeriesDtoItemsItemNextBook } from "./paginatedSeriesDtoItemsItemNextBook";
 import type { PaginatedSeriesDtoItemsItemStatus } from "./paginatedSeriesDtoItemsItemStatus";
 
 export type PaginatedSeriesDtoItemsItem = {
   authors: PaginatedSeriesDtoItemsItemAuthorsItem[];
   booksInSeries: number;
+  covers: PaginatedSeriesDtoItemsItemCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;

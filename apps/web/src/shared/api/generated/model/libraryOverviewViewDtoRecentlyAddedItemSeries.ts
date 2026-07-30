@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesAuthorsItem } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesAuthorsItem";
+import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesCoversItem } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesCoversItem";
 import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesNextBook } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesNextBook";
 import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesStatus } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesStatus";
 
@@ -15,6 +16,7 @@ import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesStatus } from "./libr
 export type LibraryOverviewViewDtoRecentlyAddedItemSeries = {
   authors: LibraryOverviewViewDtoRecentlyAddedItemSeriesAuthorsItem[];
   booksInSeries: number;
+  covers: LibraryOverviewViewDtoRecentlyAddedItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;

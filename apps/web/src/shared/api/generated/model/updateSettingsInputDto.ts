@@ -20,6 +20,11 @@ export interface UpdateSettingsInputDto {
   emailNotifications?: UpdateSettingsInputDtoEmailNotifications;
   language?: UpdateSettingsInputDtoLanguage;
   libraryViewMode?: UpdateSettingsInputDtoLibraryViewMode;
+  /**
+   * @minimum 1
+   * @maximum 14
+   */
+  loanReminderLeadDays?: number;
   themeMode?: UpdateSettingsInputDtoThemeMode;
   timezone?: string;
   weekStartDay?: UpdateSettingsInputDtoWeekStartDay;

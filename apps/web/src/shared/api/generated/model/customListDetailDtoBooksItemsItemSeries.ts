@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { CustomListDetailDtoBooksItemsItemSeriesAuthorsItem } from "./customListDetailDtoBooksItemsItemSeriesAuthorsItem";
+import type { CustomListDetailDtoBooksItemsItemSeriesCoversItem } from "./customListDetailDtoBooksItemsItemSeriesCoversItem";
 import type { CustomListDetailDtoBooksItemsItemSeriesNextBook } from "./customListDetailDtoBooksItemsItemSeriesNextBook";
 import type { CustomListDetailDtoBooksItemsItemSeriesStatus } from "./customListDetailDtoBooksItemsItemSeriesStatus";
 
@@ -15,6 +16,7 @@ import type { CustomListDetailDtoBooksItemsItemSeriesStatus } from "./customList
 export type CustomListDetailDtoBooksItemsItemSeries = {
   authors: CustomListDetailDtoBooksItemsItemSeriesAuthorsItem[];
   booksInSeries: number;
+  covers: CustomListDetailDtoBooksItemsItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;

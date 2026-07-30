@@ -6,12 +6,14 @@
  * OpenAPI spec version: 1.0
  */
 import type { SeriesViewDtoAuthorsItem } from "./seriesViewDtoAuthorsItem";
+import type { SeriesViewDtoCoversItem } from "./seriesViewDtoCoversItem";
 import type { SeriesViewDtoNextBook } from "./seriesViewDtoNextBook";
 import type { SeriesViewDtoStatus } from "./seriesViewDtoStatus";
 
 export interface SeriesViewDto {
   authors: SeriesViewDtoAuthorsItem[];
   booksInSeries: number;
+  covers: SeriesViewDtoCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;

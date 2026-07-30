@@ -63,6 +63,27 @@ export const SeriesControllerCreateResponse = zod.object({
     }),
   ),
   booksInSeries: zod.number(),
+  covers: zod.array(
+    zod.object({
+      bookId: zod.string(),
+      cover: zod.object({
+        contentType: zod.string(),
+        createdAt: zod.string(),
+        height: zod.number(),
+        id: zod.string(),
+        kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+        name: zod.string().nullable(),
+        sizeBytes: zod.number(),
+        urls: zod.object({
+          card: zod.string(),
+          full: zod.string(),
+          thumb: zod.string(),
+        }),
+        width: zod.number(),
+      }),
+      title: zod.string(),
+    }),
+  ),
   createdAt: zod.string(),
   description: zod.string().nullable(),
   finishedInSeries: zod.number(),
@@ -138,6 +159,27 @@ export const SeriesControllerSearchResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      covers: zod.array(
+        zod.object({
+          bookId: zod.string(),
+          cover: zod.object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          }),
+          title: zod.string(),
+        }),
+      ),
       createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
@@ -180,6 +222,8 @@ export const SeriesControllerSearchResponse = zod.object({
  */
 export const SeriesControllerOverviewResponse = zod.object({
   booksInSeries: zod.number(),
+  booksLeftInUnfinishedSeries: zod.number().optional(),
+  finishedBooksInSeries: zod.number().optional(),
   fullyReadSeries: zod.number(),
   statusCounts: zod.object({
     completed: zod.number(),
@@ -195,6 +239,27 @@ export const SeriesControllerOverviewResponse = zod.object({
         }),
       ),
       booksInSeries: zod.number(),
+      covers: zod.array(
+        zod.object({
+          bookId: zod.string(),
+          cover: zod.object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          }),
+          title: zod.string(),
+        }),
+      ),
       createdAt: zod.string(),
       description: zod.string().nullable(),
       finishedInSeries: zod.number(),
@@ -422,6 +487,84 @@ export const SeriesControllerFavoriteContinuationsResponse = zod.object({
 });
 
 /**
+ * @summary List series waiting in the trash before their scheduled purge
+ */
+export const seriesControllerListTrashQueryPageNumberDefault = 1;
+export const seriesControllerListTrashQueryPageNumberMax = 21474836;
+
+export const seriesControllerListTrashQueryPageSizeDefault = 20;
+export const seriesControllerListTrashQueryPageSizeMax = 100;
+
+export const SeriesControllerListTrashQueryParams = zod.object({
+  pageNumber: zod
+    .number()
+    .min(1)
+    .max(seriesControllerListTrashQueryPageNumberMax)
+    .default(seriesControllerListTrashQueryPageNumberDefault),
+  pageSize: zod
+    .number()
+    .min(1)
+    .max(seriesControllerListTrashQueryPageSizeMax)
+    .default(seriesControllerListTrashQueryPageSizeDefault),
+});
+
+export const seriesControllerListTrashResponseItemsItemBooksCountMin = -9007199254740991;
+export const seriesControllerListTrashResponseItemsItemBooksCountMax = 9007199254740991;
+
+export const seriesControllerListTrashResponseItemsItemDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const seriesControllerListTrashResponseItemsItemPurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const seriesControllerListTrashResponsePageMin = -9007199254740991;
+export const seriesControllerListTrashResponsePageMax = 9007199254740991;
+
+export const seriesControllerListTrashResponsePagesCountMin = -9007199254740991;
+export const seriesControllerListTrashResponsePagesCountMax = 9007199254740991;
+
+export const seriesControllerListTrashResponsePageSizeMin = -9007199254740991;
+export const seriesControllerListTrashResponsePageSizeMax = 9007199254740991;
+
+export const seriesControllerListTrashResponseTotalCountMin = -9007199254740991;
+export const seriesControllerListTrashResponseTotalCountMax = 9007199254740991;
+
+export const SeriesControllerListTrashResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      booksCount: zod
+        .number()
+        .min(seriesControllerListTrashResponseItemsItemBooksCountMin)
+        .max(seriesControllerListTrashResponseItemsItemBooksCountMax),
+      deletedAt: zod.iso
+        .datetime({ offset: true })
+        .regex(seriesControllerListTrashResponseItemsItemDeletedAtRegExp),
+      id: zod.string(),
+      name: zod.string(),
+      purgeAt: zod.iso
+        .datetime({ offset: true })
+        .regex(seriesControllerListTrashResponseItemsItemPurgeAtRegExp),
+    }),
+  ),
+  page: zod
+    .number()
+    .min(seriesControllerListTrashResponsePageMin)
+    .max(seriesControllerListTrashResponsePageMax),
+  pagesCount: zod
+    .number()
+    .min(seriesControllerListTrashResponsePagesCountMin)
+    .max(seriesControllerListTrashResponsePagesCountMax),
+  pageSize: zod
+    .number()
+    .min(seriesControllerListTrashResponsePageSizeMin)
+    .max(seriesControllerListTrashResponsePageSizeMax),
+  totalCount: zod
+    .number()
+    .min(seriesControllerListTrashResponseTotalCountMin)
+    .max(seriesControllerListTrashResponseTotalCountMax),
+});
+
+/**
  * @summary Get a series by id
  */
 export const SeriesControllerGetByIdParams = zod.object({
@@ -436,6 +579,27 @@ export const SeriesControllerGetByIdResponse = zod.object({
     }),
   ),
   booksInSeries: zod.number(),
+  covers: zod.array(
+    zod.object({
+      bookId: zod.string(),
+      cover: zod.object({
+        contentType: zod.string(),
+        createdAt: zod.string(),
+        height: zod.number(),
+        id: zod.string(),
+        kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+        name: zod.string().nullable(),
+        sizeBytes: zod.number(),
+        urls: zod.object({
+          card: zod.string(),
+          full: zod.string(),
+          thumb: zod.string(),
+        }),
+        width: zod.number(),
+      }),
+      title: zod.string(),
+    }),
+  ),
   createdAt: zod.string(),
   description: zod.string().nullable(),
   finishedInSeries: zod.number(),
@@ -652,6 +816,27 @@ export const SeriesControllerUpdateResponse = zod.object({
     }),
   ),
   booksInSeries: zod.number(),
+  covers: zod.array(
+    zod.object({
+      bookId: zod.string(),
+      cover: zod.object({
+        contentType: zod.string(),
+        createdAt: zod.string(),
+        height: zod.number(),
+        id: zod.string(),
+        kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+        name: zod.string().nullable(),
+        sizeBytes: zod.number(),
+        urls: zod.object({
+          card: zod.string(),
+          full: zod.string(),
+          thumb: zod.string(),
+        }),
+        width: zod.number(),
+      }),
+      title: zod.string(),
+    }),
+  ),
   createdAt: zod.string(),
   description: zod.string().nullable(),
   finishedInSeries: zod.number(),
@@ -672,13 +857,222 @@ export const SeriesControllerUpdateResponse = zod.object({
 });
 
 /**
- * @summary Delete a series by id
+ * @summary Move a series to the trash
  */
 export const SeriesControllerDeleteParams = zod.object({
   id: zod.string(),
 });
 
-export const SeriesControllerDeleteResponse = zod.void();
+export const seriesControllerDeleteResponseDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const seriesControllerDeleteResponsePurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+
+export const SeriesControllerDeleteResponse = zod.object({
+  deletedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(seriesControllerDeleteResponseDeletedAtRegExp),
+  purgeAt: zod.iso.datetime({ offset: true }).regex(seriesControllerDeleteResponsePurgeAtRegExp),
+  seriesId: zod.string(),
+});
+
+/**
+ * @summary Restore a series from the trash
+ */
+export const SeriesControllerRestoreParams = zod.object({
+  id: zod.string(),
+});
+
+export const SeriesControllerRestoreResponse = zod.object({
+  authors: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  booksInSeries: zod.number(),
+  covers: zod.array(
+    zod.object({
+      bookId: zod.string(),
+      cover: zod.object({
+        contentType: zod.string(),
+        createdAt: zod.string(),
+        height: zod.number(),
+        id: zod.string(),
+        kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+        name: zod.string().nullable(),
+        sizeBytes: zod.number(),
+        urls: zod.object({
+          card: zod.string(),
+          full: zod.string(),
+          thumb: zod.string(),
+        }),
+        width: zod.number(),
+      }),
+      title: zod.string(),
+    }),
+  ),
+  createdAt: zod.string(),
+  description: zod.string().nullable(),
+  finishedInSeries: zod.number(),
+  genres: zod.array(zod.string()),
+  id: zod.string(),
+  lastActivityAt: zod.string(),
+  name: zod.string(),
+  nextBook: zod
+    .object({
+      id: zod.string(),
+      partNumber: zod.number().nullable(),
+      title: zod.string(),
+    })
+    .nullable(),
+  readingInSeries: zod.number(),
+  status: zod.enum(["completed", "ongoing", "unknown"]),
+  totalBooks: zod.number().nullable(),
+  books: zod.array(
+    zod.object({
+      activeDelivery: zod
+        .object({
+          cancelledAt: zod.string().nullable(),
+          cancelReason: zod.string().nullable(),
+          createdAt: zod.string(),
+          currency: zod
+            .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+            .nullable(),
+          deliveryService: zod.string().nullable(),
+          expectedDeliveryDate: zod.string().nullable(),
+          id: zod.string(),
+          note: zod.string().nullable(),
+          orderDate: zod.string().nullable(),
+          orderNumber: zod.string().nullable(),
+          price: zod.number().nullable(),
+          receivedAt: zod.string().nullable(),
+          status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
+          storeName: zod.string().nullable(),
+          trackingNumber: zod.string().nullable(),
+          trackingUrl: zod.string().nullable(),
+          updatedAt: zod.string(),
+        })
+        .nullable(),
+      ageCategory: zod.enum([
+        "not_specified",
+        "no_restrictions",
+        "6_plus",
+        "12_plus",
+        "14_plus",
+        "16_plus",
+        "18_plus",
+      ]),
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullish(),
+      createdAt: zod.string(),
+      currentPage: zod.number().nullable(),
+      finishedAt: zod.string().nullable(),
+      formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
+      genres: zod.array(zod.string()),
+      id: zod.string(),
+      isFavorite: zod.boolean(),
+      isInReadingQueue: zod.boolean(),
+      loanInfo: zod
+        .object({
+          contact: zod.string().nullable(),
+          expectedReturnDate: zod.string().nullable(),
+          loanDate: zod.string().nullable(),
+          loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+          loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
+          note: zod.string().nullable(),
+          personName: zod.string(),
+          remindToReturn: zod.boolean(),
+        })
+        .nullable(),
+      originalTitle: zod.string().nullable(),
+      ownershipStatus: zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+      pagesCount: zod.number().nullable(),
+      partNumber: zod.number().nullable(),
+      publicationYear: zod.number().nullable(),
+      publisher: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+        })
+        .nullable(),
+      rating: zod.number().nullable(),
+      readingStatus: zod.enum([
+        "not_started",
+        "want_to_read",
+        "reading",
+        "paused",
+        "finished",
+        "dnf",
+        "rereading",
+      ]),
+      startedAt: zod.string().nullable(),
+      tags: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      title: zod.string(),
+    }),
+  ),
+  publishers: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  stats: zod.object({
+    averagePages: zod.number().nullable(),
+    averageRating: zod.number().nullable(),
+    booksCount: zod.number(),
+    favoriteBook: zod
+      .object({
+        id: zod.string(),
+        title: zod.string(),
+      })
+      .nullable(),
+    finishedCount: zod.number(),
+    lastFinishedAt: zod.string().nullable(),
+    pagesCount: zod.number().nullable(),
+    readingCount: zod.number(),
+    readingDurationDays: zod.number().nullable(),
+    readPagesCount: zod.number().nullable(),
+    readPagesPartial: zod.boolean(),
+    startedAt: zod.string().nullable(),
+    unreadCount: zod.number(),
+  }),
+});
 
 /**
  * @summary Read the series read-order check preference for a series

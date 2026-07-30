@@ -10,6 +10,8 @@ import type { SeriesOverviewViewDtoTopUnfinishedItem } from "./seriesOverviewVie
 
 export interface SeriesOverviewViewDto {
   booksInSeries: number;
+  booksLeftInUnfinishedSeries?: number;
+  finishedBooksInSeries?: number;
   fullyReadSeries: number;
   statusCounts: SeriesOverviewViewDtoStatusCounts;
   topUnfinished: SeriesOverviewViewDtoTopUnfinishedItem[];

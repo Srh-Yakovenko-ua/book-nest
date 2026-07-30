@@ -138,7 +138,7 @@ export const NotificationListQuerySchema = z.object({
     .min(1)
     .max(NOTIFICATION_BOUNDS.listLimitMax)
     .default(NOTIFICATION_BOUNDS.pageSizeDefault),
-  unreadOnly: z.stringbool().default(false),
+  unreadOnly: z.stringbool().prefault("false"),
 });
 
 export type NotificationListQuery = z.infer<typeof NotificationListQuerySchema>;

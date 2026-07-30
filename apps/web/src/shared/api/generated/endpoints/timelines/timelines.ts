@@ -20,12 +20,15 @@ import type {
 
 import type {
   CreateTimelineInputDto,
+  PaginatedTrashedTimelinesDto,
   ReorderTimelinesInputDto,
   SetDefaultTimelineInputDto,
+  TimelineDeletionResultDto,
   TimelineListViewDto,
   TimelineSummaryViewDto,
   TimelineViewDto,
   TimelinesControllerDeleteTimelineParams,
+  TimelinesControllerListTrashParams,
   UpdateTimelineInputDto,
 } from "../../model";
 
@@ -1018,9 +1021,9 @@ export function useTimelinesControllerUpdateTimeline<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type timelinesControllerDeleteTimelineResponse204 = {
-  data: void;
-  status: 204;
+export type timelinesControllerDeleteTimelineResponse200 = {
+  data: TimelineDeletionResultDto;
+  status: 200;
 };
 
 export type timelinesControllerDeleteTimelineResponse401 = {
@@ -1044,7 +1047,7 @@ export type timelinesControllerDeleteTimelineResponse422 = {
 };
 
 export type timelinesControllerDeleteTimelineResponseSuccess =
-  timelinesControllerDeleteTimelineResponse204 & {
+  timelinesControllerDeleteTimelineResponse200 & {
     headers: Headers;
   };
 export type timelinesControllerDeleteTimelineResponseError = (
@@ -1079,7 +1082,7 @@ export const getTimelinesControllerDeleteTimelineUrl = (
 };
 
 /**
- * @summary Delete a timeline, optionally moving or deleting its events
+ * @summary Move a timeline to the trash, optionally moving its events elsewhere first
  */
 export const timelinesControllerDeleteTimeline = async (
   timelineId: string,
@@ -1200,7 +1203,7 @@ export function useTimelinesControllerDeleteTimeline<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Delete a timeline, optionally moving or deleting its events
+ * @summary Move a timeline to the trash, optionally moving its events elsewhere first
  */
 
 export function useTimelinesControllerDeleteTimeline<
@@ -1418,6 +1421,350 @@ export function useTimelinesControllerSetDefault<
     setDefaultTimelineInputDto,
     options,
   );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type timelinesControllerListTrashResponse200 = {
+  data: PaginatedTrashedTimelinesDto;
+  status: 200;
+};
+
+export type timelinesControllerListTrashResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type timelinesControllerListTrashResponseSuccess =
+  timelinesControllerListTrashResponse200 & {
+    headers: Headers;
+  };
+export type timelinesControllerListTrashResponseError = timelinesControllerListTrashResponse401 & {
+  headers: Headers;
+};
+
+export type timelinesControllerListTrashResponse =
+  timelinesControllerListTrashResponseSuccess | timelinesControllerListTrashResponseError;
+
+export const getTimelinesControllerListTrashUrl = (params?: TimelinesControllerListTrashParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/timelines/trash?${stringifiedParams}`
+    : `/api/timelines/trash`;
+};
+
+/**
+ * @summary List timelines waiting in the trash before their scheduled purge
+ */
+export const timelinesControllerListTrash = async (
+  params?: TimelinesControllerListTrashParams,
+  options?: RequestInit,
+): Promise<timelinesControllerListTrashResponse> => {
+  return customInstance<timelinesControllerListTrashResponse>(
+    getTimelinesControllerListTrashUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getTimelinesControllerListTrashQueryKey = (
+  params?: TimelinesControllerListTrashParams,
+) => {
+  return [`/api/timelines/trash`, ...(params ? [params] : [])] as const;
+};
+
+export const getTimelinesControllerListTrashQueryOptions = <
+  TData = Awaited<ReturnType<typeof timelinesControllerListTrash>>,
+  TError = void,
+>(
+  params?: TimelinesControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getTimelinesControllerListTrashQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof timelinesControllerListTrash>>> = ({
+    signal,
+  }) => timelinesControllerListTrash(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof timelinesControllerListTrash>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type TimelinesControllerListTrashQueryResult = NonNullable<
+  Awaited<ReturnType<typeof timelinesControllerListTrash>>
+>;
+export type TimelinesControllerListTrashQueryError = void;
+
+export function useTimelinesControllerListTrash<
+  TData = Awaited<ReturnType<typeof timelinesControllerListTrash>>,
+  TError = void,
+>(
+  params: undefined | TimelinesControllerListTrashParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerListTrash>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof timelinesControllerListTrash>>,
+          TError,
+          Awaited<ReturnType<typeof timelinesControllerListTrash>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTimelinesControllerListTrash<
+  TData = Awaited<ReturnType<typeof timelinesControllerListTrash>>,
+  TError = void,
+>(
+  params?: TimelinesControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerListTrash>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof timelinesControllerListTrash>>,
+          TError,
+          Awaited<ReturnType<typeof timelinesControllerListTrash>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTimelinesControllerListTrash<
+  TData = Awaited<ReturnType<typeof timelinesControllerListTrash>>,
+  TError = void,
+>(
+  params?: TimelinesControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List timelines waiting in the trash before their scheduled purge
+ */
+
+export function useTimelinesControllerListTrash<
+  TData = Awaited<ReturnType<typeof timelinesControllerListTrash>>,
+  TError = void,
+>(
+  params?: TimelinesControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTimelinesControllerListTrashQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type timelinesControllerRestoreTimelineResponse204 = {
+  data: void;
+  status: 204;
+};
+
+export type timelinesControllerRestoreTimelineResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type timelinesControllerRestoreTimelineResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type timelinesControllerRestoreTimelineResponseSuccess =
+  timelinesControllerRestoreTimelineResponse204 & {
+    headers: Headers;
+  };
+export type timelinesControllerRestoreTimelineResponseError = (
+  timelinesControllerRestoreTimelineResponse401 | timelinesControllerRestoreTimelineResponse404
+) & {
+  headers: Headers;
+};
+
+export type timelinesControllerRestoreTimelineResponse =
+  | timelinesControllerRestoreTimelineResponseSuccess
+  | timelinesControllerRestoreTimelineResponseError;
+
+export const getTimelinesControllerRestoreTimelineUrl = (timelineId: string) => {
+  return `/api/timelines/${timelineId}/restore`;
+};
+
+/**
+ * @summary Restore a timeline from the trash
+ */
+export const timelinesControllerRestoreTimeline = async (
+  timelineId: string,
+  options?: RequestInit,
+): Promise<timelinesControllerRestoreTimelineResponse> => {
+  return customInstance<timelinesControllerRestoreTimelineResponse>(
+    getTimelinesControllerRestoreTimelineUrl(timelineId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getTimelinesControllerRestoreTimelineQueryKey = (timelineId: string) => {
+  return ["POST", `/api/timelines/${timelineId}/restore`] as const;
+};
+
+export const getTimelinesControllerRestoreTimelineQueryOptions = <
+  TData = Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>,
+  TError = void,
+>(
+  timelineId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getTimelinesControllerRestoreTimelineQueryKey(timelineId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>> = ({
+    signal,
+  }) => timelinesControllerRestoreTimeline(timelineId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: timelineId !== null && timelineId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type TimelinesControllerRestoreTimelineQueryResult = NonNullable<
+  Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>
+>;
+export type TimelinesControllerRestoreTimelineQueryError = void;
+
+export function useTimelinesControllerRestoreTimeline<
+  TData = Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>,
+  TError = void,
+>(
+  timelineId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>,
+          TError,
+          Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTimelinesControllerRestoreTimeline<
+  TData = Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>,
+  TError = void,
+>(
+  timelineId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>,
+          TError,
+          Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useTimelinesControllerRestoreTimeline<
+  TData = Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>,
+  TError = void,
+>(
+  timelineId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Restore a timeline from the trash
+ */
+
+export function useTimelinesControllerRestoreTimeline<
+  TData = Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>,
+  TError = void,
+>(
+  timelineId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof timelinesControllerRestoreTimeline>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getTimelinesControllerRestoreTimelineQueryOptions(timelineId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

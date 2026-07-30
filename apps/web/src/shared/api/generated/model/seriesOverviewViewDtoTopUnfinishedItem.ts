@@ -6,12 +6,14 @@
  * OpenAPI spec version: 1.0
  */
 import type { SeriesOverviewViewDtoTopUnfinishedItemAuthorsItem } from "./seriesOverviewViewDtoTopUnfinishedItemAuthorsItem";
+import type { SeriesOverviewViewDtoTopUnfinishedItemCoversItem } from "./seriesOverviewViewDtoTopUnfinishedItemCoversItem";
 import type { SeriesOverviewViewDtoTopUnfinishedItemNextBook } from "./seriesOverviewViewDtoTopUnfinishedItemNextBook";
 import type { SeriesOverviewViewDtoTopUnfinishedItemStatus } from "./seriesOverviewViewDtoTopUnfinishedItemStatus";
 
 export type SeriesOverviewViewDtoTopUnfinishedItem = {
   authors: SeriesOverviewViewDtoTopUnfinishedItemAuthorsItem[];
   booksInSeries: number;
+  covers: SeriesOverviewViewDtoTopUnfinishedItemCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;

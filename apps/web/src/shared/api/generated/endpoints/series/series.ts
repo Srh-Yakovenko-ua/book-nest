@@ -22,8 +22,11 @@ import type {
   FavoriteSeriesContinuationsViewDto,
   NewSeriesInputDto,
   PaginatedSeriesDto,
+  PaginatedTrashedSeriesDto,
   SeriesControllerFavoriteContinuationsParams,
+  SeriesControllerListTrashParams,
   SeriesControllerSearchParams,
+  SeriesDeletionResultDto,
   SeriesDetailsViewDto,
   SeriesOrderCheckPreferenceInputDto,
   SeriesOrderPreferenceViewDto,
@@ -735,6 +738,175 @@ export function useSeriesControllerFavoriteContinuations<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type seriesControllerListTrashResponse200 = {
+  data: PaginatedTrashedSeriesDto;
+  status: 200;
+};
+
+export type seriesControllerListTrashResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesControllerListTrashResponseSuccess = seriesControllerListTrashResponse200 & {
+  headers: Headers;
+};
+export type seriesControllerListTrashResponseError = seriesControllerListTrashResponse401 & {
+  headers: Headers;
+};
+
+export type seriesControllerListTrashResponse =
+  seriesControllerListTrashResponseSuccess | seriesControllerListTrashResponseError;
+
+export const getSeriesControllerListTrashUrl = (params?: SeriesControllerListTrashParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/series/trash?${stringifiedParams}`
+    : `/api/series/trash`;
+};
+
+/**
+ * @summary List series waiting in the trash before their scheduled purge
+ */
+export const seriesControllerListTrash = async (
+  params?: SeriesControllerListTrashParams,
+  options?: RequestInit,
+): Promise<seriesControllerListTrashResponse> => {
+  return customInstance<seriesControllerListTrashResponse>(
+    getSeriesControllerListTrashUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getSeriesControllerListTrashQueryKey = (params?: SeriesControllerListTrashParams) => {
+  return [`/api/series/trash`, ...(params ? [params] : [])] as const;
+};
+
+export const getSeriesControllerListTrashQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesControllerListTrash>>,
+  TError = void,
+>(
+  params?: SeriesControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSeriesControllerListTrashQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof seriesControllerListTrash>>> = ({
+    signal,
+  }) => seriesControllerListTrash(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof seriesControllerListTrash>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type SeriesControllerListTrashQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesControllerListTrash>>
+>;
+export type SeriesControllerListTrashQueryError = void;
+
+export function useSeriesControllerListTrash<
+  TData = Awaited<ReturnType<typeof seriesControllerListTrash>>,
+  TError = void,
+>(
+  params: undefined | SeriesControllerListTrashParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerListTrash>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerListTrash>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerListTrash>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerListTrash<
+  TData = Awaited<ReturnType<typeof seriesControllerListTrash>>,
+  TError = void,
+>(
+  params?: SeriesControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerListTrash>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerListTrash>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerListTrash>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerListTrash<
+  TData = Awaited<ReturnType<typeof seriesControllerListTrash>>,
+  TError = void,
+>(
+  params?: SeriesControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List series waiting in the trash before their scheduled purge
+ */
+
+export function useSeriesControllerListTrash<
+  TData = Awaited<ReturnType<typeof seriesControllerListTrash>>,
+  TError = void,
+>(
+  params?: SeriesControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesControllerListTrashQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type seriesControllerGetByIdResponse200 = {
   data: SeriesDetailsViewDto;
   status: 200;
@@ -1093,9 +1265,9 @@ export function useSeriesControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type seriesControllerDeleteResponse204 = {
-  data: void;
-  status: 204;
+export type seriesControllerDeleteResponse200 = {
+  data: SeriesDeletionResultDto;
+  status: 200;
 };
 
 export type seriesControllerDeleteResponse401 = {
@@ -1108,7 +1280,7 @@ export type seriesControllerDeleteResponse404 = {
   status: 404;
 };
 
-export type seriesControllerDeleteResponseSuccess = seriesControllerDeleteResponse204 & {
+export type seriesControllerDeleteResponseSuccess = seriesControllerDeleteResponse200 & {
   headers: Headers;
 };
 export type seriesControllerDeleteResponseError = (
@@ -1125,7 +1297,7 @@ export const getSeriesControllerDeleteUrl = (id: string) => {
 };
 
 /**
- * @summary Delete a series by id
+ * @summary Move a series to the trash
  */
 export const seriesControllerDelete = async (
   id: string,
@@ -1231,7 +1403,7 @@ export function useSeriesControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Delete a series by id
+ * @summary Move a series to the trash
  */
 
 export function useSeriesControllerDelete<
@@ -1248,6 +1420,170 @@ export function useSeriesControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getSeriesControllerDeleteQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type seriesControllerRestoreResponse200 = {
+  data: SeriesDetailsViewDto;
+  status: 200;
+};
+
+export type seriesControllerRestoreResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type seriesControllerRestoreResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type seriesControllerRestoreResponseSuccess = seriesControllerRestoreResponse200 & {
+  headers: Headers;
+};
+export type seriesControllerRestoreResponseError = (
+  seriesControllerRestoreResponse401 | seriesControllerRestoreResponse404
+) & {
+  headers: Headers;
+};
+
+export type seriesControllerRestoreResponse =
+  seriesControllerRestoreResponseSuccess | seriesControllerRestoreResponseError;
+
+export const getSeriesControllerRestoreUrl = (id: string) => {
+  return `/api/series/${id}/restore`;
+};
+
+/**
+ * @summary Restore a series from the trash
+ */
+export const seriesControllerRestore = async (
+  id: string,
+  options?: RequestInit,
+): Promise<seriesControllerRestoreResponse> => {
+  return customInstance<seriesControllerRestoreResponse>(getSeriesControllerRestoreUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSeriesControllerRestoreQueryKey = (id: string) => {
+  return ["POST", `/api/series/${id}/restore`] as const;
+};
+
+export const getSeriesControllerRestoreQueryOptions = <
+  TData = Awaited<ReturnType<typeof seriesControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSeriesControllerRestoreQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof seriesControllerRestore>>> = ({
+    signal,
+  }) => seriesControllerRestore(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof seriesControllerRestore>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type SeriesControllerRestoreQueryResult = NonNullable<
+  Awaited<ReturnType<typeof seriesControllerRestore>>
+>;
+export type SeriesControllerRestoreQueryError = void;
+
+export function useSeriesControllerRestore<
+  TData = Awaited<ReturnType<typeof seriesControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerRestore>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerRestore>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerRestore>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerRestore<
+  TData = Awaited<ReturnType<typeof seriesControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerRestore>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof seriesControllerRestore>>,
+          TError,
+          Awaited<ReturnType<typeof seriesControllerRestore>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useSeriesControllerRestore<
+  TData = Awaited<ReturnType<typeof seriesControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Restore a series from the trash
+ */
+
+export function useSeriesControllerRestore<
+  TData = Awaited<ReturnType<typeof seriesControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof seriesControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getSeriesControllerRestoreQueryOptions(id, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

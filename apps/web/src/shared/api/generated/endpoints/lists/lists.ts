@@ -23,11 +23,14 @@ import type {
   AddBooksToListResultDto,
   CustomListCardDto,
   CustomListDetailDto,
+  ListDeletionResultDto,
   ListDetailsControllerDetailParams,
+  ListsControllerListTrashParams,
   ListsControllerSearchParams,
   MoveListBookInputDto,
   NewListInputDto,
   PaginatedCustomListsDto,
+  PaginatedTrashedListsDto,
   UpdateListInputDto,
 } from "../../model";
 
@@ -49,6 +52,335 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export type listsControllerListTrashResponse200 = {
+  data: PaginatedTrashedListsDto;
+  status: 200;
+};
+
+export type listsControllerListTrashResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type listsControllerListTrashResponseSuccess = listsControllerListTrashResponse200 & {
+  headers: Headers;
+};
+export type listsControllerListTrashResponseError = listsControllerListTrashResponse401 & {
+  headers: Headers;
+};
+
+export type listsControllerListTrashResponse =
+  listsControllerListTrashResponseSuccess | listsControllerListTrashResponseError;
+
+export const getListsControllerListTrashUrl = (params?: ListsControllerListTrashParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/lists/trash?${stringifiedParams}`
+    : `/api/lists/trash`;
+};
+
+/**
+ * @summary List book lists waiting in the trash before their scheduled purge
+ */
+export const listsControllerListTrash = async (
+  params?: ListsControllerListTrashParams,
+  options?: RequestInit,
+): Promise<listsControllerListTrashResponse> => {
+  return customInstance<listsControllerListTrashResponse>(getListsControllerListTrashUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListsControllerListTrashQueryKey = (params?: ListsControllerListTrashParams) => {
+  return [`/api/lists/trash`, ...(params ? [params] : [])] as const;
+};
+
+export const getListsControllerListTrashQueryOptions = <
+  TData = Awaited<ReturnType<typeof listsControllerListTrash>>,
+  TError = void,
+>(
+  params?: ListsControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListsControllerListTrashQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listsControllerListTrash>>> = ({
+    signal,
+  }) => listsControllerListTrash(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listsControllerListTrash>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListsControllerListTrashQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listsControllerListTrash>>
+>;
+export type ListsControllerListTrashQueryError = void;
+
+export function useListsControllerListTrash<
+  TData = Awaited<ReturnType<typeof listsControllerListTrash>>,
+  TError = void,
+>(
+  params: undefined | ListsControllerListTrashParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerListTrash>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listsControllerListTrash>>,
+          TError,
+          Awaited<ReturnType<typeof listsControllerListTrash>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListsControllerListTrash<
+  TData = Awaited<ReturnType<typeof listsControllerListTrash>>,
+  TError = void,
+>(
+  params?: ListsControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerListTrash>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listsControllerListTrash>>,
+          TError,
+          Awaited<ReturnType<typeof listsControllerListTrash>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListsControllerListTrash<
+  TData = Awaited<ReturnType<typeof listsControllerListTrash>>,
+  TError = void,
+>(
+  params?: ListsControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List book lists waiting in the trash before their scheduled purge
+ */
+
+export function useListsControllerListTrash<
+  TData = Awaited<ReturnType<typeof listsControllerListTrash>>,
+  TError = void,
+>(
+  params?: ListsControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListsControllerListTrashQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type listsControllerRestoreResponse200 = {
+  data: CustomListCardDto;
+  status: 200;
+};
+
+export type listsControllerRestoreResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type listsControllerRestoreResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type listsControllerRestoreResponseSuccess = listsControllerRestoreResponse200 & {
+  headers: Headers;
+};
+export type listsControllerRestoreResponseError = (
+  listsControllerRestoreResponse401 | listsControllerRestoreResponse404
+) & {
+  headers: Headers;
+};
+
+export type listsControllerRestoreResponse =
+  listsControllerRestoreResponseSuccess | listsControllerRestoreResponseError;
+
+export const getListsControllerRestoreUrl = (listId: string) => {
+  return `/api/lists/${listId}/restore`;
+};
+
+/**
+ * @summary Restore a book list from the trash
+ */
+export const listsControllerRestore = async (
+  listId: string,
+  options?: RequestInit,
+): Promise<listsControllerRestoreResponse> => {
+  return customInstance<listsControllerRestoreResponse>(getListsControllerRestoreUrl(listId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getListsControllerRestoreQueryKey = (listId: string) => {
+  return ["POST", `/api/lists/${listId}/restore`] as const;
+};
+
+export const getListsControllerRestoreQueryOptions = <
+  TData = Awaited<ReturnType<typeof listsControllerRestore>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListsControllerRestoreQueryKey(listId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listsControllerRestore>>> = ({ signal }) =>
+    listsControllerRestore(listId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: listId !== null && listId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listsControllerRestore>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListsControllerRestoreQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listsControllerRestore>>
+>;
+export type ListsControllerRestoreQueryError = void;
+
+export function useListsControllerRestore<
+  TData = Awaited<ReturnType<typeof listsControllerRestore>>,
+  TError = void,
+>(
+  listId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerRestore>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listsControllerRestore>>,
+          TError,
+          Awaited<ReturnType<typeof listsControllerRestore>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListsControllerRestore<
+  TData = Awaited<ReturnType<typeof listsControllerRestore>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerRestore>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listsControllerRestore>>,
+          TError,
+          Awaited<ReturnType<typeof listsControllerRestore>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListsControllerRestore<
+  TData = Awaited<ReturnType<typeof listsControllerRestore>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Restore a book list from the trash
+ */
+
+export function useListsControllerRestore<
+  TData = Awaited<ReturnType<typeof listsControllerRestore>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListsControllerRestoreQueryOptions(listId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export type listsControllerCreateResponse201 = {
   data: CustomListCardDto;
@@ -570,9 +902,9 @@ export function useListsControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type listsControllerDeleteResponse204 = {
-  data: void;
-  status: 204;
+export type listsControllerDeleteResponse200 = {
+  data: ListDeletionResultDto;
+  status: 200;
 };
 
 export type listsControllerDeleteResponse401 = {
@@ -585,7 +917,7 @@ export type listsControllerDeleteResponse404 = {
   status: 404;
 };
 
-export type listsControllerDeleteResponseSuccess = listsControllerDeleteResponse204 & {
+export type listsControllerDeleteResponseSuccess = listsControllerDeleteResponse200 & {
   headers: Headers;
 };
 export type listsControllerDeleteResponseError = (
@@ -602,7 +934,7 @@ export const getListsControllerDeleteUrl = (listId: string) => {
 };
 
 /**
- * @summary Delete a book list of the current user
+ * @summary Move a book list to the trash
  */
 export const listsControllerDelete = async (
   listId: string,
@@ -708,7 +1040,7 @@ export function useListsControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Delete a book list of the current user
+ * @summary Move a book list to the trash
  */
 
 export function useListsControllerDelete<

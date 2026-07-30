@@ -8,6 +8,117 @@
 import * as zod from "zod";
 
 /**
+ * @summary List book lists waiting in the trash before their scheduled purge
+ */
+export const listsControllerListTrashQueryPageNumberDefault = 1;
+export const listsControllerListTrashQueryPageNumberMax = 21474836;
+
+export const listsControllerListTrashQueryPageSizeDefault = 20;
+export const listsControllerListTrashQueryPageSizeMax = 100;
+
+export const ListsControllerListTrashQueryParams = zod.object({
+  pageNumber: zod
+    .number()
+    .min(1)
+    .max(listsControllerListTrashQueryPageNumberMax)
+    .default(listsControllerListTrashQueryPageNumberDefault),
+  pageSize: zod
+    .number()
+    .min(1)
+    .max(listsControllerListTrashQueryPageSizeMax)
+    .default(listsControllerListTrashQueryPageSizeDefault),
+});
+
+export const listsControllerListTrashResponseItemsItemBookCountMin = -9007199254740991;
+export const listsControllerListTrashResponseItemsItemBookCountMax = 9007199254740991;
+
+export const listsControllerListTrashResponseItemsItemDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const listsControllerListTrashResponseItemsItemPurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const listsControllerListTrashResponsePageMin = -9007199254740991;
+export const listsControllerListTrashResponsePageMax = 9007199254740991;
+
+export const listsControllerListTrashResponsePagesCountMin = -9007199254740991;
+export const listsControllerListTrashResponsePagesCountMax = 9007199254740991;
+
+export const listsControllerListTrashResponsePageSizeMin = -9007199254740991;
+export const listsControllerListTrashResponsePageSizeMax = 9007199254740991;
+
+export const listsControllerListTrashResponseTotalCountMin = -9007199254740991;
+export const listsControllerListTrashResponseTotalCountMax = 9007199254740991;
+
+export const ListsControllerListTrashResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      bookCount: zod
+        .number()
+        .min(listsControllerListTrashResponseItemsItemBookCountMin)
+        .max(listsControllerListTrashResponseItemsItemBookCountMax),
+      deletedAt: zod.iso
+        .datetime({ offset: true })
+        .regex(listsControllerListTrashResponseItemsItemDeletedAtRegExp),
+      id: zod.string(),
+      name: zod.string(),
+      purgeAt: zod.iso
+        .datetime({ offset: true })
+        .regex(listsControllerListTrashResponseItemsItemPurgeAtRegExp),
+    }),
+  ),
+  page: zod
+    .number()
+    .min(listsControllerListTrashResponsePageMin)
+    .max(listsControllerListTrashResponsePageMax),
+  pagesCount: zod
+    .number()
+    .min(listsControllerListTrashResponsePagesCountMin)
+    .max(listsControllerListTrashResponsePagesCountMax),
+  pageSize: zod
+    .number()
+    .min(listsControllerListTrashResponsePageSizeMin)
+    .max(listsControllerListTrashResponsePageSizeMax),
+  totalCount: zod
+    .number()
+    .min(listsControllerListTrashResponseTotalCountMin)
+    .max(listsControllerListTrashResponseTotalCountMax),
+});
+
+/**
+ * @summary Restore a book list from the trash
+ */
+export const ListsControllerRestoreParams = zod.object({
+  listId: zod.string(),
+});
+
+export const ListsControllerRestoreResponse = zod.object({
+  bookCount: zod.number(),
+  createdAt: zod.string(),
+  description: zod.string().nullable(),
+  id: zod.string(),
+  name: zod.string(),
+  previewCovers: zod.array(
+    zod.object({
+      contentType: zod.string(),
+      createdAt: zod.string(),
+      height: zod.number(),
+      id: zod.string(),
+      kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+      name: zod.string().nullable(),
+      sizeBytes: zod.number(),
+      urls: zod.object({
+        card: zod.string(),
+        full: zod.string(),
+        thumb: zod.string(),
+      }),
+      width: zod.number(),
+    }),
+  ),
+  updatedAt: zod.string(),
+});
+
+/**
  * @summary Create a book list for the current user
  */
 export const ListsControllerCreateBody = zod.object({
@@ -176,13 +287,24 @@ export const ListsControllerUpdateResponse = zod.object({
 });
 
 /**
- * @summary Delete a book list of the current user
+ * @summary Move a book list to the trash
  */
 export const ListsControllerDeleteParams = zod.object({
   listId: zod.string(),
 });
 
-export const ListsControllerDeleteResponse = zod.void();
+export const listsControllerDeleteResponseDeletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const listsControllerDeleteResponsePurgeAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+
+export const ListsControllerDeleteResponse = zod.object({
+  deletedAt: zod.iso.datetime({ offset: true }).regex(listsControllerDeleteResponseDeletedAtRegExp),
+  purgeAt: zod.iso.datetime({ offset: true }).regex(listsControllerDeleteResponsePurgeAtRegExp),
+  listId: zod.string(),
+});
 
 /**
  * @summary Get a book list of the current user with a page of its books
@@ -487,6 +609,27 @@ export const ListDetailsControllerDetailResponse = zod.object({
               }),
             ),
             booksInSeries: zod.number(),
+            covers: zod.array(
+              zod.object({
+                bookId: zod.string(),
+                cover: zod.object({
+                  contentType: zod.string(),
+                  createdAt: zod.string(),
+                  height: zod.number(),
+                  id: zod.string(),
+                  kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+                  name: zod.string().nullable(),
+                  sizeBytes: zod.number(),
+                  urls: zod.object({
+                    card: zod.string(),
+                    full: zod.string(),
+                    thumb: zod.string(),
+                  }),
+                  width: zod.number(),
+                }),
+                title: zod.string(),
+              }),
+            ),
             createdAt: zod.string(),
             description: zod.string().nullable(),
             finishedInSeries: zod.number(),

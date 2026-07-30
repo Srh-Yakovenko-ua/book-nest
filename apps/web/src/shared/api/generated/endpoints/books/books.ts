@@ -19,6 +19,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BookDeletionResultDto,
   BookListsViewDto,
   BookReadingControllerGetReadingHistoryParams,
   BookStoreLinkViewDto,
@@ -26,6 +27,7 @@ import type {
   BookViewDto,
   BooksControllerDedicationsParams,
   BooksControllerListParams,
+  BooksControllerListTrashParams,
   BooksControllerOverviewParams,
   BooksControllerPurchaseStoresParams,
   BulkActionResultDto,
@@ -49,6 +51,7 @@ import type {
   LibraryOverviewViewDto,
   MarkBoughtInputDto,
   PaginatedBooksDto,
+  PaginatedTrashedBooksDto,
   ReadingHistoryViewDto,
   ReceiveDeliveryInputDto,
   SetBookListsInputDto,
@@ -1396,6 +1399,172 @@ export function useBooksControllerDedicationsSummary<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type booksControllerListTrashResponse200 = {
+  data: PaginatedTrashedBooksDto;
+  status: 200;
+};
+
+export type booksControllerListTrashResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerListTrashResponseSuccess = booksControllerListTrashResponse200 & {
+  headers: Headers;
+};
+export type booksControllerListTrashResponseError = booksControllerListTrashResponse401 & {
+  headers: Headers;
+};
+
+export type booksControllerListTrashResponse =
+  booksControllerListTrashResponseSuccess | booksControllerListTrashResponseError;
+
+export const getBooksControllerListTrashUrl = (params?: BooksControllerListTrashParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/trash?${stringifiedParams}`
+    : `/api/books/trash`;
+};
+
+/**
+ * @summary List books waiting in the trash before their scheduled purge
+ */
+export const booksControllerListTrash = async (
+  params?: BooksControllerListTrashParams,
+  options?: RequestInit,
+): Promise<booksControllerListTrashResponse> => {
+  return customInstance<booksControllerListTrashResponse>(getBooksControllerListTrashUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getBooksControllerListTrashQueryKey = (params?: BooksControllerListTrashParams) => {
+  return [`/api/books/trash`, ...(params ? [params] : [])] as const;
+};
+
+export const getBooksControllerListTrashQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerListTrash>>,
+  TError = void,
+>(
+  params?: BooksControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerListTrashQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerListTrash>>> = ({
+    signal,
+  }) => booksControllerListTrash(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerListTrash>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerListTrashQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerListTrash>>
+>;
+export type BooksControllerListTrashQueryError = void;
+
+export function useBooksControllerListTrash<
+  TData = Awaited<ReturnType<typeof booksControllerListTrash>>,
+  TError = void,
+>(
+  params: undefined | BooksControllerListTrashParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerListTrash>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerListTrash>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerListTrash>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerListTrash<
+  TData = Awaited<ReturnType<typeof booksControllerListTrash>>,
+  TError = void,
+>(
+  params?: BooksControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerListTrash>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerListTrash>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerListTrash>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerListTrash<
+  TData = Awaited<ReturnType<typeof booksControllerListTrash>>,
+  TError = void,
+>(
+  params?: BooksControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary List books waiting in the trash before their scheduled purge
+ */
+
+export function useBooksControllerListTrash<
+  TData = Awaited<ReturnType<typeof booksControllerListTrash>>,
+  TError = void,
+>(
+  params?: BooksControllerListTrashParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerListTrash>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerListTrashQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type booksControllerGetByIdResponse200 = {
   data: BookViewDto;
   status: 200;
@@ -1741,9 +1910,9 @@ export function useBooksControllerUpdate<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
-export type booksControllerDeleteResponse204 = {
-  data: void;
-  status: 204;
+export type booksControllerDeleteResponse200 = {
+  data: BookDeletionResultDto;
+  status: 200;
 };
 
 export type booksControllerDeleteResponse401 = {
@@ -1756,7 +1925,7 @@ export type booksControllerDeleteResponse404 = {
   status: 404;
 };
 
-export type booksControllerDeleteResponseSuccess = booksControllerDeleteResponse204 & {
+export type booksControllerDeleteResponseSuccess = booksControllerDeleteResponse200 & {
   headers: Headers;
 };
 export type booksControllerDeleteResponseError = (
@@ -1773,7 +1942,7 @@ export const getBooksControllerDeleteUrl = (id: string) => {
 };
 
 /**
- * @summary Delete a book by id
+ * @summary Move a book to the trash
  */
 export const booksControllerDelete = async (
   id: string,
@@ -1879,7 +2048,7 @@ export function useBooksControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Delete a book by id
+ * @summary Move a book to the trash
  */
 
 export function useBooksControllerDelete<
@@ -1896,6 +2065,169 @@ export function useBooksControllerDelete<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerDeleteQueryOptions(id, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type booksControllerRestoreResponse200 = {
+  data: BookViewDto;
+  status: 200;
+};
+
+export type booksControllerRestoreResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerRestoreResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type booksControllerRestoreResponseSuccess = booksControllerRestoreResponse200 & {
+  headers: Headers;
+};
+export type booksControllerRestoreResponseError = (
+  booksControllerRestoreResponse401 | booksControllerRestoreResponse404
+) & {
+  headers: Headers;
+};
+
+export type booksControllerRestoreResponse =
+  booksControllerRestoreResponseSuccess | booksControllerRestoreResponseError;
+
+export const getBooksControllerRestoreUrl = (id: string) => {
+  return `/api/books/${id}/restore`;
+};
+
+/**
+ * @summary Restore a book from the trash
+ */
+export const booksControllerRestore = async (
+  id: string,
+  options?: RequestInit,
+): Promise<booksControllerRestoreResponse> => {
+  return customInstance<booksControllerRestoreResponse>(getBooksControllerRestoreUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getBooksControllerRestoreQueryKey = (id: string) => {
+  return ["POST", `/api/books/${id}/restore`] as const;
+};
+
+export const getBooksControllerRestoreQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerRestoreQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerRestore>>> = ({ signal }) =>
+    booksControllerRestore(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof booksControllerRestore>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type BooksControllerRestoreQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerRestore>>
+>;
+export type BooksControllerRestoreQueryError = void;
+
+export function useBooksControllerRestore<
+  TData = Awaited<ReturnType<typeof booksControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerRestore>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerRestore>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerRestore>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerRestore<
+  TData = Awaited<ReturnType<typeof booksControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerRestore>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerRestore>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerRestore>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerRestore<
+  TData = Awaited<ReturnType<typeof booksControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Restore a book from the trash
+ */
+
+export function useBooksControllerRestore<
+  TData = Awaited<ReturnType<typeof booksControllerRestore>>,
+  TError = void,
+>(
+  id: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerRestore>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerRestoreQueryOptions(id, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
