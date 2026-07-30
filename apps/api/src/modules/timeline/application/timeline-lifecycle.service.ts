@@ -6,7 +6,6 @@ import { Injectable } from "@nestjs/common";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
-import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { toTrashedTimelineView } from "../domain/trashed-timeline.mapper.js";
 import { TimelineRepository } from "../infrastructure/timeline.repository.js";
 import { TimelinePurgeScheduler } from "./timeline-purge.scheduler.js";
@@ -50,7 +49,7 @@ export class TimelineLifecycleService {
     }
 
     await this.timelineRepository.hardDeleteIfTrashed({
-      deletedBefore: TRASH_RETENTION.purgeThreshold(new Date()),
+      now: new Date(),
       timelineId,
       userId,
     });

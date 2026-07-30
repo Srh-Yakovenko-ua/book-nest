@@ -329,7 +329,7 @@ describe("BulkBooksService.delete", () => {
 
     expect(bulkBooksRepository.softDelete).toHaveBeenCalledWith({
       bookIds: [BOOK_A, BOOK_B],
-      deletedAt: expect.any(Date),
+      stamp: { deletedAt: expect.any(Date), purgeAt: expect.any(Date) },
       userId: USER_ID,
     });
     expect(purgeScheduler.scheduleMany).toHaveBeenCalledWith({

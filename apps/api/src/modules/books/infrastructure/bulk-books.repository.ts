@@ -3,6 +3,7 @@ import type { Nullable, OwnershipStatus, QueuePriority, ReadingStatus } from "@a
 import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -325,11 +326,11 @@ export class BulkBooksRepository {
   softDelete(
     {
       bookIds,
-      deletedAt,
+      stamp,
       userId,
     }: {
       bookIds: string[];
-      deletedAt: Date;
+      stamp: TrashStamp;
       userId: string;
     },
     client?: Prisma.TransactionClient,
@@ -346,7 +347,7 @@ export class BulkBooksRepository {
       await acquireUserQueueLock(userId, tx);
       await tx.book.updateMany({
         data: {
-          deletedAt,
+          ...stamp,
           queuePosition: null,
           queuePriority: null,
           queuePriorityReason: null,

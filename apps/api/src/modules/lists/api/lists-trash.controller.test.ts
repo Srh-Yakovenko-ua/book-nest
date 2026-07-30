@@ -76,7 +76,7 @@ function authed(
 
 async function backdateDeletion(listId: string, days: number): Promise<void> {
   await prisma.bookList.update({
-    data: { deletedAt: subDays(new Date(), days) },
+    data: TRASH_RETENTION.stamp(subDays(new Date(), days)),
     where: { id: listId },
   });
 }
@@ -107,7 +107,7 @@ describe("DELETE /api/lists/:listId", () => {
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.listId).toBe(listId);
     expect(new Date(res.body.purgeAt)).toEqual(
-      TRASH_RETENTION.purgeAfter(new Date(res.body.deletedAt)),
+      TRASH_RETENTION.stamp(new Date(res.body.deletedAt)).purgeAt,
     );
     expect(await prisma.bookListItem.count({ where: { listId } })).toBe(1);
     expect(addCalls[0]).toMatchObject({

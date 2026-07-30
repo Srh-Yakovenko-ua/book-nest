@@ -16,6 +16,7 @@ import { parseISO } from "date-fns";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { ListsService } from "../../lists/index.js";
 import { TagsService } from "../../tags/index.js";
 import {
@@ -120,7 +121,7 @@ export class BulkBooksService {
   }): Promise<BulkActionResult> {
     const deletedIds = await this.bulkBooksRepository.softDelete({
       bookIds: input.bookIds,
-      deletedAt: new Date(),
+      stamp: TRASH_RETENTION.stamp(),
       userId,
     });
     await this.purgeScheduler.scheduleMany({ bookIds: deletedIds, userId });

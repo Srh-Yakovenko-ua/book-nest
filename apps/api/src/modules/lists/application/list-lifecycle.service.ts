@@ -55,8 +55,8 @@ export class ListLifecycleService {
     }
 
     await this.listsRepository.hardDeleteIfTrashed({
-      deletedBefore: TRASH_RETENTION.purgeThreshold(new Date()),
       listId,
+      now: new Date(),
       userId,
     });
   }
@@ -78,8 +78,8 @@ export class ListLifecycleService {
     listId: string;
     userId: string;
   }): Promise<ListDeletionResult> {
-    const deletedAt = new Date();
-    const affected = await this.listsRepository.softDelete({ deletedAt, listId, userId });
+    const stamp = TRASH_RETENTION.stamp();
+    const affected = await this.listsRepository.softDelete({ listId, stamp, userId });
     if (affected === 0) {
       throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
     }
@@ -87,9 +87,9 @@ export class ListLifecycleService {
     await this.purgeScheduler.schedule({ listId, userId });
 
     return {
-      deletedAt: deletedAt.toISOString(),
+      deletedAt: stamp.deletedAt.toISOString(),
       listId,
-      purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
+      purgeAt: stamp.purgeAt.toISOString(),
     };
   }
 

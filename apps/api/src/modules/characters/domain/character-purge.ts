@@ -5,8 +5,6 @@ import type { CharacterPurgeRow } from "../infrastructure/characters.repository.
 export const CHARACTER_PURGE_QUEUE_NAME = "character-purge";
 export const CHARACTER_PURGE_JOB = "character-purge";
 
-export const CHARACTER_PURGE_RECONCILE_BATCH = 100;
-
 export const CharacterPurgeJobSchema = z.object({
   characterId: z.uuid(),
   userId: z.uuid(),

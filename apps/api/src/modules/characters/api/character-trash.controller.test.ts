@@ -376,7 +376,7 @@ describe("GET /api/characters/:characterId/deletion-preview", () => {
 
 async function backdatePurgeWindow(characterId: string): Promise<void> {
   await prisma.character.update({
-    data: { deletedAt: subDays(new Date(), TRASH_RETENTION.days + 1) },
+    data: TRASH_RETENTION.stamp(subDays(new Date(), TRASH_RETENTION.days + 1)),
     where: { id: characterId },
   });
 }

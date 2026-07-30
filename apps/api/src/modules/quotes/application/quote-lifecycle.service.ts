@@ -46,7 +46,7 @@ export class QuoteLifecycleService {
     }
 
     await this.quotesRepository.hardDeleteIfTrashed({
-      deletedBefore: TRASH_RETENTION.purgeThreshold(new Date()),
+      now: new Date(),
       quoteId,
       userId,
     });
@@ -76,8 +76,8 @@ export class QuoteLifecycleService {
     quoteId: string;
     userId: string;
   }): Promise<QuoteDeletionResult> {
-    const deletedAt = new Date();
-    const affected = await this.quotesRepository.softDelete({ deletedAt, quoteId, userId });
+    const stamp = TRASH_RETENTION.stamp();
+    const affected = await this.quotesRepository.softDelete({ quoteId, stamp, userId });
     if (affected === 0) {
       throw new NotFoundError(QUOTE_NOT_FOUND_MESSAGE);
     }
@@ -85,8 +85,8 @@ export class QuoteLifecycleService {
     await this.purgeScheduler.schedule({ quoteId, userId });
 
     return {
-      deletedAt: deletedAt.toISOString(),
-      purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
+      deletedAt: stamp.deletedAt.toISOString(),
+      purgeAt: stamp.purgeAt.toISOString(),
       quoteId,
     };
   }

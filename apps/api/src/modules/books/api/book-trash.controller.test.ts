@@ -66,7 +66,7 @@ describe("DELETE /api/books/:id", () => {
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.bookId).toBe(bookId);
     const deletedAt = new Date(res.body.deletedAt);
-    expect(new Date(res.body.purgeAt)).toEqual(TRASH_RETENTION.purgeAfter(deletedAt));
+    expect(new Date(res.body.purgeAt)).toEqual(TRASH_RETENTION.stamp(deletedAt).purgeAt);
 
     const row = await prisma.book.findUniqueOrThrow({
       select: { deletedAt: true },
@@ -169,7 +169,7 @@ describe("GET /api/books/trash", () => {
       title: "Second",
     });
     expect(new Date(res.body.items[0].purgeAt)).toEqual(
-      TRASH_RETENTION.purgeAfter(new Date(res.body.items[0].deletedAt)),
+      TRASH_RETENTION.stamp(new Date(res.body.items[0].deletedAt)).purgeAt,
     );
   });
 

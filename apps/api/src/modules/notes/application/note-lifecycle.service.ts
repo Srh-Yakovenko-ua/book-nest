@@ -47,8 +47,8 @@ export class NoteLifecycleService {
     }
 
     await this.notesRepository.hardDeleteIfTrashed({
-      deletedBefore: TRASH_RETENTION.purgeThreshold(new Date()),
       noteId,
+      now: new Date(),
       userId,
     });
   }
@@ -69,8 +69,8 @@ export class NoteLifecycleService {
     noteId: string;
     userId: string;
   }): Promise<NoteDeletionResult> {
-    const deletedAt = new Date();
-    const affected = await this.notesRepository.softDelete({ deletedAt, noteId, userId });
+    const stamp = TRASH_RETENTION.stamp();
+    const affected = await this.notesRepository.softDelete({ noteId, stamp, userId });
     if (affected === 0) {
       throw new NotFoundError(NOTE_NOT_FOUND_MESSAGE, { code: NOTE_ERROR_CODES.noteNotFound });
     }
@@ -78,9 +78,9 @@ export class NoteLifecycleService {
     await this.purgeScheduler.schedule({ noteId, userId });
 
     return {
-      deletedAt: deletedAt.toISOString(),
+      deletedAt: stamp.deletedAt.toISOString(),
       noteId,
-      purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
+      purgeAt: stamp.purgeAt.toISOString(),
     };
   }
 }

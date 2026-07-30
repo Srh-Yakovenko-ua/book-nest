@@ -56,7 +56,7 @@ export class SeriesLifecycleService {
     }
 
     await this.seriesRepository.hardDeleteIfTrashed({
-      deletedBefore: TRASH_RETENTION.purgeThreshold(new Date()),
+      now: new Date(),
       seriesId,
       userId,
     });
@@ -85,8 +85,8 @@ export class SeriesLifecycleService {
     seriesId: string;
     userId: string;
   }): Promise<SeriesDeletionResult> {
-    const deletedAt = new Date();
-    const affected = await this.seriesRepository.softDelete({ deletedAt, seriesId, userId });
+    const stamp = TRASH_RETENTION.stamp();
+    const affected = await this.seriesRepository.softDelete({ seriesId, stamp, userId });
     if (affected === 0) {
       throw new NotFoundError(SERIES_NOT_FOUND_MESSAGE);
     }
@@ -94,8 +94,8 @@ export class SeriesLifecycleService {
     await this.purgeScheduler.schedule({ seriesId, userId });
 
     return {
-      deletedAt: deletedAt.toISOString(),
-      purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
+      deletedAt: stamp.deletedAt.toISOString(),
+      purgeAt: stamp.purgeAt.toISOString(),
       seriesId,
     };
   }

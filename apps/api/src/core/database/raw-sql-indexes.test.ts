@@ -8,6 +8,18 @@ import { PrismaService } from "./prisma.service.js";
 
 const IndexRowSchema = z.object({ indexdef: z.string(), indexname: z.string() });
 
+const ConstraintRowSchema = z.object({ conname: z.string() });
+
+const SOFT_DELETE_TABLES = [
+  "books",
+  "series",
+  "notes",
+  "book_lists",
+  "quotes",
+  "book_timelines",
+  "characters",
+] as const;
+
 const RAW_SQL_INDEXES = [
   { name: "authors_search_text_trgm_idx", requires: "gin_trgm_ops" },
   { name: "publishers_search_text_trgm_idx", requires: "gin_trgm_ops" },
@@ -22,6 +34,7 @@ const RAW_SQL_INDEXES = [
 
 let app: INestApplication;
 let indexes: Map<string, string>;
+let constraints: Set<string>;
 
 beforeAll(async () => {
   app = await createTestApp([]);
@@ -34,6 +47,15 @@ beforeAll(async () => {
       .array(IndexRowSchema)
       .parse(rows)
       .map((row) => [row.indexname, row.indexdef]),
+  );
+  const constraintRows = await prisma.$queryRaw`
+    SELECT conname FROM pg_constraint WHERE contype = 'c'
+  `;
+  constraints = new Set(
+    z
+      .array(ConstraintRowSchema)
+      .parse(constraintRows)
+      .map((row) => row.conname),
   );
 });
 
@@ -60,5 +82,14 @@ describe("indexes that live only in hand-written migration SQL", () => {
     ]) {
       expect(indexes.get(name)).toContain("UNIQUE");
     }
+  });
+});
+
+describe("check constraints that live only in hand-written migration SQL", () => {
+  it.each(SOFT_DELETE_TABLES)("%s keeps purge_at pinned to deleted_at", (table) => {
+    expect(
+      constraints.has(`${table}_purge_at_matches_deleted_at`),
+      `${table} lost the constraint that lets isTrashed() narrow both dates at once`,
+    ).toBe(true);
   });
 });

@@ -76,7 +76,7 @@ function authed(
 
 async function backdateDeletion(quoteId: string, days: number): Promise<void> {
   await prisma.quote.update({
-    data: { deletedAt: subDays(new Date(), days) },
+    data: TRASH_RETENTION.stamp(subDays(new Date(), days)),
     where: { id: quoteId },
   });
 }
@@ -106,7 +106,7 @@ describe("quote trash", () => {
     expect(res.status).toBe(HttpStatus.OK);
     expect(res.body.quoteId).toBe(quoteId);
     expect(new Date(res.body.purgeAt)).toEqual(
-      TRASH_RETENTION.purgeAfter(new Date(res.body.deletedAt)),
+      TRASH_RETENTION.stamp(new Date(res.body.deletedAt)).purgeAt,
     );
     expect(addCalls[0]).toMatchObject({
       data: { quoteId },

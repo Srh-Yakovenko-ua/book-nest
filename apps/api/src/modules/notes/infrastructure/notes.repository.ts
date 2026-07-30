@@ -11,6 +11,8 @@ import { NOTE_PAGE_MAX } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
+
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -132,6 +134,7 @@ const trashedNoteSelect = {
   deletedAt: true,
   entityType: true,
   id: true,
+  purgeAt: true,
   series: { select: { name: true } },
   text: true,
 } satisfies Prisma.NoteSelect;
@@ -179,31 +182,31 @@ export class NotesRepository {
   }
 
   findPurgeCandidates({
-    deletedBefore,
     limit,
+    now,
   }: {
-    deletedBefore: Date;
     limit: number;
+    now: Date;
   }): Promise<{ id: string; userId: string }[]> {
     return this.prisma.note.findMany({
-      orderBy: { deletedAt: "asc" },
+      orderBy: { purgeAt: "asc" },
       select: { id: true, userId: true },
       take: limit,
-      where: { deletedAt: { lt: deletedBefore } },
+      where: SOFT_DELETE_SCOPE.overdue(now),
     });
   }
 
   async hardDeleteIfTrashed({
-    deletedBefore,
     noteId,
+    now,
     userId,
   }: {
-    deletedBefore: Date;
     noteId: string;
+    now: Date;
     userId: string;
   }): Promise<number> {
     const purged = await this.prisma.note.deleteMany({
-      where: { deletedAt: { lt: deletedBefore }, id: noteId, userId },
+      where: { ...SOFT_DELETE_SCOPE.overdue(now), id: noteId, userId },
     });
     return purged.count;
   }
@@ -255,23 +258,23 @@ export class NotesRepository {
 
   async restore({ noteId, userId }: { noteId: string; userId: string }): Promise<number> {
     const restored = await this.prisma.note.updateMany({
-      data: { deletedAt: null },
+      data: SOFT_DELETE_SCOPE.restored,
       where: { AND: [{ ...SOFT_DELETE_SCOPE.trashed, id: noteId, userId }, NOTE_ON_ACTIVE_ENTITY] },
     });
     return restored.count;
   }
 
   async softDelete({
-    deletedAt,
     noteId,
+    stamp,
     userId,
   }: {
-    deletedAt: Date;
     noteId: string;
+    stamp: TrashStamp;
     userId: string;
   }): Promise<number> {
     const deleted = await this.prisma.note.updateMany({
-      data: { deletedAt },
+      data: stamp,
       where: { ...SOFT_DELETE_SCOPE.active, id: noteId, userId },
     });
     return deleted.count;

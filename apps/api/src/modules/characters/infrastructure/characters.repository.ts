@@ -3,6 +3,7 @@ import type { CharacterListSort, Nullable } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { BookCharacterModel, CharacterModel } from "../../../generated/prisma/models.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -628,14 +629,14 @@ export class CharactersRepository {
   }
 
   findPurgeCandidates(
-    { deletedBefore, limit }: { deletedBefore: Date; limit: number },
+    { limit, now }: { limit: number; now: Date },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<{ id: string; userId: string }[]> {
     return client.character.findMany({
-      orderBy: { deletedAt: "asc" },
+      orderBy: { purgeAt: "asc" },
       select: { id: true, userId: true },
       take: limit,
-      where: { deletedAt: { lt: deletedBefore } },
+      where: SOFT_DELETE_SCOPE.overdue(now),
     });
   }
 
@@ -663,16 +664,12 @@ export class CharactersRepository {
     });
   }
 
-  async hardDeleteIfDeleted(
-    {
-      characterId,
-      deletedBefore,
-      userId,
-    }: { characterId: string; deletedBefore: Date; userId: string },
+  async hardDeleteIfTrashed(
+    { characterId, now, userId }: { characterId: string; now: Date; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     const result = await client.character.deleteMany({
-      where: { deletedAt: { lt: deletedBefore }, id: characterId, userId },
+      where: { ...SOFT_DELETE_SCOPE.overdue(now), id: characterId, userId },
     });
     return result.count;
   }
@@ -949,19 +946,19 @@ export class CharactersRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     const result = await client.character.updateMany({
-      data: { deletedAt: null },
-      where: { deletedAt: { not: null }, id: characterId, userId },
+      data: SOFT_DELETE_SCOPE.restored,
+      where: { ...SOFT_DELETE_SCOPE.trashed, id: characterId, userId },
     });
     return result.count;
   }
 
   async softDelete(
-    { characterId, deletedAt, userId }: { characterId: string; deletedAt: Date; userId: string },
+    { characterId, stamp, userId }: { characterId: string; stamp: TrashStamp; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     const result = await client.character.updateMany({
-      data: { deletedAt },
-      where: { deletedAt: null, id: characterId, userId },
+      data: stamp,
+      where: { ...SOFT_DELETE_SCOPE.active, id: characterId, userId },
     });
     return result.count;
   }

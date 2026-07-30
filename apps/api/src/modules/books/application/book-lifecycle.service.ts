@@ -65,7 +65,7 @@ export class BookLifecycleService {
     const mediaIds = collectMediaIds(book);
     const purged = await this.booksRepository.hardDeleteIfTrashed({
       bookId,
-      deletedBefore: TRASH_RETENTION.purgeThreshold(new Date()),
+      now: new Date(),
       userId,
     });
     if (purged === 0) {
@@ -98,8 +98,8 @@ export class BookLifecycleService {
     bookId: string;
     userId: string;
   }): Promise<BookDeletionResult> {
-    const deletedAt = new Date();
-    const affected = await this.booksRepository.softDelete({ bookId, deletedAt, userId });
+    const stamp = TRASH_RETENTION.stamp();
+    const affected = await this.booksRepository.softDelete({ bookId, stamp, userId });
     if (affected === 0) {
       throw new NotFoundError("Book not found");
     }
@@ -108,8 +108,8 @@ export class BookLifecycleService {
 
     return {
       bookId,
-      deletedAt: deletedAt.toISOString(),
-      purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
+      deletedAt: stamp.deletedAt.toISOString(),
+      purgeAt: stamp.purgeAt.toISOString(),
     };
   }
 

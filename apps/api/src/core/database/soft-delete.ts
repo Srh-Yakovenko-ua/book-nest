@@ -2,13 +2,15 @@ import type { Nullable } from "@app/shared";
 
 export const SOFT_DELETE_SCOPE = {
   active: { deletedAt: null },
+  overdue: (now: Date) => ({ purgeAt: { lt: now } }),
+  restored: { deletedAt: null, purgeAt: null },
   trashed: { deletedAt: { not: null } },
 } as const;
 
-export type Trashed<TRow extends { deletedAt: Nullable<Date> }> = TRow & { deletedAt: Date };
+export type SoftDeletable = { deletedAt: Nullable<Date>; purgeAt: Nullable<Date> };
 
-export function isTrashed<TRow extends { deletedAt: Nullable<Date> }>(
-  row: TRow,
-): row is Trashed<TRow> {
-  return row.deletedAt !== null;
+export type Trashed<TRow extends SoftDeletable> = TRow & { deletedAt: Date; purgeAt: Date };
+
+export function isTrashed<TRow extends SoftDeletable>(row: TRow): row is Trashed<TRow> {
+  return row.deletedAt !== null && row.purgeAt !== null;
 }

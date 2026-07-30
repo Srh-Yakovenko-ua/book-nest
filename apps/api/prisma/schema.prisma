@@ -107,6 +107,7 @@ model Series {
   description          String?
   genres               String[]                    @default([])
   deletedAt            DateTime?                   @map("deleted_at") @db.Timestamptz
+  purgeAt              DateTime?                   @map("purge_at") @db.Timestamptz
   createdAt            DateTime                    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime                    @updatedAt @map("updated_at") @db.Timestamptz
   user                 User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -119,7 +120,7 @@ model Series {
   characterTheories    CharacterTheory[]
 
   @@index([userId, deletedAt])
-  @@index([deletedAt])
+  @@index([purgeAt])
   @@map("series")
 }
 
@@ -239,6 +240,7 @@ model Book {
   queuePosition                 Int?                             @map("queue_position")
   coverMediaId                  String?                          @map("cover_media_id") @db.Uuid
   deletedAt                     DateTime?                        @map("deleted_at") @db.Timestamptz
+  purgeAt                       DateTime?                        @map("purge_at") @db.Timestamptz
   createdAt                     DateTime                         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                     DateTime                         @updatedAt @map("updated_at") @db.Timestamptz
   user                          User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -269,7 +271,7 @@ model Book {
   @@index([userId, ownershipStatus])
   @@index([userId, readingStatus])
   @@index([userId, deletedAt])
-  @@index([deletedAt])
+  @@index([purgeAt])
   @@index([publisherId])
   @@index([seriesId])
   @@index([coverMediaId])
@@ -432,6 +434,7 @@ model Note {
   isFavorite     Boolean   @default(false) @map("is_favorite")
   isPinned       Boolean   @default(false) @map("is_pinned")
   deletedAt      DateTime? @map("deleted_at") @db.Timestamptz
+  purgeAt        DateTime? @map("purge_at") @db.Timestamptz
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -442,7 +445,7 @@ model Note {
   @@index([seriesId])
   @@index([userId, entityType])
   @@index([userId, deletedAt])
-  @@index([deletedAt])
+  @@index([purgeAt])
   @@map("notes")
 }
 
@@ -518,13 +521,14 @@ model BookList {
   normalizedName String         @map("normalized_name")
   description    String?
   deletedAt      DateTime?      @map("deleted_at") @db.Timestamptz
+  purgeAt        DateTime?      @map("purge_at") @db.Timestamptz
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   items          BookListItem[]
 
   @@index([userId, deletedAt])
-  @@index([deletedAt])
+  @@index([purgeAt])
   @@map("book_lists")
 }
 
@@ -677,6 +681,7 @@ model Quote {
   isSpoiler  Boolean   @default(false) @map("is_spoiler")
   isFavorite Boolean   @default(false) @map("is_favorite")
   deletedAt  DateTime? @map("deleted_at") @db.Timestamptz
+  purgeAt    DateTime? @map("purge_at") @db.Timestamptz
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -685,7 +690,7 @@ model Quote {
   @@index([bookId])
   @@index([userId])
   @@index([userId, deletedAt])
-  @@index([deletedAt])
+  @@index([purgeAt])
   @@map("quotes")
 }
 
@@ -698,6 +703,7 @@ model BookTimeline {
   position    Int
   isDefault   Boolean             @default(false) @map("is_default")
   deletedAt   DateTime?           @map("deleted_at") @db.Timestamptz
+  purgeAt     DateTime?           @map("purge_at") @db.Timestamptz
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
   book        Book                @relation(fields: [bookId], references: [id], onDelete: Cascade)
@@ -705,7 +711,7 @@ model BookTimeline {
 
   @@index([bookId])
   @@index([bookId, deletedAt])
-  @@index([deletedAt])
+  @@index([purgeAt])
   @@map("book_timelines")
 }
 
@@ -777,6 +783,7 @@ model Character {
   globalAttitude        String?                    @map("global_attitude")
   archivedAt            DateTime?                  @map("archived_at") @db.Timestamptz
   deletedAt             DateTime?                  @map("deleted_at") @db.Timestamptz
+  purgeAt               DateTime?                  @map("purge_at") @db.Timestamptz
   createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
   user                  User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -794,6 +801,7 @@ model Character {
   @@index([userId, isFavorite])
   @@index([userId, archivedAt])
   @@index([userId, deletedAt])
+  @@index([purgeAt])
   @@index([avatarMediaId])
   @@map("characters")
 }

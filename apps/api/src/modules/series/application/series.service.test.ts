@@ -254,6 +254,7 @@ function series(overrides: Partial<SeriesModel> = {}): SeriesModel {
     id: SERIES_ID,
     name: "Throne of Glass",
     normalizedName: "throne of glass",
+    purgeAt: null,
     status: "unknown",
     totalBooks: null,
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),

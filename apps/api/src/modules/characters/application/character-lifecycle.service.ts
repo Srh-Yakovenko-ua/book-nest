@@ -54,11 +54,10 @@ export class CharacterLifecycleService {
       return;
     }
 
-    const deletedBefore = TRASH_RETENTION.purgeThreshold(new Date());
     const mediaIds = collectMediaIds(character);
-    const purged = await this.charactersRepository.hardDeleteIfDeleted({
+    const purged = await this.charactersRepository.hardDeleteIfTrashed({
       characterId,
-      deletedBefore,
+      now: new Date(),
       userId,
     });
     if (purged === 0) {
@@ -100,16 +99,16 @@ export class CharacterLifecycleService {
     characterId: string;
     userId: string;
   }): Promise<CharacterDeletionResult> {
-    const deletedAt = new Date();
-    const affected = await this.charactersRepository.softDelete({ characterId, deletedAt, userId });
+    const stamp = TRASH_RETENTION.stamp();
+    const affected = await this.charactersRepository.softDelete({ characterId, stamp, userId });
     if (affected === 0) {
       throw new NotFoundError("Character not found", { code: CHARACTER_ERROR_CODES.notFound });
     }
     await this.enqueuePurge({ characterId, userId });
     return {
       characterId,
-      deletedAt: deletedAt.toISOString(),
-      purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
+      deletedAt: stamp.deletedAt.toISOString(),
+      purgeAt: stamp.purgeAt.toISOString(),
     };
   }
 

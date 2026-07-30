@@ -14,6 +14,7 @@ import type {
 import { TIMELINE_ERROR_CODES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UpdateTimelineFields } from "../infrastructure/timeline.repository.js";
 
@@ -76,7 +77,7 @@ export class TimelineService {
     timelineId: string,
     query: DeleteTimelineQuery,
   ): Promise<TimelineDeletionResult> {
-    const deletedAt = new Date();
+    const stamp = TRASH_RETENTION.stamp();
     const owned = await this.timelineRepository.findOwnedTimeline({ timelineId, userId });
     if (owned === null) {
       throw new NotFoundError("Timeline not found", {
@@ -100,14 +101,14 @@ export class TimelineService {
 
       const eventCount = await this.timelineEventRepository.countInTimeline(timelineId, tx);
       if (eventCount === 0) {
-        await this.timelineRepository.softDelete({ deletedAt, timelineId, userId }, tx);
+        await this.timelineRepository.softDelete({ stamp, timelineId, userId }, tx);
         return;
       }
 
       await this.deleteNonEmptyTimeline({
         bookId: owned.bookId,
-        deletedAt,
         query,
+        stamp,
         timelineId,
         tx,
         userId,
@@ -117,8 +118,8 @@ export class TimelineService {
     await this.purgeScheduler.schedule({ timelineId, userId });
 
     return {
-      deletedAt: deletedAt.toISOString(),
-      purgeAt: TRASH_RETENTION.purgeAfter(deletedAt).toISOString(),
+      deletedAt: stamp.deletedAt.toISOString(),
+      purgeAt: stamp.purgeAt.toISOString(),
       timelineId,
     };
   }
@@ -271,15 +272,15 @@ export class TimelineService {
 
   private async deleteNonEmptyTimeline({
     bookId,
-    deletedAt,
     query,
+    stamp,
     timelineId,
     tx,
     userId,
   }: {
     bookId: string;
-    deletedAt: Date;
     query: DeleteTimelineQuery;
+    stamp: TrashStamp;
     timelineId: string;
     tx: Prisma.TransactionClient;
     userId: string;
@@ -290,7 +291,7 @@ export class TimelineService {
       });
     }
     if (query.strategy === "delete") {
-      await this.timelineRepository.softDelete({ deletedAt, timelineId, userId }, tx);
+      await this.timelineRepository.softDelete({ stamp, timelineId, userId }, tx);
       return;
     }
 
@@ -313,7 +314,7 @@ export class TimelineService {
       { baseOrder, fromTimelineId: timelineId, toTimelineId: target.id },
       tx,
     );
-    await this.timelineRepository.softDelete({ deletedAt, timelineId, userId }, tx);
+    await this.timelineRepository.softDelete({ stamp, timelineId, userId }, tx);
   }
 
   private mapUniqueNameError(error: unknown): unknown {

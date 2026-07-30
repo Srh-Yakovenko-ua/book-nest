@@ -5,8 +5,6 @@ import { z } from "zod";
 export const BOOK_PURGE_QUEUE_NAME = "book-purge";
 export const BOOK_PURGE_JOB = "book-purge";
 
-export const BOOK_PURGE_RECONCILE_BATCH = 100;
-
 export const BookPurgeJobSchema = z.object({
   bookId: z.uuid(),
   userId: z.uuid(),

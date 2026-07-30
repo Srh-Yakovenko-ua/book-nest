@@ -90,6 +90,7 @@ function makeBookNote(overrides: Partial<NoteWithEntity> = {}): NoteWithEntity {
     isPinned: false,
     isSpoiler: false,
     page: null,
+    purgeAt: null,
     series: null,
     seriesId: null,
     text: "A thought",

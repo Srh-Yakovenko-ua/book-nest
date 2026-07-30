@@ -17,6 +17,7 @@ import { DELIVERY_ACTIVE_STATUSES, LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.repository.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
@@ -134,6 +135,7 @@ const trashedSelect = {
   coverMedia: true,
   deletedAt: true,
   id: true,
+  purgeAt: true,
   series: { select: { name: true } },
   title: true,
 } satisfies Prisma.BookSelect;
@@ -881,17 +883,17 @@ export class BooksRepository {
   }
 
   findPurgeCandidates({
-    deletedBefore,
     limit,
+    now,
   }: {
-    deletedBefore: Date;
     limit: number;
+    now: Date;
   }): Promise<{ id: string; userId: string }[]> {
     return this.prisma.book.findMany({
-      orderBy: { deletedAt: "asc" },
+      orderBy: { purgeAt: "asc" },
       select: { id: true, userId: true },
       take: limit,
-      where: { deletedAt: { lt: deletedBefore } },
+      where: SOFT_DELETE_SCOPE.overdue(now),
     });
   }
 
@@ -936,15 +938,15 @@ export class BooksRepository {
 
   async hardDeleteIfTrashed({
     bookId,
-    deletedBefore,
+    now,
     userId,
   }: {
     bookId: string;
-    deletedBefore: Date;
+    now: Date;
     userId: string;
   }): Promise<number> {
     const purged = await this.prisma.book.deleteMany({
-      where: { deletedAt: { lt: deletedBefore }, id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.overdue(now), id: bookId, userId },
     });
     return purged.count;
   }
@@ -1154,7 +1156,7 @@ export class BooksRepository {
 
   async restore({ bookId, userId }: { bookId: string; userId: string }): Promise<number> {
     const restored = await this.prisma.book.updateMany({
-      data: { deletedAt: null },
+      data: SOFT_DELETE_SCOPE.restored,
       where: { ...SOFT_DELETE_SCOPE.trashed, id: bookId, userId },
     });
     return restored.count;
@@ -1174,11 +1176,11 @@ export class BooksRepository {
   softDelete(
     {
       bookId,
-      deletedAt,
+      stamp,
       userId,
     }: {
       bookId: string;
-      deletedAt: Date;
+      stamp: TrashStamp;
       userId: string;
     },
     client?: Prisma.TransactionClient,
@@ -1186,7 +1188,7 @@ export class BooksRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       await acquireUserQueueLock(userId, tx);
       const deleted = await tx.book.updateMany({
-        data: { deletedAt, ...CLEARED_QUEUE_PLACEMENT },
+        data: { ...stamp, ...CLEARED_QUEUE_PLACEMENT },
         where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
       });
       if (deleted.count > 0) {

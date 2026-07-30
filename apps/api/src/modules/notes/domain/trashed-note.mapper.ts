@@ -4,8 +4,6 @@ import { NoteEntityTypeSchema } from "@app/shared";
 
 import type { TrashedNoteRow } from "../infrastructure/notes.repository.js";
 
-import { TRASH_RETENTION } from "../../../core/trash-retention.js";
-
 const ENTITY_TITLE = {
   book: (note: TrashedNoteRow) => note.book?.title ?? null,
   series: (note: TrashedNoteRow) => note.series?.name ?? null,
@@ -19,7 +17,7 @@ export function toTrashedNoteView(note: TrashedNoteRow): TrashedNoteView {
     entityTitle: ENTITY_TITLE[entityType](note),
     entityType,
     id: note.id,
-    purgeAt: TRASH_RETENTION.purgeAfter(note.deletedAt).toISOString(),
+    purgeAt: note.purgeAt.toISOString(),
     text: note.text,
   };
 }

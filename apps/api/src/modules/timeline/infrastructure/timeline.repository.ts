@@ -3,6 +3,7 @@ import type { Nullable, ReadingStatus } from "@app/shared";
 import { ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
@@ -17,6 +18,7 @@ const trashedTimelineSelect = {
   deletedAt: true,
   id: true,
   name: true,
+  purgeAt: true,
 } satisfies Prisma.BookTimelineSelect;
 
 export type TrashedTimelineRow = Trashed<TrashedTimelineSelection>;
@@ -162,17 +164,17 @@ export class TimelineRepository {
   }
 
   async findPurgeCandidates({
-    deletedBefore,
     limit,
+    now,
   }: {
-    deletedBefore: Date;
     limit: number;
+    now: Date;
   }): Promise<{ id: string; userId: string }[]> {
     const rows = await this.prisma.bookTimeline.findMany({
-      orderBy: { deletedAt: "asc" },
+      orderBy: { purgeAt: "asc" },
       select: { book: { select: { userId: true } }, id: true },
       take: limit,
-      where: { deletedAt: { lt: deletedBefore } },
+      where: SOFT_DELETE_SCOPE.overdue(now),
     });
     return rows.map((row) => ({ id: row.id, userId: row.book.userId }));
   }
@@ -187,16 +189,16 @@ export class TimelineRepository {
   }
 
   async hardDeleteIfTrashed({
-    deletedBefore,
+    now,
     timelineId,
     userId,
   }: {
-    deletedBefore: Date;
+    now: Date;
     timelineId: string;
     userId: string;
   }): Promise<number> {
     const purged = await this.prisma.bookTimeline.deleteMany({
-      where: { book: { userId }, deletedAt: { lt: deletedBefore }, id: timelineId },
+      where: { ...SOFT_DELETE_SCOPE.overdue(now), book: { userId }, id: timelineId },
     });
     return purged.count;
   }
@@ -261,7 +263,7 @@ export class TimelineRepository {
 
   async restore({ timelineId, userId }: { timelineId: string; userId: string }): Promise<number> {
     const restored = await this.prisma.bookTimeline.updateMany({
-      data: { deletedAt: null },
+      data: SOFT_DELETE_SCOPE.restored,
       where: {
         ...SOFT_DELETE_SCOPE.trashed,
         book: { ...SOFT_DELETE_SCOPE.active, userId },
@@ -293,11 +295,11 @@ export class TimelineRepository {
   }
 
   async softDelete(
-    { deletedAt, timelineId, userId }: { deletedAt: Date; timelineId: string; userId: string },
+    { stamp, timelineId, userId }: { stamp: TrashStamp; timelineId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
     const deleted = await client.bookTimeline.updateMany({
-      data: { deletedAt },
+      data: stamp,
       where: { ...SOFT_DELETE_SCOPE.active, book: { userId }, id: timelineId },
     });
     return deleted.count;

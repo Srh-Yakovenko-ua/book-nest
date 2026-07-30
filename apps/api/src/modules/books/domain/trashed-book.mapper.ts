@@ -2,8 +2,6 @@ import type { MediaView, Nullable, TrashedBookView } from "@app/shared";
 
 import type { TrashedBookRow } from "../infrastructure/books.repository.js";
 
-import { TRASH_RETENTION } from "../../../core/trash-retention.js";
-
 export function toTrashedBookView({
   book,
   cover,
@@ -19,7 +17,7 @@ export function toTrashedBookView({
     cover,
     deletedAt: book.deletedAt.toISOString(),
     id: book.id,
-    purgeAt: TRASH_RETENTION.purgeAfter(book.deletedAt).toISOString(),
+    purgeAt: book.purgeAt.toISOString(),
     seriesTitle: book.series?.name ?? null,
     title: book.title,
   };

@@ -2,6 +2,7 @@ import type { ListSort, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookListModel } from "../../../generated/prisma/models.js";
 
@@ -17,6 +18,7 @@ const trashedListSelect = {
   deletedAt: true,
   id: true,
   name: true,
+  purgeAt: true,
 } satisfies Prisma.BookListSelect;
 
 export type CreateBookListData = {
@@ -151,31 +153,31 @@ export class ListsRepository {
   }
 
   findPurgeCandidates({
-    deletedBefore,
     limit,
+    now,
   }: {
-    deletedBefore: Date;
     limit: number;
+    now: Date;
   }): Promise<{ id: string; userId: string }[]> {
     return this.prisma.bookList.findMany({
-      orderBy: { deletedAt: "asc" },
+      orderBy: { purgeAt: "asc" },
       select: { id: true, userId: true },
       take: limit,
-      where: { deletedAt: { lt: deletedBefore } },
+      where: SOFT_DELETE_SCOPE.overdue(now),
     });
   }
 
   async hardDeleteIfTrashed({
-    deletedBefore,
     listId,
+    now,
     userId,
   }: {
-    deletedBefore: Date;
     listId: string;
+    now: Date;
     userId: string;
   }): Promise<number> {
     const purged = await this.prisma.bookList.deleteMany({
-      where: { deletedAt: { lt: deletedBefore }, id: listId, userId },
+      where: { ...SOFT_DELETE_SCOPE.overdue(now), id: listId, userId },
     });
     return purged.count;
   }
@@ -201,7 +203,7 @@ export class ListsRepository {
 
   async restore({ listId, userId }: { listId: string; userId: string }): Promise<number> {
     const restored = await this.prisma.bookList.updateMany({
-      data: { deletedAt: null },
+      data: SOFT_DELETE_SCOPE.restored,
       where: { ...SOFT_DELETE_SCOPE.trashed, id: listId, userId },
     });
     return restored.count;
@@ -224,16 +226,16 @@ export class ListsRepository {
   }
 
   async softDelete({
-    deletedAt,
     listId,
+    stamp,
     userId,
   }: {
-    deletedAt: Date;
     listId: string;
+    stamp: TrashStamp;
     userId: string;
   }): Promise<number> {
     const deleted = await this.prisma.bookList.updateMany({
-      data: { deletedAt },
+      data: stamp,
       where: { ...SOFT_DELETE_SCOPE.active, id: listId, userId },
     });
     return deleted.count;

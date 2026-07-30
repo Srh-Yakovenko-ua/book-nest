@@ -148,7 +148,7 @@ describe("GET /api/trash", () => {
     expect(res.body.totalCount).toBe(5);
     expect(res.body.items[0]).toMatchObject({ entityType: "book", id: bookId, title: "Dune" });
     expect(new Date(res.body.items[0].purgeAt)).toEqual(
-      TRASH_RETENTION.purgeAfter(new Date(res.body.items[0].deletedAt)),
+      TRASH_RETENTION.stamp(new Date(res.body.items[0].deletedAt)).purgeAt,
     );
     expect(res.body.items.map((item: { entityType: string }) => item.entityType).sort()).toEqual([
       "book",

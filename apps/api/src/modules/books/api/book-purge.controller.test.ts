@@ -2,7 +2,7 @@ import type { INestApplication } from "@nestjs/common";
 
 import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus } from "@nestjs/common";
-import { subDays } from "date-fns";
+import { addDays, subDays } from "date-fns";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -87,7 +87,7 @@ function authed(
 
 async function backdateDeletion(bookId: string, days: number): Promise<void> {
   await prisma.book.update({
-    data: { deletedAt: subDays(new Date(), days) },
+    data: TRASH_RETENTION.stamp(subDays(new Date(), days)),
     where: { id: bookId },
   });
 }
@@ -244,6 +244,38 @@ describe("book purge execution", () => {
     await lifecycleService.purge({ bookId, userId: stranger.userId });
 
     expect(await prisma.book.findUnique({ where: { id: bookId } })).not.toBeNull();
+  });
+});
+
+describe("persisted purge deadline", () => {
+  it("purges by the stored purge_at even when deleted_at says otherwise", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const staleDeletionFutureDeadline = await createBook(accessToken, { title: "Long promised" });
+    const freshDeletionPastDeadline = await createBook(accessToken, { title: "Short promised" });
+
+    await authed("delete", `/api/books/${staleDeletionFutureDeadline}`, accessToken).expect(
+      HttpStatus.OK,
+    );
+    await authed("delete", `/api/books/${freshDeletionPastDeadline}`, accessToken).expect(
+      HttpStatus.OK,
+    );
+
+    const now = new Date();
+    await prisma.book.update({
+      data: { deletedAt: subDays(now, TRASH_RETENTION.days * 2), purgeAt: addDays(now, 1) },
+      where: { id: staleDeletionFutureDeadline },
+    });
+    await prisma.book.update({
+      data: { deletedAt: now, purgeAt: subDays(now, 1) },
+      where: { id: freshDeletionPastDeadline },
+    });
+
+    await reconciler.sweep();
+
+    expect(
+      await prisma.book.findUnique({ where: { id: staleDeletionFutureDeadline } }),
+    ).not.toBeNull();
+    expect(await prisma.book.findUnique({ where: { id: freshDeletionPastDeadline } })).toBeNull();
   });
 });
 

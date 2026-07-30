@@ -2,6 +2,7 @@ import type { Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { SeriesModel } from "../../../generated/prisma/models.js";
 
@@ -125,6 +126,7 @@ const trashedSeriesSelect = {
   deletedAt: true,
   id: true,
   name: true,
+  purgeAt: true,
 } satisfies Prisma.SeriesSelect;
 
 export type TrashedSeriesRow = Trashed<TrashedSeriesSelection>;
@@ -249,28 +251,28 @@ export class SeriesRepository {
   }
 
   findPurgeCandidates({
-    deletedBefore,
     limit,
+    now,
   }: {
-    deletedBefore: Date;
     limit: number;
+    now: Date;
   }): Promise<{ id: string; userId: string }[]> {
     return this.prisma.series.findMany({
-      orderBy: { deletedAt: "asc" },
+      orderBy: { purgeAt: "asc" },
       select: { id: true, userId: true },
       take: limit,
-      where: { deletedAt: { lt: deletedBefore } },
+      where: SOFT_DELETE_SCOPE.overdue(now),
     });
   }
 
   hardDeleteIfTrashed(
-    { deletedBefore, seriesId, userId }: { deletedBefore: Date; seriesId: string; userId: string },
+    { now, seriesId, userId }: { now: Date; seriesId: string; userId: string },
     client?: Prisma.TransactionClient,
   ): Promise<number> {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       const purgeable = await tx.series.findFirst({
         select: { id: true },
-        where: { deletedAt: { lt: deletedBefore }, id: seriesId, userId },
+        where: { ...SOFT_DELETE_SCOPE.overdue(now), id: seriesId, userId },
       });
       if (purgeable === null) {
         return 0;
@@ -280,7 +282,7 @@ export class SeriesRepository {
         where: { seriesId, userId },
       });
       const purged = await tx.series.deleteMany({
-        where: { deletedAt: { lt: deletedBefore }, id: seriesId, userId },
+        where: { ...SOFT_DELETE_SCOPE.overdue(now), id: seriesId, userId },
       });
       return purged.count;
     });
@@ -307,7 +309,7 @@ export class SeriesRepository {
 
   async restore({ seriesId, userId }: { seriesId: string; userId: string }): Promise<number> {
     const restored = await this.prisma.series.updateMany({
-      data: { deletedAt: null },
+      data: SOFT_DELETE_SCOPE.restored,
       where: { ...SOFT_DELETE_SCOPE.trashed, id: seriesId, userId },
     });
     return restored.count;
@@ -330,16 +332,16 @@ export class SeriesRepository {
   }
 
   async softDelete({
-    deletedAt,
     seriesId,
+    stamp,
     userId,
   }: {
-    deletedAt: Date;
     seriesId: string;
+    stamp: TrashStamp;
     userId: string;
   }): Promise<number> {
     const deleted = await this.prisma.series.updateMany({
-      data: { deletedAt },
+      data: stamp,
       where: { ...SOFT_DELETE_SCOPE.active, id: seriesId, userId },
     });
     return deleted.count;
