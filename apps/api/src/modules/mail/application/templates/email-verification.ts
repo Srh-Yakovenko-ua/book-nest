@@ -1,15 +1,11 @@
+import type { RenderedEmail } from "./rendered-email.js";
+
 import { escapeHtml } from "./escape-html.js";
 
 export type EmailVerificationVariables = {
   expiresInMinutes: number;
   userName: string;
   verificationUrl: string;
-};
-
-type RenderedEmail = {
-  html: string;
-  subject: string;
-  text: string;
 };
 
 export function renderEmailVerification(vars: EmailVerificationVariables): RenderedEmail {

@@ -18,12 +18,17 @@ type ReconcilerHarness = {
 function buildHarness(candidates: PurgeCandidate[]): ReconcilerHarness {
   const findCandidates = vi.fn().mockResolvedValue(candidates);
   const purge = vi.fn().mockResolvedValue(undefined);
-  const reconciler = createPurgeReconciler({ findCandidates, purge, scope: "test" });
+  const reconciler = createPurgeReconciler({
+    batchSize: TRASH_RETENTION.reconcileBatchSize,
+    findCandidates,
+    purge,
+    scope: "test",
+  });
   return { findCandidates, purge, reconciler };
 }
 
 describe("createPurgeReconciler", () => {
-  it("purges every overdue candidate with the shared batch size", async () => {
+  it("purges every overdue candidate with the batch size it was given", async () => {
     const { findCandidates, purge, reconciler } = buildHarness([
       { id: ENTITY_ID_A, userId: USER_ID },
       { id: ENTITY_ID_B, userId: USER_ID },
@@ -51,7 +56,12 @@ describe("createPurgeReconciler", () => {
   it("swallows a candidate-load failure and never purges", async () => {
     const findCandidates = vi.fn().mockRejectedValue(new Error("db down"));
     const purge = vi.fn();
-    const reconciler = createPurgeReconciler({ findCandidates, purge, scope: "test" });
+    const reconciler = createPurgeReconciler({
+      batchSize: TRASH_RETENTION.reconcileBatchSize,
+      findCandidates,
+      purge,
+      scope: "test",
+    });
 
     await expect(reconciler.sweep()).resolves.toBeUndefined();
 
@@ -83,7 +93,12 @@ describe("createPurgeReconciler", () => {
           }),
       );
     const purge = vi.fn().mockResolvedValue(undefined);
-    const reconciler = createPurgeReconciler({ findCandidates, purge, scope: "test" });
+    const reconciler = createPurgeReconciler({
+      batchSize: TRASH_RETENTION.reconcileBatchSize,
+      findCandidates,
+      purge,
+      scope: "test",
+    });
 
     const firstSweep = reconciler.sweep();
     await reconciler.sweep();

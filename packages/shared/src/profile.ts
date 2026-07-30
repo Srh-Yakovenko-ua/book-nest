@@ -180,7 +180,7 @@ export type UpdateSocialLinkInput = z.infer<typeof UpdateSocialLinkInputSchema>;
 const TIMEZONE_MAX = 64;
 const TIMEZONE_FALLBACK = "Europe/Kyiv";
 
-const LOAN_REMINDER_LEAD_DAYS = {
+export const LOAN_REMINDER_LEAD_DAYS = {
   default: 3,
   max: 14,
   min: 1,

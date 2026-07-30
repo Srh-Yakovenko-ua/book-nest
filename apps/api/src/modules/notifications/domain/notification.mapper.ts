@@ -1,6 +1,11 @@
-import type { NotificationEntityState, NotificationView, Nullable } from "@app/shared";
+import type {
+  NotificationEntityState,
+  NotificationPayload,
+  NotificationView,
+  Nullable,
+} from "@app/shared";
 
-import { NotificationViewSchema } from "@app/shared";
+import { NotificationPayloadSchema, NotificationViewSchema } from "@app/shared";
 
 import type { NotificationModel } from "../../../generated/prisma/models.js";
 
@@ -11,6 +16,23 @@ export type NotificationRow = Pick<
   "createdAt" | "entityId" | "entityType" | "id" | "level" | "params" | "readAt" | "reason" | "type"
 >;
 
+type StoredNotificationParams = Record<string, Nullable<number | string>>;
+
+export function toNotificationPayload({
+  params,
+  type,
+}: {
+  params: unknown;
+  type: string;
+}): Nullable<NotificationPayload> {
+  const isPlainObject = typeof params === "object" && params !== null && !Array.isArray(params);
+  const parsed = NotificationPayloadSchema.safeParse(
+    isPlainObject ? { ...params, type } : { type },
+  );
+
+  return parsed.success ? parsed.data : null;
+}
+
 export function toNotificationView({
   entityState,
   row,
@@ -18,12 +40,17 @@ export function toNotificationView({
   entityState: Nullable<NotificationEntityState>;
   row: NotificationRow;
 }): Nullable<NotificationView> {
+  const payload = toNotificationPayload({ params: row.params, type: row.type });
+  if (payload === null) {
+    return null;
+  }
+
   const parsed = NotificationViewSchema.safeParse({
     createdAt: row.createdAt.toISOString(),
     entityState,
     id: row.id,
     level: row.level,
-    payload: toPayloadCandidate({ params: row.params, type: row.type }),
+    payload,
     readAt: toNullableIsoDateTime(row.readAt),
     reason: row.reason,
   });
@@ -31,9 +58,7 @@ export function toNotificationView({
   return parsed.success ? parsed.data : null;
 }
 
-function toPayloadCandidate({ params, type }: { params: unknown; type: string }): unknown {
-  if (typeof params !== "object" || params === null || Array.isArray(params)) {
-    return { type };
-  }
-  return { ...params, type };
+export function toStoredNotificationParams(payload: NotificationPayload): StoredNotificationParams {
+  const { type: _discriminant, ...params } = payload;
+  return params;
 }

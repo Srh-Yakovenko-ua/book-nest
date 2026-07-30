@@ -4,6 +4,7 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 import type { PurgeReconciler } from "../../../core/purge-reconciler.js";
 
 import { createPurgeReconciler } from "../../../core/purge-reconciler.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { ListsRepository } from "../infrastructure/lists.repository.js";
 import { ListLifecycleService } from "./list-lifecycle.service.js";
 
@@ -13,6 +14,7 @@ export class ListPurgeReconciler {
 
   constructor(listsRepository: ListsRepository, lifecycleService: ListLifecycleService) {
     this.reconciler = createPurgeReconciler({
+      batchSize: TRASH_RETENTION.reconcileBatchSize,
       findCandidates: (args) => listsRepository.findPurgeCandidates(args),
       purge: ({ id, userId }) => lifecycleService.purge({ listId: id, userId }),
       scope: "lists",

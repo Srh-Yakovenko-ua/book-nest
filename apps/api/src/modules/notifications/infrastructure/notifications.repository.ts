@@ -94,6 +94,25 @@ export class NotificationsRepository {
     });
   }
 
+  findPurgeCandidates(
+    { createdBefore, limit }: { createdBefore: Date; limit: number },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<{ id: string; userId: string }[]> {
+    return client.notification.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, userId: true },
+      take: limit,
+      where: { createdAt: { lt: createdBefore } },
+    });
+  }
+
+  async hardDelete(
+    { id }: { id: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await client.notification.deleteMany({ where: { id } });
+  }
+
   async markAllRead(
     { readAt, userId }: { readAt: Date; userId: string },
     client: Prisma.TransactionClient = this.prisma,

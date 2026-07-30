@@ -1,17 +1,14 @@
 import type {
-  NotificationLevel,
   NotificationListQuery,
   NotificationListResponse,
-  NotificationReason,
-  NotificationType,
   NotificationUnreadCount,
   NotificationView,
   Nullable,
 } from "@app/shared";
 
-import { NOTIFICATION_LEVEL_BY_TYPE, NOTIFICATION_TYPES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { AuthenticatedUser } from "../../auth/index.js";
 import type {
   EntityDeletionLookup,
   NotificationEntityRef,
@@ -20,25 +17,16 @@ import type { NotificationCursor } from "../infrastructure/notifications.reposit
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
-import { buildTestDedupeKey } from "../domain/notification-dedupe.js";
 import {
   collectBookEntityIds,
   resolveNotificationEntityState,
 } from "../domain/notification-entity-state.js";
 import { type NotificationRow, toNotificationView } from "../domain/notification.mapper.js";
+import { buildTestNotification } from "../domain/test-notification.builder.js";
 import { NotificationsRepository } from "../infrastructure/notifications.repository.js";
+import { NotificationWriterService } from "./notification-writer.service.js";
 
 const CURSOR_NOT_FOUND_MESSAGE = "Notification cursor not found";
-
-const MANUAL_TEST_NOTIFICATION = {
-  level: NOTIFICATION_LEVEL_BY_TYPE[NOTIFICATION_TYPES.systemTest],
-  reason: "manual_test",
-  type: NOTIFICATION_TYPES.systemTest,
-} as const satisfies {
-  level: NotificationLevel;
-  reason: NotificationReason;
-  type: NotificationType;
-};
 
 const logger = createLogger("notifications.service");
 
@@ -49,22 +37,24 @@ type ListInput = {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly notificationsRepository: NotificationsRepository) {}
+  constructor(
+    private readonly notificationsRepository: NotificationsRepository,
+    private readonly writer: NotificationWriterService,
+  ) {}
 
-  async createTestNotification({ userId }: { userId: string }): Promise<void> {
+  async createTestNotification({ user }: { user: AuthenticatedUser }): Promise<void> {
     const requestedAt = new Date();
 
-    await this.notificationsRepository.upsertByDedupeKey({
-      dedupeKey: buildTestDedupeKey({ requestedAt, userId }),
-      entityId: null,
-      entityType: null,
-      level: MANUAL_TEST_NOTIFICATION.level,
-      params: { requestedAt: requestedAt.toISOString() },
-      reason: MANUAL_TEST_NOTIFICATION.reason,
-      resetsReadState: true,
-      type: MANUAL_TEST_NOTIFICATION.type,
-      userId,
+    const { emailDeliveryCreated } = await this.writer.write({
+      emailPreferenceEnabled: true,
+      emailVerified: user.emailVerifiedAt !== null,
+      notification: buildTestNotification({ requestedAt, userId: user.id }),
+      userId: user.id,
     });
+
+    if (emailDeliveryCreated) {
+      await this.writer.enqueueDigest({ now: requestedAt, userId: user.id });
+    }
   }
 
   async list({ query, userId }: ListInput): Promise<NotificationListResponse> {

@@ -2,7 +2,7 @@ import type { NotificationEntityState, NotificationEntityType, Nullable } from "
 
 import { NotificationEntityTypeSchema } from "@app/shared";
 
-const BOOK_ENTITY_TYPE = "book" as const satisfies NotificationEntityType;
+export const BOOK_ENTITY_TYPE = "book" as const satisfies NotificationEntityType;
 
 export type EntityDeletionLookup = ReadonlyMap<string, Nullable<Date>>;
 

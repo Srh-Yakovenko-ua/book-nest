@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { parseIsoDate, toIsoDate } from "./iso-date.js";
+import { addDaysToIsoDate, daysBetweenIsoDates, parseIsoDate, toIsoDate } from "./iso-date.js";
 
 describe("iso-date", () => {
   it("round-trips a calendar date unchanged", () => {
@@ -32,6 +32,28 @@ describe("iso-date", () => {
 
     it("keeps a UTC-midnight instant on the same calendar day", () => {
       expect(toIsoDate(new Date("2000-05-15T00:00:00.000Z"))).toBe("2000-05-15");
+    });
+
+    it("counts calendar days across a spring-forward transition", () => {
+      expect(addDaysToIsoDate("2000-04-01", 3)).toBe("2000-04-04");
+      expect(daysBetweenIsoDates({ endIsoDate: "2000-04-04", startIsoDate: "2000-04-01" })).toBe(3);
+    });
+  });
+
+  describe("calendar-day arithmetic on ISO date strings", () => {
+    it("shifts a date forward and backward without touching the clock", () => {
+      expect(addDaysToIsoDate("2026-07-30", 3)).toBe("2026-08-02");
+      expect(addDaysToIsoDate("2026-08-02", -3)).toBe("2026-07-30");
+    });
+
+    it("counts whole days from the start date to the end date", () => {
+      expect(daysBetweenIsoDates({ endIsoDate: "2026-08-02", startIsoDate: "2026-07-30" })).toBe(3);
+    });
+
+    it("returns a negative count when the end date precedes the start date", () => {
+      expect(daysBetweenIsoDates({ endIsoDate: "2026-07-30", startIsoDate: "2026-08-02" })).toBe(
+        -3,
+      );
     });
   });
 });

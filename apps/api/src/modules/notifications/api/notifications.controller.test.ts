@@ -17,6 +17,7 @@ import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { BOOK_PURGE_QUEUE_NAME } from "../../books/domain/book-purge.js";
+import { NOTIFICATION_EMAIL_QUEUE_NAME } from "../domain/notification-email.js";
 import { NotificationsModule } from "../notifications.module.js";
 
 type ListedNotification = {
@@ -62,7 +63,10 @@ let prisma: PrismaService;
 beforeAll(async () => {
   context = await createAuthTestContext(
     [AuthModule, NotificationsModule, BooksModule],
-    [{ provide: getQueueToken(BOOK_PURGE_QUEUE_NAME), useValue: queueStub }],
+    [
+      { provide: getQueueToken(BOOK_PURGE_QUEUE_NAME), useValue: queueStub },
+      { provide: getQueueToken(NOTIFICATION_EMAIL_QUEUE_NAME), useValue: queueStub },
+    ],
   );
   app = context.app;
   prisma = app.get(PrismaService);

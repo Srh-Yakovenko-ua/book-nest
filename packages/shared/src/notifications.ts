@@ -23,8 +23,6 @@ export const NOTIFICATION_TYPES = {
   systemTest: "system.test",
 } as const satisfies Record<string, string>;
 
-export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPES);
-
 export type NotificationType = ValueOf<typeof NOTIFICATION_TYPES>;
 
 export const NotificationLevelSchema = z.enum(["normal", "passive", "time_sensitive"]);
@@ -57,7 +55,7 @@ export const NotificationChannelSchema = z.enum(["email"]);
 
 export type NotificationChannel = z.infer<typeof NotificationChannelSchema>;
 
-export const NotificationDeliveryStatusSchema = z.enum(["failed", "pending", "sent"]);
+export const NotificationDeliveryStatusSchema = z.enum(["claimed", "failed", "pending", "sent"]);
 
 export type NotificationDeliveryStatus = z.infer<typeof NotificationDeliveryStatusSchema>;
 

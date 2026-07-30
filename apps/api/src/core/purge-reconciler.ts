@@ -1,29 +1,28 @@
+import { createExclusiveTask } from "./exclusive-task.js";
 import { createLogger } from "./logger.js";
-import { TRASH_RETENTION } from "./trash-retention.js";
 
 export type PurgeCandidate = { id: string; userId: string };
 
 export type PurgeReconciler = { sweep: () => Promise<void> };
 
 export function createPurgeReconciler({
+  batchSize,
   findCandidates,
   purge,
   scope,
 }: {
+  batchSize: number;
   findCandidates: (args: { limit: number; now: Date }) => Promise<PurgeCandidate[]>;
   purge: (candidate: PurgeCandidate) => Promise<void>;
   scope: string;
 }): PurgeReconciler {
-  const log = createLogger(`${scope}.purge-reconciler`);
-  let isRunning = false;
+  const reconcilerScope = `${scope}.purge-reconciler`;
+  const log = createLogger(reconcilerScope);
 
   async function runSweep(): Promise<void> {
     let candidates: PurgeCandidate[];
     try {
-      candidates = await findCandidates({
-        limit: TRASH_RETENTION.reconcileBatchSize,
-        now: new Date(),
-      });
+      candidates = await findCandidates({ limit: batchSize, now: new Date() });
     } catch (error) {
       log.error({ err: error }, "purge reconciliation failed to load candidates");
       return;
@@ -48,18 +47,5 @@ export function createPurgeReconciler({
     }
   }
 
-  return {
-    async sweep(): Promise<void> {
-      if (isRunning) {
-        log.warn("purge reconciliation still running, skipping this tick");
-        return;
-      }
-      isRunning = true;
-      try {
-        await runSweep();
-      } finally {
-        isRunning = false;
-      }
-    },
-  };
+  return { sweep: createExclusiveTask({ run: runSweep, scope: reconcilerScope }) };
 }

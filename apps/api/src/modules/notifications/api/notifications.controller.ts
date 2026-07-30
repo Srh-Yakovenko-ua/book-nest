@@ -93,6 +93,6 @@ export class NotificationsController {
   @Post("test")
   @Throttle(MANUAL_TEST_NOTIFICATION_THROTTLE)
   createTestNotification(@CurrentUser() user: AuthenticatedUser): Promise<void> {
-    return this.notificationsService.createTestNotification({ userId: user.id });
+    return this.notificationsService.createTestNotification({ user });
   }
 }

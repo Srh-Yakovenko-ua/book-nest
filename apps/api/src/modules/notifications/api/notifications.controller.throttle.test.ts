@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus, Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
@@ -12,9 +13,15 @@ import { GLOBAL_THROTTLE, MANUAL_TEST_NOTIFICATION_THROTTLE } from "../../../cor
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
+import { NOTIFICATION_EMAIL_QUEUE_NAME } from "../domain/notification-email.js";
 import { NotificationsModule } from "../notifications.module.js";
 
 const manualTestLimit = MANUAL_TEST_NOTIFICATION_THROTTLE.default.limit;
+
+const queueStub = {
+  add: (): Promise<void> => Promise.resolve(),
+  remove: (): Promise<void> => Promise.resolve(),
+};
 
 @Module({
   imports: [ThrottlerModule.forRoot([GLOBAL_THROTTLE])],
@@ -26,7 +33,10 @@ let context: AuthTestContext;
 let app: INestApplication;
 
 beforeAll(async () => {
-  context = await createAuthTestContext([ThrottledTestModule, AuthModule, NotificationsModule]);
+  context = await createAuthTestContext(
+    [ThrottledTestModule, AuthModule, NotificationsModule],
+    [{ provide: getQueueToken(NOTIFICATION_EMAIL_QUEUE_NAME), useValue: queueStub }],
+  );
   app = context.app;
 });
 
