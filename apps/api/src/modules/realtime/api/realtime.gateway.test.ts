@@ -53,8 +53,6 @@ const CONNECT_FLOOD = {
   maxAdmissions: 2,
 } as const satisfies Record<string, number>;
 
-const APPLICATION_ERROR_CODES: readonly string[] = Object.values(REALTIME_CONTRACT.errorCodes);
-
 const EMITTED_UNREAD_COUNT = 3;
 
 const SHORT_LIVED_TOKEN = {
@@ -367,20 +365,24 @@ describe("RealtimeGateway handshake", () => {
     await expect(waitForRejection(socket)).resolves.toBe(REALTIME_CONTRACT.errorCodes.unauthorized);
   });
 
-  it("refuses a disallowed origin before the websocket upgrade completes", async () => {
+  it("names the reason when it rejects a disallowed origin, so the client can stop retrying", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const socket = connectSocket({ origin: HANDSHAKE_ORIGIN.forbidden, token: accessToken });
 
-    const message = await waitForRejection(socket);
-    expect(APPLICATION_ERROR_CODES).not.toContain(message);
+    await expect(waitForRejection(socket)).resolves.toBe(
+      REALTIME_CONTRACT.errorCodes.forbiddenOrigin,
+    );
   });
 
-  it("aborts the disallowed-origin handshake with the reason in the http response", async () => {
-    const refused = await attemptRawUpgrade({ origin: HANDSHAKE_ORIGIN.forbidden });
+  it("refuses a disallowed origin before it authenticates the token", async () => {
+    const admit = vi.spyOn(app.get(RealtimeConnectionService), "admit");
+    const { accessToken } = await context.registerVerifyAndLogin();
 
-    expect(refused.status).toBe(HttpStatus.BAD_REQUEST);
-    expect(refused.body).toBe(REALTIME_CONTRACT.errorCodes.forbiddenOrigin);
+    const socket = connectSocket({ origin: HANDSHAKE_ORIGIN.forbidden, token: accessToken });
+    await waitForRejection(socket);
+
+    expect(admit).not.toHaveBeenCalled();
   });
 
   it("completes the upgrade for an allowed origin", async () => {
