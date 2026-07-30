@@ -10,6 +10,7 @@ import { env } from "../../config/env.js";
 import { SemaphoreUnavailableError } from "../bounded-semaphore.js";
 import { HTTP_STATUS, isHttpStatus } from "../http-status.js";
 import { createLogger } from "../logger.js";
+import { ZOD_ERROR_REPORTING } from "../zod-error.js";
 import {
   BadRequestError,
   HttpError,
@@ -75,7 +76,10 @@ export class HttpErrorFilter implements ExceptionFilter {
 }
 
 function formatZodError(error: ZodError): string {
-  return error.issues.map((issue) => `${issue.path.join(".") || "_"}: ${issue.message}`).join("; ");
+  return error.issues
+    .slice(0, ZOD_ERROR_REPORTING.maxReportedIssues)
+    .map((issue) => `${issue.path.join(".") || "_"}: ${issue.message}`)
+    .join("; ");
 }
 
 function fromBodyParserError(

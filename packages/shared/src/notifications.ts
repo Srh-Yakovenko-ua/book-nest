@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import type { ValueOf } from "./common.js";
 
+import { BOOK_TITLE_MAX, OWNERSHIP_PERSON_NAME_MAX, OWNERSHIP_STORE_NAME_MAX } from "./books.js";
+
 export const NOTIFICATION_BOUNDS = {
   listLimitMax: 50,
   markReadMax: 100,
@@ -61,16 +63,16 @@ export type NotificationDeliveryStatus = z.infer<typeof NotificationDeliveryStat
 
 const loanPayloadFields = {
   bookId: z.uuid(),
-  bookTitle: z.string(),
+  bookTitle: z.string().max(BOOK_TITLE_MAX),
   dueDate: z.iso.date(),
-  personName: z.string(),
+  personName: z.string().max(OWNERSHIP_PERSON_NAME_MAX),
 };
 
 const deliveryPayloadFields = {
   bookId: z.uuid(),
-  bookTitle: z.string(),
+  bookTitle: z.string().max(BOOK_TITLE_MAX),
   expectedDate: z.iso.date(),
-  storeName: z.string().nullable(),
+  storeName: z.string().max(OWNERSHIP_STORE_NAME_MAX).nullable(),
 };
 
 export const NotificationPayloadSchema = z.discriminatedUnion("type", [
@@ -138,7 +140,7 @@ export const NotificationListQuerySchema = z.object({
     .min(1)
     .max(NOTIFICATION_BOUNDS.listLimitMax)
     .default(NOTIFICATION_BOUNDS.pageSizeDefault),
-  unreadOnly: z.stringbool().optional(),
+  unreadOnly: z.stringbool().default(false),
 });
 
 export type NotificationListQuery = z.infer<typeof NotificationListQuerySchema>;

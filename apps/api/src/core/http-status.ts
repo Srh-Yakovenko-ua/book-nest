@@ -1,6 +1,7 @@
 import type { ValueOf } from "@app/shared";
 
 export const HTTP_STATUS = {
+  ACCEPTED: 202,
   BAD_GATEWAY: 502,
   BAD_REQUEST: 400,
   CONFLICT: 409,
@@ -15,7 +16,7 @@ export const HTTP_STATUS = {
   TOO_MANY_REQUESTS: 429,
   UNAUTHORIZED: 401,
   UNPROCESSABLE_ENTITY: 422,
-} as const;
+} as const satisfies Record<string, number>;
 
 export type HttpStatus = ValueOf<typeof HTTP_STATUS>;
 

@@ -47,7 +47,7 @@ import { TaxonomyNameSchema } from "./taxonomy.js";
 import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const BOOK_TITLE_MIN = 1;
-const BOOK_TITLE_MAX = 150;
+export const BOOK_TITLE_MAX = 150;
 
 export const BOOK_DESCRIPTION_MAX = 5000;
 
@@ -222,13 +222,13 @@ export const UpdateReadingProgressInputSchema = z.object({
   updateDate: notInFutureDate("Update date must not be in the future").optional(),
 });
 
-const OWNERSHIP_STORE_NAME_MAX = 100;
+export const OWNERSHIP_STORE_NAME_MAX = 100;
 const OWNERSHIP_STORE_URL_MAX = 300;
 const OWNERSHIP_ORDER_NUMBER_MAX = 100;
 const OWNERSHIP_NOTE_MAX = 300;
 const LOAN_NOTE_MAX = 500;
 const OWNERSHIP_PERSON_NAME_MIN = 1;
-const OWNERSHIP_PERSON_NAME_MAX = 100;
+export const OWNERSHIP_PERSON_NAME_MAX = 100;
 const OWNERSHIP_CONTACT_MAX = 100;
 const OWNERSHIP_PRICE_MIN = 0;
 const OWNERSHIP_PRICE_MAX = 99999999.99;

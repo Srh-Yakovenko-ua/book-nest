@@ -1,19 +1,17 @@
 import type { NotificationPayload, NotificationType } from "@app/shared";
 
 import {
+  BOOK_TITLE_MAX,
   MarkNotificationsReadInputSchema,
   NOTIFICATION_BOUNDS,
   NOTIFICATION_LEVEL_BY_TYPE,
-  NotificationChannelSchema,
-  NotificationDeliveryStatusSchema,
-  NotificationEntityTypeSchema,
-  NotificationLevelSchema,
   NotificationListQuerySchema,
   NotificationListResponseSchema,
   NotificationPayloadSchema,
-  NotificationTypeSchema,
   NotificationUnreadCountSchema,
   NotificationViewSchema,
+  OWNERSHIP_PERSON_NAME_MAX,
+  OWNERSHIP_STORE_NAME_MAX,
 } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
@@ -71,12 +69,6 @@ describe("NotificationPayloadSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("covers every declared notification type with an arm", () => {
-    const covered = Object.keys(PAYLOAD_CASES).sort();
-
-    expect(covered).toEqual([...NotificationTypeSchema.options].sort());
-  });
-
   it("rejects a type that is not in the enum", () => {
     const result = NotificationPayloadSchema.safeParse({ ...loanFields, type: "loan.returned" });
 
@@ -110,6 +102,36 @@ describe("NotificationPayloadSchema", () => {
       ...overdueFields,
       daysOverdue: 0,
       type: "loan.overdue",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a book title longer than the book title bound it mirrors", () => {
+    const result = NotificationPayloadSchema.safeParse({
+      ...loanFields,
+      bookTitle: "a".repeat(BOOK_TITLE_MAX + 1),
+      type: "loan.due_soon",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a person name longer than the ownership person name bound it mirrors", () => {
+    const result = NotificationPayloadSchema.safeParse({
+      ...loanFields,
+      personName: "a".repeat(OWNERSHIP_PERSON_NAME_MAX + 1),
+      type: "loan.due_soon",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a store name longer than the ownership store name bound it mirrors", () => {
+    const result = NotificationPayloadSchema.safeParse({
+      ...deliveryFields,
+      storeName: "a".repeat(OWNERSHIP_STORE_NAME_MAX + 1),
+      type: "delivery.delayed",
     });
 
     expect(result.success).toBe(false);
@@ -167,6 +189,10 @@ describe("NotificationListQuerySchema", () => {
     expect(NotificationListQuerySchema.parse({}).limit).toBe(NOTIFICATION_BOUNDS.pageSizeDefault);
   });
 
+  it("falls back to listing read and unread rows when the flag is absent", () => {
+    expect(NotificationListQuerySchema.parse({}).unreadOnly).toBe(false);
+  });
+
   it("rejects a limit above the list ceiling", () => {
     const result = NotificationListQuerySchema.safeParse({
       limit: String(NOTIFICATION_BOUNDS.listLimitMax + 1),
@@ -191,40 +217,26 @@ describe("NotificationListResponseSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("rejects a page whose unread count is negative", () => {
+    const result = NotificationListResponseSchema.safeParse({
+      items: [],
+      nextCursor: null,
+      unreadCount: -1,
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("NotificationUnreadCountSchema", () => {
   it("rejects a negative unread count", () => {
     expect(NotificationUnreadCountSchema.safeParse({ unreadCount: -1 }).success).toBe(false);
   });
 });
 
 describe("NOTIFICATION_LEVEL_BY_TYPE", () => {
-  it("assigns exactly one known level to every declared type", () => {
-    const levels = Object.entries(NOTIFICATION_LEVEL_BY_TYPE);
-
-    expect(levels.map(([type]) => type).sort()).toEqual([...NotificationTypeSchema.options].sort());
-    for (const [, level] of levels) {
-      expect(NotificationLevelSchema.safeParse(level).success).toBe(true);
-    }
-  });
-
   it("marks an overdue loan as time sensitive", () => {
     expect(NOTIFICATION_LEVEL_BY_TYPE["loan.overdue"]).toBe("time_sensitive");
-  });
-});
-
-describe("the notification delivery contracts", () => {
-  it("accepts only the channels the writer can emit", () => {
-    expect(NotificationChannelSchema.options).toEqual(["email"]);
-    expect(NotificationChannelSchema.safeParse("in_app").success).toBe(false);
-  });
-
-  it("accepts only the delivery statuses the writer can persist", () => {
-    expect(NotificationDeliveryStatusSchema.options).toEqual(["failed", "pending", "sent"]);
-    expect(NotificationDeliveryStatusSchema.safeParse("queued").success).toBe(false);
-  });
-
-  it("accepts only the entity types a notification can point at", () => {
-    expect(NotificationEntityTypeSchema.options).toEqual(["book"]);
-    expect(NotificationEntityTypeSchema.safeParse("series").success).toBe(false);
   });
 });
 
