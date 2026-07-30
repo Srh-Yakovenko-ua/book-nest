@@ -92,4 +92,11 @@ describe("check constraints that live only in hand-written migration SQL", () =>
       `${table} lost the constraint that lets isTrashed() narrow both dates at once`,
     ).toBe(true);
   });
+
+  it("keeps a notification entity type and id either both set or both null", () => {
+    expect(
+      constraints.has("notifications_entity_pair_check"),
+      "notifications lost the constraint that keeps entity_type and entity_id paired",
+    ).toBe(true);
+  });
 });

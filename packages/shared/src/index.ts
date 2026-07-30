@@ -22,6 +22,7 @@ export * from "./lists.js";
 export * from "./loans.js";
 export * from "./media.js";
 export * from "./notes.js";
+export * from "./notifications.js";
 export * from "./profile.js";
 export * from "./publishers.js";
 export * from "./quotes.js";

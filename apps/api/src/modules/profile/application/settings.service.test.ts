@@ -38,6 +38,7 @@ function settingsRow(overrides: Partial<UserProfileSettingsModel> = {}): UserPro
     id: "22222222-2222-4222-8222-222222222222",
     language: "en",
     libraryViewMode: "list",
+    loanReminderLeadDays: 7,
     monthlyReadingReport: true,
     readingGoalReminders: true,
     readingReminders: true,
@@ -87,10 +88,19 @@ describe("SettingsService.getSettings", () => {
       },
       language: "en",
       libraryViewMode: "list",
+      loanReminderLeadDays: 7,
       themeMode: "dark",
       timezone: "Europe/London",
       weekStartDay: "monday",
     });
+  });
+
+  it("falls back to the default lead time when the stored value is outside the published bound", async () => {
+    const { service } = buildService({ findByUserId: settingsRow({ loanReminderLeadDays: 99 }) });
+
+    const result = await service.getSettings(USER_ID);
+
+    expect(result.loanReminderLeadDays).toBe(defaultUserProfileSettings.loanReminderLeadDays);
   });
 
   it("does not expose id, userId, createdAt or updatedAt", async () => {
@@ -115,6 +125,14 @@ describe("SettingsService.updateSettings", () => {
     expect(repository.upsert).toHaveBeenCalledWith(USER_ID, { weeklyReadingSummary: true });
   });
 
+  it("leaves the five untouched booleans out of the upsert payload", async () => {
+    const { repository, service } = buildService();
+
+    await service.updateSettings(USER_ID, { emailNotifications: { deliveryReminders: false } });
+
+    expect(repository.upsert.mock.lastCall).toStrictEqual([USER_ID, { deliveryReminders: false }]);
+  });
+
   it("applies only present top-level keys and omits undefined ones", async () => {
     const { repository, service } = buildService();
     const input: UpdateSettingsInput = { accentColor: "blue", themeMode: "light" };
@@ -125,6 +143,14 @@ describe("SettingsService.updateSettings", () => {
       accentColor: "blue",
       themeMode: "light",
     });
+  });
+
+  it("passes loanReminderLeadDays through to the upsert payload", async () => {
+    const { repository, service } = buildService();
+
+    await service.updateSettings(USER_ID, { loanReminderLeadDays: 7 });
+
+    expect(repository.upsert).toHaveBeenCalledWith(USER_ID, { loanReminderLeadDays: 7 });
   });
 
   it("returns the mapped SettingsView from the upserted row", async () => {
@@ -146,6 +172,7 @@ describe("SettingsService.updateSettings", () => {
       },
       language: "en",
       libraryViewMode: "list",
+      loanReminderLeadDays: 7,
       themeMode: "dark",
       timezone: "Europe/London",
       weekStartDay: "monday",

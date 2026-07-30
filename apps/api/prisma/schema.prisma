@@ -61,6 +61,7 @@ model User {
   characterTheories         CharacterTheory[]
   characterRelationships    CharacterRelationship[]
   characterGraphLayouts     CharacterGraphLayout[]
+  notifications             Notification[]
 
   @@map("users")
 }
@@ -562,6 +563,7 @@ model UserProfileSettings {
   deliveryReminders     Boolean  @default(true) @map("delivery_reminders")
   weeklyReadingSummary  Boolean  @default(false) @map("weekly_reading_summary")
   monthlyReadingReport  Boolean  @default(false) @map("monthly_reading_report")
+  loanReminderLeadDays  Int      @default(3) @map("loan_reminder_lead_days")
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1050,4 +1052,47 @@ model CharacterRelationshipBookState {
   @@unique([relationshipId, bookId])
   @@index([bookId])
   @@map("character_relationship_book_states")
+}
+
+model Notification {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  type       String
+  reason     String
+  level      String    @default("normal")
+  dedupeKey  String    @map("dedupe_key")
+  params     Json
+  entityType String?   @map("entity_type")
+  entityId   String?   @map("entity_id") @db.Uuid
+  readAt     DateTime? @map("read_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([userId, readAt])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String    @id @default(uuid()) @db.Uuid
+  notificationId String    @map("notification_id") @db.Uuid
+  channel        String
+  status         String    @default("pending")
+  attempts       Int       @default(0)
+  sentAt         DateTime? @map("sent_at") @db.Timestamptz
+  failedAt       DateTime? @map("failed_at") @db.Timestamptz
+  lastError      String?   @map("last_error")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, channel])
+  @@index([status, createdAt])
+  @@map("notification_deliveries")
 }
