@@ -4,6 +4,8 @@ import type { Socket } from "socket.io-client";
 
 import { REALTIME_CONTRACT, RealtimeEventSchema } from "@app/shared";
 import { HttpStatus } from "@nestjs/common";
+import { addSeconds, getUnixTime } from "date-fns";
+import { SignJWT } from "jose";
 import { randomBytes } from "node:crypto";
 import { request as httpRequest } from "node:http";
 import { io } from "socket.io-client";
@@ -11,6 +13,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
+import { env } from "../../../config/env.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
@@ -51,6 +54,13 @@ const CONNECT_FLOOD = {
 } as const satisfies Record<string, number>;
 
 const APPLICATION_ERROR_CODES: readonly string[] = Object.values(REALTIME_CONTRACT.errorCodes);
+
+const EMITTED_UNREAD_COUNT = 3;
+
+const SHORT_LIVED_TOKEN = {
+  alg: "HS256",
+  ttlSeconds: 2,
+} as const satisfies { alg: string; ttlSeconds: number };
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -97,6 +107,34 @@ function attemptRawUpgrade({
     });
     upgradeRequest.end();
   });
+}
+
+async function connectOwnerAndBystander(): Promise<{
+  hasBystanderReceived: () => boolean;
+  ownerSocket: Socket;
+  ownerUserId: string;
+}> {
+  const owner = await context.registerVerifyAndLogin();
+  const bystander = await context.registerVerifyAndLogin();
+
+  const ownerSocket = connectSocket({ origin: HANDSHAKE_ORIGIN.allowed, token: owner.accessToken });
+  const bystanderSocket = connectSocket({
+    origin: HANDSHAKE_ORIGIN.allowed,
+    token: bystander.accessToken,
+  });
+  await waitForConnect(ownerSocket);
+  await waitForConnect(bystanderSocket);
+
+  let bystanderReceived = false;
+  bystanderSocket.on(REALTIME_CONTRACT.channel, () => {
+    bystanderReceived = true;
+  });
+
+  return {
+    hasBystanderReceived: () => bystanderReceived,
+    ownerSocket,
+    ownerUserId: owner.userId,
+  };
 }
 
 function connectSocket({ origin, token }: { origin?: string; token?: string }): Socket {
@@ -205,6 +243,14 @@ function settleDeliveries(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, WAIT_MS.deliverySettle));
 }
 
+function shortLivedAccessToken(userId: string): Promise<string> {
+  return new SignJWT({ sub: userId })
+    .setProtectedHeader({ alg: SHORT_LIVED_TOKEN.alg })
+    .setIssuedAt()
+    .setExpirationTime(getUnixTime(addSeconds(new Date(), SHORT_LIVED_TOKEN.ttlSeconds)))
+    .sign(new TextEncoder().encode(env.jwtAccessSecret));
+}
+
 function waitForConnect(socket: Socket): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("handshake timed out")), WAIT_MS.connect);
@@ -215,6 +261,16 @@ function waitForConnect(socket: Socket): Promise<void> {
     socket.once("connect_error", (error: Error) => {
       clearTimeout(timer);
       reject(error);
+    });
+  });
+}
+
+function waitForDisconnect(socket: Socket): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("disconnect timed out")), WAIT_MS.connect);
+    socket.once("disconnect", () => {
+      clearTimeout(timer);
+      resolve();
     });
   });
 }
@@ -333,6 +389,18 @@ describe("RealtimeGateway handshake", () => {
     expect(accepted.status).toBe(HttpStatus.SWITCHING_PROTOCOLS);
   });
 
+  it("closes an admitted socket the moment its access token expires", async () => {
+    const { userId } = await context.registerVerifyAndLogin();
+    const socket = connectSocket({
+      origin: HANDSHAKE_ORIGIN.allowed,
+      token: await shortLivedAccessToken(userId),
+    });
+    await waitForConnect(socket);
+
+    await expect(waitForDisconnect(socket)).resolves.toBeUndefined();
+    expect(socket.connected).toBe(false);
+  });
+
   it("stops a pipelined CONNECT flood at the inbound message budget", async () => {
     const admit = vi.spyOn(app.get(RealtimeConnectionService), "admit");
 
@@ -361,24 +429,7 @@ describe("RealtimeGateway handshake", () => {
 
 describe("RealtimePort.emitToUser", () => {
   it("delivers a schema-valid event to the owning user only", async () => {
-    const owner = await context.registerVerifyAndLogin();
-    const other = await context.registerVerifyAndLogin();
-
-    const ownerSocket = connectSocket({
-      origin: HANDSHAKE_ORIGIN.allowed,
-      token: owner.accessToken,
-    });
-    const otherSocket = connectSocket({
-      origin: HANDSHAKE_ORIGIN.allowed,
-      token: other.accessToken,
-    });
-    await waitForConnect(ownerSocket);
-    await waitForConnect(otherSocket);
-
-    let otherReceived = false;
-    otherSocket.on(REALTIME_CONTRACT.channel, () => {
-      otherReceived = true;
-    });
+    const { hasBystanderReceived, ownerSocket, ownerUserId } = await connectOwnerAndBystander();
 
     const received = waitForRealtimeEvent(ownerSocket);
     app.get(RealtimePort).emitToUser({
@@ -386,15 +437,37 @@ describe("RealtimePort.emitToUser", () => {
         media: mediaViewFixture(),
         type: REALTIME_CONTRACT.events.mediaThumbnailReady,
       },
-      userId: owner.userId,
+      userId: ownerUserId,
     });
 
-    const parsed = RealtimeEventSchema.parse(await received);
-    expect(parsed.type).toBe(REALTIME_CONTRACT.events.mediaThumbnailReady);
-    expect(parsed.media.urls.thumb).toBe("https://cdn.test/media/book_cover/x/thumb.webp");
+    expect(RealtimeEventSchema.parse(await received)).toEqual({
+      media: mediaViewFixture(),
+      type: REALTIME_CONTRACT.events.mediaThumbnailReady,
+    });
 
     await settleDeliveries();
-    expect(otherReceived).toBe(false);
+    expect(hasBystanderReceived()).toBe(false);
+  });
+
+  it("delivers the recomputed unread count to the owning user only", async () => {
+    const { hasBystanderReceived, ownerSocket, ownerUserId } = await connectOwnerAndBystander();
+
+    const received = waitForRealtimeEvent(ownerSocket);
+    app.get(RealtimePort).emitToUser({
+      event: {
+        type: REALTIME_CONTRACT.events.notificationsChanged,
+        unreadCount: EMITTED_UNREAD_COUNT,
+      },
+      userId: ownerUserId,
+    });
+
+    expect(RealtimeEventSchema.parse(await received)).toEqual({
+      type: REALTIME_CONTRACT.events.notificationsChanged,
+      unreadCount: EMITTED_UNREAD_COUNT,
+    });
+
+    await settleDeliveries();
+    expect(hasBystanderReceived()).toBe(false);
   });
 
   it("silently drops an event addressed to a user without a live socket", async () => {

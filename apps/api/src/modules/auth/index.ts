@@ -5,4 +5,4 @@ export { OptionalCurrentUser } from "./api/guards/optional-current-user.decorato
 export { OptionalJwtAccessGuard } from "./api/guards/optional-jwt-access.guard.js";
 export { AccessTokenAuthenticator } from "./application/access-token.authenticator.js";
 export { AuthModule } from "./auth.module.js";
-export type { AuthenticatedUser } from "./domain/authenticated-user.js";
+export type { AuthenticatedSession, AuthenticatedUser } from "./domain/authenticated-user.js";

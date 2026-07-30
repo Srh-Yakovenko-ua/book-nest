@@ -32,11 +32,15 @@ export class RealtimeConnectionService {
       return { code: REALTIME_CONTRACT.errorCodes.connectionLimit, status: "rejected" };
     }
 
-    const user = await this.accessTokenAuthenticator.authenticate({ token });
-    if (user === null) {
+    const session = await this.accessTokenAuthenticator.authenticate({ token });
+    if (session === null) {
       return { code: REALTIME_CONTRACT.errorCodes.unauthorized, status: "rejected" };
     }
 
-    return { status: "admitted", userId: user.id };
+    return {
+      accessTokenExpiresAt: session.accessTokenExpiresAt,
+      status: "admitted",
+      userId: session.user.id,
+    };
   }
 }

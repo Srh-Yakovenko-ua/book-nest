@@ -2,6 +2,11 @@ import type { Nullable, Role } from "@app/shared";
 
 import type { UserModel } from "../../../generated/prisma/models.js";
 
+export type AuthenticatedSession = {
+  accessTokenExpiresAt: Date;
+  user: AuthenticatedUser;
+};
+
 export type AuthenticatedUser = {
   createdAt: Date;
   dateOfBirth: Nullable<Date>;

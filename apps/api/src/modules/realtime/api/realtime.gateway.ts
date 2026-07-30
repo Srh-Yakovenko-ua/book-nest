@@ -8,6 +8,7 @@ import {
   type OnGatewayInit,
   WebSocketGateway,
 } from "@nestjs/websockets";
+import { differenceInMilliseconds } from "date-fns";
 
 import type { RealtimeServer, RealtimeSocket } from "../infrastructure/realtime-socket.js";
 
@@ -35,6 +36,8 @@ const log = createLogger("realtime.gateway");
 export class RealtimeGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit<RealtimeServer>
 {
+  private readonly tokenExpiryTimers = new Map<string, NodeJS.Timeout>();
+
   constructor(
     private readonly connectionRegistry: RealtimeConnectionRegistry,
     private readonly connectionService: RealtimeConnectionService,
@@ -55,10 +58,12 @@ export class RealtimeGateway
   }
 
   handleConnection(socket: RealtimeSocket): void {
+    this.scheduleTokenExpiry(socket);
     log.debug({ socketId: socket.id, userId: socket.data.userId }, "realtime client connected");
   }
 
   handleDisconnect(socket: RealtimeSocket): void {
+    this.clearTokenExpiry(socket);
     log.debug({ socketId: socket.id, userId: socket.data.userId }, "realtime client disconnected");
   }
 
@@ -85,6 +90,7 @@ export class RealtimeGateway
         return;
       }
 
+      socket.data.accessTokenExpiresAt = admission.accessTokenExpiresAt;
       socket.data.userId = admission.userId;
       next();
     } catch (error) {
@@ -125,6 +131,15 @@ export class RealtimeGateway
     callback(undefined, true);
   }
 
+  private clearTokenExpiry(socket: RealtimeSocket): void {
+    const timer = this.tokenExpiryTimers.get(socket.id);
+    if (timer === undefined) {
+      return;
+    }
+    clearTimeout(timer);
+    this.tokenExpiryTimers.delete(socket.id);
+  }
+
   private limitInboundMessages(connection: EngineConnection): void {
     let inboundMessages = 0;
     connection.on("packet", (packet: { type: string }) => {
@@ -154,5 +169,23 @@ export class RealtimeGateway
     setImmediate(() => {
       socket.conn.close();
     });
+  }
+
+  private scheduleTokenExpiry(socket: RealtimeSocket): void {
+    const remainingMs = Math.max(
+      0,
+      differenceInMilliseconds(socket.data.accessTokenExpiresAt, new Date()),
+    );
+
+    const timer = setTimeout(() => {
+      log.info(
+        { socketId: socket.id, userId: socket.data.userId },
+        "realtime access token expired, closing the socket",
+      );
+      socket.disconnect(true);
+    }, remainingMs);
+    timer.unref();
+
+    this.tokenExpiryTimers.set(socket.id, timer);
   }
 }

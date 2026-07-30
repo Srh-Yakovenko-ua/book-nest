@@ -13,6 +13,7 @@ export const REALTIME_CONTRACT = {
   },
   events: {
     mediaThumbnailReady: "media.thumbnail.ready",
+    notificationsChanged: "notifications.changed",
   },
   path: "/api/socket.io",
 } as const satisfies {
@@ -28,6 +29,10 @@ export const RealtimeEventSchema = z.discriminatedUnion("type", [
   z.object({
     media: MediaViewSchema,
     type: z.literal(REALTIME_CONTRACT.events.mediaThumbnailReady),
+  }),
+  z.object({
+    type: z.literal(REALTIME_CONTRACT.events.notificationsChanged),
+    unreadCount: z.number().int().nonnegative(),
   }),
 ]);
 

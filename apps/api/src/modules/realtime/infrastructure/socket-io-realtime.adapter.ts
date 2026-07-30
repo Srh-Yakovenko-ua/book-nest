@@ -36,6 +36,10 @@ export class SocketIoRealtimeAdapter extends RealtimePort {
     }
   }
 
+  hasListeners({ userId }: { userId: string }): Promise<boolean> {
+    return Promise.resolve(this.server?.sockets.adapter.rooms.has(userId) ?? false);
+  }
+
   tryJoinUserRoom({ socket, userId }: { socket: RealtimeSocket; userId: string }): boolean {
     const alreadyJoined = socket.nsp.adapter.rooms.get(userId)?.size ?? 0;
     if (alreadyJoined >= REALTIME_ADMISSION.maxConnectionsPerUser) {

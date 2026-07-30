@@ -1,7 +1,7 @@
 import { REALTIME_CONTRACT } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AccessTokenAuthenticator, AuthenticatedUser } from "../../auth/index.js";
+import type { AccessTokenAuthenticator, AuthenticatedSession } from "../../auth/index.js";
 import type { RealtimeHandshake } from "../domain/realtime-handshake.js";
 import type { SocketIoRealtimeAdapter } from "../infrastructure/socket-io-realtime.adapter.js";
 
@@ -11,17 +11,21 @@ import { RealtimeConnectionService } from "./realtime-connection.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const VALID_TOKEN = "valid-access-token";
+const ACCESS_TOKEN_EXPIRES_AT = new Date("2026-07-28T10:15:00.000Z");
 
-function authenticatedUser(): AuthenticatedUser {
+function authenticatedSession(): AuthenticatedSession {
   return {
-    createdAt: new Date("2026-07-28T10:00:00.000Z"),
-    dateOfBirth: null,
-    email: "reader@example.com",
-    emailVerifiedAt: new Date("2026-07-28T10:00:00.000Z"),
-    id: USER_ID,
-    name: "Reader",
-    nickname: "reader",
-    role: "user",
+    accessTokenExpiresAt: ACCESS_TOKEN_EXPIRES_AT,
+    user: {
+      createdAt: new Date("2026-07-28T10:00:00.000Z"),
+      dateOfBirth: null,
+      email: "reader@example.com",
+      emailVerifiedAt: new Date("2026-07-28T10:00:00.000Z"),
+      id: USER_ID,
+      name: "Reader",
+      nickname: "reader",
+      role: "user",
+    },
   };
 }
 
@@ -36,7 +40,7 @@ function buildService(
   const authenticate = vi
     .fn()
     .mockImplementation(({ token }: { token: string }) =>
-      Promise.resolve(token === VALID_TOKEN ? authenticatedUser() : null),
+      Promise.resolve(token === VALID_TOKEN ? authenticatedSession() : null),
     );
 
   const service = new RealtimeConnectionService(
@@ -62,6 +66,7 @@ describe("RealtimeConnectionService.admit", () => {
     const { service } = buildService();
 
     await expect(service.admit(handshake())).resolves.toEqual({
+      accessTokenExpiresAt: ACCESS_TOKEN_EXPIRES_AT,
       status: "admitted",
       userId: USER_ID,
     });
@@ -74,7 +79,11 @@ describe("RealtimeConnectionService.admit", () => {
       service.admit(
         handshake({ authorizationHeader: `Bearer ${VALID_TOKEN}`, handshakeAuth: undefined }),
       ),
-    ).resolves.toEqual({ status: "admitted", userId: USER_ID });
+    ).resolves.toEqual({
+      accessTokenExpiresAt: ACCESS_TOKEN_EXPIRES_AT,
+      status: "admitted",
+      userId: USER_ID,
+    });
     expect(authenticate).toHaveBeenCalledWith({ token: VALID_TOKEN });
   });
 
@@ -125,6 +134,7 @@ describe("RealtimeConnectionService.admit", () => {
     });
 
     await expect(service.admit(handshake())).resolves.toEqual({
+      accessTokenExpiresAt: ACCESS_TOKEN_EXPIRES_AT,
       status: "admitted",
       userId: USER_ID,
     });

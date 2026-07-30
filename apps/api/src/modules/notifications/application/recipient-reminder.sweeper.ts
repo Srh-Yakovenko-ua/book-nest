@@ -40,6 +40,13 @@ type RecipientSweepInput = {
   today: string;
 };
 
+type RecipientSweepOutcome = {
+  emailQueued: boolean;
+  notificationsWritten: boolean;
+};
+
+const NOTHING_WRITTEN: RecipientSweepOutcome = { emailQueued: false, notificationsWritten: false };
+
 @Injectable()
 export class RecipientReminderSweeper {
   constructor(
@@ -47,161 +54,171 @@ export class RecipientReminderSweeper {
     private readonly writer: NotificationWriterService,
   ) {}
 
-  async sweepRecipient(input: RecipientSweepInput): Promise<{ emailQueued: boolean }> {
-    const loansQueued = await this.sweepScope({ input, scope: "loans" });
-    const deliveriesQueued = await this.sweepScope({ input, scope: "deliveries" });
+  async sweepRecipient(input: RecipientSweepInput): Promise<RecipientSweepOutcome> {
+    const loans = await this.sweepLoans(input);
+    const deliveries = await this.sweepDeliveries(input);
 
-    return { emailQueued: loansQueued || deliveriesQueued };
+    return mergeSweepOutcomes([loans, deliveries]);
   }
 
   private async sweepDeliveries({
     recipient,
     timezone,
     today,
-  }: RecipientSweepInput): Promise<boolean> {
+  }: RecipientSweepInput): Promise<RecipientSweepOutcome> {
     const window = deliveryReminderWindow({ today });
     const emailPreferenceEnabled = resolveDeliveryEmailPreference(recipient.settings);
-    let emailQueued = false;
+    let outcome = NOTHING_WRITTEN;
 
-    await scanByKeyset<DeliveryCandidateRow>({
-      loadPage: (afterId) =>
-        this.candidatesRepository.findDeliveryCandidates({
-          afterId,
-          dueFrom: parseIsoDate(window.fromIsoDate),
-          dueTo: parseIsoDate(window.toIsoDate),
-          limit: RECIPIENT_REMINDER_SWEEP.candidatePageSize,
-          userId: recipient.id,
-        }),
-      maxPages: RECIPIENT_REMINDER_SWEEP.maxCandidatePages,
-      pageSize: RECIPIENT_REMINDER_SWEEP.candidatePageSize,
-      scope: SWEEP_SCOPE,
-      toCursor: (candidate) => candidate.id,
-      visitPage: async (candidates) => {
-        for (const candidate of candidates) {
-          const written = await this.writeCandidate({
-            candidateId: candidate.id,
-            emailPreferenceEnabled,
-            notification: buildDeliveryReminder({
-              candidate: {
-                bookId: candidate.book.id,
-                bookTitle: candidate.book.title,
-                expectedDeliveryDate: candidate.expectedDeliveryDate,
-                id: candidate.id,
-                storeName: candidate.storeName,
-              },
-              today,
-            }),
-            recipient,
-            scope: "deliveries",
-            timezone,
-          });
-          emailQueued = written || emailQueued;
-        }
-      },
-    });
+    try {
+      await scanByKeyset<DeliveryCandidateRow>({
+        loadPage: (afterId) =>
+          this.candidatesRepository.findDeliveryCandidates({
+            afterId,
+            dueFrom: parseIsoDate(window.fromIsoDate),
+            dueTo: parseIsoDate(window.toIsoDate),
+            limit: RECIPIENT_REMINDER_SWEEP.candidatePageSize,
+            userId: recipient.id,
+          }),
+        maxPages: RECIPIENT_REMINDER_SWEEP.maxCandidatePages,
+        pageSize: RECIPIENT_REMINDER_SWEEP.candidatePageSize,
+        scope: SWEEP_SCOPE,
+        toCursor: (candidate) => candidate.id,
+        visitPage: async (candidates) => {
+          for (const candidate of candidates) {
+            const candidateOutcome = await this.writeCandidate({
+              buildNotification: () =>
+                buildDeliveryReminder({
+                  candidate: {
+                    bookId: candidate.book.id,
+                    bookTitle: candidate.book.title,
+                    expectedDeliveryDate: candidate.expectedDeliveryDate,
+                    id: candidate.id,
+                    storeName: candidate.storeName,
+                  },
+                  today,
+                }),
+              candidateId: candidate.id,
+              emailPreferenceEnabled,
+              recipient,
+              scope: "deliveries",
+              timezone,
+            });
+            outcome = mergeSweepOutcomes([outcome, candidateOutcome]);
+          }
+        },
+      });
+    } catch (error) {
+      log.error(
+        { err: error, scope: "deliveries", timezone, userId: recipient.id },
+        "reminder sweep failed for a user",
+      );
+    }
 
-    return emailQueued;
+    return outcome;
   }
 
-  private async sweepLoans({ recipient, timezone, today }: RecipientSweepInput): Promise<boolean> {
+  private async sweepLoans({
+    recipient,
+    timezone,
+    today,
+  }: RecipientSweepInput): Promise<RecipientSweepOutcome> {
     const window = loanReminderWindow({ today });
     const emailPreferenceEnabled = resolveLoanEmailPreference(recipient.settings);
     const leadDays = resolveLoanReminderLeadDays(recipient.settings);
-    let emailQueued = false;
+    let outcome = NOTHING_WRITTEN;
 
-    await scanByKeyset<LoanCandidateRow>({
-      loadPage: (afterId) =>
-        this.candidatesRepository.findLoanCandidates({
-          afterId,
-          dueFrom: parseIsoDate(window.fromIsoDate),
-          dueTo: parseIsoDate(window.toIsoDate),
-          limit: RECIPIENT_REMINDER_SWEEP.candidatePageSize,
-          userId: recipient.id,
-        }),
-      maxPages: RECIPIENT_REMINDER_SWEEP.maxCandidatePages,
-      pageSize: RECIPIENT_REMINDER_SWEEP.candidatePageSize,
-      scope: SWEEP_SCOPE,
-      toCursor: (candidate) => candidate.id,
-      visitPage: async (candidates) => {
-        for (const candidate of candidates) {
-          const written = await this.writeCandidate({
-            candidateId: candidate.id,
-            emailPreferenceEnabled,
-            notification: buildLoanReminder({
-              candidate: {
-                bookId: candidate.book.id,
-                bookTitle: candidate.book.title,
-                expectedReturnDate: candidate.expectedReturnDate,
-                id: candidate.id,
-                loanDate: candidate.loanDate,
-                personName: candidate.personName,
-              },
-              leadDays,
-              today,
-            }),
-            recipient,
-            scope: "loans",
-            timezone,
-          });
-          emailQueued = written || emailQueued;
-        }
-      },
-    });
-
-    return emailQueued;
-  }
-
-  private async sweepScope({
-    input,
-    scope,
-  }: {
-    input: RecipientSweepInput;
-    scope: CandidateScope;
-  }): Promise<boolean> {
     try {
-      return scope === "loans" ? await this.sweepLoans(input) : await this.sweepDeliveries(input);
+      await scanByKeyset<LoanCandidateRow>({
+        loadPage: (afterId) =>
+          this.candidatesRepository.findLoanCandidates({
+            afterId,
+            dueFrom: parseIsoDate(window.fromIsoDate),
+            dueTo: parseIsoDate(window.toIsoDate),
+            limit: RECIPIENT_REMINDER_SWEEP.candidatePageSize,
+            userId: recipient.id,
+          }),
+        maxPages: RECIPIENT_REMINDER_SWEEP.maxCandidatePages,
+        pageSize: RECIPIENT_REMINDER_SWEEP.candidatePageSize,
+        scope: SWEEP_SCOPE,
+        toCursor: (candidate) => candidate.id,
+        visitPage: async (candidates) => {
+          for (const candidate of candidates) {
+            const candidateOutcome = await this.writeCandidate({
+              buildNotification: () =>
+                buildLoanReminder({
+                  candidate: {
+                    bookId: candidate.book.id,
+                    bookTitle: candidate.book.title,
+                    expectedReturnDate: candidate.expectedReturnDate,
+                    id: candidate.id,
+                    loanDate: candidate.loanDate,
+                    personName: candidate.personName,
+                  },
+                  leadDays,
+                  today,
+                }),
+              candidateId: candidate.id,
+              emailPreferenceEnabled,
+              recipient,
+              scope: "loans",
+              timezone,
+            });
+            outcome = mergeSweepOutcomes([outcome, candidateOutcome]);
+          }
+        },
+      });
     } catch (error) {
       log.error(
-        { err: error, scope, timezone: input.timezone, userId: input.recipient.id },
+        { err: error, scope: "loans", timezone, userId: recipient.id },
         "reminder sweep failed for a user",
       );
-      return false;
     }
+
+    return outcome;
   }
 
   private async writeCandidate({
+    buildNotification,
     candidateId,
     emailPreferenceEnabled,
-    notification,
     recipient,
     scope,
     timezone,
   }: {
+    buildNotification: () => Nullable<NotificationDraft>;
     candidateId: string;
     emailPreferenceEnabled: boolean;
-    notification: Nullable<NotificationDraft>;
     recipient: ReminderRecipientRow;
     scope: CandidateScope;
     timezone: string;
-  }): Promise<boolean> {
-    if (notification === null) {
-      return false;
-    }
-
+  }): Promise<RecipientSweepOutcome> {
     try {
+      const notification = buildNotification();
+      if (notification === null) {
+        return NOTHING_WRITTEN;
+      }
+
       const { emailDeliveryCreated } = await this.writer.write({
         emailPreferenceEnabled,
         emailVerified: recipient.emailVerifiedAt !== null,
         notification,
         userId: recipient.id,
       });
-      return emailDeliveryCreated;
+      return { emailQueued: emailDeliveryCreated, notificationsWritten: true };
     } catch (error) {
       log.error(
         { candidateId, err: error, scope, timezone, userId: recipient.id },
         "reminder write failed for a candidate",
       );
-      return false;
+      return NOTHING_WRITTEN;
     }
   }
+}
+
+function mergeSweepOutcomes(outcomes: readonly RecipientSweepOutcome[]): RecipientSweepOutcome {
+  return {
+    emailQueued: outcomes.some((outcome) => outcome.emailQueued),
+    notificationsWritten: outcomes.some((outcome) => outcome.notificationsWritten),
+  };
 }

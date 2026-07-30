@@ -24,6 +24,7 @@ import {
 import { type NotificationRow, toNotificationView } from "../domain/notification.mapper.js";
 import { buildTestNotification } from "../domain/test-notification.builder.js";
 import { NotificationsRepository } from "../infrastructure/notifications.repository.js";
+import { NotificationRealtimePublisher } from "./notification-realtime.publisher.js";
 import { NotificationWriterService } from "./notification-writer.service.js";
 
 const CURSOR_NOT_FOUND_MESSAGE = "Notification cursor not found";
@@ -39,6 +40,7 @@ type ListInput = {
 export class NotificationsService {
   constructor(
     private readonly notificationsRepository: NotificationsRepository,
+    private readonly realtimePublisher: NotificationRealtimePublisher,
     private readonly writer: NotificationWriterService,
   ) {}
 
@@ -51,6 +53,8 @@ export class NotificationsService {
       notification: buildTestNotification({ requestedAt, userId: user.id }),
       userId: user.id,
     });
+
+    await this.realtimePublisher.publishUnreadCount({ userId: user.id });
 
     if (emailDeliveryCreated) {
       await this.writer.enqueueDigest({ now: requestedAt, userId: user.id });
@@ -86,10 +90,12 @@ export class NotificationsService {
 
   async markAllRead({ userId }: { userId: string }): Promise<void> {
     await this.notificationsRepository.markAllRead({ readAt: new Date(), userId });
+    await this.realtimePublisher.publishUnreadCount({ userId });
   }
 
   async markRead({ ids, userId }: { ids: string[]; userId: string }): Promise<void> {
     await this.notificationsRepository.markRead({ ids, readAt: new Date(), userId });
+    await this.realtimePublisher.publishUnreadCount({ userId });
   }
 
   async unreadCount({ userId }: { userId: string }): Promise<NotificationUnreadCount> {

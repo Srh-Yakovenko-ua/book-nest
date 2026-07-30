@@ -19,9 +19,9 @@ export class OptionalJwtAccessGuard implements CanActivate {
       return true;
     }
 
-    const user = await this.accessTokenAuthenticator.authenticate({ token });
-    if (user !== null) {
-      request.currentUser = user;
+    const session = await this.accessTokenAuthenticator.authenticate({ token });
+    if (session !== null) {
+      request.currentUser = session.user;
     }
 
     return true;

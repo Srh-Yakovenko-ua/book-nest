@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { REALTIME_CONTRACT } from "@app/shared";
 import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus } from "@nestjs/common";
 import request from "supertest";
@@ -17,6 +18,7 @@ import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { BOOK_PURGE_QUEUE_NAME } from "../../books/domain/book-purge.js";
+import { RealtimePort } from "../../realtime/index.js";
 import { NOTIFICATION_EMAIL_QUEUE_NAME } from "../domain/notification-email.js";
 import { NotificationDeliveriesRepository } from "../infrastructure/notification-deliveries.repository.js";
 import { ReminderCandidatesRepository } from "../infrastructure/reminder-candidates.repository.js";
@@ -44,6 +46,11 @@ const notificationQueueStub = {
   remove: vi.fn().mockResolvedValue(undefined),
 };
 
+const realtimeStub = {
+  emitToUser: vi.fn(),
+  hasListeners: vi.fn().mockResolvedValue(true),
+};
+
 let context: AuthTestContext;
 let digestMail: DigestMailStub;
 let app: INestApplication;
@@ -58,6 +65,7 @@ beforeAll(async () => {
     [
       { provide: getQueueToken(BOOK_PURGE_QUEUE_NAME), useValue: bookQueueStub },
       { provide: getQueueToken(NOTIFICATION_EMAIL_QUEUE_NAME), useValue: notificationQueueStub },
+      { provide: RealtimePort, useValue: realtimeStub },
       digestMail.override,
     ],
   );
@@ -71,6 +79,7 @@ beforeEach(() => {
   context.reset();
   digestMail.reset();
   notificationQueueStub.add.mockClear();
+  realtimeStub.emitToUser.mockClear();
 });
 
 afterEach(async () => {
@@ -202,6 +211,7 @@ describe("NotificationReminderSweeper", () => {
     await sweeper.run({ now: MIDNIGHT_LOCAL_IN_KYIV });
 
     expect(await readNotifications(userId)).toHaveLength(0);
+    expect(realtimeStub.emitToUser).not.toHaveBeenCalled();
   });
 
   it("creates nothing for a loan that opted out of reminders", async () => {
@@ -268,6 +278,28 @@ describe("NotificationReminderSweeper", () => {
 
     expect(digestMail.sent).toHaveLength(1);
     expect(digestMail.sent[0]?.items).toHaveLength(3);
+  });
+
+  it("emits one realtime event per user carrying the recomputed unread count", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+
+    const dueDates = [DUE_IN_DEFAULT_LEAD, DUE_TODAY, OVERDUE_FIRST_STAGE];
+    for (const [index, expectedReturnDate] of dueDates.entries()) {
+      const bookId = await createBook({ title: `Dune ${index}`, token: accessToken });
+      await createLoan({ bookId, expectedReturnDate, userId });
+    }
+
+    await sweeper.run({ now: NINE_LOCAL_IN_KYIV });
+
+    expect(await readNotifications(userId)).toHaveLength(dueDates.length);
+    expect(realtimeStub.emitToUser).toHaveBeenCalledTimes(1);
+    expect(realtimeStub.emitToUser).toHaveBeenCalledWith({
+      event: {
+        type: REALTIME_CONTRACT.events.notificationsChanged,
+        unreadCount: dueDates.length,
+      },
+      userId,
+    });
   });
 
   it("creates no email delivery row when the borrowed-book toggle is off", async () => {

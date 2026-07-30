@@ -8,4 +8,5 @@ export const REALTIME_ADMISSION = {
 } as const satisfies Record<string, number>;
 
 export type RealtimeAdmission =
-  { code: RealtimeErrorCode; status: "rejected" } | { status: "admitted"; userId: string };
+  | { accessTokenExpiresAt: Date; status: "admitted"; userId: string }
+  | { code: RealtimeErrorCode; status: "rejected" };

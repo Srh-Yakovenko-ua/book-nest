@@ -22,5 +22,6 @@ type RealtimeServerToClientEvents = {
 };
 
 type RealtimeSocketData = {
+  accessTokenExpiresAt: Date;
   userId: string;
 };

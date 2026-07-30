@@ -10,12 +10,15 @@ import type {
 
 import { fakeOf } from "../../../test/fake.js";
 import { ReminderCandidatesRepository } from "../infrastructure/reminder-candidates.repository.js";
+import { NotificationRealtimePublisher } from "./notification-realtime.publisher.js";
 import { NotificationReminderSweeper } from "./notification-reminder.sweeper.js";
 import { NotificationWriterService } from "./notification-writer.service.js";
 import { RecipientReminderSweeper } from "./recipient-reminder.sweeper.js";
 
 const NINE_LOCAL_IN_KYIV = new Date("2026-07-30T06:00:00.000Z");
 const NEXT_DAY_NINE_LOCAL_IN_KYIV = addDays(NINE_LOCAL_IN_KYIV, 1);
+const DUE_IN_DEFAULT_LEAD = new Date("2026-08-02T00:00:00.000Z");
+const DUE_BEYOND_DEFAULT_LEAD = new Date("2026-08-04T00:00:00.000Z");
 const KYIV = "Europe/Kyiv";
 const RECIPIENT_PAGE_SIZE = 200;
 const CANDIDATE_PAGE_SIZE = 50;
@@ -25,6 +28,7 @@ const RECIPIENT_COUNT_WITH_TAIL = RECIPIENT_PAGE_SIZE + 50;
 type SweeperHarness = {
   enqueueDigest: ReturnType<typeof vi.fn>;
   loadedCursors: Nullable<string>[];
+  publishUnreadCount: ReturnType<typeof vi.fn>;
   sweeper: NotificationReminderSweeper;
   sweptUserIds: string[];
   write: ReturnType<typeof vi.fn>;
@@ -32,9 +36,13 @@ type SweeperHarness = {
 
 function buildHarness({
   candidatesPerRecipient = CANDIDATES_PER_RECIPIENT,
+  expectedReturnDate = DUE_IN_DEFAULT_LEAD,
+  failCandidatePagesAfterFirst = false,
   recipientCount,
 }: {
   candidatesPerRecipient?: number;
+  expectedReturnDate?: Date;
+  failCandidatePagesAfterFirst?: boolean;
   recipientCount: number;
 }): SweeperHarness {
   const recipients = buildRecipients(recipientCount);
@@ -42,6 +50,7 @@ function buildHarness({
   const sweptUserIds: string[] = [];
   const write = vi.fn().mockResolvedValue({ emailDeliveryCreated: true });
   const enqueueDigest = vi.fn().mockResolvedValue(undefined);
+  const publishUnreadCount = vi.fn().mockResolvedValue(undefined);
   const writer = fakeOf<NotificationWriterService>({ enqueueDigest, write });
 
   const candidatesRepository = fakeOf<ReminderCandidatesRepository>({
@@ -50,7 +59,12 @@ function buildHarness({
       if (afterId === null) {
         sweptUserIds.push(userId);
       }
-      return Promise.resolve(buildLoanCandidates({ afterId, candidatesPerRecipient, userId }));
+      if (afterId !== null && failCandidatePagesAfterFirst) {
+        return Promise.reject(new Error("connection terminated unexpectedly"));
+      }
+      return Promise.resolve(
+        buildLoanCandidates({ afterId, candidatesPerRecipient, expectedReturnDate, userId }),
+      );
     },
   });
 
@@ -66,25 +80,28 @@ function buildHarness({
         return Promise.resolve(recipients.slice(start, start + limit));
       },
     }),
+    fakeOf<NotificationRealtimePublisher>({ publishUnreadCount }),
     new RecipientReminderSweeper(candidatesRepository, writer),
     writer,
   );
 
-  return { enqueueDigest, loadedCursors, sweeper, sweptUserIds, write };
+  return { enqueueDigest, loadedCursors, publishUnreadCount, sweeper, sweptUserIds, write };
 }
 
 function buildLoanCandidates({
   afterId,
   candidatesPerRecipient,
+  expectedReturnDate,
   userId,
 }: {
   afterId: Nullable<string>;
   candidatesPerRecipient: number;
+  expectedReturnDate: Date;
   userId: string;
 }): LoanCandidateRow[] {
   const all = Array.from({ length: candidatesPerRecipient }, (_unused, index) => ({
     book: { id: `book-${userId}-${index}`, title: "Dune" },
-    expectedReturnDate: new Date("2026-08-02T00:00:00.000Z"),
+    expectedReturnDate,
     id: `loan-${userId}-${String(index).padStart(4, "0")}`,
     loanDate: null,
     personName: "Paul",
@@ -162,6 +179,43 @@ describe("NotificationReminderSweeper recipient paging", () => {
     expect(enqueueDigest).toHaveBeenCalledTimes(recipientCount);
   });
 
+  it("publishes exactly one unread count per user no matter how many candidates fired", async () => {
+    const recipientCount = 10;
+    const { publishUnreadCount, sweeper, write } = buildHarness({ recipientCount });
+
+    await sweeper.run({ now: NINE_LOCAL_IN_KYIV });
+
+    expect(write).toHaveBeenCalledTimes(recipientCount * CANDIDATES_PER_RECIPIENT);
+    expect(publishUnreadCount).toHaveBeenCalledTimes(recipientCount);
+    expect(publishUnreadCount).toHaveBeenCalledWith({ userId: "user-0000" });
+  });
+
+  it("keeps the publish and the digest of a page that committed before a later page failed", async () => {
+    const { enqueueDigest, publishUnreadCount, sweeper, write } = buildHarness({
+      candidatesPerRecipient: CANDIDATE_PAGE_SIZE + 10,
+      failCandidatePagesAfterFirst: true,
+      recipientCount: 1,
+    });
+
+    await sweeper.run({ now: NINE_LOCAL_IN_KYIV });
+
+    expect(write).toHaveBeenCalledTimes(CANDIDATE_PAGE_SIZE);
+    expect(publishUnreadCount).toHaveBeenCalledTimes(1);
+    expect(enqueueDigest).toHaveBeenCalledTimes(1);
+  });
+
+  it("publishes nothing for a user whose candidates are due on no reminder day", async () => {
+    const { publishUnreadCount, sweeper, write } = buildHarness({
+      expectedReturnDate: DUE_BEYOND_DEFAULT_LEAD,
+      recipientCount: 10,
+    });
+
+    await sweeper.run({ now: NINE_LOCAL_IN_KYIV });
+
+    expect(write).not.toHaveBeenCalled();
+    expect(publishUnreadCount).not.toHaveBeenCalled();
+  });
+
   it("skips a sweep tick that overlaps the previous one", async () => {
     let releaseFirstLookup: (timezones: string[]) => void = () => undefined;
     const findCandidateTimezones = vi
@@ -176,6 +230,7 @@ describe("NotificationReminderSweeper recipient paging", () => {
 
     const sweeper = new NotificationReminderSweeper(
       fakeOf<ReminderCandidatesRepository>({ findCandidateTimezones }),
+      fakeOf<NotificationRealtimePublisher>({}),
       fakeOf<RecipientReminderSweeper>({}),
       fakeOf<NotificationWriterService>({}),
     );
@@ -197,6 +252,7 @@ describe("NotificationReminderSweeper recipient paging", () => {
       fakeOf<ReminderCandidatesRepository>({
         findCandidateTimezones: () => Promise.reject(new Error("db down")),
       }),
+      fakeOf<NotificationRealtimePublisher>({}),
       fakeOf<RecipientReminderSweeper>({}),
       fakeOf<NotificationWriterService>({}),
     );

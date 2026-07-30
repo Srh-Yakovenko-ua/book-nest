@@ -1,12 +1,12 @@
 import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
-import { NOTIFICATION_BOUNDS } from "@app/shared";
+import { NOTIFICATION_BOUNDS, REALTIME_CONTRACT } from "@app/shared";
 import { getQueueToken } from "@nestjs/bullmq";
 import { HttpStatus } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
@@ -17,6 +17,7 @@ import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { BooksModule } from "../../books/books.module.js";
 import { BOOK_PURGE_QUEUE_NAME } from "../../books/domain/book-purge.js";
+import { RealtimePort } from "../../realtime/index.js";
 import { NOTIFICATION_EMAIL_QUEUE_NAME } from "../domain/notification-email.js";
 import { NotificationsModule } from "../notifications.module.js";
 
@@ -47,6 +48,11 @@ const queueStub = {
   remove: (): Promise<void> => Promise.resolve(),
 };
 
+const realtimeStub = {
+  emitToUser: vi.fn(),
+  hasListeners: vi.fn().mockResolvedValue(true),
+};
+
 const INTERLOPER_CREATED_AT = new Date("2026-07-30T10:00:00.000Z");
 const NEWEST_CREATED_AT = new Date("2026-07-30T09:00:00.000Z");
 const OLDEST_CREATED_AT = new Date("2026-07-30T08:00:00.000Z");
@@ -66,6 +72,7 @@ beforeAll(async () => {
     [
       { provide: getQueueToken(BOOK_PURGE_QUEUE_NAME), useValue: queueStub },
       { provide: getQueueToken(NOTIFICATION_EMAIL_QUEUE_NAME), useValue: queueStub },
+      { provide: RealtimePort, useValue: realtimeStub },
     ],
   );
   app = context.app;
@@ -74,6 +81,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   context.reset();
+  realtimeStub.emitToUser.mockClear();
 });
 
 afterEach(async () => {
@@ -357,6 +365,21 @@ describe("POST /api/notifications/read", () => {
     expect(count.body.unreadCount).toBe(1);
   });
 
+  it("pushes the decreased unread count to the caller socket", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const first = await seedNotification({ userId });
+    await seedNotification({ userId });
+
+    await authed("post", "/api/notifications/read", accessToken)
+      .send({ ids: [first] })
+      .expect(HttpStatus.NO_CONTENT);
+
+    expect(realtimeStub.emitToUser).toHaveBeenCalledWith({
+      event: { type: REALTIME_CONTRACT.events.notificationsChanged, unreadCount: 1 },
+      userId,
+    });
+  });
+
   it("cannot mark another user notification read", async () => {
     const owner = await context.registerVerifyAndLogin();
     const foreignId = await seedNotification({ userId: owner.userId });
@@ -406,6 +429,26 @@ describe("POST /api/notifications/read-all", () => {
     });
     expect(strangerRow.readAt).toBeNull();
   });
+
+  it("pushes the cleared unread count to the caller socket only", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    await seedNotification({ userId: owner.userId });
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    await seedNotification({ userId: stranger.userId });
+
+    await authed("post", "/api/notifications/read-all", owner.accessToken).expect(
+      HttpStatus.NO_CONTENT,
+    );
+
+    expect(realtimeStub.emitToUser).toHaveBeenCalledTimes(1);
+    expect(realtimeStub.emitToUser).toHaveBeenCalledWith({
+      event: { type: REALTIME_CONTRACT.events.notificationsChanged, unreadCount: 0 },
+      userId: owner.userId,
+    });
+  });
 });
 
 describe("POST /api/notifications/test", () => {
@@ -427,6 +470,17 @@ describe("POST /api/notifications/test", () => {
     });
     expect(res.body.items[0].payload.type).toBe("system.test");
     expect(typeof res.body.items[0].payload.requestedAt).toBe("string");
+  });
+
+  it("pushes the unread count so the button probes the whole pipeline", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+
+    await authed("post", "/api/notifications/test", accessToken).expect(HttpStatus.ACCEPTED);
+
+    expect(realtimeStub.emitToUser).toHaveBeenCalledWith({
+      event: { type: REALTIME_CONTRACT.events.notificationsChanged, unreadCount: 1 },
+      userId,
+    });
   });
 
   it("brings the collapsed row back to unread when the caller presses test again", async () => {

@@ -15,6 +15,7 @@ import { createLogger } from "../../../core/logger.js";
 import { deliveryReminderWindow, loanReminderWindow } from "../domain/notification-cadence.js";
 import { resolveLocalHour } from "../domain/reminder-settings.js";
 import { ReminderCandidatesRepository } from "../infrastructure/reminder-candidates.repository.js";
+import { NotificationRealtimePublisher } from "./notification-realtime.publisher.js";
 import { NotificationWriterService } from "./notification-writer.service.js";
 import { RecipientReminderSweeper } from "./recipient-reminder.sweeper.js";
 
@@ -36,6 +37,7 @@ export class NotificationReminderSweeper {
 
   constructor(
     private readonly candidatesRepository: ReminderCandidatesRepository,
+    private readonly realtimePublisher: NotificationRealtimePublisher,
     private readonly recipientSweeper: RecipientReminderSweeper,
     private readonly writer: NotificationWriterService,
   ) {
@@ -104,12 +106,15 @@ export class NotificationReminderSweeper {
     today: string;
   }): Promise<void> {
     for (const recipient of recipients) {
-      const { emailQueued } = await this.recipientSweeper.sweepRecipient({
+      const { emailQueued, notificationsWritten } = await this.recipientSweeper.sweepRecipient({
         recipient,
         timezone,
         today,
       });
 
+      if (notificationsWritten) {
+        await this.realtimePublisher.publishUnreadCount({ userId: recipient.id });
+      }
       if (emailQueued) {
         await this.writer.enqueueDigest({ now, userId: recipient.id });
       }
