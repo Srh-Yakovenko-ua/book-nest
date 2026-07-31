@@ -401,6 +401,42 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Докладніша сторінка серії",
     version: null,
   },
+  {
+    bodyEn:
+      "Get reminders about book returns and deliveries in the notification bell and by email. The bell now has two tabs: Reminders and What's New.",
+    bodyUk:
+      "Отримуйте нагадування про повернення книг і про доставки у дзвіночку сповіщень і на пошту. Дзвіночок тепер має дві вкладки: «Нагадування» і «Що нового».",
+    category: "feature",
+    publishedAt: "2026-07-31T00:00:00.000Z",
+    slug: "reminders",
+    titleEn: "Reminders",
+    titleUk: "Нагадування",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A settings page is now available: turn loan and delivery emails on or off, choose how many days ahead to be reminded about a return, and set your time zone. You can also send yourself a test notification from there.",
+    bodyUk:
+      "З'явилася сторінка налаштувань: вмикайте листи про позики та доставки, задавайте, за скільки днів нагадувати про повернення, і обирайте свій часовий пояс. Звідти ж можна надіслати собі тестове сповіщення.",
+    category: "feature",
+    publishedAt: "2026-07-31T00:00:01.000Z",
+    slug: "settings",
+    titleEn: "Settings",
+    titleUk: "Налаштування",
+    version: null,
+  },
+  {
+    bodyEn:
+      "An uploaded cover now appears in your library by itself as soon as it is ready, without reloading the page.",
+    bodyUk:
+      "Завантажена обкладинка тепер з'являється в бібліотеці сама, щойно буде готова, без перезавантаження сторінки.",
+    category: "improvement",
+    publishedAt: "2026-07-31T00:00:02.000Z",
+    slug: "live-cover-updates",
+    titleEn: "Covers without a reload",
+    titleUk: "Обкладинки без перезавантаження",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
