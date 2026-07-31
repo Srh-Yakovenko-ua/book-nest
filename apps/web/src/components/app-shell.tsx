@@ -18,6 +18,7 @@ import {
   ListOrdered,
   NotebookPen,
   Quote,
+  Settings,
   ShoppingBag,
   Tags,
   Truck,
@@ -67,7 +68,8 @@ type NavItem = {
     | "publishers"
     | "quotes"
     | "readingQueue"
-    | "series";
+    | "series"
+    | "settings";
   to: string;
 };
 
@@ -87,6 +89,7 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Tags, key: "genresTags", to: "/genres-tags" },
   { icon: ListChecks, key: "lists", to: "/lists" },
   { icon: NotebookPen, key: "notes", to: "/notes" },
+  { icon: Settings, key: "settings", to: "/settings" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

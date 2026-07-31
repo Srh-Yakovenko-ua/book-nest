@@ -24,7 +24,8 @@
     "delivery": "Deliveries",
     "dedications": "Dedications",
     "quotes": "Quotes",
-    "publishers": "Publishers"
+    "publishers": "Publishers",
+    "settings": "Settings"
   },
   "readingQueue": {
     "title": "Reading queue",
@@ -4516,6 +4517,82 @@
       },
       "system": {
         "test": "Test notification, everything works"
+      }
+    }
+  },
+  "settings": {
+    "page": {
+      "metaTitle": "Settings",
+      "title": "Settings",
+      "description": "Decide what lands in your inbox and which time zone your reminders are counted in."
+    },
+    "notifications": {
+      "title": "Email reminders",
+      "description": "Emails go out in the morning, in your time zone.",
+      "comingSoon": "Coming soon",
+      "toggles": {
+        "deliveryReminders": {
+          "label": "Delivery reminders",
+          "description": "An email when a book is about to arrive or the delivery is running late."
+        },
+        "borrowedBookReminders": {
+          "label": "Borrowed book reminders",
+          "description": "An email when it is time for someone to return your book."
+        },
+        "readingReminders": {
+          "label": "Reading reminders",
+          "description": "A gentle nudge to get back to the book you started."
+        },
+        "readingGoalReminders": {
+          "label": "Reading goal reminders",
+          "description": "An email about how your reading goal is going."
+        },
+        "weeklyReadingSummary": {
+          "label": "Weekly summary",
+          "description": "A weekly email about what you have read."
+        },
+        "monthlyReadingReport": {
+          "label": "Monthly report",
+          "description": "A monthly recap of your library and reading stats."
+        }
+      },
+      "upcoming": {
+        "title": "Still in the works",
+        "description": "We do not send these emails yet. The switches will start working once the reminders ship."
+      },
+      "leadDays": {
+        "label": "Remind me before the return date",
+        "hint": "Between {min} and {max} days before the return date.",
+        "suffix": "{count, plural, one {day} other {days}}"
+      },
+      "test": {
+        "label": "Test notification",
+        "description": "Send one to yourself to see what a reminder looks like.",
+        "button": "Send a test",
+        "success": "Test notification created — check the bell.",
+        "error": "Couldn't send the test notification. Try again in a minute."
+      }
+    },
+    "regional": {
+      "title": "Time zone",
+      "description": "We use it to work out when your morning starts, so reminders arrive on time.",
+      "timezone": {
+        "label": "Your time zone",
+        "hint": "For example, Europe/Kyiv. Start typing a city to find yours.",
+        "search": "Search time zones",
+        "empty": "Nothing found"
+      }
+    },
+    "toast": {
+      "saved": "Saved",
+      "error": "Couldn't save. Please try again."
+    },
+    "states": {
+      "loading": "Loading settings…",
+      "error": {
+        "title": "Couldn't load settings",
+        "description": "Check your connection and try again.",
+        "retry": "Try again"
       }
     }
   }
