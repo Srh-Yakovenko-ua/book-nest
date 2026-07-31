@@ -10,6 +10,8 @@ import type {
   ReadingStatus,
 } from "@app/shared";
 
+import { compareAsc } from "date-fns";
+
 import {
   addDaysToIsoDate,
   daysBetweenIsoDates,
@@ -229,7 +231,7 @@ function clampAllRangeStart(periodStartDate: string, periodEndDate: string): str
 }
 
 function compareChronological(left: NormalizedEvent, right: NormalizedEvent): number {
-  const byCreatedAt = left.createdAt.getTime() - right.createdAt.getTime();
+  const byCreatedAt = compareAsc(left.createdAt, right.createdAt);
   if (byCreatedAt !== 0) {
     return byCreatedAt;
   }
