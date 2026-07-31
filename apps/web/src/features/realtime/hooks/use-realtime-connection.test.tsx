@@ -9,9 +9,9 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useAuthStore } from "@/features/auth/model/auth-store";
+import { notificationKeys } from "@/features/notifications/api/notification-keys";
 import { registerAuthBridge } from "@/lib/auth-bridge";
 import { ApiError } from "@/lib/http-client";
-import { getNotificationsControllerUnreadCountQueryKey } from "@/shared/api/generated/endpoints/notifications/notifications";
 import { createTestQueryClient } from "@/test-utils";
 
 import { useRealtimeConnection } from "./use-realtime-connection";
@@ -177,7 +177,7 @@ describe("useRealtimeConnection", () => {
       });
     });
 
-    expect(client.getQueryData(getNotificationsControllerUnreadCountQueryKey())).toEqual({
+    expect(client.getQueryData(notificationKeys.unreadCount)).toEqual({
       unreadCount: UNREAD_COUNT,
     });
   });
@@ -192,7 +192,7 @@ describe("useRealtimeConnection", () => {
       });
     }).not.toThrow();
 
-    expect(client.getQueryData(getNotificationsControllerUnreadCountQueryKey())).toBeUndefined();
+    expect(client.getQueryData(notificationKeys.unreadCount)).toBeUndefined();
   });
 
   it("stops instead of retrying when the gateway reports the connection limit", async () => {

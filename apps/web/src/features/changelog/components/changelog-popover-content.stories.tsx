@@ -30,8 +30,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Loading: Story = {
-  play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByRole("heading", { name: "Що нового" })).toBeVisible());
+  play: async ({ canvasElement }) => {
+    await waitFor(() => expect(canvasElement.querySelector("[aria-busy]")).not.toBeNull());
   },
 };
 

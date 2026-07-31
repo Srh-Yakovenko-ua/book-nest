@@ -49,14 +49,8 @@ const LIST_HEIGHT = "min(60vh, 26rem)";
 const SKELETON_COUNT = 4;
 
 export function ChangelogPopoverContent({ locale, onRetry, state }: ChangelogPopoverContentProps) {
-  const t = useTranslations("changelog");
-
   return (
     <div className="flex w-full flex-col">
-      <header className="flex items-center gap-2 border-b border-border/60 px-3.5 py-3">
-        <UiIcon className="text-primary" name="sparkles" size={16} />
-        <h2 className="font-heading text-sm font-medium text-foreground">{t("title")}</h2>
-      </header>
       <ChangelogPopoverBody locale={locale} onRetry={onRetry} state={state} />
     </div>
   );

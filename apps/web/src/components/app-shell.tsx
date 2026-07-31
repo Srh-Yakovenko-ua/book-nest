@@ -46,7 +46,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ChangelogBell } from "@/features/changelog";
+import { NotificationBell } from "@/features/notifications";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
@@ -235,7 +235,7 @@ function ContentArea({ children }: { children: ReactNode }) {
           <SidebarTrigger className="size-8 cursor-pointer text-muted-foreground transition-colors duration-150 hover:text-foreground lg:hidden" />
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <ChangelogBell />
+          <NotificationBell />
           <SessionMenu />
           <ThemePicker />
           <LocalePicker />

@@ -3033,11 +3033,6 @@
     }
   },
   "changelog": {
-    "bell": {
-      "ariaLabel": "Що нового",
-      "ariaLabelUnread": "Що нового, {count} непрочитаних"
-    },
-    "title": "Що нового",
     "category": {
       "feature": "Нове",
       "improvement": "Покращення",
@@ -4463,6 +4458,65 @@
       "unlinked": "Персонажа прибрано з книги",
       "updateError": "Не вдалося зберегти зміни",
       "updated": "Зміни збережено"
+    }
+  },
+  "notifications": {
+    "bell": {
+      "ariaLabel": "Сповіщення",
+      "ariaLabelAllRead": "Усе прочитано",
+      "ariaLabelUnread": "Сповіщення, {count, plural, one {# непрочитане} few {# непрочитані} many {# непрочитаних} other {# непрочитаних}}"
+    },
+    "tabs": {
+      "reminders": "Нагадування",
+      "changelog": "Що нового",
+      "unreadCount": "{count, plural, one {# непрочитане} few {# непрочитані} many {# непрочитаних} other {# непрочитаних}}"
+    },
+    "list": {
+      "ariaLabel": "Список сповіщень"
+    },
+    "states": {
+      "empty": {
+        "title": "Нагадувань немає",
+        "description": "Тут зʼявлятимуться нагадування про позики та доставки."
+      },
+      "error": {
+        "title": "Не вдалося завантажити сповіщення",
+        "description": "Перевірте зʼєднання та спробуйте ще раз.",
+        "retry": "Спробувати ще раз"
+      },
+      "loading": "Завантаження сповіщень…",
+      "loadingMore": "Завантаження…",
+      "loadMoreError": "Не вдалося завантажити наступні сповіщення"
+    },
+    "errors": {
+      "markAllRead": "Не вдалося позначити всі сповіщення прочитаними",
+      "markRead": "Не вдалося позначити сповіщення прочитаним"
+    },
+    "actions": {
+      "loadMore": "Показати ще",
+      "markAllRead": "Прочитати все",
+      "markRead": "Позначити прочитаним"
+    },
+    "row": {
+      "unread": "Непрочитане"
+    },
+    "entityState": {
+      "trashed": "у кошику"
+    },
+    "types": {
+      "delivery": {
+        "arrivingSoon": "Доставка «{bookTitle}» очікується {date}",
+        "arrivingToday": "Доставка «{bookTitle}» прибуває сьогодні",
+        "delayed": "Доставка «{bookTitle}» затримується, очікували {date}"
+      },
+      "loan": {
+        "dueSoon": "{personName} має повернути «{bookTitle}» до {date}",
+        "dueToday": "{personName} має повернути «{bookTitle}» сьогодні",
+        "overdue": "Позику «{bookTitle}» прострочено на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}, позичальник — {personName}"
+      },
+      "system": {
+        "test": "Тестове сповіщення, усе працює"
+      }
     }
   }
 }

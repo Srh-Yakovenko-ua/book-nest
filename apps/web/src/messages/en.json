@@ -3033,11 +3033,6 @@
     }
   },
   "changelog": {
-    "bell": {
-      "ariaLabel": "What's new",
-      "ariaLabelUnread": "What's new, {count} unread"
-    },
-    "title": "What's new",
     "category": {
       "feature": "New",
       "improvement": "Improvement",
@@ -4463,6 +4458,65 @@
       "unlinked": "Character removed from the book",
       "updateError": "Couldn't save changes",
       "updated": "Changes saved"
+    }
+  },
+  "notifications": {
+    "bell": {
+      "ariaLabel": "Notifications",
+      "ariaLabelAllRead": "All read",
+      "ariaLabelUnread": "Notifications, {count} unread"
+    },
+    "tabs": {
+      "reminders": "Reminders",
+      "changelog": "What's new",
+      "unreadCount": "{count, plural, one {# unread} other {# unread}}"
+    },
+    "list": {
+      "ariaLabel": "Notification list"
+    },
+    "states": {
+      "empty": {
+        "title": "No reminders",
+        "description": "Loan and delivery reminders will show up here."
+      },
+      "error": {
+        "title": "Couldn't load notifications",
+        "description": "Check your connection and try again.",
+        "retry": "Try again"
+      },
+      "loading": "Loading notifications…",
+      "loadingMore": "Loading…",
+      "loadMoreError": "Couldn't load more notifications"
+    },
+    "errors": {
+      "markAllRead": "Couldn't mark all notifications as read",
+      "markRead": "Couldn't mark the notification as read"
+    },
+    "actions": {
+      "loadMore": "Show more",
+      "markAllRead": "Mark all read",
+      "markRead": "Mark as read"
+    },
+    "row": {
+      "unread": "Unread"
+    },
+    "entityState": {
+      "trashed": "in trash"
+    },
+    "types": {
+      "delivery": {
+        "arrivingSoon": "Delivery of “{bookTitle}” is expected on {date}",
+        "arrivingToday": "Delivery of “{bookTitle}” arrives today",
+        "delayed": "Delivery of “{bookTitle}” is delayed, it was expected on {date}"
+      },
+      "loan": {
+        "dueSoon": "{personName} should return “{bookTitle}” by {date}",
+        "dueToday": "{personName} should return “{bookTitle}” today",
+        "overdue": "The loan of “{bookTitle}” to {personName} is {count, plural, one {# day} other {# days}} overdue"
+      },
+      "system": {
+        "test": "Test notification, everything works"
+      }
     }
   }
 }

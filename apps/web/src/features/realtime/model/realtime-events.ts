@@ -4,15 +4,12 @@ import type { QueryClient, QueryKey } from "@tanstack/react-query";
 import { REALTIME_CONTRACT, RealtimeEventSchema } from "@app/shared";
 
 import { bookKeys } from "@/features/books/api/book-keys";
-import {
-  getNotificationsControllerListQueryKey,
-  getNotificationsControllerUnreadCountQueryKey,
-} from "@/shared/api/generated/endpoints/notifications/notifications";
+import { notificationKeys } from "@/features/notifications/api/notification-keys";
 
 const REALTIME_QUERY_TARGETS = {
   booksRoot: bookKeys.root,
-  notificationsList: getNotificationsControllerListQueryKey(),
-  notificationsUnreadCount: getNotificationsControllerUnreadCountQueryKey(),
+  notificationsList: notificationKeys.list,
+  notificationsUnreadCount: notificationKeys.unreadCount,
 } as const satisfies Record<string, QueryKey>;
 
 export function applyRealtimeEvent({
