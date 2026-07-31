@@ -22,8 +22,10 @@ import {
   resolveNotificationEntityState,
 } from "../domain/notification-entity-state.js";
 import { type NotificationRow, toNotificationView } from "../domain/notification.mapper.js";
+import { resolveManualTestEmailPreference } from "../domain/reminder-settings.js";
 import { buildTestNotification } from "../domain/test-notification.builder.js";
 import { NotificationsRepository } from "../infrastructure/notifications.repository.js";
+import { ReminderCandidatesRepository } from "../infrastructure/reminder-candidates.repository.js";
 import { NotificationRealtimePublisher } from "./notification-realtime.publisher.js";
 import { NotificationWriterService } from "./notification-writer.service.js";
 
@@ -39,6 +41,7 @@ type ListInput = {
 @Injectable()
 export class NotificationsService {
   constructor(
+    private readonly candidatesRepository: ReminderCandidatesRepository,
     private readonly notificationsRepository: NotificationsRepository,
     private readonly realtimePublisher: NotificationRealtimePublisher,
     private readonly writer: NotificationWriterService,
@@ -46,9 +49,12 @@ export class NotificationsService {
 
   async createTestNotification({ user }: { user: AuthenticatedUser }): Promise<void> {
     const requestedAt = new Date();
+    const recipient = await this.candidatesRepository.findReminderRecipientById({
+      userId: user.id,
+    });
 
     const { emailDeliveryCreated } = await this.writer.write({
-      emailPreferenceEnabled: true,
+      emailPreferenceEnabled: resolveManualTestEmailPreference(recipient?.settings ?? null),
       emailVerified: user.emailVerifiedAt !== null,
       notification: buildTestNotification({ requestedAt, userId: user.id }),
       userId: user.id,

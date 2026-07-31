@@ -18,6 +18,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
+import { RealtimeConnectionRegistry } from "../application/realtime-connection.registry.js";
 import { RealtimeConnectionService } from "../application/realtime-connection.service.js";
 import { RealtimePort } from "../domain/realtime.port.js";
 import { RealtimeModule } from "../realtime.module.js";
@@ -365,14 +366,14 @@ describe("RealtimeGateway handshake", () => {
     await expect(waitForRejection(socket)).resolves.toBe(REALTIME_CONTRACT.errorCodes.unauthorized);
   });
 
-  it("names the reason when it rejects a disallowed origin, so the client can stop retrying", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
+  it("aborts a disallowed-origin upgrade before it reserves a connection slot", async () => {
+    const tryAcquire = vi.spyOn(app.get(RealtimeConnectionRegistry), "tryAcquire");
 
-    const socket = connectSocket({ origin: HANDSHAKE_ORIGIN.forbidden, token: accessToken });
+    const refused = await attemptRawUpgrade({ origin: HANDSHAKE_ORIGIN.forbidden });
 
-    await expect(waitForRejection(socket)).resolves.toBe(
-      REALTIME_CONTRACT.errorCodes.forbiddenOrigin,
-    );
+    expect(refused.status).toBe(HttpStatus.BAD_REQUEST);
+    expect(refused.body).toContain(REALTIME_CONTRACT.errorCodes.forbiddenOrigin);
+    expect(tryAcquire).not.toHaveBeenCalled();
   });
 
   it("refuses a disallowed origin before it authenticates the token", async () => {

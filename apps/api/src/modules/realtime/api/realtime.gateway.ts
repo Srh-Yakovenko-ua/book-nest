@@ -75,13 +75,6 @@ export class RealtimeGateway
     socket: RealtimeSocket;
   }): Promise<void> {
     try {
-      const origin = socket.handshake.headers.origin;
-      if (!isAllowedOrigin({ allowedOrigins: env.corsOrigins, origin })) {
-        log.warn({ origin }, "realtime handshake refused: origin not allowed");
-        this.rejectSocket({ code: REALTIME_CONTRACT.errorCodes.forbiddenOrigin, next, socket });
-        return;
-      }
-
       const admission = await this.connectionService.admit({
         authorizationHeader: socket.handshake.headers.authorization,
         handshakeAuth: socket.handshake.auth,
@@ -153,6 +146,13 @@ export class RealtimeGateway
     callback: (error: Nullable<string> | undefined, success: boolean) => void;
     request: IncomingMessage;
   }): void {
+    const origin = request.headers.origin;
+    if (!isAllowedOrigin({ allowedOrigins: env.corsOrigins, origin })) {
+      log.warn({ origin }, "realtime upgrade refused: origin not allowed");
+      callback(REALTIME_CONTRACT.errorCodes.forbiddenOrigin, false);
+      return;
+    }
+
     const sourceBucket = resolveSourceBucket({
       forwardedFor: request.headers["x-forwarded-for"],
       remoteAddress: request.socket.remoteAddress,

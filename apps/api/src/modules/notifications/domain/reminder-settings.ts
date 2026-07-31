@@ -44,3 +44,7 @@ export function resolveLocalHour({
     return null;
   }
 }
+
+export function resolveManualTestEmailPreference(settings: Nullable<ReminderSettings>): boolean {
+  return resolveLoanEmailPreference(settings) || resolveDeliveryEmailPreference(settings);
+}

@@ -375,6 +375,7 @@ model BookDelivery {
 
   @@index([bookId])
   @@index([userId, status])
+  @@index([status, expectedDeliveryDate])
   @@map("book_deliveries")
 }
 
@@ -398,6 +399,7 @@ model BookLoan {
 
   @@index([bookId])
   @@index([userId, status])
+  @@index([status, remindToReturn, returnedAt, expectedReturnDate])
   @@map("book_loans")
 }
 

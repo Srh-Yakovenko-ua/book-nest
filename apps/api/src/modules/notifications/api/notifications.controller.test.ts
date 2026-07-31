@@ -483,6 +483,39 @@ describe("POST /api/notifications/test", () => {
     });
   });
 
+  it("queues email for a caller who has never opened the settings page", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    await authed("post", "/api/notifications/test", accessToken).expect(HttpStatus.ACCEPTED);
+
+    expect(await prisma.notificationDelivery.count({ where: { channel: "email" } })).toBe(1);
+  });
+
+  it("queues no email once the caller has switched every reminder email off", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await prisma.userProfileSettings.create({
+      data: { borrowedBookReminders: false, deliveryReminders: false, userId },
+    });
+
+    await authed("post", "/api/notifications/test", accessToken).expect(HttpStatus.ACCEPTED);
+
+    expect(await prisma.notificationDelivery.count({ where: { channel: "email" } })).toBe(0);
+    const res = await authed("get", "/api/notifications", accessToken);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.unreadCount).toBe(1);
+  });
+
+  it("queues email while a single reminder preference is still on", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await prisma.userProfileSettings.create({
+      data: { borrowedBookReminders: false, deliveryReminders: true, userId },
+    });
+
+    await authed("post", "/api/notifications/test", accessToken).expect(HttpStatus.ACCEPTED);
+
+    expect(await prisma.notificationDelivery.count({ where: { channel: "email" } })).toBe(1);
+  });
+
   it("brings the collapsed row back to unread when the caller presses test again", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await authed("post", "/api/notifications/test", accessToken).expect(HttpStatus.ACCEPTED);

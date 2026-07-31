@@ -150,6 +150,16 @@ export class ReminderCandidatesRepository {
     });
   }
 
+  findReminderRecipientById(
+    { userId }: { userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<ReminderRecipientRow>> {
+    return client.user.findUnique({
+      select: reminderRecipientArgs.select,
+      where: { id: userId },
+    });
+  }
+
   findReminderRecipients(
     {
       afterUserId,
