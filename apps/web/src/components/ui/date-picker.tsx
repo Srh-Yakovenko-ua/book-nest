@@ -33,7 +33,10 @@ type DatePickerProps = {
   placeholder?: string;
   startMonth?: Date;
   value?: Date;
+  weekStartsOn?: WeekStartsOn;
 };
+
+type WeekStartsOn = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 const DATE_FNS_LOCALES: Record<string, Locale> = { en: enUS, uk };
 
@@ -52,6 +55,7 @@ export function DatePicker({
   placeholder,
   startMonth,
   value,
+  weekStartsOn,
 }: DatePickerProps) {
   const t = useTranslations("auth.datePicker");
   const locale = useLocale();
@@ -135,6 +139,7 @@ export function DatePicker({
           }}
           selected={value}
           startMonth={startMonth}
+          weekStartsOn={weekStartsOn}
         />
       </PopoverContent>
     </Popover>

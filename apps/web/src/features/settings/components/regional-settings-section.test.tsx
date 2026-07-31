@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom/vitest";
+import type { WeekStartDay } from "@app/shared";
+
 import { defaultUserProfileSettings } from "@app/shared";
 import { toast } from "sonner";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,8 +16,10 @@ vi.mock("sonner", () => ({
 const RUNTIME_TIMEZONES: readonly string[] = Intl.supportedValuesOf("timeZone");
 
 const COPY = {
+  monday: "Понеділок",
   saved: "Збережено",
   search: "Пошук часового поясу",
+  sunday: "Неділя",
   triggerLabel: "Ваш часовий пояс",
 } as const satisfies Record<string, string>;
 
@@ -50,8 +54,10 @@ async function openTimezoneList() {
   return screen.findByPlaceholderText(COPY.search);
 }
 
-function renderSection(timezone: string) {
-  return renderWithProviders(<RegionalSettingsSection timezone={timezone} />);
+function renderSection(timezone: string, weekStartDay: WeekStartDay = "monday") {
+  return renderWithProviders(
+    <RegionalSettingsSection timezone={timezone} weekStartDay={weekStartDay} />,
+  );
 }
 
 function updateBodies(): string[] {
@@ -125,6 +131,23 @@ describe("RegionalSettingsSection", () => {
     await openTimezoneList();
 
     expect(await screen.findByRole("option", { name: TIMEZONES.unlisted })).toBeInTheDocument();
+  });
+
+  it("saves the picked first day of the week", async () => {
+    renderSection(TIMEZONES.known, "monday");
+
+    await userEvent.click(screen.getByRole("radio", { name: COPY.sunday }));
+
+    await waitFor(() => expect(updateBodies()).toEqual(['{"weekStartDay":"sunday"}']));
+  });
+
+  it("sends nothing when the already selected first day of the week is picked", async () => {
+    renderSection(TIMEZONES.known, "monday");
+
+    await userEvent.click(screen.getByRole("radio", { name: COPY.monday }));
+
+    await waitFor(() => expect(screen.getByRole("radio", { name: COPY.monday })).toBeChecked());
+    expect(updateBodies()).toEqual([]);
   });
 
   it("offers the stored timezone exactly once even when the runtime lists it under an alias", async () => {

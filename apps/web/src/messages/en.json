@@ -4581,6 +4581,12 @@
         "hint": "For example, Europe/Kyiv. Start typing a city to find yours.",
         "search": "Search time zones",
         "empty": "Nothing found"
+      },
+      "weekStartDay": {
+        "label": "First day of the week",
+        "monday": "Monday",
+        "sunday": "Sunday",
+        "hint": "Calendars will start their weeks on this day."
       }
     },
     "toast": {

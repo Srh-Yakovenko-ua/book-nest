@@ -70,7 +70,10 @@ function SettingsSections() {
         emailNotifications={settings.data.emailNotifications}
         loanReminderLeadDays={settings.data.loanReminderLeadDays}
       />
-      <RegionalSettingsSection timezone={settings.data.timezone} />
+      <RegionalSettingsSection
+        timezone={settings.data.timezone}
+        weekStartDay={settings.data.weekStartDay}
+      />
     </div>
   );
 }
