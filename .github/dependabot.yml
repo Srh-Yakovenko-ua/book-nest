@@ -40,6 +40,10 @@ updates:
       day: "monday"
     cooldown:
       default-days: 5
+    ignore:
+      - dependency-name: "node"
+        update-types:
+          - "version-update:semver-major"
     groups:
       docker:
         patterns:
