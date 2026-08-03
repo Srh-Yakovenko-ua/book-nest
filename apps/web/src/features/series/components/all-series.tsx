@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { type ReactNode, useState } from "react";
 
+import { type ActiveFilterChip, LibraryActiveFilters, useGenres } from "@/features/books";
 import { useRouter } from "@/i18n/navigation";
 
 import type { SeriesSummaryCard } from "./series-summary-cards";
@@ -11,10 +12,13 @@ import type { SeriesSummaryCard } from "./series-summary-cards";
 import { useSeriesList } from "../api/use-series-list";
 import { useSeriesOverview } from "../api/use-series-overview";
 import {
+  EMPTY_SERIES_ADVANCED_FILTERS,
   filterSeries,
+  hasActiveSeriesFilters,
   isSeriesUnfinished,
   SERIES_SORT_DEFAULT,
   SERIES_TABS,
+  type SeriesAdvancedFilters,
   type SeriesReadingFilter,
   type SeriesSort,
   type SeriesStatusFilter,
@@ -29,26 +33,68 @@ const tabParser = parseAsStringLiteral(SERIES_TABS).withDefault("all");
 
 export function AllSeries() {
   const t = useTranslations("series.summary");
+  const tSeries = useTranslations("series");
+  const tStatusFilter = useTranslations("series.statusFilter");
+  const tReadingFilter = useTranslations("series.readingFilter");
+  const tCompleteness = useTranslations("series.filters.completeness");
   const router = useRouter();
 
   const { data, isError, isPending, refetch } = useSeriesList();
   const overview = useSeriesOverview();
+  const genres = useGenres();
 
   const [tab, setTab] = useQueryState("tab", tabParser);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SeriesStatusFilter>("all");
   const [readingFilter, setReadingFilter] = useState<SeriesReadingFilter>("all");
   const [sort, setSort] = useState<SeriesSort>(SERIES_SORT_DEFAULT);
+  const [advancedFilters, setAdvancedFilters] = useState<SeriesAdvancedFilters>(
+    EMPTY_SERIES_ADVANCED_FILTERS,
+  );
+  const [rememberedAuthorNames, setRememberedAuthorNames] = useState<Map<string, string>>(
+    new Map(),
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const items = (data?.pages ?? []).flatMap((page) => page.items);
   const visibleSeries = sortSeries({
-    items: filterSeries({ items, readingFilter, search, statusFilter, tab }),
+    items: filterSeries({
+      advanced: advancedFilters,
+      items,
+      readingFilter,
+      search,
+      statusFilter,
+      tab,
+    }),
     sort,
   });
   const unfinishedCount = items.filter(isSeriesUnfinished).length;
   const hasAnySeries = items.length > 0 || (overview.data?.totalSeries ?? 0) > 0;
-  const hasActiveQuery = search.trim() !== "" || statusFilter !== "all" || readingFilter !== "all";
+  const hasActiveQuery =
+    search.trim() !== "" ||
+    statusFilter !== "all" ||
+    readingFilter !== "all" ||
+    hasActiveSeriesFilters(advancedFilters);
+
+  const authorNameById = new Map<string, string>();
+  for (const series of items) {
+    for (const author of series.authors) {
+      if (!authorNameById.has(author.id)) authorNameById.set(author.id, author.name);
+    }
+  }
+
+  const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
+
+  function rememberAuthorName(id: string, name: string) {
+    setRememberedAuthorNames((prev) => {
+      if (prev.get(id) === name) return prev;
+      const next = new Map(prev);
+      next.set(id, name);
+      return next;
+    });
+  }
+
+  const resolveAuthorName = (id: string) => rememberedAuthorNames.get(id) ?? authorNameById.get(id);
 
   const overviewData = overview.data;
 
@@ -124,11 +170,109 @@ export function AllSeries() {
     setSearch("");
     setStatusFilter("all");
     setReadingFilter("all");
+    setAdvancedFilters(EMPTY_SERIES_ADVANCED_FILTERS);
+  }
+
+  const counterLabel = tSeries("counter", { shown: visibleSeries.length, total: items.length });
+
+  const filterChips: ActiveFilterChip[] = [];
+
+  if (search.trim() !== "") {
+    filterChips.push({
+      key: "search",
+      label: tSeries("activeFilters.search", { query: search }),
+      onRemove: () => setSearch(""),
+    });
+  }
+
+  if (statusFilter !== "all") {
+    filterChips.push({
+      key: "status",
+      label: tSeries("activeFilters.status", { label: tStatusFilter(statusFilter) }),
+      onRemove: () => setStatusFilter("all"),
+    });
+  }
+
+  if (readingFilter !== "all") {
+    filterChips.push({
+      key: "reading",
+      label: tSeries("activeFilters.reading", { label: tReadingFilter(readingFilter) }),
+      onRemove: () => setReadingFilter("all"),
+    });
+  }
+
+  const progressLabel = rangeChipLabel({
+    from: (min) => tSeries("activeFilters.progressFrom", { min }),
+    max: advancedFilters.progressMax,
+    min: advancedFilters.progressMin,
+    range: (min, max) => tSeries("activeFilters.progressRange", { max, min }),
+    to: (max) => tSeries("activeFilters.progressTo", { max }),
+  });
+  if (progressLabel !== null) {
+    filterChips.push({
+      key: "progress",
+      label: progressLabel,
+      onRemove: () =>
+        setAdvancedFilters((prev) => ({ ...prev, progressMax: null, progressMin: null })),
+    });
+  }
+
+  const booksLabel = rangeChipLabel({
+    from: (min) => tSeries("activeFilters.booksFrom", { min }),
+    max: advancedFilters.booksMax,
+    min: advancedFilters.booksMin,
+    range: (min, max) => tSeries("activeFilters.booksRange", { max, min }),
+    to: (max) => tSeries("activeFilters.booksTo", { max }),
+  });
+  if (booksLabel !== null) {
+    filterChips.push({
+      key: "books",
+      label: booksLabel,
+      onRemove: () => setAdvancedFilters((prev) => ({ ...prev, booksMax: null, booksMin: null })),
+    });
+  }
+
+  for (const value of advancedFilters.completeness) {
+    filterChips.push({
+      key: `completeness:${value}`,
+      label: tSeries("activeFilters.completeness", { label: tCompleteness(value) }),
+      onRemove: () =>
+        setAdvancedFilters((prev) => ({
+          ...prev,
+          completeness: prev.completeness.filter((item) => item !== value),
+        })),
+    });
+  }
+
+  for (const key of advancedFilters.genres) {
+    filterChips.push({
+      key: `genre:${key}`,
+      label: tSeries("activeFilters.genre", { name: genreNameByKey.get(key) ?? key }),
+      onRemove: () =>
+        setAdvancedFilters((prev) => ({
+          ...prev,
+          genres: prev.genres.filter((item) => item !== key),
+        })),
+    });
+  }
+
+  for (const id of advancedFilters.authorIds) {
+    filterChips.push({
+      key: `author:${id}`,
+      label: tSeries("activeFilters.author", { name: resolveAuthorName(id) ?? id }),
+      onRemove: () =>
+        setAdvancedFilters((prev) => ({
+          ...prev,
+          authorIds: prev.authorIds.filter((item) => item !== id),
+        })),
+    });
   }
 
   return (
     <>
       <AllSeriesView
+        activeFilters={<LibraryActiveFilters chips={filterChips} onClearAll={clearFilters} />}
+        counterLabel={counterLabel}
         hasActiveQuery={hasActiveQuery}
         hasAnySeries={hasAnySeries}
         isError={isError}
@@ -145,8 +289,6 @@ export function AllSeries() {
           <SeriesSidebar
             isError={overview.isError}
             isLoading={overview.isPending}
-            onCreateSeries={() => setDialogOpen(true)}
-            onGoToUnfinished={() => void setTab("unfinished")}
             onRetry={() => void overview.refetch()}
             overview={overview.data}
           />
@@ -157,12 +299,16 @@ export function AllSeries() {
         tab={tab}
         toolbar={
           <SeriesToolbar
+            advancedFilters={advancedFilters}
+            onAdvancedApply={setAdvancedFilters}
             onReadingChange={setReadingFilter}
+            onRememberAuthor={rememberAuthorName}
             onSearchChange={setSearch}
             onSearchClear={() => setSearch("")}
             onSortChange={setSort}
             onStatusChange={setStatusFilter}
             readingFilter={readingFilter}
+            resolveAuthorName={resolveAuthorName}
             search={search}
             sort={sort}
             statusFilter={statusFilter}
@@ -173,4 +319,23 @@ export function AllSeries() {
       <CreateSeriesDialog onOpenChange={setDialogOpen} open={dialogOpen} />
     </>
   );
+}
+
+function rangeChipLabel({
+  from,
+  max,
+  min,
+  range,
+  to,
+}: {
+  from: (value: number) => string;
+  max: null | number;
+  min: null | number;
+  range: (min: number, max: number) => string;
+  to: (value: number) => string;
+}): null | string {
+  if (min !== null && max !== null) return range(min, max);
+  if (min !== null) return from(min);
+  if (max !== null) return to(max);
+  return null;
 }

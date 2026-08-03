@@ -2,17 +2,21 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 
-import { SERIES_SORT_DEFAULT } from "../model/series-derive";
+import { EMPTY_SERIES_ADVANCED_FILTERS, SERIES_SORT_DEFAULT } from "../model/series-derive";
 import { SeriesToolbar } from "./series-toolbar";
 
 const meta = {
   args: {
+    advancedFilters: EMPTY_SERIES_ADVANCED_FILTERS,
+    onAdvancedApply: fn(),
     onReadingChange: fn(),
+    onRememberAuthor: fn(),
     onSearchChange: fn(),
     onSearchClear: fn(),
     onSortChange: fn(),
     onStatusChange: fn(),
     readingFilter: "all",
+    resolveAuthorName: () => undefined,
     search: "",
     sort: SERIES_SORT_DEFAULT,
     statusFilter: "all",

@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, fn, waitFor } from "storybook/test";
 
-import { SERIES_SORT_DEFAULT } from "../model/series-derive";
+import { EMPTY_SERIES_ADVANCED_FILTERS, SERIES_SORT_DEFAULT } from "../model/series-derive";
 import { makeSeriesOverview, makeSeriesView } from "../model/series.fixtures";
 import { AllSeriesView } from "./all-series-view";
 import { SeriesSidebar } from "./series-sidebar";
@@ -36,7 +36,7 @@ const series: SeriesView[] = [
     finishedInSeries: 0,
     id: "s4",
     name: "Хроніки вбивці короля",
-    nextBook: { id: "kk-1", partNumber: 1, title: "Імʼя вітру" },
+    nextBook: { cover: null, id: "kk-1", partNumber: 1, title: "Імʼя вітру" },
     totalBooks: 3,
   }),
 ];
@@ -50,12 +50,16 @@ const summaryCards: SeriesSummaryCard[] = [
 
 const toolbar = (
   <SeriesToolbar
+    advancedFilters={EMPTY_SERIES_ADVANCED_FILTERS}
+    onAdvancedApply={fn()}
     onReadingChange={fn()}
+    onRememberAuthor={fn()}
     onSearchChange={fn()}
     onSearchClear={fn()}
     onSortChange={fn()}
     onStatusChange={fn()}
     readingFilter="all"
+    resolveAuthorName={() => undefined}
     search=""
     sort={SERIES_SORT_DEFAULT}
     statusFilter="all"
@@ -63,18 +67,13 @@ const toolbar = (
 );
 
 const sidebar = (
-  <SeriesSidebar
-    isError={false}
-    isLoading={false}
-    onCreateSeries={fn()}
-    onGoToUnfinished={fn()}
-    onRetry={fn()}
-    overview={makeSeriesOverview()}
-  />
+  <SeriesSidebar isError={false} isLoading={false} onRetry={fn()} overview={makeSeriesOverview()} />
 );
 
 const meta = {
   args: {
+    activeFilters: null,
+    counterLabel: "Показано 4 із 8 серій",
     hasActiveQuery: false,
     hasAnySeries: true,
     isError: false,

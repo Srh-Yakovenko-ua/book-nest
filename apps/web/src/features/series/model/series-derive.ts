@@ -1,5 +1,17 @@
 import type { SeriesStatus, SeriesView } from "@app/shared";
 
+export type SeriesAdvancedFilters = {
+  authorIds: string[];
+  booksMax: null | number;
+  booksMin: null | number;
+  completeness: SeriesCompleteness[];
+  genres: string[];
+  progressMax: null | number;
+  progressMin: null | number;
+};
+
+export type SeriesCompleteness = "complete" | "incomplete" | "no_plan";
+
 export type SeriesProgress = {
   denominator: number;
   finished: number;
@@ -47,13 +59,41 @@ export const SERIES_READING_FILTERS = [
   "empty",
 ] as const satisfies readonly SeriesReadingFilter[];
 
+export const SERIES_COMPLETENESS_VALUES = [
+  "complete",
+  "incomplete",
+  "no_plan",
+] as const satisfies readonly SeriesCompleteness[];
+
+export const EMPTY_SERIES_ADVANCED_FILTERS: SeriesAdvancedFilters = {
+  authorIds: [],
+  booksMax: null,
+  booksMin: null,
+  completeness: [],
+  genres: [],
+  progressMax: null,
+  progressMin: null,
+};
+
+export function countActiveSeriesFilters(filters: SeriesAdvancedFilters): number {
+  let count = 0;
+  if (filters.authorIds.length > 0) count += 1;
+  if (filters.completeness.length > 0) count += 1;
+  if (filters.genres.length > 0) count += 1;
+  if (filters.progressMin !== null || filters.progressMax !== null) count += 1;
+  if (filters.booksMin !== null || filters.booksMax !== null) count += 1;
+  return count;
+}
+
 export function filterSeries({
+  advanced,
   items,
   readingFilter,
   search,
   statusFilter,
   tab,
 }: {
+  advanced: SeriesAdvancedFilters;
   items: SeriesView[];
   readingFilter: SeriesReadingFilter;
   search: string;
@@ -64,8 +104,13 @@ export function filterSeries({
     if (tab === "unfinished" && !isSeriesUnfinished(series)) return false;
     if (statusFilter !== "all" && series.status !== statusFilter) return false;
     if (readingFilter !== "all" && seriesReadingState(series) !== readingFilter) return false;
+    if (!seriesMatchesAdvancedFilters({ advanced, series })) return false;
     return seriesMatchesSearch({ query: search, series });
   });
+}
+
+export function hasActiveSeriesFilters(filters: SeriesAdvancedFilters): boolean {
+  return countActiveSeriesFilters(filters) > 0;
 }
 
 export function isSeriesStarted(series: SeriesView): boolean {
@@ -75,6 +120,41 @@ export function isSeriesStarted(series: SeriesView): boolean {
 export function isSeriesUnfinished(series: SeriesView): boolean {
   const isMultiBook = series.booksInSeries > 1 || (series.totalBooks ?? 0) > 1;
   return isMultiBook && isSeriesStarted(series) && !seriesProgress(series).fullyRead;
+}
+
+export function seriesCompleteness(series: SeriesView): SeriesCompleteness {
+  if (series.totalBooks === null) return "no_plan";
+  return series.booksInSeries >= series.totalBooks ? "complete" : "incomplete";
+}
+
+export function seriesMatchesAdvancedFilters({
+  advanced,
+  series,
+}: {
+  advanced: SeriesAdvancedFilters;
+  series: SeriesView;
+}): boolean {
+  const percent = seriesProgress(series).percent;
+  if (advanced.progressMin !== null && percent < advanced.progressMin) return false;
+  if (advanced.progressMax !== null && percent > advanced.progressMax) return false;
+  if (advanced.booksMin !== null && series.booksInSeries < advanced.booksMin) return false;
+  if (advanced.booksMax !== null && series.booksInSeries > advanced.booksMax) return false;
+  if (advanced.genres.length > 0 && !series.genres.some((key) => advanced.genres.includes(key))) {
+    return false;
+  }
+  if (
+    advanced.authorIds.length > 0 &&
+    !series.authors.some((author) => advanced.authorIds.includes(author.id))
+  ) {
+    return false;
+  }
+  if (
+    advanced.completeness.length > 0 &&
+    !advanced.completeness.includes(seriesCompleteness(series))
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export function seriesMatchesSearch({

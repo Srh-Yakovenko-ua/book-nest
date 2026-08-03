@@ -12,7 +12,12 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-import type { SeriesReadingFilter, SeriesSort, SeriesStatusFilter } from "../model/series-derive";
+import type {
+  SeriesAdvancedFilters as SeriesAdvancedFiltersValue,
+  SeriesReadingFilter,
+  SeriesSort,
+  SeriesStatusFilter,
+} from "../model/series-derive";
 
 import {
   SERIES_READING_FILTERS,
@@ -20,26 +25,35 @@ import {
   SERIES_SORT_OPTIONS,
   SERIES_STATUS_FILTERS,
 } from "../model/series-derive";
+import { SeriesAdvancedFilters } from "./series-advanced-filters";
 
 type SeriesToolbarProps = {
+  advancedFilters: SeriesAdvancedFiltersValue;
+  onAdvancedApply: (next: SeriesAdvancedFiltersValue) => void;
   onReadingChange: (value: SeriesReadingFilter) => void;
+  onRememberAuthor: (id: string, name: string) => void;
   onSearchChange: (value: string) => void;
   onSearchClear: () => void;
   onSortChange: (value: SeriesSort) => void;
   onStatusChange: (value: SeriesStatusFilter) => void;
   readingFilter: SeriesReadingFilter;
+  resolveAuthorName: (id: string) => string | undefined;
   search: string;
   sort: SeriesSort;
   statusFilter: SeriesStatusFilter;
 };
 
 export function SeriesToolbar({
+  advancedFilters,
+  onAdvancedApply,
   onReadingChange,
+  onRememberAuthor,
   onSearchChange,
   onSearchClear,
   onSortChange,
   onStatusChange,
   readingFilter,
+  resolveAuthorName,
   search,
   sort,
   statusFilter,
@@ -104,6 +118,12 @@ export function SeriesToolbar({
           onClear={() => onSortChange(SERIES_SORT_DEFAULT)}
           options={SERIES_SORT_OPTIONS.map((value) => ({ label: tSort(value), value }))}
           value={sort}
+        />
+        <SeriesAdvancedFilters
+          filters={advancedFilters}
+          onApply={onAdvancedApply}
+          onRememberAuthor={onRememberAuthor}
+          resolveAuthorName={resolveAuthorName}
         />
       </div>
     </div>

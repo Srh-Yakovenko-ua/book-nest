@@ -1,13 +1,26 @@
 import { describe, expect, it } from "vitest";
 
+import type { SeriesAdvancedFilters } from "./series-derive";
+
 import {
+  countActiveSeriesFilters,
+  EMPTY_SERIES_ADVANCED_FILTERS,
   filterSeries,
+  hasActiveSeriesFilters,
   isSeriesUnfinished,
+  seriesCompleteness,
+  seriesMatchesAdvancedFilters,
   seriesProgress,
   seriesReadingState,
   sortSeries,
 } from "./series-derive";
 import { makeSeriesView } from "./series.fixtures";
+
+function makeAdvancedFilters(
+  overrides: Partial<SeriesAdvancedFilters> = {},
+): SeriesAdvancedFilters {
+  return { ...EMPTY_SERIES_ADVANCED_FILTERS, ...overrides };
+}
 
 describe("seriesProgress", () => {
   it("uses totalBooks as the denominator when present", () => {
@@ -164,6 +177,7 @@ describe("filterSeries", () => {
 
   it("matches by author name", () => {
     const result = filterSeries({
+      advanced: EMPTY_SERIES_ADVANCED_FILTERS,
       items,
       readingFilter: "all",
       search: "мартін",
@@ -175,6 +189,7 @@ describe("filterSeries", () => {
 
   it("filters by cycle status", () => {
     const result = filterSeries({
+      advanced: EMPTY_SERIES_ADVANCED_FILTERS,
       items,
       readingFilter: "all",
       search: "",
@@ -186,6 +201,7 @@ describe("filterSeries", () => {
 
   it("filters by reading state", () => {
     const result = filterSeries({
+      advanced: EMPTY_SERIES_ADVANCED_FILTERS,
       items,
       readingFilter: "not_started",
       search: "",
@@ -193,6 +209,167 @@ describe("filterSeries", () => {
       tab: "all",
     });
     expect(result.map((series) => series.id)).toEqual(["b"]);
+  });
+
+  it("applies advanced completeness filters alongside the base filters", () => {
+    const result = filterSeries({
+      advanced: makeAdvancedFilters({ completeness: ["complete"] }),
+      items: [
+        makeSeriesView({ booksInSeries: 3, id: "full", totalBooks: 3 }),
+        makeSeriesView({ booksInSeries: 2, id: "partial", totalBooks: 5 }),
+      ],
+      readingFilter: "all",
+      search: "",
+      statusFilter: "all",
+      tab: "all",
+    });
+    expect(result.map((series) => series.id)).toEqual(["full"]);
+  });
+});
+
+describe("seriesCompleteness", () => {
+  it("is no_plan when there is no planned length", () => {
+    expect(seriesCompleteness(makeSeriesView({ booksInSeries: 2, totalBooks: null }))).toBe(
+      "no_plan",
+    );
+  });
+
+  it("is complete when the collected count reaches the planned length", () => {
+    expect(seriesCompleteness(makeSeriesView({ booksInSeries: 5, totalBooks: 5 }))).toBe(
+      "complete",
+    );
+    expect(seriesCompleteness(makeSeriesView({ booksInSeries: 6, totalBooks: 5 }))).toBe(
+      "complete",
+    );
+  });
+
+  it("is incomplete when fewer books are collected than planned", () => {
+    expect(seriesCompleteness(makeSeriesView({ booksInSeries: 2, totalBooks: 5 }))).toBe(
+      "incomplete",
+    );
+  });
+});
+
+describe("seriesMatchesAdvancedFilters", () => {
+  const series = makeSeriesView({
+    authors: [{ id: "author-1", name: "Анна" }],
+    booksInSeries: 4,
+    finishedInSeries: 2,
+    genres: ["fantasy", "romance"],
+    totalBooks: 4,
+  });
+
+  it("passes an empty filter set", () => {
+    expect(seriesMatchesAdvancedFilters({ advanced: EMPTY_SERIES_ADVANCED_FILTERS, series })).toBe(
+      true,
+    );
+  });
+
+  it("filters by the reading-progress range", () => {
+    expect(
+      seriesMatchesAdvancedFilters({ advanced: makeAdvancedFilters({ progressMin: 60 }), series }),
+    ).toBe(false);
+    expect(
+      seriesMatchesAdvancedFilters({
+        advanced: makeAdvancedFilters({ progressMax: 60, progressMin: 40 }),
+        series,
+      }),
+    ).toBe(true);
+    expect(
+      seriesMatchesAdvancedFilters({ advanced: makeAdvancedFilters({ progressMax: 40 }), series }),
+    ).toBe(false);
+  });
+
+  it("filters by the books-in-series range", () => {
+    expect(
+      seriesMatchesAdvancedFilters({ advanced: makeAdvancedFilters({ booksMin: 5 }), series }),
+    ).toBe(false);
+    expect(
+      seriesMatchesAdvancedFilters({ advanced: makeAdvancedFilters({ booksMax: 3 }), series }),
+    ).toBe(false);
+    expect(
+      seriesMatchesAdvancedFilters({
+        advanced: makeAdvancedFilters({ booksMax: 5, booksMin: 2 }),
+        series,
+      }),
+    ).toBe(true);
+  });
+
+  it("passes when the series shares at least one selected genre", () => {
+    expect(
+      seriesMatchesAdvancedFilters({
+        advanced: makeAdvancedFilters({ genres: ["horror"] }),
+        series,
+      }),
+    ).toBe(false);
+    expect(
+      seriesMatchesAdvancedFilters({
+        advanced: makeAdvancedFilters({ genres: ["horror", "romance"] }),
+        series,
+      }),
+    ).toBe(true);
+  });
+
+  it("passes when the series has one of the selected authors", () => {
+    expect(
+      seriesMatchesAdvancedFilters({
+        advanced: makeAdvancedFilters({ authorIds: ["author-2"] }),
+        series,
+      }),
+    ).toBe(false);
+    expect(
+      seriesMatchesAdvancedFilters({
+        advanced: makeAdvancedFilters({ authorIds: ["author-1"] }),
+        series,
+      }),
+    ).toBe(true);
+  });
+
+  it("filters by collection completeness", () => {
+    expect(
+      seriesMatchesAdvancedFilters({
+        advanced: makeAdvancedFilters({ completeness: ["incomplete"] }),
+        series,
+      }),
+    ).toBe(false);
+    expect(
+      seriesMatchesAdvancedFilters({
+        advanced: makeAdvancedFilters({ completeness: ["complete", "no_plan"] }),
+        series,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("countActiveSeriesFilters", () => {
+  it("is zero for an empty filter set", () => {
+    expect(countActiveSeriesFilters(EMPTY_SERIES_ADVANCED_FILTERS)).toBe(0);
+  });
+
+  it("counts each populated array dimension once", () => {
+    expect(
+      countActiveSeriesFilters(
+        makeAdvancedFilters({ authorIds: ["a"], completeness: ["complete"], genres: ["fantasy"] }),
+      ),
+    ).toBe(3);
+  });
+
+  it("counts each range once regardless of which bound is set", () => {
+    expect(countActiveSeriesFilters(makeAdvancedFilters({ progressMin: 20 }))).toBe(1);
+    expect(
+      countActiveSeriesFilters(makeAdvancedFilters({ progressMax: 80, progressMin: 20 })),
+    ).toBe(1);
+    expect(countActiveSeriesFilters(makeAdvancedFilters({ booksMax: 10 }))).toBe(1);
+  });
+});
+
+describe("hasActiveSeriesFilters", () => {
+  it("is false for an empty filter set", () => {
+    expect(hasActiveSeriesFilters(EMPTY_SERIES_ADVANCED_FILTERS)).toBe(false);
+  });
+
+  it("is true once any dimension is set", () => {
+    expect(hasActiveSeriesFilters(makeAdvancedFilters({ booksMin: 1 }))).toBe(true);
   });
 });
 

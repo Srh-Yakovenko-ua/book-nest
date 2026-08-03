@@ -26,6 +26,8 @@ const SKELETON_COUNT = 6;
 const SERIES_RESULTS_PANEL_ID = "series-results";
 
 type AllSeriesViewProps = {
+  activeFilters: ReactNode;
+  counterLabel: string;
   hasActiveQuery: boolean;
   hasAnySeries: boolean;
   isError: boolean;
@@ -48,6 +50,8 @@ type AllSeriesViewProps = {
 };
 
 export function AllSeriesView({
+  activeFilters,
+  counterLabel,
   hasActiveQuery,
   hasAnySeries,
   isError,
@@ -116,6 +120,10 @@ export function AllSeriesView({
             value={tab}
           />
           {toolbar}
+          {activeFilters}
+          <p aria-live="polite" className="text-sm text-muted-foreground">
+            {counterLabel}
+          </p>
         </div>
       ) : null}
 
