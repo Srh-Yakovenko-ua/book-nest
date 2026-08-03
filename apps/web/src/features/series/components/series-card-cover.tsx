@@ -15,8 +15,8 @@ const MAX_FAN_LAYERS = 3;
 
 const FAN_LAYER_CLASSES = [
   "relative z-30 shadow-card",
-  "absolute top-0 left-0 z-20 translate-x-[6px] rotate-[3deg] shadow-sm",
-  "absolute top-0 left-0 z-10 translate-x-[12px] rotate-[6deg] shadow-sm",
+  "absolute top-0 left-0 z-20 translate-x-[6px] shadow-sm",
+  "absolute top-0 left-0 z-10 translate-x-[12px] shadow-sm",
 ] as const;
 
 type SeriesCardCoverProps = {
@@ -38,9 +38,9 @@ export function SeriesCardCover({
   const layers = covers.slice(0, MAX_FAN_LAYERS);
 
   return (
-    <div aria-label={alt} className="relative w-[90px] shrink-0" role="img">
+    <div aria-label={alt} className="relative w-[112px] shrink-0" role="img">
       {layers.length === 0 ? (
-        <div className="relative grid aspect-[3/4] w-[74px] place-items-center overflow-hidden rounded-lg border border-border bg-accent text-accent-foreground shadow-card">
+        <div className="relative grid aspect-[2/3] w-[110px] place-items-center overflow-hidden rounded-lg border border-border bg-accent text-accent-foreground shadow-card">
           <UiIcon
             className="absolute top-1.5 right-1.5 text-accent-foreground/40"
             name="layers"
@@ -61,7 +61,8 @@ export function SeriesCardCover({
       )}
 
       {totalBooks !== null && (
-        <span className="absolute bottom-0 left-0 z-40 inline-flex items-center rounded-full border border-border bg-card px-2 py-0.5 text-[0.6875rem] font-medium whitespace-nowrap text-muted-foreground shadow-card">
+        <span className="absolute bottom-0 left-0 z-40 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium whitespace-nowrap text-muted-foreground shadow-card">
+          <UiIcon aria-hidden className="shrink-0 text-icon" name="book" size={13} />
           {t("coverBadge", { added: booksInSeries, total: totalBooks })}
         </span>
       )}
@@ -77,7 +78,7 @@ function SeriesCardCoverLayer({ className, cover }: { className: string; cover: 
   return (
     <div
       className={cn(
-        "aspect-[3/4] w-[74px] origin-bottom-left overflow-hidden rounded-lg border border-border bg-accent",
+        "aspect-[2/3] w-[110px] overflow-hidden rounded-lg border border-border bg-accent",
         className,
       )}
     >
@@ -99,7 +100,7 @@ function SeriesCardCoverLayer({ className, cover }: { className: string; cover: 
           fill
           onError={() => setFailed(true)}
           onLoad={() => setLoaded(true)}
-          sizes="90px"
+          sizes="110px"
           src={cover.src}
           unoptimized
         />
