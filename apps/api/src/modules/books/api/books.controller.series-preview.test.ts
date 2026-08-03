@@ -99,6 +99,7 @@ describe("series preview through the books endpoints", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.series.nextBook).toEqual({
+      cover: null,
       id: bookIds[0],
       partNumber: 1,
       title: "Throne of Glass",
@@ -132,6 +133,7 @@ describe("series preview through the books endpoints", () => {
     const res = await getBook(accessToken, bookIds[2]);
 
     expect(res.body.series.nextBook).toEqual({
+      cover: null,
       id: bookIds[1],
       partNumber: 2,
       title: "Crown of Midnight",
@@ -149,6 +151,7 @@ describe("series preview through the books endpoints", () => {
 
     expect(res.body.hasUnreadEarlierSeriesParts).toBe(false);
     expect(res.body.series.nextBook).toEqual({
+      cover: null,
       id: bookIds[2],
       partNumber: 3,
       title: "Heir of Fire",
@@ -188,6 +191,11 @@ describe("series preview through the books endpoints", () => {
     const res = await searchSeries(accessToken);
 
     const item = res.body.items.find((entry: { id: string }) => entry.id === seriesId);
-    expect(item.nextBook).toEqual({ id: bookIds[0], partNumber: 1, title: "Throne of Glass" });
+    expect(item.nextBook).toEqual({
+      cover: null,
+      id: bookIds[0],
+      partNumber: 1,
+      title: "Throne of Glass",
+    });
   });
 });

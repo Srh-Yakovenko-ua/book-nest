@@ -25,9 +25,11 @@ export type SeriesBookRow = {
 
 export type SeriesBooksSummary = {
   finishedInSeries: number;
-  nextBook: Nullable<SeriesNextBook>;
+  nextBook: Nullable<SeriesNextBookSummary>;
   readingInSeries: number;
 };
+
+export type SeriesNextBookSummary = Omit<SeriesNextBook, "cover">;
 
 type PartOrderedBook = {
   createdAt: Date;

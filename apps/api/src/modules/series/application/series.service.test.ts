@@ -743,6 +743,82 @@ describe("SeriesService.search covers", () => {
   });
 });
 
+describe("SeriesService nextBook cover", () => {
+  it("attaches the resolved cover to the next book in the search response", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({
+              coverMedia: coverAsset("media-1"),
+              id: "book-1",
+              partNumber: 1,
+              readingStatus: "reading",
+            }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.nextBook).toEqual({
+      cover: mediaView("media-1"),
+      id: "book-1",
+      partNumber: 1,
+      title: "Book",
+    });
+  });
+
+  it("leaves the next book cover null when the next book has none", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: null, id: "book-1", partNumber: 1, readingStatus: "reading" }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.nextBook?.cover).toBeNull();
+  });
+
+  it("attaches the resolved cover to the next book in the overview topUnfinished", async () => {
+    const repository = {
+      countBooksInSeries: vi.fn().mockResolvedValue(0),
+      findAllOwned: vi.fn().mockResolvedValue([
+        ownedWithCount({
+          books: [
+            bookRow({ id: "done-1", partNumber: 1, readingStatus: "finished" }),
+            bookRow({
+              coverMedia: coverAsset("media-9"),
+              id: "next-2",
+              partNumber: 2,
+              readingStatus: "reading",
+            }),
+          ],
+          id: SERIES_ID,
+        }),
+      ]),
+    };
+    const { service } = makeService({ repository });
+
+    const overview = await service.overview(USER_ID);
+
+    expect(overview.topUnfinished[0]?.nextBook).toEqual({
+      cover: mediaView("media-9"),
+      id: "next-2",
+      partNumber: 2,
+      title: "Book",
+    });
+  });
+});
+
 describe("SeriesService.create", () => {
   it("returns the mapped view when the name is free", async () => {
     const repository = {

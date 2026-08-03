@@ -6,7 +6,6 @@ import type {
   NewSeriesInput,
   Nullable,
   Paginator,
-  SeriesCoverPreview,
   SeriesDetailsView,
   SeriesOverviewView,
   SeriesSearchQuery,
@@ -26,6 +25,7 @@ import { Injectable } from "@nestjs/common";
 import { differenceInMilliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type {
   ContinuationBook,
   ContinuationSeriesGroup,
@@ -45,7 +45,6 @@ import { GenresService } from "../../genres/index.js";
 import { MediaService } from "../../media/index.js";
 import { assembleContinuations } from "../domain/favorite-continuations.js";
 import {
-  compareByPartThenCreated,
   computeSeriesLastActivityAt,
   countFinishedBooks,
   toSeriesBookPreview,
@@ -63,7 +62,6 @@ const SERIES_TOTAL_BELOW_BOOKS_MESSAGE =
   "Total books cannot be less than the number of books already in the series";
 const SERIES_TOTAL_BELOW_PART_MESSAGE = "Total books cannot be less than an existing part number";
 const SERIES_LIST_LIMITS = {
-  coverPreview: 3,
   overviewTop: 3,
 } as const;
 
@@ -128,7 +126,7 @@ export class SeriesService {
         userId,
       });
       return toSeriesView({
-        covers: this.buildSeriesCoverPreviews(created.books),
+        coverByBookId: this.buildCoverByBookId(created.books),
         series: created,
       });
     } catch (error) {
@@ -163,9 +161,7 @@ export class SeriesService {
     if (series === null) {
       throw new NotFoundError("Series not found");
     }
-    const covers = new Map<string, Nullable<MediaView>>(
-      series.books.map((book) => [book.id, this.mediaService.buildViewOrNull(book.coverMedia)]),
-    );
+    const covers = this.buildCoverByBookId(series.books);
     return toSeriesDetailsView({ covers, series, today: startOfUtcDay(new Date()) });
   }
 
@@ -203,7 +199,7 @@ export class SeriesService {
       .slice(0, SERIES_LIST_LIMITS.overviewTop)
       .map((entry) =>
         toSeriesView({
-          covers: this.buildSeriesCoverPreviews(entry.series.books),
+          coverByBookId: this.buildCoverByBookId(entry.series.books),
           series: entry.series,
         }),
       );
@@ -289,7 +285,7 @@ export class SeriesService {
     return buildPaginator({
       items: series.map((seriesRow) =>
         toSeriesView({
-          covers: this.buildSeriesCoverPreviews(seriesRow.books),
+          coverByBookId: this.buildCoverByBookId(seriesRow.books),
           series: seriesRow,
         }),
       ),
@@ -343,7 +339,7 @@ export class SeriesService {
     try {
       const updated = await this.seriesRepository.updateOwned(userId, id, { authorIds, fields });
       return toSeriesView({
-        covers: this.buildSeriesCoverPreviews(updated.books),
+        coverByBookId: this.buildCoverByBookId(updated.books),
         series: updated,
       });
     } catch (error) {
@@ -389,14 +385,12 @@ export class SeriesService {
     }
   }
 
-  private buildSeriesCoverPreviews(books: SeriesWithBookCount["books"]): SeriesCoverPreview[] {
-    return [...books]
-      .sort(compareByPartThenCreated)
-      .flatMap((book) => {
-        const cover = this.mediaService.buildViewOrNull(book.coverMedia);
-        return cover === null ? [] : [{ bookId: book.id, cover, title: book.title }];
-      })
-      .slice(0, SERIES_LIST_LIMITS.coverPreview);
+  private buildCoverByBookId(
+    books: readonly { coverMedia: Nullable<MediaAssetModel>; id: string }[],
+  ): Map<string, Nullable<MediaView>> {
+    return new Map(
+      books.map((book) => [book.id, this.mediaService.buildViewOrNull(book.coverMedia)]),
+    );
   }
 
   private async resolveSeriesAuthorIds({

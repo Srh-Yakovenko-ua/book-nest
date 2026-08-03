@@ -87,6 +87,7 @@ export const SeriesSearchQuerySchema = TaxonomySearchPaginationQuerySchema.exten
 export type SeriesSearchQuery = z.infer<typeof SeriesSearchQuerySchema>;
 
 export const SeriesNextBookSchema = z.object({
+  cover: MediaViewSchema.nullish(),
   id: z.string(),
   partNumber: z.number().nullable(),
   title: z.string(),

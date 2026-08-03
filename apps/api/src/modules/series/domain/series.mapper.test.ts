@@ -1,4 +1,4 @@
-import type { MediaView, Nullable, SeriesBookView } from "@app/shared";
+import type { MediaView, Nullable, SeriesBookView, SeriesDetailsView } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
@@ -27,6 +27,26 @@ function makeSeriesAuthor(id: string, name: string): SeriesAuthorLink {
 
 const TODAY = new Date("2026-06-01T00:00:00.000Z");
 const BASE_CREATED_AT = new Date("2026-01-01T00:00:00.000Z");
+
+function detailsFor(
+  book: SeriesDetailBook,
+  covers: Map<string, Nullable<MediaView>>,
+): SeriesDetailsView {
+  const series = fakeOf<SeriesWithDetails>({
+    _count: { books: 1 },
+    authors: [makeSeriesAuthor("author-1", "Author One")],
+    books: [book],
+    createdAt: BASE_CREATED_AT,
+    description: null,
+    genres: [],
+    id: "series-1",
+    name: "Test Series",
+    status: "ongoing",
+    totalBooks: 5,
+    updatedAt: BASE_CREATED_AT,
+  });
+  return toSeriesDetailsView({ covers, series, today: TODAY });
+}
 
 function makeBook(overrides: Partial<SeriesDetailBook> = {}): SeriesDetailBook {
   return fakeOf<SeriesDetailBook>({
@@ -101,21 +121,7 @@ function makeLoan(overrides: Partial<BookLoanModel> = {}): BookLoanModel {
 }
 
 function mapSingleBook(book: SeriesDetailBook): SeriesBookView {
-  const series = fakeOf<SeriesWithDetails>({
-    _count: { books: 1 },
-    authors: [makeSeriesAuthor("author-1", "Author One")],
-    books: [book],
-    createdAt: BASE_CREATED_AT,
-    description: null,
-    genres: [],
-    id: "series-1",
-    name: "Test Series",
-    status: "ongoing",
-    totalBooks: 5,
-    updatedAt: BASE_CREATED_AT,
-  });
-  const covers = new Map<string, Nullable<MediaView>>();
-  const [mapped] = toSeriesDetailsView({ covers, series, today: TODAY }).books;
+  const [mapped] = detailsFor(book, new Map()).books;
   if (mapped === undefined) {
     throw new Error("expected a mapped series book");
   }
@@ -252,5 +258,28 @@ describe("toSeriesDetailsView book card fields", () => {
     );
 
     expect(book.activeDelivery).toBeNull();
+  });
+});
+
+describe("toSeriesDetailsView nextBook cover", () => {
+  it("attaches the resolved cover to the next book", () => {
+    const cover = fakeOf<MediaView>({ id: "media-1" });
+    const covers = new Map<string, Nullable<MediaView>>([["book-1", cover]]);
+
+    const details = detailsFor(
+      makeBook({ id: "book-1", partNumber: 1, readingStatus: "reading", title: "Book One" }),
+      covers,
+    );
+
+    expect(details.nextBook).toEqual({ cover, id: "book-1", partNumber: 1, title: "Book One" });
+  });
+
+  it("leaves the next book cover null when the book has none", () => {
+    const details = detailsFor(
+      makeBook({ id: "book-1", partNumber: 1, readingStatus: "reading" }),
+      new Map(),
+    );
+
+    expect(details.nextBook?.cover).toBeNull();
   });
 });
