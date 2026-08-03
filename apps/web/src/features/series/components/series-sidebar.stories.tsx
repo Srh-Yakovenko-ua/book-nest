@@ -9,8 +9,6 @@ const meta = {
   args: {
     isError: false,
     isLoading: false,
-    onCreateSeries: fn(),
-    onGoToUnfinished: fn(),
     onRetry: fn(),
     overview: makeSeriesOverview(),
   },
@@ -32,14 +30,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  play: async ({ args, canvas }) => {
-    await expect(canvas.getByText("Швидкі дії")).toBeVisible();
-    await expect(canvas.getByText("Продовжити серію")).toBeVisible();
-    await expect(canvas.getByText("Хроніки Амбера")).toBeVisible();
-    await expect(canvas.getByRole("link", { name: "Відкрити серію" })).toBeVisible();
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Продовжити читання")).toBeVisible();
+    await expect(canvas.getByText("Наступна книга")).toBeVisible();
+    await expect(canvas.getByRole("img", { name: /Обкладинка книги/ })).toBeVisible();
     await expect(canvas.getByText("Статус циклів")).toBeVisible();
-    await userEvent.click(canvas.getByRole("button", { name: "Створити серію" }));
-    await waitFor(() => expect(args.onCreateSeries).toHaveBeenCalled());
   },
 };
 
@@ -67,7 +62,6 @@ export const Loading: Story = {
 export const ErrorState: Story = {
   args: { isError: true, overview: undefined },
   play: async ({ args, canvas }) => {
-    await expect(canvas.getByText("Швидкі дії")).toBeVisible();
     await expect(canvas.getByText("Не вдалося завантажити серії")).toBeVisible();
     await userEvent.click(canvas.getByRole("button", { name: "Спробувати ще раз" }));
     await waitFor(() => expect(args.onRetry).toHaveBeenCalled());

@@ -41,7 +41,9 @@ function renderTab({
         books,
         booksInSeries: books.length,
         nextBook:
-          nextBookId === undefined ? null : { id: nextBookId, partNumber: null, title: "Наступна" },
+          nextBookId === undefined
+            ? null
+            : { cover: null, id: nextBookId, partNumber: null, title: "Наступна" },
         publishers,
         totalBooks,
       })}

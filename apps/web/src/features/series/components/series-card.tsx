@@ -68,10 +68,15 @@ export function SeriesCard({ series }: SeriesCardProps) {
       {isEmpty ? (
         <p className="text-sm text-muted-foreground">{t("card.noBooks")}</p>
       ) : progress.fullyRead ? (
-        <p className="flex items-center gap-1.5 text-sm font-medium text-success">
-          <UiIcon className="shrink-0" name="check-circle" size={15} />
-          {t("card.nextAllRead")}
-        </p>
+        <StatusBadge
+          className="self-start"
+          entry={{
+            icon: "check-circle",
+            label: t("card.readBadge"),
+            tone: "success",
+            value: "series-read",
+          }}
+        />
       ) : (
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-2 text-sm">

@@ -1,12 +1,12 @@
 "use client";
 
-import type { SeriesOverviewView, SeriesView } from "@app/shared";
+import type { SeriesNextBook, SeriesOverviewView, SeriesView } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 
 import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 
@@ -16,20 +16,11 @@ import { SeriesOverviewError } from "./series-overview-error";
 type SeriesSidebarProps = {
   isError: boolean;
   isLoading: boolean;
-  onCreateSeries: () => void;
-  onGoToUnfinished: () => void;
   onRetry: () => void;
   overview: SeriesOverviewView | undefined;
 };
 
-export function SeriesSidebar({
-  isError,
-  isLoading,
-  onCreateSeries,
-  onGoToUnfinished,
-  onRetry,
-  overview,
-}: SeriesSidebarProps) {
+export function SeriesSidebar({ isError, isLoading, onRetry, overview }: SeriesSidebarProps) {
   const t = useTranslations("series.sidebar");
   const topUnfinished = overview?.topUnfinished ?? [];
   const continueSeries = topUnfinished[0];
@@ -37,28 +28,9 @@ export function SeriesSidebar({
 
   return (
     <aside
-      aria-label={t("quickActions")}
+      aria-label={t("label")}
       className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
-      <SidebarBlock title={t("quickActions")}>
-        <div className="flex flex-col gap-2">
-          <Button className="justify-start" onClick={onCreateSeries} variant="secondary">
-            <UiIcon name="plus" size={16} />
-            {t("createSeries")}
-          </Button>
-          <Button asChild className="justify-start" variant="secondary">
-            <Link href="/books/new">
-              <UiIcon name="book" size={16} />
-              {t("addBook")}
-            </Link>
-          </Button>
-          <Button className="justify-start" onClick={onGoToUnfinished} variant="ghost">
-            <UiIcon name="target" size={16} />
-            {t("goToUnfinished")}
-          </Button>
-        </div>
-      </SidebarBlock>
-
       {isError ? (
         <SeriesOverviewError onRetry={onRetry} />
       ) : (
@@ -134,32 +106,72 @@ function ContinueBlock({ series }: { series: SeriesView }) {
   const progress = seriesProgress(series);
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <p className="font-heading text-sm leading-snug font-medium text-ink">{series.name}</p>
-      <p className="text-xs text-muted-foreground tabular-nums">
-        {t("progress", {
-          finished: progress.finished,
-          percent: progress.percent,
-          total: progress.denominator,
-        })}
-      </p>
-      {series.nextBook === null ? null : (
-        <p className="truncate text-xs text-foreground/85">
-          {t("next", { title: series.nextBook.title })}
-        </p>
-      )}
-      <Button asChild className="mt-0.5 self-start" size="sm" variant="secondary">
-        <Link href={`/series/${series.id}`}>
-          {t("openSeries")}
-          <UiIcon name="arrow-right" size={14} />
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <Link
+          className="cursor-pointer font-heading text-sm leading-snug font-medium text-ink no-underline transition-colors outline-none hover:text-primary focus-visible:text-primary focus-visible:underline"
+          href={`/series/${series.id}`}
+        >
+          {series.name}
         </Link>
-      </Button>
+        <p className="text-xs text-muted-foreground tabular-nums">
+          {t("progressReading", {
+            finished: progress.finished,
+            left: progress.denominator - progress.finished,
+            total: progress.denominator,
+          })}
+        </p>
+      </div>
+      {series.nextBook === null ? null : <NextBookRow nextBook={series.nextBook} />}
     </div>
   );
 }
 
 function EmptyText({ children }: { children: ReactNode }) {
   return <p className="text-xs text-muted-foreground">{children}</p>;
+}
+
+function NextBookRow({ nextBook }: { nextBook: SeriesNextBook }) {
+  const t = useTranslations("series.sidebar");
+  const cover = nextBook.cover;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="text-xs font-medium text-muted-foreground">{t("nextBookHeading")}</p>
+      <Link
+        className="group/next -mx-1.5 flex cursor-pointer items-center gap-2.5 rounded-md p-1.5 no-underline transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50"
+        href={`/books/${nextBook.id}`}
+      >
+        {cover === null || cover === undefined ? (
+          <div
+            aria-hidden
+            className="grid aspect-[2/3] w-14 shrink-0 place-items-center rounded-md border border-border bg-accent text-accent-foreground/50"
+          >
+            <UiIcon name="book" size={18} />
+          </div>
+        ) : (
+          <Image
+            alt={t("nextCoverAlt", { title: nextBook.title })}
+            className="aspect-[2/3] w-14 shrink-0 rounded-md border border-border object-cover"
+            height={84}
+            src={cover.urls.thumb}
+            unoptimized
+            width={56}
+          />
+        )}
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate text-sm font-medium text-ink transition-colors group-hover/next:text-primary">
+            {nextBook.title}
+          </span>
+          {nextBook.partNumber === null ? null : (
+            <span className="text-xs text-muted-foreground">
+              {t("nextBookPart", { number: nextBook.partNumber })}
+            </span>
+          )}
+        </span>
+      </Link>
+    </div>
+  );
 }
 
 function RowSkeleton({ rows }: { rows: number }) {
@@ -177,7 +189,7 @@ function RowSkeleton({ rows }: { rows: number }) {
 
 function SidebarBlock({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
+    <section className="sidebar-card-leaf flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-card">
       <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
       {children}
     </section>

@@ -45,7 +45,7 @@ export const NotStarted: Story = {
   args: {
     series: makeSeriesView({
       finishedInSeries: 0,
-      nextBook: { id: "next-book-1", partNumber: 1, title: "Четверте крило" },
+      nextBook: { cover: null, id: "next-book-1", partNumber: 1, title: "Четверте крило" },
     }),
   },
   play: async ({ canvas }) => {
@@ -111,7 +111,7 @@ export const AllRead: Story = {
     }),
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText("Усю серію прочитано")).toBeVisible();
+    await expect(canvas.getByText("Серію прочитано")).toBeVisible();
     await expect(canvas.queryByText("Усі книги прочитані")).toBeNull();
     await expect(canvas.queryByRole("progressbar")).toBeNull();
   },
