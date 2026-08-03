@@ -11,6 +11,7 @@ import { Link } from "@/i18n/navigation";
 import { seriesStatuses } from "@/lib/book-status";
 
 import { seriesProgress } from "../model/series-derive";
+import { SeriesCardCover } from "./series-card-cover";
 
 type SeriesCardProps = {
   series: SeriesView;
@@ -30,7 +31,17 @@ export function SeriesCard({ series }: SeriesCardProps) {
   return (
     <article className="group/series-card relative flex h-full cursor-pointer flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color] duration-200 ease-out focus-within:border-accent-border focus-within:shadow-hover hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
       <div className="flex gap-3.5">
-        <SeriesCover alt={t("card.coverAlt", { name: series.name })} name={series.name} />
+        <SeriesCardCover
+          alt={t("card.coverAlt", { name: series.name })}
+          booksInSeries={series.booksInSeries}
+          covers={series.covers.map((cover) => ({
+            id: cover.bookId,
+            src: cover.cover.urls.card,
+            title: cover.title,
+          }))}
+          name={series.name}
+          totalBooks={series.totalBooks}
+        />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <h3 className="font-heading text-[1.0625rem] leading-tight font-bold text-ink">
             <Link
@@ -133,32 +144,4 @@ function NextBookLine({ series }: { series: SeriesView }) {
       </span>
     </p>
   );
-}
-
-function SeriesCover({ alt, name }: { alt: string; name: string }) {
-  return (
-    <div
-      aria-label={alt}
-      className="relative grid aspect-[3/4] w-[74px] shrink-0 place-items-center overflow-hidden rounded-md bg-accent text-accent-foreground shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]"
-      role="img"
-    >
-      <UiIcon
-        className="absolute top-1.5 right-1.5 text-accent-foreground/40"
-        name="layers"
-        size={14}
-      />
-      <span className="font-heading text-lg font-bold text-accent-foreground/85">
-        {seriesInitials(name)}
-      </span>
-    </div>
-  );
-}
-
-function seriesInitials(name: string): string {
-  const words = name
-    .trim()
-    .split(/\s+/)
-    .filter((word) => word.length > 0);
-  const letters = words.slice(0, 2).map((word) => word[0] ?? "");
-  return letters.join("").toUpperCase() || "?";
 }

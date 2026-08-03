@@ -29,9 +29,55 @@ export const WithProgress: Story = {
     await expect(canvas.getByText("Емпіреї")).toBeVisible();
     await expect(canvas.getByText("Прочитано 1 з 5")).toBeVisible();
     await expect(canvas.getByText("Наступна: Ковадло зірок · Книга 2")).toBeVisible();
+    await expect(canvas.getByText("3 з 5 додано")).toBeVisible();
     await expect(canvas.getByRole("link", { name: "Емпіреї" }).getAttribute("href")).toContain(
       "/series/series-1",
     );
+  },
+};
+
+export const PartiallyCollected: Story = {
+  args: {
+    series: makeSeriesView({ booksInSeries: 3, finishedInSeries: 1, totalBooks: 4 }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("img", { name: "Обкладинка серії Емпіреї" })).toBeVisible();
+    await expect(canvas.getByText("3 з 4 додано")).toBeVisible();
+  },
+};
+
+export const FullyCollected: Story = {
+  args: {
+    series: makeSeriesView({
+      booksInSeries: 4,
+      finishedInSeries: 4,
+      nextBook: null,
+      status: "completed",
+      totalBooks: 4,
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("4 з 4 додано")).toBeVisible();
+  },
+};
+
+export const CoversFallback: Story = {
+  args: {
+    series: makeSeriesView({ booksInSeries: 3, covers: [], finishedInSeries: 1, totalBooks: 4 }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("img", { name: "Обкладинка серії Емпіреї" })).toBeVisible();
+    await expect(canvas.getByText("3 з 4 додано")).toBeVisible();
+  },
+};
+
+export const WithoutBadge: Story = {
+  args: {
+    series: makeSeriesView({ booksInSeries: 3, finishedInSeries: 1, totalBooks: null }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("img", { name: "Обкладинка серії Емпіреї" })).toBeVisible();
+    await expect(canvas.queryByText(/додано$/)).toBeNull();
   },
 };
 
@@ -55,6 +101,7 @@ export const Empty: Story = {
   args: {
     series: makeSeriesView({
       booksInSeries: 0,
+      covers: [],
       finishedInSeries: 0,
       nextBook: null,
       totalBooks: null,
@@ -94,6 +141,7 @@ export const AddedFallback: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Прочитано 2 з 4 доданих")).toBeVisible();
+    await expect(canvas.queryByText(/додано$/)).toBeNull();
   },
 };
 

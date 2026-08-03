@@ -1,7 +1,9 @@
 import type {
   DeliveryView,
   LoanInfoView,
+  MediaView,
   SeriesBookView,
+  SeriesCoverPreview,
   SeriesDetailsView,
   SeriesOverviewView,
   SeriesStatsView,
@@ -69,6 +71,36 @@ export function makeSeriesBookView(overrides: Partial<SeriesBookView> = {}): Ser
     readingStatus: "finished",
     startedAt: null,
     tags: [{ id: "tag-1", name: "дракони" }],
+    title: "Четверте крило",
+    ...overrides,
+  };
+}
+
+export function makeSeriesCoverMedia(overrides: Partial<MediaView> = {}): MediaView {
+  return {
+    contentType: "image/webp",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    height: 800,
+    id: "series-cover-media-1",
+    kind: "book_cover",
+    name: "cover.webp",
+    sizeBytes: 1024,
+    urls: {
+      card: "https://cdn.test/series-card.webp",
+      full: "https://cdn.test/series-full.webp",
+      thumb: "https://cdn.test/series-thumb.webp",
+    },
+    width: 600,
+    ...overrides,
+  };
+}
+
+export function makeSeriesCoverPreview(
+  overrides: Partial<SeriesCoverPreview> = {},
+): SeriesCoverPreview {
+  return {
+    bookId: "series-book-1",
+    cover: makeSeriesCoverMedia(),
     title: "Четверте крило",
     ...overrides,
   };
@@ -171,7 +203,11 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
   return {
     authors: [{ id: "author-1", name: "Ребекка Яррос" }],
     booksInSeries: 3,
-    covers: [],
+    covers: [
+      makeSeriesCoverPreview({ bookId: "series-book-1", title: "Четверте крило" }),
+      makeSeriesCoverPreview({ bookId: "series-book-2", title: "Ковадло зірок" }),
+      makeSeriesCoverPreview({ bookId: "series-book-3", title: "Оніксове полум'я" }),
+    ],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
     finishedInSeries: 1,

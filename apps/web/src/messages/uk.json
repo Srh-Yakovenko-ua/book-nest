@@ -2466,6 +2466,7 @@
       "view": "Переглянути серію",
       "addBook": "Додати книгу",
       "coverAlt": "Обкладинка серії {name}",
+      "coverBadge": "{added} з {total} додано",
       "authorsUnknown": "Автор невідомий"
     },
     "sidebar": {

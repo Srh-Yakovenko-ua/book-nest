@@ -2466,6 +2466,7 @@
       "view": "View series",
       "addBook": "Add book",
       "coverAlt": "Cover of series {name}",
+      "coverBadge": "{added} of {total} added",
       "authorsUnknown": "Unknown author"
     },
     "sidebar": {
