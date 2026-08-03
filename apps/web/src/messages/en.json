@@ -636,21 +636,21 @@
       "sort": {
         "label": "Sort",
         "options": {
-          "created_desc": "Recently added",
-          "created_asc": "Oldest added",
-          "updated_desc": "Recently updated",
-          "title_asc": "Title A–Z",
-          "title_desc": "Title Z–A",
-          "author_asc": "Author A–Z",
-          "author_desc": "Author Z–A",
-          "rating_desc": "Highest rating",
-          "rating_asc": "Lowest rating",
-          "year_desc": "Newer editions",
-          "year_asc": "Older editions",
-          "pages_desc": "More pages",
-          "pages_asc": "Fewer pages",
-          "favorite_added_desc": "Favorites: newest first",
-          "favorite_added_asc": "Favorites: oldest first"
+          "created_desc": "Date added: newest first",
+          "created_asc": "Date added: oldest first",
+          "updated_desc": "Date updated: newest first",
+          "title_asc": "Title: A–Z",
+          "title_desc": "Title: Z–A",
+          "author_asc": "Author: A–Z",
+          "author_desc": "Author: Z–A",
+          "rating_desc": "Rating: highest first",
+          "rating_asc": "Rating: lowest first",
+          "year_desc": "Publication year: newest first",
+          "year_asc": "Publication year: oldest first",
+          "pages_desc": "Page count: most first",
+          "pages_asc": "Page count: fewest first",
+          "favorite_added_desc": "Added to favorites: newest first",
+          "favorite_added_asc": "Added to favorites: oldest first"
         }
       },
       "view": {
@@ -2424,6 +2424,24 @@
       "all": "All series",
       "unfinished": "Unfinished"
     },
+    "counter": "Showing {shown} of {total, plural, one {# series} other {# series}}",
+    "activeFilters": {
+      "label": "Active filters",
+      "clearAll": "Clear all",
+      "remove": "Remove filter {label}",
+      "search": "Search: {query}",
+      "status": "Status: {label}",
+      "reading": "State: {label}",
+      "progressFrom": "Progress from {min}%",
+      "progressTo": "Progress to {max}%",
+      "progressRange": "Progress {min}–{max}%",
+      "booksFrom": "Books from {min}",
+      "booksTo": "Books to {max}",
+      "booksRange": "Books {min}–{max}",
+      "completeness": "Added: {label}",
+      "genre": "Genre: {name}",
+      "author": "Author: {name}"
+    },
     "toolbar": {
       "searchLabel": "Search series",
       "searchPlaceholder": "Search by name or author",
@@ -2433,25 +2451,61 @@
       "sortLabel": "Sort"
     },
     "statusFilter": {
-      "all": "All statuses",
+      "all": "All release statuses",
       "completed": "Completed",
       "ongoing": "Ongoing",
       "unknown": "Unknown"
     },
     "readingFilter": {
-      "all": "Any state",
+      "all": "All reading states",
       "not_started": "Not started",
-      "in_progress": "In progress",
-      "completed": "Fully read",
-      "empty": "No books"
+      "in_progress": "Reading in progress",
+      "completed": "Series read",
+      "empty": "No books added"
     },
     "sort": {
-      "name_asc": "Name A–Z",
-      "name_desc": "Name Z–A",
-      "progress_desc": "Most progress",
-      "progress_asc": "Least progress",
-      "books_desc": "Most books",
-      "activity_desc": "Recently updated"
+      "name_asc": "Name: A–Z",
+      "name_desc": "Name: Z–A",
+      "progress_desc": "Reading progress: highest first",
+      "progress_asc": "Reading progress: lowest first",
+      "books_desc": "Books in series: most first",
+      "activity_desc": "Date updated: newest first"
+    },
+    "filters": {
+      "trigger": "Filters",
+      "title": "Advanced filters",
+      "description": "Narrow the series list by progress, genre, author and added books.",
+      "apply": "Apply",
+      "clear": "Clear",
+      "sections": {
+        "progress": "Reading progress",
+        "booksCount": "Added books in series",
+        "completeness": "Books added",
+        "genre": "Genre",
+        "author": "Author"
+      },
+      "completeness": {
+        "complete": "All books added",
+        "incomplete": "Not all added",
+        "no_plan": "Book count unknown"
+      },
+      "completenessHint": "How many of the series' books are already on the platform — regardless of ownership or reading.",
+      "progressAny": "Any",
+      "progressRange": "{min}%–{max}%",
+      "range": {
+        "min": "From",
+        "max": "To",
+        "booksMin": "Books from",
+        "booksMax": "Books to",
+        "invalid": "Minimum cannot exceed maximum"
+      },
+      "genrePlaceholder": "Select genres",
+      "authorPlaceholder": "Select authors",
+      "searchPlaceholder": "Search…",
+      "empty": "No options available",
+      "authorEmpty": "No authors found",
+      "authorSearching": "Searching authors…",
+      "removeAuthor": "Remove author {name}"
     },
     "status": {
       "completed": "Completed",
@@ -2467,7 +2521,7 @@
       "startWithPart": "Start with: {title} · Book {number}",
       "continueReading": "Continue reading: {title}",
       "continueWithPart": "Continue reading: {title} · Book {number}",
-      "nextAllRead": "Whole series read",
+      "readBadge": "Series read",
       "view": "View series",
       "addBook": "Add book",
       "coverAlt": "Cover of series {name}",
@@ -2475,15 +2529,14 @@
       "authorsUnknown": "Unknown author"
     },
     "sidebar": {
-      "quickActions": "Quick actions",
-      "createSeries": "Create series",
-      "addBook": "Add book",
-      "goToUnfinished": "Go to unfinished",
-      "continueTitle": "Continue a series",
+      "label": "Series overview",
+      "continueTitle": "Continue reading",
       "continueEmpty": "No unfinished series",
       "progress": "{finished} of {total} · {percent}%",
-      "next": "Next: {title}",
-      "openSeries": "Open series",
+      "progressReading": "{finished} of {total} read · {left, plural, one {# book left} other {# books left}}",
+      "nextBookHeading": "Next book",
+      "nextBookPart": "Book {number} in the series",
+      "nextCoverAlt": "Cover of {title}",
       "closestTitle": "Closest to finishing",
       "closestEmpty": "No progress yet",
       "statusTitle": "Cycle status",
