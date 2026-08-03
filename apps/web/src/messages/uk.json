@@ -2412,9 +2412,13 @@
     },
     "summary": {
       "total": "Усього серій",
+      "totalBreakdown": "{completed, plural, one {# завершена} few {# завершені} many {# завершених} other {# завершених}} · {ongoing, plural, one {# ще виходить} few {# ще виходять} many {# ще виходять} other {# ще виходять}}",
       "fullyRead": "Прочитано",
+      "fullyReadPercent": "{percent}% усіх серій",
       "unfinished": "Недочитані",
-      "booksInSeries": "Книг у серіях"
+      "booksLeft": "лишилося {n, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "booksInSeries": "Книг у серіях",
+      "booksReadOfTotal": "прочитано {finished} з {total}"
     },
     "tabs": {
       "all": "Усі серії",

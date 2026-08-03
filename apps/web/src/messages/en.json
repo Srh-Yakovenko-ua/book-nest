@@ -2412,9 +2412,13 @@
     },
     "summary": {
       "total": "Total series",
+      "totalBreakdown": "{completed, plural, one {# completed} other {# completed}} · {ongoing, plural, one {# ongoing} other {# ongoing}}",
       "fullyRead": "Fully read",
+      "fullyReadPercent": "{percent}% of all series",
       "unfinished": "Unfinished",
-      "booksInSeries": "Books in series"
+      "booksLeft": "{n, plural, one {# book left} other {# books left}}",
+      "booksInSeries": "Books in series",
+      "booksReadOfTotal": "{finished} of {total} read"
     },
     "tabs": {
       "all": "All series",
