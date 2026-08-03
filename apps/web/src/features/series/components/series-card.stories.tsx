@@ -28,11 +28,30 @@ export const WithProgress: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Емпіреї")).toBeVisible();
     await expect(canvas.getByText("Прочитано 1 з 5")).toBeVisible();
-    await expect(canvas.getByText("Наступна: Ковадло зірок · Книга 2")).toBeVisible();
+    await expect(canvas.getByText("Далі читати: Ковадло зірок · Книга 2")).toBeVisible();
     await expect(canvas.getByText("3 з 5 додано")).toBeVisible();
     await expect(canvas.getByRole("link", { name: "Емпіреї" }).getAttribute("href")).toContain(
       "/series/series-1",
     );
+    await expect(
+      canvas
+        .getByRole("link", { name: "Далі читати: Ковадло зірок · Книга 2" })
+        .getAttribute("href"),
+    ).toContain("/books/next-book-1");
+  },
+};
+
+export const NotStarted: Story = {
+  args: {
+    series: makeSeriesView({
+      finishedInSeries: 0,
+      nextBook: { id: "next-book-1", partNumber: 1, title: "Четверте крило" },
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      canvas.getByRole("link", { name: "Почати з: Четверте крило · Книга 1" }).getAttribute("href"),
+    ).toContain("/books/next-book-1");
   },
 };
 
@@ -92,8 +111,9 @@ export const AllRead: Story = {
     }),
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText("Усі книги прочитані")).toBeVisible();
     await expect(canvas.getByText("Усю серію прочитано")).toBeVisible();
+    await expect(canvas.queryByText("Усі книги прочитані")).toBeNull();
+    await expect(canvas.queryByRole("progressbar")).toBeNull();
   },
 };
 
@@ -126,7 +146,7 @@ export const NoNextBook: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Прочитано 1 з 4")).toBeVisible();
-    await expect(canvas.queryByText(/Наступна/)).toBeNull();
+    await expect(canvas.queryByText(/Далі читати|Почати з/)).toBeNull();
   },
 };
 
