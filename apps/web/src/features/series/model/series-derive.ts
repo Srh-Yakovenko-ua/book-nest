@@ -38,6 +38,10 @@ export type SeriesTab = "all" | "unfinished";
 
 export const SERIES_TABS = ["all", "unfinished"] as const satisfies readonly SeriesTab[];
 
+export const SERIES_LIST_LAYOUTS = ["grid", "list"] as const;
+export type SeriesListLayout = (typeof SERIES_LIST_LAYOUTS)[number];
+export const SERIES_LIST_LAYOUT_DEFAULT: SeriesListLayout = "grid";
+
 export const SERIES_SORT_OPTIONS = [
   "name_asc",
   "name_desc",

@@ -2451,6 +2451,11 @@
       "readingLabel": "Стан читання",
       "sortLabel": "Сортування"
     },
+    "view": {
+      "label": "Вигляд",
+      "grid": "Сітка",
+      "list": "Список"
+    },
     "statusFilter": {
       "all": "Усі статуси виходу",
       "completed": "Завершена",

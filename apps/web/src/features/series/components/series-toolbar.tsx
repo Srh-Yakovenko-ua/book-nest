@@ -1,8 +1,10 @@
 "use client";
 
+import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -14,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 import type {
   SeriesAdvancedFilters as SeriesAdvancedFiltersValue,
+  SeriesListLayout,
   SeriesReadingFilter,
   SeriesSort,
   SeriesStatusFilter,
@@ -36,11 +39,13 @@ type SeriesToolbarProps = {
   onSearchClear: () => void;
   onSortChange: (value: SeriesSort) => void;
   onStatusChange: (value: SeriesStatusFilter) => void;
+  onViewChange: (value: SeriesListLayout) => void;
   readingFilter: SeriesReadingFilter;
   resolveAuthorName: (id: string) => string | undefined;
   search: string;
   sort: SeriesSort;
   statusFilter: SeriesStatusFilter;
+  view: SeriesListLayout;
 };
 
 export function SeriesToolbar({
@@ -52,17 +57,20 @@ export function SeriesToolbar({
   onSearchClear,
   onSortChange,
   onStatusChange,
+  onViewChange,
   readingFilter,
   resolveAuthorName,
   search,
   sort,
   statusFilter,
+  view,
 }: SeriesToolbarProps) {
   const t = useTranslations("series.toolbar");
   const tCommon = useTranslations("common");
   const tStatus = useTranslations("series.statusFilter");
   const tReading = useTranslations("series.readingFilter");
   const tSort = useTranslations("series.sort");
+  const tView = useTranslations("series.view");
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -124,6 +132,16 @@ export function SeriesToolbar({
           onApply={onAdvancedApply}
           onRememberAuthor={onRememberAuthor}
           resolveAuthorName={resolveAuthorName}
+        />
+        <Segmented
+          className="h-10 items-stretch [&_[data-slot=segmented-item]]:py-0"
+          label={tView("label")}
+          onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
+          options={[
+            { icon: <LayoutGrid />, label: tView("grid"), value: "grid" },
+            { icon: <List />, label: tView("list"), value: "list" },
+          ]}
+          value={view}
         />
       </div>
     </div>

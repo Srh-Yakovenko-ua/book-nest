@@ -16,10 +16,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import type { SeriesTab } from "../model/series-derive";
+import type { SeriesListLayout, SeriesTab } from "../model/series-derive";
 import type { SeriesSummaryCard } from "./series-summary-cards";
 
 import { SeriesCard } from "./series-card";
+import { SeriesRow } from "./series-row";
 import { SeriesSummaryCards } from "./series-summary-cards";
 
 const SKELETON_COUNT = 6;
@@ -47,6 +48,7 @@ type AllSeriesViewProps = {
   tab: SeriesTab;
   toolbar: ReactNode;
   unfinishedCount: number;
+  view: SeriesListLayout;
 };
 
 export function AllSeriesView({
@@ -71,6 +73,7 @@ export function AllSeriesView({
   tab,
   toolbar,
   unfinishedCount,
+  view,
 }: AllSeriesViewProps) {
   const t = useTranslations("series");
   const showToolbar = !isError && (isPending || hasAnySeries);
@@ -151,6 +154,7 @@ export function AllSeriesView({
             onShowAll={onShowAll}
             series={series}
             tab={tab}
+            view={view}
           />
         </div>
         {showToolbar ? sidebar : null}
@@ -197,6 +201,7 @@ function SeriesContent({
   onShowAll,
   series,
   tab,
+  view,
 }: {
   hasActiveQuery: boolean;
   hasAnySeries: boolean;
@@ -209,6 +214,7 @@ function SeriesContent({
   onShowAll: () => void;
   series: SeriesView[];
   tab: SeriesTab;
+  view: SeriesListLayout;
 }) {
   const t = useTranslations("series.states");
 
@@ -237,7 +243,7 @@ function SeriesContent({
   }
 
   if (isPending) {
-    return <SeriesGridSkeleton />;
+    return view === "list" ? <SeriesListSkeleton /> : <SeriesGridSkeleton />;
   }
 
   if (series.length === 0) {
@@ -270,6 +276,16 @@ function SeriesContent({
     );
   }
 
+  if (view === "list") {
+    return (
+      <div className="flex flex-col gap-4">
+        {series.map((item) => (
+          <SeriesRow key={item.id} series={item} />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {series.map((item) => (
@@ -285,6 +301,30 @@ function SeriesGridSkeleton() {
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
         <SeriesCardSkeleton key={index} />
       ))}
+    </div>
+  );
+}
+
+function SeriesListSkeleton() {
+  return (
+    <div aria-busy className="flex flex-col gap-4">
+      {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+        <SeriesRowSkeleton key={index} />
+      ))}
+    </div>
+  );
+}
+
+function SeriesRowSkeleton() {
+  return (
+    <div className="flex min-h-[9.5rem] items-stretch gap-3.5 rounded-xl border border-border bg-card p-3 shadow-card">
+      <Skeleton className="aspect-[2/3] w-24 shrink-0 rounded-lg" />
+      <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+        <Skeleton className="h-4 w-3/5" />
+        <Skeleton className="h-3 w-2/5" />
+        <Skeleton className="mt-0.5 h-5 w-24 rounded-full" />
+        <Skeleton className="mt-auto h-1.5 w-full rounded-full" />
+      </div>
     </div>
   );
 }

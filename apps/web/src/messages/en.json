@@ -2451,6 +2451,11 @@
       "readingLabel": "Reading state",
       "sortLabel": "Sort"
     },
+    "view": {
+      "label": "View",
+      "grid": "Grid",
+      "list": "List"
+    },
     "statusFilter": {
       "all": "All release statuses",
       "completed": "Completed",

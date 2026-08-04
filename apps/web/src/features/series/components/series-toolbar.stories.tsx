@@ -15,11 +15,13 @@ const meta = {
     onSearchClear: fn(),
     onSortChange: fn(),
     onStatusChange: fn(),
+    onViewChange: fn(),
     readingFilter: "all",
     resolveAuthorName: () => undefined,
     search: "",
     sort: SERIES_SORT_DEFAULT,
     statusFilter: "all",
+    view: "grid",
   },
   component: SeriesToolbar,
   decorators: [

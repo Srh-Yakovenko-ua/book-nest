@@ -24,6 +24,7 @@ type SeriesCardCoverProps = {
   booksInSeries: number;
   covers: SeriesCoverBook[];
   name: string;
+  showBadge?: boolean;
   totalBooks: Nullable<number>;
 };
 
@@ -32,15 +33,16 @@ export function SeriesCardCover({
   booksInSeries,
   covers,
   name,
+  showBadge = true,
   totalBooks,
 }: SeriesCardCoverProps) {
   const t = useTranslations("series.card");
   const layers = covers.slice(0, MAX_FAN_LAYERS);
 
   return (
-    <div aria-label={alt} className="relative w-[112px] shrink-0" role="img">
+    <div aria-label={alt} className="relative w-24 shrink-0" role="img">
       {layers.length === 0 ? (
-        <div className="relative grid aspect-[2/3] w-[110px] place-items-center overflow-hidden rounded-lg border border-border bg-accent text-accent-foreground shadow-card">
+        <div className="relative grid aspect-[2/3] place-items-center overflow-hidden rounded-lg border border-border bg-accent text-accent-foreground shadow-card">
           <UiIcon
             className="absolute top-1.5 right-1.5 text-accent-foreground/40"
             name="layers"
@@ -60,7 +62,7 @@ export function SeriesCardCover({
         ))
       )}
 
-      {totalBooks !== null && (
+      {totalBooks !== null && showBadge && (
         <span className="absolute bottom-0 left-0 z-40 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium whitespace-nowrap text-muted-foreground shadow-card">
           <UiIcon aria-hidden className="shrink-0 text-icon" name="book" size={13} />
           {t("coverBadge", { added: booksInSeries, total: totalBooks })}
@@ -78,7 +80,7 @@ function SeriesCardCoverLayer({ className, cover }: { className: string; cover: 
   return (
     <div
       className={cn(
-        "aspect-[2/3] w-[110px] overflow-hidden rounded-lg border border-border bg-accent",
+        "aspect-[2/3] w-24 overflow-hidden rounded-lg border border-border bg-accent",
         className,
       )}
     >

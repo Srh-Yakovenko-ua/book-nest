@@ -18,6 +18,8 @@ import {
   hasActiveSeriesFilters,
   isSeriesUnfinished,
   selectAlmostReadSeries,
+  SERIES_LIST_LAYOUT_DEFAULT,
+  SERIES_LIST_LAYOUTS,
   SERIES_SORT_DEFAULT,
   SERIES_TABS,
   type SeriesAdvancedFilters,
@@ -33,6 +35,9 @@ import { SeriesSidebar } from "./series-sidebar";
 import { SeriesToolbar } from "./series-toolbar";
 
 const tabParser = parseAsStringLiteral(SERIES_TABS).withDefault("all");
+const viewParser = parseAsStringLiteral(SERIES_LIST_LAYOUTS).withDefault(
+  SERIES_LIST_LAYOUT_DEFAULT,
+);
 
 export function AllSeries() {
   const t = useTranslations("series.summary");
@@ -48,6 +53,7 @@ export function AllSeries() {
   const genres = useGenres();
 
   const [tab, setTab] = useQueryState("tab", tabParser);
+  const [view, setView] = useQueryState("view", viewParser);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SeriesStatusFilter>("all");
   const [readingFilter, setReadingFilter] = useState<SeriesReadingFilter>("all");
@@ -333,14 +339,17 @@ export function AllSeries() {
             onSearchClear={() => setSearch("")}
             onSortChange={setSort}
             onStatusChange={setStatusFilter}
+            onViewChange={(value) => void setView(value)}
             readingFilter={readingFilter}
             resolveAuthorName={resolveAuthorName}
             search={search}
             sort={sort}
             statusFilter={statusFilter}
+            view={view}
           />
         }
         unfinishedCount={unfinishedCount}
+        view={view}
       />
       <CreateSeriesDialog onOpenChange={setDialogOpen} open={dialogOpen} />
     </>

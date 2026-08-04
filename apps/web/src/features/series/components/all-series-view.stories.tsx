@@ -58,11 +58,13 @@ const toolbar = (
     onSearchClear={fn()}
     onSortChange={fn()}
     onStatusChange={fn()}
+    onViewChange={fn()}
     readingFilter="all"
     resolveAuthorName={() => undefined}
     search=""
     sort={SERIES_SORT_DEFAULT}
     statusFilter="all"
+    view="grid"
   />
 );
 
@@ -113,6 +115,7 @@ const meta = {
     tab: "all",
     toolbar,
     unfinishedCount: 5,
+    view: "grid",
   },
   component: AllSeriesView,
   parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
@@ -129,6 +132,15 @@ export const Populated: Story = {
     await waitFor(() => expect(canvas.getByRole("heading", { name: "Серії" })).toBeVisible());
     await expect(canvas.getByText("Володар перснів")).toBeVisible();
     await expect(canvas.getByText("Усього серій")).toBeVisible();
+  },
+};
+
+export const ListView: Story = {
+  args: { view: "list" },
+  play: async ({ canvas }) => {
+    await waitFor(() => expect(canvas.getByText("Пісня льоду й полум'я")).toBeVisible());
+    await expect(canvas.getByText("Володар перснів")).toBeVisible();
+    await expect(canvas.getAllByRole("progressbar").length).toBeGreaterThan(0);
   },
 };
 
