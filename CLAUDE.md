@@ -199,6 +199,7 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 ## 11. Operating notes
 
 - **Local Postgres may be down.** The API tolerates a missing DB at startup (health shows `postgres: "down"`, app still serves). Tests and data endpoints need a local Postgres with the credentials in `apps/api/vitest.config.ts` / `.env` (`pnpm db:up` for the Docker Postgres).
+- **Test CPU load is tunable.** Both Vitest configs honour `VITEST_MAX_WORKERS` (default `min(6, cores)`); `VITEST_MAX_WORKERS=2 pnpm test` when the machine needs to stay quiet. Measured on the 18-core dev machine: total CPU work is flat across worker counts (~90s user for a 17-file module), only the wall time and the peak load change — 6 workers ≈ 28s wall, 2 workers ≈ 51s.
 - **Modular monolith.** Service extraction comes later, only when a real boundary demands it — the only preparation is keeping module boundaries clean.
 - **Per-user memory** at `~/.claude/projects/-Users-macbookpro14-WebstormProjects-book-nest/memory/` is auto-loaded and captures evolved feedback across sessions — honor it.
 
