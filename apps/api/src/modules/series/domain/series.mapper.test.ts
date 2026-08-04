@@ -39,6 +39,7 @@ function makeBook(overrides: Partial<SeriesDetailBook> = {}): SeriesDetailBook {
     genres: [],
     id: "book-1",
     isFavorite: false,
+    language: "ukrainian",
     loans: [],
     originalTitle: null,
     ownershipStatus: "owned",

@@ -18,10 +18,12 @@ import {
 
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type { SeriesWithDetails } from "../infrastructure/series.repository.js";
+import type { SeriesAggregateBookRow } from "./series-aggregates.js";
 import type { SeriesBookRow } from "./series-preview.js";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { toDeliverySummaryView, toLoanInfoView } from "../../books/index.js";
+import { summarizeSeriesAggregates } from "./series-aggregates.js";
 import {
   compareByPartThenCreated,
   computeSeriesLastActivityAt,
@@ -34,10 +36,11 @@ type SeriesAuthorRef = { id: string; name: string };
 
 type SeriesDetailBook = SeriesWithDetails["books"][number];
 
-type SeriesViewBookRow = SeriesBookRow & {
-  authors: { author: SeriesAuthorRef; position: number }[];
-  coverMedia?: Nullable<MediaAssetModel>;
-};
+type SeriesViewBookRow = SeriesAggregateBookRow &
+  SeriesBookRow & {
+    authors: { author: SeriesAuthorRef; position: number }[];
+    coverMedia?: Nullable<MediaAssetModel>;
+  };
 
 type SeriesViewSource = {
   _count: { books: number };
@@ -83,9 +86,17 @@ export function toSeriesView({
   series: SeriesViewSource;
 }): SeriesView {
   const books = series.books.map(toSeriesBookPreview);
-  const { finishedInSeries, nextBook, readingInSeries } = summarizeSeriesBooks(books);
+  const {
+    finishedInSeries,
+    hasPublicationYears,
+    hasPublisher,
+    missingPartNumbers,
+    nextBook,
+    readingInSeries,
+  } = summarizeSeriesBooks(books);
 
   return {
+    ...summarizeSeriesAggregates(series.books),
     authors: resolveSeriesAuthors(series),
     booksInSeries: series._count.books,
     covers,
@@ -93,11 +104,14 @@ export function toSeriesView({
     description: series.description,
     finishedInSeries,
     genres: series.genres,
+    hasPublicationYears,
+    hasPublisher,
     id: series.id,
     lastActivityAt: computeSeriesLastActivityAt({
       books,
       seriesUpdatedAt: series.updatedAt,
     }).toISOString(),
+    missingPartNumbers: [...missingPartNumbers],
     name: series.name,
     nextBook,
     readingInSeries,

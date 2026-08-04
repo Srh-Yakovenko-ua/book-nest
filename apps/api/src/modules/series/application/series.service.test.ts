@@ -23,12 +23,24 @@ import { fakeOf } from "../../../test/fake.js";
 import { AuthorsService } from "../../authors/application/authors.service.js";
 import { SeriesService } from "./series.service.js";
 
+type BookRow = SeriesWithBookCount["books"][number];
+
 type BookRowInput = {
+  ageCategory?: string;
   coverMedia?: Nullable<MediaAssetModel>;
   createdAt?: Date;
+  formats?: string[];
   id?: string;
+  isFavorite?: boolean;
+  language?: string;
+  ownershipStatus?: string;
+  pagesCount?: Nullable<number>;
   partNumber?: Nullable<number>;
+  publicationYear?: Nullable<number>;
+  publisherId?: Nullable<string>;
+  rating?: Nullable<number>;
   readingStatus?: string;
+  tags?: { id: string; name: string }[];
   title?: string;
   updatedAt?: Date;
 };
@@ -42,6 +54,7 @@ type DetailBookInput = {
   genres?: string[];
   id: string;
   isFavorite?: boolean;
+  language?: string;
   originalTitle?: Nullable<string>;
   ownershipStatus?: string;
   pagesCount?: Nullable<number>;
@@ -58,17 +71,30 @@ type DetailBookInput = {
 
 type RepoMock = Partial<Record<keyof SeriesRepository, Mock>>;
 
-function bookRow(overrides: BookRowInput = {}): SeriesWithBookCount["books"][number] {
+function bookRow(overrides: BookRowInput = {}): BookRow {
+  const { rating, tags, ...scalars } = overrides;
   return {
+    ageCategory: "not_specified",
     authors: [],
     coverMedia: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    formats: [],
     id: "book-1",
+    isFavorite: false,
+    language: "ukrainian",
+    ownershipStatus: "none",
+    pagesCount: null,
     partNumber: 1,
+    publicationYear: null,
+    publisherId: null,
+    readingProgress: rating === undefined ? null : { rating },
     readingStatus: "not_started",
+    tags: (tags ?? []).map((tag) =>
+      fakeOf<BookRow["tags"][number]>({ tag: fakeOf<BookRow["tags"][number]["tag"]>(tag) }),
+    ),
     title: "Book",
     updatedAt: new Date("2026-02-01T10:00:00.000Z"),
-    ...overrides,
+    ...scalars,
   };
 }
 
@@ -99,6 +125,7 @@ function detailedSeries(
       genres: book.genres ?? [],
       id: book.id,
       isFavorite: book.isFavorite ?? false,
+      language: book.language ?? "ukrainian",
       loans: [],
       originalTitle: book.originalTitle ?? null,
       ownershipStatus: book.ownershipStatus ?? "none",
@@ -272,16 +299,14 @@ function seriesWithCount(
     ...series(overrides),
     _count: { books: booksInSeries },
     authors: [],
-    books: Array.from({ length: finishedInSeries }, (unused, index) => ({
-      authors: [],
-      coverMedia: null,
-      createdAt: new Date("2026-02-01T10:00:00.000Z"),
-      id: `b-${index}`,
-      partNumber: index + 1,
-      readingStatus: "finished",
-      title: `Book ${index}`,
-      updatedAt: new Date("2026-02-01T10:00:00.000Z"),
-    })),
+    books: Array.from({ length: finishedInSeries }, (unused, index) =>
+      bookRow({
+        id: `b-${index}`,
+        partNumber: index + 1,
+        readingStatus: "finished",
+        title: `Book ${index}`,
+      }),
+    ),
   };
 }
 
@@ -557,19 +582,31 @@ describe("SeriesService.search", () => {
     expect(page).toEqual({
       items: [
         {
+          ageCategories: [],
           authors: [],
+          averagePages: null,
+          averageRating: null,
           booksInSeries: 2,
           covers: [],
           createdAt: "2026-02-01T10:00:00.000Z",
           description: "saga",
           finishedInSeries: 0,
+          formats: [],
           genres: [],
+          hasFavoriteBook: false,
+          hasPublicationYears: false,
+          hasPublisher: false,
           id: SERIES_ID,
+          languages: [],
           lastActivityAt: "2026-02-02T11:00:00.000Z",
+          missingPartNumbers: [],
           name: "Throne of Glass",
           nextBook: null,
+          ownership: { ownedCount: 0, total: 0 },
+          pagesCount: null,
           readingInSeries: 0,
           status: "ongoing",
+          tags: [],
           totalBooks: 3,
         },
       ],
@@ -578,6 +615,275 @@ describe("SeriesService.search", () => {
       pageSize: 10,
       totalCount: 1,
     });
+  });
+
+  it("maps a series whose books carry a gap, a publisher and a publication year", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          bookCount: 2,
+          books: [
+            bookRow({
+              id: "part-1",
+              ownershipStatus: "owned",
+              partNumber: 1,
+              publicationYear: 2012,
+              publisherId: "publisher-vivat",
+              readingStatus: "finished",
+            }),
+            bookRow({ id: "part-3", partNumber: 3 }),
+          ],
+          id: SERIES_ID,
+          status: "ongoing",
+          totalBooks: 3,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items).toEqual([
+      {
+        ageCategories: ["not_specified"],
+        authors: [],
+        averagePages: null,
+        averageRating: null,
+        booksInSeries: 2,
+        covers: [],
+        createdAt: "2026-02-01T10:00:00.000Z",
+        description: null,
+        finishedInSeries: 1,
+        formats: [],
+        genres: [],
+        hasFavoriteBook: false,
+        hasPublicationYears: true,
+        hasPublisher: true,
+        id: SERIES_ID,
+        languages: ["ukrainian"],
+        lastActivityAt: "2026-02-02T11:00:00.000Z",
+        missingPartNumbers: [2],
+        name: "Throne of Glass",
+        nextBook: {
+          id: "part-3",
+          ownershipStatus: "none",
+          partNumber: 3,
+          title: "Book",
+        },
+        ownership: { ownedCount: 1, total: 2 },
+        pagesCount: null,
+        readingInSeries: 0,
+        status: "ongoing",
+        tags: [],
+        totalBooks: 3,
+      },
+    ]);
+  });
+
+  it("maps the aggregates of the loaded books onto the view", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          bookCount: 3,
+          books: [
+            bookRow({
+              ageCategory: "18_plus",
+              formats: ["ebook"],
+              id: "part-1",
+              language: "english",
+              ownershipStatus: "borrowed_from_someone",
+              pagesCount: 100,
+              partNumber: 1,
+              rating: 7,
+              readingStatus: "finished",
+              tags: [{ id: "tag-zebra", name: "zebra" }],
+            }),
+            bookRow({
+              ageCategory: "6_plus",
+              formats: ["paper", "ebook"],
+              id: "part-2",
+              isFavorite: true,
+              language: "ukrainian",
+              ownershipStatus: "owned",
+              pagesCount: 200,
+              partNumber: 2,
+              rating: 8,
+              readingStatus: "reading",
+              tags: [
+                { id: "tag-alpha", name: "alpha" },
+                { id: "tag-zebra", name: "zebra" },
+              ],
+            }),
+            bookRow({
+              ageCategory: "12_plus",
+              formats: ["audiobook"],
+              id: "part-3",
+              language: "other",
+              ownershipStatus: "want_to_buy",
+              pagesCount: null,
+              partNumber: 3,
+            }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items).toEqual([
+      {
+        ageCategories: ["6_plus", "12_plus", "18_plus"],
+        authors: [],
+        averagePages: 150,
+        averageRating: 7.5,
+        booksInSeries: 3,
+        covers: [],
+        createdAt: "2026-02-01T10:00:00.000Z",
+        description: null,
+        finishedInSeries: 1,
+        formats: ["paper", "ebook", "audiobook"],
+        genres: [],
+        hasFavoriteBook: true,
+        hasPublicationYears: false,
+        hasPublisher: false,
+        id: SERIES_ID,
+        languages: ["ukrainian", "english", "other"],
+        lastActivityAt: "2026-02-02T11:00:00.000Z",
+        missingPartNumbers: [],
+        name: "Throne of Glass",
+        nextBook: {
+          id: "part-2",
+          ownershipStatus: "owned",
+          partNumber: 2,
+          title: "Book",
+        },
+        ownership: { ownedCount: 1, total: 3 },
+        pagesCount: 300,
+        readingInSeries: 1,
+        status: "unknown",
+        tags: [
+          { id: "tag-alpha", name: "alpha" },
+          { id: "tag-zebra", name: "zebra" },
+        ],
+        totalBooks: null,
+      },
+    ]);
+  });
+
+  it("leaves a rated series average null when no loaded book carries a rating", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ id: "part-1", partNumber: 1 }),
+            bookRow({ id: "part-2", partNumber: 2, rating: null }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.averageRating).toBeNull();
+  });
+
+  it("reports no missing part numbers when the loaded parts are contiguous", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ id: "part-1", partNumber: 1 }),
+            bookRow({ id: "part-2", partNumber: 2 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.missingPartNumbers).toEqual([]);
+  });
+
+  it("reports hasPublisher false when no loaded book carries a publisher", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [bookRow({ id: "part-1", partNumber: 1, publisherId: null })],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.hasPublisher).toBe(false);
+  });
+
+  it("reports hasPublicationYears false when no loaded book carries a publication year", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [bookRow({ id: "part-1", partNumber: 1, publicationYear: null })],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.hasPublicationYears).toBe(false);
+  });
+
+  it("maps the ownership status of the next book onto the view", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({
+              id: "part-1",
+              ownershipStatus: "borrowed_from_someone",
+              partNumber: 1,
+              readingStatus: "not_started",
+            }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.nextBook?.ownershipStatus).toBe("borrowed_from_someone");
   });
 
   it("maps the live linked-book count onto booksInSeries", async () => {
