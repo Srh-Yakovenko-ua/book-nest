@@ -2440,7 +2440,8 @@
       "booksRange": "Books {min}–{max}",
       "completeness": "Added: {label}",
       "genre": "Genre: {name}",
-      "author": "Author: {name}"
+      "author": "Author: {name}",
+      "attention": "Attention: {label}"
     },
     "toolbar": {
       "searchLabel": "Search series",
@@ -2528,6 +2529,22 @@
       "coverBadge": "{added} of {total} added",
       "authorsUnknown": "Unknown author"
     },
+    "attention": {
+      "title": "Needs attention",
+      "allClear": "All series are in order",
+      "viewAll": "View all issues",
+      "empty": "{count, plural, one {# series with no books added} other {# series with no books added}}",
+      "unknown_status": "{count, plural, one {# series with unknown release status} other {# series with unknown release status}}",
+      "incomplete_set": "{count, plural, one {# completed series is incomplete} other {# completed series are incomplete}}",
+      "incomplete_data": "{count, plural, one {# series with incomplete details} other {# series with incomplete details}}",
+      "chip": {
+        "any": "Needs attention",
+        "empty": "No books added",
+        "unknown_status": "Unknown release status",
+        "incomplete_set": "Incomplete set",
+        "incomplete_data": "Incomplete details"
+      }
+    },
     "sidebar": {
       "label": "Series overview",
       "continueTitle": "Continue reading",
@@ -2537,12 +2554,11 @@
       "nextBookHeading": "Next book",
       "nextBookPart": "Book {number} in the series",
       "nextCoverAlt": "Cover of {title}",
-      "closestTitle": "Closest to finishing",
+      "nextShort": "Next: {title}",
+      "closestTitle": "Almost-finished series",
+      "closestSubtitle": "Only 1–2 books left",
       "closestEmpty": "No progress yet",
-      "statusTitle": "Cycle status",
-      "statusCompleted": "Completed by author",
-      "statusOngoing": "Still ongoing",
-      "statusUnknown": "Unknown"
+      "progressBarLabel": "{name} progress: {percent}%"
     },
     "dialog": {
       "title": "New series",

@@ -195,3 +195,119 @@ pnpm typecheck && pnpm lint && pnpm format:check && pnpm test
 `curl -i http://localhost:4000/api/series?pageSize=5` → 200 з новими полями в `items[]`.
 Якщо зачепиш schema.prisma (лише Phase 3, за денормалізації) — двокрокова міграція за `CLAUDE.md` §6
 і **не забудь про raw-SQL-index trap** (strip зайвих `DROP INDEX` перед `db:migrate:deploy`).
+
+---
+
+# Додаток — `nextBook.ownershipStatus` (для блоку «Серії, які майже прочитані»)
+
+## Контекст
+
+Правий сайдбар списку серій отримав новий блок «Серії, які майже прочитані». Кожен елемент має показувати
+компактний **ownership-статус наступної книги**: «Є в наявності» (`owned`), «Хочу купити» (`want_to_buy`),
+«У дорозі» (`in_transit`), «Немає» (`none`). Усі чотири — наявні значення `OwnershipStatusSchema`
+(`packages/shared/src/book-enums.ts`), мапляться на `ownershipStatuses` у `apps/web/src/lib/book-status.ts`
+(icon/label/tone).
+
+Фронт блоку **вже реалізовано без цього поля** (назва, прогрес, progress bar, «Далі: {title}», сортування,
+фільтр, лінки, hover/focus — усе клієнтське). Лишилось додати **одне поле** в DTO, щоб зʼявився ownership-бейдж.
+Це той самий тип зміни, що і `nextBook.cover` — **мале, адитивне, БЕЗ міграції**.
+
+## Що зробити
+
+1. **Селект.** Додати `ownershipStatus: true` у book-select `seriesWithBookCountArgs`
+   (`apps/api/src/modules/series/infrastructure/series.repository.ts`) — зараз він тягне `readingStatus`/`coverMedia`,
+   але не `ownershipStatus`. Деталевий запит (`:54`) уже його селектить — для орієнтиру.
+2. **DTO.** Додати `ownershipStatus: OwnershipStatusSchema` у `SeriesNextBookSchema` (`packages/shared/src/series.ts`).
+   Зробити **`.nullish()`** (nullable + optional) заради rollout-безпеки — щоб старий remote, який поля не віддає,
+   не ламав FE-парсинг (`use-series-overview`/`use-series-list` роблять `.parse()`); так само зробили для `cover`.
+3. **Мапер.** Заповнити `nextBook.ownershipStatus` зі `book.ownershipStatus` вибраної наступної книги
+   (`series-preview.ts` / `series.mapper.ts`), через уже наявну `coverByBookId`-подібну проводку. Domain лишається
+   чистим (без mediaService/бізнес-логіки).
+4. **Прецедент.** `SeriesContinuationNextBook.ownershipStatus` (`apps/api/src/modules/series/domain/favorite-continuations.ts`)
+   уже несе цей статус для блоку «Далі в серіях» на «Улюблені» — той самий підхід.
+5. **Контракт.** `pnpm --filter @app/api generate:openapi` + `pnpm gen:api` → FE відрендерить бейдж наявними
+   `ownershipStatuses` (`StatusBadge`).
+
+## Definition of done
+
+Гейти як вище; `pnpm dev:api` стартує чисто; `curl -i http://localhost:4000/api/series/overview` →
+`topUnfinished[].nextBook.ownershipStatus` присутній. Без міграції (schema.prisma не чіпається).
+
+---
+
+# Додаток — дані для блоку «Потребують уваги» (правий бар списку серій)
+
+## Контекст
+
+Правий бар списку серій отримує блок «Потребують уваги» з 6 кейсами-проблемами (лічильник +
+клік → відфільтрований список). **Список серій — fetch-all + фільтрація на клієнті** (див.
+«Поточна архітектура» вище), тому **нові query-параметри не потрібні** — бракує лише **полів у
+списковому DTO `SeriesView`**. Кожен list-елемент будується через `summarizeSeriesBooks`
+(`apps/api/src/modules/series/domain/series-preview.ts`), який **уже ітерує всі книги серії**
+(є `partNumber`, `readingStatus`, обирається `nextBook`) — тож додавання нижче дешеві, це
+розширення наявного проходу, а не новий запит.
+
+## Готовність по кейсах
+
+| # | Кейс | Стан | Джерело / чого бракує |
+|---|------|:---:|---|
+| 1 | Невідомий статус виходу | ✅ FE-only, зроблено | `status === "unknown"` |
+| 2 | Серії без доданих книг | ✅ FE-only, зроблено | `booksInSeries === 0` |
+| 3 | Пропуски в порядку книг | ❌ треба бек | номери частин доданих книг (нижче) |
+| 4 | Наступної немає в наявності | ❌ треба бек | `nextBook.ownershipStatus` — див. попередній додаток |
+| 5 | Неповний комплект завершеної | ✅ FE-only, зроблено | `status==="completed"` + `totalBooks` + `booksInSeries` |
+| 6 | Неповні основні дані | ⚠️ частково зроблено | автор/опис/жанр — є; **видавництво + роки** — нижче |
+
+**Кейси 1, 2, 5 і частина 6 (автор/опис/жанр) уже реалізовані на фронті** над наявним `SeriesView`.
+Нижче — тільки те, що лишається за беком.
+
+## A. Пропуски в порядку книг (кейс 3)
+
+`SeriesView` не несе номерів частин доданих книг; є лише `booksInSeries` (кількість) і
+`nextBook.partNumber` (лише наступна). Для виявлення прогалини (додано №1, №2, №4 → бракує №3)
+потрібні всі `partNumber` серії. «Не рахувати після останньої відомої позиції» → прогалини лише
+в `[min, max]` наявних номерів.
+
+- **Рекомендація (мінімум логіки на беку):** `partNumbers: z.array(z.number().int()).default([])`
+  у `SeriesViewSchema` — відсортовані, unique, лише не-null. Фронт сам рахує пропущені позиції.
+- **Альтернатива (логіка на беку):** `missingPartNumbers: z.array(z.number().int())` — бек рахує
+  прогалини прямо в `summarizeSeriesBooks` (усі `partNumber` вже під рукою). Тоді count кейсу =
+  `missingPartNumbers.length > 0`, а фронт показує «Бракує книги №3» без обчислень.
+- Книги з `partNumber === null` у визначенні пропусків **не враховувати**.
+
+## B. Ownership-статус наступної книги (кейс 4)
+
+Те саме поле `nextBook.ownershipStatus`, що вже описане у **попередньому додатку**
+(«`nextBook.ownershipStatus`»). Одна реалізація закриває обидві задачі. Для цього блоку кейс
+спрацьовує, коли `nextBook.ownershipStatus ∈ {want_to_buy, in_transit, lent_to_someone, none}`;
+**у наявності** (виключити) = `{owned, borrowed_from_someone}` (`borrowed_from_someone` — книга
+фізично в користувача, читати можна). Попередній додаток згадує лише 4 значення для бейджа —
+переконайся, що мапер віддає **реальний** `OwnershipStatusSchema` (усі 6 значень), а не звужений
+набір.
+
+## C. Видавництво + роки виходу для «неповних даних» (кейс 6)
+
+`SeriesView` уже має `authors`, `description`, `genres` → **автора/опис/жанр фронт перевіряє сам
+(зроблено)**. Немає лише даних про видавництво та роки (агрегати з книг, живуть у
+`SeriesDetailsView`). Додати до `SeriesViewSchema` дві похідні ознаки (той самий прохід по книгах):
+
+```ts
+hasPublisher: z.boolean()          // true, якщо хоч одна книга серії має publisher
+hasPublicationYears: z.boolean()   // true, якщо хоч одна книга серії має publicationYear
+```
+
+(Якщо колись знадобиться діапазон для відображення — `publicationYearRange: {min,max} | null`
+замість булеана; він також покриє Phase-2 фільтр за роком.) Потребує додати
+`publisher_id`/`publication_year` у book-select прев'ю та згорнути в мапері.
+
+Пріоритет відсутніх полів для тексту («Немає опису та видавництва»): автор → жанр → роки →
+видавництво → опис — **суто фронтова логіка**, бекенд не потрібен.
+
+## Підсумок мінімального контракту (attention-блок)
+
+Додати до `SeriesViewSchema` (`packages/shared/src/series.ts`): `partNumbers` (або
+`missingPartNumbers`), `hasPublisher`, `hasPublicationYears`; до `SeriesNextBookSchema` —
+`ownershipStatus` (спільне з попереднім додатком). Точки інтеграції: `series-preview.ts`
+(`SeriesBookRow`/`SeriesBookPreview` select + `summarizeSeriesBooks`) і series-мапер. Жодних нових
+ендпойнтів/квері-параметрів. Після зміни — `generate:openapi` → `gen:api`. **Не потрібно:** окремий
+ендпойнт «attention/issues» (усі лічильники рахуються на клієнті з fetch-all списку).

@@ -10,6 +10,11 @@ export type SeriesAdvancedFilters = {
   progressMin: null | number;
 };
 
+export type SeriesAttentionFilter = "any" | SeriesAttentionReason;
+
+export type SeriesAttentionReason =
+  "empty" | "incomplete_data" | "incomplete_set" | "unknown_status";
+
 export type SeriesCompleteness = "complete" | "incomplete" | "no_plan";
 
 export type SeriesProgress = {
@@ -65,6 +70,13 @@ export const SERIES_COMPLETENESS_VALUES = [
   "no_plan",
 ] as const satisfies readonly SeriesCompleteness[];
 
+export const SERIES_ATTENTION_REASONS = [
+  "empty",
+  "unknown_status",
+  "incomplete_set",
+  "incomplete_data",
+] as const satisfies readonly SeriesAttentionReason[];
+
 export const EMPTY_SERIES_ADVANCED_FILTERS: SeriesAdvancedFilters = {
   authorIds: [],
   booksMax: null,
@@ -85,8 +97,39 @@ export function countActiveSeriesFilters(filters: SeriesAdvancedFilters): number
   return count;
 }
 
+const SERIES_ATTENTION_PREDICATES: Record<SeriesAttentionReason, (series: SeriesView) => boolean> =
+  {
+    empty: (series) => series.booksInSeries === 0,
+    incomplete_data: seriesHasIncompleteCoreData,
+    incomplete_set: (series) =>
+      series.status === "completed" &&
+      series.totalBooks !== null &&
+      series.booksInSeries < series.totalBooks,
+    unknown_status: (series) => series.status === "unknown",
+  };
+
+export function countSeriesAttention(items: SeriesView[]): Record<SeriesAttentionReason, number> {
+  const counts: Record<SeriesAttentionReason, number> = {
+    empty: 0,
+    incomplete_data: 0,
+    incomplete_set: 0,
+    unknown_status: 0,
+  };
+  for (const series of items) {
+    for (const reason of seriesAttentionReasons(series)) {
+      counts[reason] += 1;
+    }
+  }
+  return counts;
+}
+
+export function countSeriesNeedingAttention(items: SeriesView[]): number {
+  return items.filter((series) => seriesAttentionReasons(series).length > 0).length;
+}
+
 export function filterSeries({
   advanced,
+  attention,
   items,
   readingFilter,
   search,
@@ -94,6 +137,7 @@ export function filterSeries({
   tab,
 }: {
   advanced: SeriesAdvancedFilters;
+  attention: null | SeriesAttentionFilter;
   items: SeriesView[];
   readingFilter: SeriesReadingFilter;
   search: string;
@@ -105,6 +149,7 @@ export function filterSeries({
     if (statusFilter !== "all" && series.status !== statusFilter) return false;
     if (readingFilter !== "all" && seriesReadingState(series) !== readingFilter) return false;
     if (!seriesMatchesAdvancedFilters({ advanced, series })) return false;
+    if (!seriesMatchesAttention({ attention, series })) return false;
     return seriesMatchesSearch({ query: search, series });
   });
 }
@@ -122,9 +167,43 @@ export function isSeriesUnfinished(series: SeriesView): boolean {
   return isMultiBook && isSeriesStarted(series) && !seriesProgress(series).fullyRead;
 }
 
+export function selectAlmostReadSeries({
+  excludeId,
+  items,
+}: {
+  excludeId: string | undefined;
+  items: SeriesView[];
+}): SeriesView[] {
+  return items
+    .filter((series) => series.id !== excludeId)
+    .filter((series) => series.nextBook !== null)
+    .filter((series) => {
+      const percent = seriesProgress(series).percent;
+      return percent > 0 && percent < 100;
+    })
+    .sort((a, b) => {
+      const progressA = seriesProgress(a);
+      const progressB = seriesProgress(b);
+      const leftA = progressA.denominator - progressA.finished;
+      const leftB = progressB.denominator - progressB.finished;
+      if (leftA !== leftB) return leftA - leftB;
+      return progressB.percent - progressA.percent;
+    })
+    .slice(0, 3);
+}
+
+export function seriesAttentionReasons(series: SeriesView): SeriesAttentionReason[] {
+  return SERIES_ATTENTION_REASONS.filter((reason) => SERIES_ATTENTION_PREDICATES[reason](series));
+}
+
 export function seriesCompleteness(series: SeriesView): SeriesCompleteness {
   if (series.totalBooks === null) return "no_plan";
   return series.booksInSeries >= series.totalBooks ? "complete" : "incomplete";
+}
+
+export function seriesHasIncompleteCoreData(series: SeriesView): boolean {
+  if (series.authors.length === 0) return true;
+  return series.genres.length === 0;
 }
 
 export function seriesMatchesAdvancedFilters({
@@ -189,6 +268,19 @@ export function seriesReadingState(series: SeriesView): SeriesReadingState {
   if (seriesProgress(series).fullyRead) return "completed";
   if (!isSeriesStarted(series)) return "not_started";
   return "in_progress";
+}
+
+function seriesMatchesAttention({
+  attention,
+  series,
+}: {
+  attention: null | SeriesAttentionFilter;
+  series: SeriesView;
+}): boolean {
+  if (attention === null) return true;
+  const reasons = seriesAttentionReasons(series);
+  if (attention === "any") return reasons.length > 0;
+  return reasons.includes(attention);
 }
 
 const SORT_COMPARATORS: Record<SeriesSort, (a: SeriesView, b: SeriesView) => number> = {

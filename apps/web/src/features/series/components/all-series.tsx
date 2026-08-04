@@ -12,13 +12,16 @@ import type { SeriesSummaryCard } from "./series-summary-cards";
 import { useSeriesList } from "../api/use-series-list";
 import { useSeriesOverview } from "../api/use-series-overview";
 import {
+  countSeriesAttention,
   EMPTY_SERIES_ADVANCED_FILTERS,
   filterSeries,
   hasActiveSeriesFilters,
   isSeriesUnfinished,
+  selectAlmostReadSeries,
   SERIES_SORT_DEFAULT,
   SERIES_TABS,
   type SeriesAdvancedFilters,
+  type SeriesAttentionFilter,
   type SeriesReadingFilter,
   type SeriesSort,
   type SeriesStatusFilter,
@@ -37,6 +40,7 @@ export function AllSeries() {
   const tStatusFilter = useTranslations("series.statusFilter");
   const tReadingFilter = useTranslations("series.readingFilter");
   const tCompleteness = useTranslations("series.filters.completeness");
+  const tAttention = useTranslations("series.attention");
   const router = useRouter();
 
   const { data, isError, isPending, refetch } = useSeriesList();
@@ -47,6 +51,7 @@ export function AllSeries() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<SeriesStatusFilter>("all");
   const [readingFilter, setReadingFilter] = useState<SeriesReadingFilter>("all");
+  const [attentionFilter, setAttentionFilter] = useState<null | SeriesAttentionFilter>(null);
   const [sort, setSort] = useState<SeriesSort>(SERIES_SORT_DEFAULT);
   const [advancedFilters, setAdvancedFilters] = useState<SeriesAdvancedFilters>(
     EMPTY_SERIES_ADVANCED_FILTERS,
@@ -60,6 +65,7 @@ export function AllSeries() {
   const visibleSeries = sortSeries({
     items: filterSeries({
       advanced: advancedFilters,
+      attention: attentionFilter,
       items,
       readingFilter,
       search,
@@ -68,12 +74,18 @@ export function AllSeries() {
     }),
     sort,
   });
+  const attentionCounts = countSeriesAttention(items);
   const unfinishedCount = items.filter(isSeriesUnfinished).length;
+  const almostReadSeries = selectAlmostReadSeries({
+    excludeId: overview.data?.topUnfinished[0]?.id,
+    items,
+  });
   const hasAnySeries = items.length > 0 || (overview.data?.totalSeries ?? 0) > 0;
   const hasActiveQuery =
     search.trim() !== "" ||
     statusFilter !== "all" ||
     readingFilter !== "all" ||
+    attentionFilter !== null ||
     hasActiveSeriesFilters(advancedFilters);
 
   const authorNameById = new Map<string, string>();
@@ -170,6 +182,7 @@ export function AllSeries() {
     setSearch("");
     setStatusFilter("all");
     setReadingFilter("all");
+    setAttentionFilter(null);
     setAdvancedFilters(EMPTY_SERIES_ADVANCED_FILTERS);
   }
 
@@ -198,6 +211,14 @@ export function AllSeries() {
       key: "reading",
       label: tSeries("activeFilters.reading", { label: tReadingFilter(readingFilter) }),
       onRemove: () => setReadingFilter("all"),
+    });
+  }
+
+  if (attentionFilter !== null) {
+    filterChips.push({
+      key: "attention",
+      label: tSeries("activeFilters.attention", { label: tAttention(`chip.${attentionFilter}`) }),
+      onRemove: () => setAttentionFilter(null),
     });
   }
 
@@ -287,8 +308,13 @@ export function AllSeries() {
         series={visibleSeries}
         sidebar={
           <SeriesSidebar
+            activeAttention={attentionFilter}
+            almostReadSeries={almostReadSeries}
+            attentionCounts={attentionCounts}
+            attentionLoading={isPending}
             isError={overview.isError}
             isLoading={overview.isPending}
+            onAttentionSelect={setAttentionFilter}
             onRetry={() => void overview.refetch()}
             overview={overview.data}
           />

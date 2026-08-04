@@ -2440,7 +2440,8 @@
       "booksRange": "Книг {min}–{max}",
       "completeness": "Додано: {label}",
       "genre": "Жанр: {name}",
-      "author": "Автор: {name}"
+      "author": "Автор: {name}",
+      "attention": "Увага: {label}"
     },
     "toolbar": {
       "searchLabel": "Пошук серій",
@@ -2528,6 +2529,22 @@
       "coverBadge": "{added} з {total} додано",
       "authorsUnknown": "Автор невідомий"
     },
+    "attention": {
+      "title": "Потребують уваги",
+      "allClear": "Усі серії впорядковані",
+      "viewAll": "Переглянути всі проблеми",
+      "empty": "{count, plural, one {# серія без доданих книг} few {# серії без доданих книг} many {# серій без доданих книг} other {# серій без доданих книг}}",
+      "unknown_status": "{count, plural, one {# серія з невідомим статусом виходу} few {# серії з невідомим статусом виходу} many {# серій із невідомим статусом виходу} other {# серій із невідомим статусом виходу}}",
+      "incomplete_set": "{count, plural, one {# завершена серія зібрана не повністю} few {# завершені серії зібрані не повністю} many {# завершених серій зібрано не повністю} other {# завершених серій зібрано не повністю}}",
+      "incomplete_data": "{count, plural, one {# серія з неповними даними} few {# серії з неповними даними} many {# серій із неповними даними} other {# серій із неповними даними}}",
+      "chip": {
+        "any": "Потребують уваги",
+        "empty": "Без доданих книг",
+        "unknown_status": "Невідомий статус виходу",
+        "incomplete_set": "Неповний комплект",
+        "incomplete_data": "Неповні дані"
+      }
+    },
     "sidebar": {
       "label": "Огляд серій",
       "continueTitle": "Продовжити читання",
@@ -2537,12 +2554,11 @@
       "nextBookHeading": "Наступна книга",
       "nextBookPart": "Книга {number} у серії",
       "nextCoverAlt": "Обкладинка книги {title}",
-      "closestTitle": "Найближчі до завершення",
+      "nextShort": "Далі: {title}",
+      "closestTitle": "Серії, які майже прочитані",
+      "closestSubtitle": "Залишилося лише 1–2 книги",
       "closestEmpty": "Поки що немає прогресу",
-      "statusTitle": "Статус циклів",
-      "statusCompleted": "Завершені автором",
-      "statusOngoing": "Ще виходять",
-      "statusUnknown": "Невідомо"
+      "progressBarLabel": "Прогрес серії {name}: {percent}%"
     },
     "dialog": {
       "title": "Нова серія",

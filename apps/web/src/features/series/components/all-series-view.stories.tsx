@@ -66,8 +66,28 @@ const toolbar = (
   />
 );
 
+const almostReadSeries: SeriesView[] = [
+  makeSeriesView({
+    finishedInSeries: 4,
+    id: "almost-1",
+    name: "Темна вежа",
+    nextBook: { cover: null, id: "dt-5", partNumber: 5, title: "Вовки Кальї" },
+    totalBooks: 5,
+  }),
+];
+
 const sidebar = (
-  <SeriesSidebar isError={false} isLoading={false} onRetry={fn()} overview={makeSeriesOverview()} />
+  <SeriesSidebar
+    activeAttention={null}
+    almostReadSeries={almostReadSeries}
+    attentionCounts={{ empty: 1, incomplete_data: 2, incomplete_set: 1, unknown_status: 1 }}
+    attentionLoading={false}
+    isError={false}
+    isLoading={false}
+    onAttentionSelect={fn()}
+    onRetry={fn()}
+    overview={makeSeriesOverview()}
+  />
 );
 
 const meta = {
