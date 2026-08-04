@@ -46,16 +46,17 @@ Subagents are useful for:
 
 ### Investigation & review (read-only)
 
-| Agent                                                               | Model | When to use                                                                                      |
-| ------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
-| [`frontend-bug-hunter`](./frontend-bug-hunter.md)                   | opus  | Browser/UI bug — reproduce via Playwright, isolate, diagnose root cause                          |
-| [`backend-bug-hunter`](./backend-bug-hunter.md)                     | opus  | Server-side bug — reproduce via curl + pino logs, isolate, diagnose root cause                   |
-| [`code-reviewer`](./code-reviewer.md)                               | opus  | Generalist diff review before commit — pattern compliance, correctness, cleanup                  |
-| [`frontend-performance-auditor`](./frontend-performance-auditor.md) | opus  | Bundle size, re-renders, web vitals, memory leaks, CLS/LCP issues                                |
-| [`accessibility-auditor`](./accessibility-auditor.md)               | opus  | WCAG compliance, keyboard nav, ARIA, contrast, focus management                                  |
-| [`seo-auditor`](./seo-auditor.md)                                   | opus  | SSR markup, per-route/locale metadata, hreflang, sitemap/robots, indexability                    |
-| [`security-reviewer`](./security-reviewer.md)                       | opus  | XSS, CSRF, secrets, SQL injection, cookies/CORS/headers, auth/authz, dep CVEs                    |
-| [`migration-reviewer`](./migration-reviewer.md)                     | opus  | Prisma/Postgres migration safety — data loss, destructive DDL, locks, forward-only reversibility |
+| Agent                                                               | Model | When to use                                                                                                                |
+| ------------------------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------- |
+| [`frontend-bug-hunter`](./frontend-bug-hunter.md)                   | opus  | Browser/UI bug — reproduce via Playwright, isolate, diagnose root cause                                                    |
+| [`backend-bug-hunter`](./backend-bug-hunter.md)                     | opus  | Server-side bug — reproduce via curl + pino logs, isolate, diagnose root cause                                             |
+| [`code-reviewer`](./code-reviewer.md)                               | opus  | Generalist diff review before commit — pattern compliance, correctness, cleanup                                            |
+| [`frontend-performance-auditor`](./frontend-performance-auditor.md) | opus  | Bundle size, re-renders, web vitals, memory leaks, CLS/LCP issues                                                          |
+| [`accessibility-auditor`](./accessibility-auditor.md)               | opus  | WCAG compliance, keyboard nav, ARIA, contrast, focus management                                                            |
+| [`seo-auditor`](./seo-auditor.md)                                   | opus  | SSR markup, per-route/locale metadata, hreflang, sitemap/robots, indexability                                              |
+| [`security-reviewer`](./security-reviewer.md)                       | opus  | XSS, CSRF, secrets, SQL injection, cookies/CORS/headers, auth/authz, dep CVEs                                              |
+| [`migration-reviewer`](./migration-reviewer.md)                     | opus  | Prisma/Postgres migration safety — data loss, destructive DDL, locks, forward-only reversibility                           |
+| [`spec-auditor`](./spec-auditor.md)                                 | opus  | Both ends of spec-driven work: PLAN (verify spec vs code, emit `tasks.json`) and VERIFY (diff vs `tasks.json`, gap report) |
 
 ### Model policy
 
@@ -65,6 +66,11 @@ Subagents are useful for:
 ### How to decide which agent to delegate to
 
 ```
+Work arrived as a written spec (docs/backend-task-*.md, handed-over ТЗ)?
+└── Run the /spec-to-ship chain — spec-auditor (PLAN) → tasks.json → one question block
+    → implement slice by slice → per-slice review → spec-auditor (VERIFY) → gates
+    ↑ never implement straight from a spec; its file:line claims are stale until verified
+
 Writing new code?
 ├── Frontend structure/logic → frontend-engineer
 ├── Frontend visual polish / motion / typography → design-engineer

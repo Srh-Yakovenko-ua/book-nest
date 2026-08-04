@@ -1,0 +1,504 @@
+{
+  "spec": "docs/backend-task-series-advanced-filters.md",
+  "generatedAt": "2026-08-04T16:49:47Z",
+  "scope": {
+    "included": [
+      "Appendix — nextBook.ownershipStatus",
+      "Appendix — attention block (missing part numbers, hasPublisher, hasPublicationYears)",
+      "Phase 2 — book aggregates on SeriesView (minus publisher/year aggregates, see D3)"
+    ],
+    "excluded": [
+      "Phase 3 — server-side filter/sort/pagination. Spec itself scopes it to scale only. It also inverts Phase 2's premise (client-side filtering over a richer DTO). Revisit after Phase 2 lands.",
+      "Phase 2 publisherIds / publishers[] / publicationYearRange — owner chose the two booleans instead (D3).",
+      "All apps/web feature work beyond keeping fixtures and generated client compiling — owner scoped this run to backend."
+    ]
+  },
+  "decisions": [
+    {
+      "id": "D1",
+      "question": "How much of the spec is in scope now",
+      "answer": "Full backend of the spec, frontend untouched. Phase 3 deferred as a separate decision (order of work is unaffected: Phase 2 precedes it regardless)."
+    },
+    {
+      "id": "D2",
+      "question": "Gaps in series part numbers: raw partNumbers[] or computed missingPartNumbers[]",
+      "answer": "missingPartNumbers computed on the backend. Owner: the frontend stays thin."
+    },
+    {
+      "id": "D3",
+      "question": "Publisher and publication years shape",
+      "answer": "Two booleans: hasPublisher, hasPublicationYears. No publisherIds, no publicationYearRange."
+    },
+    {
+      "id": "D4",
+      "question": "BookView.series is also built by toSeriesView",
+      "answer": "Widen the nested books select in books.repository.ts too, so SeriesView means the same thing everywhere."
+    },
+    {
+      "id": "D5",
+      "question": "Nullability of new SeriesView fields (not asked, spec-derived)",
+      "answer": "Follow the spec: scalar nextBook.ownershipStatus is .nullish() for rollout safety; array/boolean fields carry .default() so an older remote cannot break the frontend .parse(). Recorded as an assumption."
+    },
+    {
+      "id": "D6",
+      "question": "SeriesBooksSummary becomes a grab bag once B3 adds nine more fields (~15 fields spanning reading progress, attention flags and catalog aggregates)",
+      "answer": "Split before B3, not after: a second pure summarizeSeriesAggregates in domain/ returning its own type, spread alongside by the mapper. Keeps SeriesView flat, so no DTO change and no frontend impact, while each summarizer stays one honest concept. Raised by code-reviewer on slice A."
+    },
+    {
+      "id": "D7",
+      "question": "hasAnyPublisher / hasAnyPublicationYear compare with !== null, so an absent field (undefined) would read as present. Surfaced by mutation testing.",
+      "answer": "Left as is. Nullable<number> forbids undefined and a dropped select key fails typecheck first, so the state is unreachable. Adding a runtime guard against a type-forbidden state contradicts CLAUDE.md rule 8.2 (parse at the boundary, trust types inside). Recorded so a future reader does not mistake it for an oversight."
+    },
+    {
+      "id": "D8",
+      "question": "Does borrowed_from_someone count toward ownership.ownedCount",
+      "answer": "No. ownedCount counts ownershipStatus === 'owned' only. The field serves the 'owned / fully collected' filter and clients derive fullyOwned as ownedCount === total; counting a borrowed book would make that claim a series is fully collected when part of it belongs to someone else. 'Available to read' ({owned, borrowed_from_someone}) is a different question, already answered per-book by nextBook.ownershipStatus, and would deserve its own named field."
+    },
+    {
+      "id": "D9",
+      "question": "Should gap detection include the head, i.e. the missing parts below the lowest present part",
+      "answer": "Yes, owner decision 2026-08-04. Scan becomes [1, max] minus present, instead of (min, max). Parts 3,4,5 now report [1,2] instead of []. The tail stays excluded: without totalBooks there is no way to know how many parts follow the highest present one, which is what the spec's 'не рахувати після останньої відомої позиції' was protecting. Part numbers are 1-based by schema (BookPartNumberSchema, int 1..999), so everything below the lowest present part is just as knowable as an interior gap, and 'you are missing book 1' is the most actionable case for the attention block. The frontend cannot derive this itself because D2 removed the raw partNumbers list."
+    },
+    {
+      "id": "D10",
+      "question": "Does lent_to_someone count toward ownership.ownedCount",
+      "answer": "Yes, changed 2026-08-04. Surfaced by the test agent while documenting D8. A book you lent out is still yours and comes back, so excluding it made a fully collected series report as incomplete the moment one part went to a friend. borrowed_from_someone stays excluded and that distinction is the point: it belongs to someone else. D8 remains correct on borrowed; it simply did not consider lent."
+    },
+    {
+      "id": "D11",
+      "question": "Slice B added four required, undefaulted fields (ownership, averageRating, averagePages, pagesCount) while slice A gave every array and boolean a .default() for rollout tolerance. The frontend parses the list response through the shared schema (apps/web/src/features/series/api/use-series-list.ts:21), so an FE built from this branch against a not-yet-deployed BE throws rather than degrading.",
+      "answer": "Deliberate, recorded after the completeness audit raised it. Tolerance is applied only where the default is HONEST: an empty formats/tags/languages array and hasFavoriteBook=false are the true answers for a series with no such data, so a missing field and a real empty result are the same thing. A defaulted ownership {0,0} or a null averageRating would be indistinguishable from real data and would lie silently, which is worse than a loud parse failure. This also matches the pre-existing totalBooks field in the same schema, which is required-and-nullable. FE and BE ship from one commit through one docker compose, so a split rollout only happens on a deliberate partial deploy."
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "SeriesViewSchema lives at packages/shared/src/series.ts:105-120 with 14 fields",
+      "specRef": "Що вже є в SeriesView",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/series.ts:105-120"
+    },
+    {
+      "claim": "SeriesNextBookSchema already carries `cover` as .nullish(), use it as precedent",
+      "specRef": "Додаток — nextBook.ownershipStatus, step 2",
+      "verdict": "FALSE",
+      "evidence": "packages/shared/src/series.ts:89-93 has exactly {id, partNumber, title}. The .nullish() cover precedent is on SeriesContinuationNextBookSchema at packages/shared/src/series.ts:227-250, a different schema serving the favourite-continuations endpoint."
+    },
+    {
+      "claim": "The list select already pulls readingStatus and coverMedia but not ownershipStatus",
+      "specRef": "Додаток — nextBook.ownershipStatus, step 1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/series/infrastructure/series.repository.ts:35-53 selects createdAt, id, partNumber, readingStatus, title, updatedAt plus authors and coverMedia"
+    },
+    {
+      "claim": "The detail query at :54 already selects ownershipStatus",
+      "specRef": "Додаток — nextBook.ownershipStatus, step 1",
+      "verdict": "MOVED",
+      "evidence": "seriesDetailsArgs at apps/api/src/modules/series/infrastructure/series.repository.ts:57-76 uses include on books, so every Book scalar including ownershipStatus comes back"
+    },
+    {
+      "claim": "orderBy is hardcoded name asc at series.repository.ts:322",
+      "specRef": "Phase 3, step 2",
+      "verdict": "MOVED",
+      "evidence": "searchOwned at apps/api/src/modules/series/infrastructure/series.repository.ts:318-332, orderBy on :320. No secondary tiebreaker, so pagination over duplicate names is unstable."
+    },
+    {
+      "claim": "buildOwnedWhere + searchOwned live at series.repository.ts:318-404",
+      "specRef": "Phase 3, step 3",
+      "verdict": "MOVED",
+      "evidence": "searchOwned :318-332, buildOwnedWhere :382-404 (module-level function, not a method)"
+    },
+    {
+      "claim": "summarizeSeriesBooks already iterates all books of the series, so additions are cheap",
+      "specRef": "Додаток — attention block, context",
+      "verdict": "MOVED",
+      "evidence": "apps/api/src/modules/series/domain/series-preview.ts:94-105 makes four passes: countFinishedBooks :90-92, countReadingBooks :111-113, selectNextBook :115-123 which copies and sorts. Additions are still cheap but this is not one pass."
+    },
+    {
+      "claim": "SeriesStatsView aggregation logic can be reused for the list",
+      "specRef": "Phase 2, ключове спостереження",
+      "verdict": "MOVED",
+      "evidence": "apps/api/src/modules/series/domain/series-stats.ts factors the logic into pure functions (computeAverageRating :85-94, computeAveragePages :76-83, computePagesCount :116-122) but none are exported. Only computeSeriesStats :35-68 is. Reuse requires exporting them."
+    },
+    {
+      "claim": "Only the series list path consumes toSeriesView",
+      "specRef": "implied throughout",
+      "verdict": "FALSE",
+      "evidence": "apps/api/src/modules/books/domain/book.mapper.ts:91 builds BookView.series through toSeriesView, sourced from the narrower nested select at apps/api/src/modules/books/infrastructure/books.repository.ts:107-124 which lacks even coverMedia"
+    },
+    {
+      "claim": "The list pulls at most pageSize=100 series, so widening the select is bounded",
+      "specRef": "Застереження щодо продуктивності",
+      "verdict": "FALSE",
+      "evidence": "apps/api/src/modules/series/application/series.service.ts:174 calls findAllOwned(userId) for the overview endpoint, loading every series of the user through the same seriesWithBookCountArgs. Widening the list select hits the whole collection, not one page."
+    },
+    {
+      "claim": "Book columns exist as named: ownershipStatus, isFavorite, formats, language, ageCategory, pagesCount, publicationYear, publisherId, partNumber",
+      "specRef": "Phase 2, step 1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:216-236; rating lives on BookReadingProgress.rating :313; tags via BookTag :474-483"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "A1",
+      "title": "Add ownershipStatus to SeriesNextBookSchema",
+      "specRef": "Додаток — nextBook.ownershipStatus, step 2",
+      "layer": "shared",
+      "files": ["packages/shared/src/series.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "SeriesNextBookSchema has ownershipStatus typed as OwnershipStatusSchema.nullish()",
+        "the full 6-value OwnershipStatus union passes through, not the 4 values the appendix names for the badge",
+        "no other field of SeriesNextBookSchema changed"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A2",
+      "title": "Add missingPartNumbers, hasPublisher, hasPublicationYears to SeriesViewSchema",
+      "specRef": "Додаток — attention block, A and C; Підсумок мінімального контракту",
+      "layer": "shared",
+      "files": ["packages/shared/src/series.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "missingPartNumbers: z.array(z.number().int()).default([])",
+        "hasPublisher: z.boolean().default(false)",
+        "hasPublicationYears: z.boolean().default(false)",
+        "no publisherIds / publishers[] / publicationYearRange field added (D3)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A3",
+      "title": "Widen the series list book select with ownershipStatus, publisherId, publicationYear",
+      "specRef": "Додаток — nextBook.ownershipStatus step 1; Додаток — attention block C",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/series/infrastructure/series.repository.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "seriesWithBookCountArgs.books.select gains exactly ownershipStatus, publisherId, publicationYear",
+        "no new relation added to the list select in this slice",
+        "seriesDetailsArgs untouched"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A4",
+      "title": "Compute missing part numbers, publisher and year presence, and next-book ownership in the preview pass",
+      "specRef": "Додаток — attention block A, B, C",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/series/domain/series-preview.ts",
+        "apps/api/src/modules/series/domain/series.mapper.ts"
+      ],
+      "dependsOn": ["A3"],
+      "mandatory": true,
+      "doneWhen": [
+        "SeriesBookPreview and SeriesBookRow carry ownershipStatus, publisherId, publicationYear",
+        "summarizeSeriesBooks returns missingPartNumbers: ascending, unique, integers only",
+        "gaps are computed strictly inside [min, max] of the present part numbers, so a series missing its tail reports nothing",
+        "books with partNumber === null are excluded from gap detection entirely",
+        "hasPublisher is true when at least one active book has a non-null publisherId",
+        "hasPublicationYears is true when at least one active book has a non-null publicationYear",
+        "nextBook.ownershipStatus is filled from the selected next book's real column value",
+        "toSeriesView passes all four through to SeriesView"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A5",
+      "title": "Feed the new fields on the BookView.series path",
+      "specRef": "not in spec — surfaced by inventory (D4)",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/books/infrastructure/books.repository.ts"],
+      "dependsOn": ["A3"],
+      "mandatory": true,
+      "doneWhen": [
+        "the nested series.books select at books.repository.ts:107-124 selects the same columns the series list select needs",
+        "GET /api/books returns a series object whose new fields reflect real data, not defaults",
+        "no unrelated column added to that select"
+      ],
+      "status": "done",
+      "reviewNote": "Closed. Non-default data seeded through the books path (owned / want_to_buy / in_transit, a real Publisher row, publicationYear 2012, plus a gapped-series helper) and 5 new cases assert hasPublisher, hasPublicationYears and missingPartNumbers through GET /api/books/:id. Mutation-tested: hardcoding ownershipStatus in the mapper reddens 4 tests that previously passed; scoping the nested select away from siblings reddens 7."
+    },
+    {
+      "id": "A6",
+      "title": "Tests for the appendix slice",
+      "specRef": "Definition of done",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/series/domain/series-preview.test.ts",
+        "apps/api/src/modules/series/application/series.service.test.ts",
+        "apps/api/src/modules/series/api/series.controller.test.ts"
+      ],
+      "dependsOn": ["A4", "A5"],
+      "mandatory": true,
+      "doneWhen": [
+        "gap detection covered for: no books, one book, contiguous parts, a real gap, gap only past the last part, all partNumber null, duplicate part numbers",
+        "hasPublisher / hasPublicationYears covered for none, some, all",
+        "nextBook.ownershipStatus asserted end to end through GET /api/series",
+        "the strict toEqual at series.service.test.ts:539-582 updated rather than loosened to objectContaining"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A7",
+      "title": "Keep apps/web compiling after the shared DTO change",
+      "specRef": "Definition of done (root typecheck)",
+      "layer": "contract",
+      "files": ["apps/web/src/features/series/model/series.fixtures.ts"],
+      "dependsOn": ["A2"],
+      "mandatory": true,
+      "doneWhen": [
+        "makeSeriesView produces the new fields",
+        "root pnpm typecheck is green across all packages, not only @app/api",
+        "no frontend behaviour changed beyond keeping fixtures and stories compiling"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "A8",
+      "title": "Regenerate the API contract",
+      "specRef": "Додаток — nextBook.ownershipStatus, step 5",
+      "layer": "contract",
+      "files": ["openapi.json", "apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["A1", "A2", "A4"],
+      "mandatory": true,
+      "doneWhen": [
+        "pnpm --filter @app/api generate:openapi then pnpm gen:api run clean",
+        "the diff contains the new fields and nothing unrelated"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "B1",
+      "title": "Widen the list select with the aggregate source columns and relations",
+      "specRef": "Phase 2, step 1",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/series/infrastructure/series.repository.ts"],
+      "dependsOn": ["A3"],
+      "mandatory": true,
+      "doneWhen": [
+        "books.select gains isFavorite, formats, language, ageCategory, pagesCount",
+        "books.select gains readingProgress: { select: { rating: true } }",
+        "books.select gains tags: { include: { tag: true } }",
+        "nothing is selected that no Phase 2 field consumes"
+      ],
+      "status": "done",
+      "correction": "This task's two doneWhen criteria contradicted each other: 'gains tags: { include: { tag: true } }' (copied from the spec) versus 'nothing is selected that no Phase 2 field consumes'. Measurement proved the second one right: include pulled eight unused Tag columns, 1858 KiB of the 2564 KiB the overview path gained, 72% of the regression. Narrowed to tags: { select: { tag: { select: { id: true, name: true } } } } in both repositories. Safe because TagView is exactly {id, name} (packages/shared/src/tags.ts:87-90). Verified: typecheck 3/3, 69 files / 1430 tests green."
+    },
+    {
+      "id": "B2",
+      "title": "Export the reusable stats primitives instead of duplicating them",
+      "specRef": "Phase 2, ключове спостереження",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/series/domain/series-stats.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "computeAverageRating and computeAveragePages (and computePagesCount if used) are exported",
+        "computeSeriesStats behaviour is unchanged, verified by the existing series-stats tests",
+        "no second implementation of average rating exists anywhere in the series module"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "B3",
+      "title": "Compute the Phase 2 aggregates for the list DTO",
+      "specRef": "Phase 2, step 2",
+      "layer": "domain",
+      "files": [
+        "apps/api/src/modules/series/domain/series-preview.ts",
+        "apps/api/src/modules/series/domain/series.mapper.ts"
+      ],
+      "dependsOn": ["B1", "B2"],
+      "mandatory": true,
+      "doneWhen": [
+        "averageRating reuses the exported stats primitive, same rounding, null when no book carries a rating",
+        "pagesCount and averagePages reuse the exported primitives",
+        "ownership is reported as { ownedCount, total } so both 'has an owned book' and 'fully owned' are derivable client-side",
+        "formats, languages, ageCategories are deduplicated unions across the active books, stable order",
+        "hasFavoriteBook is true when at least one active book has isFavorite",
+        "tags is a deduplicated {id,name}[] union across the active books",
+        "a series with zero active books yields nulls and empty arrays, never a partially-filled object"
+      ],
+      "status": "done",
+      "deviation": "Landed in a new apps/api/src/modules/series/domain/series-aggregates.ts rather than series-preview.ts, per D6 and one-concern-per-file. Merging it back would have recreated the grab bag one file lower."
+    },
+    {
+      "id": "B4",
+      "title": "Extend SeriesViewSchema with the Phase 2 aggregates",
+      "specRef": "Phase 2, step 3",
+      "layer": "shared",
+      "files": ["packages/shared/src/series.ts"],
+      "dependsOn": ["B3"],
+      "mandatory": true,
+      "doneWhen": [
+        "existing enums are reused: BookFormatSchema, BookLanguageSchema, AgeCategorySchema — no new enum literals",
+        "nullable where a bookless series has no answer, defaulted where an empty collection is the honest answer",
+        "field names match what the mapper emits"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "B5",
+      "title": "Feed the Phase 2 columns on the BookView.series path",
+      "specRef": "not in spec — surfaced by inventory (D4)",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/books/infrastructure/books.repository.ts"],
+      "dependsOn": ["B1"],
+      "mandatory": true,
+      "doneWhen": [
+        "the nested series.books select carries every column the Phase 2 aggregates read",
+        "GET /api/books returns real aggregate values on series, not empty defaults"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "B6",
+      "title": "Tests for the Phase 2 aggregates",
+      "specRef": "Phase 2, step 5",
+      "layer": "test",
+      "files": [
+        "apps/api/src/modules/series/domain/series-preview.test.ts",
+        "apps/api/src/modules/series/domain/series-stats.test.ts",
+        "apps/api/src/modules/series/application/series.service.test.ts"
+      ],
+      "dependsOn": ["B3", "B4"],
+      "mandatory": true,
+      "doneWhen": [
+        "aggregates covered on 0, 1 and many books",
+        "books without a rating covered explicitly",
+        "a series with totalBooks null covered",
+        "union fields asserted deduplicated and stably ordered"
+      ],
+      "status": "done",
+      "note": "31 unit cases in a new series-aggregates.test.ts, plus service and controller layers. Ordering cases were chosen so the expected array differs from BOTH alphabetical and insertion order, so the declared-order contract is actually locked. Four mutation checks all caught: dropping the readingProgress select, counting borrowed as owned, sorting unions alphabetically, dropping the tags relation. Full suite 231 files / 3590 tests green."
+    },
+    {
+      "id": "B7",
+      "title": "Measure the widened list query before calling it done",
+      "specRef": "Застереження щодо продуктивності",
+      "layer": "application",
+      "files": ["apps/api/src/modules/series/application/series.service.ts"],
+      "dependsOn": ["B1"],
+      "mandatory": true,
+      "doneWhen": [
+        "the cost of the widened select is checked against GET /api/series/overview, which loads every series via findAllOwned, not just a page",
+        "the measurement is captured (timing or row/column count), not asserted from intuition",
+        "if the overview path is disproportionately hit, that is reported with numbers rather than silently accepted"
+      ],
+      "status": "done",
+      "measurement": "200 series x 10 books, median of 7 runs. findAllOwned (overview, all series): 21.8ms/1791KiB before, 41.7ms/4355KiB with include, 35.2ms/2497KiB with the narrow tag select now shipped. searchOwned take=100: 12.9ms/896KiB, 20.5ms/2178KiB, 18.7ms/1249KiB. Prisma statements 7 to 10 on both paths (one round trip per added relation, independent of page size). summarizeSeriesAggregates CPU itself is 0.7ms over 2000 books, i.e. noise. The overview path is the disproportionate one: it pays the wider fetch over the entire collection while emitting only topUnfinished (5 series), 2.5x the DB work for 1/30th the bytes. Reported, not optimized further."
+    },
+    {
+      "id": "B8",
+      "title": "Regenerate the contract after Phase 2",
+      "specRef": "Phase 2, step 4",
+      "layer": "contract",
+      "files": [
+        "openapi.json",
+        "apps/web/src/shared/api/generated/**",
+        "apps/web/src/features/series/model/series.fixtures.ts"
+      ],
+      "dependsOn": ["B4", "B6"],
+      "mandatory": true,
+      "doneWhen": ["generate:openapi then gen:api run clean", "root pnpm typecheck green"],
+      "status": "done",
+      "note": "generate:openapi + gen:api run clean. SeriesViewDto carries all nine aggregates plus ownership as a required {ownedCount,total} object; missingPartNumbers now documents @items.minimum 1 / @items.maximum 999 thanks to the F4 schema reuse."
+    }
+  ],
+  "openDecisions": [],
+  "sliceALog": {
+    "completedAt": "2026-08-04T17:15:00Z",
+    "gates": "apps/api vitest 230 files / 3545 tests green; root pnpm typecheck green (3/3); pnpm lint 0 errors (6 pre-existing apps/web warnings); pnpm format:check green; pnpm knip clean",
+    "caughtByGates": [
+      "books.controller.series-preview.test.ts had 4 failing strict toEqual assertions because BookView.series.nextBook now carries ownershipStatus. Invisible to the implementing agent, whose local Postgres was down.",
+      "local Redis container was stopped, which hung 2 series deletion tests on a 15s BullMQ enqueue timeout. Unrelated to the slice, container restarted.",
+      "pnpm gen:api surfaced a pre-existing orval 8.22.0 to 8.23.0 drift: dependabot bumped the generator without regenerating the client."
+    ],
+    "openForReview": "missingPartNumbers is z.array(z.number().int()); BookPartNumberSchema (int 1..999) exists at packages/shared/src/books.ts:505 but is not exported. Reuse or not is a review question.",
+    "finalGates": "apps/api vitest 230 files / 3548 tests green; root typecheck 3/3; lint 0 errors; format:check green. All 7 review fixes applied."
+  },
+  "reviewFixes": [
+    {
+      "id": "F1",
+      "from": "review critical 1",
+      "task": "prettier the audit artifact so format:check is green",
+      "status": "done"
+    },
+    {
+      "id": "F2",
+      "from": "review critical 2",
+      "task": "prove A5 with non-default data on the BookView.series path",
+      "status": "done"
+    },
+    {
+      "id": "F3",
+      "from": "review nit 1",
+      "task": "readonly on collectMissingPartNumbers param and SeriesBooksSummary.missingPartNumbers, matching computeHasUnreadEarlierParts in the same file",
+      "status": "done"
+    },
+    {
+      "id": "F4",
+      "from": "review nit 2",
+      "task": "move BookPartNumberSchema + its bounds to a leaf module and reuse for missingPartNumbers. Direct import series.ts -> books.ts would close an ESM cycle (books.ts:44 already imports series.ts, books.ts:1141 evaluates SeriesViewSchema at module-eval time) and TDZ-crash invisibly to tsc.",
+      "status": "done",
+      "resolution": "BookPartNumberSchema moved to packages/shared/src/book-enums.ts (a true leaf: its only import is zod, and both books.ts and series.ts already import it, so the move added no graph edge at all). series.ts:119 now uses z.array(BookPartNumberSchema).default([]). Confirmed the cycle hazard was real: books.ts:45 imports series.ts and books.ts:1141 evaluates SeriesViewSchema at module-eval time."
+    },
+    {
+      "id": "F5",
+      "from": "review nit 4",
+      "task": "replace three near-duplicate ownershipStatus passthrough tests with one that runs all six values through toSeriesBookPreview",
+      "status": "done"
+    },
+    {
+      "id": "F6",
+      "from": "review nit 5",
+      "task": "makeSeriesView fixture nextBook gains ownershipStatus",
+      "status": "done"
+    },
+    {
+      "id": "F7",
+      "from": "review nit 3",
+      "task": "one consistent form for the five facts in the summary literal: hasAnyPublisher / hasAnyPublicationYear are now named helpers like the other three",
+      "status": "done"
+    },
+    {
+      "id": "F9",
+      "from": "owner decision D9",
+      "task": "collectMissingPartNumbers scans [1, max] instead of (min, max); update the locking tests in series-preview.test.ts, books.controller.series-preview.test.ts, series.service.test.ts and series.controller.test.ts that currently assert [] for a missing head",
+      "status": "done",
+      "risk": "Payload bound worth a look: a series whose only book carries partNumber 999 now yields 998 integers where the old formula yielded []. Realistic cases are small (a user who added part 12 gets 11 numbers), but the upper bound moved from 0 to 998 per series and the list returns up to 100 series. Raise with the reviewer rather than pre-emptively capping.",
+      "resolution": "collectMissingPartNumbers scans FIRST_PART_NUMBER..highestPart; Math.min is gone, highestPart still bounds the scan so the tail stays excluded. Locking tests updated by value, not weakened: single book at part 4 now [1,2,3] (was []), parts 3+4 now [1,2] (was []), parts 6/2/4 now [1,3,5] (was [3,5]); four new locks added including parts 3,4,5 -> [1,2] and the surviving tail case parts 1,2 -> [].",
+      "payloadMeasurement": "Worst case is a lone book at partNumber 999: 3885 bytes for one series, 388500 bytes (~379 KiB) for a full 100-series page, versus ~200 bytes under the old formula. Over the wire far less: compression() is enabled in bootstrap.ts:25 and ascending integer runs gzip well, measured 24 KiB for 100 distinct worst-case arrays. Realistic case (user added part 12) is 25 bytes. No cap added."
+    },
+    {
+      "id": "F10",
+      "from": "test agent observation on D8",
+      "task": "countOwnership counts owned and lent_to_someone, still excluding borrowed_from_someone; lock the distinction from both sides in tests",
+      "status": "done",
+      "resolution": "OWNED_COPY_OWNERSHIP_STATUSES: ReadonlySet<OwnershipStatus> = {owned, lent_to_someone}, mirroring AVAILABLE_OWNERSHIP_STATUSES in reading-queue/domain/queue-summary.ts. Both sides locked: a lent book counts (ownedCount 2 of 2), a borrowed one does not (1 of 2)."
+    }
+  ],
+  "productQuestion": "Gap detection is strictly inside [min, max] of present part numbers, exactly as the spec's formula demanded. Consequence: a user holding parts 3,4,5 gets missingPartNumbers []. The spec justified this for the TAIL ('не рахувати після останньої відомої позиції') but never addressed the HEAD, and part numbers are 1-based by schema, so everything in [1, min) is just as knowable. Owner decision, not a defect.",
+  "openFollowUps": [
+    "SeriesDetailsView carries averageRating / averagePages / pagesCount both at the top level and inside stats, computed from the same active books so they agree. A consequence of the spec's field names plus SeriesDetailsViewSchema extending SeriesViewSchema. Left alone deliberately.",
+    "Observed once: the full apps/api suite exited 1 with ZERO failing tests due to an unhandled ioredis 'Connection is closed.' rejection during teardown, attributed to src/core/exceptions/http-error.filter.test.ts. Did not reproduce on subsets.",
+    "Foreign work in the same tree: another session is fixing concurrent-vitest DB wiping (vitest.config.ts, src/test/global-setup.ts, setup.ts, worker-db.ts, apps/api/package.json). Its in-progress state currently fails typecheck at vitest.config.ts(42,5) TS2769. Excluded from this feature's commit."
+  ],
+  "auditFindings": {
+    "auditedAt": "2026-08-04T22:50:00Z",
+    "verified": "All 16 tasks and 9 review fixes proven against file:line opened during the audit. D3 exclusion holds (no publisher/year aggregates, only the two booleans). Attention-block cases 3, 4 and the publisher/years part of 6 all delivered. Nothing narrows OwnershipStatus: verified at schema, domain, test, openapi.json enum and generated client.",
+    "openGaps": [
+      "No full apps/api suite artifact covering the final tree: the turbo log stops at slice A (230 files) while the domain files changed later. Must re-run.",
+      "B5 has no behavioural evidence: no test asserts a Phase 2 aggregate through GET /api/books, the exact gap review fix F2 closed for A5.",
+      "The soft-delete scope on both widened selects is load-bearing for the new fields and untested: removing `where: SOFT_DELETE_SCOPE.active` compiles and passes everything, while silently changing what missingPartNumbers and ownership.total mean.",
+      "The appendix's own DoD check is unlocked: nothing asserts topUnfinished[].nextBook.ownershipStatus on GET /api/series/overview. The existing safeParse there passes even with the field absent, because it is .nullish().",
+      "Spec DoD manual checks have no captured evidence yet: no dev:api clean start, no curl of /api/series or /api/series/overview."
+    ]
+  }
+}

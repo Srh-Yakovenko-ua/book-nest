@@ -172,25 +172,28 @@ Never report done with a failing gate. If a gate fails for an unrelated reason (
 
 Route work to the right subagent without narrating or asking. Agents live in `.claude/agents/` — full registry in [`.claude/agents/README.md`](./.claude/agents/README.md). A subagent does **not** see the conversation: pass a self-contained brief (what, where, constraints, what to return). Summarize its result briefly; don't paste the full report.
 
-| Task                                                                 | Agent                                              |
-| -------------------------------------------------------------------- | -------------------------------------------------- |
-| Write/modify React in `apps/web/src/**`                              | `frontend-engineer`                                |
-| Visual polish, motion, typography, color, responsive rhythm          | `design-engineer`                                  |
-| Write/modify NestJS/Prisma in `apps/api/src/**`                      | `backend-engineer`                                 |
-| Tests in `apps/web/src/**` / `apps/api/src/**`                       | `frontend-test-engineer` / `backend-test-engineer` |
-| Refactor / dead code / cleanup                                       | `refactor-specialist`                              |
-| End-to-end user-visible feature needing a "what's new" entry         | `changelog-writer`                                 |
-| Browser-side bug (UI, console, layout, hydration, interaction)       | `frontend-bug-hunter`                              |
-| Server-side bug (500, failing endpoint, Prisma/Postgres error, hang) | `backend-bug-hunter`                               |
-| Prisma migration / schema change                                     | `migration-reviewer`                               |
-| Release / promote dev→stage→prod, deploy, "залить в прод", "выкати"  | `release-manager`                                  |
-| "ready to commit" / "сделай ревью" / "проверь перед commit"          | `code-reviewer` (+ auditors below)                 |
-| Anything touching auth / API / forms / env / deps / secrets          | `security-reviewer`                                |
-| FE slow / bundle bloat / re-render / web-vitals regression           | `frontend-performance-auditor`                     |
-| Accessibility, keyboard nav, ARIA, contrast, focus                   | `accessibility-auditor`                            |
-| SEO / SSR markup, metadata, hreflang, sitemap/robots, locale routing | `seo-auditor`                                      |
+| Task                                                                      | Agent                                              |
+| ------------------------------------------------------------------------- | -------------------------------------------------- |
+| Work arrives as a spec / ТЗ md — before ANY code, and again before "done" | `spec-auditor` (via the `/spec-to-ship` chain)     |
+| Write/modify React in `apps/web/src/**`                                   | `frontend-engineer`                                |
+| Visual polish, motion, typography, color, responsive rhythm               | `design-engineer`                                  |
+| Write/modify NestJS/Prisma in `apps/api/src/**`                           | `backend-engineer`                                 |
+| Tests in `apps/web/src/**` / `apps/api/src/**`                            | `frontend-test-engineer` / `backend-test-engineer` |
+| Refactor / dead code / cleanup                                            | `refactor-specialist`                              |
+| End-to-end user-visible feature needing a "what's new" entry              | `changelog-writer`                                 |
+| Browser-side bug (UI, console, layout, hydration, interaction)            | `frontend-bug-hunter`                              |
+| Server-side bug (500, failing endpoint, Prisma/Postgres error, hang)      | `backend-bug-hunter`                               |
+| Prisma migration / schema change                                          | `migration-reviewer`                               |
+| Release / promote dev→stage→prod, deploy, "залить в прод", "выкати"       | `release-manager`                                  |
+| "ready to commit" / "сделай ревью" / "проверь перед commit"               | `code-reviewer` (+ auditors below)                 |
+| Anything touching auth / API / forms / env / deps / secrets               | `security-reviewer`                                |
+| FE slow / bundle bloat / re-render / web-vitals regression                | `frontend-performance-auditor`                     |
+| Accessibility, keyboard nav, ARIA, contrast, focus                        | `accessibility-auditor`                            |
+| SEO / SSR markup, metadata, hreflang, sitemap/robots, locale routing      | `seo-auditor`                                      |
 
 **Parallel review** — on "ready to commit" / "полный ревью", launch the relevant reviewers in one turn (multiple Agent calls): always `code-reviewer`; plus `frontend-performance-auditor` / `accessibility-auditor` if the diff touches UI, `seo-auditor` if it touches routing/metadata/next-intl, `security-reviewer` if it touches auth/API/forms/env/deps.
+
+**Spec-driven work runs as a chain, not head-on** — see [`.claude/skills/spec-to-ship/SKILL.md`](./.claude/skills/spec-to-ship/SKILL.md). Verify the spec against the code before planning, decompose into a checkable `tasks.json`, ask all open decisions in one block, implement slice by slice with per-slice review, then re-audit the diff against `tasks.json` before claiming done. A spec's `file:line` claims are stale until opened; a requirement is optional only when the spec itself says so.
 
 **Do it yourself** (no delegation): trivial answers; reading or explaining existing code; edits in `docs/`; root config (`turbo.json`, `eslint.config.mjs`, `next.config.ts`, `tsconfig.base.json`, `knip.json`); rewriting this file; or when the user says "сделай сам".
 
