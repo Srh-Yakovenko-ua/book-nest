@@ -500,5 +500,16 @@
       "The appendix's own DoD check is unlocked: nothing asserts topUnfinished[].nextBook.ownershipStatus on GET /api/series/overview. The existing safeParse there passes even with the field absent, because it is .nullish().",
       "Spec DoD manual checks have no captured evidence yet: no dev:api clean start, no curl of /api/series or /api/series/overview."
     ]
+  },
+  "shipped": {
+    "commits": [
+      "8a69b07 feat(api): carry series attention fields and book aggregates on SeriesView",
+      "951a598 chore(web): regenerate the typed API client",
+      "df0deb9 docs: run spec-driven work through a verify-plan-audit chain"
+    ],
+    "branch": "dev",
+    "gates": "root typecheck 3/3, lint 0 errors (6 pre-existing apps/web warnings), format:check clean, knip clean, apps/api vitest 231 files / 3605 tests passed",
+    "liveVerification": "dev API booted clean, health 200. Seeded a real user, a series and two books (parts 3 and 5) through the API. GET /api/series returned missingPartNumbers [1,2,4] (head included per D9), ownership {2,2} with the lent book counted (D10), averagePages 576, pagesCount 1152, formats [paper,ebook] and languages [ukrainian,english] in declared not alphabetical order, tags with ids, hasFavoriteBook true, nextBook.ownershipStatus lent_to_someone (a value outside the four the spec listed, proving the union is not narrowed). GET /api/series/overview returned the same on topUnfinished[0], which is the appendix's own named DoD check. GET /api/books returned identical values on the nested series, confirming D4.",
+    "knownPreExisting": "apps/api vitest exits 1 with zero failing tests due to an unhandled ioredis 'Connection is closed' on teardown from src/core/exceptions/http-error.filter.test.ts. Proven pre-existing: 3 of 3 runs error on this branch AND 3 of 3 on the commit before the feature. One clean run on the old commit early on nearly produced a false regression call."
   }
 }
