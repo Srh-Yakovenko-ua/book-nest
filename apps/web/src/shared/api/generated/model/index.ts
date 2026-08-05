@@ -677,6 +677,7 @@ export * from "./listDetailsControllerDetailSort";
 export * from "./listsControllerListTrashParams";
 export * from "./listsControllerSearchParams";
 export * from "./listsControllerSearchSort";
+export * from "./listsSummaryViewDto";
 export * from "./loansControllerListFilter";
 export * from "./loansControllerListParams";
 export * from "./loansControllerListSort";

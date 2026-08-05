@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
+import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -81,7 +82,7 @@ export function SeriesSidebar({
         </>
       )}
 
-      <AttentionBlock
+      <SeriesAttentionBlock
         activeAttention={activeAttention}
         counts={attentionCounts}
         isLoading={attentionLoading}
@@ -158,103 +159,6 @@ function AlmostReadRow({ series }: { series: SeriesView }) {
           )}
         </div>
       )}
-    </li>
-  );
-}
-
-function AttentionBlock({
-  activeAttention,
-  counts,
-  isLoading,
-  onSelect,
-}: {
-  activeAttention: null | SeriesAttentionFilter;
-  counts: Record<SeriesAttentionReason, number>;
-  isLoading: boolean;
-  onSelect: (filter: SeriesAttentionFilter) => void;
-}) {
-  const t = useTranslations("series.attention");
-  const visible = SERIES_ATTENTION_REASONS.filter((reason) => counts[reason] > 0);
-
-  return (
-    <SidebarBlock icon="alert-triangle" iconClassName="text-warning" title={t("title")}>
-      {isLoading ? (
-        <RowSkeleton rows={2} />
-      ) : visible.length === 0 ? (
-        <div className="flex items-center gap-2">
-          <UiIcon aria-hidden className="shrink-0 text-success" name="check-circle" size={16} />
-          <span className="text-xs text-muted-foreground">{t("allClear")}</span>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <ul className="-mx-1.5 flex flex-col gap-0.5">
-            {visible.map((reason) => (
-              <AttentionRow
-                active={activeAttention === reason}
-                count={counts[reason]}
-                key={reason}
-                onSelect={onSelect}
-                reason={reason}
-              />
-            ))}
-          </ul>
-          <button
-            aria-pressed={activeAttention === "any"}
-            className={cn(
-              "group/viewall -mx-1.5 flex cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 text-xs font-medium text-primary transition-colors outline-none hover:text-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50",
-              activeAttention === "any" && "text-primary-hover",
-            )}
-            onClick={() => onSelect("any")}
-            type="button"
-          >
-            <span className="group-hover/viewall:underline">{t("viewAll")}</span>
-            <UiIcon
-              aria-hidden
-              className="shrink-0 transition-transform group-hover/viewall:translate-x-0.5 group-focus-visible/viewall:translate-x-0.5"
-              name="arrow-right"
-              size={16}
-            />
-          </button>
-        </div>
-      )}
-    </SidebarBlock>
-  );
-}
-
-function AttentionRow({
-  active,
-  count,
-  onSelect,
-  reason,
-}: {
-  active: boolean;
-  count: number;
-  onSelect: (filter: SeriesAttentionFilter) => void;
-  reason: SeriesAttentionReason;
-}) {
-  const t = useTranslations("series.attention");
-  const meta = ATTENTION_ROW_META[reason];
-
-  return (
-    <li>
-      <button
-        aria-pressed={active}
-        className={cn(
-          "group/attention flex w-full cursor-pointer items-center gap-2 rounded-md px-1.5 py-1.5 text-left transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50",
-          active && "bg-secondary",
-        )}
-        onClick={() => onSelect(reason)}
-        type="button"
-      >
-        <UiIcon aria-hidden className={cn("shrink-0", meta.toneClass)} name={meta.icon} size={16} />
-        <span className="min-w-0 flex-1 truncate text-xs text-ink">{t(reason, { count })}</span>
-        <UiIcon
-          aria-hidden
-          className="shrink-0 text-muted-foreground transition-transform group-hover/attention:translate-x-0.5 group-focus-visible/attention:translate-x-0.5"
-          name="chevron-right"
-          size={16}
-        />
-      </button>
     </li>
   );
 }
@@ -342,6 +246,41 @@ function RowSkeleton({ rows }: { rows: number }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function SeriesAttentionBlock({
+  activeAttention,
+  counts,
+  isLoading,
+  onSelect,
+}: {
+  activeAttention: null | SeriesAttentionFilter;
+  counts: Record<SeriesAttentionReason, number>;
+  isLoading: boolean;
+  onSelect: (filter: SeriesAttentionFilter) => void;
+}) {
+  const t = useTranslations("series.attention");
+  const items = SERIES_ATTENTION_REASONS.filter((reason) => counts[reason] > 0).map((reason) => ({
+    ...ATTENTION_ROW_META[reason],
+    id: reason,
+    label: t(reason, { count: counts[reason] }),
+  }));
+
+  return (
+    <AttentionBlock
+      activeId={activeAttention === "any" ? null : activeAttention}
+      allClearLabel={t("allClear")}
+      isLoading={isLoading}
+      items={items}
+      onSelect={onSelect}
+      title={t("title")}
+      viewAll={{
+        active: activeAttention === "any",
+        label: t("viewAll"),
+        onSelect: () => onSelect("any"),
+      }}
+    />
   );
 }
 

@@ -8,23 +8,35 @@ import { toast } from "sonner";
 
 import { useRouter } from "@/i18n/navigation";
 
+import type { ListAttentionReason } from "../model/lists-derive";
+
 import { useDeleteList } from "../api/use-delete-list";
 import { useLists } from "../api/use-lists";
-import { deriveListsStats, filterLists, LIST_SORT_DEFAULT, sortLists } from "../model/lists-derive";
+import { useListsSummary } from "../api/use-lists-summary";
+import {
+  countListsAttention,
+  filterLists,
+  filterListsByAttention,
+  LIST_SORT_DEFAULT,
+  sortLists,
+} from "../model/lists-derive";
 import { AllListsView } from "./all-lists-view";
 import { CreateListDialog } from "./create-list-dialog";
 import { DeleteListDialog } from "./delete-list-dialog";
 import { EditListDialog } from "./edit-list-dialog";
 import { ListsSidebar } from "./lists-sidebar";
+import { ListsSummaryCards } from "./lists-summary-cards";
 import { ListsToolbar } from "./lists-toolbar";
 
 export function AllLists() {
   const t = useTranslations("lists.manage.toast");
   const router = useRouter();
   const { data, isError, isPending, refetch } = useLists();
+  const summary = useListsSummary();
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ListSort>(LIST_SORT_DEFAULT);
+  const [attention, setAttention] = useState<Nullable<ListAttentionReason>>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Nullable<CustomListCard>>(null);
   const [deleting, setDeleting] = useState<Nullable<CustomListCard>>(null);
@@ -32,10 +44,18 @@ export function AllLists() {
   const deleteList = useDeleteList(deleting?.id ?? "");
 
   const allLists = (data?.pages ?? []).flatMap((page) => page.items);
-  const stats = deriveListsStats(allLists);
-  const visibleLists = sortLists(filterLists(allLists, search), sort);
+  const attentionCounts = countListsAttention(allLists);
+  const visibleLists = sortLists(
+    filterListsByAttention(filterLists(allLists, search), attention),
+    sort,
+  );
   const hasAnyLists = allLists.length > 0;
-  const hasActiveSearch = search.trim() !== "";
+  const hasActiveFilters = search.trim() !== "" || attention !== null;
+
+  function clearFilters() {
+    setSearch("");
+    setAttention(null);
+  }
 
   function confirmDelete() {
     deleteList.mutate(undefined, {
@@ -50,18 +70,34 @@ export function AllLists() {
   return (
     <>
       <AllListsView
-        hasActiveSearch={hasActiveSearch}
+        hasActiveFilters={hasActiveFilters}
         hasAnyLists={hasAnyLists}
         isError={isError}
         isPending={isPending}
         lists={visibleLists}
-        onClearSearch={() => setSearch("")}
+        onClearFilters={clearFilters}
         onCreateList={() => setCreateOpen(true)}
         onDeleteList={setDeleting}
         onEditList={setEditing}
         onOpenLibrary={() => router.push("/books")}
         onRetry={() => void refetch()}
-        sidebar={<ListsSidebar onCreateList={() => setCreateOpen(true)} stats={stats} />}
+        sidebar={
+          <ListsSidebar
+            activeAttention={attention}
+            attentionCounts={attentionCounts}
+            isLoading={isPending}
+            onAttentionSelect={(reason) =>
+              setAttention((current) => (current === reason ? null : reason))
+            }
+          />
+        }
+        summary={
+          <ListsSummaryCards
+            isError={summary.isError}
+            isLoading={summary.isPending}
+            summary={summary.data}
+          />
+        }
         toolbar={
           <ListsToolbar
             onSearchChange={setSearch}

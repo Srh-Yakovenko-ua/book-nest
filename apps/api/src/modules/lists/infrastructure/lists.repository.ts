@@ -1,10 +1,12 @@
 import type { ListSort, Nullable } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookListModel } from "../../../generated/prisma/models.js";
+import type { ListsSummaryCounts } from "../domain/lists-summary.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -57,6 +59,26 @@ type SearchListCardsInput = {
   sort: ListSort;
   take: number;
   userId: string;
+};
+
+const ListsSummaryCountsRowSchema = z.object({
+  largestListBookCount: z.number(),
+  listsWithBooksCount: z.number(),
+  maxListsPerBook: z.number(),
+  multiListBookCount: z.number(),
+  totalListCount: z.number(),
+  totalMembershipCount: z.number(),
+  uniqueBookCount: z.number(),
+});
+
+const EMPTY_LISTS_SUMMARY_COUNTS: ListsSummaryCounts = {
+  largestListBookCount: 0,
+  listsWithBooksCount: 0,
+  maxListsPerBook: 0,
+  multiListBookCount: 0,
+  totalListCount: 0,
+  totalMembershipCount: 0,
+  uniqueBookCount: 0,
 };
 
 @Injectable()
@@ -239,6 +261,42 @@ export class ListsRepository {
       where: { ...SOFT_DELETE_SCOPE.active, id: listId, userId },
     });
     return deleted.count;
+  }
+
+  async summaryCounts({ userId }: { userId: string }): Promise<ListsSummaryCounts> {
+    const rows = await this.prisma.$queryRaw`
+      WITH membership AS (
+        SELECT item.list_id AS list_id, item.book_id AS book_id
+        FROM book_list_items item
+        JOIN book_lists list ON list.id = item.list_id
+        JOIN books book ON book.id = item.book_id
+        WHERE list.user_id = ${userId}::uuid
+          AND list.deleted_at IS NULL
+          AND book.deleted_at IS NULL
+      ),
+      list_size AS (
+        SELECT list.id AS list_id, count(membership.book_id) AS book_count
+        FROM book_lists list
+        LEFT JOIN membership ON membership.list_id = list.id
+        WHERE list.user_id = ${userId}::uuid
+          AND list.deleted_at IS NULL
+        GROUP BY list.id
+      ),
+      book_reach AS (
+        SELECT membership.book_id AS book_id, count(*) AS list_count
+        FROM membership
+        GROUP BY membership.book_id
+      )
+      SELECT
+        (SELECT count(*) FROM list_size)::int AS "totalListCount",
+        (SELECT count(*) FILTER (WHERE book_count > 0) FROM list_size)::int AS "listsWithBooksCount",
+        (SELECT coalesce(max(book_count), 0) FROM list_size)::int AS "largestListBookCount",
+        (SELECT count(*) FROM membership)::int AS "totalMembershipCount",
+        (SELECT count(*) FROM book_reach)::int AS "uniqueBookCount",
+        (SELECT count(*) FILTER (WHERE list_count > 1) FROM book_reach)::int AS "multiListBookCount",
+        (SELECT coalesce(max(list_count), 0) FROM book_reach)::int AS "maxListsPerBook"
+    `;
+    return z.array(ListsSummaryCountsRowSchema).parse(rows)[0] ?? EMPTY_LISTS_SUMMARY_COUNTS;
   }
 
   async updateOwned({
