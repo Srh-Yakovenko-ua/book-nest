@@ -2445,7 +2445,7 @@
     },
     "toolbar": {
       "searchLabel": "Search series",
-      "searchPlaceholder": "Search by name or author",
+      "searchPlaceholder": "Series title or author",
       "searchClear": "Clear search",
       "statusLabel": "Cycle status",
       "readingLabel": "Reading state",
