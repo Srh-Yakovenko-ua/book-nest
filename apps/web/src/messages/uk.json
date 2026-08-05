@@ -1396,8 +1396,10 @@
       "authorsShowAll": "Показати всіх авторів",
       "authorsCollapse": "Згорнути",
       "dedicationLabel": "Присвята автора",
-      "dedicationAllLink": "Перейти до всіх присвят",
+      "dedicationAllLink": "Усі присвяти",
       "dedicationCopy": "Скопіювати",
+      "dedicationSave": "Зберегти",
+      "dedicationSaved": "Збережено",
       "lists": "Списки",
       "seriesSequence": {
         "title": "Послідовність читання серії",
@@ -2445,7 +2447,7 @@
     },
     "toolbar": {
       "searchLabel": "Пошук серій",
-      "searchPlaceholder": "Пошук за назвою або автором",
+      "searchPlaceholder": "Назва серії або автор",
       "searchClear": "Очистити пошук",
       "statusLabel": "Статус циклу",
       "readingLabel": "Стан читання",

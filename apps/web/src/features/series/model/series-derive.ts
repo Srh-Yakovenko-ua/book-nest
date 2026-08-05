@@ -111,7 +111,6 @@ export function countActiveSeriesFilters(filters: SeriesAdvancedFilters): number
 const NEXT_BOOK_UNAVAILABLE_OWNERSHIP: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
   "in_transit",
   "lent_to_someone",
-  "none",
   "want_to_buy",
 ]);
 

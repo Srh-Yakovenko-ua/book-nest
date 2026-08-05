@@ -612,6 +612,26 @@ describe("seriesAttentionReasons", () => {
     ).toEqual([]);
   });
 
+  it("does not flag next_unavailable when the next book ownership is unspecified", () => {
+    expect(
+      seriesAttentionReasons(
+        makeSeriesView({
+          ...populated,
+          booksInSeries: 3,
+          nextBook: {
+            cover: null,
+            id: "next-1",
+            ownershipStatus: "none",
+            partNumber: 2,
+            title: "Наступна",
+          },
+          status: "ongoing",
+          totalBooks: 3,
+        }),
+      ),
+    ).toEqual([]);
+  });
+
   it("returns overlapping reasons in display order", () => {
     expect(
       seriesAttentionReasons(
