@@ -1395,6 +1395,7 @@
       "seriesPartWithNumber": "{series} · part {number}",
       "authorsShowAll": "Show all authors",
       "authorsCollapse": "Collapse",
+      "tagsShowAll": "Show all tags",
       "dedicationLabel": "Author's dedication",
       "dedicationAllLink": "All dedications",
       "dedicationCopy": "Copy",
