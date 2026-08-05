@@ -47,6 +47,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { CharacterLifecycleService } from "../application/character-lifecycle.service.js";
 import { CharactersService } from "../application/characters.service.js";
 import { CharacterDetailsQueryDto } from "./input-dto/character-details-query.input-dto.js";
 import { CharactersListQueryDto } from "./input-dto/characters-list-query.input-dto.js";
@@ -64,7 +65,10 @@ import { PaginatedCharacterGlobalSummaryDto } from "./view-dto/paginated-charact
 @Controller("api/characters")
 @JwtProtected()
 export class CharactersController {
-  constructor(private readonly charactersService: CharactersService) {}
+  constructor(
+    private readonly charactersService: CharactersService,
+    private readonly lifecycleService: CharacterLifecycleService,
+  ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBody({ type: CreateCharacterInputDto })
@@ -77,7 +81,7 @@ export class CharactersController {
     @CurrentUser() user: AuthenticatedUser,
     @Body(new ZodBodyPipe(CreateCharacterSchema)) body: CreateCharacterInputDto,
   ): Promise<CharacterDetailsView> {
-    return this.charactersService.createGlobalCharacter(user.id, body);
+    return this.charactersService.createGlobalCharacter({ input: body, userId: user.id });
   }
 
   @ApiOkResponse({
@@ -186,7 +190,7 @@ export class CharactersController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("characterId", ParseUUIDPipe) characterId: string,
   ): Promise<CharacterDeletionPreview> {
-    return this.charactersService.deletionPreview({ characterId, userId: user.id });
+    return this.lifecycleService.deletionPreview({ characterId, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed or a book-scoped field was sent" })
@@ -221,7 +225,7 @@ export class CharactersController {
     @Param("characterId", ParseUUIDPipe) characterId: string,
     @Query(new ZodQueryPipe(DeleteCharacterQuerySchema)) _confirmation: DeleteCharacterQueryDto,
   ): Promise<CharacterDeletionResult> {
-    return this.charactersService.softDelete({ characterId, userId: user.id });
+    return this.lifecycleService.softDelete({ characterId, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "Character not found or already purged" })
@@ -235,6 +239,6 @@ export class CharactersController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("characterId", ParseUUIDPipe) characterId: string,
   ): Promise<CharacterDetailsView> {
-    return this.charactersService.restore({ characterId, userId: user.id });
+    return this.lifecycleService.restore({ characterId, userId: user.id });
   }
 }

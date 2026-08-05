@@ -13,7 +13,7 @@ Production lives on one Hetzner server (`nest-book`, `46.224.83.71`). Two enviro
 
 The server (`~/booknest`) is **not** a git checkout and you do **not** edit files there by hand. On every deploy, `.github/workflows/deploy.yml` (job "Sync stack files + secrets, then deploy over SSH"):
 
-1. **renders `~/booknest/.env`** from **GitHub repo Secrets** (`DEV/PROD_JWT_*`, `DEV/PROD_POSTGRES_PASSWORD`, `PROD_SMTP_PASS`) plus non-secret constants, and `scp`s it over;
+1. **renders `~/booknest/.env`** from **GitHub repo Secrets** (`DEV/PROD_JWT_*`, `DEV/PROD_POSTGRES_PASSWORD`, `PROD_SMTP_PASS`, `DEV/PROD_R2_*`) plus non-secret constants, and `scp`s it over;
 2. **syncs `docker-compose.yml`, `Caddyfile`, `deploy.sh`** from this repo to `~/booknest/`;
 3. runs `deploy.sh <env>`.
 
@@ -22,7 +22,8 @@ So the source of truth is: **code/compose → this repo**, **secrets → GitHub 
 ## Files
 
 - `docker-compose.yml` — the whole stack (caddy + both envs). Synced from repo by CI.
-- `Caddyfile` — routing + TLS + the Mailpit basic-auth. Synced from repo by CI.
+- `Caddyfile` — routing + TLS + the Mailpit basic-auth. Synced from repo by CI. To change the Mailpit password, regenerate the hash with `docker run --rm caddy:2-alpine caddy hash-password --plaintext '<password>'` and replace it in the file.
+- `/api/metrics` is answered with a 404 at the edge on both hosts. The endpoint stays reachable inside the docker network for a future scraper.
 - `.env.example` — documents the shape; the real `.env` is CI-rendered from GitHub Secrets. **Never commit a real `.env`.**
 - `deploy.sh prod|dev|all` — `docker compose pull` → `up -d` → `docker image prune -f`.
 - `systemd/docker-prune.{service,timer}` — weekly image + build-cache cleanup.

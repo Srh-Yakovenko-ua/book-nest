@@ -225,7 +225,7 @@ describe("DELETE /api/lists/:listId", () => {
     expect(res.status).toBe(401);
   });
 
-  it("deletes the list and its memberships while keeping the books", async () => {
+  it("moves the list to the trash and hides it while keeping the books", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const listId = await createList({ name: "Autumn reads", userId });
     const { bookId } = await createBook(userId, false);
@@ -235,10 +235,15 @@ describe("DELETE /api/lists/:listId", () => {
       .delete(`/api/lists/${listId}`)
       .set("Authorization", `Bearer ${accessToken}`);
 
-    expect(res.status).toBe(204);
-    expect(await prisma.bookList.count({ where: { id: listId } })).toBe(0);
-    expect(await prisma.bookListItem.count({ where: { listId } })).toBe(0);
+    expect(res.status).toBe(200);
+    expect(await prisma.bookList.count({ where: { deletedAt: null, id: listId } })).toBe(0);
+    expect(await prisma.bookListItem.count({ where: { listId } })).toBe(1);
     expect(await prisma.book.count({ where: { id: bookId } })).toBe(1);
+
+    const listing = await request(app.getHttpServer())
+      .get("/api/lists")
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(listing.body.totalCount).toBe(0);
   });
 
   it("returns 404 for a list owned by another user", async () => {

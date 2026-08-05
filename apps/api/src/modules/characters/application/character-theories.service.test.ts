@@ -3,7 +3,7 @@ import type { CharacterTheoriesQuery, CreateCharacterTheoryInput, Nullable } fro
 import { CHARACTER_THEORY_ERROR_CODES } from "@app/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { BooksRepository } from "../../books/index.js";
+import type { BookAccessService } from "../../books/index.js";
 import type {
   CharacterTheoriesRepository,
   CharacterTheoryRow,
@@ -53,7 +53,11 @@ function createService(config: ServiceConfig = {}): {
     .fn()
     .mockResolvedValue(config.bookContext === undefined ? null : config.bookContext);
   const listSeriesBooks = vi.fn().mockResolvedValue(config.seriesBooks ?? []);
-  const existsOwned = vi.fn().mockResolvedValue(config.bookExists ?? true);
+  const assertOwned = vi.fn(async ({ notFoundCode }: { notFoundCode?: string }): Promise<void> => {
+    if (config.bookExists === false) {
+      throw new NotFoundError("Book not found", { code: notFoundCode });
+    }
+  });
 
   const theoriesRepository = {
     countTheories,
@@ -69,12 +73,12 @@ function createService(config: ServiceConfig = {}): {
     findOwnedCharacterBare,
     listSeriesBooks,
   } as unknown as CharactersRepository;
-  const booksRepository = { existsOwned } as unknown as BooksRepository;
+  const bookAccess = { assertOwned } as unknown as BookAccessService;
 
   const service = new CharacterTheoriesService(
     theoriesRepository,
     charactersRepository,
-    booksRepository,
+    bookAccess,
   );
 
   return { countTheories, create, listTheories, service, update };

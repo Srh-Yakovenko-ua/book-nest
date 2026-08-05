@@ -15,7 +15,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
-import { CharactersService } from "../application/characters.service.js";
+import { BookCharactersService } from "../application/book-characters.service.js";
 import { CharacterSuggestionsQueryDto } from "./input-dto/character-suggestions-query.input-dto.js";
 import { CharacterSuggestionsDto } from "./view-dto/character-suggestions.view-dto.js";
 
@@ -23,7 +23,7 @@ import { CharacterSuggestionsDto } from "./view-dto/character-suggestions.view-d
 @Controller("api/books/:bookId/character-suggestions")
 @JwtProtected()
 export class BookCharacterSuggestionsController {
-  constructor(private readonly charactersService: CharactersService) {}
+  constructor(private readonly bookCharactersService: BookCharactersService) {}
 
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({
@@ -40,6 +40,6 @@ export class BookCharacterSuggestionsController {
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Query(new ZodQueryPipe(CharacterSuggestionsQuerySchema)) query: CharacterSuggestionsQueryDto,
   ): Promise<CharacterSuggestionsView> {
-    return this.charactersService.bookCharacterSuggestions({ bookId, query, userId: user.id });
+    return this.bookCharactersService.bookCharacterSuggestions({ bookId, query, userId: user.id });
   }
 }

@@ -44,6 +44,7 @@ function makeView(overrides: {
 }
 
 const EMPTY_SUMMARY: DedicationsSummaryView = {
+  authorsCount: 0,
   availableGenres: [],
   favoriteCount: 0,
   finishedCount: 0,
@@ -168,6 +169,7 @@ describe("DedicationsService.getDedications", () => {
 describe("DedicationsService.getDedicationsSummary", () => {
   it("delegates to the repository and returns its exact summary", async () => {
     const summary: DedicationsSummaryView = {
+      authorsCount: 2,
       availableGenres: ["history", "memoir"],
       favoriteCount: 1,
       finishedCount: 1,

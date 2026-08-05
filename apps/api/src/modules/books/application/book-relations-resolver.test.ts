@@ -18,6 +18,8 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import { fakeOf } from "../../../test/fake.js";
 import { BookRelationsResolver, type ResolvedAuthors } from "./book-relations-resolver.js";
 
+const TX = fakeOf<Prisma.TransactionClient>();
+
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const BOOK_ID = "22222222-2222-4222-8222-222222222222";
 const AUTHOR_ID = "33333333-3333-4333-8333-333333333333";
@@ -209,33 +211,32 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
       tagIds: [TAG_ID],
     });
 
-    const resolved = await resolver.resolveForCreate({
-      input: createInput({
-        listIds: [LIST_ID],
-        newLists: [{ name: "Autumn reads" }],
-        publisherName: "Penguin",
-        tags: ["dark academia"],
-      }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: createInput({
+          listIds: [LIST_ID],
+          newLists: [{ name: "Autumn reads" }],
+          publisherName: "Penguin",
+          tags: ["dark academia"],
+        }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(publishersService.resolveOrCreate).toHaveBeenCalledWith(
       USER_ID,
       { id: undefined, name: "Penguin" },
-      undefined,
+      TX,
     );
-    expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(
-      USER_ID,
-      ["dark academia"],
-      undefined,
-    );
+    expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(USER_ID, ["dark academia"], TX);
     expect(listsService.resolveListsForBook).toHaveBeenCalledWith(
       {
         input: { listIds: [LIST_ID], newLists: [{ name: "Autumn reads" }] },
         userId: USER_ID,
       },
-      undefined,
+      TX,
     );
     expect(resolved).toMatchObject({
       authorIds: [AUTHOR_ID],
@@ -249,11 +250,17 @@ describe("BookRelationsResolver.resolveForCreate references", () => {
   it("passes the pre-resolved authors through to the result", async () => {
     const { resolver } = buildResolver();
 
-    const resolved = await resolver.resolveForCreate({
-      input: createInput({ authors: [{ name: "Terry Pratchett" }, { name: "Neil Gaiman" }] }),
-      resolvedAuthors: { authorIds: [AUTHOR_ID, AUTHOR_ID_B], firstAuthorName: "Terry Pratchett" },
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: createInput({ authors: [{ name: "Terry Pratchett" }, { name: "Neil Gaiman" }] }),
+        resolvedAuthors: {
+          authorIds: [AUTHOR_ID, AUTHOR_ID_B],
+          firstAuthorName: "Terry Pratchett",
+        },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.authorIds).toEqual([AUTHOR_ID, AUTHOR_ID_B]);
     expect(resolved.firstAuthorName).toBe("Terry Pratchett");
@@ -301,11 +308,14 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
   it("stores null queue fields when the book is not added to the queue", async () => {
     const { repository, resolver } = buildResolver();
 
-    const resolved = await resolver.resolveForCreate({
-      input: createInput({ addToReadingQueue: false }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: createInput({ addToReadingQueue: false }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(repository.maxQueuePosition).not.toHaveBeenCalled();
     expect(resolved).toMatchObject({ queuePosition: null, queuePriority: null });
@@ -314,11 +324,14 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
   it("defaults the queue priority to normal and appends to the end of an empty queue", async () => {
     const { resolver } = buildResolver({ maxQueuePosition: 0 });
 
-    const resolved = await resolver.resolveForCreate({
-      input: createInput({ addToReadingQueue: true }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: createInput({ addToReadingQueue: true }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved).toMatchObject({ queuePosition: 1, queuePriority: "normal" });
   });
@@ -326,11 +339,14 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
   it("appends after the last queued book and keeps the provided priority", async () => {
     const { resolver } = buildResolver({ maxQueuePosition: 4 });
 
-    const resolved = await resolver.resolveForCreate({
-      input: createInput({ addToReadingQueue: true, queuePriority: "high" }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: createInput({ addToReadingQueue: true, queuePriority: "high" }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved).toMatchObject({ queuePosition: 5, queuePriority: "high" });
   });
@@ -338,11 +354,14 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
   it("keeps a book created with a closed status out of the queue despite addToReadingQueue", async () => {
     const { repository, resolver } = buildResolver({ maxQueuePosition: 4 });
 
-    const resolved = await resolver.resolveForCreate({
-      input: createInput({ addToReadingQueue: true, readingStatus: "finished" }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: createInput({ addToReadingQueue: true, readingStatus: "finished" }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(repository.maxQueuePosition).not.toHaveBeenCalled();
     expect(resolved).toMatchObject({ queuePosition: null, queuePriority: null });
@@ -351,11 +370,14 @@ describe("BookRelationsResolver.resolveForCreate queue placement", () => {
   it("keeps a book created as dnf out of the queue despite addToReadingQueue", async () => {
     const { resolver } = buildResolver({ maxQueuePosition: 4 });
 
-    const resolved = await resolver.resolveForCreate({
-      input: createInput({ addToReadingQueue: true, readingStatus: "dnf" }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: createInput({ addToReadingQueue: true, readingStatus: "dnf" }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved).toMatchObject({ queuePosition: null, queuePriority: null });
   });
@@ -375,11 +397,14 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
   it("does not resolve a series and stores null series fields for a solo book", async () => {
     const { resolver, seriesService } = buildResolver();
 
-    const resolved = await resolver.resolveForCreate({
-      input: seriesPartInput({ bookType: "solo", partNumber: 5 }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: seriesPartInput({ bookType: "solo", partNumber: 5 }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(seriesService.resolveForBook).not.toHaveBeenCalled();
     expect(resolved).toMatchObject({ partNumber: null, seriesId: null });
@@ -388,14 +413,17 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
   it("resolves a new series and stores the resolved id and part number", async () => {
     const { resolver, seriesService } = buildResolver({ seriesId: SERIES_ID });
 
-    const resolved = await resolver.resolveForCreate({
-      input: seriesPartInput({
-        newSeries: { genres: [], name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
-        partNumber: 1,
-      }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: seriesPartInput({
+          newSeries: { genres: [], name: "Throne of Glass", status: "ongoing", totalBooks: 3 },
+          partNumber: 1,
+        }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(seriesService.resolveForBook).toHaveBeenCalledWith(
       {
@@ -404,7 +432,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
         seriesId: undefined,
         userId: USER_ID,
       },
-      undefined,
+      TX,
     );
     expect(resolved).toMatchObject({ partNumber: 1, seriesId: SERIES_ID });
   });
@@ -412,11 +440,14 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
   it("resolves an existing series by id", async () => {
     const { resolver, seriesService } = buildResolver({ seriesId: SERIES_ID });
 
-    const resolved = await resolver.resolveForCreate({
-      input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(seriesService.resolveForBook).toHaveBeenCalledWith(
       {
@@ -425,7 +456,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
         seriesId: SERIES_ID,
         userId: USER_ID,
       },
-      undefined,
+      TX,
     );
     expect(resolved).toMatchObject({ partNumber: 2, seriesId: SERIES_ID });
   });
@@ -433,11 +464,14 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
   it("checks the series for a duplicate part number excluding nothing", async () => {
     const { repository, resolver } = buildResolver({ seriesId: SERIES_ID });
 
-    await resolver.resolveForCreate({
-      input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    await resolver.resolveForCreate(
+      {
+        input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(
       USER_ID,
@@ -446,7 +480,7 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
         partNumber: 2,
         seriesId: SERIES_ID,
       },
-      undefined,
+      TX,
     );
   });
 
@@ -457,22 +491,28 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
     });
 
     await expect(
-      resolver.resolveForCreate({
-        input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
-        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-        userId: USER_ID,
-      }),
+      resolver.resolveForCreate(
+        {
+          input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
+          resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+          userId: USER_ID,
+        },
+        TX,
+      ),
     ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it("does not check the series for a solo book", async () => {
     const { repository, resolver } = buildResolver();
 
-    await resolver.resolveForCreate({
-      input: seriesPartInput({ bookType: "solo", partNumber: 1 }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    await resolver.resolveForCreate(
+      {
+        input: seriesPartInput({ bookType: "solo", partNumber: 1 }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(repository.findSeriesPartNumberConflict).not.toHaveBeenCalled();
   });
@@ -481,22 +521,28 @@ describe("BookRelationsResolver.resolveForCreate series handling", () => {
     const { resolver } = buildResolver({ seriesId: SERIES_ID, seriesTotalBooks: 2 });
 
     await expect(
-      resolver.resolveForCreate({
-        input: seriesPartInput({ partNumber: 3, seriesId: SERIES_ID }),
-        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-        userId: USER_ID,
-      }),
+      resolver.resolveForCreate(
+        {
+          input: seriesPartInput({ partNumber: 3, seriesId: SERIES_ID }),
+          resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+          userId: USER_ID,
+        },
+        TX,
+      ),
     ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it("accepts a part number equal to the existing series total books", async () => {
     const { resolver } = buildResolver({ seriesId: SERIES_ID, seriesTotalBooks: 2 });
 
-    const resolved = await resolver.resolveForCreate({
-      input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
-      resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForCreate(
+      {
+        input: seriesPartInput({ partNumber: 2, seriesId: SERIES_ID }),
+        resolvedAuthors: DEFAULT_RESOLVED_AUTHORS,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved).toMatchObject({ partNumber: 2, seriesId: SERIES_ID });
   });
@@ -506,16 +552,19 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("replaces the author set and recomputes firstAuthorName from the new first author", async () => {
     const { resolver } = buildResolver();
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { authors: [{ name: "Ursula K. Le Guin" }, { name: "Octavia E. Butler" }] },
-      resolvedAuthors: {
-        authorIds: [AUTHOR_ID_B, AUTHOR_ID_C],
-        firstAuthorName: "Ursula K. Le Guin",
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { authors: [{ name: "Ursula K. Le Guin" }, { name: "Octavia E. Butler" }] },
+        resolvedAuthors: {
+          authorIds: [AUTHOR_ID_B, AUTHOR_ID_C],
+          firstAuthorName: "Ursula K. Le Guin",
+        },
+        userId: USER_ID,
       },
-      userId: USER_ID,
-    });
+      TX,
+    );
 
     expect(resolved.authorIds).toEqual([AUTHOR_ID_B, AUTHOR_ID_C]);
     expect(resolved.fields.firstAuthorName).toBe("Ursula K. Le Guin");
@@ -524,13 +573,16 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("leaves authorIds undefined when authors are absent", async () => {
     const { resolver } = buildResolver();
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { title: "Renamed" },
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { title: "Renamed" },
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.authorIds).toBeUndefined();
     expect(resolved.fields.firstAuthorName).toBeUndefined();
@@ -540,13 +592,16 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
     const { publishersService, resolver } = buildResolver();
     publishersService.resolveOrCreate.mockResolvedValue(null);
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { publisherName: "Vivat" },
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { publisherName: "Vivat" },
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.fields.publisherId).toBeNull();
   });
@@ -554,13 +609,16 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("connects the publisher when the resolver returns an id", async () => {
     const { resolver } = buildResolver();
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { publisherName: "Vivat" },
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { publisherName: "Vivat" },
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.fields.publisherId).toBe(PUBLISHER_ID);
   });
@@ -572,13 +630,16 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
       input: { coverMediaId: MEDIA_ID },
       userId: USER_ID,
     });
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { coverMediaId: MEDIA_ID },
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { coverMediaId: MEDIA_ID },
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(mediaService.assertOwned).toHaveBeenCalledWith({ id: MEDIA_ID, userId: USER_ID });
     expect(resolved.fields.coverMediaId).toBe(MEDIA_ID);
@@ -587,32 +648,34 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("passes the resolved tag ids when tags are provided", async () => {
     const { resolver, tagsService } = buildResolver({ tagIds: [TAG_ID] });
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { tags: ["dark academia"] },
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
-
-    expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(
-      USER_ID,
-      ["dark academia"],
-      undefined,
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { tags: ["dark academia"] },
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
     );
+
+    expect(tagsService.resolveOrCreateMany).toHaveBeenCalledWith(USER_ID, ["dark academia"], TX);
     expect(resolved.tagIds).toEqual([TAG_ID]);
   });
 
   it("leaves tagIds undefined when tags are absent", async () => {
     const { resolver, tagsService } = buildResolver();
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { title: "Renamed" },
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { title: "Renamed" },
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(tagsService.resolveOrCreateMany).not.toHaveBeenCalled();
     expect(resolved.tagIds).toBeUndefined();
@@ -621,20 +684,23 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("resolves the lists and passes the ids when listIds are provided", async () => {
     const { listsService, resolver } = buildResolver({ listIds: [LIST_ID] });
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { listIds: [LIST_ID] },
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { listIds: [LIST_ID] },
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(listsService.resolveListsForBook).toHaveBeenCalledWith(
       {
         input: { listIds: [LIST_ID], newLists: undefined },
         userId: USER_ID,
       },
-      undefined,
+      TX,
     );
     expect(resolved.listIds).toEqual([LIST_ID]);
   });
@@ -642,13 +708,16 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("disconnects the series and clears the part number when the book becomes solo", async () => {
     const { resolver } = buildResolver();
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { bookType: "solo" },
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { bookType: "solo" },
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.fields.seriesId).toBeNull();
     expect(resolved.fields.partNumber).toBeNull();
@@ -657,13 +726,16 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("checks the series for a duplicate part number excluding the current book", async () => {
     const { repository, resolver } = buildResolver();
 
-    await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow({ partNumber: 4, seriesId: SERIES_ID }),
-      input: { partNumber: 4 } as UpdateBookInput,
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow({ partNumber: 4, seriesId: SERIES_ID }),
+        input: { partNumber: 4 } as UpdateBookInput,
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(repository.findSeriesPartNumberConflict).toHaveBeenCalledWith(
       USER_ID,
@@ -672,7 +744,7 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
         partNumber: 4,
         seriesId: SERIES_ID,
       },
-      undefined,
+      TX,
     );
   });
 
@@ -682,26 +754,32 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
     });
 
     await expect(
-      resolver.resolveForUpdate({
-        bookId: BOOK_ID,
-        current: bookRow({ partNumber: 2, seriesId: SERIES_ID }),
-        input: { partNumber: 3 } as UpdateBookInput,
-        resolvedAuthors: undefined,
-        userId: USER_ID,
-      }),
+      resolver.resolveForUpdate(
+        {
+          bookId: BOOK_ID,
+          current: bookRow({ partNumber: 2, seriesId: SERIES_ID }),
+          input: { partNumber: 3 } as UpdateBookInput,
+          resolvedAuthors: undefined,
+          userId: USER_ID,
+        },
+        TX,
+      ),
     ).rejects.toBeInstanceOf(BadRequestError);
   });
 
   it("does not run the part-number check when the book is not in a series", async () => {
     const { repository, resolver } = buildResolver();
 
-    await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: { title: "Solo" },
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: { title: "Solo" },
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(repository.findSeriesPartNumberConflict).not.toHaveBeenCalled();
   });
@@ -713,17 +791,20 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
     });
 
     await expect(
-      resolver.resolveForUpdate({
-        bookId: BOOK_ID,
-        current: bookRow(),
-        input: {
-          bookType: "series_part",
-          newSeries: { name: "Throne of Glass", status: "ongoing" },
-          partNumber: 99,
-        } as UpdateBookInput,
-        resolvedAuthors: undefined,
-        userId: USER_ID,
-      }),
+      resolver.resolveForUpdate(
+        {
+          bookId: BOOK_ID,
+          current: bookRow(),
+          input: {
+            bookType: "series_part",
+            newSeries: { name: "Throne of Glass", status: "ongoing" },
+            partNumber: 99,
+          } as UpdateBookInput,
+          resolvedAuthors: undefined,
+          userId: USER_ID,
+        },
+        TX,
+      ),
     ).rejects.toBeInstanceOf(BadRequestError);
     expect(seriesService.resolveForBook).toHaveBeenCalled();
   });
@@ -731,17 +812,20 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("accepts an update when a newSeries name resolves to a series with room for the part number", async () => {
     const { resolver } = buildResolver({ seriesId: SERIES_ID, seriesTotalBooks: 3 });
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow(),
-      input: {
-        bookType: "series_part",
-        newSeries: { name: "Throne of Glass", status: "ongoing" },
-        partNumber: 2,
-      } as UpdateBookInput,
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow(),
+        input: {
+          bookType: "series_part",
+          newSeries: { name: "Throne of Glass", status: "ongoing" },
+          partNumber: 2,
+        } as UpdateBookInput,
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.fields.seriesId).toBe(SERIES_ID);
     expect(resolved.fields.partNumber).toBe(2);
@@ -750,13 +834,16 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("enqueues a book that was not in the queue and appends to the end with the chosen priority", async () => {
     const { resolver } = buildResolver({ maxQueuePosition: 4 });
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow({ queuePosition: null, queuePriority: null }),
-      input: { addToReadingQueue: true, queuePriority: "high" } as UpdateBookInput,
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow({ queuePosition: null, queuePriority: null }),
+        input: { addToReadingQueue: true, queuePriority: "high" } as UpdateBookInput,
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.fields.queuePosition).toBe(5);
     expect(resolved.fields.queuePriority).toBe("high");
@@ -765,13 +852,16 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("removes a book from the queue when addToReadingQueue is false", async () => {
     const { resolver } = buildResolver();
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow({ queuePosition: 2, queuePriority: "normal" }),
-      input: { addToReadingQueue: false } as UpdateBookInput,
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow({ queuePosition: 2, queuePriority: "normal" }),
+        input: { addToReadingQueue: false } as UpdateBookInput,
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.fields.queuePosition).toBeNull();
     expect(resolved.fields.queuePriority).toBeNull();
@@ -780,13 +870,16 @@ describe("BookRelationsResolver.resolveForUpdate", () => {
   it("updates only the priority of an already-queued book and keeps its position", async () => {
     const { repository, resolver } = buildResolver();
 
-    const resolved = await resolver.resolveForUpdate({
-      bookId: BOOK_ID,
-      current: bookRow({ queuePosition: 3, queuePriority: "low" }),
-      input: { queuePriority: "high" } as UpdateBookInput,
-      resolvedAuthors: undefined,
-      userId: USER_ID,
-    });
+    const resolved = await resolver.resolveForUpdate(
+      {
+        bookId: BOOK_ID,
+        current: bookRow({ queuePosition: 3, queuePriority: "low" }),
+        input: { queuePriority: "high" } as UpdateBookInput,
+        resolvedAuthors: undefined,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.fields.queuePosition).toBeUndefined();
     expect(resolved.fields.queuePriority).toBe("high");

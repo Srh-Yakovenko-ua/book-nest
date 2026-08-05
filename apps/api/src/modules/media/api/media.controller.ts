@@ -10,6 +10,7 @@ import {
   ParseUUIDPipe,
   Post,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -20,6 +21,7 @@ import {
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOperation,
+  ApiServiceUnavailableResponse,
   ApiTags,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
@@ -31,6 +33,7 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { MediaService } from "../application/media.service.js";
 import { MEDIA_ERROR_CODES, mediaError } from "../domain/media-error-code.js";
+import { UploadAdmissionGuard } from "./guards/upload-admission.guard.js";
 import { MediaViewDto } from "./view-dto/media.view-dto.js";
 
 const UPLOAD_LIMIT = 20;
@@ -78,9 +81,13 @@ export class MediaController {
   @ApiConsumes("multipart/form-data")
   @ApiCreatedResponse({ description: "The processed media asset", type: MediaViewDto })
   @ApiOperation({ summary: "Upload an image and get the processed media asset" })
+  @ApiServiceUnavailableResponse({
+    description: "Too many uploads are already being buffered or decoded",
+  })
   @HttpCode(HTTP_STATUS.CREATED)
   @Post()
   @Throttle({ default: { limit: UPLOAD_LIMIT, ttl: seconds(UPLOAD_TTL_SECONDS) } })
+  @UseGuards(UploadAdmissionGuard)
   @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MEDIA_MAX_UPLOAD_BYTES } }))
   upload(
     @CurrentUser() user: AuthenticatedUser,

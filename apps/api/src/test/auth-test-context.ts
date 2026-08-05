@@ -19,9 +19,9 @@ export type AuthTestContext = {
   reset: () => void;
 };
 
-type ProviderOverride = {
+export type ProviderOverride = {
   provide: InjectionToken;
-  useValue: unknown;
+  useValue: Record<string, unknown>;
 };
 
 type RegisterCredentials = {
@@ -49,6 +49,7 @@ export async function createAuthTestContext(
   const sentVerifications: SentVerification[] = [];
 
   const mailServiceStub = {
+    sendNotificationDigestEmailOrThrow: (): Promise<void> => Promise.resolve(),
     sendPasswordChangedEmail: (): Promise<void> => Promise.resolve(),
     sendPasswordResetEmail: (): Promise<void> => Promise.resolve(),
     sendVerificationEmail: ({
@@ -64,9 +65,11 @@ export async function createAuthTestContext(
     sendWelcomeEmail: (): Promise<void> => Promise.resolve(),
   };
 
+  const mailOverride = extraOverrides.find((override) => override.provide === MailService);
+
   const app = await createTestApp(imports, [
-    { provide: MailService, useValue: mailServiceStub },
-    ...extraOverrides,
+    { provide: MailService, useValue: { ...mailServiceStub, ...(mailOverride?.useValue ?? {}) } },
+    ...extraOverrides.filter((override) => override.provide !== MailService),
   ]);
 
   async function waitForVerification(email: string): Promise<SentVerification> {

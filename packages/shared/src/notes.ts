@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 import { MediaViewSchema } from "./media.js";
+import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const NOTE_TEXT_MAX = 5000;
 const NOTE_CUSTOM_CATEGORY_MAX = 100;
@@ -165,3 +166,30 @@ export const NotesSummaryViewSchema = z.object({
 });
 
 export type NotesSummaryView = z.infer<typeof NotesSummaryViewSchema>;
+
+export const NoteDeletionResultSchema = TrashDeletionResultSchema.extend({
+  noteId: z.string(),
+});
+
+export type NoteDeletionResult = z.infer<typeof NoteDeletionResultSchema>;
+
+export const TrashedNoteViewSchema = z.object({
+  deletedAt: z.iso.datetime(),
+  entityTitle: z.string().nullable(),
+  entityType: NoteEntityTypeSchema,
+  id: z.string(),
+  purgeAt: z.iso.datetime(),
+  text: z.string(),
+});
+
+export type TrashedNoteView = z.infer<typeof TrashedNoteViewSchema>;
+
+export const TrashedNotesQuerySchema = z.object({
+  ...paginationQueryFields({ pageSizeDefault: TRASH_PAGE_SIZE_DEFAULT }),
+});
+
+export type TrashedNotesQuery = z.infer<typeof TrashedNotesQuerySchema>;
+
+export const PaginatedTrashedNotesSchema = createPaginatedSchema(TrashedNoteViewSchema);
+
+export type PaginatedTrashedNotes = z.infer<typeof PaginatedTrashedNotesSchema>;

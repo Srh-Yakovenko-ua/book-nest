@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { subMilliseconds } from "date-fns";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -8,6 +9,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createTestApp } from "../../../test/create-test-app.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { MailService } from "../../mail/application/mail.service.js";
+import { SESSION_ROTATION } from "../application/session.service.js";
 import { AuthModule } from "../auth.module.js";
 
 type SentReset = { resetPasswordUrl: string; to: string };
@@ -620,20 +622,40 @@ describe("POST /api/auth/refresh", () => {
     expect(maxAge).toBeGreaterThan(longTtlSeconds - 60);
   });
 
-  it("returns 401 and wipes every session when a pre-rotation cookie is replayed", async () => {
+  it("returns 401 but spares the other sessions when a rotation is replayed at once", async () => {
     const cookie = await loginAndExtractCookie();
     const user = await prisma.user.findFirstOrThrow();
 
     await request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", cookieValue(cookie));
+    const liveBefore = await prisma.session.count({
+      where: { rotatedAt: null, userId: user.id },
+    });
 
     const res = await request(app.getHttpServer())
       .post("/api/auth/refresh")
       .set("Cookie", cookieValue(cookie));
 
-    const sessionCount = await prisma.session.count({ where: { userId: user.id } });
+    expect(res.status).toBe(401);
+    expect(liveBefore).toBe(1);
+    expect(await prisma.session.count({ where: { rotatedAt: null, userId: user.id } })).toBe(1);
+  });
+
+  it("returns 401 and wipes every session when a stale pre-rotation cookie is replayed", async () => {
+    const cookie = await loginAndExtractCookie();
+    const user = await prisma.user.findFirstOrThrow();
+
+    await request(app.getHttpServer()).post("/api/auth/refresh").set("Cookie", cookieValue(cookie));
+    await prisma.session.updateMany({
+      data: { rotatedAt: subMilliseconds(new Date(), SESSION_ROTATION.reuseGraceMs + 1000) },
+      where: { rotatedAt: { not: null }, userId: user.id },
+    });
+
+    const res = await request(app.getHttpServer())
+      .post("/api/auth/refresh")
+      .set("Cookie", cookieValue(cookie));
 
     expect(res.status).toBe(401);
-    expect(sessionCount).toBe(0);
+    expect(await prisma.session.count({ where: { userId: user.id } })).toBe(0);
   });
 
   it("returns 401 when no refresh cookie is present", async () => {

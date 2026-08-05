@@ -10,7 +10,7 @@ import { copyText } from "@/lib/copy-text";
 import { useToggleFavoriteDedication } from "../api/use-toggle-favorite-dedication";
 
 export type DedicationActions = {
-  copy: (text: string) => Promise<void>;
+  copy: (text: string) => Promise<boolean>;
   isTogglingFavorite: boolean;
   toggleFavorite: (book: BookView) => void;
 };
@@ -24,9 +24,10 @@ export function useDedicationActions(): DedicationActions {
       const copied = await copyText(text);
       if (copied) {
         toast.success(t("copy.success"));
-        return;
+        return true;
       }
       toast.error(t("copy.error"));
+      return false;
     },
     isTogglingFavorite: favorite.isPending,
     toggleFavorite: (book) =>

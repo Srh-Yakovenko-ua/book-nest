@@ -22,7 +22,6 @@ import { seriesBookRouteState } from "../model/series-library-book";
 import { SeriesBookCard } from "./series-book-card";
 
 type SeriesBooksTabProps = {
-  canAddBook: boolean;
   details: SeriesDetailsView;
   onAddBook: (partNumber: null | number) => void;
 };
@@ -31,7 +30,7 @@ type SeriesTimelineSlot = Exclude<SeriesSlot, { kind: "open" }>;
 
 type SeriesTimelineState = "missing" | SeriesBookRouteState;
 
-export function SeriesBooksTab({ canAddBook, details, onAddBook }: SeriesBooksTabProps) {
+export function SeriesBooksTab({ details, onAddBook }: SeriesBooksTabProps) {
   const t = useTranslations("series.details");
   const [activeProgressBookId, setActiveProgressBookId] = useState<null | string>(null);
   const [startTarget, setStartTarget] = useState<null | SeriesStartTarget>(null);
@@ -91,6 +90,7 @@ export function SeriesBooksTab({ canAddBook, details, onAddBook }: SeriesBooksTa
                   onStartReading={setStartTarget}
                   onUpdateProgress={setActiveProgressBookId}
                   seriesAuthors={details.authors}
+                  seriesPublishers={details.publishers}
                 />
               )}
             </div>
@@ -98,7 +98,7 @@ export function SeriesBooksTab({ canAddBook, details, onAddBook }: SeriesBooksTa
         ))}
       </ol>
 
-      {canAddBook ? (
+      {details.totalBooks === null ? (
         <Button className="self-start" onClick={() => onAddBook(null)} variant="outline">
           <UiIcon name="plus" size={16} />
           {t("addBookInline")}
@@ -178,28 +178,29 @@ function SeriesMissingBookRow({
   const t = useTranslations("series.details.missingRow");
 
   return (
-    <div className="flex min-h-[9.5rem] items-start gap-3.5 rounded-xl border border-dashed border-border bg-card/40 p-3">
-      <div className="grid aspect-[2/3] w-24 shrink-0 place-items-center rounded-lg border border-dashed border-accent-border bg-field text-muted-foreground">
+    <div className="flex min-h-[9.5rem] items-stretch gap-3.5 rounded-xl border border-dashed border-border bg-card/40 p-3">
+      <div className="grid aspect-[2/3] w-24 shrink-0 place-items-center self-start rounded-lg border border-dashed border-accent-border bg-field text-muted-foreground">
         <UiIcon aria-hidden name="book" size={32} />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="font-heading text-sm leading-tight font-bold text-muted-foreground">
           {t("title", { number })}
         </p>
+        <p className="text-xs text-muted-foreground">{t("notAdded")}</p>
         <p className="text-xs text-muted-foreground">{t("hint")}</p>
-      </div>
 
-      <Button
-        aria-label={t("actionAria", { number })}
-        className="shrink-0 self-center"
-        onClick={() => onAddBook(number)}
-        size="sm"
-        variant="secondary"
-      >
-        <UiIcon name="plus" size={16} />
-        {t("action")}
-      </Button>
+        <div className="mt-auto flex justify-end pt-3">
+          <Button
+            aria-label={t("actionAria", { number })}
+            onClick={() => onAddBook(number)}
+            variant="secondary"
+          >
+            <UiIcon name="plus" size={16} />
+            {t("action")}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

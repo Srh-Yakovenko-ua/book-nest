@@ -221,6 +221,31 @@ async function seedOverviewLibrary(accessToken: string): Promise<{
   };
 }
 
+async function seedUnfinishedSeriesWithOwnedNextBook(
+  accessToken: string,
+): Promise<{ nextBookId: string }> {
+  const first = await createBook(accessToken, {
+    authors: [{ name: "Leigh Bardugo" }],
+    bookType: "series_part",
+    newSeries: { name: "Six of Crows", status: "ongoing" },
+    ownershipStatus: "owned",
+    partNumber: 1,
+    readingProgress: { finishedAt: "2026-02-05" },
+    readingStatus: "finished",
+    title: "Six of Crows",
+  });
+  const next = await createBook(accessToken, {
+    authors: [{ name: "Leigh Bardugo" }],
+    bookType: "series_part",
+    ownershipStatus: "want_to_buy",
+    partNumber: 2,
+    seriesId: first.body.series.id,
+    title: "Crooked Kingdom",
+  });
+
+  return { nextBookId: next.body.id };
+}
+
 describe("POST /api/series", () => {
   it("returns 401 when no Authorization header is present", async () => {
     const res = await request(app.getHttpServer()).post("/api/series").send({ name: "Throne" });
@@ -382,6 +407,21 @@ describe("GET /api/series/overview", () => {
     expect(res.body.statusCounts).toEqual({ completed: 1, ongoing: 1, unknown: 1 });
     expect(res.body.topUnfinished).toHaveLength(1);
     expect(res.body.topUnfinished[0].id).toBe(unfinishedSeriesId);
+  });
+
+  it("carries the ownership status of the next unfinished book in topUnfinished", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { nextBookId } = await seedUnfinishedSeriesWithOwnedNextBook(accessToken);
+
+    const res = await getOverview(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.topUnfinished[0].nextBook).toEqual({
+      id: nextBookId,
+      ownershipStatus: "want_to_buy",
+      partNumber: 2,
+      title: "Crooked Kingdom",
+    });
   });
 });
 
@@ -665,7 +705,7 @@ describe("DELETE /api/series/:id", () => {
     expect(res.status).toBe(401);
   });
 
-  it("detaches the linked books and returns 204, keeping their reading status", async () => {
+  it("hides the series from its books while it sits in the trash", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Sarah J. Maas" }],
@@ -680,7 +720,7 @@ describe("DELETE /api/series/:id", () => {
     const bookId = created.body.id;
 
     const del = await deleteSeries(accessToken, seriesId);
-    expect(del.status).toBe(204);
+    expect(del.status).toBe(200);
 
     const read = await getBook(accessToken, bookId);
     expect(read.status).toBe(200);
@@ -694,7 +734,7 @@ describe("DELETE /api/series/:id", () => {
     const created = await createSeries(accessToken, { name: "Once" });
 
     const first = await deleteSeries(accessToken, created.body.id);
-    expect(first.status).toBe(204);
+    expect(first.status).toBe(200);
 
     const second = await deleteSeries(accessToken, created.body.id);
     expect(second.status).toBe(404);

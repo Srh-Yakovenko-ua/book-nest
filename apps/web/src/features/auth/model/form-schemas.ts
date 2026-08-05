@@ -5,6 +5,7 @@ import {
   RegistrationInputSchema,
   ResendVerificationSchema,
 } from "@app/shared";
+import { addYears, getYear, isAfter, isValid } from "date-fns";
 import { z } from "zod";
 
 export const PASSWORD_MISMATCH_KEY = "errors.passwordMismatch";
@@ -22,15 +23,13 @@ function isValidBirthDate(value: string | undefined): boolean {
   if (value === undefined || value === "") return true;
 
   const birth = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(birth.getTime())) return false;
-  if (birth.getFullYear() < EARLIEST_BIRTH_YEAR) return false;
+  if (!isValid(birth)) return false;
+  if (getYear(birth) < EARLIEST_BIRTH_YEAR) return false;
 
   const now = new Date();
-  if (birth.getTime() > now.getTime()) return false;
+  if (isAfter(birth, now)) return false;
 
-  const thirteenthBirthday = new Date(birth);
-  thirteenthBirthday.setFullYear(thirteenthBirthday.getFullYear() + MIN_AGE);
-  return thirteenthBirthday.getTime() <= now.getTime();
+  return !isAfter(addYears(birth, MIN_AGE), now);
 }
 
 export const RegisterFormSchema = RegistrationInputSchema.extend({

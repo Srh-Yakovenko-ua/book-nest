@@ -178,6 +178,13 @@ export type SocialLinkView = {
 export type UpdateSocialLinkInput = z.infer<typeof UpdateSocialLinkInputSchema>;
 
 const TIMEZONE_MAX = 64;
+const TIMEZONE_FALLBACK = "Europe/Kyiv";
+
+export const LOAN_REMINDER_LEAD_DAYS = {
+  default: 3,
+  max: 14,
+  min: 1,
+} as const satisfies Record<string, number>;
 
 export const ThemeModeSchema = z.enum(["light", "dark", "system"]);
 
@@ -214,6 +221,24 @@ export const EmailNotificationsSchema = z.object({
 
 export type EmailNotifications = z.infer<typeof EmailNotificationsSchema>;
 
+const NAMED_TIME_ZONES = new Set([...Intl.supportedValuesOf("timeZone"), "UTC"]);
+
+const toCanonicalTimeZone = (value: string): Nullable<string> => {
+  try {
+    return new Intl.DateTimeFormat("en-US", { timeZone: value }).resolvedOptions().timeZone;
+  } catch {
+    return null;
+  }
+};
+
+const isNamedTimeZone = (value: string): boolean => {
+  if (NAMED_TIME_ZONES.has(value)) {
+    return true;
+  }
+  const canonical = toCanonicalTimeZone(value);
+  return canonical !== null && NAMED_TIME_ZONES.has(canonical);
+};
+
 const SettingsTimezoneSchema = z
   .string()
   .trim()
@@ -222,7 +247,20 @@ const SettingsTimezoneSchema = z
       TIMEZONE_MAX,
       "Timezone must be at most 64 characters long",
     ),
-  );
+  )
+  .pipe(z.string().refine(isNamedTimeZone, "Timezone must be a valid IANA time zone"));
+
+export const StoredTimezoneSchema = SettingsTimezoneSchema.catch(TIMEZONE_FALLBACK);
+
+const LoanReminderLeadDaysSchema = z
+  .number()
+  .int()
+  .min(LOAN_REMINDER_LEAD_DAYS.min, "Reminder lead time must be at least 1 day")
+  .max(LOAN_REMINDER_LEAD_DAYS.max, "Reminder lead time must be at most 14 days");
+
+export const StoredLoanReminderLeadDaysSchema = LoanReminderLeadDaysSchema.catch(
+  LOAN_REMINDER_LEAD_DAYS.default,
+);
 
 export const UpdateSettingsInputSchema = z.object({
   accentColor: AccentColorSchema.optional(),
@@ -231,26 +269,30 @@ export const UpdateSettingsInputSchema = z.object({
   emailNotifications: EmailNotificationsSchema.partial().optional(),
   language: InterfaceLanguageSchema.optional(),
   libraryViewMode: LibraryViewModeSchema.optional(),
+  loanReminderLeadDays: LoanReminderLeadDaysSchema.optional(),
   themeMode: ThemeModeSchema.optional(),
   timezone: SettingsTimezoneSchema.optional(),
   weekStartDay: WeekStartDaySchema.optional(),
 });
 
-export type SettingsView = {
-  accentColor: AccentColor;
-  confirmBeforeDelete: boolean;
-  dateFormat: DateFormat;
-  emailNotifications: EmailNotifications;
-  language: InterfaceLanguage;
-  libraryViewMode: LibraryViewMode;
-  themeMode: ThemeMode;
-  timezone: string;
-  weekStartDay: WeekStartDay;
-};
+export const SettingsViewSchema = z.object({
+  accentColor: AccentColorSchema,
+  confirmBeforeDelete: z.boolean(),
+  dateFormat: DateFormatSchema,
+  emailNotifications: EmailNotificationsSchema,
+  language: InterfaceLanguageSchema,
+  libraryViewMode: LibraryViewModeSchema,
+  loanReminderLeadDays: StoredLoanReminderLeadDaysSchema,
+  themeMode: ThemeModeSchema,
+  timezone: StoredTimezoneSchema,
+  weekStartDay: WeekStartDaySchema,
+});
+
+export type SettingsView = z.infer<typeof SettingsViewSchema>;
 
 export type UpdateSettingsInput = z.infer<typeof UpdateSettingsInputSchema>;
 
-export const defaultUserProfileSettings: SettingsView = {
+export const defaultUserProfileSettings = {
   accentColor: "brown",
   confirmBeforeDelete: true,
   dateFormat: "DD.MM.YYYY",
@@ -264,7 +306,8 @@ export const defaultUserProfileSettings: SettingsView = {
   },
   language: "uk",
   libraryViewMode: "grid",
+  loanReminderLeadDays: LOAN_REMINDER_LEAD_DAYS.default,
   themeMode: "system",
-  timezone: "Europe/Kyiv",
+  timezone: TIMEZONE_FALLBACK,
   weekStartDay: "monday",
-};
+} as const satisfies SettingsView;

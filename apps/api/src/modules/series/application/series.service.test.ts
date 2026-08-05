@@ -3,7 +3,7 @@ import type { Mock } from "vitest";
 
 import { describe, expect, it, vi } from "vitest";
 
-import type { SeriesModel } from "../../../generated/prisma/models.js";
+import type { MediaAssetModel, SeriesModel } from "../../../generated/prisma/models.js";
 import type { GenresService } from "../../genres/application/genres.service.js";
 import type { MediaService } from "../../media/application/media.service.js";
 import type {
@@ -23,11 +23,24 @@ import { fakeOf } from "../../../test/fake.js";
 import { AuthorsService } from "../../authors/application/authors.service.js";
 import { SeriesService } from "./series.service.js";
 
+type BookRow = SeriesWithBookCount["books"][number];
+
 type BookRowInput = {
+  ageCategory?: string;
+  coverMedia?: Nullable<MediaAssetModel>;
   createdAt?: Date;
+  formats?: string[];
   id?: string;
+  isFavorite?: boolean;
+  language?: string;
+  ownershipStatus?: string;
+  pagesCount?: Nullable<number>;
   partNumber?: Nullable<number>;
+  publicationYear?: Nullable<number>;
+  publisherId?: Nullable<string>;
+  rating?: Nullable<number>;
   readingStatus?: string;
+  tags?: { id: string; name: string }[];
   title?: string;
   updatedAt?: Date;
 };
@@ -41,6 +54,7 @@ type DetailBookInput = {
   genres?: string[];
   id: string;
   isFavorite?: boolean;
+  language?: string;
   originalTitle?: Nullable<string>;
   ownershipStatus?: string;
   pagesCount?: Nullable<number>;
@@ -57,17 +71,35 @@ type DetailBookInput = {
 
 type RepoMock = Partial<Record<keyof SeriesRepository, Mock>>;
 
-function bookRow(overrides: BookRowInput = {}): SeriesWithBookCount["books"][number] {
+function bookRow(overrides: BookRowInput = {}): BookRow {
+  const { rating, tags, ...scalars } = overrides;
   return {
+    ageCategory: "not_specified",
     authors: [],
+    coverMedia: null,
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    formats: [],
     id: "book-1",
+    isFavorite: false,
+    language: "ukrainian",
+    ownershipStatus: "none",
+    pagesCount: null,
     partNumber: 1,
+    publicationYear: null,
+    publisherId: null,
+    readingProgress: rating === undefined ? null : { rating },
     readingStatus: "not_started",
+    tags: (tags ?? []).map((tag) =>
+      fakeOf<BookRow["tags"][number]>({ tag: fakeOf<BookRow["tags"][number]["tag"]>(tag) }),
+    ),
     title: "Book",
     updatedAt: new Date("2026-02-01T10:00:00.000Z"),
-    ...overrides,
+    ...scalars,
   };
+}
+
+function coverAsset(id: string): MediaAssetModel {
+  return fakeOf<MediaAssetModel>({ id });
 }
 
 function detailedSeries(
@@ -93,6 +125,7 @@ function detailedSeries(
       genres: book.genres ?? [],
       id: book.id,
       isFavorite: book.isFavorite ?? false,
+      language: book.language ?? "ukrainian",
       loans: [],
       originalTitle: book.originalTitle ?? null,
       ownershipStatus: book.ownershipStatus ?? "none",
@@ -169,15 +202,17 @@ function ownedWithCount(
   };
 }
 
+const TX = fakeOf<Prisma.TransactionClient>();
+
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const SERIES_ID = "22222222-2222-4222-8222-222222222222";
 const OTHER_ID = "33333333-3333-4333-8333-333333333333";
 
 function buildService(overrides: {
+  createByNormalized?: Error | SeriesModel;
   findByNormalized?: Nullable<SeriesModel>;
   findOwnedById?: Nullable<SeriesModel>;
   searchOwned?: SeriesWithBookCount[];
-  upsertByNormalized?: Error | SeriesModel;
 }): {
   authorsService: {
     resolveReferences: Mock;
@@ -186,28 +221,31 @@ function buildService(overrides: {
     assertGenresSelectable: Mock;
   };
   repository: {
+    acquireCreateLock: Mock;
     countOwned: Mock;
+    createByNormalized: Mock;
     findByNormalized: Mock;
     findOwnedById: Mock;
     searchOwned: Mock;
-    upsertByNormalized: Mock;
   };
   service: SeriesService;
 } {
-  const upsertByNormalized = vi.fn();
-  if (overrides.upsertByNormalized instanceof Error) {
-    upsertByNormalized.mockRejectedValue(overrides.upsertByNormalized);
+  const acquireCreateLock = vi.fn().mockResolvedValue(undefined);
+  const createByNormalized = vi.fn();
+  if (overrides.createByNormalized instanceof Error) {
+    createByNormalized.mockRejectedValue(overrides.createByNormalized);
   } else {
-    upsertByNormalized.mockResolvedValue(overrides.upsertByNormalized ?? series());
+    createByNormalized.mockResolvedValue(overrides.createByNormalized ?? series());
   }
 
   const searchOwned = overrides.searchOwned ?? [];
   const repository = {
+    acquireCreateLock,
     countOwned: vi.fn().mockResolvedValue(searchOwned.length),
+    createByNormalized,
     findByNormalized: vi.fn().mockResolvedValue(overrides.findByNormalized ?? null),
     findOwnedById: vi.fn().mockResolvedValue(overrides.findOwnedById ?? null),
     searchOwned: vi.fn().mockResolvedValue(searchOwned),
-    upsertByNormalized,
   };
 
   const authorsService = {
@@ -237,11 +275,13 @@ function buildService(overrides: {
 function series(overrides: Partial<SeriesModel> = {}): SeriesModel {
   return {
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    deletedAt: null,
     description: null,
     genres: [],
     id: SERIES_ID,
     name: "Throne of Glass",
     normalizedName: "throne of glass",
+    purgeAt: null,
     status: "unknown",
     totalBooks: null,
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),
@@ -259,15 +299,14 @@ function seriesWithCount(
     ...series(overrides),
     _count: { books: booksInSeries },
     authors: [],
-    books: Array.from({ length: finishedInSeries }, (unused, index) => ({
-      authors: [],
-      createdAt: new Date("2026-02-01T10:00:00.000Z"),
-      id: `b-${index}`,
-      partNumber: index + 1,
-      readingStatus: "finished",
-      title: `Book ${index}`,
-      updatedAt: new Date("2026-02-01T10:00:00.000Z"),
-    })),
+    books: Array.from({ length: finishedInSeries }, (unused, index) =>
+      bookRow({
+        id: `b-${index}`,
+        partNumber: index + 1,
+        readingStatus: "finished",
+        title: `Book ${index}`,
+      }),
+    ),
   };
 }
 
@@ -282,7 +321,7 @@ describe("SeriesService.resolveForBook by id", () => {
   it("returns the id when an owned series is found", async () => {
     const { service } = buildService({ findOwnedById: series({ id: SERIES_ID }) });
 
-    const resolved = await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID });
+    const resolved = await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }, TX);
 
     expect(resolved.id).toBe(SERIES_ID);
   });
@@ -290,7 +329,7 @@ describe("SeriesService.resolveForBook by id", () => {
   it("returns the total books when an owned series is found", async () => {
     const { service } = buildService({ findOwnedById: series({ id: SERIES_ID, totalBooks: 3 }) });
 
-    const resolved = await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID });
+    const resolved = await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }, TX);
 
     expect(resolved.totalBooks).toBe(3);
   });
@@ -299,16 +338,16 @@ describe("SeriesService.resolveForBook by id", () => {
     const { service } = buildService({ findOwnedById: null });
 
     await expect(
-      service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }),
+      service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }, TX),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("does not upsert a new series when resolving by id", async () => {
     const { repository, service } = buildService({ findOwnedById: series() });
 
-    await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID });
+    await service.resolveForBook({ seriesId: SERIES_ID, userId: USER_ID }, TX);
 
-    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+    expect(repository.createByNormalized).not.toHaveBeenCalled();
   });
 });
 
@@ -318,46 +357,55 @@ describe("SeriesService.resolveForBook by newSeries", () => {
       findByNormalized: series({ id: OTHER_ID }),
     });
 
-    const resolved = await service.resolveForBook({
-      newSeries: { genres: [], name: "Throne of Glass", status: "completed", totalBooks: 8 },
-      userId: USER_ID,
-    });
+    const resolved = await service.resolveForBook(
+      {
+        newSeries: { genres: [], name: "Throne of Glass", status: "completed", totalBooks: 8 },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(resolved.id).toBe(OTHER_ID);
-    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+    expect(repository.createByNormalized).not.toHaveBeenCalled();
   });
 
   it("matches an existing series case-insensitively and whitespace-collapsed", async () => {
     const { repository, service } = buildService({ findByNormalized: series({ id: OTHER_ID }) });
 
-    await service.resolveForBook({
-      newSeries: { genres: [], name: "  Throne   OF Glass ", status: "unknown" },
-      userId: USER_ID,
-    });
+    await service.resolveForBook(
+      {
+        newSeries: { genres: [], name: "  Throne   OF Glass ", status: "unknown" },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
-    expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "throne of glass", undefined);
+    expect(repository.findByNormalized).toHaveBeenCalledWith(USER_ID, "throne of glass", TX);
   });
 
-  it("upserts a series with the provided fields when no match exists", async () => {
+  it("creates a series with the provided fields when no match exists", async () => {
     const created = series({ id: SERIES_ID });
     const { repository, service } = buildService({
+      createByNormalized: created,
       findByNormalized: null,
-      upsertByNormalized: created,
     });
 
-    const resolved = await service.resolveForBook({
-      newSeries: {
-        description: "saga",
-        genres: ["fantasy"],
-        name: "Throne of Glass",
-        status: "ongoing",
-        totalBooks: 3,
+    const resolved = await service.resolveForBook(
+      {
+        newSeries: {
+          description: "saga",
+          genres: ["fantasy"],
+          name: "Throne of Glass",
+          status: "ongoing",
+          totalBooks: 3,
+        },
+        userId: USER_ID,
       },
-      userId: USER_ID,
-    });
+      TX,
+    );
 
     expect(resolved.id).toBe(SERIES_ID);
-    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+    expect(repository.createByNormalized).toHaveBeenCalledWith(
       {
         authorIds: [],
         data: {
@@ -370,28 +418,33 @@ describe("SeriesService.resolveForBook by newSeries", () => {
         },
         userId: USER_ID,
       },
-      undefined,
+      TX,
     );
   });
 
-  it("propagates errors raised by the upsert", async () => {
+  it("propagates errors raised by the create", async () => {
     const { service } = buildService({
+      createByNormalized: new Error("connection lost"),
       findByNormalized: null,
-      upsertByNormalized: new Error("connection lost"),
     });
 
     await expect(
-      service.resolveForBook({
-        newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
-        userId: USER_ID,
-      }),
+      service.resolveForBook(
+        {
+          newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
+          userId: USER_ID,
+        },
+        TX,
+      ),
     ).rejects.toThrow("connection lost");
   });
 
   it("throws NotFoundError when neither id nor newSeries is provided", async () => {
     const { service } = buildService({});
 
-    await expect(service.resolveForBook({ userId: USER_ID })).rejects.toBeInstanceOf(NotFoundError);
+    await expect(service.resolveForBook({ userId: USER_ID }, TX)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 });
 
@@ -399,31 +452,34 @@ describe("SeriesService.resolveForBook author linking", () => {
   const AUTHOR_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const AUTHOR_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-  it("links the resolved newSeries authors to the upserted series in resolver order", async () => {
+  it("links the resolved newSeries authors to the created series in resolver order", async () => {
     const { authorsService, repository, service } = buildService({
+      createByNormalized: series({ id: SERIES_ID }),
       findByNormalized: null,
-      upsertByNormalized: series({ id: SERIES_ID }),
     });
     authorsService.resolveReferences.mockResolvedValue([
       { id: AUTHOR_A, name: "Sarah J. Maas" },
       { id: AUTHOR_B, name: "Leigh Bardugo" },
     ]);
 
-    await service.resolveForBook({
-      newSeries: {
-        authors: [{ id: AUTHOR_A }, { id: AUTHOR_B }],
-        genres: [],
-        name: "Throne of Glass",
-        status: "unknown",
+    await service.resolveForBook(
+      {
+        newSeries: {
+          authors: [{ id: AUTHOR_A }, { id: AUTHOR_B }],
+          genres: [],
+          name: "Throne of Glass",
+          status: "unknown",
+        },
+        userId: USER_ID,
       },
-      userId: USER_ID,
-    });
+      TX,
+    );
 
     expect(authorsService.resolveReferences).toHaveBeenCalledWith({
       references: [{ id: AUTHOR_A }, { id: AUTHOR_B }],
       userId: USER_ID,
     });
-    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+    expect(repository.createByNormalized).toHaveBeenCalledWith(
       {
         authorIds: [AUTHOR_A, AUTHOR_B],
         data: expect.objectContaining({
@@ -432,66 +488,75 @@ describe("SeriesService.resolveForBook author linking", () => {
         }),
         userId: USER_ID,
       },
-      undefined,
+      TX,
     );
   });
 
   it("falls back to the book's authors when newSeries omits an authors field", async () => {
     const { authorsService, repository, service } = buildService({
+      createByNormalized: series({ id: SERIES_ID }),
       findByNormalized: null,
-      upsertByNormalized: series({ id: SERIES_ID }),
     });
 
-    await service.resolveForBook({
-      fallbackAuthorIds: [AUTHOR_A, AUTHOR_B],
-      newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
-      userId: USER_ID,
-    });
+    await service.resolveForBook(
+      {
+        fallbackAuthorIds: [AUTHOR_A, AUTHOR_B],
+        newSeries: { genres: [], name: "Throne of Glass", status: "unknown" },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(authorsService.resolveReferences).toHaveBeenCalledWith({
       references: [],
       userId: USER_ID,
     });
-    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+    expect(repository.createByNormalized).toHaveBeenCalledWith(
       expect.objectContaining({ authorIds: [AUTHOR_A, AUTHOR_B] }),
-      undefined,
+      TX,
     );
   });
 
   it("prefers explicit newSeries authors over the book's fallback authors", async () => {
     const { authorsService, repository, service } = buildService({
+      createByNormalized: series({ id: SERIES_ID }),
       findByNormalized: null,
-      upsertByNormalized: series({ id: SERIES_ID }),
     });
     authorsService.resolveReferences.mockResolvedValue([{ id: AUTHOR_A, name: "Sarah J. Maas" }]);
 
-    await service.resolveForBook({
-      fallbackAuthorIds: [AUTHOR_B],
-      newSeries: {
-        authors: [{ id: AUTHOR_A }],
-        genres: [],
-        name: "Throne of Glass",
-        status: "unknown",
+    await service.resolveForBook(
+      {
+        fallbackAuthorIds: [AUTHOR_B],
+        newSeries: {
+          authors: [{ id: AUTHOR_A }],
+          genres: [],
+          name: "Throne of Glass",
+          status: "unknown",
+        },
+        userId: USER_ID,
       },
-      userId: USER_ID,
-    });
+      TX,
+    );
 
-    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+    expect(repository.createByNormalized).toHaveBeenCalledWith(
       expect.objectContaining({ authorIds: [AUTHOR_A] }),
-      undefined,
+      TX,
     );
   });
 
   it("does not link any authors when resolving an existing series by id", async () => {
     const { repository, service } = buildService({ findOwnedById: series() });
 
-    await service.resolveForBook({
-      fallbackAuthorIds: [AUTHOR_A],
-      seriesId: SERIES_ID,
-      userId: USER_ID,
-    });
+    await service.resolveForBook(
+      {
+        fallbackAuthorIds: [AUTHOR_A],
+        seriesId: SERIES_ID,
+        userId: USER_ID,
+      },
+      TX,
+    );
 
-    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+    expect(repository.createByNormalized).not.toHaveBeenCalled();
   });
 });
 
@@ -517,18 +582,31 @@ describe("SeriesService.search", () => {
     expect(page).toEqual({
       items: [
         {
+          ageCategories: [],
           authors: [],
+          averagePages: null,
+          averageRating: null,
           booksInSeries: 2,
+          covers: [],
           createdAt: "2026-02-01T10:00:00.000Z",
           description: "saga",
           finishedInSeries: 0,
+          formats: [],
           genres: [],
+          hasFavoriteBook: false,
+          hasPublicationYears: false,
+          hasPublisher: false,
           id: SERIES_ID,
+          languages: [],
           lastActivityAt: "2026-02-02T11:00:00.000Z",
+          missingPartNumbers: [],
           name: "Throne of Glass",
           nextBook: null,
+          ownership: { ownedCount: 0, total: 0 },
+          pagesCount: null,
           readingInSeries: 0,
           status: "ongoing",
+          tags: [],
           totalBooks: 3,
         },
       ],
@@ -537,6 +615,275 @@ describe("SeriesService.search", () => {
       pageSize: 10,
       totalCount: 1,
     });
+  });
+
+  it("maps a series whose books carry a gap, a publisher and a publication year", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          bookCount: 2,
+          books: [
+            bookRow({
+              id: "part-1",
+              ownershipStatus: "owned",
+              partNumber: 1,
+              publicationYear: 2012,
+              publisherId: "publisher-vivat",
+              readingStatus: "finished",
+            }),
+            bookRow({ id: "part-3", partNumber: 3 }),
+          ],
+          id: SERIES_ID,
+          status: "ongoing",
+          totalBooks: 3,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items).toEqual([
+      {
+        ageCategories: ["not_specified"],
+        authors: [],
+        averagePages: null,
+        averageRating: null,
+        booksInSeries: 2,
+        covers: [],
+        createdAt: "2026-02-01T10:00:00.000Z",
+        description: null,
+        finishedInSeries: 1,
+        formats: [],
+        genres: [],
+        hasFavoriteBook: false,
+        hasPublicationYears: true,
+        hasPublisher: true,
+        id: SERIES_ID,
+        languages: ["ukrainian"],
+        lastActivityAt: "2026-02-02T11:00:00.000Z",
+        missingPartNumbers: [2],
+        name: "Throne of Glass",
+        nextBook: {
+          id: "part-3",
+          ownershipStatus: "none",
+          partNumber: 3,
+          title: "Book",
+        },
+        ownership: { ownedCount: 1, total: 2 },
+        pagesCount: null,
+        readingInSeries: 0,
+        status: "ongoing",
+        tags: [],
+        totalBooks: 3,
+      },
+    ]);
+  });
+
+  it("maps the aggregates of the loaded books onto the view", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          bookCount: 3,
+          books: [
+            bookRow({
+              ageCategory: "18_plus",
+              formats: ["ebook"],
+              id: "part-1",
+              language: "english",
+              ownershipStatus: "borrowed_from_someone",
+              pagesCount: 100,
+              partNumber: 1,
+              rating: 7,
+              readingStatus: "finished",
+              tags: [{ id: "tag-zebra", name: "zebra" }],
+            }),
+            bookRow({
+              ageCategory: "6_plus",
+              formats: ["paper", "ebook"],
+              id: "part-2",
+              isFavorite: true,
+              language: "ukrainian",
+              ownershipStatus: "owned",
+              pagesCount: 200,
+              partNumber: 2,
+              rating: 8,
+              readingStatus: "reading",
+              tags: [
+                { id: "tag-alpha", name: "alpha" },
+                { id: "tag-zebra", name: "zebra" },
+              ],
+            }),
+            bookRow({
+              ageCategory: "12_plus",
+              formats: ["audiobook"],
+              id: "part-3",
+              language: "other",
+              ownershipStatus: "want_to_buy",
+              pagesCount: null,
+              partNumber: 3,
+            }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items).toEqual([
+      {
+        ageCategories: ["6_plus", "12_plus", "18_plus"],
+        authors: [],
+        averagePages: 150,
+        averageRating: 7.5,
+        booksInSeries: 3,
+        covers: [],
+        createdAt: "2026-02-01T10:00:00.000Z",
+        description: null,
+        finishedInSeries: 1,
+        formats: ["paper", "ebook", "audiobook"],
+        genres: [],
+        hasFavoriteBook: true,
+        hasPublicationYears: false,
+        hasPublisher: false,
+        id: SERIES_ID,
+        languages: ["ukrainian", "english", "other"],
+        lastActivityAt: "2026-02-02T11:00:00.000Z",
+        missingPartNumbers: [],
+        name: "Throne of Glass",
+        nextBook: {
+          id: "part-2",
+          ownershipStatus: "owned",
+          partNumber: 2,
+          title: "Book",
+        },
+        ownership: { ownedCount: 1, total: 3 },
+        pagesCount: 300,
+        readingInSeries: 1,
+        status: "unknown",
+        tags: [
+          { id: "tag-alpha", name: "alpha" },
+          { id: "tag-zebra", name: "zebra" },
+        ],
+        totalBooks: null,
+      },
+    ]);
+  });
+
+  it("leaves a rated series average null when no loaded book carries a rating", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ id: "part-1", partNumber: 1 }),
+            bookRow({ id: "part-2", partNumber: 2, rating: null }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.averageRating).toBeNull();
+  });
+
+  it("reports no missing part numbers when the loaded parts are contiguous", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ id: "part-1", partNumber: 1 }),
+            bookRow({ id: "part-2", partNumber: 2 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.missingPartNumbers).toEqual([]);
+  });
+
+  it("reports hasPublisher false when no loaded book carries a publisher", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [bookRow({ id: "part-1", partNumber: 1, publisherId: null })],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.hasPublisher).toBe(false);
+  });
+
+  it("reports hasPublicationYears false when no loaded book carries a publication year", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [bookRow({ id: "part-1", partNumber: 1, publicationYear: null })],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.hasPublicationYears).toBe(false);
+  });
+
+  it("maps the ownership status of the next book onto the view", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({
+              id: "part-1",
+              ownershipStatus: "borrowed_from_someone",
+              partNumber: 1,
+              readingStatus: "not_started",
+            }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+    });
+
+    expect(page.items[0]?.nextBook?.ownershipStatus).toBe("borrowed_from_someone");
   });
 
   it("maps the live linked-book count onto booksInSeries", async () => {
@@ -615,6 +962,166 @@ describe("SeriesService.search", () => {
 
     expect(repository.searchOwned).toHaveBeenCalledWith(expect.objectContaining({ authorIds }));
     expect(repository.countOwned).toHaveBeenCalledWith(expect.objectContaining({ authorIds }));
+  });
+});
+
+describe("SeriesService.search covers", () => {
+  it("builds covers ordered by part number only for books that have a cover", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: coverAsset("media-2"), id: "book-2", partNumber: 2 }),
+            bookRow({ coverMedia: coverAsset("media-1"), id: "book-1", partNumber: 1 }),
+            bookRow({ coverMedia: null, id: "book-3", partNumber: 3 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.covers).toEqual([
+      { bookId: "book-1", cover: mediaView("media-1"), title: "Book" },
+      { bookId: "book-2", cover: mediaView("media-2"), title: "Book" },
+    ]);
+  });
+
+  it("returns an empty covers array when no book has a cover", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: null, id: "book-1", partNumber: 1 }),
+            bookRow({ coverMedia: null, id: "book-2", partNumber: 2 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.covers).toEqual([]);
+  });
+
+  it("caps covers at three when more than three books have a cover", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: coverAsset("media-1"), id: "book-1", partNumber: 1 }),
+            bookRow({ coverMedia: coverAsset("media-2"), id: "book-2", partNumber: 2 }),
+            bookRow({ coverMedia: coverAsset("media-3"), id: "book-3", partNumber: 3 }),
+            bookRow({ coverMedia: coverAsset("media-4"), id: "book-4", partNumber: 4 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.covers.map((cover) => cover.bookId)).toEqual([
+      "book-1",
+      "book-2",
+      "book-3",
+    ]);
+  });
+
+  it("orders books with a null part number after the numbered ones", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: coverAsset("media-null"), id: "book-null", partNumber: null }),
+            bookRow({ coverMedia: coverAsset("media-1"), id: "book-1", partNumber: 1 }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.covers.map((cover) => cover.bookId)).toEqual(["book-1", "book-null"]);
+  });
+});
+
+describe("SeriesService nextBook cover", () => {
+  it("attaches the resolved cover to the next book in the search response", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({
+              coverMedia: coverAsset("media-1"),
+              id: "book-1",
+              partNumber: 1,
+              readingStatus: "reading",
+            }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.nextBook).toEqual({
+      cover: mediaView("media-1"),
+      id: "book-1",
+      partNumber: 1,
+      title: "Book",
+    });
+  });
+
+  it("leaves the next book cover null when the next book has none", async () => {
+    const { service } = buildService({
+      searchOwned: [
+        ownedWithCount({
+          books: [
+            bookRow({ coverMedia: null, id: "book-1", partNumber: 1, readingStatus: "reading" }),
+          ],
+          id: SERIES_ID,
+        }),
+      ],
+    });
+
+    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+
+    expect(page.items[0]?.nextBook?.cover).toBeNull();
+  });
+
+  it("attaches the resolved cover to the next book in the overview topUnfinished", async () => {
+    const repository = {
+      countBooksInSeries: vi.fn().mockResolvedValue(0),
+      findAllOwned: vi.fn().mockResolvedValue([
+        ownedWithCount({
+          books: [
+            bookRow({ id: "done-1", partNumber: 1, readingStatus: "finished" }),
+            bookRow({
+              coverMedia: coverAsset("media-9"),
+              id: "next-2",
+              partNumber: 2,
+              readingStatus: "reading",
+            }),
+          ],
+          id: SERIES_ID,
+        }),
+      ]),
+    };
+    const { service } = makeService({ repository });
+
+    const overview = await service.overview(USER_ID);
+
+    expect(overview.topUnfinished[0]?.nextBook).toEqual({
+      cover: mediaView("media-9"),
+      id: "next-2",
+      partNumber: 2,
+      title: "Book",
+    });
   });
 });
 
@@ -1073,10 +1580,41 @@ describe("SeriesService.overview", () => {
 
     expect(overview).toMatchObject({
       booksInSeries: 7,
+      booksLeftInUnfinishedSeries: 1,
+      finishedBooksInSeries: 3,
       fullyReadSeries: 1,
       totalSeries: 3,
       unfinishedSeries: 1,
     });
+  });
+
+  it("aggregates finished books across all series and unread books only for unfinished ones", async () => {
+    const repository = {
+      countBooksInSeries: vi.fn().mockResolvedValue(5),
+      findAllOwned: vi.fn().mockResolvedValue([
+        ownedWithCount({
+          books: [
+            bookRow({ id: "done-1", partNumber: 1, readingStatus: "finished" }),
+            bookRow({ id: "done-2", partNumber: 2, readingStatus: "finished" }),
+          ],
+          id: "series-done",
+        }),
+        ownedWithCount({
+          books: [
+            bookRow({ id: "wip-1", partNumber: 1, readingStatus: "finished" }),
+            bookRow({ id: "wip-2", partNumber: 2, readingStatus: "reading" }),
+            bookRow({ id: "wip-3", partNumber: 3, readingStatus: "not_started" }),
+          ],
+          id: "series-wip",
+        }),
+      ]),
+    };
+    const { service } = makeService({ repository });
+
+    const overview = await service.overview(USER_ID);
+
+    expect(overview.finishedBooksInSeries).toBe(3);
+    expect(overview.booksLeftInUnfinishedSeries).toBe(2);
   });
 
   it("tallies the status counts across every series", async () => {

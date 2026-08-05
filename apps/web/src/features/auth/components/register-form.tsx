@@ -2,7 +2,7 @@
 
 import { NicknameSchema } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, isValid, parse } from "date-fns";
+import { format, isValid, parse, startOfYear, subYears } from "date-fns";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -309,11 +309,10 @@ export function RegisterForm() {
 
 function birthDateBounds(): { defaultMonth: Date; endMonth: Date; startMonth: Date } {
   const now = new Date();
-  const currentYear = now.getFullYear();
   return {
-    defaultMonth: new Date(currentYear - DEFAULT_BIRTH_AGE, 0),
+    defaultMonth: startOfYear(subYears(now, DEFAULT_BIRTH_AGE)),
     endMonth: now,
-    startMonth: new Date(currentYear - BIRTH_YEAR_SPAN, 0, 1),
+    startMonth: startOfYear(subYears(now, BIRTH_YEAR_SPAN)),
   };
 }
 

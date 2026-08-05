@@ -7,6 +7,10 @@ import type {
   CharacterRelationshipBookStateModel,
   CharacterRelationshipModel,
 } from "../../../generated/prisma/models.js";
+import type {
+  UpdateBookStateData,
+  UpdateRelationshipData,
+} from "../domain/character-relationship-write.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -22,21 +26,9 @@ const visibleEndpointWhere = {
   targetCharacter: { hideProfileAsSpoiler: false },
 } satisfies Prisma.CharacterRelationshipWhereInput;
 
-export type CreateBookStateData = {
+export type CreateBookStateData = UpdateBookStateData & {
   bookId: string;
-  description: Nullable<string>;
-  endedAudioSeconds: Nullable<number>;
-  endedChapter: Nullable<string>;
-  endedPage: Nullable<number>;
-  hideRelationshipAsSpoiler: boolean;
-  intensity: Nullable<string>;
-  introducedAudioSeconds: Nullable<number>;
-  introducedChapter: Nullable<string>;
-  introducedPage: Nullable<number>;
-  isDescriptionSpoiler: boolean;
-  isTypeSpoiler: boolean;
   relationshipId: string;
-  status: string;
 };
 
 export type CreateRelationshipData = {
@@ -65,20 +57,6 @@ export type RelationshipDetailsRow = Prisma.CharacterRelationshipGetPayload<{
 export type RelationshipDuplicateRow = {
   customType: Nullable<string>;
   id: string;
-};
-
-export type UpdateBookStateData = Omit<CreateBookStateData, "bookId" | "relationshipId">;
-
-export type UpdateRelationshipData = {
-  category?: string;
-  customType?: Nullable<string>;
-  directionality?: string;
-  isCanonical?: boolean;
-  sourceCharacterId?: string;
-  sourceLabel?: Nullable<string>;
-  targetCharacterId?: string;
-  targetLabel?: Nullable<string>;
-  type?: string;
 };
 
 @Injectable()

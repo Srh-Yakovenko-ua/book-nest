@@ -15,6 +15,7 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { TimelineEventService } from "./timeline-event.service.js";
+import { TimelineRelationService } from "./timeline-relation.service.js";
 
 const USER_ID = "11111111-1111-1111-1111-111111111111";
 const BOOK_ID = "22222222-2222-2222-2222-222222222222";
@@ -32,6 +33,7 @@ type Config = {
 
 function createService(config: Config = {}): {
   createRelation: ReturnType<typeof vi.fn>;
+  relationService: TimelineRelationService;
   service: TimelineEventService;
 } {
   const createRelation = config.createRelationError
@@ -75,8 +77,9 @@ function createService(config: Config = {}): {
     timelineEventRepository,
     transactionRunner,
   );
+  const relationService = new TimelineRelationService(timelineEventRepository);
 
-  return { createRelation, service };
+  return { createRelation, relationService, service };
 }
 
 function makeContext(overrides: Partial<BookReadingContext> = {}): BookReadingContext {
@@ -127,9 +130,9 @@ describe("TimelineEventService", () => {
   });
 
   it("rejects a self relation", async () => {
-    const { service } = createService({ ownedEvent: makeEvent() });
+    const { relationService } = createService({ ownedEvent: makeEvent() });
     await expect(
-      service.createRelation(USER_ID, EVENT_ID, {
+      relationService.createRelation(USER_ID, EVENT_ID, {
         relationType: "related",
         targetEventId: EVENT_ID,
       }),
@@ -137,9 +140,9 @@ describe("TimelineEventService", () => {
   });
 
   it("rejects a relation to an event of another book", async () => {
-    const { service } = createService({ eventInBook: null, ownedEvent: makeEvent() });
+    const { relationService } = createService({ eventInBook: null, ownedEvent: makeEvent() });
     await expect(
-      service.createRelation(USER_ID, EVENT_ID, {
+      relationService.createRelation(USER_ID, EVENT_ID, {
         relationType: "related",
         targetEventId: OTHER_ID,
       }),
@@ -151,13 +154,13 @@ describe("TimelineEventService", () => {
       clientVersion: "7.8.0",
       code: "P2002",
     });
-    const { service } = createService({
+    const { relationService } = createService({
       createRelationError: uniqueError,
       eventInBook: { id: OTHER_ID },
       ownedEvent: makeEvent(),
     });
     await expect(
-      service.createRelation(USER_ID, EVENT_ID, {
+      relationService.createRelation(USER_ID, EVENT_ID, {
         relationType: "related",
         targetEventId: OTHER_ID,
       }),
@@ -165,8 +168,8 @@ describe("TimelineEventService", () => {
   });
 
   it("rejects deleting a missing relation", async () => {
-    const { service } = createService({ ownedRelation: null });
-    await expect(service.deleteRelation(USER_ID, RELATION_ID)).rejects.toBeInstanceOf(
+    const { relationService } = createService({ ownedRelation: null });
+    await expect(relationService.deleteRelation(USER_ID, RELATION_ID)).rejects.toBeInstanceOf(
       NotFoundError,
     );
   });

@@ -1,5 +1,6 @@
 import type { Nullable } from "@app/shared";
 
+import { subMilliseconds } from "date-fns";
 import { describe, expect, it, vi } from "vitest";
 
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
@@ -10,7 +11,7 @@ import type { TokenService } from "./token.service.js";
 
 import { env } from "../../../config/env.js";
 import { UnauthorizedError } from "../../../core/exceptions/errors.js";
-import { SessionService } from "./session.service.js";
+import { SESSION_ROTATION, SessionService } from "./session.service.js";
 
 type Mocks = {
   sessionsRepository: SessionsRepository;
@@ -169,6 +170,33 @@ describe("SessionService.refresh", () => {
     );
     expect(mocks.sessionsRepository.deleteAllByUserId).toHaveBeenCalledWith(USER_ID);
     expect(mocks.sessionsRepository.create).not.toHaveBeenCalled();
+  });
+
+  it("spares the other devices when a rotation is replayed inside the grace window", async () => {
+    const { mocks, service } = buildService({
+      findByRefreshHash: sessionModel({
+        rotatedAt: subMilliseconds(new Date(), SESSION_ROTATION.reuseGraceMs / 2),
+      }),
+    });
+
+    await expect(service.refresh("presented-refresh-token")).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
+    expect(mocks.sessionsRepository.deleteAllByUserId).not.toHaveBeenCalled();
+    expect(mocks.sessionsRepository.create).not.toHaveBeenCalled();
+  });
+
+  it("revokes every session once a replayed rotation is older than the grace window", async () => {
+    const { mocks, service } = buildService({
+      findByRefreshHash: sessionModel({
+        rotatedAt: subMilliseconds(new Date(), SESSION_ROTATION.reuseGraceMs + 1000),
+      }),
+    });
+
+    await expect(service.refresh("presented-refresh-token")).rejects.toBeInstanceOf(
+      UnauthorizedError,
+    );
+    expect(mocks.sessionsRepository.deleteAllByUserId).toHaveBeenCalledWith(USER_ID);
   });
 
   it("deletes the expired session and throws when the session has expired", async () => {

@@ -4,7 +4,7 @@ import { CHARACTER_GRAPH_LAYOUT_ERROR_CODES } from "@app/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
-import type { BooksRepository } from "../../books/index.js";
+import type { BookAccessService } from "../../books/index.js";
 import type {
   CharacterGraphLayoutsRepository,
   SaveLayoutData,
@@ -36,7 +36,11 @@ function createService(config: ServiceConfig = {}) {
   const deleteByKey = vi.fn().mockResolvedValue(config.deleteCount ?? 1);
   const findByKey = vi.fn().mockResolvedValue(config.existing ?? null);
 
-  const existsOwned = vi.fn().mockResolvedValue(config.bookExists ?? true);
+  const assertOwned = vi.fn(async ({ notFoundCode }: { notFoundCode?: string }): Promise<void> => {
+    if (config.bookExists === false) {
+      throw new NotFoundError("Book not found", { code: notFoundCode });
+    }
+  });
   const existsOwnedSeries = vi.fn().mockResolvedValue(config.seriesExists ?? true);
 
   const layoutsRepository = {
@@ -47,7 +51,7 @@ function createService(config: ServiceConfig = {}) {
     updateLayout,
   } as unknown as CharacterGraphLayoutsRepository;
   const charactersRepository = { existsOwnedSeries } as unknown as CharactersRepository;
-  const booksRepository = { existsOwned } as unknown as BooksRepository;
+  const bookAccess = { assertOwned } as unknown as BookAccessService;
   const transactionRunner = {
     run: (fn: (tx: unknown) => Promise<unknown>) => fn({}),
   } as unknown as TransactionRunner;
@@ -55,15 +59,15 @@ function createService(config: ServiceConfig = {}) {
   const service = new CharacterGraphLayoutsService(
     layoutsRepository,
     charactersRepository,
-    booksRepository,
+    bookAccess,
     transactionRunner,
   );
 
   return {
     acquireLayoutLock,
+    assertOwned,
     createLayout,
     deleteByKey,
-    existsOwned,
     existsOwnedSeries,
     findByKey,
     service,

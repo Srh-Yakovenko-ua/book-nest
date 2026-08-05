@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 
 const READING_STATUSES_IN_PLAY = ["reading", "rereading"];
 
@@ -83,7 +84,7 @@ export class SeriesOrderCheckRepository {
   ): Promise<Nullable<string>> {
     const row = await client.series.findFirst({
       select: { id: true },
-      where: { id: seriesId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: seriesId, userId },
     });
     return row?.id ?? null;
   }
@@ -128,7 +129,7 @@ export class SeriesOrderCheckRepository {
     const rows = await client.book.findMany({
       orderBy: { queuePosition: "asc" },
       select: { id: true, queuePosition: true, seriesId: true, title: true },
-      where: { queuePosition: { not: null }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId },
     });
 
     return rows.flatMap((row) =>
@@ -152,7 +153,7 @@ export class SeriesOrderCheckRepository {
     const rows = await client.book.findMany({
       orderBy: { queuePosition: "asc" },
       select: { id: true, queuePosition: true },
-      where: { queuePosition: { not: null }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId },
     });
 
     return rows.flatMap((row) =>
@@ -168,6 +169,7 @@ export class SeriesOrderCheckRepository {
       distinct: ["seriesId"],
       select: { seriesId: true },
       where: {
+        ...SOFT_DELETE_SCOPE.active,
         OR: [{ queuePosition: { not: null } }, { readingStatus: { in: READING_STATUSES_IN_PLAY } }],
         seriesId: { not: null },
         userId,
@@ -181,7 +183,7 @@ export class SeriesOrderCheckRepository {
 
     return client.book.findMany({
       select: relevantSeriesBookSelect,
-      where: { seriesId: { in: seriesIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, seriesId: { in: seriesIds }, userId },
     });
   }
 }

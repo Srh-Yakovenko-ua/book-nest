@@ -10,9 +10,11 @@ import type {
   ReadingStatus,
 } from "@app/shared";
 
+import { compareAsc } from "date-fns";
+
 import {
-  addIsoDays,
-  differenceInIsoDays,
+  addDaysToIsoDate,
+  daysBetweenIsoDates,
   toIsoDate,
   toNullableIsoDate,
   toNullableIsoDateTime,
@@ -122,7 +124,9 @@ export function toReadingHistoryView(args: {
         : null,
     readingPeriod: {
       calendarDays:
-        startDate !== null && endDate !== null ? differenceInIsoDays(startDate, endDate) + 1 : null,
+        startDate !== null && endDate !== null
+          ? daysBetweenIsoDates({ endIsoDate: endDate, startIsoDate: startDate }) + 1
+          : null,
       endDate,
       startDate,
     },
@@ -218,15 +222,16 @@ function buildHistory(args: {
 }
 
 function clampAllRangeStart(periodStartDate: string, periodEndDate: string): string {
-  const spanDays = differenceInIsoDays(periodStartDate, periodEndDate) + 1;
+  const spanDays =
+    daysBetweenIsoDates({ endIsoDate: periodEndDate, startIsoDate: periodStartDate }) + 1;
   if (spanDays <= READING_ACTIVITY_ALL_MAX_DAYS) {
     return periodStartDate;
   }
-  return addIsoDays(periodEndDate, -(READING_ACTIVITY_ALL_MAX_DAYS - 1));
+  return addDaysToIsoDate(periodEndDate, -(READING_ACTIVITY_ALL_MAX_DAYS - 1));
 }
 
 function compareChronological(left: NormalizedEvent, right: NormalizedEvent): number {
-  const byCreatedAt = left.createdAt.getTime() - right.createdAt.getTime();
+  const byCreatedAt = compareAsc(left.createdAt, right.createdAt);
   if (byCreatedAt !== 0) {
     return byCreatedAt;
   }
@@ -239,9 +244,9 @@ function countEvents(days: DayGroup[]): number {
 
 function enumerateDates(fromIso: string, toIso: string): string[] {
   const dates: string[] = [];
-  const totalDays = differenceInIsoDays(fromIso, toIso);
+  const totalDays = daysBetweenIsoDates({ endIsoDate: toIso, startIsoDate: fromIso });
   for (let offset = 0; offset <= totalDays; offset += 1) {
-    dates.push(addIsoDays(fromIso, offset));
+    dates.push(addDaysToIsoDate(fromIso, offset));
   }
   return dates;
 }
@@ -360,7 +365,7 @@ function resolveActivityBounds(args: {
   }
 
   const windowSize = args.range === "7d" ? SEVEN_DAY_WINDOW : FOURTEEN_DAY_WINDOW;
-  const from = addIsoDays(args.anchorDate, -(windowSize - 1));
+  const from = addDaysToIsoDate(args.anchorDate, -(windowSize - 1));
   return { from, to: args.anchorDate };
 }
 

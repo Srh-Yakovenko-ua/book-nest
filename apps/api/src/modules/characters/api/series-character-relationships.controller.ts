@@ -16,7 +16,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
-import { CharacterRelationshipsService } from "../application/character-relationships.service.js";
+import { RelationshipContextService } from "../application/relationship-context.service.js";
 import { SeriesCharacterRelationshipsQueryDto } from "./input-dto/series-character-relationships-query.input-dto.js";
 import { CharacterRelationshipContextViewDto } from "./view-dto/character-relationship-context.view-dto.js";
 
@@ -24,7 +24,7 @@ import { CharacterRelationshipContextViewDto } from "./view-dto/character-relati
 @Controller("api/series/:seriesId/character-relationships")
 @JwtProtected()
 export class SeriesCharacterRelationshipsController {
-  constructor(private readonly relationshipsService: CharacterRelationshipsService) {}
+  constructor(private readonly contextService: RelationshipContextService) {}
 
   @ApiBadRequestResponse({ description: "The context book does not belong to this series" })
   @ApiNotFoundResponse({ description: "Series not found" })
@@ -59,6 +59,6 @@ export class SeriesCharacterRelationshipsController {
     @Query(new ZodQueryPipe(SeriesCharacterRelationshipsQuerySchema))
     query: SeriesCharacterRelationshipsQueryDto,
   ): Promise<CharacterRelationshipContextView[]> {
-    return this.relationshipsService.listForSeries({ query, seriesId, userId: user.id });
+    return this.contextService.listForSeries({ query, seriesId, userId: user.id });
   }
 }

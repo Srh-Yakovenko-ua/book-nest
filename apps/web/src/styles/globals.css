@@ -622,3 +622,28 @@
     pointer-events: none;
   }
 }
+
+@utility sidebar-card-leaf {
+  position: relative;
+  isolation: isolate;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 70px;
+    height: 70px;
+    background-image: url("/illustrations/leaf-2.png");
+    background-repeat: no-repeat;
+    background-position: top right;
+    background-size: contain;
+    opacity: 0.55;
+    z-index: -1;
+    pointer-events: none;
+  }
+}
+
+.dark .sidebar-card-leaf::after {
+  opacity: 0.3;
+}

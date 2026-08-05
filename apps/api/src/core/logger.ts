@@ -14,6 +14,8 @@ const REDACT_PATHS = [
   "*.passwordHash",
   "token",
   "*.token",
+  "handshake.auth.token",
+  "*.handshake.auth.token",
   "accessToken",
   "*.accessToken",
   "refreshToken",

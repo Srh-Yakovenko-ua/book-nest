@@ -1,6 +1,7 @@
 import type { Prisma } from "../../generated/prisma/client.js";
 
 export const ADVISORY_LOCK_CLASS = Object.freeze({
+  bookLists: 13,
   characterGraphLayouts: 8,
   characterGroups: 6,
   characterMerge: 7,
@@ -8,6 +9,7 @@ export const ADVISORY_LOCK_CLASS = Object.freeze({
   listMembership: 4,
   queue: 1,
   reading: 11,
+  series: 12,
   socialLinks: 10,
   storeLinks: 3,
   tags: 2,

@@ -1,11 +1,9 @@
 import { normalizeName } from "@app/shared";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 
-import { env } from "../config/env.js";
 import { createLogger } from "../core/logger.js";
-import { PrismaClient } from "../generated/prisma/client.js";
+import { createSeedClient } from "./seed-client.js";
 
 const logger = createLogger("seed.genres");
 
@@ -29,9 +27,7 @@ async function loadGenreItems(): Promise<z.infer<typeof GenreItemSchema>[]> {
 }
 
 async function seedGenres(): Promise<void> {
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: env.databaseUrl }),
-  });
+  const prisma = createSeedClient();
 
   try {
     const items = await loadGenreItems();

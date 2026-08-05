@@ -13,6 +13,12 @@ services:
       - caddy-config:/config
     networks:
       - edge
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 96m
     depends_on:
       - web-prod
@@ -33,6 +39,8 @@ services:
       - db-prod-data:/var/lib/postgresql/data
     networks:
       - prod-internal
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 512m
     healthcheck:
       test:
@@ -52,6 +60,8 @@ services:
       - redis-prod-data:/data
     networks:
       - prod-queue
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 128m
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -96,6 +106,10 @@ services:
       - edge
       - prod-internal
       - prod-queue
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 384m
     healthcheck:
       test:
@@ -125,6 +139,10 @@ services:
       API_BASE_URL: http://api-prod:4000
     networks:
       - edge
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 384m
     depends_on:
       - api-prod
@@ -142,6 +160,8 @@ services:
       - db-dev-data:/var/lib/postgresql/data
     networks:
       - dev-internal
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 512m
     healthcheck:
       test:
@@ -161,6 +181,8 @@ services:
       - redis-dev-data:/data
     networks:
       - dev-queue
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 128m
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -203,6 +225,10 @@ services:
       - edge
       - dev-internal
       - dev-queue
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 384m
     healthcheck:
       test:
@@ -232,6 +258,10 @@ services:
       API_BASE_URL: http://api-dev:4000
     networks:
       - edge
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 384m
     depends_on:
       - api-dev
@@ -261,9 +291,7 @@ services:
     volumes:
       - cloudbeaver-data:/opt/cloudbeaver/workspace
     networks:
-      - edge
       - dev-internal
-      - prod-internal
     mem_limit: 512m
 
 networks:

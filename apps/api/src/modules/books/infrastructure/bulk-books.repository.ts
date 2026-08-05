@@ -3,18 +3,15 @@ import type { Nullable, OwnershipStatus, QueuePriority, ReadingStatus } from "@a
 import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
-import { enforceQueueInvariant } from "./queue-invariant.js";
-
-export type BulkDeleteResult = {
-  affected: number;
-  coverMediaIds: string[];
-};
+import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
 
 export type PagesCountSnapshot = {
   currentPage: Nullable<number>;
@@ -44,7 +41,7 @@ export class BulkBooksRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       const ownedBooks = await tx.book.findMany({
         select: { id: true },
-        where: { id: { in: bookIds }, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
       });
       if (ownedBooks.length === 0) {
         return 0;
@@ -74,7 +71,7 @@ export class BulkBooksRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       const ownedBooks = await tx.book.findMany({
         select: { id: true },
-        where: { id: { in: bookIds }, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
       });
       if (ownedBooks.length === 0) {
         return 0;
@@ -118,7 +115,7 @@ export class BulkBooksRepository {
 
       const ownedUnqueued = await tx.book.findMany({
         select: { id: true },
-        where: { id: { in: bookIds }, queuePosition: null, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, queuePosition: null, userId },
       });
       if (ownedUnqueued.length === 0) {
         return 0;
@@ -131,7 +128,7 @@ export class BulkBooksRepository {
 
       const aggregate = await tx.book.aggregate({
         _max: { queuePosition: true },
-        where: { userId },
+        where: { ...SOFT_DELETE_SCOPE.active, userId },
       });
       const basePosition = aggregate._max.queuePosition ?? 0;
 
@@ -140,39 +137,11 @@ export class BulkBooksRepository {
         offset += 1;
         await tx.book.updateMany({
           data: { queuePosition: basePosition + offset, queuePriority },
-          where: { id: book.id, userId },
+          where: { ...SOFT_DELETE_SCOPE.active, id: book.id, userId },
         });
       }
 
       return ordered.length;
-    });
-  }
-
-  deleteOwned(
-    {
-      bookIds,
-      userId,
-    }: {
-      bookIds: string[];
-      userId: string;
-    },
-    client?: Prisma.TransactionClient,
-  ): Promise<BulkDeleteResult> {
-    return runInClient({ client, prisma: this.prisma }, async (tx) => {
-      const books = await tx.book.findMany({
-        select: { coverMediaId: true },
-        where: { id: { in: bookIds }, userId },
-      });
-      if (books.length === 0) {
-        return { affected: 0, coverMediaIds: [] };
-      }
-      const deleted = await tx.book.deleteMany({ where: { id: { in: bookIds }, userId } });
-      const coverMediaIds = [
-        ...new Set(
-          books.flatMap((book) => (book.coverMediaId === null ? [] : [book.coverMediaId])),
-        ),
-      ];
-      return { affected: deleted.count, coverMediaIds };
     });
   }
 
@@ -185,7 +154,7 @@ export class BulkBooksRepository {
   }): Promise<string[]> {
     const ownedBooks = await this.prisma.book.findMany({
       select: { id: true },
-      where: { id: { in: bookIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
     });
     const ownedIds = new Set(ownedBooks.map((book) => book.id));
     return [...new Set(bookIds)].filter((id) => ownedIds.has(id));
@@ -203,7 +172,7 @@ export class BulkBooksRepository {
   ): Promise<PagesCountSnapshot[]> {
     const books = await client.book.findMany({
       select: { id: true, readingProgress: { select: { currentPage: true } }, updatedAt: true },
-      where: { id: { in: bookIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
     });
     return books.map((book) => ({
       currentPage: book.readingProgress?.currentPage ?? null,
@@ -226,7 +195,7 @@ export class BulkBooksRepository {
   ): Promise<number> {
     const updated = await client.book.updateMany({
       data: { pagesCountUnavailable: true },
-      where: { id: bookId, updatedAt: expectedUpdatedAt, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, updatedAt: expectedUpdatedAt, userId },
     });
     return updated.count;
   }
@@ -244,7 +213,7 @@ export class BulkBooksRepository {
   }): Promise<number> {
     const updated = await this.prisma.book.updateMany({
       data: { favoriteAddedAt: isFavorite ? now : null, isFavorite },
-      where: { id: { in: bookIds }, isFavorite: !isFavorite, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, isFavorite: !isFavorite, userId },
     });
     return updated.count;
   }
@@ -272,7 +241,7 @@ export class BulkBooksRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       const updated = await tx.book.updateMany({
         data: { ownershipStatus },
-        where: { id: { in: bookIds }, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
       });
       if (updated.count === 0) {
         return 0;
@@ -295,7 +264,7 @@ export class BulkBooksRepository {
       }
       if (clearPurchase) {
         await tx.bookPurchaseInfo.deleteMany({
-          where: { book: { id: { in: bookIds }, userId } },
+          where: { book: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId } },
         });
       }
       return updated.count;
@@ -318,7 +287,7 @@ export class BulkBooksRepository {
   ): Promise<number> {
     const updated = await client.book.updateMany({
       data: { pagesCount, pagesCountUnavailable: false },
-      where: { id: bookId, updatedAt: expectedUpdatedAt, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, updatedAt: expectedUpdatedAt, userId },
     });
     return updated.count;
   }
@@ -340,17 +309,55 @@ export class BulkBooksRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       const updated = await tx.book.updateMany({
         data: { readingStatus },
-        where: { id: { in: bookIds }, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
       });
       if (clearProgress && updated.count > 0) {
         await tx.bookReadingProgress.deleteMany({
-          where: { book: { id: { in: bookIds }, userId } },
+          where: { book: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId } },
         });
       }
 
       await enforceQueueInvariant(tx, { readingStatus, userId });
 
       return updated.count;
+    });
+  }
+
+  softDelete(
+    {
+      bookIds,
+      stamp,
+      userId,
+    }: {
+      bookIds: string[];
+      stamp: TrashStamp;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<string[]> {
+    return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const owned = await tx.book.findMany({
+        select: { id: true },
+        where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
+      });
+      if (owned.length === 0) {
+        return [];
+      }
+      const ownedIds = owned.map((book) => book.id);
+      await acquireUserQueueLock(userId, tx);
+      await tx.book.updateMany({
+        data: {
+          ...stamp,
+          queuePosition: null,
+          queuePriority: null,
+          queuePriorityReason: null,
+          queuePriorityReasonCustomText: null,
+          queuePriorityTargetDate: null,
+        },
+        where: { ...SOFT_DELETE_SCOPE.active, id: { in: ownedIds }, userId },
+      });
+      await resequenceQueue(tx, userId);
+      return ownedIds;
     });
   }
 }

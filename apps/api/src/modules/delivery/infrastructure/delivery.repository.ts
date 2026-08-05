@@ -21,6 +21,7 @@ import type { StatisticsRecord } from "../domain/delivery-statistics.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { toIsoDate } from "../../../core/iso-date.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -170,7 +171,7 @@ export class DeliveryRepository {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
       const ownedRows = await tx.book.findMany({
         select: { id: true },
-        where: { id: { in: bookIds }, userId },
+        where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
       });
       const ownedIds = new Set(ownedRows.map((row) => row.id));
 
@@ -199,7 +200,7 @@ export class DeliveryRepository {
         if (transition.book !== null) {
           await tx.book.updateMany({
             data: transition.book,
-            where: { id: { in: [...receivedIds] }, userId },
+            where: { ...SOFT_DELETE_SCOPE.active, id: { in: [...receivedIds] }, userId },
           });
         }
       }
@@ -231,7 +232,11 @@ export class DeliveryRepository {
     includeCancelled: boolean;
     userId: string;
   }): Promise<HistorySummaryData> {
-    const currencyWhere: Prisma.BookDeliveryWhereInput = { price: { not: null }, userId };
+    const currencyWhere: Prisma.BookDeliveryWhereInput = {
+      book: SOFT_DELETE_SCOPE.active,
+      price: { not: null },
+      userId,
+    };
     if (!includeCancelled) {
       currencyWhere.status = { not: DELIVERY_STATUS_CANCELLED };
     }
@@ -246,7 +251,9 @@ export class DeliveryRepository {
           (count(*) FILTER (WHERE bd.status = ${DELIVERY_STATUS_RECEIVED}))::int AS "receivedCount",
           (count(*) FILTER (WHERE bd.status = ${DELIVERY_STATUS_CANCELLED}))::int AS "cancelledCount"
         FROM book_deliveries bd
+        JOIN books b ON b.id = bd.book_id
         WHERE bd.user_id = ${userId}::uuid
+          AND b.deleted_at IS NULL
       `),
       this.prisma.bookDelivery.groupBy({
         _sum: { price: true },
@@ -298,7 +305,7 @@ export class DeliveryRepository {
     to,
     userId,
   }: StatisticsFilterInput): Promise<StatisticsRecord[]> {
-    const where: Prisma.BookDeliveryWhereInput = { userId };
+    const where: Prisma.BookDeliveryWhereInput = { book: SOFT_DELETE_SCOPE.active, userId };
 
     if (store !== undefined) {
       where.storeName = { equals: store, mode: "insensitive" };
@@ -372,6 +379,7 @@ export class DeliveryRepository {
         FROM book_deliveries bd
         JOIN books b ON b.id = bd.book_id
         WHERE bd.user_id = ${userId}::uuid
+          AND b.deleted_at IS NULL
           AND b.ownership_status = ${OWNERSHIP_STATUS_IN_TRANSIT}
           AND bd.status IN (${Prisma.join([...DELIVERY_ACTIVE_STATUSES])})
       `),
@@ -438,7 +446,7 @@ const IN_TRANSIT_SORT_ORDER_BY: Record<
 
 function activeInTransitBase(userId: string): Prisma.BookDeliveryWhereInput {
   return {
-    book: { ownershipStatus: "in_transit", userId },
+    book: { ...SOFT_DELETE_SCOPE.active, ownershipStatus: "in_transit", userId },
     status: { in: [...DELIVERY_ACTIVE_STATUSES] },
   };
 }
@@ -591,7 +599,7 @@ function buildHistoryWhere({
   to,
   userId,
 }: HistoryFilterInput): Prisma.BookDeliveryWhereInput {
-  const where: Prisma.BookDeliveryWhereInput = { userId };
+  const where: Prisma.BookDeliveryWhereInput = { book: SOFT_DELETE_SCOPE.active, userId };
 
   applyHistoryTab({ tab, where });
 

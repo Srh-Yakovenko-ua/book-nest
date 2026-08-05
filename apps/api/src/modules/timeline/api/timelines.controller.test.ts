@@ -228,13 +228,13 @@ describe("timeline reorder", () => {
 });
 
 describe("timeline deletion", () => {
-  it("deletes an empty non-default line directly", async () => {
+  it("trashes an empty non-default line directly", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const line = await createTimeline(accessToken, bookId, { name: "Flashbacks" });
 
     const res = await authed("delete", `/api/timelines/${line.body.id}`, accessToken);
-    expect(res.status).toBe(HttpStatus.NO_CONTENT);
+    expect(res.status).toBe(HttpStatus.OK);
     const list = await listTimelines(accessToken, bookId);
     expect(list.body.timelines).toHaveLength(1);
   });
@@ -264,7 +264,7 @@ describe("timeline deletion", () => {
     expect(noStrategy.body.code).toBe("timeline_delete_strategy_required");
   });
 
-  it("deletes a non-empty line together with its events", async () => {
+  it("trashes a non-empty line together with its events", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const line = await createTimeline(accessToken, bookId, { name: "Flashbacks" });
@@ -278,13 +278,13 @@ describe("timeline deletion", () => {
       `/api/timelines/${line.body.id}?strategy=delete`,
       accessToken,
     );
-    expect(res.status).toBe(HttpStatus.NO_CONTENT);
+    expect(res.status).toBe(HttpStatus.OK);
 
     const events = await authed("get", `/api/books/${bookId}/timeline-events`, accessToken);
     expect(events.body.totalCount).toBe(0);
   });
 
-  it("moves events to another line before deleting", async () => {
+  it("moves events to another line before trashing", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBook(accessToken);
     const source = await createTimeline(accessToken, bookId, { name: "Flashbacks" });
@@ -296,7 +296,7 @@ describe("timeline deletion", () => {
       `/api/timelines/${source.body.id}?strategy=move&targetTimelineId=${target.body.id}`,
       accessToken,
     );
-    expect(res.status).toBe(HttpStatus.NO_CONTENT);
+    expect(res.status).toBe(HttpStatus.OK);
 
     const moved = await authed("get", `/api/timeline-events/${eventId}`, accessToken);
     expect(moved.status).toBe(HttpStatus.OK);

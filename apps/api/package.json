@@ -24,6 +24,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",
     "db:migrate:reset": "prisma migrate reset",
+    "db:test:clean": "node --import @swc-node/register/esm-register --conditions=source scripts/db-test-clean.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -33,9 +34,11 @@
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
     "@nestjs/platform-express": "catalog:",
+    "@nestjs/platform-socket.io": "catalog:",
     "@nestjs/schedule": "catalog:",
     "@nestjs/swagger": "catalog:",
     "@nestjs/throttler": "catalog:",
+    "@nestjs/websockets": "catalog:",
     "@opentelemetry/auto-instrumentations-node": "catalog:",
     "@opentelemetry/sdk-node": "catalog:",
     "@prisma/adapter-pg": "catalog:",
@@ -59,7 +62,7 @@
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
     "sharp": "catalog:",
-    "ua-parser-js": "catalog:",
+    "socket.io": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -75,6 +78,7 @@
     "@types/supertest": "catalog:",
     "pg": "catalog:",
     "pino-pretty": "catalog:",
+    "socket.io-client": "catalog:",
     "supertest": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

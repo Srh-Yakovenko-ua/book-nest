@@ -9,7 +9,10 @@ import type { ListsRepository } from "../infrastructure/lists.repository.js";
 
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { fakeOf } from "../../../test/fake.js";
 import { ListsService } from "./lists.service.js";
+
+const TX = fakeOf<Prisma.TransactionClient>();
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const LIST_ID = "22222222-2222-4222-8222-222222222222";
@@ -20,28 +23,28 @@ const COVER_ID = "55555555-5555-4555-8555-555555555555";
 function buildService(): {
   mediaService: { buildViewOrNull: ReturnType<typeof vi.fn> };
   repository: {
+    acquireCreateLock: ReturnType<typeof vi.fn>;
     countOwned: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
-    deleteOwned: ReturnType<typeof vi.fn>;
+    createByNormalized: ReturnType<typeof vi.fn>;
     findByNormalized: ReturnType<typeof vi.fn>;
     findOwnedById: ReturnType<typeof vi.fn>;
     findOwnedByIds: ReturnType<typeof vi.fn>;
     searchOwnedCards: ReturnType<typeof vi.fn>;
     updateOwned: ReturnType<typeof vi.fn>;
-    upsertByNormalized: ReturnType<typeof vi.fn>;
   };
   service: ListsService;
 } {
   const repository = {
+    acquireCreateLock: vi.fn().mockResolvedValue(undefined),
     countOwned: vi.fn().mockResolvedValue(0),
     create: vi.fn(),
-    deleteOwned: vi.fn().mockResolvedValue(1),
+    createByNormalized: vi.fn(),
     findByNormalized: vi.fn().mockResolvedValue(null),
     findOwnedById: vi.fn().mockResolvedValue(null),
     findOwnedByIds: vi.fn().mockResolvedValue([]),
     searchOwnedCards: vi.fn().mockResolvedValue([]),
     updateOwned: vi.fn(),
-    upsertByNormalized: vi.fn(),
   };
 
   const mediaService = {
@@ -62,11 +65,13 @@ function card(overrides: Partial<BookListCard> = {}): BookListCard {
   return {
     _count: { items: 0 },
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    deletedAt: null,
     description: null,
     id: LIST_ID,
     items: [],
     name: "Autumn reads",
     normalizedName: "autumn reads",
+    purgeAt: null,
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),
     userId: USER_ID,
     ...overrides,
@@ -102,10 +107,12 @@ function coverAsset(): MediaAssetModel {
 function list(overrides: Partial<BookListModel> = {}): BookListModel {
   return {
     createdAt: new Date("2026-02-01T10:00:00.000Z"),
+    deletedAt: null,
     description: null,
     id: LIST_ID,
     name: "Autumn reads",
     normalizedName: "autumn reads",
+    purgeAt: null,
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),
     userId: USER_ID,
     ...overrides,
@@ -137,11 +144,11 @@ describe("ListsService.resolveListsForBook", () => {
   it("returns an empty array when no lists are requested", async () => {
     const { repository, service } = buildService();
 
-    const ids = await service.resolveListsForBook({ input: {}, userId: USER_ID });
+    const ids = await service.resolveListsForBook({ input: {}, userId: USER_ID }, TX);
 
     expect(ids).toEqual([]);
     expect(repository.findOwnedByIds).not.toHaveBeenCalled();
-    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+    expect(repository.createByNormalized).not.toHaveBeenCalled();
   });
 
   it("keeps the requested ids that belong to the user", async () => {
@@ -151,10 +158,13 @@ describe("ListsService.resolveListsForBook", () => {
       list({ id: OTHER_LIST_ID, name: "Gifts", normalizedName: "gifts" }),
     ]);
 
-    const ids = await service.resolveListsForBook({
-      input: { listIds: [LIST_ID, OTHER_LIST_ID] },
-      userId: USER_ID,
-    });
+    const ids = await service.resolveListsForBook(
+      {
+        input: { listIds: [LIST_ID, OTHER_LIST_ID] },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(ids).toEqual([LIST_ID, OTHER_LIST_ID]);
   });
@@ -164,10 +174,13 @@ describe("ListsService.resolveListsForBook", () => {
     repository.findOwnedByIds.mockResolvedValue([list({ id: LIST_ID })]);
 
     await expect(
-      service.resolveListsForBook({
-        input: { listIds: [LIST_ID, FOREIGN_LIST_ID] },
-        userId: USER_ID,
-      }),
+      service.resolveListsForBook(
+        {
+          input: { listIds: [LIST_ID, FOREIGN_LIST_ID] },
+          userId: USER_ID,
+        },
+        TX,
+      ),
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
@@ -175,27 +188,33 @@ describe("ListsService.resolveListsForBook", () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(list({ id: LIST_ID }));
 
-    const ids = await service.resolveListsForBook({
-      input: { newLists: [{ name: "  Autumn   Reads " }] },
-      userId: USER_ID,
-    });
+    const ids = await service.resolveListsForBook(
+      {
+        input: { newLists: [{ name: "  Autumn   Reads " }] },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(ids).toEqual([LIST_ID]);
-    expect(repository.upsertByNormalized).not.toHaveBeenCalled();
+    expect(repository.createByNormalized).not.toHaveBeenCalled();
   });
 
-  it("upserts a new list with its description when no match exists", async () => {
+  it("creates a new list with its description when no match exists", async () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(null);
-    repository.upsertByNormalized.mockResolvedValue(list({ description: "cozy", id: LIST_ID }));
+    repository.createByNormalized.mockResolvedValue(list({ description: "cozy", id: LIST_ID }));
 
-    const ids = await service.resolveListsForBook({
-      input: { newLists: [{ description: "cozy", name: "Autumn reads" }] },
-      userId: USER_ID,
-    });
+    const ids = await service.resolveListsForBook(
+      {
+        input: { newLists: [{ description: "cozy", name: "Autumn reads" }] },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(ids).toEqual([LIST_ID]);
-    expect(repository.upsertByNormalized).toHaveBeenCalledWith(
+    expect(repository.createByNormalized).toHaveBeenCalledWith(
       {
         data: {
           description: "cozy",
@@ -204,7 +223,7 @@ describe("ListsService.resolveListsForBook", () => {
         },
         userId: USER_ID,
       },
-      undefined,
+      TX,
     );
   });
 
@@ -213,37 +232,46 @@ describe("ListsService.resolveListsForBook", () => {
     repository.findOwnedByIds.mockResolvedValue([list({ id: LIST_ID })]);
     repository.findByNormalized.mockResolvedValue(list({ id: LIST_ID }));
 
-    const ids = await service.resolveListsForBook({
-      input: { listIds: [LIST_ID], newLists: [{ name: "Autumn reads" }] },
-      userId: USER_ID,
-    });
+    const ids = await service.resolveListsForBook(
+      {
+        input: { listIds: [LIST_ID], newLists: [{ name: "Autumn reads" }] },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(ids).toEqual([LIST_ID]);
   });
 
-  it("returns the row the upsert resolves when no prior match exists", async () => {
+  it("returns the row the create resolves when no prior match exists", async () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(null);
-    repository.upsertByNormalized.mockResolvedValue(list({ id: OTHER_LIST_ID }));
+    repository.createByNormalized.mockResolvedValue(list({ id: OTHER_LIST_ID }));
 
-    const ids = await service.resolveListsForBook({
-      input: { newLists: [{ name: "Autumn reads" }] },
-      userId: USER_ID,
-    });
+    const ids = await service.resolveListsForBook(
+      {
+        input: { newLists: [{ name: "Autumn reads" }] },
+        userId: USER_ID,
+      },
+      TX,
+    );
 
     expect(ids).toEqual([OTHER_LIST_ID]);
   });
 
-  it("propagates errors raised by the upsert", async () => {
+  it("propagates errors raised by the create", async () => {
     const { repository, service } = buildService();
     repository.findByNormalized.mockResolvedValue(null);
-    repository.upsertByNormalized.mockRejectedValue(new Error("connection lost"));
+    repository.createByNormalized.mockRejectedValue(new Error("connection lost"));
 
     await expect(
-      service.resolveListsForBook({
-        input: { newLists: [{ name: "Autumn reads" }] },
-        userId: USER_ID,
-      }),
+      service.resolveListsForBook(
+        {
+          input: { newLists: [{ name: "Autumn reads" }] },
+          userId: USER_ID,
+        },
+        TX,
+      ),
     ).rejects.toThrow("connection lost");
   });
 });
@@ -320,24 +348,6 @@ describe("ListsService.update", () => {
       service.update({ input: { name: "Gifts" }, listId: LIST_ID, userId: USER_ID }),
     ).rejects.toBeInstanceOf(ConflictError);
     expect(repository.updateOwned).not.toHaveBeenCalled();
-  });
-});
-
-describe("ListsService.delete", () => {
-  it("throws NotFoundError when nothing was deleted", async () => {
-    const { repository, service } = buildService();
-    repository.deleteOwned.mockResolvedValue(0);
-
-    await expect(service.delete({ listId: LIST_ID, userId: USER_ID })).rejects.toBeInstanceOf(
-      NotFoundError,
-    );
-  });
-
-  it("resolves when a list was deleted", async () => {
-    const { repository, service } = buildService();
-    repository.deleteOwned.mockResolvedValue(1);
-
-    await expect(service.delete({ listId: LIST_ID, userId: USER_ID })).resolves.toBeUndefined();
   });
 });
 

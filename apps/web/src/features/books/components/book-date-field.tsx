@@ -1,8 +1,9 @@
 "use client";
 
-import { format, isValid, parse } from "date-fns";
+import { addYears, endOfYear, format, isValid, parse, startOfYear, subYears } from "date-fns";
 
 import { DatePicker } from "@/components/ui/date-picker";
+import { useWeekStartsOn } from "@/features/settings";
 
 const ISO_FORMAT = "yyyy-MM-dd";
 const YEAR_SPAN = 10;
@@ -32,9 +33,10 @@ export function BookDateField({
   placeholder,
   value,
 }: BookDateFieldProps) {
+  const weekStartsOn = useWeekStartsOn();
   const now = new Date();
-  const startMonth = disablePast ? now : new Date(now.getFullYear() - YEAR_SPAN, 0, 1);
-  const endMonth = allowFuture ? new Date(now.getFullYear() + YEAR_SPAN, 11, 31) : now;
+  const startMonth = disablePast ? now : startOfYear(subYears(now, YEAR_SPAN));
+  const endMonth = allowFuture ? endOfYear(addYears(now, YEAR_SPAN)) : now;
 
   return (
     <DatePicker
@@ -51,6 +53,7 @@ export function BookDateField({
       placeholder={placeholder}
       startMonth={startMonth}
       value={parseIsoDate(value)}
+      weekStartsOn={weekStartsOn}
     />
   );
 }

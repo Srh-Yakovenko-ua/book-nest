@@ -6,6 +6,7 @@ import {
   ForbiddenError,
   HttpError,
   NotFoundError,
+  ServiceUnavailableError,
   TooManyRequestsError,
   UnauthorizedError,
   ValidationError,
@@ -120,6 +121,26 @@ describe("NotFoundError", () => {
     expect(error.message).toBe("user gone");
     expect(error.code).toBe("USER_MISSING");
     expect(error.bodyless).toBe(true);
+  });
+});
+
+describe("ServiceUnavailableError", () => {
+  it("uses SERVICE_UNAVAILABLE status, a retry hint and bodyless false", () => {
+    const error = new ServiceUnavailableError();
+
+    expect(error).toBeInstanceOf(HttpError);
+    expect(error.status).toBe(503);
+    expect(error.message).toBe("Server is busy, please retry");
+    expect(error.name).toBe("ServiceUnavailableError");
+    expect(error.retryAfterSeconds).toBe(15);
+    expect(error.bodyless).toBe(false);
+  });
+
+  it("keeps its own message when a code is supplied, so no internal detail can leak", () => {
+    const error = new ServiceUnavailableError({ code: "SERVER_BUSY" });
+
+    expect(error.message).toBe("Server is busy, please retry");
+    expect(error.code).toBe("SERVER_BUSY");
   });
 });
 

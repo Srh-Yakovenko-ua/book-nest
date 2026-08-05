@@ -61,6 +61,7 @@ model User {
   characterTheories         CharacterTheory[]
   characterRelationships    CharacterRelationship[]
   characterGraphLayouts     CharacterGraphLayout[]
+  notifications             Notification[]
 
   @@map("users")
 }
@@ -106,6 +107,8 @@ model Series {
   totalBooks           Int?                        @map("total_books")
   description          String?
   genres               String[]                    @default([])
+  deletedAt            DateTime?                   @map("deleted_at") @db.Timestamptz
+  purgeAt              DateTime?                   @map("purge_at") @db.Timestamptz
   createdAt            DateTime                    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt            DateTime                    @updatedAt @map("updated_at") @db.Timestamptz
   user                 User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -117,7 +120,8 @@ model Series {
   characterGroups      CharacterGroup[]
   characterTheories    CharacterTheory[]
 
-  @@unique([userId, normalizedName])
+  @@index([userId, deletedAt])
+  @@index([purgeAt])
   @@map("series")
 }
 
@@ -236,6 +240,8 @@ model Book {
   queuePriorityTargetDate       DateTime?                        @map("queue_priority_target_date") @db.Date
   queuePosition                 Int?                             @map("queue_position")
   coverMediaId                  String?                          @map("cover_media_id") @db.Uuid
+  deletedAt                     DateTime?                        @map("deleted_at") @db.Timestamptz
+  purgeAt                       DateTime?                        @map("purge_at") @db.Timestamptz
   createdAt                     DateTime                         @default(now()) @map("created_at") @db.Timestamptz
   updatedAt                     DateTime                         @updatedAt @map("updated_at") @db.Timestamptz
   user                          User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -261,11 +267,12 @@ model Book {
   characterTheories             CharacterTheory[]
   characterRelationshipStates   CharacterRelationshipBookState[]
 
-  @@unique([seriesId, partNumber])
   @@index([userId, firstAuthorName])
   @@index([userId, createdAt(sort: Desc), id])
   @@index([userId, ownershipStatus])
   @@index([userId, readingStatus])
+  @@index([userId, deletedAt])
+  @@index([purgeAt])
   @@index([publisherId])
   @@index([seriesId])
   @@index([coverMediaId])
@@ -368,6 +375,7 @@ model BookDelivery {
 
   @@index([bookId])
   @@index([userId, status])
+  @@index([status, expectedDeliveryDate])
   @@map("book_deliveries")
 }
 
@@ -391,6 +399,7 @@ model BookLoan {
 
   @@index([bookId])
   @@index([userId, status])
+  @@index([status, remindToReturn, returnedAt, expectedReturnDate])
   @@map("book_loans")
 }
 
@@ -414,28 +423,32 @@ model BookStoreLink {
 }
 
 model Note {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  entityType     String   @map("entity_type")
-  bookId         String?  @map("book_id") @db.Uuid
-  seriesId       String?  @map("series_id") @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  entityType     String    @map("entity_type")
+  bookId         String?   @map("book_id") @db.Uuid
+  seriesId       String?   @map("series_id") @db.Uuid
   text           String
   category       String?
-  customCategory String?  @map("custom_category")
+  customCategory String?   @map("custom_category")
   chapter        String?
   page           Int?
-  isSpoiler      Boolean  @default(false) @map("is_spoiler")
-  isFavorite     Boolean  @default(false) @map("is_favorite")
-  isPinned       Boolean  @default(false) @map("is_pinned")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book           Book?    @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  series         Series?  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  isSpoiler      Boolean   @default(false) @map("is_spoiler")
+  isFavorite     Boolean   @default(false) @map("is_favorite")
+  isPinned       Boolean   @default(false) @map("is_pinned")
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz
+  purgeAt        DateTime? @map("purge_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book           Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  series         Series?   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
   @@index([seriesId])
   @@index([userId, entityType])
+  @@index([userId, deletedAt])
+  @@index([purgeAt])
   @@map("notes")
 }
 
@@ -510,12 +523,15 @@ model BookList {
   name           String
   normalizedName String         @map("normalized_name")
   description    String?
+  deletedAt      DateTime?      @map("deleted_at") @db.Timestamptz
+  purgeAt        DateTime?      @map("purge_at") @db.Timestamptz
   createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   items          BookListItem[]
 
-  @@unique([userId, normalizedName])
+  @@index([userId, deletedAt])
+  @@index([purgeAt])
   @@map("book_lists")
 }
 
@@ -549,6 +565,7 @@ model UserProfileSettings {
   deliveryReminders     Boolean  @default(true) @map("delivery_reminders")
   weeklyReadingSummary  Boolean  @default(false) @map("weekly_reading_summary")
   monthlyReadingReport  Boolean  @default(false) @map("monthly_reading_report")
+  loanReminderLeadDays  Int      @default(3) @map("loan_reminder_lead_days")
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -632,6 +649,7 @@ model Session {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
   @@map("sessions")
 }
 
@@ -658,22 +676,26 @@ model MediaAsset {
 }
 
 model Quote {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  bookId     String   @map("book_id") @db.Uuid
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  bookId     String    @map("book_id") @db.Uuid
   text       String
   chapter    String?
   page       Int?
   comment    String?
-  isSpoiler  Boolean  @default(false) @map("is_spoiler")
-  isFavorite Boolean  @default(false) @map("is_favorite")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  isSpoiler  Boolean   @default(false) @map("is_spoiler")
+  isFavorite Boolean   @default(false) @map("is_favorite")
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz
+  purgeAt    DateTime? @map("purge_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book       Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
   @@index([userId])
+  @@index([userId, deletedAt])
+  @@index([purgeAt])
   @@map("quotes")
 }
 
@@ -685,12 +707,16 @@ model BookTimeline {
   colorKey    String?             @map("color_key")
   position    Int
   isDefault   Boolean             @default(false) @map("is_default")
+  deletedAt   DateTime?           @map("deleted_at") @db.Timestamptz
+  purgeAt     DateTime?           @map("purge_at") @db.Timestamptz
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
   book        Book                @relation(fields: [bookId], references: [id], onDelete: Cascade)
   events      BookTimelineEvent[]
 
   @@index([bookId])
+  @@index([bookId, deletedAt])
+  @@index([purgeAt])
   @@map("book_timelines")
 }
 
@@ -762,6 +788,7 @@ model Character {
   globalAttitude        String?                    @map("global_attitude")
   archivedAt            DateTime?                  @map("archived_at") @db.Timestamptz
   deletedAt             DateTime?                  @map("deleted_at") @db.Timestamptz
+  purgeAt               DateTime?                  @map("purge_at") @db.Timestamptz
   createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
   user                  User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -779,6 +806,7 @@ model Character {
   @@index([userId, isFavorite])
   @@index([userId, archivedAt])
   @@index([userId, deletedAt])
+  @@index([purgeAt])
   @@index([avatarMediaId])
   @@map("characters")
 }
@@ -1027,4 +1055,47 @@ model CharacterRelationshipBookState {
   @@unique([relationshipId, bookId])
   @@index([bookId])
   @@map("character_relationship_book_states")
+}
+
+model Notification {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  type       String
+  reason     String
+  level      String    @default("normal")
+  dedupeKey  String    @map("dedupe_key")
+  params     Json
+  entityType String?   @map("entity_type")
+  entityId   String?   @map("entity_id") @db.Uuid
+  readAt     DateTime? @map("read_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([userId, readAt])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String    @id @default(uuid()) @db.Uuid
+  notificationId String    @map("notification_id") @db.Uuid
+  channel        String
+  status         String    @default("pending")
+  attempts       Int       @default(0)
+  sentAt         DateTime? @map("sent_at") @db.Timestamptz
+  failedAt       DateTime? @map("failed_at") @db.Timestamptz
+  lastError      String?   @map("last_error")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, channel])
+  @@index([status, createdAt])
+  @@map("notification_deliveries")
 }

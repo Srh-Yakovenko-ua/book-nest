@@ -23,10 +23,14 @@ import { SeriesCharacterRelationshipsController } from "./api/series-character-r
 import { SeriesCharacterSummaryController } from "./api/series-character-summary.controller.js";
 import { SeriesCharactersController } from "./api/series-characters.controller.js";
 import { SeriesReadingContextController } from "./api/series-reading-context.controller.js";
+import { BookCharactersService } from "./application/book-characters.service.js";
+import { CharacterAccessAsserter } from "./application/character-access.asserter.js";
+import { CharacterDetailsAssembler } from "./application/character-details.assembler.js";
 import { CharacterFormsService } from "./application/character-forms.service.js";
 import { CharacterGraphLayoutsService } from "./application/character-graph-layouts.service.js";
 import { CharacterGraphService } from "./application/character-graph.service.js";
 import { CharacterGroupsService } from "./application/character-groups.service.js";
+import { CharacterLifecycleService } from "./application/character-lifecycle.service.js";
 import { CharacterMergeService } from "./application/character-merge.service.js";
 import { CharacterPortabilityService } from "./application/character-portability.service.js";
 import { CharacterPurgeProcessor } from "./application/character-purge.processor.js";
@@ -34,7 +38,11 @@ import { CharacterPurgeReconciler } from "./application/character-purge.reconcil
 import { CharacterRelationshipPathService } from "./application/character-relationship-path.service.js";
 import { CharacterRelationshipsService } from "./application/character-relationships.service.js";
 import { CharacterTheoriesService } from "./application/character-theories.service.js";
+import { CharacterViewMapper } from "./application/character-view.mapper.js";
 import { CharactersService } from "./application/characters.service.js";
+import { RelationshipBookStateService } from "./application/relationship-book-state.service.js";
+import { RelationshipContextService } from "./application/relationship-context.service.js";
+import { SeriesCharactersService } from "./application/series-characters.service.js";
 import { CHARACTER_PURGE_QUEUE_NAME } from "./domain/character-purge.js";
 import { CharacterFormsRepository } from "./infrastructure/character-forms.repository.js";
 import { CharacterGraphLayoutsRepository } from "./infrastructure/character-graph-layouts.repository.js";
@@ -75,6 +83,12 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
   ],
   providers: [
     CharactersService,
+    BookCharactersService,
+    SeriesCharactersService,
+    CharacterLifecycleService,
+    CharacterViewMapper,
+    CharacterDetailsAssembler,
+    CharacterAccessAsserter,
     CharactersRepository,
     CharacterGraphService,
     CharacterGraphLayoutsService,
@@ -86,6 +100,8 @@ import { CharactersRepository } from "./infrastructure/characters.repository.js"
     CharacterPortabilityService,
     CharacterPortabilityRepository,
     CharacterRelationshipsService,
+    RelationshipContextService,
+    RelationshipBookStateService,
     CharacterRelationshipsRepository,
     CharacterRelationshipPathService,
     CharacterTheoriesService,

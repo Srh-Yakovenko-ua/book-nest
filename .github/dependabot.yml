@@ -8,6 +8,16 @@ updates:
     open-pull-requests-limit: 10
     cooldown:
       default-days: 5
+    ignore:
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "react-day-picker"
+        update-types:
+          - "version-update:semver-major"
     groups:
       minor-and-patch:
         update-types:
@@ -24,6 +34,11 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 5
+    ignore:
+      - dependency-name: "github/codeql-action"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
     groups:
       actions:
         patterns:
@@ -40,6 +55,10 @@ updates:
       day: "monday"
     cooldown:
       default-days: 5
+    ignore:
+      - dependency-name: "node"
+        update-types:
+          - "version-update:semver-major"
     groups:
       docker:
         patterns:

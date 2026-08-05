@@ -17,7 +17,7 @@ import type {
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
-import { assertBookOwned, BooksRepository } from "../../books/index.js";
+import { BookAccessService } from "../../books/index.js";
 import { toCharacterTheoryView } from "../domain/character-theory.mapper.js";
 import { resolveContextAllowedBookIds } from "../domain/context-books.js";
 import { CharacterTheoriesRepository } from "../infrastructure/character-theories.repository.js";
@@ -28,7 +28,7 @@ export class CharacterTheoriesService {
   constructor(
     private readonly characterTheoriesRepository: CharacterTheoriesRepository,
     private readonly charactersRepository: CharactersRepository,
-    private readonly booksRepository: BooksRepository,
+    private readonly bookAccess: BookAccessService,
   ) {}
 
   async create({
@@ -117,21 +117,6 @@ export class CharacterTheoriesService {
     return toCharacterTheoryView(updated);
   }
 
-  private async assertBookOwned({
-    bookId,
-    userId,
-  }: {
-    bookId: string;
-    userId: string;
-  }): Promise<void> {
-    await assertBookOwned({
-      bookId,
-      booksRepository: this.booksRepository,
-      notFoundCode: CHARACTER_THEORY_ERROR_CODES.bookNotFound,
-      userId,
-    });
-  }
-
   private async assertCharacterOwned({
     characterId,
     userId,
@@ -173,7 +158,11 @@ export class CharacterTheoriesService {
       await this.assertCharacterOwned({ characterId: input.characterId, userId });
     }
     if (input.bookId !== null && input.bookId !== undefined) {
-      await this.assertBookOwned({ bookId: input.bookId, userId });
+      await this.bookAccess.assertOwned({
+        bookId: input.bookId,
+        notFoundCode: CHARACTER_THEORY_ERROR_CODES.bookNotFound,
+        userId,
+      });
     }
     if (input.seriesId !== null && input.seriesId !== undefined) {
       await this.assertSeriesOwned({ seriesId: input.seriesId, userId });

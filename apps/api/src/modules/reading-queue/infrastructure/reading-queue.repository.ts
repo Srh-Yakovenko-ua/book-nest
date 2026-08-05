@@ -7,13 +7,21 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { type BookWithRelations, withRelations } from "../../books/index.js";
 
 const summaryRowSelect = {
   id: true,
   ownershipStatus: true,
   partNumber: true,
-  series: { select: { books: { select: { partNumber: true, readingStatus: true } } } },
+  series: {
+    select: {
+      books: {
+        select: { partNumber: true, readingStatus: true },
+        where: SOFT_DELETE_SCOPE.active,
+      },
+    },
+  },
   seriesId: true,
 } satisfies Prisma.BookSelect;
 
@@ -63,12 +71,14 @@ export class ReadingQueueRepository {
         queuePriorityReasonCustomText: null,
         queuePriorityTargetDate: null,
       },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
   }
 
   count(userId: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {
-    return client.book.count({ where: { queuePosition: { not: null }, userId } });
+    return client.book.count({
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId },
+    });
   }
 
   async findQueuedBookIds(
@@ -77,7 +87,7 @@ export class ReadingQueueRepository {
   ): Promise<string[]> {
     const rows = await client.book.findMany({
       select: { id: true },
-      where: { queuePosition: { not: null }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId },
     });
     return rows.map((row) => row.id);
   }
@@ -89,7 +99,7 @@ export class ReadingQueueRepository {
   ): Promise<Nullable<number>> {
     const book = await client.book.findFirst({
       select: { queuePosition: true },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
     return book?.queuePosition ?? null;
   }
@@ -97,8 +107,8 @@ export class ReadingQueueRepository {
   listQueue(userId: string): Promise<BookWithRelations[]> {
     return this.prisma.book.findMany({
       include: withRelations,
-      orderBy: { queuePosition: "asc" },
-      where: { queuePosition: { not: null }, userId },
+      orderBy: [{ queuePosition: "asc" }, { id: "asc" }],
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId },
     });
   }
 
@@ -116,6 +126,7 @@ export class ReadingQueueRepository {
       FROM book_reading_progress_events e
       JOIN books b ON b.id = e.book_id
       WHERE b.user_id = ${userId}::uuid
+        AND b.deleted_at IS NULL
     `;
     const [row] = z.array(PaceAggregateRowSchema).parse(rows);
     return (
@@ -134,7 +145,7 @@ export class ReadingQueueRepository {
   ): Promise<ReadingQueueSummaryRow[]> {
     return client.book.findMany({
       select: summaryRowSelect,
-      where: { queuePosition: { not: null }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId },
     });
   }
 
@@ -144,7 +155,7 @@ export class ReadingQueueRepository {
   ): Promise<ReadingQueueVolumeRow[]> {
     return client.book.findMany({
       select: volumeRowSelect,
-      where: { queuePosition: { not: null }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { not: null }, userId },
     });
   }
 
@@ -156,7 +167,7 @@ export class ReadingQueueRepository {
   ): Promise<void> {
     await client.book.updateMany({
       data: { queuePosition: position },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
   }
 
@@ -167,7 +178,7 @@ export class ReadingQueueRepository {
   ): Promise<void> {
     await client.book.updateMany({
       data: { queuePosition: { increment: 1 } },
-      where: { queuePosition: { gte: fromPosition }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { gte: fromPosition }, userId },
     });
   }
 
@@ -178,7 +189,7 @@ export class ReadingQueueRepository {
   ): Promise<void> {
     await client.book.updateMany({
       data: { queuePosition: { decrement: 1 } },
-      where: { queuePosition: { gt: position }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, queuePosition: { gt: position }, userId },
     });
   }
 }

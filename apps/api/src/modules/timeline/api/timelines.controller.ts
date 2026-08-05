@@ -1,10 +1,17 @@
-import type { TimelineListView, TimelineSummaryView, TimelineView } from "@app/shared";
+import type {
+  PaginatedTrashedTimelines,
+  TimelineDeletionResult,
+  TimelineListView,
+  TimelineSummaryView,
+  TimelineView,
+} from "@app/shared";
 
 import {
   CreateTimelineInputSchema,
   DeleteTimelineQuerySchema,
   ReorderTimelinesInputSchema,
   SetDefaultTimelineInputSchema,
+  TrashedTimelinesQuerySchema,
   UpdateTimelineInputSchema,
 } from "@app/shared";
 import {
@@ -42,12 +49,16 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { TimelineLifecycleService } from "../application/timeline-lifecycle.service.js";
 import { TimelineService } from "../application/timeline.service.js";
 import { CreateTimelineInputDto } from "./input-dto/create-timeline.input-dto.js";
 import { DeleteTimelineQueryDto } from "./input-dto/delete-timeline-query.input-dto.js";
 import { ReorderTimelinesInputDto } from "./input-dto/reorder-timelines.input-dto.js";
 import { SetDefaultTimelineInputDto } from "./input-dto/set-default-timeline.input-dto.js";
+import { TrashedTimelinesQueryDto } from "./input-dto/trashed-timelines-query.input-dto.js";
 import { UpdateTimelineInputDto } from "./input-dto/update-timeline.input-dto.js";
+import { PaginatedTrashedTimelinesDto } from "./view-dto/paginated-trashed-timelines.view-dto.js";
+import { TimelineDeletionResultDto } from "./view-dto/timeline-deletion-result.view-dto.js";
 import { TimelineListViewDto } from "./view-dto/timeline-list.view-dto.js";
 import { TimelineSummaryViewDto } from "./view-dto/timeline-summary.view-dto.js";
 import { TimelineViewDto } from "./view-dto/timeline.view-dto.js";
@@ -56,7 +67,10 @@ import { TimelineViewDto } from "./view-dto/timeline.view-dto.js";
 @Controller()
 @JwtProtected()
 export class TimelinesController {
-  constructor(private readonly timelineService: TimelineService) {}
+  constructor(
+    private readonly timelineService: TimelineService,
+    private readonly lifecycleService: TimelineLifecycleService,
+  ) {}
 
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({
@@ -161,10 +175,13 @@ export class TimelinesController {
   }
 
   @ApiConflictResponse({ description: "The default timeline cannot be deleted" })
-  @ApiNoContentResponse({ description: "The timeline was deleted" })
   @ApiNotFoundResponse({ description: "Timeline not found" })
+  @ApiOkResponse({
+    description: "The timeline was moved to the trash and scheduled for purge",
+    type: TimelineDeletionResultDto,
+  })
   @ApiOperation({
-    summary: "Delete a timeline, optionally moving or deleting its events",
+    summary: "Move a timeline to the trash, optionally moving its events elsewhere first",
   })
   @ApiParam({ description: "Timeline id", name: "timelineId" })
   @ApiQuery({ name: "strategy", required: false })
@@ -173,13 +190,39 @@ export class TimelinesController {
     description: "A delete strategy or target timeline is required",
   })
   @Delete("api/timelines/:timelineId")
-  @HttpCode(HTTP_STATUS.NO_CONTENT)
   @Throttle(MUTATION_THROTTLE)
   deleteTimeline(
     @CurrentUser() user: AuthenticatedUser,
     @Param("timelineId", ParseUUIDPipe) timelineId: string,
     @Query(new ZodQueryPipe(DeleteTimelineQuerySchema)) query: DeleteTimelineQueryDto,
-  ): Promise<void> {
+  ): Promise<TimelineDeletionResult> {
     return this.timelineService.deleteTimeline(user.id, timelineId, query);
+  }
+
+  @ApiOkResponse({
+    description: "A page of the current user trashed timelines",
+    type: PaginatedTrashedTimelinesDto,
+  })
+  @ApiOperation({ summary: "List timelines waiting in the trash before their scheduled purge" })
+  @Get("api/timelines/trash")
+  listTrash(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(TrashedTimelinesQuerySchema)) query: TrashedTimelinesQueryDto,
+  ): Promise<PaginatedTrashedTimelines> {
+    return this.lifecycleService.listTrash({ query, userId: user.id });
+  }
+
+  @ApiNoContentResponse({ description: "The timeline was restored" })
+  @ApiNotFoundResponse({ description: "Timeline not found in the trash" })
+  @ApiOperation({ summary: "Restore a timeline from the trash" })
+  @ApiParam({ description: "Timeline id", name: "timelineId" })
+  @HttpCode(HTTP_STATUS.NO_CONTENT)
+  @Post("api/timelines/:timelineId/restore")
+  @Throttle(MUTATION_THROTTLE)
+  restoreTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("timelineId", ParseUUIDPipe) timelineId: string,
+  ): Promise<void> {
+    return this.lifecycleService.restore({ timelineId, userId: user.id });
   }
 }

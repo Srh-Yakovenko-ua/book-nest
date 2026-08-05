@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CharactersRepository } from "../infrastructure/characters.repository.js";
-import type { CharactersService } from "./characters.service.js";
+import type { CharacterLifecycleService } from "./character-lifecycle.service.js";
 
-import { CHARACTER_PURGE_RECONCILE_BATCH } from "../domain/character-purge.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { CharacterPurgeReconciler } from "./character-purge.reconciler.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -19,7 +19,7 @@ function buildReconciler(candidates: { id: string; userId: string }[]): {
   const purge = vi.fn().mockResolvedValue(undefined);
   const reconciler = new CharacterPurgeReconciler(
     { findPurgeCandidates } as unknown as CharactersRepository,
-    { purge } as unknown as CharactersService,
+    { purge } as unknown as CharacterLifecycleService,
   );
   return { findPurgeCandidates, purge, reconciler };
 }
@@ -33,9 +33,10 @@ describe("CharacterPurgeReconciler.sweep", () => {
 
     await reconciler.sweep();
 
-    expect(findPurgeCandidates).toHaveBeenCalledWith(
-      expect.objectContaining({ limit: CHARACTER_PURGE_RECONCILE_BATCH }),
-    );
+    expect(findPurgeCandidates).toHaveBeenCalledWith({
+      limit: TRASH_RETENTION.reconcileBatchSize,
+      now: expect.any(Date),
+    });
     expect(purge).toHaveBeenCalledTimes(2);
     expect(purge).toHaveBeenCalledWith({ characterId: CHARACTER_ID_A, userId: USER_ID });
     expect(purge).toHaveBeenCalledWith({ characterId: CHARACTER_ID_B, userId: USER_ID });
@@ -66,7 +67,7 @@ describe("CharacterPurgeReconciler.sweep", () => {
     const purge = vi.fn();
     const reconciler = new CharacterPurgeReconciler(
       { findPurgeCandidates } as unknown as CharactersRepository,
-      { purge } as unknown as CharactersService,
+      { purge } as unknown as CharacterLifecycleService,
     );
 
     await expect(reconciler.sweep()).resolves.toBeUndefined();
@@ -85,7 +86,7 @@ describe("CharacterPurgeReconciler.sweep", () => {
     const purge = vi.fn().mockResolvedValue(undefined);
     const reconciler = new CharacterPurgeReconciler(
       { findPurgeCandidates } as unknown as CharactersRepository,
-      { purge } as unknown as CharactersService,
+      { purge } as unknown as CharacterLifecycleService,
     );
 
     const firstSweep = reconciler.sweep();

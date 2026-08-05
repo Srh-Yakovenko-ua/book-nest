@@ -145,6 +145,15 @@ export const BookTypeSchema = z.enum(["solo", "series_part"]);
 
 export type BookType = z.infer<typeof BookTypeSchema>;
 
+export const BOOK_PART_NUMBER_MIN = 1;
+const BOOK_PART_NUMBER_MAX = 999;
+
+export const BookPartNumberSchema = z
+  .number()
+  .int()
+  .min(BOOK_PART_NUMBER_MIN, "Part number must be from 1 to 999")
+  .max(BOOK_PART_NUMBER_MAX, "Part number must be from 1 to 999");
+
 const OWNERSHIP_STATUSES_WITH_LOAN: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
   "borrowed_from_someone",
   "lent_to_someone",
@@ -161,4 +170,13 @@ const OWNERSHIP_STATUSES_WITH_PURCHASE: ReadonlySet<OwnershipStatus> = new Set<O
 
 export function ownershipStatusKeepsPurchase(ownershipStatus: OwnershipStatus): boolean {
   return OWNERSHIP_STATUSES_WITH_PURCHASE.has(ownershipStatus);
+}
+
+const OWNERSHIP_STATUSES_WITH_OWNED_COPY: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
+  "lent_to_someone",
+  "owned",
+]);
+
+export function ownershipStatusHoldsCopy(ownershipStatus: OwnershipStatus): boolean {
+  return OWNERSHIP_STATUSES_WITH_OWNED_COPY.has(ownershipStatus);
 }

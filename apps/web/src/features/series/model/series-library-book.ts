@@ -12,7 +12,7 @@ import type { LibraryBook } from "@/features/books/model/library-book";
 import { FALLBACK_READING_STATUS } from "@/features/books/model/library-book";
 import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-status";
 
-import { authorsDifferFromSeries } from "./series-details-derive";
+import { authorsDifferFromSeries, publisherDiffersFromSeries } from "./series-details-derive";
 
 const PERCENT_MAX = 100;
 
@@ -42,6 +42,12 @@ export type SeriesBookPrimaryAction = "history" | "start" | "updateProgress";
 
 export type SeriesBookRouteState = "next" | "read" | "unread";
 
+export type SeriesDeliveryContext = {
+  expectedDeliveryDate: null | string;
+  service: null | string;
+  trackingUrl: null | string;
+};
+
 export type SeriesEditionLine = {
   icon: UiIconName;
   label: string;
@@ -57,10 +63,21 @@ export type SeriesLibraryBookLabels = {
   statusLabel: (value: ReadingStatus) => string;
 };
 
+export type SeriesLoanContext =
+  | { expectedReturn: null | string; kind: "lent"; personName: string }
+  | { kind: "borrowed"; personName: string };
+
 export type SeriesPersonalState =
+  | { finishedAt: string; kind: "finished" }
   | { kind: "dnf" }
   | { kind: "paused"; pages: null | SeriesProgressPages }
-  | { kind: "progress"; pages: SeriesProgressPages; percent: number };
+  | {
+      kind: "progress";
+      pages: SeriesProgressPages;
+      percent: number;
+      rereading: boolean;
+      startedAt: null | string;
+    };
 
 export type SeriesStartTarget = {
   id: string;
@@ -76,12 +93,23 @@ export function isReadingNow(status: ReadingStatus): boolean {
   return READING_NOW_STATUSES.has(status);
 }
 
+export function seriesBookDeliveryContext(book: SeriesBookView): SeriesDeliveryContext | undefined {
+  if (book.ownershipStatus !== "in_transit" || book.activeDelivery === null) return undefined;
+  return {
+    expectedDeliveryDate: book.activeDelivery.expectedDeliveryDate,
+    service: book.activeDelivery.deliveryService,
+    trackingUrl: book.activeDelivery.trackingUrl,
+  };
+}
+
 export function seriesBookEdition({
   book,
   labels,
+  seriesPublishers,
 }: {
   book: SeriesBookView;
   labels: SeriesLibraryBookLabels;
+  seriesPublishers: SeriesDetailsView["publishers"];
 }): SeriesEditionLine[] {
   const formatLines = book.formats.flatMap((value) => {
     const base = bookFormats.find((entry) => entry.value === value);
@@ -99,7 +127,28 @@ export function seriesBookEdition({
       ? []
       : [{ icon: "calendar" as const, label: String(book.publicationYear) }];
 
-  return [...formatLines, ...pagesLines, ...yearLines];
+  const publisherLines =
+    book.publisher !== null &&
+    publisherDiffersFromSeries({ bookPublisher: book.publisher, seriesPublishers })
+      ? [{ icon: "building" as const, label: book.publisher.name }]
+      : [];
+
+  return [...formatLines, ...pagesLines, ...yearLines, ...publisherLines];
+}
+
+export function seriesBookLoanContext(book: SeriesBookView): SeriesLoanContext | undefined {
+  if (book.loanInfo === null) return undefined;
+  if (book.ownershipStatus === "lent_to_someone") {
+    return {
+      expectedReturn: book.loanInfo.expectedReturnDate,
+      kind: "lent",
+      personName: book.loanInfo.personName,
+    };
+  }
+  if (book.ownershipStatus === "borrowed_from_someone") {
+    return { kind: "borrowed", personName: book.loanInfo.personName };
+  }
+  return undefined;
 }
 
 export function seriesBookPersonalState(book: SeriesBookView): SeriesPersonalState | undefined {
@@ -111,11 +160,16 @@ export function seriesBookPersonalState(book: SeriesBookView): SeriesPersonalSta
       kind: "progress",
       pages,
       percent: Math.round((pages.current / pages.total) * PERCENT_MAX),
+      rereading: book.readingStatus === "rereading",
+      startedAt: book.startedAt,
     };
   }
 
   if (book.readingStatus === "paused") return { kind: "paused", pages };
   if (book.readingStatus === "dnf") return { kind: "dnf" };
+  if (book.readingStatus === "finished" && book.finishedAt !== null) {
+    return { finishedAt: book.finishedAt, kind: "finished" };
+  }
   return undefined;
 }
 

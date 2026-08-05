@@ -18,6 +18,7 @@ import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 
+import { UNIQUE_CONSTRAINT } from "../../../core/database/unique-constraints.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { parseIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { isUniqueConstraintErrorOn } from "../../../core/prisma-errors.js";
@@ -38,7 +39,6 @@ import { BooksRepository, type BookWithRelations } from "../infrastructure/books
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
 const DUPLICATE_PART_NUMBER_MESSAGE = "A book with this part number already exists in this series";
-const BOOK_SERIES_PART_NUMBER_UNIQUE_CONSTRAINT = "books_series_id_part_number_key";
 
 export type QueueRemoval = {
   fromPosition: number;
@@ -141,7 +141,7 @@ export class BookRelationsResolver {
     if (
       placement.seriesId === null ||
       placement.partNumber === null ||
-      !isUniqueConstraintErrorOn(error, BOOK_SERIES_PART_NUMBER_UNIQUE_CONSTRAINT)
+      !isUniqueConstraintErrorOn(error, UNIQUE_CONSTRAINT.bookSeriesPartNumber)
     ) {
       return error;
     }
@@ -178,7 +178,7 @@ export class BookRelationsResolver {
       resolvedAuthors: ResolvedAuthors;
       userId: string;
     },
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<ResolvedBookCreate> {
     const publisherId = await this.publishersService.resolveOrCreate(
       userId,
@@ -258,7 +258,7 @@ export class BookRelationsResolver {
       resolvedAuthors: ResolvedAuthors | undefined;
       userId: string;
     },
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<ResolvedBookUpdate> {
     const fields: Prisma.BookUncheckedUpdateManyInput = {};
 
@@ -334,7 +334,7 @@ export class BookRelationsResolver {
       input: UpdateBookInput;
       userId: string;
     },
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<Nullable<QueueRemoval>> {
     const isQueued = current.queuePosition !== null;
     const detailsInput: QueuePriorityDetailsInput = {
@@ -413,7 +413,7 @@ export class BookRelationsResolver {
       input: UpdateBookInput;
       userId: string;
     },
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<SeriesPlacement> {
     if (input.bookType === undefined) {
       if (current.seriesId !== null && input.partNumber !== undefined) {
@@ -476,7 +476,7 @@ export class BookRelationsResolver {
       placement: SeriesPlacement;
       userId: string;
     },
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<void> {
     if (placement.seriesId === null || placement.partNumber === null) {
       return;
@@ -520,7 +520,7 @@ export class BookRelationsResolver {
 
   private async resolveQueuePlacement(
     { input, userId }: { input: CreateBookInput; userId: string },
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<QueuePlacement> {
     const detailsInput: QueuePriorityDetailsInput = {
       customText: input.queuePriorityReasonCustomText,

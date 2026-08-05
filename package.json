@@ -101,8 +101,11 @@
     "overrides": {
       "@babel/core": ">=7.29.6 <8",
       "@grpc/grpc-js": ">=1.14.4 <2",
+      "@hono/node-server": ">=1.19.13 <2",
       "@opentelemetry/core": ">=2.8.0 <3",
       "body-parser": ">=2.3.0 <3",
+      "brace-expansion@1": ">=1.1.16 <2",
+      "brace-expansion@5": ">=5.0.8 <6",
       "esbuild": ">=0.28.1 <1",
       "fast-uri": ">=3.1.4 <4",
       "form-data": ">=4.0.6 <5",
@@ -115,7 +118,9 @@
       "protobufjs": ">=7.6.5 <8",
       "qs": ">=6.15.2 <7",
       "react-router": ">=7.15.1 <8",
-      "uuid": ">=11.1.1 <12"
+      "sharp": ">=0.35.3 <0.36",
+      "uuid": ">=11.1.1 <12",
+      "valibot": ">=1.4.2 <2"
     }
   }
 }

@@ -1,6 +1,5 @@
 import type { Nullable } from "@app/shared";
 
-import { PrismaPg } from "@prisma/adapter-pg";
 import { z } from "zod";
 
 import { env } from "../config/env.js";
@@ -8,6 +7,7 @@ import { createLogger } from "../core/logger.js";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { fetchCommonsImageLicenses } from "./fetch-commons-image-license.js";
 import { mapWikidataPublisherRow, type PublisherSeedInput } from "./map-wikidata-publisher-row.js";
+import { createSeedClient } from "./seed-client.js";
 
 const logger = createLogger("seed.publishers");
 
@@ -315,9 +315,7 @@ async function runSparql<Output>(query: string, schema: z.ZodType<Output>): Prom
 }
 
 async function seedPublishers(): Promise<void> {
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: env.databaseUrl }),
-  });
+  const prisma = createSeedClient();
 
   try {
     const candidates = await fetchCoreCandidates();

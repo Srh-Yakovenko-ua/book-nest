@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createPaginatedSchema, paginationQueryFields } from "./common.js";
+import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const TIMELINE_NAME_MIN = 1;
 const TIMELINE_NAME_MAX = 100;
@@ -406,3 +407,30 @@ export const TimelineOverviewViewSchema = z.object({
 });
 
 export type TimelineOverviewView = z.infer<typeof TimelineOverviewViewSchema>;
+
+export const TimelineDeletionResultSchema = TrashDeletionResultSchema.extend({
+  timelineId: z.string(),
+});
+
+export type TimelineDeletionResult = z.infer<typeof TimelineDeletionResultSchema>;
+
+export const TrashedTimelineViewSchema = z.object({
+  bookTitle: z.string(),
+  deletedAt: z.iso.datetime(),
+  eventCount: z.number().int(),
+  id: z.string(),
+  name: z.string(),
+  purgeAt: z.iso.datetime(),
+});
+
+export type TrashedTimelineView = z.infer<typeof TrashedTimelineViewSchema>;
+
+export const TrashedTimelinesQuerySchema = z.object({
+  ...paginationQueryFields({ pageSizeDefault: TRASH_PAGE_SIZE_DEFAULT }),
+});
+
+export type TrashedTimelinesQuery = z.infer<typeof TrashedTimelinesQuerySchema>;
+
+export const PaginatedTrashedTimelinesSchema = createPaginatedSchema(TrashedTimelineViewSchema);
+
+export type PaginatedTrashedTimelines = z.infer<typeof PaginatedTrashedTimelinesSchema>;

@@ -1,15 +1,11 @@
+import type { RenderedEmail } from "./rendered-email.js";
+
 import { escapeHtml } from "./escape-html.js";
 
 export type PasswordChangedVariables = {
   loginUrl: string;
   resetPasswordUrl: string;
   userName: string;
-};
-
-type RenderedEmail = {
-  html: string;
-  subject: string;
-  text: string;
 };
 
 export function renderPasswordChanged(vars: PasswordChangedVariables): RenderedEmail {

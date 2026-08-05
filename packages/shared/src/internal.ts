@@ -1,16 +1,20 @@
+import { addDays, isAfter } from "date-fns";
 import { z } from "zod";
 
 import { LIST_PAGE_SIZE_MAX, noHtmlTags } from "./common.js";
 
 export const NoHtmlString = z.string().refine(noHtmlTags, "HTML tags are not allowed");
 
-const TIMEZONE_SKEW_TOLERANCE_MS = 24 * 60 * 60 * 1000;
+const UTC_DAY = {
+  isoDateLength: 10,
+  skewToleranceDays: 1,
+  startOf: (date: Date): Date =>
+    new Date(`${date.toISOString().slice(0, UTC_DAY.isoDateLength)}T00:00:00.000Z`),
+} as const;
 
 const isNotInFuture = (value: string): boolean => {
-  const todayUtc = new Date();
-  todayUtc.setUTCHours(0, 0, 0, 0);
-  const latestAcceptable = todayUtc.getTime() + TIMEZONE_SKEW_TOLERANCE_MS;
-  return new Date(`${value}T00:00:00.000Z`).getTime() <= latestAcceptable;
+  const latestAcceptable = addDays(UTC_DAY.startOf(new Date()), UTC_DAY.skewToleranceDays);
+  return !isAfter(new Date(`${value}T00:00:00.000Z`), latestAcceptable);
 };
 
 export const notInFutureDate = (message: string) => z.iso.date().refine(isNotInFuture, message);

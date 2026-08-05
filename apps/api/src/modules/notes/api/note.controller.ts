@@ -1,4 +1,4 @@
-import type { EntityNotesView, NoteView } from "@app/shared";
+import type { EntityNotesView, NoteDeletionResult, NoteView } from "@app/shared";
 
 import { CreateNoteInputSchema, UpdateNoteInputSchema } from "@app/shared";
 import {
@@ -31,17 +31,22 @@ import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { NoteLifecycleService } from "../application/note-lifecycle.service.js";
 import { NotesService } from "../application/notes.service.js";
 import { CreateNoteInputDto } from "./input-dto/create-note.input-dto.js";
 import { UpdateNoteInputDto } from "./input-dto/update-note.input-dto.js";
 import { EntityNotesViewDto } from "./view-dto/entity-notes.view-dto.js";
+import { NoteDeletionResultDto } from "./view-dto/note-deletion-result.view-dto.js";
 import { NoteViewDto } from "./view-dto/note.view-dto.js";
 
 @ApiTags("notes")
 @Controller()
 @JwtProtected()
 export class NoteController {
-  constructor(private readonly notesService: NotesService) {}
+  constructor(
+    private readonly notesService: NotesService,
+    private readonly lifecycleService: NoteLifecycleService,
+  ) {}
 
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({
@@ -123,17 +128,33 @@ export class NoteController {
     return this.notesService.editNote(user.id, noteId, body);
   }
 
-  @ApiNoContentResponse({ description: "The note was deleted" })
   @ApiNotFoundResponse({ description: "Note not found" })
-  @ApiOperation({ summary: "Delete a note" })
+  @ApiOkResponse({
+    description: "The note was moved to the trash and scheduled for purge",
+    type: NoteDeletionResultDto,
+  })
+  @ApiOperation({ summary: "Move a note to the trash" })
   @ApiParam({ description: "Note id", name: "noteId" })
   @Delete("api/notes/:noteId")
-  @HttpCode(HTTP_STATUS.NO_CONTENT)
   @Throttle(MUTATION_THROTTLE)
   deleteNote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("noteId", ParseUUIDPipe) noteId: string,
+  ): Promise<NoteDeletionResult> {
+    return this.lifecycleService.softDelete({ noteId, userId: user.id });
+  }
+
+  @ApiNoContentResponse({ description: "The note was restored" })
+  @ApiNotFoundResponse({ description: "Note not found in the trash" })
+  @ApiOperation({ summary: "Restore a note from the trash" })
+  @ApiParam({ description: "Note id", name: "noteId" })
+  @HttpCode(HTTP_STATUS.NO_CONTENT)
+  @Post("api/notes/:noteId/restore")
+  @Throttle(MUTATION_THROTTLE)
+  restoreNote(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("noteId", ParseUUIDPipe) noteId: string,
   ): Promise<void> {
-    return this.notesService.delete(user.id, noteId);
+    return this.lifecycleService.restore({ noteId, userId: user.id });
   }
 }

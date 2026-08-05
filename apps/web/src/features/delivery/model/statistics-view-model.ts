@@ -1,6 +1,7 @@
 import type { Currency, DeliveryStatisticsView, DeliveryTopOrder, Nullable } from "@app/shared";
 
 import { CurrencySchema } from "@app/shared";
+import { parse, startOfMonth } from "date-fns";
 
 import type { BarChartDatum } from "@/components/ui/charts/bar-chart";
 import type { StatusEntry } from "@/lib/book-status";
@@ -8,7 +9,7 @@ import type { StatusEntry } from "@/lib/book-status";
 import { deliveryStatuses } from "@/lib/book-status";
 
 const CURRENCY_ORDER: readonly Currency[] = CurrencySchema.options;
-const MONTH_KEY_LENGTH = 7;
+const MONTH_KEY_FORMAT = "yyyy-MM";
 
 export type MonthlyCurrencySeries = {
   currency: Currency;
@@ -155,7 +156,5 @@ function formatMonthShort(monthKey: string, locale: string): string {
 }
 
 function monthDate(monthKey: string): Date {
-  const year = Number(monthKey.slice(0, 4));
-  const month = Number(monthKey.slice(5, MONTH_KEY_LENGTH));
-  return new Date(year, month - 1, 1);
+  return startOfMonth(parse(monthKey, MONTH_KEY_FORMAT, new Date()));
 }

@@ -33,32 +33,7 @@ export class SettingsService {
 function buildUpsertData(
   input: UpdateSettingsInput,
 ): Omit<Prisma.UserProfileSettingsUncheckedCreateInput, "userId"> {
-  const data: Omit<Prisma.UserProfileSettingsUncheckedCreateInput, "userId"> = {};
+  const { emailNotifications, ...columns } = input;
 
-  if (input.themeMode !== undefined) data.themeMode = input.themeMode;
-  if (input.accentColor !== undefined) data.accentColor = input.accentColor;
-  if (input.language !== undefined) data.language = input.language;
-  if (input.dateFormat !== undefined) data.dateFormat = input.dateFormat;
-  if (input.weekStartDay !== undefined) data.weekStartDay = input.weekStartDay;
-  if (input.timezone !== undefined) data.timezone = input.timezone;
-  if (input.libraryViewMode !== undefined) data.libraryViewMode = input.libraryViewMode;
-  if (input.confirmBeforeDelete !== undefined) data.confirmBeforeDelete = input.confirmBeforeDelete;
-
-  const notifications = input.emailNotifications;
-  if (notifications !== undefined) {
-    if (notifications.readingReminders !== undefined)
-      data.readingReminders = notifications.readingReminders;
-    if (notifications.readingGoalReminders !== undefined)
-      data.readingGoalReminders = notifications.readingGoalReminders;
-    if (notifications.borrowedBookReminders !== undefined)
-      data.borrowedBookReminders = notifications.borrowedBookReminders;
-    if (notifications.deliveryReminders !== undefined)
-      data.deliveryReminders = notifications.deliveryReminders;
-    if (notifications.weeklyReadingSummary !== undefined)
-      data.weeklyReadingSummary = notifications.weeklyReadingSummary;
-    if (notifications.monthlyReadingReport !== undefined)
-      data.monthlyReadingReport = notifications.monthlyReadingReport;
-  }
-
-  return data;
+  return { ...columns, ...emailNotifications };
 }

@@ -28,7 +28,7 @@ export function DedicationCard({ book, onOpen }: DedicationCardProps) {
   const favoriteLabel = book.isFavoriteDedication ? t("removeFavorite") : t("addFavorite");
 
   return (
-    <article className="group relative flex h-full flex-col gap-3 rounded-[18px] border border-border bg-card p-4 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
+    <article className="group relative flex h-full w-full flex-col gap-3 rounded-[18px] border border-border bg-card p-4 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
       <div className="relative z-10 flex items-start gap-3">
         <Link
           className="shrink-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -60,28 +60,17 @@ export function DedicationCard({ book, onOpen }: DedicationCardProps) {
 
       <button
         aria-label={t("read", { title: book.title })}
-        className="flex-1 cursor-pointer rounded-md text-left outline-none after:absolute after:inset-0 after:rounded-[18px] after:content-[''] focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="h-24 cursor-pointer rounded-md text-left outline-none after:absolute after:inset-0 after:rounded-[18px] after:content-[''] focus-visible:ring-3 focus-visible:ring-ring/50"
         data-dedication-trigger={book.id}
         onClick={onOpen}
         type="button"
       >
-        <blockquote className="line-clamp-3 border-l-2 border-l-primary/60 pl-3 text-sm leading-relaxed whitespace-pre-line text-foreground/85 italic md:line-clamp-4">
+        <blockquote className="line-clamp-4 border-l-2 border-l-primary/60 pl-3 text-sm leading-relaxed whitespace-pre-line text-foreground/85 italic">
           {dedication}
         </blockquote>
       </button>
 
       <div className="relative z-10 flex items-center gap-1 border-t border-border/60 pt-2.5">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button aria-label={t("openBook")} asChild size="icon-sm" variant="ghost">
-              <Link href={bookHref}>
-                <UiIcon name="book" size={16} />
-              </Link>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t("openBook")}</TooltipContent>
-        </Tooltip>
-
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

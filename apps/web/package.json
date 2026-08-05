@@ -52,6 +52,7 @@
     "react-virtuoso": "catalog:",
     "recharts": "catalog:",
     "shadcn": "catalog:",
+    "socket.io-client": "catalog:",
     "sonner": "catalog:",
     "superjson": "catalog:",
     "tailwind-merge": "catalog:",

@@ -3,12 +3,29 @@ import type { Nullable, ReadingStatus } from "@app/shared";
 import { ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { TIMELINE_POSITION_STEP } from "../domain/sparse-position.js";
 import { DEFAULT_TIMELINE_NAME } from "../domain/timeline-fields.js";
+
+const trashedTimelineSelect = {
+  _count: { select: { events: true } },
+  book: { select: { title: true } },
+  deletedAt: true,
+  id: true,
+  name: true,
+  purgeAt: true,
+} satisfies Prisma.BookTimelineSelect;
+
+export type TrashedTimelineRow = Trashed<TrashedTimelineSelection>;
+
+type TrashedTimelineSelection = Prisma.BookTimelineGetPayload<{
+  select: typeof trashedTimelineSelect;
+}>;
 
 const timelineWithCountArgs = {
   include: { _count: { select: { events: true } } },
@@ -51,7 +68,13 @@ export class TimelineRepository {
   }
 
   countTimelines(bookId: string, client: Prisma.TransactionClient = this.prisma): Promise<number> {
-    return client.bookTimeline.count({ where: { bookId } });
+    return client.bookTimeline.count({ where: { ...SOFT_DELETE_SCOPE.active, bookId } });
+  }
+
+  countTrashed({ userId }: { userId: string }): Promise<number> {
+    return this.prisma.bookTimeline.count({
+      where: { ...SOFT_DELETE_SCOPE.trashed, book: { ...SOFT_DELETE_SCOPE.active, userId } },
+    });
   }
 
   create(
@@ -61,18 +84,13 @@ export class TimelineRepository {
     return client.bookTimeline.create({ data });
   }
 
-  async deleteTimeline(
-    timelineId: string,
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<void> {
-    await client.bookTimeline.delete({ where: { id: timelineId } });
-  }
-
   async ensureDefault(
     bookId: string,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
-    const count = await client.bookTimeline.count({ where: { bookId } });
+    const count = await client.bookTimeline.count({
+      where: { ...SOFT_DELETE_SCOPE.active, bookId },
+    });
     if (count > 0) {
       return;
     }
@@ -98,7 +116,7 @@ export class TimelineRepository {
         readingProgress: { select: { currentPage: true } },
         readingStatus: true,
       },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
     if (book === null) {
       return null;
@@ -114,27 +132,103 @@ export class TimelineRepository {
     bookId: string,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<TimelineRow>> {
-    return client.bookTimeline.findFirst({ where: { bookId, isDefault: true } });
+    return client.bookTimeline.findFirst({
+      where: { ...SOFT_DELETE_SCOPE.active, bookId, isDefault: true },
+    });
+  }
+
+  findForPurge({
+    timelineId,
+    userId,
+  }: {
+    timelineId: string;
+    userId: string;
+  }): Promise<Nullable<{ deletedAt: Nullable<Date> }>> {
+    return this.prisma.bookTimeline.findFirst({
+      select: { deletedAt: true },
+      where: { book: { userId }, id: timelineId },
+    });
   }
 
   findOwnedTimeline(
     { timelineId, userId }: { timelineId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<TimelineRow>> {
-    return client.bookTimeline.findFirst({ where: { book: { userId }, id: timelineId } });
+    return client.bookTimeline.findFirst({
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        book: { ...SOFT_DELETE_SCOPE.active, userId },
+        id: timelineId,
+      },
+    });
+  }
+
+  async findPurgeCandidates({
+    limit,
+    now,
+  }: {
+    limit: number;
+    now: Date;
+  }): Promise<{ id: string; userId: string }[]> {
+    const rows = await this.prisma.bookTimeline.findMany({
+      orderBy: { purgeAt: "asc" },
+      select: { book: { select: { userId: true } }, id: true },
+      take: limit,
+      where: SOFT_DELETE_SCOPE.overdue(now),
+    });
+    return rows.map((row) => ({ id: row.id, userId: row.book.userId }));
   }
 
   findTimelineInBook(
     { bookId, timelineId }: { bookId: string; timelineId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<TimelineRow>> {
-    return client.bookTimeline.findFirst({ where: { bookId, id: timelineId } });
+    return client.bookTimeline.findFirst({
+      where: { ...SOFT_DELETE_SCOPE.active, bookId, id: timelineId },
+    });
+  }
+
+  async hardDeleteIfTrashed({
+    now,
+    timelineId,
+    userId,
+  }: {
+    now: Date;
+    timelineId: string;
+    userId: string;
+  }): Promise<number> {
+    const purged = await this.prisma.bookTimeline.deleteMany({
+      where: { ...SOFT_DELETE_SCOPE.overdue(now), book: { userId }, id: timelineId },
+    });
+    return purged.count;
+  }
+
+  async listTrashed({
+    skip,
+    take,
+    userId,
+  }: {
+    skip: number;
+    take: number;
+    userId: string;
+  }): Promise<TrashedTimelineRow[]> {
+    const rows = await this.prisma.bookTimeline.findMany({
+      orderBy: [{ deletedAt: "desc" }, { id: "asc" }],
+      select: trashedTimelineSelect,
+      skip,
+      take,
+      where: {
+        ...SOFT_DELETE_SCOPE.trashed,
+        book: { ...SOFT_DELETE_SCOPE.active, userId },
+      },
+    });
+    return rows.filter(isTrashed);
   }
 
   listWithCounts(bookId: string): Promise<TimelineWithCount[]> {
     return this.prisma.bookTimeline.findMany({
       orderBy: [{ position: "asc" }, { createdAt: "asc" }, { id: "asc" }],
-      where: { bookId },
+      where: { ...SOFT_DELETE_SCOPE.active, bookId },
       ...timelineWithCountArgs,
     });
   }
@@ -145,7 +239,7 @@ export class TimelineRepository {
   ): Promise<Nullable<number>> {
     const aggregate = await client.bookTimeline.aggregate({
       _max: { position: true },
-      where: { bookId },
+      where: { ...SOFT_DELETE_SCOPE.active, bookId },
     });
     return aggregate._max.position;
   }
@@ -158,7 +252,7 @@ export class TimelineRepository {
       WITH ordered AS (
         SELECT id, row_number() OVER (ORDER BY position, id) AS rn
         FROM book_timelines
-        WHERE book_id = ${bookId}::uuid
+        WHERE book_id = ${bookId}::uuid AND deleted_at IS NULL
       )
       UPDATE book_timelines target
       SET position = (ordered.rn * ${TIMELINE_POSITION_STEP})::int
@@ -167,13 +261,25 @@ export class TimelineRepository {
     `;
   }
 
+  async restore({ timelineId, userId }: { timelineId: string; userId: string }): Promise<number> {
+    const restored = await this.prisma.bookTimeline.updateMany({
+      data: SOFT_DELETE_SCOPE.restored,
+      where: {
+        ...SOFT_DELETE_SCOPE.trashed,
+        book: { ...SOFT_DELETE_SCOPE.active, userId },
+        id: timelineId,
+      },
+    });
+    return restored.count;
+  }
+
   async setDefault(
     { bookId, timelineId }: { bookId: string; timelineId: string },
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
     await client.bookTimeline.updateMany({
       data: { isDefault: false },
-      where: { bookId, isDefault: true },
+      where: { ...SOFT_DELETE_SCOPE.active, bookId, isDefault: true },
     });
     await client.bookTimeline.update({
       data: { isDefault: true },
@@ -186,6 +292,17 @@ export class TimelineRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<void> {
     await client.bookTimeline.update({ data: { position }, where: { id: timelineId } });
+  }
+
+  async softDelete(
+    { stamp, timelineId, userId }: { stamp: TrashStamp; timelineId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const deleted = await client.bookTimeline.updateMany({
+      data: stamp,
+      where: { ...SOFT_DELETE_SCOPE.active, book: { userId }, id: timelineId },
+    });
+    return deleted.count;
   }
 
   update(

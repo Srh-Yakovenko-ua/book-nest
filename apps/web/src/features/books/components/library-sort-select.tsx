@@ -24,7 +24,7 @@ type LibrarySortSelectProps = {
 
 export function LibrarySortSelect({ label, onChange, options, value }: LibrarySortSelectProps) {
   return (
-    <div className="w-full sm:w-60">
+    <div className="w-full sm:w-80">
       <Select onValueChange={(next) => onChange(next as BooksControllerListSort)} value={value}>
         <SelectTrigger
           aria-label={label}

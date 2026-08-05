@@ -1,6 +1,8 @@
 import type {
   FavoriteSeriesContinuationsView,
+  PaginatedTrashedSeries,
   Paginator,
+  SeriesDeletionResult,
   SeriesDetailsView,
   SeriesOverviewView,
   SeriesView,
@@ -10,6 +12,7 @@ import {
   FavoriteSeriesContinuationsQuerySchema,
   NewSeriesInputSchema,
   SeriesSearchQuerySchema,
+  TrashedSeriesQuerySchema,
   UpdateSeriesInputSchema,
 } from "@app/shared";
 import {
@@ -17,7 +20,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -29,7 +31,6 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
-  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -41,18 +42,21 @@ import { seconds, Throttle } from "@nestjs/throttler";
 
 import type { AuthenticatedUser } from "../../auth/index.js";
 
-import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { SeriesLifecycleService } from "../application/series-lifecycle.service.js";
 import { SeriesService } from "../application/series.service.js";
 import { FavoriteSeriesContinuationsQueryDto } from "./input-dto/favorite-series-continuations-query.input-dto.js";
 import { NewSeriesInputDto } from "./input-dto/new-series.input-dto.js";
 import { SeriesSearchQueryDto } from "./input-dto/series-search-query.input-dto.js";
+import { TrashedSeriesQueryDto } from "./input-dto/trashed-series-query.input-dto.js";
 import { UpdateSeriesInputDto } from "./input-dto/update-series.input-dto.js";
 import { FavoriteSeriesContinuationsViewDto } from "./view-dto/favorite-series-continuations.view-dto.js";
 import { PaginatedSeriesDto } from "./view-dto/paginated-series.view-dto.js";
+import { PaginatedTrashedSeriesDto } from "./view-dto/paginated-trashed-series.view-dto.js";
+import { SeriesDeletionResultDto } from "./view-dto/series-deletion-result.view-dto.js";
 import { SeriesDetailsViewDto } from "./view-dto/series-details.view-dto.js";
 import { SeriesOverviewViewDto } from "./view-dto/series-overview.view-dto.js";
 import { SeriesViewDto } from "./view-dto/series.view-dto.js";
@@ -62,7 +66,10 @@ const CREATE_SERIES_LIMIT = 30;
 @ApiTags("series")
 @Controller("api/series")
 export class SeriesController {
-  constructor(private readonly seriesService: SeriesService) {}
+  constructor(
+    private readonly seriesService: SeriesService,
+    private readonly lifecycleService: SeriesLifecycleService,
+  ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBody({ type: NewSeriesInputDto })
@@ -118,6 +125,20 @@ export class SeriesController {
   ): Promise<FavoriteSeriesContinuationsView> {
     return this.seriesService.favoriteContinuations(user.id, query);
   }
+  @ApiOkResponse({
+    description: "A page of the current user trashed series",
+    type: PaginatedTrashedSeriesDto,
+  })
+  @ApiOperation({ summary: "List series waiting in the trash before their scheduled purge" })
+  @Get("trash")
+  @JwtProtected()
+  listTrash(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(TrashedSeriesQuerySchema)) query: TrashedSeriesQueryDto,
+  ): Promise<PaginatedTrashedSeries> {
+    return this.lifecycleService.listTrash({ query, userId: user.id });
+  }
+
   @ApiNotFoundResponse({ description: "Series not found" })
   @ApiOkResponse({ description: "The requested series with its books", type: SeriesDetailsViewDto })
   @ApiOperation({ summary: "Get a series by id" })
@@ -147,17 +168,32 @@ export class SeriesController {
   ): Promise<SeriesView> {
     return this.seriesService.update(user.id, id, body);
   }
-  @ApiNoContentResponse({ description: "The series was deleted" })
   @ApiNotFoundResponse({ description: "Series not found" })
-  @ApiOperation({ summary: "Delete a series by id" })
+  @ApiOkResponse({
+    description: "The series was moved to the trash and scheduled for purge",
+    type: SeriesDeletionResultDto,
+  })
+  @ApiOperation({ summary: "Move a series to the trash" })
   @Delete(":id")
-  @HttpCode(HTTP_STATUS.NO_CONTENT)
   @JwtProtected()
   @Throttle(MUTATION_THROTTLE)
   delete(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id", ParseUUIDPipe) id: string,
-  ): Promise<void> {
-    return this.seriesService.delete(user.id, id);
+  ): Promise<SeriesDeletionResult> {
+    return this.lifecycleService.softDelete({ seriesId: id, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "Series not found in the trash" })
+  @ApiOkResponse({ description: "The restored series", type: SeriesDetailsViewDto })
+  @ApiOperation({ summary: "Restore a series from the trash" })
+  @JwtProtected()
+  @Post(":id/restore")
+  @Throttle(MUTATION_THROTTLE)
+  restore(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id", ParseUUIDPipe) id: string,
+  ): Promise<SeriesDetailsView> {
+    return this.lifecycleService.restore({ seriesId: id, userId: user.id });
   }
 }

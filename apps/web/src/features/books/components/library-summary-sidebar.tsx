@@ -142,7 +142,7 @@ function RowSkeleton() {
 
 function SidebarBlock({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
+    <section className="sidebar-card-leaf flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-card">
       <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
       {children}
     </section>
