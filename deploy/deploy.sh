@@ -64,9 +64,9 @@ if [ -n "$api" ]; then
 		else
 			echo ">>> no previous image to roll back to (first deploy?)" >&2
 		fi
-		docker image prune -f
+		docker image prune -f || true
 		exit 1
 	fi
 fi
 
-docker image prune -f
+docker image prune -f || true
