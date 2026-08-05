@@ -126,6 +126,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared
+        run: pnpm --filter @app/shared build
+
       - name: Apply migrations
         run: pnpm --filter @app/api db:migrate:deploy
 
@@ -141,6 +144,7 @@ jobs:
     timeout-minutes: 15
 
     env:
+      DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
       NEXT_PUBLIC_SITE_URL: https://book-nest.net
 
     steps:
