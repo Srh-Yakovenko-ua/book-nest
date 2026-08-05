@@ -26,7 +26,14 @@ const meta = {
   args: {
     activeAttention: null,
     almostReadSeries,
-    attentionCounts: { empty: 2, incomplete_data: 3, incomplete_set: 1, unknown_status: 4 },
+    attentionCounts: {
+      empty: 2,
+      incomplete_data: 3,
+      incomplete_set: 1,
+      missing_parts: 2,
+      next_unavailable: 1,
+      unknown_status: 4,
+    },
     attentionLoading: false,
     isError: false,
     isLoading: false,
@@ -80,7 +87,14 @@ export const Empty: Story = {
 
 export const AllClear: Story = {
   args: {
-    attentionCounts: { empty: 0, incomplete_data: 0, incomplete_set: 0, unknown_status: 0 },
+    attentionCounts: {
+      empty: 0,
+      incomplete_data: 0,
+      incomplete_set: 0,
+      missing_parts: 0,
+      next_unavailable: 0,
+      unknown_status: 0,
+    },
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Усі серії впорядковані")).toBeVisible();

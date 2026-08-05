@@ -1,4 +1,4 @@
-import type { SeriesStatus, SeriesView } from "@app/shared";
+import type { OwnershipStatus, SeriesStatus, SeriesView } from "@app/shared";
 
 export type SeriesAdvancedFilters = {
   authorIds: string[];
@@ -13,7 +13,12 @@ export type SeriesAdvancedFilters = {
 export type SeriesAttentionFilter = "any" | SeriesAttentionReason;
 
 export type SeriesAttentionReason =
-  "empty" | "incomplete_data" | "incomplete_set" | "unknown_status";
+  | "empty"
+  | "incomplete_data"
+  | "incomplete_set"
+  | "missing_parts"
+  | "next_unavailable"
+  | "unknown_status";
 
 export type SeriesCompleteness = "complete" | "incomplete" | "no_plan";
 
@@ -77,7 +82,9 @@ export const SERIES_COMPLETENESS_VALUES = [
 export const SERIES_ATTENTION_REASONS = [
   "empty",
   "unknown_status",
+  "missing_parts",
   "incomplete_set",
+  "next_unavailable",
   "incomplete_data",
 ] as const satisfies readonly SeriesAttentionReason[];
 
@@ -101,6 +108,13 @@ export function countActiveSeriesFilters(filters: SeriesAdvancedFilters): number
   return count;
 }
 
+const NEXT_BOOK_UNAVAILABLE_OWNERSHIP: ReadonlySet<OwnershipStatus> = new Set<OwnershipStatus>([
+  "in_transit",
+  "lent_to_someone",
+  "none",
+  "want_to_buy",
+]);
+
 const SERIES_ATTENTION_PREDICATES: Record<SeriesAttentionReason, (series: SeriesView) => boolean> =
   {
     empty: (series) => series.booksInSeries === 0,
@@ -109,6 +123,8 @@ const SERIES_ATTENTION_PREDICATES: Record<SeriesAttentionReason, (series: Series
       series.status === "completed" &&
       series.totalBooks !== null &&
       series.booksInSeries < series.totalBooks,
+    missing_parts: (series) => series.missingPartNumbers.length > 0,
+    next_unavailable: seriesNextBookUnavailable,
     unknown_status: (series) => series.status === "unknown",
   };
 
@@ -117,6 +133,8 @@ export function countSeriesAttention(items: SeriesView[]): Record<SeriesAttentio
     empty: 0,
     incomplete_data: 0,
     incomplete_set: 0,
+    missing_parts: 0,
+    next_unavailable: 0,
     unknown_status: 0,
   };
   for (const series of items) {
@@ -285,6 +303,14 @@ function seriesMatchesAttention({
   const reasons = seriesAttentionReasons(series);
   if (attention === "any") return reasons.length > 0;
   return reasons.includes(attention);
+}
+
+function seriesNextBookUnavailable(series: SeriesView): boolean {
+  const nextBook = series.nextBook;
+  if (nextBook === null) return false;
+  const ownershipStatus = nextBook.ownershipStatus;
+  if (ownershipStatus === null || ownershipStatus === undefined) return false;
+  return NEXT_BOOK_UNAVAILABLE_OWNERSHIP.has(ownershipStatus);
 }
 
 const SORT_COMPARATORS: Record<SeriesSort, (a: SeriesView, b: SeriesView) => number> = {

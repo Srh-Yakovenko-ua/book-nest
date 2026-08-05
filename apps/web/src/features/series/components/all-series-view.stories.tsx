@@ -82,7 +82,14 @@ const sidebar = (
   <SeriesSidebar
     activeAttention={null}
     almostReadSeries={almostReadSeries}
-    attentionCounts={{ empty: 1, incomplete_data: 2, incomplete_set: 1, unknown_status: 1 }}
+    attentionCounts={{
+      empty: 1,
+      incomplete_data: 2,
+      incomplete_set: 1,
+      missing_parts: 1,
+      next_unavailable: 1,
+      unknown_status: 1,
+    }}
     attentionLoading={false}
     isError={false}
     isLoading={false}

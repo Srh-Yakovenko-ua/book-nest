@@ -2542,12 +2542,16 @@
       "unknown_status": "{count, plural, one {# series with unknown release status} other {# series with unknown release status}}",
       "incomplete_set": "{count, plural, one {# completed series is incomplete} other {# completed series are incomplete}}",
       "incomplete_data": "{count, plural, one {# series with incomplete details} other {# series with incomplete details}}",
+      "missing_parts": "{count, plural, one {# series with a gap in book order} other {# series with gaps in book order}}",
+      "next_unavailable": "{count, plural, one {# series whose next book isn't available} other {# series whose next book isn't available}}",
       "chip": {
         "any": "Needs attention",
         "empty": "No books added",
         "unknown_status": "Unknown release status",
         "incomplete_set": "Incomplete set",
-        "incomplete_data": "Incomplete details"
+        "incomplete_data": "Incomplete details",
+        "missing_parts": "Gaps in order",
+        "next_unavailable": "Next book unavailable"
       }
     },
     "sidebar": {

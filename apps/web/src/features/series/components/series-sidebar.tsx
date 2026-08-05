@@ -9,7 +9,9 @@ import Image from "next/image";
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Link } from "@/i18n/navigation";
+import { ownershipStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
 import type { SeriesAttentionFilter, SeriesAttentionReason } from "../model/series-derive";
@@ -93,14 +95,22 @@ const ATTENTION_ROW_META: Record<SeriesAttentionReason, { icon: UiIconName; tone
   empty: { icon: "book-x", toneClass: "text-destructive" },
   incomplete_data: { icon: "file-warning", toneClass: "text-muted-foreground" },
   incomplete_set: { icon: "book-copy", toneClass: "text-info" },
+  missing_parts: { icon: "layers", toneClass: "text-info" },
+  next_unavailable: { icon: "cart", toneClass: "text-warning" },
   unknown_status: { icon: "help-circle", toneClass: "text-warning" },
 };
 
 function AlmostReadRow({ series }: { series: SeriesView }) {
   const t = useTranslations("series.sidebar");
+  const tOwnership = useTranslations("books.ownershipStatus");
   const progress = seriesProgress(series);
   const nextBook = series.nextBook;
   const left = progress.denominator - progress.finished;
+  const ownershipStatus = nextBook?.ownershipStatus ?? null;
+  const ownershipEntry =
+    ownershipStatus === null
+      ? undefined
+      : ownershipStatuses.find((entry) => entry.value === ownershipStatus);
 
   return (
     <li className="flex flex-col gap-1.5">
@@ -139,6 +149,11 @@ function AlmostReadRow({ series }: { series: SeriesView }) {
             size={14}
           />
         </Link>
+      )}
+      {ownershipStatus === null || ownershipEntry === undefined ? null : (
+        <StatusBadge
+          entry={{ ...ownershipEntry, label: tOwnership(`options.${ownershipStatus}`) }}
+        />
       )}
     </li>
   );
