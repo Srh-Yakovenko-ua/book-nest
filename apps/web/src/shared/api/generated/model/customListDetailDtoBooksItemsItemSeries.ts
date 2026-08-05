@@ -22,9 +22,9 @@ export type CustomListDetailDtoBooksItemsItemSeries = {
   ageCategories?: CustomListDetailDtoBooksItemsItemSeriesAgeCategoriesItem[];
   authors: CustomListDetailDtoBooksItemsItemSeriesAuthorsItem[];
   /** @nullable */
-  averagePages: number | null;
+  averagePages?: number | null;
   /** @nullable */
-  averageRating: number | null;
+  averageRating?: number | null;
   booksInSeries: number;
   covers: CustomListDetailDtoBooksItemsItemSeriesCoversItem[];
   createdAt: string;
@@ -47,9 +47,9 @@ export type CustomListDetailDtoBooksItemsItemSeries = {
   name: string;
   /** @nullable */
   nextBook: CustomListDetailDtoBooksItemsItemSeriesNextBook;
-  ownership: CustomListDetailDtoBooksItemsItemSeriesOwnership;
+  ownership?: CustomListDetailDtoBooksItemsItemSeriesOwnership;
   /** @nullable */
-  pagesCount: number | null;
+  pagesCount?: number | null;
   readingInSeries: number;
   status: CustomListDetailDtoBooksItemsItemSeriesStatus;
   tags?: CustomListDetailDtoBooksItemsItemSeriesTagsItem[];

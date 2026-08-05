@@ -22,9 +22,9 @@ export type BookViewDtoSeries = {
   ageCategories?: BookViewDtoSeriesAgeCategoriesItem[];
   authors: BookViewDtoSeriesAuthorsItem[];
   /** @nullable */
-  averagePages: number | null;
+  averagePages?: number | null;
   /** @nullable */
-  averageRating: number | null;
+  averageRating?: number | null;
   booksInSeries: number;
   covers: BookViewDtoSeriesCoversItem[];
   createdAt: string;
@@ -47,9 +47,9 @@ export type BookViewDtoSeries = {
   name: string;
   /** @nullable */
   nextBook: BookViewDtoSeriesNextBook;
-  ownership: BookViewDtoSeriesOwnership;
+  ownership?: BookViewDtoSeriesOwnership;
   /** @nullable */
-  pagesCount: number | null;
+  pagesCount?: number | null;
   readingInSeries: number;
   status: BookViewDtoSeriesStatus;
   tags?: BookViewDtoSeriesTagsItem[];

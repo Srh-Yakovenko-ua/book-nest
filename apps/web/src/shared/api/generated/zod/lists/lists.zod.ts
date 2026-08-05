@@ -639,8 +639,8 @@ export const ListDetailsControllerDetailResponse = zod.object({
                 name: zod.string(),
               }),
             ),
-            averagePages: zod.number().nullable(),
-            averageRating: zod.number().nullable(),
+            averagePages: zod.number().nullish(),
+            averageRating: zod.number().nullish(),
             booksInSeries: zod.number(),
             covers: zod.array(
               zod.object({
@@ -746,17 +746,23 @@ export const ListDetailsControllerDetailResponse = zod.object({
                 title: zod.string(),
               })
               .nullable(),
-            ownership: zod.object({
-              ownedCount: zod
-                .int()
-                .min(listDetailsControllerDetailResponseBooksItemsItemSeriesOwnershipOwnedCountMin)
-                .max(listDetailsControllerDetailResponseBooksItemsItemSeriesOwnershipOwnedCountMax),
-              total: zod
-                .int()
-                .min(listDetailsControllerDetailResponseBooksItemsItemSeriesOwnershipTotalMin)
-                .max(listDetailsControllerDetailResponseBooksItemsItemSeriesOwnershipTotalMax),
-            }),
-            pagesCount: zod.number().nullable(),
+            ownership: zod
+              .object({
+                ownedCount: zod
+                  .int()
+                  .min(
+                    listDetailsControllerDetailResponseBooksItemsItemSeriesOwnershipOwnedCountMin,
+                  )
+                  .max(
+                    listDetailsControllerDetailResponseBooksItemsItemSeriesOwnershipOwnedCountMax,
+                  ),
+                total: zod
+                  .int()
+                  .min(listDetailsControllerDetailResponseBooksItemsItemSeriesOwnershipTotalMin)
+                  .max(listDetailsControllerDetailResponseBooksItemsItemSeriesOwnershipTotalMax),
+              })
+              .optional(),
+            pagesCount: zod.number().nullish(),
             readingInSeries: zod.number(),
             status: zod.enum(["completed", "ongoing", "unknown"]),
             tags: zod

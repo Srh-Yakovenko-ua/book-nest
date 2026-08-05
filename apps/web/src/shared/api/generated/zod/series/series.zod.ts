@@ -92,8 +92,8 @@ export const SeriesControllerCreateResponse = zod.object({
       name: zod.string(),
     }),
   ),
-  averagePages: zod.number().nullable(),
-  averageRating: zod.number().nullable(),
+  averagePages: zod.number().nullish(),
+  averageRating: zod.number().nullish(),
   booksInSeries: zod.number(),
   covers: zod.array(
     zod.object({
@@ -172,17 +172,19 @@ export const SeriesControllerCreateResponse = zod.object({
       title: zod.string(),
     })
     .nullable(),
-  ownership: zod.object({
-    ownedCount: zod
-      .int()
-      .min(seriesControllerCreateResponseOwnershipOwnedCountMin)
-      .max(seriesControllerCreateResponseOwnershipOwnedCountMax),
-    total: zod
-      .int()
-      .min(seriesControllerCreateResponseOwnershipTotalMin)
-      .max(seriesControllerCreateResponseOwnershipTotalMax),
-  }),
-  pagesCount: zod.number().nullable(),
+  ownership: zod
+    .object({
+      ownedCount: zod
+        .int()
+        .min(seriesControllerCreateResponseOwnershipOwnedCountMin)
+        .max(seriesControllerCreateResponseOwnershipOwnedCountMax),
+      total: zod
+        .int()
+        .min(seriesControllerCreateResponseOwnershipTotalMin)
+        .max(seriesControllerCreateResponseOwnershipTotalMax),
+    })
+    .optional(),
+  pagesCount: zod.number().nullish(),
   readingInSeries: zod.number(),
   status: zod.enum(["completed", "ongoing", "unknown"]),
   tags: zod
@@ -280,8 +282,8 @@ export const SeriesControllerSearchResponse = zod.object({
           name: zod.string(),
         }),
       ),
-      averagePages: zod.number().nullable(),
-      averageRating: zod.number().nullable(),
+      averagePages: zod.number().nullish(),
+      averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
       covers: zod.array(
         zod.object({
@@ -366,17 +368,19 @@ export const SeriesControllerSearchResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
-      ownership: zod.object({
-        ownedCount: zod
-          .int()
-          .min(seriesControllerSearchResponseItemsItemOwnershipOwnedCountMin)
-          .max(seriesControllerSearchResponseItemsItemOwnershipOwnedCountMax),
-        total: zod
-          .int()
-          .min(seriesControllerSearchResponseItemsItemOwnershipTotalMin)
-          .max(seriesControllerSearchResponseItemsItemOwnershipTotalMax),
-      }),
-      pagesCount: zod.number().nullable(),
+      ownership: zod
+        .object({
+          ownedCount: zod
+            .int()
+            .min(seriesControllerSearchResponseItemsItemOwnershipOwnedCountMin)
+            .max(seriesControllerSearchResponseItemsItemOwnershipOwnedCountMax),
+          total: zod
+            .int()
+            .min(seriesControllerSearchResponseItemsItemOwnershipTotalMin)
+            .max(seriesControllerSearchResponseItemsItemOwnershipTotalMax),
+        })
+        .optional(),
+      pagesCount: zod.number().nullish(),
       readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       tags: zod
@@ -460,8 +464,8 @@ export const SeriesControllerOverviewResponse = zod.object({
           name: zod.string(),
         }),
       ),
-      averagePages: zod.number().nullable(),
-      averageRating: zod.number().nullable(),
+      averagePages: zod.number().nullish(),
+      averageRating: zod.number().nullish(),
       booksInSeries: zod.number(),
       covers: zod.array(
         zod.object({
@@ -549,17 +553,19 @@ export const SeriesControllerOverviewResponse = zod.object({
           title: zod.string(),
         })
         .nullable(),
-      ownership: zod.object({
-        ownedCount: zod
-          .int()
-          .min(seriesControllerOverviewResponseTopUnfinishedItemOwnershipOwnedCountMin)
-          .max(seriesControllerOverviewResponseTopUnfinishedItemOwnershipOwnedCountMax),
-        total: zod
-          .int()
-          .min(seriesControllerOverviewResponseTopUnfinishedItemOwnershipTotalMin)
-          .max(seriesControllerOverviewResponseTopUnfinishedItemOwnershipTotalMax),
-      }),
-      pagesCount: zod.number().nullable(),
+      ownership: zod
+        .object({
+          ownedCount: zod
+            .int()
+            .min(seriesControllerOverviewResponseTopUnfinishedItemOwnershipOwnedCountMin)
+            .max(seriesControllerOverviewResponseTopUnfinishedItemOwnershipOwnedCountMax),
+          total: zod
+            .int()
+            .min(seriesControllerOverviewResponseTopUnfinishedItemOwnershipTotalMin)
+            .max(seriesControllerOverviewResponseTopUnfinishedItemOwnershipTotalMax),
+        })
+        .optional(),
+      pagesCount: zod.number().nullish(),
       readingInSeries: zod.number(),
       status: zod.enum(["completed", "ongoing", "unknown"]),
       tags: zod
@@ -902,8 +908,8 @@ export const SeriesControllerGetByIdResponse = zod.object({
       name: zod.string(),
     }),
   ),
-  averagePages: zod.number().nullable(),
-  averageRating: zod.number().nullable(),
+  averagePages: zod.number().nullish(),
+  averageRating: zod.number().nullish(),
   booksInSeries: zod.number(),
   covers: zod.array(
     zod.object({
@@ -982,17 +988,19 @@ export const SeriesControllerGetByIdResponse = zod.object({
       title: zod.string(),
     })
     .nullable(),
-  ownership: zod.object({
-    ownedCount: zod
-      .int()
-      .min(seriesControllerGetByIdResponseOwnershipOwnedCountMin)
-      .max(seriesControllerGetByIdResponseOwnershipOwnedCountMax),
-    total: zod
-      .int()
-      .min(seriesControllerGetByIdResponseOwnershipTotalMin)
-      .max(seriesControllerGetByIdResponseOwnershipTotalMax),
-  }),
-  pagesCount: zod.number().nullable(),
+  ownership: zod
+    .object({
+      ownedCount: zod
+        .int()
+        .min(seriesControllerGetByIdResponseOwnershipOwnedCountMin)
+        .max(seriesControllerGetByIdResponseOwnershipOwnedCountMax),
+      total: zod
+        .int()
+        .min(seriesControllerGetByIdResponseOwnershipTotalMin)
+        .max(seriesControllerGetByIdResponseOwnershipTotalMax),
+    })
+    .optional(),
+  pagesCount: zod.number().nullish(),
   readingInSeries: zod.number(),
   status: zod.enum(["completed", "ongoing", "unknown"]),
   tags: zod
@@ -1232,8 +1240,8 @@ export const SeriesControllerUpdateResponse = zod.object({
       name: zod.string(),
     }),
   ),
-  averagePages: zod.number().nullable(),
-  averageRating: zod.number().nullable(),
+  averagePages: zod.number().nullish(),
+  averageRating: zod.number().nullish(),
   booksInSeries: zod.number(),
   covers: zod.array(
     zod.object({
@@ -1312,17 +1320,19 @@ export const SeriesControllerUpdateResponse = zod.object({
       title: zod.string(),
     })
     .nullable(),
-  ownership: zod.object({
-    ownedCount: zod
-      .int()
-      .min(seriesControllerUpdateResponseOwnershipOwnedCountMin)
-      .max(seriesControllerUpdateResponseOwnershipOwnedCountMax),
-    total: zod
-      .int()
-      .min(seriesControllerUpdateResponseOwnershipTotalMin)
-      .max(seriesControllerUpdateResponseOwnershipTotalMax),
-  }),
-  pagesCount: zod.number().nullable(),
+  ownership: zod
+    .object({
+      ownedCount: zod
+        .int()
+        .min(seriesControllerUpdateResponseOwnershipOwnedCountMin)
+        .max(seriesControllerUpdateResponseOwnershipOwnedCountMax),
+      total: zod
+        .int()
+        .min(seriesControllerUpdateResponseOwnershipTotalMin)
+        .max(seriesControllerUpdateResponseOwnershipTotalMax),
+    })
+    .optional(),
+  pagesCount: zod.number().nullish(),
   readingInSeries: zod.number(),
   status: zod.enum(["completed", "ongoing", "unknown"]),
   tags: zod
@@ -1402,8 +1412,8 @@ export const SeriesControllerRestoreResponse = zod.object({
       name: zod.string(),
     }),
   ),
-  averagePages: zod.number().nullable(),
-  averageRating: zod.number().nullable(),
+  averagePages: zod.number().nullish(),
+  averageRating: zod.number().nullish(),
   booksInSeries: zod.number(),
   covers: zod.array(
     zod.object({
@@ -1482,17 +1492,19 @@ export const SeriesControllerRestoreResponse = zod.object({
       title: zod.string(),
     })
     .nullable(),
-  ownership: zod.object({
-    ownedCount: zod
-      .int()
-      .min(seriesControllerRestoreResponseOwnershipOwnedCountMin)
-      .max(seriesControllerRestoreResponseOwnershipOwnedCountMax),
-    total: zod
-      .int()
-      .min(seriesControllerRestoreResponseOwnershipTotalMin)
-      .max(seriesControllerRestoreResponseOwnershipTotalMax),
-  }),
-  pagesCount: zod.number().nullable(),
+  ownership: zod
+    .object({
+      ownedCount: zod
+        .int()
+        .min(seriesControllerRestoreResponseOwnershipOwnedCountMin)
+        .max(seriesControllerRestoreResponseOwnershipOwnedCountMax),
+      total: zod
+        .int()
+        .min(seriesControllerRestoreResponseOwnershipTotalMin)
+        .max(seriesControllerRestoreResponseOwnershipTotalMax),
+    })
+    .optional(),
+  pagesCount: zod.number().nullish(),
   readingInSeries: zod.number(),
   status: zod.enum(["completed", "ongoing", "unknown"]),
   tags: zod

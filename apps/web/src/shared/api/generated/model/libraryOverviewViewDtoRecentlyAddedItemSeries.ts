@@ -22,9 +22,9 @@ export type LibraryOverviewViewDtoRecentlyAddedItemSeries = {
   ageCategories?: LibraryOverviewViewDtoRecentlyAddedItemSeriesAgeCategoriesItem[];
   authors: LibraryOverviewViewDtoRecentlyAddedItemSeriesAuthorsItem[];
   /** @nullable */
-  averagePages: number | null;
+  averagePages?: number | null;
   /** @nullable */
-  averageRating: number | null;
+  averageRating?: number | null;
   booksInSeries: number;
   covers: LibraryOverviewViewDtoRecentlyAddedItemSeriesCoversItem[];
   createdAt: string;
@@ -47,9 +47,9 @@ export type LibraryOverviewViewDtoRecentlyAddedItemSeries = {
   name: string;
   /** @nullable */
   nextBook: LibraryOverviewViewDtoRecentlyAddedItemSeriesNextBook;
-  ownership: LibraryOverviewViewDtoRecentlyAddedItemSeriesOwnership;
+  ownership?: LibraryOverviewViewDtoRecentlyAddedItemSeriesOwnership;
   /** @nullable */
-  pagesCount: number | null;
+  pagesCount?: number | null;
   readingInSeries: number;
   status: LibraryOverviewViewDtoRecentlyAddedItemSeriesStatus;
   tags?: LibraryOverviewViewDtoRecentlyAddedItemSeriesTagsItem[];

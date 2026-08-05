@@ -22,9 +22,9 @@ export interface SeriesDetailsViewDto {
   ageCategories?: SeriesDetailsViewDtoAgeCategoriesItem[];
   authors: SeriesDetailsViewDtoAuthorsItem[];
   /** @nullable */
-  averagePages: number | null;
+  averagePages?: number | null;
   /** @nullable */
-  averageRating: number | null;
+  averageRating?: number | null;
   booksInSeries: number;
   covers: SeriesDetailsViewDtoCoversItem[];
   createdAt: string;
@@ -47,9 +47,9 @@ export interface SeriesDetailsViewDto {
   name: string;
   /** @nullable */
   nextBook: SeriesDetailsViewDtoNextBook;
-  ownership: SeriesDetailsViewDtoOwnership;
+  ownership?: SeriesDetailsViewDtoOwnership;
   /** @nullable */
-  pagesCount: number | null;
+  pagesCount?: number | null;
   readingInSeries: number;
   status: SeriesDetailsViewDtoStatus;
   tags?: SeriesDetailsViewDtoTagsItem[];

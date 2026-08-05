@@ -22,9 +22,9 @@ export type PaginatedBooksDtoItemsItemSeries = {
   ageCategories?: PaginatedBooksDtoItemsItemSeriesAgeCategoriesItem[];
   authors: PaginatedBooksDtoItemsItemSeriesAuthorsItem[];
   /** @nullable */
-  averagePages: number | null;
+  averagePages?: number | null;
   /** @nullable */
-  averageRating: number | null;
+  averageRating?: number | null;
   booksInSeries: number;
   covers: PaginatedBooksDtoItemsItemSeriesCoversItem[];
   createdAt: string;
@@ -47,9 +47,9 @@ export type PaginatedBooksDtoItemsItemSeries = {
   name: string;
   /** @nullable */
   nextBook: PaginatedBooksDtoItemsItemSeriesNextBook;
-  ownership: PaginatedBooksDtoItemsItemSeriesOwnership;
+  ownership?: PaginatedBooksDtoItemsItemSeriesOwnership;
   /** @nullable */
-  pagesCount: number | null;
+  pagesCount?: number | null;
   readingInSeries: number;
   status: PaginatedBooksDtoItemsItemSeriesStatus;
   tags?: PaginatedBooksDtoItemsItemSeriesTagsItem[];
