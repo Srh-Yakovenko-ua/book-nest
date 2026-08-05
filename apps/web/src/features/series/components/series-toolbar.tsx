@@ -111,12 +111,14 @@ export function SeriesToolbar({
           onChange={onStatusChange}
           options={SERIES_STATUS_FILTERS.map((value) => ({ label: tStatus(value), value }))}
           value={statusFilter}
+          widthClassName="sm:w-[180px]"
         />
         <ToolbarSelect
           label={t("readingLabel")}
           onChange={onReadingChange}
           options={SERIES_READING_FILTERS.map((value) => ({ label: tReading(value), value }))}
           value={readingFilter}
+          widthClassName="sm:w-[180px]"
         />
         <ToolbarSelect
           clearable={sort !== SERIES_SORT_DEFAULT}
@@ -156,6 +158,7 @@ function ToolbarSelect<TValue extends string>({
   onClear,
   options,
   value,
+  widthClassName = "sm:w-52",
 }: {
   clearable?: boolean;
   clearLabel?: string;
@@ -164,13 +167,14 @@ function ToolbarSelect<TValue extends string>({
   onClear?: () => void;
   options: { label: string; value: TValue }[];
   value: TValue;
+  widthClassName?: string;
 }) {
   return (
-    <div className="w-full sm:w-52">
+    <div className={cn("w-full", widthClassName)}>
       <Select onValueChange={(next) => onChange(next as TValue)} value={value}>
         <SelectTrigger
           aria-label={label}
-          className="h-10 w-full"
+          className="w-full data-[size=default]:h-10"
           clearLabel={clearLabel}
           isClearable={clearable}
           onClear={onClear}
