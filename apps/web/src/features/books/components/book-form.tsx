@@ -11,6 +11,7 @@ import {
 } from "@app/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   Controller,
@@ -110,7 +111,11 @@ const SERVER_FIELD_PATHS = [
 
 export function BookForm(props: BookFormProps) {
   const t = useTranslations("books");
+  const tDedications = useTranslations("dedications");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const focusDedication = searchParams.get("focus") === "dedication";
+  const fromDedications = searchParams.get("from") === "dedications";
   const mode: BookFormMode = props.mode;
 
   const bookId = props.mode === "edit" ? props.book.id : null;
@@ -180,6 +185,18 @@ export function BookForm(props: BookFormProps) {
     const url = coverState.previewUrl;
     return () => URL.revokeObjectURL(url);
   }, [coverState]);
+
+  useEffect(() => {
+    if (!focusDedication) return;
+    const id = requestAnimationFrame(() => {
+      const field = document.getElementById("book-dedication");
+      if (field instanceof HTMLTextAreaElement) {
+        field.scrollIntoView({ block: "center" });
+        field.focus();
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [focusDedication]);
 
   function handleCoverChange(next: CoverState) {
     setCoverState(next);
@@ -472,6 +489,13 @@ export function BookForm(props: BookFormProps) {
         onError: (error) => handleMutationError(error),
         onSuccess: () => {
           clearDraft();
+          if (fromDedications) {
+            const dedicationEntered =
+              typeof values.dedication === "string" && values.dedication.trim() !== "";
+            if (dedicationEntered) toast.success(tDedications("added"));
+            router.push("/dedications");
+            return;
+          }
           toast.success(t("submit.editSuccess"));
           router.push(`/books/${bookId}`);
         },

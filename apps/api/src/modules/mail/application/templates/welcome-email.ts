@@ -1,3 +1,5 @@
+import type { RenderedEmail } from "./rendered-email.js";
+
 import { escapeHtml } from "./escape-html.js";
 
 export type WelcomeEmailVariables = {
@@ -5,12 +7,6 @@ export type WelcomeEmailVariables = {
   dashboardUrl: string;
   settingsUrl: string;
   userName: string;
-};
-
-type RenderedEmail = {
-  html: string;
-  subject: string;
-  text: string;
 };
 
 export function renderWelcomeEmail(vars: WelcomeEmailVariables): RenderedEmail {

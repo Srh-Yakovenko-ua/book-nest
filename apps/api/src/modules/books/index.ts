@@ -1,4 +1,4 @@
-export { assertBookOwned } from "./application/assert-book-owned.js";
+export { BookAccessService } from "./application/book-access.service.js";
 export { BookReadingService } from "./application/book-reading.service.js";
 export { BookViewAssembler } from "./application/book-view-assembler.js";
 export { BooksModule } from "./books.module.js";
@@ -8,8 +8,4 @@ export { toDeliverySummaryView, toDeliveryView } from "./domain/delivery.mapper.
 export { toLoanInfoView } from "./domain/loan.mapper.js";
 export { type RecordDeliveryTransition } from "./infrastructure/book-deliveries.repository.js";
 export { buildBookTextSearchConditions } from "./infrastructure/book-search.js";
-export {
-  BooksRepository,
-  type BookWithRelations,
-  withRelations,
-} from "./infrastructure/books.repository.js";
+export { type BookWithRelations, withRelations } from "./infrastructure/books.repository.js";

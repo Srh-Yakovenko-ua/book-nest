@@ -1,18 +1,15 @@
 {
-  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignoreExportsUsedInFile": true,
-  "ignoreBinaries": ["lsof"],
   "workspaces": {
     ".": {
       "ignore": ["api/**", ".claude/**"]
     },
     "apps/web": {
       "project": ["src/**/*.{ts,tsx}"],
-      "entry": ["orval.config.ts"],
       "ignore": [
         "src/components/ui/**",
         "src/shared/api/generated/**",
-        "src/shared/api/mutator.ts",
         "src/test-utils.tsx",
         "src/lib/api-errors.ts",
         "src/lib/format.ts",
@@ -29,7 +26,6 @@
         "@tanstack/react-virtual",
         "input-otp",
         "nanoid",
-        "postcss",
         "shadcn",
         "superjson",
         "tailwindcss",
@@ -42,7 +38,7 @@
       "project": ["src/**/*.ts", "!src/generated/**"],
       "entry": ["src/index.ts"],
       "prisma": false,
-      "ignoreDependencies": ["@prisma/client", "pino-pretty", "ua-parser-js"]
+      "ignoreDependencies": ["@prisma/client", "pino-pretty"]
     },
     "packages/shared": {
       "project": ["src/**/*.ts"]

@@ -5,6 +5,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { appendBookToList } from "./book-list-membership.js";
 
 export type ListMembership = {
@@ -111,7 +112,7 @@ export class ListMembershipRepository {
   }
 
   countItems(client: Prisma.TransactionClient, { listId }: ItemsCountInput): Promise<number> {
-    return client.bookListItem.count({ where: { listId } });
+    return client.bookListItem.count({ where: { book: SOFT_DELETE_SCOPE.active, listId } });
   }
 
   async deleteMembership(
@@ -149,8 +150,8 @@ export class ListMembershipRepository {
   ): Promise<Nullable<ListMembership>> {
     const where =
       direction === "up"
-        ? { listId, position: { lt: position } }
-        : { listId, position: { gt: position } };
+        ? { book: SOFT_DELETE_SCOPE.active, listId, position: { lt: position } }
+        : { book: SOFT_DELETE_SCOPE.active, listId, position: { gt: position } };
     return client.bookListItem.findFirst({
       orderBy: { position: direction === "up" ? "desc" : "asc" },
       select: { bookId: true, position: true },
@@ -164,7 +165,7 @@ export class ListMembershipRepository {
   ): Promise<string[]> {
     const owned = await client.book.findMany({
       select: { id: true },
-      where: { id: { in: bookIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
     });
     return owned.map((book) => book.id);
   }

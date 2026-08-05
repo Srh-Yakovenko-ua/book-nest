@@ -2,6 +2,11 @@ import type { FieldError } from "@app/shared";
 
 import { HTTP_STATUS, type HttpStatus } from "../http-status.js";
 
+const SERVICE_UNAVAILABLE = {
+  message: "Server is busy, please retry",
+  retryAfterSeconds: 15,
+} as const;
+
 export class HttpError extends Error {
   readonly bodyless: boolean;
   readonly code?: string;
@@ -55,6 +60,15 @@ export class NotFoundError extends HttpError {
   constructor(message = "Not found", options?: { bodyless?: boolean; code?: string }) {
     super(HTTP_STATUS.NOT_FOUND, message, options);
     this.name = "NotFoundError";
+  }
+}
+
+export class ServiceUnavailableError extends HttpError {
+  readonly retryAfterSeconds = SERVICE_UNAVAILABLE.retryAfterSeconds;
+
+  constructor(options?: { code?: string }) {
+    super(HTTP_STATUS.SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE.message, { code: options?.code });
+    this.name = "ServiceUnavailableError";
   }
 }
 

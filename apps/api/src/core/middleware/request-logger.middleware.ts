@@ -4,14 +4,28 @@ import type { NextFunction, Request, Response } from "express";
 import { Injectable } from "@nestjs/common";
 import { pinoHttp } from "pino-http";
 
+import { HTTP_STATUS } from "../http-status.js";
 import { logger } from "../logger.js";
 
+export type RequestLogLevel = "error" | "info" | "warn";
+
+export function requestLogLevel({
+  failed,
+  statusCode,
+}: {
+  failed: boolean;
+  statusCode: number;
+}): RequestLogLevel {
+  if (failed) return "error";
+  if (statusCode === HTTP_STATUS.SERVICE_UNAVAILABLE) return "warn";
+  if (statusCode >= HTTP_STATUS.INTERNAL_SERVER_ERROR) return "error";
+  if (statusCode >= HTTP_STATUS.BAD_REQUEST) return "warn";
+  return "info";
+}
+
 const pinoMiddleware = pinoHttp<Request, Response>({
-  customLogLevel: (_req, res, err) => {
-    if (err || res.statusCode >= 500) return "error";
-    if (res.statusCode >= 400) return "warn";
-    return "info";
-  },
+  customLogLevel: (_req, res, err) =>
+    requestLogLevel({ failed: err !== undefined, statusCode: res.statusCode }),
   genReqId: (req) => req.requestId,
   logger,
   serializers: {

@@ -1,6 +1,7 @@
 import type { AuthResultView } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
+import { differenceInMilliseconds, milliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserModel } from "../../../generated/prisma/models.js";
@@ -33,6 +34,10 @@ type RefreshResult = {
 const INVALID_SESSION_MESSAGE = "Invalid session";
 const SESSION_REUSE_MESSAGE = "Session reuse detected";
 const SESSION_EXPIRED_MESSAGE = "Session expired";
+
+export const SESSION_ROTATION = {
+  reuseGraceMs: milliseconds({ seconds: 10 }),
+} as const satisfies Record<string, number>;
 
 @Injectable()
 export class SessionService {
@@ -71,6 +76,10 @@ export class SessionService {
     }
 
     if (session.rotatedAt !== null) {
+      if (differenceInMilliseconds(now, session.rotatedAt) <= SESSION_ROTATION.reuseGraceMs) {
+        throw new UnauthorizedError(INVALID_SESSION_MESSAGE);
+      }
+
       await this.sessionsRepository.deleteAllByUserId(session.userId);
       throw new UnauthorizedError(SESSION_REUSE_MESSAGE);
     }

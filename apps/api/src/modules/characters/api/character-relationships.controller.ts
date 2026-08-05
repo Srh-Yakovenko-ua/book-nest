@@ -48,6 +48,8 @@ import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { CharacterRelationshipPathService } from "../application/character-relationship-path.service.js";
 import { CharacterRelationshipsService } from "../application/character-relationships.service.js";
+import { RelationshipBookStateService } from "../application/relationship-book-state.service.js";
+import { RelationshipContextService } from "../application/relationship-context.service.js";
 import { CharacterRelationshipDetailsQueryDto } from "./input-dto/character-relationship-details-query.input-dto.js";
 import { CharacterRelationshipPathQueryDto } from "./input-dto/character-relationship-path-query.input-dto.js";
 import { CreateCharacterRelationshipInputDto } from "./input-dto/create-character-relationship.input-dto.js";
@@ -63,6 +65,8 @@ import { CharacterRelationshipPathViewDto } from "./view-dto/character-relations
 export class CharacterRelationshipsController {
   constructor(
     private readonly relationshipsService: CharacterRelationshipsService,
+    private readonly contextService: RelationshipContextService,
+    private readonly bookStateService: RelationshipBookStateService,
     private readonly pathService: CharacterRelationshipPathService,
   ) {}
 
@@ -152,7 +156,7 @@ export class CharacterRelationshipsController {
     @Query(new ZodQueryPipe(CharacterRelationshipDetailsQuerySchema))
     query: CharacterRelationshipDetailsQueryDto,
   ): Promise<CharacterRelationshipDetailsView> {
-    return this.relationshipsService.getDetails({ query, relationshipId, userId: user.id });
+    return this.contextService.getDetails({ query, relationshipId, userId: user.id });
   }
 
   @ApiBadRequestResponse({ description: "Validation failed" })
@@ -212,7 +216,7 @@ export class CharacterRelationshipsController {
     @Body(new ZodBodyPipe(UpsertRelationshipBookStateSchema))
     body: UpsertRelationshipBookStateInputDto,
   ): Promise<CharacterRelationshipDetailsView> {
-    return this.relationshipsService.upsertBookState({
+    return this.bookStateService.upsertBookState({
       bookId,
       input: body,
       relationshipId,
@@ -233,6 +237,6 @@ export class CharacterRelationshipsController {
     @Param("relationshipId", ParseUUIDPipe) relationshipId: string,
     @Param("bookId", ParseUUIDPipe) bookId: string,
   ): Promise<void> {
-    return this.relationshipsService.removeBookState({ bookId, relationshipId, userId: user.id });
+    return this.bookStateService.removeBookState({ bookId, relationshipId, userId: user.id });
   }
 }

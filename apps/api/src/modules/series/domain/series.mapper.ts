@@ -2,6 +2,7 @@ import type {
   MediaView,
   Nullable,
   SeriesBookView,
+  SeriesCoverPreview,
   SeriesDetailsView,
   SeriesView,
 } from "@app/shared";
@@ -15,11 +16,14 @@ import {
   SeriesStatusSchema,
 } from "@app/shared";
 
+import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type { SeriesWithDetails } from "../infrastructure/series.repository.js";
+import type { SeriesAggregateBookRow } from "./series-aggregates.js";
 import type { SeriesBookRow } from "./series-preview.js";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { toDeliverySummaryView, toLoanInfoView } from "../../books/index.js";
+import { summarizeSeriesAggregates } from "./series-aggregates.js";
 import {
   compareByPartThenCreated,
   computeSeriesLastActivityAt,
@@ -32,9 +36,11 @@ type SeriesAuthorRef = { id: string; name: string };
 
 type SeriesDetailBook = SeriesWithDetails["books"][number];
 
-type SeriesViewBookRow = SeriesBookRow & {
-  authors: { author: SeriesAuthorRef; position: number }[];
-};
+type SeriesViewBookRow = SeriesAggregateBookRow &
+  SeriesBookRow & {
+    authors: { author: SeriesAuthorRef; position: number }[];
+    coverMedia?: Nullable<MediaAssetModel>;
+  };
 
 type SeriesViewSource = {
   _count: { books: number };
@@ -49,6 +55,8 @@ type SeriesViewSource = {
   totalBooks: Nullable<number>;
   updatedAt: Date;
 };
+
+const SERIES_COVER_PREVIEW_LIMIT = 3;
 
 export function toSeriesDetailsView({
   covers,
@@ -65,35 +73,70 @@ export function toSeriesDetailsView({
   );
 
   return {
-    ...toSeriesView(series),
+    ...toSeriesView({ coverByBookId: covers, series }),
     books,
     publishers: collectSeriesPublishers(series.books),
     stats: computeSeriesStats(series.books.map(toStatsBook)),
   };
 }
 
-export function toSeriesView(series: SeriesViewSource): SeriesView {
+export function toSeriesView({
+  coverByBookId = new Map(),
+  series,
+}: {
+  coverByBookId?: Map<string, Nullable<MediaView>>;
+  series: SeriesViewSource;
+}): SeriesView {
   const books = series.books.map(toSeriesBookPreview);
-  const { finishedInSeries, nextBook, readingInSeries } = summarizeSeriesBooks(books);
+  const {
+    finishedInSeries,
+    hasPublicationYears,
+    hasPublisher,
+    missingPartNumbers,
+    nextBook,
+    readingInSeries,
+  } = summarizeSeriesBooks(books);
 
   return {
+    ...summarizeSeriesAggregates(series.books),
     authors: resolveSeriesAuthors(series),
     booksInSeries: series._count.books,
+    covers: buildSeriesCoverPreviews({ books: series.books, coverByBookId }),
     createdAt: series.createdAt.toISOString(),
     description: series.description,
     finishedInSeries,
     genres: series.genres,
+    hasPublicationYears,
+    hasPublisher,
     id: series.id,
     lastActivityAt: computeSeriesLastActivityAt({
       books,
       seriesUpdatedAt: series.updatedAt,
     }).toISOString(),
+    missingPartNumbers: [...missingPartNumbers],
     name: series.name,
-    nextBook,
+    nextBook:
+      nextBook === null ? null : { ...nextBook, cover: coverByBookId.get(nextBook.id) ?? null },
     readingInSeries,
     status: SeriesStatusSchema.parse(series.status),
     totalBooks: series.totalBooks,
   };
+}
+
+function buildSeriesCoverPreviews({
+  books,
+  coverByBookId,
+}: {
+  books: SeriesViewBookRow[];
+  coverByBookId: Map<string, Nullable<MediaView>>;
+}): SeriesCoverPreview[] {
+  return [...books]
+    .sort(compareByPartThenCreated)
+    .flatMap((book) => {
+      const cover = coverByBookId.get(book.id) ?? null;
+      return cover === null ? [] : [{ bookId: book.id, cover, title: book.title }];
+    })
+    .slice(0, SERIES_COVER_PREVIEW_LIMIT);
 }
 
 function collectSeriesPublishers(

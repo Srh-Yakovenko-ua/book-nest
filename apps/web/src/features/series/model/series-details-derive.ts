@@ -1,4 +1,4 @@
-import type { SeriesBookView, SeriesDetailsView, SeriesStatus } from "@app/shared";
+import type { ReadingStatus, SeriesBookView, SeriesDetailsView, SeriesStatus } from "@app/shared";
 
 const PART_NUMBER_MAX = 999;
 
@@ -7,6 +7,14 @@ export type SeriesCoverBook = {
   src: string;
   title: string;
 };
+
+export type SeriesProgressStatus =
+  | { bookPercent: null | number; kind: "reading"; position: null | number; title: string }
+  | { kind: "completed" }
+  | { kind: "missingPart"; position: number }
+  | { kind: "nextUnread"; position: null | number; title: string }
+  | { kind: "notStarted" }
+  | { kind: "ongoingAllRead" };
 
 export type SeriesReleaseYears =
   | { from: number; kind: "range"; to: number }
@@ -104,6 +112,16 @@ export function nextAddablePartNumber({
   return null;
 }
 
+export function publisherDiffersFromSeries({
+  bookPublisher,
+  seriesPublishers,
+}: {
+  bookPublisher: SeriesBookView["publisher"];
+  seriesPublishers: SeriesDetailsView["publishers"];
+}): boolean {
+  return bookPublisher !== null && seriesPublishers.length > 1;
+}
+
 export function readingOrder(books: SeriesBookView[]): SeriesBookView[] {
   return books
     .filter((book): book is SeriesBookView & { partNumber: number } => book.partNumber !== null)
@@ -158,15 +176,49 @@ export function seriesCoverBooks(books: SeriesBookView[]): SeriesCoverBook[] {
   });
 }
 
+export function seriesProgressStatus(details: SeriesDetailsView): SeriesProgressStatus {
+  const { books, finishedInSeries, nextBook, status, totalBooks } = details;
+  if (books.length === 0) return { kind: "notStarted" };
+
+  const activeBook = nextBook === null ? undefined : books.find((book) => book.id === nextBook.id);
+  if (activeBook !== undefined && isReadingStatus(activeBook.readingStatus)) {
+    return {
+      bookPercent: bookProgressPercent(activeBook),
+      kind: "reading",
+      position: activeBook.partNumber,
+      title: activeBook.title,
+    };
+  }
+
+  if (nextBook === null) {
+    const missingPart = totalBooks === null ? null : nextAddablePartNumber({ books, totalBooks });
+    if (missingPart !== null) return { kind: "missingPart", position: missingPart };
+    if (status === "ongoing") return { kind: "ongoingAllRead" };
+    return { kind: "completed" };
+  }
+
+  if (finishedInSeries === 0) return { kind: "notStarted" };
+  return { kind: "nextUnread", position: nextBook.partNumber, title: nextBook.title };
+}
+
 export function suggestedPartNumber(books: SeriesBookView[]): number {
   const highest = books.reduce((max, book) => Math.max(max, book.partNumber ?? 0), 0);
   return Math.min(highest + 1, PART_NUMBER_MAX);
+}
+
+function bookProgressPercent(book: SeriesBookView): null | number {
+  if (book.currentPage === null || book.pagesCount === null || book.pagesCount <= 0) return null;
+  return Math.min(100, Math.round((book.currentPage / book.pagesCount) * 100));
 }
 
 function byPartNumberAsc(a: SeriesBookView, b: SeriesBookView): number {
   if (a.partNumber === null) return b.partNumber === null ? 0 : 1;
   if (b.partNumber === null) return -1;
   return a.partNumber - b.partNumber;
+}
+
+function isReadingStatus(status: ReadingStatus): boolean {
+  return status === "reading" || status === "rereading";
 }
 
 function toAddedSlot(book: SeriesBookView, currentId?: string): SeriesSlot {

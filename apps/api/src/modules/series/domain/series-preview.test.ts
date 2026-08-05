@@ -1,19 +1,31 @@
+import { OwnershipStatusSchema } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
-import type { SeriesBookPreview } from "./series-preview.js";
+import type { SeriesBookPreview, SeriesBookRow } from "./series-preview.js";
 
-import { computeHasUnreadEarlierParts, summarizeSeriesBooks } from "./series-preview.js";
+import {
+  computeHasUnreadEarlierParts,
+  summarizeSeriesBooks,
+  toSeriesBookPreview,
+} from "./series-preview.js";
 
 function makeBook(overrides: Partial<SeriesBookPreview> = {}): SeriesBookPreview {
   return {
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     id: "book-default",
+    ownershipStatus: "none",
     partNumber: 1,
+    publicationYear: null,
+    publisherId: null,
     readingStatus: "not_started",
     title: "Untitled",
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     ...overrides,
   };
+}
+
+function makeRow(overrides: Partial<SeriesBookRow> = {}): SeriesBookRow {
+  return { ...makeBook(), ...overrides };
 }
 
 describe("summarizeSeriesBooks nextBook", () => {
@@ -28,7 +40,12 @@ describe("summarizeSeriesBooks nextBook", () => {
       makeBook({ id: "part-2", partNumber: 2, title: "Second" }),
     ]);
 
-    expect(summary.nextBook).toEqual({ id: "part-1", partNumber: 1, title: "First" });
+    expect(summary.nextBook).toEqual({
+      id: "part-1",
+      ownershipStatus: "none",
+      partNumber: 1,
+      title: "First",
+    });
   });
 
   it("sorts numbered parts before parts with a null part number", () => {
@@ -109,6 +126,238 @@ describe("summarizeSeriesBooks nextBook", () => {
     ]);
 
     expect(summary.nextBook).toBeNull();
+  });
+});
+
+describe("toSeriesBookPreview ownershipStatus", () => {
+  it("keeps every ownership status of the schema intact across the row boundary", () => {
+    const statuses = OwnershipStatusSchema.options;
+
+    const previews = statuses.map((ownershipStatus) =>
+      toSeriesBookPreview(makeRow({ ownershipStatus })),
+    );
+
+    expect(previews.map((preview) => preview.ownershipStatus)).toEqual([...statuses]);
+  });
+});
+
+describe("summarizeSeriesBooks nextBook ownershipStatus", () => {
+  it("reports the ownership status of the in-progress part rather than the lowest part", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({
+        id: "part-1",
+        ownershipStatus: "owned",
+        partNumber: 1,
+        readingStatus: "not_started",
+      }),
+      makeBook({
+        id: "part-2",
+        ownershipStatus: "in_transit",
+        partNumber: 2,
+        readingStatus: "reading",
+      }),
+    ]);
+
+    expect(summary.nextBook?.ownershipStatus).toBe("in_transit");
+  });
+});
+
+describe("summarizeSeriesBooks missingPartNumbers", () => {
+  it("returns an empty list for a series with no books", () => {
+    expect(summarizeSeriesBooks([]).missingPartNumbers).toEqual([]);
+  });
+
+  it("reports every part below the single book of a series", () => {
+    const summary = summarizeSeriesBooks([makeBook({ id: "part-4", partNumber: 4 })]);
+
+    expect(summary.missingPartNumbers).toEqual([1, 2, 3]);
+  });
+
+  it("returns an empty list for a series whose single book is the first part", () => {
+    const summary = summarizeSeriesBooks([makeBook({ id: "part-1", partNumber: 1 })]);
+
+    expect(summary.missingPartNumbers).toEqual([]);
+  });
+
+  it("returns an empty list when every part between the first and the last is present", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1 }),
+      makeBook({ id: "part-2", partNumber: 2 }),
+      makeBook({ id: "part-3", partNumber: 3 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([]);
+  });
+
+  it("reports a single interior gap", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1 }),
+      makeBook({ id: "part-3", partNumber: 3 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([2]);
+  });
+
+  it("reports every part of a multi-value gap in ascending order", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-5", partNumber: 5 }),
+      makeBook({ id: "part-1", partNumber: 1 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([2, 3, 4]);
+  });
+
+  it("reports several separate gaps in ascending order regardless of input order", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-6", partNumber: 6 }),
+      makeBook({ id: "part-2", partNumber: 2 }),
+      makeBook({ id: "part-4", partNumber: 4 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([1, 3, 5]);
+  });
+
+  it("reports nothing when the only missing parts come after the highest present part", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1 }),
+      makeBook({ id: "part-2", partNumber: 2 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([]);
+  });
+
+  it("reports the parts missing before the lowest present part", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-3", partNumber: 3 }),
+      makeBook({ id: "part-4", partNumber: 4 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([1, 2]);
+  });
+
+  it("reports the two missing head parts of a contiguous third-to-fifth run", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-3", partNumber: 3 }),
+      makeBook({ id: "part-4", partNumber: 4 }),
+      makeBook({ id: "part-5", partNumber: 5 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([1, 2]);
+  });
+
+  it("reports the first part as missing when the series starts at the second part", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-2", partNumber: 2 }),
+      makeBook({ id: "part-3", partNumber: 3 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([1]);
+  });
+
+  it("returns an empty list when every book has a null part number", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "companion-1", partNumber: null }),
+      makeBook({ id: "companion-2", partNumber: null }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([]);
+  });
+
+  it("ignores books with a null part number when detecting a gap", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "companion", partNumber: null }),
+      makeBook({ id: "part-1", partNumber: 1 }),
+      makeBook({ id: "part-3", partNumber: 3 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([2]);
+  });
+
+  it("does not report a phantom gap when two books share the same part number", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1-hardcover", partNumber: 1 }),
+      makeBook({ id: "part-1-ebook", partNumber: 1 }),
+      makeBook({ id: "part-2", partNumber: 2 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([]);
+  });
+
+  it("reports each missing part once when duplicates surround a gap", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1-hardcover", partNumber: 1 }),
+      makeBook({ id: "part-1-ebook", partNumber: 1 }),
+      makeBook({ id: "part-3-hardcover", partNumber: 3 }),
+      makeBook({ id: "part-3-ebook", partNumber: 3 }),
+    ]);
+
+    expect(summary.missingPartNumbers).toEqual([2]);
+  });
+});
+
+describe("summarizeSeriesBooks hasPublisher", () => {
+  it("is false when no book carries a publisher", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1, publisherId: null }),
+      makeBook({ id: "part-2", partNumber: 2, publisherId: null }),
+    ]);
+
+    expect(summary.hasPublisher).toBe(false);
+  });
+
+  it("is false for a series with no books", () => {
+    expect(summarizeSeriesBooks([]).hasPublisher).toBe(false);
+  });
+
+  it("is true when only some books carry a publisher", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1, publisherId: null }),
+      makeBook({ id: "part-2", partNumber: 2, publisherId: "publisher-vivat" }),
+    ]);
+
+    expect(summary.hasPublisher).toBe(true);
+  });
+
+  it("is true when every book carries a publisher", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1, publisherId: "publisher-vivat" }),
+      makeBook({ id: "part-2", partNumber: 2, publisherId: "publisher-abab" }),
+    ]);
+
+    expect(summary.hasPublisher).toBe(true);
+  });
+});
+
+describe("summarizeSeriesBooks hasPublicationYears", () => {
+  it("is false when no book carries a publication year", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1, publicationYear: null }),
+      makeBook({ id: "part-2", partNumber: 2, publicationYear: null }),
+    ]);
+
+    expect(summary.hasPublicationYears).toBe(false);
+  });
+
+  it("is false for a series with no books", () => {
+    expect(summarizeSeriesBooks([]).hasPublicationYears).toBe(false);
+  });
+
+  it("is true when only some books carry a publication year", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1, publicationYear: null }),
+      makeBook({ id: "part-2", partNumber: 2, publicationYear: 2018 }),
+    ]);
+
+    expect(summary.hasPublicationYears).toBe(true);
+  });
+
+  it("is true when every book carries a publication year", () => {
+    const summary = summarizeSeriesBooks([
+      makeBook({ id: "part-1", partNumber: 1, publicationYear: 2012 }),
+      makeBook({ id: "part-2", partNumber: 2, publicationYear: 2018 }),
+    ]);
+
+    expect(summary.hasPublicationYears).toBe(true);
   });
 });
 

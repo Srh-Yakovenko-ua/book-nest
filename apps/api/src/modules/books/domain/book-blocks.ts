@@ -7,16 +7,22 @@ import type {
   PurchaseInfoInput,
   ReadingProgressInput,
   ReadingStatus,
+  UpdateBookInput,
 } from "@app/shared";
+
+import { LoanTypeSchema, ownershipStatusKeepsPurchase, ownershipStatusUsesLoan } from "@app/shared";
 
 import type {
   CreateDeliveryData,
   UpdateDeliveryData,
 } from "../infrastructure/book-deliveries.repository.js";
 import type {
+  BlockUpsert,
   CreateLoanInfoData,
   CreatePurchaseInfoData,
   CreateReadingProgressData,
+  DeliveryBlockChange,
+  LoanBlockChange,
   UpdateLoanInfoData,
   UpdatePurchaseInfoData,
   UpdateReadingProgressData,
@@ -160,4 +166,88 @@ export function readingStatusUsesProgress(readingStatus: ReadingStatus): boolean
   return STATUSES_WITH_READING_PROGRESS.has(readingStatus);
 }
 
-export { ownershipStatusKeepsPurchase, ownershipStatusUsesLoan } from "@app/shared";
+export function resolveDeliveryBlock({
+  deliveryInfo,
+  now,
+  ownershipStatus,
+}: {
+  deliveryInfo: UpdateBookInput["deliveryInfo"];
+  now: Date;
+  ownershipStatus: OwnershipStatus;
+}): DeliveryBlockChange {
+  if (!ownershipStatusUsesDelivery(ownershipStatus)) {
+    return { cancelledAt: now, kind: "cancel" };
+  }
+  if (deliveryInfo === undefined) {
+    return { kind: "skip" };
+  }
+  return {
+    create: buildDeliveryInfoData(deliveryInfo),
+    kind: "upsertActive",
+    update: buildDeliveryInfoUpdateData(deliveryInfo),
+  };
+}
+
+export function resolveLoanBlock({
+  loanInfo,
+  now,
+  ownershipStatus,
+}: {
+  loanInfo: UpdateBookInput["loanInfo"];
+  now: Date;
+  ownershipStatus: OwnershipStatus;
+}): LoanBlockChange {
+  if (!ownershipStatusUsesLoan(ownershipStatus)) {
+    return { kind: "return", returnedAt: now };
+  }
+  const type = LoanTypeSchema.parse(ownershipStatus);
+  if (loanInfo === undefined) {
+    return { kind: "syncType", type };
+  }
+  return {
+    create: buildLoanInfoData(loanInfo),
+    kind: "upsertActive",
+    type,
+    update: buildLoanInfoUpdateData(loanInfo),
+  };
+}
+
+export function resolvePurchaseBlock({
+  ownershipStatus,
+  purchaseInfo,
+}: {
+  ownershipStatus: OwnershipStatus;
+  purchaseInfo: UpdateBookInput["purchaseInfo"];
+}): BlockUpsert<CreatePurchaseInfoData, UpdatePurchaseInfoData> {
+  if (!ownershipStatusKeepsPurchase(ownershipStatus)) {
+    return { delete: true };
+  }
+  if (purchaseInfo === undefined) {
+    return { skip: true };
+  }
+  return {
+    create: buildPurchaseInfoData(purchaseInfo),
+    update: buildPurchaseInfoUpdateData(purchaseInfo),
+  };
+}
+
+export function resolveReadingProgressBlock({
+  readingProgress,
+  readingStatus,
+}: {
+  readingProgress: UpdateBookInput["readingProgress"];
+  readingStatus: ReadingStatus;
+}): BlockUpsert<CreateReadingProgressData, UpdateReadingProgressData> {
+  if (!readingStatusUsesProgress(readingStatus)) {
+    return { delete: true };
+  }
+  if (readingProgress === undefined) {
+    return { skip: true };
+  }
+  return {
+    create: buildReadingProgressData(readingProgress),
+    update: buildReadingProgressUpdateData(readingProgress),
+  };
+}
+
+export { ownershipStatusKeepsPurchase, ownershipStatusUsesLoan };

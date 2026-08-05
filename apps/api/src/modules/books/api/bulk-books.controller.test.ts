@@ -620,7 +620,7 @@ describe("POST /api/books/bulk/reading-queue", () => {
 });
 
 describe("POST /api/books/bulk/delete", () => {
-  it("hard deletes the owned books and reports the affected count", async () => {
+  it("moves the owned books to the trash and reports the affected count", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
     const first = await seedBook({ authorId: author.id, title: "A", userId });
@@ -629,11 +629,13 @@ describe("POST /api/books/bulk/delete", () => {
     const res = await post(accessToken, "delete", { bookIds: [first.id, second.id] });
 
     expect(res.body).toEqual({ affected: 2 });
-    const remaining = await prisma.book.count({ where: { userId } });
-    expect(remaining).toBe(0);
+    const active = await prisma.book.count({ where: { deletedAt: null, userId } });
+    expect(active).toBe(0);
+    const trashed = await prisma.book.count({ where: { deletedAt: { not: null }, userId } });
+    expect(trashed).toBe(2);
   });
 
-  it("removes an orphaned cover whose only book was deleted", async () => {
+  it("keeps the cover of a trashed book so a restore still has its image", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
     const media = await seedMedia({ userId });
@@ -647,7 +649,7 @@ describe("POST /api/books/bulk/delete", () => {
     await post(accessToken, "delete", { bookIds: [book.id] });
 
     const mediaRow = await prisma.mediaAsset.findUnique({ where: { id: media.id } });
-    expect(mediaRow).toBeNull();
+    expect(mediaRow).not.toBeNull();
   });
 
   it("keeps a cover that is still referenced by another book", async () => {

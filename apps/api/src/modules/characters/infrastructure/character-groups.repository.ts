@@ -10,6 +10,7 @@ import type {
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 
 const detailsInclude = {
   memberships: {
@@ -281,7 +282,10 @@ export class CharacterGroupsRepository {
 
 function buildGroupWhere(filter: GroupListFilter): Prisma.CharacterGroupWhereInput {
   const { search, seriesId, type, userId } = filter;
-  const where: Prisma.CharacterGroupWhereInput = { userId };
+  const where: Prisma.CharacterGroupWhereInput = {
+    OR: [{ seriesId: null }, { series: SOFT_DELETE_SCOPE.active }],
+    userId,
+  };
   if (seriesId !== undefined) {
     where.seriesId = seriesId;
   }

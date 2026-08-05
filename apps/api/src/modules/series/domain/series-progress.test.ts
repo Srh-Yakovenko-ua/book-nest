@@ -8,7 +8,10 @@ function makeBook(overrides: Partial<SeriesBookPreview> = {}): SeriesBookPreview
   return {
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     id: "book-default",
+    ownershipStatus: "none",
     partNumber: 1,
+    publicationYear: null,
+    publisherId: null,
     readingStatus: "not_started",
     title: "Untitled",
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),

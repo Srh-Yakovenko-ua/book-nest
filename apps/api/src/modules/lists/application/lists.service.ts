@@ -1,6 +1,7 @@
 import type {
   CustomListCard,
   CustomListsQuery,
+  ListsSummaryView,
   MediaView,
   NewListInput,
   Nullable,
@@ -18,6 +19,7 @@ import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
 import { toCustomListCard } from "../domain/custom-list-card.mapper.js";
+import { toListsSummary } from "../domain/lists-summary.js";
 import { type BookListCard, ListsRepository } from "../infrastructure/lists.repository.js";
 
 const LIST_NAME_TAKEN_MESSAGE = "List with this name already exists";
@@ -45,11 +47,6 @@ type AssertOwnedInput = {
 
 type CreateInput = {
   input: NewListInput;
-  userId: string;
-};
-
-type DeleteInput = {
-  listId: string;
   userId: string;
 };
 
@@ -123,11 +120,12 @@ export class ListsService {
     }
   }
 
-  async delete({ listId, userId }: DeleteInput): Promise<void> {
-    const deletedCount = await this.listsRepository.deleteOwned({ id: listId, userId });
-    if (deletedCount === 0) {
+  async findCard({ listId, userId }: { listId: string; userId: string }): Promise<CustomListCard> {
+    const list = await this.listsRepository.findOwnedCardById({ listId, userId });
+    if (list === null) {
       throw new NotFoundError(LIST_NOT_FOUND_MESSAGE);
     }
+    return this.toCard(list);
   }
 
   async findDetailHeader({ listId, userId }: FindDetailHeaderInput): Promise<ListDetailHeader> {
@@ -147,9 +145,13 @@ export class ListsService {
     };
   }
 
+  async getSummary({ userId }: { userId: string }): Promise<ListsSummaryView> {
+    return toListsSummary(await this.listsRepository.summaryCounts({ userId }));
+  }
+
   async resolveListsForBook(
     { input, userId }: ResolveListsForBookInput,
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<string[]> {
     const resolvedIds = new Set<string>();
 
@@ -237,9 +239,10 @@ export class ListsService {
 
   private async resolveOrCreate(
     { newList, userId }: ResolveOrCreateInput,
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<string> {
     const normalizedName = normalizeName(newList.name);
+    await this.listsRepository.acquireCreateLock(userId, client);
     const existing = await this.listsRepository.findByNormalized(
       { normalizedName, userId },
       client,
@@ -248,7 +251,7 @@ export class ListsService {
       return existing.id;
     }
 
-    const created = await this.listsRepository.upsertByNormalized(
+    const created = await this.listsRepository.createByNormalized(
       {
         data: {
           description: newList.description ?? null,

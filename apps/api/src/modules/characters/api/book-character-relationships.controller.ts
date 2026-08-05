@@ -15,7 +15,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
-import { CharacterRelationshipsService } from "../application/character-relationships.service.js";
+import { RelationshipContextService } from "../application/relationship-context.service.js";
 import { BookCharacterRelationshipsQueryDto } from "./input-dto/book-character-relationships-query.input-dto.js";
 import { CharacterRelationshipContextViewDto } from "./view-dto/character-relationship-context.view-dto.js";
 
@@ -23,7 +23,7 @@ import { CharacterRelationshipContextViewDto } from "./view-dto/character-relati
 @Controller("api/books/:bookId/character-relationships")
 @JwtProtected()
 export class BookCharacterRelationshipsController {
-  constructor(private readonly relationshipsService: CharacterRelationshipsService) {}
+  constructor(private readonly contextService: RelationshipContextService) {}
 
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({
@@ -56,6 +56,6 @@ export class BookCharacterRelationshipsController {
     @Query(new ZodQueryPipe(BookCharacterRelationshipsQuerySchema))
     query: BookCharacterRelationshipsQueryDto,
   ): Promise<CharacterRelationshipContextView[]> {
-    return this.relationshipsService.listForBook({ bookId, query, userId: user.id });
+    return this.contextService.listForBook({ bookId, query, userId: user.id });
   }
 }

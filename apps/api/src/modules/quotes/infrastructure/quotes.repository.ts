@@ -4,9 +4,11 @@ import { QUOTE_PAGE_MAX } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { QuoteBookCount, QuotesSummaryData } from "../domain/quotes-summary.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookTextSearchConditions } from "../../books/index.js";
 
@@ -65,12 +67,29 @@ type ListQuotesInput = QuotesFilterInput & {
   take: number;
 };
 
+const trashedQuoteSelect = {
+  book: { select: { title: true } },
+  deletedAt: true,
+  id: true,
+  purgeAt: true,
+  text: true,
+} satisfies Prisma.QuoteSelect;
+
+export type TrashedQuoteRow = Trashed<TrashedQuoteSelection>;
+
+type TrashedQuoteSelection = Prisma.QuoteGetPayload<{ select: typeof trashedQuoteSelect }>;
+
 @Injectable()
 export class QuotesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async bookCounts(userId: string, bookId: string): Promise<BookQuoteCounts> {
-    const base: Prisma.QuoteWhereInput = { bookId, userId };
+    const base: Prisma.QuoteWhereInput = {
+      ...SOFT_DELETE_SCOPE.active,
+      book: SOFT_DELETE_SCOPE.active,
+      bookId,
+      userId,
+    };
     const [total, favorites, spoiler] = await Promise.all([
       this.prisma.quote.count({ where: base }),
       this.prisma.quote.count({ where: { ...base, isFavorite: true } }),
@@ -82,6 +101,12 @@ export class QuotesRepository {
 
   count(filter: QuotesFilterInput): Promise<number> {
     return this.prisma.quote.count({ where: buildQuotesWhere(filter) });
+  }
+
+  countTrashed({ userId }: { userId: string }): Promise<number> {
+    return this.prisma.quote.count({
+      where: { ...SOFT_DELETE_SCOPE.trashed, book: SOFT_DELETE_SCOPE.active, userId },
+    });
   }
 
   create(
@@ -99,18 +124,23 @@ export class QuotesRepository {
     return client.quote.create({ data: { ...data, bookId, userId }, ...quoteWithBook });
   }
 
-  async delete(
-    { quoteId }: { quoteId: string },
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<number> {
-    const deleted = await client.quote.deleteMany({ where: { id: quoteId } });
-    return deleted.count;
+  findForPurge({
+    quoteId,
+    userId,
+  }: {
+    quoteId: string;
+    userId: string;
+  }): Promise<Nullable<{ deletedAt: Nullable<Date> }>> {
+    return this.prisma.quote.findFirst({
+      select: { deletedAt: true },
+      where: { id: quoteId, userId },
+    });
   }
 
   findOwnedBook(userId: string, bookId: string): Promise<Nullable<OwnedBook>> {
     return this.prisma.book.findFirst({
       select: { id: true, pagesCount: true },
-      where: { id: bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
   }
 
@@ -124,9 +154,45 @@ export class QuotesRepository {
     userId: string;
   }): Promise<Nullable<QuoteWithBook>> {
     return this.prisma.quote.findFirst({
-      where: { bookId, id: quoteId, userId },
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        book: SOFT_DELETE_SCOPE.active,
+        bookId,
+        id: quoteId,
+        userId,
+      },
       ...quoteWithBook,
     });
+  }
+
+  findPurgeCandidates({
+    limit,
+    now,
+  }: {
+    limit: number;
+    now: Date;
+  }): Promise<{ id: string; userId: string }[]> {
+    return this.prisma.quote.findMany({
+      orderBy: { purgeAt: "asc" },
+      select: { id: true, userId: true },
+      take: limit,
+      where: SOFT_DELETE_SCOPE.overdue(now),
+    });
+  }
+
+  async hardDeleteIfTrashed({
+    now,
+    quoteId,
+    userId,
+  }: {
+    now: Date;
+    quoteId: string;
+    userId: string;
+  }): Promise<number> {
+    const purged = await this.prisma.quote.deleteMany({
+      where: { ...SOFT_DELETE_SCOPE.overdue(now), id: quoteId, userId },
+    });
+    return purged.count;
   }
 
   list({ skip, sort, take, ...filter }: ListQuotesInput): Promise<QuoteWithBook[]> {
@@ -142,9 +208,66 @@ export class QuotesRepository {
   listForBook(userId: string, bookId: string): Promise<QuoteWithBook[]> {
     return this.prisma.quote.findMany({
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-      where: { bookId, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, bookId, userId },
       ...quoteWithBook,
     });
+  }
+
+  async listTrashed({
+    skip,
+    take,
+    userId,
+  }: {
+    skip: number;
+    take: number;
+    userId: string;
+  }): Promise<TrashedQuoteRow[]> {
+    const rows = await this.prisma.quote.findMany({
+      orderBy: [{ deletedAt: "desc" }, { id: "asc" }],
+      select: trashedQuoteSelect,
+      skip,
+      take,
+      where: { ...SOFT_DELETE_SCOPE.trashed, book: SOFT_DELETE_SCOPE.active, userId },
+    });
+    return rows.filter(isTrashed);
+  }
+
+  async restore({
+    bookId,
+    quoteId,
+    userId,
+  }: {
+    bookId: string;
+    quoteId: string;
+    userId: string;
+  }): Promise<number> {
+    const restored = await this.prisma.quote.updateMany({
+      data: SOFT_DELETE_SCOPE.restored,
+      where: {
+        ...SOFT_DELETE_SCOPE.trashed,
+        book: SOFT_DELETE_SCOPE.active,
+        bookId,
+        id: quoteId,
+        userId,
+      },
+    });
+    return restored.count;
+  }
+
+  async softDelete({
+    quoteId,
+    stamp,
+    userId,
+  }: {
+    quoteId: string;
+    stamp: TrashStamp;
+    userId: string;
+  }): Promise<number> {
+    const deleted = await this.prisma.quote.updateMany({
+      data: stamp,
+      where: { ...SOFT_DELETE_SCOPE.active, id: quoteId, userId },
+    });
+    return deleted.count;
   }
 
   async summaryData(userId: string): Promise<QuotesSummaryData> {
@@ -156,9 +279,16 @@ export class QuotesRepository {
           (count(*) FILTER (WHERE quote.is_spoiler = true))::int AS "spoiler",
           (count(*) FILTER (WHERE quote.comment IS NOT NULL))::int AS "withComment"
         FROM quotes quote
+        JOIN books book ON book.id = quote.book_id
         WHERE quote.user_id = ${userId}::uuid
+          AND quote.deleted_at IS NULL
+          AND book.deleted_at IS NULL
       `),
-      this.prisma.quote.groupBy({ _count: { _all: true }, by: ["bookId"], where: { userId } }),
+      this.prisma.quote.groupBy({
+        _count: { _all: true },
+        by: ["bookId"],
+        where: { ...SOFT_DELETE_SCOPE.active, book: SOFT_DELETE_SCOPE.active, userId },
+      }),
     ]);
 
     const counts = z.array(QuotesSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_QUOTE_COUNTS;
@@ -195,7 +325,11 @@ export class QuotesRepository {
 
     const books = await this.prisma.book.findMany({
       select: { firstAuthorName: true, id: true, title: true },
-      where: { id: { in: groups.map((group) => group.bookId) }, userId },
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        id: { in: groups.map((group) => group.bookId) },
+        userId,
+      },
     });
     const bookById = new Map(books.map((book) => [book.id, book]));
 
@@ -284,7 +418,11 @@ function buildQuotesWhere({
   search,
   userId,
 }: QuotesFilterInput): Prisma.QuoteWhereInput {
-  const where: Prisma.QuoteWhereInput = { userId };
+  const where: Prisma.QuoteWhereInput = {
+    ...SOFT_DELETE_SCOPE.active,
+    book: SOFT_DELETE_SCOPE.active,
+    userId,
+  };
 
   if (bookId !== undefined) {
     where.bookId = bookId;

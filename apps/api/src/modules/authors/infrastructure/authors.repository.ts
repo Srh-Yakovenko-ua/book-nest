@@ -153,6 +153,7 @@ export class AuthorsRepository {
       FROM book_authors book_author
       JOIN books book ON book.id = book_author.book_id
       WHERE book.user_id = ${userId}::uuid
+        AND book.deleted_at IS NULL
       GROUP BY book_author.author_id
       ORDER BY max(book.created_at) DESC
       LIMIT ${limit}

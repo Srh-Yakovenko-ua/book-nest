@@ -16,6 +16,7 @@ import { parseISO } from "date-fns";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { ListsService } from "../../lists/index.js";
 import { TagsService } from "../../tags/index.js";
 import {
@@ -25,7 +26,7 @@ import {
   readingStatusUsesProgress,
 } from "../domain/book-blocks.js";
 import { BulkBooksRepository } from "../infrastructure/bulk-books.repository.js";
-import { BookCoverCleanup } from "./book-cover-cleanup.js";
+import { BookPurgeScheduler } from "./book-purge.scheduler.js";
 
 const DEFAULT_QUEUE_PRIORITY: QueuePriority = "normal";
 
@@ -35,7 +36,7 @@ export class BulkBooksService {
     private readonly bulkBooksRepository: BulkBooksRepository,
     private readonly tagsService: TagsService,
     private readonly listsService: ListsService,
-    private readonly coverCleanup: BookCoverCleanup,
+    private readonly purgeScheduler: BookPurgeScheduler,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -79,18 +80,19 @@ export class BulkBooksService {
     if (ownedBookIds.length === 0) {
       return { affected: 0 };
     }
-    const listIds = await this.listsService.resolveListsForBook({
-      input: { listIds: input.listIds, newLists: input.newLists },
-      userId,
-    });
-    if (listIds.length === 0) {
-      return { affected: 0 };
-    }
-    const affected = await this.bulkBooksRepository.addToLists({
-      bookIds: ownedBookIds,
-      listIds,
-      now: new Date(),
-      userId,
+
+    const affected = await this.transactionRunner.run(async (tx) => {
+      const listIds = await this.listsService.resolveListsForBook(
+        { input: { listIds: input.listIds, newLists: input.newLists }, userId },
+        tx,
+      );
+      if (listIds.length === 0) {
+        return 0;
+      }
+      return this.bulkBooksRepository.addToLists(
+        { bookIds: ownedBookIds, listIds, now: new Date(), userId },
+        tx,
+      );
     });
     return { affected };
   }
@@ -117,12 +119,13 @@ export class BulkBooksService {
     input: BulkBookIds;
     userId: string;
   }): Promise<BulkActionResult> {
-    const { affected, coverMediaIds } = await this.bulkBooksRepository.deleteOwned({
+    const deletedIds = await this.bulkBooksRepository.softDelete({
       bookIds: input.bookIds,
+      stamp: TRASH_RETENTION.stamp(),
       userId,
     });
-    await this.deleteOrphanedCovers({ coverMediaIds, userId });
-    return { affected };
+    await this.purgeScheduler.scheduleMany({ bookIds: deletedIds, userId });
+    return { affected: deletedIds.length };
   }
 
   async setFavorite({
@@ -240,17 +243,5 @@ export class BulkBooksService {
 
       return { failed, updated };
     });
-  }
-
-  private async deleteOrphanedCovers({
-    coverMediaIds,
-    userId,
-  }: {
-    coverMediaIds: string[];
-    userId: string;
-  }): Promise<void> {
-    for (const mediaId of coverMediaIds) {
-      await this.coverCleanup.deleteIfOrphaned({ mediaId, userId });
-    }
   }
 }

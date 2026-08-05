@@ -100,7 +100,7 @@ Business logic stays independent of HTTP **and** of the data layer, so each laye
 1. Zod request/response schema + types in `packages/shared`.
 2. `model` in `apps/api/prisma/schema.prisma` (if a new entity).
 3. **Migrations are the source of truth — two-step, never one-shot.** (a) `pnpm --filter @app/api db:migrate --name <snake_case>` creates a review-only migration (`migrate dev --create-only`; `--name` is required — bare `prisma migrate dev` blocks forever on the interactive name prompt in a non-TTY shell). (b) Review the `migration.sql` (delegate to `migration-reviewer`; watch the rename trap; strip the DROP-INDEX lines per the trap below), then `pnpm --filter @app/api db:migrate:deploy` (non-interactive, advisory-locked).
-   - **Raw-SQL-index trap.** Five indexes live in hand-written SQL inside their migrations because Prisma can't express them in a `model`: trigram GIN `authors_search_text_trgm_idx` + `publishers_search_text_trgm_idx` (`gin_trgm_ops`, cross-locale search), partial-unique `book_deliveries_active_book_idx` + `book_loans_active_book_idx` (one active delivery / one active loan per book), and partial `books_user_queue_position_idx` (`WHERE queue_position IS NOT NULL`, reading-queue reads/shifts/resequences). They exist in the DB but not in `schema.prisma`, so every generated migration emits a spurious `DROP INDEX` for them. Hand-strip those `DROP INDEX` lines **before** `db:migrate:deploy`, or search degrades to a seq scan and the one-active invariants are silently lost.
+   - **Raw-SQL-index trap.** Nine indexes live in hand-written SQL inside their migrations because Prisma can't express them in a `model`: trigram GIN `authors_search_text_trgm_idx` + `publishers_search_text_trgm_idx` (`gin_trgm_ops`, cross-locale search), partial-unique `book_deliveries_active_book_idx` + `book_loans_active_book_idx` (one active delivery / one active loan per book), partial `books_user_queue_position_idx` (`WHERE queue_position IS NOT NULL AND deleted_at IS NULL`, reading-queue reads/shifts/resequences), partial-unique `books_series_id_part_number_key` (`WHERE deleted_at IS NULL`, so a trashed book stops holding its slot in the series — keep that exact index name, `book-relations-resolver` maps P2002 on it to the friendly part-number conflict error), and partial-unique `series_user_id_normalized_name_key` + `book_lists_user_id_normalized_name_key` + `book_timelines_book_id_name_lower_idx` (`WHERE deleted_at IS NULL`, so a trashed series/list/timeline releases its name; series and list creation take an advisory lock instead of relying on upsert). `apps/api/src/core/database/raw-sql-indexes.test.ts` asserts all nine still exist with their predicates, so a forgotten strip turns red in CI instead of silently dropping an invariant. They exist in the DB but not in `schema.prisma`, so every generated migration emits a spurious `DROP INDEX` for them. Hand-strip those `DROP INDEX` lines **before** `db:migrate:deploy`, or search degrades to a seq scan and the one-active invariants are silently lost.
 4. Repository — inject `PrismaService`, parameterized queries only.
 5. Service — business logic, `HttpError` subclasses, map model → ViewModel, `TransactionRunner.run(...)` for multi-write.
 6. Input DTO classes in `api/input-dto/` via `createZodDto(Schema)`.
@@ -137,7 +137,8 @@ Business logic stays independent of HTTP **and** of the data layer, so each laye
 7. **DRY the knowledge, not the resemblance.** One source of truth for a business rule / type / contract, but leave incidental similarity alone (e.g. FE `lib/env.ts` vs BE `config/env.ts`). Extract on the third real use, not the second. Optimize for changeability: easy-to-delete > easy-to-extend. Full reference: [`docs/code-principles.md`](./docs/code-principles.md).
 8. **Layered architecture is sacred.** BE: no Prisma in controllers, no Prisma outside repositories, no `req`/`res` in services, repositories never return a ViewModel. FE: no fetch in components — go through the feature's `api/`.
 9. **Early return over nested if.** Discriminated unions over multiple optional booleans. Make invalid states unrepresentable.
-10. **One concern per file**, one default export where applicable.
+10. **One concern per file**, one default export where applicable. **Group related constants into one cohesive object** (grouped by concept — not a junk-drawer), never a scatter of top-level `const`s / exports; extending it adds a key, not an import. See [`docs/code-principles.md`](./docs/code-principles.md) §3.10.
+11. **Every date operation goes through `date-fns`** — in all three packages, `apps/api`, `apps/web` and `packages/shared` (which depends on it for exactly this reason). Compare with `isAfter` / `isBefore` / `compareAsc`, add and subtract with `addDays` / `subYears` / `milliseconds({ days })`, snap with `startOfYear` / `startOfDay`, validate with `isValid`. **Banned**: `getTime()` arithmetic or comparison, hand-rolled millisecond literals like `24 * 60 * 60 * 1000`, `new Date(y, m, d)` used as arithmetic, and in-place mutators (`setFullYear`, `setUTCHours`, `setDate`) — a mutated `Date` is a bug waiting for its second reader. Bare `new Date()` is allowed only to capture "now". Reach for `date-fns-tz` (`formatInTimeZone`) whenever a user's timezone is involved. When you touch a file, fix the date math you find next to your change rather than stepping around it.
 
 **Working style**
 
@@ -171,25 +172,28 @@ Never report done with a failing gate. If a gate fails for an unrelated reason (
 
 Route work to the right subagent without narrating or asking. Agents live in `.claude/agents/` — full registry in [`.claude/agents/README.md`](./.claude/agents/README.md). A subagent does **not** see the conversation: pass a self-contained brief (what, where, constraints, what to return). Summarize its result briefly; don't paste the full report.
 
-| Task                                                                 | Agent                                              |
-| -------------------------------------------------------------------- | -------------------------------------------------- |
-| Write/modify React in `apps/web/src/**`                              | `frontend-engineer`                                |
-| Visual polish, motion, typography, color, responsive rhythm          | `design-engineer`                                  |
-| Write/modify NestJS/Prisma in `apps/api/src/**`                      | `backend-engineer`                                 |
-| Tests in `apps/web/src/**` / `apps/api/src/**`                       | `frontend-test-engineer` / `backend-test-engineer` |
-| Refactor / dead code / cleanup                                       | `refactor-specialist`                              |
-| End-to-end user-visible feature needing a "what's new" entry         | `changelog-writer`                                 |
-| Browser-side bug (UI, console, layout, hydration, interaction)       | `frontend-bug-hunter`                              |
-| Server-side bug (500, failing endpoint, Prisma/Postgres error, hang) | `backend-bug-hunter`                               |
-| Prisma migration / schema change                                     | `migration-reviewer`                               |
-| Release / promote dev→stage→prod, deploy, "залить в прод", "выкати"  | `release-manager`                                  |
-| "ready to commit" / "сделай ревью" / "проверь перед commit"          | `code-reviewer` (+ auditors below)                 |
-| Anything touching auth / API / forms / env / deps / secrets          | `security-reviewer`                                |
-| FE slow / bundle bloat / re-render / web-vitals regression           | `frontend-performance-auditor`                     |
-| Accessibility, keyboard nav, ARIA, contrast, focus                   | `accessibility-auditor`                            |
-| SEO / SSR markup, metadata, hreflang, sitemap/robots, locale routing | `seo-auditor`                                      |
+| Task                                                                      | Agent                                              |
+| ------------------------------------------------------------------------- | -------------------------------------------------- |
+| Work arrives as a spec / ТЗ md — before ANY code, and again before "done" | `spec-auditor` (via the `/spec-to-ship` chain)     |
+| Write/modify React in `apps/web/src/**`                                   | `frontend-engineer`                                |
+| Visual polish, motion, typography, color, responsive rhythm               | `design-engineer`                                  |
+| Write/modify NestJS/Prisma in `apps/api/src/**`                           | `backend-engineer`                                 |
+| Tests in `apps/web/src/**` / `apps/api/src/**`                            | `frontend-test-engineer` / `backend-test-engineer` |
+| Refactor / dead code / cleanup                                            | `refactor-specialist`                              |
+| End-to-end user-visible feature needing a "what's new" entry              | `changelog-writer`                                 |
+| Browser-side bug (UI, console, layout, hydration, interaction)            | `frontend-bug-hunter`                              |
+| Server-side bug (500, failing endpoint, Prisma/Postgres error, hang)      | `backend-bug-hunter`                               |
+| Prisma migration / schema change                                          | `migration-reviewer`                               |
+| Release / promote dev→stage→prod, deploy, "залить в прод", "выкати"       | `release-manager`                                  |
+| "ready to commit" / "сделай ревью" / "проверь перед commit"               | `code-reviewer` (+ auditors below)                 |
+| Anything touching auth / API / forms / env / deps / secrets               | `security-reviewer`                                |
+| FE slow / bundle bloat / re-render / web-vitals regression                | `frontend-performance-auditor`                     |
+| Accessibility, keyboard nav, ARIA, contrast, focus                        | `accessibility-auditor`                            |
+| SEO / SSR markup, metadata, hreflang, sitemap/robots, locale routing      | `seo-auditor`                                      |
 
 **Parallel review** — on "ready to commit" / "полный ревью", launch the relevant reviewers in one turn (multiple Agent calls): always `code-reviewer`; plus `frontend-performance-auditor` / `accessibility-auditor` if the diff touches UI, `seo-auditor` if it touches routing/metadata/next-intl, `security-reviewer` if it touches auth/API/forms/env/deps.
+
+**Spec-driven work runs as a chain, not head-on** — see [`.claude/skills/spec-to-ship/SKILL.md`](./.claude/skills/spec-to-ship/SKILL.md). Verify the spec against the code before planning, decompose into a checkable `tasks.json`, ask all open decisions in one block, implement slice by slice with per-slice review, then re-audit the diff against `tasks.json` before claiming done. A spec's `file:line` claims are stale until opened; a requirement is optional only when the spec itself says so.
 
 **Do it yourself** (no delegation): trivial answers; reading or explaining existing code; edits in `docs/`; root config (`turbo.json`, `eslint.config.mjs`, `next.config.ts`, `tsconfig.base.json`, `knip.json`); rewriting this file; or when the user says "сделай сам".
 
@@ -198,6 +202,7 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 ## 11. Operating notes
 
 - **Local Postgres may be down.** The API tolerates a missing DB at startup (health shows `postgres: "down"`, app still serves). Tests and data endpoints need a local Postgres with the credentials in `apps/api/vitest.config.ts` / `.env` (`pnpm db:up` for the Docker Postgres).
+- **Test CPU load is tunable.** Both Vitest configs honour `VITEST_MAX_WORKERS` (default `min(6, cores)`); `VITEST_MAX_WORKERS=2 pnpm test` when the machine needs to stay quiet. Measured on the 18-core dev machine: total CPU work is flat across worker counts (~90s user for a 17-file module), only the wall time and the peak load change — 6 workers ≈ 28s wall, 2 workers ≈ 51s.
 - **Modular monolith.** Service extraction comes later, only when a real boundary demands it — the only preparation is keeping module boundaries clean.
 - **Per-user memory** at `~/.claude/projects/-Users-macbookpro14-WebstormProjects-book-nest/memory/` is auto-loaded and captures evolved feedback across sessions — honor it.
 

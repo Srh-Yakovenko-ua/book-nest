@@ -4,10 +4,12 @@ import { MailModule } from "../mail/index.js";
 import { AuthController } from "./api/auth.controller.js";
 import { JwtAccessGuard } from "./api/guards/jwt-access.guard.js";
 import { OptionalJwtAccessGuard } from "./api/guards/optional-jwt-access.guard.js";
+import { AccessTokenAuthenticator } from "./application/access-token.authenticator.js";
 import { AuthService } from "./application/auth.service.js";
 import { EmailVerificationService } from "./application/email-verification.service.js";
 import { PasswordResetService } from "./application/password-reset.service.js";
 import { PasswordService } from "./application/password.service.js";
+import { SessionCleanupReconciler } from "./application/session-cleanup.reconciler.js";
 import { SessionService } from "./application/session.service.js";
 import { TokenService } from "./application/token.service.js";
 import { EmailVerificationTokensRepository } from "./infrastructure/email-verification-tokens.repository.js";
@@ -17,13 +19,21 @@ import { UsersRepository } from "./infrastructure/users.repository.js";
 
 @Module({
   controllers: [AuthController],
-  exports: [JwtAccessGuard, OptionalJwtAccessGuard, TokenService, UsersRepository],
+  exports: [
+    AccessTokenAuthenticator,
+    JwtAccessGuard,
+    OptionalJwtAccessGuard,
+    TokenService,
+    UsersRepository,
+  ],
   imports: [MailModule],
   providers: [
+    AccessTokenAuthenticator,
     AuthService,
     EmailVerificationService,
     PasswordResetService,
     PasswordService,
+    SessionCleanupReconciler,
     SessionService,
     TokenService,
     UsersRepository,

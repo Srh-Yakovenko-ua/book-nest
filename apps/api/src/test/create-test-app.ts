@@ -1,11 +1,13 @@
 import "reflect-metadata";
 
-import type { INestApplication, InjectionToken, ModuleMetadata } from "@nestjs/common";
+import type { INestApplication, ModuleMetadata } from "@nestjs/common";
 
 import { BullModule } from "@nestjs/bullmq";
 import { type NestExpressApplication } from "@nestjs/platform-express";
 import { Test } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
+
+import type { ProviderOverride } from "./auth-test-context.js";
 
 import { env } from "../config/env.js";
 import { DatabaseModule } from "../core/database/database.module.js";
@@ -18,11 +20,6 @@ const TestBullModule = BullModule.forRoot({
   connection: { maxRetriesPerRequest: null, url: env.redisUrl },
   extraOptions: { manualRegistration: true },
 });
-
-type ProviderOverride = {
-  provide: InjectionToken;
-  useValue: unknown;
-};
 
 export async function createTestApp(
   imports: NonNullable<ModuleMetadata["imports"]>,

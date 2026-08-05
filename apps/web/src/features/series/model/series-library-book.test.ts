@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import type { SeriesLibraryBookLabels } from "./series-library-book";
 
 import {
+  seriesBookDeliveryContext,
   seriesBookEdition,
+  seriesBookLoanContext,
   seriesBookPersonalState,
   toSeriesLibraryBook,
 } from "./series-library-book";
-import { makeSeriesBookView } from "./series.fixtures";
+import { makeDelivery, makeLoanInfo, makeSeriesBookView } from "./series.fixtures";
 
 const labels: SeriesLibraryBookLabels = {
   ageBadge18Plus: "18+",
@@ -90,7 +92,7 @@ describe("seriesBookEdition", () => {
   it("builds an icon line per format, pages and year", () => {
     const book = makeSeriesBookView({ formats: ["paper"], pagesCount: 384, publicationYear: 2023 });
 
-    expect(seriesBookEdition({ book, labels })).toEqual([
+    expect(seriesBookEdition({ book, labels, seriesPublishers: [] })).toEqual([
       { icon: "book", label: "format:paper" },
       { icon: "pages", label: "384 pages" },
       { icon: "calendar", label: "2023" },
@@ -104,7 +106,7 @@ describe("seriesBookEdition", () => {
       publicationYear: null,
     });
 
-    expect(seriesBookEdition({ book, labels })).toEqual([
+    expect(seriesBookEdition({ book, labels, seriesPublishers: [] })).toEqual([
       { icon: "book", label: "format:paper" },
       { icon: "headphones", label: "format:audiobook" },
     ]);
@@ -113,13 +115,149 @@ describe("seriesBookEdition", () => {
   it("omits missing values without leaving gaps", () => {
     const book = makeSeriesBookView({ formats: [], pagesCount: null, publicationYear: 2020 });
 
-    expect(seriesBookEdition({ book, labels })).toEqual([{ icon: "calendar", label: "2020" }]);
+    expect(seriesBookEdition({ book, labels, seriesPublishers: [] })).toEqual([
+      { icon: "calendar", label: "2020" },
+    ]);
   });
 
   it("returns an empty list when no edition data exists", () => {
     const book = makeSeriesBookView({ formats: [], pagesCount: null, publicationYear: null });
 
-    expect(seriesBookEdition({ book, labels })).toEqual([]);
+    expect(seriesBookEdition({ book, labels, seriesPublishers: [] })).toEqual([]);
+  });
+
+  it("appends the publisher line when the series has several publishers", () => {
+    const book = makeSeriesBookView({
+      formats: [],
+      pagesCount: null,
+      publicationYear: null,
+      publisher: { id: "publisher-2", name: "Ранок" },
+    });
+
+    expect(
+      seriesBookEdition({
+        book,
+        labels,
+        seriesPublishers: [
+          { id: "publisher-1", name: "Vivat" },
+          { id: "publisher-2", name: "Ранок" },
+        ],
+      }),
+    ).toEqual([{ icon: "building", label: "Ранок" }]);
+  });
+
+  it("hides the publisher line when the series shares a single publisher", () => {
+    const book = makeSeriesBookView({
+      formats: [],
+      pagesCount: null,
+      publicationYear: null,
+      publisher: { id: "publisher-1", name: "Vivat" },
+    });
+
+    expect(
+      seriesBookEdition({ book, labels, seriesPublishers: [{ id: "publisher-1", name: "Vivat" }] }),
+    ).toEqual([]);
+  });
+
+  it("hides the publisher line when the book has no publisher of its own", () => {
+    const book = makeSeriesBookView({
+      formats: [],
+      pagesCount: null,
+      publicationYear: null,
+      publisher: null,
+    });
+
+    expect(
+      seriesBookEdition({
+        book,
+        labels,
+        seriesPublishers: [
+          { id: "publisher-1", name: "Vivat" },
+          { id: "publisher-2", name: "Ранок" },
+        ],
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("seriesBookLoanContext", () => {
+  it("reports the lender and expected return for a lent book", () => {
+    const book = makeSeriesBookView({
+      loanInfo: makeLoanInfo({ expectedReturnDate: "2026-08-18", personName: "Олена" }),
+      ownershipStatus: "lent_to_someone",
+    });
+
+    expect(seriesBookLoanContext(book)).toEqual({
+      expectedReturn: "2026-08-18",
+      kind: "lent",
+      personName: "Олена",
+    });
+  });
+
+  it("keeps the lent context without an expected return date", () => {
+    const book = makeSeriesBookView({
+      loanInfo: makeLoanInfo({ expectedReturnDate: null, personName: "Олена" }),
+      ownershipStatus: "lent_to_someone",
+    });
+
+    expect(seriesBookLoanContext(book)).toEqual({
+      expectedReturn: null,
+      kind: "lent",
+      personName: "Олена",
+    });
+  });
+
+  it("reports who a borrowed book came from", () => {
+    const book = makeSeriesBookView({
+      loanInfo: makeLoanInfo({ personName: "Максим" }),
+      ownershipStatus: "borrowed_from_someone",
+    });
+
+    expect(seriesBookLoanContext(book)).toEqual({ kind: "borrowed", personName: "Максим" });
+  });
+
+  it("has no loan context without loan info", () => {
+    expect(
+      seriesBookLoanContext(makeSeriesBookView({ loanInfo: null, ownershipStatus: "owned" })),
+    ).toBeUndefined();
+  });
+});
+
+describe("seriesBookDeliveryContext", () => {
+  it("reports the delivery for a book in transit", () => {
+    const book = makeSeriesBookView({
+      activeDelivery: makeDelivery({
+        deliveryService: "Нова Пошта",
+        expectedDeliveryDate: "2026-08-01",
+        trackingUrl: "https://track.example/1",
+      }),
+      ownershipStatus: "in_transit",
+    });
+
+    expect(seriesBookDeliveryContext(book)).toEqual({
+      expectedDeliveryDate: "2026-08-01",
+      service: "Нова Пошта",
+      trackingUrl: "https://track.example/1",
+    });
+  });
+
+  it("has no delivery context without an active delivery", () => {
+    expect(
+      seriesBookDeliveryContext(
+        makeSeriesBookView({ activeDelivery: null, ownershipStatus: "in_transit" }),
+      ),
+    ).toBeUndefined();
+  });
+
+  it("has no delivery context for a book that is not in transit", () => {
+    expect(
+      seriesBookDeliveryContext(
+        makeSeriesBookView({
+          activeDelivery: makeDelivery({ expectedDeliveryDate: "2026-08-01" }),
+          ownershipStatus: "owned",
+        }),
+      ),
+    ).toBeUndefined();
   });
 });
 
@@ -129,12 +267,15 @@ describe("seriesBookPersonalState", () => {
       currentPage: 180,
       pagesCount: 640,
       readingStatus: "reading",
+      startedAt: "2026-05-02T00:00:00.000Z",
     });
 
     expect(seriesBookPersonalState(book)).toEqual({
       kind: "progress",
       pages: { current: 180, total: 640 },
       percent: 28,
+      rereading: false,
+      startedAt: "2026-05-02T00:00:00.000Z",
     });
   });
 
@@ -149,7 +290,23 @@ describe("seriesBookPersonalState", () => {
       kind: "progress",
       pages: { current: 50, total: 100 },
       percent: 50,
+      rereading: true,
+      startedAt: null,
     });
+  });
+
+  it("marks a finished book with its finished date", () => {
+    expect(
+      seriesBookPersonalState(
+        makeSeriesBookView({ finishedAt: "2026-03-14T00:00:00.000Z", readingStatus: "finished" }),
+      ),
+    ).toEqual({ finishedAt: "2026-03-14T00:00:00.000Z", kind: "finished" });
+  });
+
+  it("has no finished personal state without a finished date", () => {
+    expect(
+      seriesBookPersonalState(makeSeriesBookView({ finishedAt: null, readingStatus: "finished" })),
+    ).toBeUndefined();
   });
 
   it("omits progress when the pages are unknown while reading", () => {

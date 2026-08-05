@@ -5,10 +5,12 @@ import {
   collapseSpaces,
   createPaginatedSchema,
   LIST_PAGE_SIZE_MAX,
+  paginationQueryFields,
 } from "./common.js";
 import { NoHtmlString } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
+import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const LIST_NAME_MIN = 2;
 const LIST_NAME_MAX = 80;
@@ -64,6 +66,20 @@ export const CustomListCardSchema = z.object({
 export type CustomListCard = z.infer<typeof CustomListCardSchema>;
 
 export const PaginatedCustomListsSchema = createPaginatedSchema(CustomListCardSchema);
+
+export const ListsSummaryViewSchema = z.object({
+  averageBooksPerList: z.number().int().nonnegative(),
+  emptyListCount: z.number().int().nonnegative(),
+  largestListBookCount: z.number().int().nonnegative(),
+  listsWithBooksCount: z.number().int().nonnegative(),
+  maxListsPerBook: z.number().int().nonnegative(),
+  multiListBookCount: z.number().int().nonnegative(),
+  totalListCount: z.number().int().nonnegative(),
+  totalMembershipCount: z.number().int().nonnegative(),
+  uniqueBookCount: z.number().int().nonnegative(),
+});
+
+export type ListsSummaryView = z.infer<typeof ListsSummaryViewSchema>;
 
 export const ListSortSchema = z.enum([
   "updated_desc",
@@ -150,3 +166,29 @@ export const SetBookListsInputSchema = z.object({
 });
 
 export type SetBookListsInput = z.infer<typeof SetBookListsInputSchema>;
+
+export const ListDeletionResultSchema = TrashDeletionResultSchema.extend({
+  listId: z.string(),
+});
+
+export type ListDeletionResult = z.infer<typeof ListDeletionResultSchema>;
+
+export const TrashedListViewSchema = z.object({
+  bookCount: z.number().int(),
+  deletedAt: z.iso.datetime(),
+  id: z.string(),
+  name: z.string(),
+  purgeAt: z.iso.datetime(),
+});
+
+export type TrashedListView = z.infer<typeof TrashedListViewSchema>;
+
+export const TrashedListsQuerySchema = z.object({
+  ...paginationQueryFields({ pageSizeDefault: TRASH_PAGE_SIZE_DEFAULT }),
+});
+
+export type TrashedListsQuery = z.infer<typeof TrashedListsQuerySchema>;
+
+export const PaginatedTrashedListsSchema = createPaginatedSchema(TrashedListViewSchema);
+
+export type PaginatedTrashedLists = z.infer<typeof PaginatedTrashedListsSchema>;

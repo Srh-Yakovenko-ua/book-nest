@@ -36,13 +36,15 @@ export function toBookView({
   cover: Nullable<MediaView>;
   today: Date;
 }): BookView {
+  const series = book.series === null || book.series.deletedAt !== null ? null : book.series;
+
   return {
     ageCategory: AgeCategorySchema.parse(book.ageCategory),
     authors: book.authors.map((bookAuthor) => ({
       id: bookAuthor.author.id,
       name: bookAuthor.author.name,
     })),
-    bookType: book.series === null ? "solo" : "series_part",
+    bookType: series === null ? "solo" : "series_part",
     cover,
     createdAt: book.createdAt.toISOString(),
     dedication: book.dedication,
@@ -52,10 +54,10 @@ export function toBookView({
     formats: BookFormatsSchema.parse(book.formats),
     genres: BookGenresSchema.parse(book.genres),
     hasUnreadEarlierSeriesParts:
-      book.series === null
+      series === null
         ? null
         : computeHasUnreadEarlierParts({
-            books: book.series.books.map(toSeriesBookPreview),
+            books: series.books.map(toSeriesBookPreview),
             currentPartNumber: book.partNumber,
           }),
     id: book.id,
@@ -71,7 +73,7 @@ export function toBookView({
     ownershipStatus: OwnershipStatusSchema.parse(book.ownershipStatus),
     pagesCount: book.pagesCount,
     pagesCountUnavailable: book.pagesCountUnavailable,
-    partNumber: book.partNumber,
+    partNumber: series === null ? null : book.partNumber,
     publicationYear: book.publicationYear,
     publisher:
       book.publisher === null ? null : { id: book.publisher.id, name: book.publisher.name },
@@ -86,7 +88,7 @@ export function toBookView({
     queuePriorityTargetDate: toNullableIsoDate(book.queuePriorityTargetDate),
     readingProgress: toReadingProgressView(book.readingProgress),
     readingStatus: ReadingStatusSchema.parse(book.readingStatus),
-    series: book.series === null ? null : toSeriesView(book.series),
+    series: series === null ? null : toSeriesView({ series }),
     tags: book.tags.map((bookTag) => ({ id: bookTag.tag.id, name: bookTag.tag.name })),
     title: book.title,
     translator: book.translator,

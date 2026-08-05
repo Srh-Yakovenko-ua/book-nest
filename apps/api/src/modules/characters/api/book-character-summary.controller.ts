@@ -12,14 +12,14 @@ import {
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
-import { CharactersService } from "../application/characters.service.js";
+import { BookCharactersService } from "../application/book-characters.service.js";
 import { BookCharacterSummaryViewDto } from "./view-dto/book-character-summary.view-dto.js";
 
 @ApiTags("characters")
 @Controller("api/books/:bookId/character-summary")
 @JwtProtected()
 export class BookCharacterSummaryController {
-  constructor(private readonly charactersService: CharactersService) {}
+  constructor(private readonly bookCharactersService: BookCharactersService) {}
 
   @ApiNotFoundResponse({ description: "Book not found" })
   @ApiOkResponse({
@@ -33,6 +33,6 @@ export class BookCharacterSummaryController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
   ): Promise<BookCharacterSummaryView> {
-    return this.charactersService.bookCharacterSummary({ bookId, userId: user.id });
+    return this.bookCharactersService.bookCharacterSummary({ bookId, userId: user.id });
   }
 }

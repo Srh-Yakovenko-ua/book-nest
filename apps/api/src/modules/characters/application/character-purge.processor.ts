@@ -5,13 +5,13 @@ import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { createLogger } from "../../../core/logger.js";
 import { workerConnection } from "../../../core/queue/queue.module.js";
 import { CHARACTER_PURGE_QUEUE_NAME, CharacterPurgeJobSchema } from "../domain/character-purge.js";
-import { CharactersService } from "./characters.service.js";
+import { CharacterLifecycleService } from "./character-lifecycle.service.js";
 
 const log = createLogger("characters.purge-processor");
 
 @Processor(CHARACTER_PURGE_QUEUE_NAME, { connection: workerConnection })
 export class CharacterPurgeProcessor extends WorkerHost {
-  constructor(private readonly charactersService: CharactersService) {
+  constructor(private readonly lifecycleService: CharacterLifecycleService) {
     super();
   }
 
@@ -30,6 +30,6 @@ export class CharacterPurgeProcessor extends WorkerHost {
 
   async process(job: Job<unknown>): Promise<void> {
     const command = CharacterPurgeJobSchema.parse(job.data);
-    await this.charactersService.purge(command);
+    await this.lifecycleService.purge(command);
   }
 }

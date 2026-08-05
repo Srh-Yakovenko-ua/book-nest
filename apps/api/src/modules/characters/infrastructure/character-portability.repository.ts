@@ -10,6 +10,7 @@ import type {
 } from "../domain/character-portability.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 
 const aliasSelect = {
   bookId: true,
@@ -125,7 +126,7 @@ export class CharacterPortabilityRepository {
     }
     const rows = await this.prisma.book.findMany({
       select: { id: true },
-      where: { id: { in: bookIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
     });
     return new Set(rows.map((row) => row.id));
   }
@@ -159,7 +160,7 @@ export class CharacterPortabilityRepository {
     }
     const rows = await this.prisma.series.findMany({
       select: { id: true },
-      where: { id: { in: seriesIds }, userId },
+      where: { ...SOFT_DELETE_SCOPE.active, id: { in: seriesIds }, userId },
     });
     return new Set(rows.map((row) => row.id));
   }

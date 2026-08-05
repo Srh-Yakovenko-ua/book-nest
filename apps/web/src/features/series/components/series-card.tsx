@@ -11,6 +11,7 @@ import { Link } from "@/i18n/navigation";
 import { seriesStatuses } from "@/lib/book-status";
 
 import { seriesProgress } from "../model/series-derive";
+import { SeriesCardCover } from "./series-card-cover";
 
 type SeriesCardProps = {
   series: SeriesView;
@@ -28,19 +29,35 @@ export function SeriesCard({ series }: SeriesCardProps) {
   const isEmpty = series.booksInSeries === 0;
 
   return (
-    <article className="group/series-card relative flex h-full cursor-pointer flex-col gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color] duration-200 ease-out focus-within:border-accent-border focus-within:shadow-hover hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
-      <div className="flex gap-3.5">
-        <SeriesCover alt={t("card.coverAlt", { name: series.name })} name={series.name} />
+    <article className="relative flex h-full flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color] duration-200 ease-out focus-within:border-accent-border focus-within:shadow-hover hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
+      <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-3.5">
+        <Link
+          aria-label={t("card.coverAlt", { name: series.name })}
+          className="block cursor-pointer rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          href={`/series/${series.id}`}
+        >
+          <SeriesCardCover
+            alt={t("card.coverAlt", { name: series.name })}
+            booksInSeries={series.booksInSeries}
+            covers={series.covers.map((cover) => ({
+              id: cover.bookId,
+              src: cover.cover.urls.card,
+              title: cover.title,
+            }))}
+            name={series.name}
+            totalBooks={series.totalBooks}
+          />
+        </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <h3 className="font-heading text-[1.0625rem] leading-tight font-bold text-ink">
+          <h3 className="line-clamp-4 font-heading text-[1.0625rem] leading-tight font-bold text-ink">
             <Link
-              className="text-ink no-underline transition-colors outline-none group-hover/series-card:text-primary after:absolute after:inset-0 focus-visible:text-primary"
+              className="cursor-pointer rounded-sm text-ink no-underline transition-colors outline-none hover:text-primary focus-visible:text-primary focus-visible:underline"
               href={`/series/${series.id}`}
             >
               {series.name}
             </Link>
           </h3>
-          <p className="truncate text-[0.8125rem] text-muted-foreground">{authorsLine}</p>
+          <p className="line-clamp-2 text-[0.8125rem] text-muted-foreground">{authorsLine}</p>
           <StatusBadge
             className="mt-0.5 self-start"
             entry={{ ...statusBase, label: t(`status.${series.status}`) }}
@@ -48,27 +65,23 @@ export function SeriesCard({ series }: SeriesCardProps) {
         </div>
       </div>
 
-      <p className="flex items-center gap-1.5 text-[0.8125rem] text-foreground/85">
-        <UiIcon className="shrink-0 text-icon" name="book" size={15} />
-        <span>{t("card.books", { count: series.booksInSeries })}</span>
-      </p>
-
       {isEmpty ? (
         <p className="text-sm text-muted-foreground">{t("card.noBooks")}</p>
+      ) : progress.fullyRead ? (
+        <StatusBadge
+          className="self-start"
+          entry={{
+            icon: "check-circle",
+            label: t("card.readBadge"),
+            tone: "success",
+            value: "series-read",
+          }}
+        />
       ) : (
-        <div className="flex flex-col gap-1.5">
-          <Progress
-            aria-label={t("card.progressWithTotal", {
-              finished: progress.finished,
-              total: progress.denominator,
-            })}
-            className="h-1.5"
-            value={progress.percent}
-          />
-          <p className="text-sm text-muted-foreground tabular-nums">
-            {progress.fullyRead
-              ? t("card.allRead")
-              : series.totalBooks === null
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline justify-between gap-2 text-sm">
+            <span className="text-muted-foreground">
+              {series.totalBooks === null
                 ? t("card.progressAdded", {
                     count: progress.denominator,
                     finished: progress.finished,
@@ -77,7 +90,17 @@ export function SeriesCard({ series }: SeriesCardProps) {
                     finished: progress.finished,
                     total: series.totalBooks,
                   })}
-          </p>
+            </span>
+            <span className="shrink-0 text-muted-foreground tabular-nums">{progress.percent}%</span>
+          </div>
+          <Progress
+            aria-label={t("card.progressWithTotal", {
+              finished: progress.finished,
+              total: progress.denominator,
+            })}
+            className="h-1.5"
+            value={progress.percent}
+          />
         </div>
       )}
 
@@ -91,16 +114,7 @@ export function SeriesCard({ series }: SeriesCardProps) {
           <UiIcon name="plus" size={15} />
           {t("card.addBook")}
         </Link>
-      ) : (
-        <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-          {t("card.view")}
-          <UiIcon
-            className="transition-transform duration-200 group-hover/series-card:translate-x-0.5"
-            name="arrow-right"
-            size={15}
-          />
-        </p>
-      )}
+      ) : null}
     </article>
   );
 }
@@ -110,55 +124,34 @@ function NextBookLine({ series }: { series: SeriesView }) {
   const progress = seriesProgress(series);
 
   if (series.booksInSeries === 0) return null;
-  if (progress.fullyRead) {
-    return (
-      <p className="flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
-        <UiIcon className="shrink-0 text-icon" name="check-circle" size={15} />
-        <span className="min-w-0 truncate">{t("card.nextAllRead")}</span>
-      </p>
-    );
-  }
+  if (progress.fullyRead) return null;
   if (series.nextBook === null) return null;
 
-  return (
-    <p className="flex items-center gap-1.5 text-[0.8125rem] text-foreground/85">
-      <UiIcon className="shrink-0 text-icon" name="arrow-right" size={15} />
-      <span className="min-w-0 truncate">
-        {series.nextBook.partNumber === null
-          ? t("card.next", { title: series.nextBook.title })
-          : t("card.nextWithPart", {
-              number: series.nextBook.partNumber,
-              title: series.nextBook.title,
-            })}
-      </span>
-    </p>
-  );
-}
+  const nextBook = series.nextBook;
+  const isStart = progress.percent === 0;
+  const label =
+    nextBook.partNumber === null
+      ? isStart
+        ? t("card.startWith", { title: nextBook.title })
+        : t("card.continueReading", { title: nextBook.title })
+      : isStart
+        ? t("card.startWithPart", { number: nextBook.partNumber, title: nextBook.title })
+        : t("card.continueWithPart", { number: nextBook.partNumber, title: nextBook.title });
 
-function SeriesCover({ alt, name }: { alt: string; name: string }) {
   return (
-    <div
-      aria-label={alt}
-      className="relative grid aspect-[3/4] w-[74px] shrink-0 place-items-center overflow-hidden rounded-md bg-accent text-accent-foreground shadow-[0_2px_8px_oklch(0.296_0.041_53/0.14)]"
-      role="img"
+    <Link
+      className="group/next inline-flex cursor-pointer items-start gap-1.5 self-start rounded-md text-[0.8125rem] font-medium text-primary no-underline transition-colors outline-none hover:text-primary-hover focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      href={`/books/${nextBook.id}`}
     >
       <UiIcon
-        className="absolute top-1.5 right-1.5 text-accent-foreground/40"
-        name="layers"
-        size={14}
+        aria-hidden
+        className="mt-0.5 shrink-0 transition-transform group-hover/next:translate-x-0.5 group-focus-visible/next:translate-x-0.5"
+        name="arrow-right"
+        size={15}
       />
-      <span className="font-heading text-lg font-bold text-accent-foreground/85">
-        {seriesInitials(name)}
+      <span className="line-clamp-2 min-w-0 group-hover/next:underline group-focus-visible/next:underline">
+        {label}
       </span>
-    </div>
+    </Link>
   );
-}
-
-function seriesInitials(name: string): string {
-  const words = name
-    .trim()
-    .split(/\s+/)
-    .filter((word) => word.length > 0);
-  const letters = words.slice(0, 2).map((word) => word[0] ?? "");
-  return letters.join("").toUpperCase() || "?";
 }

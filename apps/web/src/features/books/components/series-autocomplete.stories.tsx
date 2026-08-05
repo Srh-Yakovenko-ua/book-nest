@@ -77,18 +77,31 @@ function seriesPage(items: SeriesView[]): Response {
 
 function seriesView(seed: SeriesSeed): SeriesView {
   return {
+    ageCategories: [],
     authors: seed.authors ?? [],
+    averagePages: null,
+    averageRating: null,
     booksInSeries: 0,
+    covers: [],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
     finishedInSeries: 0,
+    formats: [],
     genres: [],
+    hasFavoriteBook: false,
+    hasPublicationYears: false,
+    hasPublisher: false,
     id: seed.id,
+    languages: [],
     lastActivityAt: "2026-01-01T00:00:00.000Z",
+    missingPartNumbers: [],
     name: seed.name,
     nextBook: null,
+    ownership: { ownedCount: 0, total: 0 },
+    pagesCount: null,
     readingInSeries: 0,
     status: seed.status ?? "ongoing",
+    tags: [],
     totalBooks: seed.totalBooks ?? null,
   };
 }

@@ -1,44 +1,25 @@
 import type {
-  BookCharacterRelationshipsQuery,
-  CharacterRelationshipContextView,
   CharacterRelationshipDeletionResultView,
-  CharacterRelationshipDetailsQuery,
   CharacterRelationshipDetailsView,
   CharacterRelationshipDiagnosticView,
   CreateCharacterRelationship,
-  InitialRelationshipBookState,
   Nullable,
   RelationshipCategory,
-  RelationshipDirectionality,
   RelationshipType,
-  SeriesCharacterRelationshipsQuery,
   UpdateCharacterRelationship,
-  UpsertRelationshipBookState,
 } from "@app/shared";
 
 import {
   CHARACTER_RELATIONSHIP_ERROR_CODES,
-  getRelationshipTypeCategory,
-  getRelationshipTypeDirectionality,
   normalizeName,
-  readingPositionFromQuery,
-  RelationshipCategorySchema,
-  RelationshipDirectionalitySchema,
   RelationshipTypeSchema,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type { ReadingPositionGate } from "../domain/reading-position.js";
-import type {
-  RelationshipDetailsRow,
-  UpdateBookStateData,
-  UpdateRelationshipData,
-} from "../infrastructure/character-relationships.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { assertBookOwned, BooksRepository } from "../../books/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
 import {
   buildRelationshipLockKey,
@@ -46,28 +27,22 @@ import {
   detectFamilyDiagnostics,
 } from "../domain/character-relationship-graph.js";
 import {
-  pickEffectiveBookState,
-  toRelationshipBookStateView,
-  toRelationshipDetailsView,
-  toRelationshipView,
-} from "../domain/character-relationship.mapper.js";
-import { buildReadingPositionGate, isHiddenByReadingPosition } from "../domain/reading-position.js";
-import { resolveAllowedBookIds } from "../domain/series-representative.js";
+  buildBookStateData,
+  buildUpdateData,
+  dedupeBookStates,
+  resolveDirectionality,
+} from "../domain/character-relationship-write.js";
+import { toRelationshipDetailsView } from "../domain/character-relationship.mapper.js";
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
-import { CharactersRepository } from "../infrastructure/characters.repository.js";
-
-type ResolvedContext = {
-  allowedBookIds: string[];
-  partNumberById: Map<string, Nullable<number>>;
-  positionGate?: Nullable<ReadingPositionGate>;
-};
+import { CharacterAccessAsserter } from "./character-access.asserter.js";
+import { RelationshipContextService } from "./relationship-context.service.js";
 
 @Injectable()
 export class CharacterRelationshipsService {
   constructor(
     private readonly relationshipsRepository: CharacterRelationshipsRepository,
-    private readonly charactersRepository: CharactersRepository,
-    private readonly booksRepository: BooksRepository,
+    private readonly accessAsserter: CharacterAccessAsserter,
+    private readonly contextService: RelationshipContextService,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -83,7 +58,7 @@ export class CharacterRelationshipsService {
         code: CHARACTER_RELATIONSHIP_ERROR_CODES.selfReference,
       });
     }
-    const directionality = this.resolveDirectionality({
+    const directionality = resolveDirectionality({
       directionality: input.directionality,
       type: input.type,
     });
@@ -97,7 +72,11 @@ export class CharacterRelationshipsService {
     const customType = input.type === "custom" ? emptyToNull(input.customType) : null;
     const bookStates = dedupeBookStates(input.initialBookStates);
     for (const state of bookStates) {
-      await this.assertBookOwned({ bookId: state.bookId, userId });
+      await this.accessAsserter.assertBookOwned({
+        bookId: state.bookId,
+        notFoundCode: CHARACTER_RELATIONSHIP_ERROR_CODES.bookNotFound,
+        userId,
+      });
     }
 
     const result = await this.transactionRunner.run(async (tx) => {
@@ -162,7 +141,10 @@ export class CharacterRelationshipsService {
         })),
         tx,
       );
-      const row = await this.loadDetails({ relationshipId: relationship.id, userId }, tx);
+      const row = await this.contextService.loadDetails(
+        { relationshipId: relationship.id, userId },
+        tx,
+      );
       return { diagnostics, row };
     });
 
@@ -170,110 +152,6 @@ export class CharacterRelationshipsService {
       bookStates: result.row.bookStates,
       diagnostics: result.diagnostics,
       relationship: result.row,
-    });
-  }
-
-  async getDetails({
-    query,
-    relationshipId,
-    userId,
-  }: {
-    query: CharacterRelationshipDetailsQuery;
-    relationshipId: string;
-    userId: string;
-  }): Promise<CharacterRelationshipDetailsView> {
-    const row = await this.relationshipsRepository.findOwnedRelationshipDetails({
-      relationshipId,
-      userId,
-    });
-    if (
-      row === null ||
-      row.sourceCharacter.hideProfileAsSpoiler ||
-      row.targetCharacter.hideProfileAsSpoiler
-    ) {
-      throw new NotFoundError("Character relationship not found", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.notFound,
-      });
-    }
-    if (query.contextBookId === undefined) {
-      return toRelationshipDetailsView({
-        bookStates: row.bookStates,
-        diagnostics: [],
-        relationship: row,
-      });
-    }
-    const context = await this.resolveBookContext({ contextBookId: query.contextBookId, userId });
-    const positionGate = buildReadingPositionGate({
-      contextBookId: query.contextBookId,
-      reader: readingPositionFromQuery(query),
-    });
-    const masked = this.maskDetailsForContext({ context: { ...context, positionGate }, row });
-    if (masked === null) {
-      throw new NotFoundError("Character relationship not found", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.notFound,
-      });
-    }
-    return masked;
-  }
-
-  async listForBook({
-    bookId,
-    query,
-    userId,
-  }: {
-    bookId: string;
-    query: BookCharacterRelationshipsQuery;
-    userId: string;
-  }): Promise<CharacterRelationshipContextView[]> {
-    await this.assertBookOwned({ bookId, userId });
-    const rows = await this.relationshipsRepository.listRelationshipsInBooks({
-      bookIds: [bookId],
-      userId,
-    });
-    return this.buildContextViews({
-      context: {
-        allowedBookIds: [bookId],
-        partNumberById: new Map([[bookId, null]]),
-        positionGate: buildReadingPositionGate({
-          contextBookId: bookId,
-          reader: readingPositionFromQuery(query),
-        }),
-      },
-      includeHistory: query.includeHistory ?? false,
-      rows,
-    });
-  }
-
-  async listForSeries({
-    query,
-    seriesId,
-    userId,
-  }: {
-    query: SeriesCharacterRelationshipsQuery;
-    seriesId: string;
-    userId: string;
-  }): Promise<CharacterRelationshipContextView[]> {
-    await this.assertSeriesOwned({ seriesId, userId });
-    const context = await this.resolveSeriesContext({
-      contextBookId: query.contextBookId,
-      seriesId,
-      userId,
-    });
-    const positionGate =
-      query.contextBookId === undefined
-        ? null
-        : buildReadingPositionGate({
-            contextBookId: query.contextBookId,
-            reader: readingPositionFromQuery(query),
-          });
-    const rows = await this.relationshipsRepository.listRelationshipsInBooks({
-      bookIds: context.allowedBookIds,
-      userId,
-    });
-    return this.buildContextViews({
-      context: { ...context, positionGate },
-      includeHistory: query.includeHistory ?? false,
-      rows,
     });
   }
 
@@ -303,37 +181,6 @@ export class CharacterRelationshipsService {
     });
   }
 
-  async removeBookState({
-    bookId,
-    relationshipId,
-    userId,
-  }: {
-    bookId: string;
-    relationshipId: string;
-    userId: string;
-  }): Promise<void> {
-    await this.transactionRunner.run(async (tx) => {
-      const relationship = await this.relationshipsRepository.findOwnedRelationshipBare(
-        { relationshipId, userId },
-        tx,
-      );
-      if (relationship === null) {
-        throw new NotFoundError("Character relationship not found", {
-          code: CHARACTER_RELATIONSHIP_ERROR_CODES.notFound,
-        });
-      }
-      const deleted = await this.relationshipsRepository.deleteBookState(
-        { bookId, relationshipId },
-        tx,
-      );
-      if (deleted === 0) {
-        throw new NotFoundError("Character relationship book state not found", {
-          code: CHARACTER_RELATIONSHIP_ERROR_CODES.bookStateNotFound,
-        });
-      }
-    });
-  }
-
   async update({
     input,
     relationshipId,
@@ -359,7 +206,7 @@ export class CharacterRelationshipsService {
         effectiveCustomType,
         effectiveDirectionality,
         effectiveType,
-      } = this.buildUpdateData({ existing, input });
+      } = buildUpdateData({ existing, input });
 
       const canonical = canonicalizeRelationshipEndpoints({
         directionality: effectiveDirectionality,
@@ -426,7 +273,7 @@ export class CharacterRelationshipsService {
               userId,
             });
       await this.relationshipsRepository.updateRelationship({ data, relationshipId, userId }, tx);
-      const row = await this.loadDetails({ relationshipId, userId }, tx);
+      const row = await this.contextService.loadDetails({ relationshipId, userId }, tx);
       return { diagnostics, row };
     });
 
@@ -434,90 +281,6 @@ export class CharacterRelationshipsService {
       bookStates: result.row.bookStates,
       diagnostics: result.diagnostics,
       relationship: result.row,
-    });
-  }
-
-  async upsertBookState({
-    bookId,
-    input,
-    relationshipId,
-    userId,
-  }: {
-    bookId: string;
-    input: UpsertRelationshipBookState;
-    relationshipId: string;
-    userId: string;
-  }): Promise<CharacterRelationshipDetailsView> {
-    await this.assertBookOwned({ bookId, userId });
-    const row = await this.transactionRunner.run(async (tx) => {
-      const relationship = await this.relationshipsRepository.findOwnedRelationshipBare(
-        { relationshipId, userId },
-        tx,
-      );
-      if (relationship === null) {
-        throw new NotFoundError("Character relationship not found", {
-          code: CHARACTER_RELATIONSHIP_ERROR_CODES.notFound,
-        });
-      }
-      await this.relationshipsRepository.upsertBookState(
-        { bookId, data: buildBookStateData(input), relationshipId },
-        tx,
-      );
-      return this.loadDetails({ relationshipId, userId }, tx);
-    });
-
-    return toRelationshipDetailsView({
-      bookStates: row.bookStates,
-      diagnostics: [],
-      relationship: row,
-    });
-  }
-
-  private applyCustomUpdate({
-    data,
-    input,
-    storedCategory,
-  }: {
-    data: UpdateRelationshipData;
-    input: UpdateCharacterRelationship;
-    storedCategory: RelationshipCategory;
-  }): RelationshipCategory {
-    if (input.category !== undefined && input.category !== "custom") {
-      throw new BadRequestError("category must be custom when type is custom", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.validationFailed,
-      });
-    }
-    if (input.type !== undefined || input.category !== undefined) {
-      data.category = "custom";
-    }
-    if (input.customType !== undefined) {
-      const customType = emptyToNull(input.customType);
-      if (customType === null) {
-        throw new BadRequestError("customType is required when type is custom", {
-          code: CHARACTER_RELATIONSHIP_ERROR_CODES.validationFailed,
-        });
-      }
-      data.customType = customType;
-    } else if (input.type === "custom" && storedCategory !== "custom") {
-      throw new BadRequestError("customType is required when type is custom", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.validationFailed,
-      });
-    }
-    return "custom";
-  }
-
-  private async assertBookOwned({
-    bookId,
-    userId,
-  }: {
-    bookId: string;
-    userId: string;
-  }): Promise<void> {
-    await assertBookOwned({
-      bookId,
-      booksRepository: this.booksRepository,
-      notFoundCode: CHARACTER_RELATIONSHIP_ERROR_CODES.bookNotFound,
-      userId,
     });
   }
 
@@ -580,268 +343,6 @@ export class CharacterRelationshipsService {
     }
   }
 
-  private async assertSeriesOwned({
-    seriesId,
-    userId,
-  }: {
-    seriesId: string;
-    userId: string;
-  }): Promise<void> {
-    const owns = await this.charactersRepository.existsOwnedSeries({ seriesId, userId });
-    if (!owns) {
-      throw new NotFoundError("Series not found", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.bookContextInvalid,
-      });
-    }
-  }
-
-  private buildContextViews({
-    context,
-    includeHistory,
-    rows,
-  }: {
-    context: ResolvedContext;
-    includeHistory: boolean;
-    rows: RelationshipDetailsRow[];
-  }): CharacterRelationshipContextView[] {
-    const gate = context.positionGate ?? null;
-    const views: CharacterRelationshipContextView[] = [];
-    for (const row of rows) {
-      const effective = pickEffectiveBookState({
-        partNumberById: context.partNumberById,
-        states: row.bookStates,
-      });
-      if (effective !== null && effective.hideRelationshipAsSpoiler) {
-        continue;
-      }
-      if (effective !== null && isBookStateHiddenByReadingPosition({ gate, state: effective })) {
-        continue;
-      }
-      const typeHidden = effective?.isTypeSpoiler ?? false;
-      const visibleStates = row.bookStates.filter(
-        (state) =>
-          !state.hideRelationshipAsSpoiler && !isBookStateHiddenByReadingPosition({ gate, state }),
-      );
-      views.push({
-        effectiveState:
-          effective === null
-            ? null
-            : toRelationshipBookStateView({
-                descriptionHidden: effective.isDescriptionSpoiler,
-                state: effective,
-              }),
-        history: includeHistory
-          ? visibleStates.map((state) =>
-              toRelationshipBookStateView({
-                descriptionHidden: state.isDescriptionSpoiler,
-                state,
-              }),
-            )
-          : [],
-        relationship: toRelationshipView({ relationship: row, typeHidden }),
-      });
-    }
-    return views;
-  }
-
-  private buildUpdateData({
-    existing,
-    input,
-  }: {
-    existing: {
-      category: string;
-      customType: Nullable<string>;
-      directionality: string;
-      type: string;
-    };
-    input: UpdateCharacterRelationship;
-  }): {
-    data: UpdateRelationshipData;
-    effectiveCategory: RelationshipCategory;
-    effectiveCustomType: Nullable<string>;
-    effectiveDirectionality: RelationshipDirectionality;
-    effectiveType: RelationshipType;
-  } {
-    const storedType = RelationshipTypeSchema.parse(existing.type);
-    const storedCategory = RelationshipCategorySchema.parse(existing.category);
-    const effectiveType = input.type ?? storedType;
-    const data: UpdateRelationshipData = {};
-
-    if (input.type !== undefined) {
-      data.type = input.type;
-    }
-    if (input.sourceLabel !== undefined) {
-      data.sourceLabel = emptyToNull(input.sourceLabel);
-    }
-    if (input.targetLabel !== undefined) {
-      data.targetLabel = emptyToNull(input.targetLabel);
-    }
-    if (input.isCanonical !== undefined) {
-      data.isCanonical = input.isCanonical;
-    }
-
-    if (effectiveType === "custom") {
-      const effectiveCategory = this.applyCustomUpdate({ data, input, storedCategory });
-      return {
-        data,
-        effectiveCategory,
-        effectiveCustomType:
-          input.customType === undefined ? existing.customType : emptyToNull(input.customType),
-        effectiveDirectionality: RelationshipDirectionalitySchema.parse(existing.directionality),
-        effectiveType,
-      };
-    }
-
-    const catalogCategory = getRelationshipTypeCategory(effectiveType);
-    if (input.category !== undefined && input.category !== catalogCategory) {
-      throw new BadRequestError("type does not belong to the given category", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.validationFailed,
-      });
-    }
-    const catalogDirectionality = getRelationshipTypeDirectionality(effectiveType);
-    data.directionality = catalogDirectionality;
-    if (input.type !== undefined || input.category !== undefined) {
-      data.category = catalogCategory;
-    }
-    if (input.type !== undefined) {
-      data.customType = null;
-    }
-    return {
-      data,
-      effectiveCategory: catalogCategory,
-      effectiveCustomType: null,
-      effectiveDirectionality: catalogDirectionality,
-      effectiveType,
-    };
-  }
-
-  private async loadDetails(
-    { relationshipId, userId }: { relationshipId: string; userId: string },
-    tx: Prisma.TransactionClient,
-  ): Promise<RelationshipDetailsRow> {
-    const row = await this.relationshipsRepository.findOwnedRelationshipDetails(
-      { relationshipId, userId },
-      tx,
-    );
-    if (row === null) {
-      throw new NotFoundError("Character relationship not found", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.notFound,
-      });
-    }
-    return row;
-  }
-
-  private maskDetailsForContext({
-    context,
-    row,
-  }: {
-    context: ResolvedContext;
-    row: RelationshipDetailsRow;
-  }): Nullable<CharacterRelationshipDetailsView> {
-    const gate = context.positionGate ?? null;
-    const allowed = new Set(context.allowedBookIds);
-    const allowedStates = row.bookStates.filter((state) => allowed.has(state.bookId));
-    const effective = pickEffectiveBookState({
-      partNumberById: context.partNumberById,
-      states: allowedStates,
-    });
-    if (effective !== null && effective.hideRelationshipAsSpoiler) {
-      return null;
-    }
-    if (effective !== null && isBookStateHiddenByReadingPosition({ gate, state: effective })) {
-      return null;
-    }
-    const typeHidden = effective?.isTypeSpoiler ?? false;
-    const visibleStates = allowedStates.filter(
-      (state) =>
-        !state.hideRelationshipAsSpoiler && !isBookStateHiddenByReadingPosition({ gate, state }),
-    );
-    return {
-      ...toRelationshipView({ relationship: row, typeHidden }),
-      bookStates: visibleStates.map((state) =>
-        toRelationshipBookStateView({ descriptionHidden: state.isDescriptionSpoiler, state }),
-      ),
-      diagnostics: [],
-    };
-  }
-
-  private async resolveBookContext({
-    contextBookId,
-    userId,
-  }: {
-    contextBookId: string;
-    userId: string;
-  }): Promise<ResolvedContext> {
-    const contextBook = await this.charactersRepository.findOwnedBookContext({
-      bookId: contextBookId,
-      userId,
-    });
-    if (contextBook === null) {
-      throw new NotFoundError("Book not found", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.bookNotFound,
-      });
-    }
-    if (contextBook.seriesId === null) {
-      return {
-        allowedBookIds: [contextBook.id],
-        partNumberById: new Map([[contextBook.id, contextBook.partNumber]]),
-      };
-    }
-    const seriesBooks = await this.charactersRepository.listSeriesBooks({
-      seriesId: contextBook.seriesId,
-      userId,
-    });
-    return {
-      allowedBookIds: resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks }),
-      partNumberById: new Map(seriesBooks.map((book) => [book.id, book.partNumber])),
-    };
-  }
-
-  private resolveDirectionality({
-    directionality,
-    type,
-  }: {
-    directionality: RelationshipDirectionality;
-    type: RelationshipType;
-  }): RelationshipDirectionality {
-    if (type === "custom") {
-      return directionality;
-    }
-    const expected = getRelationshipTypeDirectionality(type);
-    if (directionality !== expected) {
-      throw new BadRequestError("directionality does not match the relationship type", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.directionMismatch,
-      });
-    }
-    return expected;
-  }
-
-  private async resolveSeriesContext({
-    contextBookId,
-    seriesId,
-    userId,
-  }: {
-    contextBookId: string | undefined;
-    seriesId: string;
-    userId: string;
-  }): Promise<ResolvedContext> {
-    const seriesBooks = await this.charactersRepository.listSeriesBooks({ seriesId, userId });
-    const partNumberById = new Map(seriesBooks.map((book) => [book.id, book.partNumber]));
-    if (contextBookId === undefined) {
-      return { allowedBookIds: seriesBooks.map((book) => book.id), partNumberById };
-    }
-    const contextBook = seriesBooks.find((book) => book.id === contextBookId);
-    if (contextBook === undefined) {
-      throw new BadRequestError("The context book does not belong to this series", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.bookContextInvalid,
-      });
-    }
-    return {
-      allowedBookIds: resolveAllowedBookIds({ contextBook, includeFuture: false, seriesBooks }),
-      partNumberById,
-    };
-  }
-
   private async runFamilyDiagnostics({
     allowFamilyCycle,
     candidate,
@@ -886,57 +387,4 @@ export class CharacterRelationshipsService {
     }
     return diagnostics.filter((diagnostic) => diagnostic.severity === "warning");
   }
-}
-
-function buildBookStateData(
-  input: InitialRelationshipBookState | UpsertRelationshipBookState,
-): UpdateBookStateData {
-  return {
-    description: emptyToNull(input.description),
-    endedAudioSeconds: input.endedAudioSeconds ?? null,
-    endedChapter: emptyToNull(input.endedChapter),
-    endedPage: input.endedPage ?? null,
-    hideRelationshipAsSpoiler: input.hideRelationshipAsSpoiler,
-    intensity: input.intensity ?? null,
-    introducedAudioSeconds: input.introducedAudioSeconds ?? null,
-    introducedChapter: emptyToNull(input.introducedChapter),
-    introducedPage: input.introducedPage ?? null,
-    isDescriptionSpoiler: input.isDescriptionSpoiler,
-    isTypeSpoiler: input.isTypeSpoiler,
-    status: input.status,
-  };
-}
-
-function dedupeBookStates(states: InitialRelationshipBookState[]): InitialRelationshipBookState[] {
-  const seen = new Set<string>();
-  return states.filter((state) => {
-    if (seen.has(state.bookId)) {
-      return false;
-    }
-    seen.add(state.bookId);
-    return true;
-  });
-}
-
-function isBookStateHiddenByReadingPosition({
-  gate,
-  state,
-}: {
-  gate: Nullable<ReadingPositionGate>;
-  state: {
-    bookId: string;
-    introducedAudioSeconds: Nullable<number>;
-    introducedChapter: Nullable<string>;
-    introducedPage: Nullable<number>;
-  };
-}): boolean {
-  return isHiddenByReadingPosition({
-    content: {
-      audioSeconds: state.introducedAudioSeconds,
-      chapter: state.introducedChapter,
-      page: state.introducedPage,
-    },
-    contentBookId: state.bookId,
-    gate,
-  });
 }

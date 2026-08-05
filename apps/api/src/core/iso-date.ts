@@ -1,19 +1,23 @@
 import type { Nullable } from "@app/shared";
 
+import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 const UTC_TIME_ZONE = "UTC";
 const ISO_DATE_FORMAT = "yyyy-MM-dd";
-const MILLISECONDS_PER_DAY = 86_400_000;
 
-export function addIsoDays(isoDate: string, days: number): string {
-  const shifted = new Date(parseIsoDate(isoDate).getTime() + days * MILLISECONDS_PER_DAY);
-  return toIsoDate(shifted);
+export function addDaysToIsoDate(isoDate: string, days: number): string {
+  return format(addDays(parseISO(isoDate), days), ISO_DATE_FORMAT);
 }
 
-export function differenceInIsoDays(startIsoDate: string, endIsoDate: string): number {
-  const spanMs = parseIsoDate(endIsoDate).getTime() - parseIsoDate(startIsoDate).getTime();
-  return Math.round(spanMs / MILLISECONDS_PER_DAY);
+export function daysBetweenIsoDates({
+  endIsoDate,
+  startIsoDate,
+}: {
+  endIsoDate: string;
+  startIsoDate: string;
+}): number {
+  return differenceInCalendarDays(parseISO(endIsoDate), parseISO(startIsoDate));
 }
 
 export function parseIsoDate(value: string): Date {

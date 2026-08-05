@@ -3,12 +3,13 @@ import type { MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
-import { seconds, ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { DatabaseModule } from "./core/database/database.module.js";
 import { RequestIdMiddleware } from "./core/middleware/request-id.middleware.js";
 import { RequestLoggerMiddleware } from "./core/middleware/request-logger.middleware.js";
 import { QueueModule } from "./core/queue/queue.module.js";
+import { GLOBAL_THROTTLE } from "./core/throttle.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { AuthorsModule } from "./modules/authors/authors.module.js";
 import { BooksModule } from "./modules/books/books.module.js";
@@ -22,25 +23,23 @@ import { ListsModule } from "./modules/lists/lists.module.js";
 import { LoansModule } from "./modules/loans/loans.module.js";
 import { MediaModule } from "./modules/media/media.module.js";
 import { NotesModule } from "./modules/notes/notes.module.js";
+import { NotificationsModule } from "./modules/notifications/notifications.module.js";
 import { MetricsMiddleware } from "./modules/observability/metrics.middleware.js";
 import { MetricsModule } from "./modules/observability/metrics.module.js";
 import { ProfileModule } from "./modules/profile/profile.module.js";
 import { PublishersModule } from "./modules/publishers/publishers.module.js";
 import { QuotesModule } from "./modules/quotes/index.js";
 import { ReadingQueueModule } from "./modules/reading-queue/index.js";
+import { RealtimeModule } from "./modules/realtime/index.js";
 import { SeriesOrderCheckModule } from "./modules/series-order-check/index.js";
 import { SeriesModule } from "./modules/series/series.module.js";
 import { TagsModule } from "./modules/tags/tags.module.js";
 import { TimelineModule } from "./modules/timeline/timeline.module.js";
-
-const GLOBAL_THROTTLE_TTL_SECONDS = 60;
-const GLOBAL_THROTTLE_LIMIT = 120;
+import { TrashModule } from "./modules/trash/trash.module.js";
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([
-      { limit: GLOBAL_THROTTLE_LIMIT, ttl: seconds(GLOBAL_THROTTLE_TTL_SECONDS) },
-    ]),
+    ThrottlerModule.forRoot([GLOBAL_THROTTLE]),
     ScheduleModule.forRoot(),
     DatabaseModule,
     QueueModule,
@@ -55,6 +54,7 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     ListsModule,
     BooksModule,
     GenresModule,
+    RealtimeModule,
     MediaModule,
     DeliveryServicesModule,
     ReadingQueueModule,
@@ -65,7 +65,9 @@ const GLOBAL_THROTTLE_LIMIT = 120;
     QuotesModule,
     NotesModule,
     TimelineModule,
+    TrashModule,
     CharactersModule,
+    NotificationsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

@@ -3,6 +3,7 @@ import type {
   CreateQuoteInput,
   Nullable,
   Paginator,
+  QuoteDeletionResult,
   QuotesQuery,
   QuotesSummaryView,
   QuoteView,
@@ -23,6 +24,7 @@ import {
   type QuoteWithBook,
   type QuoteWriteData,
 } from "../infrastructure/quotes.repository.js";
+import { QuoteLifecycleService } from "./quote-lifecycle.service.js";
 
 const BOOK_NOT_FOUND_MESSAGE = "Book not found";
 const QUOTE_NOT_FOUND_MESSAGE = "Quote not found";
@@ -33,6 +35,7 @@ export class QuotesService {
   constructor(
     private readonly quotesRepository: QuotesRepository,
     private readonly mediaService: MediaService,
+    private readonly lifecycleService: QuoteLifecycleService,
   ) {}
 
   async createForBook({
@@ -64,14 +67,11 @@ export class QuotesService {
     bookId: string;
     quoteId: string;
     userId: string;
-  }): Promise<void> {
+  }): Promise<QuoteDeletionResult> {
     await this.findOwnedBookOrThrow(userId, bookId);
     await this.findOwnedQuoteOrThrow({ bookId, quoteId, userId });
 
-    const removed = await this.quotesRepository.delete({ quoteId });
-    if (removed === 0) {
-      throw new NotFoundError(QUOTE_NOT_FOUND_MESSAGE);
-    }
+    return this.lifecycleService.softDelete({ quoteId, userId });
   }
 
   async list({

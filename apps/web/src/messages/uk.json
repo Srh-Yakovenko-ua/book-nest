@@ -24,7 +24,8 @@
     "delivery": "Доставки",
     "dedications": "Присвяти",
     "quotes": "Цитати",
-    "publishers": "Видавництва"
+    "publishers": "Видавництва",
+    "settings": "Налаштування"
   },
   "readingQueue": {
     "title": "Черга читання",
@@ -635,21 +636,21 @@
       "sort": {
         "label": "Сортування",
         "options": {
-          "created_desc": "Нещодавно додані",
-          "created_asc": "Давно додані",
-          "updated_desc": "Нещодавно оновлені",
-          "title_asc": "Назва А–Я",
-          "title_desc": "Назва Я–А",
-          "author_asc": "Автор А–Я",
-          "author_desc": "Автор Я–А",
-          "rating_desc": "Найвищий рейтинг",
-          "rating_asc": "Найнижчий рейтинг",
-          "year_desc": "Новіші видання",
-          "year_asc": "Старіші видання",
-          "pages_desc": "Більше сторінок",
-          "pages_asc": "Менше сторінок",
-          "favorite_added_desc": "Улюблені: спочатку нові",
-          "favorite_added_asc": "Улюблені: спочатку давні"
+          "created_desc": "За датою додавання: спочатку нові",
+          "created_asc": "За датою додавання: спочатку старі",
+          "updated_desc": "За датою оновлення: спочатку нові",
+          "title_asc": "За назвою: А–Я",
+          "title_desc": "За назвою: Я–А",
+          "author_asc": "За автором: А–Я",
+          "author_desc": "За автором: Я–А",
+          "rating_desc": "За рейтингом: від вищого",
+          "rating_asc": "За рейтингом: від нижчого",
+          "year_desc": "За роком видання: спочатку новіші",
+          "year_asc": "За роком видання: спочатку старіші",
+          "pages_desc": "За кількістю сторінок: від більшої",
+          "pages_asc": "За кількістю сторінок: від меншої",
+          "favorite_added_desc": "Додані в улюблені: спочатку нові",
+          "favorite_added_asc": "Додані в улюблені: спочатку старі"
         }
       },
       "view": {
@@ -1395,8 +1396,10 @@
       "authorsShowAll": "Показати всіх авторів",
       "authorsCollapse": "Згорнути",
       "dedicationLabel": "Присвята автора",
-      "dedicationAllLink": "Перейти до всіх присвят",
+      "dedicationAllLink": "Усі присвяти",
       "dedicationCopy": "Скопіювати",
+      "dedicationSave": "Зберегти",
+      "dedicationSaved": "Збережено",
       "lists": "Списки",
       "seriesSequence": {
         "title": "Послідовність читання серії",
@@ -1947,46 +1950,54 @@
     "metaTitle": "Присвяти",
     "title": "Присвяти",
     "subtitle": "Авторські присвяти з книг, які ви додали до своєї бібліотеки. Маленькі слова, з яких починається велика історія.",
-    "countBadge": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}}",
+    "added": "Присвяту додано",
+    "loadMore": "Показати ще",
+    "loadMoreError": "Не вдалося завантажити ще присвяти",
+    "allShown": "Усі присвяти показано",
+    "counter": "Показано {shown} з {total, plural, one {# присвяти} few {# присвят} many {# присвят} other {# присвят}}",
     "toolbar": {
       "searchLabel": "Пошук присвят",
-      "searchPlaceholder": "Пошук по присвятах, книгах, авторах...",
+      "searchPlaceholder": "Присвята, книга або автор",
       "searchClear": "Очистити пошук",
       "sortLabel": "Сортування",
       "filterLabel": "Фільтр присвят",
       "genreLabel": "За жанром",
       "genreAny": "Усі жанри"
     },
+    "view": {
+      "label": "Вигляд",
+      "grid": "Сітка",
+      "list": "Список"
+    },
     "filter": {
       "all": "Усі",
       "favorites": "Улюблені",
       "without_favorites": "Без улюблених",
-      "finished": "Прочитані",
-      "unfinished": "Непрочитані"
+      "finished": "Із прочитаних книг",
+      "unfinished": "Із непрочитаних книг"
     },
     "sort": {
-      "newest": "Найновіші додані",
-      "recently_updated": "Нещодавно оновлені",
-      "book_title_asc": "За назвою книги",
-      "author_asc": "За автором",
-      "favorites_first": "Спочатку улюблені",
-      "publication_year_desc": "За роком видання"
+      "newest": "За датою додавання: спочатку нові",
+      "recently_updated": "За датою оновлення: спочатку нові",
+      "book_title_asc": "За назвою книги: А–Я",
+      "author_asc": "За автором: А–Я",
+      "favorites_first": "За улюбленими: спочатку улюблені",
+      "publication_year_desc": "За роком видання: спочатку нові"
     },
     "card": {
       "coverAlt": "Обкладинка книги «{title}»",
       "unknownAuthor": "Автор невідомий",
       "read": "Читати присвяту з книги «{title}»",
-      "openBook": "Перейти до книги",
       "copy": "Скопіювати присвяту",
       "addFavorite": "Додати присвяту в улюблені",
       "removeFavorite": "Прибрати присвяту з улюблених"
     },
     "modal": {
-      "openBook": "До книги",
-      "copy": "Скопіювати",
-      "favorite": "Улюблена",
-      "genresLabel": "Жанри",
-      "tagsLabel": "Теги"
+      "addFavorite": "Додати в улюблені",
+      "copied": "Скопійовано",
+      "copy": "Копіювати",
+      "moreTags": "Ще {count, plural, one {# тег} few {# теги} many {# тегів} other {# тегів}}",
+      "removeFavorite": "Прибрати з улюблених"
     },
     "copy": {
       "success": "Присвяту скопійовано",
@@ -1997,47 +2008,48 @@
       "removed": "Прибрано з улюблених присвят",
       "error": "Не вдалося оновити улюблені присвяти"
     },
+    "summary": {
+      "total": "Усього присвят",
+      "favorites": "Улюблені присвяти",
+      "fromFinished": "Із прочитаних книг",
+      "topGenre": "Топ жанр",
+      "topAuthor": "Топ автор",
+      "empty": "—",
+      "unit": "{count, plural, one {присвята} few {присвяти} many {присвят} other {присвят}}",
+      "authorsMicrofact": "Від {count} {count, plural, one {різного автора} few {різних авторів} many {різних авторів} other {різних авторів}}",
+      "favoritesMicrofact": "{percent}% усіх присвят",
+      "fromUnfinishedMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} — із книг, які ще не прочитані",
+      "fromUnfinishedMicrofactNone": "усі — з прочитаних книг",
+      "topGenreMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} у цьому жанрі",
+      "topAuthorMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} у книгах автора"
+    },
     "sidebar": {
       "label": "Огляд присвят",
-      "stats": {
-        "title": "Статистика",
-        "total": "Усього присвят",
-        "favorites": "Улюблених",
-        "fromFinished": "З прочитаних книг",
-        "fromUnfinished": "З непрочитаних книг",
-        "topGenre": "Найчастіший жанр",
-        "topAuthor": "Найбільше присвят від автора",
-        "empty": "—",
-        "error": "Не вдалося завантажити статистику присвят."
-      },
-      "quickFilters": {
-        "title": "Швидкі фільтри",
-        "finished": "Лише з прочитаних",
-        "unfinished": "Лише з непрочитаних",
-        "favorites": "Улюблені присвяти",
-        "without_favorites": "Без улюблених"
-      },
       "quote": {
         "text": "Кожна присвята — це маленька історія про когось важливого."
       },
-      "helper": {
-        "title": "Не знайшли свою присвяту?",
-        "text": "Додайте її на сторінці редагування книги, і вона зʼявиться тут.",
-        "cta": "Додати книгу",
-        "secondary": "Перейти до всіх книг"
+      "addMore": {
+        "title": "Хочете додати ще одну?",
+        "text": "Присвяти додаються на сторінці книги.",
+        "cta": "Обрати книгу"
       }
     },
-    "pagination": {
-      "label": "Сторінки присвят",
-      "previous": "Назад",
-      "next": "Далі",
-      "goToPage": "Сторінка {page}"
-    },
     "empty": {
-      "title": "У вас ще немає присвят",
-      "description": "Додайте присвяту автора на сторінці створення або редагування книги — і вона зʼявиться тут.",
-      "cta": "Додати книгу",
-      "secondary": "Перейти до всіх книг"
+      "title": "Додайте першу присвяту",
+      "description": "Оберіть книгу зі своєї бібліотеки та додайте авторську присвяту на сторінці її редагування.",
+      "cta": "Обрати книгу"
+    },
+    "picker": {
+      "title": "Обрати книгу",
+      "description": "Оберіть книгу без присвяти, щоб додати авторську присвяту.",
+      "searchLabel": "Пошук книг",
+      "searchPlaceholder": "Назва або автор",
+      "empty": "Книг не знайдено",
+      "loadError": "Не вдалося завантажити книги",
+      "loadMore": "Показати ще",
+      "selectBookAria": "Обрати «{title}»",
+      "cancel": "Скасувати",
+      "submit": "Додати присвяту"
     },
     "noResults": {
       "title": "Нічого не знайдено",
@@ -2411,42 +2423,106 @@
     },
     "summary": {
       "total": "Усього серій",
+      "totalBreakdown": "{completed, plural, one {# завершена} few {# завершені} many {# завершених} other {# завершених}} · {ongoing, plural, one {# ще виходить} few {# ще виходять} many {# ще виходять} other {# ще виходять}}",
       "fullyRead": "Прочитано",
+      "fullyReadPercent": "{percent}% усіх серій",
       "unfinished": "Недочитані",
-      "booksInSeries": "Книг у серіях"
+      "booksLeft": "лишилося {n, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "booksInSeries": "Книг у серіях",
+      "booksReadOfTotal": "прочитано {finished} з {total}"
     },
     "tabs": {
       "all": "Усі серії",
       "unfinished": "Недочитані"
     },
+    "counter": "Показано {shown} із {total, plural, one {# серії} few {# серій} many {# серій} other {# серій}}",
+    "activeFilters": {
+      "label": "Активні фільтри",
+      "clearAll": "Очистити все",
+      "remove": "Прибрати фільтр {label}",
+      "search": "Пошук: {query}",
+      "status": "Статус: {label}",
+      "reading": "Стан: {label}",
+      "progressFrom": "Прогрес від {min}%",
+      "progressTo": "Прогрес до {max}%",
+      "progressRange": "Прогрес {min}–{max}%",
+      "booksFrom": "Книг від {min}",
+      "booksTo": "Книг до {max}",
+      "booksRange": "Книг {min}–{max}",
+      "completeness": "Додано: {label}",
+      "genre": "Жанр: {name}",
+      "author": "Автор: {name}",
+      "attention": "Увага: {label}"
+    },
     "toolbar": {
       "searchLabel": "Пошук серій",
-      "searchPlaceholder": "Пошук за назвою або автором",
+      "searchPlaceholder": "Назва серії або автор",
       "searchClear": "Очистити пошук",
       "statusLabel": "Статус циклу",
       "readingLabel": "Стан читання",
       "sortLabel": "Сортування"
     },
+    "view": {
+      "label": "Вигляд",
+      "grid": "Сітка",
+      "list": "Список"
+    },
     "statusFilter": {
-      "all": "Усі статуси",
+      "all": "Усі статуси виходу",
       "completed": "Завершена",
       "ongoing": "Ще виходить",
       "unknown": "Невідомо"
     },
     "readingFilter": {
-      "all": "Будь-який стан",
-      "not_started": "Не почато",
-      "in_progress": "У процесі",
-      "completed": "Прочитано повністю",
-      "empty": "Без книг"
+      "all": "Усі стани читання",
+      "not_started": "Не розпочато",
+      "in_progress": "У процесі читання",
+      "completed": "Серію прочитано",
+      "empty": "Немає доданих книг"
     },
     "sort": {
-      "name_asc": "Назва А–Я",
-      "name_desc": "Назва Я–А",
-      "progress_desc": "Найбільший прогрес",
-      "progress_asc": "Найменший прогрес",
-      "books_desc": "Найбільше книг",
-      "activity_desc": "Нещодавно оновлені"
+      "name_asc": "За назвою: А–Я",
+      "name_desc": "За назвою: Я–А",
+      "progress_desc": "Прогрес читання: від більшого",
+      "progress_asc": "Прогрес читання: від меншого",
+      "books_desc": "Книг у серії: від більшої кількості",
+      "activity_desc": "За датою оновлення: спочатку нові"
+    },
+    "filters": {
+      "trigger": "Фільтри",
+      "title": "Розширені фільтри",
+      "description": "Звузьте список серій за прогресом, жанром, автором і доданими книгами.",
+      "apply": "Застосувати",
+      "clear": "Очистити",
+      "sections": {
+        "progress": "Прогрес читання",
+        "booksCount": "Додано книг у серії",
+        "completeness": "Скільки книг додано",
+        "genre": "Жанр",
+        "author": "Автор"
+      },
+      "completeness": {
+        "complete": "Усі книги додано",
+        "incomplete": "Додано не всі",
+        "no_plan": "Кількість книг невідома"
+      },
+      "completenessHint": "Скільки книг серії вже додано на платформу — незалежно від наявності та прочитання.",
+      "progressAny": "Будь-який",
+      "progressRange": "{min}%–{max}%",
+      "range": {
+        "min": "Від",
+        "max": "До",
+        "booksMin": "Книг від",
+        "booksMax": "Книг до",
+        "invalid": "Мінімум не може перевищувати максимум"
+      },
+      "genrePlaceholder": "Оберіть жанри",
+      "authorPlaceholder": "Оберіть авторів",
+      "searchPlaceholder": "Пошук…",
+      "empty": "Немає доступних варіантів",
+      "authorEmpty": "Авторів не знайдено",
+      "authorSearching": "Шукаємо авторів…",
+      "removeAuthor": "Прибрати автора {name}"
     },
     "status": {
       "completed": "Завершена",
@@ -2457,32 +2533,52 @@
       "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
       "progressWithTotal": "Прочитано {finished} з {total}",
       "progressAdded": "Прочитано {finished} з {count} доданих",
-      "allRead": "Усі книги прочитані",
       "noBooks": "Книги ще не додані",
-      "next": "Наступна: {title}",
-      "nextWithPart": "Наступна: {title} · Книга {number}",
-      "nextAllRead": "Усю серію прочитано",
+      "startWith": "Почати з: {title}",
+      "startWithPart": "Почати з: {title} · Книга {number}",
+      "continueReading": "Далі читати: {title}",
+      "continueWithPart": "Далі читати: {title} · Книга {number}",
+      "readBadge": "Серію прочитано",
       "view": "Переглянути серію",
       "addBook": "Додати книгу",
       "coverAlt": "Обкладинка серії {name}",
+      "coverBadge": "{added} з {total} додано",
       "authorsUnknown": "Автор невідомий"
     },
+    "attention": {
+      "title": "Потребують уваги",
+      "allClear": "Усі серії впорядковані",
+      "viewAll": "Переглянути всі проблеми",
+      "empty": "{count, plural, one {# серія без доданих книг} few {# серії без доданих книг} many {# серій без доданих книг} other {# серій без доданих книг}}",
+      "unknown_status": "{count, plural, one {# серія з невідомим статусом виходу} few {# серії з невідомим статусом виходу} many {# серій із невідомим статусом виходу} other {# серій із невідомим статусом виходу}}",
+      "incomplete_set": "{count, plural, one {# завершена серія зібрана не повністю} few {# завершені серії зібрані не повністю} many {# завершених серій зібрано не повністю} other {# завершених серій зібрано не повністю}}",
+      "incomplete_data": "{count, plural, one {# серія з неповними даними} few {# серії з неповними даними} many {# серій із неповними даними} other {# серій із неповними даними}}",
+      "missing_parts": "{count, plural, one {# серія з пропуском у порядку книг} few {# серії з пропусками в порядку книг} many {# серій із пропусками в порядку книг} other {# серій із пропусками в порядку книг}}",
+      "next_unavailable": "{count, plural, one {# серія, де наступної книги немає в наявності} few {# серії, де наступної книги немає в наявності} many {# серій, де наступної книги немає в наявності} other {# серій, де наступної книги немає в наявності}}",
+      "chip": {
+        "any": "Потребують уваги",
+        "empty": "Без доданих книг",
+        "unknown_status": "Невідомий статус виходу",
+        "incomplete_set": "Неповний комплект",
+        "incomplete_data": "Неповні дані",
+        "missing_parts": "Пропуски в порядку",
+        "next_unavailable": "Наступної немає в наявності"
+      }
+    },
     "sidebar": {
-      "quickActions": "Швидкі дії",
-      "createSeries": "Створити серію",
-      "addBook": "Додати книгу",
-      "goToUnfinished": "Перейти до недочитаних",
-      "continueTitle": "Продовжити серію",
+      "label": "Огляд серій",
+      "continueTitle": "Продовжити читання",
       "continueEmpty": "Немає недочитаних серій",
       "progress": "{finished} з {total} · {percent}%",
-      "next": "Наступна: {title}",
-      "openSeries": "Відкрити серію",
-      "closestTitle": "Найближчі до завершення",
+      "progressReading": "{finished} з {total} прочитано · {left, plural, one {залишилася # книга} few {залишилося # книги} many {залишилося # книг} other {залишилося # книг}}",
+      "nextBookHeading": "Наступна книга",
+      "nextBookPart": "Книга {number} у серії",
+      "nextCoverAlt": "Обкладинка книги {title}",
+      "nextShort": "Далі: {title}",
+      "closestTitle": "Серії, які майже прочитані",
+      "closestSubtitle": "Залишилося лише 1–2 книги",
       "closestEmpty": "Поки що немає прогресу",
-      "statusTitle": "Статус циклів",
-      "statusCompleted": "Завершені автором",
-      "statusOngoing": "Ще виходять",
-      "statusUnknown": "Невідомо"
+      "progressBarLabel": "Прогрес серії {name}: {percent}%"
     },
     "dialog": {
       "title": "Нова серія",
@@ -2555,9 +2651,11 @@
         "remaining": "{count} залишилося",
         "notAdded": "ще {count} не додано"
       },
+      "readFullDescription": "Читати повний опис",
       "tabs": {
         "books": "Книги серії",
-        "about": "Про серію"
+        "about": "Про серію",
+        "notes": "Нотатки"
       },
       "booksEmpty": {
         "title": "У цій серії ще немає книг",
@@ -2565,8 +2663,9 @@
       },
       "missingRow": {
         "title": "Книга {number}",
-        "hint": "Ще немає у твоїй бібліотеці",
-        "action": "Додати",
+        "notAdded": "Дані про цю частину ще не додані",
+        "hint": "Додай нову книгу або знайди її у своїй бібліотеці.",
+        "action": "Додати книгу",
         "actionAria": "Додати книгу {number} до бібліотеки"
       },
       "row": {
@@ -2582,17 +2681,28 @@
         "paused": "Призупинено · {current} з {total} стор.",
         "pausedShort": "Призупинено",
         "dnf": "Не дочитано",
-        "history": "Історія читання"
+        "history": "Історія читання",
+        "finishedOn": "Прочитано {date}",
+        "readingSince": "Читаю з {date}",
+        "rereadingSince": "Перечитую з {date}",
+        "lentTo": "Позичена · {name}",
+        "borrowedFrom": "Позичено в {name}",
+        "expectedReturn": "Очікуване повернення — {date}",
+        "inTransit": "В дорозі · очікується {date}"
       },
       "progress": {
-        "title": "Ваш прогрес у серії",
-        "booksOfTotal": "{finished} з {total} книг",
-        "booksAdded": "{finished} з {count} доданих",
-        "finished": "Прочитано {count}",
-        "reading": "Читаю {count}",
-        "unread": "Ще не прочитано {count}",
-        "unavailable": "Прогрес ще недоступний",
-        "completed": "Серію прочитано"
+        "title": "Прогрес читання",
+        "completed": "Серію прочитано",
+        "statusReadingTitle": "Зараз читається «{title}»",
+        "statusNextTitle": "Наступна до читання — «{title}»",
+        "statusPosition": "Книга {position} у серії",
+        "statusBookPercent": "{percent}% книги",
+        "statusMissingTitle": "Усі додані книги прочитані",
+        "statusMissingDetail": "Книга {position} ще не додана до бібліотеки.",
+        "statusNotStarted": "Читання серії ще не розпочато",
+        "statusCompleted": "Серію прочитано повністю",
+        "statusOngoingTitle": "Усі доступні книги прочитані",
+        "statusOngoingDetail": "Серія ще виходить"
       },
       "stats": {
         "title": "Статистика серії",
@@ -2617,13 +2727,8 @@
       },
       "about": {
         "title": "Про серію",
-        "description": "Опис",
         "descriptionEmpty": "Опис ще не додано.",
-        "status": "Статус циклу",
-        "authors": "Автори",
-        "totalBooks": "Загалом книг",
-        "createdAt": "Додано",
-        "unknown": "—"
+        "addedToBookNest": "Додано до BookNest {date}"
       },
       "states": {
         "loading": "Завантаження серії…",
@@ -2663,6 +2768,13 @@
     "addBookDialog": {
       "title": "Додати книгу в серію",
       "description": "Оберіть книгу з бібліотеки та вкажіть номер частини.",
+      "chooseTitle": "Додати книгу до серії",
+      "chooseDescription": "Оберіть, як додати цю частину серії.",
+      "optionSearchTitle": "Знайти серед моїх книг",
+      "optionSearchSubtitle": "Прив'язати книгу, яка вже є у бібліотеці",
+      "optionCreateTitle": "Створити нову книгу",
+      "optionCreateSubtitle": "Додати дані про нову книгу",
+      "back": "Назад",
       "searchLabel": "Пошук книг",
       "searchPlaceholder": "Пошук за назвою…",
       "searching": "Пошук…",
@@ -2758,13 +2870,13 @@
       },
       "sort": {
         "label": "Сортування",
-        "updated_desc": "Останнє оновлення",
-        "created_desc": "Спочатку нові",
-        "created_asc": "Спочатку старі",
-        "title_asc": "Назва А–Я",
-        "title_desc": "Назва Я–А",
-        "books_count_desc": "Більше книг",
-        "books_count_asc": "Менше книг"
+        "updated_desc": "За датою оновлення: спочатку нові",
+        "created_desc": "За датою створення: спочатку нові",
+        "created_asc": "За датою створення: спочатку старі",
+        "title_asc": "За назвою: А–Я",
+        "title_desc": "За назвою: Я–А",
+        "books_count_desc": "За кількістю книг: спочатку більше",
+        "books_count_asc": "За кількістю книг: спочатку менше"
       },
       "card": {
         "open": "Відкрити список",
@@ -2783,26 +2895,48 @@
       },
       "noResults": {
         "title": "Нічого не знайдено",
-        "description": "Спробуйте змінити пошуковий запит або очистити пошук.",
-        "clear": "Очистити пошук"
+        "description": "Спробуйте змінити пошуковий запит або скинути фільтри.",
+        "clear": "Скинути фільтри"
+      },
+      "attention": {
+        "title": "Потребують уваги",
+        "allClear": "Усі списки впорядковані",
+        "empty": {
+          "title": "Порожні списки",
+          "detail": "{count, plural, one {# список} few {# списки} many {# списків} other {# списків}} без доданих книг",
+          "caption": "Додайте книги, щоб наповнити добірки."
+        },
+        "no_description": {
+          "title": "Списки без опису",
+          "detail": "{count, plural, one {# список} few {# списки} many {# списків} other {# списків}} без опису",
+          "caption": "Додайте короткий опис, щоб легше розрізняти списки."
+        },
+        "stale": {
+          "title": "Давно не оновлювалися",
+          "detail": "{count, plural, one {# список} few {# списки} many {# списків} other {# списків}} без змін понад {months} місяців",
+          "caption": "Перевірте, чи ці добірки ще актуальні."
+        }
       },
       "error": {
         "title": "Не вдалося завантажити списки",
         "description": "Спробуйте оновити сторінку або повторити запит трохи пізніше.",
         "retry": "Спробувати ще раз"
       },
+      "summary": {
+        "totalLists": "Усього списків",
+        "listsUnit": "{count, plural, one {список} few {списки} many {списків} other {списків}}",
+        "booksUnit": "{count, plural, one {книга} few {книги} many {книг} other {книг}}",
+        "listsBreakdown": "{withBooks} із книгами · {empty, plural, one {# порожній} few {# порожні} many {# порожніх} other {# порожніх}}",
+        "listsAllFilled": "Усі списки містять книги",
+        "uniqueBooks": "Унікальних книг",
+        "memberships": "{count, plural, one {# додавання} few {# додавання} many {# додавань} other {# додавань}} до списків",
+        "averageSize": "Середній розмір списку",
+        "largestList": "Найбільший список — {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+        "multiList": "У кількох списках",
+        "maxReach": "Найчастіше — у {count, plural, one {# списку} few {# списках} many {# списках} other {# списках}}",
+        "singleListOnly": "Кожна книга лише в одному списку"
+      },
       "sidebar": {
-        "stats": {
-          "title": "Коротка статистика",
-          "totalLists": "Всього списків",
-          "booksInLists": "Книг у списках",
-          "mostPopular": "Найпопулярніший список"
-        },
-        "actions": {
-          "title": "Швидкі дії",
-          "create": "Створити новий список",
-          "library": "Відкрити бібліотеку"
-        },
         "tip": {
           "title": "Корисна порада",
           "text": "Одна книга може бути в кількох списках. Видалення списку не видаляє книги з вашої бібліотеки."
@@ -3017,11 +3151,6 @@
     }
   },
   "changelog": {
-    "bell": {
-      "ariaLabel": "Що нового",
-      "ariaLabelUnread": "Що нового, {count} непрочитаних"
-    },
-    "title": "Що нового",
     "category": {
       "feature": "Нове",
       "improvement": "Покращення",
@@ -4447,6 +4576,147 @@
       "unlinked": "Персонажа прибрано з книги",
       "updateError": "Не вдалося зберегти зміни",
       "updated": "Зміни збережено"
+    }
+  },
+  "notifications": {
+    "bell": {
+      "ariaLabel": "Сповіщення",
+      "ariaLabelAllRead": "Усе прочитано",
+      "ariaLabelUnread": "Сповіщення, {count, plural, one {# непрочитане} few {# непрочитані} many {# непрочитаних} other {# непрочитаних}}"
+    },
+    "tabs": {
+      "reminders": "Нагадування",
+      "changelog": "Що нового",
+      "unreadCount": "{count, plural, one {# непрочитане} few {# непрочитані} many {# непрочитаних} other {# непрочитаних}}"
+    },
+    "list": {
+      "ariaLabel": "Список сповіщень"
+    },
+    "states": {
+      "empty": {
+        "title": "Нагадувань немає",
+        "description": "Тут зʼявлятимуться нагадування про позики та доставки."
+      },
+      "error": {
+        "title": "Не вдалося завантажити сповіщення",
+        "description": "Перевірте зʼєднання та спробуйте ще раз.",
+        "retry": "Спробувати ще раз"
+      },
+      "loading": "Завантаження сповіщень…",
+      "loadingMore": "Завантаження…",
+      "loadMoreError": "Не вдалося завантажити наступні сповіщення"
+    },
+    "errors": {
+      "markAllRead": "Не вдалося позначити всі сповіщення прочитаними",
+      "markRead": "Не вдалося позначити сповіщення прочитаним"
+    },
+    "actions": {
+      "loadMore": "Показати ще",
+      "markAllRead": "Прочитати все",
+      "markRead": "Позначити прочитаним"
+    },
+    "row": {
+      "unread": "Непрочитане"
+    },
+    "entityState": {
+      "trashed": "у кошику"
+    },
+    "types": {
+      "delivery": {
+        "arrivingSoon": "Доставка «{bookTitle}» очікується {date}",
+        "arrivingToday": "Доставка «{bookTitle}» прибуває сьогодні",
+        "delayed": "Доставка «{bookTitle}» затримується, очікували {date}"
+      },
+      "loan": {
+        "dueSoon": "{personName} має повернути «{bookTitle}» до {date}",
+        "dueToday": "{personName} має повернути «{bookTitle}» сьогодні",
+        "overdue": "Позику «{bookTitle}» прострочено на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}, позичальник — {personName}"
+      },
+      "system": {
+        "test": "Тестове сповіщення, усе працює"
+      }
+    }
+  },
+  "settings": {
+    "page": {
+      "metaTitle": "Налаштування",
+      "title": "Налаштування",
+      "description": "Тут ви вирішуєте, про що вам писати на пошту і за яким часовим поясом рахувати дати нагадувань."
+    },
+    "notifications": {
+      "title": "Нагадування на пошту",
+      "description": "Листи приходять уранці за вашим часовим поясом.",
+      "comingSoon": "Скоро",
+      "toggles": {
+        "deliveryReminders": {
+          "label": "Нагадування про доставки",
+          "description": "Лист, коли книга ось-ось приїде або доставка затрималася."
+        },
+        "borrowedBookReminders": {
+          "label": "Нагадування про позичені книги",
+          "description": "Лист, коли комусь час повертати вашу книгу."
+        },
+        "readingReminders": {
+          "label": "Нагадування читати",
+          "description": "Легкий поштовх повернутися до книги, яку ви почали."
+        },
+        "readingGoalReminders": {
+          "label": "Нагадування про цілі читання",
+          "description": "Лист про те, як просувається ваша ціль читання."
+        },
+        "weeklyReadingSummary": {
+          "label": "Підсумок тижня",
+          "description": "Щотижневий лист про те, що ви прочитали."
+        },
+        "monthlyReadingReport": {
+          "label": "Звіт за місяць",
+          "description": "Щомісячний огляд вашої бібліотеки та статистики читання."
+        }
+      },
+      "upcoming": {
+        "title": "Ще в роботі",
+        "description": "Цих листів ми поки не надсилаємо. Перемикачі зʼявляться разом із самими нагадуваннями."
+      },
+      "leadDays": {
+        "label": "Нагадувати про повернення завчасно",
+        "hint": "Від {min} до {max} днів до дати повернення.",
+        "suffix": "{count, plural, one {день} few {дні} many {днів} other {днів}}"
+      },
+      "test": {
+        "label": "Тестове сповіщення",
+        "description": "Надішліть його собі, щоб побачити, як виглядає нагадування.",
+        "button": "Надіслати тест",
+        "success": "Тестове сповіщення створено — загляньте у дзвіночок.",
+        "error": "Не вдалося надіслати тестове сповіщення. Спробуйте за хвилину."
+      }
+    },
+    "regional": {
+      "title": "Часовий пояс",
+      "description": "За ним ми рахуємо, коли у вас настав ранок, щоб надіслати нагадування.",
+      "timezone": {
+        "label": "Ваш часовий пояс",
+        "hint": "Наприклад, Europe/Kyiv. Почніть вводити назву міста, щоб знайти свій.",
+        "search": "Пошук часового поясу",
+        "empty": "Нічого не знайшли"
+      },
+      "weekStartDay": {
+        "label": "Перший день тижня",
+        "monday": "Понеділок",
+        "sunday": "Неділя",
+        "hint": "З цього дня починатимуться тижні в календарях."
+      }
+    },
+    "toast": {
+      "saved": "Збережено",
+      "error": "Не вдалося зберегти. Спробуйте ще раз."
+    },
+    "states": {
+      "loading": "Завантаження налаштувань…",
+      "error": {
+        "title": "Не вдалося завантажити налаштування",
+        "description": "Перевірте зʼєднання та спробуйте ще раз.",
+        "retry": "Спробувати ще раз"
+      }
     }
   }
 }

@@ -5,7 +5,7 @@ import type { SeriesDetailsView } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { Tabs as TabsPrimitive } from "radix-ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import type { PageTabsItem } from "@/components/page-tabs";
@@ -21,7 +21,6 @@ import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 import { useDeleteSeries } from "../api/use-delete-series";
-import { seriesProgress } from "../model/series-derive";
 import { nextAddablePartNumber, suggestedPartNumber } from "../model/series-details-derive";
 import { AddBookToSeriesDialog } from "./add-book-to-series-dialog";
 import { DeleteSeriesDialog } from "./delete-series-dialog";
@@ -38,7 +37,9 @@ type SeriesDetailsViewProps = {
   details: SeriesDetailsView;
 };
 
-const DETAIL_TABS = ["books", "about"] as const;
+const DETAIL_TABS = ["books", "about", "notes"] as const;
+
+type SeriesDetailTab = (typeof DETAIL_TABS)[number];
 
 const tabParser = parseAsStringLiteral(DETAIL_TABS).withDefault("books");
 
@@ -47,6 +48,7 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
   const tToast = useTranslations("series.toast");
   const router = useRouter();
 
+  const tabsRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useQueryState("tab", tabParser);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -54,7 +56,6 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
   const [addPartNumber, setAddPartNumber] = useState<null | number>(null);
 
   const deleteSeries = useDeleteSeries(details.id);
-  const { fullyRead } = seriesProgress(details);
 
   const nextPart = nextAddablePartNumber({ books: details.books, totalBooks: details.totalBooks });
   const canAddBook = nextPart !== null;
@@ -62,11 +63,17 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
   const tabItems: PageTabsItem[] = [
     { label: t("tabs.books"), value: "books" },
     { label: t("tabs.about"), value: "about" },
+    { label: t("tabs.notes"), value: "notes" },
   ];
 
   function openAddBook(partNumber: null | number) {
     setAddPartNumber(partNumber);
     setAddOpen(true);
+  }
+
+  function showAboutTab() {
+    void setTab("about");
+    tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function onConfirmDelete() {
@@ -89,17 +96,17 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
           onAddBook={() => openAddBook(null)}
           onDelete={() => setDeleteOpen(true)}
           onEdit={() => setEditOpen(true)}
+          onReadFullDescription={showAboutTab}
         />
 
-        {fullyRead ? null : (
-          <div className="details-sidebar-leaf flex flex-col gap-6 lg:hidden">
-            <SeriesProgressCard details={details} />
-          </div>
-        )}
+        <div className="details-sidebar-leaf flex flex-col gap-6 lg:hidden">
+          <SeriesProgressCard details={details} />
+        </div>
 
         <TabsPrimitive.Root
           className="flex flex-col gap-6"
-          onValueChange={(value) => void setTab(value === "about" ? "about" : "books")}
+          onValueChange={(value) => void setTab(toSeriesDetailTab(value))}
+          ref={tabsRef}
           value={tab}
         >
           <div className={cn(pageTabsDividerClass, "flex items-end justify-between gap-4")}>
@@ -123,10 +130,12 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
           </div>
 
           <PageTabsPanel className="flex flex-col gap-5" value="books">
-            <SeriesBooksTab canAddBook={canAddBook} details={details} onAddBook={openAddBook} />
+            <SeriesBooksTab details={details} onAddBook={openAddBook} />
           </PageTabsPanel>
           <PageTabsPanel className="flex flex-col gap-6" value="about">
             <SeriesDetailsAbout details={details} />
+          </PageTabsPanel>
+          <PageTabsPanel className="flex flex-col gap-6" value="notes">
             <SeriesNotesBlock details={details} />
           </PageTabsPanel>
         </TabsPrimitive.Root>
@@ -138,7 +147,7 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
       </div>
 
       <aside className="details-sidebar-leaf hidden flex-col gap-6 lg:flex">
-        {fullyRead ? null : <SeriesProgressCard details={details} />}
+        <SeriesProgressCard details={details} />
         <SeriesStatsCard stats={details.stats} totalBooks={details.totalBooks} />
         <SeriesOrderCheckToggle seriesId={details.id} />
       </aside>
@@ -161,4 +170,8 @@ export function SeriesDetailsView({ details }: SeriesDetailsViewProps) {
       />
     </div>
   );
+}
+
+function toSeriesDetailTab(value: string): SeriesDetailTab {
+  return DETAIL_TABS.find((tab) => tab === value) ?? "books";
 }

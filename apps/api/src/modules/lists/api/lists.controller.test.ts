@@ -100,6 +100,124 @@ function getLists(accessToken: string): request.Test {
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
+function getSummary(accessToken: string): request.Test {
+  return request(app.getHttpServer())
+    .get("/api/lists/summary")
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
+describe("GET /api/lists/summary", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).get("/api/lists/summary");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns zeros when the user has no lists", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      averageBooksPerList: 0,
+      emptyListCount: 0,
+      largestListBookCount: 0,
+      listsWithBooksCount: 0,
+      maxListsPerBook: 0,
+      multiListBookCount: 0,
+      totalListCount: 0,
+      totalMembershipCount: 0,
+      uniqueBookCount: 0,
+    });
+  });
+
+  it("counts every book once even when it belongs to several lists", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const wide = await createList({ name: "Wide", userId });
+    const narrow = await createList({ name: "Narrow", userId });
+    await createList({ name: "Empty", userId });
+
+    const shared = await createBook(userId, false);
+    const solo = await createBook(userId, false);
+    await addBookToList(wide, shared.bookId, 0);
+    await addBookToList(wide, solo.bookId, 1);
+    await addBookToList(narrow, shared.bookId, 0);
+
+    const res = await getSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      averageBooksPerList: 1,
+      emptyListCount: 1,
+      largestListBookCount: 2,
+      listsWithBooksCount: 2,
+      maxListsPerBook: 2,
+      multiListBookCount: 1,
+      totalListCount: 3,
+      totalMembershipCount: 3,
+      uniqueBookCount: 2,
+    });
+  });
+
+  it("ignores trashed lists and trashed books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const kept = await createList({ name: "Kept", userId });
+    const trashedList = await createList({ name: "Trashed", userId });
+
+    const keptBook = await createBook(userId, false);
+    const trashedBook = await createBook(userId, false);
+    await addBookToList(kept, keptBook.bookId, 0);
+    await addBookToList(kept, trashedBook.bookId, 1);
+    await addBookToList(trashedList, keptBook.bookId, 0);
+
+    await prisma.book.update({
+      data: { deletedAt: new Date() },
+      where: { id: trashedBook.bookId },
+    });
+    await prisma.bookList.update({
+      data: { deletedAt: new Date() },
+      where: { id: trashedList },
+    });
+
+    const res = await getSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      averageBooksPerList: 1,
+      emptyListCount: 0,
+      largestListBookCount: 1,
+      listsWithBooksCount: 1,
+      maxListsPerBook: 1,
+      multiListBookCount: 0,
+      totalListCount: 1,
+      totalMembershipCount: 1,
+      uniqueBookCount: 1,
+    });
+  });
+
+  it("never counts another user's lists", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger-summary@example.com",
+      nickname: "strangersummary",
+    });
+    const strangerList = await createList({ name: "Secret", userId: stranger.userId });
+    const strangerBook = await createBook(stranger.userId, false);
+    await addBookToList(strangerList, strangerBook.bookId, 0);
+    await createList({ name: "Owned", userId: owner.userId });
+
+    const res = await getSummary(owner.accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      totalListCount: 1,
+      totalMembershipCount: 0,
+      uniqueBookCount: 0,
+    });
+  });
+});
+
 describe("POST /api/lists", () => {
   it("returns 401 when no Authorization header is present", async () => {
     const res = await request(app.getHttpServer())
@@ -225,7 +343,7 @@ describe("DELETE /api/lists/:listId", () => {
     expect(res.status).toBe(401);
   });
 
-  it("deletes the list and its memberships while keeping the books", async () => {
+  it("moves the list to the trash and hides it while keeping the books", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const listId = await createList({ name: "Autumn reads", userId });
     const { bookId } = await createBook(userId, false);
@@ -235,10 +353,15 @@ describe("DELETE /api/lists/:listId", () => {
       .delete(`/api/lists/${listId}`)
       .set("Authorization", `Bearer ${accessToken}`);
 
-    expect(res.status).toBe(204);
-    expect(await prisma.bookList.count({ where: { id: listId } })).toBe(0);
-    expect(await prisma.bookListItem.count({ where: { listId } })).toBe(0);
+    expect(res.status).toBe(200);
+    expect(await prisma.bookList.count({ where: { deletedAt: null, id: listId } })).toBe(0);
+    expect(await prisma.bookListItem.count({ where: { listId } })).toBe(1);
     expect(await prisma.book.count({ where: { id: bookId } })).toBe(1);
+
+    const listing = await request(app.getHttpServer())
+      .get("/api/lists")
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(listing.body.totalCount).toBe(0);
   });
 
   it("returns 404 for a list owned by another user", async () => {

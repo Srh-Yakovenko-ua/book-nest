@@ -15,7 +15,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
-import { CharactersService } from "../application/characters.service.js";
+import { SeriesCharactersService } from "../application/series-characters.service.js";
 import { SeriesCharacterProfileQueryDto } from "./input-dto/series-character-profile-query.input-dto.js";
 import { SeriesCharactersQueryDto } from "./input-dto/series-characters-query.input-dto.js";
 import { CharacterSeriesProfileViewDto } from "./view-dto/character-series-profile.view-dto.js";
@@ -25,7 +25,7 @@ import { PaginatedCharactersDto } from "./view-dto/paginated-characters.view-dto
 @Controller("api/series/:seriesId/characters")
 @JwtProtected()
 export class SeriesCharactersController {
-  constructor(private readonly charactersService: CharactersService) {}
+  constructor(private readonly seriesCharactersService: SeriesCharactersService) {}
 
   @ApiNotFoundResponse({ description: "Series or context book not found" })
   @ApiOkResponse({
@@ -46,7 +46,7 @@ export class SeriesCharactersController {
     @Param("seriesId", ParseUUIDPipe) seriesId: string,
     @Query(new ZodQueryPipe(SeriesCharactersQuerySchema)) query: SeriesCharactersQueryDto,
   ): Promise<Paginator<CharacterSummaryView>> {
-    return this.charactersService.listSeriesCharacters({ query, seriesId, userId: user.id });
+    return this.seriesCharactersService.listSeriesCharacters({ query, seriesId, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "Series, context book, or character not found" })
@@ -68,7 +68,7 @@ export class SeriesCharactersController {
     @Query(new ZodQueryPipe(SeriesCharacterProfileQuerySchema))
     query: SeriesCharacterProfileQueryDto,
   ): Promise<CharacterSeriesProfileView> {
-    return this.charactersService.getSeriesCharacterProfile({
+    return this.seriesCharactersService.getSeriesCharacterProfile({
       characterId,
       query,
       seriesId,

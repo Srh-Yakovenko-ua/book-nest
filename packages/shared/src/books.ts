@@ -7,6 +7,7 @@ import {
   BookFormatSchema,
   BookFormatsSchema,
   BookLanguageSchema,
+  BookPartNumberSchema,
   BookTypeSchema,
   CurrencySchema,
   LoanDirectionSchema,
@@ -44,14 +45,12 @@ import { BookPublisherRefSchema } from "./publishers.js";
 import { NewSeriesInputSchema, SeriesViewSchema } from "./series.js";
 import { BookTagsInputSchema, TagViewSchema } from "./tags.js";
 import { TaxonomyNameSchema } from "./taxonomy.js";
+import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const BOOK_TITLE_MIN = 1;
-const BOOK_TITLE_MAX = 150;
+export const BOOK_TITLE_MAX = 150;
 
 export const BOOK_DESCRIPTION_MAX = 5000;
-
-const BOOK_PART_NUMBER_MIN = 1;
-const BOOK_PART_NUMBER_MAX = 999;
 
 const BOOK_LIST_IDS_MAX = 50;
 const BOOK_NEW_LISTS_MAX = 20;
@@ -221,13 +220,13 @@ export const UpdateReadingProgressInputSchema = z.object({
   updateDate: notInFutureDate("Update date must not be in the future").optional(),
 });
 
-const OWNERSHIP_STORE_NAME_MAX = 100;
+export const OWNERSHIP_STORE_NAME_MAX = 100;
 const OWNERSHIP_STORE_URL_MAX = 300;
 const OWNERSHIP_ORDER_NUMBER_MAX = 100;
 const OWNERSHIP_NOTE_MAX = 300;
 const LOAN_NOTE_MAX = 500;
 const OWNERSHIP_PERSON_NAME_MIN = 1;
-const OWNERSHIP_PERSON_NAME_MAX = 100;
+export const OWNERSHIP_PERSON_NAME_MAX = 100;
 const OWNERSHIP_CONTACT_MAX = 100;
 const OWNERSHIP_PRICE_MIN = 0;
 const OWNERSHIP_PRICE_MAX = 99999999.99;
@@ -500,12 +499,6 @@ export const UpdateLoanInputSchema = z
   );
 
 export type UpdateLoanInput = z.infer<typeof UpdateLoanInputSchema>;
-
-const BookPartNumberSchema = z
-  .number()
-  .int()
-  .min(BOOK_PART_NUMBER_MIN, "Part number must be from 1 to 999")
-  .max(BOOK_PART_NUMBER_MAX, "Part number must be from 1 to 999");
 
 export const BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE =
   "Part number can't be greater than the total books in the series";
@@ -854,6 +847,7 @@ export const LibraryBooksQuerySchema = z
     format: queryStringArray(BookFormatSchema),
     genre: queryStringArray(GenreKeySchema),
     hasCover: z.stringbool().optional(),
+    hasDedication: z.stringbool().optional(),
     hasRating: z.stringbool().optional(),
     isFavorite: z.stringbool().optional(),
     language: queryStringArray(BookLanguageSchema),
@@ -1219,6 +1213,34 @@ export const PaginatedBooksSchema = createPaginatedSchema(BookViewSchema);
 export const ListBookViewSchema = BookViewSchema.extend({ position: z.number() });
 
 export type ListBookView = z.infer<typeof ListBookViewSchema>;
+
+export const BookDeletionResultSchema = TrashDeletionResultSchema.extend({
+  bookId: z.string(),
+});
+
+export type BookDeletionResult = z.infer<typeof BookDeletionResultSchema>;
+
+export const TrashedBookViewSchema = z.object({
+  authors: z.array(BookAuthorRefSchema),
+  cover: MediaViewSchema.nullable(),
+  deletedAt: z.iso.datetime(),
+  id: z.string(),
+  purgeAt: z.iso.datetime(),
+  seriesTitle: z.string().nullable(),
+  title: z.string(),
+});
+
+export type TrashedBookView = z.infer<typeof TrashedBookViewSchema>;
+
+export const TrashedBooksQuerySchema = z.object({
+  ...paginationQueryFields({ pageSizeDefault: TRASH_PAGE_SIZE_DEFAULT }),
+});
+
+export type TrashedBooksQuery = z.infer<typeof TrashedBooksQuerySchema>;
+
+export const PaginatedTrashedBooksSchema = createPaginatedSchema(TrashedBookViewSchema);
+
+export type PaginatedTrashedBooks = z.infer<typeof PaginatedTrashedBooksSchema>;
 
 export const CustomListDetailSchema = z.object({
   bookCount: z.number(),

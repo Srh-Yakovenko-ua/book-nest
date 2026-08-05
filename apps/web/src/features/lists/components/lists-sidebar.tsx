@@ -1,56 +1,67 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
-import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
+import type { UiIconName } from "@/components/icons";
 
-import type { ListsStats } from "../model/lists-derive";
+import { AttentionBlock } from "@/components/attention-block";
+import { UiIcon } from "@/components/icons";
+
+import type { ListAttentionReason } from "../model/lists-derive";
+
+import { LIST_ATTENTION_REASONS, LIST_STALE_MONTHS } from "../model/lists-derive";
 
 type ListsSidebarProps = {
-  onCreateList: () => void;
-  stats: ListsStats;
+  activeAttention: Nullable<ListAttentionReason>;
+  attentionCounts: Record<ListAttentionReason, number>;
+  isLoading: boolean;
+  onAttentionSelect: (reason: ListAttentionReason) => void;
 };
 
-export function ListsSidebar({ onCreateList, stats }: ListsSidebarProps) {
-  const t = useTranslations("lists.catalog.sidebar");
-  const tCard = useTranslations("lists.catalog.card");
+const ATTENTION_ROW_META: Record<ListAttentionReason, { icon: UiIconName; toneClass: string }> = {
+  empty: { icon: "book-x", toneClass: "text-destructive" },
+  no_description: { icon: "file-warning", toneClass: "text-muted-foreground" },
+  stale: { icon: "clock", toneClass: "text-warning" },
+};
 
-  const mostPopular =
-    stats.mostPopular === null
-      ? "—"
-      : `${stats.mostPopular.name} · ${tCard("books", { count: stats.mostPopular.bookCount })}`;
+export function ListsSidebar({
+  activeAttention,
+  attentionCounts,
+  isLoading,
+  onAttentionSelect,
+}: ListsSidebarProps) {
+  const t = useTranslations("lists.catalog.sidebar");
+  const tAttention = useTranslations("lists.catalog.attention");
+
+  const items = LIST_ATTENTION_REASONS.filter((reason) => attentionCounts[reason] > 0).map(
+    (reason) => ({
+      ...ATTENTION_ROW_META[reason],
+      caption: tAttention(`${reason}.caption`),
+      detail: tAttention(`${reason}.detail`, {
+        count: attentionCounts[reason],
+        months: LIST_STALE_MONTHS,
+      }),
+      id: reason,
+      label: tAttention(`${reason}.title`),
+    }),
+  );
 
   return (
     <aside
-      aria-label={t("actions.title")}
+      aria-label={tAttention("title")}
       className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
-      <SidebarBlock title={t("stats.title")}>
-        <dl className="flex flex-col gap-2.5">
-          <StatRow label={t("stats.totalLists")} value={stats.totalLists.toLocaleString()} />
-          <StatRow label={t("stats.booksInLists")} value={stats.booksInLists.toLocaleString()} />
-          <StatRow label={t("stats.mostPopular")} value={mostPopular} />
-        </dl>
-      </SidebarBlock>
-
-      <SidebarBlock title={t("actions.title")}>
-        <div className="flex flex-col gap-2">
-          <Button className="justify-start" onClick={onCreateList} variant="secondary">
-            <UiIcon name="plus" size={16} />
-            {t("actions.create")}
-          </Button>
-          <Button asChild className="justify-start" variant="ghost">
-            <Link href="/my-library">
-              <UiIcon name="library" size={16} />
-              {t("actions.library")}
-            </Link>
-          </Button>
-        </div>
-      </SidebarBlock>
+      <AttentionBlock
+        activeId={activeAttention}
+        allClearLabel={tAttention("allClear")}
+        isLoading={isLoading}
+        items={items}
+        onSelect={onAttentionSelect}
+        title={tAttention("title")}
+      />
 
       <SidebarBlock title={t("tip.title")}>
         <p className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
@@ -68,14 +79,5 @@ function SidebarBlock({ children, title }: { children: ReactNode; title: string 
       <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
       {children}
     </section>
-  );
-}
-
-function StatRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-right text-sm font-semibold text-ink tabular-nums">{value}</dd>
-    </div>
   );
 }

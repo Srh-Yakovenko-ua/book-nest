@@ -1,20 +1,12 @@
-import {
-  AccentColorSchema,
-  DateFormatSchema,
-  InterfaceLanguageSchema,
-  LibraryViewModeSchema,
-  type SettingsView,
-  ThemeModeSchema,
-  WeekStartDaySchema,
-} from "@app/shared";
+import { type SettingsView, SettingsViewSchema } from "@app/shared";
 
 import type { UserProfileSettingsModel } from "../../../generated/prisma/models.js";
 
 export function toSettingsView(settings: UserProfileSettingsModel): SettingsView {
-  return {
-    accentColor: AccentColorSchema.parse(settings.accentColor),
+  return SettingsViewSchema.parse({
+    accentColor: settings.accentColor,
     confirmBeforeDelete: settings.confirmBeforeDelete,
-    dateFormat: DateFormatSchema.parse(settings.dateFormat),
+    dateFormat: settings.dateFormat,
     emailNotifications: {
       borrowedBookReminders: settings.borrowedBookReminders,
       deliveryReminders: settings.deliveryReminders,
@@ -23,10 +15,11 @@ export function toSettingsView(settings: UserProfileSettingsModel): SettingsView
       readingReminders: settings.readingReminders,
       weeklyReadingSummary: settings.weeklyReadingSummary,
     },
-    language: InterfaceLanguageSchema.parse(settings.language),
-    libraryViewMode: LibraryViewModeSchema.parse(settings.libraryViewMode),
-    themeMode: ThemeModeSchema.parse(settings.themeMode),
+    language: settings.language,
+    libraryViewMode: settings.libraryViewMode,
+    loanReminderLeadDays: settings.loanReminderLeadDays,
+    themeMode: settings.themeMode,
     timezone: settings.timezone,
-    weekStartDay: WeekStartDaySchema.parse(settings.weekStartDay),
-  };
+    weekStartDay: settings.weekStartDay,
+  });
 }

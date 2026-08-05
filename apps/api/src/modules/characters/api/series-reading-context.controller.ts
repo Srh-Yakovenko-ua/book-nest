@@ -12,14 +12,14 @@ import {
 import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
-import { CharactersService } from "../application/characters.service.js";
+import { SeriesCharactersService } from "../application/series-characters.service.js";
 import { SeriesReadingContextDefaultViewDto } from "./view-dto/series-reading-context-default.view-dto.js";
 
 @ApiTags("characters")
 @Controller("api/series/:seriesId/reading-context")
 @JwtProtected()
 export class SeriesReadingContextController {
-  constructor(private readonly charactersService: CharactersService) {}
+  constructor(private readonly seriesCharactersService: SeriesCharactersService) {}
 
   @ApiNotFoundResponse({ description: "Series not found" })
   @ApiOkResponse({
@@ -33,6 +33,9 @@ export class SeriesReadingContextController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("seriesId", ParseUUIDPipe) seriesId: string,
   ): Promise<SeriesReadingContextDefaultView> {
-    return this.charactersService.getDefaultSeriesReadingContext({ seriesId, userId: user.id });
+    return this.seriesCharactersService.getDefaultSeriesReadingContext({
+      seriesId,
+      userId: user.id,
+    });
   }
 }

@@ -15,7 +15,7 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
-import { CharactersService } from "../application/characters.service.js";
+import { SeriesCharactersService } from "../application/series-characters.service.js";
 import { SeriesCharacterSummaryQueryDto } from "./input-dto/series-character-summary-query.input-dto.js";
 import { SeriesCharacterSummaryViewDto } from "./view-dto/series-character-summary.view-dto.js";
 
@@ -23,7 +23,7 @@ import { SeriesCharacterSummaryViewDto } from "./view-dto/series-character-summa
 @Controller("api/series/:seriesId/character-summary")
 @JwtProtected()
 export class SeriesCharacterSummaryController {
-  constructor(private readonly charactersService: CharactersService) {}
+  constructor(private readonly seriesCharactersService: SeriesCharactersService) {}
 
   @ApiNotFoundResponse({ description: "Series or context book not found" })
   @ApiOkResponse({
@@ -42,6 +42,10 @@ export class SeriesCharacterSummaryController {
     @Query(new ZodQueryPipe(SeriesCharacterSummaryQuerySchema))
     query: SeriesCharacterSummaryQueryDto,
   ): Promise<SeriesCharacterSummaryView> {
-    return this.charactersService.seriesCharacterSummary({ query, seriesId, userId: user.id });
+    return this.seriesCharactersService.seriesCharacterSummary({
+      query,
+      seriesId,
+      userId: user.id,
+    });
   }
 }

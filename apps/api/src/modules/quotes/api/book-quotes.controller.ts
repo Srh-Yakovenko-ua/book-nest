@@ -1,4 +1,4 @@
-import type { BookQuotesView, QuoteView } from "@app/shared";
+import type { BookQuotesView, QuoteDeletionResult, QuoteView } from "@app/shared";
 
 import { CreateQuoteInputSchema, UpdateQuoteInputSchema } from "@app/shared";
 import {
@@ -30,17 +30,22 @@ import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { MUTATION_THROTTLE, READ_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
+import { QuoteLifecycleService } from "../application/quote-lifecycle.service.js";
 import { QuotesService } from "../application/quotes.service.js";
 import { CreateQuoteInputDto } from "./input-dto/create-quote.input-dto.js";
 import { UpdateQuoteInputDto } from "./input-dto/update-quote.input-dto.js";
 import { BookQuotesViewDto } from "./view-dto/book-quotes.view-dto.js";
+import { QuoteDeletionResultDto } from "./view-dto/quote-deletion-result.view-dto.js";
 import { QuoteViewDto } from "./view-dto/quote.view-dto.js";
 
 @ApiTags("quotes")
 @Controller("api/books")
 @JwtProtected()
 export class BookQuotesController {
-  constructor(private readonly quotesService: QuotesService) {}
+  constructor(
+    private readonly quotesService: QuotesService,
+    private readonly lifecycleService: QuoteLifecycleService,
+  ) {}
 
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBody({ type: CreateQuoteInputDto })
@@ -87,17 +92,33 @@ export class BookQuotesController {
     return this.quotesService.updateForBook({ bookId, input: body, quoteId, userId: user.id });
   }
 
-  @ApiNoContentResponse({ description: "The quote was deleted" })
   @ApiNotFoundResponse({ description: "Book or quote not found" })
-  @ApiOperation({ summary: "Delete a book quote" })
+  @ApiOkResponse({
+    description: "The quote was moved to the trash and scheduled for purge",
+    type: QuoteDeletionResultDto,
+  })
+  @ApiOperation({ summary: "Move a book quote to the trash" })
   @Delete(":bookId/quotes/:quoteId")
-  @HttpCode(HTTP_STATUS.NO_CONTENT)
   @Throttle(MUTATION_THROTTLE)
-  async deleteQuote(
+  deleteQuote(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("bookId", ParseUUIDPipe) bookId: string,
+    @Param("quoteId", ParseUUIDPipe) quoteId: string,
+  ): Promise<QuoteDeletionResult> {
+    return this.quotesService.deleteForBook({ bookId, quoteId, userId: user.id });
+  }
+
+  @ApiNoContentResponse({ description: "The quote was restored" })
+  @ApiNotFoundResponse({ description: "Quote not found in the trash" })
+  @ApiOperation({ summary: "Restore a book quote from the trash" })
+  @HttpCode(HTTP_STATUS.NO_CONTENT)
+  @Post(":bookId/quotes/:quoteId/restore")
+  @Throttle(MUTATION_THROTTLE)
+  restoreQuote(
     @CurrentUser() user: AuthenticatedUser,
     @Param("bookId", ParseUUIDPipe) bookId: string,
     @Param("quoteId", ParseUUIDPipe) quoteId: string,
   ): Promise<void> {
-    await this.quotesService.deleteForBook({ bookId, quoteId, userId: user.id });
+    return this.lifecycleService.restore({ bookId, quoteId, userId: user.id });
   }
 }

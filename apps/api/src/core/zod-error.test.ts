@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { mapZodError } from "./zod-error.js";
+import { mapZodError, ZOD_ERROR_REPORTING } from "./zod-error.js";
+
+const OVERSIZED_ARRAY_LENGTH = 5000;
 
 describe("mapZodError", () => {
   it("wraps issues into errorsMessages with field and message", () => {
@@ -61,5 +63,18 @@ describe("mapZodError", () => {
     expect(mapped.errorsMessages.map((entry) => entry.field)).toEqual(
       result.error.issues.map((issue) => issue.path.join(".")),
     );
+  });
+
+  it("caps the reported issues of an oversized array of invalid values", () => {
+    const schema = z.object({ ids: z.array(z.uuid()).max(100) });
+    const result = schema.safeParse({
+      ids: Array.from({ length: OVERSIZED_ARRAY_LENGTH }, () => "x"),
+    });
+
+    if (result.success) throw new Error("expected schema to fail");
+    const mapped = mapZodError(result.error);
+
+    expect(result.error.issues.length).toBeGreaterThan(ZOD_ERROR_REPORTING.maxReportedIssues);
+    expect(mapped.errorsMessages).toHaveLength(ZOD_ERROR_REPORTING.maxReportedIssues);
   });
 });

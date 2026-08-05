@@ -24,7 +24,8 @@
     "delivery": "Deliveries",
     "dedications": "Dedications",
     "quotes": "Quotes",
-    "publishers": "Publishers"
+    "publishers": "Publishers",
+    "settings": "Settings"
   },
   "readingQueue": {
     "title": "Reading queue",
@@ -635,21 +636,21 @@
       "sort": {
         "label": "Sort",
         "options": {
-          "created_desc": "Recently added",
-          "created_asc": "Oldest added",
-          "updated_desc": "Recently updated",
-          "title_asc": "Title A–Z",
-          "title_desc": "Title Z–A",
-          "author_asc": "Author A–Z",
-          "author_desc": "Author Z–A",
-          "rating_desc": "Highest rating",
-          "rating_asc": "Lowest rating",
-          "year_desc": "Newer editions",
-          "year_asc": "Older editions",
-          "pages_desc": "More pages",
-          "pages_asc": "Fewer pages",
-          "favorite_added_desc": "Favorites: newest first",
-          "favorite_added_asc": "Favorites: oldest first"
+          "created_desc": "Date added: newest first",
+          "created_asc": "Date added: oldest first",
+          "updated_desc": "Date updated: newest first",
+          "title_asc": "Title: A–Z",
+          "title_desc": "Title: Z–A",
+          "author_asc": "Author: A–Z",
+          "author_desc": "Author: Z–A",
+          "rating_desc": "Rating: highest first",
+          "rating_asc": "Rating: lowest first",
+          "year_desc": "Publication year: newest first",
+          "year_asc": "Publication year: oldest first",
+          "pages_desc": "Page count: most first",
+          "pages_asc": "Page count: fewest first",
+          "favorite_added_desc": "Added to favorites: newest first",
+          "favorite_added_asc": "Added to favorites: oldest first"
         }
       },
       "view": {
@@ -1395,8 +1396,10 @@
       "authorsShowAll": "Show all authors",
       "authorsCollapse": "Collapse",
       "dedicationLabel": "Author's dedication",
-      "dedicationAllLink": "Go to all dedications",
+      "dedicationAllLink": "All dedications",
       "dedicationCopy": "Copy",
+      "dedicationSave": "Save",
+      "dedicationSaved": "Saved",
       "lists": "Lists",
       "seriesSequence": {
         "title": "Series reading order",
@@ -1947,46 +1950,54 @@
     "metaTitle": "Dedications",
     "title": "Dedications",
     "subtitle": "Author dedications from the books you added to your library. The small words that begin a big story.",
-    "countBadge": "{count, plural, one {# dedication} other {# dedications}}",
+    "added": "Dedication added",
+    "loadMore": "Load more",
+    "loadMoreError": "Couldn't load more dedications",
+    "allShown": "All dedications shown",
+    "counter": "Showing {shown} of {total, plural, one {# dedication} other {# dedications}}",
     "toolbar": {
       "searchLabel": "Search dedications",
-      "searchPlaceholder": "Search dedications, books, authors...",
+      "searchPlaceholder": "Dedication, book or author",
       "searchClear": "Clear search",
       "sortLabel": "Sorting",
       "filterLabel": "Dedication filter",
       "genreLabel": "By genre",
       "genreAny": "All genres"
     },
+    "view": {
+      "label": "View",
+      "grid": "Grid",
+      "list": "List"
+    },
     "filter": {
       "all": "All",
       "favorites": "Favorites",
       "without_favorites": "Not favorites",
-      "finished": "Finished",
-      "unfinished": "Unfinished"
+      "finished": "From read books",
+      "unfinished": "From unread books"
     },
     "sort": {
-      "newest": "Recently added",
-      "recently_updated": "Recently updated",
-      "book_title_asc": "By book title",
-      "author_asc": "By author",
-      "favorites_first": "Favorites first",
-      "publication_year_desc": "By publication year"
+      "newest": "Date added: newest first",
+      "recently_updated": "Date updated: newest first",
+      "book_title_asc": "Book title: A–Z",
+      "author_asc": "Author: A–Z",
+      "favorites_first": "Favorites: favorites first",
+      "publication_year_desc": "Publication year: newest first"
     },
     "card": {
       "coverAlt": "Cover of “{title}”",
       "unknownAuthor": "Unknown author",
       "read": "Read the dedication from “{title}”",
-      "openBook": "Go to the book",
       "copy": "Copy the dedication",
       "addFavorite": "Add the dedication to favorites",
       "removeFavorite": "Remove the dedication from favorites"
     },
     "modal": {
-      "openBook": "Go to the book",
+      "addFavorite": "Add to favorites",
+      "copied": "Copied",
       "copy": "Copy",
-      "favorite": "Favorite",
-      "genresLabel": "Genres",
-      "tagsLabel": "Tags"
+      "moreTags": "{count, plural, one {# more tag} other {# more tags}}",
+      "removeFavorite": "Remove from favorites"
     },
     "copy": {
       "success": "Dedication copied",
@@ -1997,47 +2008,48 @@
       "removed": "Removed from favorite dedications",
       "error": "Could not update favorite dedications"
     },
+    "summary": {
+      "total": "Dedications total",
+      "favorites": "Favorite dedications",
+      "fromFinished": "From finished books",
+      "topGenre": "Top genre",
+      "topAuthor": "Top author",
+      "empty": "—",
+      "unit": "{count, plural, one {dedication} other {dedications}}",
+      "authorsMicrofact": "From {count, plural, one {# author} other {# authors}}",
+      "favoritesMicrofact": "{percent}% of all dedications",
+      "fromUnfinishedMicrofact": "{count, plural, one {# dedication} other {# dedications}} — from books not finished yet",
+      "fromUnfinishedMicrofactNone": "all — from finished books",
+      "topGenreMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this genre",
+      "topAuthorMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this author's books"
+    },
     "sidebar": {
       "label": "Dedications overview",
-      "stats": {
-        "title": "Statistics",
-        "total": "Dedications total",
-        "favorites": "Favorites",
-        "fromFinished": "From finished books",
-        "fromUnfinished": "From unfinished books",
-        "topGenre": "Most common genre",
-        "topAuthor": "Most dedications by author",
-        "empty": "—",
-        "error": "Could not load the dedication statistics."
-      },
-      "quickFilters": {
-        "title": "Quick filters",
-        "finished": "Finished books only",
-        "unfinished": "Unfinished books only",
-        "favorites": "Favorite dedications",
-        "without_favorites": "Not favorites"
-      },
       "quote": {
         "text": "Every dedication is a little story about someone who matters."
       },
-      "helper": {
-        "title": "Cannot find your dedication?",
-        "text": "Add it on the book edit page and it will show up here.",
-        "cta": "Add a book",
-        "secondary": "Go to all books"
+      "addMore": {
+        "title": "Want to add another?",
+        "text": "Dedications are added on the book page.",
+        "cta": "Choose a book"
       }
     },
-    "pagination": {
-      "label": "Dedication pages",
-      "previous": "Previous",
-      "next": "Next",
-      "goToPage": "Page {page}"
-    },
     "empty": {
-      "title": "You have no dedications yet",
-      "description": "Add an author dedication when you create or edit a book — and it will show up here.",
-      "cta": "Add a book",
-      "secondary": "Go to all books"
+      "title": "Add your first dedication",
+      "description": "Pick a book from your library and add an author's dedication on its edit page.",
+      "cta": "Choose a book"
+    },
+    "picker": {
+      "title": "Choose a book",
+      "description": "Pick a book without a dedication to add one.",
+      "searchLabel": "Search books",
+      "searchPlaceholder": "Title or author",
+      "empty": "No books found",
+      "loadError": "Failed to load books",
+      "loadMore": "Show more",
+      "selectBookAria": "Choose “{title}”",
+      "cancel": "Cancel",
+      "submit": "Add dedication"
     },
     "noResults": {
       "title": "Nothing found",
@@ -2411,42 +2423,106 @@
     },
     "summary": {
       "total": "Total series",
+      "totalBreakdown": "{completed, plural, one {# completed} other {# completed}} · {ongoing, plural, one {# ongoing} other {# ongoing}}",
       "fullyRead": "Fully read",
+      "fullyReadPercent": "{percent}% of all series",
       "unfinished": "Unfinished",
-      "booksInSeries": "Books in series"
+      "booksLeft": "{n, plural, one {# book left} other {# books left}}",
+      "booksInSeries": "Books in series",
+      "booksReadOfTotal": "{finished} of {total} read"
     },
     "tabs": {
       "all": "All series",
       "unfinished": "Unfinished"
     },
+    "counter": "Showing {shown} of {total, plural, one {# series} other {# series}}",
+    "activeFilters": {
+      "label": "Active filters",
+      "clearAll": "Clear all",
+      "remove": "Remove filter {label}",
+      "search": "Search: {query}",
+      "status": "Status: {label}",
+      "reading": "State: {label}",
+      "progressFrom": "Progress from {min}%",
+      "progressTo": "Progress to {max}%",
+      "progressRange": "Progress {min}–{max}%",
+      "booksFrom": "Books from {min}",
+      "booksTo": "Books to {max}",
+      "booksRange": "Books {min}–{max}",
+      "completeness": "Added: {label}",
+      "genre": "Genre: {name}",
+      "author": "Author: {name}",
+      "attention": "Attention: {label}"
+    },
     "toolbar": {
       "searchLabel": "Search series",
-      "searchPlaceholder": "Search by name or author",
+      "searchPlaceholder": "Series title or author",
       "searchClear": "Clear search",
       "statusLabel": "Cycle status",
       "readingLabel": "Reading state",
       "sortLabel": "Sort"
     },
+    "view": {
+      "label": "View",
+      "grid": "Grid",
+      "list": "List"
+    },
     "statusFilter": {
-      "all": "All statuses",
+      "all": "All release statuses",
       "completed": "Completed",
       "ongoing": "Ongoing",
       "unknown": "Unknown"
     },
     "readingFilter": {
-      "all": "Any state",
+      "all": "All reading states",
       "not_started": "Not started",
-      "in_progress": "In progress",
-      "completed": "Fully read",
-      "empty": "No books"
+      "in_progress": "Reading in progress",
+      "completed": "Series read",
+      "empty": "No books added"
     },
     "sort": {
-      "name_asc": "Name A–Z",
-      "name_desc": "Name Z–A",
-      "progress_desc": "Most progress",
-      "progress_asc": "Least progress",
-      "books_desc": "Most books",
-      "activity_desc": "Recently updated"
+      "name_asc": "Name: A–Z",
+      "name_desc": "Name: Z–A",
+      "progress_desc": "Reading progress: highest first",
+      "progress_asc": "Reading progress: lowest first",
+      "books_desc": "Books in series: most first",
+      "activity_desc": "Date updated: newest first"
+    },
+    "filters": {
+      "trigger": "Filters",
+      "title": "Advanced filters",
+      "description": "Narrow the series list by progress, genre, author and added books.",
+      "apply": "Apply",
+      "clear": "Clear",
+      "sections": {
+        "progress": "Reading progress",
+        "booksCount": "Added books in series",
+        "completeness": "Books added",
+        "genre": "Genre",
+        "author": "Author"
+      },
+      "completeness": {
+        "complete": "All books added",
+        "incomplete": "Not all added",
+        "no_plan": "Book count unknown"
+      },
+      "completenessHint": "How many of the series' books are already on the platform — regardless of ownership or reading.",
+      "progressAny": "Any",
+      "progressRange": "{min}%–{max}%",
+      "range": {
+        "min": "From",
+        "max": "To",
+        "booksMin": "Books from",
+        "booksMax": "Books to",
+        "invalid": "Minimum cannot exceed maximum"
+      },
+      "genrePlaceholder": "Select genres",
+      "authorPlaceholder": "Select authors",
+      "searchPlaceholder": "Search…",
+      "empty": "No options available",
+      "authorEmpty": "No authors found",
+      "authorSearching": "Searching authors…",
+      "removeAuthor": "Remove author {name}"
     },
     "status": {
       "completed": "Completed",
@@ -2457,32 +2533,52 @@
       "books": "{count, plural, one {# book} other {# books}}",
       "progressWithTotal": "Read {finished} of {total}",
       "progressAdded": "Read {finished} of {count} added",
-      "allRead": "All books read",
       "noBooks": "No books added yet",
-      "next": "Next: {title}",
-      "nextWithPart": "Next: {title} · Book {number}",
-      "nextAllRead": "Whole series read",
+      "startWith": "Start with: {title}",
+      "startWithPart": "Start with: {title} · Book {number}",
+      "continueReading": "Continue reading: {title}",
+      "continueWithPart": "Continue reading: {title} · Book {number}",
+      "readBadge": "Series read",
       "view": "View series",
       "addBook": "Add book",
       "coverAlt": "Cover of series {name}",
+      "coverBadge": "{added} of {total} added",
       "authorsUnknown": "Unknown author"
     },
+    "attention": {
+      "title": "Needs attention",
+      "allClear": "All series are in order",
+      "viewAll": "View all issues",
+      "empty": "{count, plural, one {# series with no books added} other {# series with no books added}}",
+      "unknown_status": "{count, plural, one {# series with unknown release status} other {# series with unknown release status}}",
+      "incomplete_set": "{count, plural, one {# completed series is incomplete} other {# completed series are incomplete}}",
+      "incomplete_data": "{count, plural, one {# series with incomplete details} other {# series with incomplete details}}",
+      "missing_parts": "{count, plural, one {# series with a gap in book order} other {# series with gaps in book order}}",
+      "next_unavailable": "{count, plural, one {# series whose next book isn't available} other {# series whose next book isn't available}}",
+      "chip": {
+        "any": "Needs attention",
+        "empty": "No books added",
+        "unknown_status": "Unknown release status",
+        "incomplete_set": "Incomplete set",
+        "incomplete_data": "Incomplete details",
+        "missing_parts": "Gaps in order",
+        "next_unavailable": "Next book unavailable"
+      }
+    },
     "sidebar": {
-      "quickActions": "Quick actions",
-      "createSeries": "Create series",
-      "addBook": "Add book",
-      "goToUnfinished": "Go to unfinished",
-      "continueTitle": "Continue a series",
+      "label": "Series overview",
+      "continueTitle": "Continue reading",
       "continueEmpty": "No unfinished series",
       "progress": "{finished} of {total} · {percent}%",
-      "next": "Next: {title}",
-      "openSeries": "Open series",
-      "closestTitle": "Closest to finishing",
+      "progressReading": "{finished} of {total} read · {left, plural, one {# book left} other {# books left}}",
+      "nextBookHeading": "Next book",
+      "nextBookPart": "Book {number} in the series",
+      "nextCoverAlt": "Cover of {title}",
+      "nextShort": "Next: {title}",
+      "closestTitle": "Almost-finished series",
+      "closestSubtitle": "Only 1–2 books left",
       "closestEmpty": "No progress yet",
-      "statusTitle": "Cycle status",
-      "statusCompleted": "Completed by author",
-      "statusOngoing": "Still ongoing",
-      "statusUnknown": "Unknown"
+      "progressBarLabel": "{name} progress: {percent}%"
     },
     "dialog": {
       "title": "New series",
@@ -2555,9 +2651,11 @@
         "remaining": "{count} left",
         "notAdded": "{count} not added yet"
       },
+      "readFullDescription": "Read full description",
       "tabs": {
         "books": "Books in series",
-        "about": "About the series"
+        "about": "About the series",
+        "notes": "Notes"
       },
       "booksEmpty": {
         "title": "This series has no books yet",
@@ -2565,8 +2663,9 @@
       },
       "missingRow": {
         "title": "Book {number}",
-        "hint": "Not in your library yet",
-        "action": "Add",
+        "notAdded": "This part hasn't been added yet",
+        "hint": "Add a new book or find it in your library.",
+        "action": "Add book",
         "actionAria": "Add book {number} to your library"
       },
       "row": {
@@ -2582,17 +2681,28 @@
         "paused": "Paused · {current} of {total} pp.",
         "pausedShort": "Paused",
         "dnf": "Did not finish",
-        "history": "Reading history"
+        "history": "Reading history",
+        "finishedOn": "Finished {date}",
+        "readingSince": "Reading since {date}",
+        "rereadingSince": "Rereading since {date}",
+        "lentTo": "Lent out · {name}",
+        "borrowedFrom": "Borrowed from {name}",
+        "expectedReturn": "Expected back — {date}",
+        "inTransit": "In transit · expected {date}"
       },
       "progress": {
-        "title": "Your progress in the series",
-        "booksOfTotal": "{finished} of {total} books",
-        "booksAdded": "{finished} of {count} added",
-        "finished": "Read {count}",
-        "reading": "Reading {count}",
-        "unread": "Not read {count}",
-        "unavailable": "Progress not available yet",
-        "completed": "Series read"
+        "title": "Reading progress",
+        "completed": "Series read",
+        "statusReadingTitle": "Now reading “{title}”",
+        "statusNextTitle": "Next to read — “{title}”",
+        "statusPosition": "Book {position} in the series",
+        "statusBookPercent": "{percent}% of the book",
+        "statusMissingTitle": "All added books are read",
+        "statusMissingDetail": "Book {position} isn't added to the library yet.",
+        "statusNotStarted": "You haven't started this series yet",
+        "statusCompleted": "Series fully read",
+        "statusOngoingTitle": "All available books are read",
+        "statusOngoingDetail": "The series is still ongoing"
       },
       "stats": {
         "title": "Series statistics",
@@ -2617,13 +2727,8 @@
       },
       "about": {
         "title": "About the series",
-        "description": "Description",
         "descriptionEmpty": "No description added yet.",
-        "status": "Cycle status",
-        "authors": "Authors",
-        "totalBooks": "Total books",
-        "createdAt": "Added",
-        "unknown": "—"
+        "addedToBookNest": "Added to BookNest {date}"
       },
       "states": {
         "loading": "Loading series…",
@@ -2663,6 +2768,13 @@
     "addBookDialog": {
       "title": "Add a book to the series",
       "description": "Pick a book from your library and set its part number.",
+      "chooseTitle": "Add a book to the series",
+      "chooseDescription": "Choose how to add this part.",
+      "optionSearchTitle": "Find among my books",
+      "optionSearchSubtitle": "Link a book that's already in your library",
+      "optionCreateTitle": "Create a new book",
+      "optionCreateSubtitle": "Add details for a new book",
+      "back": "Back",
       "searchLabel": "Search books",
       "searchPlaceholder": "Search by title…",
       "searching": "Searching…",
@@ -2758,13 +2870,13 @@
       },
       "sort": {
         "label": "Sort",
-        "updated_desc": "Last updated",
-        "created_desc": "Newest first",
-        "created_asc": "Oldest first",
-        "title_asc": "Title A–Z",
-        "title_desc": "Title Z–A",
-        "books_count_desc": "More books",
-        "books_count_asc": "Fewer books"
+        "updated_desc": "Date updated: newest first",
+        "created_desc": "Date created: newest first",
+        "created_asc": "Date created: oldest first",
+        "title_asc": "Name: A–Z",
+        "title_desc": "Name: Z–A",
+        "books_count_desc": "Book count: most first",
+        "books_count_asc": "Book count: fewest first"
       },
       "card": {
         "open": "Open list",
@@ -2783,26 +2895,48 @@
       },
       "noResults": {
         "title": "Nothing found",
-        "description": "Try changing your search query or clearing the search.",
-        "clear": "Clear search"
+        "description": "Try changing your search query or clearing the filters.",
+        "clear": "Clear filters"
+      },
+      "attention": {
+        "title": "Needs attention",
+        "allClear": "Every list is in order",
+        "empty": {
+          "title": "Empty lists",
+          "detail": "{count, plural, one {# list} other {# lists}} without books",
+          "caption": "Add books to fill these collections."
+        },
+        "no_description": {
+          "title": "Lists without a description",
+          "detail": "{count, plural, one {# list} other {# lists}} without a description",
+          "caption": "Add a short description to tell the lists apart."
+        },
+        "stale": {
+          "title": "Untouched for a long time",
+          "detail": "{count, plural, one {# list} other {# lists}} unchanged for over {months} months",
+          "caption": "Check whether these collections are still relevant."
+        }
       },
       "error": {
         "title": "Couldn't load lists",
         "description": "Try refreshing the page or repeating the request a little later.",
         "retry": "Try again"
       },
+      "summary": {
+        "totalLists": "Total lists",
+        "listsUnit": "{count, plural, one {list} other {lists}}",
+        "booksUnit": "{count, plural, one {book} other {books}}",
+        "listsBreakdown": "{withBooks} with books · {empty, plural, one {# empty} other {# empty}}",
+        "listsAllFilled": "Every list holds books",
+        "uniqueBooks": "Unique books",
+        "memberships": "{count, plural, one {# addition} other {# additions}} to lists",
+        "averageSize": "Average list size",
+        "largestList": "Largest list — {count, plural, one {# book} other {# books}}",
+        "multiList": "In several lists",
+        "maxReach": "Most often — in {count, plural, one {# list} other {# lists}}",
+        "singleListOnly": "Every book sits in a single list"
+      },
       "sidebar": {
-        "stats": {
-          "title": "Quick stats",
-          "totalLists": "Total lists",
-          "booksInLists": "Books in lists",
-          "mostPopular": "Most popular list"
-        },
-        "actions": {
-          "title": "Quick actions",
-          "create": "Create new list",
-          "library": "Open library"
-        },
         "tip": {
           "title": "Useful tip",
           "text": "One book can be in several lists. Deleting a list does not delete books from your library."
@@ -3017,11 +3151,6 @@
     }
   },
   "changelog": {
-    "bell": {
-      "ariaLabel": "What's new",
-      "ariaLabelUnread": "What's new, {count} unread"
-    },
-    "title": "What's new",
     "category": {
       "feature": "New",
       "improvement": "Improvement",
@@ -4447,6 +4576,147 @@
       "unlinked": "Character removed from the book",
       "updateError": "Couldn't save changes",
       "updated": "Changes saved"
+    }
+  },
+  "notifications": {
+    "bell": {
+      "ariaLabel": "Notifications",
+      "ariaLabelAllRead": "All read",
+      "ariaLabelUnread": "Notifications, {count} unread"
+    },
+    "tabs": {
+      "reminders": "Reminders",
+      "changelog": "What's new",
+      "unreadCount": "{count, plural, one {# unread} other {# unread}}"
+    },
+    "list": {
+      "ariaLabel": "Notification list"
+    },
+    "states": {
+      "empty": {
+        "title": "No reminders",
+        "description": "Loan and delivery reminders will show up here."
+      },
+      "error": {
+        "title": "Couldn't load notifications",
+        "description": "Check your connection and try again.",
+        "retry": "Try again"
+      },
+      "loading": "Loading notifications…",
+      "loadingMore": "Loading…",
+      "loadMoreError": "Couldn't load more notifications"
+    },
+    "errors": {
+      "markAllRead": "Couldn't mark all notifications as read",
+      "markRead": "Couldn't mark the notification as read"
+    },
+    "actions": {
+      "loadMore": "Show more",
+      "markAllRead": "Mark all read",
+      "markRead": "Mark as read"
+    },
+    "row": {
+      "unread": "Unread"
+    },
+    "entityState": {
+      "trashed": "in trash"
+    },
+    "types": {
+      "delivery": {
+        "arrivingSoon": "Delivery of “{bookTitle}” is expected on {date}",
+        "arrivingToday": "Delivery of “{bookTitle}” arrives today",
+        "delayed": "Delivery of “{bookTitle}” is delayed, it was expected on {date}"
+      },
+      "loan": {
+        "dueSoon": "{personName} should return “{bookTitle}” by {date}",
+        "dueToday": "{personName} should return “{bookTitle}” today",
+        "overdue": "The loan of “{bookTitle}” to {personName} is {count, plural, one {# day} other {# days}} overdue"
+      },
+      "system": {
+        "test": "Test notification, everything works"
+      }
+    }
+  },
+  "settings": {
+    "page": {
+      "metaTitle": "Settings",
+      "title": "Settings",
+      "description": "Decide what lands in your inbox and which time zone your reminders are counted in."
+    },
+    "notifications": {
+      "title": "Email reminders",
+      "description": "Emails go out in the morning, in your time zone.",
+      "comingSoon": "Coming soon",
+      "toggles": {
+        "deliveryReminders": {
+          "label": "Delivery reminders",
+          "description": "An email when a book is about to arrive or the delivery is running late."
+        },
+        "borrowedBookReminders": {
+          "label": "Borrowed book reminders",
+          "description": "An email when it is time for someone to return your book."
+        },
+        "readingReminders": {
+          "label": "Reading reminders",
+          "description": "A gentle nudge to get back to the book you started."
+        },
+        "readingGoalReminders": {
+          "label": "Reading goal reminders",
+          "description": "An email about how your reading goal is going."
+        },
+        "weeklyReadingSummary": {
+          "label": "Weekly summary",
+          "description": "A weekly email about what you have read."
+        },
+        "monthlyReadingReport": {
+          "label": "Monthly report",
+          "description": "A monthly recap of your library and reading stats."
+        }
+      },
+      "upcoming": {
+        "title": "Still in the works",
+        "description": "We do not send these emails yet. The switches will start working once the reminders ship."
+      },
+      "leadDays": {
+        "label": "Remind me before the return date",
+        "hint": "Between {min} and {max} days before the return date.",
+        "suffix": "{count, plural, one {day} other {days}}"
+      },
+      "test": {
+        "label": "Test notification",
+        "description": "Send one to yourself to see what a reminder looks like.",
+        "button": "Send a test",
+        "success": "Test notification created — check the bell.",
+        "error": "Couldn't send the test notification. Try again in a minute."
+      }
+    },
+    "regional": {
+      "title": "Time zone",
+      "description": "We use it to work out when your morning starts, so reminders arrive on time.",
+      "timezone": {
+        "label": "Your time zone",
+        "hint": "For example, Europe/Kyiv. Start typing a city to find yours.",
+        "search": "Search time zones",
+        "empty": "Nothing found"
+      },
+      "weekStartDay": {
+        "label": "First day of the week",
+        "monday": "Monday",
+        "sunday": "Sunday",
+        "hint": "Calendars will start their weeks on this day."
+      }
+    },
+    "toast": {
+      "saved": "Saved",
+      "error": "Couldn't save. Please try again."
+    },
+    "states": {
+      "loading": "Loading settings…",
+      "error": {
+        "title": "Couldn't load settings",
+        "description": "Check your connection and try again.",
+        "retry": "Try again"
+      }
     }
   }
 }

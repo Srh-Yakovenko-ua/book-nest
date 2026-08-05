@@ -4,18 +4,13 @@ import type { Request } from "express";
 
 import { Injectable } from "@nestjs/common";
 
-import { TokenService } from "../../application/token.service.js";
-import { toAuthenticatedUser } from "../../domain/authenticated-user.js";
-import { UsersRepository } from "../../infrastructure/users.repository.js";
+import { AccessTokenAuthenticator } from "../../application/access-token.authenticator.js";
 
 const BEARER_SCHEME = "bearer";
 
 @Injectable()
 export class OptionalJwtAccessGuard implements CanActivate {
-  constructor(
-    private readonly tokenService: TokenService,
-    private readonly usersRepository: UsersRepository,
-  ) {}
+  constructor(private readonly accessTokenAuthenticator: AccessTokenAuthenticator) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -24,26 +19,12 @@ export class OptionalJwtAccessGuard implements CanActivate {
       return true;
     }
 
-    const subject = await this.resolveSubject(token);
-    if (subject === null) {
-      return true;
-    }
-
-    const user = await this.usersRepository.findById(subject);
-    if (user !== null) {
-      request.currentUser = toAuthenticatedUser(user);
+    const session = await this.accessTokenAuthenticator.authenticate({ token });
+    if (session !== null) {
+      request.currentUser = session.user;
     }
 
     return true;
-  }
-
-  private async resolveSubject(token: string): Promise<Nullable<string>> {
-    try {
-      const { sub } = await this.tokenService.verifyAccessToken(token);
-      return sub;
-    } catch {
-      return null;
-    }
   }
 }
 

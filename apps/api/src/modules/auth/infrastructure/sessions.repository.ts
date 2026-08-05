@@ -42,6 +42,28 @@ export class SessionsRepository {
     await client.session.deleteMany({ where: { refreshHash } });
   }
 
+  async deleteExpiredBatch(
+    { expiredBefore, limit }: { expiredBefore: Date; limit: number },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const expired = await client.session.findMany({
+      orderBy: { expiresAt: "asc" },
+      select: { id: true },
+      take: limit,
+      where: { expiresAt: { lt: expiredBefore } },
+    });
+
+    if (expired.length === 0) {
+      return 0;
+    }
+
+    const { count } = await client.session.deleteMany({
+      where: { id: { in: expired.map((session) => session.id) } },
+    });
+
+    return count;
+  }
+
   findByRefreshHash(
     refreshHash: string,
     client: Prisma.TransactionClient = this.prisma,

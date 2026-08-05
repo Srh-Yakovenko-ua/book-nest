@@ -1,4 +1,27 @@
+import {
+  differenceInCalendarDays,
+  differenceInCalendarMonths,
+  differenceInCalendarYears,
+  differenceInHours,
+  differenceInMinutes,
+  differenceInSeconds,
+} from "date-fns";
+
+type RelativeTimeStep = {
+  difference: (target: Date, reference: Date) => number;
+  limit: number;
+  unit: Intl.RelativeTimeFormatUnit;
+};
+
 const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+const RELATIVE_TIME_STEPS = [
+  { difference: differenceInSeconds, limit: 60, unit: "second" },
+  { difference: differenceInMinutes, limit: 60, unit: "minute" },
+  { difference: differenceInHours, limit: 24, unit: "hour" },
+  { difference: differenceInCalendarDays, limit: 31, unit: "day" },
+  { difference: differenceInCalendarMonths, limit: 12, unit: "month" },
+] as const satisfies readonly RelativeTimeStep[];
 
 export function formatDate(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
@@ -29,6 +52,19 @@ export function formatNumber(
   options?: Intl.NumberFormatOptions,
 ): string {
   return new Intl.NumberFormat(locale, options).format(value);
+}
+
+export function formatRelativeTime(iso: string, locale: string): string {
+  const target = new Date(iso);
+  const now = new Date();
+  const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+
+  for (const { difference, limit, unit } of RELATIVE_TIME_STEPS) {
+    const value = difference(target, now);
+    if (Math.abs(value) < limit) return relative.format(value, unit);
+  }
+
+  return relative.format(differenceInCalendarYears(target, now), "year");
 }
 
 export function formatTime(iso: string, locale: string): string {

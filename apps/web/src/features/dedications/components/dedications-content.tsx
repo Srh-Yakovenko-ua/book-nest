@@ -11,7 +11,10 @@ import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
+import type { DedicationView } from "../model/dedications-query";
+
 import { DedicationCard } from "./dedication-card";
+import { DedicationRow } from "./dedication-row";
 
 const SKELETON_COUNT = DEDICATIONS_PAGE_SIZE_DEFAULT;
 
@@ -21,11 +24,11 @@ type DedicationsContentProps = {
   isError: boolean;
   isPending: boolean;
   isPlaceholderData: boolean;
-  onAddBook: () => void;
+  onChooseBook: () => void;
   onClearFilters: () => void;
   onOpenDedication: (book: BookView) => void;
-  onOpenLibrary: () => void;
   onRetry: () => void;
+  view: DedicationView;
 };
 
 export function DedicationsContent({
@@ -34,11 +37,11 @@ export function DedicationsContent({
   isError,
   isPending,
   isPlaceholderData,
-  onAddBook,
+  onChooseBook,
   onClearFilters,
   onOpenDedication,
-  onOpenLibrary,
   onRetry,
+  view,
 }: DedicationsContentProps) {
   const t = useTranslations("dedications");
 
@@ -57,7 +60,7 @@ export function DedicationsContent({
   }
 
   if (isPending) {
-    return <DedicationsSkeleton />;
+    return <DedicationsSkeleton view={view} />;
   }
 
   if (books.length === 0) {
@@ -74,11 +77,28 @@ export function DedicationsContent({
     const emptyState: EmptyStateEntry = {
       desc: t("empty.description"),
       illu: "empty-quotes",
-      primary: { icon: "plus", label: t("empty.cta") },
-      secondary: { icon: "book", label: t("empty.secondary") },
+      primary: { icon: "book", label: t("empty.cta") },
       title: t("empty.title"),
     };
-    return <EmptyState onPrimary={onAddBook} onSecondary={onOpenLibrary} state={emptyState} />;
+    return <EmptyState onPrimary={onChooseBook} state={emptyState} />;
+  }
+
+  if (view === "list") {
+    return (
+      <ul
+        aria-busy={isPlaceholderData}
+        className={cn(
+          "flex flex-col gap-3 transition-opacity duration-200 motion-reduce:transition-none",
+          isPlaceholderData && "opacity-60",
+        )}
+      >
+        {books.map((book) => (
+          <li key={book.id}>
+            <DedicationRow book={book} onOpen={() => onOpenDedication(book)} />
+          </li>
+        ))}
+      </ul>
+    );
   }
 
   return (
@@ -98,7 +118,17 @@ export function DedicationsContent({
   );
 }
 
-function DedicationsSkeleton() {
+function DedicationsSkeleton({ view }: { view: DedicationView }) {
+  if (view === "list") {
+    return (
+      <div aria-busy className="flex flex-col gap-3">
+        {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+          <Skeleton className="h-28 w-full rounded-[18px]" key={index} />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div aria-busy className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
@@ -113,7 +143,7 @@ function DedicationsSkeleton() {
               <Skeleton className="h-3 w-2/5" />
             </div>
           </div>
-          <Skeleton className="h-16 w-full rounded-md" />
+          <Skeleton className="h-24 w-full rounded-md" />
           <Skeleton className="h-7 w-24 rounded-md" />
         </div>
       ))}

@@ -1,10 +1,8 @@
 import type { ChangelogCategory, Nullable } from "@app/shared";
 
-import { PrismaPg } from "@prisma/adapter-pg";
-
-import { env } from "../config/env.js";
 import { createLogger } from "../core/logger.js";
 import { PrismaClient } from "../generated/prisma/client.js";
+import { createSeedClient } from "./seed-client.js";
 
 const logger = createLogger("seed.changelog");
 
@@ -403,14 +401,72 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Докладніша сторінка серії",
     version: null,
   },
+  {
+    bodyEn:
+      "Get reminders about book returns and deliveries in the notification bell and by email. The bell now has two tabs: Reminders and What's New.",
+    bodyUk:
+      "Отримуйте нагадування про повернення книг і про доставки у дзвіночку сповіщень і на пошту. Дзвіночок тепер має дві вкладки: «Нагадування» і «Що нового».",
+    category: "feature",
+    publishedAt: "2026-07-31T00:00:00.000Z",
+    slug: "reminders",
+    titleEn: "Reminders",
+    titleUk: "Нагадування",
+    version: null,
+  },
+  {
+    bodyEn:
+      "A settings page is now available: turn loan and delivery emails on or off, choose how many days ahead to be reminded about a return, and set your time zone. You can also send yourself a test notification from there.",
+    bodyUk:
+      "З'явилася сторінка налаштувань: вмикайте листи про позики та доставки, задавайте, за скільки днів нагадувати про повернення, і обирайте свій часовий пояс. Звідти ж можна надіслати собі тестове сповіщення.",
+    category: "feature",
+    publishedAt: "2026-07-31T00:00:01.000Z",
+    slug: "settings",
+    titleEn: "Settings",
+    titleUk: "Налаштування",
+    version: null,
+  },
+  {
+    bodyEn:
+      "An uploaded cover now appears in your library by itself as soon as it is ready, without reloading the page.",
+    bodyUk:
+      "Завантажена обкладинка тепер з'являється в бібліотеці сама, щойно буде готова, без перезавантаження сторінки.",
+    category: "improvement",
+    publishedAt: "2026-07-31T00:00:02.000Z",
+    slug: "live-cover-updates",
+    titleEn: "Covers without a reload",
+    titleUk: "Обкладинки без перезавантаження",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The series list is rebuilt: switch between grid and list views, narrow things down with advanced filters and see the matching count with active-filter chips, and let the sidebar point out the series that need attention. Cards now carry a cover fan, clearer progress, and a badge showing whether you already own the next book.",
+    bodyUk:
+      "Список серій оновлено: перемикайтеся між сіткою та списком, звужуйте добірку розширеними фільтрами й бачте кількість результатів із чипами активних фільтрів, а бічна панель підкаже серії, які потребують уваги. На картках тепер віяло обкладинок, зрозуміліший прогрес і позначка, чи наступна книга вже у вас.",
+    category: "improvement",
+    publishedAt: "2026-08-05T00:00:00.000Z",
+    slug: "series-list-overhaul",
+    titleEn: "A rebuilt series list",
+    titleUk: "Оновлений список серій",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The dedications page got a rework: summary cards at the top, a compact list view next to the cards, and a new flow to add a dedication by picking the book it belongs to.",
+    bodyUk:
+      "Сторінку присвят перероблено: картки підсумків угорі, компактний вигляд списком поруч із картками та новий спосіб додати присвяту, обравши книгу, якій вона належить.",
+    category: "improvement",
+    publishedAt: "2026-08-05T00:00:01.000Z",
+    slug: "dedications-revamp",
+    titleEn: "Dedications, reworked",
+    titleUk: "Присвяти, оновлено",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
 
 async function seedChangelog(): Promise<void> {
-  const prisma = new PrismaClient({
-    adapter: new PrismaPg({ connectionString: env.databaseUrl }),
-  });
+  const prisma = createSeedClient();
 
   try {
     await seedEntries(prisma);

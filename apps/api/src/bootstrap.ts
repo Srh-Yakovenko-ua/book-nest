@@ -20,7 +20,7 @@ export async function bootstrapNestApp(): Promise<NestExpressApplication> {
   });
 
   app.disable("x-powered-by");
-  app.set("trust proxy", env.nodeEnv === "production" ? 1 : false);
+  app.set("trust proxy", env.trustProxy ? 1 : false);
   app.use(helmet());
   app.use(compression());
   app.enableCors({

@@ -17,12 +17,13 @@ import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { SettingsService } from "../application/settings.service.js";
 import { UpdateSettingsInputDto } from "./input-dto/update-settings.input-dto.js";
+import { SettingsViewDto } from "./view-dto/settings.view-dto.js";
 
 @ApiTags("profile")
 @Controller("api/profile/settings")
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
-  @ApiOkResponse({ description: "The current user settings" })
+  @ApiOkResponse({ description: "The current user settings", type: SettingsViewDto })
   @ApiOperation({ summary: "Return the current user settings" })
   @Get()
   @JwtProtected()
@@ -32,7 +33,7 @@ export class SettingsController {
 
   @ApiBadRequestResponse({ description: "Validation failed" })
   @ApiBody({ type: UpdateSettingsInputDto })
-  @ApiOkResponse({ description: "The updated user settings" })
+  @ApiOkResponse({ description: "The updated user settings", type: SettingsViewDto })
   @ApiOperation({ summary: "Update the current user settings" })
   @HttpCode(HTTP_STATUS.OK)
   @JwtProtected()

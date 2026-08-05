@@ -2006,7 +2006,7 @@ describe("DELETE /api/books/:id", () => {
     expect(res.status).toBe(404);
   });
 
-  it("returns 204 on the owner's book and then 404 on a follow-up read", async () => {
+  it("returns 200 on the owner's book and then 404 on a follow-up read", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -2016,7 +2016,7 @@ describe("DELETE /api/books/:id", () => {
     const deleteRes = await request(app.getHttpServer())
       .delete(`/api/books/${created.body.id}`)
       .set("Authorization", `Bearer ${accessToken}`);
-    expect(deleteRes.status).toBe(204);
+    expect(deleteRes.status).toBe(200);
 
     const readRes = await request(app.getHttpServer())
       .get(`/api/books/${created.body.id}`)
@@ -2024,7 +2024,7 @@ describe("DELETE /api/books/:id", () => {
     expect(readRes.status).toBe(404);
   });
 
-  it("drops the series book count after the book is deleted", async () => {
+  it("drops the series book count after the book is moved to the trash", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Sarah J. Maas" }],
@@ -2040,7 +2040,7 @@ describe("DELETE /api/books/:id", () => {
     const deleteRes = await request(app.getHttpServer())
       .delete(`/api/books/${created.body.id}`)
       .set("Authorization", `Bearer ${accessToken}`);
-    expect(deleteRes.status).toBe(204);
+    expect(deleteRes.status).toBe(200);
 
     const search = await request(app.getHttpServer())
       .get("/api/series")

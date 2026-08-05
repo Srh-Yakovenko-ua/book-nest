@@ -32,7 +32,7 @@ import {
   ApiUnauthorizedResponse,
 } from "@nestjs/swagger";
 import { seconds, Throttle } from "@nestjs/throttler";
-import { differenceInMilliseconds } from "date-fns";
+import { differenceInMilliseconds, milliseconds } from "date-fns";
 
 import type { AuthenticatedUser } from "../domain/authenticated-user.js";
 
@@ -57,7 +57,6 @@ import { VerifyEmailInputDto } from "./input-dto/verify-email.input-dto.js";
 
 const REFRESH_COOKIE_NAME = "refresh_token";
 const REFRESH_COOKIE_PATH = "/api/auth";
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const REGISTRATION_TTL_SECONDS = 60;
 const REGISTRATION_LIMIT = 5;
 const RESEND_TTL_SECONDS = 60;
@@ -162,7 +161,7 @@ export class AuthController {
   ): Promise<AuthResultView> {
     const { refreshToken, result, ttlDays } = await this.authService.login(body);
 
-    this.setRefreshCookie(response, refreshToken, ttlDays * DAY_IN_MS);
+    this.setRefreshCookie(response, refreshToken, milliseconds({ days: ttlDays }));
 
     return result;
   }
@@ -260,7 +259,7 @@ export class AuthController {
   private setRefreshCookie(
     response: Response,
     refreshToken: string,
-    maxAgeMs: number = env.refreshTokenTtlDays * DAY_IN_MS,
+    maxAgeMs: number = milliseconds({ days: env.refreshTokenTtlDays }),
   ): void {
     response.cookie(REFRESH_COOKIE_NAME, refreshToken, {
       httpOnly: true,

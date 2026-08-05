@@ -1,18 +1,21 @@
 import type { Queue } from "bullmq";
 
-import { MEDIA_MAX_UPLOAD_BYTES } from "@app/shared";
+import { MEDIA_MAX_UPLOAD_BYTES, REALTIME_CONTRACT } from "@app/shared";
 import sharp from "sharp";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { MediaAssetModel } from "../../../generated/prisma/models.js";
+import type { RealtimePort } from "../../realtime/index.js";
 import type { ImageProcessorPort, ProcessedImage } from "../domain/image-processor.port.js";
 import type { GenerateThumbJob } from "../domain/media-queue.js";
 import type { StoragePort } from "../domain/storage.port.js";
 import type { MediaRepository } from "../infrastructure/media.repository.js";
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { fakeOf } from "../../../test/fake.js";
 import { CropOutOfBoundsError, ImageTooLargeError } from "../domain/image-processor.port.js";
 import { GENERATE_THUMB_JOB } from "../domain/media-queue.js";
+import { MediaAdmission } from "../infrastructure/media-admission.js";
 import { MediaService } from "./media.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -52,6 +55,7 @@ function buildService(): {
     processFull: ReturnType<typeof vi.fn>;
   };
   queue: { add: ReturnType<typeof vi.fn> };
+  realtime: { emitToUser: ReturnType<typeof vi.fn> };
   repository: {
     create: ReturnType<typeof vi.fn>;
     deleteOwned: ReturnType<typeof vi.fn>;
@@ -71,6 +75,7 @@ function buildService(): {
     processFull: vi.fn().mockResolvedValue(fullImage()),
   };
   const queue = { add: vi.fn().mockResolvedValue(undefined) };
+  const realtime = { emitToUser: vi.fn() };
   const repository = {
     create: vi
       .fn()
@@ -89,11 +94,13 @@ function buildService(): {
   };
   const service = new MediaService(
     imageProcessor as unknown as ImageProcessorPort,
+    new MediaAdmission(),
     repository as unknown as MediaRepository,
+    fakeOf<RealtimePort>(realtime),
     storage as unknown as StoragePort,
     queue as unknown as Queue<GenerateThumbJob>,
   );
-  return { imageProcessor, queue, repository, service, storage };
+  return { imageProcessor, queue, realtime, repository, service, storage };
 }
 
 function fullImage(): ProcessedImage {
@@ -399,7 +406,7 @@ describe("MediaService.delete", () => {
 
 describe("MediaService.generateThumbnail", () => {
   it("reads the full image, generates and stores the thumb, and marks the asset", async () => {
-    const { imageProcessor, repository, service, storage } = buildService();
+    const { imageProcessor, realtime, repository, service, storage } = buildService();
     repository.findOwnedById.mockResolvedValue(
       assetModel({ storageKey: "media/book_cover/x/image.webp", thumbGeneratedAt: null }),
     );
@@ -407,6 +414,20 @@ describe("MediaService.generateThumbnail", () => {
     imageProcessor.generateThumbnail.mockResolvedValue(thumbImage());
 
     await service.generateThumbnail({ assetId: ASSET_ID, userId: USER_ID });
+
+    expect(realtime.emitToUser).toHaveBeenCalledTimes(1);
+    expect(realtime.emitToUser).toHaveBeenCalledWith({
+      event: {
+        media: expect.objectContaining({
+          id: ASSET_ID,
+          urls: expect.objectContaining({
+            thumb: "https://cdn.test/media/book_cover/x/thumb.webp",
+          }),
+        }),
+        type: REALTIME_CONTRACT.events.mediaThumbnailReady,
+      },
+      userId: USER_ID,
+    });
 
     expect(storage.get).toHaveBeenCalledWith("media/book_cover/x/image.webp");
     expect(imageProcessor.generateThumbnail).toHaveBeenCalledWith({
@@ -438,8 +459,8 @@ describe("MediaService.generateThumbnail", () => {
     expect(repository.markThumbGenerated).not.toHaveBeenCalled();
   });
 
-  it("removes the orphan thumb when the asset was deleted mid-generation", async () => {
-    const { imageProcessor, repository, service, storage } = buildService();
+  it("removes the orphan thumb and emits nothing when the asset was deleted mid-generation", async () => {
+    const { imageProcessor, realtime, repository, service, storage } = buildService();
     repository.findOwnedById.mockResolvedValue(
       assetModel({ storageKey: "media/book_cover/x/image.webp", thumbGeneratedAt: null }),
     );
@@ -453,6 +474,24 @@ describe("MediaService.generateThumbnail", () => {
       expect.objectContaining({ key: "media/book_cover/x/thumb.webp" }),
     );
     expect(storage.delete).toHaveBeenCalledWith(["media/book_cover/x/thumb.webp"]);
+    expect(realtime.emitToUser).not.toHaveBeenCalled();
+  });
+
+  it("skips the emit instead of failing the job when the view cannot be built", async () => {
+    const { imageProcessor, realtime, repository, service, storage } = buildService();
+    repository.findOwnedById.mockResolvedValue(
+      assetModel({ kind: "not_a_media_kind", storageKey: "media/book_cover/x/image.webp" }),
+    );
+    storage.get.mockResolvedValue(Buffer.from("full-webp-bytes"));
+    imageProcessor.generateThumbnail.mockResolvedValue(thumbImage());
+
+    await expect(
+      service.generateThumbnail({ assetId: ASSET_ID, userId: USER_ID }),
+    ).resolves.toBeUndefined();
+
+    expect(repository.markThumbGenerated).toHaveBeenCalledTimes(1);
+    expect(realtime.emitToUser).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
   });
 
   it("rethrows so BullMQ can retry when reading the full image fails", async () => {

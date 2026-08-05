@@ -152,7 +152,7 @@ describe("DedicationsView", () => {
       );
     renderView();
 
-    expect(await screen.findByText("У вас ще немає присвят")).toBeInTheDocument();
+    expect(await screen.findByText("Додайте першу присвяту")).toBeInTheDocument();
   });
 
   it("shows the no-results state when filters exclude everything", async () => {
@@ -176,9 +176,11 @@ describe("DedicationsView", () => {
       jsonResponse(makeDedicationsSummary({ favoriteCount: 5, totalCount: 24 }));
     renderView();
 
-    expect(await screen.findByText("Статистика")).toBeInTheDocument();
-    expect(await screen.findByText("Усього присвят")).toBeInTheDocument();
-    expect(screen.getByText("24")).toBeInTheDocument();
+    const totalCard = (await screen.findByText("Усього присвят")).closest(
+      '[data-slot="stat-card"]',
+    );
+    if (!(totalCard instanceof HTMLElement)) throw new Error("total dedications card not found");
+    expect(within(totalCard).getByText("24")).toBeInTheDocument();
   });
 
   it("falls back to a dash when the summary has no top author or genre", async () => {
@@ -186,63 +188,54 @@ describe("DedicationsView", () => {
       jsonResponse(makeDedicationsSummary({ topAuthor: null, topGenre: null }));
     renderView();
 
-    await screen.findByText("Найчастіший жанр");
+    await screen.findByText("Топ жанр");
+    expect(screen.getByText("Топ автор")).toBeInTheDocument();
     expect(screen.getAllByText("—")).toHaveLength(2);
   });
 
-  it("hides the pagination while a single page covers the results", async () => {
+  it("shows the all-shown label without a load-more button while a single page covers the results", async () => {
     renderView();
 
     await screen.findByText("Останнє бажання");
-    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Показати ще" })).not.toBeInTheDocument();
+    expect(screen.getByText("Усі присвяти показано")).toBeInTheDocument();
   });
 
-  it("shows the pagination once the server reports several pages", async () => {
+  it("shows how many dedications are visible out of the filtered total", async () => {
     respondToList = () =>
       pageResponse({ items: [makeDedicationBook()], pagesCount: 3, totalCount: 30 });
     renderView();
 
-    expect(await screen.findByRole("navigation", { name: "Сторінки присвят" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Сторінка 3" })).toBeInTheDocument();
+    expect(await screen.findByText("Показано 1 з 30 присвят")).toBeInTheDocument();
   });
 
-  it("marks the page from the url as current even while a previous page payload is shown", async () => {
+  it("shows the load-more button once the server reports several pages", async () => {
     respondToList = () =>
-      pageResponse({ items: [makeDedicationBook()], page: 1, pagesCount: 3, totalCount: 30 });
-    renderView("?page=2");
+      pageResponse({ items: [makeDedicationBook()], pagesCount: 3, totalCount: 30 });
+    renderView();
 
-    const nav = await screen.findByRole("navigation", { name: "Сторінки присвят" });
-    expect(within(nav).getByRole("link", { name: "Сторінка 2" })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    expect(within(nav).getByRole("link", { name: "Сторінка 1" })).not.toHaveAttribute(
-      "aria-current",
-    );
+    expect(await screen.findByRole("button", { name: "Показати ще" })).toBeInTheDocument();
   });
 
-  it("offers a retry instead of an endless skeleton when the summary request fails", async () => {
+  it("requests the next page when load more is clicked", async () => {
+    respondToList = () =>
+      pageResponse({ items: [makeDedicationBook()], pagesCount: 3, totalCount: 30 });
+    renderView();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Показати ще" }));
+
+    await waitFor(() => expect(listUrls().length).toBeGreaterThan(1));
+    expect(listUrls().some((url) => url.includes("pageNumber=2"))).toBe(true);
+  });
+
+  it("still renders the summary cards with fallback values when the summary request fails", async () => {
     respondToSummary = () => jsonResponse({ message: "boom" }, 500);
     renderView();
 
-    expect(
-      await screen.findByText("Не вдалося завантажити статистику присвят."),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Спробувати ще раз/ })).toBeInTheDocument();
     expect(await screen.findByText("Останнє бажання")).toBeInTheDocument();
-  });
-
-  it("refetches the summary when the stats retry is used", async () => {
-    respondToSummary = () => jsonResponse({ message: "boom" }, 500);
-    renderView();
-
-    await screen.findByText("Не вдалося завантажити статистику присвят.");
-    respondToSummary = () => jsonResponse(makeDedicationsSummary({ totalCount: 24 }));
-
-    await userEvent.click(screen.getByRole("button", { name: /Спробувати ще раз/ }));
-
-    expect(await screen.findByText("Усього присвят")).toBeInTheDocument();
-    expect(screen.getByText("24")).toBeInTheDocument();
+    expect(screen.getByText("Усього присвят")).toBeInTheDocument();
+    expect(screen.getByText("Топ жанр")).toBeInTheDocument();
+    expect(screen.getAllByText("—")).toHaveLength(2);
   });
 
   it("still separates no-results from empty when the summary request fails", async () => {
@@ -251,7 +244,7 @@ describe("DedicationsView", () => {
     renderView("?filter=favorites");
 
     expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
-    expect(screen.queryByText("У вас ще немає присвят")).not.toBeInTheDocument();
+    expect(screen.queryByText("Додайте першу присвяту")).not.toBeInTheDocument();
   });
 
   it("still shows the empty state when the summary fails and no filter is active", async () => {
@@ -259,8 +252,21 @@ describe("DedicationsView", () => {
     respondToList = () => pageResponse({ items: [], totalCount: 0 });
     renderView();
 
-    expect(await screen.findByText("У вас ще немає присвят")).toBeInTheDocument();
+    expect(await screen.findByText("Додайте першу присвяту")).toBeInTheDocument();
     expect(screen.queryByText("Нічого не знайдено")).not.toBeInTheDocument();
+  });
+
+  it("renders dedications as rows once the list view is chosen", async () => {
+    renderView();
+
+    await screen.findByText("Останнє бажання");
+    await userEvent.click(screen.getByRole("radio", { name: "Список" }));
+
+    expect(screen.getByText("Моїй мамі, яка навчила мене мріяти.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Останнє бажання" })).toHaveAttribute(
+      "href",
+      "/books/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    );
   });
 
   it("moves focus into the reading modal when it opens", async () => {
@@ -290,7 +296,7 @@ describe("DedicationsView", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Читати присвяту/ }));
 
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByRole("button", { name: "Улюблена" })).toHaveAttribute(
+    expect(within(dialog).getByRole("button", { name: "Додати в улюблені" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
@@ -312,7 +318,7 @@ describe("DedicationsView", () => {
     await userEvent.click(await screen.findByRole("button", { name: /Читати присвяту/ }));
     const dialog = await screen.findByRole("dialog");
 
-    await userEvent.click(within(dialog).getByRole("button", { name: "Улюблена" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Прибрати з улюблених" }));
 
     await waitFor(() => expect(listCalls).toBeGreaterThan(1));
     expect(screen.getByRole("dialog")).toBeInTheDocument();

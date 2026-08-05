@@ -29,12 +29,21 @@ describe("TokenService.signAccessToken", () => {
 });
 
 describe("TokenService.verifyAccessToken", () => {
-  it("returns the sub for a token it signed itself", async () => {
+  it("returns the sub and the expiry instant for a token it signed itself", async () => {
     const token = await service.signAccessToken("11111111-1111-4111-8111-111111111111");
 
     const result = await service.verifyAccessToken(token);
 
-    expect(result).toEqual({ sub: "11111111-1111-4111-8111-111111111111" });
+    expect(result.sub).toBe("11111111-1111-4111-8111-111111111111");
+    expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("throws UnauthorizedError when the payload carries no exp", async () => {
+    const token = await new SignJWT({ sub: "11111111-1111-4111-8111-111111111111" })
+      .setProtectedHeader({ alg: "HS256" })
+      .sign(accessSecret);
+
+    await expect(service.verifyAccessToken(token)).rejects.toThrow(UnauthorizedError);
   });
 
   it("throws UnauthorizedError for a token signed with a different secret", async () => {

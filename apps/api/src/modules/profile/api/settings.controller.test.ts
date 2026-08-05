@@ -134,6 +134,31 @@ describe("GET /api/profile/settings", () => {
     expect(res.body).not.toHaveProperty("createdAt");
     expect(res.body).not.toHaveProperty("updatedAt");
   });
+
+  it("falls back to the default timezone when the stored value no longer resolves", async () => {
+    const accessToken = await registerVerifyAndLogin();
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: reader.email } });
+    await prisma.userProfileSettings.create({
+      data: { timezone: "Not/AZone", userId: user.id },
+    });
+
+    const res = await request(app.getHttpServer())
+      .get("/api/profile/settings")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.timezone).toBe(defaultUserProfileSettings.timezone);
+  });
+
+  it("returns the default loan reminder lead time for a user with no settings row", async () => {
+    const accessToken = await registerVerifyAndLogin();
+
+    const res = await request(app.getHttpServer())
+      .get("/api/profile/settings")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.body.loanReminderLeadDays).toBe(defaultUserProfileSettings.loanReminderLeadDays);
+  });
 });
 
 describe("PATCH /api/profile/settings", () => {
@@ -297,6 +322,48 @@ describe("PATCH /api/profile/settings validation", () => {
     expect(res.status).toBe(400);
     expect(res.body.errorsMessages).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: "libraryViewMode" })]),
+    );
+  });
+
+  it("persists a valid IANA timezone", async () => {
+    const accessToken = await registerVerifyAndLogin();
+
+    const res = await request(app.getHttpServer())
+      .patch("/api/profile/settings")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ timezone: "America/New_York" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.timezone).toBe("America/New_York");
+  });
+
+  it("returns 400 for a timezone that is not in the IANA database", async () => {
+    const res = await patch({ timezone: "Not/AZone" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "timezone" })]),
+    );
+  });
+
+  it("persists a loan reminder lead time inside the allowed range", async () => {
+    const accessToken = await registerVerifyAndLogin();
+
+    const res = await request(app.getHttpServer())
+      .patch("/api/profile/settings")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ loanReminderLeadDays: 14 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.loanReminderLeadDays).toBe(14);
+  });
+
+  it.each([0, 15, 2.5])("returns 400 for the loan reminder lead time %s", async (leadDays) => {
+    const res = await patch({ loanReminderLeadDays: leadDays });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "loanReminderLeadDays" })]),
     );
   });
 

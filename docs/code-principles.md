@@ -271,6 +271,33 @@ async function getNote(id: string): Promise<Note> {
 }
 ```
 
+### 3.10 Group related constants into one object
+
+```ts
+// scattered — N top-level consts, N potential exports, relationship implicit
+const OVERVIEW_TOP_LIMIT = 3;
+const READING_IN_PROGRESS_STATUSES: ReadingStatus[] = ["reading", "rereading"];
+const WANT_TO_BUY_STATUSES: OwnershipStatus[] = ["want_to_buy"];
+const BORROWED_STATUSES: OwnershipStatus[] = ["borrowed_from_someone", "lent_to_someone"];
+
+// grouped — one name, one import, extending it adds a key not an export
+const LIBRARY_OVERVIEW: {
+  readonly topLimit: number;
+  readonly readingInProgress: readonly ReadingStatus[];
+  readonly wantToBuy: readonly OwnershipStatus[];
+  readonly borrowed: readonly OwnershipStatus[];
+} = {
+  topLimit: 3,
+  readingInProgress: ["reading", "rereading"],
+  wantToBuy: ["want_to_buy"],
+  borrowed: ["borrowed_from_someone", "lent_to_someone"],
+};
+```
+
+When several constants belong to one concept, group them into a single object instead of scattering top-level `const`s. One import instead of many, the relationship is named, and extending it adds a key rather than another export. Group **by cohesion** — one concept per object, never a junk-drawer of unrelated values.
+
+Type the object's properties `readonly` so it can't be re-pointed. For pure literal config with no membership checks, prefer `as const satisfies` (§3.5). For status/enum arrays, **avoid `as const`** — a literal tuple (`readonly ["reading"]`) rejects a dynamic `Status` argument passed to `.includes` or a repository method. Type them `readonly Status[]`; and if a consumer's parameter is a mutable `Status[]`, widen that parameter to `readonly Status[]` (a `readonly` param is always safe) rather than dropping the modifier on the config. If the set is a domain taxonomy reused across modules, promote the object to a `domain/` (or `@app/shared`) module; keep it local otherwise.
+
 ---
 
 ## 4. React component design

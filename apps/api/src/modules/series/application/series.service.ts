@@ -25,6 +25,7 @@ import { Injectable } from "@nestjs/common";
 import { differenceInMilliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { MediaAssetModel } from "../../../generated/prisma/models.js";
 import type {
   ContinuationBook,
   ContinuationSeriesGroup,
@@ -43,7 +44,11 @@ import { AuthorsService } from "../../authors/index.js";
 import { GenresService } from "../../genres/index.js";
 import { MediaService } from "../../media/index.js";
 import { assembleContinuations } from "../domain/favorite-continuations.js";
-import { computeSeriesLastActivityAt, toSeriesBookPreview } from "../domain/series-preview.js";
+import {
+  computeSeriesLastActivityAt,
+  countFinishedBooks,
+  toSeriesBookPreview,
+} from "../domain/series-preview.js";
 import {
   computeSeriesProgress,
   isSeriesFullyRead,
@@ -56,7 +61,9 @@ const SERIES_NAME_TAKEN_MESSAGE = "Series with this name already exists";
 const SERIES_TOTAL_BELOW_BOOKS_MESSAGE =
   "Total books cannot be less than the number of books already in the series";
 const SERIES_TOTAL_BELOW_PART_MESSAGE = "Total books cannot be less than an existing part number";
-const OVERVIEW_TOP_LIMIT = 3;
+const SERIES_LIST_LIMITS = {
+  overviewTop: 3,
+} as const;
 
 type DecoratedSeries = {
   books: SeriesBookPreview[];
@@ -118,17 +125,16 @@ export class SeriesService {
         },
         userId,
       });
-      return toSeriesView(created);
+      return toSeriesView({
+        coverByBookId: this.buildCoverByBookId(created.books),
+        series: created,
+      });
     } catch (error) {
       rethrowUniqueConstraintAs({
         error,
         toError: () => new ConflictError(SERIES_NAME_TAKEN_MESSAGE),
       });
     }
-  }
-
-  async delete(userId: string, id: string): Promise<void> {
-    await this.seriesRepository.deleteOwned(userId, id);
   }
 
   async existsOwned({ seriesId, userId }: { seriesId: string; userId: string }): Promise<boolean> {
@@ -155,9 +161,7 @@ export class SeriesService {
     if (series === null) {
       throw new NotFoundError("Series not found");
     }
-    const covers = new Map<string, Nullable<MediaView>>(
-      series.books.map((book) => [book.id, this.mediaService.buildViewOrNull(book.coverMedia)]),
-    );
+    const covers = this.buildCoverByBookId(series.books);
     return toSeriesDetailsView({ covers, series, today: startOfUtcDay(new Date()) });
   }
 
@@ -176,6 +180,15 @@ export class SeriesService {
       isSeriesUnfinished({ books: entry.books, totalBooks: entry.series.totalBooks }),
     );
 
+    const finishedBooksInSeries = decorated.reduce(
+      (sum, entry) => sum + countFinishedBooks(entry.books),
+      0,
+    );
+    const booksLeftInUnfinishedSeries = unfinished.reduce(
+      (sum, entry) => sum + (entry.books.length - countFinishedBooks(entry.books)),
+      0,
+    );
+
     const statusCounts: Record<SeriesStatus, number> = { completed: 0, ongoing: 0, unknown: 0 };
     for (const series of allSeries) {
       statusCounts[SeriesStatusSchema.parse(series.status)] += 1;
@@ -183,11 +196,18 @@ export class SeriesService {
 
     const topUnfinished = [...unfinished]
       .sort(compareByUnfinishedRank)
-      .slice(0, OVERVIEW_TOP_LIMIT)
-      .map((entry) => toSeriesView(entry.series));
+      .slice(0, SERIES_LIST_LIMITS.overviewTop)
+      .map((entry) =>
+        toSeriesView({
+          coverByBookId: this.buildCoverByBookId(entry.series.books),
+          series: entry.series,
+        }),
+      );
 
     return {
       booksInSeries,
+      booksLeftInUnfinishedSeries,
+      finishedBooksInSeries,
       fullyReadSeries: decorated.filter((entry) =>
         isSeriesFullyRead({ books: entry.books, totalBooks: entry.series.totalBooks }),
       ).length,
@@ -200,7 +220,7 @@ export class SeriesService {
 
   async resolveForBook(
     input: ResolveSeriesInput,
-    client?: Prisma.TransactionClient,
+    client: Prisma.TransactionClient,
   ): Promise<ResolvedSeries> {
     const { fallbackAuthorIds, newSeries, seriesId, userId } = input;
 
@@ -217,6 +237,7 @@ export class SeriesService {
     }
 
     const normalizedName = normalizeName(newSeries.name);
+    await this.seriesRepository.acquireCreateLock(userId, client);
     const existing = await this.seriesRepository.findByNormalized(userId, normalizedName, client);
     if (existing !== null) {
       return { id: existing.id, totalBooks: existing.totalBooks };
@@ -230,7 +251,7 @@ export class SeriesService {
       userId,
     });
 
-    const created = await this.seriesRepository.upsertByNormalized(
+    const created = await this.seriesRepository.createByNormalized(
       {
         authorIds,
         data: {
@@ -262,7 +283,12 @@ export class SeriesService {
     ]);
 
     return buildPaginator({
-      items: series.map(toSeriesView),
+      items: series.map((seriesRow) =>
+        toSeriesView({
+          coverByBookId: this.buildCoverByBookId(seriesRow.books),
+          series: seriesRow,
+        }),
+      ),
       pageNumber,
       pageSize,
       totalCount,
@@ -312,7 +338,10 @@ export class SeriesService {
 
     try {
       const updated = await this.seriesRepository.updateOwned(userId, id, { authorIds, fields });
-      return toSeriesView(updated);
+      return toSeriesView({
+        coverByBookId: this.buildCoverByBookId(updated.books),
+        series: updated,
+      });
     } catch (error) {
       rethrowUniqueConstraintAs({
         error,
@@ -354,6 +383,14 @@ export class SeriesService {
     if (totalBooks < maxPartNumber) {
       throw new ValidationError(SERIES_TOTAL_BELOW_PART_MESSAGE);
     }
+  }
+
+  private buildCoverByBookId(
+    books: readonly { coverMedia: Nullable<MediaAssetModel>; id: string }[],
+  ): Map<string, Nullable<MediaView>> {
+    return new Map(
+      books.map((book) => [book.id, this.mediaService.buildViewOrNull(book.coverMedia)]),
+    );
   }
 
   private async resolveSeriesAuthorIds({

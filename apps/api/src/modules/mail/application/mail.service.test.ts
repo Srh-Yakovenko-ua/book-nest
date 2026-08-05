@@ -10,6 +10,7 @@ vi.mock("nodemailer", () => ({
   },
 }));
 
+import { NodemailerMailAdapter } from "../infrastructure/nodemailer-mail.adapter.js";
 import { MailService } from "./mail.service.js";
 
 function getSentMail(): Record<string, unknown> {
@@ -25,7 +26,7 @@ describe("MailService.sendWelcomeEmail", () => {
   });
 
   it("sends the welcome email with the from, to, subject, html and text", async () => {
-    const service = new MailService();
+    const service = new MailService(new NodemailerMailAdapter());
 
     await service.sendWelcomeEmail({ to: "reader@example.com", userName: "Марина" });
 
@@ -39,7 +40,7 @@ describe("MailService.sendWelcomeEmail", () => {
   });
 
   it("attaches the inline logo with the booknest-logo cid", async () => {
-    const service = new MailService();
+    const service = new MailService(new NodemailerMailAdapter());
 
     await service.sendWelcomeEmail({ to: "reader@example.com", userName: "Марина" });
 
@@ -52,7 +53,7 @@ describe("MailService.sendWelcomeEmail", () => {
   });
 
   it("falls back to читачу when the user name is empty after trimming", async () => {
-    const service = new MailService();
+    const service = new MailService(new NodemailerMailAdapter());
 
     await service.sendWelcomeEmail({ to: "reader@example.com", userName: "   " });
 
@@ -62,7 +63,7 @@ describe("MailService.sendWelcomeEmail", () => {
 
   it("resolves without throwing when the transport rejects", async () => {
     sendMail.mockRejectedValue(new Error("smtp down"));
-    const service = new MailService();
+    const service = new MailService(new NodemailerMailAdapter());
 
     await expect(
       service.sendWelcomeEmail({ to: "reader@example.com", userName: "Марина" }),

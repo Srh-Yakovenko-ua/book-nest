@@ -1,12 +1,13 @@
-import type { BookView } from "@app/shared";
-
 import { PaginatedBooksSchema } from "@app/shared";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
+import { z } from "zod";
 
 import type { BooksControllerListParams } from "@/shared/api/generated/model";
 
 import { booksControllerList } from "@/shared/api/generated/endpoints/books/books";
 import { BooksControllerListBookType } from "@/shared/api/generated/model";
+
+type SoloBooksPage = z.infer<typeof PaginatedBooksSchema>;
 
 const SOLO_BOOKS_PAGE_SIZE = 20;
 
@@ -25,18 +26,22 @@ const EMPTY_LIST_PARAMS = {
 export function useSoloBooks(search: string) {
   const trimmed = search.trim();
 
-  return useQuery({
+  return useInfiniteQuery({
+    getNextPageParam: (lastPage: SoloBooksPage) =>
+      lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
     placeholderData: keepPreviousData,
-    queryFn: async (): Promise<BookView[]> => {
+    queryFn: async ({ pageParam }): Promise<SoloBooksPage> => {
       const response = await booksControllerList({
         ...EMPTY_LIST_PARAMS,
         bookType: BooksControllerListBookType.solo,
-        pageNumber: 1,
+        pageNumber: pageParam,
         pageSize: SOLO_BOOKS_PAGE_SIZE,
         ...(trimmed.length > 0 ? { q: trimmed } : {}),
       });
-      return PaginatedBooksSchema.parse(response).items;
+      return PaginatedBooksSchema.parse(response);
     },
     queryKey: ["/api/books", "solo-search", trimmed],
+    select: (data) => data.pages.flatMap((page) => page.items),
   });
 }

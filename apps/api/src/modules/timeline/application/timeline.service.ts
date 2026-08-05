@@ -4,6 +4,7 @@ import type {
   Nullable,
   ReorderTimelinesInput,
   SetDefaultTimelineInput,
+  TimelineDeletionResult,
   TimelineListView,
   TimelineSummaryView,
   TimelineView,
@@ -13,6 +14,7 @@ import type {
 import { TIMELINE_ERROR_CODES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { TrashStamp } from "../../../core/trash-retention.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UpdateTimelineFields } from "../infrastructure/timeline.repository.js";
 
@@ -20,20 +22,23 @@ import { assertNotStale } from "../../../core/assert-not-stale.js";
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { isUniqueConstraintError } from "../../../core/prisma-errors.js";
-import { assertBookOwned, BooksRepository } from "../../books/index.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
+import { BookAccessService } from "../../books/index.js";
 import { appendPosition, computeSparsePosition } from "../domain/sparse-position.js";
 import { emptyToNull } from "../domain/timeline-fields.js";
 import { toTimelineView } from "../domain/timeline.mapper.js";
 import { TimelineEventRepository } from "../infrastructure/timeline-event.repository.js";
 import { TimelineRepository, type TimelineRow } from "../infrastructure/timeline.repository.js";
+import { TimelinePurgeScheduler } from "./timeline-purge.scheduler.js";
 
 @Injectable()
 export class TimelineService {
   constructor(
-    private readonly booksRepository: BooksRepository,
+    private readonly bookAccess: BookAccessService,
     private readonly timelineRepository: TimelineRepository,
     private readonly timelineEventRepository: TimelineEventRepository,
     private readonly transactionRunner: TransactionRunner,
+    private readonly purgeScheduler: TimelinePurgeScheduler,
   ) {}
 
   async createTimeline(
@@ -71,7 +76,8 @@ export class TimelineService {
     userId: string,
     timelineId: string,
     query: DeleteTimelineQuery,
-  ): Promise<void> {
+  ): Promise<TimelineDeletionResult> {
+    const stamp = TRASH_RETENTION.stamp();
     const owned = await this.timelineRepository.findOwnedTimeline({ timelineId, userId });
     if (owned === null) {
       throw new NotFoundError("Timeline not found", {
@@ -95,12 +101,27 @@ export class TimelineService {
 
       const eventCount = await this.timelineEventRepository.countInTimeline(timelineId, tx);
       if (eventCount === 0) {
-        await this.timelineRepository.deleteTimeline(timelineId, tx);
+        await this.timelineRepository.softDelete({ stamp, timelineId, userId }, tx);
         return;
       }
 
-      await this.deleteNonEmptyTimeline({ bookId: owned.bookId, query, timelineId, tx });
+      await this.deleteNonEmptyTimeline({
+        bookId: owned.bookId,
+        query,
+        stamp,
+        timelineId,
+        tx,
+        userId,
+      });
     });
+
+    await this.purgeScheduler.schedule({ timelineId, userId });
+
+    return {
+      deletedAt: stamp.deletedAt.toISOString(),
+      purgeAt: stamp.purgeAt.toISOString(),
+      timelineId,
+    };
   }
 
   async listTimelines(userId: string, bookId: string): Promise<TimelineListView> {
@@ -242,9 +263,8 @@ export class TimelineService {
   }
 
   private async assertBookOwned(userId: string, bookId: string): Promise<void> {
-    await assertBookOwned({
+    await this.bookAccess.assertOwned({
       bookId,
-      booksRepository: this.booksRepository,
       notFoundCode: TIMELINE_ERROR_CODES.bookNotFound,
       userId,
     });
@@ -253,13 +273,17 @@ export class TimelineService {
   private async deleteNonEmptyTimeline({
     bookId,
     query,
+    stamp,
     timelineId,
     tx,
+    userId,
   }: {
     bookId: string;
     query: DeleteTimelineQuery;
+    stamp: TrashStamp;
     timelineId: string;
     tx: Prisma.TransactionClient;
+    userId: string;
   }): Promise<void> {
     if (query.strategy === undefined) {
       throw new ValidationError("A delete strategy is required for a timeline with events", {
@@ -267,7 +291,7 @@ export class TimelineService {
       });
     }
     if (query.strategy === "delete") {
-      await this.timelineRepository.deleteTimeline(timelineId, tx);
+      await this.timelineRepository.softDelete({ stamp, timelineId, userId }, tx);
       return;
     }
 
@@ -290,7 +314,7 @@ export class TimelineService {
       { baseOrder, fromTimelineId: timelineId, toTimelineId: target.id },
       tx,
     );
-    await this.timelineRepository.deleteTimeline(timelineId, tx);
+    await this.timelineRepository.softDelete({ stamp, timelineId, userId }, tx);
   }
 
   private mapUniqueNameError(error: unknown): unknown {

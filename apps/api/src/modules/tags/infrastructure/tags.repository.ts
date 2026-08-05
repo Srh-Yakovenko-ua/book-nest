@@ -7,6 +7,7 @@ import type { TagModel } from "../../../generated/prisma/models.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 
 type CountTagsInput = {
   query: string | undefined;
@@ -65,7 +66,7 @@ export class TagsRepository {
       .groupBy({
         _count: { bookId: true },
         by: ["tagId"],
-        where: { tag: { userId } },
+        where: { book: SOFT_DELETE_SCOPE.active, tag: { userId } },
       })
       .then((rows) => rows.map((row) => ({ count: row._count.bookId, tagId: row.tagId })));
   }
