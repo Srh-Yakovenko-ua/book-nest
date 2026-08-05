@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveListsStats, filterLists, sortLists } from "./lists-derive";
+import {
+  countListsAttention,
+  filterLists,
+  filterListsByAttention,
+  sortLists,
+} from "./lists-derive";
 import { makeCustomListCard } from "./lists.fixtures";
 
 describe("filterLists", () => {
@@ -140,50 +145,103 @@ describe("sortLists", () => {
   });
 });
 
-describe("deriveListsStats", () => {
-  it("reports zeroes and no popular list for an empty collection", () => {
-    expect(deriveListsStats([])).toEqual({
-      booksInLists: 0,
-      mostPopular: null,
-      totalLists: 0,
+const NOW = new Date("2026-08-05T12:00:00.000Z");
+
+function attentionLists() {
+  return [
+    makeCustomListCard({
+      bookCount: 0,
+      description: "Затишні історії",
+      id: "empty",
+      updatedAt: "2026-08-01T00:00:00.000Z",
+    }),
+    makeCustomListCard({
+      bookCount: 4,
+      description: null,
+      id: "no-description",
+      updatedAt: "2026-08-01T00:00:00.000Z",
+    }),
+    makeCustomListCard({
+      bookCount: 7,
+      description: "   ",
+      id: "blank-description",
+      updatedAt: "2026-08-01T00:00:00.000Z",
+    }),
+    makeCustomListCard({
+      bookCount: 3,
+      description: "Класика жанру",
+      id: "stale",
+      updatedAt: "2025-12-31T00:00:00.000Z",
+    }),
+    makeCustomListCard({
+      bookCount: 5,
+      description: "Свіжа добірка",
+      id: "healthy",
+      updatedAt: "2026-08-04T00:00:00.000Z",
+    }),
+  ];
+}
+
+describe("countListsAttention", () => {
+  it("reports zeroes for an empty collection", () => {
+    expect(countListsAttention([], NOW)).toEqual({ empty: 0, no_description: 0, stale: 0 });
+  });
+
+  it("counts every reason independently", () => {
+    expect(countListsAttention(attentionLists(), NOW)).toEqual({
+      empty: 1,
+      no_description: 2,
+      stale: 1,
     });
   });
 
-  it("counts the total number of lists", () => {
-    const stats = deriveListsStats([
-      makeCustomListCard({ id: "a" }),
-      makeCustomListCard({ id: "b" }),
-    ]);
+  it("treats a whitespace-only description as missing", () => {
+    const lists = [makeCustomListCard({ description: "   ", id: "blank" })];
 
-    expect(stats.totalLists).toBe(2);
+    expect(countListsAttention(lists, NOW).no_description).toBe(1);
   });
 
-  it("sums the book counts across every list", () => {
-    const stats = deriveListsStats([
-      makeCustomListCard({ bookCount: 3, id: "a" }),
-      makeCustomListCard({ bookCount: 5, id: "b" }),
-      makeCustomListCard({ bookCount: 0, id: "c" }),
-    ]);
+  it("counts a list as stale only after six months without changes", () => {
+    const lists = [
+      makeCustomListCard({ id: "just-inside", updatedAt: "2026-02-06T00:00:00.000Z" }),
+      makeCustomListCard({ id: "just-outside", updatedAt: "2026-02-04T00:00:00.000Z" }),
+    ];
 
-    expect(stats.booksInLists).toBe(8);
+    expect(countListsAttention(lists, NOW).stale).toBe(1);
   });
 
-  it("picks the list with the most books as the most popular", () => {
-    const stats = deriveListsStats([
-      makeCustomListCard({ bookCount: 3, id: "a" }),
-      makeCustomListCard({ bookCount: 9, id: "b" }),
-      makeCustomListCard({ bookCount: 5, id: "c" }),
-    ]);
+  it("counts a list under several reasons at once", () => {
+    const lists = [
+      makeCustomListCard({
+        bookCount: 0,
+        description: null,
+        id: "neglected",
+        updatedAt: "2024-01-01T00:00:00.000Z",
+      }),
+    ];
 
-    expect(stats.mostPopular?.id).toBe("b");
+    expect(countListsAttention(lists, NOW)).toEqual({ empty: 1, no_description: 1, stale: 1 });
+  });
+});
+
+describe("filterListsByAttention", () => {
+  it("returns every list when no reason is selected", () => {
+    expect(filterListsByAttention(attentionLists(), null, NOW)).toHaveLength(5);
   });
 
-  it("keeps the first list when several share the highest book count", () => {
-    const stats = deriveListsStats([
-      makeCustomListCard({ bookCount: 4, id: "first" }),
-      makeCustomListCard({ bookCount: 4, id: "second" }),
-    ]);
+  it("keeps only the lists matching the selected reason", () => {
+    const filtered = filterListsByAttention(attentionLists(), "no_description", NOW);
 
-    expect(stats.mostPopular?.id).toBe("first");
+    expect(filtered.map((list) => list.id)).toEqual(["no-description", "blank-description"]);
+  });
+
+  it("matches the count reported for the same reason", () => {
+    const lists = attentionLists();
+
+    for (const reason of ["empty", "no_description", "stale"] as const) {
+      expect(filterListsByAttention(lists, reason, NOW)).toHaveLength(
+        countListsAttention(lists, NOW)[reason],
+      );
+    }
   });
 });

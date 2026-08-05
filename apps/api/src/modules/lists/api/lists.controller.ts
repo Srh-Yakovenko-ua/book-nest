@@ -1,6 +1,7 @@
 import type {
   CustomListCard,
   ListDeletionResult,
+  ListsSummaryView,
   PaginatedTrashedLists,
   Paginator,
 } from "@app/shared";
@@ -49,6 +50,7 @@ import { TrashedListsQueryDto } from "./input-dto/trashed-lists-query.input-dto.
 import { UpdateListInputDto } from "./input-dto/update-list.input-dto.js";
 import { CustomListCardDto } from "./view-dto/custom-list-card.view-dto.js";
 import { ListDeletionResultDto } from "./view-dto/list-deletion-result.view-dto.js";
+import { ListsSummaryViewDto } from "./view-dto/lists-summary.view-dto.js";
 import { PaginatedCustomListsDto } from "./view-dto/paginated-custom-lists.view-dto.js";
 import { PaginatedTrashedListsDto } from "./view-dto/paginated-trashed-lists.view-dto.js";
 
@@ -73,6 +75,18 @@ export class ListsController {
     @Query(new ZodQueryPipe(TrashedListsQuerySchema)) query: TrashedListsQueryDto,
   ): Promise<PaginatedTrashedLists> {
     return this.lifecycleService.listTrash({ query, userId: user.id });
+  }
+
+  @ApiOkResponse({
+    description: "Aggregated statistics over the current user own book lists",
+    type: ListsSummaryViewDto,
+  })
+  @ApiOperation({ summary: "Get the current user book lists summary" })
+  @Get("summary")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  summary(@CurrentUser() user: AuthenticatedUser): Promise<ListsSummaryView> {
+    return this.listsService.getSummary({ userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "List not found in the trash" })

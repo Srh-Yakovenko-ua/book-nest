@@ -18,34 +18,36 @@ import { ListCard } from "./list-card";
 const SKELETON_COUNT = 6;
 
 type AllListsViewProps = {
-  hasActiveSearch: boolean;
+  hasActiveFilters: boolean;
   hasAnyLists: boolean;
   isError: boolean;
   isPending: boolean;
   lists: CustomListCard[];
-  onClearSearch: () => void;
+  onClearFilters: () => void;
   onCreateList: () => void;
   onDeleteList: (list: CustomListCard) => void;
   onEditList: (list: CustomListCard) => void;
   onOpenLibrary: () => void;
   onRetry: () => void;
   sidebar: ReactNode;
+  summary: ReactNode;
   toolbar: ReactNode;
 };
 
 export function AllListsView({
-  hasActiveSearch,
+  hasActiveFilters,
   hasAnyLists,
   isError,
   isPending,
   lists,
-  onClearSearch,
+  onClearFilters,
   onCreateList,
   onDeleteList,
   onEditList,
   onOpenLibrary,
   onRetry,
   sidebar,
+  summary,
   toolbar,
 }: AllListsViewProps) {
   const t = useTranslations("lists.catalog");
@@ -69,18 +71,20 @@ export function AllListsView({
         </Button>
       </header>
 
+      {showToolbar ? summary : null}
+
       {showToolbar ? toolbar : null}
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <h2 className="sr-only">{t("title")}</h2>
           <ListsContent
-            hasActiveSearch={hasActiveSearch}
+            hasActiveFilters={hasActiveFilters}
             hasAnyLists={hasAnyLists}
             isError={isError}
             isPending={isPending}
             lists={lists}
-            onClearSearch={onClearSearch}
+            onClearFilters={onClearFilters}
             onCreateList={onCreateList}
             onDeleteList={onDeleteList}
             onEditList={onEditList}
@@ -110,24 +114,24 @@ function ListCardSkeleton() {
 }
 
 function ListsContent({
-  hasActiveSearch,
+  hasActiveFilters,
   hasAnyLists,
   isError,
   isPending,
   lists,
-  onClearSearch,
+  onClearFilters,
   onCreateList,
   onDeleteList,
   onEditList,
   onOpenLibrary,
   onRetry,
 }: {
-  hasActiveSearch: boolean;
+  hasActiveFilters: boolean;
   hasAnyLists: boolean;
   isError: boolean;
   isPending: boolean;
   lists: CustomListCard[];
-  onClearSearch: () => void;
+  onClearFilters: () => void;
   onCreateList: () => void;
   onDeleteList: (list: CustomListCard) => void;
   onEditList: (list: CustomListCard) => void;
@@ -165,14 +169,14 @@ function ListsContent({
       };
       return <EmptyState onPrimary={onCreateList} onSecondary={onOpenLibrary} state={emptyState} />;
     }
-    if (hasActiveSearch) {
+    if (hasActiveFilters) {
       const noResultsState: EmptyStateEntry = {
         desc: t("noResults.description"),
         illu: "empty-search",
         primary: { icon: "x", label: t("noResults.clear") },
         title: t("noResults.title"),
       };
-      return <EmptyState onPrimary={onClearSearch} state={noResultsState} />;
+      return <EmptyState onPrimary={onClearFilters} state={noResultsState} />;
     }
     return null;
   }

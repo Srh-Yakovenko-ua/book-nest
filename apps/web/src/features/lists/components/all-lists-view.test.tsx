@@ -20,18 +20,19 @@ type ViewProps = Parameters<typeof AllListsView>[0];
 
 function renderView(overrides: Partial<ViewProps> = {}) {
   const props: ViewProps = {
-    hasActiveSearch: false,
+    hasActiveFilters: false,
     hasAnyLists: true,
     isError: false,
     isPending: false,
     lists: [makeCustomListCard()],
-    onClearSearch: vi.fn(),
+    onClearFilters: vi.fn(),
     onCreateList: vi.fn(),
     onDeleteList: vi.fn(),
     onEditList: vi.fn(),
     onOpenLibrary: vi.fn(),
     onRetry: vi.fn(),
     sidebar: <div>SIDEBAR</div>,
+    summary: <div>SUMMARY</div>,
     toolbar: <div>TOOLBAR</div>,
     ...overrides,
   };
@@ -98,14 +99,23 @@ describe("AllListsView", () => {
     expect(onOpenLibrary).toHaveBeenCalledOnce();
   });
 
-  it("offers to clear the search when a search matches no lists", async () => {
-    const onClearSearch = vi.fn();
-    renderView({ hasActiveSearch: true, hasAnyLists: true, lists: [], onClearSearch });
+  it("offers to clear the filters when nothing matches", async () => {
+    const onClearFilters = vi.fn();
+    renderView({ hasActiveFilters: true, hasAnyLists: true, lists: [], onClearFilters });
 
     expect(screen.getByText("Нічого не знайдено")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Очистити пошук" }));
+    await userEvent.click(screen.getByRole("button", { name: "Скинути фільтри" }));
 
-    expect(onClearSearch).toHaveBeenCalledOnce();
+    expect(onClearFilters).toHaveBeenCalledOnce();
+  });
+
+  it("shows the summary cards once lists are loaded and hides them on error", () => {
+    const { unmount } = renderView();
+    expect(screen.getByText("SUMMARY")).toBeInTheDocument();
+    unmount();
+
+    renderView({ isError: true, lists: [] });
+    expect(screen.queryByText("SUMMARY")).not.toBeInTheDocument();
   });
 });

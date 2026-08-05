@@ -67,6 +67,20 @@ export type CustomListCard = z.infer<typeof CustomListCardSchema>;
 
 export const PaginatedCustomListsSchema = createPaginatedSchema(CustomListCardSchema);
 
+export const ListsSummaryViewSchema = z.object({
+  averageBooksPerList: z.number().int().nonnegative(),
+  emptyListCount: z.number().int().nonnegative(),
+  largestListBookCount: z.number().int().nonnegative(),
+  listsWithBooksCount: z.number().int().nonnegative(),
+  maxListsPerBook: z.number().int().nonnegative(),
+  multiListBookCount: z.number().int().nonnegative(),
+  totalListCount: z.number().int().nonnegative(),
+  totalMembershipCount: z.number().int().nonnegative(),
+  uniqueBookCount: z.number().int().nonnegative(),
+});
+
+export type ListsSummaryView = z.infer<typeof ListsSummaryViewSchema>;
+
 export const ListSortSchema = z.enum([
   "updated_desc",
   "created_desc",

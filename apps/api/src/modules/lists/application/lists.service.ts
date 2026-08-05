@@ -1,6 +1,7 @@
 import type {
   CustomListCard,
   CustomListsQuery,
+  ListsSummaryView,
   MediaView,
   NewListInput,
   Nullable,
@@ -18,6 +19,7 @@ import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
 import { toCustomListCard } from "../domain/custom-list-card.mapper.js";
+import { toListsSummary } from "../domain/lists-summary.js";
 import { type BookListCard, ListsRepository } from "../infrastructure/lists.repository.js";
 
 const LIST_NAME_TAKEN_MESSAGE = "List with this name already exists";
@@ -141,6 +143,10 @@ export class ListsService {
       name: list.name,
       updatedAt: list.updatedAt.toISOString(),
     };
+  }
+
+  async getSummary({ userId }: { userId: string }): Promise<ListsSummaryView> {
+    return toListsSummary(await this.listsRepository.summaryCounts({ userId }));
   }
 
   async resolveListsForBook(
