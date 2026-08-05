@@ -25,6 +25,9 @@ jobs:
     name: Detect changed apps
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
     outputs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
@@ -35,23 +38,50 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Resolve last deployed commit
+        id: deployed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(gh run list \
+            --repo "$GITHUB_REPOSITORY" \
+            --workflow deploy.yml \
+            --branch "$GITHUB_REF_NAME" \
+            --status success \
+            --limit 30 \
+            --json databaseId,headSha \
+            --jq "[.[] | select(.databaseId != $GITHUB_RUN_ID)][0].headSha // empty")
+
+          if [ -n "$sha" ] && git cat-file -e "${sha}^{commit}" 2>/dev/null; then
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
+            echo "Comparing against last deployed commit $sha"
+          else
+            echo "sha=" >> "$GITHUB_OUTPUT"
+            echo "No reachable deployed commit, rebuilding everything"
+          fi
+
       - name: Filter paths
         id: filter
-        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
-        with:
-          filters: |
-            shared: &shared
-              - 'packages/shared/**'
-              - 'pnpm-lock.yaml'
-              - 'pnpm-workspace.yaml'
-              - 'tsconfig.base.json'
-              - 'turbo.json'
-            api:
-              - *shared
-              - 'apps/api/**'
-            web:
-              - *shared
-              - 'apps/web/**'
+        env:
+          DEPLOYED_SHA: ${{ steps.deployed.outputs.sha }}
+        run: |
+          if [ -z "$DEPLOYED_SHA" ]; then
+            echo "api=true" >> "$GITHUB_OUTPUT"
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed=$(git diff --name-only "$DEPLOYED_SHA" "$GITHUB_SHA")
+          echo "$changed"
+
+          shared='^(packages/shared/|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig\.base\.json$|turbo\.json$)'
+          touched() { printf '%s\n' "$changed" | grep -Eq "$1"; }
+
+          touched "$shared|^apps/api/" && api=true || api=false
+          touched "$shared|^apps/web/" && web=true || web=false
+
+          echo "api=$api" >> "$GITHUB_OUTPUT"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
 
   build-api:
     name: Build API image
