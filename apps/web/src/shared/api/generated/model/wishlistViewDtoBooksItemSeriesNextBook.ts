@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { WishlistViewDtoBooksItemSeriesNextBookCover } from "./wishlistViewDtoBooksItemSeriesNextBookCover";
+import type { WishlistViewDtoBooksItemSeriesNextBookOwnershipStatus } from "./wishlistViewDtoBooksItemSeriesNextBookOwnershipStatus";
 
 /**
  * @nullable
@@ -14,6 +15,8 @@ export type WishlistViewDtoBooksItemSeriesNextBook = {
   /** @nullable */
   cover?: WishlistViewDtoBooksItemSeriesNextBookCover;
   id: string;
+  /** @nullable */
+  ownershipStatus?: WishlistViewDtoBooksItemSeriesNextBookOwnershipStatus;
   /** @nullable */
   partNumber: number | null;
   title: string;

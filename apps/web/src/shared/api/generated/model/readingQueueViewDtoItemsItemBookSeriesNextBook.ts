@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { ReadingQueueViewDtoItemsItemBookSeriesNextBookCover } from "./readingQueueViewDtoItemsItemBookSeriesNextBookCover";
+import type { ReadingQueueViewDtoItemsItemBookSeriesNextBookOwnershipStatus } from "./readingQueueViewDtoItemsItemBookSeriesNextBookOwnershipStatus";
 
 /**
  * @nullable
@@ -14,6 +15,8 @@ export type ReadingQueueViewDtoItemsItemBookSeriesNextBook = {
   /** @nullable */
   cover?: ReadingQueueViewDtoItemsItemBookSeriesNextBookCover;
   id: string;
+  /** @nullable */
+  ownershipStatus?: ReadingQueueViewDtoItemsItemBookSeriesNextBookOwnershipStatus;
   /** @nullable */
   partNumber: number | null;
   title: string;

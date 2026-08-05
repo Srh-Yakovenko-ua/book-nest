@@ -5,6 +5,10 @@ import { differenceInCalendarDays, max, min } from "date-fns";
 import { toNullableIsoDateTime } from "../../../core/iso-date.js";
 import { compareByPartThenCreated } from "./series-preview.js";
 
+type PagedBook = Pick<StatsBook, "pagesCount">;
+
+type RatedBook = Pick<StatsBook, "rating">;
+
 type ReadPages = {
   readPagesCount: Nullable<number>;
   readPagesPartial: boolean;
@@ -31,6 +35,34 @@ const READING_READING_STATUSES: ReadonlySet<ReadingStatus> = new Set<ReadingStat
 ]);
 
 const RATING_ROUNDING_FACTOR = 10;
+
+export function computeAveragePages(books: readonly PagedBook[]): Nullable<number> {
+  const pages = collectPagesCounts(books);
+  if (pages.length === 0) {
+    return null;
+  }
+  const total = pages.reduce((sum, pagesCount) => sum + pagesCount, 0);
+  return Math.round(total / pages.length);
+}
+
+export function computeAverageRating(books: readonly RatedBook[]): Nullable<number> {
+  const ratings = books
+    .map((book) => book.rating)
+    .filter((rating): rating is number => rating !== null);
+  if (ratings.length === 0) {
+    return null;
+  }
+  const total = ratings.reduce((sum, rating) => sum + rating, 0);
+  return Math.round((total / ratings.length) * RATING_ROUNDING_FACTOR) / RATING_ROUNDING_FACTOR;
+}
+
+export function computePagesCount(books: readonly PagedBook[]): Nullable<number> {
+  const pages = collectPagesCounts(books);
+  if (pages.length === 0) {
+    return null;
+  }
+  return pages.reduce((sum, pagesCount) => sum + pagesCount, 0);
+}
 
 export function computeSeriesStats(books: StatsBook[]): SeriesStatsView {
   const booksCount = books.length;
@@ -67,30 +99,10 @@ export function computeSeriesStats(books: StatsBook[]): SeriesStatsView {
   };
 }
 
-function collectPagesCounts(books: StatsBook[]): number[] {
+function collectPagesCounts(books: readonly PagedBook[]): number[] {
   return books
     .map((book) => book.pagesCount)
     .filter((pagesCount): pagesCount is number => pagesCount !== null);
-}
-
-function computeAveragePages(books: StatsBook[]): Nullable<number> {
-  const pages = collectPagesCounts(books);
-  if (pages.length === 0) {
-    return null;
-  }
-  const total = pages.reduce((sum, pagesCount) => sum + pagesCount, 0);
-  return Math.round(total / pages.length);
-}
-
-function computeAverageRating(books: StatsBook[]): Nullable<number> {
-  const ratings = books
-    .map((book) => book.rating)
-    .filter((rating): rating is number => rating !== null);
-  if (ratings.length === 0) {
-    return null;
-  }
-  const total = ratings.reduce((sum, rating) => sum + rating, 0);
-  return Math.round((total / ratings.length) * RATING_ROUNDING_FACTOR) / RATING_ROUNDING_FACTOR;
 }
 
 function computeMaxFinishedAt(books: StatsBook[]): Nullable<Date> {
@@ -111,14 +123,6 @@ function computeMinStartedAt(books: StatsBook[]): Nullable<Date> {
     return null;
   }
   return min(startedDates);
-}
-
-function computePagesCount(books: StatsBook[]): Nullable<number> {
-  const pages = collectPagesCounts(books);
-  if (pages.length === 0) {
-    return null;
-  }
-  return pages.reduce((sum, pagesCount) => sum + pagesCount, 0);
 }
 
 function computeReadingDurationDays({

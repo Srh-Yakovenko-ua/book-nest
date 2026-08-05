@@ -1,7 +1,13 @@
 import { availableParallelism } from "node:os";
 import { defineConfig } from "vitest/config";
 
-const maxWorkers = Math.min(6, Math.max(2, availableParallelism()));
+const workerLimits = { max: 6, min: 2 };
+
+const requestedWorkers = Number.parseInt(process.env.VITEST_MAX_WORKERS ?? "", 10);
+const maxWorkers =
+  Number.isInteger(requestedWorkers) && requestedWorkers > 0
+    ? requestedWorkers
+    : Math.min(workerLimits.max, Math.max(workerLimits.min, availableParallelism()));
 
 const testDefaults = {
   CORS_ORIGINS: "http://localhost:5173",

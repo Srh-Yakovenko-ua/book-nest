@@ -5,30 +5,54 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesAgeCategoriesItem } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesAgeCategoriesItem";
 import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesAuthorsItem } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesAuthorsItem";
 import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesCoversItem } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesCoversItem";
+import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesFormatsItem } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesFormatsItem";
+import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesLanguagesItem } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesLanguagesItem";
 import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesNextBook } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesNextBook";
+import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesOwnership } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesOwnership";
 import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesStatus } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesStatus";
+import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesTagsItem } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesTagsItem";
 
 /**
  * @nullable
  */
 export type LibraryOverviewViewDtoRecentlyAddedItemSeries = {
+  ageCategories?: LibraryOverviewViewDtoRecentlyAddedItemSeriesAgeCategoriesItem[];
   authors: LibraryOverviewViewDtoRecentlyAddedItemSeriesAuthorsItem[];
+  /** @nullable */
+  averagePages: number | null;
+  /** @nullable */
+  averageRating: number | null;
   booksInSeries: number;
   covers: LibraryOverviewViewDtoRecentlyAddedItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;
   finishedInSeries: number;
+  formats?: LibraryOverviewViewDtoRecentlyAddedItemSeriesFormatsItem[];
   genres: string[];
+  hasFavoriteBook?: boolean;
+  hasPublicationYears?: boolean;
+  hasPublisher?: boolean;
   id: string;
+  languages?: LibraryOverviewViewDtoRecentlyAddedItemSeriesLanguagesItem[];
   lastActivityAt: string;
+  /**
+   * @items.minimum 1
+   * @items.maximum 999
+   */
+  missingPartNumbers?: number[];
   name: string;
   /** @nullable */
   nextBook: LibraryOverviewViewDtoRecentlyAddedItemSeriesNextBook;
+  ownership: LibraryOverviewViewDtoRecentlyAddedItemSeriesOwnership;
+  /** @nullable */
+  pagesCount: number | null;
   readingInSeries: number;
   status: LibraryOverviewViewDtoRecentlyAddedItemSeriesStatus;
+  tags?: LibraryOverviewViewDtoRecentlyAddedItemSeriesTagsItem[];
   /** @nullable */
   totalBooks: number | null;
 } | null;

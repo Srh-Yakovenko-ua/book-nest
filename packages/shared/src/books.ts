@@ -7,6 +7,7 @@ import {
   BookFormatSchema,
   BookFormatsSchema,
   BookLanguageSchema,
+  BookPartNumberSchema,
   BookTypeSchema,
   CurrencySchema,
   LoanDirectionSchema,
@@ -50,9 +51,6 @@ const BOOK_TITLE_MIN = 1;
 export const BOOK_TITLE_MAX = 150;
 
 export const BOOK_DESCRIPTION_MAX = 5000;
-
-const BOOK_PART_NUMBER_MIN = 1;
-const BOOK_PART_NUMBER_MAX = 999;
 
 const BOOK_LIST_IDS_MAX = 50;
 const BOOK_NEW_LISTS_MAX = 20;
@@ -501,12 +499,6 @@ export const UpdateLoanInputSchema = z
   );
 
 export type UpdateLoanInput = z.infer<typeof UpdateLoanInputSchema>;
-
-const BookPartNumberSchema = z
-  .number()
-  .int()
-  .min(BOOK_PART_NUMBER_MIN, "Part number must be from 1 to 999")
-  .max(BOOK_PART_NUMBER_MAX, "Part number must be from 1 to 999");
 
 export const BOOK_PART_NUMBER_EXCEEDS_TOTAL_MESSAGE =
   "Part number can't be greater than the total books in the series";

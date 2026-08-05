@@ -5,30 +5,54 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { WishlistViewDtoBooksItemSeriesAgeCategoriesItem } from "./wishlistViewDtoBooksItemSeriesAgeCategoriesItem";
 import type { WishlistViewDtoBooksItemSeriesAuthorsItem } from "./wishlistViewDtoBooksItemSeriesAuthorsItem";
 import type { WishlistViewDtoBooksItemSeriesCoversItem } from "./wishlistViewDtoBooksItemSeriesCoversItem";
+import type { WishlistViewDtoBooksItemSeriesFormatsItem } from "./wishlistViewDtoBooksItemSeriesFormatsItem";
+import type { WishlistViewDtoBooksItemSeriesLanguagesItem } from "./wishlistViewDtoBooksItemSeriesLanguagesItem";
 import type { WishlistViewDtoBooksItemSeriesNextBook } from "./wishlistViewDtoBooksItemSeriesNextBook";
+import type { WishlistViewDtoBooksItemSeriesOwnership } from "./wishlistViewDtoBooksItemSeriesOwnership";
 import type { WishlistViewDtoBooksItemSeriesStatus } from "./wishlistViewDtoBooksItemSeriesStatus";
+import type { WishlistViewDtoBooksItemSeriesTagsItem } from "./wishlistViewDtoBooksItemSeriesTagsItem";
 
 /**
  * @nullable
  */
 export type WishlistViewDtoBooksItemSeries = {
+  ageCategories?: WishlistViewDtoBooksItemSeriesAgeCategoriesItem[];
   authors: WishlistViewDtoBooksItemSeriesAuthorsItem[];
+  /** @nullable */
+  averagePages: number | null;
+  /** @nullable */
+  averageRating: number | null;
   booksInSeries: number;
   covers: WishlistViewDtoBooksItemSeriesCoversItem[];
   createdAt: string;
   /** @nullable */
   description: string | null;
   finishedInSeries: number;
+  formats?: WishlistViewDtoBooksItemSeriesFormatsItem[];
   genres: string[];
+  hasFavoriteBook?: boolean;
+  hasPublicationYears?: boolean;
+  hasPublisher?: boolean;
   id: string;
+  languages?: WishlistViewDtoBooksItemSeriesLanguagesItem[];
   lastActivityAt: string;
+  /**
+   * @items.minimum 1
+   * @items.maximum 999
+   */
+  missingPartNumbers?: number[];
   name: string;
   /** @nullable */
   nextBook: WishlistViewDtoBooksItemSeriesNextBook;
+  ownership: WishlistViewDtoBooksItemSeriesOwnership;
+  /** @nullable */
+  pagesCount: number | null;
   readingInSeries: number;
   status: WishlistViewDtoBooksItemSeriesStatus;
+  tags?: WishlistViewDtoBooksItemSeriesTagsItem[];
   /** @nullable */
   totalBooks: number | null;
 } | null;

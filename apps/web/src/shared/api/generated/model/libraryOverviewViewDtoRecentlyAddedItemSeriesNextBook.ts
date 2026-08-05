@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesNextBookCover } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesNextBookCover";
+import type { LibraryOverviewViewDtoRecentlyAddedItemSeriesNextBookOwnershipStatus } from "./libraryOverviewViewDtoRecentlyAddedItemSeriesNextBookOwnershipStatus";
 
 /**
  * @nullable
@@ -14,6 +15,8 @@ export type LibraryOverviewViewDtoRecentlyAddedItemSeriesNextBook = {
   /** @nullable */
   cover?: LibraryOverviewViewDtoRecentlyAddedItemSeriesNextBookCover;
   id: string;
+  /** @nullable */
+  ownershipStatus?: LibraryOverviewViewDtoRecentlyAddedItemSeriesNextBookOwnershipStatus;
   /** @nullable */
   partNumber: number | null;
   title: string;

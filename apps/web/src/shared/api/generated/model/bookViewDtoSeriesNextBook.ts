@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { BookViewDtoSeriesNextBookCover } from "./bookViewDtoSeriesNextBookCover";
+import type { BookViewDtoSeriesNextBookOwnershipStatus } from "./bookViewDtoSeriesNextBookOwnershipStatus";
 
 /**
  * @nullable
@@ -14,6 +15,8 @@ export type BookViewDtoSeriesNextBook = {
   /** @nullable */
   cover?: BookViewDtoSeriesNextBookCover;
   id: string;
+  /** @nullable */
+  ownershipStatus?: BookViewDtoSeriesNextBookOwnershipStatus;
   /** @nullable */
   partNumber: number | null;
   title: string;

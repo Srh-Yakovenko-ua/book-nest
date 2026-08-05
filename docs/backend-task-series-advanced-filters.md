@@ -42,6 +42,7 @@
 (база: `packages/shared/src/taxonomy.ts:19-22`).
 
 **Еталон, як зроблено «правильно» на книжках** (server-side filter + sort + пагінація):
+
 - `LibraryBooksQuerySchema` — `packages/shared/src/books.ts:850-924` (14 фільтр-полів + діапазони + `superRefine`).
 - `BooksRepository.buildLibraryWhere` — `apps/api/src/modules/books/infrastructure/books.repository.ts:1632-1709`.
 - `LIBRARY_ORDER_BY` (мапа сортів) — `books.repository.ts:1415-1459`.
@@ -156,7 +157,7 @@
    - обчислювані підзапити / `GROUP BY HAVING`, або
    - денормалізовані лічильники на `Series` (тоді **буде** міграція + тригери/перерахунок при зміні книжок), або
    - матеріалізований вид.
-   Оціни складність поокремо для кожного фільтра; прості (status/genre/author/formats-hasSome) зроби першими.
+     Оціни складність поокремо для кожного фільтра; прості (status/genre/author/formats-hasSome) зроби першими.
 
 4. **Підключити параметри у веб-хуці** `use-series-list.ts` (зараз шле лише `pageSize`, `:12,20`) — передавати
    `search`, `sort`, фільтри. Прибрати «fetch-all» `useEffect`-догортування; повернутися до звичайної
@@ -188,9 +189,11 @@
 `HttpError`-підкласи, `TransactionRunner` для multi-write — тут не потрібен, лише читання).
 
 Гейти перед «готово»:
+
 ```bash
 pnpm typecheck && pnpm lint && pnpm format:check && pnpm test
 ```
+
 Плюс для Phase 2: `pnpm gen:api` без діфу-сюрпризів; `pnpm dev:api` стартує чисто;
 `curl -i http://localhost:4000/api/series?pageSize=5` → 200 з новими полями в `items[]`.
 Якщо зачепиш schema.prisma (лише Phase 3, за денормалізації) — двокрокова міграція за `CLAUDE.md` §6
@@ -249,14 +252,14 @@ pnpm typecheck && pnpm lint && pnpm format:check && pnpm test
 
 ## Готовність по кейсах
 
-| # | Кейс | Стан | Джерело / чого бракує |
-|---|------|:---:|---|
-| 1 | Невідомий статус виходу | ✅ FE-only, зроблено | `status === "unknown"` |
-| 2 | Серії без доданих книг | ✅ FE-only, зроблено | `booksInSeries === 0` |
-| 3 | Пропуски в порядку книг | ❌ треба бек | номери частин доданих книг (нижче) |
-| 4 | Наступної немає в наявності | ❌ треба бек | `nextBook.ownershipStatus` — див. попередній додаток |
-| 5 | Неповний комплект завершеної | ✅ FE-only, зроблено | `status==="completed"` + `totalBooks` + `booksInSeries` |
-| 6 | Неповні основні дані | ⚠️ частково зроблено | автор/опис/жанр — є; **видавництво + роки** — нижче |
+| #   | Кейс                         |         Стан         | Джерело / чого бракує                                   |
+| --- | ---------------------------- | :------------------: | ------------------------------------------------------- |
+| 1   | Невідомий статус виходу      | ✅ FE-only, зроблено | `status === "unknown"`                                  |
+| 2   | Серії без доданих книг       | ✅ FE-only, зроблено | `booksInSeries === 0`                                   |
+| 3   | Пропуски в порядку книг      |     ❌ треба бек     | номери частин доданих книг (нижче)                      |
+| 4   | Наступної немає в наявності  |     ❌ треба бек     | `nextBook.ownershipStatus` — див. попередній додаток    |
+| 5   | Неповний комплект завершеної | ✅ FE-only, зроблено | `status==="completed"` + `totalBooks` + `booksInSeries` |
+| 6   | Неповні основні дані         | ⚠️ частково зроблено | автор/опис/жанр — є; **видавництво + роки** — нижче     |
 
 **Кейси 1, 2, 5 і частина 6 (автор/опис/жанр) уже реалізовані на фронті** над наявним `SeriesView`.
 Нижче — тільки те, що лишається за беком.
@@ -292,8 +295,8 @@ pnpm typecheck && pnpm lint && pnpm format:check && pnpm test
 `SeriesDetailsView`). Додати до `SeriesViewSchema` дві похідні ознаки (той самий прохід по книгах):
 
 ```ts
-hasPublisher: z.boolean()          // true, якщо хоч одна книга серії має publisher
-hasPublicationYears: z.boolean()   // true, якщо хоч одна книга серії має publicationYear
+hasPublisher: z.boolean(); // true, якщо хоч одна книга серії має publisher
+hasPublicationYears: z.boolean(); // true, якщо хоч одна книга серії має publicationYear
 ```
 
 (Якщо колись знадобиться діапазон для відображення — `publicationYearRange: {min,max} | null`

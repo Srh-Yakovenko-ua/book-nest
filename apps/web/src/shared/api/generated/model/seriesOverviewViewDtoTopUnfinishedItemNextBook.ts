@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { SeriesOverviewViewDtoTopUnfinishedItemNextBookCover } from "./seriesOverviewViewDtoTopUnfinishedItemNextBookCover";
+import type { SeriesOverviewViewDtoTopUnfinishedItemNextBookOwnershipStatus } from "./seriesOverviewViewDtoTopUnfinishedItemNextBookOwnershipStatus";
 
 /**
  * @nullable
@@ -14,6 +15,8 @@ export type SeriesOverviewViewDtoTopUnfinishedItemNextBook = {
   /** @nullable */
   cover?: SeriesOverviewViewDtoTopUnfinishedItemNextBookCover;
   id: string;
+  /** @nullable */
+  ownershipStatus?: SeriesOverviewViewDtoTopUnfinishedItemNextBookOwnershipStatus;
   /** @nullable */
   partNumber: number | null;
   title: string;

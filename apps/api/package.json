@@ -24,6 +24,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",
     "db:migrate:reset": "prisma migrate reset",
+    "db:test:clean": "node --import @swc-node/register/esm-register --conditions=source scripts/db-test-clean.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {

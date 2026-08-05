@@ -4,6 +4,8 @@ import { BOOK_AUTHORS_MAX, BookAuthorReferenceSchema, BookAuthorRefSchema } from
 import {
   AgeCategorySchema,
   BookFormatSchema,
+  BookLanguageSchema,
+  BookPartNumberSchema,
   OwnershipStatusSchema,
   QueuePrioritySchema,
   ReadingStatusSchema,
@@ -89,6 +91,7 @@ export type SeriesSearchQuery = z.infer<typeof SeriesSearchQuerySchema>;
 export const SeriesNextBookSchema = z.object({
   cover: MediaViewSchema.nullish(),
   id: z.string(),
+  ownershipStatus: OwnershipStatusSchema.nullish(),
   partNumber: z.number().nullable(),
   title: z.string(),
 });
@@ -103,20 +106,39 @@ export const SeriesCoverPreviewSchema = z.object({
 
 export type SeriesCoverPreview = z.infer<typeof SeriesCoverPreviewSchema>;
 
+export const SeriesOwnershipSchema = z.object({
+  ownedCount: z.number().int(),
+  total: z.number().int(),
+});
+
+export type SeriesOwnership = z.infer<typeof SeriesOwnershipSchema>;
+
 export const SeriesViewSchema = z.object({
+  ageCategories: z.array(AgeCategorySchema).default([]),
   authors: z.array(BookAuthorRefSchema),
+  averagePages: z.number().nullable(),
+  averageRating: z.number().nullable(),
   booksInSeries: z.number(),
   covers: z.array(SeriesCoverPreviewSchema),
   createdAt: z.string(),
   description: z.string().nullable(),
   finishedInSeries: z.number(),
+  formats: z.array(BookFormatSchema).default([]),
   genres: z.array(z.string()),
+  hasFavoriteBook: z.boolean().default(false),
+  hasPublicationYears: z.boolean().default(false),
+  hasPublisher: z.boolean().default(false),
   id: z.string(),
+  languages: z.array(BookLanguageSchema).default([]),
   lastActivityAt: z.string(),
+  missingPartNumbers: z.array(BookPartNumberSchema).default([]),
   name: z.string(),
   nextBook: SeriesNextBookSchema.nullable(),
+  ownership: SeriesOwnershipSchema,
+  pagesCount: z.number().nullable(),
   readingInSeries: z.number(),
   status: SeriesStatusSchema,
+  tags: z.array(TagViewSchema).default([]),
   totalBooks: z.number().nullable(),
 });
 
