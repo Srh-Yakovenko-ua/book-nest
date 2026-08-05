@@ -437,6 +437,30 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Обкладинки без перезавантаження",
     version: null,
   },
+  {
+    bodyEn:
+      "The series list is rebuilt: switch between grid and list views, narrow things down with advanced filters and see the matching count with active-filter chips, and let the sidebar point out the series that need attention. Cards now carry a cover fan, clearer progress, and a badge showing whether you already own the next book.",
+    bodyUk:
+      "Список серій оновлено: перемикайтеся між сіткою та списком, звужуйте добірку розширеними фільтрами й бачте кількість результатів із чипами активних фільтрів, а бічна панель підкаже серії, які потребують уваги. На картках тепер віяло обкладинок, зрозуміліший прогрес і позначка, чи наступна книга вже у вас.",
+    category: "improvement",
+    publishedAt: "2026-08-05T00:00:00.000Z",
+    slug: "series-list-overhaul",
+    titleEn: "A rebuilt series list",
+    titleUk: "Оновлений список серій",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The dedications page got a rework: summary cards at the top, a compact list view next to the cards, and a new flow to add a dedication by picking the book it belongs to.",
+    bodyUk:
+      "Сторінку присвят перероблено: картки підсумків угорі, компактний вигляд списком поруч із картками та новий спосіб додати присвяту, обравши книгу, якій вона належить.",
+    category: "improvement",
+    publishedAt: "2026-08-05T00:00:01.000Z",
+    slug: "dedications-revamp",
+    titleEn: "Dedications, reworked",
+    titleUk: "Присвяти, оновлено",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
