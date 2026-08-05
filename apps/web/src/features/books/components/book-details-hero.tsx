@@ -2,7 +2,7 @@
 
 import type { BookView, ReadingStatus } from "@app/shared";
 
-import { ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown, Quote } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useId, useLayoutEffect, useRef, useState } from "react";
@@ -261,30 +261,29 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
 
           {hasDedication ? (
             <div className="mt-2">
-              <div className="relative overflow-hidden rounded-r-[14px] border-l-[3px] border-l-[var(--terracotta)] bg-muted py-3 pr-4 pl-4">
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute right-0 -bottom-4 z-20 aspect-square w-20 opacity-70 select-none lg:w-24"
-                >
-                  <Image
-                    alt=""
-                    className="object-contain"
-                    fill
-                    sizes="96px"
-                    src="/illustrations/book-detail-1.png"
-                    unoptimized
-                  />
+              <div className="rounded-[14px] border-l-2 border-l-[var(--terracotta)] bg-muted/50 p-4">
+                <div className="mb-2.5 flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                    <Quote aria-hidden className="size-4 shrink-0 text-[var(--terracotta)]" />
+                    <span className="truncate text-sm font-medium">
+                      {t("details.dedicationLabel")}
+                    </span>
+                  </div>
+                  <Link
+                    className="inline-flex shrink-0 items-center gap-1 rounded text-xs font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    href="/dedications"
+                  >
+                    {t("details.dedicationAllLink")}
+                    <ArrowRight aria-hidden className="size-3.5" />
+                  </Link>
                 </div>
-                <p className="relative z-10 mb-1.5 text-[11px] font-semibold tracking-wider text-[var(--terracotta-dark)] uppercase">
-                  {t("details.dedicationLabel")}
-                </p>
-                <div className="relative z-10">
+                <div className="relative">
                   <div
                     className="overflow-hidden motion-safe:transition-[max-height] motion-safe:duration-300 motion-safe:ease-out"
                     ref={dedicationContainerRef}
                   >
                     <blockquote
-                      className="text-sm leading-relaxed whitespace-pre-line text-[var(--ink-soft)] italic"
+                      className="text-sm leading-7 whitespace-pre-line text-foreground/90 italic"
                       id={dedicationId}
                       ref={dedicationContentRef}
                     >
@@ -294,7 +293,7 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
                   {isDedicationLong && !dedicationExpanded ? (
                     <div
                       aria-hidden
-                      className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-muted to-transparent"
+                      className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-muted/50 to-transparent"
                     />
                   ) : null}
                 </div>
@@ -302,7 +301,7 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
                   <button
                     aria-controls={dedicationId}
                     aria-expanded={dedicationExpanded}
-                    className="relative z-10 mt-2 inline-flex cursor-pointer items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
+                    className="mt-2 inline-flex cursor-pointer items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
                     onClick={() => setDedicationExpanded((value) => !value)}
                     type="button"
                   >
@@ -380,15 +379,10 @@ function BookDetailsCover({ alt, src, title }: { alt: string; src?: string; titl
 
 function DedicationActions({ book, dedication }: { book: BookView; dedication: string }) {
   const t = useTranslations("books.details");
-  const tDedication = useTranslations("dedications.card");
   const { copy, isTogglingFavorite, toggleFavorite } = useDedicationActions();
 
-  const favoriteLabel = book.isFavoriteDedication
-    ? tDedication("removeFavorite")
-    : tDedication("addFavorite");
-
   return (
-    <div className="relative z-10 mt-3 flex flex-wrap items-center gap-1">
+    <div className="mt-3 flex flex-wrap items-center gap-1">
       <Button onClick={() => void copy(dedication)} size="sm" variant="ghost">
         <UiIcon name="copy" size={15} />
         {t("dedicationCopy")}
@@ -401,17 +395,11 @@ function DedicationActions({ book, dedication }: { book: BookView; dedication: s
         variant="ghost"
       >
         <UiIcon
-          className={book.isFavoriteDedication ? "text-favorite" : undefined}
-          name={book.isFavoriteDedication ? "heart-fill" : "heart"}
+          className={book.isFavoriteDedication ? "text-primary" : undefined}
+          name="bookmark"
           size={15}
         />
-        {favoriteLabel}
-      </Button>
-      <Button asChild size="sm" variant="ghost">
-        <Link href="/dedications">
-          <UiIcon name="arrow-right" size={15} />
-          {t("dedicationAllLink")}
-        </Link>
+        {book.isFavoriteDedication ? t("dedicationSaved") : t("dedicationSave")}
       </Button>
     </div>
   );

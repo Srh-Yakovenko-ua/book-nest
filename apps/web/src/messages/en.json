@@ -1396,8 +1396,10 @@
       "authorsShowAll": "Show all authors",
       "authorsCollapse": "Collapse",
       "dedicationLabel": "Author's dedication",
-      "dedicationAllLink": "Go to all dedications",
+      "dedicationAllLink": "All dedications",
       "dedicationCopy": "Copy",
+      "dedicationSave": "Save",
+      "dedicationSaved": "Saved",
       "lists": "Lists",
       "seriesSequence": {
         "title": "Series reading order",

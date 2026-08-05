@@ -1396,8 +1396,10 @@
       "authorsShowAll": "Показати всіх авторів",
       "authorsCollapse": "Згорнути",
       "dedicationLabel": "Присвята автора",
-      "dedicationAllLink": "Перейти до всіх присвят",
+      "dedicationAllLink": "Усі присвяти",
       "dedicationCopy": "Скопіювати",
+      "dedicationSave": "Зберегти",
+      "dedicationSaved": "Збережено",
       "lists": "Списки",
       "seriesSequence": {
         "title": "Послідовність читання серії",
