@@ -86,6 +86,7 @@ export class BookLibraryReadService {
       formats: query.format,
       genreKeys: query.genre,
       hasCover: query.hasCover,
+      hasDedication: query.hasDedication,
       hasRating: query.hasRating,
       isFavorite: query.isFavorite,
       languages: query.language,

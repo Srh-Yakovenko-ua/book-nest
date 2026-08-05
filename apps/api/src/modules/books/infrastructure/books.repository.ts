@@ -88,6 +88,8 @@ const DedicationsSummaryCountsRowSchema = z.object({
   unfinishedCount: z.number(),
 });
 
+const DedicationsAuthorsCountRowSchema = z.object({ authorsCount: z.number() });
+
 const EMPTY_DEDICATIONS_COUNTS: z.infer<typeof DedicationsSummaryCountsRowSchema> = {
   favoriteCount: 0,
   finishedCount: 0,
@@ -238,6 +240,7 @@ export type LibraryFilter = {
   formats?: BookFormat[];
   genreKeys?: string[];
   hasCover?: boolean;
+  hasDedication?: boolean;
   hasRating?: boolean;
   isFavorite?: boolean;
   languages?: BookLanguage[];
@@ -378,6 +381,7 @@ type CreateBookData = {
 };
 
 type DedicationsSummaryResult = {
+  authorsCount: number;
   availableGenres: string[];
   favoriteCount: number;
   finishedCount: number;
@@ -704,8 +708,9 @@ export class BooksRepository {
   }
 
   async dedicationsSummary({ userId }: { userId: string }): Promise<DedicationsSummaryResult> {
-    const [countsRows, genreRows, topGenreRows, topAuthorRows] = await Promise.all([
-      this.prisma.$queryRaw(Prisma.sql`
+    const [countsRows, genreRows, topGenreRows, topAuthorRows, authorsCountRows] =
+      await Promise.all([
+        this.prisma.$queryRaw(Prisma.sql`
         SELECT
           (count(*))::int AS "totalCount",
           (count(*) FILTER (WHERE book.is_favorite_dedication = true))::int AS "favoriteCount",
@@ -717,7 +722,7 @@ export class BooksRepository {
           AND book.dedication IS NOT NULL
           AND book.dedication <> ''
       `),
-      this.prisma.$queryRaw`
+        this.prisma.$queryRaw`
         SELECT DISTINCT genre AS key
         FROM books book, unnest(book.genres) AS genre
         WHERE book.user_id = ${userId}::uuid
@@ -726,7 +731,7 @@ export class BooksRepository {
           AND book.dedication <> ''
         ORDER BY key ASC
       `,
-      this.prisma.$queryRaw`
+        this.prisma.$queryRaw`
         SELECT genre AS key, count(*) AS count
         FROM books book, unnest(book.genres) AS genre
         WHERE book.user_id = ${userId}::uuid
@@ -737,7 +742,7 @@ export class BooksRepository {
         ORDER BY count DESC, key ASC
         LIMIT 1
       `,
-      this.prisma.$queryRaw`
+        this.prisma.$queryRaw`
         SELECT author.name AS name, count(*) AS count
         FROM book_authors book_author
         JOIN authors author ON author.id = book_author.author_id
@@ -750,15 +755,27 @@ export class BooksRepository {
         ORDER BY count DESC, name ASC
         LIMIT 1
       `,
-    ]);
+        this.prisma.$queryRaw`
+        SELECT count(DISTINCT book_author.author_id)::int AS "authorsCount"
+        FROM book_authors book_author
+        JOIN books book ON book.id = book_author.book_id
+        WHERE book.user_id = ${userId}::uuid
+          ${ACTIVE_BOOK_SQL}
+          AND book.dedication IS NOT NULL
+          AND book.dedication <> ''
+      `,
+      ]);
 
     const counts =
       z.array(DedicationsSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_DEDICATIONS_COUNTS;
     const availableGenreRows = z.array(GenreKeyRowSchema).parse(genreRows);
     const topGenre = z.array(GenreCountRowSchema).parse(topGenreRows)[0];
     const topAuthor = z.array(AuthorCountRowSchema).parse(topAuthorRows)[0];
+    const authorsCount =
+      z.array(DedicationsAuthorsCountRowSchema).parse(authorsCountRows)[0]?.authorsCount ?? 0;
 
     return {
+      authorsCount,
       availableGenres: availableGenreRows.map((row) => row.key),
       favoriteCount: counts.favoriteCount,
       finishedCount: counts.finishedCount,
@@ -1687,6 +1704,12 @@ function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
   }
   if (filter.hasCover === false) {
     where.coverMediaId = null;
+  }
+  if (filter.hasDedication === false) {
+    where.AND = [{ OR: [{ dedication: null }, { dedication: "" }] }];
+  }
+  if (filter.hasDedication === true) {
+    where.AND = [{ AND: [{ dedication: { not: null } }, { dedication: { not: "" } }] }];
   }
 
   const rating = buildIntRange({ max: filter.ratingMax, min: filter.ratingMin });

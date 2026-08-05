@@ -36,6 +36,7 @@ export type BooksControllerListParams = {
    */
   genre?: string[];
   hasCover?: string;
+  hasDedication?: string;
   hasRating?: string;
   isFavorite?: string;
   /**

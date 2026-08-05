@@ -529,6 +529,7 @@ describe("GET /api/books/dedications/summary", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
+      authorsCount: 0,
       availableGenres: [],
       favoriteCount: 0,
       finishedCount: 0,
@@ -567,6 +568,7 @@ describe("GET /api/books/dedications/summary", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
+      authorsCount: 2,
       availableGenres: ["history", "memoir"],
       favoriteCount: 1,
       finishedCount: 1,
@@ -617,6 +619,7 @@ describe("GET /api/books/dedications/summary", () => {
 
     expect(summaryRes.body.totalCount).toBe(listRes.body.totalCount);
     expect(summaryRes.body.totalCount).toBe(3);
+    expect(summaryRes.body.authorsCount).toBe(2);
     expect(summaryRes.body.favoriteCount).toBe(1);
     expect(summaryRes.body.finishedCount).toBe(1);
     expect(summaryRes.body.unfinishedCount).toBe(2);

@@ -9,14 +9,13 @@ import {
 } from "./dedications-query";
 
 function makeState(overrides: Partial<DedicationsQueryState> = {}): DedicationsQueryState {
-  return { filter: "all", genre: "", page: 1, search: "", sort: "newest", ...overrides };
+  return { filter: "all", genre: "", search: "", sort: "newest", view: "grid", ...overrides };
 }
 
 describe("toDedicationsParams", () => {
   it("sends the defaults without an empty search or genre", () => {
     expect(toDedicationsParams(makeState())).toEqual({
       filter: "all",
-      pageNumber: 1,
       pageSize: 12,
       sort: "newest",
     });
@@ -30,15 +29,12 @@ describe("toDedicationsParams", () => {
     expect(toDedicationsParams(makeState({ search: "   " }))).not.toHaveProperty("q");
   });
 
-  it("forwards the filter, genre, sort and page to the server", () => {
+  it("forwards the filter, genre and sort to the server", () => {
     expect(
-      toDedicationsParams(
-        makeState({ filter: "favorites", genre: "romance", page: 3, sort: "author_asc" }),
-      ),
+      toDedicationsParams(makeState({ filter: "favorites", genre: "romance", sort: "author_asc" })),
     ).toEqual({
       filter: "favorites",
       genre: "romance",
-      pageNumber: 3,
       pageSize: 12,
       sort: "author_asc",
     });

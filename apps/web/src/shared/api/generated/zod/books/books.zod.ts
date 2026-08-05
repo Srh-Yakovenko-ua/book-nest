@@ -787,6 +787,7 @@ export const BooksControllerListQueryParams = zod.object({
     .max(booksControllerListQueryGenreMax)
     .optional(),
   hasCover: zod.string().optional(),
+  hasDedication: zod.string().optional(),
   hasRating: zod.string().optional(),
   isFavorite: zod.string().optional(),
   language: zod
@@ -2742,6 +2743,7 @@ export const BooksControllerDedicationsResponse = zod.object({
 export const booksControllerDedicationsSummaryResponseAvailableGenresItemMax = 64;
 
 export const BooksControllerDedicationsSummaryResponse = zod.object({
+  authorsCount: zod.number().optional(),
   availableGenres: zod.array(
     zod.string().min(1).max(booksControllerDedicationsSummaryResponseAvailableGenresItemMax),
   ),

@@ -1950,46 +1950,54 @@
     "metaTitle": "Dedications",
     "title": "Dedications",
     "subtitle": "Author dedications from the books you added to your library. The small words that begin a big story.",
-    "countBadge": "{count, plural, one {# dedication} other {# dedications}}",
+    "added": "Dedication added",
+    "loadMore": "Load more",
+    "loadMoreError": "Couldn't load more dedications",
+    "allShown": "All dedications shown",
+    "counter": "Showing {shown} of {total, plural, one {# dedication} other {# dedications}}",
     "toolbar": {
       "searchLabel": "Search dedications",
-      "searchPlaceholder": "Search dedications, books, authors...",
+      "searchPlaceholder": "Dedication, book or author",
       "searchClear": "Clear search",
       "sortLabel": "Sorting",
       "filterLabel": "Dedication filter",
       "genreLabel": "By genre",
       "genreAny": "All genres"
     },
+    "view": {
+      "label": "View",
+      "grid": "Grid",
+      "list": "List"
+    },
     "filter": {
       "all": "All",
       "favorites": "Favorites",
       "without_favorites": "Not favorites",
-      "finished": "Finished",
-      "unfinished": "Unfinished"
+      "finished": "From read books",
+      "unfinished": "From unread books"
     },
     "sort": {
-      "newest": "Recently added",
-      "recently_updated": "Recently updated",
-      "book_title_asc": "By book title",
-      "author_asc": "By author",
-      "favorites_first": "Favorites first",
-      "publication_year_desc": "By publication year"
+      "newest": "Date added: newest first",
+      "recently_updated": "Date updated: newest first",
+      "book_title_asc": "Book title: A–Z",
+      "author_asc": "Author: A–Z",
+      "favorites_first": "Favorites: favorites first",
+      "publication_year_desc": "Publication year: newest first"
     },
     "card": {
       "coverAlt": "Cover of “{title}”",
       "unknownAuthor": "Unknown author",
       "read": "Read the dedication from “{title}”",
-      "openBook": "Go to the book",
       "copy": "Copy the dedication",
       "addFavorite": "Add the dedication to favorites",
       "removeFavorite": "Remove the dedication from favorites"
     },
     "modal": {
-      "openBook": "Go to the book",
+      "addFavorite": "Add to favorites",
+      "copied": "Copied",
       "copy": "Copy",
-      "favorite": "Favorite",
-      "genresLabel": "Genres",
-      "tagsLabel": "Tags"
+      "moreTags": "{count, plural, one {# more tag} other {# more tags}}",
+      "removeFavorite": "Remove from favorites"
     },
     "copy": {
       "success": "Dedication copied",
@@ -2000,47 +2008,48 @@
       "removed": "Removed from favorite dedications",
       "error": "Could not update favorite dedications"
     },
+    "summary": {
+      "total": "Dedications total",
+      "favorites": "Favorite dedications",
+      "fromFinished": "From finished books",
+      "topGenre": "Top genre",
+      "topAuthor": "Top author",
+      "empty": "—",
+      "unit": "{count, plural, one {dedication} other {dedications}}",
+      "authorsMicrofact": "From {count, plural, one {# author} other {# authors}}",
+      "favoritesMicrofact": "{percent}% of all dedications",
+      "fromUnfinishedMicrofact": "{count, plural, one {# dedication} other {# dedications}} — from books not finished yet",
+      "fromUnfinishedMicrofactNone": "all — from finished books",
+      "topGenreMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this genre",
+      "topAuthorMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this author's books"
+    },
     "sidebar": {
       "label": "Dedications overview",
-      "stats": {
-        "title": "Statistics",
-        "total": "Dedications total",
-        "favorites": "Favorites",
-        "fromFinished": "From finished books",
-        "fromUnfinished": "From unfinished books",
-        "topGenre": "Most common genre",
-        "topAuthor": "Most dedications by author",
-        "empty": "—",
-        "error": "Could not load the dedication statistics."
-      },
-      "quickFilters": {
-        "title": "Quick filters",
-        "finished": "Finished books only",
-        "unfinished": "Unfinished books only",
-        "favorites": "Favorite dedications",
-        "without_favorites": "Not favorites"
-      },
       "quote": {
         "text": "Every dedication is a little story about someone who matters."
       },
-      "helper": {
-        "title": "Cannot find your dedication?",
-        "text": "Add it on the book edit page and it will show up here.",
-        "cta": "Add a book",
-        "secondary": "Go to all books"
+      "addMore": {
+        "title": "Want to add another?",
+        "text": "Dedications are added on the book page.",
+        "cta": "Choose a book"
       }
     },
-    "pagination": {
-      "label": "Dedication pages",
-      "previous": "Previous",
-      "next": "Next",
-      "goToPage": "Page {page}"
-    },
     "empty": {
-      "title": "You have no dedications yet",
-      "description": "Add an author dedication when you create or edit a book — and it will show up here.",
-      "cta": "Add a book",
-      "secondary": "Go to all books"
+      "title": "Add your first dedication",
+      "description": "Pick a book from your library and add an author's dedication on its edit page.",
+      "cta": "Choose a book"
+    },
+    "picker": {
+      "title": "Choose a book",
+      "description": "Pick a book without a dedication to add one.",
+      "searchLabel": "Search books",
+      "searchPlaceholder": "Title or author",
+      "empty": "No books found",
+      "loadError": "Failed to load books",
+      "loadMore": "Show more",
+      "selectBookAria": "Choose “{title}”",
+      "cancel": "Cancel",
+      "submit": "Add dedication"
     },
     "noResults": {
       "title": "Nothing found",

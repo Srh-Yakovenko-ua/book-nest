@@ -38,6 +38,7 @@ export const DedicationsQuerySchema = z.object({
 export type DedicationsQuery = z.infer<typeof DedicationsQuerySchema>;
 
 export const DedicationsSummaryViewSchema = z.object({
+  authorsCount: z.number().optional(),
   availableGenres: z.array(GenreKeySchema),
   favoriteCount: z.number(),
   finishedCount: z.number(),
