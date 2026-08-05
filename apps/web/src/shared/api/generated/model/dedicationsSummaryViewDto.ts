@@ -9,6 +9,7 @@ import type { DedicationsSummaryViewDtoTopAuthor } from "./dedicationsSummaryVie
 import type { DedicationsSummaryViewDtoTopGenre } from "./dedicationsSummaryViewDtoTopGenre";
 
 export interface DedicationsSummaryViewDto {
+  authorsCount?: number;
   /**
    * @items.minLength 1
    * @items.maxLength 64

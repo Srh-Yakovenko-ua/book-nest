@@ -847,6 +847,7 @@ export const LibraryBooksQuerySchema = z
     format: queryStringArray(BookFormatSchema),
     genre: queryStringArray(GenreKeySchema),
     hasCover: z.stringbool().optional(),
+    hasDedication: z.stringbool().optional(),
     hasRating: z.stringbool().optional(),
     isFavorite: z.stringbool().optional(),
     language: queryStringArray(BookLanguageSchema),

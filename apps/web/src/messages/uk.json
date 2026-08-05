@@ -1950,46 +1950,54 @@
     "metaTitle": "Присвяти",
     "title": "Присвяти",
     "subtitle": "Авторські присвяти з книг, які ви додали до своєї бібліотеки. Маленькі слова, з яких починається велика історія.",
-    "countBadge": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}}",
+    "added": "Присвяту додано",
+    "loadMore": "Показати ще",
+    "loadMoreError": "Не вдалося завантажити ще присвяти",
+    "allShown": "Усі присвяти показано",
+    "counter": "Показано {shown} з {total, plural, one {# присвяти} few {# присвят} many {# присвят} other {# присвят}}",
     "toolbar": {
       "searchLabel": "Пошук присвят",
-      "searchPlaceholder": "Пошук по присвятах, книгах, авторах...",
+      "searchPlaceholder": "Присвята, книга або автор",
       "searchClear": "Очистити пошук",
       "sortLabel": "Сортування",
       "filterLabel": "Фільтр присвят",
       "genreLabel": "За жанром",
       "genreAny": "Усі жанри"
     },
+    "view": {
+      "label": "Вигляд",
+      "grid": "Сітка",
+      "list": "Список"
+    },
     "filter": {
       "all": "Усі",
       "favorites": "Улюблені",
       "without_favorites": "Без улюблених",
-      "finished": "Прочитані",
-      "unfinished": "Непрочитані"
+      "finished": "Із прочитаних книг",
+      "unfinished": "Із непрочитаних книг"
     },
     "sort": {
-      "newest": "Найновіші додані",
-      "recently_updated": "Нещодавно оновлені",
-      "book_title_asc": "За назвою книги",
-      "author_asc": "За автором",
-      "favorites_first": "Спочатку улюблені",
-      "publication_year_desc": "За роком видання"
+      "newest": "За датою додавання: спочатку нові",
+      "recently_updated": "За датою оновлення: спочатку нові",
+      "book_title_asc": "За назвою книги: А–Я",
+      "author_asc": "За автором: А–Я",
+      "favorites_first": "За улюбленими: спочатку улюблені",
+      "publication_year_desc": "За роком видання: спочатку нові"
     },
     "card": {
       "coverAlt": "Обкладинка книги «{title}»",
       "unknownAuthor": "Автор невідомий",
       "read": "Читати присвяту з книги «{title}»",
-      "openBook": "Перейти до книги",
       "copy": "Скопіювати присвяту",
       "addFavorite": "Додати присвяту в улюблені",
       "removeFavorite": "Прибрати присвяту з улюблених"
     },
     "modal": {
-      "openBook": "До книги",
-      "copy": "Скопіювати",
-      "favorite": "Улюблена",
-      "genresLabel": "Жанри",
-      "tagsLabel": "Теги"
+      "addFavorite": "Додати в улюблені",
+      "copied": "Скопійовано",
+      "copy": "Копіювати",
+      "moreTags": "Ще {count, plural, one {# тег} few {# теги} many {# тегів} other {# тегів}}",
+      "removeFavorite": "Прибрати з улюблених"
     },
     "copy": {
       "success": "Присвяту скопійовано",
@@ -2000,47 +2008,48 @@
       "removed": "Прибрано з улюблених присвят",
       "error": "Не вдалося оновити улюблені присвяти"
     },
+    "summary": {
+      "total": "Усього присвят",
+      "favorites": "Улюблені присвяти",
+      "fromFinished": "Із прочитаних книг",
+      "topGenre": "Топ жанр",
+      "topAuthor": "Топ автор",
+      "empty": "—",
+      "unit": "{count, plural, one {присвята} few {присвяти} many {присвят} other {присвят}}",
+      "authorsMicrofact": "Від {count} {count, plural, one {різного автора} few {різних авторів} many {різних авторів} other {різних авторів}}",
+      "favoritesMicrofact": "{percent}% усіх присвят",
+      "fromUnfinishedMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} — із книг, які ще не прочитані",
+      "fromUnfinishedMicrofactNone": "усі — з прочитаних книг",
+      "topGenreMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} у цьому жанрі",
+      "topAuthorMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} у книгах автора"
+    },
     "sidebar": {
       "label": "Огляд присвят",
-      "stats": {
-        "title": "Статистика",
-        "total": "Усього присвят",
-        "favorites": "Улюблених",
-        "fromFinished": "З прочитаних книг",
-        "fromUnfinished": "З непрочитаних книг",
-        "topGenre": "Найчастіший жанр",
-        "topAuthor": "Найбільше присвят від автора",
-        "empty": "—",
-        "error": "Не вдалося завантажити статистику присвят."
-      },
-      "quickFilters": {
-        "title": "Швидкі фільтри",
-        "finished": "Лише з прочитаних",
-        "unfinished": "Лише з непрочитаних",
-        "favorites": "Улюблені присвяти",
-        "without_favorites": "Без улюблених"
-      },
       "quote": {
         "text": "Кожна присвята — це маленька історія про когось важливого."
       },
-      "helper": {
-        "title": "Не знайшли свою присвяту?",
-        "text": "Додайте її на сторінці редагування книги, і вона зʼявиться тут.",
-        "cta": "Додати книгу",
-        "secondary": "Перейти до всіх книг"
+      "addMore": {
+        "title": "Хочете додати ще одну?",
+        "text": "Присвяти додаються на сторінці книги.",
+        "cta": "Обрати книгу"
       }
     },
-    "pagination": {
-      "label": "Сторінки присвят",
-      "previous": "Назад",
-      "next": "Далі",
-      "goToPage": "Сторінка {page}"
-    },
     "empty": {
-      "title": "У вас ще немає присвят",
-      "description": "Додайте присвяту автора на сторінці створення або редагування книги — і вона зʼявиться тут.",
-      "cta": "Додати книгу",
-      "secondary": "Перейти до всіх книг"
+      "title": "Додайте першу присвяту",
+      "description": "Оберіть книгу зі своєї бібліотеки та додайте авторську присвяту на сторінці її редагування.",
+      "cta": "Обрати книгу"
+    },
+    "picker": {
+      "title": "Обрати книгу",
+      "description": "Оберіть книгу без присвяти, щоб додати авторську присвяту.",
+      "searchLabel": "Пошук книг",
+      "searchPlaceholder": "Назва або автор",
+      "empty": "Книг не знайдено",
+      "loadError": "Не вдалося завантажити книги",
+      "loadMore": "Показати ще",
+      "selectBookAria": "Обрати «{title}»",
+      "cancel": "Скасувати",
+      "submit": "Додати присвяту"
     },
     "noResults": {
       "title": "Нічого не знайдено",
