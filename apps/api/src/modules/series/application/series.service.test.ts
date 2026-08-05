@@ -668,6 +668,7 @@ describe("SeriesService.search", () => {
         missingPartNumbers: [2],
         name: "Throne of Glass",
         nextBook: {
+          cover: null,
           id: "part-3",
           ownershipStatus: "none",
           partNumber: 3,
@@ -760,6 +761,7 @@ describe("SeriesService.search", () => {
         missingPartNumbers: [],
         name: "Throne of Glass",
         nextBook: {
+          cover: null,
           id: "part-2",
           ownershipStatus: "owned",
           partNumber: 2,
@@ -1072,6 +1074,7 @@ describe("SeriesService nextBook cover", () => {
     expect(page.items[0]?.nextBook).toEqual({
       cover: mediaView("media-1"),
       id: "book-1",
+      ownershipStatus: "none",
       partNumber: 1,
       title: "Book",
     });
@@ -1119,6 +1122,7 @@ describe("SeriesService nextBook cover", () => {
     expect(overview.topUnfinished[0]?.nextBook).toEqual({
       cover: mediaView("media-9"),
       id: "next-2",
+      ownershipStatus: "none",
       partNumber: 2,
       title: "Book",
     });

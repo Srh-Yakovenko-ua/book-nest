@@ -272,7 +272,13 @@ describe("toSeriesDetailsView nextBook cover", () => {
       covers,
     );
 
-    expect(details.nextBook).toEqual({ cover, id: "book-1", partNumber: 1, title: "Book One" });
+    expect(details.nextBook).toEqual({
+      cover,
+      id: "book-1",
+      ownershipStatus: "owned",
+      partNumber: 1,
+      title: "Book One",
+    });
   });
 
   it("leaves the next book cover null when the book has none", () => {
