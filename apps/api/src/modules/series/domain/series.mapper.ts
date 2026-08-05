@@ -56,6 +56,8 @@ type SeriesViewSource = {
   updatedAt: Date;
 };
 
+const SERIES_COVER_PREVIEW_LIMIT = 3;
+
 export function toSeriesDetailsView({
   covers,
   series,
@@ -71,7 +73,7 @@ export function toSeriesDetailsView({
   );
 
   return {
-    ...toSeriesView({ series }),
+    ...toSeriesView({ coverByBookId: covers, series }),
     books,
     publishers: collectSeriesPublishers(series.books),
     stats: computeSeriesStats(series.books.map(toStatsBook)),
@@ -79,10 +81,10 @@ export function toSeriesDetailsView({
 }
 
 export function toSeriesView({
-  covers = [],
+  coverByBookId = new Map(),
   series,
 }: {
-  covers?: SeriesCoverPreview[];
+  coverByBookId?: Map<string, Nullable<MediaView>>;
   series: SeriesViewSource;
 }): SeriesView {
   const books = series.books.map(toSeriesBookPreview);
@@ -99,7 +101,7 @@ export function toSeriesView({
     ...summarizeSeriesAggregates(series.books),
     authors: resolveSeriesAuthors(series),
     booksInSeries: series._count.books,
-    covers,
+    covers: buildSeriesCoverPreviews({ books: series.books, coverByBookId }),
     createdAt: series.createdAt.toISOString(),
     description: series.description,
     finishedInSeries,
@@ -113,11 +115,28 @@ export function toSeriesView({
     }).toISOString(),
     missingPartNumbers: [...missingPartNumbers],
     name: series.name,
-    nextBook,
+    nextBook:
+      nextBook === null ? null : { ...nextBook, cover: coverByBookId.get(nextBook.id) ?? null },
     readingInSeries,
     status: SeriesStatusSchema.parse(series.status),
     totalBooks: series.totalBooks,
   };
+}
+
+function buildSeriesCoverPreviews({
+  books,
+  coverByBookId,
+}: {
+  books: SeriesViewBookRow[];
+  coverByBookId: Map<string, Nullable<MediaView>>;
+}): SeriesCoverPreview[] {
+  return [...books]
+    .sort(compareByPartThenCreated)
+    .flatMap((book) => {
+      const cover = coverByBookId.get(book.id) ?? null;
+      return cover === null ? [] : [{ bookId: book.id, cover, title: book.title }];
+    })
+    .slice(0, SERIES_COVER_PREVIEW_LIMIT);
 }
 
 function collectSeriesPublishers(

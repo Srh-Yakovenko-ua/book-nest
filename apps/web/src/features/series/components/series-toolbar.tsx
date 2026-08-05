@@ -1,8 +1,10 @@
 "use client";
 
+import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -12,7 +14,13 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-import type { SeriesReadingFilter, SeriesSort, SeriesStatusFilter } from "../model/series-derive";
+import type {
+  SeriesAdvancedFilters as SeriesAdvancedFiltersValue,
+  SeriesListLayout,
+  SeriesReadingFilter,
+  SeriesSort,
+  SeriesStatusFilter,
+} from "../model/series-derive";
 
 import {
   SERIES_READING_FILTERS,
@@ -20,35 +28,49 @@ import {
   SERIES_SORT_OPTIONS,
   SERIES_STATUS_FILTERS,
 } from "../model/series-derive";
+import { SeriesAdvancedFilters } from "./series-advanced-filters";
 
 type SeriesToolbarProps = {
+  advancedFilters: SeriesAdvancedFiltersValue;
+  onAdvancedApply: (next: SeriesAdvancedFiltersValue) => void;
   onReadingChange: (value: SeriesReadingFilter) => void;
+  onRememberAuthor: (id: string, name: string) => void;
   onSearchChange: (value: string) => void;
   onSearchClear: () => void;
   onSortChange: (value: SeriesSort) => void;
   onStatusChange: (value: SeriesStatusFilter) => void;
+  onViewChange: (value: SeriesListLayout) => void;
   readingFilter: SeriesReadingFilter;
+  resolveAuthorName: (id: string) => string | undefined;
   search: string;
   sort: SeriesSort;
   statusFilter: SeriesStatusFilter;
+  view: SeriesListLayout;
 };
 
 export function SeriesToolbar({
+  advancedFilters,
+  onAdvancedApply,
   onReadingChange,
+  onRememberAuthor,
   onSearchChange,
   onSearchClear,
   onSortChange,
   onStatusChange,
+  onViewChange,
   readingFilter,
+  resolveAuthorName,
   search,
   sort,
   statusFilter,
+  view,
 }: SeriesToolbarProps) {
   const t = useTranslations("series.toolbar");
   const tCommon = useTranslations("common");
   const tStatus = useTranslations("series.statusFilter");
   const tReading = useTranslations("series.readingFilter");
   const tSort = useTranslations("series.sort");
+  const tView = useTranslations("series.view");
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -104,6 +126,22 @@ export function SeriesToolbar({
           onClear={() => onSortChange(SERIES_SORT_DEFAULT)}
           options={SERIES_SORT_OPTIONS.map((value) => ({ label: tSort(value), value }))}
           value={sort}
+        />
+        <SeriesAdvancedFilters
+          filters={advancedFilters}
+          onApply={onAdvancedApply}
+          onRememberAuthor={onRememberAuthor}
+          resolveAuthorName={resolveAuthorName}
+        />
+        <Segmented
+          className="h-10 items-stretch [&_[data-slot=segmented-item]]:py-0"
+          label={tView("label")}
+          onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
+          options={[
+            { icon: <LayoutGrid />, label: tView("grid"), value: "grid" },
+            { icon: <List />, label: tView("list"), value: "list" },
+          ]}
+          value={view}
         />
       </div>
     </div>

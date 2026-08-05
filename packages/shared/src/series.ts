@@ -89,6 +89,7 @@ export const SeriesSearchQuerySchema = TaxonomySearchPaginationQuerySchema.exten
 export type SeriesSearchQuery = z.infer<typeof SeriesSearchQuerySchema>;
 
 export const SeriesNextBookSchema = z.object({
+  cover: MediaViewSchema.nullish(),
   id: z.string(),
   ownershipStatus: OwnershipStatusSchema.nullish(),
   partNumber: z.number().nullable(),
@@ -115,8 +116,8 @@ export type SeriesOwnership = z.infer<typeof SeriesOwnershipSchema>;
 export const SeriesViewSchema = z.object({
   ageCategories: z.array(AgeCategorySchema).default([]),
   authors: z.array(BookAuthorRefSchema),
-  averagePages: z.number().nullable(),
-  averageRating: z.number().nullable(),
+  averagePages: z.number().nullish(),
+  averageRating: z.number().nullish(),
   booksInSeries: z.number(),
   covers: z.array(SeriesCoverPreviewSchema),
   createdAt: z.string(),
@@ -133,8 +134,8 @@ export const SeriesViewSchema = z.object({
   missingPartNumbers: z.array(BookPartNumberSchema).default([]),
   name: z.string(),
   nextBook: SeriesNextBookSchema.nullable(),
-  ownership: SeriesOwnershipSchema,
-  pagesCount: z.number().nullable(),
+  ownership: SeriesOwnershipSchema.optional(),
+  pagesCount: z.number().nullish(),
   readingInSeries: z.number(),
   status: SeriesStatusSchema,
   tags: z.array(TagViewSchema).default([]),

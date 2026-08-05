@@ -22,9 +22,9 @@ export type WishlistViewDtoBooksItemSeries = {
   ageCategories?: WishlistViewDtoBooksItemSeriesAgeCategoriesItem[];
   authors: WishlistViewDtoBooksItemSeriesAuthorsItem[];
   /** @nullable */
-  averagePages: number | null;
+  averagePages?: number | null;
   /** @nullable */
-  averageRating: number | null;
+  averageRating?: number | null;
   booksInSeries: number;
   covers: WishlistViewDtoBooksItemSeriesCoversItem[];
   createdAt: string;
@@ -47,9 +47,9 @@ export type WishlistViewDtoBooksItemSeries = {
   name: string;
   /** @nullable */
   nextBook: WishlistViewDtoBooksItemSeriesNextBook;
-  ownership: WishlistViewDtoBooksItemSeriesOwnership;
+  ownership?: WishlistViewDtoBooksItemSeriesOwnership;
   /** @nullable */
-  pagesCount: number | null;
+  pagesCount?: number | null;
   readingInSeries: number;
   status: WishlistViewDtoBooksItemSeriesStatus;
   tags?: WishlistViewDtoBooksItemSeriesTagsItem[];

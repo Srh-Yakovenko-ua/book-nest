@@ -19,9 +19,9 @@ export type SeriesOverviewViewDtoTopUnfinishedItem = {
   ageCategories?: SeriesOverviewViewDtoTopUnfinishedItemAgeCategoriesItem[];
   authors: SeriesOverviewViewDtoTopUnfinishedItemAuthorsItem[];
   /** @nullable */
-  averagePages: number | null;
+  averagePages?: number | null;
   /** @nullable */
-  averageRating: number | null;
+  averageRating?: number | null;
   booksInSeries: number;
   covers: SeriesOverviewViewDtoTopUnfinishedItemCoversItem[];
   createdAt: string;
@@ -44,9 +44,9 @@ export type SeriesOverviewViewDtoTopUnfinishedItem = {
   name: string;
   /** @nullable */
   nextBook: SeriesOverviewViewDtoTopUnfinishedItemNextBook;
-  ownership: SeriesOverviewViewDtoTopUnfinishedItemOwnership;
+  ownership?: SeriesOverviewViewDtoTopUnfinishedItemOwnership;
   /** @nullable */
-  pagesCount: number | null;
+  pagesCount?: number | null;
   readingInSeries: number;
   status: SeriesOverviewViewDtoTopUnfinishedItemStatus;
   tags?: SeriesOverviewViewDtoTopUnfinishedItemTagsItem[];

@@ -22,9 +22,9 @@ export type ReadingQueueViewDtoItemsItemBookSeries = {
   ageCategories?: ReadingQueueViewDtoItemsItemBookSeriesAgeCategoriesItem[];
   authors: ReadingQueueViewDtoItemsItemBookSeriesAuthorsItem[];
   /** @nullable */
-  averagePages: number | null;
+  averagePages?: number | null;
   /** @nullable */
-  averageRating: number | null;
+  averageRating?: number | null;
   booksInSeries: number;
   covers: ReadingQueueViewDtoItemsItemBookSeriesCoversItem[];
   createdAt: string;
@@ -47,9 +47,9 @@ export type ReadingQueueViewDtoItemsItemBookSeries = {
   name: string;
   /** @nullable */
   nextBook: ReadingQueueViewDtoItemsItemBookSeriesNextBook;
-  ownership: ReadingQueueViewDtoItemsItemBookSeriesOwnership;
+  ownership?: ReadingQueueViewDtoItemsItemBookSeriesOwnership;
   /** @nullable */
-  pagesCount: number | null;
+  pagesCount?: number | null;
   readingInSeries: number;
   status: ReadingQueueViewDtoItemsItemBookSeriesStatus;
   tags?: ReadingQueueViewDtoItemsItemBookSeriesTagsItem[];

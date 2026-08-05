@@ -51,7 +51,7 @@ export function FavoriteSeriesContinuationsBlock() {
   const canExpand = items.length > COLLAPSED_COUNT;
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-card">
+    <section className="sidebar-card-leaf flex flex-col gap-4 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-card">
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-primary">

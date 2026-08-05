@@ -162,6 +162,7 @@ describe("series preview through the books endpoints", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.series.nextBook).toEqual({
+      cover: null,
       id: bookIds[0],
       ownershipStatus: "owned",
       partNumber: 1,
@@ -196,6 +197,7 @@ describe("series preview through the books endpoints", () => {
     const res = await getBook(accessToken, bookIds[2]);
 
     expect(res.body.series.nextBook).toEqual({
+      cover: null,
       id: bookIds[1],
       ownershipStatus: "want_to_buy",
       partNumber: 2,
@@ -214,6 +216,7 @@ describe("series preview through the books endpoints", () => {
 
     expect(res.body.hasUnreadEarlierSeriesParts).toBe(false);
     expect(res.body.series.nextBook).toEqual({
+      cover: null,
       id: bookIds[2],
       ownershipStatus: "in_transit",
       partNumber: 3,
@@ -255,6 +258,7 @@ describe("series preview through the books endpoints", () => {
 
     const item = res.body.items.find((entry: { id: string }) => entry.id === seriesId);
     expect(item.nextBook).toEqual({
+      cover: null,
       id: bookIds[0],
       ownershipStatus: "owned",
       partNumber: 1,

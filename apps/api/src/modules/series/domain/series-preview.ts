@@ -34,9 +34,11 @@ export type SeriesBooksSummary = {
   hasPublicationYears: boolean;
   hasPublisher: boolean;
   missingPartNumbers: readonly number[];
-  nextBook: Nullable<SeriesNextBook>;
+  nextBook: Nullable<SeriesNextBookSummary>;
   readingInSeries: number;
 };
+
+export type SeriesNextBookSummary = Omit<SeriesNextBook, "cover">;
 
 type PartNumberedBook = Pick<SeriesBookPreview, "partNumber">;
 

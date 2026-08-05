@@ -5,12 +5,15 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { SeriesViewDtoNextBookCover } from "./seriesViewDtoNextBookCover";
 import type { SeriesViewDtoNextBookOwnershipStatus } from "./seriesViewDtoNextBookOwnershipStatus";
 
 /**
  * @nullable
  */
 export type SeriesViewDtoNextBook = {
+  /** @nullable */
+  cover?: SeriesViewDtoNextBookCover;
   id: string;
   /** @nullable */
   ownershipStatus?: SeriesViewDtoNextBookOwnershipStatus;

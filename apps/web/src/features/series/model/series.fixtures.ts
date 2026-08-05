@@ -1,7 +1,9 @@
 import type {
   DeliveryView,
   LoanInfoView,
+  MediaView,
   SeriesBookView,
+  SeriesCoverPreview,
   SeriesDetailsView,
   SeriesOverviewView,
   SeriesStatsView,
@@ -74,6 +76,36 @@ export function makeSeriesBookView(overrides: Partial<SeriesBookView> = {}): Ser
   };
 }
 
+export function makeSeriesCoverMedia(overrides: Partial<MediaView> = {}): MediaView {
+  return {
+    contentType: "image/webp",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    height: 800,
+    id: "series-cover-media-1",
+    kind: "book_cover",
+    name: "cover.webp",
+    sizeBytes: 1024,
+    urls: {
+      card: "https://cdn.test/series-card.webp",
+      full: "https://cdn.test/series-full.webp",
+      thumb: "https://cdn.test/series-thumb.webp",
+    },
+    width: 600,
+    ...overrides,
+  };
+}
+
+export function makeSeriesCoverPreview(
+  overrides: Partial<SeriesCoverPreview> = {},
+): SeriesCoverPreview {
+  return {
+    bookId: "series-book-1",
+    cover: makeSeriesCoverMedia(),
+    title: "Четверте крило",
+    ...overrides,
+  };
+}
+
 export function makeSeriesDetailsView(
   overrides: Partial<SeriesDetailsView> = {},
 ): SeriesDetailsView {
@@ -125,20 +157,26 @@ export function makeSeriesOverview(
         finishedInSeries: 3,
         id: "top-1",
         name: "Пісня льоду й полум'я",
+        nextBook: {
+          cover: makeSeriesCoverMedia({ id: "top-1-next-cover" }),
+          id: "top-1-next",
+          partNumber: 4,
+          title: "Бенкет круків",
+        },
         totalBooks: 5,
       }),
       makeSeriesView({
         finishedInSeries: 1,
         id: "top-2",
         name: "Хроніки Амбера",
-        nextBook: { id: "amber-2", partNumber: 2, title: "Рушниці Авалона" },
+        nextBook: { cover: null, id: "amber-2", partNumber: 2, title: "Рушниці Авалона" },
         totalBooks: 4,
       }),
       makeSeriesView({
         finishedInSeries: 2,
         id: "top-3",
         name: "Основа",
-        nextBook: { id: "found-3", partNumber: 3, title: "Друга Основа" },
+        nextBook: { cover: null, id: "found-3", partNumber: 3, title: "Друга Основа" },
         totalBooks: 7,
       }),
     ],
@@ -174,7 +212,11 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
     averagePages: 507,
     averageRating: 8.5,
     booksInSeries: 3,
-    covers: [],
+    covers: [
+      makeSeriesCoverPreview({ bookId: "series-book-1", title: "Четверте крило" }),
+      makeSeriesCoverPreview({ bookId: "series-book-2", title: "Ковадло зірок" }),
+      makeSeriesCoverPreview({ bookId: "series-book-3", title: "Оніксове полум'я" }),
+    ],
     createdAt: "2026-01-01T00:00:00.000Z",
     description: null,
     finishedInSeries: 1,
@@ -189,6 +231,7 @@ export function makeSeriesView(overrides: Partial<SeriesView> = {}): SeriesView 
     missingPartNumbers: [],
     name: "Емпіреї",
     nextBook: {
+      cover: makeSeriesCoverMedia({ id: "next-book-cover-1" }),
       id: "next-book-1",
       ownershipStatus: "owned",
       partNumber: 2,

@@ -636,21 +636,21 @@
       "sort": {
         "label": "Сортування",
         "options": {
-          "created_desc": "Нещодавно додані",
-          "created_asc": "Давно додані",
-          "updated_desc": "Нещодавно оновлені",
-          "title_asc": "Назва А–Я",
-          "title_desc": "Назва Я–А",
-          "author_asc": "Автор А–Я",
-          "author_desc": "Автор Я–А",
-          "rating_desc": "Найвищий рейтинг",
-          "rating_asc": "Найнижчий рейтинг",
-          "year_desc": "Новіші видання",
-          "year_asc": "Старіші видання",
-          "pages_desc": "Більше сторінок",
-          "pages_asc": "Менше сторінок",
-          "favorite_added_desc": "Улюблені: спочатку нові",
-          "favorite_added_asc": "Улюблені: спочатку давні"
+          "created_desc": "За датою додавання: спочатку нові",
+          "created_asc": "За датою додавання: спочатку старі",
+          "updated_desc": "За датою оновлення: спочатку нові",
+          "title_asc": "За назвою: А–Я",
+          "title_desc": "За назвою: Я–А",
+          "author_asc": "За автором: А–Я",
+          "author_desc": "За автором: Я–А",
+          "rating_desc": "За рейтингом: від вищого",
+          "rating_asc": "За рейтингом: від нижчого",
+          "year_desc": "За роком видання: спочатку новіші",
+          "year_asc": "За роком видання: спочатку старіші",
+          "pages_desc": "За кількістю сторінок: від більшої",
+          "pages_asc": "За кількістю сторінок: від меншої",
+          "favorite_added_desc": "Додані в улюблені: спочатку нові",
+          "favorite_added_asc": "Додані в улюблені: спочатку старі"
         }
       },
       "view": {
@@ -2412,13 +2412,36 @@
     },
     "summary": {
       "total": "Усього серій",
+      "totalBreakdown": "{completed, plural, one {# завершена} few {# завершені} many {# завершених} other {# завершених}} · {ongoing, plural, one {# ще виходить} few {# ще виходять} many {# ще виходять} other {# ще виходять}}",
       "fullyRead": "Прочитано",
+      "fullyReadPercent": "{percent}% усіх серій",
       "unfinished": "Недочитані",
-      "booksInSeries": "Книг у серіях"
+      "booksLeft": "лишилося {n, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "booksInSeries": "Книг у серіях",
+      "booksReadOfTotal": "прочитано {finished} з {total}"
     },
     "tabs": {
       "all": "Усі серії",
       "unfinished": "Недочитані"
+    },
+    "counter": "Показано {shown} із {total, plural, one {# серії} few {# серій} many {# серій} other {# серій}}",
+    "activeFilters": {
+      "label": "Активні фільтри",
+      "clearAll": "Очистити все",
+      "remove": "Прибрати фільтр {label}",
+      "search": "Пошук: {query}",
+      "status": "Статус: {label}",
+      "reading": "Стан: {label}",
+      "progressFrom": "Прогрес від {min}%",
+      "progressTo": "Прогрес до {max}%",
+      "progressRange": "Прогрес {min}–{max}%",
+      "booksFrom": "Книг від {min}",
+      "booksTo": "Книг до {max}",
+      "booksRange": "Книг {min}–{max}",
+      "completeness": "Додано: {label}",
+      "genre": "Жанр: {name}",
+      "author": "Автор: {name}",
+      "attention": "Увага: {label}"
     },
     "toolbar": {
       "searchLabel": "Пошук серій",
@@ -2428,26 +2451,67 @@
       "readingLabel": "Стан читання",
       "sortLabel": "Сортування"
     },
+    "view": {
+      "label": "Вигляд",
+      "grid": "Сітка",
+      "list": "Список"
+    },
     "statusFilter": {
-      "all": "Усі статуси",
+      "all": "Усі статуси виходу",
       "completed": "Завершена",
       "ongoing": "Ще виходить",
       "unknown": "Невідомо"
     },
     "readingFilter": {
-      "all": "Будь-який стан",
-      "not_started": "Не почато",
-      "in_progress": "У процесі",
-      "completed": "Прочитано повністю",
-      "empty": "Без книг"
+      "all": "Усі стани читання",
+      "not_started": "Не розпочато",
+      "in_progress": "У процесі читання",
+      "completed": "Серію прочитано",
+      "empty": "Немає доданих книг"
     },
     "sort": {
-      "name_asc": "Назва А–Я",
-      "name_desc": "Назва Я–А",
-      "progress_desc": "Найбільший прогрес",
-      "progress_asc": "Найменший прогрес",
-      "books_desc": "Найбільше книг",
-      "activity_desc": "Нещодавно оновлені"
+      "name_asc": "За назвою: А–Я",
+      "name_desc": "За назвою: Я–А",
+      "progress_desc": "Прогрес читання: від більшого",
+      "progress_asc": "Прогрес читання: від меншого",
+      "books_desc": "Книг у серії: від більшої кількості",
+      "activity_desc": "За датою оновлення: спочатку нові"
+    },
+    "filters": {
+      "trigger": "Фільтри",
+      "title": "Розширені фільтри",
+      "description": "Звузьте список серій за прогресом, жанром, автором і доданими книгами.",
+      "apply": "Застосувати",
+      "clear": "Очистити",
+      "sections": {
+        "progress": "Прогрес читання",
+        "booksCount": "Додано книг у серії",
+        "completeness": "Скільки книг додано",
+        "genre": "Жанр",
+        "author": "Автор"
+      },
+      "completeness": {
+        "complete": "Усі книги додано",
+        "incomplete": "Додано не всі",
+        "no_plan": "Кількість книг невідома"
+      },
+      "completenessHint": "Скільки книг серії вже додано на платформу — незалежно від наявності та прочитання.",
+      "progressAny": "Будь-який",
+      "progressRange": "{min}%–{max}%",
+      "range": {
+        "min": "Від",
+        "max": "До",
+        "booksMin": "Книг від",
+        "booksMax": "Книг до",
+        "invalid": "Мінімум не може перевищувати максимум"
+      },
+      "genrePlaceholder": "Оберіть жанри",
+      "authorPlaceholder": "Оберіть авторів",
+      "searchPlaceholder": "Пошук…",
+      "empty": "Немає доступних варіантів",
+      "authorEmpty": "Авторів не знайдено",
+      "authorSearching": "Шукаємо авторів…",
+      "removeAuthor": "Прибрати автора {name}"
     },
     "status": {
       "completed": "Завершена",
@@ -2458,32 +2522,52 @@
       "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
       "progressWithTotal": "Прочитано {finished} з {total}",
       "progressAdded": "Прочитано {finished} з {count} доданих",
-      "allRead": "Усі книги прочитані",
       "noBooks": "Книги ще не додані",
-      "next": "Наступна: {title}",
-      "nextWithPart": "Наступна: {title} · Книга {number}",
-      "nextAllRead": "Усю серію прочитано",
+      "startWith": "Почати з: {title}",
+      "startWithPart": "Почати з: {title} · Книга {number}",
+      "continueReading": "Далі читати: {title}",
+      "continueWithPart": "Далі читати: {title} · Книга {number}",
+      "readBadge": "Серію прочитано",
       "view": "Переглянути серію",
       "addBook": "Додати книгу",
       "coverAlt": "Обкладинка серії {name}",
+      "coverBadge": "{added} з {total} додано",
       "authorsUnknown": "Автор невідомий"
     },
+    "attention": {
+      "title": "Потребують уваги",
+      "allClear": "Усі серії впорядковані",
+      "viewAll": "Переглянути всі проблеми",
+      "empty": "{count, plural, one {# серія без доданих книг} few {# серії без доданих книг} many {# серій без доданих книг} other {# серій без доданих книг}}",
+      "unknown_status": "{count, plural, one {# серія з невідомим статусом виходу} few {# серії з невідомим статусом виходу} many {# серій із невідомим статусом виходу} other {# серій із невідомим статусом виходу}}",
+      "incomplete_set": "{count, plural, one {# завершена серія зібрана не повністю} few {# завершені серії зібрані не повністю} many {# завершених серій зібрано не повністю} other {# завершених серій зібрано не повністю}}",
+      "incomplete_data": "{count, plural, one {# серія з неповними даними} few {# серії з неповними даними} many {# серій із неповними даними} other {# серій із неповними даними}}",
+      "missing_parts": "{count, plural, one {# серія з пропуском у порядку книг} few {# серії з пропусками в порядку книг} many {# серій із пропусками в порядку книг} other {# серій із пропусками в порядку книг}}",
+      "next_unavailable": "{count, plural, one {# серія, де наступної книги немає в наявності} few {# серії, де наступної книги немає в наявності} many {# серій, де наступної книги немає в наявності} other {# серій, де наступної книги немає в наявності}}",
+      "chip": {
+        "any": "Потребують уваги",
+        "empty": "Без доданих книг",
+        "unknown_status": "Невідомий статус виходу",
+        "incomplete_set": "Неповний комплект",
+        "incomplete_data": "Неповні дані",
+        "missing_parts": "Пропуски в порядку",
+        "next_unavailable": "Наступної немає в наявності"
+      }
+    },
     "sidebar": {
-      "quickActions": "Швидкі дії",
-      "createSeries": "Створити серію",
-      "addBook": "Додати книгу",
-      "goToUnfinished": "Перейти до недочитаних",
-      "continueTitle": "Продовжити серію",
+      "label": "Огляд серій",
+      "continueTitle": "Продовжити читання",
       "continueEmpty": "Немає недочитаних серій",
       "progress": "{finished} з {total} · {percent}%",
-      "next": "Наступна: {title}",
-      "openSeries": "Відкрити серію",
-      "closestTitle": "Найближчі до завершення",
+      "progressReading": "{finished} з {total} прочитано · {left, plural, one {залишилася # книга} few {залишилося # книги} many {залишилося # книг} other {залишилося # книг}}",
+      "nextBookHeading": "Наступна книга",
+      "nextBookPart": "Книга {number} у серії",
+      "nextCoverAlt": "Обкладинка книги {title}",
+      "nextShort": "Далі: {title}",
+      "closestTitle": "Серії, які майже прочитані",
+      "closestSubtitle": "Залишилося лише 1–2 книги",
       "closestEmpty": "Поки що немає прогресу",
-      "statusTitle": "Статус циклів",
-      "statusCompleted": "Завершені автором",
-      "statusOngoing": "Ще виходять",
-      "statusUnknown": "Невідомо"
+      "progressBarLabel": "Прогрес серії {name}: {percent}%"
     },
     "dialog": {
       "title": "Нова серія",

@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, fn, waitFor } from "storybook/test";
 
-import { SERIES_SORT_DEFAULT } from "../model/series-derive";
+import { EMPTY_SERIES_ADVANCED_FILTERS, SERIES_SORT_DEFAULT } from "../model/series-derive";
 import { makeSeriesOverview, makeSeriesView } from "../model/series.fixtures";
 import { AllSeriesView } from "./all-series-view";
 import { SeriesSidebar } from "./series-sidebar";
@@ -36,7 +36,7 @@ const series: SeriesView[] = [
     finishedInSeries: 0,
     id: "s4",
     name: "Хроніки вбивці короля",
-    nextBook: { id: "kk-1", partNumber: 1, title: "Імʼя вітру" },
+    nextBook: { cover: null, id: "kk-1", partNumber: 1, title: "Імʼя вітру" },
     totalBooks: 3,
   }),
 ];
@@ -50,24 +50,50 @@ const summaryCards: SeriesSummaryCard[] = [
 
 const toolbar = (
   <SeriesToolbar
+    advancedFilters={EMPTY_SERIES_ADVANCED_FILTERS}
+    onAdvancedApply={fn()}
     onReadingChange={fn()}
+    onRememberAuthor={fn()}
     onSearchChange={fn()}
     onSearchClear={fn()}
     onSortChange={fn()}
     onStatusChange={fn()}
+    onViewChange={fn()}
     readingFilter="all"
+    resolveAuthorName={() => undefined}
     search=""
     sort={SERIES_SORT_DEFAULT}
     statusFilter="all"
+    view="grid"
   />
 );
 
+const almostReadSeries: SeriesView[] = [
+  makeSeriesView({
+    finishedInSeries: 4,
+    id: "almost-1",
+    name: "Темна вежа",
+    nextBook: { cover: null, id: "dt-5", partNumber: 5, title: "Вовки Кальї" },
+    totalBooks: 5,
+  }),
+];
+
 const sidebar = (
   <SeriesSidebar
+    activeAttention={null}
+    almostReadSeries={almostReadSeries}
+    attentionCounts={{
+      empty: 1,
+      incomplete_data: 2,
+      incomplete_set: 1,
+      missing_parts: 1,
+      next_unavailable: 1,
+      unknown_status: 1,
+    }}
+    attentionLoading={false}
     isError={false}
     isLoading={false}
-    onCreateSeries={fn()}
-    onGoToUnfinished={fn()}
+    onAttentionSelect={fn()}
     onRetry={fn()}
     overview={makeSeriesOverview()}
   />
@@ -75,6 +101,8 @@ const sidebar = (
 
 const meta = {
   args: {
+    activeFilters: null,
+    counterLabel: "Показано 4 із 8 серій",
     hasActiveQuery: false,
     hasAnySeries: true,
     isError: false,
@@ -94,6 +122,7 @@ const meta = {
     tab: "all",
     toolbar,
     unfinishedCount: 5,
+    view: "grid",
   },
   component: AllSeriesView,
   parameters: { layout: "fullscreen", nextjs: { appDirectory: true } },
@@ -110,6 +139,15 @@ export const Populated: Story = {
     await waitFor(() => expect(canvas.getByRole("heading", { name: "Серії" })).toBeVisible());
     await expect(canvas.getByText("Володар перснів")).toBeVisible();
     await expect(canvas.getByText("Усього серій")).toBeVisible();
+  },
+};
+
+export const ListView: Story = {
+  args: { view: "list" },
+  play: async ({ canvas }) => {
+    await waitFor(() => expect(canvas.getByText("Пісня льоду й полум'я")).toBeVisible());
+    await expect(canvas.getByText("Володар перснів")).toBeVisible();
+    await expect(canvas.getAllByRole("progressbar").length).toBeGreaterThan(0);
   },
 };
 
