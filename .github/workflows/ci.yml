@@ -60,15 +60,125 @@ jobs:
       - name: Dead code check (knip)
         run: pnpm knip
 
-  full:
-    name: Lint, typecheck, test, build
-    needs: [static]
+  test-api:
+    name: API tests (shard ${{ matrix.shard }}/4)
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-      (github.base_ref == 'stage' || github.base_ref == 'prod'))
+      github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: booknest
+          POSTGRES_PASSWORD: booknest_ci
+          POSTGRES_DB: booknest_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://booknest:booknest_ci@localhost:5432/booknest_test
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-access-secret-0000000000000000000000000
+      JWT_REFRESH_SECRET: ci-refresh-secret-000000000000000000000000
+      NEXT_PUBLIC_SITE_URL: https://book-nest.net
+      R2_ACCESS_KEY_ID: ci-r2-access-key
+      R2_SECRET_ACCESS_KEY: ci-r2-secret-key
+      R2_ENDPOINT: https://ci-r2.book-nest.net
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        run: pnpm --filter @app/api db:migrate:deploy
+
+      - name: Test shard
+        run: pnpm --filter @app/api exec vitest run --shard=${{ matrix.shard }}/4
+
+  test-web:
+    name: Web tests
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NEXT_PUBLIC_SITE_URL: https://book-nest.net
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore turbo cache
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: turbo-web-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-web-${{ runner.os }}-
+
+      - name: Test
+        run: pnpm turbo run test --filter=@app/web
+
+  build:
+    name: Build & API smoke
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -137,9 +247,6 @@ jobs:
       - name: Apply migrations
         run: pnpm --filter @app/api db:migrate:deploy
 
-      - name: Test
-        run: pnpm test
-
       - name: Smoke test API prod build
         working-directory: apps/api
         env:
@@ -153,3 +260,26 @@ jobs:
             sleep 1
           done
           exit 1
+
+  gate:
+    name: CI gate
+    needs: [static, test-api, test-web, build]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Require every gate to pass
+        env:
+          RESULTS: ${{ needs.static.result }} ${{ needs.test-api.result }} ${{ needs.test-web.result }} ${{ needs.build.result }}
+        run: |
+          echo "static=${{ needs.static.result }}"
+          echo "test-api=${{ needs.test-api.result }}"
+          echo "test-web=${{ needs.test-web.result }}"
+          echo "build=${{ needs.build.result }}"
+          for result in $RESULTS; do
+            case "$result" in
+              success|skipped) ;;
+              *) echo "::error::a required gate reported '$result'"; exit 1 ;;
+            esac
+          done
