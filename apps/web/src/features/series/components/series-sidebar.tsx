@@ -135,25 +135,28 @@ function AlmostReadRow({ series }: { series: SeriesView }) {
         </span>
       </div>
       {nextBook === null ? null : (
-        <Link
-          className="group/next flex cursor-pointer items-center justify-between gap-2 rounded-md text-primary no-underline transition-colors outline-none hover:text-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50"
-          href={`/books/${nextBook.id}`}
-        >
-          <span className="truncate text-xs group-hover/next:underline">
-            {t("nextShort", { title: nextBook.title })}
-          </span>
-          <UiIcon
-            aria-hidden
-            className="shrink-0 transition-transform group-hover/next:translate-x-0.5 group-focus-visible/next:translate-x-0.5"
-            name="arrow-right"
-            size={14}
-          />
-        </Link>
-      )}
-      {ownershipStatus === null || ownershipEntry === undefined ? null : (
-        <StatusBadge
-          entry={{ ...ownershipEntry, label: tOwnership(`options.${ownershipStatus}`) }}
-        />
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            className="group/next flex min-w-0 cursor-pointer items-center gap-1 rounded-md text-primary no-underline transition-colors outline-none hover:text-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50"
+            href={`/books/${nextBook.id}`}
+          >
+            <span className="min-w-0 truncate text-xs group-hover/next:underline">
+              {t("nextShort", { title: nextBook.title })}
+            </span>
+            <UiIcon
+              aria-hidden
+              className="shrink-0 transition-transform group-hover/next:translate-x-0.5 group-focus-visible/next:translate-x-0.5"
+              name="arrow-right"
+              size={14}
+            />
+          </Link>
+          {ownershipStatus === null || ownershipEntry === undefined ? null : (
+            <StatusBadge
+              className="h-5 shrink-0 gap-1 px-1.5 text-[0.6875rem] [&>svg]:size-3"
+              entry={{ ...ownershipEntry, label: tOwnership(`options.${ownershipStatus}`) }}
+            />
+          )}
+        </div>
       )}
     </li>
   );
