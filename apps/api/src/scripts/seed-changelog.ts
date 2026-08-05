@@ -461,6 +461,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Присвяти, оновлено",
     version: null,
   },
+  {
+    bodyEn:
+      "Your lists now open with summary cards: how many lists you keep, how many distinct books they hold, the average and largest list, and how many books sit in more than one list. The sidebar points out the lists that need attention, and sort labels now read the same way across lists and series.",
+    bodyUk:
+      "Списки тепер відкриваються картками підсумків: скільки у вас списків, скільки різних книг вони містять, середній і найбільший список, а також скільки книг потрапило одразу в кілька списків. Бічна панель підкаже списки, які потребують уваги, а підписи сортування тепер однакові для списків і серій.",
+    category: "improvement",
+    publishedAt: "2026-08-05T00:00:02.000Z",
+    slug: "lists-summary-overview",
+    titleEn: "Lists at a glance",
+    titleUk: "Списки з першого погляду",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
