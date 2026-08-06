@@ -92,7 +92,7 @@ type BooksLibraryViewProps = {
 };
 
 type CardRenderProps = {
-  renderActions: (book: LibraryBook) => ReactNode;
+  renderActions: (book: LibraryBook, compact?: boolean) => ReactNode;
   selectBookLabel: (title: string) => string;
 };
 
@@ -149,8 +149,8 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectionMode, exitSelection]);
 
-  const renderActions = (book: LibraryBook) => (
-    <BookCardActions actions={actions} book={book} onOpenDialog={setPending} />
+  const renderActions = (book: LibraryBook, compact?: boolean) => (
+    <BookCardActions actions={actions} book={book} compact={compact} onOpenDialog={setPending} />
   );
   const selectBookLabel = (title: string) => t("bulk.selectBook", { title });
 
@@ -441,7 +441,7 @@ function LibraryGridCard({
           formats={book.formats}
           genres={book.genres}
           href={book.href}
-          kebab={renderActions(book)}
+          kebab={renderActions(book, true)}
           linkComponent={linkComponent}
           mobileCompact
           onCoverActivate={

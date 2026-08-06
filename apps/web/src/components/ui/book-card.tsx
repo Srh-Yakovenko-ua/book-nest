@@ -68,11 +68,25 @@ const TAGS_VISIBLE = 2;
 const TOOLTIP_DELAY_MS = 400;
 
 const MOBILE_COMPACT = {
+  ageBadge: "max-sm:h-6 max-sm:px-1 max-sm:text-[0.625rem]",
+  actions: "max-sm:top-2 max-sm:right-2",
   author: "max-sm:text-xs",
+  body: "max-sm:px-2",
+  capsule: "max-sm:gap-1 max-sm:px-1.5 max-sm:py-1",
+  capsuleIcon: "max-sm:size-3.5",
+  capsuleLeft: "max-sm:bottom-2 max-sm:left-2",
+  capsuleRight: "max-sm:right-2 max-sm:bottom-2",
   chips: "max-sm:hidden",
   meta: "max-sm:text-[0.625rem]",
   metaIcon: "max-sm:size-3",
-  statusBadge: "max-sm:top-12 max-sm:w-[calc(100%-1.5rem)]",
+  ratingBlock: "mt-auto self-end text-[0.625rem] sm:hidden [&_svg]:size-3",
+  ratingInline: "max-sm:hidden",
+  seriesIcon: "max-sm:mt-0.5",
+  seriesRow: "max-sm:items-start",
+  seriesText: "max-sm:overflow-visible max-sm:whitespace-normal",
+  statusBadge: "max-sm:size-6 max-sm:justify-center max-sm:gap-0 max-sm:px-0",
+  statusGroup: "max-sm:top-2 max-sm:left-2 max-sm:gap-1",
+  statusLabel: "max-sm:hidden",
   title: "max-sm:text-sm",
 } as const;
 
@@ -131,38 +145,55 @@ function BookCard({
 
         <div
           className={cn(
-            "absolute top-3 left-3 z-10 flex flex-wrap items-center gap-1.5",
-            compact?.statusBadge,
+            "absolute top-3 left-3 z-10 flex items-center gap-1.5",
+            compact?.statusGroup,
           )}
         >
-          <CoverStatusBadge progress={progress} status={status} />
+          <CoverStatusBadge
+            className={compact?.statusBadge}
+            labelClassName={compact?.statusLabel}
+            progress={progress}
+            status={status}
+          />
           {ageBadge === undefined ? null : (
-            <span className={statusBadgeVariants({ tone: "danger" })}>{ageBadge}</span>
+            <span className={cn(statusBadgeVariants({ tone: "danger" }), compact?.ageBadge)}>
+              {ageBadge}
+            </span>
           )}
         </div>
 
-        {kebab === undefined ? null : <div className="absolute top-3 right-3 z-10">{kebab}</div>}
+        {kebab === undefined ? null : (
+          <div className={cn("absolute top-3 right-3 z-10", compact?.actions)}>{kebab}</div>
+        )}
 
         {formats === undefined || formats.length === 0 ? null : (
-          <div className="absolute bottom-3 left-3 z-10">
-            <CoverInfo label={formats.map((format) => format.label).join(", ")}>
+          <div className={cn("absolute bottom-3 left-3 z-10", compact?.capsuleLeft)}>
+            <CoverInfo
+              className={compact?.capsule}
+              label={formats.map((format) => format.label).join(", ")}
+            >
               {formats.map((format) => (
-                <UiIcon key={format.value} name={format.icon} size={16} />
+                <UiIcon
+                  className={compact?.capsuleIcon}
+                  key={format.value}
+                  name={format.icon}
+                  size={16}
+                />
               ))}
             </CoverInfo>
           </div>
         )}
 
         {ownership === undefined ? null : (
-          <div className="absolute right-3 bottom-3 z-10">
-            <CoverInfo label={ownershipTooltip ?? ownership.label}>
-              <UiIcon name={ownership.icon} size={16} />
+          <div className={cn("absolute right-3 bottom-3 z-10", compact?.capsuleRight)}>
+            <CoverInfo className={compact?.capsule} label={ownershipTooltip ?? ownership.label}>
+              <UiIcon className={compact?.capsuleIcon} name={ownership.icon} size={16} />
             </CoverInfo>
           </div>
         )}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-4">
+      <div className={cn("flex min-w-0 flex-1 flex-col gap-1.5 p-4", compact?.body)}>
         <h3
           className={cn(
             "line-clamp-2 font-heading text-[1.0625rem] leading-tight font-bold text-ink",
@@ -191,7 +222,11 @@ function BookCard({
             {authors.join(", ")}
           </p>
           {rating === undefined ? null : (
-            <RatingScore className="shrink-0" label={ratingLabel} value={rating} />
+            <RatingScore
+              className={cn("shrink-0", compact?.ratingInline)}
+              label={ratingLabel}
+              value={rating}
+            />
           )}
         </div>
 
@@ -202,15 +237,16 @@ function BookCard({
             className={cn(
               "relative z-10 flex min-w-0 items-center gap-1.5 text-[0.8125rem] text-muted-foreground no-underline transition-colors hover:text-primary",
               compact?.meta,
+              compact?.seriesRow,
             )}
             href={series.href}
           >
             <UiIcon
-              className={cn("shrink-0 text-icon", compact?.metaIcon)}
+              className={cn("shrink-0 text-icon", compact?.metaIcon, compact?.seriesIcon)}
               name="layers"
               size={15}
             />
-            <span className="min-w-0 truncate">
+            <span className={cn("min-w-0 truncate", compact?.seriesText)}>
               {series.name}
               {series.positionLabel === undefined ? null : (
                 <span className="text-muted-foreground"> · {series.positionLabel}</span>
@@ -233,6 +269,10 @@ function BookCard({
             />
             <span className="min-w-0 truncate">{publisher}</span>
           </p>
+        )}
+
+        {compact === null || rating === undefined ? null : (
+          <RatingScore className={compact.ratingBlock} label={ratingLabel} value={rating} />
         )}
 
         <div className={cn("mt-auto flex flex-col gap-2.5 pt-1", compact?.chips)}>
@@ -273,12 +313,23 @@ function BookCard({
   );
 }
 
-function CoverInfo({ children, label }: { children: React.ReactNode; label: string }) {
+function CoverInfo({
+  children,
+  className,
+  label,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  label: string;
+}) {
   return (
     <Tooltip delayDuration={TOOLTIP_DELAY_MS}>
       <TooltipTrigger
         aria-label={label}
-        className="inline-flex cursor-default items-center gap-1.5 rounded-lg border border-[color:var(--book-overlay-capsule-border)] bg-[var(--book-overlay-capsule-surface)] px-2 py-1.5 text-[color:var(--book-overlay-capsule-foreground)] shadow-sm backdrop-blur-[6px] focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:outline-none"
+        className={cn(
+          "inline-flex cursor-default items-center gap-1.5 rounded-lg border border-[color:var(--book-overlay-capsule-border)] bg-[var(--book-overlay-capsule-surface)] px-2 py-1.5 text-[color:var(--book-overlay-capsule-foreground)] shadow-sm backdrop-blur-[6px] focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:outline-none",
+          className,
+        )}
       >
         {children}
       </TooltipTrigger>
@@ -288,13 +339,24 @@ function CoverInfo({ children, label }: { children: React.ReactNode; label: stri
 }
 
 function CoverStatusBadge({
+  className,
+  labelClassName,
   progress,
   status,
 }: {
+  className?: string;
+  labelClassName?: string;
   progress?: { current: number; total: number; unit?: string };
   status: StatusEntry;
 }) {
-  const badge = <StatusBadge className="max-w-full" entry={status} />;
+  const badge = (
+    <StatusBadge
+      aria-label={status.label}
+      className={cn("max-w-full", className)}
+      entry={status}
+      labelClassName={labelClassName}
+    />
+  );
 
   if (progress === undefined || progress.total <= 0) {
     return (
