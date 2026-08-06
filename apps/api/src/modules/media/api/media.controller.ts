@@ -16,6 +16,7 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import {
   ApiBody,
+  ApiConflictResponse,
   ApiConsumes,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -51,6 +52,7 @@ type UploadedImage = {
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
+  @ApiConflictResponse({ description: "The media asset is still used by a book or a character" })
   @ApiNoContentResponse({ description: "The media asset was deleted" })
   @ApiNotFoundResponse({ description: "Media not found" })
   @ApiOperation({ summary: "Delete a media asset of the current user" })

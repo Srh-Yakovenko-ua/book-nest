@@ -545,10 +545,6 @@ export class BooksRepository {
     });
   }
 
-  countByCoverMediaId(coverMediaId: string): Promise<number> {
-    return this.prisma.book.count({ where: { coverMediaId } });
-  }
-
   countByReadingStatuses({
     isFavorite,
     ownershipStatuses,

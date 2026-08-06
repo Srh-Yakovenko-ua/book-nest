@@ -18,8 +18,9 @@ import type { GenerateThumbJob } from "../domain/media-queue.js";
 import type { StoredObject } from "../domain/storage.port.js";
 import type { MediaOwnerRef } from "../infrastructure/media.repository.js";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
+import { isForeignKeyConstraintError } from "../../../core/prisma-errors.js";
 import { RealtimePort } from "../../realtime/index.js";
 import { detectImageMimeType, isAllowedImageMimeType } from "../domain/allowed-image.js";
 import { buildDerivativeRecord } from "../domain/derivatives.js";
@@ -114,7 +115,12 @@ export class MediaService {
     if (asset === null) {
       throw new NotFoundError("Media not found");
     }
-    await this.removeAsset(asset);
+    const removed = await this.removeAssetIfUnreferenced(asset);
+    if (!removed) {
+      throw new ConflictError("Media is still in use", {
+        code: MEDIA_ERROR_CODES.stillReferenced,
+      });
+    }
   }
 
   async deleteIfUnreferenced({ id, userId }: MediaOwnerRef): Promise<void> {
@@ -122,11 +128,7 @@ export class MediaService {
     if (asset === null) {
       return;
     }
-    const references = await this.mediaRepository.countReferences(id);
-    if (references > 0) {
-      return;
-    }
-    await this.removeAsset(asset);
+    await this.removeAssetIfUnreferenced(asset);
   }
 
   async generateThumbnail({ assetId, userId }: GenerateThumbJob): Promise<void> {
@@ -269,13 +271,21 @@ export class MediaService {
     });
   }
 
-  private async removeAsset(asset: MediaAssetModel): Promise<void> {
-    await this.mediaRepository.deleteOwned({ id: asset.id, userId: asset.userId });
+  private async removeAssetIfUnreferenced(asset: MediaAssetModel): Promise<boolean> {
+    try {
+      await this.mediaRepository.deleteOwned({ id: asset.id, userId: asset.userId });
+    } catch (error) {
+      if (isForeignKeyConstraintError(error)) {
+        return false;
+      }
+      throw error;
+    }
     const keys =
       asset.thumbGeneratedAt === null
         ? [asset.storageKey]
         : [asset.storageKey, thumbKey(asset.storageKey)];
     await this.removeObjects(keys);
+    return true;
   }
 
   private async removeObjects(keys: string[]): Promise<void> {

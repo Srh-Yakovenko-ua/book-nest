@@ -16,17 +16,6 @@ export type MediaOwnerRef = {
 export class MediaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async countReferences(id: string): Promise<number> {
-    const [bookCovers, characterAvatars, bookCharacterPortraits, characterFormPortraits] =
-      await Promise.all([
-        this.prisma.book.count({ where: { coverMediaId: id } }),
-        this.prisma.character.count({ where: { avatarMediaId: id } }),
-        this.prisma.bookCharacter.count({ where: { portraitMediaId: id } }),
-        this.prisma.characterForm.count({ where: { portraitMediaId: id } }),
-      ]);
-    return bookCovers + characterAvatars + bookCharacterPortraits + characterFormPortraits;
-  }
-
   create(data: Prisma.MediaAssetUncheckedCreateInput): Promise<MediaAssetModel> {
     return this.prisma.mediaAsset.create({ data });
   }
@@ -36,10 +25,21 @@ export class MediaRepository {
     return result.count;
   }
 
-  findIdsWithoutThumbnail(): Promise<{ id: string; userId: string }[]> {
+  findIdsWithoutThumbnail({
+    afterId,
+    take,
+  }: {
+    afterId: Nullable<string>;
+    take: number;
+  }): Promise<{ id: string; userId: string }[]> {
     return this.prisma.mediaAsset.findMany({
+      orderBy: { id: "asc" },
       select: { id: true, userId: true },
-      where: { thumbGeneratedAt: null },
+      take,
+      where: {
+        thumbGeneratedAt: null,
+        ...(afterId === null ? {} : { id: { gt: afterId } }),
+      },
     });
   }
 
