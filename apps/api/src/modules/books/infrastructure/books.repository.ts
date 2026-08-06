@@ -34,7 +34,7 @@ import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
 
 const log = createLogger("books.repository");
 
-const ACTIVE_BOOK_SQL = Prisma.sql`AND book.deleted_at IS NULL`;
+export const ACTIVE_BOOK_SQL = Prisma.sql`AND book.deleted_at IS NULL`;
 
 const CLEARED_QUEUE_PLACEMENT = {
   queuePosition: null,
@@ -47,39 +47,11 @@ const CLEARED_QUEUE_PLACEMENT = {
 const WISHLIST_MAX_BOOKS = 1000;
 const READING_STATUS_FINISHED = "finished";
 
-const CountRowSchema = z.object({ count: z.number() });
-
 const GenreKeyRowSchema = z.object({ key: z.string() });
 
-const GenreCountRowSchema = z.object({ count: z.bigint(), key: z.string() });
+export const GenreCountRowSchema = z.object({ count: z.bigint(), key: z.string() });
 
 const AuthorCountRowSchema = z.object({ count: z.bigint(), name: z.string() });
-
-const FavoriteGenreCountRowSchema = z.object({ count: z.bigint(), genre: z.string() });
-
-const FavoriteTagCountRowSchema = z.object({ count: z.bigint(), tag: z.string() });
-
-const StoreNameRowSchema = z.object({ storeName: z.string() });
-
-const FavoritesSummaryCountsRowSchema = z.object({
-  finished: z.number(),
-  reading: z.number(),
-  series: z.number(),
-  solo: z.number(),
-  total: z.number(),
-  unrated: z.number(),
-  wantToRead: z.number(),
-});
-
-const EMPTY_FAVORITES_COUNTS: z.infer<typeof FavoritesSummaryCountsRowSchema> = {
-  finished: 0,
-  reading: 0,
-  series: 0,
-  solo: 0,
-  total: 0,
-  unrated: 0,
-  wantToRead: 0,
-};
 
 const DedicationsSummaryCountsRowSchema = z.object({
   favoriteCount: z.number(),
@@ -172,13 +144,6 @@ const readingSnapshotSelect = {
   },
   readingStatus: true,
 } satisfies Prisma.BookSelect;
-
-export type ActiveReadingRow = {
-  currentPage: Nullable<number>;
-  id: string;
-  pagesCount: Nullable<number>;
-  title: string;
-};
 
 export type BlockUpsert<TCreate, TUpdate> =
   { create: TCreate; update: TUpdate } | { delete: true } | { skip: true };
@@ -391,33 +356,6 @@ type DedicationsSummaryResult = {
   unfinishedCount: number;
 };
 
-type FavoritesSummaryQuery = {
-  finishedStatuses: ReadingStatus[];
-  readingStatuses: ReadingStatus[];
-  userId: string;
-  wantToReadStatuses: ReadingStatus[];
-};
-
-type FavoritesSummaryResult = {
-  averageRating: Nullable<number>;
-  finished: number;
-  reading: number;
-  series: number;
-  solo: number;
-  topGenres: { count: number; genre: string }[];
-  topTags: { count: number; tag: string }[];
-  total: number;
-  unrated: number;
-  wantToRead: number;
-};
-
-type ListForLibraryInput = {
-  filter: LibraryFilter;
-  skip: number;
-  sort: LibrarySort;
-  take: number;
-};
-
 type SeriesPartNumberConflict = {
   id: string;
   title: string;
@@ -545,99 +483,8 @@ export class BooksRepository {
     });
   }
 
-  countByReadingStatuses({
-    isFavorite,
-    ownershipStatuses,
-    statuses,
-    userId,
-  }: {
-    isFavorite?: boolean;
-    ownershipStatuses?: OwnershipStatus[];
-    statuses: ReadingStatus[];
-    userId: string;
-  }): Promise<number> {
-    return this.prisma.book.count({
-      where: buildLibraryWhere({
-        isFavorite,
-        ownershipStatuses,
-        readingStatuses: statuses,
-        userId,
-      }),
-    });
-  }
-
-  countByUser({
-    ownershipStatuses,
-    userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<number> {
-    return this.prisma.book.count({ where: buildLibraryWhere({ ownershipStatuses, userId }) });
-  }
-
   countDedicationsForQuery({ filter }: { filter: DedicationsFilter }): Promise<number> {
     return this.prisma.book.count({ where: buildDedicationsWhere(filter) });
-  }
-
-  async countDistinctAuthors({
-    ownershipStatuses,
-    userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<number> {
-    const ownershipFilter =
-      ownershipStatuses === undefined
-        ? Prisma.empty
-        : Prisma.sql`AND book.ownership_status IN (${Prisma.join(ownershipStatuses)})`;
-    const rows = await this.prisma.$queryRaw(Prisma.sql`
-      SELECT (count(DISTINCT book_author.author_id))::int AS "count"
-      FROM book_authors book_author
-      JOIN books book ON book.id = book_author.book_id
-      WHERE book.user_id = ${userId}::uuid
-          ${ACTIVE_BOOK_SQL}
-        ${ownershipFilter}
-    `);
-    return z.array(CountRowSchema).parse(rows)[0]?.count ?? 0;
-  }
-
-  async countDistinctSeries({
-    ownershipStatuses,
-    userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<number> {
-    const ownershipFilter =
-      ownershipStatuses === undefined
-        ? Prisma.empty
-        : Prisma.sql`AND book.ownership_status IN (${Prisma.join(ownershipStatuses)})`;
-    const rows = await this.prisma.$queryRaw(Prisma.sql`
-      SELECT (count(DISTINCT book.series_id))::int AS "count"
-      FROM books book
-      WHERE book.user_id = ${userId}::uuid
-          ${ACTIVE_BOOK_SQL}
-        AND book.series_id IS NOT NULL
-        ${ownershipFilter}
-    `);
-    return z.array(CountRowSchema).parse(rows)[0]?.count ?? 0;
-  }
-
-  countFavorites({
-    ownershipStatuses,
-    userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<number> {
-    return this.prisma.book.count({
-      where: buildLibraryWhere({ isFavorite: true, ownershipStatuses, userId }),
-    });
-  }
-
-  countForLibrary({ filter }: { filter: LibraryFilter }): Promise<number> {
-    return this.prisma.book.count({ where: buildLibraryWhere(filter) });
   }
 
   countTrashed({ userId }: { userId: string }): Promise<number> {
@@ -792,82 +639,6 @@ export class BooksRepository {
     return book !== null;
   }
 
-  async favoritesSummary({
-    finishedStatuses,
-    readingStatuses,
-    userId,
-    wantToReadStatuses,
-  }: FavoritesSummaryQuery): Promise<FavoritesSummaryResult> {
-    const [countsRows, ratingAggregate, topGenreRows, topTagRows] = await Promise.all([
-      this.prisma.$queryRaw(Prisma.sql`
-        SELECT
-          (count(*))::int AS "total",
-          (count(*) FILTER (WHERE book.reading_status IN (${Prisma.join(readingStatuses)})))::int AS "reading",
-          (count(*) FILTER (WHERE book.reading_status IN (${Prisma.join(finishedStatuses)})))::int AS "finished",
-          (count(*) FILTER (WHERE book.reading_status IN (${Prisma.join(wantToReadStatuses)})))::int AS "wantToRead",
-          (count(*) FILTER (WHERE book.series_id IS NOT NULL))::int AS "series",
-          (count(*) FILTER (WHERE book.series_id IS NULL))::int AS "solo",
-          (count(*) FILTER (
-            WHERE book.reading_status IN (${Prisma.join(finishedStatuses)})
-              AND progress.rating IS NULL
-          ))::int AS "unrated"
-        FROM books book
-        LEFT JOIN book_reading_progress progress ON progress.book_id = book.id
-        WHERE book.user_id = ${userId}::uuid
-          ${ACTIVE_BOOK_SQL}
-          AND book.is_favorite = true
-      `),
-      this.prisma.bookReadingProgress.aggregate({
-        _avg: { rating: true },
-        where: {
-          book: { ...SOFT_DELETE_SCOPE.active, isFavorite: true, userId },
-          rating: { not: null },
-        },
-      }),
-      this.prisma.$queryRaw`
-        SELECT g AS genre, count(*) AS count
-        FROM books book, unnest(book.genres) AS g
-        WHERE book.user_id = ${userId}::uuid
-          ${ACTIVE_BOOK_SQL}
-          AND book.is_favorite = true
-        GROUP BY g
-        ORDER BY count DESC, genre ASC
-        LIMIT ${FAVORITE_TOP_LIMIT}
-      `,
-      this.prisma.$queryRaw`
-        SELECT tag.name AS tag, count(*) AS count
-        FROM book_tags book_tag
-        JOIN tags tag ON tag.id = book_tag.tag_id
-        JOIN books book ON book.id = book_tag.book_id
-        WHERE book.user_id = ${userId}::uuid
-          ${ACTIVE_BOOK_SQL}
-          AND tag.user_id = ${userId}::uuid
-          AND book.is_favorite = true
-        GROUP BY tag.name
-        ORDER BY count DESC, tag ASC
-        LIMIT ${FAVORITE_TOP_LIMIT}
-      `,
-    ]);
-
-    const counts =
-      z.array(FavoritesSummaryCountsRowSchema).parse(countsRows)[0] ?? EMPTY_FAVORITES_COUNTS;
-    const topGenres = z.array(FavoriteGenreCountRowSchema).parse(topGenreRows);
-    const topTags = z.array(FavoriteTagCountRowSchema).parse(topTagRows);
-
-    return {
-      averageRating: ratingAggregate._avg.rating,
-      finished: counts.finished,
-      reading: counts.reading,
-      series: counts.series,
-      solo: counts.solo,
-      topGenres: topGenres.map((row) => ({ count: Number(row.count), genre: row.genre })),
-      topTags: topTags.map((row) => ({ count: Number(row.count), tag: row.tag })),
-      total: counts.total,
-      unrated: counts.unrated,
-      wantToRead: counts.wantToRead,
-    };
-  }
-
   findForPurge({
     bookId,
     userId,
@@ -974,32 +745,6 @@ export class BooksRepository {
     return purged.count;
   }
 
-  async listActiveReading({
-    ownershipStatuses,
-    statuses,
-    userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    statuses: ReadingStatus[];
-    userId: string;
-  }): Promise<ActiveReadingRow[]> {
-    const rows = await this.prisma.book.findMany({
-      select: {
-        id: true,
-        pagesCount: true,
-        readingProgress: { select: { currentPage: true } },
-        title: true,
-      },
-      where: buildLibraryWhere({ ownershipStatuses, readingStatuses: statuses, userId }),
-    });
-    return rows.map((row) => ({
-      currentPage: row.readingProgress?.currentPage ?? null,
-      id: row.id,
-      pagesCount: row.pagesCount,
-      title: row.title,
-    }));
-  }
-
   listDedicationsForQuery({
     filter,
     skip,
@@ -1017,33 +762,6 @@ export class BooksRepository {
       skip,
       take,
       where: buildDedicationsWhere(filter),
-    });
-  }
-
-  listForLibrary({ filter, skip, sort, take }: ListForLibraryInput): Promise<BookWithRelations[]> {
-    return this.prisma.book.findMany({
-      include: withRelations,
-      orderBy: LIBRARY_ORDER_BY[sort],
-      skip,
-      take,
-      where: buildLibraryWhere(filter),
-    });
-  }
-
-  listRecentlyAdded({
-    ownershipStatuses,
-    take,
-    userId,
-  }: {
-    ownershipStatuses?: OwnershipStatus[];
-    take: number;
-    userId: string;
-  }): Promise<BookWithRelations[]> {
-    return this.prisma.book.findMany({
-      include: withRelations,
-      orderBy: { createdAt: "desc" },
-      take,
-      where: buildLibraryWhere({ ownershipStatuses, userId }),
     });
   }
 
@@ -1095,31 +813,6 @@ export class BooksRepository {
       where: { ...SOFT_DELETE_SCOPE.active, userId },
     });
     return result._max.queuePosition ?? 0;
-  }
-
-  async recentPurchaseStores({
-    limit,
-    userId,
-  }: {
-    limit: number;
-    userId: string;
-  }): Promise<string[]> {
-    const rows = await this.prisma.$queryRaw`
-      SELECT purchase.store_name AS "storeName"
-      FROM book_purchase_info purchase
-      JOIN books book ON book.id = purchase.book_id
-      WHERE book.user_id = ${userId}::uuid
-          ${ACTIVE_BOOK_SQL}
-        AND purchase.store_name IS NOT NULL
-        AND btrim(purchase.store_name) <> ''
-      GROUP BY purchase.store_name
-      ORDER BY max(book.created_at) DESC
-      LIMIT ${limit}
-    `;
-    return z
-      .array(StoreNameRowSchema)
-      .parse(rows)
-      .map((row) => row.storeName);
   }
 
   recordReadingProgress(
@@ -1218,65 +911,6 @@ export class BooksRepository {
         await resequenceQueue(tx, userId);
       }
       return deleted.count;
-    });
-  }
-
-  async topGenreKeys({
-    limit,
-    ownershipStatuses,
-    userId,
-  }: {
-    limit: number;
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<{ count: number; key: string }[]> {
-    const ownershipFilter =
-      ownershipStatuses === undefined
-        ? Prisma.empty
-        : Prisma.sql`AND ownership_status IN (${Prisma.join(ownershipStatuses)})`;
-    const rows = await this.prisma.$queryRaw(Prisma.sql`
-      SELECT unnest(genres) AS key, count(*) AS count
-      FROM books
-      WHERE user_id = ${userId}::uuid
-        AND deleted_at IS NULL
-        ${ownershipFilter}
-      GROUP BY key
-      ORDER BY count DESC, key ASC
-      LIMIT ${limit}
-    `);
-    return z
-      .array(GenreCountRowSchema)
-      .parse(rows)
-      .map((row) => ({ count: Number(row.count), key: row.key }));
-  }
-
-  async topTags({
-    limit,
-    ownershipStatuses,
-    userId,
-  }: {
-    limit: number;
-    ownershipStatuses?: OwnershipStatus[];
-    userId: string;
-  }): Promise<{ count: number; id: string; name: string }[]> {
-    const grouped = await this.prisma.bookTag.groupBy({
-      _count: { tagId: true },
-      by: ["tagId"],
-      orderBy: { _count: { tagId: "desc" } },
-      take: limit,
-      where: { book: buildLibraryWhere({ ownershipStatuses, userId }) },
-    });
-    if (grouped.length === 0) {
-      return [];
-    }
-    const tags = await this.prisma.tag.findMany({
-      select: { id: true, name: true },
-      where: { id: { in: grouped.map((entry) => entry.tagId) } },
-    });
-    const nameById = new Map(tags.map((tag) => [tag.id, tag.name]));
-    return grouped.flatMap((entry) => {
-      const name = nameById.get(entry.tagId);
-      return name === undefined ? [] : [{ count: entry._count.tagId, id: entry.tagId, name }];
     });
   }
 
@@ -1428,8 +1062,6 @@ export class BooksRepository {
     return exists === null ? "not-found" : "status-conflict";
   }
 }
-
-const FAVORITE_TOP_LIMIT = 3;
 
 const CREATED_AT_TIEBREAKER: Prisma.BookOrderByWithRelationInput = { createdAt: "desc" };
 
@@ -1624,111 +1256,6 @@ function buildDedicationsWhere(input: DedicationsFilter): Prisma.BookWhereInput 
     includeDedication: true,
     search: input.search,
     searchGenreKeys: input.searchGenreKeys,
-  });
-  if (searchConditions !== undefined) {
-    where.OR = searchConditions;
-  }
-
-  return where;
-}
-
-function buildIntRange({
-  max,
-  min,
-}: {
-  max?: number;
-  min?: number;
-}): undefined | { gte?: number; lte?: number } {
-  if (min === undefined && max === undefined) {
-    return undefined;
-  }
-  const range: { gte?: number; lte?: number } = {};
-  if (min !== undefined) {
-    range.gte = min;
-  }
-  if (max !== undefined) {
-    range.lte = max;
-  }
-  return range;
-}
-
-function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
-  const where: Prisma.BookWhereInput = { ...SOFT_DELETE_SCOPE.active, userId: filter.userId };
-
-  if (filter.readingStatuses !== undefined) {
-    where.readingStatus = { in: filter.readingStatuses };
-  }
-  if (filter.ownershipStatuses !== undefined) {
-    where.ownershipStatus = { in: filter.ownershipStatuses };
-  }
-  if (filter.formats !== undefined) {
-    where.formats = { hasSome: filter.formats };
-  }
-  if (filter.genreKeys !== undefined) {
-    where.genres = { hasSome: filter.genreKeys };
-  }
-  if (filter.tagIds !== undefined) {
-    where.tags = { some: { tagId: { in: filter.tagIds } } };
-  }
-  if (filter.authorIds !== undefined) {
-    where.authors = { some: { authorId: { in: filter.authorIds } } };
-  }
-  if (filter.publisherPresence === "missing") {
-    where.publisherId = null;
-  } else if (filter.publisherPresence === "assigned") {
-    where.publisherId = { not: null };
-  } else if (filter.publisherIds !== undefined) {
-    where.publisherId = { in: filter.publisherIds };
-  }
-  if (filter.ageCategories !== undefined) {
-    where.ageCategory = { in: filter.ageCategories };
-  }
-  if (filter.languages !== undefined) {
-    where.language = { in: filter.languages };
-  }
-  if (filter.bookType === "solo") {
-    where.seriesId = null;
-  }
-  if (filter.bookType === "series_part") {
-    where.seriesId = { not: null };
-  }
-  if (filter.isFavorite !== undefined) {
-    where.isFavorite = filter.isFavorite;
-  }
-  if (filter.hasCover === true) {
-    where.coverMediaId = { not: null };
-  }
-  if (filter.hasCover === false) {
-    where.coverMediaId = null;
-  }
-  if (filter.hasDedication === false) {
-    where.AND = [{ OR: [{ dedication: null }, { dedication: "" }] }];
-  }
-  if (filter.hasDedication === true) {
-    where.AND = [{ AND: [{ dedication: { not: null } }, { dedication: { not: "" } }] }];
-  }
-
-  const rating = buildIntRange({ max: filter.ratingMax, min: filter.ratingMin });
-  if (rating !== undefined) {
-    where.readingProgress = { is: { rating } };
-  } else if (filter.hasRating === true) {
-    where.readingProgress = { is: { rating: { not: null } } };
-  }
-  if (filter.hasRating === false) {
-    where.NOT = { readingProgress: { is: { rating: { not: null } } } };
-  }
-  const publicationYear = buildIntRange({ max: filter.yearMax, min: filter.yearMin });
-  if (publicationYear !== undefined) {
-    where.publicationYear = publicationYear;
-  }
-  const pagesCount = buildIntRange({ max: filter.pagesMax, min: filter.pagesMin });
-  if (pagesCount !== undefined) {
-    where.pagesCount = pagesCount;
-  }
-
-  const searchConditions = buildBookSearchConditions({
-    search: filter.search,
-    searchGenreKeys: filter.searchGenreKeys,
   });
   if (searchConditions !== undefined) {
     where.OR = searchConditions;

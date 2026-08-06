@@ -18,8 +18,8 @@ import type { LibraryFilter } from "../infrastructure/books.repository.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
 import { buildActiveReadingView, intersectOwnership } from "../domain/library-overview.js";
+import { BookLibraryReadRepository } from "../infrastructure/book-library-read.repository.js";
 import { normalizeSearchQuery } from "../infrastructure/book-search.js";
-import { BooksRepository } from "../infrastructure/books.repository.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 
 type LibraryOverviewConfig = {
@@ -51,13 +51,13 @@ const LIBRARY_OVERVIEW: LibraryOverviewConfig = {
 @Injectable()
 export class BookLibraryReadService {
   constructor(
-    private readonly booksRepository: BooksRepository,
+    private readonly libraryReadRepository: BookLibraryReadRepository,
     private readonly viewAssembler: BookViewAssembler,
     private readonly genresService: GenresService,
   ) {}
 
   favoritesSummary(userId: string): Promise<FavoritesSummaryView> {
-    return this.booksRepository.favoritesSummary({
+    return this.libraryReadRepository.favoritesSummary({
       finishedStatuses: LIBRARY_OVERVIEW.finishedStatuses,
       readingStatuses: LIBRARY_OVERVIEW.readingInProgressStatuses,
       userId,
@@ -107,12 +107,12 @@ export class BookLibraryReadService {
     };
 
     const [books, totalCount] = await Promise.all([
-      this.booksRepository.listForLibrary({
+      this.libraryReadRepository.listForLibrary({
         filter,
         sort,
         ...pageSlice({ pageNumber, pageSize }),
       }),
-      this.booksRepository.countForLibrary({ filter }),
+      this.libraryReadRepository.countForLibrary({ filter }),
     ]);
 
     return buildPaginator({
@@ -134,13 +134,17 @@ export class BookLibraryReadService {
     const [summary, activeReading, topGenreKeys, topTags, recentBooks] = await Promise.all([
       this.buildOverviewSummary({ ownershipStatuses, userId }),
       this.buildActiveReading({ ownershipStatuses, userId }),
-      this.booksRepository.topGenreKeys({
+      this.libraryReadRepository.topGenreKeys({
         limit: LIBRARY_OVERVIEW.topLimit,
         ownershipStatuses,
         userId,
       }),
-      this.booksRepository.topTags({ limit: LIBRARY_OVERVIEW.topLimit, ownershipStatuses, userId }),
-      this.booksRepository.listRecentlyAdded({
+      this.libraryReadRepository.topTags({
+        limit: LIBRARY_OVERVIEW.topLimit,
+        ownershipStatuses,
+        userId,
+      }),
+      this.libraryReadRepository.listRecentlyAdded({
         ownershipStatuses,
         take: LIBRARY_OVERVIEW.recentLimit,
         userId,
@@ -174,7 +178,7 @@ export class BookLibraryReadService {
     limit: number;
     userId: string;
   }): Promise<RecentPurchaseStores> {
-    return this.booksRepository.recentPurchaseStores({ limit, userId });
+    return this.libraryReadRepository.recentPurchaseStores({ limit, userId });
   }
 
   private async buildActiveReading({
@@ -184,7 +188,7 @@ export class BookLibraryReadService {
     ownershipStatuses?: OwnershipStatus[];
     userId: string;
   }): Promise<ActiveReadingView> {
-    const activeBooks = await this.booksRepository.listActiveReading({
+    const activeBooks = await this.libraryReadRepository.listActiveReading({
       ownershipStatuses,
       statuses: LIBRARY_OVERVIEW.readingInProgressStatuses,
       userId,
@@ -214,50 +218,50 @@ export class BookLibraryReadService {
       physicallyAvailable,
       seriesCount,
     ] = await Promise.all([
-      this.booksRepository.countByUser({ ownershipStatuses, userId }),
-      this.booksRepository.countByReadingStatuses({
+      this.libraryReadRepository.countByUser({ ownershipStatuses, userId }),
+      this.libraryReadRepository.countByReadingStatuses({
         ownershipStatuses,
         statuses: LIBRARY_OVERVIEW.readingInProgressStatuses,
         userId,
       }),
-      this.booksRepository.countByReadingStatuses({
+      this.libraryReadRepository.countByReadingStatuses({
         ownershipStatuses,
         statuses: LIBRARY_OVERVIEW.finishedStatuses,
         userId,
       }),
-      this.booksRepository.countFavorites({ ownershipStatuses, userId }),
-      this.booksRepository.countByReadingStatuses({
+      this.libraryReadRepository.countFavorites({ ownershipStatuses, userId }),
+      this.libraryReadRepository.countByReadingStatuses({
         ownershipStatuses,
         statuses: LIBRARY_OVERVIEW.wantToReadStatuses,
         userId,
       }),
-      this.booksRepository.countForLibrary({
+      this.libraryReadRepository.countForLibrary({
         filter: { bookType: "series_part", ownershipStatuses, userId },
       }),
-      this.booksRepository.countForLibrary({
+      this.libraryReadRepository.countForLibrary({
         filter: { bookType: "solo", ownershipStatuses, userId },
       }),
-      this.booksRepository.countByUser({
+      this.libraryReadRepository.countByUser({
         ownershipStatuses: LIBRARY_OVERVIEW.wantToBuyStatuses,
         userId,
       }),
-      this.booksRepository.countByUser({
+      this.libraryReadRepository.countByUser({
         ownershipStatuses: LIBRARY_OVERVIEW.inTransitStatuses,
         userId,
       }),
-      this.booksRepository.countByUser({
+      this.libraryReadRepository.countByUser({
         ownershipStatuses: LIBRARY_OVERVIEW.borrowedStatuses,
         userId,
       }),
-      this.booksRepository.countDistinctAuthors({ ownershipStatuses, userId }),
-      this.booksRepository.countByUser({
+      this.libraryReadRepository.countDistinctAuthors({ ownershipStatuses, userId }),
+      this.libraryReadRepository.countByUser({
         ownershipStatuses: intersectOwnership({
           allowed: LIBRARY_OVERVIEW.physicalOwnershipStatuses,
           scope: ownershipStatuses,
         }),
         userId,
       }),
-      this.booksRepository.countDistinctSeries({ ownershipStatuses, userId }),
+      this.libraryReadRepository.countDistinctSeries({ ownershipStatuses, userId }),
     ]);
 
     return {
