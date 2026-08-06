@@ -1,4 +1,4 @@
-export type ListsListParams = { pageSize: number };
+import type { ListsListParams } from "../model/lists-query";
 
 const LISTS_ROOT = "/api/lists";
 

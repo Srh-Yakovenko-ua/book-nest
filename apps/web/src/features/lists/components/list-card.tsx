@@ -16,7 +16,7 @@ import {
 import { Link } from "@/i18n/navigation";
 import { formatDate } from "@/lib/format";
 
-import { ListCardCovers } from "./list-card-covers";
+import { ListCardCovers, ListCardCoversEmpty } from "./list-card-covers";
 
 type ListCardProps = {
   list: CustomListCard;
@@ -36,7 +36,7 @@ export function ListCard({ list, onDelete, onEdit }: ListCardProps) {
       </div>
 
       <div className="flex flex-col gap-1.5 pr-9">
-        <h3 className="font-heading text-[1.0625rem] leading-tight font-bold text-ink">
+        <h3 className="line-clamp-2 min-h-[2lh] font-heading text-[1.0625rem] leading-tight font-bold text-ink">
           <Link
             className="text-ink no-underline transition-colors outline-none group-hover/list-card:text-primary after:absolute after:inset-0 focus-visible:text-primary"
             href={`/lists/${list.id}`}
@@ -44,18 +44,13 @@ export function ListCard({ list, onDelete, onEdit }: ListCardProps) {
             {list.name}
           </Link>
         </h3>
-        {list.description === null ? null : (
-          <p className="line-clamp-2 text-[0.8125rem] leading-relaxed text-muted-foreground">
-            {list.description}
-          </p>
-        )}
+        <p className="line-clamp-2 min-h-[2lh] text-[0.8125rem] leading-relaxed text-muted-foreground">
+          {list.description}
+        </p>
       </div>
 
       {isEmpty ? (
-        <div className="grid place-items-center gap-2 rounded-lg border border-dashed border-border bg-accent/40 px-4 py-6 text-center">
-          <UiIcon className="text-icon" name="list" size={22} />
-          <p className="text-[0.8125rem] text-muted-foreground">{t("emptyPreview")}</p>
-        </div>
+        <ListCardCoversEmpty label={t("emptyPreview")} />
       ) : (
         <ListCardCovers
           bookCount={list.bookCount}
@@ -64,7 +59,7 @@ export function ListCard({ list, onDelete, onEdit }: ListCardProps) {
         />
       )}
 
-      <div className="mt-auto flex flex-wrap items-center gap-x-3.5 gap-y-1 text-[0.8125rem] text-muted-foreground">
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[0.8125rem] text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <UiIcon className="shrink-0 text-icon" name="book" size={15} />
           {t("books", { count: list.bookCount })}
@@ -74,15 +69,6 @@ export function ListCard({ list, onDelete, onEdit }: ListCardProps) {
           {formatDate(list.updatedAt, locale)}
         </span>
       </div>
-
-      <p className="inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-        {t("open")}
-        <UiIcon
-          className="transition-transform duration-200 group-hover/list-card:translate-x-0.5"
-          name="arrow-right"
-          size={15}
-        />
-      </p>
     </article>
   );
 }

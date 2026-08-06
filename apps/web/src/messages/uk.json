@@ -2865,8 +2865,38 @@
       "title": "Власні списки",
       "subtitle": "Створюй тематичні добірки й організовуй книги так, як зручно тобі",
       "create": "Створити список",
+      "counter": "Показано {shown} із {total, plural, one {# списку} few {# списків} many {# списків} other {# списків}}",
+      "allShown": "Усі списки показано",
+      "loadMore": "Показати ще",
+      "loadMoreError": "Не вдалося завантажити ще списки",
+      "filters": {
+        "trigger": "Фільтри",
+        "title": "Фільтри",
+        "description": "Обери потрібні ознаки, щоб швидко знайти потрібну добірку.",
+        "clear": "Очистити фільтри",
+        "apply": "Застосувати фільтри",
+        "sections": {
+          "fill": "Наповнення",
+          "description": "Опис",
+          "size": "Розмір списку"
+        },
+        "fillOptions": {
+          "with_books": "З книгами",
+          "empty": "Порожні"
+        },
+        "descriptionOptions": {
+          "with_description": "З описом",
+          "without_description": "Без опису"
+        },
+        "sizeOptions": {
+          "small": "1–5 книг",
+          "medium": "6–20 книг",
+          "large": "21–50 книг",
+          "huge": "Понад 50 книг"
+        }
+      },
       "search": {
-        "placeholder": "Пошук у списках…"
+        "placeholder": "Назва або опис списку"
       },
       "sort": {
         "label": "Сортування",
@@ -2879,7 +2909,6 @@
         "books_count_asc": "За кількістю книг: спочатку менше"
       },
       "card": {
-        "open": "Відкрити список",
         "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
         "emptyPreview": "У списку ще немає книг",
         "edit": "Редагувати",

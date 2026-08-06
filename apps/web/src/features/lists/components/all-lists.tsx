@@ -1,6 +1,6 @@
 "use client";
 
-import type { CustomListCard, ListSort, Nullable } from "@app/shared";
+import type { CustomListCard, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -8,18 +8,10 @@ import { toast } from "sonner";
 
 import { useRouter } from "@/i18n/navigation";
 
-import type { ListAttentionReason } from "../model/lists-derive";
-
 import { useDeleteList } from "../api/use-delete-list";
 import { useLists } from "../api/use-lists";
 import { useListsSummary } from "../api/use-lists-summary";
-import {
-  countListsAttention,
-  filterLists,
-  filterListsByAttention,
-  LIST_SORT_DEFAULT,
-  sortLists,
-} from "../model/lists-derive";
+import { useListsQuery } from "../model/use-lists-query";
 import { AllListsView } from "./all-lists-view";
 import { CreateListDialog } from "./create-list-dialog";
 import { DeleteListDialog } from "./delete-list-dialog";
@@ -30,32 +22,36 @@ import { ListsToolbar } from "./lists-toolbar";
 
 export function AllLists() {
   const t = useTranslations("lists.manage.toast");
+  const tCatalog = useTranslations("lists.catalog");
   const router = useRouter();
-  const { data, isError, isPending, refetch } = useLists();
+  const lists = useListsQuery();
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isError,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    isPending,
+    refetch,
+  } = useLists(lists.listParams);
   const summary = useListsSummary();
 
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<ListSort>(LIST_SORT_DEFAULT);
-  const [attention, setAttention] = useState<Nullable<ListAttentionReason>>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Nullable<CustomListCard>>(null);
   const [deleting, setDeleting] = useState<Nullable<CustomListCard>>(null);
 
   const deleteList = useDeleteList(deleting?.id ?? "");
 
-  const allLists = (data?.pages ?? []).flatMap((page) => page.items);
-  const attentionCounts = countListsAttention(allLists);
-  const visibleLists = sortLists(
-    filterListsByAttention(filterLists(allLists, search), attention),
-    sort,
-  );
-  const hasAnyLists = allLists.length > 0;
-  const hasActiveFilters = search.trim() !== "" || attention !== null;
-
-  function clearFilters() {
-    setSearch("");
-    setAttention(null);
-  }
+  const pages = data?.pages ?? [];
+  const visibleLists = pages.flatMap((page) => page.items);
+  const totalCount = pages[0]?.totalCount ?? 0;
+  const attentionCounts = {
+    empty: summary.data?.emptyListCount ?? 0,
+    no_description: summary.data?.noDescriptionListCount ?? 0,
+    stale: summary.data?.staleListCount ?? 0,
+  };
+  const hasAnyLists = totalCount > 0 || lists.hasActiveFilters;
 
   function confirmDelete() {
     deleteList.mutate(undefined, {
@@ -70,25 +66,30 @@ export function AllLists() {
   return (
     <>
       <AllListsView
-        hasActiveFilters={hasActiveFilters}
+        allShownLabel={tCatalog("allShown")}
+        hasActiveFilters={lists.hasActiveFilters}
         hasAnyLists={hasAnyLists}
+        hasNextPage={hasNextPage}
         isError={isError}
+        isFetchingNextPage={isFetchingNextPage}
+        isLoadMoreError={isFetchNextPageError}
         isPending={isPending}
         lists={visibleLists}
-        onClearFilters={clearFilters}
+        loadMoreErrorLabel={tCatalog("loadMoreError")}
+        loadMoreLabel={tCatalog("loadMore")}
+        onClearFilters={lists.clearFilters}
         onCreateList={() => setCreateOpen(true)}
         onDeleteList={setDeleting}
         onEditList={setEditing}
+        onLoadMore={() => void fetchNextPage()}
         onOpenLibrary={() => router.push("/books")}
         onRetry={() => void refetch()}
         sidebar={
           <ListsSidebar
-            activeAttention={attention}
+            activeAttention={lists.state.attention}
             attentionCounts={attentionCounts}
-            isLoading={isPending}
-            onAttentionSelect={(reason) =>
-              setAttention((current) => (current === reason ? null : reason))
-            }
+            isLoading={summary.isPending}
+            onAttentionSelect={lists.toggleAttention}
           />
         }
         summary={
@@ -100,11 +101,15 @@ export function AllLists() {
         }
         toolbar={
           <ListsToolbar
-            onSearchChange={setSearch}
-            onSearchClear={() => setSearch("")}
-            onSortChange={setSort}
-            search={search}
-            sort={sort}
+            counter={
+              isPending || isError || visibleLists.length === 0
+                ? undefined
+                : tCatalog("counter", { shown: visibleLists.length, total: totalCount })
+            }
+            onSearchChange={lists.setSearch}
+            onSortChange={lists.setSort}
+            setState={lists.setState}
+            state={lists.state}
           />
         }
       />
