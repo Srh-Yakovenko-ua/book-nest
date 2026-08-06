@@ -7,6 +7,7 @@ import { UiIcon, type UiIconName } from "./ui-icon";
 const ALL_UI_ICONS: readonly UiIconName[] = [
   "home",
   "library",
+  "library-big",
   "book",
   "list",
   "layers",
@@ -19,6 +20,7 @@ const ALL_UI_ICONS: readonly UiIconName[] = [
   "building",
   "tag",
   "chart",
+  "chart-increasing",
   "target",
   "calendar",
   "settings",

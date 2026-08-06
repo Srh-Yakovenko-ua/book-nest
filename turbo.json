@@ -41,7 +41,9 @@
         "vitest.config.ts",
         "vitest.setup.ts",
         "package.json",
-        "tsconfig*.json"
+        "tsconfig*.json",
+        "prisma/schema.prisma",
+        "prisma/migrations/**"
       ],
       "env": [
         "DATABASE_URL",

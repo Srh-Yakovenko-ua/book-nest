@@ -7,7 +7,7 @@ import {
   LIST_PAGE_SIZE_MAX,
   paginationQueryFields,
 } from "./common.js";
-import { NoHtmlString } from "./internal.js";
+import { NoHtmlString, queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
@@ -67,6 +67,22 @@ export type CustomListCard = z.infer<typeof CustomListCardSchema>;
 
 export const PaginatedCustomListsSchema = createPaginatedSchema(CustomListCardSchema);
 
+export const ListsSummaryViewSchema = z.object({
+  averageBooksPerList: z.number().int().nonnegative(),
+  emptyListCount: z.number().int().nonnegative(),
+  largestListBookCount: z.number().int().nonnegative(),
+  listsWithBooksCount: z.number().int().nonnegative(),
+  maxListsPerBook: z.number().int().nonnegative(),
+  multiListBookCount: z.number().int().nonnegative(),
+  noDescriptionListCount: z.number().int().nonnegative(),
+  staleListCount: z.number().int().nonnegative(),
+  totalListCount: z.number().int().nonnegative(),
+  totalMembershipCount: z.number().int().nonnegative(),
+  uniqueBookCount: z.number().int().nonnegative(),
+});
+
+export type ListsSummaryView = z.infer<typeof ListsSummaryViewSchema>;
+
 export const ListSortSchema = z.enum([
   "updated_desc",
   "created_desc",
@@ -79,7 +95,29 @@ export const ListSortSchema = z.enum([
 
 export type ListSort = z.infer<typeof ListSortSchema>;
 
+export const LIST_STALE_MONTHS = 6;
+
+export const ListFillFilterSchema = z.enum(["with_books", "empty"]);
+
+export type ListFillFilter = z.infer<typeof ListFillFilterSchema>;
+
+export const ListDescriptionFilterSchema = z.enum(["with_description", "without_description"]);
+
+export type ListDescriptionFilter = z.infer<typeof ListDescriptionFilterSchema>;
+
+export const ListSizeFilterSchema = z.enum(["small", "medium", "large", "huge"]);
+
+export type ListSizeFilter = z.infer<typeof ListSizeFilterSchema>;
+
+export const ListAttentionReasonSchema = z.enum(["empty", "no_description", "stale"]);
+
+export type ListAttentionReason = z.infer<typeof ListAttentionReasonSchema>;
+
 export const CustomListsQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  attention: ListAttentionReasonSchema.optional(),
+  description: queryStringArray(ListDescriptionFilterSchema),
+  fill: queryStringArray(ListFillFilterSchema),
+  size: queryStringArray(ListSizeFilterSchema),
   sort: ListSortSchema.default("updated_desc"),
 });
 

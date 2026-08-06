@@ -417,6 +417,7 @@ describe("GET /api/series/overview", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.topUnfinished[0].nextBook).toEqual({
+      cover: null,
       id: nextBookId,
       ownershipStatus: "want_to_buy",
       partNumber: 2,

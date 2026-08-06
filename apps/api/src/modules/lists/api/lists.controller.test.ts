@@ -8,6 +8,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -99,6 +100,130 @@ function getLists(accessToken: string): request.Test {
     .get("/api/lists")
     .set("Authorization", `Bearer ${accessToken}`);
 }
+
+function getSummary(accessToken: string): request.Test {
+  return request(app.getHttpServer())
+    .get("/api/lists/summary")
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
+describe("GET /api/lists/summary", () => {
+  it("returns 401 when no Authorization header is present", async () => {
+    const res = await request(app.getHttpServer()).get("/api/lists/summary");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns zeros when the user has no lists", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      averageBooksPerList: 0,
+      emptyListCount: 0,
+      largestListBookCount: 0,
+      listsWithBooksCount: 0,
+      maxListsPerBook: 0,
+      multiListBookCount: 0,
+      noDescriptionListCount: 0,
+      staleListCount: 0,
+      totalListCount: 0,
+      totalMembershipCount: 0,
+      uniqueBookCount: 0,
+    });
+  });
+
+  it("counts every book once even when it belongs to several lists", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const wide = await createList({ name: "Wide", userId });
+    const narrow = await createList({ name: "Narrow", userId });
+    await createList({ name: "Empty", userId });
+
+    const shared = await createBook(userId, false);
+    const solo = await createBook(userId, false);
+    await addBookToList(wide, shared.bookId, 0);
+    await addBookToList(wide, solo.bookId, 1);
+    await addBookToList(narrow, shared.bookId, 0);
+
+    const res = await getSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      averageBooksPerList: 1,
+      emptyListCount: 1,
+      largestListBookCount: 2,
+      listsWithBooksCount: 2,
+      maxListsPerBook: 2,
+      multiListBookCount: 1,
+      noDescriptionListCount: 3,
+      staleListCount: 0,
+      totalListCount: 3,
+      totalMembershipCount: 3,
+      uniqueBookCount: 2,
+    });
+  });
+
+  it("ignores trashed lists and trashed books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const kept = await createList({ name: "Kept", userId });
+    const trashedList = await createList({ name: "Trashed", userId });
+
+    const keptBook = await createBook(userId, false);
+    const trashedBook = await createBook(userId, false);
+    await addBookToList(kept, keptBook.bookId, 0);
+    await addBookToList(kept, trashedBook.bookId, 1);
+    await addBookToList(trashedList, keptBook.bookId, 0);
+
+    await prisma.book.update({
+      data: TRASH_RETENTION.stamp(),
+      where: { id: trashedBook.bookId },
+    });
+    await prisma.bookList.update({
+      data: TRASH_RETENTION.stamp(),
+      where: { id: trashedList },
+    });
+
+    const res = await getSummary(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      averageBooksPerList: 1,
+      emptyListCount: 0,
+      largestListBookCount: 1,
+      listsWithBooksCount: 1,
+      maxListsPerBook: 1,
+      multiListBookCount: 0,
+      noDescriptionListCount: 1,
+      staleListCount: 0,
+      totalListCount: 1,
+      totalMembershipCount: 1,
+      uniqueBookCount: 1,
+    });
+  });
+
+  it("never counts another user's lists", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger-summary@example.com",
+      nickname: "strangersummary",
+    });
+    const strangerList = await createList({ name: "Secret", userId: stranger.userId });
+    const strangerBook = await createBook(stranger.userId, false);
+    await addBookToList(strangerList, strangerBook.bookId, 0);
+    await createList({ name: "Owned", userId: owner.userId });
+
+    const res = await getSummary(owner.accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      totalListCount: 1,
+      totalMembershipCount: 0,
+      uniqueBookCount: 0,
+    });
+  });
+});
 
 describe("POST /api/lists", () => {
   it("returns 401 when no Authorization header is present", async () => {
@@ -417,5 +542,124 @@ describe("GET /api/lists", () => {
 
     expect(res.body.totalCount).toBe(1);
     expect(res.body.items.map((list: { name: string }) => list.name)).toEqual(["Owned"]);
+  });
+});
+
+describe("GET /api/lists filters", () => {
+  async function seedFilterFixtures(userId: string): Promise<void> {
+    const withThree = await createList({ description: "cozy", name: "Three", userId });
+    const withSeven = await createList({ name: "Seven", userId });
+    await createList({ description: "planned", name: "Empty", userId });
+
+    for (let index = 0; index < 3; index += 1) {
+      const book = await createBook(userId, false);
+      await addBookToList(withThree, book.bookId, index);
+    }
+    for (let index = 0; index < 7; index += 1) {
+      const book = await createBook(userId, false);
+      await addBookToList(withSeven, book.bookId, index);
+    }
+  }
+
+  function namesOf(res: request.Response): string[] {
+    return res.body.items.map((list: { name: string }) => list.name);
+  }
+
+  it("keeps only the lists that hold books", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedFilterFixtures(userId);
+
+    const res = await getLists(accessToken).query({ fill: "with_books", sort: "title_asc" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(2);
+    expect(namesOf(res)).toEqual(["Seven", "Three"]);
+  });
+
+  it("keeps only the empty lists", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedFilterFixtures(userId);
+
+    const res = await getLists(accessToken).query({ fill: "empty" });
+
+    expect(res.body.totalCount).toBe(1);
+    expect(namesOf(res)).toEqual(["Empty"]);
+  });
+
+  it("keeps only the lists without a description", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedFilterFixtures(userId);
+
+    const res = await getLists(accessToken).query({ description: "without_description" });
+
+    expect(res.body.totalCount).toBe(1);
+    expect(namesOf(res)).toEqual(["Seven"]);
+  });
+
+  it("matches any of the selected size buckets", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedFilterFixtures(userId);
+
+    const res = await getLists(accessToken)
+      .query({ sort: "title_asc" })
+      .query("size=small&size=medium");
+
+    expect(res.body.totalCount).toBe(2);
+    expect(namesOf(res)).toEqual(["Seven", "Three"]);
+  });
+
+  it("combines the filter groups with AND", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedFilterFixtures(userId);
+
+    const res = await getLists(accessToken).query({
+      description: "with_description",
+      fill: "with_books",
+      size: "small",
+    });
+
+    expect(res.body.totalCount).toBe(1);
+    expect(namesOf(res)).toEqual(["Three"]);
+  });
+
+  it("counts a list by its live books only", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createList({ name: "Shrinking", userId });
+    const kept = await createBook(userId, false);
+    const trashed = await createBook(userId, false);
+    await addBookToList(listId, kept.bookId, 0);
+    await addBookToList(listId, trashed.bookId, 1);
+    await prisma.book.update({
+      data: { deletedAt: new Date(), purgeAt: new Date() },
+      where: { id: trashed.bookId },
+    });
+
+    const res = await getLists(accessToken).query({ size: "small" });
+
+    expect(res.body.totalCount).toBe(1);
+    expect(res.body.items[0].bookCount).toBe(1);
+  });
+
+  it("returns the lists that need attention because they are stale", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await createList({ name: "Fresh", updatedAt: new Date(), userId });
+    await createList({
+      name: "Forgotten",
+      updatedAt: new Date("2020-01-01T00:00:00.000Z"),
+      userId,
+    });
+
+    const res = await getLists(accessToken).query({ attention: "stale" });
+
+    expect(res.body.totalCount).toBe(1);
+    expect(namesOf(res)).toEqual(["Forgotten"]);
+  });
+
+  it("rejects an unknown filter value", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getLists(accessToken).query({ size: "gigantic" });
+
+    expect(res.status).toBe(400);
   });
 });

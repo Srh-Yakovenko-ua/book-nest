@@ -27,6 +27,7 @@ import type {
   ListDetailsControllerDetailParams,
   ListsControllerListTrashParams,
   ListsControllerSearchParams,
+  ListsSummaryViewDto,
   MoveListBookInputDto,
   NewListInputDto,
   PaginatedCustomListsDto,
@@ -211,6 +212,151 @@ export function useListsControllerListTrash<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListsControllerListTrashQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type listsControllerSummaryResponse200 = {
+  data: ListsSummaryViewDto;
+  status: 200;
+};
+
+export type listsControllerSummaryResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type listsControllerSummaryResponseSuccess = listsControllerSummaryResponse200 & {
+  headers: Headers;
+};
+export type listsControllerSummaryResponseError = listsControllerSummaryResponse401 & {
+  headers: Headers;
+};
+
+export type listsControllerSummaryResponse =
+  listsControllerSummaryResponseSuccess | listsControllerSummaryResponseError;
+
+export const getListsControllerSummaryUrl = () => {
+  return `/api/lists/summary`;
+};
+
+/**
+ * @summary Get the current user book lists summary
+ */
+export const listsControllerSummary = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<listsControllerSummaryResponse> => {
+  return customInstance<listsControllerSummaryResponse>(getListsControllerSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListsControllerSummaryQueryKey = () => {
+  return [`/api/lists/summary`] as const;
+};
+
+export const getListsControllerSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof listsControllerSummary>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof listsControllerSummary>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListsControllerSummaryQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listsControllerSummary>>> = ({ signal }) =>
+    listsControllerSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listsControllerSummary>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListsControllerSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listsControllerSummary>>
+>;
+export type ListsControllerSummaryQueryError = void;
+
+export function useListsControllerSummary<
+  TData = Awaited<ReturnType<typeof listsControllerSummary>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerSummary>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listsControllerSummary>>,
+          TError,
+          Awaited<ReturnType<typeof listsControllerSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListsControllerSummary<
+  TData = Awaited<ReturnType<typeof listsControllerSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerSummary>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listsControllerSummary>>,
+          TError,
+          Awaited<ReturnType<typeof listsControllerSummary>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListsControllerSummary<
+  TData = Awaited<ReturnType<typeof listsControllerSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the current user book lists summary
+ */
+
+export function useListsControllerSummary<
+  TData = Awaited<ReturnType<typeof listsControllerSummary>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerSummary>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListsControllerSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -575,6 +721,15 @@ export const getListsControllerSearchUrl = (params?: ListsControllerSearchParams
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["description", "fill", "size"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }

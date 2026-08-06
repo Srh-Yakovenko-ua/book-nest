@@ -86,6 +86,89 @@ export const ListsControllerListTrashResponse = zod.object({
 });
 
 /**
+ * @summary Get the current user book lists summary
+ */
+export const listsControllerSummaryResponseAverageBooksPerListMin = 0;
+export const listsControllerSummaryResponseAverageBooksPerListMax = 9007199254740991;
+
+export const listsControllerSummaryResponseEmptyListCountMin = 0;
+export const listsControllerSummaryResponseEmptyListCountMax = 9007199254740991;
+
+export const listsControllerSummaryResponseLargestListBookCountMin = 0;
+export const listsControllerSummaryResponseLargestListBookCountMax = 9007199254740991;
+
+export const listsControllerSummaryResponseListsWithBooksCountMin = 0;
+export const listsControllerSummaryResponseListsWithBooksCountMax = 9007199254740991;
+
+export const listsControllerSummaryResponseMaxListsPerBookMin = 0;
+export const listsControllerSummaryResponseMaxListsPerBookMax = 9007199254740991;
+
+export const listsControllerSummaryResponseMultiListBookCountMin = 0;
+export const listsControllerSummaryResponseMultiListBookCountMax = 9007199254740991;
+
+export const listsControllerSummaryResponseNoDescriptionListCountMin = 0;
+export const listsControllerSummaryResponseNoDescriptionListCountMax = 9007199254740991;
+
+export const listsControllerSummaryResponseStaleListCountMin = 0;
+export const listsControllerSummaryResponseStaleListCountMax = 9007199254740991;
+
+export const listsControllerSummaryResponseTotalListCountMin = 0;
+export const listsControllerSummaryResponseTotalListCountMax = 9007199254740991;
+
+export const listsControllerSummaryResponseTotalMembershipCountMin = 0;
+export const listsControllerSummaryResponseTotalMembershipCountMax = 9007199254740991;
+
+export const listsControllerSummaryResponseUniqueBookCountMin = 0;
+export const listsControllerSummaryResponseUniqueBookCountMax = 9007199254740991;
+
+export const ListsControllerSummaryResponse = zod.object({
+  averageBooksPerList: zod
+    .int()
+    .min(listsControllerSummaryResponseAverageBooksPerListMin)
+    .max(listsControllerSummaryResponseAverageBooksPerListMax),
+  emptyListCount: zod
+    .int()
+    .min(listsControllerSummaryResponseEmptyListCountMin)
+    .max(listsControllerSummaryResponseEmptyListCountMax),
+  largestListBookCount: zod
+    .int()
+    .min(listsControllerSummaryResponseLargestListBookCountMin)
+    .max(listsControllerSummaryResponseLargestListBookCountMax),
+  listsWithBooksCount: zod
+    .int()
+    .min(listsControllerSummaryResponseListsWithBooksCountMin)
+    .max(listsControllerSummaryResponseListsWithBooksCountMax),
+  maxListsPerBook: zod
+    .int()
+    .min(listsControllerSummaryResponseMaxListsPerBookMin)
+    .max(listsControllerSummaryResponseMaxListsPerBookMax),
+  multiListBookCount: zod
+    .int()
+    .min(listsControllerSummaryResponseMultiListBookCountMin)
+    .max(listsControllerSummaryResponseMultiListBookCountMax),
+  noDescriptionListCount: zod
+    .int()
+    .min(listsControllerSummaryResponseNoDescriptionListCountMin)
+    .max(listsControllerSummaryResponseNoDescriptionListCountMax),
+  staleListCount: zod
+    .int()
+    .min(listsControllerSummaryResponseStaleListCountMin)
+    .max(listsControllerSummaryResponseStaleListCountMax),
+  totalListCount: zod
+    .int()
+    .min(listsControllerSummaryResponseTotalListCountMin)
+    .max(listsControllerSummaryResponseTotalListCountMax),
+  totalMembershipCount: zod
+    .int()
+    .min(listsControllerSummaryResponseTotalMembershipCountMin)
+    .max(listsControllerSummaryResponseTotalMembershipCountMax),
+  uniqueBookCount: zod
+    .int()
+    .min(listsControllerSummaryResponseUniqueBookCountMin)
+    .max(listsControllerSummaryResponseUniqueBookCountMax),
+});
+
+/**
  * @summary Restore a book list from the trash
  */
 export const ListsControllerRestoreParams = zod.object({
@@ -163,6 +246,12 @@ export const listsControllerSearchQueryPageSizeMax = 100;
 
 export const listsControllerSearchQuerySearchMax = 100;
 
+export const listsControllerSearchQueryDescriptionMax = 100;
+
+export const listsControllerSearchQueryFillMax = 100;
+
+export const listsControllerSearchQuerySizeMax = 100;
+
 export const listsControllerSearchQuerySortDefault = `updated_desc`;
 
 export const ListsControllerSearchQueryParams = zod.object({
@@ -177,6 +266,19 @@ export const ListsControllerSearchQueryParams = zod.object({
     .max(listsControllerSearchQueryPageSizeMax)
     .default(listsControllerSearchQueryPageSizeDefault),
   search: zod.string().max(listsControllerSearchQuerySearchMax).optional(),
+  attention: zod.enum(["empty", "no_description", "stale"]).optional(),
+  description: zod
+    .array(zod.enum(["with_description", "without_description"]))
+    .max(listsControllerSearchQueryDescriptionMax)
+    .optional(),
+  fill: zod
+    .array(zod.enum(["with_books", "empty"]))
+    .max(listsControllerSearchQueryFillMax)
+    .optional(),
+  size: zod
+    .array(zod.enum(["small", "medium", "large", "huge"]))
+    .max(listsControllerSearchQuerySizeMax)
+    .optional(),
   sort: zod
     .enum([
       "updated_desc",

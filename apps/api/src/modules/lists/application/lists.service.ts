@@ -1,6 +1,7 @@
 import type {
   CustomListCard,
   CustomListsQuery,
+  ListsSummaryView,
   MediaView,
   NewListInput,
   Nullable,
@@ -18,6 +19,7 @@ import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
 import { MediaService } from "../../media/index.js";
 import { toCustomListCard } from "../domain/custom-list-card.mapper.js";
+import { toListsSummary } from "../domain/lists-summary.js";
 import { type BookListCard, ListsRepository } from "../infrastructure/lists.repository.js";
 
 const LIST_NAME_TAKEN_MESSAGE = "List with this name already exists";
@@ -143,6 +145,10 @@ export class ListsService {
     };
   }
 
+  async getSummary({ userId }: { userId: string }): Promise<ListsSummaryView> {
+    return toListsSummary(await this.listsRepository.summaryCounts({ now: new Date(), userId }));
+  }
+
   async resolveListsForBook(
     { input, userId }: ResolveListsForBookInput,
     client: Prisma.TransactionClient,
@@ -172,16 +178,19 @@ export class ListsService {
   }
 
   async search({ query, userId }: SearchInput): Promise<Paginator<CustomListCard>> {
-    const { pageNumber, pageSize, search, sort } = query;
+    const { attention, description, fill, pageNumber, pageSize, search, size, sort } = query;
+    const filters = { attention, description, fill, query: search, size };
+    const now = new Date();
 
     const [lists, totalCount] = await Promise.all([
       this.listsRepository.searchOwnedCards({
-        query: search,
+        ...filters,
+        now,
         sort,
         userId,
         ...pageSlice({ pageNumber, pageSize }),
       }),
-      this.listsRepository.countOwned({ query: search, userId }),
+      this.listsRepository.countOwned({ ...filters, now, userId }),
     ]);
 
     return buildPaginator({

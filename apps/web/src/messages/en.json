@@ -2940,21 +2940,55 @@
       "title": "Custom lists",
       "subtitle": "Create themed collections and organize books your way",
       "create": "Create list",
+      "counter": "Showing {shown} of {total, plural, one {# list} other {# lists}}",
+      "allShown": "All lists shown",
+      "loadMore": "Load more",
+      "loadMoreError": "Could not load more lists",
+      "filters": {
+        "trigger": "Filters",
+        "title": "Filters",
+        "description": "Pick the traits you need to find the right collection faster.",
+        "clear": "Clear filters",
+        "apply": "Apply filters",
+        "sections": {
+          "fill": "Contents",
+          "description": "Description",
+          "size": "List size"
+        },
+        "fillOptions": {
+          "with_books": "With books",
+          "empty": "Empty"
+        },
+        "descriptionOptions": {
+          "with_description": "With description",
+          "without_description": "Without description"
+        },
+        "sizeOptions": {
+          "small": "1–5 books",
+          "medium": "6–20 books",
+          "large": "21–50 books",
+          "huge": "Over 50 books"
+        }
+      },
       "search": {
-        "placeholder": "Search lists…"
+        "placeholder": "List name or description"
       },
       "sort": {
         "label": "Sort",
-        "updated_desc": "Last updated",
-        "created_desc": "Newest first",
-        "created_asc": "Oldest first",
-        "title_asc": "Title A–Z",
-        "title_desc": "Title Z–A",
-        "books_count_desc": "More books",
-        "books_count_asc": "Fewer books"
+        "updated_desc": "Date updated: newest first",
+        "created_desc": "Date created: newest first",
+        "created_asc": "Date created: oldest first",
+        "title_asc": "Name: A–Z",
+        "title_desc": "Name: Z–A",
+        "books_count_desc": "Book count: most first",
+        "books_count_asc": "Book count: fewest first"
+      },
+      "view": {
+        "label": "View",
+        "grid": "Grid",
+        "list": "List"
       },
       "card": {
-        "open": "Open list",
         "books": "{count, plural, one {# book} other {# books}}",
         "emptyPreview": "No books in this list yet",
         "edit": "Edit",
@@ -2970,26 +3004,48 @@
       },
       "noResults": {
         "title": "Nothing found",
-        "description": "Try changing your search query or clearing the search.",
-        "clear": "Clear search"
+        "description": "Try changing your search query or clearing the filters.",
+        "clear": "Clear filters"
+      },
+      "attention": {
+        "title": "Needs attention",
+        "allClear": "Every list is in order",
+        "empty": {
+          "title": "Empty lists",
+          "detail": "{count, plural, one {# list} other {# lists}} without books",
+          "caption": "Add books to fill these collections."
+        },
+        "no_description": {
+          "title": "Lists without a description",
+          "detail": "{count, plural, one {# list} other {# lists}} without a description",
+          "caption": "Add a short description to tell the lists apart."
+        },
+        "stale": {
+          "title": "Untouched for a long time",
+          "detail": "{count, plural, one {# list} other {# lists}} unchanged for over {months} months",
+          "caption": "Check whether these collections are still relevant."
+        }
       },
       "error": {
         "title": "Couldn't load lists",
         "description": "Try refreshing the page or repeating the request a little later.",
         "retry": "Try again"
       },
+      "summary": {
+        "totalLists": "Total lists",
+        "listsUnit": "{count, plural, one {list} other {lists}}",
+        "booksUnit": "{count, plural, one {book} other {books}}",
+        "listsBreakdown": "{withBooks} with books · {empty, plural, one {# empty} other {# empty}}",
+        "listsAllFilled": "Every list holds books",
+        "uniqueBooks": "Unique books",
+        "memberships": "{count, plural, one {# addition} other {# additions}} to lists",
+        "averageSize": "Average list size",
+        "largestList": "Largest list — {count, plural, one {# book} other {# books}}",
+        "multiList": "In several lists",
+        "maxReach": "Most often — in {count, plural, one {# list} other {# lists}}",
+        "singleListOnly": "Every book sits in a single list"
+      },
       "sidebar": {
-        "stats": {
-          "title": "Quick stats",
-          "totalLists": "Total lists",
-          "booksInLists": "Books in lists",
-          "mostPopular": "Most popular list"
-        },
-        "actions": {
-          "title": "Quick actions",
-          "create": "Create new list",
-          "library": "Open library"
-        },
         "tip": {
           "title": "Useful tip",
           "text": "One book can be in several lists. Deleting a list does not delete books from your library."
