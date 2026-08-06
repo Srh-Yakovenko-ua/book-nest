@@ -28,6 +28,7 @@ import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
 import { LibraryActiveFilters } from "./library-active-filters";
 import { LibraryAdvancedFilters } from "./library-advanced-filters";
+import { LibraryOverviewPanel } from "./library-overview-panel";
 import { LibraryQuickFilters } from "./library-quick-filters";
 import { LibrarySearchInput } from "./library-search-input";
 import { type LibrarySummaryCard } from "./library-summary-cards";
@@ -227,22 +228,28 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     title: t("noFilteredResults.title"),
   };
 
+  const recentlyAdded = (overview.data?.recentlyAdded ?? []).map((book) => ({
+    author: book.authors.map((author) => author.name).join(", "),
+    href: `/books/${book.id}`,
+    id: book.id,
+    title: book.title,
+  }));
+
+  const topGenres = (overview.data?.topGenres ?? []).map((genre) => ({
+    count: genre.count,
+    key: genre.key,
+    name: genreNameByKey.get(genre.key) ?? genre.name,
+  }));
+
+  const topTags = (overview.data?.topTags ?? []).map((tag) => ({ id: tag.id, name: tag.name }));
+
   const sidebar = (
     <LibrarySummarySidebar
       isLoading={overview.isPending}
       linkComponent={Link}
-      recentlyAdded={(overview.data?.recentlyAdded ?? []).map((book) => ({
-        author: book.authors.map((author) => author.name).join(", "),
-        href: `/books/${book.id}`,
-        id: book.id,
-        title: book.title,
-      }))}
-      topGenres={(overview.data?.topGenres ?? []).map((genre) => ({
-        count: genre.count,
-        key: genre.key,
-        name: genreNameByKey.get(genre.key) ?? genre.name,
-      }))}
-      topTags={(overview.data?.topTags ?? []).map((tag) => ({ id: tag.id, name: tag.name }))}
+      recentlyAdded={recentlyAdded}
+      topGenres={topGenres}
+      topTags={topTags}
     />
   );
 
@@ -312,6 +319,16 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       subtitle={t(`${scope}.subtitle`)}
       summaryCards={summaryCards}
       summaryLoading={overview.isPending}
+      summaryMobileAction={
+        <LibraryOverviewPanel
+          isLoading={overview.isPending}
+          linkComponent={Link}
+          recentlyAdded={recentlyAdded}
+          summaryCards={summaryCards}
+          topGenres={topGenres}
+          topTags={topTags}
+        />
+      }
       summaryMobileLayout="compact"
       title={t(`${scope}.title`)}
       view={library.view}

@@ -965,6 +965,17 @@
         "topTagsEmpty": "Теги ще не додані",
         "recentlyAdded": "Нещодавно додані",
         "recentlyAddedEmpty": "Книг ще немає"
+      },
+      "overviewPanel": {
+        "trigger": "Огляд бібліотеки",
+        "title": "Огляд бібліотеки",
+        "subtitle": "Статистика, жанри й активність",
+        "close": "Закрити огляд",
+        "tabs": {
+          "overview": "Огляд",
+          "taxonomy": "Жанри й теги",
+          "activity": "Активність"
+        }
       }
     },
     "deleteConfirm": {

@@ -965,6 +965,17 @@
         "topTagsEmpty": "No tags yet",
         "recentlyAdded": "Recently added",
         "recentlyAddedEmpty": "No books yet"
+      },
+      "overviewPanel": {
+        "trigger": "Library overview",
+        "title": "Library overview",
+        "subtitle": "Stats, genres and activity",
+        "close": "Close overview",
+        "tabs": {
+          "overview": "Overview",
+          "taxonomy": "Genres & tags",
+          "activity": "Activity"
+        }
       }
     },
     "deleteConfirm": {

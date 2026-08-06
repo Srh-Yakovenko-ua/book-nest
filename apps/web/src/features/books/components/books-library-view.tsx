@@ -85,6 +85,7 @@ type BooksLibraryViewProps = {
   subtitle: string;
   summaryCards: LibrarySummaryCard[];
   summaryLoading: boolean;
+  summaryMobileAction?: ReactNode;
   summaryMobileLayout?: "compact" | "grid";
   title: string;
   view: LibraryViewMode;
@@ -121,6 +122,7 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     subtitle,
     summaryCards,
     summaryLoading,
+    summaryMobileAction,
     summaryMobileLayout,
     title,
   } = props;
@@ -181,6 +183,7 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
         <LibrarySummaryCards
           cards={summaryCards}
           isLoading={summaryLoading}
+          mobileAction={summaryMobileAction}
           mobileLayout={summaryMobileLayout}
         />
       </header>

@@ -25,12 +25,14 @@ export type LibrarySummaryCard = {
 type LibrarySummaryCardsProps = {
   cards: LibrarySummaryCard[];
   isLoading: boolean;
+  mobileAction?: ReactNode;
   mobileLayout?: "compact" | "grid";
 };
 
 export function LibrarySummaryCards({
   cards,
   isLoading,
+  mobileAction,
   mobileLayout = "grid",
 }: LibrarySummaryCardsProps) {
   const compactOnMobile = mobileLayout === "compact";
@@ -38,7 +40,12 @@ export function LibrarySummaryCards({
   return (
     <>
       {compactOnMobile ? (
-        <LibrarySummaryMobile cards={cards} className="sm:hidden" isLoading={isLoading} />
+        <LibrarySummaryMobile
+          action={mobileAction}
+          cards={cards}
+          className="sm:hidden"
+          isLoading={isLoading}
+        />
       ) : null}
       <SummaryGrid
         cards={cards}
