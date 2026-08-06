@@ -18,7 +18,7 @@ import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
-import type { CreateDeliveryData, UpdateDeliveryData } from "./book-deliveries.repository.js";
+import type { CreateDeliveryData, UpdateDeliveryData } from "../../delivery/index.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";

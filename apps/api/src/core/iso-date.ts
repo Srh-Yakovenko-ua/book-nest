@@ -28,6 +28,10 @@ export function startOfUtcDay(date: Date): Date {
   return parseIsoDate(toIsoDate(date));
 }
 
+export function toCreateDate(value: Nullable<string> | undefined): Nullable<Date> {
+  return value === undefined || value === null ? null : parseIsoDate(value);
+}
+
 export function toIsoDate(date: Date): string {
   return formatInTimeZone(date, UTC_TIME_ZONE, ISO_DATE_FORMAT);
 }
@@ -38,4 +42,8 @@ export function toNullableIsoDate(value: Nullable<Date>): Nullable<string> {
 
 export function toNullableIsoDateTime(value: Nullable<Date>): Nullable<string> {
   return value === null ? null : value.toISOString();
+}
+
+export function toUpdateDate(value: Nullable<string> | undefined): Nullable<Date> | undefined {
+  return value === undefined || value === null ? value : parseIsoDate(value);
 }

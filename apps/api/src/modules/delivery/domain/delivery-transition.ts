@@ -1,12 +1,8 @@
 import type { CreateDeliveryInput, Nullable, UpdateDeliveryInput } from "@app/shared";
 
-import type {
-  CreateDeliveryTransition,
-  RecordDeliveryTransition,
-} from "../infrastructure/book-deliveries.repository.js";
+import type { CreateDeliveryTransition, RecordDeliveryTransition } from "./delivery-write.js";
 
-import { parseIsoDate } from "../../../core/iso-date.js";
-import { toCreateDate, toUpdateDate } from "./book-blocks.js";
+import { parseIsoDate, toCreateDate, toUpdateDate } from "../../../core/iso-date.js";
 
 const STATUS_ORDERED = "ordered";
 const STATUS_RECEIVED = "received";

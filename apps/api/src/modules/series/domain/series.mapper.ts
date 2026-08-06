@@ -22,7 +22,8 @@ import type { SeriesAggregateBookRow } from "./series-aggregates.js";
 import type { SeriesBookRow } from "./series-preview.js";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
-import { toDeliverySummaryView, toLoanInfoView } from "../../books/index.js";
+import { toDeliverySummaryView } from "../../delivery/index.js";
+import { toLoanInfoView } from "../../loans/index.js";
 import { summarizeSeriesAggregates } from "./series-aggregates.js";
 import {
   compareByPartThenCreated,

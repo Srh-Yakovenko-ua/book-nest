@@ -16,8 +16,8 @@ import {
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
-import type { RecordDeliveryTransition } from "../../books/index.js";
 import type { StatisticsRecord } from "../domain/delivery-statistics.js";
+import type { RecordDeliveryTransition } from "../domain/delivery-write.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";

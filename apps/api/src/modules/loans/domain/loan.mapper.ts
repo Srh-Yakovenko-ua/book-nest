@@ -3,7 +3,7 @@ import { type LoanInfoView, LoanTypeSchema, type Nullable } from "@app/shared";
 import type { BookLoanModel } from "../../../generated/prisma/models.js";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
-import { getLoanUiStatus } from "../../loans/index.js";
+import { getLoanUiStatus } from "./loan-ui-status.js";
 
 export function toLoanInfoView({
   loans,
