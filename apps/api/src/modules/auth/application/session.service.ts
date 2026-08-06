@@ -1,7 +1,7 @@
 import type { AuthResultView } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-import { differenceInMilliseconds, milliseconds } from "date-fns";
+import { differenceInMilliseconds, isAfter, milliseconds } from "date-fns";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { UserModel } from "../../../generated/prisma/models.js";
@@ -84,7 +84,7 @@ export class SessionService {
       throw new UnauthorizedError(SESSION_REUSE_MESSAGE);
     }
 
-    if (session.expiresAt <= now) {
+    if (!isAfter(session.expiresAt, now)) {
       await this.sessionsRepository.deleteById(session.id);
       throw new UnauthorizedError(SESSION_EXPIRED_MESSAGE);
     }

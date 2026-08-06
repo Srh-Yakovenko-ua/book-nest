@@ -72,6 +72,7 @@ function makeBook(overrides: Partial<SeriesDetailBook> = {}): SeriesDetailBook {
     readingStatus: "not_started",
     tags: [],
     title: "Book One",
+    updatedAt: BASE_CREATED_AT,
     ...overrides,
   });
 }

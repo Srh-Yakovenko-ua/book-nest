@@ -1,5 +1,7 @@
 import type { ChangelogCategory, Nullable } from "@app/shared";
 
+import { parseISO } from "date-fns";
+
 import { createLogger } from "../core/logger.js";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { createSeedClient } from "./seed-client.js";
@@ -496,7 +498,7 @@ async function seedEntries(prisma: PrismaClientInstance): Promise<void> {
   const existingSlugs = new Set(existing.map((row) => row.slug));
 
   for (const entry of CHANGELOG_ENTRIES) {
-    const publishedAt = new Date(entry.publishedAt);
+    const publishedAt = parseISO(entry.publishedAt);
     await prisma.changelogEntry.upsert({
       create: {
         bodyEn: entry.bodyEn,

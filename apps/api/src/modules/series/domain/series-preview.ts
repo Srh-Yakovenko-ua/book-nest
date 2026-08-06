@@ -1,7 +1,7 @@
 import type { Nullable, OwnershipStatus, ReadingStatus, SeriesNextBook } from "@app/shared";
 
 import { BOOK_PART_NUMBER_MIN, OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
-import { compareAsc } from "date-fns";
+import { compareAsc, max } from "date-fns";
 
 export type EarlierPartCandidate = Pick<SeriesBookPreview, "partNumber" | "readingStatus">;
 
@@ -94,10 +94,7 @@ export function computeSeriesLastActivityAt({
   books: SeriesBookPreview[];
   seriesUpdatedAt: Date;
 }): Date {
-  return books.reduce(
-    (latest, book) => (book.updatedAt > latest ? book.updatedAt : latest),
-    seriesUpdatedAt,
-  );
+  return max([seriesUpdatedAt, ...books.map((book) => book.updatedAt)]);
 }
 
 export function countFinishedBooks(books: SeriesBookPreview[]): number {
