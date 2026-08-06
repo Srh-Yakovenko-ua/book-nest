@@ -631,7 +631,23 @@
         "finishedPercent": "{percent}% of owned books",
         "readingNone": "No active",
         "readingProgress": "{current} of {total} pp. · {percent}%",
-        "readingPagesAhead": "{pagesAhead} pages ahead"
+        "readingPagesAhead": "{pagesAhead} pages ahead",
+        "mobile": {
+          "title": "Detailed statistics",
+
+          "compact": {
+            "total": "Total",
+            "reading": "Reading",
+            "finished": "Read",
+            "favorites": "Favorites"
+          },
+          "detailed": {
+            "total": "Total books",
+            "reading": "Currently reading",
+            "finished": "Read",
+            "favorites": "Favorites"
+          }
+        }
       },
       "sort": {
         "label": "Sort",
@@ -651,6 +667,53 @@
           "pages_asc": "Page count: fewest first",
           "favorite_added_desc": "Added to favorites: newest first",
           "favorite_added_asc": "Added to favorites: oldest first"
+        },
+        "mobile": {
+          "title": "Sorting",
+          "close": "Close",
+          "groups": {
+            "date": "Date",
+            "favorite_added": "Added to favorites",
+            "title": "Title",
+            "author": "Author",
+            "rating": "Rating",
+            "year": "Publication year",
+            "pages": "Page count"
+          },
+          "options": {
+            "created_desc": "Newest first",
+            "created_asc": "Oldest first",
+            "updated_desc": "Recently updated",
+            "favorite_added_desc": "Newest",
+            "favorite_added_asc": "Oldest",
+            "title_asc": "A–Z",
+            "title_desc": "Z–A",
+            "author_asc": "A–Z",
+            "author_desc": "Z–A",
+            "rating_desc": "Highest",
+            "rating_asc": "Lowest",
+            "year_desc": "Newest editions",
+            "year_asc": "Oldest editions",
+            "pages_desc": "Most pages",
+            "pages_asc": "Fewest pages"
+          },
+          "trigger": {
+            "created_desc": "Added ↓",
+            "created_asc": "Added ↑",
+            "updated_desc": "Updated ↓",
+            "favorite_added_desc": "Favorites ↓",
+            "favorite_added_asc": "Favorites ↑",
+            "title_asc": "Title A–Z",
+            "title_desc": "Title Z–A",
+            "author_asc": "Author A–Z",
+            "author_desc": "Author Z–A",
+            "rating_desc": "Rating ↓",
+            "rating_asc": "Rating ↑",
+            "year_desc": "Year ↓",
+            "year_asc": "Year ↑",
+            "pages_desc": "Pages ↓",
+            "pages_asc": "Pages ↑"
+          }
         }
       },
       "view": {
@@ -699,7 +762,7 @@
       },
       "search": {
         "label": "Search books",
-        "placeholder": "Search by title, author or series",
+        "placeholder": "Book title, author or series",
         "clear": "Clear search"
       },
       "quickFilters": {
@@ -902,6 +965,17 @@
         "topTagsEmpty": "No tags yet",
         "recentlyAdded": "Recently added",
         "recentlyAddedEmpty": "No books yet"
+      },
+      "overviewPanel": {
+        "trigger": "Library overview",
+        "title": "Library overview",
+        "subtitle": "Stats, genres and activity",
+        "close": "Close overview",
+        "tabs": {
+          "overview": "Overview",
+          "taxonomy": "Genres & tags",
+          "activity": "Activity"
+        }
       }
     },
     "deleteConfirm": {
@@ -1395,6 +1469,7 @@
       "seriesPartWithNumber": "{series} · part {number}",
       "authorsShowAll": "Show all authors",
       "authorsCollapse": "Collapse",
+      "tagsShowAll": "Show all tags",
       "dedicationLabel": "Author's dedication",
       "dedicationAllLink": "All dedications",
       "dedicationCopy": "Copy",

@@ -254,13 +254,17 @@ describe("SeriesDetailsHero", () => {
       totalBooks: 3,
     });
 
-    const statusBadge = screen.getByText("Завершена");
-    const readBadge = screen.getByText("Серію прочитано");
+    const statusLabel = screen.getByText("Завершена");
+    const readLabel = screen.getByText("Серію прочитано");
+    const statusBadge = statusLabel.closest('[data-slot="status-badge"]');
+    const readBadge = readLabel.closest('[data-slot="status-badge"]');
     const title = screen.getByRole("heading", { level: 1, name: "Емпіреї" });
 
-    expect(statusBadge.parentElement).toBe(readBadge.parentElement);
+    expect(statusBadge).not.toBeNull();
+    expect(readBadge).not.toBeNull();
+    expect(statusBadge?.parentElement).toBe(readBadge?.parentElement);
     expect(
-      Boolean(readBadge.compareDocumentPosition(title) & readBadge.DOCUMENT_POSITION_FOLLOWING),
+      Boolean(readLabel.compareDocumentPosition(title) & readLabel.DOCUMENT_POSITION_FOLLOWING),
     ).toBe(true);
   });
 

@@ -114,8 +114,16 @@ export function PublisherToolbar({
             label={t("viewLabel")}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
             options={[
-              { icon: <LayoutGrid />, label: t("viewGrid"), value: "grid" },
-              { icon: <List />, label: t("viewList"), value: "list" },
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{t("viewGrid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{t("viewList")}</span>,
+                value: "list",
+              },
             ]}
             value={view}
           />

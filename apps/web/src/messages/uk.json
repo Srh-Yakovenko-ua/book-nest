@@ -631,7 +631,23 @@
         "finishedPercent": "{percent}% наявних книг",
         "readingNone": "Немає активних",
         "readingProgress": "{current} з {total} стор. · {percent}%",
-        "readingPagesAhead": "{pagesAhead} стор. попереду"
+        "readingPagesAhead": "{pagesAhead} стор. попереду",
+        "mobile": {
+          "title": "Детальна статистика",
+
+          "compact": {
+            "total": "Усього",
+            "reading": "Читаю",
+            "finished": "Прочитано",
+            "favorites": "Улюблені"
+          },
+          "detailed": {
+            "total": "Усього книг",
+            "reading": "Читаю зараз",
+            "finished": "Прочитано",
+            "favorites": "Улюблені"
+          }
+        }
       },
       "sort": {
         "label": "Сортування",
@@ -651,6 +667,53 @@
           "pages_asc": "За кількістю сторінок: від меншої",
           "favorite_added_desc": "Додані в улюблені: спочатку нові",
           "favorite_added_asc": "Додані в улюблені: спочатку старі"
+        },
+        "mobile": {
+          "title": "Сортування",
+          "close": "Закрити",
+          "groups": {
+            "date": "Дата",
+            "favorite_added": "Додано в улюблені",
+            "title": "Назва",
+            "author": "Автор",
+            "rating": "Рейтинг",
+            "year": "Рік видання",
+            "pages": "Кількість сторінок"
+          },
+          "options": {
+            "created_desc": "Спочатку нові",
+            "created_asc": "Спочатку старі",
+            "updated_desc": "Нещодавно оновлені",
+            "favorite_added_desc": "Новіші",
+            "favorite_added_asc": "Старіші",
+            "title_asc": "А–Я",
+            "title_desc": "Я–А",
+            "author_asc": "А–Я",
+            "author_desc": "Я–А",
+            "rating_desc": "Найвищий",
+            "rating_asc": "Найнижчий",
+            "year_desc": "Найновіші видання",
+            "year_asc": "Найстаріші видання",
+            "pages_desc": "Найбільше сторінок",
+            "pages_asc": "Найменше сторінок"
+          },
+          "trigger": {
+            "created_desc": "Додано ↓",
+            "created_asc": "Додано ↑",
+            "updated_desc": "Оновлено ↓",
+            "favorite_added_desc": "Улюблені ↓",
+            "favorite_added_asc": "Улюблені ↑",
+            "title_asc": "Назва А–Я",
+            "title_desc": "Назва Я–А",
+            "author_asc": "Автор А–Я",
+            "author_desc": "Автор Я–А",
+            "rating_desc": "Рейтинг ↓",
+            "rating_asc": "Рейтинг ↑",
+            "year_desc": "Рік ↓",
+            "year_asc": "Рік ↑",
+            "pages_desc": "Сторінки ↓",
+            "pages_asc": "Сторінки ↑"
+          }
         }
       },
       "view": {
@@ -699,7 +762,7 @@
       },
       "search": {
         "label": "Пошук книг",
-        "placeholder": "Пошук за назвою, автором або серією",
+        "placeholder": "Назва книги, автор або серія",
         "clear": "Очистити пошук"
       },
       "quickFilters": {
@@ -902,6 +965,17 @@
         "topTagsEmpty": "Теги ще не додані",
         "recentlyAdded": "Нещодавно додані",
         "recentlyAddedEmpty": "Книг ще немає"
+      },
+      "overviewPanel": {
+        "trigger": "Огляд бібліотеки",
+        "title": "Огляд бібліотеки",
+        "subtitle": "Статистика, жанри й активність",
+        "close": "Закрити огляд",
+        "tabs": {
+          "overview": "Огляд",
+          "taxonomy": "Жанри й теги",
+          "activity": "Активність"
+        }
       }
     },
     "deleteConfirm": {
@@ -1395,6 +1469,7 @@
       "seriesPartWithNumber": "{series} · частина {number}",
       "authorsShowAll": "Показати всіх авторів",
       "authorsCollapse": "Згорнути",
+      "tagsShowAll": "Показати всі теги",
       "dedicationLabel": "Присвята автора",
       "dedicationAllLink": "Усі присвяти",
       "dedicationCopy": "Скопіювати",

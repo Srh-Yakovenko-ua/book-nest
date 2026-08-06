@@ -22,13 +22,20 @@ import { shouldShowReadingQueue } from "../model/reading-queue-visibility";
 type BookCardActionsProps = {
   actions: LibraryActions;
   book: LibraryBook;
+  compact?: boolean;
   onOpenDialog: (action: PendingBookAction) => void;
 };
 
-export function BookCardActions({ actions, book, onOpenDialog }: BookCardActionsProps) {
+const MOBILE_COMPACT = {
+  button: "max-sm:size-6",
+  icon: "max-sm:size-4",
+} as const;
+
+export function BookCardActions({ actions, book, compact, onOpenDialog }: BookCardActionsProps) {
   const t = useTranslations("books.library");
 
   const favoriteLabel = book.isFavorite ? t("actions.unfavorite") : t("actions.favorite");
+  const mobile = compact === true ? MOBILE_COMPACT : null;
 
   return (
     <div className="flex items-center gap-0.5">
@@ -37,6 +44,7 @@ export function BookCardActions({ actions, book, onOpenDialog }: BookCardActions
         aria-pressed={book.isFavorite}
         className={cn(
           "size-8 rounded-lg border backdrop-blur-md transition-all duration-[180ms] ease-out",
+          mobile?.button,
           book.isFavorite
             ? "border-brand bg-brand text-white shadow-btn hover:border-primary-hover hover:bg-primary-hover hover:text-white dark:hover:bg-primary-hover [&_svg]:animate-[heart-pop_320ms_ease]"
             : "border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] text-[color:var(--book-overlay-pill-foreground)] shadow-[var(--book-overlay-pill-shadow)] hover:border-brand hover:text-brand",
@@ -46,18 +54,25 @@ export function BookCardActions({ actions, book, onOpenDialog }: BookCardActions
         title={favoriteLabel}
         variant="ghost"
       >
-        <UiIcon name={book.isFavorite ? "heart-fill" : "heart"} size={18} />
+        <UiIcon
+          className={mobile?.icon}
+          name={book.isFavorite ? "heart-fill" : "heart"}
+          size={18}
+        />
       </Button>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             aria-label={t("menu")}
-            className="size-8 rounded-lg border border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] text-[color:var(--book-overlay-pill-foreground)] shadow-[var(--book-overlay-pill-shadow)] backdrop-blur-md transition-all duration-[180ms] ease-out hover:border-brand hover:text-brand"
+            className={cn(
+              "size-8 rounded-lg border border-[color:var(--book-overlay-pill-border)] bg-[var(--book-overlay-pill-surface)] text-[color:var(--book-overlay-pill-foreground)] shadow-[var(--book-overlay-pill-shadow)] backdrop-blur-md transition-all duration-[180ms] ease-out hover:border-brand hover:text-brand",
+              mobile?.button,
+            )}
             size="icon-sm"
             variant="ghost"
           >
-            <UiIcon name="more" size={18} />
+            <UiIcon className={mobile?.icon} name="more" size={18} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">

@@ -5,7 +5,7 @@ import { expect, userEvent, waitFor } from "storybook/test";
 
 import { LibrarySearchInput } from "./library-search-input";
 
-const PLACEHOLDER = "Пошук за назвою, автором або серією";
+const PLACEHOLDER = "Назва книги, автор або серія";
 
 function Harness({ initial = "" }: { initial?: string }) {
   const [value, setValue] = useState(initial);
