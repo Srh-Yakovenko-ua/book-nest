@@ -7,6 +7,7 @@ import type {
   ListsListParams,
   ListSort,
   ListsQueryState,
+  ListViewMode,
 } from "./lists-query";
 
 import {
@@ -23,6 +24,7 @@ export type UseListsQueryResult = {
   setSearch: (value: string) => void;
   setSort: (value: ListSort) => void;
   setState: ReturnType<typeof useQueryStates<typeof listsQueryParsers>>[1];
+  setView: (value: ListViewMode) => void;
   state: ListsQueryState;
   toggleAttention: (value: ListAttentionReason) => void;
 };
@@ -37,6 +39,7 @@ export function useListsQuery(): UseListsQueryResult {
     setSearch: (value) => void setState({ q: value === "" ? null : value }),
     setSort: (value) => void setState({ sort: value }),
     setState,
+    setView: (value) => void setState({ view: value }),
     state,
     toggleAttention: (value) =>
       void setState({ attention: state.attention === value ? null : value }),

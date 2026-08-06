@@ -2908,6 +2908,11 @@
         "books_count_desc": "Book count: most first",
         "books_count_asc": "Book count: fewest first"
       },
+      "view": {
+        "label": "View",
+        "grid": "Grid",
+        "list": "List"
+      },
       "card": {
         "books": "{count, plural, one {# book} other {# books}}",
         "emptyPreview": "No books in this list yet",
