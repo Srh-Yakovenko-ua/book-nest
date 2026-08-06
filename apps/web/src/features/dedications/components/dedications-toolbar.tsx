@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
@@ -25,7 +26,6 @@ import {
   DEDICATION_SORT_DEFAULT,
   DEDICATION_SORT_OPTIONS,
 } from "../model/dedications-query";
-import { DedicationsSortSheet } from "./dedications-sort-sheet";
 
 const ANY_GENRE = "__any__";
 
@@ -64,6 +64,7 @@ export function DedicationsToolbar({
   const tCommon = useTranslations("common");
   const tFilter = useTranslations("dedications.filter");
   const tSort = useTranslations("dedications.sort");
+  const tSortMobile = useTranslations("dedications.sort.mobile");
   const tView = useTranslations("dedications.view");
   const locale = useLocale();
   const genres = useGenres();
@@ -88,7 +89,22 @@ export function DedicationsToolbar({
           />
         </div>
         <div className="flex items-center gap-1.5 max-sm:flex-nowrap sm:flex-wrap sm:gap-2.5">
-          <DedicationsSortSheet className="sm:hidden" onChange={onSortChange} value={sort} />
+          <MobileSortSheet
+            className="sm:hidden"
+            closeLabel={tSortMobile("close")}
+            groups={[
+              {
+                key: "sort",
+                options: DEDICATION_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
+              },
+            ]}
+            id="dedications-sort"
+            label={t("sortLabel")}
+            onChange={onSortChange}
+            title={tSortMobile("title")}
+            triggerLabel={tSortMobile(`trigger.${sort}`)}
+            value={sort}
+          />
 
           <div className="hidden sm:block sm:w-80">
             <Select

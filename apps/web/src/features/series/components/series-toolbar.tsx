@@ -4,6 +4,7 @@ import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { UiIcon } from "@/components/icons";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
@@ -29,7 +30,6 @@ import {
   SERIES_STATUS_FILTERS,
 } from "../model/series-derive";
 import { SeriesAdvancedFilters } from "./series-advanced-filters";
-import { SeriesSortSheet } from "./series-sort-sheet";
 
 type SeriesToolbarProps = {
   advancedFilters: SeriesAdvancedFiltersValue;
@@ -71,6 +71,7 @@ export function SeriesToolbar({
   const tStatus = useTranslations("series.statusFilter");
   const tReading = useTranslations("series.readingFilter");
   const tSort = useTranslations("series.sort");
+  const tSortMobile = useTranslations("series.sort.mobile");
   const tView = useTranslations("series.view");
 
   return (
@@ -125,7 +126,22 @@ export function SeriesToolbar({
         </div>
 
         <div className="flex items-center gap-1.5 sm:contents">
-          <SeriesSortSheet className="sm:hidden" onChange={onSortChange} value={sort} />
+          <MobileSortSheet
+            className="sm:hidden"
+            closeLabel={tSortMobile("close")}
+            groups={[
+              {
+                key: "sort",
+                options: SERIES_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
+              },
+            ]}
+            id="series-sort"
+            label={t("sortLabel")}
+            onChange={onSortChange}
+            title={tSortMobile("title")}
+            triggerLabel={tSortMobile(`trigger.${sort}`)}
+            value={sort}
+          />
           <div className="hidden sm:block sm:w-52">
             <ToolbarSelect
               clearable={sort !== SERIES_SORT_DEFAULT}

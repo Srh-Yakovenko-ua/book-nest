@@ -2223,7 +2223,32 @@
       "expectedThisWeek": "Очікуються цього тижня",
       "delayed": "Затримуються",
       "total": "Загальна сума",
-      "stores": "Магазини"
+      "stores": "Магазини",
+
+      "mobile": {
+        "title": "Детальна статистика",
+
+        "compact": {
+          "active": "В дорозі",
+          "expectedThisWeek": "Тиждень",
+          "delayed": "Затримка",
+          "total": "Сума",
+          "stores": "Магазини"
+        },
+        "detailed": {
+          "active": "Усього в дорозі",
+          "expectedThisWeek": "Очікуються цього тижня",
+          "delayed": "Затримуються",
+          "total": "Загальна сума",
+          "stores": "Магазини"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Огляд доставок",
+      "title": "Огляд доставок",
+      "subtitle": "Повна статистика розділу",
+      "close": "Закрити огляд"
     },
     "search": {
       "label": "Пошук доставок",
@@ -2336,7 +2361,26 @@
         "active": "Активні",
         "received": "Отримані",
         "cancelled": "Скасовані",
-        "total": "Загальна сума"
+        "total": "Загальна сума",
+
+        "mobile": {
+          "title": "Детальна статистика",
+
+          "compact": {
+            "totalOrders": "Усього",
+            "active": "Активні",
+            "received": "Отримані",
+            "cancelled": "Скасовані",
+            "total": "Сума"
+          },
+          "detailed": {
+            "totalOrders": "Усього замовлень",
+            "active": "Активні",
+            "received": "Отримані",
+            "cancelled": "Скасовані",
+            "total": "Загальна сума"
+          }
+        }
       },
       "tabs": {
         "label": "Групи замовлень",
@@ -2413,7 +2457,28 @@
         "received": "Отримані замовлення",
         "cancelled": "Скасовані замовлення",
         "average": "Середня ціна",
-        "pricedOrders": "Замовлень з ціною"
+        "pricedOrders": "Замовлень з ціною",
+
+        "mobile": {
+          "title": "Детальна статистика",
+
+          "compact": {
+            "total": "Сума",
+            "active": "Активні",
+            "received": "Отримані",
+            "cancelled": "Скасовані",
+            "average": "Середня",
+            "pricedOrders": "З ціною"
+          },
+          "detailed": {
+            "total": "Загальна сума",
+            "active": "Активні замовлення",
+            "received": "Отримані замовлення",
+            "cancelled": "Скасовані замовлення",
+            "average": "Середня ціна",
+            "pricedOrders": "Замовлень з ціною"
+          }
+        }
       },
       "controls": {
         "includeCancelled": "Включити скасовані замовлення",
@@ -3126,7 +3191,22 @@
         "title_asc": "За назвою: А–Я",
         "title_desc": "За назвою: Я–А",
         "books_count_desc": "За кількістю книг: спочатку більше",
-        "books_count_asc": "За кількістю книг: спочатку менше"
+        "books_count_asc": "За кількістю книг: спочатку менше",
+
+        "mobile": {
+          "title": "Сортування",
+          "close": "Закрити",
+
+          "trigger": {
+            "updated_desc": "Оновлені",
+            "created_desc": "Нові",
+            "created_asc": "Старі",
+            "title_asc": "А–Я",
+            "title_desc": "Я–А",
+            "books_count_desc": "Книг ↓",
+            "books_count_asc": "Книг ↑"
+          }
+        }
       },
       "view": {
         "label": "Вигляд",
@@ -3188,7 +3268,34 @@
         "largestList": "Найбільший список — {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
         "multiList": "У кількох списках",
         "maxReach": "Найчастіше — у {count, plural, one {# списку} few {# списках} many {# списках} other {# списках}}",
-        "singleListOnly": "Кожна книга лише в одному списку"
+        "singleListOnly": "Кожна книга лише в одному списку",
+
+        "mobile": {
+          "title": "Детальна статистика",
+
+          "compact": {
+            "totalLists": "Списків",
+            "uniqueBooks": "Книг",
+            "averageSize": "Середнє",
+            "multiList": "У кількох"
+          },
+          "detailed": {
+            "totalLists": "Усього списків",
+            "uniqueBooks": "Унікальних книг",
+            "averageSize": "Середній розмір",
+            "multiList": "У кількох списках"
+          }
+        }
+      },
+      "overviewPanel": {
+        "trigger": "Огляд списків",
+        "title": "Огляд списків",
+        "subtitle": "Статистика та що потребує уваги",
+        "close": "Закрити огляд",
+        "tabs": {
+          "overview": "Огляд",
+          "attention": "Увага"
+        }
       },
       "sidebar": {
         "tip": {
@@ -3281,6 +3388,33 @@
         "title": "Не вдалося завантажити зведення",
         "description": "Не вдалося завантажити зведення по позиках.",
         "retry": "Спробувати ще раз"
+      },
+
+      "mobile": {
+        "title": "Детальна статистика",
+
+        "compact": {
+          "borrowed": "Взяла",
+          "lent": "Дала",
+          "returnThisWeek": "Тиждень",
+          "overdue": "Прострочені"
+        },
+        "detailed": {
+          "borrowed": "Взяла у когось",
+          "lent": "Дала комусь",
+          "returnThisWeek": "Повернути цього тижня",
+          "overdue": "Прострочено"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Огляд позик",
+      "title": "Огляд позик",
+      "subtitle": "Статистика та найближчі повернення",
+      "close": "Закрити огляд",
+      "tabs": {
+        "overview": "Огляд",
+        "schedule": "Повернення"
       }
     },
     "tabs": {
@@ -3309,7 +3443,22 @@
       "author": "За автором",
       "person": "За людиною",
       "overdue_first": "Спочатку прострочені",
-      "return_soonest": "Спочатку найближчі повернення"
+      "return_soonest": "Спочатку найближчі повернення",
+
+      "mobile": {
+        "title": "Сортування",
+        "close": "Закрити",
+
+        "trigger": {
+          "return_date": "Повернення",
+          "loan_date": "Позика",
+          "title": "Назва",
+          "author": "Автор",
+          "person": "Людина",
+          "overdue_first": "Прострочені",
+          "return_soonest": "Найближчі"
+        }
+      }
     },
     "status": {
       "on_time": "Вчасно",

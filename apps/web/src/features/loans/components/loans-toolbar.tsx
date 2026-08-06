@@ -8,6 +8,7 @@ import type {
 } from "@/shared/api/generated/model";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import {
   Select,
   SelectContent,
@@ -41,6 +42,7 @@ export function LoansToolbar({
   const tCommon = useTranslations("common");
   const tFilters = useTranslations("loans.filters");
   const tSort = useTranslations("loans.sort");
+  const tSortMobile = useTranslations("loans.sort.mobile");
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -55,22 +57,44 @@ export function LoansToolbar({
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
-        <ToolbarSelect
-          label={t("filterLabel")}
-          onChange={onFilterChange}
-          options={LOANS_FILTER_VALUES.map((value) => ({ label: tFilters(value), value }))}
-          value={filter}
-        />
-        <ToolbarSelect
-          clearable={sort !== LOANS_SORT_DEFAULT}
-          clearLabel={tCommon("clear")}
+      <div className="flex items-center gap-1.5 sm:flex-wrap sm:gap-2.5">
+        <div className="min-w-0 flex-1 sm:w-56 sm:flex-none">
+          <ToolbarSelect
+            label={t("filterLabel")}
+            onChange={onFilterChange}
+            options={LOANS_FILTER_VALUES.map((value) => ({ label: tFilters(value), value }))}
+            value={filter}
+          />
+        </div>
+
+        <MobileSortSheet
+          className="sm:hidden"
+          closeLabel={tSortMobile("close")}
+          groups={[
+            {
+              key: "sort",
+              options: LOANS_SORT_VALUES.map((value) => ({ label: tSort(value), value })),
+            },
+          ]}
+          id="loans-sort"
           label={t("sortLabel")}
           onChange={onSortChange}
-          onClear={() => onSortChange(LOANS_SORT_DEFAULT)}
-          options={LOANS_SORT_VALUES.map((value) => ({ label: tSort(value), value }))}
+          title={tSortMobile("title")}
+          triggerLabel={tSortMobile(`trigger.${sort}`)}
           value={sort}
         />
+
+        <div className="hidden sm:block sm:w-56">
+          <ToolbarSelect
+            clearable={sort !== LOANS_SORT_DEFAULT}
+            clearLabel={tCommon("clear")}
+            label={t("sortLabel")}
+            onChange={onSortChange}
+            onClear={() => onSortChange(LOANS_SORT_DEFAULT)}
+            options={LOANS_SORT_VALUES.map((value) => ({ label: tSort(value), value }))}
+            value={sort}
+          />
+        </div>
       </div>
     </div>
   );

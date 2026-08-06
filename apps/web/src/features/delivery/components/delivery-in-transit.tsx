@@ -6,6 +6,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useReceiveDelivery } from "@/features/books/api/use-delivery";
@@ -14,7 +16,6 @@ import { ApiError } from "@/lib/http-client";
 
 import type { DeliveryCardModel } from "../model/delivery-card-model";
 import type { DeliveryContent } from "./delivery-in-transit-view";
-import type { DeliverySummaryCard } from "./delivery-summary-cards";
 
 import { useDeliverySync } from "../api/delivery-cache";
 import { useInTransitList } from "../api/use-in-transit-list";
@@ -26,6 +27,7 @@ import { DeliveryCancelDialog } from "./delivery-cancel-dialog";
 import { DeliveryCard } from "./delivery-card";
 import { DeliveryEditDialog } from "./delivery-edit-dialog";
 import { DeliveryInTransitView } from "./delivery-in-transit-view";
+import { DeliveryOverviewPanel } from "./delivery-overview-panel";
 import { DeliveryReceiveDialog } from "./delivery-receive-dialog";
 import { DeliverySummaryCards } from "./delivery-summary-cards";
 import { DeliveryToolbar } from "./delivery-toolbar";
@@ -135,26 +137,45 @@ export function DeliveryInTransit() {
           .join(" · ")
       : "—";
 
-  const summaryCards: DeliverySummaryCard[] = [
+  const mobileLabels = (key: "active" | "delayed" | "expectedThisWeek" | "stores" | "total") => ({
+    compact: tSummary(`mobile.compact.${key}`),
+    detailed: tSummary(`mobile.detailed.${key}`),
+  });
+
+  const summaryCards: LibrarySummaryCard[] = [
     {
       icon: "truck",
+      iconTone: "primary",
       label: tSummary("active"),
+      mobileLabels: mobileLabels("active"),
       value: (summaryData?.activeCount ?? 0).toLocaleString(locale),
     },
     {
       icon: "clock",
+      iconTone: "info",
       label: tSummary("expectedThisWeek"),
+      mobileLabels: mobileLabels("expectedThisWeek"),
       value: (summaryData?.expectedThisWeek ?? 0).toLocaleString(locale),
     },
     {
       icon: "alert-triangle",
+      iconTone: "favorite",
       label: tSummary("delayed"),
+      mobileLabels: mobileLabels("delayed"),
       value: (summaryData?.delayedCount ?? 0).toLocaleString(locale),
     },
-    { icon: "wallet", label: tSummary("total"), value: totalText },
+    {
+      icon: "wallet",
+      iconTone: "success",
+      label: tSummary("total"),
+      mobileLabels: mobileLabels("total"),
+      value: totalText,
+    },
     {
       icon: "store",
+      iconTone: "ink",
       label: tSummary("stores"),
+      mobileLabels: mobileLabels("stores"),
       value: (summaryData?.uniqueStores ?? 0).toLocaleString(locale),
     },
   ];
@@ -212,7 +233,19 @@ export function DeliveryInTransit() {
             : undefined
         }
         showToolbar={showToolbar}
-        summary={<DeliverySummaryCards cards={summaryCards} isLoading={summaryQuery.isPending} />}
+        summary={
+          <DeliverySummaryCards
+            cards={summaryCards}
+            isLoading={summaryQuery.isPending}
+            mobileAction={
+              <DeliveryOverviewPanel
+                detailsTitle={tSummary("mobile.title")}
+                isLoading={summaryQuery.isPending}
+                summaryCards={summaryCards}
+              />
+            }
+          />
+        }
         toolbar={
           <DeliveryToolbar
             counterLabel={t("counter", { count: totalCount })}

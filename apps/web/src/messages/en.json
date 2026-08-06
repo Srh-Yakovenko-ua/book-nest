@@ -2223,7 +2223,32 @@
       "expectedThisWeek": "Expected this week",
       "delayed": "Delayed",
       "total": "Total amount",
-      "stores": "Stores"
+      "stores": "Stores",
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "active": "In transit",
+          "expectedThisWeek": "This week",
+          "delayed": "Delayed",
+          "total": "Amount",
+          "stores": "Stores"
+        },
+        "detailed": {
+          "active": "In transit",
+          "expectedThisWeek": "Expected this week",
+          "delayed": "Delayed",
+          "total": "Total amount",
+          "stores": "Stores"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Delivery overview",
+      "title": "Delivery overview",
+      "subtitle": "Full stats for this section",
+      "close": "Close overview"
     },
     "search": {
       "label": "Search deliveries",
@@ -2336,7 +2361,26 @@
         "active": "Active",
         "received": "Received",
         "cancelled": "Cancelled",
-        "total": "Total amount"
+        "total": "Total amount",
+
+        "mobile": {
+          "title": "Detailed stats",
+
+          "compact": {
+            "totalOrders": "Orders",
+            "active": "Active",
+            "received": "Received",
+            "cancelled": "Cancelled",
+            "total": "Amount"
+          },
+          "detailed": {
+            "totalOrders": "Total orders",
+            "active": "Active",
+            "received": "Received",
+            "cancelled": "Cancelled",
+            "total": "Total amount"
+          }
+        }
       },
       "tabs": {
         "label": "Order groups",
@@ -2413,7 +2457,28 @@
         "received": "Received orders",
         "cancelled": "Cancelled orders",
         "average": "Average price",
-        "pricedOrders": "Orders with price"
+        "pricedOrders": "Orders with price",
+
+        "mobile": {
+          "title": "Detailed stats",
+
+          "compact": {
+            "total": "Amount",
+            "active": "Active",
+            "received": "Received",
+            "cancelled": "Cancelled",
+            "average": "Average",
+            "pricedOrders": "Priced"
+          },
+          "detailed": {
+            "total": "Total amount",
+            "active": "Active orders",
+            "received": "Received orders",
+            "cancelled": "Cancelled orders",
+            "average": "Average price",
+            "pricedOrders": "Orders with price"
+          }
+        }
       },
       "controls": {
         "includeCancelled": "Include cancelled orders",
@@ -3126,7 +3191,22 @@
         "title_asc": "Name: A–Z",
         "title_desc": "Name: Z–A",
         "books_count_desc": "Book count: most first",
-        "books_count_asc": "Book count: fewest first"
+        "books_count_asc": "Book count: fewest first",
+
+        "mobile": {
+          "title": "Sorting",
+          "close": "Close",
+
+          "trigger": {
+            "updated_desc": "Updated",
+            "created_desc": "Newest",
+            "created_asc": "Oldest",
+            "title_asc": "A–Z",
+            "title_desc": "Z–A",
+            "books_count_desc": "Books ↓",
+            "books_count_asc": "Books ↑"
+          }
+        }
       },
       "view": {
         "label": "View",
@@ -3188,7 +3268,34 @@
         "largestList": "Largest list — {count, plural, one {# book} other {# books}}",
         "multiList": "In several lists",
         "maxReach": "Most often — in {count, plural, one {# list} other {# lists}}",
-        "singleListOnly": "Every book sits in a single list"
+        "singleListOnly": "Every book sits in a single list",
+
+        "mobile": {
+          "title": "Detailed stats",
+
+          "compact": {
+            "totalLists": "Lists",
+            "uniqueBooks": "Books",
+            "averageSize": "Average",
+            "multiList": "Multi-list"
+          },
+          "detailed": {
+            "totalLists": "Total lists",
+            "uniqueBooks": "Unique books",
+            "averageSize": "Average list size",
+            "multiList": "In several lists"
+          }
+        }
+      },
+      "overviewPanel": {
+        "trigger": "Lists overview",
+        "title": "Lists overview",
+        "subtitle": "Stats and what needs attention",
+        "close": "Close overview",
+        "tabs": {
+          "overview": "Overview",
+          "attention": "Attention"
+        }
       },
       "sidebar": {
         "tip": {
@@ -3281,6 +3388,33 @@
         "title": "Could not load the summary",
         "description": "We couldn't load your loan summary.",
         "retry": "Try again"
+      },
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "borrowed": "Borrowed",
+          "lent": "Lent",
+          "returnThisWeek": "This week",
+          "overdue": "Overdue"
+        },
+        "detailed": {
+          "borrowed": "Borrowed from someone",
+          "lent": "Lent to someone",
+          "returnThisWeek": "Return this week",
+          "overdue": "Overdue"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Loans overview",
+      "title": "Loans overview",
+      "subtitle": "Stats and upcoming returns",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "schedule": "Returns"
       }
     },
     "tabs": {
@@ -3309,7 +3443,22 @@
       "author": "By author",
       "person": "By person",
       "overdue_first": "Overdue first",
-      "return_soonest": "Soonest returns first"
+      "return_soonest": "Soonest returns first",
+
+      "mobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "return_date": "Return date",
+          "loan_date": "Loan date",
+          "title": "Title",
+          "author": "Author",
+          "person": "Person",
+          "overdue_first": "Overdue",
+          "return_soonest": "Soonest"
+        }
+      }
     },
     "status": {
       "on_time": "On time",

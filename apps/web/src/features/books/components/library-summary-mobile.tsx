@@ -58,7 +58,7 @@ export function LibrarySummaryDetails({
           >
             <dt className="flex min-w-0 items-center gap-2">
               <SummaryBadge card={card} size="detail" />
-              <span className="truncate text-xs font-medium text-muted-foreground">
+              <span className="line-clamp-2 min-w-0 text-xs font-medium break-words text-muted-foreground">
                 {card.mobileLabels?.detailed ?? card.label}
               </span>
             </dt>
