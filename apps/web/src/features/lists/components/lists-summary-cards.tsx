@@ -21,6 +21,8 @@ const EMPTY_SUMMARY: ListsSummaryView = {
   listsWithBooksCount: 0,
   maxListsPerBook: 0,
   multiListBookCount: 0,
+  noDescriptionListCount: 0,
+  staleListCount: 0,
   totalListCount: 0,
   totalMembershipCount: 0,
   uniqueBookCount: 0,

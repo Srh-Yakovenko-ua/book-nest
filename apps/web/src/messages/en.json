@@ -2865,8 +2865,38 @@
       "title": "Custom lists",
       "subtitle": "Create themed collections and organize books your way",
       "create": "Create list",
+      "counter": "Showing {shown} of {total, plural, one {# list} other {# lists}}",
+      "allShown": "All lists shown",
+      "loadMore": "Load more",
+      "loadMoreError": "Could not load more lists",
+      "filters": {
+        "trigger": "Filters",
+        "title": "Filters",
+        "description": "Pick the traits you need to find the right collection faster.",
+        "clear": "Clear filters",
+        "apply": "Apply filters",
+        "sections": {
+          "fill": "Contents",
+          "description": "Description",
+          "size": "List size"
+        },
+        "fillOptions": {
+          "with_books": "With books",
+          "empty": "Empty"
+        },
+        "descriptionOptions": {
+          "with_description": "With description",
+          "without_description": "Without description"
+        },
+        "sizeOptions": {
+          "small": "1–5 books",
+          "medium": "6–20 books",
+          "large": "21–50 books",
+          "huge": "Over 50 books"
+        }
+      },
       "search": {
-        "placeholder": "Search lists…"
+        "placeholder": "List name or description"
       },
       "sort": {
         "label": "Sort",
@@ -2879,7 +2909,6 @@
         "books_count_asc": "Book count: fewest first"
       },
       "card": {
-        "open": "Open list",
         "books": "{count, plural, one {# book} other {# books}}",
         "emptyPreview": "No books in this list yet",
         "edit": "Edit",

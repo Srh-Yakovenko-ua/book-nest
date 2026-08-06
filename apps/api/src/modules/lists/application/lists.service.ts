@@ -146,7 +146,7 @@ export class ListsService {
   }
 
   async getSummary({ userId }: { userId: string }): Promise<ListsSummaryView> {
-    return toListsSummary(await this.listsRepository.summaryCounts({ userId }));
+    return toListsSummary(await this.listsRepository.summaryCounts({ now: new Date(), userId }));
   }
 
   async resolveListsForBook(
@@ -178,16 +178,19 @@ export class ListsService {
   }
 
   async search({ query, userId }: SearchInput): Promise<Paginator<CustomListCard>> {
-    const { pageNumber, pageSize, search, sort } = query;
+    const { attention, description, fill, pageNumber, pageSize, search, size, sort } = query;
+    const filters = { attention, description, fill, query: search, size };
+    const now = new Date();
 
     const [lists, totalCount] = await Promise.all([
       this.listsRepository.searchOwnedCards({
-        query: search,
+        ...filters,
+        now,
         sort,
         userId,
         ...pageSlice({ pageNumber, pageSize }),
       }),
-      this.listsRepository.countOwned({ query: search, userId }),
+      this.listsRepository.countOwned({ ...filters, now, userId }),
     ]);
 
     return buildPaginator({

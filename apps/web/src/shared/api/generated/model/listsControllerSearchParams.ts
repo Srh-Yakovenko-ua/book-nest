@@ -5,6 +5,10 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { ListsControllerSearchAttention } from "./listsControllerSearchAttention";
+import type { ListsControllerSearchDescriptionItem } from "./listsControllerSearchDescriptionItem";
+import type { ListsControllerSearchFillItem } from "./listsControllerSearchFillItem";
+import type { ListsControllerSearchSizeItem } from "./listsControllerSearchSizeItem";
 import type { ListsControllerSearchSort } from "./listsControllerSearchSort";
 
 export type ListsControllerSearchParams = {
@@ -22,5 +26,18 @@ export type ListsControllerSearchParams = {
    * @maxLength 100
    */
   search?: string;
+  attention?: ListsControllerSearchAttention;
+  /**
+   * @maxItems 100
+   */
+  description?: ListsControllerSearchDescriptionItem[];
+  /**
+   * @maxItems 100
+   */
+  fill?: ListsControllerSearchFillItem[];
+  /**
+   * @maxItems 100
+   */
+  size?: ListsControllerSearchSizeItem[];
   sort?: ListsControllerSearchSort;
 };
