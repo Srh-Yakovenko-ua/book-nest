@@ -13,8 +13,11 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import type { ListViewMode } from "../model/lists-query";
+
 import { ListCard } from "./list-card";
 import { LIST_CARD_COVERS_ROW } from "./list-card-covers";
+import { ListRow } from "./list-row";
 
 const SKELETON_COUNT = 6;
 
@@ -40,6 +43,7 @@ type AllListsViewProps = {
   sidebar: ReactNode;
   summary: ReactNode;
   toolbar: ReactNode;
+  view: ListViewMode;
 };
 
 export function AllListsView({
@@ -64,6 +68,7 @@ export function AllListsView({
   sidebar,
   summary,
   toolbar,
+  view,
 }: AllListsViewProps) {
   const t = useTranslations("lists.catalog");
   const showToolbar = !isError && (isPending || hasAnyLists);
@@ -105,6 +110,7 @@ export function AllListsView({
             onEditList={onEditList}
             onOpenLibrary={onOpenLibrary}
             onRetry={onRetry}
+            view={view}
           />
           {isError || isPending || lists.length === 0 ? null : (
             <div className="flex flex-col items-center gap-2">
@@ -155,6 +161,7 @@ function ListsContent({
   onEditList,
   onOpenLibrary,
   onRetry,
+  view,
 }: {
   hasActiveFilters: boolean;
   hasAnyLists: boolean;
@@ -167,6 +174,7 @@ function ListsContent({
   onEditList: (list: CustomListCard) => void;
   onOpenLibrary: () => void;
   onRetry: () => void;
+  view: ListViewMode;
 }) {
   const t = useTranslations("lists.catalog");
 
@@ -209,6 +217,21 @@ function ListsContent({
       return <EmptyState onPrimary={onClearFilters} state={noResultsState} />;
     }
     return null;
+  }
+
+  if (view === "list") {
+    return (
+      <div className="flex flex-col gap-3">
+        {lists.map((list) => (
+          <ListRow
+            key={list.id}
+            list={list}
+            onDelete={() => onDeleteList(list)}
+            onEdit={() => onEditList(list)}
+          />
+        ))}
+      </div>
+    );
   }
 
   return (

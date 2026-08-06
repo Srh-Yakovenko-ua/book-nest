@@ -34,10 +34,16 @@ export const LIST_DESCRIPTION_VALUES = Object.values(ListsControllerSearchDescri
 export const LIST_SIZE_VALUES = Object.values(ListsControllerSearchSizeItem);
 export const LIST_ATTENTION_REASONS = Object.values(ListsControllerSearchAttention);
 
+export const LIST_VIEW_MODES = ["grid", "list"] as const;
+
+export const LIST_VIEW_DEFAULT = "grid";
+
 export type ListAttentionReason = ListsControllerSearchAttention;
 export type ListsListParams = Omit<ListsControllerSearchParams, "pageNumber">;
 
 export type ListSort = ListsControllerSearchSort;
+
+export type ListViewMode = (typeof LIST_VIEW_MODES)[number];
 
 export const listsQueryParsers = {
   attention: parseAsStringLiteral(LIST_ATTENTION_REASONS),
@@ -46,6 +52,7 @@ export const listsQueryParsers = {
   q: parseAsString.withDefault(""),
   size: parseAsArrayOf(parseAsStringLiteral(LIST_SIZE_VALUES)).withDefault([]),
   sort: parseAsStringLiteral(LIST_SORT_OPTIONS).withDefault(LIST_SORT_DEFAULT),
+  view: parseAsStringLiteral(LIST_VIEW_MODES).withDefault(LIST_VIEW_DEFAULT),
 };
 
 export type ListsQueryState = inferParserType<typeof listsQueryParsers>;

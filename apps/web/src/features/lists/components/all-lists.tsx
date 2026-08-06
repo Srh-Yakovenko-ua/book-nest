@@ -106,12 +106,15 @@ export function AllLists() {
                 ? undefined
                 : tCatalog("counter", { shown: visibleLists.length, total: totalCount })
             }
+            onClearFilters={lists.clearFilters}
             onSearchChange={lists.setSearch}
             onSortChange={lists.setSort}
+            onViewChange={lists.setView}
             setState={lists.setState}
             state={lists.state}
           />
         }
+        view={lists.state.view}
       />
 
       <CreateListDialog onOpenChange={setCreateOpen} open={createOpen} />

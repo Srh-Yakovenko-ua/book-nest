@@ -41,6 +41,7 @@ function renderView(overrides: Partial<ViewProps> = {}) {
     sidebar: <div>SIDEBAR</div>,
     summary: <div>SUMMARY</div>,
     toolbar: <div>TOOLBAR</div>,
+    view: "grid",
     ...overrides,
   };
   return renderWithProviders(<AllListsView {...props} />);

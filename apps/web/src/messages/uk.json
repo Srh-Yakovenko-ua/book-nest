@@ -2908,6 +2908,11 @@
         "books_count_desc": "За кількістю книг: спочатку більше",
         "books_count_asc": "За кількістю книг: спочатку менше"
       },
+      "view": {
+        "label": "Вигляд",
+        "grid": "Сітка",
+        "list": "Список"
+      },
       "card": {
         "books": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
         "emptyPreview": "У списку ще немає книг",
