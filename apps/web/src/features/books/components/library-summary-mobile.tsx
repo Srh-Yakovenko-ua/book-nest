@@ -15,14 +15,22 @@ type LibrarySummaryMobileProps = {
   cards: LibrarySummaryCard[];
   className?: string;
   isLoading: boolean;
+  skeletonCount?: number;
 };
 
-const BADGE_SIZE = {
-  detail: "size-7 [&_svg]:size-4",
-  tile: "size-6 [&_svg]:size-3.5",
+const TILE = {
+  badgeSize: {
+    detail: "size-7 [&_svg]:size-4",
+    tile: "size-6 [&_svg]:size-3.5",
+  },
+  class: "items-center gap-1 px-1.5 py-2.5 shadow-card",
+  columns: {
+    2: "grid-cols-2",
+    3: "grid-cols-3",
+    4: "grid-cols-4",
+  } as Record<number, string>,
+  fallbackColumns: "grid-cols-4",
 } as const;
-
-const TILE_CLASS = "items-center gap-1 px-1.5 py-2.5 shadow-card";
 
 export function LibrarySummaryDetails({
   cards,
@@ -55,12 +63,14 @@ export function LibrarySummaryDetails({
               </span>
             </dt>
             <dd className="flex min-w-0 flex-col gap-1 pl-9">
-              <span className="flex items-baseline gap-1 whitespace-nowrap">
-                <span className="font-heading text-lg leading-tight font-bold text-ink tabular-nums">
+              <span className="flex min-w-0 items-baseline gap-1">
+                <span className="line-clamp-2 min-w-0 font-heading text-lg leading-tight font-bold break-words text-ink tabular-nums">
                   {formatValue(card.value)}
                 </span>
                 {card.unit === undefined ? null : (
-                  <span className="text-xs font-medium text-muted-foreground">{card.unit}</span>
+                  <span className="shrink-0 text-xs font-medium whitespace-nowrap text-muted-foreground">
+                    {card.unit}
+                  </span>
                 )}
               </span>
               {card.microfact === undefined ? null : (
@@ -79,13 +89,16 @@ export function LibrarySummaryMobile({
   cards,
   className,
   isLoading,
+  skeletonCount,
 }: LibrarySummaryMobileProps) {
+  const columnCount = skeletonCount ?? cards.length;
+
   return (
     <div className={cn("flex flex-col gap-2.5", className)}>
-      <div className="grid grid-cols-4 gap-2">
+      <div className={cn("grid gap-2", TILE.columns[columnCount] ?? TILE.fallbackColumns)}>
         {isLoading
-          ? Array.from({ length: cards.length }, (_, index) => (
-              <Card className={cn(TILE_CLASS, "gap-1.5")} key={index}>
+          ? Array.from({ length: columnCount }, (_, index) => (
+              <Card className={cn(TILE.class, "gap-1.5")} key={index}>
                 <span className="flex items-center gap-1.5">
                   <Skeleton className="size-6 rounded-full" />
                   <Skeleton className="h-4 w-5" />
@@ -94,7 +107,7 @@ export function LibrarySummaryMobile({
               </Card>
             ))
           : cards.map((card) => (
-              <Card className={TILE_CLASS} key={card.label}>
+              <Card className={TILE.class} key={card.label}>
                 <span className="flex max-w-full items-center gap-1.5">
                   <SummaryBadge card={card} size="tile" />
                   <span className="truncate font-heading text-lg leading-none font-bold text-ink tabular-nums">
@@ -117,9 +130,15 @@ function formatValue(value: LibrarySummaryCard["value"]) {
   return typeof value === "number" ? value.toLocaleString() : value;
 }
 
-function SummaryBadge({ card, size }: { card: LibrarySummaryCard; size: keyof typeof BADGE_SIZE }) {
+function SummaryBadge({
+  card,
+  size,
+}: {
+  card: LibrarySummaryCard;
+  size: keyof typeof TILE.badgeSize;
+}) {
   return (
-    <span className={cn(statCardIconBadge({ tone: card.iconTone }), BADGE_SIZE[size])}>
+    <span className={cn(statCardIconBadge({ tone: card.iconTone }), TILE.badgeSize[size])}>
       {card.iconSlot ?? <UiIcon aria-hidden name={card.icon} />}
     </span>
   );

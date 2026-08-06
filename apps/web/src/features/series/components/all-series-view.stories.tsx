@@ -3,11 +3,12 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, fn, waitFor } from "storybook/test";
 
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+
 import { EMPTY_SERIES_ADVANCED_FILTERS, SERIES_SORT_DEFAULT } from "../model/series-derive";
 import { makeSeriesOverview, makeSeriesView } from "../model/series.fixtures";
 import { AllSeriesView } from "./all-series-view";
 import { SeriesSidebar } from "./series-sidebar";
-import { type SeriesSummaryCard } from "./series-summary-cards";
 import { SeriesToolbar } from "./series-toolbar";
 
 const series: SeriesView[] = [
@@ -41,7 +42,7 @@ const series: SeriesView[] = [
   }),
 ];
 
-const summaryCards: SeriesSummaryCard[] = [
+const summaryCards: LibrarySummaryCard[] = [
   { icon: "layers", label: "Усього серій", value: 8 },
   { icon: "check-circle", label: "Прочитано", value: 2 },
   { icon: "book", label: "Недочитані", value: 5 },

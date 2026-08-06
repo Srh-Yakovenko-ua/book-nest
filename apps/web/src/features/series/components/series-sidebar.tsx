@@ -20,17 +20,61 @@ import type { SeriesAttentionFilter, SeriesAttentionReason } from "../model/seri
 import { SERIES_ATTENTION_REASONS, seriesProgress } from "../model/series-derive";
 import { SeriesOverviewError } from "./series-overview-error";
 
-type SeriesSidebarProps = {
-  activeAttention: null | SeriesAttentionFilter;
+type SeriesProgressSectionsProps = {
   almostReadSeries: SeriesView[];
-  attentionCounts: Record<SeriesAttentionReason, number>;
-  attentionLoading: boolean;
   isError: boolean;
   isLoading: boolean;
-  onAttentionSelect: (filter: SeriesAttentionFilter) => void;
   onRetry: () => void;
   overview: SeriesOverviewView | undefined;
 };
+
+type SeriesSidebarProps = SeriesProgressSectionsProps & {
+  activeAttention: null | SeriesAttentionFilter;
+  attentionCounts: Record<SeriesAttentionReason, number>;
+  attentionLoading: boolean;
+  onAttentionSelect: (filter: SeriesAttentionFilter) => void;
+};
+
+export function SeriesProgressSections({
+  almostReadSeries,
+  isError,
+  isLoading,
+  onRetry,
+  overview,
+}: SeriesProgressSectionsProps) {
+  const t = useTranslations("series.sidebar");
+  const continueSeries = (overview?.topUnfinished ?? [])[0];
+
+  if (isError) return <SeriesOverviewError onRetry={onRetry} />;
+
+  return (
+    <>
+      <SidebarBlock title={t("continueTitle")}>
+        {isLoading ? (
+          <RowSkeleton rows={1} />
+        ) : continueSeries === undefined ? (
+          <EmptyText>{t("continueEmpty")}</EmptyText>
+        ) : (
+          <ContinueBlock series={continueSeries} />
+        )}
+      </SidebarBlock>
+
+      <SidebarBlock subtitle={t("closestSubtitle")} title={t("closestTitle")}>
+        {isLoading ? (
+          <RowSkeleton rows={3} />
+        ) : almostReadSeries.length === 0 ? (
+          <EmptyText>{t("closestEmpty")}</EmptyText>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {almostReadSeries.map((series) => (
+              <AlmostReadRow key={series.id} series={series} />
+            ))}
+          </ul>
+        )}
+      </SidebarBlock>
+    </>
+  );
+}
 
 export function SeriesSidebar({
   activeAttention,
@@ -44,43 +88,19 @@ export function SeriesSidebar({
   overview,
 }: SeriesSidebarProps) {
   const t = useTranslations("series.sidebar");
-  const topUnfinished = overview?.topUnfinished ?? [];
-  const continueSeries = topUnfinished[0];
 
   return (
     <aside
       aria-label={t("label")}
-      className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+      className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
-      {isError ? (
-        <SeriesOverviewError onRetry={onRetry} />
-      ) : (
-        <>
-          <SidebarBlock title={t("continueTitle")}>
-            {isLoading ? (
-              <RowSkeleton rows={1} />
-            ) : continueSeries === undefined ? (
-              <EmptyText>{t("continueEmpty")}</EmptyText>
-            ) : (
-              <ContinueBlock series={continueSeries} />
-            )}
-          </SidebarBlock>
-
-          <SidebarBlock subtitle={t("closestSubtitle")} title={t("closestTitle")}>
-            {isLoading ? (
-              <RowSkeleton rows={3} />
-            ) : almostReadSeries.length === 0 ? (
-              <EmptyText>{t("closestEmpty")}</EmptyText>
-            ) : (
-              <ul className="flex flex-col gap-4">
-                {almostReadSeries.map((series) => (
-                  <AlmostReadRow key={series.id} series={series} />
-                ))}
-              </ul>
-            )}
-          </SidebarBlock>
-        </>
-      )}
+      <SeriesProgressSections
+        almostReadSeries={almostReadSeries}
+        isError={isError}
+        isLoading={isLoading}
+        onRetry={onRetry}
+        overview={overview}
+      />
 
       <SeriesAttentionBlock
         activeAttention={activeAttention}
@@ -100,6 +120,41 @@ const ATTENTION_ROW_META: Record<SeriesAttentionReason, { icon: UiIconName; tone
   next_unavailable: { icon: "cart", toneClass: "text-warning" },
   unknown_status: { icon: "help-circle", toneClass: "text-warning" },
 };
+
+export function SeriesAttentionBlock({
+  activeAttention,
+  counts,
+  isLoading,
+  onSelect,
+}: {
+  activeAttention: null | SeriesAttentionFilter;
+  counts: Record<SeriesAttentionReason, number>;
+  isLoading: boolean;
+  onSelect: (filter: SeriesAttentionFilter) => void;
+}) {
+  const t = useTranslations("series.attention");
+  const items = SERIES_ATTENTION_REASONS.filter((reason) => counts[reason] > 0).map((reason) => ({
+    ...ATTENTION_ROW_META[reason],
+    id: reason,
+    label: t(reason, { count: counts[reason] }),
+  }));
+
+  return (
+    <AttentionBlock
+      activeId={activeAttention === "any" ? null : activeAttention}
+      allClearLabel={t("allClear")}
+      isLoading={isLoading}
+      items={items}
+      onSelect={onSelect}
+      title={t("title")}
+      viewAll={{
+        active: activeAttention === "any",
+        label: t("viewAll"),
+        onSelect: () => onSelect("any"),
+      }}
+    />
+  );
+}
 
 function AlmostReadRow({ series }: { series: SeriesView }) {
   const t = useTranslations("series.sidebar");
@@ -246,41 +301,6 @@ function RowSkeleton({ rows }: { rows: number }) {
         </div>
       ))}
     </div>
-  );
-}
-
-function SeriesAttentionBlock({
-  activeAttention,
-  counts,
-  isLoading,
-  onSelect,
-}: {
-  activeAttention: null | SeriesAttentionFilter;
-  counts: Record<SeriesAttentionReason, number>;
-  isLoading: boolean;
-  onSelect: (filter: SeriesAttentionFilter) => void;
-}) {
-  const t = useTranslations("series.attention");
-  const items = SERIES_ATTENTION_REASONS.filter((reason) => counts[reason] > 0).map((reason) => ({
-    ...ATTENTION_ROW_META[reason],
-    id: reason,
-    label: t(reason, { count: counts[reason] }),
-  }));
-
-  return (
-    <AttentionBlock
-      activeId={activeAttention === "any" ? null : activeAttention}
-      allClearLabel={t("allClear")}
-      isLoading={isLoading}
-      items={items}
-      onSelect={onSelect}
-      title={t("title")}
-      viewAll={{
-        active: activeAttention === "any",
-        label: t("viewAll"),
-        onSelect: () => onSelect("any"),
-      }}
-    />
   );
 }
 

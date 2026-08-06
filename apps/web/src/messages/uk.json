@@ -155,6 +155,34 @@
       "seriesInQueue": {
         "label": "Серії в черзі",
         "caption": "{withoutIssues} без проблем · {withIssues, plural, one {# потребує уваги} few {# потребують уваги} many {# потребують уваги} other {# потребують уваги}}"
+      },
+
+      "mobile": {
+        "title": "Детальна статистика",
+
+        "compact": {
+          "total": "У черзі",
+          "availableNow": "Доступні",
+          "unavailable": "Немає",
+          "seriesInQueue": "Серії"
+        },
+        "detailed": {
+          "total": "Усього в черзі",
+          "availableNow": "Можна читати зараз",
+          "unavailable": "Немає в наявності",
+          "seriesInQueue": "Серії в черзі"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Огляд черги",
+      "title": "Огляд черги",
+      "subtitle": "Статистика, обсяг читання і порядок серій",
+      "close": "Закрити огляд",
+      "tabs": {
+        "overview": "Огляд",
+        "volume": "Обсяг",
+        "order": "Порядок"
       }
     },
     "seriesOrderCheck": {
@@ -2057,7 +2085,21 @@
       "book_title_asc": "За назвою книги: А–Я",
       "author_asc": "За автором: А–Я",
       "favorites_first": "За улюбленими: спочатку улюблені",
-      "publication_year_desc": "За роком видання: спочатку нові"
+      "publication_year_desc": "За роком видання: спочатку нові",
+
+      "mobile": {
+        "title": "Сортування",
+        "close": "Закрити",
+
+        "trigger": {
+          "newest": "Нові",
+          "recently_updated": "Оновлені",
+          "book_title_asc": "Книга А–Я",
+          "author_asc": "Автор А–Я",
+          "favorites_first": "Улюблені",
+          "publication_year_desc": "Рік ↓"
+        }
+      }
     },
     "card": {
       "coverAlt": "Обкладинка книги «{title}»",
@@ -2096,7 +2138,36 @@
       "fromUnfinishedMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} — із книг, які ще не прочитані",
       "fromUnfinishedMicrofactNone": "усі — з прочитаних книг",
       "topGenreMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} у цьому жанрі",
-      "topAuthorMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} у книгах автора"
+      "topAuthorMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} у книгах автора",
+
+      "mobile": {
+        "title": "Детальна статистика",
+
+        "compact": {
+          "total": "Усього",
+          "favorites": "Улюблені",
+          "fromFinished": "Прочитані",
+          "topGenre": "Жанр",
+          "topAuthor": "Автор"
+        },
+        "detailed": {
+          "total": "Усього присвят",
+          "favorites": "Улюблені присвяти",
+          "fromFinished": "Із прочитаних книг",
+          "topGenre": "Топ жанр",
+          "topAuthor": "Топ автор"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Огляд присвят",
+      "title": "Огляд присвят",
+      "subtitle": "Статистика та як додати ще",
+      "close": "Закрити огляд",
+      "tabs": {
+        "overview": "Огляд",
+        "about": "Про розділ"
+      }
     },
     "sidebar": {
       "label": "Огляд присвят",
@@ -2432,7 +2503,39 @@
       "topTagEmpty": "Немає тегу",
       "topTagMicrofact": "{count, plural, one {# улюблена з цим тегом} few {# улюблені з цим тегом} many {# улюблених з цим тегом} other {# улюблені з цим тегом}}",
       "topTagMicrofactEmpty": "Серед улюблених немає тегів",
-      "topTagMicrofactTie": "{count, plural, one {По # улюбленій з кожним тегом} few {По # улюблені з кожним тегом} many {По # улюблених з кожним тегом} other {По # улюблених з кожним тегом}}"
+      "topTagMicrofactTie": "{count, plural, one {По # улюбленій з кожним тегом} few {По # улюблені з кожним тегом} many {По # улюблених з кожним тегом} other {По # улюблених з кожним тегом}}",
+
+      "mobile": {
+        "title": "Детальна статистика",
+
+        "compact": {
+          "total": "Усього",
+          "reading": "Читаю",
+          "finished": "Прочитано",
+          "averageRating": "Рейтинг",
+          "topGenre": "Жанр",
+          "topTag": "Тег"
+        },
+        "detailed": {
+          "total": "Усього улюблених",
+          "reading": "Читаю зараз",
+          "finished": "Прочитано",
+          "averageRating": "Середній рейтинг",
+          "topGenre": "Топ жанр",
+          "topTag": "Топ тег"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Огляд улюблених",
+      "title": "Огляд улюблених",
+      "subtitle": "Статистика, оцінки та продовження серій",
+      "close": "Закрити огляд",
+      "tabs": {
+        "overview": "Огляд",
+        "collections": "Добірки",
+        "genres": "Жанри"
+      }
     },
     "empty": {
       "title": "Збери книги, які стали особливими",
@@ -2504,7 +2607,35 @@
       "unfinished": "Недочитані",
       "booksLeft": "лишилося {n, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
       "booksInSeries": "Книг у серіях",
-      "booksReadOfTotal": "прочитано {finished} з {total}"
+      "booksReadOfTotal": "прочитано {finished} з {total}",
+
+      "mobile": {
+        "title": "Детальна статистика",
+
+        "compact": {
+          "total": "Серій",
+          "fullyRead": "Прочитано",
+          "unfinished": "Недочитані",
+          "booksInSeries": "Книг"
+        },
+        "detailed": {
+          "total": "Усього серій",
+          "fullyRead": "Прочитано серій",
+          "unfinished": "Недочитані серії",
+          "booksInSeries": "Книг у серіях"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Огляд серій",
+      "title": "Огляд серій",
+      "subtitle": "Статистика, прогрес і що потребує уваги",
+      "close": "Закрити огляд",
+      "tabs": {
+        "overview": "Огляд",
+        "progress": "Прогрес",
+        "attention": "Увага"
+      }
     },
     "tabs": {
       "all": "Усі серії",
@@ -2561,7 +2692,21 @@
       "progress_desc": "Прогрес читання: від більшого",
       "progress_asc": "Прогрес читання: від меншого",
       "books_desc": "Книг у серії: від більшої кількості",
-      "activity_desc": "За датою оновлення: спочатку нові"
+      "activity_desc": "За датою оновлення: спочатку нові",
+
+      "mobile": {
+        "title": "Сортування",
+        "close": "Закрити",
+
+        "trigger": {
+          "name_asc": "А–Я",
+          "name_desc": "Я–А",
+          "progress_desc": "Прогрес ↓",
+          "progress_asc": "Прогрес ↑",
+          "books_desc": "Книг ↓",
+          "activity_desc": "Нові"
+        }
+      }
     },
     "filters": {
       "trigger": "Фільтри",

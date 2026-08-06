@@ -155,6 +155,34 @@
       "seriesInQueue": {
         "label": "Series in queue",
         "caption": "{withoutIssues} fine · {withIssues, plural, one {# needs attention} other {# need attention}}"
+      },
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "total": "In queue",
+          "availableNow": "Available",
+          "unavailable": "Missing",
+          "seriesInQueue": "Series"
+        },
+        "detailed": {
+          "total": "Total in queue",
+          "availableNow": "Ready to read",
+          "unavailable": "Not available",
+          "seriesInQueue": "Series in queue"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Queue overview",
+      "title": "Queue overview",
+      "subtitle": "Stats, reading volume, and series order",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "volume": "Volume",
+        "order": "Order"
       }
     },
     "seriesOrderCheck": {
@@ -2057,7 +2085,21 @@
       "book_title_asc": "Book title: A–Z",
       "author_asc": "Author: A–Z",
       "favorites_first": "Favorites: favorites first",
-      "publication_year_desc": "Publication year: newest first"
+      "publication_year_desc": "Publication year: newest first",
+
+      "mobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "newest": "Newest",
+          "recently_updated": "Updated",
+          "book_title_asc": "Book A–Z",
+          "author_asc": "Author A–Z",
+          "favorites_first": "Favorites",
+          "publication_year_desc": "Year ↓"
+        }
+      }
     },
     "card": {
       "coverAlt": "Cover of “{title}”",
@@ -2096,7 +2138,36 @@
       "fromUnfinishedMicrofact": "{count, plural, one {# dedication} other {# dedications}} — from books not finished yet",
       "fromUnfinishedMicrofactNone": "all — from finished books",
       "topGenreMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this genre",
-      "topAuthorMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this author's books"
+      "topAuthorMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this author's books",
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "total": "Total",
+          "favorites": "Favorites",
+          "fromFinished": "Read",
+          "topGenre": "Genre",
+          "topAuthor": "Author"
+        },
+        "detailed": {
+          "total": "Total dedications",
+          "favorites": "Favorite dedications",
+          "fromFinished": "From finished books",
+          "topGenre": "Top genre",
+          "topAuthor": "Top author"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Dedications overview",
+      "title": "Dedications overview",
+      "subtitle": "Stats and how to add more",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "about": "About"
+      }
     },
     "sidebar": {
       "label": "Dedications overview",
@@ -2432,7 +2503,39 @@
       "topTagEmpty": "No tag",
       "topTagMicrofact": "{count, plural, one {# favorite with this tag} other {# favorites with this tag}}",
       "topTagMicrofactEmpty": "No tags among favorites",
-      "topTagMicrofactTie": "{count, plural, one {# favorite with each tag} other {# favorites with each tag}}"
+      "topTagMicrofactTie": "{count, plural, one {# favorite with each tag} other {# favorites with each tag}}",
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "total": "Total",
+          "reading": "Reading",
+          "finished": "Read",
+          "averageRating": "Rating",
+          "topGenre": "Genre",
+          "topTag": "Tag"
+        },
+        "detailed": {
+          "total": "Total favorites",
+          "reading": "Reading now",
+          "finished": "Finished",
+          "averageRating": "Average rating",
+          "topGenre": "Top genre",
+          "topTag": "Top tag"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Favorites overview",
+      "title": "Favorites overview",
+      "subtitle": "Stats, ratings, and series to continue",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "collections": "Collections",
+        "genres": "Genres"
+      }
     },
     "empty": {
       "title": "Collect the books that feel special",
@@ -2504,7 +2607,35 @@
       "unfinished": "Unfinished",
       "booksLeft": "{n, plural, one {# book left} other {# books left}}",
       "booksInSeries": "Books in series",
-      "booksReadOfTotal": "{finished} of {total} read"
+      "booksReadOfTotal": "{finished} of {total} read",
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "total": "Series",
+          "fullyRead": "Read",
+          "unfinished": "Unfinished",
+          "booksInSeries": "Books"
+        },
+        "detailed": {
+          "total": "Total series",
+          "fullyRead": "Series read",
+          "unfinished": "Unfinished series",
+          "booksInSeries": "Books in series"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Series overview",
+      "title": "Series overview",
+      "subtitle": "Stats, progress, and what needs attention",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "progress": "Progress",
+        "attention": "Attention"
+      }
     },
     "tabs": {
       "all": "All series",
@@ -2561,7 +2692,21 @@
       "progress_desc": "Reading progress: highest first",
       "progress_asc": "Reading progress: lowest first",
       "books_desc": "Books in series: most first",
-      "activity_desc": "Date updated: newest first"
+      "activity_desc": "Date updated: newest first",
+
+      "mobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "name_asc": "A–Z",
+          "name_desc": "Z–A",
+          "progress_desc": "Progress ↓",
+          "progress_asc": "Progress ↑",
+          "books_desc": "Books ↓",
+          "activity_desc": "Newest"
+        }
+      }
     },
     "filters": {
       "trigger": "Filters",

@@ -7,8 +7,10 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
+import type { UiIconName } from "@/components/icons";
 import type { buttonVariants } from "@/components/ui/button";
 
+import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +58,7 @@ type MobilePageOverviewPanelProps = {
 };
 
 const PANEL = {
+  beyondMobileQuery: "(min-width: 40rem)",
   content:
     "h-dvh bg-background pt-[env(safe-area-inset-top)] data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-dvh data-[vaul-drawer-direction=bottom]:rounded-none data-[vaul-drawer-direction=bottom]:border-t-0",
   dragHandleHidden: "[&>:first-child]:hidden",
@@ -112,6 +115,20 @@ export function MobilePageOverviewPanel({
       window.removeEventListener("popstate", handlePopState);
       if (isHistoryGuardActive()) window.history.back();
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const beyondMobile = window.matchMedia(PANEL.beyondMobileQuery);
+
+    function closeBeyondMobile() {
+      if (beyondMobile.matches) onOpenChangeRef.current(false);
+    }
+
+    closeBeyondMobile();
+    beyondMobile.addEventListener("change", closeBeyondMobile);
+    return () => beyondMobile.removeEventListener("change", closeBeyondMobile);
   }, [open]);
 
   const actions = (footerActions ?? []).slice(0, PANEL.maxFooterActions);
@@ -174,6 +191,35 @@ export function MobilePageOverviewPanel({
         )}
       </DrawerContent>
     </Drawer>
+  );
+}
+
+export function MobilePageOverviewTrigger({
+  icon = "chart",
+  label,
+  onClick,
+}: {
+  icon?: UiIconName;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      className="h-11 w-full justify-start gap-2 rounded-xl px-3.5 shadow-card"
+      onClick={onClick}
+      variant="secondary"
+    >
+      <UiIcon aria-hidden className="shrink-0 text-primary" name={icon} size={16} />
+      <span className="flex-1 truncate text-left font-heading text-sm font-semibold text-ink">
+        {label}
+      </span>
+      <UiIcon
+        aria-hidden
+        className="shrink-0 text-muted-foreground"
+        name="chevron-right"
+        size={16}
+      />
+    </Button>
   );
 }
 

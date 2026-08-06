@@ -26,14 +26,18 @@ type LibrarySummaryCardsProps = {
   cards: LibrarySummaryCard[];
   isLoading: boolean;
   mobileAction?: ReactNode;
+  mobileCards?: LibrarySummaryCard[];
   mobileLayout?: "compact" | "grid";
+  skeletonCount?: number;
 };
 
 export function LibrarySummaryCards({
   cards,
   isLoading,
   mobileAction,
+  mobileCards,
   mobileLayout = "grid",
+  skeletonCount,
 }: LibrarySummaryCardsProps) {
   const compactOnMobile = mobileLayout === "compact";
 
@@ -42,15 +46,17 @@ export function LibrarySummaryCards({
       {compactOnMobile ? (
         <LibrarySummaryMobile
           action={mobileAction}
-          cards={cards}
+          cards={mobileCards ?? cards}
           className="sm:hidden"
           isLoading={isLoading}
+          skeletonCount={skeletonCount}
         />
       ) : null}
       <SummaryGrid
         cards={cards}
         className={compactOnMobile ? "max-sm:hidden" : undefined}
         isLoading={isLoading}
+        skeletonCount={skeletonCount}
       />
     </>
   );
@@ -73,13 +79,16 @@ function SummaryGrid({
   cards,
   className,
   isLoading,
+  skeletonCount,
 }: LibrarySummaryCardsProps & { className?: string }) {
+  const columnCount = skeletonCount ?? cards.length;
+
   return (
     <div
-      className={cn("grid grid-cols-2 gap-3 sm:gap-4", summaryGridColumns(cards.length), className)}
+      className={cn("grid grid-cols-2 gap-3 sm:gap-4", summaryGridColumns(columnCount), className)}
     >
       {isLoading
-        ? Array.from({ length: cards.length }, (_, index) => <SummaryCardSkeleton key={index} />)
+        ? Array.from({ length: columnCount }, (_, index) => <SummaryCardSkeleton key={index} />)
         : cards.map((card) => (
             <StatCard
               className="stat-card-branch"
@@ -100,6 +109,6 @@ function SummaryGrid({
 }
 
 function summaryGridColumns(count: number): string {
-  if (count === 6) return "xl:grid-cols-3";
+  if (count === 5 || count === 6) return "xl:grid-cols-3";
   return "xl:grid-cols-4";
 }

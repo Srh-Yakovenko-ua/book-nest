@@ -25,8 +25,8 @@ export function ReadingQueueToolbar({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex flex-1 items-center">
+      <div className="flex items-center gap-1.5 sm:gap-3">
+        <div className="relative flex min-w-0 flex-1 items-center">
           <UiIcon
             aria-hidden
             className="pointer-events-none absolute left-3 text-muted-foreground"
@@ -55,7 +55,7 @@ export function ReadingQueueToolbar({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">{filters}</div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2.5">{filters}</div>
       </div>
 
       {dragDisabled ? (

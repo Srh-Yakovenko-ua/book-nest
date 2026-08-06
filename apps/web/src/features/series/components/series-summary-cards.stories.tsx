@@ -2,18 +2,18 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 
-import type { SeriesSummaryCard } from "./series-summary-cards";
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { SeriesSummaryCards } from "./series-summary-cards";
 
-const cards: SeriesSummaryCard[] = [
+const cards: LibrarySummaryCard[] = [
   { icon: "layers", iconTone: "primary", label: "Усього серій", value: 8 },
   { icon: "check-circle", iconTone: "success", label: "Прочитано", value: 2 },
   { icon: "book", iconTone: "info", label: "Недочитані", value: 5 },
   { icon: "library", iconTone: "primary", label: "Книг у серіях", value: 14 },
 ];
 
-const cardsWithMicrofacts: SeriesSummaryCard[] = [
+const cardsWithMicrofacts: LibrarySummaryCard[] = [
   {
     icon: "layers",
     iconTone: "primary",
@@ -44,7 +44,7 @@ const cardsWithMicrofacts: SeriesSummaryCard[] = [
   },
 ];
 
-const cardsEmpty: SeriesSummaryCard[] = [
+const cardsEmpty: LibrarySummaryCard[] = [
   { icon: "layers", iconTone: "primary", label: "Усього серій", value: 0 },
   { icon: "check-circle", iconTone: "success", label: "Прочитано", value: 0 },
   { icon: "book", iconTone: "info", label: "Недочитані", value: 0 },
