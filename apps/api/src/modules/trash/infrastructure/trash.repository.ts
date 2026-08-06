@@ -21,6 +21,8 @@ const TrashCountRowSchema = z.object({
   entityType: TrashEntityTypeSchema,
 });
 
+const TotalCountRowSchema = z.object({ count: z.bigint() });
+
 export type TrashCountRow = { count: number; entityType: TrashEntityType };
 
 export type TrashRow = z.infer<typeof TrashRowSchema>;
@@ -29,10 +31,24 @@ export type TrashRow = z.infer<typeof TrashRowSchema>;
 export class TrashRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async count({
+    entityType,
+    userId,
+  }: {
+    entityType: TrashEntityType | undefined;
+    userId: string;
+  }): Promise<number> {
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT count(*) AS count
+      FROM (${trashUnion({ entityType, userId })}) AS trash
+    `);
+    return Number(z.array(TotalCountRowSchema).parse(rows).at(0)?.count ?? 0);
+  }
+
   async countByType({ userId }: { userId: string }): Promise<TrashCountRow[]> {
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT "entityType", count(*) AS count
-      FROM (${trashUnion(userId)}) AS trash
+      FROM (${trashUnion({ entityType: undefined, userId })}) AS trash
       GROUP BY "entityType"
     `);
     return z
@@ -52,12 +68,9 @@ export class TrashRepository {
     take: number;
     userId: string;
   }): Promise<TrashRow[]> {
-    const typeFilter =
-      entityType === undefined ? Prisma.empty : Prisma.sql`WHERE "entityType" = ${entityType}`;
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT "entityType", "id", "title", "context", "deletedAt", "purgeAt"
-      FROM (${trashUnion(userId)}) AS trash
-      ${typeFilter}
+      FROM (${trashUnion({ entityType, userId })}) AS trash
       ORDER BY "deletedAt" DESC, "id" ASC
       LIMIT ${take} OFFSET ${skip}
     `);
@@ -65,7 +78,13 @@ export class TrashRepository {
   }
 }
 
-function trashUnion(userId: string): Prisma.Sql {
+function trashUnion({
+  entityType,
+  userId,
+}: {
+  entityType: TrashEntityType | undefined;
+  userId: string;
+}): Prisma.Sql {
   const sources = {
     book: Prisma.sql`
       SELECT b.id::text AS "id", b.title AS "title",
@@ -75,17 +94,23 @@ function trashUnion(userId: string): Prisma.Sql {
       WHERE b.user_id = ${userId}::uuid AND b.deleted_at IS NOT NULL
     `,
     book_list: Prisma.sql`
-      SELECT l.id::text, l.name, NULL, l.deleted_at, l.purge_at
+      SELECT l.id::text AS "id", l.name AS "title",
+             NULL::text AS "context", l.deleted_at AS "deletedAt",
+             l.purge_at AS "purgeAt"
       FROM book_lists l
       WHERE l.user_id = ${userId}::uuid AND l.deleted_at IS NOT NULL
     `,
     character: Prisma.sql`
-      SELECT c.id::text, c.name, NULL, c.deleted_at, c.purge_at
+      SELECT c.id::text AS "id", c.name AS "title",
+             NULL::text AS "context", c.deleted_at AS "deletedAt",
+             c.purge_at AS "purgeAt"
       FROM characters c
       WHERE c.user_id = ${userId}::uuid AND c.deleted_at IS NOT NULL
     `,
     note: Prisma.sql`
-      SELECT n.id::text, n.text, COALESCE(nb.title, ns.name), n.deleted_at, n.purge_at
+      SELECT n.id::text AS "id", n.text AS "title",
+             COALESCE(nb.title, ns.name) AS "context", n.deleted_at AS "deletedAt",
+             n.purge_at AS "purgeAt"
       FROM notes n
       LEFT JOIN books nb ON nb.id = n.book_id
       LEFT JOIN series ns ON ns.id = n.series_id
@@ -94,19 +119,25 @@ function trashUnion(userId: string): Prisma.Sql {
         AND (n.series_id IS NULL OR ns.deleted_at IS NULL)
     `,
     quote: Prisma.sql`
-      SELECT q.id::text, q.text, qb.title, q.deleted_at, q.purge_at
+      SELECT q.id::text AS "id", q.text AS "title",
+             qb.title AS "context", q.deleted_at AS "deletedAt",
+             q.purge_at AS "purgeAt"
       FROM quotes q
       JOIN books qb ON qb.id = q.book_id
       WHERE q.user_id = ${userId}::uuid AND q.deleted_at IS NOT NULL
         AND qb.deleted_at IS NULL
     `,
     series: Prisma.sql`
-      SELECT s.id::text, s.name, NULL, s.deleted_at, s.purge_at
+      SELECT s.id::text AS "id", s.name AS "title",
+             NULL::text AS "context", s.deleted_at AS "deletedAt",
+             s.purge_at AS "purgeAt"
       FROM series s
       WHERE s.user_id = ${userId}::uuid AND s.deleted_at IS NOT NULL
     `,
     timeline: Prisma.sql`
-      SELECT t.id::text, t.name, tb.title, t.deleted_at, t.purge_at
+      SELECT t.id::text AS "id", t.name AS "title",
+             tb.title AS "context", t.deleted_at AS "deletedAt",
+             t.purge_at AS "purgeAt"
       FROM book_timelines t
       JOIN books tb ON tb.id = t.book_id
       WHERE tb.user_id = ${userId}::uuid AND t.deleted_at IS NOT NULL
@@ -114,9 +145,11 @@ function trashUnion(userId: string): Prisma.Sql {
     `,
   } satisfies Record<TrashEntityType, Prisma.Sql>;
 
-  const arms = Object.entries(sources).map(
-    ([entityType, source]) => Prisma.sql`SELECT ${entityType}::text AS "entityType", tagged.*
+  const arms = Object.entries(sources)
+    .filter(([name]) => entityType === undefined || name === entityType)
+    .map(
+      ([name, source]) => Prisma.sql`SELECT ${name}::text AS "entityType", tagged.*
        FROM (${source}) AS tagged`,
-  );
+    );
   return Prisma.join(arms, "\nUNION ALL\n");
 }
