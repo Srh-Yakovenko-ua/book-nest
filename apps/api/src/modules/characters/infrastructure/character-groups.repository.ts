@@ -107,15 +107,6 @@ export class CharacterGroupsRepository {
     await acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.characterGroups, key }, client);
   }
 
-  async countOwnedCharacters(
-    { characterIds, userId }: { characterIds: string[]; userId: string },
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<number> {
-    return client.character.count({
-      where: { deletedAt: null, id: { in: characterIds }, userId },
-    });
-  }
-
   countOwnedGroups(filter: GroupListFilter): Promise<number> {
     return this.prisma.characterGroup.count({ where: buildGroupWhere(filter) });
   }

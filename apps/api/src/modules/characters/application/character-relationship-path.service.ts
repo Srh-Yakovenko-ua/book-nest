@@ -9,12 +9,12 @@ import { Injectable } from "@nestjs/common";
 
 import type { ResolvedReadingContext } from "../domain/context-books.js";
 
-import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { findVisibleRelationshipPath } from "../domain/character-relationship-path.js";
 import { resolveReadingContext } from "../domain/context-books.js";
 import { buildReadingPositionGate } from "../domain/reading-position.js";
 import { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
+import { CharacterAccessAsserter } from "./character-access.asserter.js";
 import {
   collectEndpointCharacterIds,
   toGraphEdgeSource,
@@ -27,6 +27,7 @@ export class CharacterRelationshipPathService {
   constructor(
     private readonly relationshipsRepository: CharacterRelationshipsRepository,
     private readonly charactersRepository: CharactersRepository,
+    private readonly accessAsserter: CharacterAccessAsserter,
   ) {}
 
   async findPath({
@@ -74,24 +75,19 @@ export class CharacterRelationshipPathService {
     });
   }
 
-  private async assertEndpointsOwned({
+  private assertEndpointsOwned({
     characterIds,
     userId,
   }: {
     characterIds: string[];
     userId: string;
   }): Promise<void> {
-    const uniqueIds = [...new Set(characterIds)];
-    const owned = await this.relationshipsRepository.countOwnedCharacters({
-      characterIds: uniqueIds,
+    return this.accessAsserter.assertCharactersOwned({
+      characterIds,
       excludeHiddenProfiles: true,
+      notFoundCode: CHARACTER_RELATIONSHIP_ERROR_CODES.characterNotFound,
       userId,
     });
-    if (owned !== uniqueIds.length) {
-      throw new NotFoundError("Character not found", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.characterNotFound,
-      });
-    }
   }
 
   private async resolveContext({

@@ -17,18 +17,18 @@ import type {
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
-import { BookAccessService } from "../../books/index.js";
 import { toCharacterTheoryView } from "../domain/character-theory.mapper.js";
 import { resolveContextAllowedBookIds } from "../domain/context-books.js";
 import { CharacterTheoriesRepository } from "../infrastructure/character-theories.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
+import { CharacterAccessAsserter } from "./character-access.asserter.js";
 
 @Injectable()
 export class CharacterTheoriesService {
   constructor(
     private readonly characterTheoriesRepository: CharacterTheoriesRepository,
     private readonly charactersRepository: CharactersRepository,
-    private readonly bookAccess: BookAccessService,
+    private readonly accessAsserter: CharacterAccessAsserter,
   ) {}
 
   async create({
@@ -117,34 +117,32 @@ export class CharacterTheoriesService {
     return toCharacterTheoryView(updated);
   }
 
-  private async assertCharacterOwned({
+  private assertCharacterOwned({
     characterId,
     userId,
   }: {
     characterId: string;
     userId: string;
   }): Promise<void> {
-    const owned = await this.charactersRepository.findOwnedCharacterBare({ characterId, userId });
-    if (owned === null) {
-      throw new NotFoundError("Character not found", {
-        code: CHARACTER_THEORY_ERROR_CODES.characterNotFound,
-      });
-    }
+    return this.accessAsserter.assertCharacterOwned({
+      characterId,
+      notFoundCode: CHARACTER_THEORY_ERROR_CODES.characterNotFound,
+      userId,
+    });
   }
 
-  private async assertSeriesOwned({
+  private assertSeriesOwned({
     seriesId,
     userId,
   }: {
     seriesId: string;
     userId: string;
   }): Promise<void> {
-    const owns = await this.charactersRepository.existsOwnedSeries({ seriesId, userId });
-    if (!owns) {
-      throw new NotFoundError("Series not found", {
-        code: CHARACTER_THEORY_ERROR_CODES.seriesNotFound,
-      });
-    }
+    return this.accessAsserter.assertSeriesOwned({
+      notFoundCode: CHARACTER_THEORY_ERROR_CODES.seriesNotFound,
+      seriesId,
+      userId,
+    });
   }
 
   private async assertTargetsOwned({
@@ -158,7 +156,7 @@ export class CharacterTheoriesService {
       await this.assertCharacterOwned({ characterId: input.characterId, userId });
     }
     if (input.bookId !== null && input.bookId !== undefined) {
-      await this.bookAccess.assertOwned({
+      await this.accessAsserter.assertBookOwned({
         bookId: input.bookId,
         notFoundCode: CHARACTER_THEORY_ERROR_CODES.bookNotFound,
         userId,
