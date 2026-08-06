@@ -487,6 +487,7 @@ function LibraryListRow({
       book={book}
       kebab={renderActions(book)}
       linkComponent={linkComponent}
+      mobileCompact
       selected={selected}
       selectionControl={
         selectionMode ? (
