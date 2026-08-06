@@ -96,7 +96,7 @@ export function GenresTagsToolbar({
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5">
         {isGenres ? (
           <>
             <ToolbarSelect
@@ -166,7 +166,7 @@ function ToolbarSelect<TValue extends string>({
   value: TValue;
 }) {
   return (
-    <div className="w-full sm:w-52">
+    <div className="w-full min-w-0 sm:w-52">
       <Select onValueChange={(next) => onChange(next as TValue)} value={value}>
         <SelectTrigger
           aria-label={label}

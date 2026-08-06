@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import {
   Select,
   SelectContent,
@@ -66,11 +67,12 @@ export function NotesArchiveToolbar({
   const tFilter = useTranslations("notes.archive.quickFilter");
   const tPresence = useTranslations("notes.archive.presence");
   const tSort = useTranslations("notes.archive.sort");
+  const tSortMobile = useTranslations("notes.archive.sortMobile");
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="lg:flex-1">
+      <div className="flex items-center gap-1.5 lg:flex-row lg:items-center lg:gap-3">
+        <div className="min-w-0 flex-1">
           <DebouncedSearchInput
             clearLabel={t("searchClear")}
             label={t("searchLabel")}
@@ -80,7 +82,25 @@ export function NotesArchiveToolbar({
             value={state.search}
           />
         </div>
-        <div className="w-full lg:w-64">
+
+        <MobileSortSheet
+          className="max-w-[9.5rem] sm:hidden"
+          closeLabel={tSortMobile("close")}
+          groups={[
+            {
+              key: "sort",
+              options: NOTES_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
+            },
+          ]}
+          id="notes-sort"
+          label={t("sortLabel")}
+          onChange={onSortChange}
+          title={tSortMobile("title")}
+          triggerLabel={tSortMobile(`trigger.${state.sort}`)}
+          value={state.sort}
+        />
+
+        <div className="hidden sm:block sm:w-64 lg:w-64">
           <Select
             onValueChange={(next) => {
               const match = NOTES_SORT_OPTIONS.find((option) => option === next);
@@ -126,7 +146,7 @@ export function NotesArchiveToolbar({
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5">
         <ToolbarSelect
           label={t("entityLabel")}
           onValueChange={(next) => {
@@ -221,7 +241,7 @@ function ToolbarSelect({
   value: string;
 }) {
   return (
-    <div className="w-full sm:w-52">
+    <div className="w-full min-w-0 sm:w-52">
       <Select onValueChange={onValueChange} value={value}>
         <SelectTrigger aria-label={label} className="w-full data-[size=default]:h-10">
           <SelectValue />

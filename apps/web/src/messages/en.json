@@ -1971,6 +1971,21 @@
       "price_desc": "Highest price first",
       "stores_desc": "By store count"
     },
+    "sortMobile": {
+      "title": "Sorting",
+      "close": "Close",
+
+      "trigger": {
+        "added_asc": "Oldest",
+        "added_desc": "Newest",
+        "title_asc": "Title",
+        "author_asc": "Author",
+        "publisher_asc": "Publisher",
+        "price_asc": "Price ↑",
+        "price_desc": "Price ↓",
+        "stores_desc": "Stores ↓"
+      }
+    },
     "empty": {
       "title": "Save books for future purchases",
       "description": "Mark the books you want to buy so you can keep track of editions, stores, and prices.",
@@ -3641,6 +3656,24 @@
         "no_spoiler_first": "Without spoilers first",
         "with_spoiler_first": "With spoilers first"
       },
+      "sortMobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "newest": "Newest",
+          "oldest": "Oldest",
+          "recently_updated": "Updated",
+          "title": "Title",
+          "author": "Author",
+          "category": "Category",
+          "page": "Page",
+          "pinned_first": "Pinned",
+          "favorite_first": "Favorites",
+          "no_spoiler_first": "No spoilers",
+          "with_spoiler_first": "Spoilers"
+        }
+      },
       "toolbar": {
         "searchLabel": "Search notes",
         "searchPlaceholder": "Search notes...",
@@ -4478,7 +4511,30 @@
         "title": "Couldn't load the summary",
         "description": "Try refreshing the page or come back a little later.",
         "retry": "Try again"
+      },
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "publishers": "Publishers",
+          "booksWithPublisher": "Books",
+          "averageRating": "Rating",
+          "toBuy": "To buy"
+        },
+        "detailed": {
+          "publishers": "Publishers",
+          "booksWithPublisher": "Books with a publisher",
+          "averageRating": "Average rating",
+          "toBuy": "Books to buy"
+        }
       }
+    },
+    "overviewPanel": {
+      "trigger": "Publishers overview",
+      "title": "Publishers overview",
+      "subtitle": "Full stats for this section",
+      "close": "Close overview"
     },
     "toolbar": {
       "searchLabel": "Search publishers",
@@ -4503,6 +4559,19 @@
         "wantToBuyCount": "Most to buy",
         "averageRating": "Highest rating",
         "lastBookAddedAt": "Recently added"
+      },
+      "sortMobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "name": "Name",
+          "booksCount": "Books ↓",
+          "readCount": "Read ↓",
+          "wantToBuyCount": "To buy ↓",
+          "averageRating": "Rating ↓",
+          "lastBookAddedAt": "Recent"
+        }
       },
       "geography": {
         "all": "All geographies",

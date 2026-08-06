@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import {
   Select,
   SelectContent,
@@ -52,11 +53,12 @@ export function BooksToBuyToolbar({
   const tCommon = useTranslations("common");
   const tLink = useTranslations("booksToBuy.linkFilter");
   const tSort = useTranslations("booksToBuy.sort");
+  const tSortMobile = useTranslations("booksToBuy.sortMobile");
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="lg:flex-1">
+      <div className="flex items-center gap-1.5 lg:flex-row lg:items-center lg:gap-3">
+        <div className="min-w-0 flex-1">
           <DebouncedSearchInput
             clearLabel={t("searchClear")}
             isCommittable={alwaysCommittable}
@@ -67,7 +69,25 @@ export function BooksToBuyToolbar({
             value={filters.search}
           />
         </div>
-        <div className="w-full lg:w-60">
+
+        <MobileSortSheet
+          className="max-w-[9.5rem] sm:hidden"
+          closeLabel={tSortMobile("close")}
+          groups={[
+            {
+              key: "sort",
+              options: WISHLIST_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
+            },
+          ]}
+          id="books-to-buy-sort"
+          label={t("sortLabel")}
+          onChange={onSortChange}
+          title={tSortMobile("title")}
+          triggerLabel={tSortMobile(`trigger.${sort}`)}
+          value={sort}
+        />
+
+        <div className="hidden sm:block sm:w-60">
           <Select
             onValueChange={(next) => {
               const match = WISHLIST_SORT_OPTIONS.find((option) => option === next);
@@ -115,7 +135,7 @@ export function BooksToBuyToolbar({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:items-center sm:gap-2.5">
           <ValueFilterSelect
             anyLabel={t("storeAny")}
             label={t("storeLabel")}
@@ -186,7 +206,7 @@ function ValueFilterSelect({
   if (options.length === 0) return null;
 
   return (
-    <div className="w-full sm:w-52">
+    <div className="w-full min-w-0 sm:w-52">
       <Select
         onValueChange={(next) => onChange(next === ANY_VALUE ? null : next)}
         value={value ?? ANY_VALUE}

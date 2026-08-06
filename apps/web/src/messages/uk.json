@@ -1971,6 +1971,21 @@
       "price_desc": "За найвищою ціною",
       "stores_desc": "За кількістю магазинів"
     },
+    "sortMobile": {
+      "title": "Сортування",
+      "close": "Закрити",
+
+      "trigger": {
+        "added_asc": "Старі",
+        "added_desc": "Нові",
+        "title_asc": "Назва",
+        "author_asc": "Автор",
+        "publisher_asc": "Видавництво",
+        "price_asc": "Ціна ↑",
+        "price_desc": "Ціна ↓",
+        "stores_desc": "Магазини ↓"
+      }
+    },
     "empty": {
       "title": "Збережи книги для майбутніх покупок",
       "description": "Познач книги, які хочеш придбати, щоб не загубити бажані видання, магазини та ціни.",
@@ -3641,6 +3656,24 @@
         "no_spoiler_first": "Спочатку без спойлерів",
         "with_spoiler_first": "Спочатку зі спойлерами"
       },
+      "sortMobile": {
+        "title": "Сортування",
+        "close": "Закрити",
+
+        "trigger": {
+          "newest": "Нові",
+          "oldest": "Старі",
+          "recently_updated": "Оновлені",
+          "title": "Назва",
+          "author": "Автор",
+          "category": "Категорія",
+          "page": "Сторінка",
+          "pinned_first": "Закріплені",
+          "favorite_first": "Улюблені",
+          "no_spoiler_first": "Без спойлерів",
+          "with_spoiler_first": "Зі спойлерами"
+        }
+      },
       "toolbar": {
         "searchLabel": "Пошук у нотатках",
         "searchPlaceholder": "Пошук у нотатках...",
@@ -4478,7 +4511,30 @@
         "title": "Не вдалося завантажити зведення",
         "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
         "retry": "Спробувати ще раз"
+      },
+
+      "mobile": {
+        "title": "Детальна статистика",
+
+        "compact": {
+          "publishers": "Видавництв",
+          "booksWithPublisher": "Книг",
+          "averageRating": "Рейтинг",
+          "toBuy": "До покупки"
+        },
+        "detailed": {
+          "publishers": "Видавництв",
+          "booksWithPublisher": "Книг із видавництвом",
+          "averageRating": "Середній рейтинг",
+          "toBuy": "Книги до покупки"
+        }
       }
+    },
+    "overviewPanel": {
+      "trigger": "Огляд видавництв",
+      "title": "Огляд видавництв",
+      "subtitle": "Повна статистика розділу",
+      "close": "Закрити огляд"
     },
     "toolbar": {
       "searchLabel": "Пошук видавництв",
@@ -4503,6 +4559,19 @@
         "wantToBuyCount": "Найбільше до покупки",
         "averageRating": "Найвищий рейтинг",
         "lastBookAddedAt": "Нещодавно додані"
+      },
+      "sortMobile": {
+        "title": "Сортування",
+        "close": "Закрити",
+
+        "trigger": {
+          "name": "Назва",
+          "booksCount": "Книг ↓",
+          "readCount": "Прочитано ↓",
+          "wantToBuyCount": "До покупки ↓",
+          "averageRating": "Рейтинг ↓",
+          "lastBookAddedAt": "Нові"
+        }
       },
       "geography": {
         "all": "Уся географія",
