@@ -39,7 +39,7 @@ function StatusBadge({ className, entry, tone, ...props }: StatusBadgeProps) {
       {...props}
     >
       <UiIcon name={entry.icon} />
-      {entry.label}
+      <span className="truncate leading-normal">{entry.label}</span>
     </span>
   );
 }

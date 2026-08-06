@@ -48,6 +48,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     href?: string;
     kebab?: React.ReactNode;
     linkComponent?: BookCardLinkComponent;
+    mobileCompact?: boolean;
     note?: React.ReactNode;
     onCoverActivate?: () => void;
     ownership?: StatusEntry;
@@ -66,6 +67,15 @@ const GENRES_VISIBLE = 2;
 const TAGS_VISIBLE = 2;
 const TOOLTIP_DELAY_MS = 400;
 
+const MOBILE_COMPACT = {
+  author: "max-sm:text-xs",
+  chips: "max-sm:hidden",
+  meta: "max-sm:text-[0.625rem]",
+  metaIcon: "max-sm:size-3",
+  statusBadge: "max-sm:top-12 max-sm:w-[calc(100%-1.5rem)]",
+  title: "max-sm:text-sm",
+} as const;
+
 const morePillClass =
   "relative z-10 inline-flex shrink-0 items-center rounded-full border border-border/60 bg-secondary/40 px-1.5 py-0.5 text-xs font-medium text-muted-foreground";
 
@@ -81,6 +91,7 @@ function BookCard({
   interactive,
   kebab,
   linkComponent,
+  mobileCompact,
   note,
   onCoverActivate,
   ownership,
@@ -99,6 +110,7 @@ function BookCard({
   const isInteractive = interactive ?? href !== undefined;
   const LinkComp: "a" | BookCardLinkComponent = linkComponent ?? "a";
   const showChipDivider = (genres ?? []).length > 0 && (tags ?? []).length > 0;
+  const compact = mobileCompact === true ? MOBILE_COMPACT : null;
 
   return (
     <article
@@ -117,7 +129,12 @@ function BookCard({
         <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim-top)]" />
         <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim)]" />
 
-        <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
+        <div
+          className={cn(
+            "absolute top-3 left-3 z-10 flex flex-wrap items-center gap-1.5",
+            compact?.statusBadge,
+          )}
+        >
           <CoverStatusBadge progress={progress} status={status} />
           {ageBadge === undefined ? null : (
             <span className={statusBadgeVariants({ tone: "danger" })}>{ageBadge}</span>
@@ -146,7 +163,12 @@ function BookCard({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-4">
-        <h3 className="line-clamp-2 font-heading text-[1.0625rem] leading-tight font-bold text-ink">
+        <h3
+          className={cn(
+            "line-clamp-2 font-heading text-[1.0625rem] leading-tight font-bold text-ink",
+            compact?.title,
+          )}
+        >
           {href === undefined ? (
             title
           ) : (
@@ -160,7 +182,12 @@ function BookCard({
         </h3>
 
         <div className="flex items-center gap-2">
-          <p className="min-w-0 flex-1 truncate text-[0.8125rem] text-muted-foreground">
+          <p
+            className={cn(
+              "min-w-0 flex-1 truncate text-[0.8125rem] text-muted-foreground",
+              compact?.author,
+            )}
+          >
             {authors.join(", ")}
           </p>
           {rating === undefined ? null : (
@@ -172,10 +199,17 @@ function BookCard({
 
         {series === undefined ? null : (
           <LinkComp
-            className="relative z-10 flex min-w-0 items-center gap-1.5 text-[0.8125rem] text-muted-foreground no-underline transition-colors hover:text-primary"
+            className={cn(
+              "relative z-10 flex min-w-0 items-center gap-1.5 text-[0.8125rem] text-muted-foreground no-underline transition-colors hover:text-primary",
+              compact?.meta,
+            )}
             href={series.href}
           >
-            <UiIcon className="shrink-0 text-icon" name="layers" size={15} />
+            <UiIcon
+              className={cn("shrink-0 text-icon", compact?.metaIcon)}
+              name="layers"
+              size={15}
+            />
             <span className="min-w-0 truncate">
               {series.name}
               {series.positionLabel === undefined ? null : (
@@ -186,13 +220,22 @@ function BookCard({
         )}
 
         {publisher === undefined ? null : (
-          <p className="flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
-            <UiIcon className="shrink-0 text-icon" name="building" size={15} />
+          <p
+            className={cn(
+              "flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground",
+              compact?.meta,
+            )}
+          >
+            <UiIcon
+              className={cn("shrink-0 text-icon", compact?.metaIcon)}
+              name="building"
+              size={15}
+            />
             <span className="min-w-0 truncate">{publisher}</span>
           </p>
         )}
 
-        <div className="mt-auto flex flex-col gap-2.5 pt-1">
+        <div className={cn("mt-auto flex flex-col gap-2.5 pt-1", compact?.chips)}>
           <div className="flex min-h-6 flex-wrap items-center gap-1.5">
             {(genres ?? []).slice(0, GENRES_VISIBLE).map((genre) => (
               <span
@@ -251,10 +294,14 @@ function CoverStatusBadge({
   progress?: { current: number; total: number; unit?: string };
   status: StatusEntry;
 }) {
-  const badge = <StatusBadge entry={status} />;
+  const badge = <StatusBadge className="max-w-full" entry={status} />;
 
   if (progress === undefined || progress.total <= 0) {
-    return <div data-slot="cover-status-badge">{badge}</div>;
+    return (
+      <div className="max-w-full min-w-0" data-slot="cover-status-badge">
+        {badge}
+      </div>
+    );
   }
 
   const percent = Math.round((progress.current / progress.total) * 100);
@@ -263,7 +310,7 @@ function CoverStatusBadge({
   return (
     <Tooltip delayDuration={TOOLTIP_DELAY_MS}>
       <TooltipTrigger
-        className="cursor-default rounded-full focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
+        className="max-w-full cursor-default rounded-full focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
         data-slot="cover-status-badge"
       >
         {badge}

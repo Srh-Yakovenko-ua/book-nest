@@ -105,6 +105,7 @@ type ViewLabels = {
 const SKELETON_COUNT = 8;
 const STAGGER_STEP_MS = 45;
 const STAGGER_MAX_MS = 360;
+const GRID_CLASS = "grid grid-cols-2 gap-5 max-sm:gap-3 xl:grid-cols-3";
 
 export function BooksLibraryView(props: BooksLibraryViewProps) {
   const {
@@ -217,8 +218,8 @@ function BookCardSkeleton() {
       <div className="flex flex-col gap-2 p-4">
         <Skeleton className="h-5 w-4/5" />
         <Skeleton className="h-3 w-1/2" />
-        <Skeleton className="mt-1 h-5 w-24 rounded-full" />
-        <div className="mt-1 flex items-center gap-1.5">
+        <Skeleton className="mt-1 h-5 w-24 rounded-full max-sm:hidden" />
+        <div className="mt-1 flex items-center gap-1.5 max-sm:hidden">
           <Skeleton className="h-5 w-16 rounded-full" />
           <Skeleton className="h-5 w-20 rounded-full" />
         </div>
@@ -243,7 +244,7 @@ function BooksGrid({
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <div className={GRID_CLASS}>
       {books.map((book, index) => (
         <LibraryGridCard
           book={book}
@@ -263,7 +264,7 @@ function BooksGrid({
 
 function BooksGridSkeleton() {
   return (
-    <div aria-busy className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <div aria-busy className={GRID_CLASS}>
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
         <div
           className="grid motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in"
@@ -442,6 +443,7 @@ function LibraryGridCard({
           href={book.href}
           kebab={renderActions(book)}
           linkComponent={linkComponent}
+          mobileCompact
           onCoverActivate={
             coverMedia
               ? () => onActivateCover({ bookId: book.id, media: coverMedia, title: book.title })
