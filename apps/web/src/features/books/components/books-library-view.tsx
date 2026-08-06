@@ -85,6 +85,7 @@ type BooksLibraryViewProps = {
   subtitle: string;
   summaryCards: LibrarySummaryCard[];
   summaryLoading: boolean;
+  summaryMobileLayout?: "compact" | "grid";
   title: string;
   view: LibraryViewMode;
   viewLabels: ViewLabels;
@@ -119,6 +120,7 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     subtitle,
     summaryCards,
     summaryLoading,
+    summaryMobileLayout,
     title,
   } = props;
 
@@ -175,7 +177,11 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
           ) : null}
         </div>
 
-        <LibrarySummaryCards cards={summaryCards} isLoading={summaryLoading} />
+        <LibrarySummaryCards
+          cards={summaryCards}
+          isLoading={summaryLoading}
+          mobileLayout={summaryMobileLayout}
+        />
       </header>
 
       {showToolbar ? <LibraryToolbar {...props} /> : null}
@@ -586,7 +592,7 @@ function LibraryToolbar({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         {searchControl ? <div className="lg:flex-1">{searchControl}</div> : null}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5 max-sm:flex-nowrap max-sm:gap-1.5">
           <LibrarySortSelect
             label={sortLabel}
             onChange={onSortChange}
@@ -595,20 +601,30 @@ function LibraryToolbar({
           />
           {advancedFilters}
           <Button
-            className="h-10"
+            className="h-10 max-sm:w-10 max-sm:px-0"
             onClick={selectionMode ? exitSelection : enterSelection}
             variant={selectionMode ? "secondary" : "outline"}
           >
             <SquareCheckBig />
-            {selectionMode ? t("bulk.exitSelection") : t("bulk.enterSelection")}
+            <span className="max-sm:sr-only">
+              {selectionMode ? t("bulk.exitSelection") : t("bulk.enterSelection")}
+            </span>
           </Button>
           <Segmented
-            className="h-10 items-stretch [&_[data-slot=segmented-item]]:py-0"
+            className="ml-auto h-10 shrink-0 items-stretch [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
             label={viewLabels.label}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
             options={[
-              { icon: <LayoutGrid />, label: viewLabels.grid, value: "grid" },
-              { icon: <List />, label: viewLabels.list, value: "list" },
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{viewLabels.grid}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{viewLabels.list}</span>,
+                value: "list",
+              },
             ]}
             value={view}
           />

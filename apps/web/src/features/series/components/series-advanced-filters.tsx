@@ -96,7 +96,7 @@ export function SeriesAdvancedFilters({
     >
       <SheetTrigger asChild>
         <Button className="h-10" type="button" variant="secondary">
-          <UiIcon name="sliders" size={16} />
+          <UiIcon name="funnel" size={16} />
           {t("trigger")}
           {activeCount > 0 ? (
             <Badge className="ml-0.5" variant="secondary">

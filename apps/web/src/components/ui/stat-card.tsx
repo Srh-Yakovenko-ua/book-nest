@@ -27,7 +27,7 @@ const statCardVariants = cva(
   },
 );
 
-const iconBadgeVariants = cva("grid shrink-0 place-items-center rounded-full [&_svg]:size-[26px]", {
+const statCardIconBadge = cva("grid shrink-0 place-items-center rounded-full [&_svg]:size-[26px]", {
   variants: {
     size: {
       default: "size-[54px]",
@@ -124,7 +124,7 @@ function StatCard({
           size === "compact" ? "gap-2.5 sm:gap-3" : "gap-4",
         )}
       >
-        <span className={iconBadgeVariants({ size, tone: iconTone })}>
+        <span className={statCardIconBadge({ size, tone: iconTone })}>
           {iconSlot ?? <UiIcon name={icon} />}
         </span>
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -159,5 +159,5 @@ function StatCard({
   );
 }
 
-export { StatCard };
+export { StatCard, statCardIconBadge };
 export type { StatCardIconTone, StatTrend };

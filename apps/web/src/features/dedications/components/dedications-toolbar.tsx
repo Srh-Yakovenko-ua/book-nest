@@ -143,8 +143,16 @@ export function DedicationsToolbar({
             label={tView("label")}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
             options={[
-              { icon: <LayoutGrid />, label: tView("grid"), value: "grid" },
-              { icon: <List />, label: tView("list"), value: "list" },
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{tView("grid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{tView("list")}</span>,
+                value: "list",
+              },
             ]}
             value={view}
           />

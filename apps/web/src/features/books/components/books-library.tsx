@@ -98,43 +98,61 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
     if (authorsCount === undefined || authorsCount === 0) return undefined;
     const authorsPart = `${authorsCount.toLocaleString()} ${t("summary.unitAuthor", { count: authorsCount })}`;
     if (seriesCount === undefined || seriesCount === 0) {
-      return <span className="block truncate">{authorsPart}</span>;
+      return <span className="block truncate max-sm:whitespace-normal">{authorsPart}</span>;
     }
     const seriesPart = `${seriesCount.toLocaleString()} ${t("summary.unitSeries", { count: seriesCount })}`;
-    return <span className="block truncate">{`${seriesPart} · ${authorsPart}`}</span>;
+    return (
+      <span className="block truncate max-sm:whitespace-normal">{`${seriesPart} · ${authorsPart}`}</span>
+    );
   })();
 
   const readingMicrofact = ((): ReactNode => {
     if (activeReading === undefined) return undefined;
-    if (reading === 0) return <span className="block truncate">{t("summary.readingNone")}</span>;
+    if (reading === 0)
+      return (
+        <span className="block truncate max-sm:whitespace-normal">{t("summary.readingNone")}</span>
+      );
     if (activeReading.book !== null) {
       const { currentPage, pagesCount } = activeReading.book;
       const percent = pagesCount > 0 ? Math.round((currentPage / pagesCount) * 100) : 0;
       return (
         <div className="flex flex-col gap-1">
           <Progress aria-hidden className="h-1 w-4/5" value={percent} />
-          <span className="block truncate">
+          <span className="block truncate max-sm:whitespace-normal">
             {t("summary.readingProgress", { current: currentPage, percent, total: pagesCount })}
           </span>
         </div>
       );
     }
     const many = `${reading.toLocaleString()} ${bookUnit(reading)} · ${t("summary.readingPagesAhead", { pagesAhead: activeReading.pagesAhead })}`;
-    return <span className="block truncate">{many}</span>;
+    return <span className="block truncate max-sm:whitespace-normal">{many}</span>;
   })();
 
   const finishedMicrofact = ((): ReactNode => {
     const physicallyAvailable = summary?.physicallyAvailable;
     if (physicallyAvailable === undefined || physicallyAvailable === 0) return undefined;
     const percent = Math.round((finished / physicallyAvailable) * 100);
-    return <span className="block truncate">{t("summary.finishedPercent", { percent })}</span>;
+    return (
+      <span className="block truncate max-sm:whitespace-normal">
+        {t("summary.finishedPercent", { percent })}
+      </span>
+    );
   })();
 
   const favoritesMicrofact = ((): ReactNode => {
     if (total === 0) return undefined;
     const percent = Math.round((favorites / total) * 100);
-    return <span className="block truncate">{t("summary.favoritesPercent", { percent })}</span>;
+    return (
+      <span className="block truncate max-sm:whitespace-normal">
+        {t("summary.favoritesPercent", { percent })}
+      </span>
+    );
   })();
+
+  const mobileLabels = (key: "favorites" | "finished" | "reading" | "total") => ({
+    compact: t(`summary.mobile.compact.${key}`),
+    detailed: t(`summary.mobile.detailed.${key}`),
+  });
 
   const summaryCards: LibrarySummaryCard[] = [
     {
@@ -142,6 +160,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       iconTone: "primary",
       label: t("summary.total"),
       microfact: totalMicrofact,
+      mobileLabels: mobileLabels("total"),
       unit: bookUnit(total),
       value: total,
     },
@@ -150,6 +169,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       iconTone: "info",
       label: t("summary.reading"),
       microfact: readingMicrofact,
+      mobileLabels: mobileLabels("reading"),
       unit: bookUnit(reading),
       value: reading,
     },
@@ -158,6 +178,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       iconTone: "success",
       label: t("summary.finished"),
       microfact: finishedMicrofact,
+      mobileLabels: mobileLabels("finished"),
       unit: bookUnit(finished),
       value: finished,
     },
@@ -166,6 +187,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       iconTone: "favorite",
       label: t("summary.favorites"),
       microfact: favoritesMicrofact,
+      mobileLabels: mobileLabels("favorites"),
       unit: bookUnit(favorites),
       value: favorites,
     },
@@ -290,6 +312,7 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       subtitle={t(`${scope}.subtitle`)}
       summaryCards={summaryCards}
       summaryLoading={overview.isPending}
+      summaryMobileLayout="compact"
       title={t(`${scope}.title`)}
       view={library.view}
       viewLabels={{ grid: t("view.grid"), label: t("view.label"), list: t("view.list") }}
