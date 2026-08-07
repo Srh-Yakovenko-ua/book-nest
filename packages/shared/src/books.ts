@@ -296,10 +296,6 @@ export const PurchaseInfoInputSchema = PurchaseInfoFieldsSchema.optional();
 
 export type PurchaseInfoInput = z.infer<typeof PurchaseInfoInputSchema>;
 
-export const WantToBuyInputSchema = PurchaseInfoFieldsSchema;
-
-export type WantToBuyInput = z.infer<typeof WantToBuyInputSchema>;
-
 export const MarkBoughtInputSchema = z.object({
   currency: CurrencySchema.nullable().optional(),
   expectedPrice: OwnershipPriceSchema.nullable().optional(),

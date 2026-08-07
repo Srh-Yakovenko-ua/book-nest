@@ -80,20 +80,23 @@ export function WantToBuyDialog({ book, onOpenChange, open }: WantToBuyDialogPro
 }
 
 function buildPayload(values: WantToBuyValues): WantToBuyInput {
-  const payload: WantToBuyInput = {};
   const storeName = values.storeName.trim();
-  const storeUrl = values.storeUrl.trim();
+  const url = values.storeUrl.trim();
+  if (storeName.length === 0 || url.length === 0) {
+    return {};
+  }
+
   const price = Number(values.expectedPrice);
-  const note = values.note.trim();
+  const hasPrice = values.expectedPrice.trim().length > 0 && Number.isFinite(price);
 
-  if (storeName.length > 0) payload.storeName = storeName;
-  if (storeUrl.length > 0) payload.storeUrl = storeUrl;
-  if (values.expectedPrice.trim().length > 0 && Number.isFinite(price))
-    payload.expectedPrice = price;
-  if (values.currency !== "") payload.currency = values.currency;
-  if (note.length > 0) payload.note = note;
-
-  return payload;
+  return {
+    storeLink: {
+      currency: values.currency === "" ? null : values.currency,
+      price: hasPrice ? price : null,
+      storeName,
+      url,
+    },
+  };
 }
 
 function buildSchema(messages: WantToBuyMessages) {
