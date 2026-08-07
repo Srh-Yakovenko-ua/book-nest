@@ -147,7 +147,7 @@
       },
       "unavailable": {
         "label": "Not available",
-        "wantToBuy": "{count} want to buy",
+        "wantToBuy": "{count} on the wishlist",
         "inTransit": "{count} in transit",
         "lentToSomeone": "{count} lent out",
         "none": "{count} not owned"
@@ -288,7 +288,7 @@
         "addAll": "Add all in order",
         "openBook": "Open the previous book",
         "resumeBook": "Back to the book",
-        "addToWishlist": "Add to “Want to buy”",
+        "addToWishlist": "Add to wishlist",
         "openPurchase": "Go to wishlist",
         "openOrder": "View the order",
         "openLoan": "View the loan",
@@ -800,7 +800,7 @@
         "want_to_read": "Want to read",
         "finished": "Finished",
         "favorites": "Favorites",
-        "want_to_buy": "Want to buy",
+        "want_to_buy": "On the wishlist",
         "in_transit": "In transit",
         "borrowed": "Borrowed",
         "series": "Series part",
@@ -1060,7 +1060,7 @@
       "description": "Do you have the book yet, or is it on its way?",
       "options": {
         "none": "Not specified",
-        "want_to_buy": "Want to buy",
+        "want_to_buy": "On the wishlist",
         "in_transit": "In transit",
         "owned": "Owned",
         "borrowed_from_someone": "Borrowed from someone",
@@ -1690,7 +1690,7 @@
         "statusLabel": "Status",
         "actions": {
           "markOwned": "I own this book",
-          "wantToBuy": "Want to buy",
+          "wantToBuy": "Add to wishlist",
           "loanBorrowed": "Borrowed from someone",
           "removeOwned": "Remove from mine",
           "loanLent": "Lend to someone",
@@ -1721,7 +1721,7 @@
           "error": "Couldn’t update. Please try again."
         },
         "buyDialog": {
-          "title": "Want to buy",
+          "title": "Add to wishlist",
           "description": "Add purchase details — all fields are optional.",
           "storeName": "Store",
           "storeNamePlaceholder": "e.g. Yakaboo",
@@ -2692,7 +2692,7 @@
         "openLoan": "View loan",
         "openOrder": "View order",
         "openWishlist": "Go to wishlist",
-        "addToWishlist": "Add to “Want to buy”"
+        "addToWishlist": "Add to wishlist"
       }
     },
     "topGenres": {

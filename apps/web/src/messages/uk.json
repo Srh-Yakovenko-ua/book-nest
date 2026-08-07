@@ -147,7 +147,7 @@
       },
       "unavailable": {
         "label": "Немає в наявності",
-        "wantToBuy": "{count} хочу купити",
+        "wantToBuy": "{count} у списку бажань",
         "inTransit": "{count} в дорозі",
         "lentToSomeone": "{count, plural, one {# позичена} few {# позичені} many {# позичених} other {# позичених}}",
         "none": "{count} немає"
@@ -288,7 +288,7 @@
         "addAll": "Додати всі за порядком",
         "openBook": "Відкрити попередню книгу",
         "resumeBook": "Повернутися до книги",
-        "addToWishlist": "Додати до «Хочу купити»",
+        "addToWishlist": "Додати до списку бажань",
         "openPurchase": "Перейти до списку бажань",
         "openOrder": "Переглянути замовлення",
         "openLoan": "Переглянути позику",
@@ -800,7 +800,7 @@
         "want_to_read": "Хочу прочитати",
         "finished": "Прочитано",
         "favorites": "Улюблені",
-        "want_to_buy": "Хочу купити",
+        "want_to_buy": "У списку бажань",
         "in_transit": "В дорозі",
         "borrowed": "Позичені",
         "series": "Частина серії",
@@ -1060,7 +1060,7 @@
       "description": "Книга вже у вас чи ще в дорозі?",
       "options": {
         "none": "Не вказано",
-        "want_to_buy": "Хочу купити",
+        "want_to_buy": "У списку бажань",
         "in_transit": "У дорозі",
         "owned": "У наявності",
         "borrowed_from_someone": "Позичена у когось",
@@ -1690,7 +1690,7 @@
         "statusLabel": "Статус",
         "actions": {
           "markOwned": "Маю цю книгу",
-          "wantToBuy": "Хочу купити",
+          "wantToBuy": "Додати до списку бажань",
           "loanBorrowed": "Позичена у когось",
           "removeOwned": "Прибрати з моїх",
           "loanLent": "Дати комусь почитати",
@@ -1721,7 +1721,7 @@
           "error": "Не вдалося оновити. Спробуйте ще раз."
         },
         "buyDialog": {
-          "title": "Хочу купити",
+          "title": "Додати до списку бажань",
           "description": "Додайте деталі покупки — усі поля необовʼязкові.",
           "storeName": "Магазин",
           "storeNamePlaceholder": "Напр. Yakaboo",
@@ -2692,7 +2692,7 @@
         "openLoan": "Переглянути позику",
         "openOrder": "Переглянути замовлення",
         "openWishlist": "Перейти до списку бажань",
-        "addToWishlist": "Додати до «Хочу купити»"
+        "addToWishlist": "Додати до списку бажань"
       }
     },
     "topGenres": {
