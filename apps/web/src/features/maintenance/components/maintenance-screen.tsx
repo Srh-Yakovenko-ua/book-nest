@@ -2,6 +2,7 @@
 
 import { BookOpen, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -13,12 +14,19 @@ export type MaintenanceScreenProps = {
 
 export function MaintenanceScreen({ checking, longWait, onRetry }: MaintenanceScreenProps) {
   const t = useTranslations("maintenance");
+  const container = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    container.current?.focus();
+  }, []);
 
   return (
     <div
       aria-live="polite"
-      className="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-background px-6 py-12 text-foreground"
+      className="fixed inset-0 z-100 flex items-center justify-center overflow-y-auto bg-background px-6 py-12 text-foreground outline-none"
+      ref={container}
       role="status"
+      tabIndex={-1}
     >
       <div
         aria-hidden
