@@ -1723,6 +1723,7 @@
         "buyDialog": {
           "title": "Add to wishlist",
           "description": "Add purchase details — all fields are optional.",
+          "wishlistDescription": "Point to where the book can be bought. The store and its link go together; the price is optional.",
           "storeName": "Store",
           "storeNamePlaceholder": "e.g. Yakaboo",
           "storeUrl": "Product link",
@@ -1730,8 +1731,6 @@
           "expectedPrice": "Expected price",
           "currency": "Currency",
           "currencyPlaceholder": "Currency",
-          "note": "Note",
-          "notePlaceholder": "A few thoughts for yourself…",
           "submit": "Save"
         },
         "buyConfirm": {
@@ -1748,6 +1747,9 @@
           "price": "Price must be greater than 0.",
           "priceMax": "Too large. Maximum 99999999.99.",
           "storeNameMax": "No more than {max} characters.",
+          "storeNameRequired": "Add the store name — a link without it cannot be saved.",
+          "storeUrlRequired": "Add the store link — the name alone is not enough.",
+          "storeRequiredForPrice": "To save a price, add the store and its link.",
           "noteMax": "No more than {max} characters.",
           "purchaseDateRequired": "Enter the purchase date.",
           "purchaseDateFuture": "The date can’t be in the future.",
