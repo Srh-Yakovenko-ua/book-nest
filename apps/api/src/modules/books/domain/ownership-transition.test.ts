@@ -82,75 +82,15 @@ describe("computeOwnershipChange mark-bought", () => {
 });
 
 describe("computeOwnershipChange want-to-buy", () => {
-  it("sets ownership to want_to_buy without a purchase patch for empty fields", () => {
-    const patch = computeOwnershipChange({ fields: {}, kind: "want-to-buy" });
+  it("only sets the ownership status and leaves purchase info alone", () => {
+    const patch = computeOwnershipChange({ kind: "want-to-buy" });
 
     expect(patch).toEqual({ book: { ownershipStatus: "want_to_buy" } });
   });
 
-  it("overwrites every purchase field, nulling the ones that were not provided", () => {
-    const patch = computeOwnershipChange({
-      fields: { storeName: "Yakaboo" },
-      kind: "want-to-buy",
-    });
+  it("does not stamp a purchase date", () => {
+    const patch = computeOwnershipChange({ kind: "want-to-buy" });
 
-    expect(patch).toEqual({
-      book: { ownershipStatus: "want_to_buy" },
-      purchaseInfo: {
-        currency: null,
-        expectedPrice: null,
-        note: null,
-        purchasedAt: null,
-        storeName: "Yakaboo",
-        storeUrl: null,
-      },
-    });
-  });
-
-  it("carries every provided purchase field into the patch and nulls the purchase date", () => {
-    const patch = computeOwnershipChange({
-      fields: {
-        currency: "UAH",
-        expectedPrice: 299.99,
-        note: "wishlist",
-        storeName: "Yakaboo",
-        storeUrl: "https://yakaboo.ua",
-      },
-      kind: "want-to-buy",
-    });
-
-    expect(patch.purchaseInfo).toEqual({
-      currency: "UAH",
-      expectedPrice: 299.99,
-      note: "wishlist",
-      purchasedAt: null,
-      storeName: "Yakaboo",
-      storeUrl: "https://yakaboo.ua",
-    });
-  });
-
-  it("treats an explicit null field as an overwrite trigger", () => {
-    const patch = computeOwnershipChange({
-      fields: { note: null },
-      kind: "want-to-buy",
-    });
-
-    expect(patch.purchaseInfo).toEqual({
-      currency: null,
-      expectedPrice: null,
-      note: null,
-      purchasedAt: null,
-      storeName: null,
-      storeUrl: null,
-    });
-  });
-
-  it("nulls the purchase date instead of stamping one on want-to-buy", () => {
-    const patch = computeOwnershipChange({
-      fields: { storeName: "Yakaboo" },
-      kind: "want-to-buy",
-    });
-
-    expect(patch.purchaseInfo).toMatchObject({ purchasedAt: null });
+    expect(patch.purchaseInfo).toBeUndefined();
   });
 });

@@ -1,4 +1,4 @@
-import type { MarkBoughtInput, WantToBuyInput } from "@app/shared";
+import type { MarkBoughtInput } from "@app/shared";
 
 import type {
   OwnershipChangePatch,
@@ -9,10 +9,10 @@ import { parseIsoDate } from "../../../core/iso-date.js";
 
 export type OwnershipTransitionInput =
   | { date: string; fields: MarkBoughtInput; kind: "mark-bought" }
-  | { fields: WantToBuyInput; kind: "want-to-buy" }
   | { kind: "mark-owned" }
   | { kind: "remove-from-wishlist" }
-  | { kind: "remove-owned" };
+  | { kind: "remove-owned" }
+  | { kind: "want-to-buy" };
 
 export function computeOwnershipChange(input: OwnershipTransitionInput): OwnershipChangePatch {
   switch (input.kind) {
@@ -27,12 +27,8 @@ export function computeOwnershipChange(input: OwnershipTransitionInput): Ownersh
       return { book: { ownershipStatus: "none" }, purchaseInfo: "delete" };
     case "remove-owned":
       return { book: { ownershipStatus: "none" }, purchaseInfo: "delete" };
-    case "want-to-buy": {
-      const purchaseInfo = buildWantToBuyOverwrite(input.fields);
-      return purchaseInfo === undefined
-        ? { book: { ownershipStatus: "want_to_buy" } }
-        : { book: { ownershipStatus: "want_to_buy" }, purchaseInfo };
-    }
+    case "want-to-buy":
+      return { book: { ownershipStatus: "want_to_buy" } };
     default: {
       const _exhaustiveCheck: never = input;
       return _exhaustiveCheck;
@@ -58,25 +54,4 @@ function buildMarkBoughtPatch({
     patch.currency = fields.currency;
   }
   return patch;
-}
-
-function buildWantToBuyOverwrite(fields: WantToBuyInput): OwnershipPurchaseInfoPatch | undefined {
-  const hasAnyField =
-    fields.currency !== undefined ||
-    fields.expectedPrice !== undefined ||
-    fields.note !== undefined ||
-    fields.storeName !== undefined ||
-    fields.storeUrl !== undefined;
-  if (!hasAnyField) {
-    return undefined;
-  }
-
-  return {
-    currency: fields.currency ?? null,
-    expectedPrice: fields.expectedPrice ?? null,
-    note: fields.note ?? null,
-    purchasedAt: null,
-    storeName: fields.storeName ?? null,
-    storeUrl: fields.storeUrl ?? null,
-  };
 }

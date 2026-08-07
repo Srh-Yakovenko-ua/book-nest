@@ -35,6 +35,12 @@ export const CreateBookStoreLinkInputSchema = z
 
 export type CreateBookStoreLinkInput = z.infer<typeof CreateBookStoreLinkInputSchema>;
 
+export const WantToBuyInputSchema = z.object({
+  storeLink: CreateBookStoreLinkInputSchema.optional(),
+});
+
+export type WantToBuyInput = z.infer<typeof WantToBuyInputSchema>;
+
 export const UpdateBookStoreLinkInputSchema = z.object({
   currency: CurrencySchema.nullable().optional(),
   price: OwnershipPriceSchema.nullable().optional(),

@@ -5,6 +5,7 @@ import {
   bookFormats,
   ownershipStatuses,
   readingStatuses,
+  type StatusDefinition,
   type StatusEntry,
 } from "@/lib/book-status";
 
@@ -75,7 +76,7 @@ export type LibraryBookSeries = {
 
 const PROGRESS_STATUSES: readonly ReadingStatus[] = ["reading", "paused", "rereading"];
 
-export const FALLBACK_READING_STATUS: StatusEntry =
+export const FALLBACK_READING_STATUS: StatusDefinition =
   readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
 
 export function toLibraryBook(book: BookView, labels: LibraryBookLabels): LibraryBook {

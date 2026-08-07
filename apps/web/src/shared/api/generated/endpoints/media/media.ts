@@ -54,11 +54,18 @@ export type mediaControllerDeleteResponse404 = {
   status: 404;
 };
 
+export type mediaControllerDeleteResponse409 = {
+  data: void;
+  status: 409;
+};
+
 export type mediaControllerDeleteResponseSuccess = mediaControllerDeleteResponse204 & {
   headers: Headers;
 };
 export type mediaControllerDeleteResponseError = (
-  mediaControllerDeleteResponse401 | mediaControllerDeleteResponse404
+  | mediaControllerDeleteResponse401
+  | mediaControllerDeleteResponse404
+  | mediaControllerDeleteResponse409
 ) & {
   headers: Headers;
 };

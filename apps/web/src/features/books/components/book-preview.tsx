@@ -9,7 +9,7 @@ import { type ReactNode, useState } from "react";
 import { UiIcon, type UiIconName } from "@/components/icons";
 import { RatingScore } from "@/components/ui/rating-score";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { ownershipStatuses, readingStatuses, type StatusEntry } from "@/lib/book-status";
+import { ownershipStatuses, readingStatuses, type StatusDefinition } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
 type BookPreviewProps = {
@@ -257,10 +257,10 @@ function ChipRow({ children }: { children: ReactNode }) {
 }
 
 function entryFor(
-  entries: readonly StatusEntry[],
+  entries: readonly StatusDefinition[],
   value: string | undefined,
   defaultValue: string,
-): null | StatusEntry {
+): null | StatusDefinition {
   if (value === undefined || value === defaultValue) return null;
   return entries.find((entry) => entry.value === value) ?? null;
 }
