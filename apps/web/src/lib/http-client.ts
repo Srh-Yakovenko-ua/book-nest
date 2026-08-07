@@ -1,7 +1,13 @@
 import { z } from "zod";
 
+import { reportMaintenance } from "@/features/maintenance/model/maintenance-store";
 import { getAuthBridge } from "@/lib/auth-bridge";
 import { env } from "@/lib/env";
+
+const MAINTENANCE = {
+  header: "x-maintenance",
+  status: 503,
+} as const;
 
 const fieldErrorSchema = z.object({
   code: z.string().optional(),
@@ -57,6 +63,11 @@ export async function request<T>(path: string, init?: RequestOptions): Promise<T
     return res.json() as Promise<T>;
   }
 
+  if (isMaintenanceResponse(res)) {
+    reportMaintenance();
+    throw await toApiError(res);
+  }
+
   if (canAttemptRefresh(res.status, path)) {
     const retried = await refreshAndRetry<T>(path, init);
     if (retried.handled) return retried.value;
@@ -110,6 +121,12 @@ function canAttemptRefresh(status: number, path: string): boolean {
   if (status !== 401) return false;
   if (NON_REFRESHABLE_PATHS.some((p) => path.startsWith(p))) return false;
   return getAuthBridge() !== null;
+}
+
+function isMaintenanceResponse(res: Response): boolean {
+  if (isServer) return false;
+  if (res.status !== MAINTENANCE.status) return false;
+  return res.headers.get(MAINTENANCE.header) !== null;
 }
 
 async function refreshAndRetry<T>(

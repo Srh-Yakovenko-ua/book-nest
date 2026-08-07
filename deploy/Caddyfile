@@ -5,8 +5,18 @@
 book-nest.net {
 	encode zstd gzip
 
-	handle /api/metrics {
+	root * /srv/maintenance
+
+	@metrics path /api/metrics /api/metrics/*
+	handle @metrics {
 		respond 404
+	}
+
+	@maintenance file {
+		try_files prod.on
+	}
+	handle @maintenance {
+		error 503
 	}
 
 	handle /api/* {
@@ -16,12 +26,32 @@ book-nest.net {
 	handle {
 		reverse_proxy web-prod:3000
 	}
+
+	handle_errors 502 503 504 {
+		header Retry-After 120
+		header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		header X-Maintenance 1
+
+		@api path /api/*
+		handle @api {
+			header Content-Type application/json
+			respond `{"code":"MAINTENANCE","message":"Book Nest is being updated. Please try again in a few minutes."}` 503
+		}
+
+		handle {
+			rewrite * /maintenance.html
+			file_server {
+				status 503
+			}
+		}
+	}
 }
 
 dev.book-nest.net {
 	encode zstd gzip
 
-	handle /api/metrics {
+	@metrics path /api/metrics /api/metrics/*
+	handle @metrics {
 		respond 404
 	}
 
