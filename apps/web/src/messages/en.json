@@ -147,7 +147,7 @@
       },
       "unavailable": {
         "label": "Not available",
-        "wantToBuy": "{count} to buy",
+        "wantToBuy": "{count} want to buy",
         "inTransit": "{count} in transit",
         "lentToSomeone": "{count} lent out",
         "none": "{count} not owned"
