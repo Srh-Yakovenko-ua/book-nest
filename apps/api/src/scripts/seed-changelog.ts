@@ -475,6 +475,54 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Списки з першого погляду",
     version: null,
   },
+  {
+    bodyEn:
+      "The whole app is rebuilt for small screens. Book cards sit two per row in the grid and turn into compact rows in list view, the toolbar folds into a single row with icon-only filters and a bottom-sheet sort picker, and the desktop sidebars step aside. The same pattern now covers the library, favorites, series, dedications, the reading queue, lists, loans, deliveries, quotes, notes, books to buy, publishers, genres and tags, and the home page.",
+    bodyUk:
+      "Увесь застосунок перебудовано під малі екрани. Картки книг стоять по дві в ряд у сітці й перетворюються на компактні рядки у вигляді списку, панель інструментів згортається в один рядок із фільтрами-іконками та вибором сортування знизу, а бічні панелі відступають. Той самий підхід тепер охоплює бібліотеку, обране, серії, присвяти, чергу читання, списки, позики, доставки, цитати, нотатки, книги до купівлі, видавництва, жанри й теги та головну сторінку.",
+    category: "improvement",
+    publishedAt: "2026-08-07T00:00:00.000Z",
+    slug: "mobile-redesign",
+    titleEn: "Book Nest on a phone",
+    titleUk: "Book Nest на телефоні",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Statistics and the side blocks no longer trail the end of the page on a phone. Every list page now has an overview button that opens a full-screen panel with tabs: detailed stats, top genres and tags, recently added, and whatever else that page keeps in its sidebar. It closes with the button, Escape, a tap outside, or the system Back button.",
+    bodyUk:
+      "Статистика та бічні блоки більше не тягнуться в кінці сторінки на телефоні. Кожна сторінка зі списком тепер має кнопку огляду, яка відкриває повноекранну панель із вкладками: детальна статистика, топ жанрів і тегів, нещодавно додані та все інше, що сторінка тримає в бічній панелі. Панель закривається кнопкою, клавішею Escape, дотиком поза нею або системною кнопкою «Назад».",
+    category: "feature",
+    publishedAt: "2026-08-07T00:00:01.000Z",
+    slug: "mobile-overview-panel",
+    titleEn: "Page overview on mobile",
+    titleUk: "Огляд сторінки на телефоні",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The book page reflows on small screens: statuses and the favorite and menu buttons move to their own row above the title, the title takes the full width, the cover shrinks, and the dedication and genres run underneath. Tags show four at a time with a chip that reveals the rest, and quick info and statuses sit under the header instead of in a sidebar.",
+    bodyUk:
+      "Сторінка книги перебудовується на малих екранах: статуси та кнопки обраного й меню переходять в окремий рядок над назвою, назва займає всю ширину, обкладинка зменшується, а присвята та жанри йдуть нижче. Теги показують по чотири з чипом, який розкриває решту, а швидка інформація та статуси стають під шапкою замість бічної панелі.",
+    category: "improvement",
+    publishedAt: "2026-08-07T00:00:02.000Z",
+    slug: "book-page-mobile",
+    titleEn: "The book page on a phone",
+    titleUk: "Сторінка книги на телефоні",
+    version: null,
+  },
+  {
+    bodyEn:
+      "Your lists page now works like the library: search, sort, a filter sheet for fill, description, size and attention, and every applied filter shown as a chip you can remove. Switch between grid and list view, and load more lists as you go instead of waiting for all of them. Filtering and counting now happen on the server, so the attention numbers cover your whole library rather than the part already loaded, and a book in the trash no longer keeps a list in the wrong size bucket.",
+    bodyUk:
+      "Сторінка списків тепер працює як бібліотека: пошук, сортування, панель фільтрів за наповненням, описом, розміром і увагою, а кожен застосований фільтр показано чипом, який можна зняти. Перемикайтеся між сіткою та списком і довантажуйте наступні списки замість очікування всіх одразу. Фільтрація та підрахунок тепер відбуваються на сервері, тож числа про увагу охоплюють усю бібліотеку, а не лише завантажену частину, а книга в кошику більше не тримає список у неправильному діапазоні розміру.",
+    category: "improvement",
+    publishedAt: "2026-08-07T00:00:03.000Z",
+    slug: "lists-filters-view-mode",
+    titleEn: "Filters and a list view for your lists",
+    titleUk: "Фільтри та вигляд списком для ваших списків",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
