@@ -3,13 +3,13 @@ import type { CharacterTheoriesQuery, CreateCharacterTheoryInput, Nullable } fro
 import { CHARACTER_THEORY_ERROR_CODES } from "@app/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { BookAccessService } from "../../books/index.js";
 import type {
   CharacterTheoriesRepository,
   CharacterTheoryRow,
   TheoryListFilter,
 } from "../infrastructure/character-theories.repository.js";
 import type { CharactersRepository } from "../infrastructure/characters.repository.js";
+import type { CharacterAccessAsserter } from "./character-access.asserter.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { CharacterTheoriesService } from "./character-theories.service.js";
@@ -73,12 +73,40 @@ function createService(config: ServiceConfig = {}): {
     findOwnedCharacterBare,
     listSeriesBooks,
   } as unknown as CharactersRepository;
-  const bookAccess = { assertOwned } as unknown as BookAccessService;
+  const accessAsserter = {
+    assertBookOwned: assertOwned,
+    assertCharacterOwned: async ({
+      characterId,
+      notFoundCode,
+      userId,
+    }: {
+      characterId: string;
+      notFoundCode: string;
+      userId: string;
+    }) => {
+      if ((await findOwnedCharacterBare({ characterId, userId })) === null) {
+        throw new NotFoundError("Character not found", { code: notFoundCode });
+      }
+    },
+    assertSeriesOwned: async ({
+      notFoundCode,
+      seriesId,
+      userId,
+    }: {
+      notFoundCode: string;
+      seriesId: string;
+      userId: string;
+    }) => {
+      if (!(await existsOwnedSeries({ seriesId, userId }))) {
+        throw new NotFoundError("Series not found", { code: notFoundCode });
+      }
+    },
+  } as unknown as CharacterAccessAsserter;
 
   const service = new CharacterTheoriesService(
     theoriesRepository,
     charactersRepository,
-    bookAccess,
+    accessAsserter,
   );
 
   return { countTheories, create, listTheories, service, update };

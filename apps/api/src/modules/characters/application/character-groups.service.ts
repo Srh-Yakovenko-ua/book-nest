@@ -24,7 +24,6 @@ import type {
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
-import { BookAccessService } from "../../books/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
 import { isMembershipVisibleInContext } from "../domain/character-group-visibility.js";
 import {
@@ -34,13 +33,14 @@ import {
 import { resolveContextAllowedBookIds } from "../domain/context-books.js";
 import { CharacterGroupsRepository } from "../infrastructure/character-groups.repository.js";
 import { CharactersRepository } from "../infrastructure/characters.repository.js";
+import { CharacterAccessAsserter } from "./character-access.asserter.js";
 
 @Injectable()
 export class CharacterGroupsService {
   constructor(
     private readonly characterGroupsRepository: CharacterGroupsRepository,
     private readonly charactersRepository: CharactersRepository,
-    private readonly bookAccess: BookAccessService,
+    private readonly accessAsserter: CharacterAccessAsserter,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -69,8 +69,12 @@ export class CharacterGroupsService {
 
     const detailsRow = await this.transactionRunner.run(async (tx) => {
       if (members.length > 0) {
-        await this.assertCharactersOwned(
-          { characterIds: members.map((member) => member.characterId), userId },
+        await this.accessAsserter.assertCharactersOwned(
+          {
+            characterIds: members.map((member) => member.characterId),
+            notFoundCode: CHARACTER_GROUP_ERROR_CODES.memberCharacterNotFound,
+            userId,
+          },
           tx,
         );
       }
@@ -249,15 +253,14 @@ export class CharacterGroupsService {
           code: CHARACTER_GROUP_ERROR_CODES.notFound,
         });
       }
-      const ownedCharacters = await this.characterGroupsRepository.countOwnedCharacters(
-        { characterIds: [characterId], userId },
+      await this.accessAsserter.assertCharactersOwned(
+        {
+          characterIds: [characterId],
+          notFoundCode: CHARACTER_GROUP_ERROR_CODES.memberCharacterNotFound,
+          userId,
+        },
         tx,
       );
-      if (ownedCharacters === 0) {
-        throw new NotFoundError("Character not found", {
-          code: CHARACTER_GROUP_ERROR_CODES.memberCharacterNotFound,
-        });
-      }
 
       await this.characterGroupsRepository.acquireMembershipLock(
         { bookId, characterId, groupId },
@@ -286,49 +289,26 @@ export class CharacterGroupsService {
     return this.toFullDetailsView(detailsRow);
   }
 
-  private async assertBookOwned({
-    bookId,
-    userId,
-  }: {
-    bookId: string;
-    userId: string;
-  }): Promise<void> {
-    await this.bookAccess.assertOwned({
+  private assertBookOwned({ bookId, userId }: { bookId: string; userId: string }): Promise<void> {
+    return this.accessAsserter.assertBookOwned({
       bookId,
       notFoundCode: CHARACTER_GROUP_ERROR_CODES.bookNotFound,
       userId,
     });
   }
 
-  private async assertCharactersOwned(
-    { characterIds, userId }: { characterIds: string[]; userId: string },
-    tx: Prisma.TransactionClient,
-  ): Promise<void> {
-    const uniqueIds = [...new Set(characterIds)];
-    const owned = await this.characterGroupsRepository.countOwnedCharacters(
-      { characterIds: uniqueIds, userId },
-      tx,
-    );
-    if (owned !== uniqueIds.length) {
-      throw new NotFoundError("Character not found", {
-        code: CHARACTER_GROUP_ERROR_CODES.memberCharacterNotFound,
-      });
-    }
-  }
-
-  private async assertSeriesOwned({
+  private assertSeriesOwned({
     seriesId,
     userId,
   }: {
     seriesId: string;
     userId: string;
   }): Promise<void> {
-    const owns = await this.charactersRepository.existsOwnedSeries({ seriesId, userId });
-    if (!owns) {
-      throw new NotFoundError("Series not found", {
-        code: CHARACTER_GROUP_ERROR_CODES.seriesNotFound,
-      });
-    }
+    return this.accessAsserter.assertSeriesOwned({
+      notFoundCode: CHARACTER_GROUP_ERROR_CODES.seriesNotFound,
+      seriesId,
+      userId,
+    });
   }
 
   private buildCreateData({

@@ -1,35 +1,25 @@
-import { LIST_PAGE_SIZE_MAX, PaginatedCustomListsSchema } from "@app/shared";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { PaginatedCustomListsSchema } from "@app/shared";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { listsControllerSearch } from "@/shared/api/generated/endpoints/lists/lists";
 
-import { listKeys, type ListsListParams } from "./list-keys";
+import type { ListsListParams } from "../model/lists-query";
+
+import { listKeys } from "./list-keys";
 
 export type ListsPage = z.infer<typeof PaginatedCustomListsSchema>;
 
-const LIST_PARAMS = { pageSize: LIST_PAGE_SIZE_MAX } as const satisfies ListsListParams;
-
-export function useLists() {
-  const query = useInfiniteQuery({
+export function useLists(params: ListsListParams) {
+  return useInfiniteQuery({
     getNextPageParam: (lastPage: ListsPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
+    placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }): Promise<ListsPage> => {
-      const response = await listsControllerSearch({ ...LIST_PARAMS, pageNumber: pageParam });
+      const response = await listsControllerSearch({ ...params, pageNumber: pageParam });
       return PaginatedCustomListsSchema.parse(response);
     },
-    queryKey: listKeys.list(LIST_PARAMS),
+    queryKey: listKeys.list(params),
   });
-
-  const { fetchNextPage, hasNextPage, isFetchingNextPage } = query;
-
-  useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      void fetchNextPage();
-    }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-
-  return query;
 }

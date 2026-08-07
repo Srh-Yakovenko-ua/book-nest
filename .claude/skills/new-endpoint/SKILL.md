@@ -57,8 +57,7 @@ Add the variable to the Zod schema in `apps/api/src/config/env.ts` and to `.env.
 ```bash
 pnpm --filter @app/api typecheck
 pnpm lint
-pnpm --filter @app/api test     # real Postgres booknest_test required
-pnpm knip
+pnpm --filter @app/api exec vitest run <path>   # your new test files; real Postgres booknest_test required
 ```
 
 Then prove it runs:

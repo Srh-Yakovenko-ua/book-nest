@@ -397,6 +397,24 @@ export class CharactersRepository {
     return this.prisma.character.count({ where: buildGlobalCharacterWhere(filter) });
   }
 
+  countOwnedCharacters(
+    {
+      characterIds,
+      excludeHiddenProfiles = false,
+      userId,
+    }: { characterIds: string[]; excludeHiddenProfiles?: boolean; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    return client.character.count({
+      where: {
+        deletedAt: null,
+        id: { in: characterIds },
+        userId,
+        ...(excludeHiddenProfiles ? { hideProfileAsSpoiler: false } : {}),
+      },
+    });
+  }
+
   countRoster(filter: RosterFilter): Promise<number> {
     return this.prisma.bookCharacter.count({ where: buildRosterWhere(filter) });
   }

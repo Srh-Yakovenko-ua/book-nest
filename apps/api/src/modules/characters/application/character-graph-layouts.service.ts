@@ -13,17 +13,15 @@ import type { CharacterGraphLayoutKey } from "../infrastructure/character-graph-
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError, ValidationError } from "../../../core/exceptions/errors.js";
-import { BookAccessService } from "../../books/index.js";
 import { toCharacterGraphLayoutView } from "../domain/character-graph-layout.mapper.js";
 import { CharacterGraphLayoutsRepository } from "../infrastructure/character-graph-layouts.repository.js";
-import { CharactersRepository } from "../infrastructure/characters.repository.js";
+import { CharacterAccessAsserter } from "./character-access.asserter.js";
 
 @Injectable()
 export class CharacterGraphLayoutsService {
   constructor(
     private readonly layoutsRepository: CharacterGraphLayoutsRepository,
-    private readonly charactersRepository: CharactersRepository,
-    private readonly bookAccess: BookAccessService,
+    private readonly accessAsserter: CharacterAccessAsserter,
     private readonly transactionRunner: TransactionRunner,
   ) {}
 
@@ -90,14 +88,8 @@ export class CharacterGraphLayoutsService {
     return toCharacterGraphLayoutView(layout);
   }
 
-  private async assertBookOwned({
-    bookId,
-    userId,
-  }: {
-    bookId: string;
-    userId: string;
-  }): Promise<void> {
-    await this.bookAccess.assertOwned({
+  private assertBookOwned({ bookId, userId }: { bookId: string; userId: string }): Promise<void> {
+    return this.accessAsserter.assertBookOwned({
       bookId,
       notFoundCode: CHARACTER_GRAPH_LAYOUT_ERROR_CODES.bookNotFound,
       userId,
@@ -127,19 +119,18 @@ export class CharacterGraphLayoutsService {
     }
   }
 
-  private async assertSeriesOwned({
+  private assertSeriesOwned({
     seriesId,
     userId,
   }: {
     seriesId: string;
     userId: string;
   }): Promise<void> {
-    const owned = await this.charactersRepository.existsOwnedSeries({ seriesId, userId });
-    if (!owned) {
-      throw new NotFoundError("Series not found", {
-        code: CHARACTER_GRAPH_LAYOUT_ERROR_CODES.seriesNotFound,
-      });
-    }
+    return this.accessAsserter.assertSeriesOwned({
+      notFoundCode: CHARACTER_GRAPH_LAYOUT_ERROR_CODES.seriesNotFound,
+      seriesId,
+      userId,
+    });
   }
 
   private requireScopeId(scopeId: Nullable<string>): string {

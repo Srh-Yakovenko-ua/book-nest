@@ -364,7 +364,15 @@ describe("ListsService.search", () => {
     repository.countOwned.mockResolvedValue(1);
 
     const page = await service.search({
-      query: { pageNumber: 1, pageSize: 10, search: "autumn", sort: "updated_desc" },
+      query: {
+        description: ["with_description"],
+        fill: ["with_books"],
+        pageNumber: 1,
+        pageSize: 10,
+        search: "autumn",
+        size: ["small"],
+        sort: "updated_desc",
+      },
       userId: USER_ID,
     });
 
@@ -387,12 +395,25 @@ describe("ListsService.search", () => {
     });
     expect(mediaService.buildViewOrNull).toHaveBeenCalledTimes(2);
     expect(repository.searchOwnedCards).toHaveBeenCalledWith({
+      attention: undefined,
+      description: ["with_description"],
+      fill: ["with_books"],
+      now: expect.any(Date),
       query: "autumn",
+      size: ["small"],
       skip: 0,
       sort: "updated_desc",
       take: 10,
       userId: USER_ID,
     });
-    expect(repository.countOwned).toHaveBeenCalledWith({ query: "autumn", userId: USER_ID });
+    expect(repository.countOwned).toHaveBeenCalledWith({
+      attention: undefined,
+      description: ["with_description"],
+      fill: ["with_books"],
+      now: expect.any(Date),
+      query: "autumn",
+      size: ["small"],
+      userId: USER_ID,
+    });
   });
 });

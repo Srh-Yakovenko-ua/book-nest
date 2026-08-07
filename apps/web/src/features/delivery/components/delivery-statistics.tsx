@@ -5,16 +5,18 @@ import type { DeliveryStatisticsView } from "@app/shared";
 import { useLocale, useTranslations } from "next-intl";
 import { useId } from "react";
 
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
 import type { StatisticsContent } from "./delivery-statistics-view";
-import type { DeliverySummaryCard } from "./delivery-summary-cards";
 
 import { useStatistics } from "../api/use-statistics";
 import { formatCurrencyAverages, formatCurrencyTotals } from "../model/money-format";
 import { hasAnyOrders, hasPricedData } from "../model/statistics-view-model";
 import { useStatisticsParams } from "../model/use-statistics-params";
+import { DeliveryOverviewPanel } from "./delivery-overview-panel";
 import { DeliveryStatisticsFilters } from "./delivery-statistics-filters";
 import { DeliveryStatisticsScreen } from "./delivery-statistics-view";
 import { DeliverySummaryCards } from "./delivery-summary-cards";
@@ -36,35 +38,54 @@ export function DeliveryStatistics() {
   });
 
   const summary = view?.summary;
-  const summaryCards: DeliverySummaryCard[] = [
+  const mobileLabels = (
+    key: "active" | "average" | "cancelled" | "pricedOrders" | "received" | "total",
+  ) => ({
+    compact: tSummary(`mobile.compact.${key}`),
+    detailed: tSummary(`mobile.detailed.${key}`),
+  });
+
+  const summaryCards: LibrarySummaryCard[] = [
     {
       icon: "wallet",
+      iconTone: "primary",
       label: tSummary("total"),
+      mobileLabels: mobileLabels("total"),
       value: summary ? formatCurrencyTotals(summary.totalByCurrency, locale) : "—",
     },
     {
       icon: "truck",
+      iconTone: "info",
       label: tSummary("active"),
+      mobileLabels: mobileLabels("active"),
       value: summary ? formatCurrencyTotals(summary.activeByCurrency, locale) : "—",
     },
     {
       icon: "check-circle",
+      iconTone: "success",
       label: tSummary("received"),
+      mobileLabels: mobileLabels("received"),
       value: summary ? formatCurrencyTotals(summary.receivedByCurrency, locale) : "—",
     },
     {
       icon: "x-circle",
+      iconTone: "ink",
       label: tSummary("cancelled"),
+      mobileLabels: mobileLabels("cancelled"),
       value: summary ? formatCurrencyTotals(summary.cancelledByCurrency, locale) : "—",
     },
     {
       icon: "chart",
+      iconTone: "genre",
       label: tSummary("average"),
+      mobileLabels: mobileLabels("average"),
       value: summary ? formatCurrencyAverages(summary.averageByCurrency, locale) : "—",
     },
     {
       icon: "package",
+      iconTone: "tag",
       label: tSummary("pricedOrders"),
+      mobileLabels: mobileLabels("pricedOrders"),
       value: (summary?.pricedOrdersCount ?? 0).toLocaleString(locale),
     },
   ];
@@ -102,7 +123,19 @@ export function DeliveryStatistics() {
       }
       onResetFilters={params.clearFilters}
       onRetry={() => void query.refetch()}
-      summary={<DeliverySummaryCards cards={summaryCards} isLoading={view === undefined} />}
+      summary={
+        <DeliverySummaryCards
+          cards={summaryCards}
+          isLoading={view === undefined}
+          mobileAction={
+            <DeliveryOverviewPanel
+              detailsTitle={tSummary("mobile.title")}
+              isLoading={view === undefined}
+              summaryCards={summaryCards}
+            />
+          }
+        />
+      }
     />
   );
 }

@@ -2,26 +2,26 @@
 
 import { useTranslations } from "next-intl";
 
-import { UiIcon } from "@/components/icons";
-import { Skeleton } from "@/components/ui/skeleton";
-
 import type { LibraryBookLinkComponent } from "../model/library-book";
+import type {
+  LibraryOverviewBook,
+  LibraryOverviewGenre,
+  LibraryOverviewTag,
+} from "./library-overview-blocks";
 
-import { LibraryGenresPie } from "./library-genres-pie";
-
-export type SidebarBook = {
-  author: string;
-  href: string;
-  id: string;
-  title: string;
-};
+import {
+  LibraryOverviewSection,
+  LibraryRecentlyAddedBlock,
+  LibraryTopGenresBlock,
+  LibraryTopTagsBlock,
+} from "./library-overview-blocks";
 
 type LibrarySummarySidebarProps = {
   isLoading: boolean;
   linkComponent?: LibraryBookLinkComponent;
-  recentlyAdded: SidebarBook[];
-  topGenres: { count: number; key: string; name: string }[];
-  topTags: { id: string; name: string }[];
+  recentlyAdded: LibraryOverviewBook[];
+  topGenres: LibraryOverviewGenre[];
+  topTags: LibraryOverviewTag[];
 };
 
 export function LibrarySummarySidebar({
@@ -32,119 +32,27 @@ export function LibrarySummarySidebar({
   topTags,
 }: LibrarySummarySidebarProps) {
   const t = useTranslations("books.library.sidebar");
-  const LinkComp: "a" | LibraryBookLinkComponent = linkComponent ?? "a";
 
   return (
     <aside
       aria-label={t("title")}
-      className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+      className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
-      <SidebarBlock title={t("topGenres")}>
-        {isLoading ? (
-          <PieSkeleton />
-        ) : topGenres.length === 0 ? (
-          <EmptyText>{t("topGenresEmpty")}</EmptyText>
-        ) : (
-          <LibraryGenresPie ariaLabel={t("topGenresChart")} genres={topGenres.slice(0, 3)} />
-        )}
-      </SidebarBlock>
+      <LibraryOverviewSection className="sidebar-card-leaf" title={t("topGenres")}>
+        <LibraryTopGenresBlock genres={topGenres} isLoading={isLoading} />
+      </LibraryOverviewSection>
 
-      <SidebarBlock title={t("topTags")}>
-        {isLoading ? (
-          <ChipSkeleton />
-        ) : topTags.length === 0 ? (
-          <EmptyText>{t("topTagsEmpty")}</EmptyText>
-        ) : (
-          <ul className="flex flex-wrap gap-1.5">
-            {topTags.slice(0, 3).map((tag) => (
-              <li
-                className="inline-flex items-center gap-1 rounded-full border border-border bg-tag px-2.5 py-0.5 text-xs font-medium text-tag-foreground"
-                key={tag.id}
-              >
-                <UiIcon className="text-icon" name="tag" size={12} />
-                {tag.name}
-              </li>
-            ))}
-          </ul>
-        )}
-      </SidebarBlock>
+      <LibraryOverviewSection className="sidebar-card-leaf" title={t("topTags")}>
+        <LibraryTopTagsBlock isLoading={isLoading} tags={topTags} />
+      </LibraryOverviewSection>
 
-      <SidebarBlock title={t("recentlyAdded")}>
-        {isLoading ? (
-          <RowSkeleton />
-        ) : recentlyAdded.length === 0 ? (
-          <EmptyText>{t("recentlyAddedEmpty")}</EmptyText>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {recentlyAdded.slice(0, 3).map((book) => (
-              <li key={book.id}>
-                <LinkComp
-                  className="group/recent flex flex-col gap-0.5 rounded-md px-2 py-1.5 no-underline transition-colors hover:bg-secondary"
-                  href={book.href}
-                >
-                  <span className="truncate text-sm font-medium text-ink transition-colors group-hover/recent:text-primary">
-                    {book.title}
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">{book.author}</span>
-                </LinkComp>
-              </li>
-            ))}
-          </ul>
-        )}
-      </SidebarBlock>
+      <LibraryOverviewSection className="sidebar-card-leaf" title={t("recentlyAdded")}>
+        <LibraryRecentlyAddedBlock
+          books={recentlyAdded}
+          isLoading={isLoading}
+          linkComponent={linkComponent}
+        />
+      </LibraryOverviewSection>
     </aside>
-  );
-}
-
-function ChipSkeleton() {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      <Skeleton className="h-5 w-16 rounded-full" />
-      <Skeleton className="h-5 w-20 rounded-full" />
-      <Skeleton className="h-5 w-14 rounded-full" />
-    </div>
-  );
-}
-
-function EmptyText({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-muted-foreground">{children}</p>;
-}
-
-function PieSkeleton() {
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <Skeleton className="size-[140px] rounded-full" />
-      <div className="flex w-full flex-col gap-1.5">
-        {Array.from({ length: 3 }, (_, index) => (
-          <div className="flex items-center gap-2" key={index}>
-            <Skeleton className="size-2.5 rounded-[3px]" />
-            <Skeleton className="h-4 flex-1" />
-            <Skeleton className="h-4 w-10" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RowSkeleton() {
-  return (
-    <div className="flex flex-col gap-2">
-      {Array.from({ length: 3 }, (_, index) => (
-        <div className="flex flex-col gap-1 px-2" key={index}>
-          <Skeleton className="h-3.5 w-4/5" />
-          <Skeleton className="h-3 w-1/2" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SidebarBlock({ children, title }: { children: React.ReactNode; title: string }) {
-  return (
-    <section className="sidebar-card-leaf flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-card">
-      <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
-      {children}
-    </section>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import type { Nullable } from "@app/shared";
-import type { ReactNode } from "react";
 
+import { LIST_STALE_MONTHS } from "@app/shared";
 import { useTranslations } from "next-intl";
 
 import type { UiIconName } from "@/components/icons";
@@ -10,9 +10,9 @@ import type { UiIconName } from "@/components/icons";
 import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon } from "@/components/icons";
 
-import type { ListAttentionReason } from "../model/lists-derive";
+import type { ListAttentionReason } from "../model/lists-query";
 
-import { LIST_ATTENTION_REASONS, LIST_STALE_MONTHS } from "../model/lists-derive";
+import { LIST_ATTENTION_REASONS } from "../model/lists-query";
 
 type ListsSidebarProps = {
   activeAttention: Nullable<ListAttentionReason>;
@@ -27,13 +27,12 @@ const ATTENTION_ROW_META: Record<ListAttentionReason, { icon: UiIconName; toneCl
   stale: { icon: "clock", toneClass: "text-warning" },
 };
 
-export function ListsSidebar({
+export function ListsAttentionBlock({
   activeAttention,
   attentionCounts,
   isLoading,
   onAttentionSelect,
 }: ListsSidebarProps) {
-  const t = useTranslations("lists.catalog.sidebar");
   const tAttention = useTranslations("lists.catalog.attention");
 
   const items = LIST_ATTENTION_REASONS.filter((reason) => attentionCounts[reason] > 0).map(
@@ -50,34 +49,43 @@ export function ListsSidebar({
   );
 
   return (
+    <AttentionBlock
+      activeId={activeAttention}
+      allClearLabel={tAttention("allClear")}
+      isLoading={isLoading}
+      items={items}
+      onSelect={onAttentionSelect}
+      title={tAttention("title")}
+    />
+  );
+}
+
+export function ListsSidebar(props: ListsSidebarProps) {
+  const tAttention = useTranslations("lists.catalog.attention");
+
+  return (
     <aside
       aria-label={tAttention("title")}
-      className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+      className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
-      <AttentionBlock
-        activeId={activeAttention}
-        allClearLabel={tAttention("allClear")}
-        isLoading={isLoading}
-        items={items}
-        onSelect={onAttentionSelect}
-        title={tAttention("title")}
-      />
-
-      <SidebarBlock title={t("tip.title")}>
-        <p className="flex gap-2 text-xs leading-relaxed text-muted-foreground">
-          <UiIcon className="mt-0.5 shrink-0 text-icon" name="bulb" size={15} />
-          <span>{t("tip.text")}</span>
-        </p>
-      </SidebarBlock>
+      <ListsTipBlock />
+      <ListsAttentionBlock {...props} />
     </aside>
   );
 }
 
-function SidebarBlock({ children, title }: { children: ReactNode; title: string }) {
+export function ListsTipBlock() {
+  const t = useTranslations("lists.catalog.sidebar");
+
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
-      <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
-      {children}
+    <section className="stat-card-branch flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-secondary/40 p-5">
+      <h2 className="flex items-center gap-2 font-heading text-sm font-semibold text-ink">
+        <UiIcon aria-hidden className="shrink-0 text-primary/60" name="bulb" size={20} />
+        {t("tip.title")}
+      </h2>
+      <p className="font-heading text-sm leading-relaxed text-foreground/90 italic">
+        {t("tip.text")}
+      </p>
     </section>
   );
 }

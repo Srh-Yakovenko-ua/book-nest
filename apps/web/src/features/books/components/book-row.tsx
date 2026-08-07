@@ -23,6 +23,7 @@ type BookRowProps = {
   kebab?: React.ReactNode;
   leading?: React.ReactNode;
   linkComponent?: LibraryBookLinkComponent;
+  mobileCompact?: boolean;
   note?: React.ReactNode;
   selected?: boolean;
   selectionControl?: React.ReactNode;
@@ -38,6 +39,21 @@ type RowLinkComponent = "a" | LibraryBookLinkComponent;
 const GENRES_VISIBLE = 2;
 const TAGS_VISIBLE = 2;
 const TOOLTIP_DELAY_MS = 400;
+
+const MOBILE_COMPACT = {
+  ageBadge: "max-sm:hidden",
+  chips: "max-sm:hidden",
+  cover: "max-sm:aspect-[2/3] max-sm:w-16 max-sm:self-start",
+  formats: "max-sm:hidden",
+  meta: "max-sm:text-[0.625rem]",
+  metaIcon: "max-sm:size-3",
+  rail: "max-sm:hidden",
+  rating: "text-[0.625rem] [&_svg]:size-3",
+  statusBadge:
+    "max-sm:h-5 max-sm:gap-0.5 max-sm:px-1.5 max-sm:text-[0.625rem] max-sm:[&>svg]:size-3",
+  statusGroup: "max-sm:flex-row max-sm:flex-wrap max-sm:items-center max-sm:gap-1",
+  statusNote: "max-sm:basis-full",
+} as const;
 
 const morePillClass =
   "relative z-10 inline-flex shrink-0 items-center rounded-full border border-border/60 bg-secondary/40 px-1.5 py-0.5 text-xs font-medium text-muted-foreground";
@@ -55,6 +71,7 @@ export function BookRow({
   kebab,
   leading,
   linkComponent,
+  mobileCompact,
   note,
   selected,
   selectionControl,
@@ -64,6 +81,7 @@ export function BookRow({
 }: BookRowProps) {
   const LinkComp: RowLinkComponent = linkComponent ?? "a";
   const hasChips = (book.genres ?? []).length > 0 || (book.tags ?? []).length > 0;
+  const compact = mobileCompact === true ? MOBILE_COMPACT : null;
 
   return (
     <article
@@ -84,23 +102,38 @@ export function BookRow({
       <BookRowCover
         alt={book.cover?.alt ?? book.title}
         aspect={coverAspect}
+        className={compact?.cover}
         src={book.cover?.src}
       />
 
       <div className="flex min-w-0 flex-1 flex-col gap-3 @xl/book-row:flex-row @xl/book-row:flex-wrap @xl/book-row:items-start @xl/book-row:gap-x-4 @xl/book-row:gap-y-3 @3xl/book-row:flex-nowrap @3xl/book-row:items-stretch">
-        <BookRowMeta book={book} LinkComp={LinkComp} note={note} />
+        <BookRowMeta
+          ageBadgeClassName={compact?.ageBadge}
+          book={book}
+          formatsClassName={compact?.formats}
+          LinkComp={LinkComp}
+          metaClassName={compact?.meta}
+          metaIconClassName={compact?.metaIcon}
+          mobileKebab={compact === null ? undefined : kebab}
+          note={note}
+        />
 
         {statusPlacement === "column" ? (
           <>
             <div className="hidden w-px self-stretch bg-border @3xl/book-row:block" />
-            {statusSlot ?? <BookRowStatuses book={book} />}
+            {statusSlot ?? <BookRowStatuses book={book} compact={compact} />}
           </>
         ) : null}
 
         {hasChips ? (
           <>
-            <div className="hidden w-px self-stretch bg-border @3xl/book-row:block" />
-            <BookRowChips genres={book.genres} tags={book.tags} />
+            <div
+              className={cn(
+                "hidden w-px self-stretch bg-border @3xl/book-row:block",
+                compact?.chips,
+              )}
+            />
+            <BookRowChips className={compact?.chips} genres={book.genres} tags={book.tags} />
           </>
         ) : null}
 
@@ -112,9 +145,20 @@ export function BookRow({
             </div>
           </>
         )}
+
+        {compact === null ? null : (
+          <BookRowQueueRating
+            className="mt-auto self-end sm:hidden"
+            inReadingQueue={book.isInReadingQueue}
+            rating={book.rating}
+            ratingClassName={compact.rating}
+            ratingLabel={book.ratingLabel}
+          />
+        )}
       </div>
 
       <BookRowRail
+        className={compact?.rail}
         inReadingQueue={book.isInReadingQueue}
         kebab={kebab}
         rating={book.rating}
@@ -124,7 +168,15 @@ export function BookRow({
   );
 }
 
-function BookRowChips({ genres, tags }: { genres?: LibraryBook["genres"]; tags?: string[] }) {
+function BookRowChips({
+  className,
+  genres,
+  tags,
+}: {
+  className?: string;
+  genres?: LibraryBook["genres"];
+  tags?: string[];
+}) {
   const visibleGenres = (genres ?? []).slice(0, GENRES_VISIBLE);
   const visibleTags = (tags ?? []).slice(0, TAGS_VISIBLE);
   const hiddenTags = (tags ?? []).slice(TAGS_VISIBLE);
@@ -132,7 +184,12 @@ function BookRowChips({ genres, tags }: { genres?: LibraryBook["genres"]; tags?:
   if (visibleGenres.length === 0 && visibleTags.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap content-start items-center gap-1.5 @xl/book-row:basis-full @3xl/book-row:min-w-0 @3xl/book-row:flex-1 @3xl/book-row:basis-0">
+    <div
+      className={cn(
+        "flex flex-wrap content-start items-center gap-1.5 @xl/book-row:basis-full @3xl/book-row:min-w-0 @3xl/book-row:flex-1 @3xl/book-row:basis-0",
+        className,
+      )}
+    >
       {visibleGenres.map((genre) => (
         <span
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-tag px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-tag-foreground"
@@ -163,10 +220,12 @@ function BookRowChips({ genres, tags }: { genres?: LibraryBook["genres"]; tags?:
 function BookRowCover({
   alt,
   aspect,
+  className,
   src,
 }: {
   alt: string;
   aspect: BookRowCoverAspect;
+  className?: string;
   src?: string;
 }) {
   const frameClass = aspect === "portrait" ? "aspect-[2/3] self-start" : "self-stretch";
@@ -177,6 +236,7 @@ function BookRowCover({
         className={cn(
           "grid w-24 shrink-0 place-items-center rounded-lg bg-accent text-accent-foreground/70",
           frameClass,
+          className,
         )}
       >
         <UiIcon name="book" size={32} />
@@ -185,48 +245,79 @@ function BookRowCover({
   }
 
   return (
-    <div className={cn("relative w-24 shrink-0 overflow-hidden rounded-lg bg-accent", frameClass)}>
+    <div
+      className={cn(
+        "relative w-24 shrink-0 overflow-hidden rounded-lg bg-accent",
+        frameClass,
+        className,
+      )}
+    >
       <Image alt={alt} className="object-cover" fill sizes="96px" src={src} unoptimized />
     </div>
   );
 }
 
 function BookRowMeta({
+  ageBadgeClassName,
   book,
+  formatsClassName,
   LinkComp,
+  metaClassName,
+  metaIconClassName,
+  mobileKebab,
   note,
 }: {
+  ageBadgeClassName?: string;
   book: LibraryBook;
+  formatsClassName?: string;
   LinkComp: RowLinkComponent;
+  metaClassName?: string;
+  metaIconClassName?: string;
+  mobileKebab?: React.ReactNode;
   note?: React.ReactNode;
 }) {
+  const headingLayout = mobileKebab === undefined ? "contents" : "flex items-start gap-2";
+  const headingTextLayout =
+    mobileKebab === undefined ? "contents" : "flex min-w-0 flex-1 flex-col gap-1";
+
   return (
     <div className="flex min-w-0 flex-col gap-1 @xl/book-row:min-w-[14rem] @xl/book-row:flex-1">
-      <h3 className="line-clamp-2 font-heading text-sm leading-tight font-bold text-ink">
-        <LinkComp
-          className="text-ink no-underline transition-colors group-hover/book-row:text-primary after:absolute after:inset-0"
-          href={book.href}
-        >
-          {book.title}
-        </LinkComp>
-      </h3>
+      <div className={cn(headingLayout, "sm:contents")}>
+        <div className={cn(headingTextLayout, "sm:contents")}>
+          <h3 className="line-clamp-2 font-heading text-sm leading-tight font-bold text-ink">
+            <LinkComp
+              className="text-ink no-underline transition-colors group-hover/book-row:text-primary after:absolute after:inset-0"
+              href={book.href}
+            >
+              {book.title}
+            </LinkComp>
+          </h3>
 
-      {book.originalTitle === undefined ? null : (
-        <p className="truncate text-xs text-muted-foreground italic">{book.originalTitle}</p>
-      )}
+          {book.originalTitle === undefined ? null : (
+            <p className="truncate text-xs text-muted-foreground italic">{book.originalTitle}</p>
+          )}
 
-      {book.authors.length === 0 ? null : (
-        <p className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</p>
-      )}
+          {book.authors.length === 0 ? null : (
+            <p className="truncate text-xs text-muted-foreground">{book.authors.join(", ")}</p>
+          )}
+        </div>
+
+        {mobileKebab === undefined ? null : (
+          <div className="relative z-10 shrink-0 sm:hidden">{mobileKebab}</div>
+        )}
+      </div>
 
       {note}
 
       {book.series === undefined ? null : (
         <LinkComp
-          className="relative z-10 mt-1 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground no-underline transition-colors hover:text-primary"
+          className={cn(
+            "relative z-10 mt-1 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground no-underline transition-colors hover:text-primary",
+            metaClassName,
+          )}
           href={book.series.href}
         >
-          <UiIcon className="shrink-0 text-icon" name="layers" size={15} />
+          <UiIcon className={cn("shrink-0 text-icon", metaIconClassName)} name="layers" size={15} />
           <span className="min-w-0 truncate">
             {book.series.name}
             {book.series.positionLabel === undefined ? null : (
@@ -237,14 +328,28 @@ function BookRowMeta({
       )}
 
       {book.publisher === undefined ? null : (
-        <p className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-          <UiIcon className="shrink-0 text-icon" name="building" size={15} />
+        <p
+          className={cn(
+            "flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground",
+            metaClassName,
+          )}
+        >
+          <UiIcon
+            className={cn("shrink-0 text-icon", metaIconClassName)}
+            name="building"
+            size={15}
+          />
           <span className="min-w-0 truncate">{book.publisher}</span>
         </p>
       )}
 
       {(book.formats ?? []).length === 0 ? null : (
-        <div className="flex min-w-0 items-center gap-x-3 overflow-hidden text-xs text-muted-foreground">
+        <div
+          className={cn(
+            "flex min-w-0 items-center gap-x-3 overflow-hidden text-xs text-muted-foreground",
+            formatsClassName,
+          )}
+        >
           {(book.formats ?? []).map((format) => (
             <span className="inline-flex shrink-0 items-center gap-1.5" key={format.value}>
               <UiIcon className="shrink-0 text-icon" name={format.icon} size={15} />
@@ -255,7 +360,13 @@ function BookRowMeta({
       )}
 
       {book.ageBadge === undefined ? null : (
-        <span className={cn(statusBadgeVariants({ tone: "danger" }), "mt-auto self-end")}>
+        <span
+          className={cn(
+            statusBadgeVariants({ tone: "danger" }),
+            "mt-auto self-end",
+            ageBadgeClassName,
+          )}
+        >
           {book.ageBadge}
         </span>
       )}
@@ -263,44 +374,98 @@ function BookRowMeta({
   );
 }
 
-function BookRowRail({
+function BookRowQueueRating({
+  className,
   inReadingQueue,
-  kebab,
   rating,
+  ratingClassName,
   ratingLabel,
 }: {
+  className?: string;
   inReadingQueue?: boolean;
-  kebab?: React.ReactNode;
   rating?: number;
+  ratingClassName?: string;
   ratingLabel?: string;
 }) {
   const t = useTranslations("books.library");
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-2 self-stretch">
-      {kebab === undefined ? null : <div className="relative z-10 shrink-0">{kebab}</div>}
+    <div className={cn("flex flex-col items-end gap-2", className)}>
+      {inReadingQueue === true ? (
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 text-xs text-muted-foreground",
+            ratingClassName,
+          )}
+        >
+          <UiIcon className="shrink-0" name="bookmark" size={14} />
+          {t("card.inQueue")}
+        </span>
+      ) : null}
 
-      <div className="mt-auto flex flex-col items-end gap-2">
-        {inReadingQueue === true ? (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <UiIcon className="shrink-0" name="bookmark" size={14} />
-            {t("card.inQueue")}
-          </span>
-        ) : null}
-
-        {rating === undefined ? null : <RatingScore label={ratingLabel} value={rating} />}
-      </div>
+      {rating === undefined ? null : (
+        <RatingScore className={ratingClassName} label={ratingLabel} value={rating} />
+      )}
     </div>
   );
 }
 
-function BookRowStatuses({ book }: { book: LibraryBook }) {
+function BookRowRail({
+  className,
+  inReadingQueue,
+  kebab,
+  rating,
+  ratingLabel,
+}: {
+  className?: string;
+  inReadingQueue?: boolean;
+  kebab?: React.ReactNode;
+  rating?: number;
+  ratingLabel?: string;
+}) {
   return (
-    <div className="flex shrink-0 flex-col gap-1 @xl/book-row:w-40">
-      <StatusBadge entry={book.status} />
-      {book.ownership === undefined ? null : <StatusBadge entry={book.ownership} />}
+    <div className={cn("flex shrink-0 flex-col items-end gap-2 self-stretch", className)}>
+      {kebab === undefined ? null : <div className="relative z-10 shrink-0">{kebab}</div>}
+
+      <BookRowQueueRating
+        className="mt-auto"
+        inReadingQueue={inReadingQueue}
+        rating={rating}
+        ratingLabel={ratingLabel}
+      />
+    </div>
+  );
+}
+
+function BookRowStatuses({
+  book,
+  compact,
+}: {
+  book: LibraryBook;
+  compact?: null | typeof MOBILE_COMPACT;
+}) {
+  return (
+    <div className={cn("flex shrink-0 flex-col gap-1 @xl/book-row:w-40", compact?.statusGroup)}>
+      <StatusBadge className={compact?.statusBadge} entry={book.status} />
+
+      {book.ownership === undefined ? null : (
+        <StatusBadge className={compact?.statusBadge} entry={book.ownership} />
+      )}
+
+      {compact === null || compact === undefined || book.ageBadge === undefined ? null : (
+        <span
+          className={cn(statusBadgeVariants({ tone: "danger" }), compact.statusBadge, "sm:hidden")}
+        >
+          {book.ageBadge}
+        </span>
+      )}
+
       {book.loan === undefined ? null : (
-        <BookLoanNote className="text-xs" icon={book.loan.icon} text={book.loan.text} />
+        <BookLoanNote
+          className={cn("text-xs", compact?.statusNote)}
+          icon={book.loan.icon}
+          text={book.loan.text}
+        />
       )}
     </div>
   );

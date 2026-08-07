@@ -6,9 +6,9 @@ import type { GenresService } from "../../genres/application/genres.service.js";
 import type { MediaService } from "../../media/application/media.service.js";
 import type {
   ActiveReadingRow,
-  BooksRepository,
-  BookWithRelations,
-} from "../infrastructure/books.repository.js";
+  BookLibraryReadRepository,
+} from "../infrastructure/book-library-read.repository.js";
+import type { BooksRepository, BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { fakeOf } from "../../../test/fake.js";
 import { BookLibraryReadService } from "./book-library-read.service.js";
@@ -114,7 +114,7 @@ function buildReadService(
 
   const mediaService = { buildViewOrNull: vi.fn().mockReturnValue(null) };
   const viewAssembler = new BookViewAssembler(
-    fakeOf<BooksRepository>(repository),
+    fakeOf<BooksRepository>({}),
     fakeOf<MediaService>(mediaService),
   );
   const genresService = {
@@ -123,7 +123,7 @@ function buildReadService(
   };
 
   const service = new BookLibraryReadService(
-    fakeOf<BooksRepository>(repository),
+    fakeOf<BookLibraryReadRepository>(repository),
     viewAssembler,
     fakeOf<GenresService>(genresService),
   );
@@ -319,7 +319,7 @@ describe("BookLibraryReadService.overview activeReading", () => {
     };
     const genresService = { findNamesByKeys: vi.fn().mockResolvedValue([]) };
     const service = new BookLibraryReadService(
-      fakeOf<BooksRepository>(repository),
+      fakeOf<BookLibraryReadRepository>(repository),
       fakeOf<BookViewAssembler>({ viewOf: vi.fn() }),
       fakeOf<GenresService>(genresService),
     );

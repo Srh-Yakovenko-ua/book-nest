@@ -49,6 +49,9 @@ const TOOLTIP_DELAY_MS = 400;
 
 const dividerClass = "hidden w-px self-stretch bg-border @2xl/queue-card:block";
 
+const statusBadgeCompactClass =
+  "max-sm:h-5 max-sm:gap-0.5 max-sm:px-1.5 max-sm:text-[0.625rem] max-sm:[&>svg]:size-3";
+
 export function QueueDragHandle({
   disabled = false,
   disabledTooltip,
@@ -64,7 +67,7 @@ export function QueueDragHandle({
     <button
       aria-label={label}
       className={cn(
-        "grid size-8 shrink-0 touch-none place-items-center self-center rounded-md text-muted-foreground opacity-70 transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:opacity-100",
+        "grid size-8 shrink-0 touch-none place-items-center self-center rounded-md text-muted-foreground opacity-70 transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none max-sm:size-6 max-sm:self-start sm:opacity-100",
         disabled ? "pointer-events-none opacity-30" : "cursor-grab active:cursor-grabbing",
       )}
       disabled={disabled}
@@ -103,19 +106,19 @@ export function ReadingQueueItem({
   const isFirst = position === 1;
 
   return (
-    <article className="group/queue-card @container/queue-card relative flex min-h-[9.5rem] items-stretch gap-3 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none sm:gap-3.5">
+    <article className="group/queue-card @container/queue-card relative flex min-h-[9.5rem] items-stretch gap-3 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none max-sm:min-h-0 max-sm:gap-2 sm:gap-3.5">
       {dragHandle}
 
       <span
         aria-label={t("positionAria", { position })}
-        className="w-6 shrink-0 self-center text-center font-mono text-sm text-muted-foreground tabular-nums"
+        className="w-6 shrink-0 self-center text-center font-mono text-sm text-muted-foreground tabular-nums max-sm:w-4 max-sm:self-start max-sm:pt-1 max-sm:text-xs"
       >
         {t("position", { position })}
       </span>
 
       <QueueItemCover alt={book.cover?.alt ?? book.title} src={book.cover?.src} />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3 @2xl/queue-card:flex-row @2xl/queue-card:items-stretch @2xl/queue-card:gap-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 max-sm:gap-2 @2xl/queue-card:flex-row @2xl/queue-card:items-stretch @2xl/queue-card:gap-4">
         <QueueMeta book={book} />
 
         <div className={dividerClass} />
@@ -173,17 +176,20 @@ export function ReadingQueueItem({
   );
 }
 
+const coverFrameClass =
+  "w-24 shrink-0 self-stretch rounded-lg bg-accent max-sm:aspect-[2/3] max-sm:w-16 max-sm:self-start";
+
 function QueueItemCover({ alt, src }: { alt: string; src?: string }) {
   if (src === undefined) {
     return (
-      <div className="grid w-24 shrink-0 place-items-center self-stretch rounded-lg bg-accent text-accent-foreground/70">
+      <div className={cn("grid place-items-center text-accent-foreground/70", coverFrameClass)}>
         <UiIcon name="book" size={32} />
       </div>
     );
   }
 
   return (
-    <div className="relative w-24 shrink-0 self-stretch overflow-hidden rounded-lg bg-accent">
+    <div className={cn("relative overflow-hidden", coverFrameClass)}>
       <Image alt={alt} className="object-cover" fill sizes="96px" src={src} unoptimized />
     </div>
   );
@@ -324,10 +330,14 @@ function QueueStatuses({
   const t = useTranslations("readingQueue.item");
 
   return (
-    <div className="flex shrink-0 flex-col gap-1 @2xl/queue-card:w-40">
-      <StatusBadge entry={book.status} />
-      {book.readingStatus === "reading" ? <Badge variant="info">{t("readingNow")}</Badge> : null}
-      <StatusBadge entry={ownership} />
+    <div className="flex shrink-0 flex-col gap-1 max-sm:flex-row max-sm:flex-wrap max-sm:items-center @2xl/queue-card:w-40">
+      <StatusBadge className={statusBadgeCompactClass} entry={book.status} />
+      {book.readingStatus === "reading" ? (
+        <Badge className="max-sm:h-5 max-sm:px-1.5 max-sm:text-[0.625rem]" variant="info">
+          {t("readingNow")}
+        </Badge>
+      ) : null}
+      <StatusBadge className={statusBadgeCompactClass} entry={ownership} />
     </div>
   );
 }

@@ -79,7 +79,7 @@ export function DeliveryStatisticsFilters({
     <Popover onOpenChange={handleOpenChange} open={open}>
       <PopoverTrigger asChild>
         <Button className="relative" variant="secondary">
-          <UiIcon name="filter" size={16} />
+          <UiIcon name="funnel" size={16} />
           {t("label")}
           {filterCount > 0 ? (
             <span className="ml-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground">

@@ -47,6 +47,7 @@ export type UiIconName =
   | "file-warning"
   | "filter"
   | "flame"
+  | "funnel"
   | "globe"
   | "google"
   | "grip"

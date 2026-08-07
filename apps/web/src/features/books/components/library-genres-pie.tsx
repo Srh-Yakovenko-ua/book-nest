@@ -1,12 +1,14 @@
 "use client";
 
-import { Cell, Pie, PieChart } from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 
-const SLICE_COLORS = ["var(--primary)", "var(--success)", "var(--info)"] as const;
-
-const CHART_CONFIG: ChartConfig = {};
+const PIE_CHART = {
+  colors: ["var(--primary)", "var(--success)", "var(--info)"],
+  config: {} satisfies ChartConfig,
+  size: 140,
+} as const;
 
 type GenreSlice = {
   count: number;
@@ -24,33 +26,35 @@ export function LibraryGenresPie({ ariaLabel, genres }: LibraryGenresPieProps) {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="size-[140px] shrink-0">
-        <ChartContainer
-          aria-label={ariaLabel}
-          className="aspect-square size-full"
-          config={CHART_CONFIG}
-        >
-          <PieChart>
-            <Pie
-              data={genres}
-              dataKey="count"
-              innerRadius={0}
-              isAnimationActive={false}
-              nameKey="name"
-              outerRadius="100%"
-              stroke="var(--card)"
-              strokeWidth={2}
-            >
-              {genres.map((genre, index) => (
-                <Cell
-                  fill={SLICE_COLORS[index % SLICE_COLORS.length]}
-                  key={genre.key}
-                  stroke="var(--card)"
-                />
-              ))}
-            </Pie>
-          </PieChart>
-        </ChartContainer>
+      <div className="shrink-0" style={{ height: PIE_CHART.size, width: PIE_CHART.size }}>
+        <ResponsiveContainer height={PIE_CHART.size} width={PIE_CHART.size}>
+          <ChartContainer
+            aria-label={ariaLabel}
+            className="aspect-square size-full"
+            config={PIE_CHART.config}
+          >
+            <PieChart>
+              <Pie
+                data={genres}
+                dataKey="count"
+                innerRadius={0}
+                isAnimationActive={false}
+                nameKey="name"
+                outerRadius="100%"
+                stroke="var(--card)"
+                strokeWidth={2}
+              >
+                {genres.map((genre, index) => (
+                  <Cell
+                    fill={PIE_CHART.colors[index % PIE_CHART.colors.length]}
+                    key={genre.key}
+                    stroke="var(--card)"
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ChartContainer>
+        </ResponsiveContainer>
       </div>
       <ul className="flex w-full flex-col gap-1.5">
         {genres.map((genre, index) => {
@@ -61,7 +65,7 @@ export function LibraryGenresPie({ ariaLabel, genres }: LibraryGenresPieProps) {
               <span
                 aria-hidden
                 className="size-2.5 shrink-0 rounded-[3px]"
-                style={{ backgroundColor: SLICE_COLORS[index % SLICE_COLORS.length] }}
+                style={{ backgroundColor: PIE_CHART.colors[index % PIE_CHART.colors.length] }}
               />
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
                 {genre.name}

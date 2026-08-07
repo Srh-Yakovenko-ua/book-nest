@@ -9,6 +9,7 @@ import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LibrarySummaryMobile } from "@/features/books/components/library-summary-mobile";
 
 import type { NotesSidebarFilter } from "../model/notes-archive-query";
 
@@ -16,11 +17,15 @@ import { useNotesArchiveList } from "../api/use-notes-archive-list";
 import { useNotesSummary } from "../api/use-notes-summary";
 import { notesScopeFromQuery } from "../model/notes-archive-query";
 import { useNotesArchiveQuery } from "../model/use-notes-archive-query";
+import { useNotesSummaryCards } from "../model/use-notes-summary-cards";
 import { NotesArchiveContent } from "./notes-archive-content";
 import { NotesArchiveCreateFlow } from "./notes-archive-create-flow";
+import { NotesArchiveOverviewPanel } from "./notes-archive-overview-panel";
 import { NotesArchiveScopeChip } from "./notes-archive-scope-chip";
 import { NotesArchiveSidebar } from "./notes-archive-sidebar";
 import { NotesArchiveToolbar, NotesArchiveToolbarSkeleton } from "./notes-archive-toolbar";
+
+const NOTES_MOBILE_TILE_COUNT = 3;
 
 export function NotesArchiveView() {
   const t = useTranslations("notes.archive");
@@ -34,7 +39,8 @@ export function NotesArchiveView() {
   const totalCount = notes.data?.pages[0]?.totalCount ?? 0;
   const hasAnyNotes = (summary.data?.total ?? totalCount) > 0;
   const scope = notesScopeFromQuery(query.listQuery, items);
-  const showSidebar = !notes.isError && (notes.isPending || hasAnyNotes);
+  const showOverview = !notes.isError && (notes.isPending || hasAnyNotes);
+  const summaryCards = useNotesSummaryCards(summary.data);
 
   function onQuickFilter(filter: NotesSidebarFilter) {
     if (filter.kind === "filter") {
@@ -66,6 +72,23 @@ export function NotesArchiveView() {
           {t("addNote")}
         </Button>
       </header>
+
+      {showOverview ? (
+        <LibrarySummaryMobile
+          action={
+            <NotesArchiveOverviewPanel
+              isLoading={summary.isPending}
+              onAddNote={() => setCreateOpen(true)}
+              onQuickFilter={onQuickFilter}
+              state={query.state}
+              summaryCards={summaryCards}
+            />
+          }
+          cards={summaryCards.slice(0, NOTES_MOBILE_TILE_COUNT)}
+          className="sm:hidden"
+          isLoading={summary.isPending}
+        />
+      ) : null}
 
       <ToolbarSlot
         hasAnyNotes={hasAnyNotes}
@@ -107,13 +130,13 @@ export function NotesArchiveView() {
           />
         </div>
 
-        {showSidebar ? (
+        {showOverview ? (
           <NotesArchiveSidebar
             isLoading={summary.isPending}
             onAddNote={() => setCreateOpen(true)}
             onQuickFilter={onQuickFilter}
             state={query.state}
-            summary={summary.data}
+            summaryCards={summaryCards}
           />
         ) : null}
       </div>

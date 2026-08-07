@@ -73,8 +73,11 @@ This is the stage that catches the requirement that got quietly downgraded. Do n
 ## Stage 7 — Gates and live verification
 
 ```bash
-pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm knip
+pnpm typecheck && pnpm lint && pnpm format:check
+pnpm exec vitest run <path>   # the test files the spec's slices touched
 ```
+
+The full `pnpm test` and `pnpm knip` run in CI on every push to `dev` — do not run them locally unless the user asks.
 
 Backend additionally: `pnpm gen:api` produces no surprise diff, `pnpm dev:api` starts clean, and the affected endpoint is curled with the output captured. Frontend additionally: `pnpm dev:web` starts clean and the UI is verified visually.
 

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import {
   Select,
   SelectContent,
@@ -52,11 +53,12 @@ export function BooksToBuyToolbar({
   const tCommon = useTranslations("common");
   const tLink = useTranslations("booksToBuy.linkFilter");
   const tSort = useTranslations("booksToBuy.sort");
+  const tSortMobile = useTranslations("booksToBuy.sortMobile");
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div className="lg:flex-1">
+      <div className="flex items-center gap-1.5 lg:flex-row lg:items-center lg:gap-3">
+        <div className="min-w-0 flex-1">
           <DebouncedSearchInput
             clearLabel={t("searchClear")}
             isCommittable={alwaysCommittable}
@@ -67,7 +69,25 @@ export function BooksToBuyToolbar({
             value={filters.search}
           />
         </div>
-        <div className="w-full lg:w-60">
+
+        <MobileSortSheet
+          className="max-w-[9.5rem] sm:hidden"
+          closeLabel={tSortMobile("close")}
+          groups={[
+            {
+              key: "sort",
+              options: WISHLIST_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
+            },
+          ]}
+          id="books-to-buy-sort"
+          label={t("sortLabel")}
+          onChange={onSortChange}
+          title={tSortMobile("title")}
+          triggerLabel={tSortMobile(`trigger.${sort}`)}
+          value={sort}
+        />
+
+        <div className="hidden sm:block sm:w-60">
           <Select
             onValueChange={(next) => {
               const match = WISHLIST_SORT_OPTIONS.find((option) => option === next);
@@ -115,12 +135,13 @@ export function BooksToBuyToolbar({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="-mx-1 -my-1 no-scrollbar flex items-center gap-1.5 overflow-x-auto px-1 py-1 sm:mx-0 sm:my-0 sm:flex-wrap sm:gap-2.5 sm:overflow-visible sm:px-0 sm:py-0">
           <ValueFilterSelect
             anyLabel={t("storeAny")}
             label={t("storeLabel")}
             onChange={(storeName) => onFiltersChange({ ...filters, storeName })}
             options={options.stores}
+            shortLabel={t("storeShort")}
             value={filters.storeName}
           />
           <ValueFilterSelect
@@ -128,6 +149,7 @@ export function BooksToBuyToolbar({
             label={t("publisherLabel")}
             onChange={(publisherId) => onFiltersChange({ ...filters, publisherId })}
             options={options.publishers}
+            shortLabel={t("publisherShort")}
             value={filters.publisherId}
           />
           <ValueFilterSelect
@@ -135,6 +157,7 @@ export function BooksToBuyToolbar({
             label={t("genreLabel")}
             onChange={(genreKey) => onFiltersChange({ ...filters, genreKey })}
             options={options.genres}
+            shortLabel={t("genreShort")}
             value={filters.genreKey}
           />
           <ValueFilterSelect
@@ -142,6 +165,7 @@ export function BooksToBuyToolbar({
             label={t("tagLabel")}
             onChange={(tagId) => onFiltersChange({ ...filters, tagId })}
             options={options.tags}
+            shortLabel={t("tagShort")}
             value={filters.tagId}
           />
         </div>
@@ -175,24 +199,37 @@ function ValueFilterSelect({
   label,
   onChange,
   options,
+  shortLabel,
   value,
 }: {
   anyLabel: string;
   label: string;
   onChange: (value: Nullable<string>) => void;
   options: WishlistFilterOption[];
+  shortLabel: string;
   value: Nullable<string>;
 }) {
   if (options.length === 0) return null;
 
+  const selected = options.find((option) => option.value === value);
+
   return (
-    <div className="w-full sm:w-52">
+    <div className="w-[9.5rem] shrink-0 sm:w-52">
       <Select
         onValueChange={(next) => onChange(next === ANY_VALUE ? null : next)}
         value={value ?? ANY_VALUE}
       >
         <SelectTrigger aria-label={label} className="w-full data-[size=default]:h-10">
-          <SelectValue />
+          <SelectValue>
+            {selected === undefined ? (
+              <>
+                <span className="sm:hidden">{shortLabel}</span>
+                <span className="max-sm:hidden">{anyLabel}</span>
+              </>
+            ) : (
+              selected.label
+            )}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={ANY_VALUE}>{anyLabel}</SelectItem>

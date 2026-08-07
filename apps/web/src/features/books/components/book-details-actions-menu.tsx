@@ -28,9 +28,10 @@ import { DeleteBookDialog } from "./delete-book-dialog";
 
 type BookDetailsActionsMenuProps = {
   book: BookView;
+  className?: string;
 };
 
-export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
+export function BookDetailsActionsMenu({ book, className }: BookDetailsActionsMenuProps) {
   const t = useTranslations("books.details.actions");
   const tDetails = useTranslations("books.details");
   const tConfirm = useTranslations("books.deleteConfirm");
@@ -61,7 +62,7 @@ export function BookDetailsActionsMenu({ book }: BookDetailsActionsMenuProps) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button aria-label={t("menu")} size="icon" variant="outline">
+          <Button aria-label={t("menu")} className={className} size="icon" variant="outline">
             <UiIcon name="more" size={18} />
           </Button>
         </DropdownMenuTrigger>

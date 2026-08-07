@@ -41,6 +41,7 @@ export function PublishersContent({
   view,
 }: PublishersContentProps) {
   const t = useTranslations("publishers.states");
+  const tPage = useTranslations("publishers.page");
 
   if (isError) {
     const errorState: EmptyStateEntry = {
@@ -84,6 +85,7 @@ export function PublishersContent({
     return (
       <ul
         aria-busy={isPlaceholderData}
+        aria-label={tPage("resultsTitle")}
         className={cn(
           "flex flex-col gap-3 transition-opacity duration-200 motion-reduce:transition-none",
           isPlaceholderData && "opacity-60",
@@ -101,6 +103,7 @@ export function PublishersContent({
   return (
     <ul
       aria-busy={isPlaceholderData}
+      aria-label={tPage("resultsTitle")}
       className={cn(
         "grid grid-cols-1 gap-5 transition-opacity duration-200 motion-reduce:transition-none sm:grid-cols-2 xl:grid-cols-3",
         isPlaceholderData && "opacity-60",

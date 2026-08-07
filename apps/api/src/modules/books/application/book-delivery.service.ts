@@ -16,8 +16,9 @@ import { z } from "zod";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
   CreateDeliveryOutcome,
+  CreateDeliveryTransition,
   RecordDeliveryOutcome,
-} from "../infrastructure/book-deliveries.repository.js";
+} from "../../delivery/index.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
@@ -28,12 +29,9 @@ import {
   computeCreateDelivery,
   computeReceiveDelivery,
   computeUpdateDelivery,
-} from "../domain/delivery-transition.js";
-import { toDeliveryView } from "../domain/delivery.mapper.js";
-import {
-  BookDeliveriesRepository,
-  type CreateDeliveryTransition,
-} from "../infrastructure/book-deliveries.repository.js";
+  toDeliveryView,
+} from "../../delivery/index.js";
+import { BookDeliveriesRepository } from "../infrastructure/book-deliveries.repository.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 

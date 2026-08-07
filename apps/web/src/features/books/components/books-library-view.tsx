@@ -85,13 +85,16 @@ type BooksLibraryViewProps = {
   subtitle: string;
   summaryCards: LibrarySummaryCard[];
   summaryLoading: boolean;
+  summaryMobileAction?: ReactNode;
+  summaryMobileCards?: LibrarySummaryCard[];
+  summaryMobileLayout?: "compact" | "grid";
   title: string;
   view: LibraryViewMode;
   viewLabels: ViewLabels;
 };
 
 type CardRenderProps = {
-  renderActions: (book: LibraryBook) => ReactNode;
+  renderActions: (book: LibraryBook, compact?: boolean) => ReactNode;
   selectBookLabel: (title: string) => string;
 };
 
@@ -104,6 +107,7 @@ type ViewLabels = {
 const SKELETON_COUNT = 8;
 const STAGGER_STEP_MS = 45;
 const STAGGER_MAX_MS = 360;
+const GRID_CLASS = "grid grid-cols-2 gap-5 max-sm:gap-3 xl:grid-cols-3";
 
 export function BooksLibraryView(props: BooksLibraryViewProps) {
   const {
@@ -119,6 +123,9 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     subtitle,
     summaryCards,
     summaryLoading,
+    summaryMobileAction,
+    summaryMobileCards,
+    summaryMobileLayout,
     title,
   } = props;
 
@@ -146,8 +153,8 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectionMode, exitSelection]);
 
-  const renderActions = (book: LibraryBook) => (
-    <BookCardActions actions={actions} book={book} onOpenDialog={setPending} />
+  const renderActions = (book: LibraryBook, compact?: boolean) => (
+    <BookCardActions actions={actions} book={book} compact={compact} onOpenDialog={setPending} />
   );
   const selectBookLabel = (title: string) => t("bulk.selectBook", { title });
 
@@ -175,7 +182,13 @@ export function BooksLibraryView(props: BooksLibraryViewProps) {
           ) : null}
         </div>
 
-        <LibrarySummaryCards cards={summaryCards} isLoading={summaryLoading} />
+        <LibrarySummaryCards
+          cards={summaryCards}
+          isLoading={summaryLoading}
+          mobileAction={summaryMobileAction}
+          mobileCards={summaryMobileCards}
+          mobileLayout={summaryMobileLayout}
+        />
       </header>
 
       {showToolbar ? <LibraryToolbar {...props} /> : null}
@@ -211,8 +224,8 @@ function BookCardSkeleton() {
       <div className="flex flex-col gap-2 p-4">
         <Skeleton className="h-5 w-4/5" />
         <Skeleton className="h-3 w-1/2" />
-        <Skeleton className="mt-1 h-5 w-24 rounded-full" />
-        <div className="mt-1 flex items-center gap-1.5">
+        <Skeleton className="mt-1 h-5 w-24 rounded-full max-sm:hidden" />
+        <div className="mt-1 flex items-center gap-1.5 max-sm:hidden">
           <Skeleton className="h-5 w-16 rounded-full" />
           <Skeleton className="h-5 w-20 rounded-full" />
         </div>
@@ -237,7 +250,7 @@ function BooksGrid({
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <div className={GRID_CLASS}>
       {books.map((book, index) => (
         <LibraryGridCard
           book={book}
@@ -257,7 +270,7 @@ function BooksGrid({
 
 function BooksGridSkeleton() {
   return (
-    <div aria-busy className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <div aria-busy className={GRID_CLASS}>
       {Array.from({ length: SKELETON_COUNT }, (_, index) => (
         <div
           className="grid motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in"
@@ -434,8 +447,9 @@ function LibraryGridCard({
           formats={book.formats}
           genres={book.genres}
           href={book.href}
-          kebab={renderActions(book)}
+          kebab={renderActions(book, true)}
           linkComponent={linkComponent}
+          mobileCompact
           onCoverActivate={
             coverMedia
               ? () => onActivateCover({ bookId: book.id, media: coverMedia, title: book.title })
@@ -476,6 +490,7 @@ function LibraryListRow({
       book={book}
       kebab={renderActions(book)}
       linkComponent={linkComponent}
+      mobileCompact
       selected={selected}
       selectionControl={
         selectionMode ? (
@@ -586,7 +601,7 @@ function LibraryToolbar({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         {searchControl ? <div className="lg:flex-1">{searchControl}</div> : null}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5 max-sm:flex-nowrap max-sm:gap-1.5">
           <LibrarySortSelect
             label={sortLabel}
             onChange={onSortChange}
@@ -595,20 +610,30 @@ function LibraryToolbar({
           />
           {advancedFilters}
           <Button
-            className="h-10"
+            className="h-10 max-sm:w-10 max-sm:px-0"
             onClick={selectionMode ? exitSelection : enterSelection}
             variant={selectionMode ? "secondary" : "outline"}
           >
             <SquareCheckBig />
-            {selectionMode ? t("bulk.exitSelection") : t("bulk.enterSelection")}
+            <span className="max-sm:sr-only">
+              {selectionMode ? t("bulk.exitSelection") : t("bulk.enterSelection")}
+            </span>
           </Button>
           <Segmented
-            className="h-10 items-stretch [&_[data-slot=segmented-item]]:py-0"
+            className="ml-auto h-10 shrink-0 items-stretch [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
             label={viewLabels.label}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
             options={[
-              { icon: <LayoutGrid />, label: viewLabels.grid, value: "grid" },
-              { icon: <List />, label: viewLabels.list, value: "list" },
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{viewLabels.grid}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{viewLabels.list}</span>,
+                value: "list",
+              },
             ]}
             value={view}
           />

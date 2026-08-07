@@ -43,6 +43,7 @@ import { ListMembershipService } from "./application/list-membership.service.js"
 import { WishlistService } from "./application/wishlist.service.js";
 import { BOOK_PURGE_QUEUE_NAME } from "./domain/book-purge.js";
 import { BookDeliveriesRepository } from "./infrastructure/book-deliveries.repository.js";
+import { BookLibraryReadRepository } from "./infrastructure/book-library-read.repository.js";
 import { BookListsRepository } from "./infrastructure/book-lists.repository.js";
 import { BookStoreLinkRepository } from "./infrastructure/book-store-link.repository.js";
 import { BooksRepository } from "./infrastructure/books.repository.js";
@@ -94,6 +95,7 @@ import { ListMembershipRepository } from "./infrastructure/list-membership.repos
     BookStoreLinkService,
     WishlistService,
     DedicationsService,
+    BookLibraryReadRepository,
     BooksRepository,
     BookDeliveriesRepository,
     BookStoreLinkRepository,

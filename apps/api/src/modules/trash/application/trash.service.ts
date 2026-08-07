@@ -23,14 +23,10 @@ export class TrashService {
 
   async list({ query, userId }: { query: TrashQuery; userId: string }): Promise<PaginatedTrash> {
     const { skip, take } = pageSlice(query);
-    const [rows, counts] = await Promise.all([
+    const [rows, totalCount] = await Promise.all([
       this.trashRepository.list({ entityType: query.entityType, skip, take, userId }),
-      this.trashRepository.countByType({ userId }),
+      this.trashRepository.count({ entityType: query.entityType, userId }),
     ]);
-
-    const countsByType = this.groupCounts(counts);
-    const totalCount =
-      query.entityType === undefined ? sumCounts(countsByType) : countsByType[query.entityType];
 
     return buildPaginator({
       items: rows.map(toTrashItemView),

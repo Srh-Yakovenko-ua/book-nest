@@ -25,9 +25,10 @@ import { LOANS_TAB_VALUES } from "../model/loans-query";
 import { useLoansQuery } from "../model/use-loans-query";
 import { EditLoanDialog } from "./edit-loan-dialog";
 import { LoanRow } from "./loan-row";
+import { LoansOverviewPanel } from "./loans-overview-panel";
 import { LoansSidebar } from "./loans-sidebar";
 import { LoansListSkeleton } from "./loans-skeleton";
-import { LoansSummaryCards } from "./loans-summary-cards";
+import { LoansSummaryCards, useLoansSummaryCards } from "./loans-summary-cards";
 import { LoansToolbar } from "./loans-toolbar";
 import { ReturnLoanDialog } from "./return-loan-dialog";
 
@@ -63,6 +64,8 @@ export function LoansView() {
   const items = page?.items ?? [];
   const today = todayIso();
   const nearest = nearestReturns(items, today);
+
+  const summaryCards = useLoansSummaryCards(summary.data);
 
   const borrowedCount = summary.data?.borrowedCount ?? 0;
   const lentCount = summary.data?.lentCount ?? 0;
@@ -117,10 +120,18 @@ export function LoansView() {
         </div>
 
         <LoansSummaryCards
+          cards={summaryCards}
           isError={summary.isError}
           isLoading={summary.isPending}
+          mobileAction={
+            <LoansOverviewPanel
+              isLoading={list.isPending}
+              nearest={nearest}
+              onAddBook={() => router.push("/books/new")}
+              summaryCards={summaryCards}
+            />
+          }
           onRetry={() => void summary.refetch()}
-          summary={summary.data}
         />
       </header>
 

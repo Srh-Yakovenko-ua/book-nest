@@ -2,7 +2,6 @@ import type {
   DeliveryInfoInput,
   DeliveryStatus,
   LoanInfoInput,
-  Nullable,
   OwnershipStatus,
   PurchaseInfoInput,
   ReadingProgressInput,
@@ -12,10 +11,7 @@ import type {
 
 import { LoanTypeSchema, ownershipStatusKeepsPurchase, ownershipStatusUsesLoan } from "@app/shared";
 
-import type {
-  CreateDeliveryData,
-  UpdateDeliveryData,
-} from "../infrastructure/book-deliveries.repository.js";
+import type { CreateDeliveryData, UpdateDeliveryData } from "../../delivery/index.js";
 import type {
   BlockUpsert,
   CreateLoanInfoData,
@@ -28,7 +24,7 @@ import type {
   UpdateReadingProgressData,
 } from "../infrastructure/books.repository.js";
 
-import { parseIsoDate } from "../../../core/iso-date.js";
+import { toCreateDate, toUpdateDate } from "../../../core/iso-date.js";
 
 type DefinedDeliveryInfo = NonNullable<DeliveryInfoInput>;
 type DefinedLoanInfo = NonNullable<LoanInfoInput>;
@@ -46,12 +42,6 @@ const STATUSES_WITH_READING_PROGRESS: ReadonlySet<ReadingStatus> = new Set([
 const OWNERSHIP_STATUS_IN_TRANSIT: OwnershipStatus = "in_transit";
 
 const DEFAULT_DELIVERY_STATUS: DeliveryStatus = "ordered";
-
-export const toCreateDate = (value: Nullable<string> | undefined): Nullable<Date> =>
-  value === undefined || value === null ? null : parseIsoDate(value);
-
-export const toUpdateDate = (value: Nullable<string> | undefined): Nullable<Date> | undefined =>
-  value === undefined || value === null ? value : parseIsoDate(value);
 
 export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryData {
   return {

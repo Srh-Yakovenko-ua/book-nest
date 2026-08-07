@@ -189,16 +189,32 @@ const envSchema = z
     wikidataContact: raw.WIKIDATA_CONTACT,
   }));
 
-const parsed = envSchema.safeParse(process.env);
+export type EnvParseResult =
+  { env: z.infer<typeof envSchema>; ok: true } | { ok: false; report: string };
 
-if (!parsed.success) {
+export function parseEnv(source: NodeJS.ProcessEnv): EnvParseResult {
+  const parsed = envSchema.safeParse(source);
+  if (parsed.success) return { env: parsed.data, ok: true };
+
   const fieldErrors = parsed.error.flatten().fieldErrors;
-  console.error("\n[env] Invalid environment variables:\n");
-  for (const [key, messages] of Object.entries(fieldErrors)) {
-    console.error(`  ${key}: ${messages?.join(", ")}`);
-  }
-  console.error("\nSee apps/api/.env.example for the expected shape.\n");
+  const lines = Object.entries(fieldErrors).map(
+    ([key, messages]) => `  ${key}: ${messages?.join(", ")}`,
+  );
+  return {
+    ok: false,
+    report: [
+      "\n[env] Invalid environment variables:\n",
+      ...lines,
+      "\nSee apps/api/.env.example for the expected shape.\n",
+    ].join("\n"),
+  };
+}
+
+const result = parseEnv(process.env);
+
+if (!result.ok) {
+  console.error(result.report);
   process.exit(1);
 }
 
-export const env = parsed.data;
+export const env = result.env;

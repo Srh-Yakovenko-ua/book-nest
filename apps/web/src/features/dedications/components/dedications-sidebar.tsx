@@ -8,14 +8,11 @@ import { useTranslations } from "next-intl";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 
-export function DedicationsSidebar({ onChooseBook }: { onChooseBook: () => void }) {
+export function DedicationsAboutSections({ onChooseBook }: { onChooseBook: () => void }) {
   const t = useTranslations("dedications.sidebar");
 
   return (
-    <aside
-      aria-label={t("label")}
-      className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
-    >
+    <>
       <section className="stat-card-branch flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-secondary/40 p-5">
         <Quote aria-hidden className="text-primary/60" size={20} />
         <p className="font-heading text-sm leading-relaxed text-foreground/90 italic">
@@ -30,6 +27,19 @@ export function DedicationsSidebar({ onChooseBook }: { onChooseBook: () => void 
           {t("addMore.cta")}
         </Button>
       </SidebarBlock>
+    </>
+  );
+}
+
+export function DedicationsSidebar({ onChooseBook }: { onChooseBook: () => void }) {
+  const t = useTranslations("dedications.sidebar");
+
+  return (
+    <aside
+      aria-label={t("label")}
+      className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+    >
+      <DedicationsAboutSections onChooseBook={onChooseBook} />
     </aside>
   );
 }

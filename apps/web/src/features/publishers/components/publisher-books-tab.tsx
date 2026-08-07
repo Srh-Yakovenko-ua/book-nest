@@ -171,8 +171,16 @@ export function PublisherBooksTab({ publisherId }: PublisherBooksTabProps) {
             label={t("viewLabel")}
             onValueChange={(next) => void setView(next === "list" ? "list" : "grid")}
             options={[
-              { icon: <UiIcon name="grip" />, label: t("viewGrid"), value: "grid" },
-              { icon: <UiIcon name="list" />, label: t("viewList"), value: "list" },
+              {
+                icon: <UiIcon name="grip" />,
+                label: <span className="max-sm:sr-only">{t("viewGrid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <UiIcon name="list" />,
+                label: <span className="max-sm:sr-only">{t("viewList")}</span>,
+                value: "list",
+              },
             ]}
             value={view}
           />

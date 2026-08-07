@@ -11,6 +11,9 @@ import { QueueSummaryCards } from "./queue-summary-cards";
 
 const copy = messages.readingQueue.stats;
 
+const MOBILE_TILE_SKELETONS = 12;
+const GRID_CARD_SKELETONS = 16;
+
 const SUMMARY: ReadingQueueSummaryView = {
   availableNowCount: 5,
   blockedBySeriesOrderCount: 2,
@@ -96,6 +99,8 @@ describe("QueueSummaryCards", () => {
     renderCards({ isLoading: true, summary: null });
 
     expect(document.querySelectorAll('[data-slot="stat-card"]')).toHaveLength(0);
-    expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(16);
+    expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(
+      MOBILE_TILE_SKELETONS + GRID_CARD_SKELETONS,
+    );
   });
 });

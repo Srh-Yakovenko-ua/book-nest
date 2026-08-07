@@ -29,8 +29,8 @@ export function SeriesCard({ series }: SeriesCardProps) {
   const isEmpty = series.booksInSeries === 0;
 
   return (
-    <article className="relative flex h-full flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color] duration-200 ease-out focus-within:border-accent-border focus-within:shadow-hover hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
-      <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-3.5">
+    <article className="relative flex h-full flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-card transition-[box-shadow,border-color] duration-200 ease-out focus-within:border-accent-border focus-within:shadow-hover hover:border-accent-border hover:shadow-hover motion-reduce:transition-none max-sm:gap-2 max-sm:p-3">
+      <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-3.5 max-sm:grid-cols-[5.25rem_minmax(0,1fr)] max-sm:gap-3">
         <Link
           aria-label={t("card.coverAlt", { name: series.name })}
           className="block cursor-pointer rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -44,12 +44,13 @@ export function SeriesCard({ series }: SeriesCardProps) {
               src: cover.cover.urls.card,
               title: cover.title,
             }))}
+            mobileCompact
             name={series.name}
             totalBooks={series.totalBooks}
           />
         </Link>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <h3 className="line-clamp-4 font-heading text-[1.0625rem] leading-tight font-bold text-ink">
+          <h3 className="line-clamp-4 font-heading text-[1.0625rem] leading-tight font-bold text-ink max-sm:line-clamp-3 max-sm:text-sm">
             <Link
               className="cursor-pointer rounded-sm text-ink no-underline transition-colors outline-none hover:text-primary focus-visible:text-primary focus-visible:underline"
               href={`/series/${series.id}`}
@@ -57,9 +58,11 @@ export function SeriesCard({ series }: SeriesCardProps) {
               {series.name}
             </Link>
           </h3>
-          <p className="line-clamp-2 text-[0.8125rem] text-muted-foreground">{authorsLine}</p>
+          <p className="line-clamp-2 text-[0.8125rem] text-muted-foreground max-sm:text-xs">
+            {authorsLine}
+          </p>
           <StatusBadge
-            className="mt-0.5 self-start"
+            className="mt-0.5 self-start max-sm:h-5 max-sm:gap-1 max-sm:px-1.5 max-sm:text-[0.625rem] max-sm:[&>svg]:size-3"
             entry={{ ...statusBase, label: t(`status.${series.status}`) }}
           />
         </div>
@@ -79,7 +82,7 @@ export function SeriesCard({ series }: SeriesCardProps) {
         />
       ) : (
         <div className="flex flex-col gap-1">
-          <div className="flex items-baseline justify-between gap-2 text-sm">
+          <div className="flex items-baseline justify-between gap-2 text-sm max-sm:text-xs">
             <span className="text-muted-foreground">
               {series.totalBooks === null
                 ? t("card.progressAdded", {

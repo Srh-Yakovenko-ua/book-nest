@@ -151,20 +151,27 @@ Business logic stays independent of HTTP **and** of the data layer, so each laye
 
 ---
 
-## 9. Quality gates (all pass before "done")
+## 9. Quality gates
+
+**Tests are written locally and run in CI.** `pnpm test` costs ~7 minutes of wall time and saturates the dev machine, so the local machine never carries the full suite as a routine step. Keep writing tests for every change — only the _running_ moved.
+
+**Per change** — cheap, run freely:
 
 ```bash
-pnpm typecheck     # TS strict, all packages
+pnpm typecheck     # TS strict, all packages (turbo-cached, seconds)
 pnpm lint          # ESLint
 pnpm format:check  # Prettier
-pnpm test          # Vitest where tests exist
-pnpm knip          # dead code / unused exports / unused deps
+pnpm exec vitest run <path/to/the.test.ts>   # only the files your change touches
 ```
+
+**At commit and push** — nothing heavier locally. `pre-commit` runs lint-staged on staged files; `pre-push` runs `pnpm typecheck && pnpm lint`. The full suite runs on GitHub Actions: `Deploy` fires on every push to `dev`/`prod` and calls `ci.yml`, which runs static checks, four sharded API test shards, and the web suite before any image is built. A red test blocks the deploy, so a push is the real gate.
+
+**The local full suite is opt-in, not routine.** Run `pnpm test` (and `pnpm knip`) only when the user asks, when CI has gone red and needs reproducing, or before a prod release. Then run it once, never while another run is live — turbo replays an unchanged package from cache, so a second run buys nothing and doubles the load. `VITEST_MAX_WORKERS=2 pnpm test` when the machine must stay usable.
 
 BE additionally: `pnpm dev:api` starts clean; `curl -i http://localhost:4000/api/health` → 200 with `x-request-id`; the affected endpoint responds as expected (capture the curl).
 FE additionally: `pnpm dev:web` starts clean, no console errors; for UI changes, verify visually (screenshot / Storybook).
 
-Never report done with a failing gate. If a gate fails for an unrelated reason (e.g. a pre-existing flake), say so explicitly.
+Never report done with a failing gate. If a gate fails for an unrelated reason (e.g. a pre-existing flake), say so explicitly. "Tests pass in CI" is a claim only after the run is green — check it, don't assume it.
 
 ---
 
@@ -202,7 +209,8 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 ## 11. Operating notes
 
 - **Local Postgres may be down.** The API tolerates a missing DB at startup (health shows `postgres: "down"`, app still serves). Tests and data endpoints need a local Postgres with the credentials in `apps/api/vitest.config.ts` / `.env` (`pnpm db:up` for the Docker Postgres).
-- **Test CPU load is tunable.** Both Vitest configs honour `VITEST_MAX_WORKERS` (default `min(6, cores)`); `VITEST_MAX_WORKERS=2 pnpm test` when the machine needs to stay quiet. Measured on the 18-core dev machine: total CPU work is flat across worker counts (~90s user for a 17-file module), only the wall time and the peak load change — 6 workers ≈ 28s wall, 2 workers ≈ 51s.
+- **Test load is capped, and the cap is memory-driven, not CPU-driven.** Both Vitest configs honour `VITEST_MAX_WORKERS` (default `min(3, cores)`); raise it with `VITEST_MAX_WORKERS=6 pnpm test` on a machine with RAM to spare. The default is 3 because turbo runs `@app/api` and `@app/web` tests concurrently, so the root `pnpm test` spawns **two** pools — at 6 each that was 12 forks holding ~4.8 GB, which pushed the 24 GB dev machine into swap. Total CPU work is flat across worker counts (~90s user for a 17-file module); only wall time and peak footprint move — 6 workers ≈ 28s wall, 2 workers ≈ 51s.
+- **The local Postgres is capped in `docker-compose.yml`** (`cpus: 2.5`, `mem_limit: 1200m`) and runs with `synchronous_commit=off` + `wal_level=minimal` + `max_wal_senders=0`. Truncate-heavy test runs used to drive it to 181% CPU / 2 GB unbounded. These settings can lose the last few transactions if the host crashes mid-write, never corrupt the database — acceptable for a re-seedable local DB, never copy them to a server. Docker Desktop itself is set to 4 CPUs / 4 GB; the VM reserves its whole allocation from the host, so an 8 GB allocation cost ~5 GB of real RAM to run ~1.4 GB of containers.
 - **Modular monolith.** Service extraction comes later, only when a real boundary demands it — the only preparation is keeping module boundaries clean.
 - **Per-user memory** at `~/.claude/projects/-Users-macbookpro14-WebstormProjects-book-nest/memory/` is auto-loaded and captures evolved feedback across sessions — honor it.
 

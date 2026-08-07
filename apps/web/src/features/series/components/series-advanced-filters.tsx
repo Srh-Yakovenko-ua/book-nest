@@ -28,6 +28,7 @@ import {
   useRecentGenres,
 } from "@/features/books";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
+import { cn } from "@/lib/utils";
 
 import type { SeriesAdvancedFilters as SeriesAdvancedFiltersValue } from "../model/series-derive";
 
@@ -95,9 +96,13 @@ export function SeriesAdvancedFilters({
       open={open}
     >
       <SheetTrigger asChild>
-        <Button className="h-10" type="button" variant="secondary">
-          <UiIcon name="sliders" size={16} />
-          {t("trigger")}
+        <Button
+          className={cn("h-10", activeCount > 0 ? "max-sm:px-2.5" : "max-sm:w-10 max-sm:px-0")}
+          type="button"
+          variant="secondary"
+        >
+          <UiIcon name="funnel" size={16} />
+          <span className="max-sm:sr-only">{t("trigger")}</span>
           {activeCount > 0 ? (
             <Badge className="ml-0.5" variant="secondary">
               {activeCount}

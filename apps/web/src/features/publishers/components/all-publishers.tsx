@@ -6,8 +6,9 @@ import { usePublisherSummary } from "../api/use-publisher-summary";
 import { usePublishersList } from "../api/use-publishers-list";
 import { usePublisherQuery } from "../model/use-publisher-query";
 import { AllPublishersView } from "./all-publishers-view";
+import { PublisherOverviewPanel } from "./publisher-overview-panel";
 import { PublisherPagination } from "./publisher-pagination";
-import { PublisherSummaryCards } from "./publisher-summary-cards";
+import { PublisherSummaryCards, usePublisherSummaryCards } from "./publisher-summary-cards";
 import { PublisherToolbar } from "./publisher-toolbar";
 import { PublishersContent } from "./publishers-content";
 import { PublishersMissingBanner } from "./publishers-missing-banner";
@@ -17,6 +18,8 @@ export function AllPublishers() {
   const query = usePublisherQuery();
   const list = usePublishersList(query.listParams);
   const summary = usePublisherSummary();
+
+  const summaryCards = usePublisherSummaryCards(summary.data);
 
   const publishers = list.data?.items ?? [];
   const hasActiveQuery = query.hasActiveFilters || query.hasActiveSearch;
@@ -53,10 +56,13 @@ export function AllPublishers() {
       showChrome={showChrome}
       summary={
         <PublisherSummaryCards
+          cards={summaryCards}
           isError={summary.isError}
           isLoading={summary.isPending}
+          mobileAction={
+            <PublisherOverviewPanel isLoading={summary.isPending} summaryCards={summaryCards} />
+          }
           onRetry={() => void summary.refetch()}
-          summary={summary.data}
         />
       }
       toolbar={
