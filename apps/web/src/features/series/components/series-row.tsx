@@ -62,10 +62,10 @@ export function SeriesRow({ series }: SeriesRowProps) {
   })();
 
   return (
-    <article className="group/series-row @container/series-row relative flex min-h-[9.5rem] items-stretch gap-5 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none">
+    <article className="group/series-row @container/series-row relative flex min-h-[9.5rem] items-stretch gap-5 rounded-xl border border-border bg-card p-3 shadow-card transition-[box-shadow,border-color] duration-200 ease-out hover:border-accent-border hover:shadow-hover motion-reduce:transition-none max-sm:min-h-0 max-sm:gap-3">
       <Link
         aria-label={coverAlt}
-        className="relative z-10 shrink-0 rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="relative z-10 shrink-0 self-start rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         href={`/series/${series.id}`}
       >
         <SeriesCardCover
@@ -76,13 +76,14 @@ export function SeriesRow({ series }: SeriesRowProps) {
             src: cover.cover.urls.card,
             title: cover.title,
           }))}
+          mobileCompact
           name={series.name}
           showBadge={false}
           totalBooks={series.totalBooks}
         />
       </Link>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3 @xl/series-row:flex-row @xl/series-row:flex-wrap @xl/series-row:items-start @xl/series-row:gap-x-4 @xl/series-row:gap-y-3 @3xl/series-row:flex-nowrap @3xl/series-row:items-stretch">
+      <div className="flex min-w-0 flex-1 flex-col gap-3 max-sm:gap-2 @xl/series-row:flex-row @xl/series-row:flex-wrap @xl/series-row:items-start @xl/series-row:gap-x-4 @xl/series-row:gap-y-3 @3xl/series-row:flex-nowrap @3xl/series-row:items-stretch">
         <div className="flex min-w-0 flex-col gap-1 @xl/series-row:min-w-[12rem] @xl/series-row:flex-1">
           <h3 className="line-clamp-2 font-heading text-sm leading-tight font-bold text-ink">
             <Link
@@ -94,14 +95,14 @@ export function SeriesRow({ series }: SeriesRowProps) {
           </h3>
           <p className="truncate text-xs text-muted-foreground">{authorsLine}</p>
           <StatusBadge
-            className="mt-0.5 self-start"
+            className="mt-0.5 self-start max-sm:h-5 max-sm:gap-1 max-sm:px-1.5 max-sm:text-[0.625rem] max-sm:[&>svg]:size-3"
             entry={{ ...statusBase, label: t(`status.${series.status}`) }}
           />
         </div>
 
         <div className="hidden w-px self-stretch bg-border @3xl/series-row:block" />
         <div className="flex flex-col gap-1 @3xl/series-row:w-32">
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground max-sm:text-[0.6875rem]">
             <UiIcon aria-hidden className="shrink-0 text-icon" name="book" size={15} />
             <span className="min-w-0">
               {series.totalBooks === null
@@ -117,7 +118,7 @@ export function SeriesRow({ series }: SeriesRowProps) {
             <p className="text-sm text-muted-foreground">{t("card.noBooks")}</p>
           ) : (
             <>
-              <div className="flex items-baseline justify-between gap-2 text-sm">
+              <div className="flex items-baseline justify-between gap-2 text-sm max-sm:text-xs">
                 <span className="text-muted-foreground">
                   {series.totalBooks === null
                     ? t("card.progressAdded", {

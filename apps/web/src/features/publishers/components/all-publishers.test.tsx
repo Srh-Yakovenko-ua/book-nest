@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
 import {
   makePublisherListItem,
@@ -43,6 +43,14 @@ function renderList(search = "", onUrlUpdate?: OnUrlUpdateFunction) {
       <AllPublishers />
     </NuqsTestingAdapter>,
   );
+}
+
+function statCard(label: string): HTMLElement {
+  for (const element of screen.getAllByText(label)) {
+    const card = element.closest('[data-slot="stat-card"]');
+    if (card !== null) return card as HTMLElement;
+  }
+  throw new Error(`Stat card not found: ${label}`);
 }
 
 function trackUrl() {
@@ -93,23 +101,25 @@ describe("AllPublishers", () => {
 
     renderList();
 
-    expect(await screen.findByText("Видавництв")).toBeInTheDocument();
-    expect(screen.getByText("Книг із видавництвом")).toBeInTheDocument();
-    expect(screen.getByText("340")).toBeInTheDocument();
+    expect(await screen.findByText("Книг із видавництвом")).toBeInTheDocument();
+    expect(statCard("Видавництв")).toBeInTheDocument();
+    expect(statCard("Книг із видавництвом")).toHaveTextContent("340");
   });
 
   it("renders the grid of cards by default", async () => {
     renderList();
 
-    expect(await screen.findByText("Переглянути")).toBeInTheDocument();
-    expect(screen.queryByText("Рейтинг")).not.toBeInTheDocument();
+    const results = await screen.findByRole("list", { name: "Список видавництв" });
+    expect(within(results).getByText("Переглянути")).toBeInTheDocument();
+    expect(within(results).queryByText("Рейтинг")).not.toBeInTheDocument();
   });
 
   it("renders rows when the list view is selected", async () => {
     renderList("?view=list");
 
-    expect(await screen.findByText("Рейтинг")).toBeInTheDocument();
-    expect(screen.queryByText("Переглянути")).not.toBeInTheDocument();
+    const results = await screen.findByRole("list", { name: "Список видавництв" });
+    expect(within(results).getByText("Рейтинг")).toBeInTheDocument();
+    expect(within(results).queryByText("Переглянути")).not.toBeInTheDocument();
   });
 
   it("shows the no-results state with a clear action when a search matches nothing", async () => {

@@ -8,10 +8,10 @@ import { useId, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Link } from "@/i18n/navigation";
 import { ownershipStatuses, readingStatuses, type StatusEntry } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
@@ -181,29 +181,29 @@ function ContinuationRow({
           "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:fill-mode-both motion-safe:slide-in-from-top-1",
       )}
     >
-      <Link
+      <MobilePageOverviewLink
         aria-label={t("openBook", { title: nextBook.title })}
         className="shrink-0"
         href={bookHref}
       >
         <ContinuationCover cover={nextBook.cover} title={nextBook.title} />
-      </Link>
+      </MobilePageOverviewLink>
       <div className="flex min-w-0 flex-col gap-1.5">
-        <Link className="group min-w-0" href={bookHref}>
+        <MobilePageOverviewLink className="group min-w-0" href={bookHref}>
           <span className="line-clamp-2 text-sm font-medium text-ink transition-colors group-hover:text-primary">
             {nextBook.title}
           </span>
-        </Link>
+        </MobilePageOverviewLink>
 
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
           <UiIcon aria-hidden name="layers" size={13} />
-          <Link
+          <MobilePageOverviewLink
             aria-label={t("openSeries", { title: series.title })}
             className="min-w-0 font-medium text-foreground hover:text-primary"
             href={`/series/${series.id}`}
           >
             {series.title}
-          </Link>
+          </MobilePageOverviewLink>
           {nextBook.seriesPosition !== null ? (
             <span className="whitespace-nowrap">
               {`· ${t("bookPosition", { position: nextBook.seriesPosition, total: series.totalBooks })}`}
@@ -225,7 +225,7 @@ function ContinuationRow({
 
         {cta.kind === "navigation" ? (
           <Button asChild className="self-start" size="sm" variant="secondary">
-            <Link href={cta.href}>{t(cta.labelKey)}</Link>
+            <MobilePageOverviewLink href={cta.href}>{t(cta.labelKey)}</MobilePageOverviewLink>
           </Button>
         ) : cta.kind === "add-to-queue" ? (
           <Button

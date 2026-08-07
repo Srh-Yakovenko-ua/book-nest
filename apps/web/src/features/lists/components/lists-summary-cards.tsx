@@ -1,6 +1,7 @@
 "use client";
 
 import type { ListsSummaryView } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -9,9 +10,10 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
 type ListsSummaryCardsProps = {
+  cards: LibrarySummaryCard[];
   isError: boolean;
   isLoading: boolean;
-  summary?: ListsSummaryView;
+  mobileAction?: ReactNode;
 };
 
 const EMPTY_SUMMARY: ListsSummaryView = {
@@ -28,13 +30,34 @@ const EMPTY_SUMMARY: ListsSummaryView = {
   uniqueBookCount: 0,
 };
 
-export function ListsSummaryCards({ isError, isLoading, summary }: ListsSummaryCardsProps) {
+export function ListsSummaryCards({
+  cards,
+  isError,
+  isLoading,
+  mobileAction,
+}: ListsSummaryCardsProps) {
+  if (isError) return null;
+
+  return (
+    <LibrarySummaryCards
+      cards={cards}
+      isLoading={isLoading}
+      mobileAction={mobileAction}
+      mobileLayout="compact"
+    />
+  );
+}
+
+export function useListsSummaryCards(summary?: ListsSummaryView): LibrarySummaryCard[] {
   const t = useTranslations("lists.catalog.summary");
   const stats = summary ?? EMPTY_SUMMARY;
 
-  if (isError) return null;
+  const mobileLabels = (key: "averageSize" | "multiList" | "totalLists" | "uniqueBooks") => ({
+    compact: t(`mobile.compact.${key}`),
+    detailed: t(`mobile.detailed.${key}`),
+  });
 
-  const cards: LibrarySummaryCard[] = [
+  return [
     {
       icon: "list",
       iconTone: "primary",
@@ -46,6 +69,7 @@ export function ListsSummaryCards({ isError, isLoading, summary }: ListsSummaryC
               empty: stats.emptyListCount,
               withBooks: stats.listsWithBooksCount,
             }),
+      mobileLabels: mobileLabels("totalLists"),
       unit: t("listsUnit", { count: stats.totalListCount }),
       value: stats.totalListCount,
     },
@@ -54,6 +78,7 @@ export function ListsSummaryCards({ isError, isLoading, summary }: ListsSummaryC
       iconTone: "info",
       label: t("uniqueBooks"),
       microfact: t("memberships", { count: stats.totalMembershipCount }),
+      mobileLabels: mobileLabels("uniqueBooks"),
       unit: t("booksUnit", { count: stats.uniqueBookCount }),
       value: stats.uniqueBookCount,
     },
@@ -62,6 +87,7 @@ export function ListsSummaryCards({ isError, isLoading, summary }: ListsSummaryC
       iconTone: "success",
       label: t("averageSize"),
       microfact: t("largestList", { count: stats.largestListBookCount }),
+      mobileLabels: mobileLabels("averageSize"),
       unit: t("booksUnit", { count: stats.averageBooksPerList }),
       value: stats.averageBooksPerList,
     },
@@ -73,10 +99,9 @@ export function ListsSummaryCards({ isError, isLoading, summary }: ListsSummaryC
         stats.multiListBookCount === 0
           ? t("singleListOnly")
           : t("maxReach", { count: stats.maxListsPerBook }),
+      mobileLabels: mobileLabels("multiList"),
       unit: t("booksUnit", { count: stats.multiListBookCount }),
       value: stats.multiListBookCount,
     },
   ];
-
-  return <LibrarySummaryCards cards={cards} isLoading={isLoading} />;
 }

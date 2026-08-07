@@ -16,8 +16,9 @@ import { AllListsView } from "./all-lists-view";
 import { CreateListDialog } from "./create-list-dialog";
 import { DeleteListDialog } from "./delete-list-dialog";
 import { EditListDialog } from "./edit-list-dialog";
+import { ListsOverviewPanel } from "./lists-overview-panel";
 import { ListsSidebar } from "./lists-sidebar";
-import { ListsSummaryCards } from "./lists-summary-cards";
+import { ListsSummaryCards, useListsSummaryCards } from "./lists-summary-cards";
 import { ListsToolbar } from "./lists-toolbar";
 
 export function AllLists() {
@@ -52,6 +53,7 @@ export function AllLists() {
     stale: summary.data?.staleListCount ?? 0,
   };
   const hasAnyLists = totalCount > 0 || lists.hasActiveFilters;
+  const summaryCards = useListsSummaryCards(summary.data);
 
   function confirmDelete() {
     deleteList.mutate(undefined, {
@@ -94,9 +96,18 @@ export function AllLists() {
         }
         summary={
           <ListsSummaryCards
+            cards={summaryCards}
             isError={summary.isError}
             isLoading={summary.isPending}
-            summary={summary.data}
+            mobileAction={
+              <ListsOverviewPanel
+                activeAttention={lists.state.attention}
+                attentionCounts={attentionCounts}
+                isLoading={summary.isPending}
+                onAttentionSelect={lists.toggleAttention}
+                summaryCards={summaryCards}
+              />
+            }
           />
         }
         toolbar={

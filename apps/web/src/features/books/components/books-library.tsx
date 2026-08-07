@@ -322,7 +322,6 @@ export function BooksLibrary({ scope }: { scope: Exclude<LibraryScope, "favorite
       summaryMobileAction={
         <LibraryOverviewPanel
           isLoading={overview.isPending}
-          linkComponent={Link}
           recentlyAdded={recentlyAdded}
           summaryCards={summaryCards}
           topGenres={topGenres}

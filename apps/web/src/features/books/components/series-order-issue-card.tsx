@@ -14,8 +14,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Link } from "@/i18n/navigation";
 
 import {
   hasProblemDescription,
@@ -86,12 +86,12 @@ export function SeriesOrderIssueCard({ issue, onAction, pending }: SeriesOrderIs
         <div className="flex flex-col items-start gap-2">
           <StatusBadge entry={toSeverityStatus(issue.severity, t(`severity.${issue.severity}`))} />
           <div className="flex flex-col gap-1">
-            <Link
+            <MobilePageOverviewLink
               className="truncate font-heading text-sm font-semibold text-ink no-underline transition-colors hover:text-primary"
               href={`/series/${issue.series.id}`}
             >
               {issue.series.title}
-            </Link>
+            </MobilePageOverviewLink>
             <p className="text-sm leading-snug text-foreground">
               {t.rich(`problems.${issue.problemType}.title`, textParams)}
             </p>
@@ -183,7 +183,7 @@ function IssueAction({
   if (href !== null) {
     return (
       <Button asChild className={className} size="sm" variant={variant}>
-        <Link href={href}>{text}</Link>
+        <MobilePageOverviewLink href={href}>{text}</MobilePageOverviewLink>
       </Button>
     );
   }

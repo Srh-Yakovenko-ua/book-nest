@@ -4,6 +4,7 @@ import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
@@ -43,6 +44,7 @@ export function ListsToolbar({
   const chips = useListsFilterChips({ setState, state });
   const t = useTranslations("lists.catalog");
   const tSort = useTranslations("lists.catalog.sort");
+  const tSortMobile = useTranslations("lists.catalog.sort.mobile");
   const tView = useTranslations("lists.catalog.view");
   const tCommon = useTranslations("common");
 
@@ -60,8 +62,25 @@ export function ListsToolbar({
           />
         </div>
 
-        <div className="flex w-full items-center gap-2.5 sm:w-auto">
-          <div className="w-full sm:w-80">
+        <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2.5">
+          <MobileSortSheet
+            className="sm:hidden"
+            closeLabel={tSortMobile("close")}
+            groups={[
+              {
+                key: "sort",
+                options: LIST_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
+              },
+            ]}
+            id="lists-sort"
+            label={t("sort.label")}
+            onChange={onSortChange}
+            title={tSortMobile("title")}
+            triggerLabel={tSortMobile(`trigger.${state.sort}`)}
+            value={state.sort}
+          />
+
+          <div className="hidden sm:block sm:w-80">
             <Select onValueChange={(next) => onSortChange(next as ListSort)} value={state.sort}>
               <SelectTrigger
                 aria-label={t("sort.label")}
@@ -85,12 +104,20 @@ export function ListsToolbar({
           <ListsAdvancedFilters setState={setState} state={state} />
 
           <Segmented
-            className="h-10 items-stretch [&_[data-slot=segmented-item]]:py-0"
+            className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
             label={tView("label")}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
             options={[
-              { icon: <LayoutGrid />, label: tView("grid"), value: "grid" },
-              { icon: <List />, label: tView("list"), value: "list" },
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{tView("grid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{tView("list")}</span>,
+                value: "list",
+              },
             ]}
             value={state.view}
           />

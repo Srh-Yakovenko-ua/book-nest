@@ -10,8 +10,8 @@ import type { UiIconName } from "@/components/icons";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 
 import type { WishlistBestOffer } from "../model/books-to-buy-derive";
@@ -38,7 +38,7 @@ export function BooksToBuySidebar({
   return (
     <aside
       aria-label={t("label")}
-      className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+      className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
       <SidebarBlock title={t("stats.title")}>
         {isLoading || summary === undefined ? (
@@ -48,58 +48,88 @@ export function BooksToBuySidebar({
         )}
       </SidebarBlock>
 
-      <SidebarBlock title={t("bestOffers.title")}>
-        {isLoading ? (
-          <RowSkeleton rows={3} />
-        ) : bestOffers.length === 0 ? (
-          <EmptyText>{t("bestOffers.empty")}</EmptyText>
-        ) : (
-          <>
-            <ul className="flex flex-col gap-1">
-              {bestOffers.slice(0, BEST_OFFERS_LIMIT).map((offer) => (
-                <BestOfferRow key={offer.bookId} offer={offer} />
-              ))}
-            </ul>
-            <Button className="self-start" onClick={onShowBestOffers} size="sm" variant="secondary">
-              {t("bestOffers.showAll")}
-              <UiIcon name="arrow-right" size={14} />
-            </Button>
-          </>
-        )}
-      </SidebarBlock>
+      <WishlistBestOffersBlock
+        bestOffers={bestOffers}
+        isLoading={isLoading}
+        onShowBestOffers={onShowBestOffers}
+      />
 
-      <SidebarBlock title={t("quickActions.title")}>
-        <div className="flex flex-col gap-2">
-          <Button asChild className="justify-start" variant="secondary">
-            <Link href="/books/new">
-              <UiIcon name="plus" size={16} />
-              {t("quickActions.addBook")}
-            </Link>
-          </Button>
-          <Button asChild className="justify-start" variant="secondary">
-            <Link href="/books">
-              <UiIcon name="library" size={16} />
-              {t("quickActions.openLibrary")}
-            </Link>
-          </Button>
-          <Button asChild className="justify-start" variant="ghost">
-            <Link href="/delivery/in-transit">
-              <UiIcon name="truck" size={16} />
-              {t("quickActions.inTransit")}
-            </Link>
-          </Button>
-        </div>
-      </SidebarBlock>
+      <WishlistQuickActionsBlock />
 
-      <SidebarBlock title={t("howItWorks.title")}>
-        <div className="flex flex-col gap-2">
-          <p className="text-xs leading-relaxed text-muted-foreground">{t("howItWorks.bought")}</p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {t("howItWorks.delivery")}
-          </p>
-        </div>
-      </SidebarBlock>
+      <WishlistHowItWorksBlock />
     </aside>
+  );
+}
+
+export function WishlistBestOffersBlock({
+  bestOffers,
+  isLoading,
+  onShowBestOffers,
+}: Omit<BooksToBuySidebarProps, "summary">) {
+  const t = useTranslations("booksToBuy.sidebar");
+
+  return (
+    <SidebarBlock title={t("bestOffers.title")}>
+      {isLoading ? (
+        <RowSkeleton rows={3} />
+      ) : bestOffers.length === 0 ? (
+        <EmptyText>{t("bestOffers.empty")}</EmptyText>
+      ) : (
+        <>
+          <ul className="flex flex-col gap-1">
+            {bestOffers.slice(0, BEST_OFFERS_LIMIT).map((offer) => (
+              <BestOfferRow key={offer.bookId} offer={offer} />
+            ))}
+          </ul>
+          <Button className="self-start" onClick={onShowBestOffers} size="sm" variant="secondary">
+            {t("bestOffers.showAll")}
+            <UiIcon name="arrow-right" size={14} />
+          </Button>
+        </>
+      )}
+    </SidebarBlock>
+  );
+}
+
+export function WishlistHowItWorksBlock() {
+  const t = useTranslations("booksToBuy.sidebar");
+
+  return (
+    <SidebarBlock title={t("howItWorks.title")}>
+      <div className="flex flex-col gap-2">
+        <p className="text-xs leading-relaxed text-muted-foreground">{t("howItWorks.bought")}</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">{t("howItWorks.delivery")}</p>
+      </div>
+    </SidebarBlock>
+  );
+}
+
+export function WishlistQuickActionsBlock() {
+  const t = useTranslations("booksToBuy.sidebar");
+
+  return (
+    <SidebarBlock title={t("quickActions.title")}>
+      <div className="flex flex-col gap-2">
+        <Button asChild className="justify-start" variant="secondary">
+          <MobilePageOverviewLink href="/books/new">
+            <UiIcon name="plus" size={16} />
+            {t("quickActions.addBook")}
+          </MobilePageOverviewLink>
+        </Button>
+        <Button asChild className="justify-start" variant="secondary">
+          <MobilePageOverviewLink href="/books">
+            <UiIcon name="library" size={16} />
+            {t("quickActions.openLibrary")}
+          </MobilePageOverviewLink>
+        </Button>
+        <Button asChild className="justify-start" variant="ghost">
+          <MobilePageOverviewLink href="/delivery/in-transit">
+            <UiIcon name="truck" size={16} />
+            {t("quickActions.inTransit")}
+          </MobilePageOverviewLink>
+        </Button>
+      </div>
+    </SidebarBlock>
   );
 }
 
@@ -124,7 +154,7 @@ function BestOfferRow({ offer }: { offer: WishlistBestOffer }) {
 
   return (
     <li>
-      <Link
+      <MobilePageOverviewLink
         className="group/offer flex items-center gap-2.5 rounded-md px-2 py-1.5 no-underline transition-colors hover:bg-secondary motion-reduce:transition-none"
         href={`/books/${offer.bookId}`}
       >
@@ -140,7 +170,7 @@ function BestOfferRow({ offer }: { offer: WishlistBestOffer }) {
         <span className="shrink-0 text-xs font-semibold text-success tabular-nums">
           {formatStorePrice({ currency: offer.currency, locale, price: offer.price })}
         </span>
-      </Link>
+      </MobilePageOverviewLink>
     </li>
   );
 }

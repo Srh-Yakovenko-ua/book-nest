@@ -27,13 +27,12 @@ const ATTENTION_ROW_META: Record<ListAttentionReason, { icon: UiIconName; toneCl
   stale: { icon: "clock", toneClass: "text-warning" },
 };
 
-export function ListsSidebar({
+export function ListsAttentionBlock({
   activeAttention,
   attentionCounts,
   isLoading,
   onAttentionSelect,
 }: ListsSidebarProps) {
-  const t = useTranslations("lists.catalog.sidebar");
   const tAttention = useTranslations("lists.catalog.attention");
 
   const items = LIST_ATTENTION_REASONS.filter((reason) => attentionCounts[reason] > 0).map(
@@ -50,28 +49,43 @@ export function ListsSidebar({
   );
 
   return (
+    <AttentionBlock
+      activeId={activeAttention}
+      allClearLabel={tAttention("allClear")}
+      isLoading={isLoading}
+      items={items}
+      onSelect={onAttentionSelect}
+      title={tAttention("title")}
+    />
+  );
+}
+
+export function ListsSidebar(props: ListsSidebarProps) {
+  const tAttention = useTranslations("lists.catalog.attention");
+
+  return (
     <aside
       aria-label={tAttention("title")}
-      className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+      className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
-      <section className="stat-card-branch flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-secondary/40 p-5">
-        <h2 className="flex items-center gap-2 font-heading text-sm font-semibold text-ink">
-          <UiIcon aria-hidden className="shrink-0 text-primary/60" name="bulb" size={20} />
-          {t("tip.title")}
-        </h2>
-        <p className="font-heading text-sm leading-relaxed text-foreground/90 italic">
-          {t("tip.text")}
-        </p>
-      </section>
-
-      <AttentionBlock
-        activeId={activeAttention}
-        allClearLabel={tAttention("allClear")}
-        isLoading={isLoading}
-        items={items}
-        onSelect={onAttentionSelect}
-        title={tAttention("title")}
-      />
+      <ListsTipBlock />
+      <ListsAttentionBlock {...props} />
     </aside>
+  );
+}
+
+export function ListsTipBlock() {
+  const t = useTranslations("lists.catalog.sidebar");
+
+  return (
+    <section className="stat-card-branch flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-secondary/40 p-5">
+      <h2 className="flex items-center gap-2 font-heading text-sm font-semibold text-ink">
+        <UiIcon aria-hidden className="shrink-0 text-primary/60" name="bulb" size={20} />
+        {t("tip.title")}
+      </h2>
+      <p className="font-heading text-sm leading-relaxed text-foreground/90 italic">
+        {t("tip.text")}
+      </p>
+    </section>
   );
 }

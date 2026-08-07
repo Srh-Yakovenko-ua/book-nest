@@ -155,6 +155,34 @@
       "seriesInQueue": {
         "label": "Series in queue",
         "caption": "{withoutIssues} fine · {withIssues, plural, one {# needs attention} other {# need attention}}"
+      },
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "total": "In queue",
+          "availableNow": "Available",
+          "unavailable": "Missing",
+          "seriesInQueue": "Series"
+        },
+        "detailed": {
+          "total": "Total in queue",
+          "availableNow": "Ready to read",
+          "unavailable": "Not available",
+          "seriesInQueue": "Series in queue"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Queue overview",
+      "title": "Queue overview",
+      "subtitle": "Stats, reading volume, and series order",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "volume": "Volume",
+        "order": "Order"
       }
     },
     "seriesOrderCheck": {
@@ -1883,6 +1911,37 @@
     "subtitle": "Books you want to purchase and add to your collection",
     "countBadge": "{count, plural, one {# book} other {# books}}",
     "addBook": "Add book",
+    "summary": {
+      "empty": "—",
+      "mobile": {
+        "title": "Detailed stats",
+        "compact": {
+          "books": "Books",
+          "stores": "Stores",
+          "best": "Best",
+          "average": "Average",
+          "total": "Total"
+        },
+        "detailed": {
+          "books": "Books in the list",
+          "stores": "Stores tracked",
+          "best": "Best offer",
+          "average": "Average price",
+          "total": "Estimated total"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Purchase overview",
+      "title": "Purchase overview",
+      "subtitle": "Stats, best deals and quick actions",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "offers": "Deals",
+        "actions": "Actions"
+      }
+    },
     "sidebar": {
       "label": "Purchase overview",
       "stats": {
@@ -1919,12 +1978,16 @@
       "sortLabel": "Sorting",
       "storeLabel": "By store",
       "storeAny": "All stores",
+      "storeShort": "Store",
       "publisherLabel": "By publisher",
       "publisherAny": "All publishers",
+      "publisherShort": "Publisher",
       "genreLabel": "By genre",
       "genreAny": "All genres",
+      "genreShort": "Genre",
       "tagLabel": "By tag",
-      "tagAny": "All tags"
+      "tagAny": "All tags",
+      "tagShort": "Tag"
     },
     "linkFilter": {
       "all": "All",
@@ -1942,6 +2005,21 @@
       "price_asc": "Lowest price first",
       "price_desc": "Highest price first",
       "stores_desc": "By store count"
+    },
+    "sortMobile": {
+      "title": "Sorting",
+      "close": "Close",
+
+      "trigger": {
+        "added_asc": "Oldest",
+        "added_desc": "Newest",
+        "title_asc": "Title",
+        "author_asc": "Author",
+        "publisher_asc": "Publisher",
+        "price_asc": "Price ↑",
+        "price_desc": "Price ↓",
+        "stores_desc": "Stores ↓"
+      }
     },
     "empty": {
       "title": "Save books for future purchases",
@@ -2057,7 +2135,21 @@
       "book_title_asc": "Book title: A–Z",
       "author_asc": "Author: A–Z",
       "favorites_first": "Favorites: favorites first",
-      "publication_year_desc": "Publication year: newest first"
+      "publication_year_desc": "Publication year: newest first",
+
+      "mobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "newest": "Newest",
+          "recently_updated": "Updated",
+          "book_title_asc": "Book A–Z",
+          "author_asc": "Author A–Z",
+          "favorites_first": "Favorites",
+          "publication_year_desc": "Year ↓"
+        }
+      }
     },
     "card": {
       "coverAlt": "Cover of “{title}”",
@@ -2096,7 +2188,36 @@
       "fromUnfinishedMicrofact": "{count, plural, one {# dedication} other {# dedications}} — from books not finished yet",
       "fromUnfinishedMicrofactNone": "all — from finished books",
       "topGenreMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this genre",
-      "topAuthorMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this author's books"
+      "topAuthorMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this author's books",
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "total": "Total",
+          "favorites": "Favorites",
+          "fromFinished": "Read",
+          "topGenre": "Genre",
+          "topAuthor": "Author"
+        },
+        "detailed": {
+          "total": "Total dedications",
+          "favorites": "Favorite dedications",
+          "fromFinished": "From finished books",
+          "topGenre": "Top genre",
+          "topAuthor": "Top author"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Dedications overview",
+      "title": "Dedications overview",
+      "subtitle": "Stats and how to add more",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "about": "About"
+      }
     },
     "sidebar": {
       "label": "Dedications overview",
@@ -2152,7 +2273,32 @@
       "expectedThisWeek": "Expected this week",
       "delayed": "Delayed",
       "total": "Total amount",
-      "stores": "Stores"
+      "stores": "Stores",
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "active": "In transit",
+          "expectedThisWeek": "This week",
+          "delayed": "Delayed",
+          "total": "Amount",
+          "stores": "Stores"
+        },
+        "detailed": {
+          "active": "In transit",
+          "expectedThisWeek": "Expected this week",
+          "delayed": "Delayed",
+          "total": "Total amount",
+          "stores": "Stores"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Delivery overview",
+      "title": "Delivery overview",
+      "subtitle": "Full stats for this section",
+      "close": "Close overview"
     },
     "search": {
       "label": "Search deliveries",
@@ -2265,7 +2411,26 @@
         "active": "Active",
         "received": "Received",
         "cancelled": "Cancelled",
-        "total": "Total amount"
+        "total": "Total amount",
+
+        "mobile": {
+          "title": "Detailed stats",
+
+          "compact": {
+            "totalOrders": "Orders",
+            "active": "Active",
+            "received": "Received",
+            "cancelled": "Cancelled",
+            "total": "Amount"
+          },
+          "detailed": {
+            "totalOrders": "Total orders",
+            "active": "Active",
+            "received": "Received",
+            "cancelled": "Cancelled",
+            "total": "Total amount"
+          }
+        }
       },
       "tabs": {
         "label": "Order groups",
@@ -2342,7 +2507,28 @@
         "received": "Received orders",
         "cancelled": "Cancelled orders",
         "average": "Average price",
-        "pricedOrders": "Orders with price"
+        "pricedOrders": "Orders with price",
+
+        "mobile": {
+          "title": "Detailed stats",
+
+          "compact": {
+            "total": "Amount",
+            "active": "Active",
+            "received": "Received",
+            "cancelled": "Cancelled",
+            "average": "Average",
+            "pricedOrders": "Priced"
+          },
+          "detailed": {
+            "total": "Total amount",
+            "active": "Active orders",
+            "received": "Received orders",
+            "cancelled": "Cancelled orders",
+            "average": "Average price",
+            "pricedOrders": "Orders with price"
+          }
+        }
       },
       "controls": {
         "includeCancelled": "Include cancelled orders",
@@ -2432,7 +2618,39 @@
       "topTagEmpty": "No tag",
       "topTagMicrofact": "{count, plural, one {# favorite with this tag} other {# favorites with this tag}}",
       "topTagMicrofactEmpty": "No tags among favorites",
-      "topTagMicrofactTie": "{count, plural, one {# favorite with each tag} other {# favorites with each tag}}"
+      "topTagMicrofactTie": "{count, plural, one {# favorite with each tag} other {# favorites with each tag}}",
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "total": "Total",
+          "reading": "Reading",
+          "finished": "Read",
+          "averageRating": "Rating",
+          "topGenre": "Genre",
+          "topTag": "Tag"
+        },
+        "detailed": {
+          "total": "Total favorites",
+          "reading": "Reading now",
+          "finished": "Finished",
+          "averageRating": "Average rating",
+          "topGenre": "Top genre",
+          "topTag": "Top tag"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Favorites overview",
+      "title": "Favorites overview",
+      "subtitle": "Stats, ratings, and series to continue",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "collections": "Collections",
+        "genres": "Genres"
+      }
     },
     "empty": {
       "title": "Collect the books that feel special",
@@ -2504,7 +2722,35 @@
       "unfinished": "Unfinished",
       "booksLeft": "{n, plural, one {# book left} other {# books left}}",
       "booksInSeries": "Books in series",
-      "booksReadOfTotal": "{finished} of {total} read"
+      "booksReadOfTotal": "{finished} of {total} read",
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "total": "Series",
+          "fullyRead": "Read",
+          "unfinished": "Unfinished",
+          "booksInSeries": "Books"
+        },
+        "detailed": {
+          "total": "Total series",
+          "fullyRead": "Series read",
+          "unfinished": "Unfinished series",
+          "booksInSeries": "Books in series"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Series overview",
+      "title": "Series overview",
+      "subtitle": "Stats, progress, and what needs attention",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "progress": "Progress",
+        "attention": "Attention"
+      }
     },
     "tabs": {
       "all": "All series",
@@ -2561,7 +2807,21 @@
       "progress_desc": "Reading progress: highest first",
       "progress_asc": "Reading progress: lowest first",
       "books_desc": "Books in series: most first",
-      "activity_desc": "Date updated: newest first"
+      "activity_desc": "Date updated: newest first",
+
+      "mobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "name_asc": "A–Z",
+          "name_desc": "Z–A",
+          "progress_desc": "Progress ↓",
+          "progress_asc": "Progress ↑",
+          "books_desc": "Books ↓",
+          "activity_desc": "Newest"
+        }
+      }
     },
     "filters": {
       "trigger": "Filters",
@@ -2981,7 +3241,22 @@
         "title_asc": "Name: A–Z",
         "title_desc": "Name: Z–A",
         "books_count_desc": "Book count: most first",
-        "books_count_asc": "Book count: fewest first"
+        "books_count_asc": "Book count: fewest first",
+
+        "mobile": {
+          "title": "Sorting",
+          "close": "Close",
+
+          "trigger": {
+            "updated_desc": "Updated",
+            "created_desc": "Newest",
+            "created_asc": "Oldest",
+            "title_asc": "A–Z",
+            "title_desc": "Z–A",
+            "books_count_desc": "Books ↓",
+            "books_count_asc": "Books ↑"
+          }
+        }
       },
       "view": {
         "label": "View",
@@ -3043,7 +3318,34 @@
         "largestList": "Largest list — {count, plural, one {# book} other {# books}}",
         "multiList": "In several lists",
         "maxReach": "Most often — in {count, plural, one {# list} other {# lists}}",
-        "singleListOnly": "Every book sits in a single list"
+        "singleListOnly": "Every book sits in a single list",
+
+        "mobile": {
+          "title": "Detailed stats",
+
+          "compact": {
+            "totalLists": "Lists",
+            "uniqueBooks": "Books",
+            "averageSize": "Average",
+            "multiList": "Multi-list"
+          },
+          "detailed": {
+            "totalLists": "Total lists",
+            "uniqueBooks": "Unique books",
+            "averageSize": "Average list size",
+            "multiList": "In several lists"
+          }
+        }
+      },
+      "overviewPanel": {
+        "trigger": "Lists overview",
+        "title": "Lists overview",
+        "subtitle": "Stats and what needs attention",
+        "close": "Close overview",
+        "tabs": {
+          "overview": "Overview",
+          "attention": "Attention"
+        }
       },
       "sidebar": {
         "tip": {
@@ -3136,6 +3438,33 @@
         "title": "Could not load the summary",
         "description": "We couldn't load your loan summary.",
         "retry": "Try again"
+      },
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "borrowed": "Borrowed",
+          "lent": "Lent",
+          "returnThisWeek": "This week",
+          "overdue": "Overdue"
+        },
+        "detailed": {
+          "borrowed": "Borrowed from someone",
+          "lent": "Lent to someone",
+          "returnThisWeek": "Return this week",
+          "overdue": "Overdue"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Loans overview",
+      "title": "Loans overview",
+      "subtitle": "Stats and upcoming returns",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "schedule": "Returns"
       }
     },
     "tabs": {
@@ -3164,7 +3493,22 @@
       "author": "By author",
       "person": "By person",
       "overdue_first": "Overdue first",
-      "return_soonest": "Soonest returns first"
+      "return_soonest": "Soonest returns first",
+
+      "mobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "return_date": "Return date",
+          "loan_date": "Loan date",
+          "title": "Title",
+          "author": "Author",
+          "person": "Person",
+          "overdue_first": "Overdue",
+          "return_soonest": "Soonest"
+        }
+      }
     },
     "status": {
       "on_time": "On time",
@@ -3347,6 +3691,24 @@
         "no_spoiler_first": "Without spoilers first",
         "with_spoiler_first": "With spoilers first"
       },
+      "sortMobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "newest": "Newest",
+          "oldest": "Oldest",
+          "recently_updated": "Updated",
+          "title": "Title",
+          "author": "Author",
+          "category": "Category",
+          "page": "Page",
+          "pinned_first": "Pinned",
+          "favorite_first": "Favorites",
+          "no_spoiler_first": "No spoilers",
+          "with_spoiler_first": "Spoilers"
+        }
+      },
       "toolbar": {
         "searchLabel": "Search notes",
         "searchPlaceholder": "Search notes...",
@@ -3406,6 +3768,26 @@
           "title": "Can't find the note you need?",
           "text": "Use the search or add a new note to a book or series.",
           "cta": "Add note"
+        }
+      },
+      "summary": {
+        "mobile": {
+          "title": "Detailed statistics",
+          "compact": {
+            "total": "Total",
+            "bookNotes": "Books",
+            "seriesNotes": "Series"
+          }
+        }
+      },
+      "overviewPanel": {
+        "trigger": "Notes overview",
+        "title": "Notes overview",
+        "subtitle": "Stats and quick filters",
+        "close": "Close overview",
+        "tabs": {
+          "overview": "Overview",
+          "filters": "Filters"
         }
       }
     },
@@ -3561,6 +3943,22 @@
       "genreGroupLabel": "Genre group",
       "genreGroupAll": "All groups",
       "tagFilterLabel": "Tag filter"
+    },
+    "sortMobile": {
+      "title": "Sorting",
+      "close": "Close",
+      "genreTrigger": {
+        "books_count_desc": "Books ↓",
+        "name_asc": "Name",
+        "read_count_desc": "Read ↓",
+        "queue_count_desc": "In queue ↓",
+        "rating_desc": "Rating ↓"
+      },
+      "tagTrigger": {
+        "books_count_desc": "Books ↓",
+        "name_asc": "Name",
+        "type_asc": "Type"
+      }
     },
     "genreSort": {
       "books_count_desc": "By number of books",
@@ -3813,6 +4211,16 @@
       "description": "Try changing your search query or clearing the filters.",
       "clear": "Reset filters"
     },
+    "overviewPanel": {
+      "trigger": "Quotes overview",
+      "title": "Quotes overview",
+      "subtitle": "Stats and quick actions",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "actions": "Actions"
+      }
+    },
     "pagination": {
       "label": "Quote pages",
       "previous": "Previous",
@@ -3852,6 +4260,44 @@
       "favorites_first": "Favorites first",
       "no_spoiler_first": "Spoiler-free first",
       "with_spoiler_first": "Spoilers first"
+    },
+    "sortMobile": {
+      "title": "Sorting",
+      "close": "Close",
+      "trigger": {
+        "newest": "Newest",
+        "oldest": "Oldest",
+        "book_title": "Book",
+        "book_author": "Author",
+        "page": "Page",
+        "favorites_first": "Favorites",
+        "no_spoiler_first": "No spoilers",
+        "with_spoiler_first": "Spoilers"
+      }
+    },
+    "summary": {
+      "empty": "—",
+      "mobile": {
+        "title": "Detailed stats",
+        "compact": {
+          "total": "Total",
+          "favorites": "Favorites",
+          "withComment": "Comments",
+          "spoilers": "Spoilers",
+          "withoutSpoilers": "No spoilers",
+          "topBook": "Book",
+          "topAuthor": "Author"
+        },
+        "detailed": {
+          "total": "Quotes in total",
+          "favorites": "Favorite quotes",
+          "withComment": "With comments",
+          "spoilers": "With spoilers",
+          "withoutSpoilers": "Without spoilers",
+          "topBook": "Most quoted book",
+          "topAuthor": "Most quoted author"
+        }
+      }
     },
     "toolbar": {
       "searchLabel": "Search quotes",
@@ -4184,7 +4630,30 @@
         "title": "Couldn't load the summary",
         "description": "Try refreshing the page or come back a little later.",
         "retry": "Try again"
+      },
+
+      "mobile": {
+        "title": "Detailed stats",
+
+        "compact": {
+          "publishers": "Publishers",
+          "booksWithPublisher": "Books",
+          "averageRating": "Rating",
+          "toBuy": "To buy"
+        },
+        "detailed": {
+          "publishers": "Publishers",
+          "booksWithPublisher": "Books with a publisher",
+          "averageRating": "Average rating",
+          "toBuy": "Books to buy"
+        }
       }
+    },
+    "overviewPanel": {
+      "trigger": "Publishers overview",
+      "title": "Publishers overview",
+      "subtitle": "Full stats for this section",
+      "close": "Close overview"
     },
     "toolbar": {
       "searchLabel": "Search publishers",
@@ -4209,6 +4678,19 @@
         "wantToBuyCount": "Most to buy",
         "averageRating": "Highest rating",
         "lastBookAddedAt": "Recently added"
+      },
+      "sortMobile": {
+        "title": "Sorting",
+        "close": "Close",
+
+        "trigger": {
+          "name": "Name",
+          "booksCount": "Books ↓",
+          "readCount": "Read ↓",
+          "wantToBuyCount": "To buy ↓",
+          "averageRating": "Rating ↓",
+          "lastBookAddedAt": "Recent"
+        }
       },
       "geography": {
         "all": "All geographies",
