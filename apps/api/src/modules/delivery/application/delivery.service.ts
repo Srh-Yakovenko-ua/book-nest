@@ -25,10 +25,11 @@ import { Injectable } from "@nestjs/common";
 
 import { parseIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
-import { computeReceiveDelivery, toDeliveryView } from "../../books/index.js";
 import { MediaService } from "../../media/index.js";
 import { computeDeliveryStatistics, STATISTICS_TOP_LIMIT } from "../domain/delivery-statistics.js";
+import { computeReceiveDelivery } from "../domain/delivery-transition.js";
 import { deliveryDateBounds, getDeliveryUiStatus } from "../domain/delivery-ui-status.js";
+import { toDeliveryView } from "../domain/delivery.mapper.js";
 import {
   DeliveryRepository,
   type DeliveryWithBook,

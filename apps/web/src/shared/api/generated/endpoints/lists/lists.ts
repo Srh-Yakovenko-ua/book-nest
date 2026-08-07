@@ -721,6 +721,15 @@ export const getListsControllerSearchUrl = (params?: ListsControllerSearchParams
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["description", "fill", "size"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }

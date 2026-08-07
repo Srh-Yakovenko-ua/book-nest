@@ -173,6 +173,30 @@ describe("GET /api/trash", () => {
     });
   });
 
+  it.each([
+    { entityType: "book", title: "Dune" },
+    { entityType: "book_list", title: "Autumn" },
+    { entityType: "note", title: "A thought" },
+    { entityType: "quote", title: "Fear is the mind-killer" },
+    { entityType: "series", title: "Dune Chronicles" },
+  ])(
+    "returns a fully shaped row when filtering by $entityType alone",
+    async ({ entityType, title }) => {
+      const { accessToken } = await context.registerVerifyAndLogin();
+      await trashOneOfEach(accessToken);
+
+      const res = await authed("get", `/api/trash?entityType=${entityType}`, accessToken);
+
+      expect(res.status).toBe(HttpStatus.OK);
+      expect(res.body.totalCount).toBe(1);
+      expect(res.body.items).toHaveLength(1);
+      expect(res.body.items[0]).toMatchObject({ entityType, title });
+      expect(res.body.items[0]).toHaveProperty("context");
+      expect(res.body.items[0].deletedAt).toEqual(expect.any(String));
+      expect(res.body.items[0].purgeAt).toEqual(expect.any(String));
+    },
+  );
+
   it("never leaks another user trash", async () => {
     const owner = await context.registerVerifyAndLogin();
     await trashOneOfEach(owner.accessToken);

@@ -259,9 +259,10 @@ Strict order — each step depends on the previous:
 pnpm typecheck   # TS strict across all packages
 pnpm lint        # ESLint root config
 pnpm format      # Prettier — write
-pnpm test        # Vitest where tests exist
-pnpm knip        # dead code, unused exports, unused deps
+pnpm exec vitest run <path>   # only the test files your change touches
 ```
+
+The full `pnpm test` and `pnpm knip` are CI's job — they run on every push to `dev` and saturate the dev machine locally. Do not run them unless the user asks.
 
 Plus:
 

@@ -13,41 +13,31 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
 import { formatNumber } from "@/lib/format";
 
-type QuotesSidebarProps = {
-  isLoading: boolean;
+type QuotesQuickActionsProps = {
   onAddQuote: () => void;
   onClearFilters: () => void;
   onShowFavorites: () => void;
   onShowRecent: () => void;
   onShowWithComment: () => void;
+};
+
+type QuotesSidebarProps = QuotesQuickActionsProps & {
+  isLoading: boolean;
   summary: QuotesSummaryView | undefined;
 };
 
-export function QuotesSidebar({
-  isLoading,
+export function QuotesQuickActions({
   onAddQuote,
   onClearFilters,
   onShowFavorites,
   onShowRecent,
   onShowWithComment,
-  summary,
-}: QuotesSidebarProps) {
+}: QuotesQuickActionsProps) {
   const t = useTranslations("quotes.sidebar");
   const tActions = useTranslations("quotes.actions");
 
   return (
-    <aside
-      aria-label={t("label")}
-      className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
-    >
-      <SidebarBlock title={t("stats.title")}>
-        {isLoading || summary === undefined ? (
-          <RowSkeleton rows={5} />
-        ) : (
-          <QuotesStats summary={summary} />
-        )}
-      </SidebarBlock>
-
+    <>
       <SidebarBlock title={t("quickFilters.title")}>
         <div className="flex flex-col gap-2">
           <Button className="justify-start" onClick={onShowWithComment} variant="secondary">
@@ -76,6 +66,27 @@ export function QuotesSidebar({
           {tActions("add")}
         </Button>
       </SidebarBlock>
+    </>
+  );
+}
+
+export function QuotesSidebar({ isLoading, summary, ...quickActions }: QuotesSidebarProps) {
+  const t = useTranslations("quotes.sidebar");
+
+  return (
+    <aside
+      aria-label={t("label")}
+      className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+    >
+      <SidebarBlock title={t("stats.title")}>
+        {isLoading || summary === undefined ? (
+          <RowSkeleton rows={5} />
+        ) : (
+          <QuotesStats summary={summary} />
+        )}
+      </SidebarBlock>
+
+      <QuotesQuickActions {...quickActions} />
     </aside>
   );
 }

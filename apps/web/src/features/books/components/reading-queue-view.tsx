@@ -25,6 +25,7 @@ import {
 } from "../api/use-reading-queue";
 import { useSeriesOrderIssues } from "../api/use-series-order-check";
 import { useTagsSearch } from "../api/use-tags-search";
+import { useQueueSummaryCards } from "../hooks/use-queue-summary-cards";
 import { toQueuePickerItems } from "../model/queue-placement";
 import {
   activeQueueFilterCount,
@@ -41,6 +42,7 @@ import { QueueSummaryCards, QueueSummaryCardsSkeleton } from "./queue-summary-ca
 import { QueueVolumeBlock, QueueVolumeSkeleton } from "./queue-volume-block";
 import { ReadingQueueFilters } from "./reading-queue-filters";
 import { ReadingQueueList } from "./reading-queue-list";
+import { ReadingQueueOverviewPanel } from "./reading-queue-overview-panel";
 import { ReadingQueueToolbar } from "./reading-queue-toolbar";
 import { SeriesOrderCheckBlock } from "./series-order-check-block";
 import { SeriesOrderCheckSkeleton } from "./series-order-check-skeleton";
@@ -134,6 +136,12 @@ export function ReadingQueueView() {
     statusLabel: (value) => tStatus(value),
   };
 
+  const seriesWithIssuesCount = seriesOrderIssues.data?.seriesInQueueWithIssuesCount ?? 0;
+  const summaryCards = useQueueSummaryCards({
+    seriesWithIssuesCount,
+    summary: summary.data ?? null,
+  });
+
   const normalizedQuery = search.trim().toLowerCase();
   const hasSearch = normalizedQuery !== "";
   const hasActiveFilters = hasActiveQueueFilters(filters);
@@ -220,7 +228,15 @@ export function ReadingQueueView() {
         <>
           <QueueSummaryCards
             isLoading={summary.isPending}
-            seriesWithIssuesCount={seriesOrderIssues.data?.seriesInQueueWithIssuesCount ?? 0}
+            mobileAction={
+              <ReadingQueueOverviewPanel
+                isLoading={summary.isPending}
+                items={serverItems}
+                seriesWithIssuesCount={seriesWithIssuesCount}
+                summaryCards={summaryCards}
+              />
+            }
+            seriesWithIssuesCount={seriesWithIssuesCount}
             summary={summary.data ?? null}
           />
 
@@ -229,7 +245,7 @@ export function ReadingQueueView() {
               <h2 className="sr-only" ref={listHeadingRef} tabIndex={-1}>
                 {t("listHeading")}
               </h2>
-              <QueueVolumeBlock className="lg:hidden" items={serverItems} />
+              <QueueVolumeBlock className="max-sm:hidden lg:hidden" items={serverItems} />
               <ReadingQueueToolbar
                 dragDisabled={isFiltered}
                 filters={
@@ -300,7 +316,7 @@ function QueueSkeleton() {
           className="flex min-w-0 flex-col gap-4"
           role="status"
         >
-          <QueueVolumeSkeleton className="lg:hidden" />
+          <QueueVolumeSkeleton className="max-sm:hidden lg:hidden" />
           <Skeleton className="h-10 w-full rounded-md" />
           <div className="flex flex-col gap-2.5">
             {Array.from({ length: SKELETON_COUNT }, (_, index) => (

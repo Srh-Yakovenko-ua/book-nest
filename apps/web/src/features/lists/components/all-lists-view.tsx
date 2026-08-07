@@ -13,42 +13,62 @@ import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import type { ListViewMode } from "../model/lists-query";
+
 import { ListCard } from "./list-card";
+import { LIST_CARD_COVERS_ROW } from "./list-card-covers";
+import { ListRow } from "./list-row";
 
 const SKELETON_COUNT = 6;
 
 type AllListsViewProps = {
+  allShownLabel: string;
   hasActiveFilters: boolean;
   hasAnyLists: boolean;
+  hasNextPage: boolean;
   isError: boolean;
+  isFetchingNextPage: boolean;
+  isLoadMoreError: boolean;
   isPending: boolean;
   lists: CustomListCard[];
+  loadMoreErrorLabel: string;
+  loadMoreLabel: string;
   onClearFilters: () => void;
   onCreateList: () => void;
   onDeleteList: (list: CustomListCard) => void;
   onEditList: (list: CustomListCard) => void;
+  onLoadMore: () => void;
   onOpenLibrary: () => void;
   onRetry: () => void;
   sidebar: ReactNode;
   summary: ReactNode;
   toolbar: ReactNode;
+  view: ListViewMode;
 };
 
 export function AllListsView({
+  allShownLabel,
   hasActiveFilters,
   hasAnyLists,
+  hasNextPage,
   isError,
+  isFetchingNextPage,
+  isLoadMoreError,
   isPending,
   lists,
+  loadMoreErrorLabel,
+  loadMoreLabel,
   onClearFilters,
   onCreateList,
   onDeleteList,
   onEditList,
+  onLoadMore,
   onOpenLibrary,
   onRetry,
   sidebar,
   summary,
   toolbar,
+  view,
 }: AllListsViewProps) {
   const t = useTranslations("lists.catalog");
   const showToolbar = !isError && (isPending || hasAnyLists);
@@ -90,7 +110,21 @@ export function AllListsView({
             onEditList={onEditList}
             onOpenLibrary={onOpenLibrary}
             onRetry={onRetry}
+            view={view}
           />
+          {isError || isPending || lists.length === 0 ? null : (
+            <div className="flex flex-col items-center gap-2">
+              <PaginationFooter
+                allShownLabel={allShownLabel}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                isLoadMoreError={isLoadMoreError}
+                loadMoreErrorLabel={loadMoreErrorLabel}
+                loadMoreLabel={loadMoreLabel}
+                onLoadMore={onLoadMore}
+              />
+            </div>
+          )}
         </div>
         {showToolbar ? sidebar : null}
       </div>
@@ -101,14 +135,16 @@ export function AllListsView({
 function ListCardSkeleton() {
   return (
     <div className="flex flex-col gap-3.5 rounded-xl border border-border bg-card p-4 shadow-card">
-      <Skeleton className="h-5 w-3/5" />
-      <Skeleton className="h-3.5 w-full" />
-      <div className="grid grid-cols-4 gap-2">
+      <div className="flex flex-col gap-1.5 pr-9">
+        <Skeleton className="h-[2.625rem] w-4/5 rounded-md" />
+        <Skeleton className="h-[2.625rem] w-full rounded-md" />
+      </div>
+      <div className={LIST_CARD_COVERS_ROW}>
         {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton className="aspect-[3/4] w-full rounded-md" key={index} />
+          <Skeleton className="aspect-[3/4] rounded-md" key={index} />
         ))}
       </div>
-      <Skeleton className="h-3.5 w-2/3" />
+      <Skeleton className="h-5 w-2/3" />
     </div>
   );
 }
@@ -125,6 +161,7 @@ function ListsContent({
   onEditList,
   onOpenLibrary,
   onRetry,
+  view,
 }: {
   hasActiveFilters: boolean;
   hasAnyLists: boolean;
@@ -137,6 +174,7 @@ function ListsContent({
   onEditList: (list: CustomListCard) => void;
   onOpenLibrary: () => void;
   onRetry: () => void;
+  view: ListViewMode;
 }) {
   const t = useTranslations("lists.catalog");
 
@@ -181,6 +219,21 @@ function ListsContent({
     return null;
   }
 
+  if (view === "list") {
+    return (
+      <div className="flex flex-col gap-3">
+        {lists.map((list) => (
+          <ListRow
+            key={list.id}
+            list={list}
+            onDelete={() => onDeleteList(list)}
+            onEdit={() => onEditList(list)}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {lists.map((list) => (
@@ -202,5 +255,45 @@ function ListsGridSkeleton() {
         <ListCardSkeleton key={index} />
       ))}
     </div>
+  );
+}
+
+function PaginationFooter({
+  allShownLabel,
+  hasNextPage,
+  isFetchingNextPage,
+  isLoadMoreError,
+  loadMoreErrorLabel,
+  loadMoreLabel,
+  onLoadMore,
+}: {
+  allShownLabel: string;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  isLoadMoreError: boolean;
+  loadMoreErrorLabel: string;
+  loadMoreLabel: string;
+  onLoadMore: () => void;
+}) {
+  if (!hasNextPage) {
+    return <p className="text-xs text-muted-foreground">{allShownLabel}</p>;
+  }
+
+  return (
+    <>
+      {isLoadMoreError ? (
+        <p className="text-sm text-error" role="alert">
+          {loadMoreErrorLabel}
+        </p>
+      ) : null}
+      <Button
+        disabled={isFetchingNextPage}
+        loading={isFetchingNextPage}
+        onClick={onLoadMore}
+        variant="secondary"
+      >
+        {loadMoreLabel}
+      </Button>
+    </>
   );
 }

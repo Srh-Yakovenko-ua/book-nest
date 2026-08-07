@@ -13,6 +13,7 @@ import {
   RelationshipIntensitySchema,
   RelationshipTypeSchema,
 } from "@app/shared";
+import { isBefore } from "date-fns";
 
 export type RelationshipBookStateSource = {
   bookId: string;
@@ -154,5 +155,5 @@ function isLaterState<State extends { bookId: string; createdAt: Date }>({
   if (candidatePart !== currentPart) {
     return candidatePart > currentPart;
   }
-  return candidate.createdAt >= current.createdAt;
+  return !isBefore(candidate.createdAt, current.createdAt);
 }

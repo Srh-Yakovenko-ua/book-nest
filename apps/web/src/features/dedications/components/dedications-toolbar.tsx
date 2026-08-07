@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
@@ -63,6 +64,7 @@ export function DedicationsToolbar({
   const tCommon = useTranslations("common");
   const tFilter = useTranslations("dedications.filter");
   const tSort = useTranslations("dedications.sort");
+  const tSortMobile = useTranslations("dedications.sort.mobile");
   const tView = useTranslations("dedications.view");
   const locale = useLocale();
   const genres = useGenres();
@@ -86,8 +88,25 @@ export function DedicationsToolbar({
             value={search}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="w-full sm:w-80">
+        <div className="flex items-center gap-1.5 max-sm:flex-nowrap sm:flex-wrap sm:gap-2.5">
+          <MobileSortSheet
+            className="sm:hidden"
+            closeLabel={tSortMobile("close")}
+            groups={[
+              {
+                key: "sort",
+                options: DEDICATION_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
+              },
+            ]}
+            id="dedications-sort"
+            label={t("sortLabel")}
+            onChange={onSortChange}
+            title={tSortMobile("title")}
+            triggerLabel={tSortMobile(`trigger.${sort}`)}
+            value={sort}
+          />
+
+          <div className="hidden sm:block sm:w-80">
             <Select
               onValueChange={(next) => {
                 const match = DEDICATION_SORT_OPTIONS.find((option) => option === next);
@@ -115,7 +134,7 @@ export function DedicationsToolbar({
           </div>
 
           {genreOptions.length === 0 ? null : (
-            <div className="w-full sm:w-80">
+            <div className="min-w-0 flex-1 sm:w-80 sm:flex-none">
               <Select
                 onValueChange={(next) => onGenreChange(next === ANY_GENRE ? "" : next)}
                 value={genre === "" ? ANY_GENRE : genre}
@@ -139,12 +158,20 @@ export function DedicationsToolbar({
           )}
 
           <Segmented
-            className="h-10 items-stretch [&_[data-slot=segmented-item]]:py-0"
+            className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
             label={tView("label")}
             onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
             options={[
-              { icon: <LayoutGrid />, label: tView("grid"), value: "grid" },
-              { icon: <List />, label: tView("list"), value: "list" },
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{tView("grid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{tView("list")}</span>,
+                value: "list",
+              },
             ]}
             value={view}
           />
@@ -184,10 +211,10 @@ export function DedicationsToolbarSkeleton() {
     <div aria-busy className="flex flex-col gap-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <Skeleton className="h-10 w-full rounded-md lg:flex-1" />
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Skeleton className="h-10 w-full rounded-md sm:w-80" />
-          <Skeleton className="h-10 w-full rounded-md sm:w-80" />
-          <Skeleton className="h-10 w-20 rounded-md" />
+        <div className="flex items-center gap-1.5 sm:flex-wrap sm:gap-2.5">
+          <Skeleton className="h-10 min-w-0 flex-1 rounded-md sm:w-80 sm:flex-none" />
+          <Skeleton className="h-10 min-w-0 flex-1 rounded-md sm:w-80 sm:flex-none" />
+          <Skeleton className="h-10 w-20 shrink-0 rounded-md" />
         </div>
       </div>
       <div className="flex flex-wrap gap-2">

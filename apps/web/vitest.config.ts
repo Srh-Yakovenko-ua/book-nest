@@ -8,7 +8,7 @@ import { defineConfig } from "vitest/config";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const workerLimits = { max: 6, min: 2 };
+const workerLimits = { max: 3, min: 1 };
 
 const requestedWorkers = Number.parseInt(process.env.VITEST_MAX_WORKERS ?? "", 10);
 const maxWorkers =
@@ -49,6 +49,7 @@ export default defineConfig({
           maxWorkers,
           minWorkers: 1,
           name: "unit",
+          pool: "threads",
           setupFiles: ["./vitest.setup.ts"],
         },
       },

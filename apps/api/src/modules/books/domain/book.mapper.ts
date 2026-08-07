@@ -18,14 +18,14 @@ import {
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { toNullableIsoDate, toNullableIsoDateTime } from "../../../core/iso-date.js";
+import { toDeliverySummaryView } from "../../delivery/index.js";
 import { toBookListView } from "../../lists/index.js";
+import { toLoanInfoView } from "../../loans/index.js";
 import {
   computeHasUnreadEarlierParts,
   toSeriesBookPreview,
   toSeriesView,
 } from "../../series/index.js";
-import { toDeliverySummaryView } from "./delivery.mapper.js";
-import { toLoanInfoView } from "./loan.mapper.js";
 
 export function toBookView({
   book,

@@ -106,6 +106,12 @@ export const listsControllerSummaryResponseMaxListsPerBookMax = 9007199254740991
 export const listsControllerSummaryResponseMultiListBookCountMin = 0;
 export const listsControllerSummaryResponseMultiListBookCountMax = 9007199254740991;
 
+export const listsControllerSummaryResponseNoDescriptionListCountMin = 0;
+export const listsControllerSummaryResponseNoDescriptionListCountMax = 9007199254740991;
+
+export const listsControllerSummaryResponseStaleListCountMin = 0;
+export const listsControllerSummaryResponseStaleListCountMax = 9007199254740991;
+
 export const listsControllerSummaryResponseTotalListCountMin = 0;
 export const listsControllerSummaryResponseTotalListCountMax = 9007199254740991;
 
@@ -140,6 +146,14 @@ export const ListsControllerSummaryResponse = zod.object({
     .int()
     .min(listsControllerSummaryResponseMultiListBookCountMin)
     .max(listsControllerSummaryResponseMultiListBookCountMax),
+  noDescriptionListCount: zod
+    .int()
+    .min(listsControllerSummaryResponseNoDescriptionListCountMin)
+    .max(listsControllerSummaryResponseNoDescriptionListCountMax),
+  staleListCount: zod
+    .int()
+    .min(listsControllerSummaryResponseStaleListCountMin)
+    .max(listsControllerSummaryResponseStaleListCountMax),
   totalListCount: zod
     .int()
     .min(listsControllerSummaryResponseTotalListCountMin)
@@ -232,6 +246,12 @@ export const listsControllerSearchQueryPageSizeMax = 100;
 
 export const listsControllerSearchQuerySearchMax = 100;
 
+export const listsControllerSearchQueryDescriptionMax = 100;
+
+export const listsControllerSearchQueryFillMax = 100;
+
+export const listsControllerSearchQuerySizeMax = 100;
+
 export const listsControllerSearchQuerySortDefault = `updated_desc`;
 
 export const ListsControllerSearchQueryParams = zod.object({
@@ -246,6 +266,19 @@ export const ListsControllerSearchQueryParams = zod.object({
     .max(listsControllerSearchQueryPageSizeMax)
     .default(listsControllerSearchQueryPageSizeDefault),
   search: zod.string().max(listsControllerSearchQuerySearchMax).optional(),
+  attention: zod.enum(["empty", "no_description", "stale"]).optional(),
+  description: zod
+    .array(zod.enum(["with_description", "without_description"]))
+    .max(listsControllerSearchQueryDescriptionMax)
+    .optional(),
+  fill: zod
+    .array(zod.enum(["with_books", "empty"]))
+    .max(listsControllerSearchQueryFillMax)
+    .optional(),
+  size: zod
+    .array(zod.enum(["small", "medium", "large", "huge"]))
+    .max(listsControllerSearchQuerySizeMax)
+    .optional(),
   sort: zod
     .enum([
       "updated_desc",

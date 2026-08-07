@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 
@@ -9,6 +10,16 @@ import { PrismaService } from "./prisma.service.js";
 const IndexRowSchema = z.object({ indexdef: z.string(), indexname: z.string() });
 
 const ConstraintRowSchema = z.object({ conname: z.string() });
+
+const ForeignKeyRowSchema = z.object({
+  column: z.string(),
+  onDelete: z.string(),
+  table: z.string(),
+});
+
+const NO_ACTION = "a";
+
+const MEDIA_REFERENCE_COUNT = 4;
 
 const SOFT_DELETE_TABLES = [
   "books",
@@ -35,6 +46,7 @@ const RAW_SQL_INDEXES = [
 let app: INestApplication;
 let indexes: Map<string, string>;
 let constraints: Set<string>;
+let mediaReferenceActions: Map<string, string>;
 
 beforeAll(async () => {
   app = await createTestApp([]);
@@ -56,6 +68,21 @@ beforeAll(async () => {
       .array(ConstraintRowSchema)
       .parse(constraintRows)
       .map((row) => row.conname),
+  );
+  const foreignKeyRows = await prisma.$queryRaw`
+    SELECT c.conrelid::regclass::text AS "table",
+           a.attname AS "column",
+           c.confdeltype::text AS "onDelete"
+    FROM pg_constraint c
+    JOIN unnest(c.conkey) k ON TRUE
+    JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k
+    WHERE c.confrelid = 'media_assets'::regclass AND c.contype = 'f'
+  `;
+  mediaReferenceActions = new Map(
+    z
+      .array(ForeignKeyRowSchema)
+      .parse(foreignKeyRows)
+      .map((row) => [`${row.table}.${row.column}`, row.onDelete]),
   );
 });
 
@@ -98,5 +125,57 @@ describe("check constraints that live only in hand-written migration SQL", () =>
       constraints.has("notifications_entity_pair_check"),
       "notifications lost the constraint that keeps entity_type and entity_id paired",
     ).toBe(true);
+  });
+});
+
+describe("media references are enforced by the database, not by counting in code", () => {
+  it("refuses to orphan a media asset from every column that points at one", () => {
+    const orphaning = [...mediaReferenceActions]
+      .filter(([, onDelete]) => onDelete !== NO_ACTION)
+      .map(([reference]) => reference);
+
+    expect(
+      orphaning,
+      "these columns let MediaService delete a blob that is still in use — they must be ON DELETE NO ACTION",
+    ).toEqual([]);
+  });
+
+  it("finds at least the references that exist today", () => {
+    expect(mediaReferenceActions.size).toBeGreaterThanOrEqual(MEDIA_REFERENCE_COUNT);
+  });
+
+  it("still lets a user cascade-delete their own books and media in one statement", async () => {
+    const prisma = app.get(PrismaService);
+    const userId = randomUUID();
+    const mediaId = randomUUID();
+
+    await prisma.user.create({
+      data: {
+        email: `cascade-${userId}@example.test`,
+        id: userId,
+        name: "Cascade probe",
+        passwordHash: "x",
+      },
+    });
+    await prisma.mediaAsset.create({
+      data: {
+        contentType: "image/webp",
+        height: 10,
+        id: mediaId,
+        kind: "book_cover",
+        sizeBytes: 100,
+        storageKey: `probe/${mediaId}`,
+        userId,
+        width: 10,
+      },
+    });
+    await prisma.book.create({
+      data: { coverMediaId: mediaId, title: "Cascade probe", userId },
+    });
+
+    await expect(prisma.user.delete({ where: { id: userId } })).resolves.toMatchObject({
+      id: userId,
+    });
+    await expect(prisma.mediaAsset.count({ where: { userId } })).resolves.toBe(0);
   });
 });

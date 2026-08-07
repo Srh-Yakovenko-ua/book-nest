@@ -1,16 +1,15 @@
 "use client";
 
-import type { NotesSummaryView } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 
 import type { UiIconName } from "@/components/icons";
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatNumber } from "@/lib/format";
 
 import type { NotesArchiveQueryState, NotesSidebarFilter } from "../model/notes-archive-query";
 
@@ -25,37 +24,27 @@ const SIDEBAR_FILTER_ICONS = {
   with_spoiler: "eye-off",
 } as const satisfies Record<(typeof NOTES_SIDEBAR_FILTERS)[number]["value"], UiIconName>;
 
-type NotesArchiveSidebarProps = {
-  isLoading: boolean;
+type NotesArchiveFilterSectionsProps = {
   onAddNote: () => void;
   onQuickFilter: (filter: NotesSidebarFilter) => void;
   state: NotesArchiveQueryState;
-  summary: NotesSummaryView | undefined;
 };
 
-export function NotesArchiveSidebar({
-  isLoading,
+type NotesArchiveSidebarProps = NotesArchiveFilterSectionsProps & {
+  isLoading: boolean;
+  summaryCards: LibrarySummaryCard[];
+};
+
+export function NotesArchiveFilterSections({
   onAddNote,
   onQuickFilter,
   state,
-  summary,
-}: NotesArchiveSidebarProps) {
+}: NotesArchiveFilterSectionsProps) {
   const t = useTranslations("notes.archive.sidebar");
   const tQuickFilter = useTranslations("notes.archive.sidebar.quickFilters");
 
   return (
-    <aside
-      aria-label={t("label")}
-      className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
-    >
-      <SidebarBlock title={t("stats.title")}>
-        {isLoading || summary === undefined ? (
-          <RowSkeleton rows={9} />
-        ) : (
-          <NotesStats summary={summary} />
-        )}
-      </SidebarBlock>
-
+    <>
       <SidebarBlock title={t("quickFilters.title")}>
         <div className="flex flex-col gap-2">
           {NOTES_SIDEBAR_FILTERS.map((option) => {
@@ -95,6 +84,37 @@ export function NotesArchiveSidebar({
           {t("quickAction.cta")}
         </Button>
       </SidebarBlock>
+    </>
+  );
+}
+
+export function NotesArchiveSidebar({
+  isLoading,
+  onAddNote,
+  onQuickFilter,
+  state,
+  summaryCards,
+}: NotesArchiveSidebarProps) {
+  const t = useTranslations("notes.archive.sidebar");
+
+  return (
+    <aside
+      aria-label={t("label")}
+      className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+    >
+      <SidebarBlock title={t("stats.title")}>
+        {isLoading ? (
+          <RowSkeleton rows={summaryCards.length} />
+        ) : (
+          <NotesStats cards={summaryCards} />
+        )}
+      </SidebarBlock>
+
+      <NotesArchiveFilterSections
+        onAddNote={onAddNote}
+        onQuickFilter={onQuickFilter}
+        state={state}
+      />
     </aside>
   );
 }
@@ -114,53 +134,12 @@ function isSidebarFilterActive(option: NotesSidebarFilter, state: NotesArchiveQu
   }
 }
 
-function NotesStats({ summary }: { summary: NotesSummaryView }) {
-  const t = useTranslations("notes.archive.sidebar.stats");
-  const locale = useLocale();
-
+function NotesStats({ cards }: { cards: LibrarySummaryCard[] }) {
   return (
     <dl className="flex flex-col gap-2">
-      <StatRow icon="note" label={t("total")} value={formatNumber(summary.total, locale)} />
-      <StatRow
-        icon="book"
-        label={t("bookNotes")}
-        value={formatNumber(summary.bookNotesCount, locale)}
-      />
-      <StatRow
-        icon="layers"
-        label={t("seriesNotes")}
-        value={formatNumber(summary.seriesNotesCount, locale)}
-      />
-      <StatRow
-        icon="eye"
-        label={t("withoutSpoiler")}
-        value={formatNumber(summary.withoutSpoilerCount, locale)}
-      />
-      <StatRow
-        icon="eye-off"
-        label={t("withSpoiler")}
-        value={formatNumber(summary.withSpoilerCount, locale)}
-      />
-      <StatRow
-        icon="heart-fill"
-        label={t("favorite")}
-        value={formatNumber(summary.favoriteCount, locale)}
-      />
-      <StatRow
-        icon="bookmark"
-        label={t("pinned")}
-        value={formatNumber(summary.pinnedCount, locale)}
-      />
-      <StatRow
-        icon="library"
-        label={t("booksWithNotes")}
-        value={formatNumber(summary.booksWithNotesCount, locale)}
-      />
-      <StatRow
-        icon="list"
-        label={t("seriesWithNotes")}
-        value={formatNumber(summary.seriesWithNotesCount, locale)}
-      />
+      {cards.map((card) => (
+        <StatRow icon={card.icon} key={card.label} label={card.label} value={card.value} />
+      ))}
     </dl>
   );
 }
@@ -187,7 +166,15 @@ function SidebarBlock({ children, title }: { children: ReactNode; title: string 
   );
 }
 
-function StatRow({ icon, label, value }: { icon: UiIconName; label: string; value: string }) {
+function StatRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: UiIconName;
+  label: ReactNode;
+  value: LibrarySummaryCard["value"];
+}) {
   return (
     <div className="flex items-center justify-between gap-2">
       <dt className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">

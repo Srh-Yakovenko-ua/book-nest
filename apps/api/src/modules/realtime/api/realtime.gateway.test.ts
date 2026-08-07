@@ -16,6 +16,7 @@ import type { AuthTestContext } from "../../../test/auth-test-context.js";
 import { env } from "../../../config/env.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
+import { testAppPort } from "../../../test/create-test-app.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { RealtimeConnectionRegistry } from "../application/realtime-connection.registry.js";
@@ -301,12 +302,7 @@ function waitForRejection(socket: Socket): Promise<string> {
 beforeAll(async () => {
   context = await createAuthTestContext([AuthModule, RealtimeModule]);
   app = context.app;
-  await app.listen(0);
-  const address = app.getHttpServer().address();
-  if (address === null || typeof address === "string") {
-    throw new Error("test http server is not listening on a tcp port");
-  }
-  serverUrl = `http://127.0.0.1:${address.port}`;
+  serverUrl = `http://127.0.0.1:${testAppPort(app)}`;
 });
 
 afterEach(async () => {

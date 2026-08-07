@@ -1,6 +1,6 @@
 import type { LibraryOverviewView, OwnershipStatus } from "@app/shared";
 
-import type { ActiveReadingRow } from "../infrastructure/books.repository.js";
+import type { ActiveReadingRow } from "../infrastructure/book-library-read.repository.js";
 
 export type ActiveReadingView = LibraryOverviewView["activeReading"];
 

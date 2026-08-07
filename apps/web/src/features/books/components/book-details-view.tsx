@@ -17,6 +17,7 @@ import { BookTimelineBlock, useTimelineSummary } from "@/features/timeline";
 import { BookDetailsAbout } from "./book-details-about";
 import { BookDetailsEdition } from "./book-details-edition";
 import { BookDetailsHero } from "./book-details-hero";
+import { BookDetailsKeyFacts } from "./book-details-key-facts";
 import { BookDetailsSeriesSequence } from "./book-details-series-sequence";
 import { BookDetailsSidebar } from "./book-details-sidebar";
 import { ReadingHistoryTab } from "./reading-history/reading-history-tab";
@@ -63,6 +64,7 @@ export function BookDetailsView({ book }: BookDetailsViewProps) {
     <div className="grid gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
       <div className="flex min-w-0 flex-col gap-6">
         <BookDetailsHero book={book} />
+        <BookDetailsKeyFacts book={book} className="lg:hidden" />
         <BookDetailsSeriesSequence book={book} />
 
         <PageTabs

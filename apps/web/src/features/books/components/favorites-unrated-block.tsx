@@ -8,8 +8,8 @@ import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "@/i18n/navigation";
 
 import { useUnratedFavorites } from "../api/use-unrated-favorites";
 import { ChangeReadingStatusDialog } from "./change-reading-status-dialog";
@@ -44,7 +44,7 @@ export function FavoritesUnratedBlock({ unrated }: FavoritesUnratedBlockProps) {
                 {unrated}
               </span>
               {books.length > 0 ? (
-                <Link
+                <MobilePageOverviewLink
                   className="group ml-auto inline-flex items-center gap-1 rounded-sm text-xs font-medium text-primary transition-colors outline-none hover:text-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50"
                   href={VIEW_ALL_HREF}
                 >
@@ -55,7 +55,7 @@ export function FavoritesUnratedBlock({ unrated }: FavoritesUnratedBlockProps) {
                     name="arrow-right"
                     size={13}
                   />
-                </Link>
+                </MobilePageOverviewLink>
               ) : null}
             </div>
             <p className="text-xs text-muted-foreground">{t("subtitle")}</p>
@@ -136,16 +136,16 @@ function FavoritesUnratedRow({ book, onRate }: { book: BookView; onRate: () => v
 
   return (
     <li className="flex min-w-0 gap-3 py-3.5 first:pt-0 last:pb-0">
-      <Link className="shrink-0" href={href}>
+      <MobilePageOverviewLink className="shrink-0" href={href}>
         <PreviewCover book={book} />
-      </Link>
+      </MobilePageOverviewLink>
       <div className="flex min-w-0 flex-col justify-between gap-1.5">
         <div>
-          <Link className="group min-w-0" href={href}>
+          <MobilePageOverviewLink className="group min-w-0" href={href}>
             <span className="line-clamp-2 text-sm font-medium text-ink transition-colors group-hover:text-primary">
               {book.title}
             </span>
-          </Link>
+          </MobilePageOverviewLink>
           {authors.length > 0 ? (
             <span className="truncate text-xs text-muted-foreground">{authors}</span>
           ) : null}

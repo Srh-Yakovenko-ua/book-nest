@@ -273,7 +273,7 @@ grep '<request-id>' dev.log
 # Run BE quality gates
 pnpm --filter @app/api typecheck
 pnpm lint
-pnpm --filter @app/api test
+pnpm --filter @app/api exec vitest run <path>   # only the files around the bug, never the whole suite
 
 # Inspect Swagger JSON for an endpoint shape
 curl -sS http://localhost:4000/api/docs/json | jq '.paths'

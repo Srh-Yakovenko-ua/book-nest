@@ -1,29 +1,31 @@
 "use client";
 
 import type { LoansSummaryView } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useTranslations } from "next-intl";
 
-import type { UiIconName } from "@/components/icons";
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { StatCard } from "@/components/ui/stat-card";
+import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
 type LoansSummaryCardsProps = {
+  cards: LibrarySummaryCard[];
   isError: boolean;
   isLoading: boolean;
+  mobileAction?: ReactNode;
   onRetry: () => void;
-  summary: LoansSummaryView | undefined;
 };
 
 export function LoansSummaryCards({
+  cards,
   isError,
   isLoading,
+  mobileAction,
   onRetry,
-  summary,
 }: LoansSummaryCardsProps) {
   const t = useTranslations("loans.summary");
 
@@ -43,38 +45,52 @@ export function LoansSummaryCards({
     );
   }
 
-  const cards: { icon: UiIconName; label: string; value: number }[] = [
-    { icon: "arrow-down-circle", label: t("borrowed"), value: summary?.borrowedCount ?? 0 },
-    { icon: "arrow-up-right", label: t("lent"), value: summary?.lentCount ?? 0 },
-    { icon: "calendar", label: t("returnThisWeek"), value: summary?.returnThisWeek ?? 0 },
-    { icon: "alert-triangle", label: t("overdue"), value: summary?.overdueCount ?? 0 },
-  ];
-
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-      {isLoading
-        ? Array.from({ length: cards.length }, (_, index) => <SummaryCardSkeleton key={index} />)
-        : cards.map((card) => (
-            <StatCard
-              icon={card.icon}
-              key={card.label}
-              label={card.label}
-              size="compact"
-              value={card.value.toLocaleString()}
-            />
-          ))}
-    </div>
+    <LibrarySummaryCards
+      cards={cards}
+      isLoading={isLoading}
+      mobileAction={mobileAction}
+      mobileLayout="compact"
+    />
   );
 }
 
-function SummaryCardSkeleton() {
-  return (
-    <Card className="flex flex-row items-center gap-2.5 border border-border bg-card px-3 py-3 shadow-card sm:gap-3 sm:px-4 sm:py-3.5">
-      <Skeleton className="size-10 shrink-0 rounded-full sm:size-11" />
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <Skeleton className="h-3.5 w-20" />
-        <Skeleton className="h-6 w-12" />
-      </div>
-    </Card>
-  );
+export function useLoansSummaryCards(summary: LoansSummaryView | undefined): LibrarySummaryCard[] {
+  const t = useTranslations("loans.summary");
+
+  const mobileLabels = (key: "borrowed" | "lent" | "overdue" | "returnThisWeek") => ({
+    compact: t(`mobile.compact.${key}`),
+    detailed: t(`mobile.detailed.${key}`),
+  });
+
+  return [
+    {
+      icon: "arrow-down-circle",
+      iconTone: "info",
+      label: t("borrowed"),
+      mobileLabels: mobileLabels("borrowed"),
+      value: summary?.borrowedCount ?? 0,
+    },
+    {
+      icon: "arrow-up-right",
+      iconTone: "primary",
+      label: t("lent"),
+      mobileLabels: mobileLabels("lent"),
+      value: summary?.lentCount ?? 0,
+    },
+    {
+      icon: "calendar",
+      iconTone: "success",
+      label: t("returnThisWeek"),
+      mobileLabels: mobileLabels("returnThisWeek"),
+      value: summary?.returnThisWeek ?? 0,
+    },
+    {
+      icon: "alert-triangle",
+      iconTone: "favorite",
+      label: t("overdue"),
+      mobileLabels: mobileLabels("overdue"),
+      value: summary?.overdueCount ?? 0,
+    },
+  ];
 }

@@ -21,7 +21,7 @@ import { MediaService } from "../../media/index.js";
 import { emptyToNull } from "../domain/character-fields.js";
 import { toCharacterFormView } from "../domain/character.mapper.js";
 import { CharacterFormsRepository } from "../infrastructure/character-forms.repository.js";
-import { CharactersRepository } from "../infrastructure/characters.repository.js";
+import { CharacterAccessAsserter } from "./character-access.asserter.js";
 
 const log = createLogger("character-forms");
 
@@ -29,8 +29,8 @@ const log = createLogger("character-forms");
 export class CharacterFormsService {
   constructor(
     private readonly characterFormsRepository: CharacterFormsRepository,
-    private readonly charactersRepository: CharactersRepository,
     private readonly mediaService: MediaService,
+    private readonly accessAsserter: CharacterAccessAsserter,
   ) {}
 
   async create({
@@ -134,41 +134,32 @@ export class CharacterFormsService {
     }
   }
 
-  private async assertCharacterOwned({
+  private assertCharacterOwned({
     characterId,
     userId,
   }: {
     characterId: string;
     userId: string;
   }): Promise<void> {
-    const owned = await this.charactersRepository.findOwnedCharacterBare({ characterId, userId });
-    if (owned === null) {
-      throw new NotFoundError("Character not found", {
-        code: CHARACTER_FORM_ERROR_CODES.characterNotFound,
-      });
-    }
+    return this.accessAsserter.assertCharacterOwned({
+      characterId,
+      notFoundCode: CHARACTER_FORM_ERROR_CODES.characterNotFound,
+      userId,
+    });
   }
 
-  private async assertMediaOwned({
+  private assertMediaOwned({
     mediaId,
     userId,
   }: {
     mediaId: Nullable<string>;
     userId: string;
   }): Promise<void> {
-    if (mediaId === null) {
-      return;
-    }
-    try {
-      await this.mediaService.assertOwned({ id: mediaId, userId });
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        throw new NotFoundError("Media not found", {
-          code: CHARACTER_FORM_ERROR_CODES.mediaOwnershipMismatch,
-        });
-      }
-      throw error;
-    }
+    return this.accessAsserter.assertMediaOwned({
+      mediaId,
+      notFoundCode: CHARACTER_FORM_ERROR_CODES.mediaOwnershipMismatch,
+      userId,
+    });
   }
 
   private buildUpdateData(input: UpdateCharacterForm): UpdateCharacterFormData {

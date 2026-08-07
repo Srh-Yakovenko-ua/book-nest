@@ -31,10 +31,16 @@ const PROGRESS_STATUSES: readonly ReadingStatus[] = ["reading", "paused", "rerea
 
 const DEDICATION_PREVIEW = 300;
 
+const MOBILE_HERO_LIMITS = {
+  dedicationChars: 120,
+  tagsShown: 4,
+} as const;
+
 export function BookDetailsHero({ book }: BookDetailsHeroProps) {
   const t = useTranslations("books");
   const favorite = useToggleFavorite();
   const [authorsExpanded, setAuthorsExpanded] = useState(false);
+  const [tagsExpanded, setTagsExpanded] = useState(false);
 
   const dedicationId = useId();
   const [dedicationExpanded, setDedicationExpanded] = useState(false);
@@ -44,8 +50,10 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
 
   const dedication = book.dedication?.trim() ?? "";
   const isDedicationLong = dedication.length > DEDICATION_PREVIEW;
+  const isDedicationClamped = dedication.length > MOBILE_HERO_LIMITS.dedicationChars;
   const hasDedication = dedication.length > 0;
   const hasGenres = book.genres.length > 0;
+  const hiddenTagsCount = book.tags.length - MOBILE_HERO_LIMITS.tagsShown;
 
   useLayoutEffect(() => {
     const container = dedicationContainerRef.current;
@@ -155,80 +163,76 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
 
   return (
     <section className="relative flex flex-col gap-6 overflow-hidden rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-detail-block md:p-7">
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:gap-7">
-        <div className="flex shrink-0 flex-col gap-4">
+      <div className="grid grid-cols-[7rem_minmax(0,1fr)] items-start gap-x-4 gap-y-2 [grid-template-areas:'meta_meta''cover_headline''rich_rich'] sm:grid-cols-[210px_minmax(0,1fr)] sm:gap-x-7 sm:[grid-template-areas:'cover_meta''cover_headline''cover_rich']">
+        <div className="mb-1 flex items-start justify-between gap-3 [grid-area:meta] sm:mb-0">
+          <div className="flex flex-wrap items-center gap-2">
+            {readingBase === undefined ? null : (
+              <StatusBadge
+                entry={{
+                  ...readingBase,
+                  label: t(`readingStatus.options.${book.readingStatus}`),
+                }}
+              />
+            )}
+            {book.isInReadingQueue ? (
+              <StatusBadge
+                entry={{
+                  icon: "list",
+                  label:
+                    queuePosition === null
+                      ? t("details.queue.inQueue")
+                      : t("details.queue.inQueuePosition", { position: queuePosition }),
+                  tone: "info",
+                  value: "in_queue",
+                }}
+              />
+            ) : null}
+            {progress !== null &&
+            (book.readingStatus === "reading" || book.readingStatus === "rereading") ? (
+              <span className="text-sm font-semibold text-primary tabular-nums">
+                {progress.percent}%
+              </span>
+            ) : null}
+            {book.ageCategory === "18_plus" ? (
+              <span className={statusBadgeVariants({ tone: "danger" })}>
+                {t("classification.ageCategoryLabels.18_plus")}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              aria-label={isFavorite ? t("details.favorite.remove") : t("details.favorite.add")}
+              aria-pressed={isFavorite}
+              className={cn(
+                "rounded-lg border-[1.5px] transition-all duration-[180ms] ease-out max-sm:size-10",
+                isFavorite
+                  ? "border-brand bg-brand text-white shadow-btn hover:border-primary-hover hover:bg-primary-hover hover:text-white dark:hover:bg-primary-hover [&_svg]:animate-[heart-pop_320ms_ease]"
+                  : "border-border bg-card text-muted-foreground hover:border-brand hover:bg-accent hover:text-brand dark:hover:bg-accent",
+              )}
+              disabled={favorite.isPending}
+              onClick={toggleFavorite}
+              size="icon"
+              variant="ghost"
+            >
+              <UiIcon name={isFavorite ? "heart-fill" : "heart"} size={18} />
+            </Button>
+            <BookDetailsActionsMenu book={book} className="max-sm:size-10" />
+          </div>
+        </div>
+
+        <div className="[grid-area:cover]">
           <BookDetailsCover
             alt={t("details.coverAlt", { title: book.title })}
             src={book.cover?.urls.card}
             title={book.title}
           />
-          {hasGenres && hasDedication ? (
-            <div className="mx-auto w-[210px] sm:mx-0">
-              <GenreList genreNameByKey={genreNameByKey} genres={book.genres} />
-            </div>
-          ) : null}
         </div>
 
-        <div className="hero-content-branch flex min-w-0 flex-1 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4 [grid-area:headline] sm:hero-content-branch">
           <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              {readingBase === undefined ? null : (
-                <StatusBadge
-                  entry={{
-                    ...readingBase,
-                    label: t(`readingStatus.options.${book.readingStatus}`),
-                  }}
-                />
-              )}
-              {book.isInReadingQueue ? (
-                <StatusBadge
-                  entry={{
-                    icon: "list",
-                    label:
-                      queuePosition === null
-                        ? t("details.queue.inQueue")
-                        : t("details.queue.inQueuePosition", { position: queuePosition }),
-                    tone: "info",
-                    value: "in_queue",
-                  }}
-                />
-              ) : null}
-              {progress !== null &&
-              (book.readingStatus === "reading" || book.readingStatus === "rereading") ? (
-                <span className="text-sm font-semibold text-primary tabular-nums">
-                  {progress.percent}%
-                </span>
-              ) : null}
-              {book.ageCategory === "18_plus" ? (
-                <span className={statusBadgeVariants({ tone: "danger" })}>
-                  {t("classification.ageCategoryLabels.18_plus")}
-                </span>
-              ) : null}
-            </div>
-            <div className="flex items-start justify-between gap-4">
-              <h1 className="min-w-0 font-heading text-3xl leading-[1.1] font-semibold tracking-tight text-ink md:text-[2.625rem]">
-                {book.title}
-              </h1>
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  aria-label={isFavorite ? t("details.favorite.remove") : t("details.favorite.add")}
-                  aria-pressed={isFavorite}
-                  className={cn(
-                    "rounded-lg border-[1.5px] transition-all duration-[180ms] ease-out",
-                    isFavorite
-                      ? "border-brand bg-brand text-white shadow-btn hover:border-primary-hover hover:bg-primary-hover hover:text-white dark:hover:bg-primary-hover [&_svg]:animate-[heart-pop_320ms_ease]"
-                      : "border-border bg-card text-muted-foreground hover:border-brand hover:bg-accent hover:text-brand dark:hover:bg-accent",
-                  )}
-                  disabled={favorite.isPending}
-                  onClick={toggleFavorite}
-                  size="icon"
-                  variant="ghost"
-                >
-                  <UiIcon name={isFavorite ? "heart-fill" : "heart"} size={18} />
-                </Button>
-                <BookDetailsActionsMenu book={book} />
-              </div>
-            </div>
+            <h1 className="min-w-0 font-heading text-[1.375rem] leading-[1.15] font-semibold tracking-tight text-ink max-sm:line-clamp-3 sm:text-3xl sm:leading-[1.1] md:text-[2.625rem]">
+              {book.title}
+            </h1>
             {book.originalTitle === null ? null : (
               <p className="mb-2 text-sm text-muted-foreground italic">{book.originalTitle}</p>
             )}
@@ -258,85 +262,104 @@ export function BookDetailsHero({ book }: BookDetailsHeroProps) {
               <RatingScore value={rating} />
             </div>
           )}
+        </div>
 
+        <div className="mt-3 min-w-0 [grid-area:rich]">
           {hasDedication ? (
-            <div className="mt-2">
-              <div className="rounded-[14px] border-l-2 border-l-[var(--terracotta)] bg-muted/50 p-4">
-                <div className="mb-2.5 flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
-                    <Quote aria-hidden className="size-4 shrink-0 text-[var(--terracotta)]" />
-                    <span className="truncate text-sm font-medium">
-                      {t("details.dedicationLabel")}
-                    </span>
-                  </div>
-                  <Link
-                    className="inline-flex shrink-0 items-center gap-1 rounded text-xs font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    href="/dedications"
-                  >
-                    {t("details.dedicationAllLink")}
-                    <ArrowRight aria-hidden className="size-3.5" />
-                  </Link>
+            <div className="rounded-[14px] border-l-2 border-l-[var(--terracotta)] bg-muted/50 p-3.5 sm:p-4">
+              <div className="mb-2 flex items-center justify-between gap-3 sm:mb-2.5">
+                <div className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                  <Quote aria-hidden className="size-4 shrink-0 text-[var(--terracotta)]" />
+                  <span className="truncate text-sm font-medium">
+                    {t("details.dedicationLabel")}
+                  </span>
                 </div>
-                <div className="relative">
-                  <div
-                    className="overflow-hidden motion-safe:transition-[max-height] motion-safe:duration-300 motion-safe:ease-out"
-                    ref={dedicationContainerRef}
-                  >
-                    <blockquote
-                      className="text-sm leading-7 whitespace-pre-line text-foreground/90 italic"
-                      id={dedicationId}
-                      ref={dedicationContentRef}
-                    >
-                      {dedication}
-                    </blockquote>
-                  </div>
-                  {isDedicationLong && !dedicationExpanded ? (
-                    <div
-                      aria-hidden
-                      className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-muted/50 to-transparent"
-                    />
-                  ) : null}
-                </div>
-                {isDedicationLong ? (
-                  <button
-                    aria-controls={dedicationId}
-                    aria-expanded={dedicationExpanded}
-                    className="mt-2 inline-flex cursor-pointer items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
-                    onClick={() => setDedicationExpanded((value) => !value)}
-                    type="button"
-                  >
-                    {dedicationExpanded ? t("details.about.showLess") : t("details.about.showMore")}
-                    <ChevronDown
-                      aria-hidden
-                      className={cn(
-                        "size-4 transition-transform",
-                        dedicationExpanded && "rotate-180",
-                      )}
-                    />
-                  </button>
-                ) : null}
-                <DedicationActions book={book} dedication={dedication} />
+                <Link
+                  className="inline-flex shrink-0 items-center gap-1 rounded text-xs font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  href="/dedications"
+                >
+                  {t("details.dedicationAllLink")}
+                  <ArrowRight aria-hidden className="size-3.5" />
+                </Link>
               </div>
+              <div className="relative">
+                <div
+                  className="overflow-hidden motion-safe:transition-[max-height] motion-safe:duration-300 motion-safe:ease-out max-sm:max-h-none!"
+                  ref={dedicationContainerRef}
+                >
+                  <blockquote
+                    className={cn(
+                      "text-sm leading-6 whitespace-pre-line text-foreground/90 italic sm:leading-7",
+                      dedicationExpanded ? null : "max-sm:line-clamp-4",
+                    )}
+                    id={dedicationId}
+                    ref={dedicationContentRef}
+                  >
+                    {dedication}
+                  </blockquote>
+                </div>
+                {isDedicationLong && !dedicationExpanded ? (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-muted/50 to-transparent max-sm:hidden"
+                  />
+                ) : null}
+              </div>
+              {isDedicationClamped ? (
+                <button
+                  aria-controls={dedicationId}
+                  aria-expanded={dedicationExpanded}
+                  className={cn(
+                    "mt-2 inline-flex cursor-pointer items-center gap-1 text-sm font-medium text-primary hover:text-primary/80",
+                    isDedicationLong ? null : "sm:hidden",
+                  )}
+                  onClick={() => setDedicationExpanded((value) => !value)}
+                  type="button"
+                >
+                  {dedicationExpanded ? t("details.about.showLess") : t("details.about.showMore")}
+                  <ChevronDown
+                    aria-hidden
+                    className={cn(
+                      "size-4 transition-transform",
+                      dedicationExpanded && "rotate-180",
+                    )}
+                  />
+                </button>
+              ) : null}
+              <DedicationActions book={book} dedication={dedication} />
             </div>
           ) : hasGenres ? (
-            <div className="mt-2">
-              <GenreList genreNameByKey={genreNameByKey} genres={book.genres} />
-            </div>
+            <GenreList genreNameByKey={genreNameByKey} genres={book.genres} />
           ) : null}
         </div>
       </div>
 
       {book.tags.length === 0 ? null : (
         <ul className="flex flex-wrap gap-1.5 border-t border-[color-mix(in_srgb,var(--border)_70%,transparent)] pt-4">
-          {book.tags.map((tag) => (
+          {book.tags.map((tag, index) => (
             <li
-              className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs font-medium text-foreground/80"
+              className={cn(
+                "inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-secondary/60 px-2.5 py-1 text-xs font-medium text-foreground/80",
+                !tagsExpanded && index >= MOBILE_HERO_LIMITS.tagsShown && "max-sm:hidden",
+              )}
               key={tag.id}
             >
               <UiIcon className="shrink-0 text-muted-foreground" name="hash" size={12} />
               <span className="min-w-0 truncate">{tag.name}</span>
             </li>
           ))}
+          {hiddenTagsCount > 0 && !tagsExpanded ? (
+            <li className="sm:hidden">
+              <button
+                aria-label={t("details.tagsShowAll")}
+                className="inline-flex cursor-pointer items-center rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                onClick={() => setTagsExpanded(true)}
+                type="button"
+              >
+                {`+${hiddenTagsCount}`}
+              </button>
+            </li>
+          ) : null}
         </ul>
       )}
     </section>
@@ -349,7 +372,7 @@ function BookDetailsCover({ alt, src, title }: { alt: string; src?: string; titl
   const initial = title.trim().charAt(0).toUpperCase();
 
   return (
-    <div className="relative mx-auto aspect-[3/4] w-[210px] shrink-0 overflow-hidden rounded-xl bg-accent shadow-detail-cover sm:mx-0">
+    <div className="relative aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-xl bg-accent shadow-detail-cover sm:w-[210px]">
       {src === undefined || failed ? (
         <div className="grid h-full w-full place-items-center text-accent-foreground">
           {initial.length === 0 ? (
@@ -368,7 +391,7 @@ function BookDetailsCover({ alt, src, title }: { alt: string; src?: string; titl
           fill
           onError={() => setFailed(true)}
           onLoad={() => setLoaded(true)}
-          sizes="210px"
+          sizes="(min-width: 640px) 210px, 112px"
           src={src}
           unoptimized
         />

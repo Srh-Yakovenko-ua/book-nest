@@ -8,6 +8,7 @@ export const MEDIA_ERROR_CODES = {
   fileTooLarge: "FILE_TOO_LARGE",
   imageTooLarge: "IMAGE_TOO_LARGE",
   invalidCrop: "INVALID_CROP",
+  stillReferenced: "MEDIA_STILL_REFERENCED",
   unsupportedType: "UNSUPPORTED_FILE_TYPE",
 } as const;
 

@@ -11,6 +11,7 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { useGenres } from "@/features/books/api/use-genres";
+import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 
 import { useDedications } from "../api/use-dedications";
 import { useDedicationsSummary } from "../api/use-dedications-summary";
@@ -18,9 +19,11 @@ import { useDedicationsQuery } from "../model/use-dedications-query";
 import { DedicationBookPickerDialog } from "./dedication-book-picker-dialog";
 import { DedicationModal } from "./dedication-modal";
 import { DedicationsContent } from "./dedications-content";
+import { DedicationsOverviewPanel } from "./dedications-overview-panel";
 import { DedicationsSidebar } from "./dedications-sidebar";
-import { DedicationsSummaryCards } from "./dedications-summary-cards";
 import { DedicationsToolbar, DedicationsToolbarSkeleton } from "./dedications-toolbar";
+
+const DEDICATIONS_MOBILE_TILE_COUNT = 3;
 
 export function DedicationsView() {
   const t = useTranslations("dedications");
@@ -48,6 +51,13 @@ export function DedicationsView() {
   const topGenre = summary.data?.topGenre ?? null;
   const topAuthor = summary.data?.topAuthor ?? null;
 
+  const mobileLabels = (
+    key: "favorites" | "fromFinished" | "topAuthor" | "topGenre" | "total",
+  ) => ({
+    compact: t(`summary.mobile.compact.${key}`),
+    detailed: t(`summary.mobile.detailed.${key}`),
+  });
+
   const summaryCards: LibrarySummaryCard[] = [
     {
       icon: "quote",
@@ -57,6 +67,7 @@ export function DedicationsView() {
         authorsCount === undefined
           ? undefined
           : t("summary.authorsMicrofact", { count: authorsCount }),
+      mobileLabels: mobileLabels("total"),
       unit: t("summary.unit", { count: total }),
       value: total,
     },
@@ -68,6 +79,7 @@ export function DedicationsView() {
         total > 0
           ? t("summary.favoritesMicrofact", { percent: Math.round((favorites / total) * 100) })
           : undefined,
+      mobileLabels: mobileLabels("favorites"),
       unit: t("summary.unit", { count: favorites }),
       value: favorites,
     },
@@ -79,6 +91,7 @@ export function DedicationsView() {
         unfinished > 0
           ? t("summary.fromUnfinishedMicrofact", { count: unfinished })
           : t("summary.fromUnfinishedMicrofactNone"),
+      mobileLabels: mobileLabels("fromFinished"),
       unit: t("summary.unit", { count: finished }),
       value: finished,
     },
@@ -88,6 +101,7 @@ export function DedicationsView() {
       label: t("summary.topGenre"),
       microfact:
         topGenre === null ? undefined : t("summary.topGenreMicrofact", { count: topGenre.count }),
+      mobileLabels: mobileLabels("topGenre"),
       value:
         topGenre === null
           ? t("summary.empty")
@@ -102,10 +116,13 @@ export function DedicationsView() {
         topAuthor === null
           ? undefined
           : t("summary.topAuthorMicrofact", { count: topAuthor.count }),
+      mobileLabels: mobileLabels("topAuthor"),
       value: topAuthor === null ? t("summary.empty") : topAuthor.name,
       valueClassName: "text-lg leading-snug line-clamp-2",
     },
   ];
+
+  const mobileSummaryCards = summaryCards.slice(0, DEDICATIONS_MOBILE_TILE_COUNT);
 
   const onChooseBook = () => setPickerOpen(true);
 
@@ -124,7 +141,19 @@ export function DedicationsView() {
       </header>
 
       {showChrome ? (
-        <DedicationsSummaryCards cards={summaryCards} isLoading={summary.isPending} />
+        <LibrarySummaryCards
+          cards={summaryCards}
+          isLoading={summary.isPending}
+          mobileAction={
+            <DedicationsOverviewPanel
+              isLoading={summary.isPending}
+              onChooseBook={onChooseBook}
+              summaryCards={summaryCards}
+            />
+          }
+          mobileCards={mobileSummaryCards}
+          mobileLayout="compact"
+        />
       ) : null}
 
       <ToolbarSlot

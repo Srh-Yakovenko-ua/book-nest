@@ -153,7 +153,7 @@ describe("Book cover integration", () => {
     expect(cleared.body.cover).toBeNull();
   });
 
-  it("nulls the book cover when the cover media asset is deleted", async () => {
+  it("refuses to delete a media asset a book still uses as its cover", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const media = await uploadCover(accessToken);
     const created = await createBook(accessToken, {
@@ -166,12 +166,33 @@ describe("Book cover integration", () => {
     const deleted = await request(app.getHttpServer())
       .delete(`/api/media/${media.body.id}`)
       .set("Authorization", `Bearer ${accessToken}`);
-    expect(deleted.status).toBe(204);
+    expect(deleted.status).toBe(409);
 
     const refetched = await request(app.getHttpServer())
       .get(`/api/books/${created.body.id}`)
       .set("Authorization", `Bearer ${accessToken}`);
     expect(refetched.status).toBe(200);
-    expect(refetched.body.cover).toBeNull();
+    expect(refetched.body.cover.id).toBe(media.body.id);
+  });
+
+  it("cleans the media asset up by itself once the book stops using it", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const media = await uploadCover(accessToken);
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      coverMediaId: media.body.id,
+      title: "Dune",
+    });
+
+    const cleared = await request(app.getHttpServer())
+      .patch(`/api/books/${created.body.id}`)
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ coverMediaId: null });
+    expect(cleared.status).toBe(200);
+
+    const deleted = await request(app.getHttpServer())
+      .delete(`/api/media/${media.body.id}`)
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(deleted.status).toBe(404);
   });
 });

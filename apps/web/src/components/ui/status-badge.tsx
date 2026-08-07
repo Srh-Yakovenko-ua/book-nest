@@ -28,9 +28,10 @@ const statusBadgeVariants = cva(
 type StatusBadgeProps = Omit<React.ComponentProps<"span">, "children"> &
   VariantProps<typeof statusBadgeVariants> & {
     entry: StatusEntry;
+    labelClassName?: string;
   };
 
-function StatusBadge({ className, entry, tone, ...props }: StatusBadgeProps) {
+function StatusBadge({ className, entry, labelClassName, tone, ...props }: StatusBadgeProps) {
   return (
     <span
       className={cn(statusBadgeVariants({ tone: tone ?? entry.tone }), className)}
@@ -39,7 +40,7 @@ function StatusBadge({ className, entry, tone, ...props }: StatusBadgeProps) {
       {...props}
     >
       <UiIcon name={entry.icon} />
-      {entry.label}
+      <span className={cn("truncate leading-normal", labelClassName)}>{entry.label}</span>
     </span>
   );
 }

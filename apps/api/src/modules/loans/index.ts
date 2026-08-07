@@ -1,1 +1,1 @@
-export { getLoanUiStatus } from "./domain/loan-ui-status.js";
+export { toLoanInfoView } from "./domain/loan.mapper.js";

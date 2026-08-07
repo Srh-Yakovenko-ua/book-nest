@@ -1,61 +1,20 @@
-import type { Currency, DeliveryStatus, Nullable, OwnershipStatus } from "@app/shared";
+import type { Nullable, OwnershipStatus } from "@app/shared";
 
 import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookDeliveryModel } from "../../../generated/prisma/models.js";
+import type {
+  CreateDeliveryOutcome,
+  CreateDeliveryTransition,
+  RecordDeliveryOutcome,
+  RecordDeliveryTransition,
+} from "../../delivery/index.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
-
-export type CreateDeliveryData = {
-  currency: Nullable<Currency>;
-  deliveryService: Nullable<string>;
-  expectedDeliveryDate: Nullable<Date>;
-  note: Nullable<string>;
-  orderDate: Nullable<Date>;
-  orderNumber: Nullable<string>;
-  price: Nullable<number>;
-  status: DeliveryStatus;
-  storeName: Nullable<string>;
-  trackingNumber: Nullable<string>;
-  trackingUrl: Nullable<string>;
-};
-
-export type CreateDeliveryOutcome = "book-not-found" | "created" | "status-conflict";
-
-export type CreateDeliveryTransition = {
-  book: DeliveryBookPatch;
-  delivery: CreateDeliveryData;
-};
-
-export type RecordDeliveryOutcome = "applied" | "not-active" | "not-found";
-
-export type RecordDeliveryTransition = {
-  book: Nullable<DeliveryBookPatch>;
-  delivery: UpdateDeliveryData;
-};
-
-export type UpdateDeliveryData = {
-  cancelledAt?: Date;
-  cancelReason?: Nullable<string>;
-  currency?: Nullable<Currency>;
-  deliveryService?: Nullable<string>;
-  expectedDeliveryDate?: Nullable<Date>;
-  note?: Nullable<string>;
-  orderDate?: Nullable<Date>;
-  orderNumber?: Nullable<string>;
-  price?: Nullable<number>;
-  receivedAt?: Date;
-  status?: DeliveryStatus;
-  storeName?: Nullable<string>;
-  trackingNumber?: Nullable<string>;
-  trackingUrl?: Nullable<string>;
-};
-
-type DeliveryBookPatch = { ownershipStatus?: OwnershipStatus };
 
 @Injectable()
 export class BookDeliveriesRepository {

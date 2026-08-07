@@ -4,10 +4,10 @@ import { useTranslations } from "next-intl";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { type ReactNode, useState } from "react";
 
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+
 import { type ActiveFilterChip, LibraryActiveFilters, useGenres } from "@/features/books";
 import { useRouter } from "@/i18n/navigation";
-
-import type { SeriesSummaryCard } from "./series-summary-cards";
 
 import { useSeriesList } from "../api/use-series-list";
 import { useSeriesOverview } from "../api/use-series-overview";
@@ -31,6 +31,7 @@ import {
 } from "../model/series-derive";
 import { AllSeriesView } from "./all-series-view";
 import { CreateSeriesDialog } from "./create-series-dialog";
+import { SeriesOverviewPanel } from "./series-overview-panel";
 import { SeriesSidebar } from "./series-sidebar";
 import { SeriesToolbar } from "./series-toolbar";
 
@@ -153,12 +154,18 @@ export function AllSeries() {
     );
   })();
 
-  const summaryCards: SeriesSummaryCard[] = [
+  const mobileLabels = (key: "booksInSeries" | "fullyRead" | "total" | "unfinished") => ({
+    compact: t(`mobile.compact.${key}`),
+    detailed: t(`mobile.detailed.${key}`),
+  });
+
+  const summaryCards: LibrarySummaryCard[] = [
     {
       icon: "layers",
       iconTone: "primary",
       label: t("total"),
       microfact: totalBreakdownMicrofact,
+      mobileLabels: mobileLabels("total"),
       value: overview.data?.totalSeries ?? 0,
     },
     {
@@ -166,6 +173,7 @@ export function AllSeries() {
       iconTone: "success",
       label: t("fullyRead"),
       microfact: fullyReadPercentMicrofact,
+      mobileLabels: mobileLabels("fullyRead"),
       value: overview.data?.fullyReadSeries ?? 0,
     },
     {
@@ -173,6 +181,7 @@ export function AllSeries() {
       iconTone: "info",
       label: t("unfinished"),
       microfact: booksLeftMicrofact,
+      mobileLabels: mobileLabels("unfinished"),
       value: overview.data?.unfinishedSeries ?? 0,
     },
     {
@@ -180,6 +189,7 @@ export function AllSeries() {
       iconTone: "primary",
       label: t("booksInSeries"),
       microfact: booksReadOfTotalMicrofact,
+      mobileLabels: mobileLabels("booksInSeries"),
       value: overview.data?.booksInSeries ?? 0,
     },
   ];
@@ -328,6 +338,20 @@ export function AllSeries() {
         summaryCards={summaryCards}
         summaryError={overview.isError}
         summaryLoading={overview.isPending}
+        summaryMobileAction={
+          <SeriesOverviewPanel
+            activeAttention={attentionFilter}
+            almostReadSeries={almostReadSeries}
+            attentionCounts={attentionCounts}
+            attentionLoading={isPending}
+            isError={overview.isError}
+            isLoading={overview.isPending}
+            onAttentionSelect={setAttentionFilter}
+            onRetry={() => void overview.refetch()}
+            overview={overview.data}
+            summaryCards={summaryCards}
+          />
+        }
         tab={tab}
         toolbar={
           <SeriesToolbar

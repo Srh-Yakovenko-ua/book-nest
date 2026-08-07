@@ -4,12 +4,11 @@ import { CHARACTER_GRAPH_LAYOUT_ERROR_CODES } from "@app/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TransactionRunner } from "../../../core/database/transaction-runner.js";
-import type { BookAccessService } from "../../books/index.js";
 import type {
   CharacterGraphLayoutsRepository,
   SaveLayoutData,
 } from "../infrastructure/character-graph-layouts.repository.js";
-import type { CharactersRepository } from "../infrastructure/characters.repository.js";
+import type { CharacterAccessAsserter } from "./character-access.asserter.js";
 
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { CharacterGraphLayoutsService } from "./character-graph-layouts.service.js";
@@ -50,16 +49,29 @@ function createService(config: ServiceConfig = {}) {
     findByKey,
     updateLayout,
   } as unknown as CharacterGraphLayoutsRepository;
-  const charactersRepository = { existsOwnedSeries } as unknown as CharactersRepository;
-  const bookAccess = { assertOwned } as unknown as BookAccessService;
+  const accessAsserter = {
+    assertBookOwned: assertOwned,
+    assertSeriesOwned: async ({
+      notFoundCode,
+      seriesId,
+      userId,
+    }: {
+      notFoundCode: string;
+      seriesId: string;
+      userId: string;
+    }) => {
+      if (!(await existsOwnedSeries({ seriesId, userId }))) {
+        throw new NotFoundError("Series not found", { code: notFoundCode });
+      }
+    },
+  } as unknown as CharacterAccessAsserter;
   const transactionRunner = {
     run: (fn: (tx: unknown) => Promise<unknown>) => fn({}),
   } as unknown as TransactionRunner;
 
   const service = new CharacterGraphLayoutsService(
     layoutsRepository,
-    charactersRepository,
-    bookAccess,
+    accessAsserter,
     transactionRunner,
   );
 

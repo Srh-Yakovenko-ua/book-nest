@@ -41,6 +41,16 @@ export interface ListsSummaryViewDto {
    * @minimum 0
    * @maximum 9007199254740991
    */
+  noDescriptionListCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  staleListCount: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
   totalListCount: number;
   /**
    * @minimum 0

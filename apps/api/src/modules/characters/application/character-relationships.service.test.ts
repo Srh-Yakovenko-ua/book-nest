@@ -7,6 +7,7 @@ import type { RelationshipDetailsRow } from "../infrastructure/character-relatio
 import type { CharacterRelationshipsRepository } from "../infrastructure/character-relationships.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
+import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { CharacterAccessAsserter } from "./character-access.asserter.js";
 import { CharacterRelationshipsService } from "./character-relationships.service.js";
 import { RelationshipContextService } from "./relationship-context.service.js";
@@ -61,7 +62,6 @@ function createService(config: Config = {}): {
 
   const relationshipsRepository = {
     acquireRelationshipLock,
-    countOwnedCharacters,
     createBookStates,
     createRelationship,
     findDuplicateCandidates,
@@ -71,6 +71,14 @@ function createService(config: Config = {}): {
   } as unknown as CharacterRelationshipsRepository;
   const accessAsserter = {
     assertBookOwned: vi.fn().mockResolvedValue(undefined),
+    assertCharactersOwned: async ({ characterIds }: { characterIds: string[] }) => {
+      const owned = await countOwnedCharacters();
+      if (owned !== new Set(characterIds).size) {
+        throw new NotFoundError("Character not found", {
+          code: CHARACTER_RELATIONSHIP_ERROR_CODES.characterNotFound,
+        });
+      }
+    },
   } as unknown as CharacterAccessAsserter;
   const contextService = {
     loadDetails: vi.fn().mockResolvedValue(makeDetailsRow()),

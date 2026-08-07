@@ -55,11 +55,52 @@ export class CharacterAccessAsserter {
     });
   }
 
+  async assertCharacterOwned({
+    characterId,
+    notFoundCode = CHARACTER_ERROR_CODES.notFound,
+    userId,
+  }: {
+    characterId: string;
+    notFoundCode?: string;
+    userId: string;
+  }): Promise<void> {
+    const owned = await this.charactersRepository.findOwnedCharacterBare({ characterId, userId });
+    if (owned === null) {
+      throw new NotFoundError("Character not found", { code: notFoundCode });
+    }
+  }
+
+  async assertCharactersOwned(
+    {
+      characterIds,
+      excludeHiddenProfiles = false,
+      notFoundCode = CHARACTER_ERROR_CODES.notFound,
+      userId,
+    }: {
+      characterIds: string[];
+      excludeHiddenProfiles?: boolean;
+      notFoundCode?: string;
+      userId: string;
+    },
+    client?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const uniqueIds = [...new Set(characterIds)];
+    const owned = await this.charactersRepository.countOwnedCharacters(
+      { characterIds: uniqueIds, excludeHiddenProfiles, userId },
+      client,
+    );
+    if (owned !== uniqueIds.length) {
+      throw new NotFoundError("Character not found", { code: notFoundCode });
+    }
+  }
+
   async assertMediaOwned({
     mediaId,
+    notFoundCode = CHARACTER_ERROR_CODES.mediaOwnershipMismatch,
     userId,
   }: {
     mediaId: Nullable<string>;
+    notFoundCode?: string;
     userId: string;
   }): Promise<void> {
     if (mediaId === null) {
@@ -69,9 +110,7 @@ export class CharacterAccessAsserter {
       await this.mediaService.assertOwned({ id: mediaId, userId });
     } catch (error) {
       if (error instanceof NotFoundError) {
-        throw new NotFoundError("Media not found", {
-          code: CHARACTER_ERROR_CODES.mediaOwnershipMismatch,
-        });
+        throw new NotFoundError("Media not found", { code: notFoundCode });
       }
       throw error;
     }

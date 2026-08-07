@@ -5,8 +5,11 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+
 import { TitleLeaf } from "@/components/title-leaf";
 import { Badge } from "@/components/ui/badge";
+import { LibrarySummaryMobile } from "@/features/books/components/library-summary-mobile";
 import { useRouter } from "@/i18n/navigation";
 
 import { useQuoteBook } from "../api/use-quote-book";
@@ -17,8 +20,14 @@ import { quotesListIdentity } from "../model/quotes-query";
 import { useQuotesQuery } from "../model/use-quotes-query";
 import { QuoteDialog } from "./quote-dialog";
 import { QuotesContent } from "./quotes-content";
+import { QuotesOverviewPanel } from "./quotes-overview-panel";
 import { QuotesSidebar } from "./quotes-sidebar";
 import { QuotesToolbar, QuotesToolbarSkeleton } from "./quotes-toolbar";
+
+const QUOTES_MOBILE_TILE_COUNT = 3;
+
+type QuoteSummaryKey =
+  "favorites" | "spoilers" | "topAuthor" | "topBook" | "total" | "withComment" | "withoutSpoilers";
 
 export function QuotesView() {
   const t = useTranslations("quotes");
@@ -44,6 +53,65 @@ export function QuotesView() {
   const selectedBook = filterBook.data === undefined ? null : toQuoteBookOption(filterBook.data);
   const showSidebar = !quotes.isError;
 
+  const stats = summary.data;
+  const topBook = stats?.topBook ?? null;
+  const topAuthor = stats?.topAuthor ?? null;
+
+  const summaryLabels = (key: QuoteSummaryKey) => ({
+    label: t(`summary.mobile.detailed.${key}`),
+    mobileLabels: {
+      compact: t(`summary.mobile.compact.${key}`),
+      detailed: t(`summary.mobile.detailed.${key}`),
+    },
+  });
+
+  const summaryCards: LibrarySummaryCard[] = [
+    {
+      ...summaryLabels("total"),
+      icon: "quote",
+      iconTone: "primary",
+      value: stats?.totalCount ?? 0,
+    },
+    {
+      ...summaryLabels("favorites"),
+      icon: "heart",
+      iconTone: "favorite",
+      value: stats?.favoritesCount ?? 0,
+    },
+    {
+      ...summaryLabels("withComment"),
+      icon: "note",
+      iconTone: "info",
+      value: stats?.withCommentCount ?? 0,
+    },
+    {
+      ...summaryLabels("spoilers"),
+      icon: "eye-off",
+      iconTone: "tag",
+      value: stats?.spoilerCount ?? 0,
+    },
+    {
+      ...summaryLabels("withoutSpoilers"),
+      icon: "eye",
+      iconTone: "success",
+      value: stats?.withoutSpoilerCount ?? 0,
+    },
+    {
+      ...summaryLabels("topBook"),
+      icon: "book",
+      iconTone: "ink",
+      value: topBook === null ? t("summary.empty") : topBook.title,
+      valueClassName: "text-lg leading-snug line-clamp-2",
+    },
+    {
+      ...summaryLabels("topAuthor"),
+      icon: "user",
+      iconTone: "genre",
+      value: topAuthor === null ? t("summary.empty") : topAuthor.name,
+      valueClassName: "text-lg leading-snug line-clamp-2",
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-8">
       <header className="flex flex-col gap-4 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
@@ -64,6 +132,25 @@ export function QuotesView() {
           </p>
         </div>
       </header>
+
+      {showSidebar ? (
+        <LibrarySummaryMobile
+          action={
+            <QuotesOverviewPanel
+              isLoading={summary.isPending}
+              onAddQuote={() => setAddOpen(true)}
+              onClearFilters={clearFilters}
+              onShowFavorites={() => setFilter("favorites")}
+              onShowRecent={() => setSort("newest")}
+              onShowWithComment={() => setFilter("with_comment")}
+              summaryCards={summaryCards}
+            />
+          }
+          cards={summaryCards.slice(0, QUOTES_MOBILE_TILE_COUNT)}
+          className="sm:hidden"
+          isLoading={summary.isPending}
+        />
+      ) : null}
 
       <ToolbarSlot
         isError={quotes.isError}

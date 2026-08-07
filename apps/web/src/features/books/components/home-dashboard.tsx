@@ -22,11 +22,36 @@ export function HomeDashboard() {
   const summary = overview.data?.summary;
   const isEmpty = summary !== undefined && summary.total === 0;
 
+  const mobileLabels = (key: "favorites" | "finished" | "reading" | "total") => ({
+    compact: tSummary(`summary.mobile.compact.${key}`),
+    detailed: tSummary(`summary.mobile.detailed.${key}`),
+  });
+
   const summaryCards: LibrarySummaryCard[] = [
-    { icon: "library", label: tSummary("summary.total"), value: summary?.total ?? 0 },
-    { icon: "book", label: tSummary("summary.reading"), value: summary?.reading ?? 0 },
-    { icon: "check-circle", label: tSummary("summary.finished"), value: summary?.finished ?? 0 },
-    { icon: "heart", label: tSummary("summary.favorites"), value: summary?.favorites ?? 0 },
+    {
+      icon: "library",
+      label: tSummary("summary.total"),
+      mobileLabels: mobileLabels("total"),
+      value: summary?.total ?? 0,
+    },
+    {
+      icon: "book",
+      label: tSummary("summary.reading"),
+      mobileLabels: mobileLabels("reading"),
+      value: summary?.reading ?? 0,
+    },
+    {
+      icon: "check-circle",
+      label: tSummary("summary.finished"),
+      mobileLabels: mobileLabels("finished"),
+      value: summary?.finished ?? 0,
+    },
+    {
+      icon: "heart",
+      label: tSummary("summary.favorites"),
+      mobileLabels: mobileLabels("favorites"),
+      value: summary?.favorites ?? 0,
+    },
   ];
 
   return (
@@ -51,7 +76,11 @@ export function HomeDashboard() {
         />
       ) : (
         <>
-          <LibrarySummaryCards cards={summaryCards} isLoading={overview.isPending} />
+          <LibrarySummaryCards
+            cards={summaryCards}
+            isLoading={overview.isPending}
+            mobileLayout="compact"
+          />
 
           <DeliveryDashboardWidget />
 

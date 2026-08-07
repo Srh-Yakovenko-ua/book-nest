@@ -77,24 +77,6 @@ export class CharacterRelationshipsRepository {
     return client.characterRelationshipBookState.count({ where: { relationshipId } });
   }
 
-  async countOwnedCharacters(
-    {
-      characterIds,
-      excludeHiddenProfiles = false,
-      userId,
-    }: { characterIds: string[]; excludeHiddenProfiles?: boolean; userId: string },
-    client: Prisma.TransactionClient = this.prisma,
-  ): Promise<number> {
-    return client.character.count({
-      where: {
-        deletedAt: null,
-        id: { in: characterIds },
-        userId,
-        ...(excludeHiddenProfiles ? { hideProfileAsSpoiler: false } : {}),
-      },
-    });
-  }
-
   async createBookStates(
     rows: CreateBookStateData[],
     client: Prisma.TransactionClient = this.prisma,

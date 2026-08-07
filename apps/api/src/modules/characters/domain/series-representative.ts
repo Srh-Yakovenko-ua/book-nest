@@ -6,7 +6,7 @@ import type {
   SeriesReadingContextSource,
 } from "@app/shared";
 
-import { compareAsc } from "date-fns";
+import { compareAsc, isBefore } from "date-fns";
 
 export type DefaultReadingContext = {
   contextBookId: Nullable<string>;
@@ -162,7 +162,7 @@ function chooseSeriesRepresentative<Appearance extends SeriesAppearanceLike>({
   if (byPartNumber !== 0) {
     return byPartNumber < 0 ? candidate : current;
   }
-  return candidate.createdAt >= current.createdAt ? candidate : current;
+  return isBefore(candidate.createdAt, current.createdAt) ? current : candidate;
 }
 
 function comparePartNumberDesc(left: Nullable<number>, right: Nullable<number>): number {

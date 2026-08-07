@@ -13,6 +13,7 @@ vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 type SidebarProps = Parameters<typeof BooksToBuySidebar>[0];

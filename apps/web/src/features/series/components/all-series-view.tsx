@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import type { PageTabsItem } from "@/components/page-tabs";
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
@@ -17,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import type { SeriesListLayout, SeriesTab } from "../model/series-derive";
-import type { SeriesSummaryCard } from "./series-summary-cards";
 
 import { SeriesCard } from "./series-card";
 import { SeriesRow } from "./series-row";
@@ -42,9 +42,10 @@ type AllSeriesViewProps = {
   onTabChange: (tab: SeriesTab) => void;
   series: SeriesView[];
   sidebar: ReactNode;
-  summaryCards: SeriesSummaryCard[];
+  summaryCards: LibrarySummaryCard[];
   summaryError: boolean;
   summaryLoading: boolean;
+  summaryMobileAction?: ReactNode;
   tab: SeriesTab;
   toolbar: ReactNode;
   unfinishedCount: number;
@@ -70,6 +71,7 @@ export function AllSeriesView({
   summaryCards,
   summaryError,
   summaryLoading,
+  summaryMobileAction,
   tab,
   toolbar,
   unfinishedCount,
@@ -110,6 +112,7 @@ export function AllSeriesView({
           cards={summaryCards}
           isError={summaryError}
           isLoading={summaryLoading}
+          mobileAction={summaryMobileAction}
           onRetry={onOverviewRetry}
         />
       </header>

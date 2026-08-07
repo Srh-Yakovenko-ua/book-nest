@@ -248,7 +248,7 @@ model Book {
   authors                       BookAuthor[]
   publisher                     Publisher?                       @relation(fields: [publisherId], references: [id])
   series                        Series?                          @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  coverMedia                    MediaAsset?                      @relation(fields: [coverMediaId], references: [id], onDelete: SetNull)
+  coverMedia                    MediaAsset?                      @relation(fields: [coverMediaId], references: [id], onDelete: NoAction)
   tags                          BookTag[]
   lists                         BookListItem[]
   readingProgress               BookReadingProgress?
@@ -792,7 +792,7 @@ model Character {
   createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt             DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
   user                  User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  avatarMedia           MediaAsset?                @relation(fields: [avatarMediaId], references: [id], onDelete: SetNull)
+  avatarMedia           MediaAsset?                @relation(fields: [avatarMediaId], references: [id], onDelete: NoAction)
   aliases               CharacterAlias[]
   bookAppearances       BookCharacter[]
   forms                 CharacterForm[]
@@ -824,7 +824,7 @@ model CharacterForm {
   createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
   character       Character   @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  portraitMedia   MediaAsset? @relation(fields: [portraitMediaId], references: [id], onDelete: SetNull)
+  portraitMedia   MediaAsset? @relation(fields: [portraitMediaId], references: [id], onDelete: NoAction)
 
   @@unique([characterId, normalizedName])
   @@index([characterId])
@@ -885,7 +885,7 @@ model BookCharacter {
   updatedAt                   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
   book                        Book                @relation(fields: [bookId], references: [id], onDelete: Cascade)
   character                   Character           @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  portraitMedia               MediaAsset?         @relation(fields: [portraitMediaId], references: [id], onDelete: SetNull)
+  portraitMedia               MediaAsset?         @relation(fields: [portraitMediaId], references: [id], onDelete: NoAction)
   roles                       BookCharacterRole[]
 
   @@unique([bookId, characterId])

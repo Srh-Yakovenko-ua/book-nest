@@ -11,7 +11,8 @@ import type { GenerateThumbJob } from "../domain/media-queue.js";
 import type { StoragePort } from "../domain/storage.port.js";
 import type { MediaRepository } from "../infrastructure/media.repository.js";
 
-import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
+import { Prisma } from "../../../generated/prisma/client.js";
 import { fakeOf } from "../../../test/fake.js";
 import { CropOutOfBoundsError, ImageTooLargeError } from "../domain/image-processor.port.js";
 import { GENERATE_THUMB_JOB } from "../domain/media-queue.js";
@@ -101,6 +102,13 @@ function buildService(): {
     queue as unknown as Queue<GenerateThumbJob>,
   );
   return { imageProcessor, queue, realtime, repository, service, storage };
+}
+
+function foreignKeyViolation(): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError("Foreign key constraint violated", {
+    clientVersion: "test",
+    code: "P2003",
+  });
 }
 
 function fullImage(): ProcessedImage {
@@ -400,6 +408,61 @@ describe("MediaService.delete", () => {
     await expect(service.delete({ id: ASSET_ID, userId: USER_ID })).rejects.toBeInstanceOf(
       NotFoundError,
     );
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it("throws ConflictError and keeps the object when the row is still referenced", async () => {
+    const { repository, service, storage } = buildService();
+    repository.findOwnedById.mockResolvedValue(assetModel());
+    repository.deleteOwned.mockRejectedValue(foreignKeyViolation());
+
+    await expect(service.delete({ id: ASSET_ID, userId: USER_ID })).rejects.toBeInstanceOf(
+      ConflictError,
+    );
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it("propagates an unexpected repository failure instead of reporting a conflict", async () => {
+    const { repository, service, storage } = buildService();
+    repository.findOwnedById.mockResolvedValue(assetModel());
+    repository.deleteOwned.mockRejectedValue(new Error("connection reset"));
+
+    await expect(service.delete({ id: ASSET_ID, userId: USER_ID })).rejects.toThrow(
+      "connection reset",
+    );
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe("MediaService.deleteIfUnreferenced", () => {
+  it("removes the row and the object when nothing references it", async () => {
+    const { repository, service, storage } = buildService();
+    repository.findOwnedById.mockResolvedValue(assetModel());
+
+    await service.deleteIfUnreferenced({ id: ASSET_ID, userId: USER_ID });
+
+    expect(repository.deleteOwned).toHaveBeenCalledWith({ id: ASSET_ID, userId: USER_ID });
+    expect(storage.delete).toHaveBeenCalledWith(["media/book_cover/abc/image.webp"]);
+  });
+
+  it("keeps the object when the database still reports a reference", async () => {
+    const { repository, service, storage } = buildService();
+    repository.findOwnedById.mockResolvedValue(assetModel());
+    repository.deleteOwned.mockRejectedValue(foreignKeyViolation());
+
+    await expect(
+      service.deleteIfUnreferenced({ id: ASSET_ID, userId: USER_ID }),
+    ).resolves.toBeUndefined();
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when the asset is not owned", async () => {
+    const { repository, service, storage } = buildService();
+    repository.findOwnedById.mockResolvedValue(null);
+
+    await service.deleteIfUnreferenced({ id: ASSET_ID, userId: USER_ID });
+
+    expect(repository.deleteOwned).not.toHaveBeenCalled();
     expect(storage.delete).not.toHaveBeenCalled();
   });
 });

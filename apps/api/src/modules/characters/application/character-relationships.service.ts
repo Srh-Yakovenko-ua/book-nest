@@ -284,7 +284,7 @@ export class CharacterRelationshipsService {
     });
   }
 
-  private async assertCharactersOwned({
+  private assertCharactersOwned({
     characterIds,
     tx,
     userId,
@@ -293,16 +293,14 @@ export class CharacterRelationshipsService {
     tx: Prisma.TransactionClient;
     userId: string;
   }): Promise<void> {
-    const uniqueIds = [...new Set(characterIds)];
-    const owned = await this.relationshipsRepository.countOwnedCharacters(
-      { characterIds: uniqueIds, userId },
+    return this.accessAsserter.assertCharactersOwned(
+      {
+        characterIds,
+        notFoundCode: CHARACTER_RELATIONSHIP_ERROR_CODES.characterNotFound,
+        userId,
+      },
       tx,
     );
-    if (owned !== uniqueIds.length) {
-      throw new NotFoundError("Character not found", {
-        code: CHARACTER_RELATIONSHIP_ERROR_CODES.characterNotFound,
-      });
-    }
   }
 
   private async assertNoDuplicate({

@@ -1,7 +1,9 @@
 import { availableParallelism } from "node:os";
 import { defineConfig } from "vitest/config";
 
-const workerLimits = { max: 6, min: 2 };
+const workerLimits = { max: 3, min: 1 };
+
+const retryAttempts = 1;
 
 const requestedWorkers = Number.parseInt(process.env.VITEST_MAX_WORKERS ?? "", 10);
 const maxWorkers =
@@ -42,7 +44,7 @@ export default defineConfig({
     minWorkers: 1,
     pool: "forks",
     restoreMocks: true,
-    retry: 2,
+    retry: retryAttempts,
     setupFiles: ["./src/test/setup.ts"],
     testTimeout: 15000,
   },

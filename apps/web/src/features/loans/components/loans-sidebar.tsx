@@ -16,14 +16,24 @@ type LoansSidebarProps = {
   onAddBook: () => void;
 };
 
-export function LoansSidebar({ isLoading, nearest, onAddBook }: LoansSidebarProps) {
+export function LoansSidebar(props: LoansSidebarProps) {
   const t = useTranslations("loans.sidebar");
 
   return (
     <aside
       aria-label={t("tips.title")}
-      className="flex flex-col gap-4 xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
+      className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
+      <LoansSidebarSections {...props} />
+    </aside>
+  );
+}
+
+export function LoansSidebarSections({ isLoading, nearest, onAddBook }: LoansSidebarProps) {
+  const t = useTranslations("loans.sidebar");
+
+  return (
+    <>
       <SidebarBlock title={t("tips.title")}>
         <ul className="flex flex-col gap-2 text-xs leading-relaxed text-muted-foreground">
           <li className="flex gap-2">
@@ -68,7 +78,7 @@ export function LoansSidebar({ isLoading, nearest, onAddBook }: LoansSidebarProp
           {t("cta.button")}
         </Button>
       </SidebarBlock>
-    </aside>
+    </>
   );
 }
 

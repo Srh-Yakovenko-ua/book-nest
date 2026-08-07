@@ -38,6 +38,7 @@ import {
 import { useLibraryFilterChips } from "../model/use-library-filter-chips";
 import { useLibraryQuery } from "../model/use-library-query";
 import { BooksLibraryView } from "./books-library-view";
+import { FavoritesOverviewPanel } from "./favorites-overview-panel";
 import { FavoritesSidebar } from "./favorites-sidebar";
 import { LibraryActiveFilters } from "./library-active-filters";
 import { LibraryAdvancedFilters } from "./library-advanced-filters";
@@ -46,6 +47,7 @@ import { LibrarySearchInput } from "./library-search-input";
 import { topGenreIconSlot } from "./top-genre-icon-slot";
 
 const FAVORITES_SCOPE: LibraryScope = "favorites";
+const FAVORITES_MOBILE_TILE_COUNT = 4;
 
 export function FavoritesView() {
   const t = useTranslations("books.library");
@@ -255,12 +257,20 @@ export function FavoritesView() {
     );
   })();
 
+  const mobileLabels = (
+    key: "averageRating" | "finished" | "reading" | "topGenre" | "topTag" | "total",
+  ) => ({
+    compact: tFav(`summary.mobile.compact.${key}`),
+    detailed: tFav(`summary.mobile.detailed.${key}`),
+  });
+
   const summaryCards: LibrarySummaryCard[] = [
     {
       icon: "heart",
       iconTone: "favorite",
       label: tFav("summary.total"),
       microfact: totalMicrofact,
+      mobileLabels: mobileLabels("total"),
       unit: bookUnit(total),
       value: total,
     },
@@ -269,6 +279,7 @@ export function FavoritesView() {
       iconTone: "info",
       label: tFav("summary.reading"),
       microfact: readingMicrofact,
+      mobileLabels: mobileLabels("reading"),
       unit: bookUnit(reading),
       value: reading,
     },
@@ -277,6 +288,7 @@ export function FavoritesView() {
       iconTone: "success",
       label: tFav("summary.finished"),
       microfact: finishedMicrofact,
+      mobileLabels: mobileLabels("finished"),
       unit: bookUnit(finished),
       value: finished,
     },
@@ -285,6 +297,7 @@ export function FavoritesView() {
       iconTone: "primary",
       label: tFav("summary.averageRating"),
       microfact: ratingMicrofact,
+      mobileLabels: mobileLabels("averageRating"),
       value: formatAverageRating(averageRating, tFav("summary.averageRatingEmpty")),
     },
     {
@@ -293,6 +306,7 @@ export function FavoritesView() {
       iconTone: "genre",
       label: tFav("summary.topGenre"),
       microfact: topGenreMicrofact,
+      mobileLabels: mobileLabels("topGenre"),
       value: topGenreValue,
       valueClassName: topGenreValueClassName,
     },
@@ -301,10 +315,13 @@ export function FavoritesView() {
       iconTone: "tag",
       label: tFav("summary.topTag"),
       microfact: topTagMicrofact,
+      mobileLabels: mobileLabels("topTag"),
       value: topTagValue,
       valueClassName: topTagValueClassName,
     },
   ];
+
+  const mobileSummaryCards = summaryCards.slice(0, FAVORITES_MOBILE_TILE_COUNT);
 
   const sortOptions = LIBRARY_SORT_ORDER.map((value) => ({ label: tSortOptions(value), value }));
 
@@ -451,6 +468,15 @@ export function FavoritesView() {
         subtitle={tFav("subtitle")}
         summaryCards={summaryCards}
         summaryLoading={summary.isPending}
+        summaryMobileAction={
+          <FavoritesOverviewPanel
+            isLoading={summary.isPending}
+            summaryCards={summaryCards}
+            unrated={unrated}
+          />
+        }
+        summaryMobileCards={mobileSummaryCards}
+        summaryMobileLayout="compact"
         title={tFav("title")}
         view={library.view}
         viewLabels={{ grid: t("view.grid"), label: t("view.label"), list: t("view.list") }}

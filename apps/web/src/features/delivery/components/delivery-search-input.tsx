@@ -65,7 +65,7 @@ export function DeliverySearchInput({ onClear, onSearch, value }: DeliverySearch
         aria-label={t("label")}
         autoComplete="off"
         className={cn(
-          "h-10 w-full rounded-md border border-input bg-field pr-10 pl-10 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",
+          "h-10 w-full rounded-md border border-input bg-field pr-10 pl-10 text-sm text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
         )}
         enterKeyHint="search"
         onChange={(event) => handleChange(event.target.value)}

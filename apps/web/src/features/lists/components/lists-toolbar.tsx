@@ -1,10 +1,11 @@
 "use client";
 
-import type { ListSort } from "@app/shared";
-
+import { LayoutGrid, List } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import { UiIcon } from "@/components/icons";
+import { DebouncedSearchInput } from "@/components/debounced-search-input";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -12,82 +13,124 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { LibraryActiveFilters } from "@/features/books/components/library-active-filters";
 
-import { LIST_SORT_DEFAULT, LIST_SORT_OPTIONS } from "../model/lists-derive";
+import type { ListSort, ListsQueryState, ListViewMode } from "../model/lists-query";
+import type { UseListsQueryResult } from "../model/use-lists-query";
+
+import { LIST_SORT_DEFAULT, LIST_SORT_OPTIONS } from "../model/lists-query";
+import { useListsFilterChips } from "../model/use-lists-filter-chips";
+import { ListsAdvancedFilters } from "./lists-advanced-filters";
 
 type ListsToolbarProps = {
+  counter?: string;
+  onClearFilters: () => void;
   onSearchChange: (value: string) => void;
-  onSearchClear: () => void;
   onSortChange: (value: ListSort) => void;
-  search: string;
-  sort: ListSort;
+  onViewChange: (value: ListViewMode) => void;
+  setState: UseListsQueryResult["setState"];
+  state: ListsQueryState;
 };
 
 export function ListsToolbar({
+  counter,
+  onClearFilters,
   onSearchChange,
-  onSearchClear,
   onSortChange,
-  search,
-  sort,
+  onViewChange,
+  setState,
+  state,
 }: ListsToolbarProps) {
+  const chips = useListsFilterChips({ setState, state });
   const t = useTranslations("lists.catalog");
   const tSort = useTranslations("lists.catalog.sort");
+  const tSortMobile = useTranslations("lists.catalog.sort.mobile");
+  const tView = useTranslations("lists.catalog.view");
   const tCommon = useTranslations("common");
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-      <div className="relative flex items-center lg:flex-1">
-        <UiIcon
-          aria-hidden
-          className="pointer-events-none absolute left-3 text-muted-foreground"
-          name="search"
-          size={18}
-        />
-        <input
-          aria-label={t("search.placeholder")}
-          autoComplete="off"
-          className={cn(
-            "h-10 w-full rounded-md border border-input bg-field pr-10 pl-10 text-base text-foreground transition-colors outline-none placeholder:text-muted-foreground hover:border-accent-border focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm",
-          )}
-          enterKeyHint="search"
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder={t("search.placeholder")}
-          type="text"
-          value={search}
-        />
-        {search.length > 0 ? (
-          <button
-            aria-label={t("noResults.clear")}
-            className="absolute right-2 grid size-6 cursor-pointer place-items-center rounded-md border border-transparent text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-            onClick={onSearchClear}
-            type="button"
-          >
-            <UiIcon name="x" size={16} />
-          </button>
-        ) : null}
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="lg:flex-1">
+          <DebouncedSearchInput
+            clearLabel={t("noResults.clear")}
+            label={t("search.placeholder")}
+            onClear={() => onSearchChange("")}
+            onSearch={onSearchChange}
+            placeholder={t("search.placeholder")}
+            value={state.q}
+          />
+        </div>
+
+        <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2.5">
+          <MobileSortSheet
+            className="sm:hidden"
+            closeLabel={tSortMobile("close")}
+            groups={[
+              {
+                key: "sort",
+                options: LIST_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
+              },
+            ]}
+            id="lists-sort"
+            label={t("sort.label")}
+            onChange={onSortChange}
+            title={tSortMobile("title")}
+            triggerLabel={tSortMobile(`trigger.${state.sort}`)}
+            value={state.sort}
+          />
+
+          <div className="hidden sm:block sm:w-80">
+            <Select onValueChange={(next) => onSortChange(next as ListSort)} value={state.sort}>
+              <SelectTrigger
+                aria-label={t("sort.label")}
+                className="h-10 w-full data-[size=default]:h-10"
+                clearLabel={tCommon("clear")}
+                isClearable={state.sort !== LIST_SORT_DEFAULT}
+                onClear={() => onSortChange(LIST_SORT_DEFAULT)}
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LIST_SORT_OPTIONS.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {tSort(value)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <ListsAdvancedFilters setState={setState} state={state} />
+
+          <Segmented
+            className="ml-auto h-10 shrink-0 items-stretch sm:ml-0 [&_[data-slot=segmented-item]]:py-0 max-sm:[&_[data-slot=segmented-item]]:px-2.5"
+            label={tView("label")}
+            onValueChange={(next) => onViewChange(next === "list" ? "list" : "grid")}
+            options={[
+              {
+                icon: <LayoutGrid />,
+                label: <span className="max-sm:sr-only">{tView("grid")}</span>,
+                value: "grid",
+              },
+              {
+                icon: <List />,
+                label: <span className="max-sm:sr-only">{tView("list")}</span>,
+                value: "list",
+              },
+            ]}
+            value={state.view}
+          />
+        </div>
       </div>
 
-      <div className="w-full sm:w-56">
-        <Select onValueChange={(next) => onSortChange(next as ListSort)} value={sort}>
-          <SelectTrigger
-            aria-label={t("sort.label")}
-            className="h-10 w-full data-[size=default]:h-10"
-            clearLabel={tCommon("clear")}
-            isClearable={sort !== LIST_SORT_DEFAULT}
-            onClear={() => onSortChange(LIST_SORT_DEFAULT)}
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {LIST_SORT_OPTIONS.map((value) => (
-              <SelectItem key={value} value={value}>
-                {tSort(value)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <LibraryActiveFilters chips={chips} onClearAll={onClearFilters} />
+
+      {counter === undefined ? null : (
+        <p aria-live="polite" className="mt-1 text-sm text-muted-foreground">
+          {counter}
+        </p>
+      )}
     </div>
   );
 }

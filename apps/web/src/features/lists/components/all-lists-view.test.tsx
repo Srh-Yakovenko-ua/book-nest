@@ -20,20 +20,28 @@ type ViewProps = Parameters<typeof AllListsView>[0];
 
 function renderView(overrides: Partial<ViewProps> = {}) {
   const props: ViewProps = {
+    allShownLabel: "Усі списки показано",
     hasActiveFilters: false,
     hasAnyLists: true,
+    hasNextPage: false,
     isError: false,
+    isFetchingNextPage: false,
+    isLoadMoreError: false,
     isPending: false,
     lists: [makeCustomListCard()],
+    loadMoreErrorLabel: "Не вдалося завантажити ще списки",
+    loadMoreLabel: "Показати ще",
     onClearFilters: vi.fn(),
     onCreateList: vi.fn(),
     onDeleteList: vi.fn(),
     onEditList: vi.fn(),
+    onLoadMore: vi.fn(),
     onOpenLibrary: vi.fn(),
     onRetry: vi.fn(),
     sidebar: <div>SIDEBAR</div>,
     summary: <div>SUMMARY</div>,
     toolbar: <div>TOOLBAR</div>,
+    view: "grid",
     ...overrides,
   };
   return renderWithProviders(<AllListsView {...props} />);
@@ -108,6 +116,21 @@ describe("AllListsView", () => {
     await userEvent.click(screen.getByRole("button", { name: "Скинути фільтри" }));
 
     expect(onClearFilters).toHaveBeenCalledOnce();
+  });
+
+  it("loads the next page from the pagination footer", async () => {
+    const onLoadMore = vi.fn();
+    renderView({ hasNextPage: true, onLoadMore });
+
+    await userEvent.click(screen.getByRole("button", { name: "Показати ще" }));
+
+    expect(onLoadMore).toHaveBeenCalledOnce();
+  });
+
+  it("reports that every list is shown once the last page is loaded", () => {
+    renderView({ hasNextPage: false });
+
+    expect(screen.getByText("Усі списки показано")).toBeInTheDocument();
   });
 
   it("shows the summary cards once lists are loaded and hides them on error", () => {
