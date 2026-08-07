@@ -1,5 +1,4 @@
 import type { INestApplication } from "@nestjs/common";
-import type { Server } from "node:http";
 import type { Socket } from "node:net";
 
 import { getQueueToken } from "@nestjs/bullmq";
@@ -12,6 +11,7 @@ import type { AuthTestContext } from "../../../test/auth-test-context.js";
 import type { ProcessedImage } from "../domain/image-processor.port.js";
 
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
+import { testAppPort } from "../../../test/create-test-app.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
 import { MediaService } from "../application/media.service.js";
@@ -90,19 +90,6 @@ let serverPort: number;
 let pngBuffer: Buffer;
 let accessToken: string;
 
-function listenOnEphemeralPort(server: Server): Promise<number> {
-  return new Promise((resolve, reject) => {
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      if (address === null || typeof address === "string") {
-        reject(new Error("http server is not bound to a tcp port"));
-        return;
-      }
-      resolve(address.port);
-    });
-  });
-}
-
 beforeAll(async () => {
   context = await createAuthTestContext(
     [AuthModule, MediaModule],
@@ -115,7 +102,7 @@ beforeAll(async () => {
   app = context.app;
   mediaService = app.get(MediaService);
   uploadDirectly = MediaService.prototype.upload.bind(mediaService);
-  serverPort = await listenOnEphemeralPort(app.getHttpServer());
+  serverPort = testAppPort(app);
   pngBuffer = await sharp({
     create: { background: { b: 80, g: 120, r: 200 }, channels: 3, height: 90, width: 60 },
   })

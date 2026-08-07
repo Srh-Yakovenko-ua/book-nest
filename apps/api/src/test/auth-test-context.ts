@@ -2,7 +2,7 @@ import type { INestApplication, InjectionToken, ModuleMetadata } from "@nestjs/c
 
 import { HttpStatus } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import request from "supertest";
+import request, { type Response } from "supertest";
 
 import { MailService } from "../modules/mail/application/mail.service.js";
 import { createTestApp } from "./create-test-app.js";
@@ -98,9 +98,7 @@ export async function createAuthTestContext(
       .post("/api/auth/registration")
       .send(credentials);
     if (registerRes.status !== HttpStatus.CREATED) {
-      throw new Error(
-        `registration failed with status ${registerRes.status}: ${JSON.stringify(registerRes.body)}`,
-      );
+      throw new Error(`registration failed — ${describeResponse(registerRes)}`);
     }
 
     const sent = await waitForVerification(credentials.email);
@@ -108,9 +106,7 @@ export async function createAuthTestContext(
       .post("/api/auth/verify-email")
       .send({ token: tokenFromUrl(sent.verificationUrl) });
     if (verifyRes.status !== HttpStatus.OK) {
-      throw new Error(
-        `email verification failed with status ${verifyRes.status}: ${JSON.stringify(verifyRes.body)}`,
-      );
+      throw new Error(`email verification failed — ${describeResponse(verifyRes)}`);
     }
 
     const res = await request(app.getHttpServer())
@@ -132,6 +128,12 @@ export async function createAuthTestContext(
       sentVerifications.length = 0;
     },
   };
+}
+
+function describeResponse(res: Response): string {
+  const contentType = res.headers["content-type"] ?? "no content-type";
+  const payload = res.text === "" ? JSON.stringify(res.body) : res.text;
+  return `status ${res.status} (${contentType}) from ${res.request.url}: ${payload}`;
 }
 
 function tokenFromUrl(verificationUrl: string): string {

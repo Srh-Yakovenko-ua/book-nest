@@ -269,9 +269,14 @@ describe("GET /api/books/dedications", () => {
         userId,
       });
 
-      await prisma.book.update({ data: { title: "First" }, where: { id: first.id } });
-      await prisma.book.update({ data: { title: "Third" }, where: { id: third.id } });
-      await prisma.book.update({ data: { title: "Second" }, where: { id: second.id } });
+      const updatedAt = {
+        first: new Date("2024-03-01T00:00:00Z"),
+        second: new Date("2024-03-03T00:00:00Z"),
+        third: new Date("2024-03-02T00:00:00Z"),
+      };
+      await prisma.book.update({ data: { updatedAt: updatedAt.first }, where: { id: first.id } });
+      await prisma.book.update({ data: { updatedAt: updatedAt.third }, where: { id: third.id } });
+      await prisma.book.update({ data: { updatedAt: updatedAt.second }, where: { id: second.id } });
 
       const res = await getDedications(accessToken, { sort: "recently_updated" });
 
