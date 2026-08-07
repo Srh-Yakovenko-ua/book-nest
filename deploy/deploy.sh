@@ -24,6 +24,20 @@ case "$ENV" in
 esac
 
 image_ref="ghcr.io/srh-yakovenko-ua/booknest-api:${ENV}"
+maintenance_flag="maintenance/prod.on"
+
+maintenance_on() {
+	[ "$ENV" = "prod" ] || return 0
+	mkdir -p maintenance
+	: > "$maintenance_flag"
+	echo ">>> maintenance page is up"
+}
+
+maintenance_off() {
+	[ "$ENV" = "prod" ] || return 0
+	rm -f "$maintenance_flag"
+	echo ">>> maintenance page is down"
+}
 
 prev_image=""
 if [ -n "$api" ]; then
@@ -33,11 +47,16 @@ if [ -n "$api" ]; then
 	fi
 fi
 
+docker compose up -d --no-deps caddy
+docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>/dev/null || docker compose up -d --force-recreate --no-deps caddy
+
+trap maintenance_off EXIT HUP INT TERM
+maintenance_on
+
 docker compose pull $services
 docker compose up -d $services
 
-docker compose up -d caddy
-docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>/dev/null || docker compose up -d --force-recreate caddy
+docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile 2>/dev/null || docker compose up -d --force-recreate --no-deps caddy
 
 if [ -n "$api" ]; then
 	cid="$(docker compose ps -q "$api")"

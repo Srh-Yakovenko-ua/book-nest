@@ -249,9 +249,10 @@ jobs:
           } > /tmp/server.env
 
           $SSHC "$USER@$HOST" "mkdir -p ~/booknest"
-          $SCPC deploy/docker-compose.yml deploy/Caddyfile deploy/deploy.sh deploy/README.md "$USER@$HOST:~/booknest/"
+          $SCPC deploy/docker-compose.yml deploy/Caddyfile deploy/deploy.sh deploy/maintenance.sh deploy/README.md "$USER@$HOST:~/booknest/"
+          $SCPC -r deploy/maintenance "$USER@$HOST:~/booknest/"
           $SCPC /tmp/server.env "$USER@$HOST:~/booknest/.env"
-          $SSHC "$USER@$HOST" "chmod +x ~/booknest/deploy.sh && chmod 600 ~/booknest/.env"
+          $SSHC "$USER@$HOST" "chmod +x ~/booknest/deploy.sh ~/booknest/maintenance.sh && chmod 600 ~/booknest/.env"
           rm -f /tmp/server.env
 
           $SSHC "$USER@$HOST" ENV="$ENV" GHCR_USER="$GHCR_USER" GHCR_TOKEN="$GHCR_TOKEN" 'bash -s' <<'REMOTE'

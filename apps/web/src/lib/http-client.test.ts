@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useMaintenanceStore } from "@/features/maintenance";
 import { registerAuthBridge } from "@/lib/auth-bridge";
 import { ApiError, request } from "@/lib/http-client";
 
@@ -148,5 +149,36 @@ describe("request refresh-on-401 single-flight", () => {
     await request("/api/auth/login", { method: "POST" }).catch(() => {});
 
     expect(refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe("maintenance detection", () => {
+  beforeEach(() => {
+    useMaintenanceStore.getState().end();
+  });
+
+  it("flags maintenance when a 503 carries the x-maintenance header", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ code: "MAINTENANCE", message: "updating" }), {
+        headers: { "Content-Type": "application/json", "x-maintenance": "1" },
+        status: 503,
+      }),
+    );
+
+    const error = await captureError(request("/api/books"));
+
+    expect(error.status).toBe(503);
+    expect(useMaintenanceStore.getState().active).toBe(true);
+  });
+
+  it("leaves a bare 503 as an ordinary error so upload backpressure still surfaces", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ code: "SERVER_BUSY", message: "Server is busy, please retry" }, 503),
+    );
+
+    const error = await captureError(request("/api/media"));
+
+    expect(error.code).toBe("SERVER_BUSY");
+    expect(useMaintenanceStore.getState().active).toBe(false);
   });
 });
