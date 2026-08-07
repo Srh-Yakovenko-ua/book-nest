@@ -69,7 +69,7 @@ describe("QueueSummaryCards", () => {
   it("omits zero ownership categories from the unavailable caption", () => {
     renderCards();
 
-    expect(screen.getByText("1 хочу купити · 2 в дорозі")).toBeInTheDocument();
+    expect(screen.getByText("1 у списку бажань · 2 в дорозі")).toBeInTheDocument();
   });
 
   it("splits the series count into healthy and problematic ones", () => {

@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
+import { statusEntry } from "@/lib/book-status.fixtures";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
@@ -11,12 +12,10 @@ import type { LibrarySummaryCard } from "./library-summary-cards";
 import { BooksLibraryView } from "./books-library-view";
 import { LibrarySummarySidebar } from "./library-summary-sidebar";
 
-const reading = readingStatuses.find((status) => status.value === "reading") ?? readingStatuses[0];
-const owned = ownershipStatuses.find((status) => status.value === "owned") ?? ownershipStatuses[0];
-const finished =
-  readingStatuses.find((status) => status.value === "finished") ?? readingStatuses[0];
-const wantToRead =
-  readingStatuses.find((status) => status.value === "want_to_read") ?? readingStatuses[0];
+const reading = statusEntry(readingStatuses, "reading", "Читаю");
+const owned = statusEntry(ownershipStatuses, "owned", "У наявності");
+const finished = statusEntry(readingStatuses, "finished", "Прочитано");
+const wantToRead = statusEntry(readingStatuses, "want_to_read", "Хочу прочитати");
 
 const books: LibraryBook[] = [
   {

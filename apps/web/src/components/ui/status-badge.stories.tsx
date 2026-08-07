@@ -7,14 +7,19 @@ import {
   loanDueStatuses,
   ownershipStatuses,
   readingStatuses,
+  type StatusDefinition,
   type StatusEntry,
 } from "@/lib/book-status";
 
 import { StatusBadge } from "./status-badge";
 
+function withLabel(entry: StatusDefinition): StatusEntry {
+  return { ...entry, label: entry.value };
+}
+
 const meta = {
   args: {
-    entry: readingStatuses[2],
+    entry: withLabel(readingStatuses[2]),
   },
   component: StatusBadge,
   tags: ["ai-generated"],
@@ -25,7 +30,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-function Row({ entries, title }: { entries: readonly StatusEntry[]; title: string }) {
+function Row({ entries, title }: { entries: readonly StatusDefinition[]; title: string }) {
   return (
     <section className="flex flex-col gap-2">
       <h3 className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
@@ -33,7 +38,7 @@ function Row({ entries, title }: { entries: readonly StatusEntry[]; title: strin
       </h3>
       <div className="flex flex-wrap gap-2">
         {entries.map((entry) => (
-          <StatusBadge entry={entry} key={entry.value} />
+          <StatusBadge entry={withLabel(entry)} key={entry.value} />
         ))}
       </div>
     </section>
@@ -42,7 +47,7 @@ function Row({ entries, title }: { entries: readonly StatusEntry[]; title: strin
 
 export const Single: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(readingStatuses[2].label)).toBeVisible();
+    await expect(canvas.getByText(readingStatuses[2].value)).toBeVisible();
   },
 };
 

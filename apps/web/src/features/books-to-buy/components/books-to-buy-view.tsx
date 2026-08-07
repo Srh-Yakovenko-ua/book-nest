@@ -10,7 +10,6 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useGenres } from "@/features/books";
 import { LibrarySummaryMobile } from "@/features/books/components/library-summary-mobile";
@@ -127,11 +126,6 @@ export function BooksToBuyView() {
               {t("title")}
             </h1>
             <TitleLeaf />
-            {data ? (
-              <Badge variant="secondary">
-                {t("countBadge", { count: data.summary.booksCount })}
-              </Badge>
-            ) : null}
           </div>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
             {t("subtitle")}

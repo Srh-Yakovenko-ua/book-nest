@@ -36,9 +36,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 async function openRemoveDialog() {
   await userEvent.click(screen.getByRole("button", { name: "Інші дії для «Останнє бажання»" }));
-  await userEvent.click(
-    await screen.findByRole("menuitem", { name: "Прибрати зі списку покупок" }),
-  );
+  await userEvent.click(await screen.findByRole("menuitem", { name: "Прибрати зі списку бажань" }));
 }
 
 function removeCall() {
@@ -107,7 +105,7 @@ describe("BooksToBuyRow", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Прибрати зі списку" }));
 
     await waitFor(() => expect(removeCall()).toBeDefined());
-    expect(toast.success).toHaveBeenCalledWith("Книгу прибрано зі списку покупок");
+    expect(toast.success).toHaveBeenCalledWith("Книгу прибрано зі списку бажань");
   });
 
   it("keeps the book when the removal dialog is dismissed", async () => {
@@ -127,7 +125,7 @@ describe("BooksToBuyRow", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Прибрати зі списку" }));
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("Ця книга більше не знаходиться у списку покупок"),
+      expect(toast.error).toHaveBeenCalledWith("Ця книга більше не в списку бажань"),
     );
   });
 
@@ -139,7 +137,7 @@ describe("BooksToBuyRow", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Прибрати зі списку" }));
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("Не вдалося прибрати книгу зі списку покупок"),
+      expect(toast.error).toHaveBeenCalledWith("Не вдалося прибрати книгу зі списку бажань"),
     );
   });
 });

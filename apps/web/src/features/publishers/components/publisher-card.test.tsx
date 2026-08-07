@@ -38,7 +38,7 @@ describe("PublisherCard", () => {
     );
 
     expect(screen.getByText("Прочитано: 5")).toBeInTheDocument();
-    expect(screen.getByText("До покупки: 3")).toBeInTheDocument();
+    expect(screen.getByText("Бажані: 3")).toBeInTheDocument();
   });
 
   it("shows the no-rating copy instead of a fake number for an unrated publisher", () => {

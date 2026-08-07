@@ -6,8 +6,10 @@ import type { GuardedChangeOutcome } from "../infrastructure/books.repository.js
 import type { BooksRepository } from "../infrastructure/books.repository.js";
 import type { BookViewAssembler } from "./book-view-assembler.js";
 
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { computeOwnershipChange } from "../domain/ownership-transition.js";
+import { BookStoreLinkRepository } from "../infrastructure/book-store-link.repository.js";
 import { BookOwnershipService } from "./book-ownership.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -25,9 +27,25 @@ function setup(ownershipStatus: string, outcome: GuardedChangeOutcome = "applied
   const loadView = vi.fn().mockResolvedValue(VIEW);
   const viewAssembler = { loadView } as unknown as BookViewAssembler;
 
-  const service = new BookOwnershipService(booksRepository, viewAssembler);
+  const storeLinkRepository = {
+    acquireBookStoreLinkLock: vi.fn().mockResolvedValue(undefined),
+    countByBook: vi.fn().mockResolvedValue(0),
+    create: vi.fn().mockResolvedValue({}),
+    findByBookAndUrl: vi.fn().mockResolvedValue(null),
+    update: vi.fn().mockResolvedValue({}),
+  } as unknown as BookStoreLinkRepository;
+  const transactionRunner = {
+    run: vi.fn().mockImplementation((fn: (tx: unknown) => unknown) => fn({})),
+  } as unknown as TransactionRunner;
 
-  return { applyOwnershipChange, loadView, service };
+  const service = new BookOwnershipService(
+    booksRepository,
+    storeLinkRepository,
+    transactionRunner,
+    viewAssembler,
+  );
+
+  return { applyOwnershipChange, loadView, service, storeLinkRepository };
 }
 
 describe("BookOwnershipService.removeFromWishlist", () => {

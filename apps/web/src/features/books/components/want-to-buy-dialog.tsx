@@ -27,7 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -40,7 +39,6 @@ import { useWantToBuy } from "../api/use-ownership";
 const CURRENCY_OPTIONS = ["UAH", "EUR", "USD"] as const satisfies readonly Currency[];
 const STORE_NAME_MAX = 100;
 const STORE_URL_MAX = 300;
-const NOTE_MAX = 300;
 const PRICE_MIN = 0;
 const PRICE_MAX = 99999999.99;
 
@@ -53,18 +51,19 @@ type WantToBuyDialogProps = {
 };
 
 type WantToBuyMessages = {
-  noteMax: string;
   price: string;
   priceMax: string;
   storeNameMax: string;
+  storeNameRequired: string;
+  storeRequiredForPrice: string;
   storeUrl: string;
   storeUrlMax: string;
+  storeUrlRequired: string;
 };
 
 type WantToBuyValues = {
   currency: "" | Currency;
   expectedPrice: string;
-  note: string;
   storeName: string;
   storeUrl: string;
 };
@@ -80,39 +79,69 @@ export function WantToBuyDialog({ book, onOpenChange, open }: WantToBuyDialogPro
 }
 
 function buildPayload(values: WantToBuyValues): WantToBuyInput {
-  const payload: WantToBuyInput = {};
   const storeName = values.storeName.trim();
-  const storeUrl = values.storeUrl.trim();
+  const url = values.storeUrl.trim();
+  if (storeName.length === 0 || url.length === 0) {
+    return {};
+  }
+
   const price = Number(values.expectedPrice);
-  const note = values.note.trim();
+  const hasPrice = values.expectedPrice.trim().length > 0 && Number.isFinite(price);
 
-  if (storeName.length > 0) payload.storeName = storeName;
-  if (storeUrl.length > 0) payload.storeUrl = storeUrl;
-  if (values.expectedPrice.trim().length > 0 && Number.isFinite(price))
-    payload.expectedPrice = price;
-  if (values.currency !== "") payload.currency = values.currency;
-  if (note.length > 0) payload.note = note;
-
-  return payload;
+  return {
+    storeLink: {
+      currency: values.currency === "" ? null : values.currency,
+      price: hasPrice ? price : null,
+      storeName,
+      url,
+    },
+  };
 }
 
 function buildSchema(messages: WantToBuyMessages) {
-  return z.object({
-    currency: z.enum(["", "UAH", "EUR", "USD"]),
-    expectedPrice: z
-      .string()
-      .refine((value) => value.trim().length === 0 || Number(value) > PRICE_MIN, messages.price)
-      .refine(
-        (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
-        messages.priceMax,
-      ),
-    note: z.string().max(NOTE_MAX, messages.noteMax),
-    storeName: z.string().max(STORE_NAME_MAX, messages.storeNameMax),
-    storeUrl: z
-      .string()
-      .refine((value) => value.trim().length === 0 || isHttpsUrl(value.trim()), messages.storeUrl)
-      .refine((value) => value.trim().length <= STORE_URL_MAX, messages.storeUrlMax),
-  });
+  return z
+    .object({
+      currency: z.enum(["", "UAH", "EUR", "USD"]),
+      expectedPrice: z
+        .string()
+        .refine((value) => value.trim().length === 0 || Number(value) > PRICE_MIN, messages.price)
+        .refine(
+          (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
+          messages.priceMax,
+        ),
+      storeName: z.string().max(STORE_NAME_MAX, messages.storeNameMax),
+      storeUrl: z
+        .string()
+        .refine((value) => value.trim().length === 0 || isHttpsUrl(value.trim()), messages.storeUrl)
+        .refine((value) => value.trim().length <= STORE_URL_MAX, messages.storeUrlMax),
+    })
+    .superRefine((values, context) => {
+      const storeName = values.storeName.trim();
+      const storeUrl = values.storeUrl.trim();
+      const hasPrice = values.expectedPrice.trim().length > 0;
+
+      if (storeUrl.length > 0 && storeName.length === 0) {
+        context.addIssue({
+          code: "custom",
+          message: messages.storeNameRequired,
+          path: ["storeName"],
+        });
+      }
+      if (storeName.length > 0 && storeUrl.length === 0) {
+        context.addIssue({
+          code: "custom",
+          message: messages.storeUrlRequired,
+          path: ["storeUrl"],
+        });
+      }
+      if (hasPrice && storeUrl.length === 0 && storeName.length === 0) {
+        context.addIssue({
+          code: "custom",
+          message: messages.storeRequiredForPrice,
+          path: ["storeUrl"],
+        });
+      }
+    });
 }
 
 function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => void }) {
@@ -128,16 +157,18 @@ function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => vo
     handleSubmit,
     register,
   } = useForm<WantToBuyValues>({
-    defaultValues: { currency: "", expectedPrice: "", note: "", storeName: "", storeUrl: "" },
+    defaultValues: { currency: "", expectedPrice: "", storeName: "", storeUrl: "" },
     mode: "onTouched",
     resolver: zodResolver(
       buildSchema({
-        noteMax: tErrors("noteMax", { max: NOTE_MAX }),
         price: tErrors("price"),
         priceMax: tErrors("priceMax"),
         storeNameMax: tErrors("storeNameMax", { max: STORE_NAME_MAX }),
+        storeNameRequired: tErrors("storeNameRequired"),
+        storeRequiredForPrice: tErrors("storeRequiredForPrice"),
         storeUrl: tErrors("storeUrl"),
         storeUrlMax: tErrors("storeUrlMax", { max: STORE_URL_MAX }),
+        storeUrlRequired: tErrors("storeUrlRequired"),
       }),
     ),
   });
@@ -158,7 +189,7 @@ function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => vo
     <form className="flex flex-col gap-5" noValidate onSubmit={onSubmit}>
       <DialogHeader>
         <DialogTitle>{t("title")}</DialogTitle>
-        <DialogDescription>{t("description")}</DialogDescription>
+        <DialogDescription>{t("wishlistDescription")}</DialogDescription>
       </DialogHeader>
 
       <div className="flex flex-col gap-2">
@@ -241,38 +272,6 @@ function WantToBuyForm({ book, onDone }: { book: WantToBuyBook; onDone: () => vo
             )}
           />
         </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="buy-note">{t("note")}</Label>
-        <Controller
-          control={control}
-          name="note"
-          render={({ field }) => (
-            <>
-              <Textarea
-                aria-describedby={
-                  errors.note ? "buy-note-error buy-note-counter" : "buy-note-counter"
-                }
-                aria-invalid={errors.note !== undefined}
-                id="buy-note"
-                maxLength={NOTE_MAX}
-                onChange={field.onChange}
-                placeholder={t("notePlaceholder")}
-                value={field.value}
-              />
-              <div className="flex items-center justify-between gap-2">
-                <FieldError error={errors.note} id="buy-note-error" />
-                <span
-                  className="ml-auto text-xs text-muted-foreground tabular-nums"
-                  id="buy-note-counter"
-                >
-                  {field.value.length}/{NOTE_MAX}
-                </span>
-              </div>
-            </>
-          )}
-        />
       </div>
 
       {serverError === null ? null : (

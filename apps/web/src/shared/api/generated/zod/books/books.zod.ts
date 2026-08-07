@@ -6325,23 +6325,26 @@ export const BookOwnershipControllerWantToBuyParams = zod.object({
   id: zod.string(),
 });
 
-export const bookOwnershipControllerWantToBuyBodyExpectedPriceMin = 0;
-export const bookOwnershipControllerWantToBuyBodyExpectedPriceMax = 99999999.99;
+export const bookOwnershipControllerWantToBuyBodyStoreLinkPriceMin = 0;
+export const bookOwnershipControllerWantToBuyBodyStoreLinkPriceMax = 99999999.99;
 
-export const bookOwnershipControllerWantToBuyBodyStoreUrlMax = 300;
+export const bookOwnershipControllerWantToBuyBodyStoreLinkUrlMax = 300;
 
 export const BookOwnershipControllerWantToBuyBody = zod.object({
-  currency: zod
-    .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
-    .nullish(),
-  expectedPrice: zod
-    .number()
-    .min(bookOwnershipControllerWantToBuyBodyExpectedPriceMin)
-    .max(bookOwnershipControllerWantToBuyBodyExpectedPriceMax)
-    .nullish(),
-  note: zod.string().nullish(),
-  storeName: zod.string().nullish(),
-  storeUrl: zod.string().max(bookOwnershipControllerWantToBuyBodyStoreUrlMax).nullish(),
+  storeLink: zod
+    .object({
+      currency: zod
+        .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+        .nullish(),
+      price: zod
+        .number()
+        .min(bookOwnershipControllerWantToBuyBodyStoreLinkPriceMin)
+        .max(bookOwnershipControllerWantToBuyBodyStoreLinkPriceMax)
+        .nullish(),
+      storeName: zod.string(),
+      url: zod.string().max(bookOwnershipControllerWantToBuyBodyStoreLinkUrlMax),
+    })
+    .optional(),
 });
 
 export const bookOwnershipControllerWantToBuyResponseQueuePriorityTargetDateRegExp = new RegExp(
