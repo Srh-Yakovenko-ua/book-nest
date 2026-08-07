@@ -304,7 +304,7 @@ describe("POST /api/books/:id/ownership/want-to-buy", () => {
     expect(res.body.purchaseInfo).toBeNull();
   });
 
-  it("stores the provided purchase fields without a purchase date", async () => {
+  it("tracks the given store as a link and leaves purchase info empty", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
@@ -312,19 +312,49 @@ describe("POST /api/books/:id/ownership/want-to-buy", () => {
     });
 
     const res = await ownershipAction(accessToken, created.body.id, "want-to-buy", {
-      currency: "UAH",
-      expectedPrice: 299.99,
-      storeName: "Yakaboo",
+      storeLink: {
+        currency: "UAH",
+        price: 299.99,
+        storeName: "Yakaboo",
+        url: "https://yakaboo.ua/dune",
+      },
     });
 
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("want_to_buy");
-    expect(res.body.purchaseInfo).toMatchObject({
+    expect(res.body.purchaseInfo).toBeNull();
+
+    const links = await listStoreLinks(accessToken, created.body.id);
+    expect(links.body.storeLinks).toHaveLength(1);
+    expect(links.body.storeLinks[0]).toMatchObject({
       currency: "UAH",
-      expectedPrice: 299.99,
+      price: 299.99,
       storeName: "Yakaboo",
+      url: "https://yakaboo.ua/dune",
     });
-    expect(res.body.purchaseInfo.purchasedAt).toBeNull();
+  });
+
+  it("refreshes the price instead of failing when the url is already tracked", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      title: "Dune",
+    });
+    await addStoreLink(accessToken, created.body.id, {
+      price: 500,
+      storeName: "Yakaboo",
+      url: "https://yakaboo.ua/dune",
+    });
+
+    const res = await ownershipAction(accessToken, created.body.id, "want-to-buy", {
+      storeLink: { price: 299.99, storeName: "Yakaboo", url: "https://yakaboo.ua/dune" },
+    });
+
+    expect(res.status).toBe(200);
+
+    const links = await listStoreLinks(accessToken, created.body.id);
+    expect(links.body.storeLinks).toHaveLength(1);
+    expect(links.body.storeLinks[0].price).toBe(299.99);
   });
 
   it("returns 409 when the book is not in the none ownership state", async () => {
@@ -348,12 +378,12 @@ describe("POST /api/books/:id/ownership/want-to-buy", () => {
     });
 
     const res = await ownershipAction(accessToken, created.body.id, "want-to-buy", {
-      expectedPrice: -1,
+      storeLink: { price: -1, storeName: "Yakaboo", url: "https://yakaboo.ua/dune" },
     });
 
     expect(res.status).toBe(400);
     expect(res.body.errorsMessages).toEqual(
-      expect.arrayContaining([expect.objectContaining({ field: "expectedPrice" })]),
+      expect.arrayContaining([expect.objectContaining({ field: "storeLink.price" })]),
     );
   });
 
@@ -365,11 +395,13 @@ describe("POST /api/books/:id/ownership/want-to-buy", () => {
     });
 
     const res = await ownershipAction(accessToken, created.body.id, "want-to-buy", {
-      expectedPrice: 0,
+      storeLink: { price: 0, storeName: "Yakaboo", url: "https://yakaboo.ua/dune" },
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.purchaseInfo.expectedPrice).toBe(0);
+
+    const links = await listStoreLinks(accessToken, created.body.id);
+    expect(links.body.storeLinks[0].price).toBe(0);
   });
 });
 
