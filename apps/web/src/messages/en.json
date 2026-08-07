@@ -1911,6 +1911,37 @@
     "subtitle": "Books you want to purchase and add to your collection",
     "countBadge": "{count, plural, one {# book} other {# books}}",
     "addBook": "Add book",
+    "summary": {
+      "empty": "—",
+      "mobile": {
+        "title": "Detailed stats",
+        "compact": {
+          "books": "Books",
+          "stores": "Stores",
+          "best": "Best",
+          "average": "Average",
+          "total": "Total"
+        },
+        "detailed": {
+          "books": "Books in the list",
+          "stores": "Stores tracked",
+          "best": "Best offer",
+          "average": "Average price",
+          "total": "Estimated total"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Purchase overview",
+      "title": "Purchase overview",
+      "subtitle": "Stats, best deals and quick actions",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "offers": "Deals",
+        "actions": "Actions"
+      }
+    },
     "sidebar": {
       "label": "Purchase overview",
       "stats": {
@@ -1947,12 +1978,16 @@
       "sortLabel": "Sorting",
       "storeLabel": "By store",
       "storeAny": "All stores",
+      "storeShort": "Store",
       "publisherLabel": "By publisher",
       "publisherAny": "All publishers",
+      "publisherShort": "Publisher",
       "genreLabel": "By genre",
       "genreAny": "All genres",
+      "genreShort": "Genre",
       "tagLabel": "By tag",
-      "tagAny": "All tags"
+      "tagAny": "All tags",
+      "tagShort": "Tag"
     },
     "linkFilter": {
       "all": "All",
@@ -3734,6 +3769,26 @@
           "text": "Use the search or add a new note to a book or series.",
           "cta": "Add note"
         }
+      },
+      "summary": {
+        "mobile": {
+          "title": "Detailed statistics",
+          "compact": {
+            "total": "Total",
+            "bookNotes": "Books",
+            "seriesNotes": "Series"
+          }
+        }
+      },
+      "overviewPanel": {
+        "trigger": "Notes overview",
+        "title": "Notes overview",
+        "subtitle": "Stats and quick filters",
+        "close": "Close overview",
+        "tabs": {
+          "overview": "Overview",
+          "filters": "Filters"
+        }
       }
     },
     "categories": {
@@ -3888,6 +3943,22 @@
       "genreGroupLabel": "Genre group",
       "genreGroupAll": "All groups",
       "tagFilterLabel": "Tag filter"
+    },
+    "sortMobile": {
+      "title": "Sorting",
+      "close": "Close",
+      "genreTrigger": {
+        "books_count_desc": "Books ↓",
+        "name_asc": "Name",
+        "read_count_desc": "Read ↓",
+        "queue_count_desc": "In queue ↓",
+        "rating_desc": "Rating ↓"
+      },
+      "tagTrigger": {
+        "books_count_desc": "Books ↓",
+        "name_asc": "Name",
+        "type_asc": "Type"
+      }
     },
     "genreSort": {
       "books_count_desc": "By number of books",
@@ -4140,6 +4211,16 @@
       "description": "Try changing your search query or clearing the filters.",
       "clear": "Reset filters"
     },
+    "overviewPanel": {
+      "trigger": "Quotes overview",
+      "title": "Quotes overview",
+      "subtitle": "Stats and quick actions",
+      "close": "Close overview",
+      "tabs": {
+        "overview": "Overview",
+        "actions": "Actions"
+      }
+    },
     "pagination": {
       "label": "Quote pages",
       "previous": "Previous",
@@ -4179,6 +4260,44 @@
       "favorites_first": "Favorites first",
       "no_spoiler_first": "Spoiler-free first",
       "with_spoiler_first": "Spoilers first"
+    },
+    "sortMobile": {
+      "title": "Sorting",
+      "close": "Close",
+      "trigger": {
+        "newest": "Newest",
+        "oldest": "Oldest",
+        "book_title": "Book",
+        "book_author": "Author",
+        "page": "Page",
+        "favorites_first": "Favorites",
+        "no_spoiler_first": "No spoilers",
+        "with_spoiler_first": "Spoilers"
+      }
+    },
+    "summary": {
+      "empty": "—",
+      "mobile": {
+        "title": "Detailed stats",
+        "compact": {
+          "total": "Total",
+          "favorites": "Favorites",
+          "withComment": "Comments",
+          "spoilers": "Spoilers",
+          "withoutSpoilers": "No spoilers",
+          "topBook": "Book",
+          "topAuthor": "Author"
+        },
+        "detailed": {
+          "total": "Quotes in total",
+          "favorites": "Favorite quotes",
+          "withComment": "With comments",
+          "spoilers": "With spoilers",
+          "withoutSpoilers": "Without spoilers",
+          "topBook": "Most quoted book",
+          "topAuthor": "Most quoted author"
+        }
+      }
     },
     "toolbar": {
       "searchLabel": "Search quotes",

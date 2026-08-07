@@ -6,12 +6,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import type { PageTabsItem } from "@/components/page-tabs";
+import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { UiIcon } from "@/components/icons";
 import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
+import { LibrarySummaryMobile } from "@/features/books/components/library-summary-mobile";
 
 import type { GenreFilter, GenreSort } from "../model/genres-derive";
 import type { TagCardItem, TagFilter, TagSort } from "../model/tags-derive";
@@ -77,6 +79,11 @@ export function GenresTags() {
   const genresPending = genreStats.isPending || genreCatalog.isPending;
   const genresError = genreStats.isError || genreCatalog.isError;
 
+  const summaryCards: LibrarySummaryCard[] = [
+    { icon: "hash", iconTone: "genre", label: t("summary.genres"), value: genreCards.length },
+    { icon: "tag", iconTone: "tag", label: t("summary.tags"), value: tagCards.length },
+  ];
+
   function clearFilters() {
     setSearch("");
     setGenreFilter("all");
@@ -119,7 +126,13 @@ export function GenresTags() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <LibrarySummaryMobile
+          cards={summaryCards}
+          className="sm:hidden"
+          isLoading={genresPending || tagStats.isPending}
+        />
+
+        <div className="grid grid-cols-2 gap-3 max-sm:hidden sm:gap-4">
           <StatCard
             icon="hash"
             iconTone="genre"

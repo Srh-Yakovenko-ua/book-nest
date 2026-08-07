@@ -17,13 +17,15 @@ export function DeliveryDashboardWidget() {
   if (data === undefined || data.activeCount === 0) return null;
 
   return (
-    <Card className="flex flex-col gap-4 border border-border bg-card p-5 shadow-card">
-      <div className="flex items-center justify-between gap-3">
+    <Card className="flex flex-col gap-4 border border-border bg-card p-5 shadow-card max-sm:p-4">
+      <div className="flex items-center justify-between gap-3 max-sm:flex-wrap max-sm:gap-y-2">
         <div className="flex min-w-0 items-center gap-2.5">
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-primary">
             <UiIcon name="truck" size={18} />
           </span>
-          <h2 className="truncate font-heading text-base font-semibold text-ink">{t("title")}</h2>
+          <h2 className="font-heading text-base font-semibold text-balance text-ink max-sm:text-sm">
+            {t("title")}
+          </h2>
         </div>
         <Link
           className="inline-flex shrink-0 items-center gap-1 rounded-sm text-sm font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -34,7 +36,7 @@ export function DeliveryDashboardWidget() {
         </Link>
       </div>
 
-      <dl className="grid grid-cols-3 gap-3">
+      <dl className="grid grid-cols-3 gap-3 max-sm:gap-2">
         <WidgetStat label={t("active")} locale={locale} value={data.activeCount} />
         <WidgetStat label={t("expectedThisWeek")} locale={locale} value={data.expectedThisWeek} />
         <WidgetStat
@@ -60,7 +62,7 @@ function WidgetStat({
   value: number;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-md border border-border/60 bg-secondary/40 p-3">
+    <div className="flex min-w-0 flex-col gap-1 rounded-md border border-border/60 bg-secondary/40 p-3 max-sm:p-2.5">
       <span
         className={cn(
           "font-heading text-2xl font-semibold tabular-nums",
@@ -69,7 +71,9 @@ function WidgetStat({
       >
         {value.toLocaleString(locale)}
       </span>
-      <span className="text-xs leading-tight text-muted-foreground">{label}</span>
+      <span className="text-xs leading-tight text-muted-foreground max-sm:text-[0.6875rem]">
+        {label}
+      </span>
     </div>
   );
 }

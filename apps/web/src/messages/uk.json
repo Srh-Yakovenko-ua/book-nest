@@ -1911,6 +1911,37 @@
     "subtitle": "Книги, які хочеться придбати й додати до своєї колекції",
     "countBadge": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
     "addBook": "Додати книгу",
+    "summary": {
+      "empty": "—",
+      "mobile": {
+        "title": "Детальна статистика",
+        "compact": {
+          "books": "Книги",
+          "stores": "Магазини",
+          "best": "Найкраща",
+          "average": "Середня",
+          "total": "Сума"
+        },
+        "detailed": {
+          "books": "Книг у списку",
+          "stores": "Магазинів відстежується",
+          "best": "Найвигідніша пропозиція",
+          "average": "Середня ціна",
+          "total": "Орієнтовна сума"
+        }
+      }
+    },
+    "overviewPanel": {
+      "trigger": "Огляд покупок",
+      "title": "Огляд покупок",
+      "subtitle": "Статистика, вигідні пропозиції та швидкі дії",
+      "close": "Закрити огляд",
+      "tabs": {
+        "overview": "Огляд",
+        "offers": "Пропозиції",
+        "actions": "Дії"
+      }
+    },
     "sidebar": {
       "label": "Огляд покупок",
       "stats": {
@@ -1947,12 +1978,16 @@
       "sortLabel": "Сортування",
       "storeLabel": "За магазином",
       "storeAny": "Усі магазини",
+      "storeShort": "Магазин",
       "publisherLabel": "За видавництвом",
       "publisherAny": "Усі видавництва",
+      "publisherShort": "Видавництво",
       "genreLabel": "За жанром",
       "genreAny": "Усі жанри",
+      "genreShort": "Жанр",
       "tagLabel": "За тегом",
-      "tagAny": "Усі теги"
+      "tagAny": "Усі теги",
+      "tagShort": "Тег"
     },
     "linkFilter": {
       "all": "Усі",
@@ -3734,6 +3769,26 @@
           "text": "Скористайтесь пошуком або додайте нову нотатку до книги чи серії.",
           "cta": "Додати нотатку"
         }
+      },
+      "summary": {
+        "mobile": {
+          "title": "Детальна статистика",
+          "compact": {
+            "total": "Усього",
+            "bookNotes": "До книг",
+            "seriesNotes": "До серій"
+          }
+        }
+      },
+      "overviewPanel": {
+        "trigger": "Огляд нотаток",
+        "title": "Огляд нотаток",
+        "subtitle": "Статистика та швидкі фільтри",
+        "close": "Закрити огляд",
+        "tabs": {
+          "overview": "Огляд",
+          "filters": "Фільтри"
+        }
       }
     },
     "categories": {
@@ -3888,6 +3943,22 @@
       "genreGroupLabel": "Група жанрів",
       "genreGroupAll": "Усі групи",
       "tagFilterLabel": "Фільтр тегів"
+    },
+    "sortMobile": {
+      "title": "Сортування",
+      "close": "Закрити",
+      "genreTrigger": {
+        "books_count_desc": "Книги ↓",
+        "name_asc": "Назва",
+        "read_count_desc": "Прочитані ↓",
+        "queue_count_desc": "У черзі ↓",
+        "rating_desc": "Рейтинг ↓"
+      },
+      "tagTrigger": {
+        "books_count_desc": "Книги ↓",
+        "name_asc": "Назва",
+        "type_asc": "Тип"
+      }
     },
     "genreSort": {
       "books_count_desc": "За кількістю книг",
@@ -4140,6 +4211,16 @@
       "description": "Спробуйте змінити пошуковий запит або очистити фільтри.",
       "clear": "Скинути фільтри"
     },
+    "overviewPanel": {
+      "trigger": "Огляд цитат",
+      "title": "Огляд цитат",
+      "subtitle": "Статистика та швидкі дії",
+      "close": "Закрити огляд",
+      "tabs": {
+        "overview": "Огляд",
+        "actions": "Дії"
+      }
+    },
     "pagination": {
       "label": "Сторінки цитат",
       "previous": "Назад",
@@ -4179,6 +4260,44 @@
       "favorites_first": "Спочатку улюблені",
       "no_spoiler_first": "Спочатку без спойлерів",
       "with_spoiler_first": "Спочатку зі спойлерами"
+    },
+    "sortMobile": {
+      "title": "Сортування",
+      "close": "Закрити",
+      "trigger": {
+        "newest": "Нові",
+        "oldest": "Старі",
+        "book_title": "Книга",
+        "book_author": "Автор",
+        "page": "Сторінка",
+        "favorites_first": "Улюблені",
+        "no_spoiler_first": "Без спойлерів",
+        "with_spoiler_first": "Зі спойлерами"
+      }
+    },
+    "summary": {
+      "empty": "—",
+      "mobile": {
+        "title": "Детальна статистика",
+        "compact": {
+          "total": "Усього",
+          "favorites": "Улюблені",
+          "withComment": "З коментарем",
+          "spoilers": "Спойлери",
+          "withoutSpoilers": "Без спойлерів",
+          "topBook": "Книга",
+          "topAuthor": "Автор"
+        },
+        "detailed": {
+          "total": "Усього цитат",
+          "favorites": "Улюблені цитати",
+          "withComment": "З коментарями",
+          "spoilers": "Зі спойлерами",
+          "withoutSpoilers": "Без спойлерів",
+          "topBook": "Найцитованіша книга",
+          "topAuthor": "Найцитованіший автор"
+        }
+      }
     },
     "toolbar": {
       "searchLabel": "Пошук цитат",

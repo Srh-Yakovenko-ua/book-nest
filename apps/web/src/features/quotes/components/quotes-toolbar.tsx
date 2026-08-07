@@ -8,6 +8,7 @@ import { DebouncedSearchInput } from "@/components/debounced-search-input";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
+import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import {
   Select,
   SelectContent,
@@ -51,17 +52,39 @@ export function QuotesToolbar({
   const tCommon = useTranslations("common");
   const tFilter = useTranslations("quotes.filter");
   const tSort = useTranslations("quotes.sort");
+  const tSortMobile = useTranslations("quotes.sortMobile");
 
   return (
     <div className="flex flex-col gap-3">
-      <DebouncedSearchInput
-        clearLabel={t("searchClear")}
-        label={t("searchLabel")}
-        onClear={() => onSearch("")}
-        onSearch={onSearch}
-        placeholder={t("searchPlaceholder")}
-        value={search}
-      />
+      <div className="flex items-center gap-1.5">
+        <div className="min-w-0 flex-1">
+          <DebouncedSearchInput
+            clearLabel={t("searchClear")}
+            label={t("searchLabel")}
+            onClear={() => onSearch("")}
+            onSearch={onSearch}
+            placeholder={t("searchPlaceholder")}
+            value={search}
+          />
+        </div>
+
+        <MobileSortSheet
+          className="max-w-[9.5rem] sm:hidden"
+          closeLabel={tSortMobile("close")}
+          groups={[
+            {
+              key: "sort",
+              options: QUOTE_SORT_OPTIONS.map((value) => ({ label: tSort(value), value })),
+            },
+          ]}
+          id="quotes-sort"
+          label={t("sortLabel")}
+          onChange={onSortChange}
+          title={tSortMobile("title")}
+          triggerLabel={tSortMobile(`trigger.${sort}`)}
+          value={sort}
+        />
+      </div>
 
       <div className="-mx-1 -my-1 no-scrollbar overflow-x-auto px-1 py-1">
         <ChipGroup
@@ -81,8 +104,8 @@ export function QuotesToolbar({
         />
       </div>
 
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="w-full sm:w-64">
+      <div className="flex items-center gap-1.5 sm:flex-col sm:items-stretch sm:gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0 flex-1 sm:w-64 sm:flex-none">
           <BookPicker
             id="quotes-book-filter"
             onChange={(next) => onBookChange(next?.id ?? null)}
@@ -91,8 +114,8 @@ export function QuotesToolbar({
           />
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="w-full sm:w-56">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+          <div className="hidden sm:block sm:w-56">
             <Select
               onValueChange={(next) => {
                 const match = QUOTE_SORT_OPTIONS.find((option) => option === next);
@@ -119,9 +142,9 @@ export function QuotesToolbar({
             </Select>
           </div>
 
-          <Button className="h-10" onClick={onAddQuote}>
+          <Button className="h-10 shrink-0 max-sm:w-10 max-sm:px-0" onClick={onAddQuote}>
             <UiIcon name="plus" size={16} />
-            {tActions("add")}
+            <span className="max-sm:sr-only">{tActions("add")}</span>
           </Button>
         </div>
       </div>
@@ -132,17 +155,20 @@ export function QuotesToolbar({
 export function QuotesToolbarSkeleton() {
   return (
     <div aria-busy className="flex flex-col gap-3">
-      <Skeleton className="h-10 w-full rounded-md" />
+      <div className="flex items-center gap-1.5">
+        <Skeleton className="h-10 min-w-0 flex-1 rounded-md" />
+        <Skeleton className="h-10 w-[9.5rem] shrink-0 rounded-md sm:hidden" />
+      </div>
       <div className="flex flex-wrap gap-2">
         {Array.from({ length: QUOTE_FILTER_OPTIONS.length }, (_, index) => (
           <Skeleton className="h-8 w-24 rounded-full" key={index} />
         ))}
       </div>
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <Skeleton className="h-10 w-full rounded-md sm:w-64" />
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Skeleton className="h-10 w-full rounded-md sm:w-56" />
-          <Skeleton className="h-10 w-full rounded-md sm:w-36" />
+      <div className="flex items-center gap-1.5 sm:flex-col sm:items-stretch sm:gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <Skeleton className="h-10 min-w-0 flex-1 rounded-md sm:w-64 sm:flex-none" />
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+          <Skeleton className="hidden h-10 rounded-md sm:block sm:w-56" />
+          <Skeleton className="h-10 w-10 shrink-0 rounded-md sm:w-36" />
         </div>
       </div>
     </div>
