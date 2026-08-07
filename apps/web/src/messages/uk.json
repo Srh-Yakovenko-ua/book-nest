@@ -156,10 +156,8 @@
         "label": "Серії в черзі",
         "caption": "{withoutIssues} без проблем · {withIssues, plural, one {# потребує уваги} few {# потребують уваги} many {# потребують уваги} other {# потребують уваги}}"
       },
-
       "mobile": {
         "title": "Детальна статистика",
-
         "compact": {
           "total": "У черзі",
           "availableNow": "Доступні",
@@ -462,6 +460,14 @@
     "reload": "Перезавантажити",
     "backHome": "На головну"
   },
+  "maintenance": {
+    "title": "Технічні роботи",
+    "description": "Ми оновлюємо Book Nest. Зазвичай це займає кілька хвилин.",
+    "longWait": "Це триває довше, ніж зазвичай. Ми вже розбираємось — сторінка повернеться сама, щойно все запрацює.",
+    "autoHint": "Нічого робити не треба: сторінка оновиться автоматично.",
+    "retry": "Перевірити зараз",
+    "checking": "Перевіряємо…"
+  },
   "localePicker": {
     "ariaLabel": "Мова"
   },
@@ -662,7 +668,6 @@
         "readingPagesAhead": "{pagesAhead} стор. попереду",
         "mobile": {
           "title": "Детальна статистика",
-
           "compact": {
             "total": "Усього",
             "reading": "Читаю",
@@ -2009,7 +2014,6 @@
     "sortMobile": {
       "title": "Сортування",
       "close": "Закрити",
-
       "trigger": {
         "added_asc": "Старі",
         "added_desc": "Нові",
@@ -2136,11 +2140,9 @@
       "author_asc": "За автором: А–Я",
       "favorites_first": "За улюбленими: спочатку улюблені",
       "publication_year_desc": "За роком видання: спочатку нові",
-
       "mobile": {
         "title": "Сортування",
         "close": "Закрити",
-
         "trigger": {
           "newest": "Нові",
           "recently_updated": "Оновлені",
@@ -2189,10 +2191,8 @@
       "fromUnfinishedMicrofactNone": "усі — з прочитаних книг",
       "topGenreMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} у цьому жанрі",
       "topAuthorMicrofact": "{count, plural, one {# присвята} few {# присвяти} many {# присвят} other {# присвят}} у книгах автора",
-
       "mobile": {
         "title": "Детальна статистика",
-
         "compact": {
           "total": "Усього",
           "favorites": "Улюблені",
@@ -2274,10 +2274,8 @@
       "delayed": "Затримуються",
       "total": "Загальна сума",
       "stores": "Магазини",
-
       "mobile": {
         "title": "Детальна статистика",
-
         "compact": {
           "active": "В дорозі",
           "expectedThisWeek": "Тиждень",
@@ -2412,10 +2410,8 @@
         "received": "Отримані",
         "cancelled": "Скасовані",
         "total": "Загальна сума",
-
         "mobile": {
           "title": "Детальна статистика",
-
           "compact": {
             "totalOrders": "Усього",
             "active": "Активні",
@@ -2508,10 +2504,8 @@
         "cancelled": "Скасовані замовлення",
         "average": "Середня ціна",
         "pricedOrders": "Замовлень з ціною",
-
         "mobile": {
           "title": "Детальна статистика",
-
           "compact": {
             "total": "Сума",
             "active": "Активні",
@@ -2619,10 +2613,8 @@
       "topTagMicrofact": "{count, plural, one {# улюблена з цим тегом} few {# улюблені з цим тегом} many {# улюблених з цим тегом} other {# улюблені з цим тегом}}",
       "topTagMicrofactEmpty": "Серед улюблених немає тегів",
       "topTagMicrofactTie": "{count, plural, one {По # улюбленій з кожним тегом} few {По # улюблені з кожним тегом} many {По # улюблених з кожним тегом} other {По # улюблених з кожним тегом}}",
-
       "mobile": {
         "title": "Детальна статистика",
-
         "compact": {
           "total": "Усього",
           "reading": "Читаю",
@@ -2723,10 +2715,8 @@
       "booksLeft": "лишилося {n, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
       "booksInSeries": "Книг у серіях",
       "booksReadOfTotal": "прочитано {finished} з {total}",
-
       "mobile": {
         "title": "Детальна статистика",
-
         "compact": {
           "total": "Серій",
           "fullyRead": "Прочитано",
@@ -2808,11 +2798,9 @@
       "progress_asc": "Прогрес читання: від меншого",
       "books_desc": "Книг у серії: від більшої кількості",
       "activity_desc": "За датою оновлення: спочатку нові",
-
       "mobile": {
         "title": "Сортування",
         "close": "Закрити",
-
         "trigger": {
           "name_asc": "А–Я",
           "name_desc": "Я–А",
@@ -3242,11 +3230,9 @@
         "title_desc": "За назвою: Я–А",
         "books_count_desc": "За кількістю книг: спочатку більше",
         "books_count_asc": "За кількістю книг: спочатку менше",
-
         "mobile": {
           "title": "Сортування",
           "close": "Закрити",
-
           "trigger": {
             "updated_desc": "Оновлені",
             "created_desc": "Нові",
@@ -3319,10 +3305,8 @@
         "multiList": "У кількох списках",
         "maxReach": "Найчастіше — у {count, plural, one {# списку} few {# списках} many {# списках} other {# списках}}",
         "singleListOnly": "Кожна книга лише в одному списку",
-
         "mobile": {
           "title": "Детальна статистика",
-
           "compact": {
             "totalLists": "Списків",
             "uniqueBooks": "Книг",
@@ -3439,10 +3423,8 @@
         "description": "Не вдалося завантажити зведення по позиках.",
         "retry": "Спробувати ще раз"
       },
-
       "mobile": {
         "title": "Детальна статистика",
-
         "compact": {
           "borrowed": "Взяла",
           "lent": "Дала",
@@ -3494,11 +3476,9 @@
       "person": "За людиною",
       "overdue_first": "Спочатку прострочені",
       "return_soonest": "Спочатку найближчі повернення",
-
       "mobile": {
         "title": "Сортування",
         "close": "Закрити",
-
         "trigger": {
           "return_date": "Повернення",
           "loan_date": "Позика",
@@ -3694,7 +3674,6 @@
       "sortMobile": {
         "title": "Сортування",
         "close": "Закрити",
-
         "trigger": {
           "newest": "Нові",
           "oldest": "Старі",
@@ -4631,10 +4610,8 @@
         "description": "Спробуй оновити сторінку або повторити запит трохи пізніше.",
         "retry": "Спробувати ще раз"
       },
-
       "mobile": {
         "title": "Детальна статистика",
-
         "compact": {
           "publishers": "Видавництв",
           "booksWithPublisher": "Книг",
@@ -4682,7 +4659,6 @@
       "sortMobile": {
         "title": "Сортування",
         "close": "Закрити",
-
         "trigger": {
           "name": "Назва",
           "booksCount": "Книг ↓",

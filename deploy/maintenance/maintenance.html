@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Book Nest</title>
+    <style>
+      :root {
+        --background: oklch(0.976 0.018 78.2);
+        --foreground: oklch(0.34 0.024 56.5);
+        --card: oklch(0.995 0.006 84.6);
+        --primary: oklch(0.551 0.124 40.1);
+        --muted-foreground: oklch(0.49 0.03 63.2);
+        --border: oklch(0.88 0.027 71.2);
+        --shadow: oklch(0.34 0.024 56.5 / 0.08);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: oklch(0.187 0.011 60.7);
+          --foreground: oklch(0.871 0.023 67.5);
+          --card: oklch(0.234 0.018 63);
+          --primary: oklch(0.66 0.095 52);
+          --muted-foreground: oklch(0.664 0.024 67.4);
+          --border: oklch(0.336 0.025 59.3);
+          --shadow: oklch(0 0 0 / 0.3);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        align-items: center;
+        background: var(--background);
+        color: var(--foreground);
+        display: flex;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        justify-content: center;
+        line-height: 1.6;
+        margin: 0;
+        min-height: 100svh;
+        padding: 1.5rem;
+      }
+
+      main {
+        max-width: 32rem;
+        text-align: center;
+        width: 100%;
+      }
+
+      .mark {
+        align-items: center;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 1.25rem;
+        box-shadow: 0 1px 2px var(--shadow);
+        display: inline-flex;
+        height: 4rem;
+        justify-content: center;
+        margin-bottom: 1.75rem;
+        width: 4rem;
+      }
+
+      .mark svg {
+        height: 1.75rem;
+        width: 1.75rem;
+      }
+
+      .mark .spine {
+        animation: breathe 2.4s ease-in-out infinite;
+        transform-origin: center;
+      }
+
+      @keyframes breathe {
+        0%,
+        100% {
+          opacity: 0.35;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .mark .spine {
+          animation: none;
+          opacity: 1;
+        }
+      }
+
+      h1 {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(1.75rem, 5vw, 2.25rem);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0 0 0.75rem;
+      }
+
+      p {
+        color: var(--muted-foreground);
+        margin: 0 auto;
+        max-width: 26rem;
+      }
+
+      button {
+        background: var(--primary);
+        border: none;
+        border-radius: 0.625rem;
+        color: oklch(0.995 0.006 84.6);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 600;
+        margin-top: 2rem;
+        padding: 0.625rem 1.5rem;
+        transition: opacity 0.15s ease;
+      }
+
+      button:hover {
+        opacity: 0.9;
+      }
+
+      button:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 3px;
+      }
+
+      .status {
+        color: var(--muted-foreground);
+        font-size: 0.8125rem;
+        margin-top: 1.25rem;
+        min-height: 1.25rem;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path
+            d="M4 5.5A1.5 1.5 0 0 1 5.5 4H19v16H5.5A1.5 1.5 0 0 1 4 18.5v-13Z"
+            stroke="var(--primary)"
+            stroke-linejoin="round"
+          />
+          <path class="spine" d="M9 4v16" stroke="var(--primary)" stroke-linecap="round" />
+        </svg>
+      </div>
+
+      <h1 data-i18n="title">Технічні роботи</h1>
+      <p data-i18n="body">Ми оновлюємо Book Nest. Зазвичай це займає кілька хвилин.</p>
+
+      <button type="button" data-i18n="retry">Перевірити зараз</button>
+      <p class="status" data-i18n="autoHint" role="status" aria-live="polite">
+        Нічого робити не треба: сторінка оновиться автоматично.
+      </p>
+    </main>
+
+    <script>
+      (function () {
+        var FAST_MS = 10000;
+        var SLOWER_MS = 30000;
+        var SLOWEST_MS = 60000;
+        var ATTEMPTS_BEFORE_LONG_WAIT = 12;
+        var ATTEMPTS_BEFORE_SLOWEST = 24;
+
+        function delayAfter(attempt) {
+          if (attempt < ATTEMPTS_BEFORE_LONG_WAIT) return FAST_MS;
+          if (attempt < ATTEMPTS_BEFORE_SLOWEST) return SLOWER_MS;
+          return SLOWEST_MS;
+        }
+
+        var COPY = {
+          en: {
+            autoHint: "Nothing to do: this page refreshes itself.",
+            body: "We are updating Book Nest. This usually takes a few minutes.",
+            checking: "Checking…",
+            longWait:
+              "This is taking longer than usual. We are on it — the page will come back on its own as soon as it does.",
+            retry: "Check now",
+            title: "Down for maintenance",
+          },
+          uk: {
+            autoHint: "Нічого робити не треба: сторінка оновиться автоматично.",
+            body: "Ми оновлюємо Book Nest. Зазвичай це займає кілька хвилин.",
+            checking: "Перевіряємо…",
+            longWait:
+              "Це триває довше, ніж зазвичай. Ми вже розбираємось — сторінка повернеться сама, щойно все запрацює.",
+            retry: "Перевірити зараз",
+            title: "Технічні роботи",
+          },
+        };
+
+        var lang = (navigator.language || "uk").toLowerCase().indexOf("en") === 0 ? "en" : "uk";
+        var copy = COPY[lang];
+        document.documentElement.lang = lang;
+
+        Object.keys(copy).forEach(function (key) {
+          var node = document.querySelector('[data-i18n="' + key + '"]');
+          if (node) node.textContent = copy[key];
+        });
+
+        var body = document.querySelector('[data-i18n="body"]');
+        var button = document.querySelector("button");
+        var checking = false;
+        var attempts = 0;
+
+        function check(manual) {
+          if (checking) return;
+          checking = true;
+          if (manual) button.textContent = copy.checking;
+
+          fetch("/api/health", { cache: "no-store" })
+            .then(function (res) {
+              if (res.ok) {
+                location.reload();
+                return;
+              }
+              throw new Error("still down");
+            })
+            .catch(function () {
+              attempts += 1;
+              if (attempts >= ATTEMPTS_BEFORE_LONG_WAIT) body.textContent = copy.longWait;
+            })
+            .then(function () {
+              checking = false;
+              if (manual) button.textContent = copy.retry;
+            });
+        }
+
+        button.addEventListener("click", function () {
+          check(true);
+        });
+
+        function schedule() {
+          setTimeout(function () {
+            check(false);
+            schedule();
+          }, delayAfter(attempts));
+        }
+
+        check(false);
+        schedule();
+      })();
+    </script>
+  </body>
+</html>

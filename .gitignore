@@ -67,3 +67,6 @@ docs/prompts/
 docs/series-order-check/
 docs/series-order-check-development-repository/
 docs/tasks/
+
+# maintenance flag files are created on the server, never committed
+deploy/maintenance/*.on

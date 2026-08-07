@@ -156,10 +156,8 @@
         "label": "Series in queue",
         "caption": "{withoutIssues} fine · {withIssues, plural, one {# needs attention} other {# need attention}}"
       },
-
       "mobile": {
         "title": "Detailed stats",
-
         "compact": {
           "total": "In queue",
           "availableNow": "Available",
@@ -462,6 +460,14 @@
     "reload": "Reload page",
     "backHome": "Back home"
   },
+  "maintenance": {
+    "title": "Down for maintenance",
+    "description": "We are updating Book Nest. This usually takes a few minutes.",
+    "longWait": "This is taking longer than usual. We are on it — the page will come back on its own as soon as it does.",
+    "autoHint": "Nothing to do: this page refreshes itself.",
+    "retry": "Check now",
+    "checking": "Checking…"
+  },
   "localePicker": {
     "ariaLabel": "Language"
   },
@@ -662,7 +668,6 @@
         "readingPagesAhead": "{pagesAhead} pages ahead",
         "mobile": {
           "title": "Detailed statistics",
-
           "compact": {
             "total": "Total",
             "reading": "Reading",
@@ -2009,7 +2014,6 @@
     "sortMobile": {
       "title": "Sorting",
       "close": "Close",
-
       "trigger": {
         "added_asc": "Oldest",
         "added_desc": "Newest",
@@ -2136,11 +2140,9 @@
       "author_asc": "Author: A–Z",
       "favorites_first": "Favorites: favorites first",
       "publication_year_desc": "Publication year: newest first",
-
       "mobile": {
         "title": "Sorting",
         "close": "Close",
-
         "trigger": {
           "newest": "Newest",
           "recently_updated": "Updated",
@@ -2189,10 +2191,8 @@
       "fromUnfinishedMicrofactNone": "all — from finished books",
       "topGenreMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this genre",
       "topAuthorMicrofact": "{count, plural, one {# dedication} other {# dedications}} in this author's books",
-
       "mobile": {
         "title": "Detailed stats",
-
         "compact": {
           "total": "Total",
           "favorites": "Favorites",
@@ -2274,10 +2274,8 @@
       "delayed": "Delayed",
       "total": "Total amount",
       "stores": "Stores",
-
       "mobile": {
         "title": "Detailed stats",
-
         "compact": {
           "active": "In transit",
           "expectedThisWeek": "This week",
@@ -2412,10 +2410,8 @@
         "received": "Received",
         "cancelled": "Cancelled",
         "total": "Total amount",
-
         "mobile": {
           "title": "Detailed stats",
-
           "compact": {
             "totalOrders": "Orders",
             "active": "Active",
@@ -2508,10 +2504,8 @@
         "cancelled": "Cancelled orders",
         "average": "Average price",
         "pricedOrders": "Orders with price",
-
         "mobile": {
           "title": "Detailed stats",
-
           "compact": {
             "total": "Amount",
             "active": "Active",
@@ -2619,10 +2613,8 @@
       "topTagMicrofact": "{count, plural, one {# favorite with this tag} other {# favorites with this tag}}",
       "topTagMicrofactEmpty": "No tags among favorites",
       "topTagMicrofactTie": "{count, plural, one {# favorite with each tag} other {# favorites with each tag}}",
-
       "mobile": {
         "title": "Detailed stats",
-
         "compact": {
           "total": "Total",
           "reading": "Reading",
@@ -2723,10 +2715,8 @@
       "booksLeft": "{n, plural, one {# book left} other {# books left}}",
       "booksInSeries": "Books in series",
       "booksReadOfTotal": "{finished} of {total} read",
-
       "mobile": {
         "title": "Detailed stats",
-
         "compact": {
           "total": "Series",
           "fullyRead": "Read",
@@ -2808,11 +2798,9 @@
       "progress_asc": "Reading progress: lowest first",
       "books_desc": "Books in series: most first",
       "activity_desc": "Date updated: newest first",
-
       "mobile": {
         "title": "Sorting",
         "close": "Close",
-
         "trigger": {
           "name_asc": "A–Z",
           "name_desc": "Z–A",
@@ -3242,11 +3230,9 @@
         "title_desc": "Name: Z–A",
         "books_count_desc": "Book count: most first",
         "books_count_asc": "Book count: fewest first",
-
         "mobile": {
           "title": "Sorting",
           "close": "Close",
-
           "trigger": {
             "updated_desc": "Updated",
             "created_desc": "Newest",
@@ -3319,10 +3305,8 @@
         "multiList": "In several lists",
         "maxReach": "Most often — in {count, plural, one {# list} other {# lists}}",
         "singleListOnly": "Every book sits in a single list",
-
         "mobile": {
           "title": "Detailed stats",
-
           "compact": {
             "totalLists": "Lists",
             "uniqueBooks": "Books",
@@ -3439,10 +3423,8 @@
         "description": "We couldn't load your loan summary.",
         "retry": "Try again"
       },
-
       "mobile": {
         "title": "Detailed stats",
-
         "compact": {
           "borrowed": "Borrowed",
           "lent": "Lent",
@@ -3494,11 +3476,9 @@
       "person": "By person",
       "overdue_first": "Overdue first",
       "return_soonest": "Soonest returns first",
-
       "mobile": {
         "title": "Sorting",
         "close": "Close",
-
         "trigger": {
           "return_date": "Return date",
           "loan_date": "Loan date",
@@ -3694,7 +3674,6 @@
       "sortMobile": {
         "title": "Sorting",
         "close": "Close",
-
         "trigger": {
           "newest": "Newest",
           "oldest": "Oldest",
@@ -4631,10 +4610,8 @@
         "description": "Try refreshing the page or come back a little later.",
         "retry": "Try again"
       },
-
       "mobile": {
         "title": "Detailed stats",
-
         "compact": {
           "publishers": "Publishers",
           "booksWithPublisher": "Books",
@@ -4682,7 +4659,6 @@
       "sortMobile": {
         "title": "Sorting",
         "close": "Close",
-
         "trigger": {
           "name": "Name",
           "booksCount": "Books ↓",

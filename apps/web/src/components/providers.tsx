@@ -5,6 +5,7 @@ import { lazy, type ReactNode, Suspense, useEffect } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { MaintenanceGate } from "@/features/maintenance";
 import { installGlobalErrorHandlers } from "@/lib/error-handlers";
 import { getQueryClient } from "@/lib/query-client";
 import { reportWebVitals } from "@/lib/vitals";
@@ -37,6 +38,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         {children}
+        <MaintenanceGate />
         <Toaster closeButton richColors />
         {ReactQueryDevtools && (
           <Suspense>
