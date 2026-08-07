@@ -1,16 +1,16 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
 
 import {
+  MobilePageOverviewLink,
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
+  useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
 
-import type { LibraryBookLinkComponent } from "../model/library-book";
 import type {
   LibraryOverviewBook,
   LibraryOverviewGenre,
@@ -28,7 +28,6 @@ import { LibrarySummaryDetails } from "./library-summary-mobile";
 
 type LibraryOverviewPanelProps = {
   isLoading: boolean;
-  linkComponent?: LibraryBookLinkComponent;
   recentlyAdded: LibraryOverviewBook[];
   summaryCards: LibrarySummaryCard[];
   topGenres: LibraryOverviewGenre[];
@@ -37,7 +36,6 @@ type LibraryOverviewPanelProps = {
 
 export function LibraryOverviewPanel({
   isLoading,
-  linkComponent,
   recentlyAdded,
   summaryCards,
   topGenres,
@@ -46,7 +44,7 @@ export function LibraryOverviewPanel({
   const t = useTranslations("books.library.overviewPanel");
   const tDetails = useTranslations("books.library.summary.mobile");
   const tBlocks = useTranslations("books.library.sidebar");
-  const [open, setOpen] = useState(false);
+  const panel = useMobilePageOverviewPanel();
 
   const tabs: MobilePageOverviewTab[] = [
     {
@@ -74,7 +72,7 @@ export function LibraryOverviewPanel({
           <LibraryRecentlyAddedBlock
             books={recentlyAdded}
             isLoading={isLoading}
-            linkComponent={linkComponent}
+            linkComponent={MobilePageOverviewLink}
           />
         </LibraryOverviewSection>
       ),
@@ -85,13 +83,12 @@ export function LibraryOverviewPanel({
 
   return (
     <>
-      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => setOpen(true)} />
+      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => panel.setOpen(true)} />
 
       <MobilePageOverviewPanel
         closeLabel={t("close")}
         loading={isLoading}
-        onOpenChange={setOpen}
-        open={open}
+        panel={panel}
         subtitle={t("subtitle")}
         tabs={tabs}
         title={t("title")}

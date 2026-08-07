@@ -1,13 +1,13 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
 
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
+  useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
 
 import type { LibrarySummaryCard } from "./library-summary-cards";
@@ -30,7 +30,7 @@ export function FavoritesOverviewPanel({
 }: FavoritesOverviewPanelProps) {
   const t = useTranslations("favorites.overviewPanel");
   const tDetails = useTranslations("favorites.summary.mobile");
-  const [open, setOpen] = useState(false);
+  const panel = useMobilePageOverviewPanel();
 
   const tabs: MobilePageOverviewTab[] = [
     {
@@ -57,13 +57,12 @@ export function FavoritesOverviewPanel({
 
   return (
     <>
-      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => setOpen(true)} />
+      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => panel.setOpen(true)} />
 
       <MobilePageOverviewPanel
         closeLabel={t("close")}
         loading={isLoading}
-        onOpenChange={setOpen}
-        open={open}
+        panel={panel}
         subtitle={t("subtitle")}
         tabs={tabs}
         title={t("title")}

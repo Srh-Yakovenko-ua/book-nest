@@ -8,10 +8,10 @@ import Image from "next/image";
 
 import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon, type UiIconName } from "@/components/icons";
+import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Link } from "@/i18n/navigation";
 import { ownershipStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
@@ -170,12 +170,12 @@ function AlmostReadRow({ series }: { series: SeriesView }) {
 
   return (
     <li className="flex flex-col gap-1.5">
-      <Link
+      <MobilePageOverviewLink
         className="cursor-pointer truncate font-heading text-sm leading-snug font-medium text-ink no-underline transition-colors outline-none hover:text-primary focus-visible:text-primary focus-visible:underline"
         href={`/series/${series.id}`}
       >
         {series.name}
-      </Link>
+      </MobilePageOverviewLink>
       <p className="text-xs text-muted-foreground tabular-nums">
         {t("progressReading", { finished: progress.finished, left, total: progress.denominator })}
       </p>
@@ -192,7 +192,7 @@ function AlmostReadRow({ series }: { series: SeriesView }) {
       </div>
       {nextBook === null ? null : (
         <div className="flex items-center justify-between gap-2">
-          <Link
+          <MobilePageOverviewLink
             className="group/next flex min-w-0 cursor-pointer items-center gap-1 rounded-md text-primary no-underline transition-colors outline-none hover:text-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50"
             href={`/books/${nextBook.id}`}
           >
@@ -205,7 +205,7 @@ function AlmostReadRow({ series }: { series: SeriesView }) {
               name="arrow-right"
               size={14}
             />
-          </Link>
+          </MobilePageOverviewLink>
           {ownershipStatus === null || ownershipEntry === undefined ? null : (
             <StatusBadge
               className="h-5 shrink-0 gap-1 px-1.5 text-[0.6875rem] [&>svg]:size-3"
@@ -225,12 +225,12 @@ function ContinueBlock({ series }: { series: SeriesView }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <Link
+        <MobilePageOverviewLink
           className="cursor-pointer font-heading text-sm leading-snug font-medium text-ink no-underline transition-colors outline-none hover:text-primary focus-visible:text-primary focus-visible:underline"
           href={`/series/${series.id}`}
         >
           {series.name}
-        </Link>
+        </MobilePageOverviewLink>
         <p className="text-xs text-muted-foreground tabular-nums">
           {t("progressReading", {
             finished: progress.finished,
@@ -255,7 +255,7 @@ function NextBookRow({ nextBook }: { nextBook: SeriesNextBook }) {
   return (
     <div className="flex flex-col gap-1.5">
       <p className="text-xs font-medium text-muted-foreground">{t("nextBookHeading")}</p>
-      <Link
+      <MobilePageOverviewLink
         className="group/next -mx-1.5 flex cursor-pointer items-center gap-2.5 rounded-md p-1.5 no-underline transition-colors outline-none hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50"
         href={`/books/${nextBook.id}`}
       >
@@ -286,7 +286,7 @@ function NextBookRow({ nextBook }: { nextBook: SeriesNextBook }) {
             </span>
           )}
         </span>
-      </Link>
+      </MobilePageOverviewLink>
     </div>
   );
 }

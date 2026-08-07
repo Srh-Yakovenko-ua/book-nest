@@ -1,10 +1,11 @@
 "use client";
 
+import type { Nullable } from "@app/shared";
 import type { VariantProps } from "class-variance-authority";
-import type { ReactNode } from "react";
+import type { ComponentProps, MouseEvent, ReactNode, RefObject } from "react";
 
 import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 import type { UiIconName } from "@/components/icons";
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/drawer";
 import { Segmented } from "@/components/ui/segmented";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link, useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 export type MobilePageOverviewAction = {
@@ -41,6 +43,14 @@ export type MobilePageOverviewTab = {
   label: string;
 };
 
+type MobilePageOverviewLinkProps = Omit<ComponentProps<typeof Link>, "href"> & { href: string };
+
+type MobilePageOverviewPanelController = {
+  closeThen: (action: () => void) => void;
+  isOpen: boolean;
+  setOpen: (open: boolean) => void;
+};
+
 type MobilePageOverviewPanelProps = {
   children?: ReactNode;
   closeLabel: string;
@@ -50,8 +60,7 @@ type MobilePageOverviewPanelProps = {
   error?: ReactNode;
   footerActions?: MobilePageOverviewAction[];
   loading?: boolean;
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
+  panel: MobilePageOverviewPanelController;
   subtitle?: string;
   tabs?: MobilePageOverviewTab[];
   title: string;
@@ -75,6 +84,28 @@ const PANEL = {
 
 const historyStateSchema = z.record(z.string(), z.unknown()).catch({});
 
+const MobilePageOverviewPanelContext =
+  createContext<Nullable<MobilePageOverviewPanelController>>(null);
+
+export function MobilePageOverviewLink({ href, onClick, ...props }: MobilePageOverviewLinkProps) {
+  const panel = useContext(MobilePageOverviewPanelContext);
+  const router = useRouter();
+
+  return (
+    <Link
+      {...props}
+      href={href}
+      onClick={(event) => {
+        onClick?.(event);
+        if (panel === null || event.defaultPrevented || isBrowserHandledClick(event)) return;
+
+        event.preventDefault();
+        panel.closeThen(() => router.push(href));
+      }}
+    />
+  );
+}
+
 export function MobilePageOverviewPanel({
   children,
   closeLabel,
@@ -84,113 +115,93 @@ export function MobilePageOverviewPanel({
   error,
   footerActions,
   loading,
-  onOpenChange,
-  open,
+  panel,
   subtitle,
   tabs,
   title,
 }: MobilePageOverviewPanelProps) {
   const contentRef = useRef<HTMLDivElement>(null);
-  const onOpenChangeRef = useRef(onOpenChange);
+  const { isOpen, setOpen } = panel;
 
   useEffect(() => {
-    onOpenChangeRef.current = onOpenChange;
-  });
-
-  useEffect(() => {
-    if (!open) return;
-
-    window.history.pushState(
-      { ...historyStateSchema.parse(window.history.state), [PANEL.historyGuardKey]: true },
-      "",
-    );
-
-    function handlePopState() {
-      onOpenChangeRef.current(false);
-    }
-
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      if (isHistoryGuardActive()) window.history.back();
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
 
     const beyondMobile = window.matchMedia(PANEL.beyondMobileQuery);
 
     function closeBeyondMobile() {
-      if (beyondMobile.matches) onOpenChangeRef.current(false);
+      if (beyondMobile.matches) setOpen(false);
     }
 
     closeBeyondMobile();
     beyondMobile.addEventListener("change", closeBeyondMobile);
     return () => beyondMobile.removeEventListener("change", closeBeyondMobile);
-  }, [open]);
+  }, [isOpen, setOpen]);
 
   const actions = (footerActions ?? []).slice(0, PANEL.maxFooterActions);
 
   return (
-    <Drawer onOpenChange={onOpenChange} open={open}>
-      <DrawerContent
-        className={cn(PANEL.content, dragHandle ? PANEL.dragHandleVisible : PANEL.dragHandleHidden)}
-        onOpenAutoFocus={() => contentRef.current?.focus()}
-        ref={contentRef}
-        tabIndex={-1}
-      >
-        <header className="flex shrink-0 items-start gap-2 border-b border-border px-4 py-3">
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <DrawerTitle className="truncate text-base">{title}</DrawerTitle>
-            <DrawerDescription
-              className={cn("truncate text-xs", subtitle === undefined && "sr-only")}
-            >
-              {subtitle}
-            </DrawerDescription>
-          </div>
-          <DrawerClose asChild>
-            <Button
-              aria-label={closeLabel}
-              className="-mt-1.5 -mr-2 size-10 shrink-0 text-muted-foreground hover:text-ink"
-              size="icon"
-              variant="ghost"
-            >
-              <X />
-            </Button>
-          </DrawerClose>
-        </header>
-
-        <PanelBody
-          defaultTab={defaultTab}
-          emptyState={emptyState}
-          error={error}
-          loading={loading}
-          tabs={tabs}
-          title={title}
+    <MobilePageOverviewPanelContext.Provider value={panel}>
+      <Drawer onOpenChange={setOpen} open={isOpen}>
+        <DrawerContent
+          className={cn(
+            PANEL.content,
+            dragHandle ? PANEL.dragHandleVisible : PANEL.dragHandleHidden,
+          )}
+          onOpenAutoFocus={() => contentRef.current?.focus()}
+          ref={contentRef}
+          tabIndex={-1}
         >
-          {children}
-        </PanelBody>
-
-        {actions.length === 0 ? null : (
-          <footer className="flex shrink-0 gap-2.5 border-t border-border px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-            {actions.map((action) => (
-              <Button
-                className="h-11 flex-1"
-                disabled={action.disabled}
-                key={action.id}
-                onClick={action.onClick}
-                variant={action.variant}
+          <header className="flex shrink-0 items-start gap-2 border-b border-border px-4 py-3">
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <DrawerTitle className="truncate text-base">{title}</DrawerTitle>
+              <DrawerDescription
+                className={cn("truncate text-xs", subtitle === undefined && "sr-only")}
               >
-                {action.icon}
-                <span className="truncate">{action.label}</span>
+                {subtitle}
+              </DrawerDescription>
+            </div>
+            <DrawerClose asChild>
+              <Button
+                aria-label={closeLabel}
+                className="-mt-1.5 -mr-2 size-10 shrink-0 text-muted-foreground hover:text-ink"
+                size="icon"
+                variant="ghost"
+              >
+                <X />
               </Button>
-            ))}
-          </footer>
-        )}
-      </DrawerContent>
-    </Drawer>
+            </DrawerClose>
+          </header>
+
+          <PanelBody
+            defaultTab={defaultTab}
+            emptyState={emptyState}
+            error={error}
+            loading={loading}
+            tabs={tabs}
+            title={title}
+          >
+            {children}
+          </PanelBody>
+
+          {actions.length === 0 ? null : (
+            <footer className="flex shrink-0 gap-2.5 border-t border-border px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              {actions.map((action) => (
+                <Button
+                  className="h-11 flex-1"
+                  disabled={action.disabled}
+                  key={action.id}
+                  onClick={action.onClick}
+                  variant={action.variant}
+                >
+                  {action.icon}
+                  <span className="truncate">{action.label}</span>
+                </Button>
+              ))}
+            </footer>
+          )}
+        </DrawerContent>
+      </Drawer>
+    </MobilePageOverviewPanelContext.Provider>
   );
 }
 
@@ -220,6 +231,61 @@ export function MobilePageOverviewTrigger({
         size={16}
       />
     </Button>
+  );
+}
+
+export function useMobilePageOverviewPanel(): MobilePageOverviewPanelController {
+  const [isOpen, setOpen] = useState(false);
+  const pendingActionRef = useRef<Nullable<() => void>>(null);
+
+  useEffect(() => {
+    function handlePopState() {
+      setOpen(false);
+      runPendingAction(pendingActionRef);
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    window.history.pushState(
+      { ...historyStateSchema.parse(window.history.state), [PANEL.historyGuardKey]: true },
+      "",
+    );
+
+    return () => {
+      if (isHistoryGuardActive()) {
+        window.history.back();
+        return;
+      }
+
+      runPendingAction(pendingActionRef);
+    };
+  }, [isOpen]);
+
+  return {
+    closeThen: (action) => {
+      pendingActionRef.current = action;
+      setOpen(false);
+    },
+    isOpen,
+    setOpen,
+  };
+}
+
+function isBrowserHandledClick(event: MouseEvent<HTMLAnchorElement>) {
+  const { target } = event.currentTarget;
+
+  return (
+    event.altKey ||
+    event.button !== 0 ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.shiftKey ||
+    (target !== "" && target !== "_self")
   );
 }
 
@@ -305,4 +371,10 @@ function PanelSkeleton() {
       ))}
     </div>
   );
+}
+
+function runPendingAction(pendingActionRef: RefObject<Nullable<() => void>>) {
+  const action = pendingActionRef.current;
+  pendingActionRef.current = null;
+  action?.();
 }

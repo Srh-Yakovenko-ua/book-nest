@@ -3,13 +3,13 @@
 import type { ReadingQueueItemView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
 
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
+  useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
 
 import type { LibrarySummaryCard } from "./library-summary-cards";
@@ -33,7 +33,7 @@ export function ReadingQueueOverviewPanel({
 }: ReadingQueueOverviewPanelProps) {
   const t = useTranslations("readingQueue.overviewPanel");
   const tDetails = useTranslations("readingQueue.stats.mobile");
-  const [open, setOpen] = useState(false);
+  const panel = useMobilePageOverviewPanel();
 
   const tabs: MobilePageOverviewTab[] = [
     {
@@ -56,13 +56,12 @@ export function ReadingQueueOverviewPanel({
 
   return (
     <>
-      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => setOpen(true)} />
+      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => panel.setOpen(true)} />
 
       <MobilePageOverviewPanel
         closeLabel={t("close")}
         loading={isLoading}
-        onOpenChange={setOpen}
-        open={open}
+        panel={panel}
         subtitle={t("subtitle")}
         tabs={tabs}
         title={t("title")}

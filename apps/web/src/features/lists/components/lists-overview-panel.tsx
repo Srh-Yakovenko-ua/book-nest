@@ -3,7 +3,6 @@
 import type { Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
@@ -11,6 +10,7 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
+  useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
 import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
@@ -35,7 +35,7 @@ export function ListsOverviewPanel({
 }: ListsOverviewPanelProps) {
   const t = useTranslations("lists.catalog.overviewPanel");
   const tDetails = useTranslations("lists.catalog.summary.mobile");
-  const [open, setOpen] = useState(false);
+  const panel = useMobilePageOverviewPanel();
 
   const attentionTotal = Object.values(attentionCounts).reduce((sum, count) => sum + count, 0);
 
@@ -53,10 +53,7 @@ export function ListsOverviewPanel({
             activeAttention={activeAttention}
             attentionCounts={attentionCounts}
             isLoading={isLoading}
-            onAttentionSelect={(reason) => {
-              onAttentionSelect(reason);
-              setOpen(false);
-            }}
+            onAttentionSelect={(reason) => panel.closeThen(() => onAttentionSelect(reason))}
           />
           <ListsTipBlock />
         </div>
@@ -68,13 +65,12 @@ export function ListsOverviewPanel({
 
   return (
     <>
-      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => setOpen(true)} />
+      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => panel.setOpen(true)} />
 
       <MobilePageOverviewPanel
         closeLabel={t("close")}
         loading={isLoading}
-        onOpenChange={setOpen}
-        open={open}
+        panel={panel}
         subtitle={t("subtitle")}
         tabs={tabs}
         title={t("title")}

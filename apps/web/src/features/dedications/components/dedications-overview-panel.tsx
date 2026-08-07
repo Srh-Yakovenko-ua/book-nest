@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
@@ -9,6 +8,7 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 import {
   MobilePageOverviewPanel,
   MobilePageOverviewTrigger,
+  useMobilePageOverviewPanel,
 } from "@/components/ui/mobile-page-overview-panel";
 import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
@@ -27,7 +27,7 @@ export function DedicationsOverviewPanel({
 }: DedicationsOverviewPanelProps) {
   const t = useTranslations("dedications.overviewPanel");
   const tDetails = useTranslations("dedications.summary.mobile");
-  const [open, setOpen] = useState(false);
+  const panel = useMobilePageOverviewPanel();
 
   const tabs: MobilePageOverviewTab[] = [
     {
@@ -38,12 +38,7 @@ export function DedicationsOverviewPanel({
     {
       content: (
         <div className="flex flex-col gap-4">
-          <DedicationsAboutSections
-            onChooseBook={() => {
-              setOpen(false);
-              onChooseBook();
-            }}
-          />
+          <DedicationsAboutSections onChooseBook={() => panel.closeThen(onChooseBook)} />
         </div>
       ),
       id: "about",
@@ -53,13 +48,12 @@ export function DedicationsOverviewPanel({
 
   return (
     <>
-      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => setOpen(true)} />
+      <MobilePageOverviewTrigger label={t("trigger")} onClick={() => panel.setOpen(true)} />
 
       <MobilePageOverviewPanel
         closeLabel={t("close")}
         loading={isLoading}
-        onOpenChange={setOpen}
-        open={open}
+        panel={panel}
         subtitle={t("subtitle")}
         tabs={tabs}
         title={t("title")}
