@@ -15,7 +15,7 @@
     "favorites": "Favorites",
     "readingQueue": "Reading queue",
     "allBooks": "All books",
-    "buyList": "Books to buy",
+    "buyList": "Wishlist",
     "series": "Series",
     "genresTags": "Genres / Tags",
     "loans": "Borrowed books",
@@ -289,7 +289,7 @@
         "openBook": "Open the previous book",
         "resumeBook": "Back to the book",
         "addToWishlist": "Add to “Want to buy”",
-        "openPurchase": "Go to purchase",
+        "openPurchase": "Go to wishlist",
         "openOrder": "View the order",
         "openLoan": "View the loan",
         "ignore": "Leave as is",
@@ -800,7 +800,7 @@
         "want_to_read": "Want to read",
         "finished": "Finished",
         "favorites": "Favorites",
-        "want_to_buy": "To buy",
+        "want_to_buy": "Want to buy",
         "in_transit": "In transit",
         "borrowed": "Borrowed",
         "series": "Series part",
@@ -1075,7 +1075,7 @@
     "purchaseInfo": {
       "title": "Store link",
       "subtitle": "Save where and for how much you can buy this book",
-      "moreStoresHint": "You'll be able to add more stores for price comparison on the <link>Books to buy</link> page.",
+      "moreStoresHint": "You'll be able to add more stores for price comparison on the <link>Wishlist</link> page.",
       "fields": {
         "storeName": "Store",
         "storeNamePlaceholder": "e.g. Yakaboo",
@@ -1402,7 +1402,7 @@
       "error": "Could not add the book. Check the fields and try again.",
       "editSuccess": "Changes saved.",
       "editError": "Could not save the changes. Check the fields and try again.",
-      "wantToBuyAction": "Go to shopping list"
+      "wantToBuyAction": "Go to wishlist"
     },
     "form": {
       "sectionComplete": "section complete"
@@ -1699,7 +1699,7 @@
           "return": "Mark as returned",
           "startDelivery": "Ordered — in transit",
           "alreadyOwn": "I already have this book",
-          "removeFromWishlist": "Remove from shopping list"
+          "removeFromWishlist": "Remove from wishlist"
         },
         "storeLinks": {
           "title": "Stores and prices",
@@ -1751,7 +1751,7 @@
           "noteMax": "No more than {max} characters.",
           "purchaseDateRequired": "Enter the purchase date.",
           "purchaseDateFuture": "The date can’t be in the future.",
-          "notInWishlist": "This book is no longer in the shopping list.",
+          "notInWishlist": "This book is no longer in the wishlist.",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -1876,7 +1876,7 @@
         "cancelDialog": {
           "title": "Cancel delivery",
           "description": "Mark this order as cancelled? The order data stays in the history.",
-          "keepAsWantToBuy": "Keep in the “Want to buy” list",
+          "keepAsWantToBuy": "Keep in the wishlist",
           "confirm": "Cancel delivery",
           "reasonLabel": "Cancellation reason",
           "reasonPlaceholder": "Optional: why are you cancelling?"
@@ -1906,10 +1906,9 @@
     }
   },
   "booksToBuy": {
-    "metaTitle": "Books to buy",
-    "title": "Books to buy",
-    "subtitle": "Books you want to purchase and add to your collection",
-    "countBadge": "{count, plural, one {# book} other {# books}}",
+    "metaTitle": "Wishlist",
+    "title": "Wishlist",
+    "subtitle": "Books you don't own yet but want on your shelf",
     "addBook": "Add book",
     "summary": {
       "empty": "—",
@@ -1932,8 +1931,8 @@
       }
     },
     "overviewPanel": {
-      "trigger": "Purchase overview",
-      "title": "Purchase overview",
+      "trigger": "Wishlist overview",
+      "title": "Wishlist overview",
       "subtitle": "Stats, best deals and quick actions",
       "close": "Close overview",
       "tabs": {
@@ -1943,7 +1942,7 @@
       }
     },
     "sidebar": {
-      "label": "Purchase overview",
+      "label": "Wishlist overview",
       "stats": {
         "title": "Quick statistics",
         "booksCount": "Books in the list",
@@ -1971,7 +1970,7 @@
       }
     },
     "toolbar": {
-      "searchLabel": "Search the shopping list",
+      "searchLabel": "Search the wishlist",
       "searchPlaceholder": "Search the list...",
       "searchClear": "Clear search",
       "linkFilterLabel": "Filter by links and prices",
@@ -2044,15 +2043,15 @@
     "markBoughtSuccess": "The book is marked as bought",
     "rowMenuLabel": "More actions for “{title}”",
     "removeFromList": {
-      "action": "Remove from the shopping list",
-      "title": "Remove the book from the shopping list?",
-      "description": "The book will disappear from the “Books to buy” page but will stay in your library.",
+      "action": "Remove from the wishlist",
+      "title": "Remove the book from the wishlist?",
+      "description": "The book will disappear from the wishlist but will stay in your library.",
       "cancel": "Cancel",
       "confirm": "Remove from the list",
       "pending": "Removing...",
-      "success": "The book was removed from the shopping list",
-      "error": "Could not remove the book from the shopping list",
-      "notInWishlist": "This book is no longer in the shopping list"
+      "success": "The book was removed from the wishlist",
+      "error": "Could not remove the book from the wishlist",
+      "notInWishlist": "This book is no longer in the wishlist"
     },
     "storeLinks": {
       "listLabel": "Store links",
@@ -2379,7 +2378,7 @@
       "empty": {
         "title": "Track your book orders",
         "description": "Mark an ordered book as \"In transit\" and add the store and delivery details to follow its journey.",
-        "cta": "View books to buy"
+        "cta": "View wishlist"
       },
       "filteredEmpty": {
         "title": "Nothing found",
@@ -2692,7 +2691,7 @@
         "openQueue": "Go to queue",
         "openLoan": "View loan",
         "openOrder": "View order",
-        "openWishlist": "Go to purchase",
+        "openWishlist": "Go to wishlist",
         "addToWishlist": "Add to “Want to buy”"
       }
     },
@@ -3627,7 +3626,6 @@
       "metaTitle": "Notes",
       "title": "Notes",
       "subtitle": "All your thoughts, impressions, questions and ideas about books and series.",
-      "countBadge": "{count, plural, one {# note} other {# notes}}",
       "addNote": "Add note",
       "loadMore": "Load more",
       "empty": {
@@ -4205,7 +4203,6 @@
     "metaTitle": "Quotes",
     "title": "Quotes",
     "subtitle": "Your personal archive of favorite lines from books",
-    "countBadge": "{count, plural, one {# quote} other {# quotes}}",
     "noResults": {
       "title": "Nothing found",
       "description": "Try changing your search query or clearing the filters.",
@@ -4624,7 +4621,7 @@
       "averageRating": "Average rating",
       "ratedBooks": "{count, plural, one {# rating} other {# ratings}}",
       "noRating": "—",
-      "toBuy": "Books to buy",
+      "toBuy": "On the wishlist",
       "priceTotal": "{price} · {count, plural, one {# book} other {# books}}",
       "error": {
         "title": "Couldn't load the summary",
@@ -4639,13 +4636,13 @@
           "publishers": "Publishers",
           "booksWithPublisher": "Books",
           "averageRating": "Rating",
-          "toBuy": "To buy"
+          "toBuy": "Wishlist"
         },
         "detailed": {
           "publishers": "Publishers",
           "booksWithPublisher": "Books with a publisher",
           "averageRating": "Average rating",
-          "toBuy": "Books to buy"
+          "toBuy": "On the wishlist"
         }
       }
     },
@@ -4675,7 +4672,7 @@
         "name": "Name",
         "booksCount": "Most books",
         "readCount": "Most read",
-        "wantToBuyCount": "Most to buy",
+        "wantToBuyCount": "Most wishlisted",
         "averageRating": "Highest rating",
         "lastBookAddedAt": "Recently added"
       },
@@ -4687,7 +4684,7 @@
           "name": "Name",
           "booksCount": "Books ↓",
           "readCount": "Read ↓",
-          "wantToBuyCount": "To buy ↓",
+          "wantToBuyCount": "Wishlisted ↓",
           "averageRating": "Rating ↓",
           "lastBookAddedAt": "Recent"
         }
@@ -4704,7 +4701,7 @@
         "custom": "Custom"
       },
       "filters": {
-        "hasBooksToBuy": "Has books to buy",
+        "hasBooksToBuy": "Has wishlisted books",
         "hasRatedBooks": "Has rated books",
         "hasSeries": "Has series"
       }
@@ -4714,7 +4711,7 @@
       "custom": "Custom",
       "books": "{count, plural, one {# book} other {# books}}",
       "read": "Read: {count}",
-      "toBuy": "To buy: {count}",
+      "toBuy": "Wishlist: {count}",
       "noRating": "No ratings",
       "noRatingShort": "—",
       "ratedCount": "· {count, plural, one {# rating} other {# ratings}}",
@@ -4726,7 +4723,7 @@
       "sourceGlobal": "Global",
       "books": "Books",
       "read": "Read",
-      "toBuy": "To buy",
+      "toBuy": "Wishlist",
       "rating": "Rating",
       "ratingCount": "· {count, plural, one {# rating} other {# ratings}}",
       "lastAdded": "Added",
@@ -4781,14 +4778,14 @@
       "tabs": {
         "overview": "Overview",
         "books": "Books",
-        "toBuy": "To buy"
+        "toBuy": "Wishlist"
       },
       "kpi": {
         "books": "Books",
         "read": "Read",
         "reading": "Reading",
         "wantToRead": "Want to read",
-        "toBuy": "To buy",
+        "toBuy": "Wishlist",
         "queue": "In queue",
         "rating": "Rating",
         "ratedCount": "{count, plural, one {# rating} other {# ratings}}",
@@ -4798,11 +4795,11 @@
       },
       "overview": {
         "latestBookTitle": "Latest book",
-        "toBuyPreviewTitle": "To buy",
+        "toBuyPreviewTitle": "Wishlist",
         "viewAllBooks": "All books",
-        "viewAllToBuy": "All to buy",
+        "viewAllToBuy": "All wishlisted",
         "emptyLatest": "No books from this publisher yet.",
-        "emptyToBuy": "No books to buy from this publisher."
+        "emptyToBuy": "No wishlisted books from this publisher."
       },
       "booksTab": {
         "searchLabel": "Search books",
@@ -4831,11 +4828,11 @@
         }
       },
       "toBuyTab": {
-        "count": "{count, plural, one {# book to buy} other {# books to buy}}",
+        "count": "{count, plural, one {# wishlisted book} other {# wishlisted books}}",
         "withoutPrice": "{count, plural, one {# without a price} other {# without a price}}",
         "empty": {
-          "title": "No books to buy",
-          "description": "There are no books from this publisher on your buy list yet.",
+          "title": "No wishlisted books",
+          "description": "There are no books from this publisher on your wishlist yet.",
           "cta": "Add book"
         },
         "error": {

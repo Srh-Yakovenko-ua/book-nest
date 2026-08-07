@@ -82,7 +82,7 @@ export const Default: Story = {
     await waitFor(() =>
       expect(body.getByRole("heading", { name: "Скасувати доставку" })).toBeVisible(),
     );
-    await expect(body.getByText("Залишити у списку «До покупки»")).toBeVisible();
+    await expect(body.getByText("Залишити у списку бажань")).toBeVisible();
     await expect(body.getByRole("checkbox")).toHaveAttribute("aria-checked", "true");
     await expect(body.getByRole("button", { name: "Скасувати доставку" })).toBeVisible();
   },
