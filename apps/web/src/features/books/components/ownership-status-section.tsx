@@ -25,7 +25,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Link } from "@/i18n/navigation";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -121,140 +120,14 @@ export function OwnershipStatusSection({
       />
 
       {ownershipUsesPurchase(status) ? (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-4 rounded-md border border-border bg-secondary/40 p-4 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-foreground">{t("purchaseInfo.title")}</p>
-              <p className="text-sm text-muted-foreground">{t("purchaseInfo.subtitle")}</p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="purchase-store-name">{t("purchaseInfo.fields.storeName")}</Label>
-              <Controller
-                control={control}
-                name="purchaseInfo.storeName"
-                render={({ field }) => (
-                  <StoreAutocomplete
-                    describedBy={
-                      errors.purchaseInfo?.storeName ? "purchase-store-name-error" : undefined
-                    }
-                    id="purchase-store-name"
-                    invalid={errors.purchaseInfo?.storeName !== undefined}
-                    label={t("purchaseInfo.fields.storeName")}
-                    onChange={(next) => field.onChange(next.length === 0 ? undefined : next)}
-                    placeholder={t("purchaseInfo.fields.storeNamePlaceholder")}
-                    value={typeof field.value === "string" ? field.value : ""}
-                  />
-                )}
-              />
-              <FieldError error={errors.purchaseInfo?.storeName} id="purchase-store-name-error" />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="purchase-store-url">{t("purchaseInfo.fields.storeUrl")}</Label>
-              <Input
-                aria-describedby={
-                  errors.purchaseInfo?.storeUrl ? "purchase-store-url-error" : undefined
-                }
-                aria-invalid={errors.purchaseInfo?.storeUrl !== undefined}
-                autoComplete="off"
-                className="h-10"
-                id="purchase-store-url"
-                inputMode="url"
-                placeholder={t("purchaseInfo.fields.storeUrlPlaceholder")}
-                {...register("purchaseInfo.storeUrl", { setValueAs: emptyToUndefined })}
-              />
-              <FieldError error={errors.purchaseInfo?.storeUrl} id="purchase-store-url-error" />
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex flex-1 flex-col gap-2">
-                <Label htmlFor="purchase-expected-price">
-                  {t("purchaseInfo.fields.expectedPrice")}
-                </Label>
-                <Input
-                  aria-invalid={errors.purchaseInfo?.expectedPrice !== undefined}
-                  className="h-10"
-                  id="purchase-expected-price"
-                  inputMode="decimal"
-                  min={0}
-                  onKeyDown={blockNegativeNumberKeys}
-                  onPaste={blockNegativeNumberPaste}
-                  placeholder="0"
-                  step="0.01"
-                  type="number"
-                  {...register("purchaseInfo.expectedPrice", {
-                    setValueAs: (value) => {
-                      if (typeof value !== "string" || value.trim().length === 0) return undefined;
-                      const parsed = Number(value);
-                      return Number.isFinite(parsed) ? Math.min(parsed, PRICE_MAX) : undefined;
-                    },
-                  })}
-                />
-                <FieldError
-                  error={errors.purchaseInfo?.expectedPrice}
-                  id="purchase-expected-price-error"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="purchase-currency">{t("purchaseInfo.fields.currency")}</Label>
-                <Controller
-                  control={control}
-                  name="purchaseInfo.currency"
-                  render={({ field }) => (
-                    <div className="w-full sm:w-28">
-                      <Select
-                        onValueChange={field.onChange}
-                        value={typeof field.value === "string" ? field.value : undefined}
-                      >
-                        <SelectTrigger
-                          className="h-10 w-full data-[size=default]:h-10"
-                          id="purchase-currency"
-                          isClearable={typeof field.value === "string" && field.value !== "UAH"}
-                          onClear={() => field.onChange("UAH")}
-                        >
-                          <SelectValue placeholder={t("purchaseInfo.fields.currencyPlaceholder")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CURRENCY_OPTIONS.map((currency) => (
-                            <SelectItem key={currency} value={currency}>
-                              {currency}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                />
-              </div>
-            </div>
-          </div>
-
-          <p className="text-sm text-muted-foreground">
-            {t.rich("purchaseInfo.moreStoresHint", {
-              link: (chunks) => (
-                <Link
-                  className="text-primary underline-offset-2 hover:underline"
-                  href="/books-to-buy"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  {chunks}
-                </Link>
-              ),
-            })}
-          </p>
-
-          <OwnershipNoteField
-            error={errors.purchaseInfo?.note}
-            id="purchase-note"
-            label={t("ownershipStatus.fields.note")}
-            name="purchaseInfo.note"
-            placeholder={t("ownershipStatus.fields.notePlaceholder")}
-            register={register}
-          />
-        </div>
+        <OwnershipNoteField
+          error={errors.purchaseInfo?.note}
+          id="purchase-note"
+          label={t("ownershipStatus.fields.note")}
+          name="purchaseInfo.note"
+          placeholder={t("ownershipStatus.fields.notePlaceholder")}
+          register={register}
+        />
       ) : null}
 
       {ownershipUsesDelivery(status) ? (
