@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { fakeExecutionContext } from "../../test/fake.js";
 import { SemaphoreWaitQueueFullError } from "../bounded-semaphore.js";
+import { HttpErrorFilter } from "./http-error.filter.js";
 
 type LogRecord = {
   err: { message: string; name: string; stack?: string };
@@ -24,16 +25,10 @@ type ResponseStub = {
   status: (code: number) => ResponseStub;
 };
 
-const { logSpy } = vi.hoisted(() => ({
-  logSpy: {
-    error: vi.fn<(record: LogRecord, message: string) => void>(),
-    warn: vi.fn<(record: LogRecord, message: string) => void>(),
-  },
-}));
-
-vi.mock("../logger.js", () => ({ createLogger: () => logSpy }));
-
-const { HttpErrorFilter } = await import("./http-error.filter.js");
+const logSpy = {
+  error: vi.fn<(record: LogRecord, message: string) => void>(),
+  warn: vi.fn<(record: LogRecord, message: string) => void>(),
+};
 
 function createHost(): { capture: ResponseCapture; host: ArgumentsHost } {
   const capture: ResponseCapture = { body: null, headers: {}, status: 0 };
@@ -58,7 +53,7 @@ describe("HttpErrorFilter backpressure logging", () => {
   it("logs a shed upload at warn level without a stack trace", () => {
     const { capture, host } = createHost();
 
-    new HttpErrorFilter().catch(new SemaphoreWaitQueueFullError("media-upload"), host);
+    new HttpErrorFilter(logSpy).catch(new SemaphoreWaitQueueFullError("media-upload"), host);
 
     expect(logSpy.error).toHaveBeenCalledTimes(0);
     expect(logSpy.warn).toHaveBeenCalledTimes(1);
@@ -80,7 +75,7 @@ describe("HttpErrorFilter backpressure logging", () => {
   it("still logs a genuine server fault at error level with its stack trace", () => {
     const { host } = createHost();
 
-    new HttpErrorFilter().catch(new Error("boom"), host);
+    new HttpErrorFilter(logSpy).catch(new Error("boom"), host);
 
     expect(logSpy.warn).toHaveBeenCalledTimes(0);
     expect(logSpy.error).toHaveBeenCalledTimes(1);

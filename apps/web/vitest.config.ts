@@ -49,6 +49,7 @@ export default defineConfig({
           maxWorkers,
           minWorkers: 1,
           name: "unit",
+          pool: "threads",
           setupFiles: ["./vitest.setup.ts"],
         },
       },

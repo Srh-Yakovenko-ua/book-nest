@@ -19,11 +19,17 @@ import {
   ValidationError,
 } from "./errors.js";
 
-const log = createLogger("error-handler");
 const isProduction = env.nodeEnv === "production";
+
+export type ErrorLogger = {
+  error(record: object, message: string): void;
+  warn(record: object, message: string): void;
+};
 
 @Catch()
 export class HttpErrorFilter implements ExceptionFilter {
+  constructor(private readonly log: ErrorLogger = createLogger("error-handler")) {}
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Request>();
@@ -32,7 +38,7 @@ export class HttpErrorFilter implements ExceptionFilter {
     const httpError = toHttpError(exception);
     const expectedBackpressure = isExpectedBackpressure(httpError);
 
-    log[
+    this.log[
       !expectedBackpressure && httpError.status >= HTTP_STATUS.INTERNAL_SERVER_ERROR
         ? "error"
         : "warn"
