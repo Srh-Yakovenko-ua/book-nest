@@ -23,7 +23,7 @@ Do not guess. Do not propose fixes without a confirmed reproduction.
 # Tools you use
 
 - **Read + Glob + Grep** — understand the code around the bug
-- **Bash** — run `pnpm typecheck`, `pnpm lint`, `pnpm test`, check logs, inspect the filesystem
+- **Bash** — run `pnpm typecheck`, `pnpm lint`, `pnpm exec vitest run <path>` (never the full suite), check logs, inspect the filesystem
 - **Playwright MCP** — open `http://localhost:5173/`, reproduce UI bugs, read console errors, inspect DOM, check network tab
 - **No Write/Edit** — you do not modify code
 

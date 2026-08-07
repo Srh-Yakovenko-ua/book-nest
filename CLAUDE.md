@@ -153,7 +153,7 @@ Business logic stays independent of HTTP **and** of the data layer, so each laye
 
 ## 9. Quality gates
 
-**The full suite is an end-of-work gate, not a per-edit reflex.** `pnpm test` costs ~7 minutes of wall time and saturates the dev machine; running it after every slice is the single biggest source of local load. Two tiers:
+**Tests are written locally and run in CI.** `pnpm test` costs ~7 minutes of wall time and saturates the dev machine, so the local machine never carries the full suite as a routine step. Keep writing tests for every change — only the _running_ moved.
 
 **Per change** — cheap, run freely:
 
@@ -164,19 +164,14 @@ pnpm format:check  # Prettier
 pnpm exec vitest run <path/to/the.test.ts>   # only the files your change touches
 ```
 
-**Once, at the end of the work** — before reporting done, before commit, before a release:
+**At commit and push** — nothing heavier locally. `pre-commit` runs lint-staged on staged files; `pre-push` runs `pnpm typecheck && pnpm lint`. The full suite runs on GitHub Actions: `Deploy` fires on every push to `dev`/`prod` and calls `ci.yml`, which runs static checks, four sharded API test shards, and the web suite before any image is built. A red test blocks the deploy, so a push is the real gate.
 
-```bash
-pnpm test          # full Vitest suite
-pnpm knip          # dead code / unused exports / unused deps
-```
-
-Never run the full suite while another one is live — turbo already replays an unchanged package from cache, so a second run buys nothing and doubles the load. `VITEST_MAX_WORKERS=2 pnpm test` when the machine must stay usable.
+**The local full suite is opt-in, not routine.** Run `pnpm test` (and `pnpm knip`) only when the user asks, when CI has gone red and needs reproducing, or before a prod release. Then run it once, never while another run is live — turbo replays an unchanged package from cache, so a second run buys nothing and doubles the load. `VITEST_MAX_WORKERS=2 pnpm test` when the machine must stay usable.
 
 BE additionally: `pnpm dev:api` starts clean; `curl -i http://localhost:4000/api/health` → 200 with `x-request-id`; the affected endpoint responds as expected (capture the curl).
 FE additionally: `pnpm dev:web` starts clean, no console errors; for UI changes, verify visually (screenshot / Storybook).
 
-Never report done with a failing gate. If a gate fails for an unrelated reason (e.g. a pre-existing flake), say so explicitly.
+Never report done with a failing gate. If a gate fails for an unrelated reason (e.g. a pre-existing flake), say so explicitly. "Tests pass in CI" is a claim only after the run is green — check it, don't assume it.
 
 ---
 

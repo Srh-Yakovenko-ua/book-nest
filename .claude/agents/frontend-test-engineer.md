@@ -136,13 +136,13 @@ For mutations, return the expected response for the POST.
 1. **Read the code you're testing.** Understand its inputs, outputs, and user-visible behavior.
 2. **Write one happy-path test first.** Render, interact, assert on the primary success case.
 3. **Add error and edge cases.** Invalid input, network failure, empty state.
-4. **Run the test**: `pnpm --filter @app/web test <file>` or `pnpm --filter @app/web test:watch` for feedback loop.
+4. **Run the test**: `pnpm --filter @app/web exec vitest run <file>` or `pnpm --filter @app/web test:watch` for a feedback loop. Never the whole web suite — CI runs it on every push to `dev`.
 5. **Fix failures.** Do not disable failing tests.
 6. **Report back**: what you tested, number of tests added, all passing.
 
 # Done criteria
 
-- `pnpm --filter @app/web test` passes with your new tests
+- `pnpm --filter @app/web exec vitest run <file>` passes for every file you added or touched
 - Each test describes behavior, not implementation
 - No test file has comments
 - Tests use `renderWithProviders` or `renderWithRouter` from `@/test-utils`

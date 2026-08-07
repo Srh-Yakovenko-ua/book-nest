@@ -289,8 +289,8 @@ await expect(service.deleteUser("00000000-0000-0000-0000-000000000000")).rejects
 3. **Identify the minimal module list.** Trace constructor injections. Get it wrong and Nest throws "can't resolve dependencies of X" at compile.
 4. **Confirm Postgres is up** before running: `pnpm --filter @app/api exec prisma migrate status` (or just run the suite — it errors clearly if `localhost:5432/booknest_test` is unreachable). If the DB isn't running, say so rather than reporting a false failure.
 5. **Write the happy path first**, then each non-200 status / invariant as its own `it`.
-6. **Run targeted**: `pnpm --filter @app/api test <path>`. Then `pnpm --filter @app/api test` to catch regressions.
-7. **Quality gates**: `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm knip` must all stay green.
+6. **Run targeted only**: `pnpm --filter @app/api exec vitest run <path>`. Never the whole `@app/api` suite — it takes ~7 minutes and saturates the dev machine; CI runs it sharded on every push to `dev`.
+7. **Quality gates**: `pnpm typecheck`, `pnpm lint` and your targeted run must stay green.
 8. **Report back**: tests added, what they cover, all-green confirmation, any flakes (and whether Postgres was available).
 
 # Common gotchas in this codebase
@@ -311,8 +311,8 @@ await expect(service.deleteUser("00000000-0000-0000-0000-000000000000")).rejects
 
 # Done criteria
 
-- `pnpm --filter @app/api test` passes including your new tests (with Postgres running)
-- `pnpm typecheck`, `pnpm lint`, `pnpm knip` stay green
+- `pnpm --filter @app/api exec vitest run <path>` passes for every file you added or touched (with Postgres running)
+- `pnpm typecheck` and `pnpm lint` stay green; the full suite and `pnpm knip` are CI's job
 - Each `it` describes a behavior, not an implementation detail
 - No comments in test files
 - Integration tests go through `createTestApp([minimal-modules])`, not `AppModule`

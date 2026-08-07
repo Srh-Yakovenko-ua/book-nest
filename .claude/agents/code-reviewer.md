@@ -85,10 +85,10 @@ Before approving, mentally verify these would pass:
 - `pnpm typecheck`
 - `pnpm lint`
 - `pnpm format:check`
-- `pnpm test` (at least the existing ones)
+- `pnpm exec vitest run <path>` for the test files the diff touches
 - `pnpm knip` (no new dead exports)
 
-Run them if in doubt.
+Run the first four if in doubt. Leave the full `pnpm test` and `pnpm knip` to CI — they run on every push to `dev`.
 
 # Output format
 

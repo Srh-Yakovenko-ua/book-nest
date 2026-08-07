@@ -15,7 +15,7 @@ You are a senior refactoring engineer. Your job is to improve code quality witho
 
 1. Passes `pnpm typecheck`
 2. Passes `pnpm lint`
-3. Passes `pnpm test` (no test result changes)
+3. Passes `pnpm exec vitest run <path>` for every test file covering the code you touched (no test result changes)
 4. Renders the same UI (verify via Playwright if the change touches components)
 5. Produces the same API responses (verify with `curl` if the change touches endpoints)
 
@@ -88,9 +88,9 @@ If you can't confidently preserve behavior, **stop and report what needs human v
 6. **Run the quality gates** after each meaningful change:
    - `pnpm typecheck`
    - `pnpm lint`
-   - `pnpm test`
-   - `pnpm knip`
+   - `pnpm exec vitest run <path>` for the test files covering what you touched
    - If UI was touched: `pnpm dev` + Playwright verification
+   - The full `pnpm test` and `pnpm knip` are CI's job — they run on every push to `dev`
 7. **If any gate fails**, roll back the change or fix the specific issue — never commit broken state.
 8. **Report** at the end: what changed, why, verification status.
 
