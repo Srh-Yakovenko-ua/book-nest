@@ -3,13 +3,14 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { readingStatuses } from "@/lib/book-status";
+import { statusEntry } from "@/lib/book-status.fixtures";
 
 import type { LibraryActions } from "../model/book-card-actions";
 import type { LibraryBook } from "../model/library-book";
 
 import { BookCardActions } from "./book-card-actions";
 
-const fallbackStatus = readingStatuses[0];
+const fallbackStatus = statusEntry(readingStatuses, "not_started", "Не почато");
 
 const noopActions: LibraryActions = {
   onAddTags: async () => {},

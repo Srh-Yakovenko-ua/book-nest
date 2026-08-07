@@ -7,7 +7,6 @@ import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LibrarySummaryMobile } from "@/features/books/components/library-summary-mobile";
 
@@ -59,9 +58,6 @@ export function NotesArchiveView() {
               {t("title")}
             </h1>
             <TitleLeaf />
-            {summary.data === undefined ? null : (
-              <Badge variant="secondary">{t("countBadge", { count: summary.data.total })}</Badge>
-            )}
           </div>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
             {t("subtitle")}

@@ -39,7 +39,7 @@ export const None: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Володіння")).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Маю цю книгу" })).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "Хочу купити" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "Додати до списку бажань" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Позичена у когось" })).toBeVisible();
   },
 };
@@ -47,9 +47,11 @@ export const None: Story = {
 export const OpensBuyDialog: Story = {
   args: { book: ownershipBook() },
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole("button", { name: "Хочу купити" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Додати до списку бажань" }));
     const body = within(document.body);
-    await waitFor(() => expect(body.getByRole("heading", { name: "Хочу купити" })).toBeVisible());
+    await waitFor(() =>
+      expect(body.getByRole("heading", { name: "Додати до списку бажань" })).toBeVisible(),
+    );
   },
 };
 

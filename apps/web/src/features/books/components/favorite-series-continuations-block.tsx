@@ -12,7 +12,12 @@ import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-pan
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { ownershipStatuses, readingStatuses, type StatusEntry } from "@/lib/book-status";
+import {
+  ownershipStatuses,
+  readingStatuses,
+  type StatusDefinition,
+  type StatusEntry,
+} from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
 import {
@@ -343,10 +348,10 @@ function resolveCta(
   }
 }
 
-const FALLBACK_READING_STATUS: StatusEntry =
+const FALLBACK_READING_STATUS: StatusDefinition =
   readingStatuses.find((entry) => entry.value === "not_started") ?? readingStatuses[0];
 
-const FALLBACK_OWNERSHIP_STATUS: StatusEntry =
+const FALLBACK_OWNERSHIP_STATUS: StatusDefinition =
   ownershipStatuses.find((entry) => entry.value === "none") ?? ownershipStatuses[0];
 
 function assertNever(value: never): never {
@@ -359,8 +364,8 @@ function buildStatusEntry({
   label,
   value,
 }: {
-  entries: readonly StatusEntry[];
-  fallback: StatusEntry;
+  entries: readonly StatusDefinition[];
+  fallback: StatusDefinition;
   label: string;
   value: string;
 }): StatusEntry {

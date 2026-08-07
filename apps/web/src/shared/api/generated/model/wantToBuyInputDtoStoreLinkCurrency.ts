@@ -9,10 +9,11 @@
 /**
  * @nullable
  */
-export type WantToBuyInputDtoCurrency =
-  (typeof WantToBuyInputDtoCurrency)[keyof typeof WantToBuyInputDtoCurrency] | null;
+export type WantToBuyInputDtoStoreLinkCurrency =
+  | (typeof WantToBuyInputDtoStoreLinkCurrency)[keyof typeof WantToBuyInputDtoStoreLinkCurrency]
+  | null;
 
-export const WantToBuyInputDtoCurrency = {
+export const WantToBuyInputDtoStoreLinkCurrency = {
   UAH: "UAH",
   EUR: "EUR",
   USD: "USD",

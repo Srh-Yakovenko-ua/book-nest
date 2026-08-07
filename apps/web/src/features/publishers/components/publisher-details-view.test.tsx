@@ -127,7 +127,7 @@ describe("PublisherDetailsView", () => {
     const { events, onUrlUpdate } = trackUrl();
     renderView(makePublisherDetail(), onUrlUpdate);
 
-    await userEvent.click(screen.getByRole("tab", { name: "До покупки" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Бажані" }));
 
     await waitFor(() => expect(events.length).toBeGreaterThan(0));
     expect(events.at(-1)?.searchParams.get("tab")).toBe("toBuy");

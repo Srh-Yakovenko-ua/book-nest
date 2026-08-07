@@ -88,22 +88,6 @@ describe("BooksToBuyView", () => {
     expect(screen.getByRole("heading", { name: "Бета" })).toBeInTheDocument();
   });
 
-  it("badges how many books wait to be bought", async () => {
-    respondToWishlist = () =>
-      Promise.resolve(
-        jsonResponse(
-          wishlistOf([
-            makeWishlistBook({ id: "alpha", title: "Альфа" }),
-            makeWishlistBook({ id: "beta", title: "Бета" }),
-          ]),
-        ),
-      );
-
-    renderWithProviders(<BooksToBuyView />);
-
-    expect(await screen.findByText("2 книги")).toBeInTheDocument();
-  });
-
   it("shows a busy skeleton while the wishlist loads", () => {
     respondToWishlist = () => new Promise<Response>(() => {});
 
@@ -125,7 +109,7 @@ describe("BooksToBuyView", () => {
     expect(
       screen.queryByRole("radiogroup", { name: "Фільтр за посиланнями та цінами" }),
     ).toBeNull();
-    expect(screen.queryByRole("complementary", { name: "Огляд покупок" })).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Огляд бажань" })).toBeNull();
   });
 
   it("refetches the wishlist when the reader retries", async () => {
@@ -151,10 +135,10 @@ describe("BooksToBuyView", () => {
     ).toBeNull();
   });
 
-  it("shows the purchase overview alongside a loaded wishlist", async () => {
+  it("shows the wishlist overview alongside a loaded wishlist", async () => {
     renderWithProviders(<BooksToBuyView />);
 
-    expect(await screen.findByRole("complementary", { name: "Огляд покупок" })).toBeInTheDocument();
+    expect(await screen.findByRole("complementary", { name: "Огляд бажань" })).toBeInTheDocument();
   });
 
   it("tells a filtered-out wishlist apart from an empty one and restores it on reset", async () => {

@@ -3,13 +3,14 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, waitFor } from "storybook/test";
 
 import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-status";
+import { statusEntry } from "@/lib/book-status.fixtures";
 
 import type { LibraryBook, LibraryBookFormat } from "../model/library-book";
 
 import { BookRow } from "./book-row";
 
-const reading = readingStatuses.find((status) => status.value === "reading") ?? readingStatuses[0];
-const owned = ownershipStatuses.find((status) => status.value === "owned") ?? ownershipStatuses[0];
+const reading = statusEntry(readingStatuses, "reading", "Читаю");
+const owned = statusEntry(ownershipStatuses, "owned", "У наявності");
 const paperBase = bookFormats.find((format) => format.value === "paper") ?? bookFormats[0];
 const paperFormat: LibraryBookFormat = {
   icon: paperBase.icon,

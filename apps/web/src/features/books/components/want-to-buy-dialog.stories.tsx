@@ -53,7 +53,9 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   play: async () => {
     const body = within(document.body);
-    await waitFor(() => expect(body.getByRole("heading", { name: "Хочу купити" })).toBeVisible());
+    await waitFor(() =>
+      expect(body.getByRole("heading", { name: "Додати до списку бажань" })).toBeVisible(),
+    );
     await expect(body.getByLabelText("Магазин")).toBeVisible();
     await expect(body.getByLabelText("Очікувана ціна")).toBeVisible();
   },

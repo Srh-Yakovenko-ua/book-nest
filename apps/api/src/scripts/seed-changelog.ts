@@ -523,6 +523,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Фільтри та вигляд списком для ваших списків",
     version: null,
   },
+  {
+    bodyEn:
+      'The buy list is now called the wishlist everywhere, and the ownership status reads "On the wishlist" so the label names the page it feeds. More importantly, the shop and price you enter when adding a book are finally saved where the wishlist reads them — until now they were written somewhere the page never looked, so the offer you typed simply never appeared. Shop and link now go together, and re-entering an offer for the same shop updates the price instead of failing.',
+    bodyUk:
+      "Список покупок тепер усюди називається списком бажань, а статус володіння читається як «У списку бажань», тож підпис називає сторінку, на яку веде. Головне ж інше: магазин і ціна, які ви вводите, додаючи книгу, нарешті зберігаються там, звідки їх читає список бажань — досі вони потрапляли туди, куди сторінка не дивиться, і введена пропозиція просто не з'являлася. Магазин і посилання тепер вводяться разом, а повторна пропозиція для того самого магазину оновлює ціну замість помилки.",
+    category: "improvement",
+    publishedAt: "2026-08-07T00:00:04.000Z",
+    slug: "wishlist-store-links",
+    titleEn: "The wishlist keeps where to buy",
+    titleUk: "Список бажань запам'ятовує, де купити",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

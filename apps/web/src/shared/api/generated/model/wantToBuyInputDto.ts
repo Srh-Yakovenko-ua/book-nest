@@ -5,24 +5,8 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { WantToBuyInputDtoCurrency } from "./wantToBuyInputDtoCurrency";
+import type { WantToBuyInputDtoStoreLink } from "./wantToBuyInputDtoStoreLink";
 
 export interface WantToBuyInputDto {
-  /** @nullable */
-  currency?: WantToBuyInputDtoCurrency;
-  /**
-   * @minimum 0
-   * @maximum 99999999.99
-   * @nullable
-   */
-  expectedPrice?: number | null;
-  /** @nullable */
-  note?: string | null;
-  /** @nullable */
-  storeName?: string | null;
-  /**
-   * @maxLength 300
-   * @nullable
-   */
-  storeUrl?: string | null;
+  storeLink?: WantToBuyInputDtoStoreLink;
 }

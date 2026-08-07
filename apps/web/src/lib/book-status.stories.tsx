@@ -12,7 +12,7 @@ import {
   queuePriorities,
   readingStatuses,
   seriesStatuses,
-  type StatusEntry,
+  type StatusDefinition,
   type StatusTone,
 } from "@/lib/book-status";
 
@@ -26,7 +26,7 @@ const TONE_CLASS: Record<StatusTone, string> = {
   warning: "border-warning/30 bg-warning/10 text-warning",
 };
 
-function StatusGroup({ entries, name }: { entries: readonly StatusEntry[]; name: string }) {
+function StatusGroup({ entries, name }: { entries: readonly StatusDefinition[]; name: string }) {
   return (
     <section className="flex flex-col gap-2">
       <h3 className="font-mono text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
@@ -41,13 +41,13 @@ function StatusGroup({ entries, name }: { entries: readonly StatusEntry[]; name:
   );
 }
 
-function StatusPill({ entry }: { entry: StatusEntry }) {
+function StatusPill({ entry }: { entry: StatusDefinition }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${TONE_CLASS[entry.tone]}`}
     >
       <UiIcon name={entry.icon} size={14} />
-      {entry.label}
+      {entry.value}
     </span>
   );
 }
@@ -67,7 +67,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Pill: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(readingStatuses[0].label)).toBeVisible();
+    await expect(canvas.getByText(readingStatuses[0].value)).toBeVisible();
   },
 };
 

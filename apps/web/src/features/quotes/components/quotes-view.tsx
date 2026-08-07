@@ -8,7 +8,6 @@ import { useState } from "react";
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
 
 import { TitleLeaf } from "@/components/title-leaf";
-import { Badge } from "@/components/ui/badge";
 import { LibrarySummaryMobile } from "@/features/books/components/library-summary-mobile";
 import { useRouter } from "@/i18n/navigation";
 
@@ -121,11 +120,6 @@ export function QuotesView() {
               {t("title")}
             </h1>
             <TitleLeaf />
-            {summary.data ? (
-              <Badge variant="secondary">
-                {t("countBadge", { count: summary.data.totalCount })}
-              </Badge>
-            ) : null}
           </div>
           <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground md:text-base">
             {t("subtitle")}
