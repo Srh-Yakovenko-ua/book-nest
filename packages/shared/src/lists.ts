@@ -14,7 +14,7 @@ import {
   paginationQueryFields,
 } from "./common.js";
 import { GenreKeySchema } from "./genres.js";
-import { NoHtmlString, queryStringArray } from "./internal.js";
+import { NoHtmlString, queryStringArray, ratingBound } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
@@ -142,6 +142,10 @@ export const ListBookSortSchema = z.enum([
   "rating_asc",
   "pages_desc",
   "pages_asc",
+  "year_desc",
+  "year_asc",
+  "status_unread_first",
+  "status_read_first",
 ]);
 
 export type ListBookSort = z.infer<typeof ListBookSortSchema>;
@@ -155,12 +159,41 @@ export const CustomListBooksQuerySchema = TaxonomySearchPaginationQuerySchema.ex
   bookType: BookTypeSchema.optional(),
   format: queryStringArray(BookFormatSchema),
   genre: queryStringArray(GenreKeySchema),
+  hasRating: z.stringbool().optional(),
   inQueue: z.stringbool().optional(),
   isFavorite: z.stringbool().optional(),
   owner: queryStringArray(OwnershipStatusSchema),
+  pagesMax: z.coerce.number().int().optional(),
+  pagesMin: z.coerce.number().int().optional(),
+  ratingMax: ratingBound().optional(),
+  ratingMin: ratingBound().optional(),
   sort: ListBookSortSchema.default("position"),
   status: queryStringArray(ReadingStatusSchema),
   tab: ListBookTabSchema.default("all"),
+}).superRefine((value, context) => {
+  if (
+    value.ratingMin !== undefined &&
+    value.ratingMax !== undefined &&
+    value.ratingMin > value.ratingMax
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "ratingMin must not exceed ratingMax",
+      path: ["ratingMin"],
+    });
+  }
+
+  if (
+    value.pagesMin !== undefined &&
+    value.pagesMax !== undefined &&
+    value.pagesMin > value.pagesMax
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "pagesMin must not exceed pagesMax",
+      path: ["pagesMin"],
+    });
+  }
 });
 
 export type CustomListBooksQuery = z.infer<typeof CustomListBooksQuerySchema>;
@@ -233,9 +266,20 @@ export const MoveListBookDirectionSchema = z.enum(["up", "down"]);
 
 export type MoveListBookDirection = z.infer<typeof MoveListBookDirectionSchema>;
 
-export const MoveListBookInputSchema = z.object({
-  direction: MoveListBookDirectionSchema,
-});
+export const MoveListBookInputSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      direction: MoveListBookDirectionSchema,
+      kind: z.literal("step"),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("index"),
+      position: z.number().int().positive(),
+    })
+    .strict(),
+]);
 
 export type MoveListBookInput = z.infer<typeof MoveListBookInputSchema>;
 

@@ -46,7 +46,7 @@ export function useMoveListBook(listId: string) {
     MoveContext
   >({
     mutationFn: ({ bookId, direction }) =>
-      listMembershipControllerMoveBook(listId, bookId, { direction }),
+      listMembershipControllerMoveBook(listId, bookId, { direction, kind: "step" }),
     onError: (_error, _input, context) => {
       context?.snapshot.forEach(([key, data]) => queryClient.setQueryData(key, data));
     },

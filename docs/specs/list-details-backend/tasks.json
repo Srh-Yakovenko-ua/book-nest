@@ -131,6 +131,18 @@
       "decision": "POST /api/lists/:listId/duplicate is documented and returns 201, not 200. The stage-4 tests caught the original @ApiOkResponse-without-@HttpCode drift, where Swagger promised 200 while Nest returned 201 and the generated client would have carried the wrong contract. Resolved toward 201 because the route genuinely creates a resource, matching POST /api/lists. NOTE: the sibling POST /api/lists/:listId/restore has the same drift (documents 200, returns 201) and is PRE-EXISTING, outside this diff, deliberately left alone.",
       "source": "Found by the stage-4 test agent; resolved by the orchestrator.",
       "blocks": []
+    },
+    {
+      "id": "D20",
+      "decision": "s6-status-sort-repo deviates from the doneWhen implementation sketch. The spec asked for a raw-SQL branch with a CASE expression, but the list page filter is expressed as a Prisma where object built by buildLibraryWhere; translating it to raw SQL would duplicate the entire filter in a second place and the two would drift. Instead the repository selects the matching (bookId, readingStatus) pairs ordered by position, a PURE domain function selectStatusSortedPage groups them finished-vs-not and slices the page, and the page ids are hydrated through the existing Prisma include so the payload shape is identical to every other sort. The invariants the doneWhen protects are preserved: grouping is on finished-ness only (never the raw status string ordering), the secondary key is position ASC, the tiebreaker is bookId ASC, and the scan is capped at 2000 rows with a log.warn.",
+      "source": "Orchestrator, stage 6. The sketch assumed the filter was expressible in SQL; it is not without duplicating it.",
+      "blocks": []
+    },
+    {
+      "id": "D21",
+      "decision": "D12 was WRONG on the facts. It claimed the discriminated-union move body was safe to land as a breaking change because a grep proved zero non-generated frontend consumers. There is one: apps/web/src/features/lists/api/use-list-membership.ts:49 called it with a bare { direction }. Caught by the root pnpm typecheck after pnpm gen:api, fixed by passing kind: step. Recorded because it is the second time an audited file:line claim did not survive contact with the code.",
+      "source": "Orchestrator, stage 5.",
+      "blocks": []
     }
   ],
   "openDecisions": [
@@ -1543,7 +1555,8 @@
         "MoveListBookDirectionSchema is kept and reused by the step branch",
         "no optional-field variant survives - an input with both direction and position must fail validation",
         "root `pnpm typecheck` green; this is a deliberate breaking change with no frontend caller today (see verifiedAssertions)"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s5-move-index-repo",
@@ -1559,7 +1572,8 @@
         "a method writes new positions only for the rows whose number actually changed",
         "both accept the transaction client first, matching the existing signatures",
         "LIST_REORDER_MAX = 2000 lives in a grouped constants object in this module (D9)"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s5-move-index-service",
@@ -1577,7 +1591,8 @@
         "the target index is clipped into 0..len-1 rather than throwing on an out-of-range position",
         "after the move the list holds a dense 1..N with no gaps, and touchList is called",
         "a book that is not in the list still throws NotFoundError as today"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s5-move-controller",
@@ -1595,7 +1610,8 @@
         "the controller passes the whole parsed body to the service instead of body.direction (list-membership.controller.ts:94)",
         "MoveListBookInputDto still wraps MoveListBookInputSchema via createZodDto and openapi.json shows a oneOf/discriminator for the request body",
         "@ApiBadRequestResponse documents the over-limit and invalid-body cases"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s5-rank-repo",
@@ -1611,7 +1627,8 @@
         "the result is Zod-parsed and returned as a Map or array of primitives, never a ViewModel",
         "capped at 2000 rows with a log.warn when the cap is hit",
         "all parameters are placeholders - no concatenation"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s5-rank-service",
@@ -1627,7 +1644,8 @@
         "toListBookView sets ListBookView.position from the rank map, not from the raw column",
         "the stored position column is NOT rewritten anywhere in this task - it stays sparse and authoritative for ordering",
         "a list whose stored positions are 1,2,4,7 renders as 1,2,3,4"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s5-tests-unit",
@@ -1687,7 +1705,8 @@
       "doneWhen": [
         "ListBookSortSchema contains status_unread_first and status_read_first",
         "root `pnpm typecheck` fails until LIST_BOOK_ORDER_BY is exhaustive again - that failure is the guard, do not silence it with a cast"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s6-status-sort-repo",
@@ -1704,7 +1723,8 @@
         "the raw branch returns ids that are then hydrated through the existing Prisma include, so the page payload shape is identical to every other sort (same pattern as lists.repository.ts:283-303)",
         "Prisma.sql placeholders only",
         "the all-Prisma path for the other sorts is unchanged"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s6-shared-year-sorts",
@@ -1715,7 +1735,8 @@
       "files": ["packages/shared/src/lists.ts"],
       "dependsOn": ["s1-shared-list-sorts"],
       "mandatory": true,
-      "doneWhen": ["ListBookSortSchema contains year_desc and year_asc"]
+      "doneWhen": ["ListBookSortSchema contains year_desc and year_asc"],
+      "status": "done"
     },
     {
       "id": "s6-year-sorts-repo",
@@ -1729,7 +1750,8 @@
       "doneWhen": [
         "LIST_BOOK_ORDER_BY gains year_desc: nestBookOrderBy(\"year_desc\") and year_asc: nestBookOrderBy(\"year_asc\")",
         "books without a publicationYear land last in both directions (inherited from books.repository.ts:1104-1113), asserted by a test"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s6-shared-rating-pages-filters",
@@ -1743,7 +1765,8 @@
       "doneWhen": [
         "CustomListBooksQuerySchema gains ratingMin, ratingMax, hasRating, pagesMin, pagesMax with the same coercions and bounds as LibraryBooksQuerySchema (packages/shared/src/books.ts:852-868)",
         "the ratingMin<=ratingMax and pagesMin<=pagesMax cross-field checks are enforced, matching books.ts:875-911 - the constraint must not exist on only one of the two endpoints"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s6-rating-pages-service",
@@ -1757,7 +1780,8 @@
       "doneWhen": [
         "the mapper passes ratingMin, ratingMax, hasRating, pagesMin, pagesMax straight into LibraryFilter",
         "no new predicate code is written in book-where.ts - the fields are already handled at book-library-read.repository.ts:468-484 (now book-where.ts)"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s6-tests-integration",

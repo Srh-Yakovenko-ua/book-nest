@@ -9,14 +9,27 @@ import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma as PrismaNamespace } from "../../../generated/prisma/client.js";
 import { appendBookToList } from "./book-list-membership.js";
 
+export const LIST_LIMITS = Object.freeze({
+  reorderMax: 2000,
+});
+
 export type ListMembership = {
   bookId: string;
   position: number;
 };
 
+type ActiveMembershipsInput = {
+  listId: string;
+};
+
 type AppendManyInput = {
   bookIds: string[];
   listId: string;
+};
+
+type ApplyPositionsInput = {
+  listId: string;
+  positions: ListMembership[];
 };
 
 type DeleteManyInput = {
@@ -118,6 +131,30 @@ export class ListMembershipRepository {
     return toAppend.length;
   }
 
+  async applyPositions(
+    client: Prisma.TransactionClient,
+    { listId, positions }: ApplyPositionsInput,
+  ): Promise<void> {
+    if (positions.length === 0) {
+      return;
+    }
+
+    const values = PrismaNamespace.join(
+      positions.map(
+        ({ bookId, position }) => PrismaNamespace.sql`(${bookId}::uuid, ${position}::int)`,
+      ),
+    );
+
+    await client.$executeRaw(PrismaNamespace.sql`
+      UPDATE book_list_items t
+      SET position = v.position
+      FROM (VALUES ${values}) AS v(book_id, position)
+      WHERE t.list_id = ${listId}::uuid
+        AND t.book_id = v.book_id
+        AND t.position <> v.position
+    `);
+  }
+
   countItems(client: Prisma.TransactionClient, { listId }: ItemsCountInput): Promise<number> {
     return client.bookListItem.count({ where: { book: SOFT_DELETE_SCOPE.active, listId } });
   }
@@ -140,6 +177,18 @@ export class ListMembershipRepository {
       where: { book: { userId }, bookId: { in: bookIds }, listId },
     });
     return result.count;
+  }
+
+  findActiveMemberships(
+    client: Prisma.TransactionClient,
+    { listId }: ActiveMembershipsInput,
+  ): Promise<ListMembership[]> {
+    return client.bookListItem.findMany({
+      orderBy: [{ position: "asc" }, { bookId: "asc" }],
+      select: { bookId: true, position: true },
+      take: LIST_LIMITS.reorderMax + 1,
+      where: { book: SOFT_DELETE_SCOPE.active, listId },
+    });
   }
 
   async findMembership(

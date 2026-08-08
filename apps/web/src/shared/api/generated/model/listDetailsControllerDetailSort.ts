@@ -21,4 +21,8 @@ export const ListDetailsControllerDetailSort = {
   rating_asc: "rating_asc",
   pages_desc: "pages_desc",
   pages_asc: "pages_asc",
+  year_desc: "year_desc",
+  year_asc: "year_asc",
+  status_unread_first: "status_unread_first",
+  status_read_first: "status_read_first",
 } as const;

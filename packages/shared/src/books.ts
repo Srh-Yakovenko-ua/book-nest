@@ -35,6 +35,7 @@ import {
   NoHtmlString,
   notInFutureDate,
   queryStringArray,
+  ratingBound,
   RECENT_USED_LIMIT_DEFAULT,
   RECENT_USED_LIMIT_MAX,
 } from "./internal.js";
@@ -807,9 +808,6 @@ export type UpdateReadingProgressInput = z.infer<typeof UpdateReadingProgressInp
 
 const LIBRARY_PAGE_SIZE_DEFAULT = 24;
 export const LIBRARY_SEARCH_MAX = 200;
-const LIBRARY_RATING_MIN = 0.5;
-const LIBRARY_RATING_MAX = 10;
-const LIBRARY_RATING_STEP = 0.5;
 
 export const LibrarySortSchema = z.enum([
   "created_desc",
@@ -856,18 +854,8 @@ export const LibraryBooksQuerySchema = z
     publisher: queryStringArray(z.uuid()),
     publisherPresence: PublisherPresenceSchema.optional(),
     q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
-    ratingMax: z.coerce
-      .number()
-      .min(LIBRARY_RATING_MIN)
-      .max(LIBRARY_RATING_MAX)
-      .multipleOf(LIBRARY_RATING_STEP)
-      .optional(),
-    ratingMin: z.coerce
-      .number()
-      .min(LIBRARY_RATING_MIN)
-      .max(LIBRARY_RATING_MAX)
-      .multipleOf(LIBRARY_RATING_STEP)
-      .optional(),
+    ratingMax: ratingBound().optional(),
+    ratingMin: ratingBound().optional(),
     sort: LibrarySortSchema.default("created_desc"),
     status: queryStringArray(ReadingStatusSchema),
     tag: queryStringArray(z.uuid()),

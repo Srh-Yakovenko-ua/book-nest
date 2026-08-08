@@ -22,6 +22,11 @@ type DetailInput = {
   userId: string;
 };
 
+type ListBookViewInput = {
+  item: BookListItemWithBook;
+  positionRanks: Map<string, number> | undefined;
+};
+
 @Injectable()
 export class ListDetailsService {
   constructor(
@@ -45,7 +50,7 @@ export class ListDetailsService {
     const tabCountsFilter: LibraryFilter = { ...filter, readingStatuses: undefined };
     const narrowedByStatus = filter.readingStatuses !== undefined;
 
-    const [items, tabCounts, narrowedCount] = await Promise.all([
+    const [items, tabCounts, narrowedCount, positionRanks] = await Promise.all([
       this.listBooksRepository.listBooks({
         filter,
         listId,
@@ -56,10 +61,13 @@ export class ListDetailsService {
       narrowedByStatus
         ? this.listBooksRepository.countBooks({ filter, listId })
         : Promise.resolve(undefined),
+      sort === "position"
+        ? this.listBooksRepository.listPositionRanks({ listId, userId })
+        : Promise.resolve(undefined),
     ]);
 
     const books = buildPaginator({
-      items: items.map((item) => this.toListBookView(item)),
+      items: items.map((item) => this.toListBookView({ item, positionRanks })),
       pageNumber,
       pageSize,
       totalCount: narrowedCount ?? tabCounts.all,
@@ -68,7 +76,10 @@ export class ListDetailsService {
     return { ...header, books, statusCounts: toListStatusCounts(tabCounts) };
   }
 
-  private toListBookView(item: BookListItemWithBook): ListBookView {
-    return { ...this.viewAssembler.viewOf(item.book), position: item.position };
+  private toListBookView({ item, positionRanks }: ListBookViewInput): ListBookView {
+    return {
+      ...this.viewAssembler.viewOf(item.book),
+      position: positionRanks?.get(item.bookId) ?? item.position,
+    };
   }
 }

@@ -5,6 +5,15 @@ import { LIST_PAGE_SIZE_MAX, noHtmlTags } from "./common.js";
 
 export const NoHtmlString = z.string().refine(noHtmlTags, "HTML tags are not allowed");
 
+export const BOOK_RATING = {
+  max: 10,
+  min: 0.5,
+  step: 0.5,
+} as const;
+
+export const ratingBound = () =>
+  z.coerce.number().min(BOOK_RATING.min).max(BOOK_RATING.max).multipleOf(BOOK_RATING.step);
+
 const UTC_DAY = {
   isoDateLength: 10,
   skewToleranceDays: 1,

@@ -43,12 +43,33 @@ export type ListDetailsControllerDetailParams = {
    * @items.maxLength 64
    */
   genre?: string[];
+  hasRating?: string;
   inQueue?: string;
   isFavorite?: string;
   /**
    * @maxItems 100
    */
   owner?: ListDetailsControllerDetailOwnerItem[];
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  pagesMax?: number;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   */
+  pagesMin?: number;
+  /**
+   * @minimum 0.5
+   * @maximum 10
+   */
+  ratingMax?: number;
+  /**
+   * @minimum 0.5
+   * @maximum 10
+   */
+  ratingMin?: number;
   sort?: ListDetailsControllerDetailSort;
   /**
    * @maxItems 100

@@ -1,4 +1,8 @@
-import type { AddBooksToListResult, RemoveBooksFromListResult } from "@app/shared";
+import type {
+  AddBooksToListResult,
+  MoveListBookInput,
+  RemoveBooksFromListResult,
+} from "@app/shared";
 
 import {
   AddBooksToListInputSchema,
@@ -98,12 +102,15 @@ export class ListMembershipController {
   }
 
   @ApiBadRequestResponse({
-    description: "Validation failed or the book is already at the top or bottom",
+    description:
+      "Validation failed, the book is already at the top or bottom, or the list holds too many books to reorder",
   })
   @ApiBody({ type: MoveListBookInputDto })
   @ApiNoContentResponse({ description: "The book was moved" })
   @ApiNotFoundResponse({ description: "List not found or the book is not in the list" })
-  @ApiOperation({ summary: "Move a book up or down within a custom list" })
+  @ApiOperation({
+    summary: "Move a book one step or to an explicit position within a custom list",
+  })
   @ApiParam({ name: "listId", required: true })
   @ApiParam({ name: "bookId", required: true })
   @HttpCode(HTTP_STATUS.NO_CONTENT)
@@ -112,11 +119,11 @@ export class ListMembershipController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("listId", ParseUUIDPipe) listId: string,
     @Param("bookId", ParseUUIDPipe) bookId: string,
-    @Body(new ZodBodyPipe(MoveListBookInputSchema)) body: MoveListBookInputDto,
+    @Body(new ZodBodyPipe(MoveListBookInputSchema)) body: MoveListBookInput,
   ): Promise<void> {
     return this.listMembershipService.moveBook({
       bookId,
-      direction: body.direction,
+      input: body,
       listId,
       userId: user.id,
     });

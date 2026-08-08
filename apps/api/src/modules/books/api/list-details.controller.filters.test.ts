@@ -41,6 +41,8 @@ type CreateBookInput = {
   genres?: string[];
   isFavorite?: boolean;
   ownershipStatus?: string;
+  pagesCount?: Nullable<number>;
+  publicationYear?: Nullable<number>;
   queuePosition?: Nullable<number>;
   readingStatus?: string;
   seriesId?: Nullable<string>;
@@ -75,6 +77,8 @@ async function createBook({
   genres,
   isFavorite,
   ownershipStatus,
+  pagesCount,
+  publicationYear,
   queuePosition,
   readingStatus,
   seriesId,
@@ -88,6 +92,8 @@ async function createBook({
       genres: genres ?? [],
       isFavorite: isFavorite ?? false,
       ownershipStatus: ownershipStatus ?? "none",
+      pagesCount: pagesCount ?? null,
+      publicationYear: publicationYear ?? null,
       queuePosition: queuePosition ?? null,
       readingStatus: readingStatus ?? "not_started",
       seriesId: seriesId ?? null,
@@ -96,6 +102,21 @@ async function createBook({
     },
   });
   return book.id;
+}
+
+async function createInterleavedStatusList(userId: string): Promise<string> {
+  const listId = await createList(userId, "Autumn reads");
+  await addBookToList(listId, 0, { readingStatus: "finished", title: "Finished first", userId });
+  await addBookToList(listId, 1, { readingStatus: "reading", title: "Reading second", userId });
+  await addBookToList(listId, 2, { readingStatus: "finished", title: "Finished third", userId });
+  await addBookToList(listId, 3, { readingStatus: "rereading", title: "Rereading fourth", userId });
+  await addBookToList(listId, 4, {
+    readingStatus: "not_started",
+    title: "Untouched fifth",
+    userId,
+  });
+  await addBookToList(listId, 5, { readingStatus: "finished", title: "Finished sixth", userId });
+  return listId;
 }
 
 async function createList(userId: string, name: string): Promise<string> {
@@ -131,6 +152,30 @@ async function createMixedStatusList(userId: string): Promise<string> {
     title: "Space untouched",
     userId,
   });
+  return listId;
+}
+
+async function createRatedList(userId: string): Promise<string> {
+  const listId = await createList(userId, "Autumn reads");
+  const slim = await addBookToList(listId, 0, {
+    pagesCount: 120,
+    title: "Slim classic",
+    userId,
+  });
+  const middling = await addBookToList(listId, 1, {
+    pagesCount: 400,
+    title: "Middling tome",
+    userId,
+  });
+  const doorstopper = await addBookToList(listId, 2, {
+    pagesCount: 900,
+    title: "Doorstopper",
+    userId,
+  });
+  await addBookToList(listId, 3, { pagesCount: 50, title: "Unrated pamphlet", userId });
+  await setRating(slim, 9);
+  await setRating(middling, 5);
+  await setRating(doorstopper, 2);
   return listId;
 }
 
@@ -435,6 +480,168 @@ describe("GET /api/lists/:listId sorting", () => {
     const res = await getDetail(accessToken, listId, { sort: "rating_asc" });
 
     expect(titles(res.body)).toEqual(["Low", "Mid", "High", "None"]);
+  });
+});
+
+describe("GET /api/lists/:listId status sorting", () => {
+  it("puts every unfinished book before every finished one and keeps position order inside each group", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createInterleavedStatusList(userId);
+
+    const res = await getDetail(accessToken, listId, { sort: "status_unread_first" });
+
+    expect(res.status).toBe(200);
+    expect(titles(res.body)).toEqual([
+      "Reading second",
+      "Rereading fourth",
+      "Untouched fifth",
+      "Finished first",
+      "Finished third",
+      "Finished sixth",
+    ]);
+  });
+
+  it("treats a rereading book as unfinished even though it sits after a finished one", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createList(userId, "Autumn reads");
+    await addBookToList(listId, 0, { readingStatus: "finished", title: "Read once", userId });
+    await addBookToList(listId, 1, { readingStatus: "rereading", title: "Reading again", userId });
+
+    const res = await getDetail(accessToken, listId, { sort: "status_unread_first" });
+
+    expect(titles(res.body)).toEqual(["Reading again", "Read once"]);
+  });
+
+  it("returns the exact inverse group order for status_read_first", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createInterleavedStatusList(userId);
+
+    const res = await getDetail(accessToken, listId, { sort: "status_read_first" });
+
+    expect(titles(res.body)).toEqual([
+      "Finished first",
+      "Finished third",
+      "Finished sixth",
+      "Reading second",
+      "Rereading fourth",
+      "Untouched fifth",
+    ]);
+  });
+});
+
+describe("GET /api/lists/:listId year sorting", () => {
+  it("orders books by publication year descending with undated books last", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createList(userId, "Autumn reads");
+    await addBookToList(listId, 0, { publicationYear: 2001, title: "Millennial", userId });
+    await addBookToList(listId, 1, { title: "Undated", userId });
+    await addBookToList(listId, 2, { publicationYear: 2010, title: "Recent", userId });
+    await addBookToList(listId, 3, { publicationYear: 1999, title: "Vintage", userId });
+
+    const res = await getDetail(accessToken, listId, { sort: "year_desc" });
+
+    expect(titles(res.body)).toEqual(["Recent", "Millennial", "Vintage", "Undated"]);
+  });
+
+  it("orders books by publication year ascending with undated books last", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createList(userId, "Autumn reads");
+    await addBookToList(listId, 0, { publicationYear: 2001, title: "Millennial", userId });
+    await addBookToList(listId, 1, { title: "Undated", userId });
+    await addBookToList(listId, 2, { publicationYear: 2010, title: "Recent", userId });
+    await addBookToList(listId, 3, { publicationYear: 1999, title: "Vintage", userId });
+
+    const res = await getDetail(accessToken, listId, { sort: "year_asc" });
+
+    expect(titles(res.body)).toEqual(["Vintage", "Millennial", "Recent", "Undated"]);
+  });
+});
+
+describe("GET /api/lists/:listId rating and pages filters", () => {
+  it("keeps only books rated at least ratingMin", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createRatedList(userId);
+
+    const res = await getDetail(accessToken, listId, { ratingMin: "5" });
+
+    expect(res.status).toBe(200);
+    expect(titles(res.body)).toEqual(["Slim classic", "Middling tome"]);
+  });
+
+  it("keeps only books rated at most ratingMax", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createRatedList(userId);
+
+    const res = await getDetail(accessToken, listId, { ratingMax: "5" });
+
+    expect(titles(res.body)).toEqual(["Middling tome", "Doorstopper"]);
+  });
+
+  it("keeps only unrated books when hasRating is false", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createRatedList(userId);
+
+    const res = await getDetail(accessToken, listId, { hasRating: "false" });
+
+    expect(titles(res.body)).toEqual(["Unrated pamphlet"]);
+  });
+
+  it("keeps only books with at least pagesMin pages", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createRatedList(userId);
+
+    const res = await getDetail(accessToken, listId, { pagesMin: "400" });
+
+    expect(titles(res.body)).toEqual(["Middling tome", "Doorstopper"]);
+  });
+
+  it("keeps only books with at most pagesMax pages", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createRatedList(userId);
+
+    const res = await getDetail(accessToken, listId, { pagesMax: "120" });
+
+    expect(titles(res.body)).toEqual(["Slim classic", "Unrated pamphlet"]);
+  });
+
+  it("never returns a rated book outside the list that matches the rating range", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createRatedList(userId);
+    const unlisted = await createBook({ pagesCount: 400, title: "Outside the list", userId });
+    await setRating(unlisted, 9);
+
+    const res = await getDetail(accessToken, listId, { pagesMin: "100", ratingMin: "5" });
+
+    expect(res.body.books.totalCount).toBe(2);
+    expect(titles(res.body)).toEqual(["Slim classic", "Middling tome"]);
+  });
+
+  it("rejects a rating range whose minimum exceeds its maximum", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createRatedList(userId);
+
+    const res = await getDetail(accessToken, listId, { ratingMax: "2", ratingMin: "9" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "ratingMin", message: expect.any(String) }),
+      ]),
+    );
+  });
+
+  it("rejects a pages range whose minimum exceeds its maximum", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const listId = await createRatedList(userId);
+
+    const res = await getDetail(accessToken, listId, { pagesMax: "100", pagesMin: "900" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.errorsMessages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "pagesMin", message: expect.any(String) }),
+      ]),
+    );
   });
 });
 
