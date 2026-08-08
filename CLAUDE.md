@@ -164,6 +164,8 @@ pnpm format:check  # Prettier
 pnpm exec vitest run <path/to/the.test.ts>   # only the files your change touches
 ```
 
+**"Only the files your change touches" has one blind spot, and it is the expensive one.** A contract change breaks callers you never opened — a test fixture, a hand-written frontend caller, a sibling test asserting the old response shape. Whenever the change is contract-shaped (`packages/shared`, a Prisma schema or migration, a repository/service signature, a DI constructor, a request or response body, a `core/**` helper), run the **`/blast-radius`** skill before committing. It greps the consumers and runs their tests, which is minutes, not the full suite. Skipping it on 2026-08-08 put a red deploy on `dev`.
+
 **At commit and push** — nothing heavier locally. `pre-commit` runs lint-staged on staged files; `pre-push` runs `pnpm typecheck && pnpm lint`. The full suite runs on GitHub Actions: `Deploy` fires on every push to `dev`/`prod` and calls `ci.yml`, which runs static checks, four sharded API test shards, and the web suite before any image is built. A red test blocks the deploy, so a push is the real gate.
 
 **The local full suite is opt-in, not routine.** Run `pnpm test` (and `pnpm knip`) only when the user asks, when CI has gone red and needs reproducing, or before a prod release. Then run it once, never while another run is live — turbo replays an unchanged package from cache, so a second run buys nothing and doubles the load. `VITEST_MAX_WORKERS=2 pnpm test` when the machine must stay usable.
@@ -188,8 +190,8 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 | Tests in `apps/web/src/**` / `apps/api/src/**`                            | `frontend-test-engineer` / `backend-test-engineer` |
 | Refactor / dead code / cleanup                                            | `refactor-specialist`                              |
 | End-to-end user-visible feature needing a "what's new" entry              | `changelog-writer`                                 |
-| Browser-side bug (UI, console, layout, hydration, interaction)            | `frontend-bug-hunter`                              |
-| Server-side bug (500, failing endpoint, Prisma/Postgres error, hang)      | `backend-bug-hunter`                               |
+| Browser-side bug (UI, console, layout, hydration, interaction)            | `frontend-bug-hunter` (via `/diagnose`)            |
+| Server-side bug (500, failing endpoint, Prisma/Postgres error, hang)      | `backend-bug-hunter` (via `/diagnose`)             |
 | Prisma migration / schema change                                          | `migration-reviewer`                               |
 | Release / promote dev→stage→prod, deploy, "залить в прод", "выкати"       | `release-manager`                                  |
 | "ready to commit" / "сделай ревью" / "проверь перед commit"               | `code-reviewer` (+ auditors below)                 |
@@ -199,6 +201,20 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 | SEO / SSR markup, metadata, hreflang, sitemap/robots, locale routing      | `seo-auditor`                                      |
 
 **Parallel review** — on "ready to commit" / "полный ревью", launch the relevant reviewers in one turn (multiple Agent calls): always `code-reviewer`; plus `frontend-performance-auditor` / `accessibility-auditor` if the diff touches UI, `seo-auditor` if it touches routing/metadata/next-intl, `security-reviewer` if it touches auth/API/forms/env/deps.
+
+**Skills available** (`.claude/skills/`) — invoke with `/<name>`:
+
+| Skill                | Reach for it when                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| `spec-to-ship`       | work arrives as a spec / ТЗ — the full audit → plan → slice → re-audit chain         |
+| `blast-radius`       | before committing a contract change, to find the callers you did not open            |
+| `diagnose`           | a bug that survived the first read — builds a tight pass/fail loop before theorising |
+| `new-endpoint`       | adding a BE endpoint end to end                                                      |
+| `new-slice`          | adding a FE feature slice                                                            |
+| `db-migrate`         | any Prisma migration (pairs with `migration-reviewer` and the strip-trap)            |
+| `add-i18n-key`       | adding user-facing text, so no locale is left behind                                 |
+| `writing-for-agents` | editing anything under `.claude/` or pruning `CLAUDE.md`                             |
+| `handoff`            | closing a long session, or handing the work to a fresh one                           |
 
 **Spec-driven work runs as a chain, not head-on** — see [`.claude/skills/spec-to-ship/SKILL.md`](./.claude/skills/spec-to-ship/SKILL.md). Verify the spec against the code before planning, decompose into a checkable `tasks.json`, ask all open decisions in one block, implement slice by slice with per-slice review, then re-audit the diff against `tasks.json` before claiming done. A spec's `file:line` claims are stale until opened; a requirement is optional only when the spec itself says so.
 
