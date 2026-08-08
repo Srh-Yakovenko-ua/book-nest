@@ -1,12 +1,15 @@
-import type { LibrarySort, ListBookSort } from "@app/shared";
+import type { LibrarySort, ListBookSort, ReadingStatus } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
+import type { ListTabCounts } from "../domain/list-status-counts.js";
+import type { LibraryFilter } from "./book-where.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
-import { buildBookSearchConditions } from "./book-search.js";
+import { TAB_STATUSES } from "../domain/list-status-counts.js";
+import { buildLibraryWhere } from "./book-where.js";
 import { LIBRARY_ORDER_BY, withRelations } from "./books.repository.js";
 
 const listItemWithBook = {
@@ -16,10 +19,12 @@ const listItemWithBook = {
 export type BookListItemWithBook = Prisma.BookListItemGetPayload<typeof listItemWithBook>;
 
 type CountListBooksInput = {
+  filter: LibraryFilter;
   listId: string;
-  search: string | undefined;
-  searchGenreKeys: string[] | undefined;
-  userId: string;
+};
+
+type CountTabInput = CountListBooksInput & {
+  statuses: ReadingStatus[] | undefined;
 };
 
 type ListListBooksInput = CountListBooksInput & {
@@ -32,27 +37,39 @@ type ListListBooksInput = CountListBooksInput & {
 export class ListBooksRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  countBooks({ listId, search, searchGenreKeys, userId }: CountListBooksInput): Promise<number> {
-    return this.prisma.bookListItem.count({
-      where: buildListItemWhere({ listId, search, searchGenreKeys, userId }),
-    });
+  countBooks({ filter, listId }: CountListBooksInput): Promise<number> {
+    return this.prisma.bookListItem.count({ where: buildListItemWhere({ filter, listId }) });
+  }
+
+  async countByTab({ filter, listId }: CountListBooksInput): Promise<ListTabCounts> {
+    const [all, finished, notStarted, reading] = await Promise.all([
+      this.countForStatuses({ filter, listId, statuses: TAB_STATUSES.all }),
+      this.countForStatuses({ filter, listId, statuses: TAB_STATUSES.finished }),
+      this.countForStatuses({ filter, listId, statuses: TAB_STATUSES.not_started }),
+      this.countForStatuses({ filter, listId, statuses: TAB_STATUSES.reading }),
+    ]);
+    return { all, finished, notStarted, reading };
   }
 
   listBooks({
+    filter,
     listId,
-    search,
-    searchGenreKeys,
     skip,
     sort,
     take,
-    userId,
   }: ListListBooksInput): Promise<BookListItemWithBook[]> {
     return this.prisma.bookListItem.findMany({
       orderBy: LIST_BOOK_ORDER_BY[sort],
       skip,
       take,
-      where: buildListItemWhere({ listId, search, searchGenreKeys, userId }),
+      where: buildListItemWhere({ filter, listId }),
       ...listItemWithBook,
+    });
+  }
+
+  private countForStatuses({ filter, listId, statuses }: CountTabInput): Promise<number> {
+    return this.prisma.bookListItem.count({
+      where: buildListItemWhere({ filter: { ...filter, readingStatuses: statuses }, listId }),
     });
   }
 }
@@ -67,28 +84,23 @@ const LIST_BOOK_ORDER_BY: Record<ListBookSort, Prisma.BookListItemOrderByWithRel
   added_asc: [{ addedAt: "asc" }, BOOK_ID_TIEBREAKER],
   added_desc: [{ addedAt: "desc" }, BOOK_ID_TIEBREAKER],
   author_asc: nestBookOrderBy("author_asc"),
+  author_desc: nestBookOrderBy("author_desc"),
   pages_asc: nestBookOrderBy("pages_asc"),
   pages_desc: nestBookOrderBy("pages_desc"),
   position: [{ position: "asc" }, BOOK_ID_TIEBREAKER],
+  rating_asc: nestBookOrderBy("rating_asc"),
   rating_desc: nestBookOrderBy("rating_desc"),
   title_asc: nestBookOrderBy("title_asc"),
   title_desc: nestBookOrderBy("title_desc"),
 };
 
 function buildListItemWhere({
+  filter,
   listId,
-  search,
-  searchGenreKeys,
-  userId,
 }: CountListBooksInput): Prisma.BookListItemWhereInput {
-  const where: Prisma.BookListItemWhereInput = {
-    book: SOFT_DELETE_SCOPE.active,
-    list: { ...SOFT_DELETE_SCOPE.active, userId },
+  return {
+    book: buildLibraryWhere(filter),
+    list: { ...SOFT_DELETE_SCOPE.active, userId: filter.userId },
     listId,
   };
-  const conditions = buildBookSearchConditions({ search, searchGenreKeys });
-  if (conditions !== undefined) {
-    where.book = { ...SOFT_DELETE_SCOPE.active, OR: conditions };
-  }
-  return where;
 }

@@ -13,7 +13,7 @@ import type {
 import { Injectable } from "@nestjs/common";
 
 import type { ActiveReadingView } from "../domain/library-overview.js";
-import type { LibraryFilter } from "../infrastructure/books.repository.js";
+import type { LibraryFilter } from "../infrastructure/book-where.js";
 
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
@@ -88,6 +88,7 @@ export class BookLibraryReadService {
       hasCover: query.hasCover,
       hasDedication: query.hasDedication,
       hasRating: query.hasRating,
+      inQueue: query.inQueue,
       isFavorite: query.isFavorite,
       languages: query.language,
       ownershipStatuses: query.owner,

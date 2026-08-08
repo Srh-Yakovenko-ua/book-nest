@@ -25,6 +25,7 @@ import type {
   CustomListDetailDto,
   ListDeletionResultDto,
   ListDetailsControllerDetailParams,
+  ListFacetsViewDto,
   ListsControllerListTrashParams,
   ListsControllerSearchParams,
   ListsSummaryViewDto,
@@ -1254,6 +1255,15 @@ export const getListDetailsControllerDetailUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["author", "format", "genre", "owner", "status"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -1403,6 +1413,173 @@ export function useListDetailsControllerDetail<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListDetailsControllerDetailQueryOptions(listId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type listDetailsControllerFacetsResponse200 = {
+  data: ListFacetsViewDto;
+  status: 200;
+};
+
+export type listDetailsControllerFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type listDetailsControllerFacetsResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type listDetailsControllerFacetsResponseSuccess = listDetailsControllerFacetsResponse200 & {
+  headers: Headers;
+};
+export type listDetailsControllerFacetsResponseError = (
+  listDetailsControllerFacetsResponse401 | listDetailsControllerFacetsResponse404
+) & {
+  headers: Headers;
+};
+
+export type listDetailsControllerFacetsResponse =
+  listDetailsControllerFacetsResponseSuccess | listDetailsControllerFacetsResponseError;
+
+export const getListDetailsControllerFacetsUrl = (listId: string) => {
+  return `/api/lists/${listId}/facets`;
+};
+
+/**
+ * @summary Get the filter facets of a book list of the current user
+ */
+export const listDetailsControllerFacets = async (
+  listId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<listDetailsControllerFacetsResponse> => {
+  return customInstance<listDetailsControllerFacetsResponse>(
+    getListDetailsControllerFacetsUrl(listId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDetailsControllerFacetsQueryKey = (listId: string) => {
+  return [`/api/lists/${listId}/facets`] as const;
+};
+
+export const getListDetailsControllerFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDetailsControllerFacetsQueryKey(listId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDetailsControllerFacets>>> = ({
+    signal,
+  }) => listDetailsControllerFacets(listId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: listId !== null && listId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListDetailsControllerFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDetailsControllerFacets>>
+>;
+export type ListDetailsControllerFacetsQueryError = void;
+
+export function useListDetailsControllerFacets<
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof listDetailsControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDetailsControllerFacets<
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof listDetailsControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDetailsControllerFacets<
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the filter facets of a book list of the current user
+ */
+
+export function useListDetailsControllerFacets<
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListDetailsControllerFacetsQueryOptions(listId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -1,12 +1,19 @@
 import { z } from "zod";
 
 import {
+  BookFormatSchema,
+  BookTypeSchema,
+  OwnershipStatusSchema,
+  ReadingStatusSchema,
+} from "./book-enums.js";
+import {
   collapseHorizontalSpaces,
   collapseSpaces,
   createPaginatedSchema,
   LIST_PAGE_SIZE_MAX,
   paginationQueryFields,
 } from "./common.js";
+import { GenreKeySchema } from "./genres.js";
 import { NoHtmlString, queryStringArray } from "./internal.js";
 import { MediaViewSchema } from "./media.js";
 import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
@@ -130,18 +137,52 @@ export const ListBookSortSchema = z.enum([
   "title_asc",
   "title_desc",
   "author_asc",
+  "author_desc",
   "rating_desc",
+  "rating_asc",
   "pages_desc",
   "pages_asc",
 ]);
 
 export type ListBookSort = z.infer<typeof ListBookSortSchema>;
 
+export const ListBookTabSchema = z.enum(["all", "not_started", "reading", "finished"]);
+
+export type ListBookTab = z.infer<typeof ListBookTabSchema>;
+
 export const CustomListBooksQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  author: queryStringArray(z.uuid()),
+  bookType: BookTypeSchema.optional(),
+  format: queryStringArray(BookFormatSchema),
+  genre: queryStringArray(GenreKeySchema),
+  inQueue: z.stringbool().optional(),
+  isFavorite: z.stringbool().optional(),
+  owner: queryStringArray(OwnershipStatusSchema),
   sort: ListBookSortSchema.default("position"),
+  status: queryStringArray(ReadingStatusSchema),
+  tab: ListBookTabSchema.default("all"),
 });
 
 export type CustomListBooksQuery = z.infer<typeof CustomListBooksQuerySchema>;
+
+export const ListFacetEntrySchema = z.object({
+  count: z.number().int().positive(),
+  id: z.string(),
+  name: z.string(),
+});
+
+export const ListGenreFacetSchema = z.object({
+  count: z.number().int().positive(),
+  key: z.string(),
+  name: z.string(),
+});
+
+export const ListFacetsViewSchema = z.object({
+  authors: z.array(ListFacetEntrySchema),
+  genres: z.array(ListGenreFacetSchema),
+});
+
+export type ListFacetsView = z.infer<typeof ListFacetsViewSchema>;
 
 const ADD_BOOKS_TO_LIST_MAX = LIST_PAGE_SIZE_MAX;
 

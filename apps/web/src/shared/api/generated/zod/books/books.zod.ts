@@ -789,6 +789,7 @@ export const BooksControllerListQueryParams = zod.object({
   hasCover: zod.string().optional(),
   hasDedication: zod.string().optional(),
   hasRating: zod.string().optional(),
+  inQueue: zod.string().optional(),
   isFavorite: zod.string().optional(),
   language: zod
     .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))

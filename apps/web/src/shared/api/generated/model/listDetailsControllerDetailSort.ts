@@ -16,7 +16,9 @@ export const ListDetailsControllerDetailSort = {
   title_asc: "title_asc",
   title_desc: "title_desc",
   author_asc: "author_asc",
+  author_desc: "author_desc",
   rating_desc: "rating_desc",
+  rating_asc: "rating_asc",
   pages_desc: "pages_desc",
   pages_asc: "pages_asc",
 } as const;

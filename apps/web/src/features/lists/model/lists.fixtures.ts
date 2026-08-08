@@ -28,6 +28,12 @@ export function makeCustomListDetail(overrides: CustomListDetailOverrides = {}):
     description: null,
     id: "list-1",
     name: "Осіннє читання",
+    statusCounts: {
+      all: items.length,
+      finished: 0,
+      not_started: items.length,
+      reading: 0,
+    },
     updatedAt: "2026-01-05T00:00:00.000Z",
     ...rest,
     books: {

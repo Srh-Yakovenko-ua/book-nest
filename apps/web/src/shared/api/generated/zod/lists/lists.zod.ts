@@ -423,7 +423,23 @@ export const listDetailsControllerDetailQueryPageSizeMax = 100;
 
 export const listDetailsControllerDetailQuerySearchMax = 100;
 
+export const listDetailsControllerDetailQueryAuthorItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const listDetailsControllerDetailQueryAuthorMax = 100;
+
+export const listDetailsControllerDetailQueryFormatMax = 100;
+
+export const listDetailsControllerDetailQueryGenreItemMax = 64;
+
+export const listDetailsControllerDetailQueryGenreMax = 100;
+
+export const listDetailsControllerDetailQueryOwnerMax = 100;
+
 export const listDetailsControllerDetailQuerySortDefault = `position`;
+export const listDetailsControllerDetailQueryStatusMax = 100;
+
+export const listDetailsControllerDetailQueryTabDefault = `all`;
 
 export const ListDetailsControllerDetailQueryParams = zod.object({
   pageNumber: zod
@@ -437,6 +453,34 @@ export const ListDetailsControllerDetailQueryParams = zod.object({
     .max(listDetailsControllerDetailQueryPageSizeMax)
     .default(listDetailsControllerDetailQueryPageSizeDefault),
   search: zod.string().max(listDetailsControllerDetailQuerySearchMax).optional(),
+  author: zod
+    .array(zod.uuid().regex(listDetailsControllerDetailQueryAuthorItemRegExp))
+    .max(listDetailsControllerDetailQueryAuthorMax)
+    .optional(),
+  bookType: zod.enum(["solo", "series_part"]).optional(),
+  format: zod
+    .array(zod.enum(["paper", "ebook", "audiobook"]))
+    .max(listDetailsControllerDetailQueryFormatMax)
+    .optional(),
+  genre: zod
+    .array(zod.string().min(1).max(listDetailsControllerDetailQueryGenreItemMax))
+    .max(listDetailsControllerDetailQueryGenreMax)
+    .optional(),
+  inQueue: zod.string().optional(),
+  isFavorite: zod.string().optional(),
+  owner: zod
+    .array(
+      zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+    )
+    .max(listDetailsControllerDetailQueryOwnerMax)
+    .optional(),
   sort: zod
     .enum([
       "position",
@@ -445,11 +489,30 @@ export const ListDetailsControllerDetailQueryParams = zod.object({
       "title_asc",
       "title_desc",
       "author_asc",
+      "author_desc",
       "rating_desc",
+      "rating_asc",
       "pages_desc",
       "pages_asc",
     ])
     .default(listDetailsControllerDetailQuerySortDefault),
+  status: zod
+    .array(
+      zod.enum([
+        "not_started",
+        "want_to_read",
+        "reading",
+        "paused",
+        "finished",
+        "dnf",
+        "rereading",
+      ]),
+    )
+    .max(listDetailsControllerDetailQueryStatusMax)
+    .optional(),
+  tab: zod
+    .enum(["all", "not_started", "reading", "finished"])
+    .default(listDetailsControllerDetailQueryTabDefault),
 });
 
 export const listDetailsControllerDetailResponseBooksItemsItemQueuePriorityTargetDateRegExp =
@@ -485,6 +548,18 @@ export const listDetailsControllerDetailResponseBooksPageSizeMax = 9007199254740
 
 export const listDetailsControllerDetailResponseBooksTotalCountMin = -9007199254740991;
 export const listDetailsControllerDetailResponseBooksTotalCountMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseStatusCountsAllMin = 0;
+export const listDetailsControllerDetailResponseStatusCountsAllMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseStatusCountsFinishedMin = 0;
+export const listDetailsControllerDetailResponseStatusCountsFinishedMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseStatusCountsNotStartedMin = 0;
+export const listDetailsControllerDetailResponseStatusCountsNotStartedMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseStatusCountsReadingMin = 0;
+export const listDetailsControllerDetailResponseStatusCountsReadingMax = 9007199254740991;
 
 export const ListDetailsControllerDetailResponse = zod.object({
   bookCount: zod.number(),
@@ -912,7 +987,61 @@ export const ListDetailsControllerDetailResponse = zod.object({
   description: zod.string().nullable(),
   id: zod.string(),
   name: zod.string(),
+  statusCounts: zod.object({
+    all: zod
+      .int()
+      .min(listDetailsControllerDetailResponseStatusCountsAllMin)
+      .max(listDetailsControllerDetailResponseStatusCountsAllMax),
+    finished: zod
+      .int()
+      .min(listDetailsControllerDetailResponseStatusCountsFinishedMin)
+      .max(listDetailsControllerDetailResponseStatusCountsFinishedMax),
+    not_started: zod
+      .int()
+      .min(listDetailsControllerDetailResponseStatusCountsNotStartedMin)
+      .max(listDetailsControllerDetailResponseStatusCountsNotStartedMax),
+    reading: zod
+      .int()
+      .min(listDetailsControllerDetailResponseStatusCountsReadingMin)
+      .max(listDetailsControllerDetailResponseStatusCountsReadingMax),
+  }),
   updatedAt: zod.string(),
+});
+
+/**
+ * @summary Get the filter facets of a book list of the current user
+ */
+export const ListDetailsControllerFacetsParams = zod.object({
+  listId: zod.string(),
+});
+
+export const listDetailsControllerFacetsResponseAuthorsItemCountExclusiveMin = 0;
+export const listDetailsControllerFacetsResponseAuthorsItemCountMax = 9007199254740991;
+
+export const listDetailsControllerFacetsResponseGenresItemCountExclusiveMin = 0;
+export const listDetailsControllerFacetsResponseGenresItemCountMax = 9007199254740991;
+
+export const ListDetailsControllerFacetsResponse = zod.object({
+  authors: zod.array(
+    zod.object({
+      count: zod
+        .int()
+        .gt(listDetailsControllerFacetsResponseAuthorsItemCountExclusiveMin)
+        .max(listDetailsControllerFacetsResponseAuthorsItemCountMax),
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  genres: zod.array(
+    zod.object({
+      count: zod
+        .int()
+        .gt(listDetailsControllerFacetsResponseGenresItemCountExclusiveMin)
+        .max(listDetailsControllerFacetsResponseGenresItemCountMax),
+      key: zod.string(),
+      name: zod.string(),
+    }),
+  ),
 });
 
 /**

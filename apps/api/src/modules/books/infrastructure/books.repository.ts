@@ -1,15 +1,10 @@
 import type {
-  AgeCategory,
-  BookFormat,
-  BookLanguage,
-  BookType,
   DedicationFilter,
   DedicationSort,
   LibrarySort,
   LoanType,
   Nullable,
   OwnershipStatus,
-  PublisherPresence,
   ReadingStatus,
 } from "@app/shared";
 
@@ -197,33 +192,6 @@ export type DeliveryBlockChange =
   | { kind: "skip" };
 
 export type GuardedChangeOutcome = "applied" | "not-found" | "status-conflict";
-
-export type LibraryFilter = {
-  ageCategories?: AgeCategory[];
-  authorIds?: string[];
-  bookType?: BookType;
-  formats?: BookFormat[];
-  genreKeys?: string[];
-  hasCover?: boolean;
-  hasDedication?: boolean;
-  hasRating?: boolean;
-  isFavorite?: boolean;
-  languages?: BookLanguage[];
-  ownershipStatuses?: OwnershipStatus[];
-  pagesMax?: number;
-  pagesMin?: number;
-  publisherIds?: string[];
-  publisherPresence?: PublisherPresence;
-  ratingMax?: number;
-  ratingMin?: number;
-  readingStatuses?: ReadingStatus[];
-  search?: string;
-  searchGenreKeys?: string[];
-  tagIds?: string[];
-  userId: string;
-  yearMax?: number;
-  yearMin?: number;
-};
 
 export type LoanBlockChange =
   | { create: CreateLoanInfoData; kind: "upsertActive"; type: LoanType; update: UpdateLoanInfoData }

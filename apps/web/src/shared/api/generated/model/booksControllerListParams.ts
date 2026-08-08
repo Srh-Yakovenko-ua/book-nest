@@ -38,6 +38,7 @@ export type BooksControllerListParams = {
   hasCover?: string;
   hasDedication?: string;
   hasRating?: string;
+  inQueue?: string;
   isFavorite?: string;
   /**
    * @maxItems 100

@@ -5,7 +5,12 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { ListDetailsControllerDetailBookType } from "./listDetailsControllerDetailBookType";
+import type { ListDetailsControllerDetailFormatItem } from "./listDetailsControllerDetailFormatItem";
+import type { ListDetailsControllerDetailOwnerItem } from "./listDetailsControllerDetailOwnerItem";
 import type { ListDetailsControllerDetailSort } from "./listDetailsControllerDetailSort";
+import type { ListDetailsControllerDetailStatusItem } from "./listDetailsControllerDetailStatusItem";
+import type { ListDetailsControllerDetailTab } from "./listDetailsControllerDetailTab";
 
 export type ListDetailsControllerDetailParams = {
   /**
@@ -22,5 +27,32 @@ export type ListDetailsControllerDetailParams = {
    * @maxLength 100
    */
   search?: string;
+  /**
+   * @maxItems 100
+   * @items.pattern ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+   */
+  author?: string[];
+  bookType?: ListDetailsControllerDetailBookType;
+  /**
+   * @maxItems 100
+   */
+  format?: ListDetailsControllerDetailFormatItem[];
+  /**
+   * @maxItems 100
+   * @items.minLength 1
+   * @items.maxLength 64
+   */
+  genre?: string[];
+  inQueue?: string;
+  isFavorite?: string;
+  /**
+   * @maxItems 100
+   */
+  owner?: ListDetailsControllerDetailOwnerItem[];
   sort?: ListDetailsControllerDetailSort;
+  /**
+   * @maxItems 100
+   */
+  status?: ListDetailsControllerDetailStatusItem[];
+  tab?: ListDetailsControllerDetailTab;
 };

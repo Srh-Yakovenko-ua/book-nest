@@ -845,6 +845,7 @@ export const LibraryBooksQuerySchema = z
     hasCover: z.stringbool().optional(),
     hasDedication: z.stringbool().optional(),
     hasRating: z.stringbool().optional(),
+    inQueue: z.stringbool().optional(),
     isFavorite: z.stringbool().optional(),
     language: queryStringArray(BookLanguageSchema),
     owner: queryStringArray(OwnershipStatusSchema),
@@ -1245,6 +1246,12 @@ export const CustomListDetailSchema = z.object({
   description: z.string().nullable(),
   id: z.string(),
   name: z.string(),
+  statusCounts: z.object({
+    all: z.number().int().nonnegative(),
+    finished: z.number().int().nonnegative(),
+    not_started: z.number().int().nonnegative(),
+    reading: z.number().int().nonnegative(),
+  }),
   updatedAt: z.string(),
 });
 
