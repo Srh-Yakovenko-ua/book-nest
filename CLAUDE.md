@@ -204,17 +204,18 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 
 **Skills available** (`.claude/skills/`) — invoke with `/<name>`:
 
-| Skill                | Reach for it when                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------ |
-| `spec-to-ship`       | work arrives as a spec / ТЗ — the full audit → plan → slice → re-audit chain         |
-| `blast-radius`       | before committing a contract change, to find the callers you did not open            |
-| `diagnose`           | a bug that survived the first read — builds a tight pass/fail loop before theorising |
-| `new-endpoint`       | adding a BE endpoint end to end                                                      |
-| `new-slice`          | adding a FE feature slice                                                            |
-| `db-migrate`         | any Prisma migration (pairs with `migration-reviewer` and the strip-trap)            |
-| `add-i18n-key`       | adding user-facing text, so no locale is left behind                                 |
-| `writing-for-agents` | editing anything under `.claude/` or pruning `CLAUDE.md`                             |
-| `handoff`            | closing a long session, or handing the work to a fresh one                           |
+| Skill                              | Reach for it when                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------------ |
+| `spec-to-ship`                     | work arrives as a spec / ТЗ — the full audit → plan → slice → re-audit chain         |
+| `blast-radius`                     | before committing a contract change, to find the callers you did not open            |
+| `diagnose`                         | a bug that survived the first read — builds a tight pass/fail loop before theorising |
+| `new-endpoint`                     | adding a BE endpoint end to end                                                      |
+| `new-slice`                        | adding a FE feature slice                                                            |
+| `db-migrate`                       | any Prisma migration (pairs with `migration-reviewer` and the strip-trap)            |
+| `add-i18n-key`                     | adding user-facing text, so no locale is left behind                                 |
+| `writing-for-agents`               | editing anything under `.claude/` or pruning `CLAUDE.md`                             |
+| `handoff`                          | closing a long session, or handing the work to a fresh one                           |
+| `supabase-postgres-best-practices` | writing or optimising a Postgres query, index, or schema (vendored, MIT)             |
 
 **Spec-driven work runs as a chain, not head-on** — see [`.claude/skills/spec-to-ship/SKILL.md`](./.claude/skills/spec-to-ship/SKILL.md). Verify the spec against the code before planning, decompose into a checkable `tasks.json`, ask all open decisions in one block, implement slice by slice with per-slice review, then re-audit the diff against `tasks.json` before claiming done. A spec's `file:line` claims are stale until opened; a requirement is optional only when the spec itself says so.
 
