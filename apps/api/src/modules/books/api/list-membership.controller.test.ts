@@ -72,7 +72,7 @@ function moveBook(
   return request(app.getHttpServer())
     .patch(`/api/lists/${listId}/books/${bookId}/position`)
     .set("Authorization", `Bearer ${accessToken}`)
-    .send({ direction });
+    .send({ direction, kind: "step" });
 }
 
 async function orderedBookIds(listId: string): Promise<string[]> {
@@ -352,7 +352,7 @@ describe("PATCH /api/lists/:listId/books/:bookId/position", () => {
   it("returns 401 when no Authorization header is present", async () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/lists/${randomUUID()}/books/${randomUUID()}/position`)
-      .send({ direction: "up" });
+      .send({ direction: "up", kind: "step" });
 
     expect(res.status).toBe(401);
   });
@@ -366,7 +366,7 @@ describe("PATCH /api/lists/:listId/books/:bookId/position", () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/lists/${listId}/books/${bookId}/position`)
       .set("Authorization", `Bearer ${accessToken}`)
-      .send({ direction: "sideways" });
+      .send({ direction: "sideways", kind: "step" });
 
     expect(res.status).toBe(400);
   });
