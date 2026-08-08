@@ -1661,7 +1661,8 @@
         "test: a position beyond the list length is clipped, not rejected",
         "test: a list larger than LIST_REORDER_MAX throws BadRequestError before any write",
         "test: the rank query is not issued when sort !== position"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s5-tests-integration",
@@ -1677,7 +1678,8 @@
         "test: PATCH with kind=index moves the book and leaves a dense sequence",
         "test: PATCH with kind=step still behaves exactly as before the union change",
         "test: another user's list returns 404"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s5-openapi",
@@ -1691,7 +1693,8 @@
       "doneWhen": [
         "openapi.json shows the discriminated request body for the position endpoint",
         "live curl captured for both kind=step and kind=index with x-request-id"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s6-shared-status-sorts",
@@ -1797,7 +1800,8 @@
         "test: status_read_first is the exact inverse of the group order",
         "test: year_desc / year_asc put books without a publicationYear last",
         "test: ratingMin/ratingMax and pagesMin/pagesMax filter inside the list and reject an inverted range with 400"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s6-openapi-final",
@@ -1813,7 +1817,8 @@
         "`pnpm gen:api` run once so apps/web/src/shared/api/generated/** matches the shipped contract (generated output only, no hand edits)",
         "`pnpm typecheck && pnpm lint && pnpm format:check` green from the repo root",
         "`pnpm knip` reports no new unused export or dependency"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s1-web-fixture-status-counts",

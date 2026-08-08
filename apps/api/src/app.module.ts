@@ -29,6 +29,7 @@ import { MetricsModule } from "./modules/observability/metrics.module.js";
 import { ProfileModule } from "./modules/profile/profile.module.js";
 import { PublishersModule } from "./modules/publishers/publishers.module.js";
 import { QuotesModule } from "./modules/quotes/index.js";
+import { ReadingGoalsModule } from "./modules/reading-goals/index.js";
 import { ReadingQueueModule } from "./modules/reading-queue/index.js";
 import { RealtimeModule } from "./modules/realtime/index.js";
 import { SeriesOrderCheckModule } from "./modules/series-order-check/index.js";
@@ -63,6 +64,7 @@ import { TrashModule } from "./modules/trash/trash.module.js";
     DeliveryModule,
     ChangelogModule,
     QuotesModule,
+    ReadingGoalsModule,
     NotesModule,
     TimelineModule,
     TrashModule,

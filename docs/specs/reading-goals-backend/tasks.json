@@ -99,6 +99,18 @@
       "decision": "Ідемпотентні 200, archivedAt не переписується. Жодного інваріанта це не порушує (частковий унікальний індекс стереже тільки неархівовані рядки), а подвійний клік по кнопці не має віддавати помилку. Це не суперечить забороні PATCH: PATCH змінює зміст історичного запису, archive — ні.",
       "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
       "blocks": ["T14"]
+    },
+    {
+      "id": "D14",
+      "decision": "A goal CAN be born already completed, and that is the accepted behaviour. The README rationale said a goal should never start complete, but finished_at is a DATE, so \"earlier today\" and \"later today\" are the same value and the >= start-of-creation-day cutoff admits both. The literal spec rule (count books finished on or after the creation DAY) wins over the rationale, because moving the cutoff to the next day would stop counting a book the user finishes minutes after creating the goal, which is far more surprising. Integration tests pin the chosen semantics on both sides of the boundary.",
+      "source": "code-reviewer finding 1; resolved by the orchestrator in favour of the literal spec rule.",
+      "blocks": []
+    },
+    {
+      "id": "D15",
+      "decision": "Deferred follow-ups from the reading-goals review, none of them defects: (a) the listId-is-null branches are unreachable because the FK cascades on list deletion and create always takes listId from the route, so either the column should be non-null or the FK should be SetNull if a goal is meant to outlive its list; (b) GET /api/goals/:goalId scans the counted-books join twice, once unbounded for completedCount and once capped for the listing; (c) ListsRepository.countItems does not filter book.userId while countedBookWhere does, a latent asymmetry that is harmless while the ownership invariant holds; (d) archive() makes three round trips where update() makes one; (e) countedSince is public on the view builder only so the assembler can pass the same cutoff to another repository method, and would sit better in domain/.",
+      "source": "code-reviewer nits 2, 3, 5, 6 and the collaborator-split note, stage reading-goals.",
+      "blocks": []
     }
   ],
   "openDecisions": [
@@ -427,7 +439,7 @@
         "немає колонок status і completedAt (спека §1 явно їх забороняє)",
         "pnpm --filter @app/api db:generate проходить, у src/generated/prisma з'явився делегат readingGoal"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T2",
@@ -444,7 +456,7 @@
         "міграцію НЕ застосовано на цьому кроці (жодного db:migrate:deploy, жодного db push)",
         "цільова БД — лише локальний docker Postgres на :5432, ніколи :5532/:5533"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T3",
@@ -464,7 +476,7 @@
         "є CREATE INDEX по (user_id, archived_at)",
         "deadline оголошено як DATE, archived_at/created_at/updated_at — як TIMESTAMPTZ"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T4",
@@ -482,7 +494,7 @@
         "у БД перевірено фактичну наявність предиката: SELECT indexdef FROM pg_indexes WHERE indexname = 'reading_goals_active_list_idx' повертає рядок, що містить 'archived_at IS NULL'",
         "у БД перевірено, що жоден із дев'яти raw-SQL-індексів не зник (той самий запит по кожному імені або запуск T5-тесту)"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T5",
@@ -500,7 +512,7 @@
         "жоден із дев'яти наявних записів не змінено і не видалено",
         "`pnpm exec vitest run apps/api/src/core/database/raw-sql-indexes.test.ts` зелений на локальній БД"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T6",
@@ -517,7 +529,7 @@
         "grep -n 'nine' CLAUDE.md не повертає жодного рядка з розділу Raw-SQL-index trap",
         "решта §6 не переписана — правка точкова"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T7",
@@ -534,7 +546,7 @@
         "14 не дублює жодного наявного числа",
         "ключ readingGoals вставлено між reading: 11 і series: 12 (natural sort ключів, як у решті обʼєкта). Примітка: perfectionist/sort-objects вимкнено (eslint.config.mjs:163), тому порядок ключів обʼєктів ESLint не ловить — це вимога читабельності, не лінтера"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T8",
@@ -559,7 +571,7 @@
         "жодного z.any / as; ключі об'єктів у натуральному порядку (eslint perfectionist)",
         "жодного z.any і жодного as; у type-літералах ключі відсортовані (perfectionist/sort-object-types активний через recommended-natural, eslint.config.mjs:39; sort-objects вимкнено на :163)"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T9",
@@ -581,7 +593,7 @@
         "жодного new Date() усередині репозиторію для бізнес-семантики: now приходить параметром там, де потрібен (archivedAt)",
         "жодного startOfDay / getTime() / мілісекундних літералів"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T10",
@@ -601,7 +613,7 @@
         "у findCountedBooks є take = limit (виклик передає 100, див. T15)",
         "since обчислює викликач (сервіс), репозиторій його не будує"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T11",
@@ -618,7 +630,7 @@
         "ListsModule уже exports: [ListsService] (lists.module.ts:18) — додаткової правки модуля не потрібно; якщо потрібна, вона зроблена",
         "решта ListsService не змінена"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T12",
@@ -640,7 +652,7 @@
         "жодного getTime(), жодних 24*60*60*1000, жодних setHours/setDate/setFullYear",
         "функція(ї) експортовані і викликаються з сервісу — не приватні"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T13",
@@ -659,7 +671,7 @@
         "мапер чистий: без Prisma, без new Date(), без HTTP",
         "жодних ручних T | null — Nullable<T> з @app/shared"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T14",
@@ -684,7 +696,7 @@
         "жодного Prisma-виклику в цьому файлі; жодного req/res",
         "файл не перевищує 200 рядків; якщо перевищує — розділений за відповідальністю (write-path / read-path), а не за типом файлу"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T15",
@@ -705,7 +717,7 @@
         "authors мапляться у BookAuthorRef ({ id, name }) у порядку BookAuthor.position",
         "дешевий шлях (ReadingGoalView) не робить запиту за книгами/обкладинками — окремий метод репозиторію, як вимагає спека §4"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T16",
@@ -726,7 +738,7 @@
         "один клас на файл, іменування *.input-dto.ts / *.view-dto.ts за наявною конвенцією (пор. lists/api/input-dto/, lists/api/view-dto/)",
         "ReadingGoalViewDto і ReadingGoalDetailDto реально вживаються в @ApiOkResponse/@ApiCreatedResponse контролера — інакше OpenAPI їх не побачить"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T17",
@@ -748,7 +760,7 @@
         "у контролері немає Prisma, немає бізнес-логіки, немає обчислення статусу — тільки валідація і делегування",
         "userId береться з @CurrentUser(), а не з тіла чи query"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T18",
@@ -770,7 +782,7 @@
         "ReadingGoalsModule доданий у imports app.module.ts поруч із рештою фічевих модулів",
         "`pnpm dev:api` стартує чисто, `curl -i http://localhost:4000/api/health` -> 200 з x-request-id"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T19",
@@ -792,7 +804,7 @@
         "жодного моку часу через системний годинник — now передається параметром",
         "`pnpm exec vitest run <шлях до файлу>` зелений"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T20",
@@ -815,7 +827,7 @@
         "перевірено, що create викликає repository.acquireCreateLock ПЕРЕД читанням активної цілі",
         "`pnpm exec vitest run <шлях до файлу>` зелений"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T21",
@@ -841,7 +853,7 @@
         "тест побудований на createAuthTestContext + truncateAllTables за зразком lists/api/lists.controller.test.ts:21-36",
         "`pnpm exec vitest run <шлях до файлу>` зелений на локальному Postgres :5432"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T22",
@@ -858,7 +870,7 @@
         "у apps/web змінені ЛИШЕ файли під src/shared/api/generated/** — жодного рукописного FE-коду",
         "кореневий `pnpm typecheck` зелений після генерації (генерований клієнт компілюється)"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T23",
@@ -878,7 +890,8 @@
         "у тому ж curl-циклі зафіксовано 204 від GET /api/lists/:listId/goal до створення цілі",
         "жоден гейт не оголошено пройденим без вставленого виводу команди"
       ],
-      "status": "todo"
+      "status": "done",
+      "note": "Live curl of the whole cycle captured: 204 with no goal, 201 create, 200 read, 409 on a duplicate while the first is active, progress 0->2 as books are finished with status flipping to completed, archive 200 and re-archive idempotent 200, archived goal still readable 200 with status archived, DELETE 204 then GET 404."
     }
   ]
 }

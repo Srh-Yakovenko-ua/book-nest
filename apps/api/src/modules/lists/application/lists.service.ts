@@ -104,6 +104,10 @@ export class ListsService {
     }
   }
 
+  countActiveBooks({ listId }: { listId: string }): Promise<number> {
+    return this.listsRepository.countItems({ listId });
+  }
+
   async create({ input, userId }: CreateInput): Promise<CustomListCard> {
     const normalizedName = normalizeName(input.name);
     const existing = await this.listsRepository.findByNormalized({ normalizedName, userId });

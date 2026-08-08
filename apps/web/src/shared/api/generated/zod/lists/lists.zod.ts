@@ -469,6 +469,20 @@ export const listDetailsControllerDetailQueryGenreMax = 100;
 
 export const listDetailsControllerDetailQueryOwnerMax = 100;
 
+export const listDetailsControllerDetailQueryPagesMaxMin = -9007199254740991;
+export const listDetailsControllerDetailQueryPagesMaxMax = 9007199254740991;
+
+export const listDetailsControllerDetailQueryPagesMinMin = -9007199254740991;
+export const listDetailsControllerDetailQueryPagesMinMax = 9007199254740991;
+
+export const listDetailsControllerDetailQueryRatingMaxMin = 0.5;
+export const listDetailsControllerDetailQueryRatingMaxMax = 10;
+export const listDetailsControllerDetailQueryRatingMaxMultipleOf = 0.5;
+
+export const listDetailsControllerDetailQueryRatingMinMin = 0.5;
+export const listDetailsControllerDetailQueryRatingMinMax = 10;
+export const listDetailsControllerDetailQueryRatingMinMultipleOf = 0.5;
+
 export const listDetailsControllerDetailQuerySortDefault = `position`;
 export const listDetailsControllerDetailQueryStatusMax = 100;
 
@@ -499,6 +513,7 @@ export const ListDetailsControllerDetailQueryParams = zod.object({
     .array(zod.string().min(1).max(listDetailsControllerDetailQueryGenreItemMax))
     .max(listDetailsControllerDetailQueryGenreMax)
     .optional(),
+  hasRating: zod.string().optional(),
   inQueue: zod.string().optional(),
   isFavorite: zod.string().optional(),
   owner: zod
@@ -514,6 +529,28 @@ export const ListDetailsControllerDetailQueryParams = zod.object({
     )
     .max(listDetailsControllerDetailQueryOwnerMax)
     .optional(),
+  pagesMax: zod
+    .int()
+    .min(listDetailsControllerDetailQueryPagesMaxMin)
+    .max(listDetailsControllerDetailQueryPagesMaxMax)
+    .optional(),
+  pagesMin: zod
+    .int()
+    .min(listDetailsControllerDetailQueryPagesMinMin)
+    .max(listDetailsControllerDetailQueryPagesMinMax)
+    .optional(),
+  ratingMax: zod
+    .number()
+    .min(listDetailsControllerDetailQueryRatingMaxMin)
+    .max(listDetailsControllerDetailQueryRatingMaxMax)
+    .multipleOf(listDetailsControllerDetailQueryRatingMaxMultipleOf)
+    .optional(),
+  ratingMin: zod
+    .number()
+    .min(listDetailsControllerDetailQueryRatingMinMin)
+    .max(listDetailsControllerDetailQueryRatingMinMax)
+    .multipleOf(listDetailsControllerDetailQueryRatingMinMultipleOf)
+    .optional(),
   sort: zod
     .enum([
       "position",
@@ -527,6 +564,10 @@ export const ListDetailsControllerDetailQueryParams = zod.object({
       "rating_asc",
       "pages_desc",
       "pages_asc",
+      "year_desc",
+      "year_asc",
+      "status_unread_first",
+      "status_read_first",
     ])
     .default(listDetailsControllerDetailQuerySortDefault),
   status: zod
@@ -1752,15 +1793,28 @@ export const ListMembershipControllerRemoveBookParams = zod.object({
 export const ListMembershipControllerRemoveBookResponse = zod.void();
 
 /**
- * @summary Move a book up or down within a custom list
+ * @summary Move a book one step or to an explicit position within a custom list
  */
 export const ListMembershipControllerMoveBookParams = zod.object({
   listId: zod.string(),
   bookId: zod.string(),
 });
 
-export const ListMembershipControllerMoveBookBody = zod.object({
-  direction: zod.enum(["up", "down"]),
-});
+export const listMembershipControllerMoveBookBodyTwoPositionExclusiveMin = 0;
+export const listMembershipControllerMoveBookBodyTwoPositionMax = 9007199254740991;
+
+export const ListMembershipControllerMoveBookBody = zod.union([
+  zod.object({
+    direction: zod.enum(["up", "down"]),
+    kind: zod.enum(["step"]),
+  }),
+  zod.object({
+    kind: zod.enum(["index"]),
+    position: zod
+      .int()
+      .gt(listMembershipControllerMoveBookBodyTwoPositionExclusiveMin)
+      .max(listMembershipControllerMoveBookBodyTwoPositionMax),
+  }),
+]);
 
 export const ListMembershipControllerMoveBookResponse = zod.void();

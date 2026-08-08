@@ -2731,7 +2731,7 @@ export const getListMembershipControllerMoveBookUrl = (listId: string, bookId: s
 };
 
 /**
- * @summary Move a book up or down within a custom list
+ * @summary Move a book one step or to an explicit position within a custom list
  */
 export const listMembershipControllerMoveBook = async (
   listId: string,
@@ -2865,7 +2865,7 @@ export function useListMembershipControllerMoveBook<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Move a book up or down within a custom list
+ * @summary Move a book one step or to an explicit position within a custom list
  */
 
 export function useListMembershipControllerMoveBook<

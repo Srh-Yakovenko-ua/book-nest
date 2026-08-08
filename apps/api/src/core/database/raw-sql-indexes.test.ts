@@ -41,6 +41,7 @@ const RAW_SQL_INDEXES = [
   { name: "series_user_id_normalized_name_key", requires: "deleted_at IS NULL" },
   { name: "book_lists_user_id_normalized_name_key", requires: "deleted_at IS NULL" },
   { name: "book_timelines_book_id_name_lower_idx", requires: "deleted_at IS NULL" },
+  { name: "reading_goals_active_list_idx", requires: "archived_at IS NULL" },
 ] as const;
 
 let app: INestApplication;

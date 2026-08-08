@@ -26,6 +26,7 @@ export * from "./notifications.js";
 export * from "./profile.js";
 export * from "./publishers.js";
 export * from "./quotes.js";
+export * from "./reading-goals.js";
 export * from "./reading-queue.js";
 export * from "./realtime.js";
 export * from "./series-order-check.js";

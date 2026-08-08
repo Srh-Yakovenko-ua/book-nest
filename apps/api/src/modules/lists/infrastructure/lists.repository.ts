@@ -162,6 +162,12 @@ export class ListsRepository {
     return created.count;
   }
 
+  countItems({ listId }: { listId: string }): Promise<number> {
+    return this.prisma.bookListItem.count({
+      where: { book: SOFT_DELETE_SCOPE.active, listId },
+    });
+  }
+
   async countOwned({ now, userId, ...filters }: CountOwnedInput): Promise<number> {
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT (count(*))::int AS "count"
