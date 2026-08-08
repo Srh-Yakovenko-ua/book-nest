@@ -1,4 +1,9 @@
-import type { CustomListDetail, ListFacetsView } from "@app/shared";
+import type {
+  CustomListDetail,
+  ListFacetsView,
+  ListOverviewView,
+  ListRelatedView,
+} from "@app/shared";
 
 import { CustomListBooksQuerySchema } from "@app/shared";
 import { Controller, Get, Param, ParseUUIDPipe, Query } from "@nestjs/common";
@@ -17,9 +22,12 @@ import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ListDetailsService } from "../application/list-details.service.js";
 import { ListFacetsService } from "../application/list-facets.service.js";
+import { ListOverviewService } from "../application/list-overview.service.js";
 import { CustomListBooksQueryDto } from "./input-dto/custom-list-books-query.input-dto.js";
 import { CustomListDetailDto } from "./view-dto/custom-list-detail.view-dto.js";
 import { ListFacetsViewDto } from "./view-dto/list-facets.view-dto.js";
+import { ListOverviewViewDto } from "./view-dto/list-overview.view-dto.js";
+import { ListRelatedViewDto } from "./view-dto/list-related.view-dto.js";
 
 @ApiTags("lists")
 @Controller("api/lists")
@@ -27,6 +35,7 @@ export class ListDetailsController {
   constructor(
     private readonly listDetailsService: ListDetailsService,
     private readonly listFacetsService: ListFacetsService,
+    private readonly listOverviewService: ListOverviewService,
   ) {}
 
   @ApiNotFoundResponse({ description: "List not found" })
@@ -43,6 +52,38 @@ export class ListDetailsController {
     @Param("listId", ParseUUIDPipe) listId: string,
   ): Promise<ListFacetsView> {
     return this.listFacetsService.facets({ listId, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "List not found" })
+  @ApiOkResponse({
+    description: "Aggregate statistics of the whole list",
+    type: ListOverviewViewDto,
+  })
+  @ApiOperation({ summary: "Get the aggregate overview of a book list of the current user" })
+  @ApiParam({ name: "listId", required: true })
+  @Get(":listId/overview")
+  @JwtProtected()
+  overview(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listId", ParseUUIDPipe) listId: string,
+  ): Promise<ListOverviewView> {
+    return this.listOverviewService.overview({ listId, userId: user.id });
+  }
+
+  @ApiNotFoundResponse({ description: "List not found" })
+  @ApiOkResponse({
+    description: "Other lists of the user that share books with this one",
+    type: ListRelatedViewDto,
+  })
+  @ApiOperation({ summary: "Get the lists that share books with a book list of the current user" })
+  @ApiParam({ name: "listId", required: true })
+  @Get(":listId/related")
+  @JwtProtected()
+  related(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listId", ParseUUIDPipe) listId: string,
+  ): Promise<ListRelatedView> {
+    return this.listOverviewService.related({ listId, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "List not found" })

@@ -6,6 +6,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { Prisma as PrismaNamespace } from "../../../generated/prisma/client.js";
 import { appendBookToList } from "./book-list-membership.js";
 
 export type ListMembership = {
@@ -16,6 +17,12 @@ export type ListMembership = {
 type AppendManyInput = {
   bookIds: string[];
   listId: string;
+};
+
+type DeleteManyInput = {
+  bookIds: string[];
+  listId: string;
+  userId: string;
 };
 
 type FindNeighborInput = {
@@ -122,6 +129,19 @@ export class ListMembershipRepository {
     await client.bookListItem.delete({ where: { listId_bookId: { bookId, listId } } });
   }
 
+  async deleteMemberships(
+    client: Prisma.TransactionClient,
+    { bookIds, listId, userId }: DeleteManyInput,
+  ): Promise<number> {
+    if (bookIds.length === 0) {
+      return 0;
+    }
+    const result = await client.bookListItem.deleteMany({
+      where: { book: { userId }, bookId: { in: bookIds }, listId },
+    });
+    return result.count;
+  }
+
   async findMembership(
     client: Prisma.TransactionClient,
     { bookId, listId }: ListBookInput,
@@ -168,6 +188,21 @@ export class ListMembershipRepository {
       where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
     });
     return owned.map((book) => book.id);
+  }
+
+  async resequence(client: Prisma.TransactionClient, { listId }: ListLockInput): Promise<void> {
+    await client.$executeRaw(PrismaNamespace.sql`
+      UPDATE book_list_items t
+      SET position = ranked.rn
+      FROM (
+        SELECT book_id, row_number() OVER (ORDER BY position, book_id) AS rn
+        FROM book_list_items
+        WHERE list_id = ${listId}::uuid
+      ) ranked
+      WHERE t.list_id = ${listId}::uuid
+        AND t.book_id = ranked.book_id
+        AND t.position <> ranked.rn
+    `);
   }
 
   async setPosition(

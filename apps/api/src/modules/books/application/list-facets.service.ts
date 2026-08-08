@@ -4,6 +4,7 @@ import { Injectable } from "@nestjs/common";
 
 import { GenresService } from "../../genres/index.js";
 import { ListsService } from "../../lists/index.js";
+import { nameGenreFacets } from "../domain/list-overview.js";
 import { ListFacetsRepository } from "../infrastructure/list-facets.repository.js";
 
 type FacetsInput = {
@@ -37,13 +38,6 @@ export class ListFacetsService {
     });
     const nameByKey = new Map(names.map((entry) => [entry.key, entry.name]));
 
-    return {
-      authors,
-      genres: genreRows.map((row) => ({
-        count: row.count,
-        key: row.key,
-        name: nameByKey.get(row.key) ?? row.key,
-      })),
-    };
+    return { authors, genres: nameGenreFacets({ nameByKey, rows: genreRows }) };
   }
 }

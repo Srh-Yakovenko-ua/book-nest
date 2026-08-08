@@ -25,6 +25,7 @@ export type LibraryFilter = {
   inQueue?: boolean;
   isFavorite?: boolean;
   languages?: BookLanguage[];
+  notInList?: string;
   ownershipStatuses?: OwnershipStatus[];
   pagesMax?: number;
   pagesMin?: number;
@@ -89,6 +90,9 @@ export function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput 
   }
   if (filter.inQueue === false) {
     where.queuePosition = null;
+  }
+  if (filter.notInList !== undefined) {
+    where.lists = { none: { listId: filter.notInList } };
   }
   if (filter.hasCover === true) {
     where.coverMediaId = { not: null };

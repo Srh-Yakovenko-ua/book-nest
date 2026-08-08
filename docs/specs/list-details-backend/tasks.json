@@ -125,6 +125,12 @@
       "decision": "Deferred to a follow-up, deliberately not churned in stage 1: (a) domain/list-book-filter.ts imports the LibraryFilter TYPE from infrastructure/, so the dependency arrow points outward — LibraryFilter is a plain data shape and would sit naturally in domain/ with book-where.ts importing up into it; (b) ListFacetsService returns the repository author rows straight through as the response contract while the genre branch maps explicitly — the asymmetry is the smell, not the shortcut; (c) TAB_STATUSES is a module-level shared array reference handed to every request, safe today because nothing mutates it, unlike the neighbouring LIST_FACETS which is as const.",
       "source": "code-reviewer nits 6/7 and security-reviewer Info 5, stage 1 review. Neither is a defect; recorded so they are not rediscovered as new.",
       "blocks": []
+    },
+    {
+      "id": "D19",
+      "decision": "POST /api/lists/:listId/duplicate is documented and returns 201, not 200. The stage-4 tests caught the original @ApiOkResponse-without-@HttpCode drift, where Swagger promised 200 while Nest returned 201 and the generated client would have carried the wrong contract. Resolved toward 201 because the route genuinely creates a resource, matching POST /api/lists. NOTE: the sibling POST /api/lists/:listId/restore has the same drift (documents 200, returns 201) and is PRE-EXISTING, outside this diff, deliberately left alone.",
+      "source": "Found by the stage-4 test agent; resolved by the orchestrator.",
+      "blocks": []
     }
   ],
   "openDecisions": [
@@ -985,7 +991,8 @@
         "every count is z.number().int().nonnegative()",
         "topGenres reuses ListGenreFacetSchema from stage 1, not a duplicated inline shape",
         "root `pnpm typecheck` green"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s2-overview-repo",
@@ -1003,7 +1010,8 @@
         "the currently-reading query is a separate findFirst over readingStatus in [reading, rereading] ordered by readingProgress.lastProgressUpdateAt desc nulls last, then book.updatedAt desc, then id asc (D14), with a matching count for othersCount",
         "no single mega-SQL statement; each query is independently profilable",
         "the repository returns rows/primitives, never a ViewModel"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s2-overview-domain",
@@ -1019,7 +1027,8 @@
         "genresCount is the number of unique genre keys, computed in this file",
         "currentlyReading assembly (main book + othersCount, null when there is none) is a pure function here",
         "no Prisma / Nest imports"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s2-overview-service",
@@ -1037,7 +1046,8 @@
         "the currentlyReading book is produced by the existing BookViewAssembler.viewOf, so the payload is a full ListBookView with cover, authors and readingProgress - no new mapper",
         "genre names resolved through genresService.findNamesByKeys with key fallback",
         "no PrismaService injection"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s2-overview-controller",
@@ -1056,7 +1066,8 @@
         "returns ListOverviewView typed by a createZodDto view-dto",
         "full @Api* Swagger set including @ApiNotFoundResponse",
         "GET /api/lists/:listId/overview responds 200 and the body contains all 12 fields for a list holding books in every reading status"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s2-module-wiring",
@@ -1070,7 +1081,8 @@
       "doneWhen": [
         "ListOverviewService and ListOverviewRepository are in the providers array",
         "`pnpm dev:api` boots clean and /api/health returns 200"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s2-tests-unit",
@@ -1087,7 +1099,8 @@
         "test: pagesKnownCount excludes books with a null pagesCount and totalPages sums only the known ones",
         "test: currentlyReading is null when no book is reading or rereading",
         "test: othersCount equals the number of remaining active-reading books, not the total"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s2-tests-integration",
@@ -1103,7 +1116,8 @@
         "test: a trashed book in the list is excluded from every counter",
         "test: seriesCount + soloCount may differ from totalBooks and the endpoint still returns consistent numbers",
         "test: topGenres returns at most 3 entries with resolved names"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s2-openapi",
@@ -1117,7 +1131,8 @@
       "doneWhen": [
         "openapi.json contains /api/lists/{listId}/overview with a ListOverviewView response schema",
         "live curl captured with an x-request-id response header"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s3-shared-related",
@@ -1132,7 +1147,8 @@
         "RelatedListViewSchema = { bookCount: int nonnegative, id, name, sharedCount: int positive } exported with its type",
         "ListRelatedViewSchema = { lists: RelatedListViewSchema[] } exported with its type",
         "sharedCount is .positive() - a zero-overlap list must be impossible to represent"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s3-related-repo",
@@ -1150,7 +1166,8 @@
         "ORDER BY sharedCount DESC, bl.name ASC and LIMIT 10",
         "the result is parsed by a Zod array schema before being returned",
         "all parameters are Prisma.sql placeholders - zero string concatenation"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s3-related-service",
@@ -1165,7 +1182,8 @@
         "listsService.assertOwned runs before the query so a foreign listId cannot be probed for existence",
         "returns ListRelatedView with an empty lists array when there are no overlaps",
         "no filtering or re-sorting in the service - the SQL already returns the final order"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s3-related-controller",
@@ -1182,7 +1200,8 @@
       "doneWhen": [
         "@Get(\":listId/related\") declared before @Get(\":listId\"), @JwtProtected, ParseUUIDPipe",
         "returns ListRelatedView via a createZodDto view-dto with the full @Api* set"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s3-module-wiring",
@@ -1196,7 +1215,9 @@
       "doneWhen": [
         "if /related lives in its own service/repository they are registered in providers; if it reuses the stage-2 pair no diff is needed and the task is closed with that explicit note",
         "`pnpm dev:api` boots clean"
-      ]
+      ],
+      "status": "done",
+      "note": "Empty diff by design, stated explicitly rather than silently skipped: /related reuses ListOverviewService and ListOverviewRepository, both already registered in BooksModule by s2-module-wiring. The spec-auditor predicted this outcome and its doneWhen required it be stated."
     },
     {
       "id": "s3-tests-integration",
@@ -1214,7 +1235,8 @@
         "test: results are ordered by sharedCount DESC and ties break by name ASC",
         "test: bookCount reflects the other list's total active books, not the overlap",
         "test: another user's list returns 404, and another user's overlapping list never leaks into the result"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s3-openapi",
@@ -1228,7 +1250,8 @@
       "doneWhen": [
         "openapi.json contains /api/lists/{listId}/related",
         "live curl captured with x-request-id"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-shared-not-in-list",
@@ -1242,7 +1265,8 @@
       "doneWhen": [
         "LibraryBooksQuerySchema has notInList: z.uuid().optional()",
         "no ownership validation is attached to the schema - the predicate is inherently safe (books are already user-scoped)"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-where-not-in-list",
@@ -1256,7 +1280,8 @@
       "doneWhen": [
         "LibraryFilter has notInList?: string",
         "buildLibraryWhere sets where.lists = { none: { listId: filter.notInList } } when it is defined and adds nothing when it is undefined"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-library-service-not-in-list",
@@ -1270,7 +1295,8 @@
       "doneWhen": [
         "the LibraryFilter literal includes notInList: query.notInList",
         "GET /api/books?notInList=<listId> excludes every book already in that list, including books beyond the first page of the list's own pagination"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-shared-remove-books",
@@ -1285,7 +1311,8 @@
         "RemoveBooksFromListInputSchema = { bookIds: z.array(z.uuid()).min(1).max(LIST_PAGE_SIZE_MAX) } exported with its type",
         "RemoveBooksFromListResultSchema = { bookCount, removed } both int nonnegative, exported with its type",
         "LIST_PAGE_SIZE_MAX is reused from common.ts:40, not re-declared"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-remove-books-repo",
@@ -1301,7 +1328,8 @@
         "a resequence method rewrites positions to a dense 1..N over the list ordered by current position",
         "both take the Prisma.TransactionClient as their first parameter, matching the existing method signatures in this file",
         "resequence writes only rows whose position actually changes"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-remove-books-service",
@@ -1318,7 +1346,8 @@
         "order inside the transaction: deleteMany -> dense resequence -> touchList",
         "idempotent: book ids not present in the list do not count towards `removed` and do not throw",
         "returns { bookCount, removed } where bookCount is the post-removal active count"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-remove-books-controller",
@@ -1337,7 +1366,8 @@
         "@Post(\":listId/books/remove\") with @HttpCode(HTTP_STATUS.OK), ZodBodyPipe(RemoveBooksFromListInputSchema), ParseUUIDPipe on listId",
         "the existing @Delete(\":listId/books/:bookId\") route at list-membership.controller.ts:65 is left in place (D11)",
         "full @Api* set including @ApiBody and @ApiBadRequestResponse"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-duplicate-repo",
@@ -1355,7 +1385,8 @@
         "a repository method copies memberships with createMany, preserving the source `position` values verbatim",
         "the copy method accepts the transaction client so it runs inside the caller's transaction",
         "createByNormalized / create on ListsRepository is reused for the new list row rather than a new bespoke insert"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-duplicate-service",
@@ -1373,7 +1404,8 @@
         "creation and membership copy happen inside one TransactionRunner.run under acquireCreateLock(userId), matching resolveOrCreate at lists.service.ts:248",
         "returns CustomListCard (existing schema, no new DTO)",
         "the source list is verified owned before anything is written"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-duplicate-controller",
@@ -1388,7 +1420,8 @@
         "@Post(\":listId/duplicate\") returns CustomListCardDto, @JwtProtected, ParseUUIDPipe on listId",
         "@ApiConflictResponse documents the 50-attempt exhaustion case",
         "full @Api* set"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-shared-preview-covers",
@@ -1402,7 +1435,8 @@
       "doneWhen": [
         "CustomListDetailSchema has previewCovers: z.array(MediaViewSchema)",
         "it is required (an empty array when the list has no covered books), matching CustomListCardSchema at packages/shared/src/lists.ts:62"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-preview-covers-service",
@@ -1421,7 +1455,8 @@
         "findDetailHeader sources them through findOwnedCardById + the existing cover mapping so PREVIEW_COVERS_LIMIT=4 and the has-cover / active predicates stay defined in exactly one place (D5)",
         "at most 4 covers are returned, ordered by position ascending, same as CustomListCard",
         "list-details.controller.test.ts:167 (header fields) is extended rather than left asserting the old shape"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-module-wiring",
@@ -1438,7 +1473,8 @@
       "doneWhen": [
         "any new provider introduced in stage 4 is registered in the owning module",
         "`pnpm dev:api` boots clean and /api/health returns 200"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-tests-unit",
@@ -1453,7 +1489,8 @@
         "test: duplicating when `X (копія)` already exists produces `X (копія 2)`",
         "test: 50 taken names produce a ConflictError rather than an infinite loop",
         "test: description and positions are carried into the copy"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-tests-integration",
@@ -1473,7 +1510,8 @@
         "test: bulk remove of ids that are partly absent returns removed = the number actually deleted and leaves positions dense 1..N",
         "test: duplicate produces a list with the same book set and the same order",
         "test: all three new routes return 404 for another user's list"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s4-openapi",
@@ -1488,7 +1526,8 @@
         "openapi.json contains /api/lists/{listId}/books/remove and /api/lists/{listId}/duplicate, and notInList on the library query",
         "CustomListDetail in openapi.json has previewCovers",
         "live curl captured for both new routes with x-request-id"
-      ]
+      ],
+      "status": "done"
     },
     {
       "id": "s5-shared-move-union",

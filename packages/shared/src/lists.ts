@@ -20,7 +20,7 @@ import { TaxonomySearchPaginationQuerySchema } from "./taxonomy.js";
 import { TRASH_PAGE_SIZE_DEFAULT, TrashDeletionResultSchema } from "./trash.js";
 
 const LIST_NAME_MIN = 2;
-const LIST_NAME_MAX = 80;
+export const LIST_NAME_MAX = 80;
 const LIST_DESCRIPTION_MAX = 300;
 
 export const ListNameSchema = z
@@ -177,6 +177,8 @@ export const ListGenreFacetSchema = z.object({
   name: z.string(),
 });
 
+export type ListGenreFacet = z.infer<typeof ListGenreFacetSchema>;
+
 export const ListFacetsViewSchema = z.object({
   authors: z.array(ListFacetEntrySchema),
   genres: z.array(ListGenreFacetSchema),
@@ -184,7 +186,35 @@ export const ListFacetsViewSchema = z.object({
 
 export type ListFacetsView = z.infer<typeof ListFacetsViewSchema>;
 
+export const RelatedListViewSchema = z.object({
+  bookCount: z.number().int().nonnegative(),
+  id: z.uuid(),
+  name: z.string(),
+  sharedCount: z.number().int().positive(),
+});
+
+export type RelatedListView = z.infer<typeof RelatedListViewSchema>;
+
+export const ListRelatedViewSchema = z.object({
+  lists: z.array(RelatedListViewSchema),
+});
+
+export type ListRelatedView = z.infer<typeof ListRelatedViewSchema>;
+
 const ADD_BOOKS_TO_LIST_MAX = LIST_PAGE_SIZE_MAX;
+
+export const RemoveBooksFromListInputSchema = z.object({
+  bookIds: z.array(z.uuid()).min(1).max(ADD_BOOKS_TO_LIST_MAX),
+});
+
+export type RemoveBooksFromListInput = z.infer<typeof RemoveBooksFromListInputSchema>;
+
+export const RemoveBooksFromListResultSchema = z.object({
+  bookCount: z.number().int().nonnegative(),
+  removed: z.number().int().nonnegative(),
+});
+
+export type RemoveBooksFromListResult = z.infer<typeof RemoveBooksFromListResultSchema>;
 
 export const AddBooksToListInputSchema = z.object({
   bookIds: z.array(z.uuid()).min(1).max(ADD_BOOKS_TO_LIST_MAX),

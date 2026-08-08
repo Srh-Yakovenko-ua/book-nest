@@ -28,6 +28,7 @@ export function makeCustomListDetail(overrides: CustomListDetailOverrides = {}):
     description: null,
     id: "list-1",
     name: "Осіннє читання",
+    previewCovers: [],
     statusCounts: {
       all: items.length,
       finished: 0,

@@ -1,6 +1,10 @@
-import type { AddBooksToListResult } from "@app/shared";
+import type { AddBooksToListResult, RemoveBooksFromListResult } from "@app/shared";
 
-import { AddBooksToListInputSchema, MoveListBookInputSchema } from "@app/shared";
+import {
+  AddBooksToListInputSchema,
+  MoveListBookInputSchema,
+  RemoveBooksFromListInputSchema,
+} from "@app/shared";
 import {
   Body,
   Controller,
@@ -30,7 +34,9 @@ import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ListMembershipService } from "../application/list-membership.service.js";
 import { AddBooksToListInputDto } from "./input-dto/add-books-to-list.input-dto.js";
 import { MoveListBookInputDto } from "./input-dto/move-list-book.input-dto.js";
+import { RemoveBooksFromListInputDto } from "./input-dto/remove-books-from-list.input-dto.js";
 import { AddBooksToListResultDto } from "./view-dto/add-books-to-list-result.view-dto.js";
+import { RemoveBooksFromListResultDto } from "./view-dto/remove-books-from-list-result.view-dto.js";
 
 @ApiTags("lists")
 @Controller("api/lists")
@@ -55,6 +61,25 @@ export class ListMembershipController {
     @Body(new ZodBodyPipe(AddBooksToListInputSchema)) body: AddBooksToListInputDto,
   ): Promise<AddBooksToListResult> {
     return this.listMembershipService.addBooks({ input: body, listId, userId: user.id });
+  }
+
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: RemoveBooksFromListInputDto })
+  @ApiNotFoundResponse({ description: "List not found" })
+  @ApiOkResponse({
+    description: "How many memberships were removed and the new total count",
+    type: RemoveBooksFromListResultDto,
+  })
+  @ApiOperation({ summary: "Remove several books from a custom list and re-sequence positions" })
+  @ApiParam({ name: "listId", required: true })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post(":listId/books/remove")
+  removeBooks(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listId", ParseUUIDPipe) listId: string,
+    @Body(new ZodBodyPipe(RemoveBooksFromListInputSchema)) body: RemoveBooksFromListInputDto,
+  ): Promise<RemoveBooksFromListResult> {
+    return this.listMembershipService.removeBooks({ input: body, listId, userId: user.id });
   }
 
   @ApiNoContentResponse({ description: "The book was removed from the list" })

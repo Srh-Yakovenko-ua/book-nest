@@ -1,4 +1,10 @@
-import type { AddBooksToListInput, AddBooksToListResult, MoveListBookDirection } from "@app/shared";
+import type {
+  AddBooksToListInput,
+  AddBooksToListResult,
+  MoveListBookDirection,
+  RemoveBooksFromListInput,
+  RemoveBooksFromListResult,
+} from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -28,6 +34,12 @@ type MoveBookInput = {
 
 type RemoveBookInput = {
   bookId: string;
+  listId: string;
+  userId: string;
+};
+
+type RemoveBooksInput = {
+  input: RemoveBooksFromListInput;
   listId: string;
   userId: string;
 };
@@ -128,6 +140,31 @@ export class ListMembershipService {
       await this.membershipRepository.shiftUpAfter(tx, { listId, position: membership.position });
 
       await this.membershipRepository.touchList(tx, { listId, now, userId });
+    });
+  }
+
+  async removeBooks({
+    input,
+    listId,
+    userId,
+  }: RemoveBooksInput): Promise<RemoveBooksFromListResult> {
+    await this.listsService.assertOwned({ listId, userId });
+    const now = new Date();
+
+    return this.transactionRunner.run(async (tx) => {
+      await this.membershipRepository.acquireListLock(tx, { listId });
+
+      const removed = await this.membershipRepository.deleteMemberships(tx, {
+        bookIds: dedupeInOrder(input.bookIds),
+        listId,
+        userId,
+      });
+      if (removed > 0) {
+        await this.membershipRepository.resequence(tx, { listId });
+        await this.membershipRepository.touchList(tx, { listId, now, userId });
+      }
+
+      return { bookCount: await this.membershipRepository.countItems(tx, { listId }), removed };
     });
   }
 }

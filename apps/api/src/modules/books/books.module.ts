@@ -41,6 +41,7 @@ import { DedicationsService } from "./application/dedications.service.js";
 import { ListDetailsService } from "./application/list-details.service.js";
 import { ListFacetsService } from "./application/list-facets.service.js";
 import { ListMembershipService } from "./application/list-membership.service.js";
+import { ListOverviewService } from "./application/list-overview.service.js";
 import { WishlistService } from "./application/wishlist.service.js";
 import { BOOK_PURGE_QUEUE_NAME } from "./domain/book-purge.js";
 import { BookDeliveriesRepository } from "./infrastructure/book-deliveries.repository.js";
@@ -52,6 +53,7 @@ import { BulkBooksRepository } from "./infrastructure/bulk-books.repository.js";
 import { ListBooksRepository } from "./infrastructure/list-books.repository.js";
 import { ListFacetsRepository } from "./infrastructure/list-facets.repository.js";
 import { ListMembershipRepository } from "./infrastructure/list-membership.repository.js";
+import { ListOverviewRepository } from "./infrastructure/list-overview.repository.js";
 
 @Module({
   controllers: [
@@ -107,6 +109,8 @@ import { ListMembershipRepository } from "./infrastructure/list-membership.repos
     ListBooksRepository,
     ListFacetsService,
     ListFacetsRepository,
+    ListOverviewService,
+    ListOverviewRepository,
     ListMembershipService,
     ListMembershipRepository,
     BookListsService,

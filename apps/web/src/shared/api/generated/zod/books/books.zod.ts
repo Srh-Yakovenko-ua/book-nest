@@ -715,6 +715,9 @@ export const booksControllerListQueryGenreMax = 100;
 
 export const booksControllerListQueryLanguageMax = 100;
 
+export const booksControllerListQueryNotInListRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const booksControllerListQueryOwnerMax = 100;
 
 export const booksControllerListQueryPageNumberDefault = 1;
@@ -795,6 +798,7 @@ export const BooksControllerListQueryParams = zod.object({
     .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
     .max(booksControllerListQueryLanguageMax)
     .optional(),
+  notInList: zod.uuid().regex(booksControllerListQueryNotInListRegExp).optional(),
   owner: zod
     .array(
       zod.enum([

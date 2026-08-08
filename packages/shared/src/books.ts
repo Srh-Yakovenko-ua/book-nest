@@ -38,7 +38,7 @@ import {
   RECENT_USED_LIMIT_DEFAULT,
   RECENT_USED_LIMIT_MAX,
 } from "./internal.js";
-import { BookListViewSchema, NewListInputSchema } from "./lists.js";
+import { BookListViewSchema, ListGenreFacetSchema, NewListInputSchema } from "./lists.js";
 import { LoanInfoViewSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
 import { BookPublisherRefSchema } from "./publishers.js";
@@ -848,6 +848,7 @@ export const LibraryBooksQuerySchema = z
     inQueue: z.stringbool().optional(),
     isFavorite: z.stringbool().optional(),
     language: queryStringArray(BookLanguageSchema),
+    notInList: z.uuid().optional(),
     owner: queryStringArray(OwnershipStatusSchema),
     ...paginationQueryFields({ pageSizeDefault: LIBRARY_PAGE_SIZE_DEFAULT }),
     pagesMax: z.coerce.number().int().optional(),
@@ -1246,6 +1247,7 @@ export const CustomListDetailSchema = z.object({
   description: z.string().nullable(),
   id: z.string(),
   name: z.string(),
+  previewCovers: z.array(MediaViewSchema),
   statusCounts: z.object({
     all: z.number().int().nonnegative(),
     finished: z.number().int().nonnegative(),
@@ -1256,3 +1258,25 @@ export const CustomListDetailSchema = z.object({
 });
 
 export type CustomListDetail = z.infer<typeof CustomListDetailSchema>;
+
+export const ListOverviewViewSchema = z.object({
+  currentlyReading: z
+    .object({
+      book: ListBookViewSchema,
+      othersCount: z.number().int().nonnegative(),
+    })
+    .nullable(),
+  distinctAuthorsCount: z.number().int().nonnegative(),
+  finishedCount: z.number().int().nonnegative(),
+  genresCount: z.number().int().nonnegative(),
+  inQueueCount: z.number().int().nonnegative(),
+  ownedCount: z.number().int().nonnegative(),
+  pagesKnownCount: z.number().int().nonnegative(),
+  seriesCount: z.number().int().nonnegative(),
+  soloCount: z.number().int().nonnegative(),
+  topGenres: z.array(ListGenreFacetSchema),
+  totalBooks: z.number().int().nonnegative(),
+  totalPages: z.number().int().nonnegative(),
+});
+
+export type ListOverviewView = z.infer<typeof ListOverviewViewSchema>;

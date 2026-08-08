@@ -1,10 +1,36 @@
-import type { LibraryOverviewView, OwnershipStatus } from "@app/shared";
+import type { LibraryOverviewView, OwnershipStatus, ReadingStatus } from "@app/shared";
 
 import type { ActiveReadingRow } from "../infrastructure/book-library-read.repository.js";
 
 export type ActiveReadingView = LibraryOverviewView["activeReading"];
 
 type ActiveReadingBook = NonNullable<ActiveReadingView>["book"];
+
+type LibraryOverviewConfig = {
+  readonly borrowedStatuses: OwnershipStatus[];
+  readonly finishedStatuses: ReadingStatus[];
+  readonly inTransitStatuses: OwnershipStatus[];
+  readonly physicalOwnershipStatuses: OwnershipStatus[];
+  readonly readingInProgressStatuses: ReadingStatus[];
+  readonly recentLimit: number;
+  readonly topLimit: number;
+  readonly wantToBuyStatuses: OwnershipStatus[];
+  readonly wantToReadStatuses: ReadingStatus[];
+};
+
+const BORROWED_OWNERSHIP_STATUSES: OwnershipStatus[] = ["borrowed_from_someone", "lent_to_someone"];
+
+export const LIBRARY_OVERVIEW: LibraryOverviewConfig = {
+  borrowedStatuses: BORROWED_OWNERSHIP_STATUSES,
+  finishedStatuses: ["finished"],
+  inTransitStatuses: ["in_transit"],
+  physicalOwnershipStatuses: ["owned", ...BORROWED_OWNERSHIP_STATUSES],
+  readingInProgressStatuses: ["reading", "rereading"],
+  recentLimit: 3,
+  topLimit: 3,
+  wantToBuyStatuses: ["want_to_buy"],
+  wantToReadStatuses: ["want_to_read"],
+};
 
 export function buildActiveReadingView(activeBooks: ActiveReadingRow[]): ActiveReadingView {
   if (activeBooks.length === 0) {
