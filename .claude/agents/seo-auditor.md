@@ -20,11 +20,11 @@ The SPA failure mode is HTML that's empty until JS runs. Prove the opposite:
 ```bash
 pnpm dev:web   # background; serves http://localhost:3000
 # main content must be present in raw HTML, before any JS:
-curl -s http://localhost:3000/ru | grep -iE '<h1|<title>|<html lang'
+curl -s http://localhost:3000/uk | grep -iE '<h1|<title>|<html lang'
 ```
 
 - Raw HTML must contain the page's real text and headings, not just `<div id="root">`.
-- `/` must redirect to a locale (e.g. `/ru`); `/ru`, `/en`, `/uk` each render in their own language (`<html lang="...">` matches, body copy is translated).
+- `/` must redirect to a locale (e.g. `/uk`); `/uk` and `/en` each render in their own language (`<html lang="...">` matches, body copy is translated).
 - If content only appears in the Playwright snapshot but NOT in `curl` output, it is client-only — flag as a Critical SEO regression.
 
 # Checklist (priority order)
@@ -61,7 +61,7 @@ curl -s http://localhost:3000/ru | grep -iE '<h1|<title>|<html lang'
 
 # How to run
 
-1. `pnpm dev:web` in the background. Wait for `http://localhost:3000/ru` to answer.
+1. `pnpm dev:web` in the background. Wait for `http://localhost:3000/uk` to answer.
 2. `curl -s` each locale + `/robots.txt` + `/sitemap.xml`; grep for the signals above.
 3. Use Playwright (`browser_navigate` + `browser_evaluate`) only to confirm `<head>` tags and compare hydrated vs raw HTML.
 4. Stop the dev server when done.

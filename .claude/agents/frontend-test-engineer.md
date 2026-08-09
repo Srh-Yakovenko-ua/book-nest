@@ -35,7 +35,6 @@ On 2026-08-08 an agent on this repo overwrote a file it believed was new and des
 - User interactions: **@testing-library/user-event** (NOT `fireEvent`)
 - Test utilities: `apps/web/src/test-utils.tsx` provides `renderWithProviders`, `renderWithRouter`, and re-exports `screen`, `userEvent`, `waitFor`, `within`, `cleanup`
 - Config: `apps/web/vitest.config.ts`, setup: `apps/web/vitest.setup.ts`
-- Full docs: `/docs/tools/vitest.md`
 
 # Test file location
 

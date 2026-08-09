@@ -1,7 +1,6 @@
 ---
 name: db-migrate
-description: Create and apply a Prisma migration for apps/api the safe way — schema change → reviewed SQL → applied → client regenerated. Use when adding/changing a model in apps/api/prisma/schema.prisma. Guards against the rename data-loss trap and routes the SQL through migration-reviewer.
-disable-model-invocation: true
+description: Create and apply a Prisma migration for apps/api the safe way — schema change → reviewed SQL → stripped DROP INDEX lines → applied → client regenerated. Use whenever apps/api/prisma/schema.prisma gains or changes a model, field, enum or index, and when the user says "миграция", "migration", "поменяй схему", "добавь поле", "alter table". Guards the rename data-loss trap and the raw-SQL-index strip trap, and routes the SQL through migration-reviewer.
 ---
 
 # Prisma migration workflow (apps/api)
