@@ -3,6 +3,8 @@ dist
 build
 .vite
 .turbo
+.next
+.claude/worktrees
 pnpm-lock.yaml
 *.tsbuildinfo
 .playwright-mcp
