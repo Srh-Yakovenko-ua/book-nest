@@ -204,18 +204,24 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 
 **Skills available** (`.claude/skills/`) — invoke with `/<name>`:
 
-| Skill                              | Reach for it when                                                                    |
-| ---------------------------------- | ------------------------------------------------------------------------------------ |
-| `spec-to-ship`                     | work arrives as a spec / ТЗ — the full audit → plan → slice → re-audit chain         |
-| `blast-radius`                     | before committing a contract change, to find the callers you did not open            |
-| `diagnose`                         | a bug that survived the first read — builds a tight pass/fail loop before theorising |
-| `new-endpoint`                     | adding a BE endpoint end to end                                                      |
-| `new-slice`                        | adding a FE feature slice                                                            |
-| `db-migrate`                       | any Prisma migration (pairs with `migration-reviewer` and the strip-trap)            |
-| `add-i18n-key`                     | adding user-facing text, so no locale is left behind                                 |
-| `writing-for-agents`               | editing anything under `.claude/` or pruning `CLAUDE.md`                             |
-| `handoff`                          | closing a long session, or handing the work to a fresh one                           |
-| `supabase-postgres-best-practices` | writing or optimising a Postgres query, index, or schema (vendored, MIT)             |
+| Skill                              | Reach for it when                                                                                  |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `spec-to-ship`                     | work arrives as a spec / ТЗ — the full audit → plan → slice → re-audit chain                       |
+| `grill`                            | the work arrives as an idea, and the decision is expensive to reverse                              |
+| `blast-radius`                     | before committing a contract change, to find the callers you did not open                          |
+| `diagnose`                         | a bug that survived the first read — builds a tight pass/fail loop before theorising               |
+| `new-endpoint`                     | adding a BE endpoint end to end                                                                    |
+| `new-slice`                        | adding a FE feature slice                                                                          |
+| `db-migrate`                       | any Prisma migration (pairs with `migration-reviewer` and the strip-trap)                          |
+| `add-i18n-key`                     | adding user-facing text, so no locale is left behind                                               |
+| `deep-module`                      | deciding where to split an overgrown service, or whether a seam is real                            |
+| `domain-model`                     | a term is used two ways, or a decision is worth outliving its feature (`CONTEXT.md` + `docs/adr/`) |
+| `wizard`                           | the next step needs a human at a browser — infra, credentials, DNS, CI secrets                     |
+| `prose`                            | writing text a person reads: README, docs, changelog, release notes, PR body, commit               |
+| `teach`                            | a BE/infra concept is worth a real lesson, not a one-off explanation                               |
+| `writing-for-agents`               | editing anything under `.claude/` or pruning `CLAUDE.md`                                           |
+| `handoff`                          | closing a long session, or handing the work to a fresh one                                         |
+| `supabase-postgres-best-practices` | writing or optimising a Postgres query, index, or schema (vendored, MIT)                           |
 
 **Spec-driven work runs as a chain, not head-on** — see [`.claude/skills/spec-to-ship/SKILL.md`](./.claude/skills/spec-to-ship/SKILL.md). Verify the spec against the code before planning, decompose into a checkable `tasks.json`, ask all open decisions in one block, implement slice by slice with per-slice review, then re-audit the diff against `tasks.json` before claiming done. A spec's `file:line` claims are stale until opened; a requirement is optional only when the spec itself says so.
 
@@ -237,6 +243,7 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 
 - Respond in **Russian**; code, paths, commands, and output stay in English.
 - Terse by default: short status, no narration of upcoming steps, no trailing recaps.
-- **Explain the why deeply for backend and non-obvious decisions.** The maintainer is a senior frontend engineer deepening backend/infra expertise — when a NestJS/Prisma/Postgres/HTTP/git-infra concept or a non-obvious tradeoff comes up, teach the mental model and the reasoning, with FE analogies where they help. This is depth on **concepts**, not narration of routine mechanical steps (those stay terse).
+- **Explain the why deeply for backend and non-obvious decisions.** The maintainer is a senior frontend engineer deepening backend/infra expertise — when a NestJS/Prisma/Postgres/HTTP/git-infra concept or a non-obvious tradeoff comes up, teach the mental model and the reasoning, with FE analogies where they help. This is depth on **concepts**, not narration of routine mechanical steps (those stay terse). When the concept deserves a real lesson rather than a paragraph in passing, use `/teach` — it records what landed, so the next lesson starts higher.
+- **Text a human reads follows `/prose`**, not this file's own style: README, `docs/`, changelog, release notes, PR bodies, commit messages. Plain sentences, no em-dashes, no "Generated with Claude Code" footer. Files under `.claude/` are read by a model and follow `/writing-for-agents` instead.
 - Delegation is automatic and silent (§10).
 - Avoid: comments in code, unverified "should work" claims, chatter, asking permission for routine work, wrapper libraries over standard tools, premature optimization, hardcoded values that belong in env.

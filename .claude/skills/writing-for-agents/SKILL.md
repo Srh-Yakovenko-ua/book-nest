@@ -64,6 +64,15 @@ This is distinct from duplication. Duplication says one thing in two places, and
 - **Name the failure it prevents.** `blast-radius` earns its length because it names the red deploy it exists to stop. An instruction whose cost is visible and whose benefit is not will erode.
 - **Write the trap, not the happy path.** The agent will find the happy path. It will not find that a stale `packages/shared/dist` makes new exports read as `undefined` while typecheck stays green.
 
+## The skill registry refreshes on a turn boundary, not on your edit
+
+Verified on 2026-08-09. Inside the same turn that created `prose`, invoking it returned `Unknown skill`, and `add-i18n-key`, rewritten moments earlier, served its pre-edit text. One user turn later both were current: `prose` loaded, and the listing carried the rewritten `add-i18n-key` description. The registry is re-scanned between turns, so an edit is live for the next turn but not for the rest of the one that made it.
+
+Two consequences:
+
+- **Never verify your own edit by invoking the skill in the same turn.** It hands you the old content and you conclude the edit did not land. Verify against the file on disk. If you want the loader's opinion, ask for it a turn later.
+- **The visible skill list lags and is filtered.** `add-i18n-key` loaded on demand while absent from the listing. A skill missing from that list is not evidence it failed to load. The evidence is the file: valid frontmatter, `name` matching its directory, and a pointer in `CLAUDE.md`.
+
 ## Before you add anything
 
 Three questions, in order:
