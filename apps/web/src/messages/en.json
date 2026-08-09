@@ -1707,8 +1707,7 @@
           "removeFromWishlist": "Remove from wishlist"
         },
         "storeLinks": {
-          "title": "Stores and prices",
-          "add": "Add link"
+          "title": "Stores and prices"
         },
         "purchase": {
           "title": "Purchase details",
@@ -1740,8 +1739,10 @@
         },
         "buyConfirm": {
           "title": "Mark this book as bought?",
-          "description": "Tell us where you bought it — it may differ from the plan",
+          "description": "Pick one of the tracked stores or enter a different one",
+          "sourceLegend": "Where did you buy it?",
           "sourceOther": "Somewhere else",
+          "linkNoPrice": "no price",
           "price": "Price",
           "date": "Purchase date",
           "submit": "Confirm"
@@ -1759,6 +1760,7 @@
           "purchaseDateRequired": "Enter the purchase date.",
           "purchaseDateFuture": "The date can’t be in the future.",
           "notInWishlist": "This book is no longer in the wishlist.",
+          "storeLinksUnavailable": "Could not load the tracked stores",
           "generic": "Couldn’t save. Please try again."
         }
       },
@@ -2042,14 +2044,35 @@
       "description": "Please try refreshing the page.",
       "retry": "Try again"
     },
-    "markInTransit": "Mark as in transit",
-    "markInTransitFor": "Mark \"{title}\" as in transit",
-    "markBought": "Mark as bought",
-    "markBoughtFor": "Mark “{title}” as bought",
+    "statusDialog": {
+      "trigger": "Update status",
+      "triggerFor": "Update status for “{title}”",
+      "title": "What happened to this book?",
+      "description": "Pick an option — each one says where the book will go",
+      "bought": {
+        "label": "Bought",
+        "caption": "The book moves to your shelf. The store, price and purchase date are saved"
+      },
+      "ordered": {
+        "label": "Ordered, on the way",
+        "caption": "The book moves to deliveries, where you can track it",
+        "orderDate": "Order date",
+        "expectedDate": "Expected delivery"
+      },
+      "received": {
+        "label": "Received another way",
+        "caption": "A gift or another source. The book moves to your shelf; no purchase is recorded"
+      },
+      "dropped": {
+        "label": "No longer interested",
+        "caption": "The book stays in your library and its ownership status becomes “Not specified”"
+      }
+    },
     "markBoughtSuccess": "The book is marked as bought",
+    "markOwnedSuccess": "The book was added to your shelf",
+    "markOwnedError": "Could not update the book status",
     "rowMenuLabel": "More actions for “{title}”",
     "removeFromList": {
-      "action": "Remove from the wishlist",
       "title": "Remove the book from the wishlist?",
       "description": "The book will disappear from the wishlist but will stay in your library.",
       "cancel": "Cancel",
@@ -2060,20 +2083,31 @@
       "notInWishlist": "This book is no longer in the wishlist"
     },
     "storeLinks": {
-      "listLabel": "Store links",
       "empty": "No store links added yet",
       "bestOffer": "Best price",
-      "expand": "{count} more",
-      "collapse": "Collapse",
+      "more": "{count, plural, one {# more store} other {# more stores}}",
+      "moreMixedCurrency": "{count, plural, one {# more store} other {# more stores}} · other currencies",
+      "noPrices": "{count, plural, one {# store} other {# stores}} · no prices",
+      "manage": "Stores and prices",
+      "manageWithCount": "Stores and prices ({count})",
+      "manageAction": "Manage links",
       "add": "Add link",
-      "addFor": "Add a store link for “{title}”",
-      "menuLabel": "Actions for the “{store}” link",
-      "edit": "Edit link",
-      "delete": "Delete link",
+      "edit": "Edit the “{store}” link",
+      "delete": "Delete the “{store}” link",
       "deleted": "Link deleted",
       "undo": "Undo",
       "deleteError": "Could not delete the link",
-      "undoError": "Could not restore the link"
+      "undoError": "Could not restore the link",
+      "manageDialog": {
+        "title": "Stores and prices",
+        "counter": "{count, plural, one {# link} other {# links}} · max {max}",
+        "limitReached": "Maximum reached — no more links can be added",
+        "cheapest": "cheapest",
+        "currencyHint": "Prices are in different currencies — no conversion is applied",
+        "empty": "No links yet",
+        "back": "Back",
+        "close": "Close"
+      }
     },
     "storeLinkDialog": {
       "addTitle": "Add a store link",

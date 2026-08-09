@@ -128,7 +128,6 @@ function purchaseToInput(book: BookView): CreateBookFormValues["purchaseInfo"] {
   return {
     currency: info.currency ?? undefined,
     expectedPrice: info.expectedPrice ?? undefined,
-    note: info.note ?? undefined,
     storeName: info.storeName ?? undefined,
     storeUrl: info.storeUrl ?? undefined,
   };

@@ -40,7 +40,6 @@ import {
   OWNERSHIP_STATUS_OPTIONS,
   ownershipUsesDelivery,
   ownershipUsesLoan,
-  ownershipUsesPurchase,
 } from "../model/book-status-fields";
 import { OWNERSHIP_FIELDS } from "../model/section-completeness";
 import { BookDateField } from "./book-date-field";
@@ -62,7 +61,7 @@ type OwnershipNoteFieldProps = {
   register: UseFormRegister<CreateBookFormValues>;
 };
 
-type OwnershipNoteName = "deliveryInfo.note" | "loanInfo.note" | "purchaseInfo.note";
+type OwnershipNoteName = "deliveryInfo.note" | "loanInfo.note";
 
 type OwnershipStatusSectionProps = {
   control: Control<CreateBookFormValues>;
@@ -118,17 +117,6 @@ export function OwnershipStatusSection({
           />
         )}
       />
-
-      {ownershipUsesPurchase(status) ? (
-        <OwnershipNoteField
-          error={errors.purchaseInfo?.note}
-          id="purchase-note"
-          label={t("ownershipStatus.fields.note")}
-          name="purchaseInfo.note"
-          placeholder={t("ownershipStatus.fields.notePlaceholder")}
-          register={register}
-        />
-      ) : null}
 
       {ownershipUsesDelivery(status) ? (
         <div className="flex flex-col gap-4 rounded-md border border-border bg-secondary/40 p-4 motion-safe:animate-in motion-safe:duration-300 motion-safe:slide-in-from-top-1">

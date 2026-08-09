@@ -148,9 +148,6 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
             )}
           </div>
 
-          {book.purchaseInfo !== null && book.ownershipStatus === "want_to_buy" ? (
-            <WantToBuyNote info={book.purchaseInfo} />
-          ) : null}
           {book.purchaseInfo !== null && book.ownershipStatus === "owned" ? (
             <AcquisitionBlock info={book.purchaseInfo} />
           ) : null}
@@ -424,10 +421,4 @@ function LoanInfoBlock({ book, info }: { book: BookView; info: LoanInfoView }) {
       ) : null}
     </div>
   );
-}
-
-function WantToBuyNote({ info }: { info: PurchaseInfoView }) {
-  if (info.note === null) return null;
-
-  return <p className="text-sm text-muted-foreground italic">{info.note}</p>;
 }

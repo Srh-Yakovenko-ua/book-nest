@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -37,7 +38,16 @@ afterAll(async () => {
 type SeedBookInput = {
   authorId: string;
   createdAt?: Date;
+  deletedAt?: Date;
   storeName?: Nullable<string>;
+  userId: string;
+};
+
+type SeedStoreLinkInput = {
+  bookId: string;
+  createdAt?: Date;
+  storeName: string;
+  url: string;
   userId: string;
 };
 
@@ -62,8 +72,24 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
       authors: { create: [{ authorId: input.authorId, position: 0 }] },
       createdAt: input.createdAt,
       purchaseInfo:
-        input.storeName === undefined ? undefined : { create: { storeName: input.storeName } },
+        input.storeName === undefined
+          ? undefined
+          : { create: { createdAt: input.createdAt, storeName: input.storeName } },
       title: "Untitled",
+      userId: input.userId,
+      ...(input.deletedAt === undefined ? {} : TRASH_RETENTION.stamp(input.deletedAt)),
+    },
+    select: { id: true },
+  });
+}
+
+function seedStoreLink(input: SeedStoreLinkInput): Promise<{ id: string }> {
+  return prisma.bookStoreLink.create({
+    data: {
+      bookId: input.bookId,
+      createdAt: input.createdAt,
+      storeName: input.storeName,
+      url: input.url,
       userId: input.userId,
     },
     select: { id: true },
@@ -86,7 +112,7 @@ describe("GET /api/books/purchase-stores", () => {
     expect(res.body).toEqual([]);
   });
 
-  it("returns distinct store names ordered by recency of the books that use them", async () => {
+  it("returns distinct store names ordered by when each name was entered", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
     await seedBook({
@@ -114,6 +140,127 @@ describe("GET /api/books/purchase-stores", () => {
     expect(res.body).toEqual(["Yakaboo", "Knyharnya Ye"]);
   });
 
+  it("returns a store name that exists only in the purchase info", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({ authorId: author.id, storeName: "Bukva", userId });
+
+    const res = await getPurchaseStores(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(["Bukva"]);
+  });
+
+  it("returns a store name that exists only in the store links", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedBook({ authorId: author.id, userId });
+    await seedStoreLink({
+      bookId: book.id,
+      storeName: "Knyholove",
+      url: "https://knyholove.ua/dune",
+      userId,
+    });
+
+    const res = await getPurchaseStores(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(["Knyholove"]);
+  });
+
+  it("returns a store name present in both tables exactly once", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T10:00:00.000Z"),
+      storeName: "Yakaboo",
+      userId,
+    });
+    const wanted = await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-02-01T10:00:00.000Z"),
+      userId,
+    });
+    await seedStoreLink({
+      bookId: wanted.id,
+      createdAt: new Date("2026-02-01T10:00:00.000Z"),
+      storeName: "Yakaboo",
+      url: "https://yakaboo.ua/dune",
+      userId,
+    });
+
+    const res = await getPurchaseStores(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(["Yakaboo"]);
+  });
+
+  it("collapses spellings that differ only by case, keeping the most recent one", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T10:00:00.000Z"),
+      storeName: "yakaboo",
+      userId,
+    });
+    const wanted = await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-02-01T10:00:00.000Z"),
+      userId,
+    });
+    await seedStoreLink({
+      bookId: wanted.id,
+      createdAt: new Date("2026-02-01T10:00:00.000Z"),
+      storeName: "YAKABOO",
+      url: "https://yakaboo.ua/dune",
+      userId,
+    });
+    await seedStoreLink({
+      bookId: wanted.id,
+      createdAt: new Date("2026-03-01T10:00:00.000Z"),
+      storeName: "Yakaboo",
+      url: "https://yakaboo.ua/solaris",
+      userId,
+    });
+
+    const res = await getPurchaseStores(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(["Yakaboo"]);
+  });
+
+  it("ignores the purchase info and store links of a soft-deleted book", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const trashed = await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-03-01T10:00:00.000Z"),
+      deletedAt: new Date("2026-03-02T10:00:00.000Z"),
+      storeName: "Trashed Purchase Store",
+      userId,
+    });
+    await seedStoreLink({
+      bookId: trashed.id,
+      createdAt: new Date("2026-03-01T10:00:00.000Z"),
+      storeName: "Trashed Link Store",
+      url: "https://trashed.ua/dune",
+      userId,
+    });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T10:00:00.000Z"),
+      storeName: "Bukva",
+      userId,
+    });
+
+    const res = await getPurchaseStores(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(["Bukva"]);
+  });
+
   it("ignores null and empty store names", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
@@ -134,9 +281,15 @@ describe("GET /api/books/purchase-stores", () => {
       nickname: "stranger",
     });
     const strangerAuthor = await seedAuthor({ name: "Stranger Author", userId: stranger.userId });
-    await seedBook({
+    const strangerBook = await seedBook({
       authorId: strangerAuthor.id,
       storeName: "Secret Store",
+      userId: stranger.userId,
+    });
+    await seedStoreLink({
+      bookId: strangerBook.id,
+      storeName: "Secret Link Store",
+      url: "https://secret.ua/dune",
       userId: stranger.userId,
     });
 
@@ -159,6 +312,41 @@ describe("GET /api/books/purchase-stores", () => {
 
     const res = await getPurchaseStores(accessToken, 2);
 
+    expect(res.body).toEqual(["Store C", "Store B"]);
+  });
+
+  it("caps the union of both sources to the requested limit", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-01-01T10:00:00.000Z"),
+      storeName: "Store A",
+      userId,
+    });
+    const wanted = await seedBook({
+      authorId: author.id,
+      createdAt: new Date("2026-02-01T10:00:00.000Z"),
+      userId,
+    });
+    await seedStoreLink({
+      bookId: wanted.id,
+      createdAt: new Date("2026-02-01T10:00:00.000Z"),
+      storeName: "Store B",
+      url: "https://store-b.ua/dune",
+      userId,
+    });
+    await seedStoreLink({
+      bookId: wanted.id,
+      createdAt: new Date("2026-03-01T10:00:00.000Z"),
+      storeName: "Store C",
+      url: "https://store-c.ua/dune",
+      userId,
+    });
+
+    const res = await getPurchaseStores(accessToken, 2);
+
+    expect(res.status).toBe(200);
     expect(res.body).toEqual(["Store C", "Store B"]);
   });
 

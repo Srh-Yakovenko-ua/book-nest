@@ -1,9 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it } from "vitest";
 
-import { renderWithProviders, screen, userEvent, within } from "@/test-utils";
+import { renderWithProviders, screen, within } from "@/test-utils";
 
-import { makeStoreLink, makeWishlistBook } from "../model/books-to-buy.fixtures";
+import { makeStoreLink } from "../model/books-to-buy.fixtures";
 import { StoreLinksList } from "./store-links-list";
 
 type ListProps = Parameters<typeof StoreLinksList>[0];
@@ -21,7 +21,7 @@ function manyLinks(count: number) {
 function renderList(overrides: Partial<ListProps> = {}) {
   const props: ListProps = {
     bestOffer: null,
-    book: makeWishlistBook(),
+    label: "Магазини та ціни",
     storeLinks: [makeStoreLink()],
     ...overrides,
   };
@@ -81,38 +81,17 @@ describe("StoreLinksList", () => {
     expect(within(pricier).queryByText("Найкраща ціна")).not.toBeInTheDocument();
   });
 
-  it("shows only the first three links and counts the rest", () => {
+  it("lists every tracked store without hiding any behind a toggle", () => {
     renderList({ storeLinks: manyLinks(5) });
-
-    expect(screen.getAllByRole("listitem")).toHaveLength(3);
-    expect(screen.getByRole("button", { name: "Ще 2" })).toHaveAttribute("aria-expanded", "false");
-  });
-
-  it("reveals the remaining links when expanded", async () => {
-    renderList({ storeLinks: manyLinks(5) });
-
-    await userEvent.click(screen.getByRole("button", { name: "Ще 2" }));
 
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
-    expect(screen.getByRole("button", { name: "Згорнути" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("hides the extra links again when collapsed", async () => {
-    renderList({ storeLinks: manyLinks(5) });
+  it("labels the list for assistive technology", () => {
+    renderList({ storeLinks: manyLinks(2) });
 
-    await userEvent.click(screen.getByRole("button", { name: "Ще 2" }));
-    await userEvent.click(screen.getByRole("button", { name: "Згорнути" }));
-
-    expect(screen.getAllByRole("listitem")).toHaveLength(3);
-  });
-
-  it("offers no toggle when every link already fits", () => {
-    renderList({ storeLinks: manyLinks(3) });
-
-    expect(screen.queryByRole("button", { name: /Ще/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Магазини та ціни" })).toBeInTheDocument();
   });
 
   it("renders a non-https store link as plain text instead of a link", () => {
