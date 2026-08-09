@@ -2,12 +2,10 @@
 
 import type { WishlistBookView } from "@app/shared";
 
-import { MAX_STORE_LINKS_PER_BOOK, STORE_LINK_ERROR_CODES } from "@app/shared";
-import { useQueryClient } from "@tanstack/react-query";
+import { MAX_STORE_LINKS_PER_BOOK } from "@app/shared";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useState } from "react";
-import { toast } from "sonner";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -17,41 +15,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DeliveryDialog, MarkBoughtDialog, useRemoveFromWishlist } from "@/features/books";
 import { Link } from "@/i18n/navigation";
-import { ApiError } from "@/lib/http-client";
 
-import { wishlistKeys } from "../api/wishlist-keys";
-import { RemoveFromWishlistDialog } from "./remove-from-wishlist-dialog";
 import { StoreLinkDialog } from "./store-link-dialog";
-import { StoreLinksList } from "./store-links-list";
+import { StoreLinkManageDialog } from "./store-link-manage-dialog";
+import { StoreLinksSummary } from "./store-links-summary";
+import { WishlistStatusDialog } from "./wishlist-status-dialog";
 
 export function BooksToBuyRow({ book }: { book: WishlistBookView }) {
   const t = useTranslations("booksToBuy");
-  const queryClient = useQueryClient();
   const [addLinkOpen, setAddLinkOpen] = useState(false);
-  const [deliveryOpen, setDeliveryOpen] = useState(false);
-  const [markBoughtOpen, setMarkBoughtOpen] = useState(false);
-  const [removeOpen, setRemoveOpen] = useState(false);
-  const removeFromWishlist = useRemoveFromWishlist();
+  const [manageOpen, setManageOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const authorNames = book.authors.map((author) => author.name).join(", ");
   const canAddLink = book.storeLinks.length < MAX_STORE_LINKS_PER_BOOK;
-
-  const onConfirmRemove = () =>
-    removeFromWishlist.mutate(book.id, {
-      onError: (error) => {
-        if (isNotInWishlist(error)) {
-          void queryClient.invalidateQueries({ queryKey: wishlistKeys.root });
-          toast.error(t("removeFromList.notInWishlist"));
-          return;
-        }
-        toast.error(t("removeFromList.error"));
-      },
-      onSuccess: () => {
-        setRemoveOpen(false);
-        toast.success(t("removeFromList.success"));
-      },
-    });
+  const hasStoreLinks = book.storeLinks.length > 0;
 
   return (
     <>
@@ -68,69 +46,53 @@ export function BooksToBuyRow({ book }: { book: WishlistBookView }) {
             <p className="truncate text-xs text-muted-foreground">{authorNames}</p>
           </div>
         </Link>
-        <StoreLinksList
+        <StoreLinksSummary
           bestOffer={book.bestOffer}
-          book={book}
           className="sm:w-56 sm:shrink-0 md:w-64"
+          onManage={() => setManageOpen(true)}
           storeLinks={book.storeLinks}
         />
         <div className="flex shrink-0 items-center gap-1.5 self-start sm:self-auto">
           <Button
-            aria-label={t("markBoughtFor", { title: book.title })}
-            onClick={() => setMarkBoughtOpen(true)}
+            aria-label={t("statusDialog.triggerFor", { title: book.title })}
+            onClick={() => setStatusOpen(true)}
             size="sm"
           >
             <UiIcon name="check-circle" size={16} />
-            {t("markBought")}
+            {t("statusDialog.trigger")}
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                aria-label={t("rowMenuLabel", { title: book.title })}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <UiIcon name="more" size={16} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {canAddLink ? (
-                <DropdownMenuItem onSelect={() => setAddLinkOpen(true)}>
-                  <UiIcon name="plus" size={14} />
-                  {t("storeLinks.add")}
-                </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuItem onSelect={() => setDeliveryOpen(true)}>
-                <UiIcon name="truck" size={14} />
-                {t("markInTransit")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setRemoveOpen(true)}>
-                <UiIcon name="x-circle" size={14} />
-                {t("removeFromList.action")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {hasStoreLinks || canAddLink ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  aria-label={t("rowMenuLabel", { title: book.title })}
+                  size="icon-sm"
+                  variant="ghost"
+                >
+                  <UiIcon name="more" size={16} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {hasStoreLinks ? (
+                  <DropdownMenuItem onSelect={() => setManageOpen(true)}>
+                    <UiIcon name="store" size={14} />
+                    {t("storeLinks.manageWithCount", { count: book.storeLinks.length })}
+                  </DropdownMenuItem>
+                ) : null}
+                {canAddLink ? (
+                  <DropdownMenuItem onSelect={() => setAddLinkOpen(true)}>
+                    <UiIcon name="plus" size={14} />
+                    {t("storeLinks.add")}
+                  </DropdownMenuItem>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </div>
       </div>
-      <MarkBoughtDialog
-        book={book}
-        onOpenChange={setMarkBoughtOpen}
-        onSuccess={() => toast.success(t("markBoughtSuccess"))}
-        open={markBoughtOpen}
-      />
+      <WishlistStatusDialog book={book} onOpenChange={setStatusOpen} open={statusOpen} />
       <StoreLinkDialog book={book} mode="create" onOpenChange={setAddLinkOpen} open={addLinkOpen} />
-      <DeliveryDialog
-        book={book}
-        mode="create"
-        onOpenChange={setDeliveryOpen}
-        open={deliveryOpen}
-      />
-      <RemoveFromWishlistDialog
-        isPending={removeFromWishlist.isPending}
-        onConfirm={onConfirmRemove}
-        onOpenChange={setRemoveOpen}
-        open={removeOpen}
-      />
+      <StoreLinkManageDialog book={book} onOpenChange={setManageOpen} open={manageOpen} />
     </>
   );
 }
@@ -149,8 +111,4 @@ function BooksToBuyCover({ alt, src }: { alt: string; src?: string }) {
       <Image alt={alt} className="object-cover" fill sizes="44px" src={src} unoptimized />
     </div>
   );
-}
-
-function isNotInWishlist(error: unknown): boolean {
-  return error instanceof ApiError && error.code === STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST;
 }

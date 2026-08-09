@@ -56,20 +56,15 @@ const PRICE_MAX = 99999999.99;
 
 export type StoreLinkBook = Pick<BookView, "authors" | "cover" | "id" | "publisher" | "title">;
 
+type StoreLinkDialogBaseProps = {
+  book: StoreLinkBook;
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+};
+
 type StoreLinkDialogProps =
-  | {
-      book: StoreLinkBook;
-      link: BookStoreLinkView;
-      mode: "edit";
-      onOpenChange: (open: boolean) => void;
-      open: boolean;
-    }
-  | {
-      book: StoreLinkBook;
-      mode: "create";
-      onOpenChange: (open: boolean) => void;
-      open: boolean;
-    };
+  | (StoreLinkDialogBaseProps & { link: BookStoreLinkView; mode: "edit" })
+  | (StoreLinkDialogBaseProps & { mode: "create" });
 
 type StoreLinkMessages = {
   price: string;
@@ -106,81 +101,7 @@ export function StoreLinkDialog(props: StoreLinkDialogProps) {
   );
 }
 
-function buildPayload(values: StoreLinkValues) {
-  const price = Number(values.price);
-  const hasPrice = values.price.trim().length > 0 && Number.isFinite(price);
-
-  return {
-    currency: hasPrice ? values.currency : null,
-    price: hasPrice ? price : null,
-    storeName: values.storeName.trim(),
-    url: values.url.trim(),
-  } satisfies CreateBookStoreLinkInput & UpdateBookStoreLinkInput;
-}
-
-function buildSchema(messages: StoreLinkMessages) {
-  return z.object({
-    currency: z.enum(CURRENCY_OPTIONS),
-    price: z
-      .string()
-      .refine((value) => value.trim().length === 0 || Number(value) > PRICE_MIN, messages.price)
-      .refine(
-        (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
-        messages.priceMax,
-      ),
-    storeName: z
-      .string()
-      .refine((value) => value.trim().length > 0, messages.storeNameRequired)
-      .refine((value) => value.trim().length <= STORE_NAME_MAX, messages.storeNameMax),
-    url: z
-      .string()
-      .refine((value) => value.trim().length > 0, messages.urlRequired)
-      .refine((value) => value.trim().length <= STORE_URL_MAX, messages.urlMax)
-      .refine((value) => value.trim().length === 0 || isHttpsUrl(value.trim()), messages.url),
-  });
-}
-
-function StoreLinkBookPreview({ book }: { book: StoreLinkBook }) {
-  const authorNames = book.authors.map((author) => author.name).join(", ");
-  const coverSrc = book.cover?.urls.thumb;
-
-  return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
-      {coverSrc === undefined ? (
-        <div className="grid aspect-[3/4] w-11 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground/70">
-          <UiIcon name="book" size={18} />
-        </div>
-      ) : (
-        <div className="relative aspect-[3/4] w-11 shrink-0 overflow-hidden rounded-md bg-accent">
-          <Image
-            alt={book.title}
-            className="object-cover"
-            fill
-            sizes="44px"
-            src={coverSrc}
-            unoptimized
-          />
-        </div>
-      )}
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <p className="truncate font-heading text-sm leading-tight font-bold text-ink">
-          {book.title}
-        </p>
-        {authorNames.length > 0 ? (
-          <p className="truncate text-xs text-muted-foreground">{authorNames}</p>
-        ) : null}
-        {book.publisher === null ? null : (
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <UiIcon className="shrink-0" name="building" size={12} />
-            <span className="min-w-0 truncate">{book.publisher.name}</span>
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StoreLinkForm({
+export function StoreLinkForm({
   book,
   link,
   onDone,
@@ -373,6 +294,80 @@ function StoreLinkForm({
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+function buildPayload(values: StoreLinkValues) {
+  const price = Number(values.price);
+  const hasPrice = values.price.trim().length > 0 && Number.isFinite(price);
+
+  return {
+    currency: hasPrice ? values.currency : null,
+    price: hasPrice ? price : null,
+    storeName: values.storeName.trim(),
+    url: values.url.trim(),
+  } satisfies CreateBookStoreLinkInput & UpdateBookStoreLinkInput;
+}
+
+function buildSchema(messages: StoreLinkMessages) {
+  return z.object({
+    currency: z.enum(CURRENCY_OPTIONS),
+    price: z
+      .string()
+      .refine((value) => value.trim().length === 0 || Number(value) > PRICE_MIN, messages.price)
+      .refine(
+        (value) => value.trim().length === 0 || Number(value) <= PRICE_MAX,
+        messages.priceMax,
+      ),
+    storeName: z
+      .string()
+      .refine((value) => value.trim().length > 0, messages.storeNameRequired)
+      .refine((value) => value.trim().length <= STORE_NAME_MAX, messages.storeNameMax),
+    url: z
+      .string()
+      .refine((value) => value.trim().length > 0, messages.urlRequired)
+      .refine((value) => value.trim().length <= STORE_URL_MAX, messages.urlMax)
+      .refine((value) => value.trim().length === 0 || isHttpsUrl(value.trim()), messages.url),
+  });
+}
+
+function StoreLinkBookPreview({ book }: { book: StoreLinkBook }) {
+  const authorNames = book.authors.map((author) => author.name).join(", ");
+  const coverSrc = book.cover?.urls.thumb;
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 p-3">
+      {coverSrc === undefined ? (
+        <div className="grid aspect-[3/4] w-11 shrink-0 place-items-center rounded-md bg-accent text-accent-foreground/70">
+          <UiIcon name="book" size={18} />
+        </div>
+      ) : (
+        <div className="relative aspect-[3/4] w-11 shrink-0 overflow-hidden rounded-md bg-accent">
+          <Image
+            alt={book.title}
+            className="object-cover"
+            fill
+            sizes="44px"
+            src={coverSrc}
+            unoptimized
+          />
+        </div>
+      )}
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className="truncate font-heading text-sm leading-tight font-bold text-ink">
+          {book.title}
+        </p>
+        {authorNames.length > 0 ? (
+          <p className="truncate text-xs text-muted-foreground">{authorNames}</p>
+        ) : null}
+        {book.publisher === null ? null : (
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <UiIcon className="shrink-0" name="building" size={12} />
+            <span className="min-w-0 truncate">{book.publisher.name}</span>
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
