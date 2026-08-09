@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { AuthTestContext } from "../../../test/auth-test-context.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
+import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { createAuthTestContext } from "../../../test/auth-test-context.js";
 import { truncateAllTables } from "../../../test/truncate.js";
 import { AuthModule } from "../../auth/auth.module.js";
@@ -70,13 +71,13 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
     data: {
       authors: { create: [{ authorId: input.authorId, position: 0 }] },
       createdAt: input.createdAt,
-      deletedAt: input.deletedAt,
       purchaseInfo:
         input.storeName === undefined
           ? undefined
           : { create: { createdAt: input.createdAt, storeName: input.storeName } },
       title: "Untitled",
       userId: input.userId,
+      ...(input.deletedAt === undefined ? {} : TRASH_RETENTION.stamp(input.deletedAt)),
     },
     select: { id: true },
   });
