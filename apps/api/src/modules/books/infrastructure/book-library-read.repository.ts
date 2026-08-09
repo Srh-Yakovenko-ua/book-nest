@@ -311,15 +311,30 @@ export class BookLibraryReadRepository {
     userId: string;
   }): Promise<string[]> {
     const rows = await this.prisma.$queryRaw`
-      SELECT purchase.store_name AS "storeName"
-      FROM book_purchase_info purchase
-      JOIN books book ON book.id = purchase.book_id
-      WHERE book.user_id = ${userId}::uuid
-          ${ACTIVE_BOOK_SQL}
-        AND purchase.store_name IS NOT NULL
-        AND btrim(purchase.store_name) <> ''
-      GROUP BY purchase.store_name
-      ORDER BY max(book.created_at) DESC
+      WITH entered_store_name AS (
+        SELECT btrim(purchase.store_name) AS store_name, purchase.created_at AS entered_at
+        FROM book_purchase_info purchase
+        JOIN books book ON book.id = purchase.book_id
+        WHERE book.user_id = ${userId}::uuid
+            ${ACTIVE_BOOK_SQL}
+          AND purchase.store_name IS NOT NULL
+          AND btrim(purchase.store_name) <> ''
+        UNION ALL
+        SELECT btrim(store_link.store_name) AS store_name, store_link.created_at AS entered_at
+        FROM book_store_links store_link
+        JOIN books book ON book.id = store_link.book_id
+        WHERE book.user_id = ${userId}::uuid
+            ${ACTIVE_BOOK_SQL}
+          AND btrim(store_link.store_name) <> ''
+      ),
+      latest_store_name AS (
+        SELECT DISTINCT ON (lower(store_name)) store_name, entered_at
+        FROM entered_store_name
+        ORDER BY lower(store_name), entered_at DESC, store_name ASC
+      )
+      SELECT store_name AS "storeName"
+      FROM latest_store_name
+      ORDER BY entered_at DESC, store_name ASC
       LIMIT ${limit}
     `;
     return z
