@@ -1037,6 +1037,7 @@ export const ListDetailsControllerDetailResponse = zod.object({
         translator: zod.string().nullable(),
         updatedAt: zod.string(),
         userId: zod.string(),
+        wishlistAddedAt: zod.string().nullable(),
         position: zod.number(),
       }),
     ),
@@ -1617,6 +1618,7 @@ export const ListDetailsControllerOverviewResponse = zod.object({
         translator: zod.string().nullable(),
         updatedAt: zod.string(),
         userId: zod.string(),
+        wishlistAddedAt: zod.string().nullable(),
         position: zod.number(),
       }),
       othersCount: zod

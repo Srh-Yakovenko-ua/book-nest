@@ -79,7 +79,7 @@ describe("computeReceiveDelivery", () => {
     const patch = computeReceiveDelivery({ now: NOW });
 
     expect(patch).toEqual({
-      book: { ownershipStatus: "owned" },
+      book: { ownershipStatus: "owned", wishlistAddedAt: null },
       delivery: { receivedAt: NOW, status: "received" },
     });
   });
@@ -88,7 +88,7 @@ describe("computeReceiveDelivery", () => {
     const patch = computeReceiveDelivery({ now: NOW, receivedAt: RECEIVED_DATE });
 
     expect(patch).toEqual({
-      book: { ownershipStatus: "owned" },
+      book: { ownershipStatus: "owned", wishlistAddedAt: null },
       delivery: { receivedAt: PARSED_RECEIVED_DATE, status: "received" },
     });
   });
@@ -109,7 +109,7 @@ describe("computeCancelDelivery", () => {
     });
 
     expect(patch).toEqual({
-      book: { ownershipStatus: "want_to_buy" },
+      book: { ownershipStatus: "want_to_buy", wishlistAddedAt: NOW },
       delivery: { cancelledAt: NOW, cancelReason: "Out of stock", status: "cancelled" },
     });
   });
@@ -121,7 +121,7 @@ describe("computeCancelDelivery", () => {
       now: NOW,
     });
 
-    expect(patch.book).toEqual({ ownershipStatus: "none" });
+    expect(patch.book).toEqual({ ownershipStatus: "none", wishlistAddedAt: null });
     expect(patch.delivery.cancelReason).toBeNull();
   });
 });

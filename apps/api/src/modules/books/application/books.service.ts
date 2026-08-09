@@ -26,6 +26,7 @@ import {
   applyDedicationFields,
   applyFavoriteDedicationFields,
   applyFavoriteFields,
+  applyWishlistFields,
   assignScalarFields,
   normalizeDedication,
 } from "../domain/book-update-fields.js";
@@ -34,6 +35,7 @@ import {
   assertLoanPersonNamePresent,
 } from "../domain/book-update-guards.js";
 import { resolveFavoriteChange } from "../domain/favorite.js";
+import { wishlistAddedAtOnCreate } from "../domain/wishlist-added-at.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookRelationsResolver, type SeriesPlacement } from "./book-relations-resolver.js";
@@ -124,6 +126,10 @@ export class BooksService {
             tagIds: resolved.tagIds,
             title: input.title,
             translator: input.translator ?? null,
+            wishlistAddedAt: wishlistAddedAtOnCreate({
+              now,
+              ownershipStatus: input.ownershipStatus,
+            }),
           },
           now,
           client,
@@ -185,6 +191,7 @@ export class BooksService {
         const fields = resolved.fields;
         assignScalarFields({ fields, input });
         applyFavoriteFields({ current, fields, input, now });
+        applyWishlistFields({ current, fields, input, now });
         applyFavoriteDedicationFields({ fields, input });
         applyDedicationFields({ current, fields, input });
 

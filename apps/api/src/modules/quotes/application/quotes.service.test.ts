@@ -53,6 +53,7 @@ function book(overrides: Partial<QuoteWithBook["book"]> = {}): QuoteWithBook["bo
     translator: null,
     updatedAt: NOW,
     userId: USER_ID,
+    wishlistAddedAt: null,
     ...overrides,
   };
 }

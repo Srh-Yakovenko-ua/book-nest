@@ -58,7 +58,7 @@ describe("BookOwnershipService.removeFromWishlist", () => {
       USER_ID,
       BOOK_ID,
       {
-        book: { ownershipStatus: "none" },
+        book: { ownershipStatus: "none", wishlistAddedAt: null },
         purchaseInfo: "delete",
       },
       { expectedStatuses: ["want_to_buy"] },

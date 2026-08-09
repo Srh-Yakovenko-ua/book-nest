@@ -695,6 +695,7 @@ export const BooksControllerCreateResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -1300,6 +1301,7 @@ export const BooksControllerListResponse = zod.object({
       translator: zod.string().nullable(),
       updatedAt: zod.string(),
       userId: zod.string(),
+      wishlistAddedAt: zod.string().nullable(),
     }),
   ),
   page: zod.int().min(booksControllerListResponsePageMin).max(booksControllerListResponsePageMax),
@@ -1748,6 +1750,7 @@ export const BooksControllerOverviewResponse = zod.object({
       translator: zod.string().nullable(),
       updatedAt: zod.string(),
       userId: zod.string(),
+      wishlistAddedAt: zod.string().nullable(),
     }),
   ),
   summary: zod.object({
@@ -2239,6 +2242,7 @@ export const BooksControllerWishlistResponse = zod.object({
       translator: zod.string().nullable(),
       updatedAt: zod.string(),
       userId: zod.string(),
+      wishlistAddedAt: zod.string().nullable(),
       bestOffer: zod
         .object({
           currency: zod.enum(["UAH", "EUR", "USD"]),
@@ -2722,6 +2726,7 @@ export const BooksControllerDedicationsResponse = zod.object({
       translator: zod.string().nullable(),
       updatedAt: zod.string(),
       userId: zod.string(),
+      wishlistAddedAt: zod.string().nullable(),
     }),
   ),
   page: zod
@@ -3221,6 +3226,7 @@ export const BooksControllerGetByIdResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -3906,6 +3912,7 @@ export const BooksControllerUpdateResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -4284,6 +4291,7 @@ export const BooksControllerRestoreResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -4832,6 +4840,7 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -5221,6 +5230,7 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -5587,6 +5597,7 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -5953,6 +5964,7 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -6321,6 +6333,7 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -6709,6 +6722,7 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -7098,6 +7112,7 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -7480,6 +7495,7 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -7861,6 +7877,7 @@ export const BookLoanControllerEditLoanResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -8223,6 +8240,7 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -8616,6 +8634,7 @@ export const BookDeliveryControllerCreateResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -9045,6 +9064,7 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -9419,6 +9439,7 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -9789,6 +9810,7 @@ export const BookDeliveryControllerCancelResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**

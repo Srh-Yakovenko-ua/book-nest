@@ -133,7 +133,7 @@ export class BookOwnershipService {
       throw conflictError;
     }
 
-    const patch = computeOwnershipChange({ kind: "want-to-buy" });
+    const patch = computeOwnershipChange({ kind: "want-to-buy", now: new Date() });
     await this.transactionRunner.run(async (tx) => {
       const outcome = await this.booksRepository.applyOwnershipChange(
         userId,

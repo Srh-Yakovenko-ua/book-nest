@@ -9,7 +9,10 @@ describe("computeOwnershipChange mark-owned", () => {
   it("sets the ownership status to owned and deletes any purchase row", () => {
     const patch = computeOwnershipChange({ kind: "mark-owned" });
 
-    expect(patch).toEqual({ book: { ownershipStatus: "owned" }, purchaseInfo: "delete" });
+    expect(patch).toEqual({
+      book: { ownershipStatus: "owned", wishlistAddedAt: null },
+      purchaseInfo: "delete",
+    });
   });
 });
 
@@ -17,7 +20,10 @@ describe("computeOwnershipChange remove-owned", () => {
   it("sets the ownership status back to none and deletes the purchase row", () => {
     const patch = computeOwnershipChange({ kind: "remove-owned" });
 
-    expect(patch).toEqual({ book: { ownershipStatus: "none" }, purchaseInfo: "delete" });
+    expect(patch).toEqual({
+      book: { ownershipStatus: "none", wishlistAddedAt: null },
+      purchaseInfo: "delete",
+    });
   });
 });
 
@@ -26,7 +32,10 @@ describe("computeOwnershipChange remove-from-wishlist", () => {
     const patch = computeOwnershipChange({ kind: "remove-from-wishlist" });
 
     expect(patch).toEqual(computeOwnershipChange({ kind: "remove-owned" }));
-    expect(patch).toEqual({ book: { ownershipStatus: "none" }, purchaseInfo: "delete" });
+    expect(patch).toEqual({
+      book: { ownershipStatus: "none", wishlistAddedAt: null },
+      purchaseInfo: "delete",
+    });
   });
 });
 
@@ -35,7 +44,7 @@ describe("computeOwnershipChange mark-bought", () => {
     const patch = computeOwnershipChange({ date: DATE, fields: {}, kind: "mark-bought" });
 
     expect(patch).toEqual({
-      book: { ownershipStatus: "owned" },
+      book: { ownershipStatus: "owned", wishlistAddedAt: null },
       purchaseInfo: { purchasedAt: PARSED_DATE },
     });
   });
@@ -82,14 +91,18 @@ describe("computeOwnershipChange mark-bought", () => {
 });
 
 describe("computeOwnershipChange want-to-buy", () => {
-  it("only sets the ownership status and leaves purchase info alone", () => {
-    const patch = computeOwnershipChange({ kind: "want-to-buy" });
+  const NOW = new Date("2026-05-01T10:00:00.000Z");
 
-    expect(patch).toEqual({ book: { ownershipStatus: "want_to_buy" } });
+  it("stamps the wishlist entry date and leaves purchase info alone", () => {
+    const patch = computeOwnershipChange({ kind: "want-to-buy", now: NOW });
+
+    expect(patch).toEqual({
+      book: { ownershipStatus: "want_to_buy", wishlistAddedAt: NOW },
+    });
   });
 
   it("does not stamp a purchase date", () => {
-    const patch = computeOwnershipChange({ kind: "want-to-buy" });
+    const patch = computeOwnershipChange({ kind: "want-to-buy", now: NOW });
 
     expect(patch.purchaseInfo).toBeUndefined();
   });

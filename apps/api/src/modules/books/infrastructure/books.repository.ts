@@ -206,8 +206,13 @@ export type LoanChangePatch =
     }
   | { book: { ownershipStatus?: OwnershipStatus }; kind: "return"; returnedAt: Date };
 
+export type OwnershipBookPatch = {
+  ownershipStatus?: OwnershipStatus;
+  wishlistAddedAt?: Nullable<Date>;
+};
+
 export type OwnershipChangePatch = {
-  book: { ownershipStatus?: OwnershipStatus };
+  book: OwnershipBookPatch;
   purchaseInfo?: "delete" | OwnershipPurchaseInfoPatch;
 };
 
@@ -311,6 +316,7 @@ type CreateBookData = {
   tagIds: string[];
   title: string;
   translator: Nullable<string>;
+  wishlistAddedAt: Nullable<Date>;
 };
 
 type DedicationsSummaryResult = {
@@ -1006,7 +1012,7 @@ export class BooksRepository {
     }: {
       bookId: string;
       expectedStatuses: OwnershipStatus[];
-      fields: { ownershipStatus?: OwnershipStatus };
+      fields: OwnershipBookPatch;
       userId: string;
     },
   ): Promise<GuardedChangeOutcome> {

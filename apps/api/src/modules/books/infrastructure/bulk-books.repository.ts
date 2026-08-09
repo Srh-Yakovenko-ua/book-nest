@@ -239,8 +239,21 @@ export class BulkBooksRepository {
     client?: Prisma.TransactionClient,
   ): Promise<number> {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
+      const entersWishlist = ownershipStatus === "want_to_buy";
+      if (entersWishlist) {
+        await tx.book.updateMany({
+          data: { wishlistAddedAt: now },
+          where: {
+            ...SOFT_DELETE_SCOPE.active,
+            id: { in: bookIds },
+            ownershipStatus: { not: "want_to_buy" },
+            userId,
+          },
+        });
+      }
+
       const updated = await tx.book.updateMany({
-        data: { ownershipStatus },
+        data: entersWishlist ? { ownershipStatus } : { ownershipStatus, wishlistAddedAt: null },
         where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
       });
       if (updated.count === 0) {

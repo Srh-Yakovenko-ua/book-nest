@@ -14,7 +14,9 @@ export function computeCancelDelivery(input: {
   now: Date;
 }): RecordDeliveryTransition {
   return {
-    book: { ownershipStatus: input.keepAsWantToBuy ? "want_to_buy" : "none" },
+    book: input.keepAsWantToBuy
+      ? { ownershipStatus: "want_to_buy", wishlistAddedAt: input.now }
+      : { ownershipStatus: "none", wishlistAddedAt: null },
     delivery: {
       cancelledAt: input.now,
       cancelReason: input.cancelReason ?? null,
@@ -25,7 +27,7 @@ export function computeCancelDelivery(input: {
 
 export function computeCreateDelivery(fields: CreateDeliveryInput): CreateDeliveryTransition {
   return {
-    book: { ownershipStatus: "in_transit" },
+    book: { ownershipStatus: "in_transit", wishlistAddedAt: null },
     delivery: {
       currency: fields.currency ?? null,
       deliveryService: fields.deliveryService ?? null,
@@ -50,7 +52,7 @@ export function computeReceiveDelivery({
   receivedAt?: Nullable<string>;
 }): RecordDeliveryTransition {
   return {
-    book: { ownershipStatus: "owned" },
+    book: { ownershipStatus: "owned", wishlistAddedAt: null },
     delivery: {
       receivedAt: receivedAt != null ? parseIsoDate(receivedAt) : now,
       status: STATUS_RECEIVED,

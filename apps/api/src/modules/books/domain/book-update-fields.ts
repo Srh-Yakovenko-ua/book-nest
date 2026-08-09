@@ -1,9 +1,12 @@
 import type { Nullable, UpdateBookInput } from "@app/shared";
 
+import { OwnershipStatusSchema } from "@app/shared";
+
 import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BookWithRelations } from "../infrastructure/books.repository.js";
 
 import { resolveFavoriteChange } from "./favorite.js";
+import { wishlistAddedAtOnTransition } from "./wishlist-added-at.js";
 
 type ScalarFieldKey = keyof Prisma.BookUncheckedUpdateManyInput & keyof UpdateBookInput;
 
@@ -90,6 +93,33 @@ export function applyFavoriteFields({
 
   fields.isFavorite = change.isFavorite;
   fields.favoriteAddedAt = change.favoriteAddedAt;
+}
+
+export function applyWishlistFields({
+  current,
+  fields,
+  input,
+  now,
+}: {
+  current: BookWithRelations;
+  fields: Prisma.BookUncheckedUpdateManyInput;
+  input: UpdateBookInput;
+  now: Date;
+}): void {
+  if (input.ownershipStatus === undefined) {
+    return;
+  }
+
+  const wishlistAddedAt = wishlistAddedAtOnTransition({
+    current: OwnershipStatusSchema.parse(current.ownershipStatus),
+    next: input.ownershipStatus,
+    now,
+  });
+  if (wishlistAddedAt === undefined) {
+    return;
+  }
+
+  fields.wishlistAddedAt = wishlistAddedAt;
 }
 
 export function assignScalarFields({
