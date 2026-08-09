@@ -81,3 +81,29 @@ describe("bookViewToFormState queue priority hydration", () => {
     expect(values.queuePriorityReason).toBeUndefined();
   });
 });
+
+describe("bookViewToFormState purchase hydration", () => {
+  it("leaves the stored purchase note out of the form values", () => {
+    const { values } = bookViewToFormState(
+      makeBookView({
+        ownershipStatus: "want_to_buy",
+        purchaseInfo: {
+          currency: "UAH",
+          expectedPrice: 450,
+          note: "Дочекатися знижки",
+          purchasedAt: null,
+          storeName: "Yakaboo",
+          storeUrl: null,
+        },
+      }),
+    );
+
+    expect(values.purchaseInfo).toStrictEqual({
+      currency: "UAH",
+      expectedPrice: 450,
+      storeName: "Yakaboo",
+      storeUrl: undefined,
+    });
+    expect(values.purchaseInfo).not.toHaveProperty("note");
+  });
+});

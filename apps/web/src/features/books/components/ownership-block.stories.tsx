@@ -107,7 +107,7 @@ export const WantToBuyWithPurchase: Story = {
       purchaseInfo: {
         currency: "UAH",
         expectedPrice: 450,
-        note: "Дочекатися знижки",
+        note: "Стара нотатка покупки",
         purchasedAt: null,
         storeName: "Yakaboo",
         storeUrl: "https://www.yakaboo.ua/ostannie-bazhannja.html",
@@ -119,7 +119,7 @@ export const WantToBuyWithPurchase: Story = {
     await expect(canvas.getByText("Yakaboo")).toBeVisible();
     await expect(canvas.getByText("450 UAH")).toBeVisible();
     await expect(canvas.getByRole("link", { name: /Перейти до магазину/ })).toBeVisible();
-    await expect(canvas.getByText("Дочекатися знижки")).toBeVisible();
+    await expect(canvas.queryByText("Стара нотатка покупки")).toBeNull();
     await expect(canvas.getByRole("button", { name: "Позначити купленою" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Позначити замовленою" })).toBeVisible();
     await expect(canvas.getByRole("button", { name: "Вже маю цю книгу" })).toBeVisible();
