@@ -1077,6 +1077,23 @@
         "datePlaceholder": "Pick a date"
       }
     },
+    "unsetOwnership": {
+      "title": "Books with no ownership status",
+      "subtitle": "Pick the books whose ownership status is still unset and give them a shared status.",
+      "library": "No status",
+      "search": "Search by title or author…",
+      "selectAll": "Select all",
+      "clear": "Clear",
+      "selected": "Books selected: {count}",
+      "empty": "Every book has an ownership status",
+      "emptySelected": "No books selected yet",
+      "removeSelected": "Remove from selection",
+      "loadMore": "Show more",
+      "statusLabel": "Which status should they get?",
+      "submit": "Apply status",
+      "toast": "{count, plural, one {Status updated for # book} other {Status updated for # books}}",
+      "error": "Could not update the status. Please try again."
+    },
     "purchaseInfo": {
       "title": "Store link",
       "subtitle": "Save where and for how much you can buy this book",
@@ -1960,6 +1977,15 @@
         "best": "Best offer",
         "currencyGroup": "{currency} · {count, plural, one {# book with a price} other {# books with a price}}",
         "pricesEmpty": "No prices yet. Add a store link with a price to see the estimate."
+      },
+      "attention": {
+        "title": "Needs attention",
+        "allClear": "Every book is sorted out",
+        "unsetOwnership": {
+          "title": "Ownership status not set",
+          "detail": "{count, plural, one {# book} other {# books}} with no status",
+          "caption": "Mark whether you already have these books or still want to buy them."
+        }
       },
       "bestOffers": {
         "title": "Best deals",

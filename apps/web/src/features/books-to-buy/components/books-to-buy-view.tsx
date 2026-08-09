@@ -187,7 +187,6 @@ export function BooksToBuyView() {
             bestOffers={bestOffers}
             isLoading={isPending}
             onShowBestOffers={() => setSort("price_asc")}
-            summary={summary}
           />
         ) : null}
       </div>
