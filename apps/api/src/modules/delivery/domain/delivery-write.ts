@@ -21,7 +21,10 @@ export type CreateDeliveryTransition = {
   delivery: CreateDeliveryData;
 };
 
-export type DeliveryBookPatch = { ownershipStatus?: OwnershipStatus };
+export type DeliveryBookPatch = {
+  ownershipStatus: OwnershipStatus;
+  wishlistAddedAt?: Nullable<Date>;
+};
 
 export type RecordDeliveryOutcome = "applied" | "not-active" | "not-found";
 

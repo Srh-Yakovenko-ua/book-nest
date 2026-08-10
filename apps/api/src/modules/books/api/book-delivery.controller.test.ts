@@ -323,6 +323,23 @@ describe("POST /api/books/:id/deliveries side effects", () => {
     expect(res.body.delivery.active.status).toBe("ordered");
   });
 
+  it("clears the wishlist entry date when a wishlist book is ordered", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const created = await createBook(accessToken, {
+      authors: [{ name: "Frank Herbert" }],
+      ownershipStatus: "want_to_buy",
+      title: "Dune",
+    });
+    expect(created.body.wishlistAddedAt).not.toBeNull();
+
+    const res = await createDelivery(accessToken, created.body.id, {
+      orderDate: "2026-01-20",
+      storeName: "Yakaboo",
+    });
+
+    expect(res.body.wishlistAddedAt).toBeNull();
+  });
+
   it("repairs an in_transit book that has no delivery record by creating one", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
@@ -619,6 +636,17 @@ describe("POST /api/books/:id/deliveries/:deliveryId/cancel", () => {
     expect(res.status).toBe(200);
     expect(res.body.ownershipStatus).toBe("none");
     expect(res.body.delivery.latest.status).toBe("cancelled");
+    expect(res.body.wishlistAddedAt).toBeNull();
+  });
+
+  it("stamps a fresh entry date when a cancelled delivery keeps the book as want_to_buy", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const { bookId, deliveryId } = await seedBookWithDelivery(accessToken);
+
+    const res = await cancelDelivery(accessToken, bookId, deliveryId, {});
+
+    expect(res.body.ownershipStatus).toBe("want_to_buy");
+    expect(res.body.wishlistAddedAt).not.toBeNull();
   });
 
   it("retains the delivery fields after cancelling", async () => {

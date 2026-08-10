@@ -6,7 +6,11 @@ import type {
   WantToBuyInput,
 } from "@app/shared";
 
-import { MAX_STORE_LINKS_PER_BOOK, STORE_LINK_ERROR_CODES } from "@app/shared";
+import {
+  MAX_STORE_LINKS_PER_BOOK,
+  OwnershipStatusSchema,
+  STORE_LINK_ERROR_CODES,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -44,12 +48,20 @@ export class BookOwnershipService {
       code: STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST,
     });
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
-    if (book.ownershipStatus !== "want_to_buy") {
+    const current = OwnershipStatusSchema.parse(book.ownershipStatus);
+    if (current !== "want_to_buy") {
       throw conflictError;
     }
 
-    const date = input.purchasedAt ?? this.todayIso();
-    const patch = computeOwnershipChange({ date, fields: input, kind: "mark-bought" });
+    const now = new Date();
+    const date = input.purchasedAt ?? toIsoDate(now);
+    const patch = computeOwnershipChange({
+      current,
+      date,
+      fields: input,
+      kind: "mark-bought",
+      now,
+    });
     await this.applyGuardedOwnershipChange({
       bookId,
       conflictError,
@@ -64,11 +76,12 @@ export class BookOwnershipService {
   async markOwned(userId: string, bookId: string): Promise<BookView> {
     const conflictError = new ConflictError(MARK_OWNED_MESSAGE);
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
-    if (book.ownershipStatus !== "none" && book.ownershipStatus !== "want_to_buy") {
+    const current = OwnershipStatusSchema.parse(book.ownershipStatus);
+    if (current !== "none" && current !== "want_to_buy") {
       throw conflictError;
     }
 
-    const patch = computeOwnershipChange({ kind: "mark-owned" });
+    const patch = computeOwnershipChange({ current, kind: "mark-owned", now: new Date() });
     await this.applyGuardedOwnershipChange({
       bookId,
       conflictError,
@@ -91,11 +104,16 @@ export class BookOwnershipService {
       code: STORE_LINK_ERROR_CODES.NOT_IN_WISHLIST,
     });
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
-    if (book.ownershipStatus !== "want_to_buy") {
+    const current = OwnershipStatusSchema.parse(book.ownershipStatus);
+    if (current !== "want_to_buy") {
       throw conflictError;
     }
 
-    const patch = computeOwnershipChange({ kind: "remove-from-wishlist" });
+    const patch = computeOwnershipChange({
+      current,
+      kind: "remove-from-wishlist",
+      now: new Date(),
+    });
     await this.applyGuardedOwnershipChange({
       bookId,
       conflictError,
@@ -110,11 +128,12 @@ export class BookOwnershipService {
   async removeOwned(userId: string, bookId: string): Promise<BookView> {
     const conflictError = new ConflictError(REMOVE_OWNED_MESSAGE);
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
-    if (book.ownershipStatus !== "owned") {
+    const current = OwnershipStatusSchema.parse(book.ownershipStatus);
+    if (current !== "owned") {
       throw conflictError;
     }
 
-    const patch = computeOwnershipChange({ kind: "remove-owned" });
+    const patch = computeOwnershipChange({ current, kind: "remove-owned", now: new Date() });
     await this.applyGuardedOwnershipChange({
       bookId,
       conflictError,
@@ -129,11 +148,12 @@ export class BookOwnershipService {
   async wantToBuy(userId: string, bookId: string, input: WantToBuyInput): Promise<BookView> {
     const conflictError = new ConflictError(WANT_TO_BUY_MESSAGE);
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
-    if (book.ownershipStatus !== "none") {
+    const current = OwnershipStatusSchema.parse(book.ownershipStatus);
+    if (current !== "none") {
       throw conflictError;
     }
 
-    const patch = computeOwnershipChange({ kind: "want-to-buy" });
+    const patch = computeOwnershipChange({ current, kind: "want-to-buy", now: new Date() });
     await this.transactionRunner.run(async (tx) => {
       const outcome = await this.booksRepository.applyOwnershipChange(
         userId,
@@ -178,10 +198,6 @@ export class BookOwnershipService {
     if (outcome === "status-conflict") {
       throw conflictError;
     }
-  }
-
-  private todayIso(): string {
-    return toIsoDate(new Date());
   }
 
   private async upsertStoreLink({

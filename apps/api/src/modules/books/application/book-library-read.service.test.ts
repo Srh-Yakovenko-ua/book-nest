@@ -71,6 +71,7 @@ function bookRow(overrides: Partial<BookWithRelations> = {}): BookWithRelations 
     translator: null,
     updatedAt: new Date("2026-02-02T11:00:00.000Z"),
     userId: USER_ID,
+    wishlistAddedAt: null,
     ...overrides,
   } as BookWithRelations;
 }

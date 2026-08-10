@@ -1,5 +1,7 @@
 import type { Currency, Nullable, WishlistBookView } from "@app/shared";
 
+import { compareAsc, parseISO } from "date-fns";
+
 import { findBestOfferLinkId } from "./best-offer-link";
 
 export type WishlistBestOffer = {
@@ -44,6 +46,8 @@ export type WishlistSort =
   | "publisher_asc"
   | "stores_desc"
   | "title_asc";
+
+export type WishlistViewMode = "grid" | "list";
 
 export const WISHLIST_LINK_FILTERS = [
   "all",
@@ -95,8 +99,8 @@ const LINK_FILTER_PREDICATES: Record<WishlistLinkFilter, (book: WishlistBookView
 };
 
 const SORT_COMPARATORS: Record<WishlistSort, WishlistComparator> = {
-  added_asc: (left, right) => left.createdAt.localeCompare(right.createdAt),
-  added_desc: (left, right) => right.createdAt.localeCompare(left.createdAt),
+  added_asc: (left, right) => compareAsc(wishlistEntryDate(left), wishlistEntryDate(right)),
+  added_desc: (left, right) => compareAsc(wishlistEntryDate(right), wishlistEntryDate(left)),
   author_asc: (left, right, locale) =>
     compareNames({ left: primaryAuthorName(left), locale, right: primaryAuthorName(right) }),
   price_asc: (left, right) => compareBestOfferPrice({ direction: "asc", left, right }),
@@ -308,4 +312,8 @@ function toWishlistBestOffer(book: WishlistBookView): Nullable<WishlistBestOffer
     storeName: storeLinks.find((link) => link.id === bestOfferLinkId)?.storeName ?? null,
     title: book.title,
   };
+}
+
+function wishlistEntryDate(book: WishlistBookView): Date {
+  return parseISO(book.wishlistAddedAt ?? book.createdAt);
 }

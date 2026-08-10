@@ -1,12 +1,12 @@
 import "@testing-library/jest-dom/vitest";
 
+import type { BookStoreLinkView, WishlistBookView } from "@app/shared";
 import type { ReactNode } from "react";
 
-import { toast } from "sonner";
+import { defaultUserProfileSettings, MAX_STORE_LINKS_PER_BOOK } from "@app/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { makeBookView } from "@/features/books/components/book-details.fixtures";
-import { renderWithProviders, screen, userEvent, waitFor } from "@/test-utils";
+import { renderWithProviders, screen, userEvent } from "@/test-utils";
 
 import { makeStoreLink, makeWishlistBook } from "../model/books-to-buy.fixtures";
 import { BooksToBuyRow } from "./books-to-buy-row";
@@ -25,7 +25,11 @@ vi.mock("sonner", () => ({
 const book = makeWishlistBook({ title: "Останнє бажання" });
 const fetchMock = vi.fn();
 
-let respondToRemove: () => Response;
+const MENU_LABEL = "Дії для «Останнє бажання»";
+
+function bookWith(storeLinks: BookStoreLinkView[], bestOffer: WishlistBookView["bestOffer"]) {
+  return makeWishlistBook({ bestOffer, storeLinks, title: "Останнє бажання" });
+}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -34,28 +38,42 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-async function openRemoveDialog() {
-  await userEvent.click(screen.getByRole("button", { name: "Інші дії для «Останнє бажання»" }));
-  await userEvent.click(await screen.findByRole("menuitem", { name: "Прибрати зі списку бажань" }));
-}
-
-function removeCall() {
-  return fetchMock.mock.calls.find(
-    ([url, init]) =>
-      String(url).includes(`/api/books/${book.id}/ownership/remove-from-wishlist`) &&
-      (init?.method ?? "GET").toUpperCase() === "POST",
-  ) as [string, RequestInit] | undefined;
+function pricedLinks() {
+  return [
+    makeStoreLink({ id: "yakaboo", price: 512, storeName: "Yakaboo", url: "https://yakaboo.ua/a" }),
+    makeStoreLink({
+      id: "readeat",
+      price: 449,
+      storeName: "Readeat",
+      url: "https://readeat.com/a",
+    }),
+    makeStoreLink({
+      id: "ye",
+      price: 470,
+      storeName: "Книгарня Є",
+      url: "https://book-ye.com.ua/a",
+    }),
+    makeStoreLink({
+      id: "nf",
+      price: 528,
+      storeName: "Наш Формат",
+      url: "https://nashformat.ua/a",
+    }),
+  ];
 }
 
 beforeEach(() => {
-  respondToRemove = () => jsonResponse(makeBookView({ id: book.id, ownershipStatus: "owned" }));
   fetchMock.mockReset();
-  fetchMock.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+  fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = String(input);
-    const method = (init?.method ?? "GET").toUpperCase();
-    if (url.includes("/ownership/remove-from-wishlist") && method === "POST")
-      return Promise.resolve(respondToRemove());
-    return Promise.reject(new Error(`unexpected ${method} ${url}`));
+    if (url.includes("/api/books/purchase-stores")) return Promise.resolve(jsonResponse([]));
+    if (url.endsWith(`/api/books/${book.id}`))
+      return Promise.resolve(jsonResponse({ ...book, isFavorite: false }));
+    if (url.includes("/api/profile/settings"))
+      return Promise.resolve(jsonResponse(defaultUserProfileSettings));
+    if (url.includes("/store-links"))
+      return Promise.resolve(jsonResponse({ bestOffer: null, storeLinks: [] }));
+    return Promise.reject(new Error(`unexpected ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -69,75 +87,160 @@ describe("BooksToBuyRow", () => {
   it("links the book title to its details page", () => {
     renderWithProviders(<BooksToBuyRow book={book} />);
 
-    expect(screen.getByRole("link", { name: /Останнє бажання/ })).toHaveAttribute(
-      "href",
-      `/books/${book.id}`,
+    const titleLink = screen.getByRole("link", { name: /Останнє бажання/ });
+    expect(titleLink).toHaveAttribute("href", `/books/${book.id}`);
+    expect(titleLink.closest("[data-slot=book-card]")).toBeInTheDocument();
+    expect(screen.getByText("Клуб Сімейного Дозвілля")).toBeInTheDocument();
+    expect(screen.queryByText("Прочитано")).not.toBeInTheDocument();
+  });
+
+  it("shows the favorite toggle next to a single actions menu", async () => {
+    renderWithProviders(<BooksToBuyRow book={book} />);
+
+    expect(
+      screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Прибрати з улюблених", MENU_LABEL]);
+
+    await userEvent.click(screen.getByRole("button", { name: MENU_LABEL }));
+
+    const statusItem = await screen.findByRole("menuitem", { name: "Оновити статус" });
+    expect(statusItem.querySelector("svg")).toBeInTheDocument();
+  });
+
+  it("toggles a wishlist book favorite optimistically", async () => {
+    renderWithProviders(<BooksToBuyRow book={book} />);
+
+    const favoriteButton = screen.getByRole("button", { name: "Прибрати з улюблених" });
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(favoriteButton);
+
+    expect(await screen.findByRole("button", { name: "Додати до улюблених" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
     );
   });
 
-  it("offers to add a store link while the book is under the link limit", async () => {
+  it("asks what happened to the book from the actions menu", async () => {
     renderWithProviders(<BooksToBuyRow book={book} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Інші дії для «Останнє бажання»" }));
+    await userEvent.click(screen.getByRole("button", { name: MENU_LABEL }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Оновити статус" }));
 
-    expect(await screen.findByRole("menuitem", { name: "Додати посилання" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Що сталося з книгою?" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Куплено" })).toBeChecked();
   });
 
-  it("hides the add-link action once the book reached the store-link limit", async () => {
+  it("opens the store-link form from the actions menu while the book is under the link limit", async () => {
+    renderWithProviders(<BooksToBuyRow book={book} />);
+
+    await userEvent.click(screen.getByRole("button", { name: MENU_LABEL }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Додати посилання" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Додати посилання на магазин" }),
+    ).toBeInTheDocument();
+  });
+
+  it("opens the store list from the actions menu", async () => {
+    renderWithProviders(
+      <BooksToBuyRow book={bookWith(pricedLinks(), { currency: "UAH", price: 449 })} />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: MENU_LABEL }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Магазини та ціни (4)" }));
+
+    expect(await screen.findByRole("heading", { name: "Магазини та ціни" })).toBeInTheDocument();
+  });
+
+  it("shows the offered store as a chip and counts the remaining ones", () => {
+    renderWithProviders(
+      <BooksToBuyRow book={bookWith(pricedLinks(), { currency: "UAH", price: 449 })} />,
+    );
+
+    const chip = screen.getByRole("link", { name: /Readeat/ });
+    expect(chip).toHaveAttribute("href", "https://readeat.com/a");
+    expect(chip).toHaveTextContent("449 грн");
+    expect(screen.getByText("Найкраща ціна")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ще 3 магазини" })).toBeInTheDocument();
+  });
+
+  it("drops the counter when the book tracks a single store", () => {
+    renderWithProviders(
+      <BooksToBuyRow
+        book={bookWith([makeStoreLink({ id: "readeat", price: 449, storeName: "Readeat" })], {
+          currency: "UAH",
+          price: 449,
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Readeat/ })).toBeInTheDocument();
+    expect(screen.queryByText("Найкраща ціна")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ще/ })).not.toBeInTheDocument();
+  });
+
+  it("says that the tracked stores quote no price at all", () => {
+    renderWithProviders(
+      <BooksToBuyRow
+        book={bookWith(
+          [
+            makeStoreLink({ currency: null, id: "a", price: null, storeName: "Yakaboo" }),
+            makeStoreLink({ currency: null, id: "b", price: null, storeName: "Readeat" }),
+          ],
+          null,
+        )}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "2 магазини · ціни не вказані" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Yakaboo/ })).not.toBeInTheDocument();
+  });
+
+  it("warns that the remaining stores quote another currency", () => {
+    renderWithProviders(
+      <BooksToBuyRow
+        book={bookWith(
+          [
+            makeStoreLink({ currency: "UAH", id: "ksd", price: 390, storeName: "КСД" }),
+            makeStoreLink({ currency: "EUR", id: "bw", price: 12.5, storeName: "Blackwell's" }),
+          ],
+          { currency: "UAH", price: 390 },
+        )}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "ще 1 магазин · інші валюти" })).toBeInTheDocument();
+  });
+
+  it("keeps the row free of per-link menus", () => {
+    renderWithProviders(
+      <BooksToBuyRow book={bookWith(pricedLinks(), { currency: "UAH", price: 449 })} />,
+    );
+
+    expect(screen.getAllByRole("button")).toHaveLength(3);
+    expect(screen.queryByRole("button", { name: /Редагувати посилання/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Видалити посилання/ })).not.toBeInTheDocument();
+  });
+
+  it("keeps the store list reachable once the book reached the store-link limit", async () => {
     const crowded = makeWishlistBook({
-      storeLinks: Array.from({ length: 20 }, (_, index) =>
+      storeLinks: Array.from({ length: MAX_STORE_LINKS_PER_BOOK }, (_, index) =>
         makeStoreLink({ id: `link-${index}`, url: `https://store-${index}.example.com/book` }),
       ),
       title: "Останнє бажання",
     });
     renderWithProviders(<BooksToBuyRow book={crowded} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Інші дії для «Останнє бажання»" }));
+    await userEvent.click(screen.getByRole("button", { name: MENU_LABEL }));
 
-    await screen.findByRole("menuitem", { name: "Позначити як в дорозі" });
+    expect(
+      await screen.findByRole("menuitem", { name: "Магазини та ціни (20)" }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Додати посилання" })).not.toBeInTheDocument();
-  });
-
-  it("removes the book from the wishlist once the removal is confirmed", async () => {
-    renderWithProviders(<BooksToBuyRow book={book} />);
-
-    await openRemoveDialog();
-    await userEvent.click(await screen.findByRole("button", { name: "Прибрати зі списку" }));
-
-    await waitFor(() => expect(removeCall()).toBeDefined());
-    expect(toast.success).toHaveBeenCalledWith("Книгу прибрано зі списку бажань");
-  });
-
-  it("keeps the book when the removal dialog is dismissed", async () => {
-    renderWithProviders(<BooksToBuyRow book={book} />);
-
-    await openRemoveDialog();
-    await userEvent.click(await screen.findByRole("button", { name: "Скасувати" }));
-
-    expect(removeCall()).toBeUndefined();
-  });
-
-  it("reports that the book already left the wishlist", async () => {
-    respondToRemove = () => jsonResponse({ code: "NOT_IN_WISHLIST", message: "gone" }, 409);
-    renderWithProviders(<BooksToBuyRow book={book} />);
-
-    await openRemoveDialog();
-    await userEvent.click(await screen.findByRole("button", { name: "Прибрати зі списку" }));
-
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("Ця книга більше не в списку бажань"),
-    );
-  });
-
-  it("reports a failed removal", async () => {
-    respondToRemove = () => jsonResponse({ message: "boom" }, 500);
-    renderWithProviders(<BooksToBuyRow book={book} />);
-
-    await openRemoveDialog();
-    await userEvent.click(await screen.findByRole("button", { name: "Прибрати зі списку" }));
-
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("Не вдалося прибрати книгу зі списку бажань"),
-    );
   });
 });

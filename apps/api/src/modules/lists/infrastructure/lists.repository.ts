@@ -20,9 +20,13 @@ import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
 const PREVIEW_COVERS_LIMIT = 4;
+const LIST_COPY_MAX_ITEMS = 5000;
+
+const log = createLogger("lists.repository");
 
 const trashedListSelect = {
   _count: { select: { items: { where: { book: SOFT_DELETE_SCOPE.active } } } },
@@ -129,7 +133,36 @@ export class ListsRepository {
     );
   }
 
-  countItems(listId: string): Promise<number> {
+  async copyItems(
+    { sourceListId, targetListId }: { sourceListId: string; targetListId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const items = await client.bookListItem.findMany({
+      orderBy: { position: "asc" },
+      select: { bookId: true },
+      take: LIST_COPY_MAX_ITEMS,
+      where: { book: SOFT_DELETE_SCOPE.active, listId: sourceListId },
+    });
+    if (items.length === 0) {
+      return 0;
+    }
+    if (items.length === LIST_COPY_MAX_ITEMS) {
+      log.warn(
+        { cap: LIST_COPY_MAX_ITEMS, sourceListId, targetListId },
+        "duplicated list truncated at the safety cap",
+      );
+    }
+    const created = await client.bookListItem.createMany({
+      data: items.map((item, index) => ({
+        bookId: item.bookId,
+        listId: targetListId,
+        position: index + 1,
+      })),
+    });
+    return created.count;
+  }
+
+  countItems({ listId }: { listId: string }): Promise<number> {
     return this.prisma.bookListItem.count({
       where: { book: SOFT_DELETE_SCOPE.active, listId },
     });
@@ -202,14 +235,17 @@ export class ListsRepository {
     });
   }
 
-  findOwnedCardById({
-    listId,
-    userId,
-  }: {
-    listId: string;
-    userId: string;
-  }): Promise<Nullable<BookListCard>> {
-    return this.prisma.bookList.findFirst({
+  findOwnedCardById(
+    {
+      listId,
+      userId,
+    }: {
+      listId: string;
+      userId: string;
+    },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<BookListCard>> {
+    return client.bookList.findFirst({
       where: { ...SOFT_DELETE_SCOPE.active, id: listId, userId },
       ...listCardArgs,
     });

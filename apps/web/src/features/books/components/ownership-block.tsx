@@ -21,7 +21,6 @@ import { BookStoreLinksBlock, RemoveFromWishlistDialog } from "@/features/books-
 import { ownershipStatuses } from "@/lib/book-status";
 import { formatDate } from "@/lib/format";
 import { ApiError } from "@/lib/http-client";
-import { isHttpsUrl } from "@/lib/is-https-url";
 import { cn } from "@/lib/utils";
 
 import { useReturnLoan } from "../api/use-loan";
@@ -149,9 +148,6 @@ export function OwnershipBlock({ book }: OwnershipBlockProps) {
             )}
           </div>
 
-          {book.purchaseInfo !== null && book.ownershipStatus === "want_to_buy" ? (
-            <WantToBuyPurchaseBlock info={book.purchaseInfo} />
-          ) : null}
           {book.purchaseInfo !== null && book.ownershipStatus === "owned" ? (
             <AcquisitionBlock info={book.purchaseInfo} />
           ) : null}
@@ -423,56 +419,6 @@ function LoanInfoBlock({ book, info }: { book: BookView; info: LoanInfoView }) {
           {t("reminderOn")}
         </p>
       ) : null}
-    </div>
-  );
-}
-
-function WantToBuyPurchaseBlock({ info }: { info: PurchaseInfoView }) {
-  const t = useTranslations("books.details.ownership.purchase");
-  const tCommon = useTranslations("common");
-  const locale = useLocale();
-
-  const priceText = formatPrice(info.expectedPrice, info.currency, locale);
-  const storeLink = info.storeUrl !== null && isHttpsUrl(info.storeUrl) ? info.storeUrl : null;
-  const hasCard = info.storeName !== null || priceText !== null || storeLink !== null;
-
-  return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium text-foreground">{t("whereToBuy")}</p>
-      {hasCard ? (
-        <ul className="flex flex-col gap-3">
-          <li className="flex flex-col gap-2.5 rounded-md border border-border bg-secondary/40 p-3.5">
-            <div className="flex items-center justify-between gap-3">
-              {info.storeName === null ? null : (
-                <span className="inline-flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
-                  <UiIcon className="shrink-0 text-muted-foreground" name="store" size={16} />
-                  <span className="truncate">{info.storeName}</span>
-                </span>
-              )}
-              {priceText === null ? null : (
-                <span className="ml-auto shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary tabular-nums">
-                  {priceText}
-                </span>
-              )}
-            </div>
-            {storeLink === null ? null : (
-              <a
-                className="inline-flex items-center gap-1.5 self-start rounded-sm text-sm text-primary underline underline-offset-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                href={storeLink}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {t("goToStore")}
-                <UiIcon className="shrink-0" name="arrow-up-right" size={14} />
-                <span className="sr-only">{tCommon("opensInNewTab")}</span>
-              </a>
-            )}
-          </li>
-        </ul>
-      ) : null}
-      {info.note === null ? null : (
-        <p className="text-sm text-muted-foreground italic">{info.note}</p>
-      )}
     </div>
   );
 }

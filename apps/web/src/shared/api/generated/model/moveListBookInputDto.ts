@@ -5,8 +5,17 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
-import type { MoveListBookInputDtoDirection } from "./moveListBookInputDtoDirection";
 
-export interface MoveListBookInputDto {
-  direction: MoveListBookInputDtoDirection;
-}
+export type MoveListBookInputDto =
+  | {
+      direction: "up" | "down";
+      kind: "step";
+    }
+  | {
+      kind: "index";
+      /**
+       * @maximum 9007199254740991
+       * @exclusiveMinimum 0
+       */
+      position: number;
+    };

@@ -9,6 +9,7 @@ export type {
   CreateDeliveryData,
   CreateDeliveryOutcome,
   CreateDeliveryTransition,
+  DeliveryBookPatch,
   RecordDeliveryOutcome,
   RecordDeliveryTransition,
   UpdateDeliveryData,

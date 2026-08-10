@@ -17,6 +17,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import type {
   CreateDeliveryOutcome,
   CreateDeliveryTransition,
+  DeliveryBookPatch,
   RecordDeliveryOutcome,
 } from "../../delivery/index.js";
 
@@ -31,6 +32,7 @@ import {
   computeUpdateDelivery,
   toDeliveryView,
 } from "../../delivery/index.js";
+import { buildBookOwnershipFields } from "../domain/book-ownership-fields.js";
 import { BookDeliveriesRepository } from "../infrastructure/book-deliveries.repository.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
@@ -88,16 +90,24 @@ export class BookDeliveryService {
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
     this.assertActiveRecord(book, deliveryId);
 
+    const now = new Date();
+    const current = OwnershipStatusSchema.parse(book.ownershipStatus);
     const transition = computeCancelDelivery({
       cancelReason: input.cancelReason,
       keepAsWantToBuy: input.keepAsWantToBuy,
-      now: new Date(),
+      now,
     });
     const outcome = await this.bookDeliveriesRepository.applyRecordChange(
       userId,
       bookId,
       deliveryId,
-      transition,
+      {
+        ...transition,
+        book:
+          transition.book === null
+            ? null
+            : withWishlistAddedAt({ current, now, patch: transition.book }),
+      },
     );
     this.ensureRecordChangeApplied(outcome);
 
@@ -109,11 +119,16 @@ export class BookDeliveryService {
     this.assertNoActiveDelivery(book);
     this.assertCanStartDelivery(book);
 
+    const now = new Date();
+    const current = OwnershipStatusSchema.parse(book.ownershipStatus);
     const transition = computeCreateDelivery(input);
     const outcome = await this.applyCreate({
       bookId,
       deliveryService: input.deliveryService ?? null,
-      transition,
+      transition: {
+        ...transition,
+        book: withWishlistAddedAt({ current, now, patch: transition.book }),
+      },
       userId,
     });
     if (outcome === "book-not-found") {
@@ -261,4 +276,16 @@ export class BookDeliveryService {
       throw new ConflictError(DELIVERY_NOT_ACTIVE_MESSAGE);
     }
   }
+}
+
+function withWishlistAddedAt({
+  current,
+  now,
+  patch,
+}: {
+  current: OwnershipStatus;
+  now: Date;
+  patch: DeliveryBookPatch;
+}): DeliveryBookPatch {
+  return { ...patch, ...buildBookOwnershipFields({ current, next: patch.ownershipStatus, now }) };
 }

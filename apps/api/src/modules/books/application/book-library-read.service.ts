@@ -6,47 +6,24 @@ import type {
   LibraryOverviewView,
   OwnershipStatus,
   Paginator,
-  ReadingStatus,
   RecentPurchaseStores,
 } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
 import type { ActiveReadingView } from "../domain/library-overview.js";
-import type { LibraryFilter } from "../infrastructure/books.repository.js";
+import type { LibraryFilter } from "../infrastructure/book-where.js";
 
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
-import { buildActiveReadingView, intersectOwnership } from "../domain/library-overview.js";
+import {
+  buildActiveReadingView,
+  intersectOwnership,
+  LIBRARY_OVERVIEW,
+} from "../domain/library-overview.js";
 import { BookLibraryReadRepository } from "../infrastructure/book-library-read.repository.js";
 import { normalizeSearchQuery } from "../infrastructure/book-search.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
-
-type LibraryOverviewConfig = {
-  readonly borrowedStatuses: OwnershipStatus[];
-  readonly finishedStatuses: ReadingStatus[];
-  readonly inTransitStatuses: OwnershipStatus[];
-  readonly physicalOwnershipStatuses: OwnershipStatus[];
-  readonly readingInProgressStatuses: ReadingStatus[];
-  readonly recentLimit: number;
-  readonly topLimit: number;
-  readonly wantToBuyStatuses: OwnershipStatus[];
-  readonly wantToReadStatuses: ReadingStatus[];
-};
-
-const BORROWED_OWNERSHIP_STATUSES: OwnershipStatus[] = ["borrowed_from_someone", "lent_to_someone"];
-
-const LIBRARY_OVERVIEW: LibraryOverviewConfig = {
-  borrowedStatuses: BORROWED_OWNERSHIP_STATUSES,
-  finishedStatuses: ["finished"],
-  inTransitStatuses: ["in_transit"],
-  physicalOwnershipStatuses: ["owned", ...BORROWED_OWNERSHIP_STATUSES],
-  readingInProgressStatuses: ["reading", "rereading"],
-  recentLimit: 3,
-  topLimit: 3,
-  wantToBuyStatuses: ["want_to_buy"],
-  wantToReadStatuses: ["want_to_read"],
-};
 
 @Injectable()
 export class BookLibraryReadService {
@@ -88,8 +65,10 @@ export class BookLibraryReadService {
       hasCover: query.hasCover,
       hasDedication: query.hasDedication,
       hasRating: query.hasRating,
+      inQueue: query.inQueue,
       isFavorite: query.isFavorite,
       languages: query.language,
+      notInList: query.notInList,
       ownershipStatuses: query.owner,
       pagesMax: query.pagesMax,
       pagesMin: query.pagesMin,

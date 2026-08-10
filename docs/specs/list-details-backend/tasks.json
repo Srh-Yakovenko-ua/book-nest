@@ -1,0 +1,1857 @@
+{
+  "spec": "docs/list-details/backend-spec.md",
+  "supportingDocs": ["docs/list-details/README.md", "docs/booknest-list-details-spec.md"],
+  "generatedAt": "2026-08-07T20:54:35Z",
+  "branch": "dev",
+  "headCommit": "ae0e080a",
+  "scope": {
+    "included": [
+      "apps/api/**",
+      "packages/shared/**",
+      "openapi.json (backend contract artifact)",
+      "backend-spec.md stages 1-6"
+    ],
+    "excludedTop": [
+      "apps/web/** hand-written code (frontend-spec.md)",
+      "docs/reading-goals/** (separate feature)",
+      "any prisma migration (spec forbids; every field verified to exist)"
+    ]
+  },
+  "assumptions": [
+    {
+      "id": "D1",
+      "decision": "Switch list-details to normalizeSearchQuery. It is one import change, gives the two pages identical search semantics, and stops a 1-character query from running an 11-column ILIKE fan-out. Behaviour change is visible (a 1-char search stops filtering) so cover it with an integration test.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s1-list-details-service"]
+    },
+    {
+      "id": "D2",
+      "decision": "Keep `search` on the API. The nuqs key is a frontend URL concern and already maps to `search` in the existing hook. Renaming the API param is a breaking change that buys nothing.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": []
+    },
+    {
+      "id": "D3",
+      "decision": "Ship exactly the four keys the spec names. Do not add paused/dnf. Add an explicit unit test asserting the sum invariant does NOT hold, so the next reader does not 'fix' it.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s1-shared-status-counts"]
+    },
+    {
+      "id": "D4",
+      "decision": "Leave the server default at 10. The client already passes 24; changing the default silently reshapes the contract for every other caller and is not what §9 is about.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": []
+    },
+    {
+      "id": "D5",
+      "decision": "Rewrite findDetailHeader on top of findOwnedCardById and reuse the existing toCard cover mapping. One query instead of two, the cover-selection rule stays in exactly one place, and _count on listCardArgs already supplies bookCount so countItems can be dropped from that path.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s4-preview-covers-service"]
+    },
+    {
+      "id": "D6",
+      "decision": "Copy the WISHLIST_MAX_BOOKS pattern verbatim - truncate, log.warn with { cap, listId, userId }, no extra response field. Group the two caps into one frozen constants object per CLAUDE.md §8.10.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s1-facets-repo", "s5-rank-repo"]
+    },
+    {
+      "id": "D7",
+      "decision": "Accept the asymmetry. Adding a second index would need a migration, which the spec forbids for all six stages, and the negative branch is bounded by the per-user book count anyway.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": []
+    },
+    {
+      "id": "D8",
+      "decision": "Follow the spec: four counts. Keeps the repository 100% Prisma and type-safe; the raw branch is only worth it in stage 6 where Prisma genuinely cannot express the ORDER BY.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s1-list-books-repo-status-counts"]
+    },
+    {
+      "id": "D9",
+      "decision": "One frozen `LIST_LIMITS` object per owning module file (repository-local), not a scatter of top-level consts. Facet cap in list-facets.repository.ts, reorder/rank caps in list-books.repository.ts / list-membership.repository.ts, duplicate attempt cap in the duplicate service.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": []
+    },
+    {
+      "id": "D10",
+      "decision": "Keep the literal on the backend exactly as spec'd, in one constants object. The copy name is stored data, not a rendered message, so pushing it to the frontend would mean the client inventing names the uniqueness index has to arbitrate.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s4-duplicate-service"]
+    },
+    {
+      "id": "D11",
+      "decision": "Add the POST bulk route and keep the single-book DELETE. Two routes, no behavioural overlap problem, and it matches the only bulk-delete precedent in the codebase.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s4-remove-books-controller"]
+    },
+    {
+      "id": "D12",
+      "decision": "Land the union as spec'd in stage 5. There is no frontend caller to break; deferring it only means doing the same breaking change later with real users on it.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s5-shared-move-union"]
+    },
+    {
+      "id": "D13",
+      "decision": "OVERRIDDEN during slice 1A. Original recommendation (generate:openapi per stage, full gen:api once at end of stage 6) leaves @app/web:typecheck red for the whole of stages 1-5, because the Orval-generated ListDetailsControllerDetailSort and CustomListDetail lag the widened shared schemas. Root pnpm typecheck is this repo pre-push gate, so a red window is not acceptable. NEW RULE: run the FULL pnpm gen:api at the end of every stage that changes the OpenAPI surface, starting with stage 1.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back. Overridden by the orchestrator after slice 1A proved the original choice leaves the root typecheck red.",
+      "blocks": ["s6-openapi-final"]
+    },
+    {
+      "id": "D14",
+      "decision": "Implement the spec order and append `{ id: 'asc' }` as the final tiebreaker so pagination and othersCount are deterministic on the (frequent) same-day tie.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s2-overview-repo"]
+    },
+    {
+      "id": "D15",
+      "decision": "assertOwned first on all three, then return empty arrays / zero counts / null. 404 means 'not yours or gone', never 'empty'. Add the foreign-list 404 test the spec asks for at backend-spec.md:560.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": []
+    },
+    {
+      "id": "D16",
+      "decision": "Extract the query->LibraryFilter mapping into a pure `domain/list-book-filter.ts` (task s1-domain-list-book-filter) and keep the service to orchestration. Same reason the tab->status rule goes to domain/list-status-counts.ts.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted, so every open decision is resolved by the recommendation rather than by asking back.",
+      "blocks": ["s1-list-details-service"]
+    },
+    {
+      "id": "D17",
+      "decision": "Slice 1A closed contracts-only. Root typecheck is red BY CONSTRUCTION until the rest of stage 1 lands (list-books.repository.ts:66 non-exhaustive sort record, list-details.service.ts:59 missing statusCounts). Stage 1 as a whole, not each individual slice, is the atomic green unit and the commit boundary.",
+      "source": "Orchestrator, after slice 1A.",
+      "blocks": []
+    },
+    {
+      "id": "D18",
+      "decision": "Deferred to a follow-up, deliberately not churned in stage 1: (a) domain/list-book-filter.ts imports the LibraryFilter TYPE from infrastructure/, so the dependency arrow points outward — LibraryFilter is a plain data shape and would sit naturally in domain/ with book-where.ts importing up into it; (b) ListFacetsService returns the repository author rows straight through as the response contract while the genre branch maps explicitly — the asymmetry is the smell, not the shortcut; (c) TAB_STATUSES is a module-level shared array reference handed to every request, safe today because nothing mutates it, unlike the neighbouring LIST_FACETS which is as const.",
+      "source": "code-reviewer nits 6/7 and security-reviewer Info 5, stage 1 review. Neither is a defect; recorded so they are not rediscovered as new.",
+      "blocks": []
+    },
+    {
+      "id": "D19",
+      "decision": "POST /api/lists/:listId/duplicate is documented and returns 201, not 200. The stage-4 tests caught the original @ApiOkResponse-without-@HttpCode drift, where Swagger promised 200 while Nest returned 201 and the generated client would have carried the wrong contract. Resolved toward 201 because the route genuinely creates a resource, matching POST /api/lists. NOTE: the sibling POST /api/lists/:listId/restore has the same drift (documents 200, returns 201) and is PRE-EXISTING, outside this diff, deliberately left alone.",
+      "source": "Found by the stage-4 test agent; resolved by the orchestrator.",
+      "blocks": []
+    },
+    {
+      "id": "D20",
+      "decision": "s6-status-sort-repo deviates from the doneWhen implementation sketch. The spec asked for a raw-SQL branch with a CASE expression, but the list page filter is expressed as a Prisma where object built by buildLibraryWhere; translating it to raw SQL would duplicate the entire filter in a second place and the two would drift. Instead the repository selects the matching (bookId, readingStatus) pairs ordered by position, a PURE domain function selectStatusSortedPage groups them finished-vs-not and slices the page, and the page ids are hydrated through the existing Prisma include so the payload shape is identical to every other sort. The invariants the doneWhen protects are preserved: grouping is on finished-ness only (never the raw status string ordering), the secondary key is position ASC, the tiebreaker is bookId ASC, and the scan is capped at 2000 rows with a log.warn.",
+      "source": "Orchestrator, stage 6. The sketch assumed the filter was expressible in SQL; it is not without duplicating it.",
+      "blocks": []
+    },
+    {
+      "id": "D21",
+      "decision": "D12 was WRONG on the facts. It claimed the discriminated-union move body was safe to land as a breaking change because a grep proved zero non-generated frontend consumers. There is one: apps/web/src/features/lists/api/use-list-membership.ts:49 called it with a bare { direction }. Caught by the root pnpm typecheck after pnpm gen:api, fixed by passing kind: step. Recorded because it is the second time an audited file:line claim did not survive contact with the code.",
+      "source": "Orchestrator, stage 5.",
+      "blocks": []
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "List-detail search currently uses normalizeSearch (no minimum length); the library uses normalizeSearchQuery (>=2 chars or ISBN fragment). Spec 1.4 says the service must build LibraryFilter 'exactly like BookLibraryReadService.list'.",
+      "specSays": "backend-spec.md:144-146 - 'Сервіс збирає LibraryFilter із query рівно так само, як BookLibraryReadService.list'",
+      "codebaseMakesCheaper": "list-details.service.ts:35 uses normalizeSearch(query.search); book-library-read.service.ts:76 uses normalizeSearchQuery(query.q) from book-search.ts:55",
+      "recommendation": "Switch list-details to normalizeSearchQuery. It is one import change, gives the two pages identical search semantics, and stops a 1-character query from running an 11-column ILIKE fan-out. Behaviour change is visible (a 1-char search stops filtering) so cover it with an integration test.",
+      "blocks": ["s1-list-details-service"],
+      "answer": "Switch list-details to normalizeSearchQuery. It is one import change, gives the two pages identical search semantics, and stops a 1-character query from running an 11-column ILIKE fan-out. Behaviour change is visible (a 1-char search stops filtering) so cover it with an integration test.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D2",
+      "question": "Search query-param name on the endpoint: `search` (current) vs `q` (name used in the frontend-spec nuqs parser list).",
+      "specSays": "backend-spec.md:83 keeps TaxonomySearchPaginationQuerySchema.extend, i.e. `search`; frontend-spec.md:114 declares a URL key `q`",
+      "codebaseMakesCheaper": "packages/shared/src/taxonomy.ts:21 defines `search`; apps/web/src/features/lists/api/use-list-detail.ts:30 already sends `search`",
+      "recommendation": "Keep `search` on the API. The nuqs key is a frontend URL concern and already maps to `search` in the existing hook. Renaming the API param is a breaking change that buys nothing.",
+      "blocks": [],
+      "answer": "Keep `search` on the API. The nuqs key is a frontend URL concern and already maps to `search` in the existing hook. Renaming the API param is a breaking change that buys nothing.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D3",
+      "question": "statusCounts covers only all/not_started/reading/finished; `paused` and `dnf` books are counted in `all` but in none of the other three, so the three do not sum to `all`.",
+      "specSays": "backend-spec.md:156-161 lists exactly four keys; product spec:312 keeps paused/dnf out of the quick tabs",
+      "codebaseMakesCheaper": "ReadingStatusSchema has 7 values (packages/shared/src/book-enums.ts:3-11)",
+      "recommendation": "Ship exactly the four keys the spec names. Do not add paused/dnf. Add an explicit unit test asserting the sum invariant does NOT hold, so the next reader does not 'fix' it.",
+      "blocks": ["s1-shared-status-counts"],
+      "answer": "Ship exactly the four keys the spec names. Do not add paused/dnf. Add an explicit unit test asserting the sum invariant does NOT hold, so the next reader does not 'fix' it.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D4",
+      "question": "pageSize default on GET /api/lists/:listId is 10 (inherited), while README §9 fixes the page size at 24.",
+      "specSays": "README.md:26 - '`Показати ще`, `pageSize = 24` (як у бібліотеці)'",
+      "codebaseMakesCheaper": "packages/shared/src/taxonomy.ts:20 pageSizeDefault: 10; apps/web/src/features/lists/api/use-list-detail.ts:10,28 already sends pageSize 24 explicitly",
+      "recommendation": "Leave the server default at 10. The client already passes 24; changing the default silently reshapes the contract for every other caller and is not what §9 is about.",
+      "blocks": [],
+      "answer": "Leave the server default at 10. The client already passes 24; changing the default silently reshapes the contract for every other caller and is not what §9 is about.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D5",
+      "question": "How to source previewCovers for the detail header (stage 4.4). ListsService.toCard is private and findDetailHeader loads the bare model.",
+      "specSays": "backend-spec.md:438-440 - 'Мапер уже є (ListsService.toCard), джерело те саме, PREVIEW_COVERS_LIMIT = 4'",
+      "codebaseMakesCheaper": "lists.service.ts:131-146 findDetailHeader calls listsRepository.findOwnedById (plain BookListModel, no items); lists.repository.ts:205-216 findOwnedCardById already returns listCardArgs with PREVIEW_COVERS_LIMIT=4 and the active+has-cover predicates (lists.repository.ts:51-61)",
+      "recommendation": "Rewrite findDetailHeader on top of findOwnedCardById and reuse the existing toCard cover mapping. One query instead of two, the cover-selection rule stays in exactly one place, and _count on listCardArgs already supplies bookCount so countItems can be dropped from that path.",
+      "blocks": ["s4-preview-covers-service"],
+      "answer": "Rewrite findDetailHeader on top of findOwnedCardById and reuse the existing toCard cover mapping. One query instead of two, the cover-selection rule stays in exactly one place, and _count on listCardArgs already supplies bookCount so countItems can be dropped from that path.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D6",
+      "question": "Safety cap behaviour for /facets (200 rows per group) and for the position-rank query (2000 rows).",
+      "specSays": "backend-spec.md:227 and :496 - 'Safety cap ... з log.warn, як зроблено для WISHLIST_MAX_BOOKS'",
+      "codebaseMakesCheaper": "books.repository.ts:47,798-802 is the precedent: take = cap, then log.warn when rows.length === cap",
+      "recommendation": "Copy the WISHLIST_MAX_BOOKS pattern verbatim - truncate, log.warn with { cap, listId, userId }, no extra response field. Group the two caps into one frozen constants object per CLAUDE.md §8.10.",
+      "blocks": ["s1-facets-repo", "s5-rank-repo"],
+      "answer": "Copy the WISHLIST_MAX_BOOKS pattern verbatim - truncate, log.warn with { cap, listId, userId }, no extra response field. Group the two caps into one frozen constants object per CLAUDE.md §8.10.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D7",
+      "question": "`inQueue=false` compiles to `queuePosition: null`, which cannot use the partial index books_user_queue_position_idx (predicate is `queue_position IS NOT NULL AND deleted_at IS NULL`).",
+      "specSays": "backend-spec.md:69-72 argues only the `{ not: null }` direction goes through the index",
+      "codebaseMakesCheaper": "prisma/migrations/20260729174440_add_book_soft_delete/migration.sql:15 defines the partial index; raw-sql-indexes.test.ts:39 asserts it",
+      "recommendation": "Accept the asymmetry. Adding a second index would need a migration, which the spec forbids for all six stages, and the negative branch is bounded by the per-user book count anyway.",
+      "blocks": [],
+      "answer": "Accept the asymmetry. Adding a second index would need a migration, which the spec forbids for all six stages, and the negative branch is bounded by the per-user book count anyway.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D8",
+      "question": "statusCounts: four Prisma `count` calls in Promise.all vs one raw `GROUP BY b.reading_status`.",
+      "specSays": "backend-spec.md:177-181 - 'Бери чотири count у Promise.all'",
+      "codebaseMakesCheaper": "list-books.repository.ts:35-39 already exposes a count over buildListItemWhere; four calls are a two-line addition",
+      "recommendation": "Follow the spec: four counts. Keeps the repository 100% Prisma and type-safe; the raw branch is only worth it in stage 6 where Prisma genuinely cannot express the ORDER BY.",
+      "blocks": ["s1-list-books-repo-status-counts"],
+      "answer": "Follow the spec: four counts. Keeps the repository 100% Prisma and type-safe; the raw branch is only worth it in stage 6 where Prisma genuinely cannot express the ORDER BY.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D9",
+      "question": "Where the new numeric limits live (LIST_REORDER_MAX = 2000, rank cap 2000, facet cap 200, duplicate-name attempt cap 50).",
+      "specSays": "backend-spec.md:227, :465, :496, :431 name the values but not the home",
+      "codebaseMakesCheaper": "CLAUDE.md §8.10 and lists.repository.ts:86-91 (LIST_SIZE_BOUNDS) show the house style: one frozen object per concept",
+      "recommendation": "One frozen `LIST_LIMITS` object per owning module file (repository-local), not a scatter of top-level consts. Facet cap in list-facets.repository.ts, reorder/rank caps in list-books.repository.ts / list-membership.repository.ts, duplicate attempt cap in the duplicate service.",
+      "blocks": [],
+      "answer": "One frozen `LIST_LIMITS` object per owning module file (repository-local), not a scatter of top-level consts. Facet cap in list-facets.repository.ts, reorder/rank caps in list-books.repository.ts / list-membership.repository.ts, duplicate attempt cap in the duplicate service.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D10",
+      "question": "Duplicate-list naming is a Ukrainian literal on the backend ('(копія)', '(копія 2)').",
+      "specSays": "backend-spec.md:430 - 'Назва: «{name} (копія)»; якщо зайнято — (копія 2), (копія 3), … Ліміт спроб 50 → ConflictError'",
+      "codebaseMakesCheaper": "the API has no i18n layer for stored data; lists.service.ts:25-26 already keeps user-facing strings as module constants",
+      "recommendation": "Keep the literal on the backend exactly as spec'd, in one constants object. The copy name is stored data, not a rendered message, so pushing it to the frontend would mean the client inventing names the uniqueness index has to arbitrate.",
+      "blocks": ["s4-duplicate-service"],
+      "answer": "Keep the literal on the backend exactly as spec'd, in one constants object. The copy name is stored data, not a rendered message, so pushing it to the frontend would mean the client inventing names the uniqueness index has to arbitrate.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D11",
+      "question": "Bulk removal verb: POST /api/lists/:listId/books/remove alongside the existing DELETE /api/lists/:listId/books/:bookId.",
+      "specSays": "backend-spec.md:408 - 'POST ... (не DELETE з тілом — так само, як уже зроблено POST bulk/delete)'",
+      "codebaseMakesCheaper": "bulk-books.controller.ts:144 `@Post(\"delete\")` is the in-repo precedent; list-membership.controller.ts:65 keeps the single-book DELETE",
+      "recommendation": "Add the POST bulk route and keep the single-book DELETE. Two routes, no behavioural overlap problem, and it matches the only bulk-delete precedent in the codebase.",
+      "blocks": ["s4-remove-books-controller"],
+      "answer": "Add the POST bulk route and keep the single-book DELETE. Two routes, no behavioural overlap problem, and it matches the only bulk-delete precedent in the codebase.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D12",
+      "question": "Stage 5.1 turns MoveListBookInputSchema into a discriminated union - a breaking request-body change.",
+      "specSays": "backend-spec.md:460 - 'Це ламаюча зміна контракту — фронт оновлюється в тому самому слайсі'",
+      "codebaseMakesCheaper": "grep over apps/web/src found zero non-generated consumers of the move endpoint, so the blast radius today is zero",
+      "recommendation": "Land the union as spec'd in stage 5. There is no frontend caller to break; deferring it only means doing the same breaking change later with real users on it.",
+      "blocks": ["s5-shared-move-union"],
+      "answer": "Land the union as spec'd in stage 5. There is no frontend caller to break; deferring it only means doing the same breaking change later with real users on it.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D13",
+      "question": "`pnpm gen:api` writes into apps/web/src/shared/api/generated/**, which is outside the backend-only scope.",
+      "specSays": "backend-spec.md:15 and :567 - regenerate at the end of every stage",
+      "codebaseMakesCheaper": "package.json:47 `gen:api` = generate:openapi + web codegen; root openapi.json is the backend half",
+      "recommendation": "Run `pnpm --filter @app/api generate:openapi` at the end of every stage (backend artifact, in scope) and run the full `pnpm gen:api` once at the end of stage 6. The Orval output is generated, never hand-edited, so refreshing it is not frontend feature work - but a stale one drifts silently, so it must not be skipped forever.",
+      "blocks": ["s6-openapi-final"],
+      "answer": "Run `pnpm --filter @app/api generate:openapi` at the end of every stage (backend artifact, in scope) and run the full `pnpm gen:api` once at the end of stage 6. The Orval output is generated, never hand-edited, so refreshing it is not frontend feature work - but a stale one drifts silently, so it must not be skipped forever.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D14",
+      "question": "currentlyReading ordering: BookReadingProgress.lastProgressUpdateAt is a DATE, not a timestamp, so day-level ties are the common case.",
+      "specSays": "backend-spec.md:304 - 'за readingProgress.lastProgressUpdateAt DESC NULLS LAST, тайбрейкер book.updatedAt DESC'",
+      "codebaseMakesCheaper": "prisma/schema.prisma:316 `lastProgressUpdateAt DateTime? @db.Date`; every order map in books.repository.ts:1066-1114 ends with an ID tiebreaker",
+      "recommendation": "Implement the spec order and append `{ id: 'asc' }` as the final tiebreaker so pagination and othersCount are deterministic on the (frequent) same-day tie.",
+      "blocks": ["s2-overview-repo"],
+      "answer": "Implement the spec order and append `{ id: 'asc' }` as the final tiebreaker so pagination and othersCount are deterministic on the (frequent) same-day tie.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D15",
+      "question": "Response shape of /facets, /overview and /related for an empty but owned list.",
+      "specSays": "backend-spec.md:348 (related: lists with zero overlap are excluded), :304 (currentlyReading null when none)",
+      "codebaseMakesCheaper": "lists.service.ts:91-96 assertOwned already throws NotFoundError for foreign/missing lists",
+      "recommendation": "assertOwned first on all three, then return empty arrays / zero counts / null. 404 means 'not yours or gone', never 'empty'. Add the foreign-list 404 test the spec asks for at backend-spec.md:560.",
+      "blocks": [],
+      "answer": "assertOwned first on all three, then return empty arrays / zero counts / null. 404 means 'not yours or gone', never 'empty'. Add the foreign-list 404 test the spec asks for at backend-spec.md:560.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D16",
+      "question": "list-details.service.ts grows past the ~150-200 line split rule once it builds LibraryFilter, resolves tab->statuses and assembles statusCounts.",
+      "specSays": "not addressed",
+      "codebaseMakesCheaper": "list-details.service.ts is 65 lines today; book-library-read.service.ts:82-107 shows the same query->filter mapping already duplicated once",
+      "recommendation": "Extract the query->LibraryFilter mapping into a pure `domain/list-book-filter.ts` (task s1-domain-list-book-filter) and keep the service to orchestration. Same reason the tab->status rule goes to domain/list-status-counts.ts.",
+      "blocks": ["s1-list-details-service"],
+      "answer": "Extract the query->LibraryFilter mapping into a pure `domain/list-book-filter.ts` (task s1-domain-list-book-filter) and keep the service to orchestration. Same reason the tab->status rule goes to domain/list-status-counts.ts.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    }
+  ],
+  "excluded": [
+    {
+      "item": "Reading goals: 'Ціль для добірки' right-bar block, create-goal modal, ReadingGoal model and its migration (product spec:5-26, :117-192; README.md:45)",
+      "reason": "reading-goals feature, audited separately"
+    },
+    {
+      "item": "All apps/web work in docs/list-details/frontend-spec.md - layout, nuqs URL state, components, view modes, bottom sheet, i18n keys, a11y, optimistic updates, toasts",
+      "reason": "frontend, separate release"
+    },
+    {
+      "item": "Orval client regeneration into apps/web/src/shared/api/generated/** during stages 1-5",
+      "reason": "frontend, separate release - deferred to a single run at the end of stage 6, see D13"
+    },
+    {
+      "item": "Export list / copy book list to clipboard (product spec:738-739, :749-750)",
+      "reason": "README §7 - 'Експорт і копіювання переліку — пізніше, на фронті'"
+    },
+    {
+      "item": "Empty-state quick scenarios (add unread / copy from another list) (product spec:754-806)",
+      "reason": "README §8 - dropped; each needs its own endpoint"
+    },
+    {
+      "item": "'Середня оцінка' stat card",
+      "reason": "product spec:102 explicitly keeps it out of the first card set"
+    },
+    {
+      "item": "'Показувати нумерацію' per-list setting (product spec:659, :675, :748)",
+      "reason": "README §4 - 'Окремого налаштування Показувати нумерацію не буде'; number shows iff sort=position"
+    },
+    {
+      "item": "Per-list saved sort preference (product spec:884-895)",
+      "reason": "README §12 - 'Сортування окремо для кожного списку не зберігаємо'"
+    },
+    {
+      "item": "Filter by a concrete series inside a list",
+      "reason": "backend-spec.md:98 - 'Конкретна серія — не в цьому етапі'; BookTypeSchema covers solo/series_part only"
+    },
+    {
+      "item": "Quick tabs for `paused` and `dnf`",
+      "reason": "product spec:312 - they belong to the expanded status filter, already reachable through the `status` query param"
+    },
+    {
+      "item": "Any prisma migration / schema change",
+      "reason": "backend-spec.md:8-10 forbids it for all six stages; every field the spec needs was verified present in prisma/schema.prisma (see verifiedAssertions)"
+    },
+    {
+      "item": "New database indexes for the list-detail filters",
+      "reason": "backend-spec.md:147-149 - book_list_items is filtered by list_id (part of the composite PK) and joins books by @@index([bookId]) (schema.prisma:547); lists are hundreds of rows"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Detail controller lives at apps/api/src/modules/books/api/list-details.controller.ts",
+      "specRef": "backend-spec.md:21",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/api/list-details.controller.ts:24 class ListDetailsController, :34 @Get(\":listId\")"
+    },
+    {
+      "claim": "Detail service lives at application/list-details.service.ts",
+      "specRef": "backend-spec.md:22",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/application/list-details.service.ts:22"
+    },
+    {
+      "claim": "List-books repository lives at infrastructure/list-books.repository.ts",
+      "specRef": "backend-spec.md:23",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/infrastructure/list-books.repository.ts:32"
+    },
+    {
+      "claim": "buildLibraryWhere is a private function of book-library-read.repository.ts at line 412",
+      "specRef": "backend-spec.md:26, :39",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/infrastructure/book-library-read.repository.ts:412 (not exported); buildIntRange at :392"
+    },
+    {
+      "claim": "LibraryFilter is defined next to buildLibraryWhere and a re-export from books.repository.ts may still be needed",
+      "specRef": "backend-spec.md:42-45",
+      "verdict": "MOVED",
+      "evidence": "LibraryFilter is declared in books.repository.ts:201-226, imported by book-library-read.repository.ts:15 and by book-library-read.service.ts:16. The re-export is NOT optional - book-library-read.service.ts consumes it, so knip will not flag it."
+    },
+    {
+      "claim": "LIBRARY_ORDER_BY is at books.repository.ts line 1070",
+      "specRef": "backend-spec.md:27",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/infrastructure/books.repository.ts:1070"
+    },
+    {
+      "claim": "LIST_BOOK_ORDER_BY exists in list-books.repository.ts and maps through nestBookOrderBy",
+      "specRef": "backend-spec.md:27, :185-191",
+      "verdict": "CONFIRMED",
+      "evidence": "list-books.repository.ts:66 LIST_BOOK_ORDER_BY, :62 nestBookOrderBy"
+    },
+    {
+      "claim": "author_desc and rating_asc already exist in LIBRARY_ORDER_BY",
+      "specRef": "backend-spec.md:186",
+      "verdict": "CONFIRMED",
+      "evidence": "books.repository.ts:1072 author_desc, :1091-1095 rating_asc"
+    },
+    {
+      "claim": "nulls: 'last' is already set for rating in both directions",
+      "specRef": "backend-spec.md:193-194",
+      "verdict": "CONFIRMED",
+      "evidence": "books.repository.ts:1092 (asc) and :1097 (desc); pages at :1085-1090; publicationYear at :1104-1113"
+    },
+    {
+      "claim": "CustomListDetailSchema is at packages/shared/src/books.ts:1246",
+      "specRef": "backend-spec.md:153",
+      "verdict": "MOVED",
+      "evidence": "packages/shared/src/books.ts:1241 (5 lines earlier than the spec says)"
+    },
+    {
+      "claim": "LibraryOverviewViewSchema is at packages/shared/src/books.ts:1144",
+      "specRef": "README.md:30",
+      "verdict": "MOVED",
+      "evidence": "packages/shared/src/books.ts:1140"
+    },
+    {
+      "claim": "physicalOwnershipStatuses is at book-library-read.service.ts:42",
+      "specRef": "backend-spec.md:297",
+      "verdict": "MOVED",
+      "evidence": "apps/api/src/modules/books/application/book-library-read.service.ts:43 - value is ['owned','borrowed_from_someone','lent_to_someone'] (BORROWED_OWNERSHIP_STATUSES at :37), semantics exactly as the spec states"
+    },
+    {
+      "claim": "shiftUpAfter is called only on explicit removal, at list-membership.service.ts:128",
+      "specRef": "backend-spec.md:474-475",
+      "verdict": "CONFIRMED",
+      "evidence": "list-membership.service.ts:128 is the only call site; repository method at list-membership.repository.ts:183"
+    },
+    {
+      "claim": "Sending a book to trash leaves its BookListItem behind, so positions become sparse (1,2,4,7)",
+      "specRef": "backend-spec.md:475-479",
+      "verdict": "CONFIRMED",
+      "evidence": "books.repository.ts:904-914 softDelete only updates the book row and resequences the reading queue; it never touches bookListItem. buildListItemWhere (list-books.repository.ts:85) filters book: deletedAt null, so the row disappears from the page while keeping its position."
+    },
+    {
+      "claim": "advisory-lock.ts exposes listMembership: 4",
+      "specRef": "backend-spec.md:31",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/database/advisory-lock.ts:9"
+    },
+    {
+      "claim": "Duplicate creation should take acquireCreateLock(userId) as ListsService.resolveOrCreate does, because name uniqueness rests on a partial index",
+      "specRef": "backend-spec.md:432-433",
+      "verdict": "CONFIRMED",
+      "evidence": "lists.service.ts:248 calls listsRepository.acquireCreateLock; lists.repository.ts:125-130 uses ADVISORY_LOCK_CLASS.bookLists (13), not listMembership (4)"
+    },
+    {
+      "claim": "PREVIEW_COVERS_LIMIT = 4 and the mapper already exists as ListsService.toCard",
+      "specRef": "backend-spec.md:438-440",
+      "verdict": "MOVED",
+      "evidence": "lists.repository.ts:25 PREVIEW_COVERS_LIMIT = 4 and listCardArgs at :51-61 - correct. But toCard is PRIVATE (lists.service.ts:271) and findDetailHeader (:131-146) loads via findOwnedById, which does not include items at all, so previewCovers is not one field away. See D5."
+    },
+    {
+      "claim": "book_list_items has @@index([bookId]) so the /related self-join is cheap",
+      "specRef": "backend-spec.md:148-149, :352",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:547 @@index([bookId]); composite PK @@id([listId, bookId]) at :546"
+    },
+    {
+      "claim": "BookListItem.position is NOT NULL and exists for every list",
+      "specRef": "README.md:21",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:541 position Int @map(\"position\")"
+    },
+    {
+      "claim": "Every field the six stages need already exists on Book / BookList / BookListItem / BookReadingProgress - no migration",
+      "specRef": "backend-spec.md:8-10, README.md:47-48",
+      "verdict": "CONFIRMED",
+      "evidence": "schema.prisma:218 genres String[], :227 pagesCount Int?, :235 seriesId String?, :241 queuePosition Int?, :222 readingStatus, :223 ownershipStatus, :224 isFavorite, :316 lastProgressUpdateAt, :542 addedAt"
+    },
+    {
+      "claim": "books_user_queue_position_idx is a partial index covering queue_position IS NOT NULL AND deleted_at IS NULL",
+      "specRef": "backend-spec.md:70-72",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/migrations/20260729174440_add_book_soft_delete/migration.sql:15; guarded by apps/api/src/core/database/raw-sql-indexes.test.ts:39"
+    },
+    {
+      "claim": "WISHLIST_MAX_BOOKS is the precedent for a safety cap with log.warn",
+      "specRef": "backend-spec.md:227",
+      "verdict": "CONFIRMED",
+      "evidence": "books.repository.ts:47 const WISHLIST_MAX_BOOKS = 1000; :798 take, :801-802 log.warn"
+    },
+    {
+      "claim": "POST bulk/delete already exists in bulk-books.controller.ts, so a POST bulk-remove route is in-house style",
+      "specRef": "backend-spec.md:408",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/books/api/bulk-books.controller.ts:144 @Post(\"delete\") under @Controller(\"api/books/bulk\") at :42"
+    },
+    {
+      "claim": "genresService.searchKeys and findNamesByKeys already exist and are usable from the list module",
+      "specRef": "backend-spec.md:145, :242",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/modules/genres/application/genres.service.ts:92 searchKeys, :65 findNamesByKeys; BooksModule already imports GenresModule (books.module.ts imports list)"
+    },
+    {
+      "claim": "The library quick filter already treats reading as ['reading','rereading']",
+      "specRef": "backend-spec.md:123-125",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/web/src/features/books/model/library-quick-filters.ts:101 and :134"
+    },
+    {
+      "claim": "not_started must expand to not_started + want_to_read",
+      "specRef": "backend-spec.md:120-121, product spec:297-302",
+      "verdict": "CONFIRMED",
+      "evidence": "docs/booknest-list-details-spec.md:297-302; ReadingStatusSchema values at packages/shared/src/book-enums.ts:3-11"
+    },
+    {
+      "claim": "The product spec itself flags the notInList backend gap at line 698",
+      "specRef": "backend-spec.md:384",
+      "verdict": "CONFIRMED",
+      "evidence": "docs/booknest-list-details-spec.md:698"
+    },
+    {
+      "claim": "ratingMin/ratingMax/hasRating/pagesMin/pagesMax already exist in LibraryFilter, so stage 6.3 needs no server logic",
+      "specRef": "backend-spec.md:529-531",
+      "verdict": "CONFIRMED",
+      "evidence": "books.repository.ts:209 hasRating, :213-214 pagesMax/pagesMin, :217-218 ratingMax/ratingMin; applied at book-library-read.repository.ts:468-484"
+    },
+    {
+      "claim": "README: GET /api/lists/:listId already serves header + paginated books with server-side search/sort/pagination",
+      "specRef": "README.md:52",
+      "verdict": "CONFIRMED",
+      "evidence": "list-details.controller.ts:34-42 -> list-details.service.ts:30-60; integration coverage at list-details.controller.test.ts:139-437"
+    },
+    {
+      "claim": "README: ListBookView = full BookView + position; book cards need no new field",
+      "specRef": "README.md:53-54",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/books.ts:1209 ListBookViewSchema = BookViewSchema.extend({position}); BookViewSchema at :1094-1136 carries lists, readingProgress, isInReadingQueue, series, cover, tags, genres, ownershipStatus"
+    },
+    {
+      "claim": "README: 9 of 13 sorts already exist",
+      "specRef": "README.md:55",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/lists.ts:126-136 has exactly 9 values; the product spec's recommended dropdown at docs/booknest-list-details-spec.md:517-529 lists 13"
+    },
+    {
+      "claim": "README: membership mutations (bulk add, remove with resequence, up/down) are all under an advisory lock",
+      "specRef": "README.md:56",
+      "verdict": "CONFIRMED",
+      "evidence": "list-membership.service.ts:48 (addBooks), :82 (moveBook), :120 (removeBook); the bulk path also locks - bulk-books.repository.ts:85 acquireListLock before appendMany; book-lists.service.ts:60 likewise"
+    },
+    {
+      "claim": "README: 8 bulk book actions already exist in bulk-books.controller.ts",
+      "specRef": "README.md:57-58",
+      "verdict": "CONFIRMED",
+      "evidence": "bulk-books.controller.ts:52 favorite, :64 reading-status, :76 ownership-status, :91 pages-count, :104 tags, :118 lists, :131 reading-queue, :144 delete"
+    },
+    {
+      "claim": "README: soft-delete / trash / restore for lists and GET /api/lists/summary are done",
+      "specRef": "README.md:59",
+      "verdict": "CONFIRMED",
+      "evidence": "lists.controller.ts:70 GET trash, :85 GET summary, :96 POST :listId/restore, :158 DELETE :listId; repository softDelete/restore at lists.repository.ts:305,267"
+    },
+    {
+      "claim": "None of /overview, /facets, /related, /duplicate, /books/remove exist yet on api/lists",
+      "specRef": "backend-spec.md stages 2,3,4",
+      "verdict": "CONFIRMED",
+      "evidence": "grep over apps/api/src for those routes returns only modules/timeline/api/timeline-events.controller.ts:111 (books timeline) and characters duplicate-candidates; the three api/lists controllers are lists.controller.ts:58, list-details.controller.ts:23, list-membership.controller.ts:36"
+    },
+    {
+      "claim": "list-details.service builds its search the same way the library does",
+      "specRef": "backend-spec.md:144-146",
+      "verdict": "FALSE",
+      "evidence": "list-details.service.ts:35 calls normalizeSearch (no minimum length) while book-library-read.service.ts:76 calls normalizeSearchQuery, which drops queries shorter than 2 chars unless they look like an ISBN fragment (book-search.ts:55-64). Following the spec literally is a behaviour change on an existing endpoint - see D1."
+    },
+    {
+      "claim": "buildListItemWhere already scopes books by userId",
+      "specRef": "implied by backend-spec.md:133-143 (the replacement drops nothing)",
+      "verdict": "CONFIRMED",
+      "evidence": "list-books.repository.ts:84-88 scopes only through list.userId; buildLibraryWhere (book-library-read.repository.ts:413) adds book.userId, so the composition in 1.4 tightens the predicate rather than loosening it - no regression"
+    },
+    {
+      "claim": "The move endpoint's request body can be changed without breaking a frontend caller",
+      "specRef": "backend-spec.md:460",
+      "verdict": "CONFIRMED",
+      "evidence": "grep over apps/web/src for MoveListBook / moveBook / listMembershipControllerMoveBook returns no non-generated match; the only list hook is apps/web/src/features/lists/api/use-list-detail.ts"
+    },
+    {
+      "claim": "pageSize on the list-detail endpoint defaults to 24 like the library",
+      "specRef": "README.md:26",
+      "verdict": "FALSE",
+      "evidence": "CustomListBooksQuerySchema extends TaxonomySearchPaginationQuerySchema (packages/shared/src/lists.ts:140), whose pageSizeDefault is 10 (packages/shared/src/taxonomy.ts:20). The library default 24 is LIBRARY_PAGE_SIZE_DEFAULT (packages/shared/src/books.ts:808), used only by LibraryBooksQuerySchema. The existing client compensates by sending pageSize 24 explicitly (apps/web/src/features/lists/api/use-list-detail.ts:10,28). See D4."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "s1-shared-list-book-tab",
+      "title": "Add ListBookTabSchema to packages/shared",
+      "stage": 1,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:79-81",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ListBookTabSchema = z.enum([\"all\",\"not_started\",\"reading\",\"finished\"]) is exported from packages/shared/src/lists.ts",
+        "type ListBookTab is exported",
+        "the barrel packages/shared/src/index.ts re-exports it (via export * from \"./lists.js\", line 21) with no extra edit needed"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-shared-list-sorts",
+      "title": "Add author_desc and rating_asc to ListBookSortSchema",
+      "stage": 1,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:185-191",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ListBookSortSchema (packages/shared/src/lists.ts:126) contains exactly 11 values: the existing 9 plus author_desc and rating_asc",
+        "\"position\" is still the schema default",
+        "no other sort value is added at this stage (status_* and year_* are stage 6)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-shared-list-books-query",
+      "title": "Extend CustomListBooksQuerySchema with the stage-1 filter set",
+      "stage": 1,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:83-94",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": ["s1-shared-list-book-tab", "s1-shared-list-sorts"],
+      "mandatory": true,
+      "doneWhen": [
+        "CustomListBooksQuerySchema gains author (queryStringArray(z.uuid())), bookType (BookTypeSchema.optional()), format (queryStringArray(BookFormatSchema)), genre (queryStringArray(GenreKeySchema)), inQueue (z.stringbool().optional()), isFavorite (z.stringbool().optional()), owner (queryStringArray(OwnershipStatusSchema)), status (queryStringArray(ReadingStatusSchema)), tab (ListBookTabSchema.default(\"all\"))",
+        "it still extends TaxonomySearchPaginationQuerySchema so `search`, pageNumber and pageSize keep their current names and defaults",
+        "sort stays ListBookSortSchema.default(\"position\")",
+        "root `pnpm typecheck` is green (packages/shared type edit - CLAUDE.md memory rule)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-shared-library-in-queue",
+      "title": "Add inQueue to LibraryBooksQuerySchema",
+      "stage": 1,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:66-67",
+      "files": ["packages/shared/src/books.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "LibraryBooksQuerySchema (packages/shared/src/books.ts:838) has inQueue: z.stringbool().optional()",
+        "the existing superRefine cross-field checks at books.ts:875-911 are untouched"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-shared-status-counts",
+      "title": "Add statusCounts to CustomListDetailSchema",
+      "stage": 1,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:153-162",
+      "files": ["packages/shared/src/books.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "CustomListDetailSchema (packages/shared/src/books.ts:1241) has statusCounts with exactly the keys all, finished, not_started, reading, each z.number().int().nonnegative()",
+        "statusCounts is required, not optional - the frontend renders the tab numbers from it unconditionally",
+        "no paused/dnf key is added (see D3)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-shared-facets-view",
+      "title": "Add ListFacetEntrySchema, ListGenreFacetSchema and ListFacetsViewSchema",
+      "stage": 1,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:203-218",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ListFacetEntrySchema = { count: int positive, id: string, name: string } exported",
+        "ListGenreFacetSchema = { count: int positive, key: string, name: string } exported",
+        "ListFacetsViewSchema = { authors: ListFacetEntrySchema[], genres: ListGenreFacetSchema[] } exported with its inferred type",
+        "ListGenreFacetSchema is exported (not module-private) because stage 2 topGenres reuses it"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-extract-book-where",
+      "title": "Extract LibraryFilter, buildLibraryWhere and buildIntRange into infrastructure/book-where.ts",
+      "stage": 1,
+      "layer": "repository",
+      "specRef": "backend-spec.md:37-45",
+      "files": [
+        "apps/api/src/modules/books/infrastructure/book-where.ts",
+        "apps/api/src/modules/books/infrastructure/book-library-read.repository.ts",
+        "apps/api/src/modules/books/infrastructure/books.repository.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "new file book-where.ts exports LibraryFilter, buildLibraryWhere and buildIntRange with bodies byte-identical to book-library-read.repository.ts:392-495 and books.repository.ts:201-226",
+        "book-library-read.repository.ts no longer defines buildLibraryWhere or buildIntRange and imports them from ./book-where.js",
+        "books.repository.ts re-exports LibraryFilter from book-where.js so book-library-read.service.ts:16 keeps compiling unchanged",
+        "no behaviour change: existing books.controller.library.test.ts passes without edits",
+        "`pnpm knip` reports no new unused export"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-book-where-in-queue",
+      "title": "Add the inQueue predicate to LibraryFilter and buildLibraryWhere",
+      "stage": 1,
+      "layer": "repository",
+      "specRef": "backend-spec.md:47-64",
+      "files": ["apps/api/src/modules/books/infrastructure/book-where.ts"],
+      "dependsOn": ["s1-extract-book-where"],
+      "mandatory": true,
+      "doneWhen": [
+        "LibraryFilter has inQueue?: boolean",
+        "buildLibraryWhere sets where.queuePosition = { not: null } when inQueue === true and where.queuePosition = null when inQueue === false",
+        "inQueue === undefined adds no predicate (verified by an assertion on the produced where object, not by inspection)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-library-service-in-queue",
+      "title": "Thread inQueue from LibraryBooksQuery into BookLibraryReadService.list",
+      "stage": 1,
+      "layer": "service",
+      "specRef": "backend-spec.md:66-67",
+      "files": ["apps/api/src/modules/books/application/book-library-read.service.ts"],
+      "dependsOn": ["s1-shared-library-in-queue", "s1-book-where-in-queue"],
+      "mandatory": true,
+      "doneWhen": [
+        "the LibraryFilter literal at book-library-read.service.ts:82-107 includes inQueue: query.inQueue",
+        "GET /api/books?inQueue=true returns only books with a non-null queuePosition and inQueue=false only books with a null one (integration assertion)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-domain-tab-statuses",
+      "title": "Create domain/list-status-counts.ts with TAB_STATUSES and the status grouping",
+      "stage": 1,
+      "layer": "domain",
+      "specRef": "backend-spec.md:100-127, :180-181",
+      "files": ["apps/api/src/modules/books/domain/list-status-counts.ts"],
+      "dependsOn": ["s1-shared-list-book-tab"],
+      "mandatory": true,
+      "doneWhen": [
+        "TAB_STATUSES: Record<ListBookTab, ReadingStatus[] | undefined> with all: undefined, finished: [\"finished\"], not_started: [\"not_started\",\"want_to_read\"], reading: [\"reading\",\"rereading\"]",
+        "an exported pure function resolves the effective status list as `status.length > 0 ? status : TAB_STATUSES[tab]` - a non-empty status always wins over tab",
+        "an exported pure function maps the four raw counts into the statusCounts shape",
+        "the file contains no Prisma import and no @Injectable"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-domain-list-book-filter",
+      "title": "Create the pure query -> LibraryFilter mapper for the list page",
+      "stage": 1,
+      "layer": "domain",
+      "specRef": "backend-spec.md:144-146; D16",
+      "files": ["apps/api/src/modules/books/domain/list-book-filter.ts"],
+      "dependsOn": [
+        "s1-shared-list-books-query",
+        "s1-book-where-in-queue",
+        "s1-domain-tab-statuses"
+      ],
+      "mandatory": true,
+      "doneWhen": [
+        "one exported pure function takes { query, search, searchGenreKeys, userId } and returns a LibraryFilter",
+        "it maps author->authorIds, bookType->bookType, format->formats, genre->genreKeys, owner->ownershipStatuses, isFavorite, inQueue, and the tab/status resolution -> readingStatuses",
+        "it sets userId, search and searchGenreKeys exactly as book-library-read.service.ts:82-107 does",
+        "no Prisma / Nest imports in the file"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-list-books-repo-filters",
+      "title": "Rebuild buildListItemWhere on top of buildLibraryWhere",
+      "stage": 1,
+      "layer": "repository",
+      "specRef": "backend-spec.md:128-149",
+      "files": ["apps/api/src/modules/books/infrastructure/list-books.repository.ts"],
+      "dependsOn": ["s1-book-where-in-queue"],
+      "mandatory": true,
+      "doneWhen": [
+        "buildListItemWhere returns { book: buildLibraryWhere(filter), list: { ...SOFT_DELETE_SCOPE.active, userId: filter.userId }, listId }",
+        "the local buildBookSearchConditions call is gone from list-books.repository.ts (buildLibraryWhere already applies it)",
+        "listBooks and countBooks take a LibraryFilter instead of the current search/searchGenreKeys/userId triple",
+        "existing list-details.controller.test.ts cases at :319 (search by title/author) and :343 (search by genre display name) still pass"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-list-books-repo-sorts",
+      "title": "Map author_desc and rating_asc in LIST_BOOK_ORDER_BY",
+      "stage": 1,
+      "layer": "repository",
+      "specRef": "backend-spec.md:185-194",
+      "files": ["apps/api/src/modules/books/infrastructure/list-books.repository.ts"],
+      "dependsOn": ["s1-shared-list-sorts"],
+      "mandatory": true,
+      "doneWhen": [
+        "LIST_BOOK_ORDER_BY (list-books.repository.ts:66) has author_desc: nestBookOrderBy(\"author_desc\") and rating_asc: nestBookOrderBy(\"rating_asc\")",
+        "the Record<ListBookSort, ...> type still compiles exhaustively, i.e. no `as` and no index signature was added",
+        "an integration test asserts sort=rating_asc puts unrated books last, not first"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-list-books-repo-status-counts",
+      "title": "Add the four tab counters to ListBooksRepository",
+      "stage": 1,
+      "layer": "repository",
+      "specRef": "backend-spec.md:151-181",
+      "files": ["apps/api/src/modules/books/infrastructure/list-books.repository.ts"],
+      "dependsOn": ["s1-list-books-repo-filters"],
+      "mandatory": true,
+      "doneWhen": [
+        "a repository method returns the four raw counts from four prisma.bookListItem.count calls inside a single Promise.all",
+        "each count uses the same buildListItemWhere as the page query with readingStatuses overridden per tab and every other filter and the search kept",
+        "the method returns primitives, never a ViewModel (CLAUDE.md §5.3)",
+        "no groupBy and no raw SQL in this method (D8)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-list-details-service",
+      "title": "Wire filters, tab resolution and statusCounts into ListDetailsService.detail",
+      "stage": 1,
+      "layer": "service",
+      "specRef": "backend-spec.md:144-146, :163-166",
+      "files": ["apps/api/src/modules/books/application/list-details.service.ts"],
+      "dependsOn": [
+        "s1-domain-list-book-filter",
+        "s1-list-books-repo-filters",
+        "s1-list-books-repo-status-counts",
+        "s1-shared-status-counts"
+      ],
+      "mandatory": true,
+      "doneWhen": [
+        "detail() builds the LibraryFilter through the domain mapper and passes it to listBooks/countBooks",
+        "search normalization uses normalizeSearchQuery from infrastructure/book-search.ts, matching book-library-read.service.ts:76 (D1)",
+        "statusCounts are computed with the same filter minus tab and status - a genre filter changes the tab numbers, and the counters are added to the returned CustomListDetail",
+        "header bookCount stays the unfiltered total (list-details.controller.test.ts:190 must still pass)",
+        "the service stays under ~150 lines; the query->filter mapping lives in domain/"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-facets-repo",
+      "title": "Create list-facets.repository.ts with author and genre aggregates",
+      "stage": 1,
+      "layer": "repository",
+      "specRef": "backend-spec.md:198-243",
+      "files": ["apps/api/src/modules/books/infrastructure/list-facets.repository.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "author facets come from a book_authors join scoped to the list's active books and the owning user, ordered count DESC then name ASC",
+        "genre facets come from one Prisma.sql raw query using CROSS JOIN LATERAL unnest(b.genres) with count(*)::int, ordered count DESC then key ASC",
+        "every parameter is a Prisma.sql placeholder - no string concatenation anywhere in the file",
+        "the raw result is parsed with a Zod schema before leaving the method (CLAUDE.md §8.3)",
+        "both queries cap at 200 rows and log.warn via createLogger when the cap is hit, mirroring books.repository.ts:798-802",
+        "counts are computed over the whole list, independent of any query filter"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-facets-service",
+      "title": "Create list-facets.service.ts",
+      "stage": 1,
+      "layer": "service",
+      "specRef": "backend-spec.md:198-243",
+      "files": ["apps/api/src/modules/books/application/list-facets.service.ts"],
+      "dependsOn": ["s1-facets-repo", "s1-shared-facets-view"],
+      "mandatory": true,
+      "doneWhen": [
+        "the service calls listsService.assertOwned({ listId, userId }) before any aggregate query (D15)",
+        "genre names are resolved through genresService.findNamesByKeys and a key with no name falls back to the key itself, never dropped",
+        "returns ListFacetsView; empty arrays for an owned but empty list",
+        "no PrismaService injection"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-facets-controller",
+      "title": "Add GET /api/lists/:listId/facets and the new @ApiQuery params on the detail route",
+      "stage": 1,
+      "layer": "controller",
+      "specRef": "backend-spec.md:198, :257-259",
+      "files": [
+        "apps/api/src/modules/books/api/list-details.controller.ts",
+        "apps/api/src/modules/books/api/view-dto/list-facets.view-dto.ts"
+      ],
+      "dependsOn": ["s1-facets-service", "s1-list-details-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Get(\":listId/facets\") is declared BEFORE @Get(\":listId\") in the class so the static segment is not swallowed by the param route",
+        "the route is @JwtProtected, uses ParseUUIDPipe on listId, and returns ListFacetsView typed by a createZodDto view-dto",
+        "full Swagger set: @ApiOperation, @ApiOkResponse({type}), @ApiNotFoundResponse, @ApiParam",
+        "the detail route gains @ApiQuery for author, bookType, format, genre, inQueue, isFavorite, owner, status, tab",
+        "no Prisma and no business logic in the controller"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-module-wiring",
+      "title": "Register the stage-1 providers in BooksModule",
+      "stage": 1,
+      "layer": "module",
+      "specRef": "backend-spec.md:245-260",
+      "files": ["apps/api/src/modules/books/books.module.ts"],
+      "dependsOn": ["s1-facets-controller"],
+      "mandatory": true,
+      "doneWhen": [
+        "ListFacetsService and ListFacetsRepository appear in the providers array of books.module.ts",
+        "`pnpm dev:api` boots with no Nest DI resolution error and GET /api/health returns 200 with an x-request-id header"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-tests-unit",
+      "title": "Unit tests for the stage-1 domain rules",
+      "stage": 1,
+      "layer": "test",
+      "specRef": "backend-spec.md:539-543",
+      "files": [
+        "apps/api/src/modules/books/domain/list-status-counts.test.ts",
+        "apps/api/src/modules/books/domain/list-book-filter.test.ts"
+      ],
+      "dependsOn": ["s1-domain-tab-statuses", "s1-domain-list-book-filter"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: tab=not_started resolves to exactly [\"not_started\",\"want_to_read\"]",
+        "test: tab=reading resolves to exactly [\"reading\",\"rereading\"]",
+        "test: a non-empty status array wins over any tab value",
+        "test: tab=all with empty status produces undefined readingStatuses (no predicate)",
+        "test: the mapper carries genre/author/format/owner/isFavorite/inQueue through unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-tests-integration",
+      "title": "Integration tests for stage-1 filters, counters, sorts and facets",
+      "stage": 1,
+      "layer": "test",
+      "specRef": "backend-spec.md:549-560",
+      "files": [
+        "apps/api/src/modules/books/api/list-details.controller.filters.test.ts",
+        "apps/api/src/modules/books/api/list-details.controller.facets.test.ts"
+      ],
+      "dependsOn": ["s1-module-wiring"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: a book that matches every filter but is not in the list never appears in the result",
+        "test: statusCounts change when a genre filter is applied, and do not change when tab or status change",
+        "test: sort=author_desc and sort=rating_asc return the documented order with nulls last",
+        "test: /facets genre counts are not duplicated by unnest and do not react to query filters",
+        "test: /facets on another user's list returns 404",
+        "test: inQueue=true / inQueue=false partition the list",
+        "run with `pnpm exec vitest run <path>` only - never the full suite locally (CLAUDE.md §9)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-openapi",
+      "title": "Regenerate the OpenAPI document after stage 1",
+      "stage": 1,
+      "layer": "controller",
+      "specRef": "backend-spec.md:15, :567",
+      "files": ["openapi.json"],
+      "dependsOn": ["s1-module-wiring"],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm --filter @app/api generate:openapi` was run and openapi.json contains the path /api/lists/{listId}/facets",
+        "the /api/lists/{listId} operation lists the nine new query parameters",
+        "CustomListDetail schema in openapi.json has statusCounts",
+        "live curl captured: GET /api/lists/<id>/facets returns 200 with an x-request-id response header"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s2-shared-overview",
+      "title": "Add ListOverviewViewSchema to packages/shared",
+      "stage": 2,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:271-286",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": ["s1-shared-facets-view"],
+      "mandatory": true,
+      "doneWhen": [
+        "ListOverviewViewSchema exports exactly the 12 documented fields: currentlyReading (nullable object of { book: ListBookViewSchema, othersCount }), distinctAuthorsCount, finishedCount, genresCount, inQueueCount, ownedCount, pagesKnownCount, seriesCount, soloCount, topGenres (ListGenreFacetSchema[]), totalBooks, totalPages",
+        "currentlyReading is .nullable() and NOT .optional() - the block is hidden on null, and an absent key would be a third state",
+        "every count is z.number().int().nonnegative()",
+        "topGenres reuses ListGenreFacetSchema from stage 1, not a duplicated inline shape",
+        "root `pnpm typecheck` green"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s2-overview-repo",
+      "title": "Create list-overview.repository.ts",
+      "stage": 2,
+      "layer": "repository",
+      "specRef": "backend-spec.md:289-317",
+      "files": ["apps/api/src/modules/books/infrastructure/list-overview.repository.ts"],
+      "dependsOn": ["s1-extract-book-where"],
+      "mandatory": true,
+      "doneWhen": [
+        "aggregates run as one Promise.all of ~6 queries: count(total), count(finished status only), count(queuePosition not null), count(ownership in the three physical statuses), a groupBy/aggregate for genres and series, and an aggregate sum+count for pagesCount",
+        "distinctAuthorsCount comes from a DISTINCT over book_authors of the list's active books - a book with no author contributes nothing",
+        "totalPages sums only rows with a non-null pagesCount, and pagesKnownCount is the count of those same rows",
+        "the currently-reading query is a separate findFirst over readingStatus in [reading, rereading] ordered by readingProgress.lastProgressUpdateAt desc nulls last, then book.updatedAt desc, then id asc (D14), with a matching count for othersCount",
+        "no single mega-SQL statement; each query is independently profilable",
+        "the repository returns rows/primitives, never a ViewModel"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s2-overview-domain",
+      "title": "Create domain/list-overview.ts for the derived values",
+      "stage": 2,
+      "layer": "domain",
+      "specRef": "backend-spec.md:303, :313-314",
+      "files": ["apps/api/src/modules/books/domain/list-overview.ts"],
+      "dependsOn": ["s2-shared-overview"],
+      "mandatory": true,
+      "doneWhen": [
+        "the top-3 genre selection is one exported pure function reused by BOTH the overview service and the facets service - the same computation must not exist twice",
+        "genresCount is the number of unique genre keys, computed in this file",
+        "currentlyReading assembly (main book + othersCount, null when there is none) is a pure function here",
+        "no Prisma / Nest imports"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s2-overview-service",
+      "title": "Create list-overview.service.ts",
+      "stage": 2,
+      "layer": "service",
+      "specRef": "backend-spec.md:264-307",
+      "files": ["apps/api/src/modules/books/application/list-overview.service.ts"],
+      "dependsOn": ["s2-overview-repo", "s2-overview-domain"],
+      "mandatory": true,
+      "doneWhen": [
+        "assertOwned runs before any aggregate",
+        "finishedCount counts readingStatus = 'finished' only - rereading is excluded, asserted by a unit test",
+        "ownedCount uses the same three statuses as LIBRARY_OVERVIEW.physicalOwnershipStatuses (book-library-read.service.ts:43); the list must import/share that constant rather than re-typing the array",
+        "the currentlyReading book is produced by the existing BookViewAssembler.viewOf, so the payload is a full ListBookView with cover, authors and readingProgress - no new mapper",
+        "genre names resolved through genresService.findNamesByKeys with key fallback",
+        "no PrismaService injection"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s2-overview-controller",
+      "title": "Add GET /api/lists/:listId/overview",
+      "stage": 2,
+      "layer": "controller",
+      "specRef": "backend-spec.md:264, :319-328",
+      "files": [
+        "apps/api/src/modules/books/api/list-details.controller.ts",
+        "apps/api/src/modules/books/api/view-dto/list-overview.view-dto.ts"
+      ],
+      "dependsOn": ["s2-overview-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Get(\":listId/overview\") declared before @Get(\":listId\"), @JwtProtected, ParseUUIDPipe on listId",
+        "returns ListOverviewView typed by a createZodDto view-dto",
+        "full @Api* Swagger set including @ApiNotFoundResponse",
+        "GET /api/lists/:listId/overview responds 200 and the body contains all 12 fields for a list holding books in every reading status"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s2-module-wiring",
+      "title": "Register the stage-2 providers in BooksModule",
+      "stage": 2,
+      "layer": "module",
+      "specRef": "backend-spec.md:319-328",
+      "files": ["apps/api/src/modules/books/books.module.ts"],
+      "dependsOn": ["s2-overview-controller"],
+      "mandatory": true,
+      "doneWhen": [
+        "ListOverviewService and ListOverviewRepository are in the providers array",
+        "`pnpm dev:api` boots clean and /api/health returns 200"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s2-tests-unit",
+      "title": "Unit tests for the overview semantics",
+      "stage": 2,
+      "layer": "test",
+      "specRef": "backend-spec.md:544-546",
+      "files": ["apps/api/src/modules/books/application/list-overview.service.test.ts"],
+      "dependsOn": ["s2-overview-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: finishedCount does not count a rereading book",
+        "test: ownedCount covers exactly owned + borrowed_from_someone + lent_to_someone and excludes want_to_buy / in_transit / none",
+        "test: pagesKnownCount excludes books with a null pagesCount and totalPages sums only the known ones",
+        "test: currentlyReading is null when no book is reading or rereading",
+        "test: othersCount equals the number of remaining active-reading books, not the total"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s2-tests-integration",
+      "title": "Integration tests for GET /api/lists/:listId/overview",
+      "stage": 2,
+      "layer": "test",
+      "specRef": "backend-spec.md:560",
+      "files": ["apps/api/src/modules/books/api/list-details.controller.overview.test.ts"],
+      "dependsOn": ["s2-module-wiring"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: another user's list returns 404",
+        "test: a trashed book in the list is excluded from every counter",
+        "test: seriesCount + soloCount may differ from totalBooks and the endpoint still returns consistent numbers",
+        "test: topGenres returns at most 3 entries with resolved names"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s2-openapi",
+      "title": "Regenerate the OpenAPI document after stage 2",
+      "stage": 2,
+      "layer": "controller",
+      "specRef": "backend-spec.md:15",
+      "files": ["openapi.json"],
+      "dependsOn": ["s2-module-wiring"],
+      "mandatory": true,
+      "doneWhen": [
+        "openapi.json contains /api/lists/{listId}/overview with a ListOverviewView response schema",
+        "live curl captured with an x-request-id response header"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s3-shared-related",
+      "title": "Add RelatedListViewSchema and ListRelatedViewSchema",
+      "stage": 3,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:335-342",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "RelatedListViewSchema = { bookCount: int nonnegative, id, name, sharedCount: int positive } exported with its type",
+        "ListRelatedViewSchema = { lists: RelatedListViewSchema[] } exported with its type",
+        "sharedCount is .positive() - a zero-overlap list must be impossible to represent"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s3-related-repo",
+      "title": "Add the /related self-join query",
+      "stage": 3,
+      "layer": "repository",
+      "specRef": "backend-spec.md:352-374",
+      "files": ["apps/api/src/modules/books/infrastructure/list-overview.repository.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "one Prisma.sql raw query with the documented self-join over book_list_items, joining books with deleted_at IS NULL on both sides and book_lists with deleted_at IS NULL AND user_id = $user",
+        "the current list is excluded via other.list_id <> current_item.list_id",
+        "counts are cast with ::int so no BigInt reaches the service",
+        "ORDER BY sharedCount DESC, bl.name ASC and LIMIT 10",
+        "the result is parsed by a Zod array schema before being returned",
+        "all parameters are Prisma.sql placeholders - zero string concatenation"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s3-related-service",
+      "title": "Add the related-lists service method",
+      "stage": 3,
+      "layer": "service",
+      "specRef": "backend-spec.md:376-377",
+      "files": ["apps/api/src/modules/books/application/list-overview.service.ts"],
+      "dependsOn": ["s3-related-repo", "s3-shared-related"],
+      "mandatory": true,
+      "doneWhen": [
+        "listsService.assertOwned runs before the query so a foreign listId cannot be probed for existence",
+        "returns ListRelatedView with an empty lists array when there are no overlaps",
+        "no filtering or re-sorting in the service - the SQL already returns the final order"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s3-related-controller",
+      "title": "Add GET /api/lists/:listId/related",
+      "stage": 3,
+      "layer": "controller",
+      "specRef": "backend-spec.md:332",
+      "files": [
+        "apps/api/src/modules/books/api/list-details.controller.ts",
+        "apps/api/src/modules/books/api/view-dto/list-related.view-dto.ts"
+      ],
+      "dependsOn": ["s3-related-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Get(\":listId/related\") declared before @Get(\":listId\"), @JwtProtected, ParseUUIDPipe",
+        "returns ListRelatedView via a createZodDto view-dto with the full @Api* set"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s3-module-wiring",
+      "title": "Wire stage-3 dependencies if a new provider was introduced",
+      "stage": 3,
+      "layer": "module",
+      "specRef": "backend-spec.md:332-377",
+      "files": ["apps/api/src/modules/books/books.module.ts"],
+      "dependsOn": ["s3-related-controller"],
+      "mandatory": true,
+      "doneWhen": [
+        "if /related lives in its own service/repository they are registered in providers; if it reuses the stage-2 pair no diff is needed and the task is closed with that explicit note",
+        "`pnpm dev:api` boots clean"
+      ],
+      "status": "done",
+      "note": "Empty diff by design, stated explicitly rather than silently skipped: /related reuses ListOverviewService and ListOverviewRepository, both already registered in BooksModule by s2-module-wiring. The spec-auditor predicted this outcome and its doneWhen required it be stated."
+    },
+    {
+      "id": "s3-tests-integration",
+      "title": "Integration tests for GET /api/lists/:listId/related",
+      "stage": 3,
+      "layer": "test",
+      "specRef": "backend-spec.md:553-554, :560",
+      "files": ["apps/api/src/modules/books/api/list-details.controller.related.test.ts"],
+      "dependsOn": ["s3-module-wiring"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: a soft-deleted list never appears in the result",
+        "test: a soft-deleted book never contributes to sharedCount",
+        "test: the current list is absent from its own /related result",
+        "test: results are ordered by sharedCount DESC and ties break by name ASC",
+        "test: bookCount reflects the other list's total active books, not the overlap",
+        "test: another user's list returns 404, and another user's overlapping list never leaks into the result"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s3-openapi",
+      "title": "Regenerate the OpenAPI document after stage 3",
+      "stage": 3,
+      "layer": "controller",
+      "specRef": "backend-spec.md:15",
+      "files": ["openapi.json"],
+      "dependsOn": ["s3-module-wiring"],
+      "mandatory": true,
+      "doneWhen": [
+        "openapi.json contains /api/lists/{listId}/related",
+        "live curl captured with x-request-id"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-shared-not-in-list",
+      "title": "Add notInList to LibraryBooksQuerySchema",
+      "stage": 4,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:389-392",
+      "files": ["packages/shared/src/books.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "LibraryBooksQuerySchema has notInList: z.uuid().optional()",
+        "no ownership validation is attached to the schema - the predicate is inherently safe (books are already user-scoped)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-where-not-in-list",
+      "title": "Add the notInList predicate to LibraryFilter and buildLibraryWhere",
+      "stage": 4,
+      "layer": "repository",
+      "specRef": "backend-spec.md:396-401",
+      "files": ["apps/api/src/modules/books/infrastructure/book-where.ts"],
+      "dependsOn": ["s1-extract-book-where"],
+      "mandatory": true,
+      "doneWhen": [
+        "LibraryFilter has notInList?: string",
+        "buildLibraryWhere sets where.lists = { none: { listId: filter.notInList } } when it is defined and adds nothing when it is undefined"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-library-service-not-in-list",
+      "title": "Thread notInList into BookLibraryReadService.list",
+      "stage": 4,
+      "layer": "service",
+      "specRef": "backend-spec.md:383-404",
+      "files": ["apps/api/src/modules/books/application/book-library-read.service.ts"],
+      "dependsOn": ["s4-shared-not-in-list", "s4-where-not-in-list"],
+      "mandatory": true,
+      "doneWhen": [
+        "the LibraryFilter literal includes notInList: query.notInList",
+        "GET /api/books?notInList=<listId> excludes every book already in that list, including books beyond the first page of the list's own pagination"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-shared-remove-books",
+      "title": "Add RemoveBooksFromListInputSchema and RemoveBooksFromListResultSchema",
+      "stage": 4,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:412-419",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "RemoveBooksFromListInputSchema = { bookIds: z.array(z.uuid()).min(1).max(LIST_PAGE_SIZE_MAX) } exported with its type",
+        "RemoveBooksFromListResultSchema = { bookCount, removed } both int nonnegative, exported with its type",
+        "LIST_PAGE_SIZE_MAX is reused from common.ts:40, not re-declared"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-remove-books-repo",
+      "title": "Add bulk delete and dense resequencing to ListMembershipRepository",
+      "stage": 4,
+      "layer": "repository",
+      "specRef": "backend-spec.md:422-424",
+      "files": ["apps/api/src/modules/books/infrastructure/list-membership.repository.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "a deleteMany method removes (listId, bookId IN ids) and returns the deleted count",
+        "a resequence method rewrites positions to a dense 1..N over the list ordered by current position",
+        "both take the Prisma.TransactionClient as their first parameter, matching the existing method signatures in this file",
+        "resequence writes only rows whose position actually changes"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-remove-books-service",
+      "title": "Add bulk removal to ListMembershipService",
+      "stage": 4,
+      "layer": "service",
+      "specRef": "backend-spec.md:406-424",
+      "files": ["apps/api/src/modules/books/application/list-membership.service.ts"],
+      "dependsOn": ["s4-remove-books-repo", "s4-shared-remove-books"],
+      "mandatory": true,
+      "doneWhen": [
+        "assertOwned runs before the transaction, exactly as addBooks does at list-membership.service.ts:44",
+        "the whole flow runs inside transactionRunner.run with acquireListLock as the first statement",
+        "order inside the transaction: deleteMany -> dense resequence -> touchList",
+        "idempotent: book ids not present in the list do not count towards `removed` and do not throw",
+        "returns { bookCount, removed } where bookCount is the post-removal active count"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-remove-books-controller",
+      "title": "Add POST /api/lists/:listId/books/remove",
+      "stage": 4,
+      "layer": "controller",
+      "specRef": "backend-spec.md:408",
+      "files": [
+        "apps/api/src/modules/books/api/list-membership.controller.ts",
+        "apps/api/src/modules/books/api/input-dto/remove-books-from-list.input-dto.ts",
+        "apps/api/src/modules/books/api/view-dto/remove-books-from-list-result.view-dto.ts"
+      ],
+      "dependsOn": ["s4-remove-books-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Post(\":listId/books/remove\") with @HttpCode(HTTP_STATUS.OK), ZodBodyPipe(RemoveBooksFromListInputSchema), ParseUUIDPipe on listId",
+        "the existing @Delete(\":listId/books/:bookId\") route at list-membership.controller.ts:65 is left in place (D11)",
+        "full @Api* set including @ApiBody and @ApiBadRequestResponse"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-duplicate-repo",
+      "title": "Add the duplication queries to the lists/membership repositories",
+      "stage": 4,
+      "layer": "repository",
+      "specRef": "backend-spec.md:428-434",
+      "files": [
+        "apps/api/src/modules/lists/infrastructure/lists.repository.ts",
+        "apps/api/src/modules/books/infrastructure/list-membership.repository.ts"
+      ],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "a repository method copies memberships with createMany, preserving the source `position` values verbatim",
+        "the copy method accepts the transaction client so it runs inside the caller's transaction",
+        "createByNormalized / create on ListsRepository is reused for the new list row rather than a new bespoke insert"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-duplicate-service",
+      "title": "Add list duplication with copy-name resolution",
+      "stage": 4,
+      "layer": "service",
+      "specRef": "backend-spec.md:426-434",
+      "files": ["apps/api/src/modules/lists/application/lists.service.ts"],
+      "dependsOn": ["s4-duplicate-repo"],
+      "mandatory": true,
+      "doneWhen": [
+        "the new list name is `{name} (копія)`, then `(копія 2)`, `(копія 3)` … on collision, capped at 50 attempts, after which a ConflictError is thrown (D10)",
+        "description is copied",
+        "positions are copied unchanged, so the duplicate has the same order as the source",
+        "creation and membership copy happen inside one TransactionRunner.run under acquireCreateLock(userId), matching resolveOrCreate at lists.service.ts:248",
+        "returns CustomListCard (existing schema, no new DTO)",
+        "the source list is verified owned before anything is written"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-duplicate-controller",
+      "title": "Add POST /api/lists/:listId/duplicate",
+      "stage": 4,
+      "layer": "controller",
+      "specRef": "backend-spec.md:428",
+      "files": ["apps/api/src/modules/lists/api/lists.controller.ts"],
+      "dependsOn": ["s4-duplicate-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Post(\":listId/duplicate\") returns CustomListCardDto, @JwtProtected, ParseUUIDPipe on listId",
+        "@ApiConflictResponse documents the 50-attempt exhaustion case",
+        "full @Api* set"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-shared-preview-covers",
+      "title": "Add previewCovers to CustomListDetailSchema",
+      "stage": 4,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:436-442",
+      "files": ["packages/shared/src/books.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "CustomListDetailSchema has previewCovers: z.array(MediaViewSchema)",
+        "it is required (an empty array when the list has no covered books), matching CustomListCardSchema at packages/shared/src/lists.ts:62"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-preview-covers-service",
+      "title": "Return previewCovers from the detail header",
+      "stage": 4,
+      "layer": "service",
+      "specRef": "backend-spec.md:436-442",
+      "files": [
+        "apps/api/src/modules/lists/application/lists.service.ts",
+        "apps/api/src/modules/books/application/list-details.service.ts"
+      ],
+      "dependsOn": ["s4-shared-preview-covers"],
+      "mandatory": true,
+      "doneWhen": [
+        "ListDetailHeader (lists.service.ts:28) gains previewCovers: MediaView[]",
+        "findDetailHeader sources them through findOwnedCardById + the existing cover mapping so PREVIEW_COVERS_LIMIT=4 and the has-cover / active predicates stay defined in exactly one place (D5)",
+        "at most 4 covers are returned, ordered by position ascending, same as CustomListCard",
+        "list-details.controller.test.ts:167 (header fields) is extended rather than left asserting the old shape"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-module-wiring",
+      "title": "Wire the stage-4 providers",
+      "stage": 4,
+      "layer": "module",
+      "specRef": "backend-spec.md:406-442",
+      "files": [
+        "apps/api/src/modules/books/books.module.ts",
+        "apps/api/src/modules/lists/lists.module.ts"
+      ],
+      "dependsOn": ["s4-remove-books-controller", "s4-duplicate-controller"],
+      "mandatory": true,
+      "doneWhen": [
+        "any new provider introduced in stage 4 is registered in the owning module",
+        "`pnpm dev:api` boots clean and /api/health returns 200"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-tests-unit",
+      "title": "Unit test for duplicate-name resolution",
+      "stage": 4,
+      "layer": "test",
+      "specRef": "backend-spec.md:547",
+      "files": ["apps/api/src/modules/lists/application/lists.service.test.ts"],
+      "dependsOn": ["s4-duplicate-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: duplicating when `X (копія)` already exists produces `X (копія 2)`",
+        "test: 50 taken names produce a ConflictError rather than an infinite loop",
+        "test: description and positions are carried into the copy"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-tests-integration",
+      "title": "Integration tests for stage 4",
+      "stage": 4,
+      "layer": "test",
+      "specRef": "backend-spec.md:551-552, :560",
+      "files": [
+        "apps/api/src/modules/books/api/list-membership.controller.test.ts",
+        "apps/api/src/modules/books/api/books.controller.library.test.ts",
+        "apps/api/src/modules/lists/api/lists.controller.test.ts"
+      ],
+      "dependsOn": ["s4-module-wiring"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: notInList excludes books of the list that are not on the current page of the list detail pagination",
+        "test: bulk remove of ids that are partly absent returns removed = the number actually deleted and leaves positions dense 1..N",
+        "test: duplicate produces a list with the same book set and the same order",
+        "test: all three new routes return 404 for another user's list"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s4-openapi",
+      "title": "Regenerate the OpenAPI document after stage 4",
+      "stage": 4,
+      "layer": "controller",
+      "specRef": "backend-spec.md:15",
+      "files": ["openapi.json"],
+      "dependsOn": ["s4-module-wiring"],
+      "mandatory": true,
+      "doneWhen": [
+        "openapi.json contains /api/lists/{listId}/books/remove and /api/lists/{listId}/duplicate, and notInList on the library query",
+        "CustomListDetail in openapi.json has previewCovers",
+        "live curl captured for both new routes with x-request-id"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s5-shared-move-union",
+      "title": "Turn MoveListBookInputSchema into a discriminated union",
+      "stage": 5,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:448-460",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "MoveListBookInputSchema = z.discriminatedUnion(\"kind\", [{ direction, kind: \"step\" }, { kind: \"index\", position: int positive }])",
+        "MoveListBookDirectionSchema is kept and reused by the step branch",
+        "no optional-field variant survives - an input with both direction and position must fail validation",
+        "root `pnpm typecheck` green; this is a deliberate breaking change with no frontend caller today (see verifiedAssertions)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s5-move-index-repo",
+      "title": "Add the ordered-membership read and the batched position write",
+      "stage": 5,
+      "layer": "repository",
+      "specRef": "backend-spec.md:462-471",
+      "files": ["apps/api/src/modules/books/infrastructure/list-membership.repository.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "a method reads all active memberships of a list ordered by position ascending, selecting only bookId and position",
+        "a method writes new positions only for the rows whose number actually changed",
+        "both accept the transaction client first, matching the existing signatures",
+        "LIST_REORDER_MAX = 2000 lives in a grouped constants object in this module (D9)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s5-move-index-service",
+      "title": "Implement move-to-index in ListMembershipService",
+      "stage": 5,
+      "layer": "service",
+      "specRef": "backend-spec.md:462-471",
+      "files": ["apps/api/src/modules/books/application/list-membership.service.ts"],
+      "dependsOn": ["s5-shared-move-union", "s5-move-index-repo"],
+      "mandatory": true,
+      "doneWhen": [
+        "moveBook switches on input.kind; the \"step\" branch keeps the existing swap behaviour and its ALREADY_AT_TOP / ALREADY_AT_BOTTOM BadRequestErrors verbatim",
+        "the \"index\" branch runs inside transactionRunner.run with acquireListLock first",
+        "more than LIST_REORDER_MAX active memberships throws BadRequestError",
+        "the target index is clipped into 0..len-1 rather than throwing on an out-of-range position",
+        "after the move the list holds a dense 1..N with no gaps, and touchList is called",
+        "a book that is not in the list still throws NotFoundError as today"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s5-move-controller",
+      "title": "Update the move endpoint DTO and Swagger for the union body",
+      "stage": 5,
+      "layer": "controller",
+      "specRef": "backend-spec.md:448-460",
+      "files": [
+        "apps/api/src/modules/books/api/list-membership.controller.ts",
+        "apps/api/src/modules/books/api/input-dto/move-list-book.input-dto.ts"
+      ],
+      "dependsOn": ["s5-move-index-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "the controller passes the whole parsed body to the service instead of body.direction (list-membership.controller.ts:94)",
+        "MoveListBookInputDto still wraps MoveListBookInputSchema via createZodDto and openapi.json shows a oneOf/discriminator for the request body",
+        "@ApiBadRequestResponse documents the over-limit and invalid-body cases"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s5-rank-repo",
+      "title": "Add the display-rank query for position numbering",
+      "stage": 5,
+      "layer": "repository",
+      "specRef": "backend-spec.md:473-497",
+      "files": ["apps/api/src/modules/books/infrastructure/list-books.repository.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "one Prisma.sql raw query returns book_id plus row_number() OVER (ORDER BY i.position)::int for the list's active books",
+        "the result is Zod-parsed and returned as a Map or array of primitives, never a ViewModel",
+        "capped at 2000 rows with a log.warn when the cap is hit",
+        "all parameters are placeholders - no concatenation"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s5-rank-service",
+      "title": "Apply the display rank in ListDetailsService only for sort=position",
+      "stage": 5,
+      "layer": "service",
+      "specRef": "backend-spec.md:481-496",
+      "files": ["apps/api/src/modules/books/application/list-details.service.ts"],
+      "dependsOn": ["s5-rank-repo"],
+      "mandatory": true,
+      "doneWhen": [
+        "the rank query runs if and only if sort === \"position\" - for any other sort the query is not executed at all (assert with a repository spy in a unit test)",
+        "toListBookView sets ListBookView.position from the rank map, not from the raw column",
+        "the stored position column is NOT rewritten anywhere in this task - it stays sparse and authoritative for ordering",
+        "a list whose stored positions are 1,2,4,7 renders as 1,2,3,4"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s5-tests-unit",
+      "title": "Unit tests for move-to-index and rank application",
+      "stage": 5,
+      "layer": "test",
+      "specRef": "backend-spec.md:558-559",
+      "files": ["apps/api/src/modules/books/application/list-membership.service.test.ts"],
+      "dependsOn": ["s5-move-index-service", "s5-rank-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: moving the first book to the last index produces a dense 1..N ordering",
+        "test: a position beyond the list length is clipped, not rejected",
+        "test: a list larger than LIST_REORDER_MAX throws BadRequestError before any write",
+        "test: the rank query is not issued when sort !== position"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s5-tests-integration",
+      "title": "Integration tests for dense display numbering and move-to-index",
+      "stage": 5,
+      "layer": "test",
+      "specRef": "backend-spec.md:556-559",
+      "files": ["apps/api/src/modules/books/api/books.controller.list-position.test.ts"],
+      "dependsOn": ["s5-move-controller", "s5-rank-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: after sending a list book to trash, the remaining books report ranks 1..N-1 with no gap, while the position column in the database is asserted to still be sparse",
+        "test: PATCH with kind=index moves the book and leaves a dense sequence",
+        "test: PATCH with kind=step still behaves exactly as before the union change",
+        "test: another user's list returns 404"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s5-openapi",
+      "title": "Regenerate the OpenAPI document after stage 5",
+      "stage": 5,
+      "layer": "controller",
+      "specRef": "backend-spec.md:15",
+      "files": ["openapi.json"],
+      "dependsOn": ["s5-move-controller"],
+      "mandatory": true,
+      "doneWhen": [
+        "openapi.json shows the discriminated request body for the position endpoint",
+        "live curl captured for both kind=step and kind=index with x-request-id"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s6-shared-status-sorts",
+      "title": "Add status_unread_first and status_read_first to ListBookSortSchema",
+      "stage": 6,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:510-521",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": ["s1-shared-list-sorts"],
+      "mandatory": true,
+      "doneWhen": [
+        "ListBookSortSchema contains status_unread_first and status_read_first",
+        "root `pnpm typecheck` fails until LIST_BOOK_ORDER_BY is exhaustive again - that failure is the guard, do not silence it with a cast"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s6-status-sort-repo",
+      "title": "Add the raw-SQL ordering branch for the two status sorts",
+      "stage": 6,
+      "layer": "repository",
+      "specRef": "backend-spec.md:510-521",
+      "files": ["apps/api/src/modules/books/infrastructure/list-books.repository.ts"],
+      "dependsOn": ["s6-shared-status-sorts"],
+      "mandatory": true,
+      "doneWhen": [
+        "sorting by finished-ness uses an explicit CASE expression (finished = 1 else 0), never the raw reading_status string",
+        "the secondary key is i.position ASC and the tiebreaker is deterministic",
+        "the raw branch returns ids that are then hydrated through the existing Prisma include, so the page payload shape is identical to every other sort (same pattern as lists.repository.ts:283-303)",
+        "Prisma.sql placeholders only",
+        "the all-Prisma path for the other sorts is unchanged"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s6-shared-year-sorts",
+      "title": "Add year_desc and year_asc to ListBookSortSchema",
+      "stage": 6,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:523-525",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": ["s1-shared-list-sorts"],
+      "mandatory": true,
+      "doneWhen": ["ListBookSortSchema contains year_desc and year_asc"],
+      "status": "done"
+    },
+    {
+      "id": "s6-year-sorts-repo",
+      "title": "Map year_desc and year_asc through nestBookOrderBy",
+      "stage": 6,
+      "layer": "repository",
+      "specRef": "backend-spec.md:523-525",
+      "files": ["apps/api/src/modules/books/infrastructure/list-books.repository.ts"],
+      "dependsOn": ["s6-shared-year-sorts"],
+      "mandatory": true,
+      "doneWhen": [
+        "LIST_BOOK_ORDER_BY gains year_desc: nestBookOrderBy(\"year_desc\") and year_asc: nestBookOrderBy(\"year_asc\")",
+        "books without a publicationYear land last in both directions (inherited from books.repository.ts:1104-1113), asserted by a test"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s6-shared-rating-pages-filters",
+      "title": "Add the rating and page-count filters to CustomListBooksQuerySchema",
+      "stage": 6,
+      "layer": "shared-dto",
+      "specRef": "backend-spec.md:527-531",
+      "files": ["packages/shared/src/lists.ts"],
+      "dependsOn": ["s1-shared-list-books-query"],
+      "mandatory": true,
+      "doneWhen": [
+        "CustomListBooksQuerySchema gains ratingMin, ratingMax, hasRating, pagesMin, pagesMax with the same coercions and bounds as LibraryBooksQuerySchema (packages/shared/src/books.ts:852-868)",
+        "the ratingMin<=ratingMax and pagesMin<=pagesMax cross-field checks are enforced, matching books.ts:875-911 - the constraint must not exist on only one of the two endpoints"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s6-rating-pages-service",
+      "title": "Thread the rating and page filters through the list filter mapper",
+      "stage": 6,
+      "layer": "service",
+      "specRef": "backend-spec.md:527-531",
+      "files": ["apps/api/src/modules/books/domain/list-book-filter.ts"],
+      "dependsOn": ["s6-shared-rating-pages-filters"],
+      "mandatory": true,
+      "doneWhen": [
+        "the mapper passes ratingMin, ratingMax, hasRating, pagesMin, pagesMax straight into LibraryFilter",
+        "no new predicate code is written in book-where.ts - the fields are already handled at book-library-read.repository.ts:468-484 (now book-where.ts)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s6-tests-integration",
+      "title": "Integration tests for the stage-6 sorts and filters",
+      "stage": 6,
+      "layer": "test",
+      "specRef": "backend-spec.md:508-531",
+      "files": ["apps/api/src/modules/books/api/list-details.controller.filters.test.ts"],
+      "dependsOn": ["s6-status-sort-repo", "s6-year-sorts-repo", "s6-rating-pages-service"],
+      "mandatory": true,
+      "doneWhen": [
+        "test: status_unread_first puts every non-finished book before every finished one and preserves position order inside each group",
+        "test: status_read_first is the exact inverse of the group order",
+        "test: year_desc / year_asc put books without a publicationYear last",
+        "test: ratingMin/ratingMax and pagesMin/pagesMax filter inside the list and reject an inverted range with 400"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s6-openapi-final",
+      "title": "Regenerate OpenAPI and the typed client after stage 6",
+      "stage": 6,
+      "layer": "controller",
+      "specRef": "backend-spec.md:15, :567; D13",
+      "files": ["openapi.json"],
+      "dependsOn": ["s6-tests-integration"],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm --filter @app/api generate:openapi` run; openapi.json lists the full 15-value list sort enum and every new endpoint",
+        "`pnpm gen:api` run once so apps/web/src/shared/api/generated/** matches the shipped contract (generated output only, no hand edits)",
+        "`pnpm typecheck && pnpm lint && pnpm format:check` green from the repo root",
+        "`pnpm knip` reports no new unused export or dependency"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "s1-web-fixture-status-counts",
+      "title": "Add statusCounts to the web CustomListDetail fixture factory",
+      "stage": 1,
+      "layer": "test",
+      "specRef": "Consequence of s1-shared-status-counts. Discovered during slice 1A: no task owned this file.",
+      "files": ["apps/web/src/features/lists/model/lists.fixtures.ts"],
+      "dependsOn": ["s1-shared-status-counts"],
+      "mandatory": true,
+      "doneWhen": [
+        "makeCustomListDetail returns a statusCounts object with all four keys (all, finished, not_started, reading)",
+        "the four counts are overridable through the factory existing override parameter, matching how its sibling fields work",
+        "root pnpm typecheck reports no error in apps/web/src/features/lists/model/lists.fixtures.ts"
+      ],
+      "note": "apps/web is otherwise out of scope; this is the mechanical fallout of a shared-contract change, not frontend feature work.",
+      "status": "done"
+    },
+    {
+      "id": "s1-library-in-queue-tests",
+      "title": "Integration coverage for GET /api/books?inQueue",
+      "stage": 1,
+      "layer": "test",
+      "specRef": "Closes the mandatory doneWhen of s1-library-service-in-queue, found unmet by code-reviewer.",
+      "files": ["apps/api/src/modules/books/api/books.controller.library.test.ts"],
+      "dependsOn": ["s1-library-service-in-queue"],
+      "mandatory": true,
+      "status": "done",
+      "doneWhen": [
+        "inQueue=true returns only books with a non-null queuePosition",
+        "inQueue=false returns only books with a null queuePosition",
+        "the two result sets are disjoint and together cover the whole library"
+      ]
+    }
+  ]
+}

@@ -6,16 +6,36 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { Prisma as PrismaNamespace } from "../../../generated/prisma/client.js";
 import { appendBookToList } from "./book-list-membership.js";
+
+export const LIST_LIMITS = Object.freeze({
+  reorderMax: 2000,
+});
 
 export type ListMembership = {
   bookId: string;
   position: number;
 };
 
+type ActiveMembershipsInput = {
+  listId: string;
+};
+
 type AppendManyInput = {
   bookIds: string[];
   listId: string;
+};
+
+type ApplyPositionsInput = {
+  listId: string;
+  positions: ListMembership[];
+};
+
+type DeleteManyInput = {
+  bookIds: string[];
+  listId: string;
+  userId: string;
 };
 
 type FindNeighborInput = {
@@ -111,6 +131,30 @@ export class ListMembershipRepository {
     return toAppend.length;
   }
 
+  async applyPositions(
+    client: Prisma.TransactionClient,
+    { listId, positions }: ApplyPositionsInput,
+  ): Promise<void> {
+    if (positions.length === 0) {
+      return;
+    }
+
+    const values = PrismaNamespace.join(
+      positions.map(
+        ({ bookId, position }) => PrismaNamespace.sql`(${bookId}::uuid, ${position}::int)`,
+      ),
+    );
+
+    await client.$executeRaw(PrismaNamespace.sql`
+      UPDATE book_list_items t
+      SET position = v.position
+      FROM (VALUES ${values}) AS v(book_id, position)
+      WHERE t.list_id = ${listId}::uuid
+        AND t.book_id = v.book_id
+        AND t.position <> v.position
+    `);
+  }
+
   countItems(client: Prisma.TransactionClient, { listId }: ItemsCountInput): Promise<number> {
     return client.bookListItem.count({ where: { book: SOFT_DELETE_SCOPE.active, listId } });
   }
@@ -120,6 +164,31 @@ export class ListMembershipRepository {
     { bookId, listId }: ListBookInput,
   ): Promise<void> {
     await client.bookListItem.delete({ where: { listId_bookId: { bookId, listId } } });
+  }
+
+  async deleteMemberships(
+    client: Prisma.TransactionClient,
+    { bookIds, listId, userId }: DeleteManyInput,
+  ): Promise<number> {
+    if (bookIds.length === 0) {
+      return 0;
+    }
+    const result = await client.bookListItem.deleteMany({
+      where: { book: { userId }, bookId: { in: bookIds }, listId },
+    });
+    return result.count;
+  }
+
+  findActiveMemberships(
+    client: Prisma.TransactionClient,
+    { listId }: ActiveMembershipsInput,
+  ): Promise<ListMembership[]> {
+    return client.bookListItem.findMany({
+      orderBy: [{ position: "asc" }, { bookId: "asc" }],
+      select: { bookId: true, position: true },
+      take: LIST_LIMITS.reorderMax + 1,
+      where: { book: SOFT_DELETE_SCOPE.active, listId },
+    });
   }
 
   async findMembership(
@@ -168,6 +237,21 @@ export class ListMembershipRepository {
       where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
     });
     return owned.map((book) => book.id);
+  }
+
+  async resequence(client: Prisma.TransactionClient, { listId }: ListLockInput): Promise<void> {
+    await client.$executeRaw(PrismaNamespace.sql`
+      UPDATE book_list_items t
+      SET position = ranked.rn
+      FROM (
+        SELECT book_id, row_number() OVER (ORDER BY position, book_id) AS rn
+        FROM book_list_items
+        WHERE list_id = ${listId}::uuid
+      ) ranked
+      WHERE t.list_id = ${listId}::uuid
+        AND t.book_id = ranked.book_id
+        AND t.position <> ranked.rn
+    `);
   }
 
   async setPosition(

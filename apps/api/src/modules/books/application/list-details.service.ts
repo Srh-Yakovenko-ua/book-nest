@@ -1,11 +1,15 @@
 import type { CustomListBooksQuery, CustomListDetail, ListBookView } from "@app/shared";
 
-import { normalizeSearch } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+
+import type { LibraryFilter } from "../infrastructure/book-where.js";
 
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { GenresService } from "../../genres/index.js";
 import { ListsService } from "../../lists/index.js";
+import { buildListBookFilter } from "../domain/list-book-filter.js";
+import { toListStatusCounts } from "../domain/list-status-counts.js";
+import { normalizeSearchQuery } from "../infrastructure/book-search.js";
 import {
   type BookListItemWithBook,
   ListBooksRepository,
@@ -16,6 +20,11 @@ type DetailInput = {
   listId: string;
   query: CustomListBooksQuery;
   userId: string;
+};
+
+type ListBookViewInput = {
+  item: BookListItemWithBook;
+  positionRanks: Map<string, number> | undefined;
 };
 
 @Injectable()
@@ -31,35 +40,46 @@ export class ListDetailsService {
     const header = await this.listsService.findDetailHeader({ listId, userId });
 
     const { pageNumber, pageSize, sort } = query;
-    const search = normalizeSearch(query.search);
+    const search = normalizeSearchQuery(query.search);
     const searchGenreKeys =
       search === undefined
         ? undefined
         : await this.genresService.searchKeys({ query: search, userId });
 
-    const [items, totalCount] = await Promise.all([
+    const filter = buildListBookFilter({ query, search, searchGenreKeys, userId });
+    const tabCountsFilter: LibraryFilter = { ...filter, readingStatuses: undefined };
+    const narrowedByStatus = filter.readingStatuses !== undefined;
+
+    const [items, tabCounts, narrowedCount, positionRanks] = await Promise.all([
       this.listBooksRepository.listBooks({
+        filter,
         listId,
-        search,
-        searchGenreKeys,
         sort,
-        userId,
         ...pageSlice({ pageNumber, pageSize }),
       }),
-      this.listBooksRepository.countBooks({ listId, search, searchGenreKeys, userId }),
+      this.listBooksRepository.countByTab({ filter: tabCountsFilter, listId }),
+      narrowedByStatus
+        ? this.listBooksRepository.countBooks({ filter, listId })
+        : Promise.resolve(undefined),
+      sort === "position"
+        ? this.listBooksRepository.listPositionRanks({ listId, userId })
+        : Promise.resolve(undefined),
     ]);
 
     const books = buildPaginator({
-      items: items.map((item) => this.toListBookView(item)),
+      items: items.map((item) => this.toListBookView({ item, positionRanks })),
       pageNumber,
       pageSize,
-      totalCount,
+      totalCount: narrowedCount ?? tabCounts.all,
     });
 
-    return { ...header, books };
+    return { ...header, books, statusCounts: toListStatusCounts(tabCounts) };
   }
 
-  private toListBookView(item: BookListItemWithBook): ListBookView {
-    return { ...this.viewAssembler.viewOf(item.book), position: item.position };
+  private toListBookView({ item, positionRanks }: ListBookViewInput): ListBookView {
+    return {
+      ...this.viewAssembler.viewOf(item.book),
+      position: positionRanks?.get(item.bookId) ?? item.position,
+    };
   }
 }

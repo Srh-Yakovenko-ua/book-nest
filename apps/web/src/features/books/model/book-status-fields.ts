@@ -83,10 +83,6 @@ export function ownershipUsesLoan(status: OwnershipStatus): boolean {
   return status === "borrowed_from_someone" || status === "lent_to_someone";
 }
 
-export function ownershipUsesPurchase(status: OwnershipStatus): boolean {
-  return status === "want_to_buy";
-}
-
 export function pruneStatusPayload<T extends StatusPayload>(values: T): T {
   const { ownershipStatus } = values;
   return {
@@ -112,8 +108,7 @@ export function readingProgressHasData(
 }
 
 function activeOwnershipKeys(status: OwnershipStatus): readonly string[] {
-  if (ownershipUsesPurchase(status))
-    return ["storeName", "storeUrl", "expectedPrice", "currency", "note"];
+  if (ownershipUsesPurchase(status)) return ["storeName", "storeUrl", "expectedPrice", "currency"];
   if (ownershipUsesDelivery(status))
     return [
       "storeName",
@@ -132,6 +127,10 @@ function hasMeaningfulValue(value: unknown): boolean {
   if (typeof value === "string") return value.trim().length > 0;
   if (typeof value === "number") return true;
   return Boolean(value);
+}
+
+function ownershipUsesPurchase(status: OwnershipStatus): boolean {
+  return status === "want_to_buy";
 }
 
 function pickReadingProgress(values: StatusPayload): Record<string, unknown> {

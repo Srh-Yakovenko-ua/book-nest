@@ -9,7 +9,6 @@ import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 import { AddBooksToListResultSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { bookKeys } from "@/features/books/api/book-keys";
 import {
   listMembershipControllerAddBooks,
   listMembershipControllerMoveBook,
@@ -17,26 +16,24 @@ import {
 } from "@/shared/api/generated/endpoints/lists/lists";
 
 import { listKeys } from "./list-keys";
+import { useListCacheInvalidation } from "./use-list-cache";
 
 type MoveContext = {
   snapshot: [QueryKey, InfiniteData<CustomListDetail> | undefined][];
 };
 
 export function useAddBooksToList(listId: string) {
-  const queryClient = useQueryClient();
+  const cache = useListCacheInvalidation(listId);
 
   return useMutation({
     mutationFn: async (input: AddBooksToListInput): Promise<AddBooksToListResult> =>
       AddBooksToListResultSchema.parse(await listMembershipControllerAddBooks(listId, input)),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: listKeys.detail(listId) });
-      void queryClient.invalidateQueries({ queryKey: listKeys.root });
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-    },
+    onSuccess: cache.booksChanged,
   });
 }
 
 export function useMoveListBook(listId: string) {
+  const cache = useListCacheInvalidation(listId);
   const queryClient = useQueryClient();
 
   return useMutation<
@@ -46,7 +43,7 @@ export function useMoveListBook(listId: string) {
     MoveContext
   >({
     mutationFn: ({ bookId, direction }) =>
-      listMembershipControllerMoveBook(listId, bookId, { direction }),
+      listMembershipControllerMoveBook(listId, bookId, { direction, kind: "step" }),
     onError: (_error, _input, context) => {
       context?.snapshot.forEach(([key, data]) => queryClient.setQueryData(key, data));
     },
@@ -64,22 +61,26 @@ export function useMoveListBook(listId: string) {
       }
       return { snapshot };
     },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: listKeys.detail(listId) });
-    },
+    onSettled: cache.positionChanged,
+  });
+}
+
+export function useMoveListBookToPosition(listId: string) {
+  const cache = useListCacheInvalidation(listId);
+
+  return useMutation({
+    mutationFn: ({ bookId, position }: { bookId: string; position: number }) =>
+      listMembershipControllerMoveBook(listId, bookId, { kind: "index", position }),
+    onSuccess: cache.positionChanged,
   });
 }
 
 export function useRemoveBookFromList(listId: string) {
-  const queryClient = useQueryClient();
+  const cache = useListCacheInvalidation(listId);
 
   return useMutation({
     mutationFn: (bookId: string) => listMembershipControllerRemoveBook(listId, bookId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: listKeys.detail(listId) });
-      void queryClient.invalidateQueries({ queryKey: listKeys.root });
-      void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-    },
+    onSuccess: cache.booksChanged,
   });
 }
 

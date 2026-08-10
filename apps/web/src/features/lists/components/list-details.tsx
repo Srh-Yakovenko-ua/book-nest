@@ -1,23 +1,17 @@
 "use client";
 
-import type { ListBookSort } from "@app/shared";
-
 import { useTranslations } from "next-intl";
-import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
 import { useListDetail } from "../api/use-list-detail";
-import { LIST_BOOK_SORT_DEFAULT } from "../model/list-book-sort";
+import { useListDetailQuery } from "../model/use-list-detail-query";
 import { ListDetailsView } from "./list-details-view";
-
-const SEARCH_DEBOUNCE_MS = 250;
 
 type ListDetailsProps = {
   id: string;
@@ -26,12 +20,10 @@ type ListDetailsProps = {
 export function ListDetails({ id }: ListDetailsProps) {
   const t = useTranslations("lists.details.states");
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<ListBookSort>(LIST_BOOK_SORT_DEFAULT);
-  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
+  const { params } = useListDetailQuery();
 
   const { data, error, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, isPending } =
-    useListDetail(id, { search: debouncedSearch, sort });
+    useListDetail(id, params);
 
   if (isPending) {
     return (
@@ -43,7 +35,7 @@ export function ListDetails({ id }: ListDetailsProps) {
           <Skeleton className="h-4 w-48 rounded-md" />
         </div>
         <Skeleton className="h-10 w-full rounded-md" />
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(19rem,1fr))]">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]">
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton className="h-44 w-full rounded-xl" key={index} />
           ))}
@@ -89,15 +81,10 @@ export function ListDetails({ id }: ListDetailsProps) {
       id={id}
       isFetching={isFetching}
       isFetchingNextPage={isFetchingNextPage}
-      onClearSearch={() => setSearch("")}
       onLoadMore={() => {
         void fetchNextPage();
       }}
-      onSearchChange={setSearch}
-      onSortChange={setSort}
       pages={data.pages}
-      search={search}
-      sort={sort}
     />
   );
 }

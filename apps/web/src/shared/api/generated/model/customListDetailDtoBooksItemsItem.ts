@@ -90,5 +90,7 @@ export type CustomListDetailDtoBooksItemsItem = {
   translator: string | null;
   updatedAt: string;
   userId: string;
+  /** @nullable */
+  wishlistAddedAt: string | null;
   position: number;
 };

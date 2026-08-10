@@ -1,7 +1,6 @@
 ---
 name: new-slice
-description: Scaffold a new frontend feature slice in apps/web following the project's feature-sliced + Next.js App Router conventions — features/<name>/ (api, hooks, components, index) plus a locale route under app/[locale]/. Use when starting a new user-facing feature on the frontend so it lands in the canonical shape instead of ad-hoc.
-disable-model-invocation: true
+description: Scaffold a new frontend feature slice in apps/web following the project's feature-sliced + Next.js App Router conventions — features/<name>/ (api, hooks, components, index) plus a locale route under app/[locale]/. Use when starting a user-facing frontend feature or adding a new page, and when the user says "новая страница", "сделай фронт для", "новая фича на фронте", "new page", so it lands in the canonical shape instead of ad-hoc.
 ---
 
 # Scaffold a frontend feature slice (apps/web)
@@ -75,9 +74,9 @@ apps/web/src/app/[locale]/<route>/page.tsx
 
 ## 5. i18n + finish
 
-- Add every user-facing string as keys under a `<name>` namespace in all three locales — use the `/add-i18n-key` skill (keeps ru/en/uk in sync; a hook verifies parity).
+- Add every user-facing string as keys under a `<name>` namespace in both locales — use the `/add-i18n-key` skill (keeps uk/en in sync; a hook verifies parity).
 - Run the gates: `pnpm --filter @app/web typecheck`, `pnpm exec eslint apps/web`, `pnpm exec prettier --write "apps/web/src/features/<name>/**" "apps/web/src/app/[locale]/<route>/**"`.
-- Verify visually: `pnpm dev:web`, open `http://localhost:3000/ru/<route>`, screenshot via Playwright; and `curl -s` the route to confirm content is server-rendered (SEO).
+- Verify visually: `pnpm dev:web`, open `http://localhost:3000/uk/<route>`, screenshot via Playwright; and `curl -s` the route to confirm content is server-rendered (SEO).
 
 ## Rules
 

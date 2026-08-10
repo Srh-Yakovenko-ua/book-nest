@@ -11,4 +11,5 @@ import type { WishlistViewDtoSummary } from "./wishlistViewDtoSummary";
 export interface WishlistViewDto {
   books: WishlistViewDtoBooksItem[];
   summary: WishlistViewDtoSummary;
+  totalBooksCount: number;
 }

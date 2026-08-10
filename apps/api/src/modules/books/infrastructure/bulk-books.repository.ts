@@ -10,6 +10,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { acquireUserQueueLock } from "../../../core/database/queue-lock.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { WISHLIST_OWNERSHIP_STATUS } from "../domain/wishlist-added-at.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
 import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
 
@@ -239,10 +240,21 @@ export class BulkBooksRepository {
     client?: Prisma.TransactionClient,
   ): Promise<number> {
     return runInClient({ client, prisma: this.prisma }, async (tx) => {
-      const updated = await tx.book.updateMany({
-        data: { ownershipStatus },
-        where: { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId },
-      });
+      const scope = { ...SOFT_DELETE_SCOPE.active, id: { in: bookIds }, userId };
+
+      if (ownershipStatus === WISHLIST_OWNERSHIP_STATUS) {
+        await tx.book.updateMany({
+          data: { wishlistAddedAt: now },
+          where: { ...scope, ownershipStatus: { not: WISHLIST_OWNERSHIP_STATUS } },
+        });
+      } else {
+        await tx.book.updateMany({
+          data: { wishlistAddedAt: null },
+          where: { ...scope, ownershipStatus: WISHLIST_OWNERSHIP_STATUS },
+        });
+      }
+
+      const updated = await tx.book.updateMany({ data: { ownershipStatus }, where: scope });
       if (updated.count === 0) {
         return 0;
       }

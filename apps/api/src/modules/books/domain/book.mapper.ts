@@ -94,6 +94,7 @@ export function toBookView({
     translator: book.translator,
     updatedAt: book.updatedAt.toISOString(),
     userId: book.userId,
+    wishlistAddedAt: toNullableIsoDateTime(book.wishlistAddedAt),
   };
 }
 

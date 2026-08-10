@@ -57,6 +57,7 @@ export function makeBookView(overrides: Partial<BookView> = {}): BookView {
     translator: "Сергій Легеза",
     updatedAt: "2026-02-01T00:00:00.000Z",
     userId: "user-1",
+    wishlistAddedAt: null,
     ...overrides,
   };
 }

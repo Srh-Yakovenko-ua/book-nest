@@ -40,11 +40,17 @@ export class BookLoanService {
   async createLoan(userId: string, bookId: string, input: CreateLoanInput): Promise<BookView> {
     const guard = loanCreateGuard(input.direction);
     const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
-    if (!guard.expectedStatuses.includes(OwnershipStatusSchema.parse(book.ownershipStatus))) {
+    const ownershipStatus = OwnershipStatusSchema.parse(book.ownershipStatus);
+    if (!guard.expectedStatuses.includes(ownershipStatus)) {
       throw guard.conflictError;
     }
 
-    const patch = computeLoanChange({ fields: input, kind: "create" });
+    const patch = computeLoanChange({
+      fields: input,
+      kind: "create",
+      now: new Date(),
+      ownershipStatus,
+    });
     let outcome: GuardedChangeOutcome;
     try {
       outcome = await this.booksRepository.applyLoanChange(userId, bookId, patch, {

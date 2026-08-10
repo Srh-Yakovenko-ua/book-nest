@@ -451,6 +451,7 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
         translator: zod.string().nullable(),
         updatedAt: zod.string(),
         userId: zod.string(),
+        wishlistAddedAt: zod.string().nullable(),
       }),
       position: zod
         .int()
@@ -926,6 +927,7 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
         translator: zod.string().nullable(),
         updatedAt: zod.string(),
         userId: zod.string(),
+        wishlistAddedAt: zod.string().nullable(),
       }),
       position: zod
         .int()
@@ -1605,6 +1607,7 @@ export const ReadingQueueControllerReorderResponse = zod.object({
         translator: zod.string().nullable(),
         updatedAt: zod.string(),
         userId: zod.string(),
+        wishlistAddedAt: zod.string().nullable(),
       }),
       position: zod
         .int()
@@ -2078,6 +2081,7 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
         translator: zod.string().nullable(),
         updatedAt: zod.string(),
         userId: zod.string(),
+        wishlistAddedAt: zod.string().nullable(),
       }),
       position: zod
         .int()
@@ -2550,6 +2554,7 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
         translator: zod.string().nullable(),
         updatedAt: zod.string(),
         userId: zod.string(),
+        wishlistAddedAt: zod.string().nullable(),
       }),
       position: zod
         .int()

@@ -56,6 +56,7 @@ type SeedBookInput = {
   partNumber?: Nullable<number>;
   publicationYear?: Nullable<number>;
   publisherId?: Nullable<string>;
+  queuePosition?: Nullable<number>;
   rating?: number;
   readingStatus?: string;
   seriesId?: Nullable<string>;
@@ -123,6 +124,7 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
       partNumber: input.partNumber ?? null,
       publicationYear: input.publicationYear ?? null,
       publisherId: input.publisherId ?? null,
+      queuePosition: input.queuePosition ?? null,
       readingProgress:
         input.rating === undefined ? undefined : { create: { rating: input.rating } },
       readingStatus: input.readingStatus ?? "not_started",
@@ -772,6 +774,55 @@ describe("GET /api/books filters", () => {
     const res = await listBooks(accessToken, "pagesMin=500&pagesMax=100");
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe("GET /api/books inQueue filter", () => {
+  async function seedQueuedAndLooseLibrary(userId: string): Promise<void> {
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    await seedBook({ authorId: author.id, queuePosition: 1, title: "QueuedFirst", userId });
+    await seedBook({ authorId: author.id, queuePosition: 2, title: "QueuedSecond", userId });
+    await seedBook({ authorId: author.id, title: "LooseOne", userId });
+    await seedBook({ authorId: author.id, title: "LooseTwo", userId });
+  }
+
+  it("returns only books that hold a reading queue position when inQueue is true", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQueuedAndLooseLibrary(userId);
+
+    const res = await listBooks(accessToken, "inQueue=true");
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(2);
+    expect(titlesOf(res.body).sort()).toEqual(["QueuedFirst", "QueuedSecond"]);
+  });
+
+  it("returns only books outside the reading queue when inQueue is false", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQueuedAndLooseLibrary(userId);
+
+    const res = await listBooks(accessToken, "inQueue=false");
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(2);
+    expect(titlesOf(res.body).sort()).toEqual(["LooseOne", "LooseTwo"]);
+  });
+
+  it("partitions the library between books in the reading queue and books outside it", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    await seedQueuedAndLooseLibrary(userId);
+
+    const queued = await listBooks(accessToken, "inQueue=true");
+    const loose = await listBooks(accessToken, "inQueue=false");
+    const whole = await listBooks(accessToken);
+
+    const queuedIds: string[] = queued.body.items.map((item: { id: string }) => item.id);
+    const looseIds: string[] = loose.body.items.map((item: { id: string }) => item.id);
+    const wholeIds: string[] = whole.body.items.map((item: { id: string }) => item.id);
+
+    expect(queuedIds.filter((id) => looseIds.includes(id))).toEqual([]);
+    expect([...queuedIds, ...looseIds].sort()).toEqual([...wholeIds].sort());
+    expect(queued.body.totalCount + loose.body.totalCount).toBe(whole.body.totalCount);
   });
 });
 

@@ -62,6 +62,7 @@ model User {
   characterRelationships    CharacterRelationship[]
   characterGraphLayouts     CharacterGraphLayout[]
   notifications             Notification[]
+  readingGoals              ReadingGoal[]
 
   @@map("users")
 }
@@ -221,6 +222,7 @@ model Book {
   ageCategory                   String                           @default("not_specified") @map("age_category")
   readingStatus                 String                           @default("not_started") @map("reading_status")
   ownershipStatus               String                           @default("none") @map("ownership_status")
+  wishlistAddedAt               DateTime?                        @map("wishlist_added_at") @db.Timestamptz
   isFavorite                    Boolean                          @default(false) @map("is_favorite")
   isFavoriteDedication          Boolean                          @default(false) @map("is_favorite_dedication")
   favoriteAddedAt               DateTime?                        @map("favorite_added_at") @db.Timestamptz
@@ -529,10 +531,29 @@ model BookList {
   updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz
   user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   items          BookListItem[]
+  readingGoals   ReadingGoal[]
 
   @@index([userId, deletedAt])
   @@index([purgeAt])
   @@map("book_lists")
+}
+
+model ReadingGoal {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  listId      String?   @map("list_id") @db.Uuid
+  name        String?
+  targetCount Int       @map("target_count")
+  deadline    DateTime  @db.Date
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  list        BookList? @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([userId, archivedAt])
+  @@index([listId])
+  @@map("reading_goals")
 }
 
 model BookListItem {

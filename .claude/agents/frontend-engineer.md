@@ -24,7 +24,7 @@ The app is **Next.js 16 (App Router, RSC/SSR)** — not Vite/React-Router. Routi
 apps/web/src/
 ├── app/                      App Router (the routing + rendering layer)
 │   ├── layout.tsx            root layout — returns children (html/body live in [locale])
-│   ├── [locale]/             locale segment (ru | en | uk)
+│   ├── [locale]/             locale segment (uk | en)
 │   │   ├── layout.tsx        html/body, setRequestLocale, generateMetadata, providers chain
 │   │   ├── page.tsx          server component pages (use getTranslations/useTranslations)
 │   │   ├── not-found.tsx · error.tsx
@@ -114,7 +114,7 @@ The canonical, framework-agnostic statement of these levers is `docs/code-princi
    - `pnpm typecheck`
    - `pnpm lint`
    - `pnpm format`
-7. **If the change is visible, verify with Playwright.** Start dev with `pnpm dev:web` in the background, navigate to `http://localhost:3000/` (redirects to `/ru`), take a screenshot or snapshot, confirm the rendered output matches intent. For SEO/SSR changes, also `curl -s http://localhost:3000/ru` and confirm content is in the HTML before JS. Stop the dev server when done.
+7. **If the change is visible, verify with Playwright.** Start dev with `pnpm dev:web` in the background, navigate to `http://localhost:3000/` (redirects to `/uk`), take a screenshot or snapshot, confirm the rendered output matches intent. For SEO/SSR changes, also `curl -s http://localhost:3000/uk` and confirm content is in the HTML before JS. Stop the dev server when done.
 8. **Report back** with a concise summary: what changed, which files, verification status.
 
 # When you see smell

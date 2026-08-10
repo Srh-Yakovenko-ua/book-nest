@@ -5,10 +5,12 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { WishlistViewDtoSummaryCounts } from "./wishlistViewDtoSummaryCounts";
 import type { WishlistViewDtoSummaryEstimatesItem } from "./wishlistViewDtoSummaryEstimatesItem";
 
 export type WishlistViewDtoSummary = {
   booksCount: number;
+  counts: WishlistViewDtoSummaryCounts;
   estimates: WishlistViewDtoSummaryEstimatesItem[];
   trackedStoresCount: number;
 };

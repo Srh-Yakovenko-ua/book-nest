@@ -1,37 +1,38 @@
 "use client";
 
-import type { Nullable, WishlistCurrencyEstimate, WishlistSummaryView } from "@app/shared";
+import type { Nullable } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
+import { useState } from "react";
 
-import type { UiIconName } from "@/components/icons";
-
+import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatNumber } from "@/lib/format";
+import { useLibraryBooks } from "@/features/books/api/use-books";
+import { UnsetOwnershipDialog } from "@/features/books/components/unset-ownership-dialog";
+import { unsetOwnershipParams } from "@/features/books/model/unset-ownership";
 
 import type { WishlistBestOffer } from "../model/books-to-buy-derive";
 
 import { formatStorePrice } from "../model/format-store-price";
 
 const BEST_OFFERS_LIMIT = 3;
+const UNSET_OWNERSHIP_ITEM_ID = "unset_ownership";
 
 type BooksToBuySidebarProps = {
   bestOffers: WishlistBestOffer[];
   isLoading: boolean;
   onShowBestOffers: () => void;
-  summary: undefined | WishlistSummaryView;
 };
 
 export function BooksToBuySidebar({
   bestOffers,
   isLoading,
   onShowBestOffers,
-  summary,
 }: BooksToBuySidebarProps) {
   const t = useTranslations("booksToBuy.sidebar");
 
@@ -40,23 +41,13 @@ export function BooksToBuySidebar({
       aria-label={t("label")}
       className="flex flex-col gap-4 max-sm:hidden xl:sticky xl:top-6 xl:w-[19rem] xl:shrink-0"
     >
-      <SidebarBlock title={t("stats.title")}>
-        {isLoading || summary === undefined ? (
-          <RowSkeleton rows={4} />
-        ) : (
-          <WishlistStats summary={summary} />
-        )}
-      </SidebarBlock>
+      <WishlistUnsetOwnershipBlock />
 
       <WishlistBestOffersBlock
         bestOffers={bestOffers}
         isLoading={isLoading}
         onShowBestOffers={onShowBestOffers}
       />
-
-      <WishlistQuickActionsBlock />
-
-      <WishlistHowItWorksBlock />
     </aside>
   );
 }
@@ -65,7 +56,7 @@ export function WishlistBestOffersBlock({
   bestOffers,
   isLoading,
   onShowBestOffers,
-}: Omit<BooksToBuySidebarProps, "summary">) {
+}: BooksToBuySidebarProps) {
   const t = useTranslations("booksToBuy.sidebar");
 
   return (
@@ -133,6 +124,40 @@ export function WishlistQuickActionsBlock() {
   );
 }
 
+export function WishlistUnsetOwnershipBlock() {
+  const t = useTranslations("booksToBuy.sidebar.attention");
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const unsetOwnership = useLibraryBooks(unsetOwnershipParams(""));
+  const count = unsetOwnership.data?.pages[0]?.totalCount ?? 0;
+
+  return (
+    <>
+      <AttentionBlock
+        activeId={isDialogOpen ? UNSET_OWNERSHIP_ITEM_ID : null}
+        allClearLabel={t("allClear")}
+        isLoading={unsetOwnership.isPending}
+        items={
+          count === 0
+            ? []
+            : [
+                {
+                  caption: t("unsetOwnership.caption"),
+                  detail: t("unsetOwnership.detail", { count }),
+                  icon: "circle-slash",
+                  id: UNSET_OWNERSHIP_ITEM_ID,
+                  label: t("unsetOwnership.title"),
+                  toneClass: "text-warning",
+                },
+              ]
+        }
+        onSelect={() => setDialogOpen(true)}
+        title={t("title")}
+      />
+      <UnsetOwnershipDialog onOpenChange={setDialogOpen} open={isDialogOpen} />
+    </>
+  );
+}
+
 function BestOfferCover({ alt, src }: { alt: string; src: Nullable<string> }) {
   if (src === null) {
     return (
@@ -179,41 +204,6 @@ function EmptyText({ children }: { children: ReactNode }) {
   return <p className="text-xs text-muted-foreground">{children}</p>;
 }
 
-function EstimateGroup({
-  caption,
-  estimate,
-}: {
-  caption: Nullable<string>;
-  estimate: WishlistCurrencyEstimate;
-}) {
-  const t = useTranslations("booksToBuy.sidebar");
-  const locale = useLocale();
-
-  return (
-    <div className="flex flex-col gap-2">
-      {caption === null ? null : (
-        <p className="text-xs font-medium text-muted-foreground tabular-nums">{caption}</p>
-      )}
-      <dl className="flex flex-col gap-2">
-        <StatRow
-          icon="chart"
-          label={t("stats.average")}
-          value={formatStorePrice({
-            currency: estimate.currency,
-            locale,
-            price: Math.round(estimate.average),
-          })}
-        />
-        <StatRow
-          icon="tag"
-          label={t("stats.best")}
-          value={formatStorePrice({ currency: estimate.currency, locale, price: estimate.best })}
-        />
-      </dl>
-    </div>
-  );
-}
-
 function RowSkeleton({ rows }: { rows: number }) {
   return (
     <div className="flex flex-col gap-2">
@@ -233,60 +223,5 @@ function SidebarBlock({ children, title }: { children: ReactNode; title: string 
       <h2 className="font-heading text-sm font-semibold text-ink">{title}</h2>
       {children}
     </section>
-  );
-}
-
-function StatRow({ icon, label, value }: { icon: UiIconName; label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <dt className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
-        <UiIcon className="text-icon" name={icon} size={14} />
-        <span className="truncate">{label}</span>
-      </dt>
-      <dd className="shrink-0 text-sm font-semibold text-ink tabular-nums">{value}</dd>
-    </div>
-  );
-}
-
-function WishlistStats({ summary }: { summary: WishlistSummaryView }) {
-  const t = useTranslations("booksToBuy.sidebar");
-  const locale = useLocale();
-  const showCurrencyCaptions =
-    summary.estimates.length > 1 ||
-    summary.estimates.some((estimate) => estimate.booksCount < summary.booksCount);
-
-  return (
-    <div className="flex flex-col gap-3">
-      <dl className="flex flex-col gap-2">
-        <StatRow
-          icon="book"
-          label={t("stats.booksCount")}
-          value={formatNumber(summary.booksCount, locale)}
-        />
-        <StatRow
-          icon="store"
-          label={t("stats.storesCount")}
-          value={formatNumber(summary.trackedStoresCount, locale)}
-        />
-      </dl>
-      {summary.estimates.length === 0 ? (
-        <EmptyText>{t("stats.pricesEmpty")}</EmptyText>
-      ) : (
-        summary.estimates.map((estimate) => (
-          <EstimateGroup
-            caption={
-              showCurrencyCaptions
-                ? t("stats.currencyGroup", {
-                    count: estimate.booksCount,
-                    currency: estimate.currency,
-                  })
-                : null
-            }
-            estimate={estimate}
-            key={estimate.currency}
-          />
-        ))
-      )}
-    </div>
   );
 }
