@@ -1,12 +1,10 @@
 "use client";
 
-import type { BookView } from "@app/shared";
+import type { BookView, OwnershipStatus } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
-
-import type { LibraryListParams } from "@/features/books/model/library-query";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -19,29 +17,23 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useLibraryBooks } from "@/features/books/api/use-books";
-import { BookPickerResults, BookPickerSelected } from "@/features/books/components/book-picker";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { ownershipStatuses } from "@/lib/book-status";
 
-import { useAddBooksToList } from "../api/use-list-membership";
+import { useBulkOwnershipStatus } from "../api/use-book-actions";
+import { useLibraryBooks } from "../api/use-books";
+import { UNSET_OWNERSHIP, unsetOwnershipParams } from "../model/unset-ownership";
+import { BookPickerResults, BookPickerSelected } from "./book-picker";
+import { StatusChipGroup } from "./status-chip-group";
 
-const SEARCH_DEBOUNCE_MS = 250;
-const LIBRARY_PAGE_SIZE = 24;
-
-type AddBooksToListDialogProps = {
-  listBookIds: string[];
-  listId: string;
-  onOpenChange: (open: boolean) => void;
-  open: boolean;
-};
-
-export function AddBooksToListDialog({
-  listBookIds,
-  listId,
+export function UnsetOwnershipDialog({
   onOpenChange,
   open,
-}: AddBooksToListDialogProps) {
-  const t = useTranslations("lists.addBooks");
+}: {
+  onOpenChange: (open: boolean) => void;
+  open: boolean;
+}) {
+  const t = useTranslations("books.unsetOwnership");
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -50,44 +42,37 @@ export function AddBooksToListDialog({
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("subtitle")}</DialogDescription>
         </DialogHeader>
-        {open ? (
-          <AddBooksForm
-            listBookIds={listBookIds}
-            listId={listId}
-            onDone={() => onOpenChange(false)}
-          />
-        ) : null}
+        {open ? <UnsetOwnershipForm onDone={() => onOpenChange(false)} /> : null}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AddBooksForm({
-  listBookIds,
-  listId,
-  onDone,
-}: {
-  listBookIds: string[];
-  listId: string;
-  onDone: () => void;
-}) {
-  const t = useTranslations("lists.addBooks");
-  const tStatus = useTranslations("books.readingStatus.options");
-  const tToast = useTranslations("lists.details.toast");
+function UnsetOwnershipForm({ onDone }: { onDone: () => void }) {
+  const t = useTranslations("books.unsetOwnership");
+  const tOptions = useTranslations("books.ownershipStatus.options");
+  const tReading = useTranslations("books.readingStatus.options");
   const tCommon = useTranslations("common");
 
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<BookView[]>([]);
-  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
+  const [status, setStatus] = useState<OwnershipStatus>(UNSET_OWNERSHIP.defaultStatus);
+  const [isSelectingAll, setIsSelectingAll] = useState(false);
+  const debouncedSearch = useDebouncedValue(search, UNSET_OWNERSHIP.searchDebounceMs);
 
-  const addBooks = useAddBooksToList(listId);
+  const setOwnership = useBulkOwnershipStatus();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } = useLibraryBooks(
-    libraryParams(debouncedSearch),
+    unsetOwnershipParams(debouncedSearch),
   );
 
-  const inListIds = new Set(listBookIds);
-  const selectedIds = new Set(selected.map((book) => book.id));
   const results = (data?.pages ?? []).flatMap((page) => page.items);
+  const selectedIds = new Set(selected.map((book) => book.id));
+
+  const statusOptions = UNSET_OWNERSHIP.bulkStatuses.flatMap((value) => {
+    const entry = ownershipStatuses.find((option) => option.value === value);
+    if (entry === undefined) return [];
+    return [{ icon: <UiIcon name={entry.icon} size={16} />, label: tOptions(value), value }];
+  });
 
   function toggle(book: BookView) {
     setSelected((current) =>
@@ -97,14 +82,30 @@ function AddBooksForm({
     );
   }
 
+  async function selectAll() {
+    setIsSelectingAll(true);
+    try {
+      let pages = data?.pages ?? [];
+      let more = hasNextPage;
+      while (more) {
+        const nextResult = await fetchNextPage();
+        pages = nextResult.data?.pages ?? pages;
+        more = nextResult.hasNextPage;
+      }
+      setSelected(pages.flatMap((page) => page.items));
+    } finally {
+      setIsSelectingAll(false);
+    }
+  }
+
   function submit() {
     if (selected.length === 0) return;
-    addBooks.mutate(
-      { bookIds: selected.map((book) => book.id) },
+    setOwnership.mutate(
+      { bookIds: selected.map((book) => book.id), ownershipStatus: status },
       {
-        onError: () => toast.error(tToast("error")),
+        onError: () => toast.error(t("error")),
         onSuccess: (result) => {
-          toast.success(t("toast", { count: result.added }));
+          toast.success(t("toast", { count: result.affected }));
           onDone();
         },
       },
@@ -114,7 +115,18 @@ function AddBooksForm({
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <section className="flex min-w-0 flex-col gap-3">
-        <h3 className="text-sm font-medium text-ink">{t("library")}</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-medium text-ink">{t("library")}</h3>
+          <Button
+            disabled={results.length === 0 || isSelectingAll}
+            loading={isSelectingAll}
+            onClick={() => void selectAll()}
+            size="sm"
+            variant="ghost"
+          >
+            {t("selectAll")}
+          </Button>
+        </div>
         <div className="relative flex items-center">
           <UiIcon
             aria-hidden
@@ -133,13 +145,11 @@ function AddBooksForm({
         </div>
         <ScrollArea className="h-72 rounded-lg border border-border">
           <BookPickerResults
-            disabledIds={inListIds}
-            disabledLabel={t("alreadyInList")}
             emptyLabel={t("empty")}
             isPending={isPending}
             loadingLabel={tCommon("loading")}
             onToggle={toggle}
-            readingLabel={(status) => tStatus(status)}
+            readingLabel={(readingStatus) => tReading(readingStatus)}
             results={results}
             selectedIds={selectedIds}
           />
@@ -170,7 +180,7 @@ function AddBooksForm({
             </Button>
           ) : null}
         </div>
-        <ScrollArea className="h-72 rounded-lg border border-border">
+        <ScrollArea className="h-48 rounded-lg border border-border">
           <BookPickerSelected
             books={selected}
             emptyLabel={t("emptySelected")}
@@ -178,9 +188,18 @@ function AddBooksForm({
             removeLabel={t("removeSelected")}
           />
         </ScrollArea>
+        <StatusChipGroup
+          label={t("statusLabel")}
+          onValueChange={(next) => {
+            const match = UNSET_OWNERSHIP.bulkStatuses.find((value) => value === next);
+            if (match !== undefined) setStatus(match);
+          }}
+          options={statusOptions}
+          value={status}
+        />
         <Button
-          disabled={selected.length === 0 || addBooks.isPending}
-          loading={addBooks.isPending}
+          disabled={selected.length === 0 || setOwnership.isPending}
+          loading={setOwnership.isPending}
           onClick={submit}
         >
           {t("submit")}
@@ -188,21 +207,4 @@ function AddBooksForm({
       </section>
     </div>
   );
-}
-
-function libraryParams(search: string): LibraryListParams {
-  const q = search.trim();
-  return {
-    ageCategory: [],
-    author: [],
-    format: [],
-    genre: [],
-    language: [],
-    owner: [],
-    pageSize: LIBRARY_PAGE_SIZE,
-    publisher: [],
-    status: [],
-    tag: [],
-    ...(q === "" ? {} : { q }),
-  };
 }

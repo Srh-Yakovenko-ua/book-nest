@@ -18,6 +18,7 @@ import {
   WishlistBestOffersBlock,
   WishlistHowItWorksBlock,
   WishlistQuickActionsBlock,
+  WishlistUnsetOwnershipBlock,
 } from "./books-to-buy-sidebar";
 
 type BooksToBuyOverviewPanelProps = {
@@ -60,6 +61,7 @@ export function BooksToBuyOverviewPanel({
     {
       content: (
         <div className="flex flex-col gap-4">
+          <WishlistUnsetOwnershipBlock />
           <WishlistQuickActionsBlock />
           <WishlistHowItWorksBlock />
         </div>
