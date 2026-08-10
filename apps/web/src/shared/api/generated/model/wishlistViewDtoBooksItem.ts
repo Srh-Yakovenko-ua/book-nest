@@ -93,6 +93,8 @@ export type WishlistViewDtoBooksItem = {
   updatedAt: string;
   userId: string;
   /** @nullable */
+  wishlistAddedAt: string | null;
+  /** @nullable */
   bestOffer: WishlistViewDtoBooksItemBestOffer;
   storeLinks: WishlistViewDtoBooksItemStoreLinksItem[];
 };

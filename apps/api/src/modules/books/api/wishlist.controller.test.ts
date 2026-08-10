@@ -81,7 +81,17 @@ describe("GET /api/books/wishlist", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       books: [],
-      summary: { booksCount: 0, estimates: [], trackedStoresCount: 0 },
+      summary: {
+        booksCount: 0,
+        counts: {
+          addedLast30Days: 0,
+          missingFromSeries: { booksCount: 0, seriesCount: 0 },
+          nextInSeries: { booksCount: 0, seriesCount: 0 },
+          waitingOverSixMonths: 0,
+        },
+        estimates: [],
+        trackedStoresCount: 0,
+      },
     });
   });
 
@@ -147,6 +157,12 @@ describe("GET /api/books/wishlist", () => {
 
     expect(res.body.summary).toEqual({
       booksCount: 4,
+      counts: {
+        addedLast30Days: 4,
+        missingFromSeries: { booksCount: 0, seriesCount: 0 },
+        nextInSeries: { booksCount: 0, seriesCount: 0 },
+        waitingOverSixMonths: 0,
+      },
       estimates: [
         { average: 225, best: 199.5, booksCount: 2, currency: "UAH", total: 450 },
         { average: 19.99, best: 19.99, booksCount: 1, currency: "USD", total: 19.99 },

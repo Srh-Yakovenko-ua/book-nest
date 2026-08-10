@@ -58,6 +58,7 @@ type SeedBookInput = {
   readingStatus?: string;
   title?: string;
   userId: string;
+  wishlistAddedAt?: Nullable<Date>;
 };
 
 function patch(accessToken: string, path: string, body: Record<string, unknown>): request.Test {
@@ -93,6 +94,7 @@ function seedBook(input: SeedBookInput): Promise<{ id: string }> {
       readingStatus: input.readingStatus ?? "not_started",
       title: input.title ?? "Untitled",
       userId: input.userId,
+      wishlistAddedAt: input.wishlistAddedAt ?? null,
     },
     select: { id: true },
   });
@@ -421,6 +423,55 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
 
     const purchase = await prisma.bookPurchaseInfo.findUnique({ where: { bookId: book.id } });
     expect(purchase).toBeNull();
+  });
+
+  it("leaves the entry date alone for a book already on the wishlist and stamps only the newcomer", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const alreadyWishlisted = new Date("2026-01-01T00:00:00.000Z");
+    const veteran = await seedBook({
+      authorId: author.id,
+      ownershipStatus: "want_to_buy",
+      title: "Veteran",
+      userId,
+      wishlistAddedAt: alreadyWishlisted,
+    });
+    const newcomer = await seedBook({
+      authorId: author.id,
+      ownershipStatus: "none",
+      title: "Newcomer",
+      userId,
+    });
+
+    await patch(accessToken, "ownership-status", {
+      bookIds: [veteran.id, newcomer.id],
+      ownershipStatus: "want_to_buy",
+    });
+
+    const stored = await prisma.book.findMany({
+      orderBy: { title: "asc" },
+      select: { title: true, wishlistAddedAt: true },
+      where: { id: { in: [veteran.id, newcomer.id] } },
+    });
+    expect(stored[0]?.wishlistAddedAt).not.toBeNull();
+    expect(stored[1]?.wishlistAddedAt).toEqual(alreadyWishlisted);
+  });
+
+  it("clears the entry date when a bulk change moves books off the wishlist", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Frank Herbert", userId });
+    const book = await seedBook({
+      authorId: author.id,
+      ownershipStatus: "want_to_buy",
+      title: "A",
+      userId,
+      wishlistAddedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    await patch(accessToken, "ownership-status", { bookIds: [book.id], ownershipStatus: "owned" });
+
+    const stored = await prisma.book.findUniqueOrThrow({ where: { id: book.id } });
+    expect(stored.wishlistAddedAt).toBeNull();
   });
 });
 

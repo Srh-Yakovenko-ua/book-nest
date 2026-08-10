@@ -31,6 +31,12 @@ export function makeWishlistSummary(
 ): WishlistSummaryView {
   return {
     booksCount: 1,
+    counts: {
+      addedLast30Days: 0,
+      missingFromSeries: { booksCount: 0, seriesCount: 0 },
+      nextInSeries: { booksCount: 0, seriesCount: 0 },
+      waitingOverSixMonths: 0,
+    },
     estimates: [],
     trackedStoresCount: 0,
     ...overrides,

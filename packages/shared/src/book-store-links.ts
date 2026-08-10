@@ -94,8 +94,25 @@ export const WishlistCurrencyEstimateSchema = z.object({
 
 export type WishlistCurrencyEstimate = z.infer<typeof WishlistCurrencyEstimateSchema>;
 
+export const WishlistSeriesBreakdownSchema = z.object({
+  booksCount: z.number(),
+  seriesCount: z.number(),
+});
+
+export type WishlistSeriesBreakdown = z.infer<typeof WishlistSeriesBreakdownSchema>;
+
+export const WishlistCountsViewSchema = z.object({
+  addedLast30Days: z.number(),
+  missingFromSeries: WishlistSeriesBreakdownSchema,
+  nextInSeries: WishlistSeriesBreakdownSchema,
+  waitingOverSixMonths: z.number(),
+});
+
+export type WishlistCountsView = z.infer<typeof WishlistCountsViewSchema>;
+
 export const WishlistSummaryViewSchema = z.object({
   booksCount: z.number(),
+  counts: WishlistCountsViewSchema,
   estimates: z.array(WishlistCurrencyEstimateSchema),
   trackedStoresCount: z.number(),
 });

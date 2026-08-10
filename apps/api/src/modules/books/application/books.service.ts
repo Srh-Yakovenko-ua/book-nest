@@ -26,6 +26,7 @@ import {
   applyDedicationFields,
   applyFavoriteDedicationFields,
   applyFavoriteFields,
+  applyWishlistFields,
   assignScalarFields,
   normalizeDedication,
 } from "../domain/book-update-fields.js";
@@ -34,6 +35,7 @@ import {
   assertLoanPersonNamePresent,
 } from "../domain/book-update-guards.js";
 import { resolveFavoriteChange } from "../domain/favorite.js";
+import { resolveWishlistAddedAtChange } from "../domain/wishlist-added-at.js";
 import { BooksRepository, type BookWithRelations } from "../infrastructure/books.repository.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookRelationsResolver, type SeriesPlacement } from "./book-relations-resolver.js";
@@ -52,6 +54,11 @@ export class BooksService {
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
     const now = new Date();
     const favoriteChange = resolveFavoriteChange({ current: false, next: input.isFavorite, now });
+    const wishlistChange = resolveWishlistAddedAtChange({
+      current: null,
+      next: input.ownershipStatus,
+      now,
+    });
 
     const deliveryInfo =
       ownershipStatusUsesDelivery(input.ownershipStatus) && input.deliveryInfo !== undefined
@@ -124,6 +131,7 @@ export class BooksService {
             tagIds: resolved.tagIds,
             title: input.title,
             translator: input.translator ?? null,
+            wishlistAddedAt: wishlistChange?.wishlistAddedAt ?? null,
           },
           now,
           client,
@@ -187,6 +195,7 @@ export class BooksService {
         applyFavoriteFields({ current, fields, input, now });
         applyFavoriteDedicationFields({ fields, input });
         applyDedicationFields({ current, fields, input });
+        applyWishlistFields({ current, fields, input, now });
 
         return this.booksRepository.updateOwned(
           userId,

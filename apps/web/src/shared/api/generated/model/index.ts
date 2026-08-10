@@ -1433,5 +1433,8 @@ export * from "./wishlistViewDtoBooksItemStoreLinksItem";
 export * from "./wishlistViewDtoBooksItemStoreLinksItemCurrency";
 export * from "./wishlistViewDtoBooksItemTagsItem";
 export * from "./wishlistViewDtoSummary";
+export * from "./wishlistViewDtoSummaryCounts";
+export * from "./wishlistViewDtoSummaryCountsMissingFromSeries";
+export * from "./wishlistViewDtoSummaryCountsNextInSeries";
 export * from "./wishlistViewDtoSummaryEstimatesItem";
 export * from "./wishlistViewDtoSummaryEstimatesItemCurrency";

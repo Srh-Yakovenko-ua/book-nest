@@ -90,5 +90,7 @@ export type ListOverviewViewDtoCurrentlyReadingBook = {
   translator: string | null;
   updatedAt: string;
   userId: string;
+  /** @nullable */
+  wishlistAddedAt: string | null;
   position: number;
 };

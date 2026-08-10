@@ -23,6 +23,7 @@ import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/databa
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { WISHLIST_OWNERSHIP_STATUS } from "../domain/wishlist-added-at.js";
 import { buildBookSearchConditions } from "./book-search.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
 import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
@@ -143,6 +144,11 @@ const readingSnapshotSelect = {
 export type BlockUpsert<TCreate, TUpdate> =
   { create: TCreate; update: TUpdate } | { delete: true } | { skip: true };
 
+export type BookOwnershipFields = {
+  ownershipStatus?: OwnershipStatus;
+  wishlistAddedAt?: Nullable<Date>;
+};
+
 export type BookPurgeRow = Prisma.BookGetPayload<{ select: typeof purgeSelect }>;
 
 export type BookWithRelations = Prisma.BookGetPayload<{
@@ -200,14 +206,14 @@ export type LoanBlockChange =
 
 export type LoanChangePatch =
   | {
-      book: { ownershipStatus?: OwnershipStatus };
+      book: BookOwnershipFields;
       kind: "create";
       loan: CreateLoanInfoData & { type: LoanType };
     }
-  | { book: { ownershipStatus?: OwnershipStatus }; kind: "return"; returnedAt: Date };
+  | { book: BookOwnershipFields; kind: "return"; returnedAt: Date };
 
 export type OwnershipChangePatch = {
-  book: { ownershipStatus?: OwnershipStatus };
+  book: BookOwnershipFields;
   purchaseInfo?: "delete" | OwnershipPurchaseInfoPatch;
 };
 
@@ -231,6 +237,11 @@ export type ReadingProgressEventData = {
 };
 
 export type ReadingSnapshotRow = Prisma.BookGetPayload<{ select: typeof readingSnapshotSelect }>;
+
+export type SeriesWishlistAnchorRow = {
+  highestPartNumberOutsideWishlist: Nullable<number>;
+  seriesId: Nullable<string>;
+};
 
 export type StatusGuard = { expectedStatuses: OwnershipStatus[] };
 
@@ -311,6 +322,7 @@ type CreateBookData = {
   tagIds: string[];
   title: string;
   translator: Nullable<string>;
+  wishlistAddedAt: Nullable<Date>;
 };
 
 type DedicationsSummaryResult = {
@@ -733,6 +745,35 @@ export class BooksRepository {
     });
   }
 
+  async listSeriesWishlistAnchors({
+    client,
+    seriesIds,
+    userId,
+  }: {
+    client?: Prisma.TransactionClient;
+    seriesIds: string[];
+    userId: string;
+  }): Promise<SeriesWishlistAnchorRow[]> {
+    if (seriesIds.length === 0) {
+      return [];
+    }
+    const db = client ?? this.prisma;
+    const rows = await db.book.groupBy({
+      _max: { partNumber: true },
+      by: ["seriesId"],
+      where: {
+        ...SOFT_DELETE_SCOPE.active,
+        ownershipStatus: { not: WISHLIST_OWNERSHIP_STATUS },
+        seriesId: { in: seriesIds },
+        userId,
+      },
+    });
+    return rows.map((row) => ({
+      highestPartNumberOutsideWishlist: row._max.partNumber,
+      seriesId: row.seriesId,
+    }));
+  }
+
   async listTrashed({
     skip,
     take,
@@ -1006,7 +1047,7 @@ export class BooksRepository {
     }: {
       bookId: string;
       expectedStatuses: OwnershipStatus[];
-      fields: { ownershipStatus?: OwnershipStatus };
+      fields: BookOwnershipFields;
       userId: string;
     },
   ): Promise<GuardedChangeOutcome> {

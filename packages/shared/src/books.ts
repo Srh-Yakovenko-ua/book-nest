@@ -1123,6 +1123,7 @@ export const BookViewSchema = z.object({
   translator: z.string().nullable(),
   updatedAt: z.string(),
   userId: z.string(),
+  wishlistAddedAt: z.string().nullable(),
 });
 
 export type BookView = z.infer<typeof BookViewSchema>;

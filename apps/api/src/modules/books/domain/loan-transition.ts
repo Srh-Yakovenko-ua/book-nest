@@ -14,10 +14,14 @@ import type {
 } from "../infrastructure/books.repository.js";
 
 import { parseIsoDate } from "../../../core/iso-date.js";
+import { buildBookOwnershipFields } from "./book-ownership-fields.js";
 
-export type LoanTransitionInput =
-  | { fields: CreateLoanInput; kind: "create" }
-  | { kind: "return"; now: Date; ownershipStatus: OwnershipStatus };
+export type LoanTransitionInput = (
+  { fields: CreateLoanInput; kind: "create" } | { kind: "return" }
+) & {
+  now: Date;
+  ownershipStatus: OwnershipStatus;
+};
 
 export function buildLoanEditData({
   existingLoanDate,
@@ -54,7 +58,11 @@ export function computeLoanChange(input: LoanTransitionInput): LoanChangePatch {
     case "create": {
       const type = DIRECTION_LOAN_TYPE[input.fields.direction];
       return {
-        book: { ownershipStatus: type },
+        book: buildBookOwnershipFields({
+          current: input.ownershipStatus,
+          next: type,
+          now: input.now,
+        }),
         kind: "create",
         loan: { ...buildLoanInfo(input.fields), type },
       };

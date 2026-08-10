@@ -222,6 +222,7 @@ model Book {
   ageCategory                   String                           @default("not_specified") @map("age_category")
   readingStatus                 String                           @default("not_started") @map("reading_status")
   ownershipStatus               String                           @default("none") @map("ownership_status")
+  wishlistAddedAt               DateTime?                        @map("wishlist_added_at") @db.Timestamptz
   isFavorite                    Boolean                          @default(false) @map("is_favorite")
   isFavoriteDedication          Boolean                          @default(false) @map("is_favorite_dedication")
   favoriteAddedAt               DateTime?                        @map("favorite_added_at") @db.Timestamptz
