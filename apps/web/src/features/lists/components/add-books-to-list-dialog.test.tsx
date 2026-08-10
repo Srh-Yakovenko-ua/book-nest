@@ -26,6 +26,11 @@ function addCall() {
   ) as [string, RequestInit] | undefined;
 }
 
+function booksCall() {
+  return fetchMock.mock.calls.find(([url]) => String(url).includes("/api/books")) as
+    [string, RequestInit] | undefined;
+}
+
 function booksPage(items: BookView[]) {
   return { items, page: 1, pagesCount: 1, pageSize: 24, totalCount: items.length };
 }
@@ -43,21 +48,16 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function renderDialog(listBookIds: string[] = [], onOpenChange = vi.fn()) {
+function renderDialog(onOpenChange = vi.fn()) {
   return renderWithProviders(
-    <AddBooksToListDialog
-      listBookIds={listBookIds}
-      listId="list-1"
-      onOpenChange={onOpenChange}
-      open
-    />,
+    <AddBooksToListDialog listId="list-1" onOpenChange={onOpenChange} open />,
   );
 }
 
 beforeEach(() => {
   respondToAdd = () => jsonResponse({ added: 1, bookCount: 1 });
   booksResult = [
-    makeBookView({ id: "book-in", title: "Вже додана" }),
+    makeBookView({ id: "book-one", title: "Перша книга" }),
     makeBookView({ id: "book-free", title: "Вільна книга" }),
   ];
   fetchMock.mockReset();
@@ -77,12 +77,11 @@ afterEach(() => {
 });
 
 describe("AddBooksToListDialog", () => {
-  it("marks books already in the list as unavailable", async () => {
-    renderDialog(["book-in"]);
+  it("asks the server to exclude the books already in the list", async () => {
+    renderDialog();
+    await screen.findByText("Вільна книга");
 
-    expect(await screen.findByText("Вже додана")).toBeInTheDocument();
-    expect(screen.getByText("Уже в списку")).toBeInTheDocument();
-    expect(checkboxAt(0)).toBeDisabled();
+    expect(String(booksCall()?.[0])).toContain("notInList=list-1");
   });
 
   it("keeps the submit action disabled until a book is selected", async () => {
@@ -97,9 +96,18 @@ describe("AddBooksToListDialog", () => {
     expect(screen.getByText("Вибрано книг: 1")).toBeInTheDocument();
   });
 
-  it("adds the selected books and confirms with a toast", async () => {
+  it("selects every loaded book and says how many that is", async () => {
+    renderDialog();
+    await screen.findByText("Вільна книга");
+
+    await userEvent.click(screen.getByRole("button", { name: "Вибрати всі показані (2)" }));
+
+    expect(screen.getByText("Вибрано книг: 2")).toBeInTheDocument();
+  });
+
+  it("adds the selected books, confirms with a toast and stays open", async () => {
     const onOpenChange = vi.fn();
-    renderDialog([], onOpenChange);
+    renderDialog(onOpenChange);
     await screen.findByText("Вільна книга");
 
     await userEvent.click(checkboxAt(1));
@@ -109,7 +117,8 @@ describe("AddBooksToListDialog", () => {
     expect(String(addCall()?.[0])).toContain("/api/lists/list-1/books");
     expect(JSON.parse(String(addCall()?.[1].body))).toEqual({ bookIds: ["book-free"] });
     expect(toast.success).toHaveBeenCalledWith("1 книгу додано до списку");
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(await screen.findByText("Вибрано книг: 0")).toBeInTheDocument();
   });
 
   it("shows an empty state when the library search returns nothing", async () => {

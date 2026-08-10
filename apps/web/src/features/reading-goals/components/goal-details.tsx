@@ -9,35 +9,32 @@ import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/http-client";
 import { cn } from "@/lib/utils";
 
-import { useListDetail } from "../api/use-list-detail";
-import { useListDetailQuery } from "../model/use-list-detail-query";
-import { ListDetailsView } from "./list-details-view";
+import { useGoalDetail } from "../api/use-goal-detail";
+import { GoalDetailsView } from "./goal-details-view";
 
-type ListDetailsProps = {
+const NOT_FOUND_STATUS = 404;
+
+type GoalDetailsProps = {
   id: string;
 };
 
-export function ListDetails({ id }: ListDetailsProps) {
-  const t = useTranslations("lists.details.states");
+export function GoalDetails({ id }: GoalDetailsProps) {
+  const t = useTranslations("goals.detail");
   const router = useRouter();
-  const { params } = useListDetailQuery();
-
-  const { data, error, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, isPending } =
-    useListDetail(id, params);
+  const { data, error, isPending } = useGoalDetail(id);
 
   if (isPending) {
     return (
       <output aria-busy="true" aria-label={t("loading")} className="flex flex-col gap-6 lg:gap-8">
-        <Skeleton className="h-6 w-40 rounded-md" />
+        <Skeleton className="h-5 w-40 rounded-md" />
         <div className="flex flex-col gap-3">
-          <Skeleton className="h-9 w-64 rounded-lg" />
-          <Skeleton className="h-5 w-full max-w-xl rounded-md" />
-          <Skeleton className="h-4 w-48 rounded-md" />
+          <Skeleton className="h-9 w-72 rounded-lg" />
+          <Skeleton className="h-5 w-56 rounded-md" />
         </div>
-        <Skeleton className="h-10 w-full rounded-md" />
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton className="h-44 w-full rounded-xl" key={index} />
+        <Skeleton className="h-28 w-full rounded-xl" />
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton className="h-16 w-full rounded-lg" key={index} />
           ))}
         </div>
       </output>
@@ -45,7 +42,7 @@ export function ListDetails({ id }: ListDetailsProps) {
   }
 
   if (error !== null) {
-    const isNotFound = error instanceof ApiError && error.status === 404;
+    const isNotFound = error instanceof ApiError && error.status === NOT_FOUND_STATUS;
     return (
       <div
         className="mx-auto flex max-w-md flex-col items-center gap-4 px-6 py-16 text-center motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
@@ -69,22 +66,11 @@ export function ListDetails({ id }: ListDetailsProps) {
         </div>
         <Button onClick={() => router.push("/lists")} variant="secondary">
           <UiIcon name="arrow-left" size={16} />
-          {t("back")}
+          {t("backToLists")}
         </Button>
       </div>
     );
   }
 
-  return (
-    <ListDetailsView
-      hasNextPage={hasNextPage}
-      id={id}
-      isFetching={isFetching}
-      isFetchingNextPage={isFetchingNextPage}
-      onLoadMore={() => {
-        void fetchNextPage();
-      }}
-      pages={data.pages}
-    />
-  );
+  return <GoalDetailsView goal={data} />;
 }

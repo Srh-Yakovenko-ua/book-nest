@@ -3206,17 +3206,22 @@
       "loadMore": "Показати ще",
       "toolbar": {
         "search": "Пошук у списку…",
+        "counter": "Показано {shown} з {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}}",
         "sort": {
           "label": "Сортування",
-          "position": "Позиція в списку",
-          "added_desc": "Нові додані спочатку",
-          "added_asc": "Старі додані спочатку",
-          "title_asc": "Назва А–Я",
-          "title_desc": "Назва Я–А",
-          "author_asc": "Автор А–Я",
-          "rating_desc": "Найвищий рейтинг",
-          "pages_desc": "Більше сторінок",
-          "pages_asc": "Менше сторінок"
+          "position": "За позицією в списку",
+          "added_desc": "За датою додавання: спочатку нові",
+          "added_asc": "За датою додавання: спочатку старі",
+          "title_asc": "За назвою: А–Я",
+          "title_desc": "За назвою: Я–А",
+          "author_asc": "За автором: А–Я",
+          "author_desc": "За автором: Я–А",
+          "status_unread_first": "За статусом: спочатку непрочитані",
+          "status_read_first": "За статусом: спочатку прочитані",
+          "rating_desc": "За рейтингом: від вищого",
+          "rating_asc": "За рейтингом: від нижчого",
+          "pages_desc": "За кількістю сторінок: від більшої",
+          "pages_asc": "За кількістю сторінок: від меншої"
         }
       },
       "header": {
@@ -3224,8 +3229,9 @@
         "manage": "Дії зі списком",
         "edit": "Редагувати список",
         "delete": "Видалити список",
-        "created": "Створено {date}",
-        "updated": "Оновлено {date}"
+        "updated": "Оновлено {date}",
+        "coverAlt": "Обкладинка книги з добірки «{name}»",
+        "duplicate": "Дублювати список"
       },
       "book": {
         "actions": "Дії з книгою: {title}",
@@ -3237,7 +3243,16 @@
         "addToQueue": "Додати в чергу",
         "inQueue": "У черзі",
         "goToQueue": "Перейти до черги",
-        "addToOtherList": "Додати до іншого списку"
+        "addToOtherList": "Додати до іншого списку",
+        "cta": {
+          "continue": "Продовжити читання",
+          "resume": "Відновити читання",
+          "start": "Почати читання",
+          "view": "Переглянути книгу"
+        },
+        "favorite": "Додати до улюблених",
+        "unfavorite": "Прибрати з улюблених",
+        "unknownAuthor": "Автор невідомий"
       },
       "remove": {
         "toast": "Книгу прибрано зі списку",
@@ -3245,7 +3260,8 @@
       },
       "toast": {
         "addedToQueue": "Книгу додано в чергу читання",
-        "error": "Щось пішло не так"
+        "error": "Щось пішло не так",
+        "startedReading": "Читання розпочато"
       },
       "noResults": {
         "title": "Книг не знайдено",
@@ -3256,7 +3272,19 @@
         "title": "У цьому списку ще немає книг",
         "description": "Додайте книги зі своєї бібліотеки, щоб наповнити цей список.",
         "addBooks": "Додати книги",
-        "back": "Повернутися до списків"
+        "back": "Повернутися до списків",
+        "filtered": {
+          "title": "Немає книг за цими умовами",
+          "description": "Спробуйте прибрати частину фільтрів або скиньте їх усі.",
+          "conditions": "Активні умови: {conditions}",
+          "reset": "Скинути фільтри"
+        },
+        "tab": {
+          "all": "У цій добірці ще немає книг.",
+          "not_started": "У цій добірці ще немає нерозпочатих книг.",
+          "reading": "У цій добірці немає книг, які ви зараз читаєте.",
+          "finished": "У цій добірці ще немає прочитаних книг."
+        }
       },
       "states": {
         "loading": "Завантаження списку…",
@@ -3265,6 +3293,143 @@
         "errorTitle": "Не вдалося завантажити список",
         "errorDescription": "Спробуйте оновити сторінку.",
         "back": "Повернутися до списків"
+      },
+      "tabs": {
+        "label": "Швидкі фільтри за статусом",
+        "all": "Усі",
+        "not_started": "Не розпочаті",
+        "reading": "Читаю",
+        "finished": "Прочитані"
+      },
+      "view": {
+        "label": "Режим перегляду",
+        "grid": "Сітка",
+        "list": "Список"
+      },
+      "reorder": {
+        "announced": "Книгу «{title}» переміщено на позицію {n} з {total}",
+        "handle": "Змінити порядок книги «{title}»",
+        "handleHint": "Перетягніть, щоб змінити порядок, або скористайтеся стрілками",
+        "hint": "Щоб змінити порядок книг, виберіть сортування «Позиція в списку» та скиньте пошук і фільтри."
+      },
+      "selection": {
+        "addToList": "Додати до іншого списку",
+        "addToQueue": "Додати в чергу",
+        "addedToList": "{count, plural, one {# книгу додано до іншого списку} few {# книги додано до іншого списку} many {# книг додано до іншого списку} other {# книг додано до іншого списку}}",
+        "addedToQueue": "{count, plural, one {# книгу додано в чергу} few {# книги додано в чергу} many {# книг додано в чергу} other {# книг додано в чергу}}",
+        "clear": "Очистити вибір",
+        "enter": "Вибрати",
+        "exit": "Готово",
+        "favorite": "Додати до улюблених",
+        "favoriteDone": "{count, plural, one {# книгу додано до улюблених} few {# книги додано до улюблених} many {# книг додано до улюблених} other {# книг додано до улюблених}}",
+        "favoriteMenu": "Улюблені",
+        "regionLabel": "Масові дії",
+        "remove": "Прибрати зі списку",
+        "removed": "{count, plural, one {# книгу прибрано зі списку} few {# книги прибрано зі списку} many {# книг прибрано зі списку} other {# книг прибрано зі списку}}",
+        "selectAll": "Вибрати все",
+        "selectBook": "Вибрати книгу «{title}»",
+        "selected": "Вибрано {selected, number} із {loaded, plural, one {# завантаженої} few {# завантажених} many {# завантажених} other {# завантажених}}",
+        "unfavorite": "Прибрати з улюблених",
+        "unfavoriteDone": "{count, plural, one {# книгу прибрано з улюблених} few {# книги прибрано з улюблених} many {# книг прибрано з улюблених} other {# книг прибрано з улюблених}}"
+      },
+      "filters": {
+        "button": "Фільтри",
+        "title": "Фільтри",
+        "description": "Звузьте добірку за статусом, наявністю, форматом та іншими умовами.",
+        "activeCount": "Фільтри, активних умов: {count}",
+        "reset": "Скинути",
+        "apply": "Застосувати",
+        "groups": {
+          "status": "Статус читання",
+          "ownership": "Наявність книги",
+          "format": "Формат",
+          "queue": "У черзі читання",
+          "favorite": "Тільки улюблені",
+          "author": "Автор",
+          "genre": "Жанр",
+          "series": "Серійність"
+        },
+        "ownership": {
+          "none": "Немає у власності"
+        },
+        "queue": {
+          "all": "Байдуже",
+          "in": "У черзі",
+          "notIn": "Не в черзі"
+        },
+        "favorite": {
+          "only": "Показувати лише улюблені"
+        },
+        "series": {
+          "all": "Усі",
+          "series_part": "Серійні книги",
+          "solo": "Окремі книги"
+        },
+        "author": {
+          "placeholder": "Будь-який автор",
+          "search": "Пошук автора…",
+          "empty": "Авторів не знайдено",
+          "selected": "{count, plural, one {# автор} few {# автори} many {# авторів} other {# авторів}}"
+        },
+        "genre": {
+          "placeholder": "Будь-який жанр",
+          "search": "Пошук жанру…",
+          "empty": "Жанрів не знайдено",
+          "selected": "{count, plural, one {# жанр} few {# жанри} many {# жанрів} other {# жанрів}}"
+        }
+      },
+      "stats": {
+        "total": {
+          "title": "Усього книг",
+          "value": "{count, plural, one {книга} few {книги} many {книг} other {книги}}",
+          "caption": "{count, plural, one {Від # автора} few {Від # різних авторів} many {Від # різних авторів} other {Від # різних авторів}}"
+        },
+        "finished": {
+          "title": "Прочитано",
+          "value": "{count, plural, one {книга} few {книги} many {книг} other {книги}}",
+          "caption": "{percent}% усієї добірки",
+          "captionEmpty": "Ще жодної прочитаної книги"
+        },
+        "inQueue": {
+          "title": "У черзі читання",
+          "value": "{count, plural, one {книга} few {книги} many {книг} other {книги}}",
+          "caption": "{count, plural, one {# книгу ще не додано до черги} few {# книги ще не додано до черги} many {# книг ще не додано до черги} other {# книг ще не додано до черги}}",
+          "captionEmpty": "Жодної книги ще не заплановано",
+          "captionFull": "Уся добірка вже запланована"
+        },
+        "owned": {
+          "title": "Є у власності",
+          "value": "{count, plural, one {книга} few {книги} many {книг} other {книги}}",
+          "caption": "{count, plural, one {# книга ще не у власності} few {# книги ще не у власності} many {# книг ще не у власності} other {# книг ще не у власності}}",
+          "captionEmpty": "Жодної книги ще немає у власності",
+          "captionFull": "Уся добірка у власності"
+        }
+      },
+      "sidebar": {
+        "label": "Більше про добірку",
+        "currentlyReading": {
+          "title": "Зараз читаються",
+          "cta": "Продовжити читання",
+          "coverAlt": "Обкладинка книги «{title}»",
+          "unknownAuthor": "Автор невідомий",
+          "progress": "стор. {current} з {total} · {percent}%",
+          "progressPage": "стор. {current}",
+          "progressLabel": "Прогрес читання: {percent}%",
+          "others": "{count, plural, one {Ще # книга читається} few {Ще # книги читаються} many {Ще # книг читаються} other {Ще # книг читаються}}"
+        },
+        "about": {
+          "title": "Про добірку",
+          "genres": "{count, plural, one {# жанр} few {# жанри} many {# жанрів} other {# жанрів}}",
+          "seriesAndSolo": "{series, plural, one {# серія} few {# серії} many {# серій} other {# серій}} · {solo, plural, one {# окрема книга} few {# окремі книги} many {# окремих книг} other {# окремих книг}}",
+          "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",
+          "pagesPartial": "Для {known, number} із {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}}"
+        },
+        "related": {
+          "title": "Спільні книги з іншими списками",
+          "shared": "{shared, plural, one {# спільна книга} few {# спільні книги} many {# спільних книг} other {# спільних книг}} з {total, number}",
+          "showAll": "Показати всі ({count})",
+          "collapse": "Згорнути"
+        }
       }
     },
     "catalog": {
@@ -3455,7 +3620,8 @@
         "created": "Список створено",
         "updated": "Список оновлено",
         "deleted": "Список видалено",
-        "error": "Не вдалося оновити список"
+        "error": "Не вдалося оновити список",
+        "duplicated": "Список продубльовано"
       }
     },
     "addBooks": {
@@ -3464,14 +3630,14 @@
       "library": "Ваша бібліотека",
       "search": "Пошук за назвою або автором…",
       "selected": "Вибрано книг: {count}",
-      "alreadyInList": "Уже в списку",
       "clear": "Очистити",
       "submit": "Додати до списку",
       "empty": "Книг не знайдено",
       "loadMore": "Показати ще",
       "emptySelected": "Ще не вибрано жодної книги",
       "removeSelected": "Прибрати з вибраних",
-      "toast": "{count, plural, one {# книгу додано до списку} few {# книги додано до списку} many {# книг додано до списку} other {# книг додано до списку}}"
+      "toast": "{count, plural, one {# книгу додано до списку} few {# книги додано до списку} many {# книг додано до списку} other {# книг додано до списку}}",
+      "selectLoaded": "Вибрати всі показані ({count})"
     }
   },
   "legal": {
@@ -5366,6 +5532,106 @@
         "description": "Перевірте зʼєднання та спробуйте ще раз.",
         "retry": "Спробувати ще раз"
       }
+    }
+  },
+  "goals": {
+    "fallbackName": "Прочитати {count, plural, one {# книгу} few {# книги} many {# книг} other {# книг}} до {date}",
+    "sidebar": {
+      "title": "Ціль для добірки",
+      "emptyDescription": "Перетворіть цю тематичну добірку на читацький виклик.",
+      "noBooksHint": "Спочатку додайте книги до списку",
+      "loading": "Завантаження цілі…",
+      "create": "Створити ціль",
+      "createNew": "Створити нову ціль",
+      "view": "Переглянути ціль",
+      "progress": "{completed} із {target} виконано",
+      "progressLabel": "Прогрес цілі: {percent}%",
+      "remaining": "Залишилося {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "completed": {
+        "title": "Ціль виконана",
+        "detail": "{completed} із {target} · завершено {date}",
+        "detailPlain": "{completed} із {target} · виконано"
+      },
+      "expired": {
+        "title": "Дедлайн минув",
+        "detail": "{completed} із {target} · прострочено на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "detailPlain": "{completed} із {target} · дедлайн минув"
+      }
+    },
+    "form": {
+      "title": "Створити ціль для добірки",
+      "editTitle": "Редагувати ціль",
+      "source": "Джерело книг: «{name}»",
+      "sourceBooks": "{count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "name": "Назва цілі",
+      "nameOptional": "необовʼязково",
+      "namePlaceholder": "Прочитати книги зі списку «{name}»",
+      "targetCount": "Прочитати книг",
+      "targetHint": "У списку {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "deadline": "До дати",
+      "deadlinePlaceholder": "Оберіть дату",
+      "explanation": "Ціль рахується лише за книгами з цього списку, прочитаними після її створення.",
+      "cancel": "Скасувати",
+      "submit": "Створити ціль",
+      "save": "Зберегти",
+      "errors": {
+        "required": "Заповніть це поле",
+        "deadlinePast": "Оберіть дату пізніше за сьогодні",
+        "nameMax": "Назва не довша за {max} символів",
+        "targetMin": "Щонайменше одна книга",
+        "targetMax": "У списку лише {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}"
+      }
+    },
+    "detail": {
+      "metaTitle": "Ціль читання",
+      "back": "До списку «{name}»",
+      "backToLists": "До списків",
+      "deadline": "до {date}",
+      "daysLeft": "залишилося {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "daysOverdue": "прострочено на {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "completedOn": "завершено {date}",
+      "progress": "{completed} із {target} · {percent}%",
+      "progressLabel": "Прогрес цілі: {percent}%",
+      "remaining": "Залишилося {count, plural, one {# книга} few {# книги} many {# книг} other {# книг}}",
+      "countedBooks": "Зараховані книги ({count})",
+      "countedEmpty": "Ще жодної книги не зараховано",
+      "countedEmptyHint": "У ціль зараховуються лише книги зі списку, дочитані після її створення.",
+      "finishedOn": "дочитано {date}",
+      "coverAlt": "Обкладинка книги «{title}»",
+      "edit": "Редагувати ціль",
+      "archive": "Архівувати",
+      "delete": "Видалити",
+      "loading": "Завантаження цілі…",
+      "notFoundTitle": "Ціль не знайдено",
+      "notFoundDescription": "Можливо, її було видалено або вона належить іншому користувачеві.",
+      "errorTitle": "Не вдалося завантажити ціль",
+      "errorDescription": "Спробуйте оновити сторінку.",
+      "archiveDialog": {
+        "title": "Заархівувати ціль?",
+        "description": "Ціль зникне з бічної панелі списку й лишиться доступною лише за прямим посиланням. Список зможе прийняти нову ціль.",
+        "cancel": "Скасувати",
+        "confirm": "Заархівувати"
+      },
+      "deleteDialog": {
+        "title": "Видалити ціль?",
+        "description": "Ціль буде видалено назавжди. Книги та їхній прогрес читання це не змінить.",
+        "cancel": "Скасувати",
+        "confirm": "Видалити"
+      }
+    },
+    "status": {
+      "active": "Активна",
+      "completed": "Виконана",
+      "expired": "Прострочена",
+      "archived": "Заархівована"
+    },
+    "toast": {
+      "created": "Ціль створено",
+      "updated": "Ціль оновлено",
+      "archived": "Ціль заархівовано",
+      "deleted": "Ціль видалено",
+      "conflict": "Для цього списку вже є активна ціль",
+      "error": "Щось пішло не так"
     }
   }
 }
