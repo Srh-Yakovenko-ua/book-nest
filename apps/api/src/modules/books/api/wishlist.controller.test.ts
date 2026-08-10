@@ -60,9 +60,9 @@ async function createBook(accessToken: string, body: Record<string, unknown>): P
   return created.body.id;
 }
 
-function getWishlist(accessToken: string): request.Test {
+function getWishlist(accessToken: string, query = ""): request.Test {
   return request(app.getHttpServer())
-    .get("/api/books/wishlist")
+    .get(`/api/books/wishlist${query}`)
     .set("Authorization", `Bearer ${accessToken}`);
 }
 
@@ -92,6 +92,7 @@ describe("GET /api/books/wishlist", () => {
         estimates: [],
         trackedStoresCount: 0,
       },
+      totalBooksCount: 0,
     });
   });
 
@@ -169,6 +170,45 @@ describe("GET /api/books/wishlist", () => {
       ],
       trackedStoresCount: 4,
     });
+    expect(res.body.totalBooksCount).toBe(4);
+  });
+
+  it("filters a price range within the selected currency", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const matching = await createBook(accessToken, {
+      ownershipStatus: "want_to_buy",
+      title: "Matching",
+    });
+    await addStoreLink(accessToken, matching, {
+      currency: "UAH",
+      price: 250,
+      storeName: "Bookstore",
+      url: "https://example.com/matching",
+    });
+    const otherCurrency = await createBook(accessToken, {
+      ownershipStatus: "want_to_buy",
+      title: "Other currency",
+    });
+    await addStoreLink(accessToken, otherCurrency, {
+      currency: "USD",
+      price: 250,
+      storeName: "Bookstore",
+      url: "https://example.com/other-currency",
+    });
+
+    const res = await getWishlist(accessToken, "?priceCurrency=UAH&priceMin=200&priceMax=300");
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.map((book: WishlistBook) => book.title)).toEqual(["Matching"]);
+    expect(res.body.totalBooksCount).toBe(2);
+  });
+
+  it("requires a currency when filtering by price", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getWishlist(accessToken, "?priceMin=100");
+
+    expect(res.status).toBe(400);
   });
 
   it("never leaks wishlist books that belong to another user", async () => {

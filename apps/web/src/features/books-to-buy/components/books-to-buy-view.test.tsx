@@ -28,7 +28,7 @@ vi.mock("sonner", () => ({
 
 const fetchMock = vi.fn();
 
-let respondToWishlist: () => Promise<Response>;
+let respondToWishlist: (url: string) => Promise<Response>;
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -45,6 +45,7 @@ function wishlistOf(books: WishlistBookView[], summary?: Partial<WishlistSummary
   return {
     books,
     summary: makeWishlistSummary({ booksCount: books.length, ...summary }),
+    totalBooksCount: books.length,
   };
 }
 
@@ -55,7 +56,7 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/genres")) return Promise.resolve(jsonResponse(DETAILS_GENRES_FIXTURE));
-    if (url.includes("/api/books/wishlist")) return respondToWishlist();
+    if (url.includes("/api/books/wishlist")) return respondToWishlist(url);
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -86,6 +87,18 @@ describe("BooksToBuyView", () => {
 
     expect(await screen.findByRole("heading", { name: "Альфа" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Бета" })).toBeInTheDocument();
+  });
+
+  it("switches between grid cards and horizontal list rows", async () => {
+    renderWithProviders(<BooksToBuyView />);
+
+    expect(await screen.findByRole("heading", { name: "Останнє бажання" })).toBeInTheDocument();
+    expect(document.querySelector("[data-slot=book-card]")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("radio", { name: "Список" }));
+
+    expect(document.querySelector("[data-slot=book-row]")).toBeInTheDocument();
+    expect(document.querySelector("[data-slot=book-card]")).not.toBeInTheDocument();
   });
 
   it("shows a busy skeleton while the wishlist loads", () => {
@@ -141,28 +154,71 @@ describe("BooksToBuyView", () => {
     expect(await screen.findByRole("complementary", { name: "Огляд бажань" })).toBeInTheDocument();
   });
 
-  it("tells a filtered-out wishlist apart from an empty one and restores it on reset", async () => {
+  it("sums up the wishlist in four cards above the list", async () => {
     respondToWishlist = () =>
       Promise.resolve(
         jsonResponse(
-          wishlistOf([
-            makeWishlistBook({
-              id: "alpha",
-              storeLinks: [makeStoreLink({ id: "link-alpha" })],
-              title: "Альфа",
-            }),
-          ]),
+          wishlistOf([makeWishlistBook()], {
+            booksCount: 33,
+            counts: {
+              addedLast30Days: 5,
+              missingFromSeries: { booksCount: 4, seriesCount: 2 },
+              nextInSeries: { booksCount: 7, seriesCount: 3 },
+              waitingOverSixMonths: 9,
+            },
+          }),
         ),
       );
 
     renderWithProviders(<BooksToBuyView />);
 
-    const chips = await screen.findByRole("radiogroup", {
+    const total = await screen.findByText("Усього в списку");
+    expect(total.closest("[data-slot=stat-card]")).toHaveTextContent("33книги");
+    expect(total.closest("[data-slot=stat-card]")).toHaveTextContent("+5 за останні 30 днів");
+
+    const missing = screen.getByText("Пропущені в серіях");
+    expect(missing.closest("[data-slot=stat-card]")).toHaveTextContent("4книги");
+    expect(missing.closest("[data-slot=stat-card]")).toHaveTextContent(
+      "Закривають пропуски у 2 серіях",
+    );
+
+    const next = screen.getByText("Наступні в серіях");
+    expect(next.closest("[data-slot=stat-card]")).toHaveTextContent("7книг");
+    expect(next.closest("[data-slot=stat-card]")).toHaveTextContent("Продовжують 3 серії");
+
+    const waiting = screen.getByText("Давно чекають");
+    expect(waiting.closest("[data-slot=stat-card]")).toHaveTextContent("9книг");
+    expect(waiting.closest("[data-slot=stat-card]")).toHaveTextContent("Понад 6 місяців у списку");
+  });
+
+  it("tells a filtered-out wishlist apart from an empty one and restores it on reset", async () => {
+    respondToWishlist = (url) =>
+      Promise.resolve(
+        jsonResponse(
+          url.includes("link=without_links")
+            ? { ...wishlistOf([]), totalBooksCount: 1 }
+            : wishlistOf([
+                makeWishlistBook({
+                  id: "alpha",
+                  storeLinks: [makeStoreLink({ id: "link-alpha" })],
+                  title: "Альфа",
+                }),
+              ]),
+        ),
+      );
+
+    renderWithProviders(<BooksToBuyView />);
+
+    expect(await screen.findByText("Показано 1 з 1 книги")).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Фільтри" }));
+    const chips = screen.getByRole("radiogroup", {
       name: "Фільтр за посиланнями та цінами",
     });
     await userEvent.click(within(chips).getByRole("radio", { name: /Без посилань/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Застосувати фільтри" }));
 
     expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
+    expect(await screen.findByText(/^Показано 0 з /)).toBeInTheDocument();
     expect(screen.queryByText("Збережи книги для майбутніх покупок")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Очистити фільтри" }));
@@ -170,7 +226,7 @@ describe("BooksToBuyView", () => {
     expect(await screen.findByRole("heading", { name: "Альфа" })).toBeInTheDocument();
   });
 
-  it("counts the matches on each link filter chip", async () => {
+  it("sends link filters to the wishlist endpoint", async () => {
     respondToWishlist = () =>
       Promise.resolve(
         jsonResponse(
@@ -187,10 +243,19 @@ describe("BooksToBuyView", () => {
 
     renderWithProviders(<BooksToBuyView />);
 
-    const chips = await screen.findByRole("radiogroup", {
+    await userEvent.click(await screen.findByRole("button", { name: "Фільтри" }));
+    const chips = screen.getByRole("radiogroup", {
       name: "Фільтр за посиланнями та цінами",
     });
-    expect(within(chips).getByRole("radio", { name: /Усі/ })).toHaveTextContent("2");
-    expect(within(chips).getByRole("radio", { name: /Є посилання/ })).toHaveTextContent("1");
+    await userEvent.click(within(chips).getByRole("radio", { name: "Є посилання" }));
+    await userEvent.click(screen.getByRole("button", { name: "Застосувати фільтри" }));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]) =>
+          String(url).includes("/api/books/wishlist?link=has_links"),
+        ),
+      ).toBe(true),
+    );
   });
 });

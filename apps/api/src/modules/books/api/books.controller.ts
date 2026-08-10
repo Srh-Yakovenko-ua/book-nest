@@ -7,6 +7,7 @@ import type {
   PaginatedTrashedBooks,
   Paginator,
   RecentPurchaseStores,
+  WishlistQuery,
   WishlistView,
 } from "@app/shared";
 
@@ -19,6 +20,7 @@ import {
   RecentPurchaseStoresQuerySchema,
   TrashedBooksQuerySchema,
   UpdateBookInputSchema,
+  WishlistQuerySchema,
 } from "@app/shared";
 import {
   Body,
@@ -61,6 +63,7 @@ import { LibraryOverviewQueryDto } from "./input-dto/library-overview-query.inpu
 import { RecentPurchaseStoresQueryDto } from "./input-dto/recent-purchase-stores-query.input-dto.js";
 import { TrashedBooksQueryDto } from "./input-dto/trashed-books-query.input-dto.js";
 import { UpdateBookInputDto } from "./input-dto/update-book.input-dto.js";
+import { WishlistQueryDto } from "./input-dto/wishlist-query.input-dto.js";
 import { BookDeletionResultDto } from "./view-dto/book-deletion-result.view-dto.js";
 import { BookViewDto } from "./view-dto/book.view-dto.js";
 import { DedicationsSummaryViewDto } from "./view-dto/dedications.view-dto.js";
@@ -159,8 +162,11 @@ export class BooksController {
   @Get("wishlist")
   @JwtProtected()
   @Throttle(READ_THROTTLE)
-  wishlist(@CurrentUser() user: AuthenticatedUser): Promise<WishlistView> {
-    return this.wishlistService.getWishlist({ userId: user.id });
+  wishlist(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(WishlistQuerySchema)) query: WishlistQueryDto,
+  ): Promise<WishlistView> {
+    return this.wishlistService.getWishlist({ query: query as WishlistQuery, userId: user.id });
   }
   @ApiOkResponse({
     description: "A page of the current user books that carry a dedication",

@@ -535,6 +535,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Список бажань запам'ятовує, де купити",
     version: null,
   },
+  {
+    bodyEn:
+      "The wishlist now remembers the day a book landed on it, and four cards above the list turn that into a picture: how many books you want, how many arrived in the last month, how many fill a gap in a series you already own part of, how many continue one past your last part, and how many have been waiting longer than six months. Sorting by date follows the same rule, so a book you have owned for a year but only wanted since yesterday no longer pretends to be the oldest wish on the list.",
+    bodyUk:
+      "Список бажань тепер памʼятає день, коли книга до нього потрапила, а чотири картки над списком складають із цього картину: скільки книг ви хочете, скільки додано за останній місяць, скільки закривають пропуск у серії, частину якої ви вже маєте, скільки продовжують серію далі за вашу останню частину і скільки чекають довше за шість місяців. Сортування за датою тепер працює за тим самим правилом, тож книга, яка рік стоїть у бібліотеці, а в списку бажань лише з учора, більше не вдає найдавніше бажання.",
+    category: "improvement",
+    publishedAt: "2026-08-10T00:00:00.000Z",
+    slug: "wishlist-entry-date-counts",
+    titleEn: "The wishlist counts what you are waiting for",
+    titleUk: "Список бажань рахує, чого ви чекаєте",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

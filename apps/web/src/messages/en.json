@@ -1936,19 +1936,39 @@
     "title": "Wishlist",
     "subtitle": "Books you don't own yet but want on your shelf",
     "addBook": "Add book",
+    "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
+    "filters": {
+      "trigger": "Filters",
+      "title": "Wishlist filters",
+      "description": "Narrow the list by offers and book details.",
+      "clear": "Clear filters",
+      "apply": "Apply filters"
+    },
     "summary": {
       "empty": "—",
+      "microfact": {
+        "addedLast30Days": "{count, plural, =0 {Nothing in the last 30 days} one {+# in the last 30 days} other {+# in the last 30 days}}",
+        "missingFromSeries": "{count, plural, =0 {No series with gaps} one {Fill gaps in # series} other {Fill gaps in # series}}",
+        "nextInSeries": "{count, plural, =0 {No series to continue} one {Continue # series} other {Continue # series}}",
+        "overSixMonths": "In the list for over 6 months"
+      },
       "mobile": {
         "title": "Detailed stats",
         "compact": {
           "books": "Books",
+          "missingFromSeries": "Missing",
+          "nextInSeries": "Next",
+          "waitingLong": "Waiting",
           "stores": "Stores",
           "best": "Best",
           "average": "Average",
           "total": "Total"
         },
         "detailed": {
-          "books": "Books in the list",
+          "books": "Total in the list",
+          "missingFromSeries": "Missing from series",
+          "nextInSeries": "Next in series",
+          "waitingLong": "Waiting a long time",
           "stores": "Stores tracked",
           "best": "Best offer",
           "average": "Average price",
@@ -2031,14 +2051,14 @@
       "without_price": "Without price"
     },
     "sort": {
-      "added_asc": "Oldest first",
-      "added_desc": "Newest first",
-      "title_asc": "By title",
-      "author_asc": "By author",
-      "publisher_asc": "By publisher",
-      "price_asc": "Lowest price first",
-      "price_desc": "Highest price first",
-      "stores_desc": "By store count"
+      "added_asc": "Date added: oldest first",
+      "added_desc": "Date added: newest first",
+      "title_asc": "Title: A–Z",
+      "author_asc": "Author: A–Z",
+      "publisher_asc": "Publisher: A–Z",
+      "price_asc": "Price: lowest first",
+      "price_desc": "Price: highest first",
+      "stores_desc": "Store count: most first"
     },
     "sortMobile": {
       "title": "Sorting",
@@ -2097,7 +2117,10 @@
     "markBoughtSuccess": "The book is marked as bought",
     "markOwnedSuccess": "The book was added to your shelf",
     "markOwnedError": "Could not update the book status",
-    "rowMenuLabel": "More actions for “{title}”",
+    "rowMenuLabel": "Actions for “{title}”",
+    "card": {
+      "seriesPosition": "book {position}"
+    },
     "removeFromList": {
       "title": "Remove the book from the wishlist?",
       "description": "The book will disappear from the wishlist but will stay in your library.",

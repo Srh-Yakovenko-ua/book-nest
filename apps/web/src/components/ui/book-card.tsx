@@ -43,6 +43,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     authors: string[];
     cover?: { alt?: string; src: string };
     coverActivateLabel?: string;
+    footer?: React.ReactNode;
     formats?: { icon: UiIconName; label: string; value: string }[];
     genres?: { icon?: GenreIconName; label: string }[];
     href?: string;
@@ -58,7 +59,7 @@ type BookCardProps = Omit<React.ComponentProps<"article">, "title"> &
     rating?: number;
     ratingLabel?: string;
     series?: { href: string; name: string; positionLabel?: string };
-    status: StatusEntry;
+    status?: StatusEntry;
     tags?: string[];
     title: string;
   };
@@ -99,6 +100,7 @@ function BookCard({
   className,
   cover,
   coverActivateLabel,
+  footer,
   formats,
   genres,
   href,
@@ -124,6 +126,7 @@ function BookCard({
   const isInteractive = interactive ?? href !== undefined;
   const LinkComp: "a" | BookCardLinkComponent = linkComponent ?? "a";
   const showChipDivider = (genres ?? []).length > 0 && (tags ?? []).length > 0;
+  const showChips = (genres ?? []).length > 0 || (tags ?? []).length > 0;
   const compact = mobileCompact === true ? MOBILE_COMPACT : null;
 
   return (
@@ -143,24 +146,28 @@ function BookCard({
         <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim-top)]" />
         <div className="pointer-events-none absolute inset-0 bg-[image:var(--book-cover-scrim)]" />
 
-        <div
-          className={cn(
-            "absolute top-3 left-3 z-10 flex items-center gap-1.5",
-            compact?.statusGroup,
-          )}
-        >
-          <CoverStatusBadge
-            className={compact?.statusBadge}
-            labelClassName={compact?.statusLabel}
-            progress={progress}
-            status={status}
-          />
-          {ageBadge === undefined ? null : (
-            <span className={cn(statusBadgeVariants({ tone: "danger" }), compact?.ageBadge)}>
-              {ageBadge}
-            </span>
-          )}
-        </div>
+        {status === undefined && ageBadge === undefined ? null : (
+          <div
+            className={cn(
+              "absolute top-3 left-3 z-10 flex items-center gap-1.5",
+              compact?.statusGroup,
+            )}
+          >
+            {status === undefined ? null : (
+              <CoverStatusBadge
+                className={compact?.statusBadge}
+                labelClassName={compact?.statusLabel}
+                progress={progress}
+                status={status}
+              />
+            )}
+            {ageBadge === undefined ? null : (
+              <span className={cn(statusBadgeVariants({ tone: "danger" }), compact?.ageBadge)}>
+                {ageBadge}
+              </span>
+            )}
+          </div>
+        )}
 
         {kebab === undefined ? null : (
           <div className={cn("absolute top-3 right-3 z-10", compact?.actions)}>{kebab}</div>
@@ -275,39 +282,45 @@ function BookCard({
           <RatingScore className={compact.ratingBlock} label={ratingLabel} value={rating} />
         )}
 
-        <div className={cn("mt-auto flex flex-col gap-2.5 pt-1", compact?.chips)}>
-          <div className="flex min-h-6 flex-wrap items-center gap-1.5">
-            {(genres ?? []).slice(0, GENRES_VISIBLE).map((genre) => (
-              <span
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-tag px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-tag-foreground"
-                key={genre.label}
-              >
-                {genre.icon === undefined ? null : (
-                  <GenreIcon className="shrink-0 text-brand/90" name={genre.icon} size={14} />
-                )}
-                {genre.label}
-              </span>
-            ))}
-            <MorePill items={(genres ?? []).slice(GENRES_VISIBLE).map((genre) => genre.label)} />
-          </div>
+        {showChips ? (
+          <div className={cn("mt-auto flex flex-col gap-2.5 pt-1", compact?.chips)}>
+            <div className="flex min-h-6 flex-wrap items-center gap-1.5">
+              {(genres ?? []).slice(0, GENRES_VISIBLE).map((genre) => (
+                <span
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-tag px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-tag-foreground"
+                  key={genre.label}
+                >
+                  {genre.icon === undefined ? null : (
+                    <GenreIcon className="shrink-0 text-brand/90" name={genre.icon} size={14} />
+                  )}
+                  {genre.label}
+                </span>
+              ))}
+              <MorePill items={(genres ?? []).slice(GENRES_VISIBLE).map((genre) => genre.label)} />
+            </div>
 
-          {showChipDivider ? <div className="h-px bg-border/60" /> : null}
+            {showChipDivider ? <div className="h-px bg-border/60" /> : null}
 
-          <div className="flex min-h-6 flex-wrap items-center gap-1.5">
-            {(tags ?? []).slice(0, TAGS_VISIBLE).map((tag) => (
-              <span
-                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-foreground/80"
-                key={tag}
-              >
-                <UiIcon className="shrink-0 text-muted-foreground" name="hash" size={12} />
-                {tag}
-              </span>
-            ))}
-            {(tags ?? []).length > TAGS_VISIBLE ? (
-              <span className={morePillClass}>+{(tags ?? []).length - TAGS_VISIBLE}</span>
-            ) : null}
+            <div className="flex min-h-6 flex-wrap items-center gap-1.5">
+              {(tags ?? []).slice(0, TAGS_VISIBLE).map((tag) => (
+                <span
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-xs font-medium whitespace-nowrap text-foreground/80"
+                  key={tag}
+                >
+                  <UiIcon className="shrink-0 text-muted-foreground" name="hash" size={12} />
+                  {tag}
+                </span>
+              ))}
+              {(tags ?? []).length > TAGS_VISIBLE ? (
+                <span className={morePillClass}>+{(tags ?? []).length - TAGS_VISIBLE}</span>
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : null}
+
+        {footer === undefined ? null : (
+          <div className="relative z-10 mt-auto border-t border-border/60 pt-3">{footer}</div>
+        )}
       </div>
     </article>
   );

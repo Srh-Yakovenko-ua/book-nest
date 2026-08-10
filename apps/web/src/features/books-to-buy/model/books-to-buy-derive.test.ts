@@ -73,10 +73,12 @@ function offerBook({
   createdAt = "2026-03-01T00:00:00.000Z",
   price,
   title,
+  wishlistAddedAt = null,
 }: {
   createdAt?: string;
   price: null | number;
   title: string;
+  wishlistAddedAt?: null | string;
 }): WishlistBookView {
   return makeWishlistBook({
     bestOffer: price === null ? null : { currency: "UAH", price },
@@ -84,6 +86,7 @@ function offerBook({
     id: title,
     storeLinks: price === null ? [] : [makeStoreLink({ id: `link-${title}`, price })],
     title,
+    wishlistAddedAt,
   });
 }
 
@@ -109,6 +112,46 @@ describe("deriveWishlistBooks sorting", () => {
     ];
 
     expect(titles(derive({ books, sort: "added_desc" }).visibleBooks)).toEqual(["Третя", "Перша"]);
+  });
+
+  it("orders by the day a book entered the wishlist, not the day it entered the library", () => {
+    const books = [
+      offerBook({
+        createdAt: "2025-01-01T00:00:00.000Z",
+        price: 100,
+        title: "Стара в бібліотеці",
+        wishlistAddedAt: "2026-03-05T00:00:00.000Z",
+      }),
+      offerBook({
+        createdAt: "2026-03-04T00:00:00.000Z",
+        price: 100,
+        title: "Нова в бібліотеці",
+        wishlistAddedAt: "2026-03-01T00:00:00.000Z",
+      }),
+    ];
+
+    expect(titles(derive({ books }).visibleBooks)).toEqual([
+      "Нова в бібліотеці",
+      "Стара в бібліотеці",
+    ]);
+  });
+
+  it("falls back to the creation date for a book that carries no entry date", () => {
+    const books = [
+      offerBook({
+        createdAt: "2026-03-03T00:00:00.000Z",
+        price: 100,
+        title: "Без дати входу",
+      }),
+      offerBook({
+        createdAt: "2026-03-04T00:00:00.000Z",
+        price: 100,
+        title: "З датою входу",
+        wishlistAddedAt: "2026-03-02T00:00:00.000Z",
+      }),
+    ];
+
+    expect(titles(derive({ books }).visibleBooks)).toEqual(["З датою входу", "Без дати входу"]);
   });
 
   it("puts books without a best offer last when sorting by the lowest price", () => {

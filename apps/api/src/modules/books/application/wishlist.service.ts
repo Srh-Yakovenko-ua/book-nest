@@ -1,4 +1,4 @@
-import type { Nullable, WishlistBookView, WishlistView } from "@app/shared";
+import type { Nullable, WishlistBookView, WishlistQuery, WishlistView } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
 
@@ -22,9 +22,18 @@ export class WishlistService {
     private readonly bookViewAssembler: BookViewAssembler,
   ) {}
 
-  async getWishlist({ userId }: { userId: string }): Promise<WishlistView> {
+  async getWishlist({
+    query = {},
+    userId,
+  }: {
+    query?: WishlistQuery;
+    userId: string;
+  }): Promise<WishlistView> {
     const now = new Date();
-    const rows = await this.booksRepository.listWishlistBooks({ userId });
+    const [rows, totalBooksCount] = await Promise.all([
+      this.booksRepository.listWishlistBooks({ now, query, userId }),
+      this.booksRepository.countWishlistBooks(userId),
+    ]);
     const books = rows.map((row) => this.toWishlistBookView(row));
 
     const anchorRows = await this.booksRepository.listSeriesWishlistAnchors({
@@ -39,6 +48,7 @@ export class WishlistService {
         counts: computeWishlistCounts({ anchors: toAnchors(anchorRows), books: rows, now }),
         storeNames: rows.flatMap((row) => row.storeLinks.map((link) => link.storeName)),
       }),
+      totalBooksCount,
     };
   }
 
