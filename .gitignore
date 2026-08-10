@@ -46,6 +46,9 @@ apps/web/next-env.d.ts
 # Claude Code runtime locks
 .claude/*.lock
 
+# Claude Code worktrees — full working copies, node_modules and all
+.claude/worktrees/
+
 # Storybook
 storybook-static/
 
