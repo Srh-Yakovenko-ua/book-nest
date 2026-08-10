@@ -7,6 +7,8 @@ const WISHLIST_AGE_THRESHOLDS = {
   recentDays: 30,
 } as const;
 
+export type SeriesPlacement = { kind: "continuation" | "gap"; seriesId: string };
+
 export type SeriesWishlistAnchor = {
   highestPartNumberOutsideWishlist: number;
   seriesId: string;
@@ -17,8 +19,6 @@ export type WishlistCountsBookRow = {
   seriesId: Nullable<string>;
   wishlistAddedAt: Nullable<Date>;
 };
-
-type SeriesPlacement = { kind: "continuation" | "gap"; seriesId: string };
 
 export function computeWishlistCounts({
   anchors,
@@ -53,7 +53,7 @@ export function computeWishlistCounts({
       }
     }
 
-    const placement = placeInSeries({ anchorBySeriesId, book });
+    const placement = placeWishlistBookInSeries({ anchorBySeriesId, book });
     if (placement === null) {
       continue;
     }
@@ -76,7 +76,7 @@ export function computeWishlistCounts({
   };
 }
 
-function placeInSeries({
+export function placeWishlistBookInSeries({
   anchorBySeriesId,
   book,
 }: {

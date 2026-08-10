@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SeriesWishlistAnchor, WishlistCountsBookRow } from "./wishlist-counts.js";
 
-import { computeWishlistCounts } from "./wishlist-counts.js";
+import { computeWishlistCounts, placeWishlistBookInSeries } from "./wishlist-counts.js";
 
 const NOW = new Date("2026-08-10T12:00:00.000Z");
 
@@ -161,5 +161,30 @@ describe("computeWishlistCounts", () => {
 
     expect(counts.missingFromSeries).toEqual({ booksCount: 0, seriesCount: 0 });
     expect(counts.nextInSeries).toEqual({ booksCount: 0, seriesCount: 0 });
+  });
+});
+
+describe("placeWishlistBookInSeries", () => {
+  const anchorBySeriesId = new Map([["s1", 5]]);
+
+  it("uses the same gap and continuation boundary exposed to wishlist filters", () => {
+    expect(
+      placeWishlistBookInSeries({
+        anchorBySeriesId,
+        book: book({ partNumber: 4, seriesId: "s1" }),
+      }),
+    ).toEqual({ kind: "gap", seriesId: "s1" });
+    expect(
+      placeWishlistBookInSeries({
+        anchorBySeriesId,
+        book: book({ partNumber: 6, seriesId: "s1" }),
+      }),
+    ).toEqual({ kind: "continuation", seriesId: "s1" });
+    expect(
+      placeWishlistBookInSeries({
+        anchorBySeriesId,
+        book: book({ partNumber: 5, seriesId: "s1" }),
+      }),
+    ).toBeNull();
   });
 });

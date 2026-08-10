@@ -6,10 +6,12 @@ import type {
   Nullable,
   OwnershipStatus,
   ReadingStatus,
+  WishlistQuery,
 } from "@app/shared";
 
 import { DELIVERY_ACTIVE_STATUSES, LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { subDays, subMonths } from "date-fns";
 import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
@@ -24,7 +26,9 @@ import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { WISHLIST_OWNERSHIP_STATUS } from "../domain/wishlist-added-at.js";
+import { placeWishlistBookInSeries } from "../domain/wishlist-counts.js";
 import { buildBookSearchConditions } from "./book-search.js";
+import { buildLibraryWhere } from "./book-where.js";
 import { ListMembershipRepository } from "./list-membership.repository.js";
 import { enforceQueueInvariant, resequenceQueue } from "./queue-invariant.js";
 
@@ -42,6 +46,80 @@ const CLEARED_QUEUE_PLACEMENT = {
 
 const WISHLIST_MAX_BOOKS = 1000;
 const READING_STATUS_FINISHED = "finished";
+
+function buildWishlistWhere({
+  now,
+  query,
+  userId,
+}: {
+  now: Date;
+  query: WishlistQuery;
+  userId: string;
+}): Prisma.BookWhereInput {
+  const where = buildLibraryWhere({
+    authorIds: query.author,
+    bookType: query.bookType,
+    formats: query.format,
+    genreKeys: query.genre,
+    hasCover: query.hasCover,
+    isFavorite: query.isFavorite,
+    languages: query.language,
+    ownershipStatuses: [WISHLIST_OWNERSHIP_STATUS],
+    pagesMax: query.pagesMax,
+    pagesMin: query.pagesMin,
+    publisherIds: query.publisher,
+    search: query.q === "" ? undefined : query.q,
+    tagIds: query.tag,
+    userId,
+    yearMax: query.yearMax,
+    yearMin: query.yearMin,
+  });
+  const conditions: Prisma.BookWhereInput[] = [];
+
+  if (query.store !== undefined) {
+    conditions.push({ storeLinks: { some: { storeName: { in: query.store } } } });
+  }
+  if (query.currency !== undefined) {
+    conditions.push({ storeLinks: { some: { currency: { in: query.currency } } } });
+  }
+  if (query.priceCurrency !== undefined) {
+    conditions.push({
+      storeLinks: {
+        some: {
+          currency: query.priceCurrency,
+          price: { gte: query.priceMin, lte: query.priceMax, not: null },
+        },
+      },
+    });
+  }
+  if (query.link === "has_links") {
+    conditions.push({ storeLinks: { some: {} } });
+  } else if (query.link === "without_links") {
+    conditions.push({ storeLinks: { none: {} } });
+  } else if (query.link === "has_price") {
+    conditions.push({ storeLinks: { some: { price: { not: null } } } });
+  } else if (query.link === "without_price") {
+    conditions.push({ storeLinks: { none: { price: { not: null } } } });
+  }
+  if (query.age !== undefined) {
+    const recentThreshold = subDays(now, 30);
+    const longThreshold = subMonths(now, 6);
+    conditions.push({
+      OR: query.age.map((age) => {
+        if (age === "recent") return { wishlistAddedAt: { gte: recentThreshold } };
+        if (age === "middle") {
+          return { wishlistAddedAt: { gte: longThreshold, lt: recentThreshold } };
+        }
+        return { wishlistAddedAt: { lt: longThreshold } };
+      }),
+    });
+  }
+
+  if (conditions.length > 0) {
+    where.AND = conditions;
+  }
+  return where;
+}
 
 const GenreKeyRowSchema = z.object({ key: z.string() });
 
@@ -471,6 +549,15 @@ export class BooksRepository {
     return this.prisma.book.count({ where: { ...SOFT_DELETE_SCOPE.trashed, userId } });
   }
 
+  countWishlistBooks(userId: string): Promise<number> {
+    return this.prisma.book.count({
+      where: buildLibraryWhere({
+        ownershipStatuses: [WISHLIST_OWNERSHIP_STATUS],
+        userId,
+      }),
+    });
+  }
+
   async create(
     userId: string,
     data: CreateBookData,
@@ -795,9 +882,13 @@ export class BooksRepository {
 
   async listWishlistBooks({
     client,
+    now,
+    query,
     userId,
   }: {
     client?: Prisma.TransactionClient;
+    now: Date;
+    query: WishlistQuery;
     userId: string;
   }): Promise<WishlistBookRow[]> {
     const db = client ?? this.prisma;
@@ -805,12 +896,30 @@ export class BooksRepository {
       include: wishlistWithRelations,
       orderBy: LIBRARY_ORDER_BY.created_desc,
       take: WISHLIST_MAX_BOOKS,
-      where: { ...SOFT_DELETE_SCOPE.active, ownershipStatus: "want_to_buy", userId },
+      where: buildWishlistWhere({ now, query, userId }),
     });
     if (rows.length === WISHLIST_MAX_BOOKS) {
       log.warn({ cap: WISHLIST_MAX_BOOKS, userId }, "wishlist truncated at the safety cap");
     }
-    return rows;
+    if (query.seriesPlacement === undefined) {
+      return rows;
+    }
+
+    const seriesIds = [
+      ...new Set(rows.flatMap((row) => (row.seriesId === null ? [] : [row.seriesId]))),
+    ];
+    const anchors = await this.listSeriesWishlistAnchors({ client, seriesIds, userId });
+    const anchorBySeriesId = new Map(
+      anchors.flatMap((anchor) =>
+        anchor.highestPartNumberOutsideWishlist === null || anchor.seriesId === null
+          ? []
+          : [[anchor.seriesId, anchor.highestPartNumberOutsideWishlist] as const],
+      ),
+    );
+    return rows.filter((book) => {
+      const placement = placeWishlistBookInSeries({ anchorBySeriesId, book });
+      return placement !== null && query.seriesPlacement?.includes(placement.kind) === true;
+    });
   }
 
   async maxQueuePosition(

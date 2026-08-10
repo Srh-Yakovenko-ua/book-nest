@@ -4,18 +4,19 @@ import type { Nullable, WishlistCurrencyEstimate, WishlistSummaryView } from "@a
 import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { LibrarySummaryCard } from "@/features/books/components/library-summary-cards";
+import type { BooksControllerWishlistParams } from "@/shared/api/generated/model";
 
 import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { useGenres } from "@/features/books";
-import { LibrarySummaryMobile } from "@/features/books/components/library-summary-mobile";
+import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { useRouter } from "@/i18n/navigation";
 
-import type { WishlistFilters, WishlistSort } from "../model/books-to-buy-derive";
+import type { WishlistFilters, WishlistSort, WishlistViewMode } from "../model/books-to-buy-derive";
 
 import { useWishlist } from "../api/use-wishlist";
 import {
@@ -33,22 +34,41 @@ import { BooksToBuyToolbar, BooksToBuyToolbarSkeleton } from "./books-to-buy-too
 
 const WISHLIST_MOBILE_TILE_COUNT = 3;
 
-type WishlistSummaryKey = "average" | "best" | "books" | "stores" | "total";
+type WishlistSummaryKey =
+  | "average"
+  | "best"
+  | "books"
+  | "missingFromSeries"
+  | "nextInSeries"
+  | "stores"
+  | "total"
+  | "waitingLong";
 
 export function BooksToBuyView() {
   const t = useTranslations("booksToBuy");
+  const tUnit = useTranslations("books.library.summary");
   const locale = useLocale();
   const router = useRouter();
-  const { data, isError, isPending, refetch } = useWishlist();
-  const genres = useGenres();
-
   const [filters, setFilters] = useState<WishlistFilters>(WISHLIST_FILTERS_DEFAULT);
+  const [filterOptions, setFilterOptions] = useState(() =>
+    buildWishlistFilterOptions({ books: [], genreNameByKey: new Map(), locale }),
+  );
   const [sort, setSort] = useState<WishlistSort>(WISHLIST_SORT_DEFAULT);
+  const [view, setView] = useState<WishlistViewMode>("grid");
+  const { data, isError, isPending, refetch } = useWishlist(toWishlistParams(filters));
+  const genres = useGenres();
 
   const allBooks = data?.books ?? [];
   const genreNameByKey = new Map((genres.data ?? []).map((genre) => [genre.key, genre.name]));
-  const filterOptions = buildWishlistFilterOptions({ books: allBooks, genreNameByKey, locale });
-  const { linkFilterCounts, visibleBooks } = deriveWishlistBooks({
+  const responseFilterOptions = buildWishlistFilterOptions({
+    books: allBooks,
+    genreNameByKey,
+    locale,
+  });
+  useEffect(() => {
+    setFilterOptions((current) => mergeFilterOptions(current, responseFilterOptions, locale));
+  }, [data, genres.data, locale]);
+  const { visibleBooks } = deriveWishlistBooks({
     books: allBooks,
     filters,
     genreNameByKey,
@@ -81,13 +101,54 @@ export function BooksToBuyView() {
       ? t("summary.empty")
       : formatStorePrice({ currency: estimate.currency, locale, price: pick(estimate) });
 
-  const summaryCards: LibrarySummaryCard[] = [
+  const counts = summary?.counts;
+  const bookUnit = (count: number) => tUnit("unitBook", { count });
+
+  const totalCount = summary?.booksCount ?? 0;
+  const missingCount = counts?.missingFromSeries.booksCount ?? 0;
+  const nextCount = counts?.nextInSeries.booksCount ?? 0;
+  const waitingCount = counts?.waitingOverSixMonths ?? 0;
+
+  const countCards: LibrarySummaryCard[] = [
     {
       ...summaryLabels("books"),
       icon: "cart",
       iconTone: "primary",
-      value: summary?.booksCount ?? 0,
+      microfact: t("summary.microfact.addedLast30Days", { count: counts?.addedLast30Days ?? 0 }),
+      unit: bookUnit(totalCount),
+      value: totalCount,
     },
+    {
+      ...summaryLabels("missingFromSeries"),
+      icon: "book-x",
+      iconTone: "info",
+      microfact: t("summary.microfact.missingFromSeries", {
+        count: counts?.missingFromSeries.seriesCount ?? 0,
+      }),
+      unit: bookUnit(missingCount),
+      value: missingCount,
+    },
+    {
+      ...summaryLabels("nextInSeries"),
+      icon: "layers",
+      iconTone: "genre",
+      microfact: t("summary.microfact.nextInSeries", {
+        count: counts?.nextInSeries.seriesCount ?? 0,
+      }),
+      unit: bookUnit(nextCount),
+      value: nextCount,
+    },
+    {
+      ...summaryLabels("waitingLong"),
+      icon: "clock",
+      iconTone: "ink",
+      microfact: t("summary.microfact.overSixMonths"),
+      unit: bookUnit(waitingCount),
+      value: waitingCount,
+    },
+  ];
+
+  const priceCards: LibrarySummaryCard[] = [
     {
       ...summaryLabels("stores"),
       icon: "store",
@@ -138,33 +199,39 @@ export function BooksToBuyView() {
       </header>
 
       {showOverview ? (
-        <LibrarySummaryMobile
-          action={
+        <LibrarySummaryCards
+          cards={countCards}
+          isLoading={isPending}
+          mobileAction={
             <BooksToBuyOverviewPanel
               bestOffers={bestOffers}
               isLoading={isPending}
               onShowBestOffers={() => setSort("price_asc")}
-              summaryCards={summaryCards}
+              summaryCards={[...countCards, ...priceCards]}
             />
           }
-          cards={summaryCards.slice(0, WISHLIST_MOBILE_TILE_COUNT)}
-          className="sm:hidden"
-          isLoading={isPending}
+          mobileCards={countCards.slice(0, WISHLIST_MOBILE_TILE_COUNT)}
+          mobileLayout="compact"
         />
       ) : null}
 
       <ToolbarSlot
-        hasAnyBooks={allBooks.length > 0}
+        hasAnyBooks={allBooks.length > 0 || hasActiveWishlistFilters(filters)}
         isError={isError}
         isPending={isPending}
         toolbar={
           <BooksToBuyToolbar
+            counterLabel={t("counter", {
+              shown: visibleBooks.length,
+              total: data?.totalBooksCount ?? visibleBooks.length,
+            })}
             filters={filters}
-            linkFilterCounts={linkFilterCounts}
             onFiltersChange={setFilters}
             onSortChange={setSort}
+            onViewChange={setView}
             options={filterOptions}
             sort={sort}
+            view={view}
           />
         }
       />
@@ -173,13 +240,14 @@ export function BooksToBuyView() {
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <BooksToBuyContent
             books={visibleBooks}
-            hasAnyBooks={allBooks.length > 0}
+            hasAnyBooks={allBooks.length > 0 || hasActiveWishlistFilters(filters)}
             isError={isError}
             isPending={isPending}
             onAddBook={onAddBook}
             onClearFilters={() => setFilters(WISHLIST_FILTERS_DEFAULT)}
             onOpenLibrary={() => router.push("/books")}
             onRetry={() => void refetch()}
+            view={view}
           />
         </div>
         {showOverview ? (
@@ -192,6 +260,34 @@ export function BooksToBuyView() {
       </div>
     </div>
   );
+}
+
+function hasActiveWishlistFilters(filters: WishlistFilters): boolean {
+  return (
+    filters.search.trim() !== "" ||
+    filters.link !== "all" ||
+    filters.storeName !== null ||
+    filters.publisherId !== null ||
+    filters.genreKey !== null ||
+    filters.tagId !== null
+  );
+}
+
+function mergeFilterOptions(
+  current: ReturnType<typeof buildWishlistFilterOptions>,
+  next: ReturnType<typeof buildWishlistFilterOptions>,
+  locale: string,
+): ReturnType<typeof buildWishlistFilterOptions> {
+  const merge = (left: typeof current.genres, right: typeof current.genres) =>
+    [...new Map([...left, ...right].map((option) => [option.value, option])).values()].sort(
+      (a, b) => a.label.localeCompare(b.label, locale),
+    );
+  return {
+    genres: merge(current.genres, next.genres),
+    publishers: merge(current.publishers, next.publishers),
+    stores: merge(current.stores, next.stores),
+    tags: merge(current.tags, next.tags),
+  };
 }
 
 function primaryEstimate(
@@ -231,4 +327,15 @@ function ToolbarSlot({
   if (isPending) return <BooksToBuyToolbarSkeleton />;
   if (!hasAnyBooks) return null;
   return toolbar;
+}
+
+function toWishlistParams(filters: WishlistFilters): BooksControllerWishlistParams {
+  return {
+    genre: filters.genreKey === null ? undefined : [filters.genreKey],
+    link: filters.link === "all" ? undefined : filters.link,
+    publisher: filters.publisherId === null ? undefined : [filters.publisherId],
+    q: filters.search.trim() || undefined,
+    store: filters.storeName === null ? undefined : [filters.storeName],
+    tag: filters.tagId === null ? undefined : [filters.tagId],
+  };
 }

@@ -25,8 +25,7 @@ vi.mock("sonner", () => ({
 const book = makeWishlistBook({ title: "Останнє бажання" });
 const fetchMock = vi.fn();
 
-const MENU_LABEL = "Інші дії для «Останнє бажання»";
-const STATUS_LABEL = "Оновити статус для «Останнє бажання»";
+const MENU_LABEL = "Дії для «Останнє бажання»";
 
 function bookWith(storeLinks: BookStoreLinkView[], bestOffer: WishlistBookView["bestOffer"]) {
   return makeWishlistBook({ bestOffer, storeLinks, title: "Останнє бажання" });
@@ -68,6 +67,8 @@ beforeEach(() => {
   fetchMock.mockImplementation((input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes("/api/books/purchase-stores")) return Promise.resolve(jsonResponse([]));
+    if (url.endsWith(`/api/books/${book.id}`))
+      return Promise.resolve(jsonResponse({ ...book, isFavorite: false }));
     if (url.includes("/api/profile/settings"))
       return Promise.resolve(jsonResponse(defaultUserProfileSettings));
     if (url.includes("/store-links"))
@@ -86,25 +87,45 @@ describe("BooksToBuyRow", () => {
   it("links the book title to its details page", () => {
     renderWithProviders(<BooksToBuyRow book={book} />);
 
-    expect(screen.getByRole("link", { name: /Останнє бажання/ })).toHaveAttribute(
-      "href",
-      `/books/${book.id}`,
-    );
+    const titleLink = screen.getByRole("link", { name: /Останнє бажання/ });
+    expect(titleLink).toHaveAttribute("href", `/books/${book.id}`);
+    expect(titleLink.closest("[data-slot=book-card]")).toBeInTheDocument();
+    expect(screen.getByText("Клуб Сімейного Дозвілля")).toBeInTheDocument();
+    expect(screen.queryByText("Прочитано")).not.toBeInTheDocument();
   });
 
-  it("offers exactly one status entry point next to the actions menu", () => {
+  it("shows the favorite toggle next to a single actions menu", async () => {
     renderWithProviders(<BooksToBuyRow book={book} />);
 
     expect(
       screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")),
-    ).toEqual([STATUS_LABEL, MENU_LABEL]);
-    expect(screen.getByRole("button", { name: STATUS_LABEL })).toHaveTextContent("Оновити статус");
+    ).toEqual(["Прибрати з улюблених", MENU_LABEL]);
+
+    await userEvent.click(screen.getByRole("button", { name: MENU_LABEL }));
+
+    const statusItem = await screen.findByRole("menuitem", { name: "Оновити статус" });
+    expect(statusItem.querySelector("svg")).toBeInTheDocument();
   });
 
-  it("asks what happened to the book when the status button is pressed", async () => {
+  it("toggles a wishlist book favorite optimistically", async () => {
     renderWithProviders(<BooksToBuyRow book={book} />);
 
-    await userEvent.click(screen.getByRole("button", { name: STATUS_LABEL }));
+    const favoriteButton = screen.getByRole("button", { name: "Прибрати з улюблених" });
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(favoriteButton);
+
+    expect(await screen.findByRole("button", { name: "Додати до улюблених" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("asks what happened to the book from the actions menu", async () => {
+    renderWithProviders(<BooksToBuyRow book={book} />);
+
+    await userEvent.click(screen.getByRole("button", { name: MENU_LABEL }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Оновити статус" }));
 
     expect(
       await screen.findByRole("heading", { name: "Що сталося з книгою?" }),
@@ -142,6 +163,7 @@ describe("BooksToBuyRow", () => {
     const chip = screen.getByRole("link", { name: /Readeat/ });
     expect(chip).toHaveAttribute("href", "https://readeat.com/a");
     expect(chip).toHaveTextContent("449 грн");
+    expect(screen.getByText("Найкраща ціна")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "ще 3 магазини" })).toBeInTheDocument();
   });
 
@@ -156,6 +178,7 @@ describe("BooksToBuyRow", () => {
     );
 
     expect(screen.getByRole("link", { name: /Readeat/ })).toBeInTheDocument();
+    expect(screen.queryByText("Найкраща ціна")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /ще/ })).not.toBeInTheDocument();
   });
 

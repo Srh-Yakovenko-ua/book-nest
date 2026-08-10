@@ -60,13 +60,17 @@ function makeRow({
 function setup({
   anchorRows = [],
   rows,
+  totalBooksCount = rows.length,
 }: {
   anchorRows?: SeriesWishlistAnchorRow[];
   rows: WishlistBookRow[];
+  totalBooksCount?: number;
 }) {
+  const countWishlistBooks = vi.fn().mockResolvedValue(totalBooksCount);
   const listWishlistBooks = vi.fn().mockResolvedValue(rows);
   const listSeriesWishlistAnchors = vi.fn().mockResolvedValue(anchorRows);
   const booksRepository = {
+    countWishlistBooks,
     listSeriesWishlistAnchors,
     listWishlistBooks,
   } as unknown as BooksRepository;
@@ -77,6 +81,7 @@ function setup({
   return {
     booksRepository,
     bookViewAssembler,
+    countWishlistBooks,
     listSeriesWishlistAnchors,
     listWishlistBooks,
     service,
@@ -201,8 +206,13 @@ describe("WishlistService.getWishlist", () => {
     expect(result).toEqual({
       books: [],
       summary: { booksCount: 0, counts: EMPTY_COUNTS, estimates: [], trackedStoresCount: 0 },
+      totalBooksCount: 0,
     });
-    expect(listWishlistBooks).toHaveBeenCalledWith({ userId: USER_ID });
+    expect(listWishlistBooks).toHaveBeenCalledWith({
+      now: expect.any(Date),
+      query: {},
+      userId: USER_ID,
+    });
   });
 
   it("asks for the shelf tops of each distinct series its wishlist books belong to", async () => {

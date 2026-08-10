@@ -30,6 +30,7 @@ import type {
   BooksControllerListTrashParams,
   BooksControllerOverviewParams,
   BooksControllerPurchaseStoresParams,
+  BooksControllerWishlistParams,
   BulkActionResultDto,
   BulkBookIdsDto,
   BulkFavoriteInputDto,
@@ -951,42 +952,78 @@ export type booksControllerWishlistResponseError = booksControllerWishlistRespon
 export type booksControllerWishlistResponse =
   booksControllerWishlistResponseSuccess | booksControllerWishlistResponseError;
 
-export const getBooksControllerWishlistUrl = () => {
-  return `/api/books/wishlist`;
+export const getBooksControllerWishlistUrl = (params?: BooksControllerWishlistParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = [
+      "age",
+      "author",
+      "currency",
+      "format",
+      "genre",
+      "language",
+      "publisher",
+      "store",
+      "seriesPlacement",
+      "tag",
+    ];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/wishlist?${stringifiedParams}`
+    : `/api/books/wishlist`;
 };
 
 /**
  * @summary Get the current user books-to-buy wishlist
  */
 export const booksControllerWishlist = async (
+  params?: BooksControllerWishlistParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<booksControllerWishlistResponse> => {
-  return customInstance<booksControllerWishlistResponse>(getBooksControllerWishlistUrl(), {
+  return customInstance<booksControllerWishlistResponse>(getBooksControllerWishlistUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getBooksControllerWishlistQueryKey = () => {
-  return [`/api/books/wishlist`] as const;
+export const getBooksControllerWishlistQueryKey = (params?: BooksControllerWishlistParams) => {
+  return [`/api/books/wishlist`, ...(params ? [params] : [])] as const;
 };
 
 export const getBooksControllerWishlistQueryOptions = <
   TData = Awaited<ReturnType<typeof booksControllerWishlist>>,
   TError = void,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlist>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
+>(
+  params?: BooksControllerWishlistParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlist>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getBooksControllerWishlistQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerWishlistQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerWishlist>>> = ({
     signal,
-  }) => booksControllerWishlist({ signal, ...requestOptions });
+  }) => booksControllerWishlist(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof booksControllerWishlist>>,
@@ -1004,6 +1041,7 @@ export function useBooksControllerWishlist<
   TData = Awaited<ReturnType<typeof booksControllerWishlist>>,
   TError = void,
 >(
+  params: undefined | BooksControllerWishlistParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlist>>, TError, TData>
@@ -1024,6 +1062,7 @@ export function useBooksControllerWishlist<
   TData = Awaited<ReturnType<typeof booksControllerWishlist>>,
   TError = void,
 >(
+  params?: BooksControllerWishlistParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlist>>, TError, TData>
@@ -1044,6 +1083,7 @@ export function useBooksControllerWishlist<
   TData = Awaited<ReturnType<typeof booksControllerWishlist>>,
   TError = void,
 >(
+  params?: BooksControllerWishlistParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlist>>, TError, TData>
@@ -1060,6 +1100,7 @@ export function useBooksControllerWishlist<
   TData = Awaited<ReturnType<typeof booksControllerWishlist>>,
   TError = void,
 >(
+  params?: BooksControllerWishlistParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlist>>, TError, TData>
@@ -1068,7 +1109,7 @@ export function useBooksControllerWishlist<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getBooksControllerWishlistQueryOptions(options);
+  const queryOptions = getBooksControllerWishlistQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

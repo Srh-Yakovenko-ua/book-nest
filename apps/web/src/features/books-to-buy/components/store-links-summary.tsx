@@ -46,7 +46,10 @@ export function StoreLinksSummary({
   const otherCount = storeLinks.length - 1;
 
   return (
-    <div className={cn("flex min-w-0 flex-col items-start gap-1", className)}>
+    <div className={cn("flex min-w-0 flex-col items-stretch gap-1.5", className)}>
+      {otherCount > 0 ? (
+        <p className="text-[0.6875rem] font-medium text-muted-foreground">{t("bestOffer")}</p>
+      ) : null}
       <OfferedLinkChip link={offeredLink} />
       {otherCount > 0 ? (
         <ManageButton onClick={onManage}>
@@ -75,7 +78,7 @@ function ManageButton({ children, onClick }: { children: ReactNode; onClick: () 
 function OfferedLinkChip({ link }: { link: BookStoreLinkView }) {
   const tCommon = useTranslations("common");
   const chipClassName =
-    "flex w-full min-w-0 items-center gap-1.5 rounded-md border border-success/30 bg-success-soft/50 px-2 py-1 text-xs";
+    "flex w-full min-w-0 items-center gap-1.5 rounded-md border border-border bg-secondary/40 px-2.5 py-2 text-xs text-foreground";
 
   if (!isHttpsUrl(link.url)) {
     return (
@@ -89,14 +92,18 @@ function OfferedLinkChip({ link }: { link: BookStoreLinkView }) {
     <a
       className={cn(
         chipClassName,
-        "transition-colors outline-none hover:border-accent-border hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none",
+        "group transition-colors outline-none hover:border-primary/30 hover:bg-secondary/70 focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none",
       )}
       href={link.url}
       rel="noopener noreferrer"
       target="_blank"
     >
       <OfferedLinkChipContent link={link} />
-      <UiIcon className="text-muted-foreground" name="external" size={12} />
+      <UiIcon
+        className="text-muted-foreground transition-colors group-hover:text-primary"
+        name="external"
+        size={12}
+      />
       <span className="sr-only">{tCommon("opensInNewTab")}</span>
     </a>
   );
@@ -111,10 +118,10 @@ function OfferedLinkChipContent({ link }: { link: BookStoreLinkView }) {
 
   return (
     <>
-      <UiIcon className="text-success" name="tag" size={12} />
+      <UiIcon className="text-icon" name="store" size={12} />
       <span className="min-w-0 flex-1 truncate">{link.storeName}</span>
       {priceText === null ? null : (
-        <span className="font-semibold text-success tabular-nums">{priceText}</span>
+        <span className="font-semibold text-ink tabular-nums">{priceText}</span>
       )}
     </>
   );

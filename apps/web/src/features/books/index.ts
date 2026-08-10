@@ -1,5 +1,6 @@
 export { useAuthorOptions } from "./api/use-author-options";
 export { useBook } from "./api/use-book";
+export { useToggleFavorite } from "./api/use-book-actions";
 export { useLibraryBooks } from "./api/use-books";
 export { useCreateDelivery } from "./api/use-delivery";
 export { useGenres } from "./api/use-genres";
@@ -31,7 +32,7 @@ export { useLibraryBookLabels } from "./hooks/use-library-book-labels";
 export { type PendingBookAction } from "./model/book-card-actions";
 export { BOOK_GENRES_MAX } from "./model/book-classification-fields";
 export { type AuthorSelection, authorSelectionToReference } from "./model/create-book-form";
-export { type LibraryBook, toLibraryBook } from "./model/library-book";
+export { type LibraryBook, type LibraryBookLabels, toLibraryBook } from "./model/library-book";
 export {
   LIBRARY_PAGE_SIZE,
   LIBRARY_SORT_DEFAULT,

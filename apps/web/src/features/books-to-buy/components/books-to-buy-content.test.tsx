@@ -46,6 +46,14 @@ describe("BooksToBuyContent", () => {
     expect(headings.map((heading) => heading.textContent)).toEqual(["Альфа", "Бета"]);
   });
 
+  it("renders wishlist books as horizontal rows in list view", () => {
+    renderContent({ view: "list" });
+
+    expect(document.querySelector("[data-slot=book-row]")).toBeInTheDocument();
+    expect(document.querySelector("[data-slot=book-card]")).not.toBeInTheDocument();
+    expect(screen.getByText("Клуб Сімейного Дозвілля")).toBeInTheDocument();
+  });
+
   it("shows a busy skeleton while the wishlist is loading", () => {
     renderContent({ books: [], isPending: true });
 
