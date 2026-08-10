@@ -29,18 +29,12 @@ const SEARCH_DEBOUNCE_MS = 250;
 const LIBRARY_PAGE_SIZE = 24;
 
 type AddBooksToListDialogProps = {
-  listBookIds: string[];
   listId: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
-export function AddBooksToListDialog({
-  listBookIds,
-  listId,
-  onOpenChange,
-  open,
-}: AddBooksToListDialogProps) {
+export function AddBooksToListDialog({ listId, onOpenChange, open }: AddBooksToListDialogProps) {
   const t = useTranslations("lists.addBooks");
 
   return (
@@ -50,27 +44,13 @@ export function AddBooksToListDialog({
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("subtitle")}</DialogDescription>
         </DialogHeader>
-        {open ? (
-          <AddBooksForm
-            listBookIds={listBookIds}
-            listId={listId}
-            onDone={() => onOpenChange(false)}
-          />
-        ) : null}
+        {open ? <AddBooksForm listId={listId} /> : null}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AddBooksForm({
-  listBookIds,
-  listId,
-  onDone,
-}: {
-  listBookIds: string[];
-  listId: string;
-  onDone: () => void;
-}) {
+function AddBooksForm({ listId }: { listId: string }) {
   const t = useTranslations("lists.addBooks");
   const tStatus = useTranslations("books.readingStatus.options");
   const tToast = useTranslations("lists.details.toast");
@@ -82,12 +62,12 @@ function AddBooksForm({
 
   const addBooks = useAddBooksToList(listId);
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } = useLibraryBooks(
-    libraryParams(debouncedSearch),
+    libraryParams({ listId, search: debouncedSearch }),
   );
 
-  const inListIds = new Set(listBookIds);
   const selectedIds = new Set(selected.map((book) => book.id));
   const results = (data?.pages ?? []).flatMap((page) => page.items);
+  const unselectedResults = results.filter((book) => !selectedIds.has(book.id));
 
   function toggle(book: BookView) {
     setSelected((current) =>
@@ -105,7 +85,7 @@ function AddBooksForm({
         onError: () => toast.error(tToast("error")),
         onSuccess: (result) => {
           toast.success(t("toast", { count: result.added }));
-          onDone();
+          setSelected([]);
         },
       },
     );
@@ -131,10 +111,20 @@ function AddBooksForm({
             value={search}
           />
         </div>
+        {results.length === 0 ? null : (
+          <Button
+            className="self-start"
+            disabled={unselectedResults.length === 0}
+            onClick={() => setSelected((current) => [...current, ...unselectedResults])}
+            size="sm"
+            variant="ghost"
+          >
+            <UiIcon name="check-check" size={16} />
+            {t("selectLoaded", { count: results.length })}
+          </Button>
+        )}
         <ScrollArea className="h-72 rounded-lg border border-border">
           <BookPickerResults
-            disabledIds={inListIds}
-            disabledLabel={t("alreadyInList")}
             emptyLabel={t("empty")}
             isPending={isPending}
             loadingLabel={tCommon("loading")}
@@ -190,7 +180,7 @@ function AddBooksForm({
   );
 }
 
-function libraryParams(search: string): LibraryListParams {
+function libraryParams({ listId, search }: { listId: string; search: string }): LibraryListParams {
   const q = search.trim();
   return {
     ageCategory: [],
@@ -198,6 +188,7 @@ function libraryParams(search: string): LibraryListParams {
     format: [],
     genre: [],
     language: [],
+    notInList: listId,
     owner: [],
     pageSize: LIBRARY_PAGE_SIZE,
     publisher: [],

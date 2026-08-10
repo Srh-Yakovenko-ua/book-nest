@@ -3183,17 +3183,22 @@
       "loadMore": "Show more",
       "toolbar": {
         "search": "Search in list…",
+        "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
         "sort": {
           "label": "Sort",
           "position": "Position in list",
-          "added_desc": "Recently added",
-          "added_asc": "Oldest added",
-          "title_asc": "Title A–Z",
-          "title_desc": "Title Z–A",
-          "author_asc": "Author A–Z",
-          "rating_desc": "Highest rating",
-          "pages_desc": "More pages",
-          "pages_asc": "Fewer pages"
+          "added_desc": "Date added: newest first",
+          "added_asc": "Date added: oldest first",
+          "title_asc": "Title: A–Z",
+          "title_desc": "Title: Z–A",
+          "author_asc": "Author: A–Z",
+          "author_desc": "Author: Z–A",
+          "status_unread_first": "Reading status: unread first",
+          "status_read_first": "Reading status: read first",
+          "rating_desc": "Rating: highest first",
+          "rating_asc": "Rating: lowest first",
+          "pages_desc": "Page count: most first",
+          "pages_asc": "Page count: fewest first"
         }
       },
       "header": {
@@ -3201,8 +3206,9 @@
         "manage": "List actions",
         "edit": "Edit list",
         "delete": "Delete list",
-        "created": "Created {date}",
-        "updated": "Updated {date}"
+        "updated": "Updated {date}",
+        "coverAlt": "Cover of a book from “{name}”",
+        "duplicate": "Duplicate list"
       },
       "book": {
         "actions": "Book actions: {title}",
@@ -3214,7 +3220,16 @@
         "addToQueue": "Add to queue",
         "inQueue": "In queue",
         "goToQueue": "Go to queue",
-        "addToOtherList": "Add to another list"
+        "addToOtherList": "Add to another list",
+        "cta": {
+          "continue": "Continue reading",
+          "resume": "Resume reading",
+          "start": "Start reading",
+          "view": "View book"
+        },
+        "favorite": "Add to favorites",
+        "unfavorite": "Remove from favorites",
+        "unknownAuthor": "Unknown author"
       },
       "remove": {
         "toast": "Book removed from the list",
@@ -3222,7 +3237,8 @@
       },
       "toast": {
         "addedToQueue": "Book added to the reading queue",
-        "error": "Something went wrong"
+        "error": "Something went wrong",
+        "startedReading": "Reading started"
       },
       "noResults": {
         "title": "No books found",
@@ -3233,7 +3249,19 @@
         "title": "This list is empty",
         "description": "Add books from your library to fill this list.",
         "addBooks": "Add books",
-        "back": "Back to lists"
+        "back": "Back to lists",
+        "filtered": {
+          "title": "No books match these conditions",
+          "description": "Try removing some of the filters or reset them all.",
+          "conditions": "Active conditions: {conditions}",
+          "reset": "Reset filters"
+        },
+        "tab": {
+          "all": "This list has no books yet.",
+          "not_started": "This list has no books you have not started yet.",
+          "reading": "This list has no books you are currently reading.",
+          "finished": "This list has no finished books yet."
+        }
       },
       "states": {
         "loading": "Loading list…",
@@ -3242,6 +3270,143 @@
         "errorTitle": "Could not load the list",
         "errorDescription": "Try refreshing the page.",
         "back": "Back to lists"
+      },
+      "tabs": {
+        "label": "Quick status filters",
+        "all": "All",
+        "not_started": "Not started",
+        "reading": "Reading",
+        "finished": "Finished"
+      },
+      "view": {
+        "label": "View mode",
+        "grid": "Grid",
+        "list": "List"
+      },
+      "reorder": {
+        "announced": "Book “{title}” moved to position {n} of {total}",
+        "handle": "Reorder “{title}”",
+        "handleHint": "Drag to reorder, or use the arrow keys",
+        "hint": "To reorder the books, choose the “Position in list” sorting and clear the search and filters."
+      },
+      "selection": {
+        "addToList": "Add to another list",
+        "addToQueue": "Add to queue",
+        "addedToList": "{count, plural, one {# book added to the other list} other {# books added to the other list}}",
+        "addedToQueue": "{count, plural, one {# book added to the queue} other {# books added to the queue}}",
+        "clear": "Clear selection",
+        "enter": "Select",
+        "exit": "Done",
+        "favorite": "Add to favorites",
+        "favoriteDone": "{count, plural, one {# book added to favorites} other {# books added to favorites}}",
+        "favoriteMenu": "Favorites",
+        "regionLabel": "Bulk actions",
+        "remove": "Remove from list",
+        "removed": "{count, plural, one {# book removed from the list} other {# books removed from the list}}",
+        "selectAll": "Select all",
+        "selectBook": "Select “{title}”",
+        "selected": "Selected {selected, number} of {loaded, plural, one {# loaded book} other {# loaded books}}",
+        "unfavorite": "Remove from favorites",
+        "unfavoriteDone": "{count, plural, one {# book removed from favorites} other {# books removed from favorites}}"
+      },
+      "filters": {
+        "button": "Filters",
+        "title": "Filters",
+        "description": "Narrow the list down by status, ownership, format and other conditions.",
+        "activeCount": "Filters, active conditions: {count}",
+        "reset": "Reset",
+        "apply": "Apply",
+        "groups": {
+          "status": "Reading status",
+          "ownership": "Ownership",
+          "format": "Format",
+          "queue": "Reading queue",
+          "favorite": "Favorites only",
+          "author": "Author",
+          "genre": "Genre",
+          "series": "Series"
+        },
+        "ownership": {
+          "none": "Not owned"
+        },
+        "queue": {
+          "all": "Any",
+          "in": "In the queue",
+          "notIn": "Not in the queue"
+        },
+        "favorite": {
+          "only": "Show favorites only"
+        },
+        "series": {
+          "all": "All",
+          "series_part": "Part of a series",
+          "solo": "Standalone books"
+        },
+        "author": {
+          "placeholder": "Any author",
+          "search": "Search authors…",
+          "empty": "No authors found",
+          "selected": "{count, plural, one {# author} other {# authors}}"
+        },
+        "genre": {
+          "placeholder": "Any genre",
+          "search": "Search genres…",
+          "empty": "No genres found",
+          "selected": "{count, plural, one {# genre} other {# genres}}"
+        }
+      },
+      "stats": {
+        "total": {
+          "title": "Total books",
+          "value": "{count, plural, one {book} other {books}}",
+          "caption": "{count, plural, one {From # author} other {From # different authors}}"
+        },
+        "finished": {
+          "title": "Finished",
+          "value": "{count, plural, one {book} other {books}}",
+          "caption": "{percent}% of the whole list",
+          "captionEmpty": "No finished books yet"
+        },
+        "inQueue": {
+          "title": "Reading queue",
+          "value": "{count, plural, one {book} other {books}}",
+          "caption": "{count, plural, one {# book is not in the queue yet} other {# books are not in the queue yet}}",
+          "captionEmpty": "Nothing is planned yet",
+          "captionFull": "The whole list is already planned"
+        },
+        "owned": {
+          "title": "Owned",
+          "value": "{count, plural, one {book} other {books}}",
+          "caption": "{count, plural, one {# book is not owned yet} other {# books are not owned yet}}",
+          "captionEmpty": "None of the books are owned yet",
+          "captionFull": "The whole list is owned"
+        }
+      },
+      "sidebar": {
+        "label": "More about this list",
+        "currentlyReading": {
+          "title": "Currently reading",
+          "cta": "Continue reading",
+          "coverAlt": "Cover of “{title}”",
+          "unknownAuthor": "Author unknown",
+          "progress": "p. {current} of {total} · {percent}%",
+          "progressPage": "p. {current}",
+          "progressLabel": "Reading progress: {percent}%",
+          "others": "{count, plural, one {# more book is in progress} other {# more books are in progress}}"
+        },
+        "about": {
+          "title": "About this list",
+          "genres": "{count, plural, one {# genre} other {# genres}}",
+          "seriesAndSolo": "{series, plural, one {# series} other {# series}} · {solo, plural, one {# standalone book} other {# standalone books}}",
+          "pages": "{count, plural, one {# page} other {# pages}}",
+          "pagesPartial": "For {known, number} of {total, plural, one {# book} other {# books}}"
+        },
+        "related": {
+          "title": "Books shared with other lists",
+          "shared": "{shared, plural, one {# shared book} other {# shared books}} of {total, number}",
+          "showAll": "Show all ({count})",
+          "collapse": "Collapse"
+        }
       }
     },
     "catalog": {
@@ -3432,7 +3597,8 @@
         "created": "List created",
         "updated": "List updated",
         "deleted": "List deleted",
-        "error": "Couldn't update the list"
+        "error": "Couldn't update the list",
+        "duplicated": "List duplicated"
       }
     },
     "addBooks": {
@@ -3441,14 +3607,14 @@
       "library": "Your library",
       "search": "Search by title or author…",
       "selected": "Selected books: {count}",
-      "alreadyInList": "Already in the list",
       "clear": "Clear",
       "submit": "Add to list",
       "empty": "No books found",
       "loadMore": "Show more",
       "emptySelected": "No books selected yet",
       "removeSelected": "Remove from selection",
-      "toast": "{count, plural, one {# book added to the list} other {# books added to the list}}"
+      "toast": "{count, plural, one {# book added to the list} other {# books added to the list}}",
+      "selectLoaded": "Select all shown ({count})"
     }
   },
   "legal": {
@@ -5343,6 +5509,106 @@
         "description": "Check your connection and try again.",
         "retry": "Try again"
       }
+    }
+  },
+  "goals": {
+    "fallbackName": "Read {count, plural, one {# book} other {# books}} by {date}",
+    "sidebar": {
+      "title": "List goal",
+      "emptyDescription": "Turn this themed list into a reading challenge.",
+      "noBooksHint": "Add books to the list first",
+      "loading": "Loading the goal…",
+      "create": "Create a goal",
+      "createNew": "Create a new goal",
+      "view": "View the goal",
+      "progress": "{completed} of {target} done",
+      "progressLabel": "Goal progress: {percent}%",
+      "remaining": "{count, plural, one {# book} other {# books}} to go",
+      "completed": {
+        "title": "Goal reached",
+        "detail": "{completed} of {target} · finished {date}",
+        "detailPlain": "{completed} of {target} · done"
+      },
+      "expired": {
+        "title": "The deadline has passed",
+        "detail": "{completed} of {target} · {count, plural, one {# day} other {# days}} overdue",
+        "detailPlain": "{completed} of {target} · deadline passed"
+      }
+    },
+    "form": {
+      "title": "Create a goal for this list",
+      "editTitle": "Edit the goal",
+      "source": "Books from: “{name}”",
+      "sourceBooks": "{count, plural, one {# book} other {# books}}",
+      "name": "Goal name",
+      "nameOptional": "optional",
+      "namePlaceholder": "Read books from “{name}”",
+      "targetCount": "Books to read",
+      "targetHint": "{count, plural, one {# book} other {# books}} in the list",
+      "deadline": "By date",
+      "deadlinePlaceholder": "Pick a date",
+      "explanation": "Only books from this list finished after the goal was created count towards it.",
+      "cancel": "Cancel",
+      "submit": "Create a goal",
+      "save": "Save",
+      "errors": {
+        "required": "Fill in this field",
+        "deadlinePast": "Pick a date later than today",
+        "nameMax": "The name can be at most {max} characters",
+        "targetMin": "At least one book",
+        "targetMax": "The list holds only {count, plural, one {# book} other {# books}}"
+      }
+    },
+    "detail": {
+      "metaTitle": "Reading goal",
+      "back": "Back to “{name}”",
+      "backToLists": "Back to lists",
+      "deadline": "by {date}",
+      "daysLeft": "{count, plural, one {# day} other {# days}} left",
+      "daysOverdue": "{count, plural, one {# day} other {# days}} overdue",
+      "completedOn": "finished {date}",
+      "progress": "{completed} of {target} · {percent}%",
+      "progressLabel": "Goal progress: {percent}%",
+      "remaining": "{count, plural, one {# book} other {# books}} to go",
+      "countedBooks": "Counted books ({count})",
+      "countedEmpty": "No book has been counted yet",
+      "countedEmptyHint": "Only books from the list finished after the goal was created count towards it.",
+      "finishedOn": "finished {date}",
+      "coverAlt": "Cover of “{title}”",
+      "edit": "Edit the goal",
+      "archive": "Archive",
+      "delete": "Delete",
+      "loading": "Loading the goal…",
+      "notFoundTitle": "Goal not found",
+      "notFoundDescription": "It may have been deleted, or it belongs to another user.",
+      "errorTitle": "Couldn't load the goal",
+      "errorDescription": "Try reloading the page.",
+      "archiveDialog": {
+        "title": "Archive this goal?",
+        "description": "The goal will disappear from the list sidebar and stay reachable only by direct link. The list will be free to take a new goal.",
+        "cancel": "Cancel",
+        "confirm": "Archive"
+      },
+      "deleteDialog": {
+        "title": "Delete this goal?",
+        "description": "The goal will be gone for good. Your books and their reading progress stay untouched.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      }
+    },
+    "status": {
+      "active": "Active",
+      "completed": "Reached",
+      "expired": "Overdue",
+      "archived": "Archived"
+    },
+    "toast": {
+      "created": "Goal created",
+      "updated": "Goal updated",
+      "archived": "Goal archived",
+      "deleted": "Goal deleted",
+      "conflict": "This list already has an active goal",
+      "error": "Something went wrong"
     }
   }
 }

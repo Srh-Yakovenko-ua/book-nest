@@ -1,4 +1,11 @@
-import type { CustomListCard, CustomListDetail, ListBookView, MediaView } from "@app/shared";
+import type {
+  CustomListCard,
+  CustomListDetail,
+  ListBookView,
+  ListOverviewView,
+  MediaView,
+  RelatedListView,
+} from "@app/shared";
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 
@@ -52,6 +59,24 @@ export function makeListBookView(overrides: Partial<ListBookView> = {}): ListBoo
   return { ...makeBookView(bookOverrides), position: position ?? 1 };
 }
 
+export function makeListOverviewView(overrides: Partial<ListOverviewView> = {}): ListOverviewView {
+  return {
+    currentlyReading: null,
+    distinctAuthorsCount: 8,
+    finishedCount: 4,
+    genresCount: 6,
+    inQueueCount: 3,
+    ownedCount: 12,
+    pagesKnownCount: 20,
+    seriesCount: 2,
+    soloCount: 18,
+    topGenres: [{ count: 5, key: "fantasy", name: "Фентезі" }],
+    totalBooks: 20,
+    totalPages: 7840,
+    ...overrides,
+  };
+}
+
 export function makeMediaView(overrides: Partial<MediaView> = {}): MediaView {
   return {
     contentType: "image/webp",
@@ -67,6 +92,16 @@ export function makeMediaView(overrides: Partial<MediaView> = {}): MediaView {
       thumb: "https://cdn.example.com/thumb.webp",
     },
     width: 600,
+    ...overrides,
+  };
+}
+
+export function makeRelatedListView(overrides: Partial<RelatedListView> = {}): RelatedListView {
+  return {
+    bookCount: 8,
+    id: "33333333-3333-4333-8333-333333333333",
+    name: "Улюблене фентезі",
+    sharedCount: 6,
     ...overrides,
   };
 }
