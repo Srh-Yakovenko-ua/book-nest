@@ -547,6 +547,30 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Список бажань рахує, чого ви чекаєте",
     version: null,
   },
+  {
+    bodyEn:
+      "You can now set a goal to read a set number of books from one of your lists by a date you choose. The list itself shows a card with how far along you are, the goal page lists the books that count toward it, and progress follows what you actually read instead of waiting to be updated by hand. A goal can be edited, archived or deleted at any time, and since a list holds one open goal, archiving the current one frees the slot for the next.",
+    bodyUk:
+      "Тепер ви можете поставити ціль: прочитати певну кількість книг з одного зі своїх списків до обраної дати. На самому списку з'являється картка з тим, наскільки ви просунулися, а на сторінці цілі видно книги, які до неї зараховуються, і поступ рахується з того, що ви читаєте, а не з ручних позначок. Ціль можна змінити, заархівувати або видалити будь-коли, а оскільки список тримає одну відкриту ціль, архівування звільняє місце для наступної.",
+    category: "feature",
+    publishedAt: "2026-08-10T00:00:00.000Z",
+    slug: "reading-goals",
+    titleEn: "Reading goals",
+    titleUk: "Цілі з читання",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The page of a single list now carries a sidebar with what the list is about, what you are currently reading from it, related lists and summary numbers. Quick tabs and advanced filters tell you how many books sit behind each value before you pick it, books can be dragged into the order you want, several books can be selected at once and handled together or removed in one go, a whole list can be duplicated, and every book row has a menu with the next sensible step for it.",
+    bodyUk:
+      "Сторінка окремого списку тепер має бічну панель: про що цей список, що ви зараз із нього читаєте, споріднені списки та підсумкові цифри. Швидкі вкладки й розширені фільтри показують, скільки книг стоїть за кожним значенням ще до вибору, книги можна перетягувати в потрібному порядку, обирати кілька одразу й виконувати дію для всіх обраних, зокрема прибирати їх зі списку, дублювати весь список, а меню біля кожної книги пропонує наступну доречну дію.",
+    category: "improvement",
+    publishedAt: "2026-08-10T00:00:01.000Z",
+    slug: "list-details-overhaul",
+    titleEn: "The list page, rebuilt",
+    titleUk: "Оновлена сторінка списку",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
