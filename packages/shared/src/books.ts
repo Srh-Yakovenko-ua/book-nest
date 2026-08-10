@@ -35,10 +35,11 @@ import {
   NoHtmlString,
   notInFutureDate,
   queryStringArray,
+  ratingBound,
   RECENT_USED_LIMIT_DEFAULT,
   RECENT_USED_LIMIT_MAX,
 } from "./internal.js";
-import { BookListViewSchema, NewListInputSchema } from "./lists.js";
+import { BookListViewSchema, ListGenreFacetSchema, NewListInputSchema } from "./lists.js";
 import { LoanInfoViewSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
 import { BookPublisherRefSchema } from "./publishers.js";
@@ -807,9 +808,6 @@ export type UpdateReadingProgressInput = z.infer<typeof UpdateReadingProgressInp
 
 const LIBRARY_PAGE_SIZE_DEFAULT = 24;
 export const LIBRARY_SEARCH_MAX = 200;
-const LIBRARY_RATING_MIN = 0.5;
-const LIBRARY_RATING_MAX = 10;
-const LIBRARY_RATING_STEP = 0.5;
 
 export const LibrarySortSchema = z.enum([
   "created_desc",
@@ -845,8 +843,10 @@ export const LibraryBooksQuerySchema = z
     hasCover: z.stringbool().optional(),
     hasDedication: z.stringbool().optional(),
     hasRating: z.stringbool().optional(),
+    inQueue: z.stringbool().optional(),
     isFavorite: z.stringbool().optional(),
     language: queryStringArray(BookLanguageSchema),
+    notInList: z.uuid().optional(),
     owner: queryStringArray(OwnershipStatusSchema),
     ...paginationQueryFields({ pageSizeDefault: LIBRARY_PAGE_SIZE_DEFAULT }),
     pagesMax: z.coerce.number().int().optional(),
@@ -854,18 +854,8 @@ export const LibraryBooksQuerySchema = z
     publisher: queryStringArray(z.uuid()),
     publisherPresence: PublisherPresenceSchema.optional(),
     q: z.string().max(LIBRARY_SEARCH_MAX).optional(),
-    ratingMax: z.coerce
-      .number()
-      .min(LIBRARY_RATING_MIN)
-      .max(LIBRARY_RATING_MAX)
-      .multipleOf(LIBRARY_RATING_STEP)
-      .optional(),
-    ratingMin: z.coerce
-      .number()
-      .min(LIBRARY_RATING_MIN)
-      .max(LIBRARY_RATING_MAX)
-      .multipleOf(LIBRARY_RATING_STEP)
-      .optional(),
+    ratingMax: ratingBound().optional(),
+    ratingMin: ratingBound().optional(),
     sort: LibrarySortSchema.default("created_desc"),
     status: queryStringArray(ReadingStatusSchema),
     tag: queryStringArray(z.uuid()),
@@ -1133,6 +1123,7 @@ export const BookViewSchema = z.object({
   translator: z.string().nullable(),
   updatedAt: z.string(),
   userId: z.string(),
+  wishlistAddedAt: z.string().nullable(),
 });
 
 export type BookView = z.infer<typeof BookViewSchema>;
@@ -1245,7 +1236,36 @@ export const CustomListDetailSchema = z.object({
   description: z.string().nullable(),
   id: z.string(),
   name: z.string(),
+  previewCovers: z.array(MediaViewSchema),
+  statusCounts: z.object({
+    all: z.number().int().nonnegative(),
+    finished: z.number().int().nonnegative(),
+    not_started: z.number().int().nonnegative(),
+    reading: z.number().int().nonnegative(),
+  }),
   updatedAt: z.string(),
 });
 
 export type CustomListDetail = z.infer<typeof CustomListDetailSchema>;
+
+export const ListOverviewViewSchema = z.object({
+  currentlyReading: z
+    .object({
+      book: ListBookViewSchema,
+      othersCount: z.number().int().nonnegative(),
+    })
+    .nullable(),
+  distinctAuthorsCount: z.number().int().nonnegative(),
+  finishedCount: z.number().int().nonnegative(),
+  genresCount: z.number().int().nonnegative(),
+  inQueueCount: z.number().int().nonnegative(),
+  ownedCount: z.number().int().nonnegative(),
+  pagesKnownCount: z.number().int().nonnegative(),
+  seriesCount: z.number().int().nonnegative(),
+  soloCount: z.number().int().nonnegative(),
+  topGenres: z.array(ListGenreFacetSchema),
+  totalBooks: z.number().int().nonnegative(),
+  totalPages: z.number().int().nonnegative(),
+});
+
+export type ListOverviewView = z.infer<typeof ListOverviewViewSchema>;

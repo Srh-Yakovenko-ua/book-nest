@@ -100,7 +100,7 @@ Business logic stays independent of HTTP **and** of the data layer, so each laye
 1. Zod request/response schema + types in `packages/shared`.
 2. `model` in `apps/api/prisma/schema.prisma` (if a new entity).
 3. **Migrations are the source of truth — two-step, never one-shot.** (a) `pnpm --filter @app/api db:migrate --name <snake_case>` creates a review-only migration (`migrate dev --create-only`; `--name` is required — bare `prisma migrate dev` blocks forever on the interactive name prompt in a non-TTY shell). (b) Review the `migration.sql` (delegate to `migration-reviewer`; watch the rename trap; strip the DROP-INDEX lines per the trap below), then `pnpm --filter @app/api db:migrate:deploy` (non-interactive, advisory-locked).
-   - **Raw-SQL-index trap.** Nine indexes live in hand-written SQL inside their migrations because Prisma can't express them in a `model`: trigram GIN `authors_search_text_trgm_idx` + `publishers_search_text_trgm_idx` (`gin_trgm_ops`, cross-locale search), partial-unique `book_deliveries_active_book_idx` + `book_loans_active_book_idx` (one active delivery / one active loan per book), partial `books_user_queue_position_idx` (`WHERE queue_position IS NOT NULL AND deleted_at IS NULL`, reading-queue reads/shifts/resequences), partial-unique `books_series_id_part_number_key` (`WHERE deleted_at IS NULL`, so a trashed book stops holding its slot in the series — keep that exact index name, `book-relations-resolver` maps P2002 on it to the friendly part-number conflict error), and partial-unique `series_user_id_normalized_name_key` + `book_lists_user_id_normalized_name_key` + `book_timelines_book_id_name_lower_idx` (`WHERE deleted_at IS NULL`, so a trashed series/list/timeline releases its name; series and list creation take an advisory lock instead of relying on upsert). `apps/api/src/core/database/raw-sql-indexes.test.ts` asserts all nine still exist with their predicates, so a forgotten strip turns red in CI instead of silently dropping an invariant. They exist in the DB but not in `schema.prisma`, so every generated migration emits a spurious `DROP INDEX` for them. Hand-strip those `DROP INDEX` lines **before** `db:migrate:deploy`, or search degrades to a seq scan and the one-active invariants are silently lost.
+   - **Raw-SQL-index trap.** Ten indexes live in hand-written SQL inside their migrations because Prisma can't express them in a `model`: trigram GIN `authors_search_text_trgm_idx` + `publishers_search_text_trgm_idx` (`gin_trgm_ops`, cross-locale search), partial-unique `book_deliveries_active_book_idx` + `book_loans_active_book_idx` (one active delivery / one active loan per book), partial `books_user_queue_position_idx` (`WHERE queue_position IS NOT NULL AND deleted_at IS NULL`, reading-queue reads/shifts/resequences), partial-unique `books_series_id_part_number_key` (`WHERE deleted_at IS NULL`, so a trashed book stops holding its slot in the series — keep that exact index name, `book-relations-resolver` maps P2002 on it to the friendly part-number conflict error), partial-unique `series_user_id_normalized_name_key` + `book_lists_user_id_normalized_name_key` + `book_timelines_book_id_name_lower_idx` (`WHERE deleted_at IS NULL`, so a trashed series/list/timeline releases its name; series and list creation take an advisory lock instead of relying on upsert), and partial-unique `reading_goals_active_list_idx` (`WHERE archived_at IS NULL AND list_id IS NOT NULL`, at most one open reading goal per list — archiving releases the slot, and goals with no list are uncovered). `apps/api/src/core/database/raw-sql-indexes.test.ts` asserts all ten still exist with their predicates, so a forgotten strip turns red in CI instead of silently dropping an invariant. They exist in the DB but not in `schema.prisma`. **In practice only the two trigram GIN indexes come back as a spurious `DROP INDEX`,** because Prisma's differ can see a plain index it did not declare but cannot represent a `WHERE` predicate at all — the eight partial ones are invisible to it and are never drop candidates. Do not let that shrink the check: read every `DROP INDEX` line in a generated migration and strip the ones no task asked for, **before** `db:migrate:deploy`, or search degrades to a seq scan and the one-active invariants are silently lost. A `DROP INDEX` on a partial index is legitimate exactly once, in the migration that converts a plain index into that partial one.
 4. Repository — inject `PrismaService`, parameterized queries only.
 5. Service — business logic, `HttpError` subclasses, map model → ViewModel, `TransactionRunner.run(...)` for multi-write.
 6. Input DTO classes in `api/input-dto/` via `createZodDto(Schema)`.
@@ -164,6 +164,8 @@ pnpm format:check  # Prettier
 pnpm exec vitest run <path/to/the.test.ts>   # only the files your change touches
 ```
 
+**"Only the files your change touches" has one blind spot, and it is the expensive one.** A contract change breaks callers you never opened — a test fixture, a hand-written frontend caller, a sibling test asserting the old response shape. Whenever the change is contract-shaped (`packages/shared`, a Prisma schema or migration, a repository/service signature, a DI constructor, a request or response body, a `core/**` helper), run the **`/blast-radius`** skill before committing. It greps the consumers and runs their tests, which is minutes, not the full suite. Skipping it on 2026-08-08 put a red deploy on `dev`.
+
 **At commit and push** — nothing heavier locally. `pre-commit` runs lint-staged on staged files; `pre-push` runs `pnpm typecheck && pnpm lint`. The full suite runs on GitHub Actions: `Deploy` fires on every push to `dev`/`prod` and calls `ci.yml`, which runs static checks, four sharded API test shards, and the web suite before any image is built. A red test blocks the deploy, so a push is the real gate.
 
 **The local full suite is opt-in, not routine.** Run `pnpm test` (and `pnpm knip`) only when the user asks, when CI has gone red and needs reproducing, or before a prod release. Then run it once, never while another run is live — turbo replays an unchanged package from cache, so a second run buys nothing and doubles the load. `VITEST_MAX_WORKERS=2 pnpm test` when the machine must stay usable.
@@ -188,8 +190,8 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 | Tests in `apps/web/src/**` / `apps/api/src/**`                            | `frontend-test-engineer` / `backend-test-engineer` |
 | Refactor / dead code / cleanup                                            | `refactor-specialist`                              |
 | End-to-end user-visible feature needing a "what's new" entry              | `changelog-writer`                                 |
-| Browser-side bug (UI, console, layout, hydration, interaction)            | `frontend-bug-hunter`                              |
-| Server-side bug (500, failing endpoint, Prisma/Postgres error, hang)      | `backend-bug-hunter`                               |
+| Browser-side bug (UI, console, layout, hydration, interaction)            | `frontend-bug-hunter` (via `/diagnose`)            |
+| Server-side bug (500, failing endpoint, Prisma/Postgres error, hang)      | `backend-bug-hunter` (via `/diagnose`)             |
 | Prisma migration / schema change                                          | `migration-reviewer`                               |
 | Release / promote dev→stage→prod, deploy, "залить в прод", "выкати"       | `release-manager`                                  |
 | "ready to commit" / "сделай ревью" / "проверь перед commit"               | `code-reviewer` (+ auditors below)                 |
@@ -199,6 +201,27 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 | SEO / SSR markup, metadata, hreflang, sitemap/robots, locale routing      | `seo-auditor`                                      |
 
 **Parallel review** — on "ready to commit" / "полный ревью", launch the relevant reviewers in one turn (multiple Agent calls): always `code-reviewer`; plus `frontend-performance-auditor` / `accessibility-auditor` if the diff touches UI, `seo-auditor` if it touches routing/metadata/next-intl, `security-reviewer` if it touches auth/API/forms/env/deps.
+
+**Skills available** (`.claude/skills/`) — invoke with `/<name>`:
+
+| Skill                              | Reach for it when                                                                                  |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `spec-to-ship`                     | work arrives as a spec / ТЗ — the full audit → plan → slice → re-audit chain                       |
+| `grill`                            | the work arrives as an idea, and the decision is expensive to reverse                              |
+| `blast-radius`                     | before committing a contract change, to find the callers you did not open                          |
+| `diagnose`                         | a bug that survived the first read — builds a tight pass/fail loop before theorising               |
+| `new-endpoint`                     | adding a BE endpoint end to end                                                                    |
+| `new-slice`                        | adding a FE feature slice                                                                          |
+| `db-migrate`                       | any Prisma migration (pairs with `migration-reviewer` and the strip-trap)                          |
+| `add-i18n-key`                     | adding user-facing text, so no locale is left behind                                               |
+| `deep-module`                      | deciding where to split an overgrown service, or whether a seam is real                            |
+| `domain-model`                     | a term is used two ways, or a decision is worth outliving its feature (`CONTEXT.md` + `docs/adr/`) |
+| `wizard`                           | the next step needs a human at a browser — infra, credentials, DNS, CI secrets                     |
+| `prose`                            | writing text a person reads: README, docs, changelog, release notes, PR body, commit               |
+| `teach`                            | a BE/infra concept is worth a real lesson, not a one-off explanation                               |
+| `writing-for-agents`               | editing anything under `.claude/` or pruning `CLAUDE.md`                                           |
+| `handoff`                          | closing a long session, or handing the work to a fresh one                                         |
+| `supabase-postgres-best-practices` | writing or optimising a Postgres query, index, or schema (vendored, MIT)                           |
 
 **Spec-driven work runs as a chain, not head-on** — see [`.claude/skills/spec-to-ship/SKILL.md`](./.claude/skills/spec-to-ship/SKILL.md). Verify the spec against the code before planning, decompose into a checkable `tasks.json`, ask all open decisions in one block, implement slice by slice with per-slice review, then re-audit the diff against `tasks.json` before claiming done. A spec's `file:line` claims are stale until opened; a requirement is optional only when the spec itself says so.
 
@@ -220,6 +243,7 @@ Route work to the right subagent without narrating or asking. Agents live in `.c
 
 - Respond in **Russian**; code, paths, commands, and output stay in English.
 - Terse by default: short status, no narration of upcoming steps, no trailing recaps.
-- **Explain the why deeply for backend and non-obvious decisions.** The maintainer is a senior frontend engineer deepening backend/infra expertise — when a NestJS/Prisma/Postgres/HTTP/git-infra concept or a non-obvious tradeoff comes up, teach the mental model and the reasoning, with FE analogies where they help. This is depth on **concepts**, not narration of routine mechanical steps (those stay terse).
+- **Explain the why deeply for backend and non-obvious decisions.** The maintainer is a senior frontend engineer deepening backend/infra expertise — when a NestJS/Prisma/Postgres/HTTP/git-infra concept or a non-obvious tradeoff comes up, teach the mental model and the reasoning, with FE analogies where they help. This is depth on **concepts**, not narration of routine mechanical steps (those stay terse). When the concept deserves a real lesson rather than a paragraph in passing, use `/teach` — it records what landed, so the next lesson starts higher.
+- **Text a human reads follows `/prose`**, not this file's own style: README, `docs/`, changelog, release notes, PR bodies, commit messages. Plain sentences, no em-dashes, no "Generated with Claude Code" footer. Files under `.claude/` are read by a model and follow `/writing-for-agents` instead.
 - Delegation is automatic and silent (§10).
 - Avoid: comments in code, unverified "should work" claims, chatter, asking permission for routine work, wrapper libraries over standard tools, premature optimization, hardcoded values that belong in env.

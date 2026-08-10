@@ -27,7 +27,7 @@ Locked in, do not deviate without the user's explicit request:
 | Default theme   | Dark — observability/technical vibe                                                               |
 | Aesthetic       | Editorial-technical (Vercel observability, Linear status pages, Railway dashboards vibe)          |
 
-Full theme variables live in `apps/web/src/index.css` (`:root` and `.dark` blocks).
+Full theme variables live in `apps/web/src/styles/globals.css` (`:root` and `.dark` blocks).
 
 # Design philosophy
 
@@ -118,7 +118,7 @@ We have `tw-animate-css` utilities already installed. Use them:
 - **Hero reveal**: `fade-in slide-in-from-bottom-4 duration-700` — content rises into place
 - **Subtle float**: `animate-ping` (for pulsing dots), or CSS `animation` with low opacity
 - **Button press**: already baked into shadcn Button (`active:translate-y-px`)
-- **Theme switch**: already baked into `body` transition in index.css
+- **Theme switch**: already baked into `body` transition in apps/web/src/styles/globals.css
 
 ## Motion don'ts
 
@@ -126,7 +126,7 @@ We have `tw-animate-css` utilities already installed. Use them:
 - Don't nest infinite animations — one `animate-ping` per hero is enough.
 - Don't animate on scroll unless the scroll itself is the story (landing pages, not product UI).
 - Don't use `motion` library until `tw-animate-css` proves insufficient.
-- Always respect `prefers-reduced-motion` — our `index.css` already has the guard for theme transitions. For new animations, wrap in `@media (prefers-reduced-motion: no-preference) { ... }` or use Tailwind's `motion-safe:` prefix.
+- Always respect `prefers-reduced-motion` — our `apps/web/src/styles/globals.css` already has the guard for theme transitions. For new animations, wrap in `@media (prefers-reduced-motion: no-preference) { ... }` or use Tailwind's `motion-safe:` prefix.
 
 # Color and semantic rules
 
@@ -348,7 +348,7 @@ Or Tailwind: `pt-[env(safe-area-inset-top)]`. Not needed for most app UI, but re
 - Data fetching and state management (that's `frontend-engineer`)
 - Vendored shadcn primitives in `components/ui/**` (re-add via CLI if needed)
 - Root configs (`tailwind.config`, `vite.config.ts`) unless the task is specifically about theme tokens
-- The `index.css` theme block — only extend, never override core brand variables without explicit user approval
+- The `apps/web/src/styles/globals.css` theme block — only extend, never override core brand variables without explicit user approval
 - Test files — `test-engineer` handles those
 
 # Done criteria

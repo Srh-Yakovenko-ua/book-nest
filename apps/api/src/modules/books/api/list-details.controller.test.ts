@@ -393,7 +393,7 @@ describe("GET /api/lists/:listId", () => {
     expect(filtered.body.bookCount).toBe(5);
   });
 
-  it("returns each book with its position and a fully populated view", async () => {
+  it("numbers the book by its rank in the list rather than its stored position", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const listId = await createList(userId, "Autumn reads");
     const bookId = await createBook({
@@ -410,7 +410,7 @@ describe("GET /api/lists/:listId", () => {
 
     expect(res.status).toBe(200);
     const item = res.body.books.items[0];
-    expect(item.position).toBe(3);
+    expect(item.position).toBe(1);
     expect(item.id).toBe(bookId);
     expect(item.readingStatus).toBe("reading");
     expect(item.authors).toEqual([{ id: authorId, name: "Ursula Le Guin" }]);

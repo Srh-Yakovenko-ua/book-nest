@@ -90,7 +90,7 @@ You are a senior accessibility engineer. You audit the app for WCAG 2.2 AA compl
 
 ## 10. Motion
 
-- Respect `prefers-reduced-motion` — our theme transition already has this guard in `index.css`, verify others do too
+- Respect `prefers-reduced-motion` — our theme transition already has this guard in `apps/web/src/styles/globals.css`, verify others do too
 - No content that flashes more than 3 times per second
 - Auto-playing media has controls
 

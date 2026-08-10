@@ -31,6 +31,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiTags,
 } from "@nestjs/swagger";
@@ -87,6 +88,21 @@ export class ListsController {
   @Throttle(READ_THROTTLE)
   summary(@CurrentUser() user: AuthenticatedUser): Promise<ListsSummaryView> {
     return this.listsService.getSummary({ userId: user.id });
+  }
+
+  @ApiConflictResponse({ description: "Too many copies of this list already exist" })
+  @ApiCreatedResponse({ description: "The duplicated list", type: CustomListCardDto })
+  @ApiNotFoundResponse({ description: "List not found" })
+  @ApiOperation({ summary: "Duplicate a book list with its books and their order" })
+  @ApiParam({ name: "listId", required: true })
+  @JwtProtected()
+  @Post(":listId/duplicate")
+  @Throttle(MUTATION_THROTTLE)
+  duplicate(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listId", ParseUUIDPipe) listId: string,
+  ): Promise<CustomListCard> {
+    return this.listsService.duplicate({ listId, userId: user.id });
   }
 
   @ApiNotFoundResponse({ description: "List not found in the trash" })

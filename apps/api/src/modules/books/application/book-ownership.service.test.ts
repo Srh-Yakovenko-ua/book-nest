@@ -1,6 +1,6 @@
 import type { BookView } from "@app/shared";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { GuardedChangeOutcome } from "../infrastructure/books.repository.js";
 import type { BooksRepository } from "../infrastructure/books.repository.js";
@@ -14,6 +14,7 @@ import { BookOwnershipService } from "./book-ownership.service.js";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const BOOK_ID = "22222222-2222-4222-8222-222222222222";
+const NOW = new Date("2026-02-01T09:15:00.000Z");
 
 const VIEW = { id: BOOK_ID } as unknown as BookView;
 
@@ -58,7 +59,7 @@ describe("BookOwnershipService.removeFromWishlist", () => {
       USER_ID,
       BOOK_ID,
       {
-        book: { ownershipStatus: "none" },
+        book: { ownershipStatus: "none", wishlistAddedAt: null },
         purchaseInfo: "delete",
       },
       { expectedStatuses: ["want_to_buy"] },
@@ -75,7 +76,7 @@ describe("BookOwnershipService.removeFromWishlist", () => {
     expect(applyOwnershipChange).toHaveBeenCalledWith(
       USER_ID,
       BOOK_ID,
-      computeOwnershipChange({ kind: "remove-owned" }),
+      computeOwnershipChange({ current: "want_to_buy", kind: "remove-owned", now: NOW }),
       { expectedStatuses: ["want_to_buy"] },
     );
   });
@@ -109,6 +110,28 @@ describe("BookOwnershipService.removeFromWishlist", () => {
       expect(applyOwnershipChange).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("BookOwnershipService.wantToBuy", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("stamps the wishlist date with the current time when the book enters the wishlist", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    const { applyOwnershipChange, service } = setup("none");
+
+    await service.wantToBuy(USER_ID, BOOK_ID, {});
+
+    expect(applyOwnershipChange).toHaveBeenCalledWith(
+      USER_ID,
+      BOOK_ID,
+      { book: { ownershipStatus: "want_to_buy", wishlistAddedAt: NOW } },
+      { expectedStatuses: ["none"] },
+      {},
+    );
+  });
 });
 
 describe("BookOwnershipService.markBought", () => {

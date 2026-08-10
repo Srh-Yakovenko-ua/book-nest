@@ -6,6 +6,8 @@
  * OpenAPI spec version: 1.0
  */
 import type { CustomListDetailDtoBooks } from "./customListDetailDtoBooks";
+import type { CustomListDetailDtoPreviewCoversItem } from "./customListDetailDtoPreviewCoversItem";
+import type { CustomListDetailDtoStatusCounts } from "./customListDetailDtoStatusCounts";
 
 export interface CustomListDetailDto {
   bookCount: number;
@@ -15,5 +17,7 @@ export interface CustomListDetailDto {
   description: string | null;
   id: string;
   name: string;
+  previewCovers: CustomListDetailDtoPreviewCoversItem[];
+  statusCounts: CustomListDetailDtoStatusCounts;
   updatedAt: string;
 }

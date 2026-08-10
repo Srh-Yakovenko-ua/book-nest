@@ -1,7 +1,6 @@
 ---
 name: new-endpoint
-description: Scaffold a full feature-sliced NestJS endpoint in apps/api following the canonical workflow — shared DTO → Prisma model → reviewed migration → repository → service → input DTO → controller → module wiring → tests. Use when adding a new backend endpoint so it lands in the layered shape (api/application/domain/infrastructure) with clean layer separation instead of ad-hoc.
-disable-model-invocation: true
+description: Scaffold a full feature-sliced NestJS endpoint in apps/api following the canonical workflow — shared DTO → Prisma model → reviewed migration → repository → service → input DTO → controller → module wiring → tests. Use when adding a backend endpoint or a whole backend feature, and when the user says "новый эндпоинт", "добавь ручку", "сделай API для", "new endpoint", so it lands in the layered shape (api/application/domain/infrastructure) instead of ad-hoc.
 ---
 
 # Scaffold a backend endpoint (apps/api)

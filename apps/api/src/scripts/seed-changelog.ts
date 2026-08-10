@@ -535,6 +535,42 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Список бажань запам'ятовує, де купити",
     version: null,
   },
+  {
+    bodyEn:
+      "The wishlist now remembers the day a book landed on it, and four cards above the list turn that into a picture: how many books you want, how many arrived in the last month, how many fill a gap in a series you already own part of, how many continue one past your last part, and how many have been waiting longer than six months. Sorting by date follows the same rule, so a book you have owned for a year but only wanted since yesterday no longer pretends to be the oldest wish on the list.",
+    bodyUk:
+      "Список бажань тепер памʼятає день, коли книга до нього потрапила, а чотири картки над списком складають із цього картину: скільки книг ви хочете, скільки додано за останній місяць, скільки закривають пропуск у серії, частину якої ви вже маєте, скільки продовжують серію далі за вашу останню частину і скільки чекають довше за шість місяців. Сортування за датою тепер працює за тим самим правилом, тож книга, яка рік стоїть у бібліотеці, а в списку бажань лише з учора, більше не вдає найдавніше бажання.",
+    category: "improvement",
+    publishedAt: "2026-08-10T00:00:00.000Z",
+    slug: "wishlist-entry-date-counts",
+    titleEn: "The wishlist counts what you are waiting for",
+    titleUk: "Список бажань рахує, чого ви чекаєте",
+    version: null,
+  },
+  {
+    bodyEn:
+      "You can now set a goal to read a set number of books from one of your lists by a date you choose. The list itself shows a card with how far along you are, the goal page lists the books that count toward it, and progress follows what you actually read instead of waiting to be updated by hand. A goal can be edited, archived or deleted at any time, and since a list holds one open goal, archiving the current one frees the slot for the next.",
+    bodyUk:
+      "Тепер ви можете поставити ціль: прочитати певну кількість книг з одного зі своїх списків до обраної дати. На самому списку з'являється картка з тим, наскільки ви просунулися, а на сторінці цілі видно книги, які до неї зараховуються, і поступ рахується з того, що ви читаєте, а не з ручних позначок. Ціль можна змінити, заархівувати або видалити будь-коли, а оскільки список тримає одну відкриту ціль, архівування звільняє місце для наступної.",
+    category: "feature",
+    publishedAt: "2026-08-10T00:00:00.000Z",
+    slug: "reading-goals",
+    titleEn: "Reading goals",
+    titleUk: "Цілі з читання",
+    version: null,
+  },
+  {
+    bodyEn:
+      "The page of a single list now carries a sidebar with what the list is about, what you are currently reading from it, related lists and summary numbers. Quick tabs and advanced filters tell you how many books sit behind each value before you pick it, books can be dragged into the order you want, several books can be selected at once and handled together or removed in one go, a whole list can be duplicated, and every book row has a menu with the next sensible step for it.",
+    bodyUk:
+      "Сторінка окремого списку тепер має бічну панель: про що цей список, що ви зараз із нього читаєте, споріднені списки та підсумкові цифри. Швидкі вкладки й розширені фільтри показують, скільки книг стоїть за кожним значенням ще до вибору, книги можна перетягувати в потрібному порядку, обирати кілька одразу й виконувати дію для всіх обраних, зокрема прибирати їх зі списку, дублювати весь список, а меню біля кожної книги пропонує наступну доречну дію.",
+    category: "improvement",
+    publishedAt: "2026-08-10T00:00:01.000Z",
+    slug: "list-details-overhaul",
+    titleEn: "The list page, rebuilt",
+    titleUk: "Оновлена сторінка списку",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;

@@ -25,6 +25,9 @@ import type {
   CustomListDetailDto,
   ListDeletionResultDto,
   ListDetailsControllerDetailParams,
+  ListFacetsViewDto,
+  ListOverviewViewDto,
+  ListRelatedViewDto,
   ListsControllerListTrashParams,
   ListsControllerSearchParams,
   ListsSummaryViewDto,
@@ -32,6 +35,8 @@ import type {
   NewListInputDto,
   PaginatedCustomListsDto,
   PaginatedTrashedListsDto,
+  RemoveBooksFromListInputDto,
+  RemoveBooksFromListResultDto,
   UpdateListInputDto,
 } from "../../model";
 
@@ -357,6 +362,177 @@ export function useListsControllerSummary<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListsControllerSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type listsControllerDuplicateResponse201 = {
+  data: CustomListCardDto;
+  status: 201;
+};
+
+export type listsControllerDuplicateResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type listsControllerDuplicateResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type listsControllerDuplicateResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type listsControllerDuplicateResponseSuccess = listsControllerDuplicateResponse201 & {
+  headers: Headers;
+};
+export type listsControllerDuplicateResponseError = (
+  | listsControllerDuplicateResponse401
+  | listsControllerDuplicateResponse404
+  | listsControllerDuplicateResponse409
+) & {
+  headers: Headers;
+};
+
+export type listsControllerDuplicateResponse =
+  listsControllerDuplicateResponseSuccess | listsControllerDuplicateResponseError;
+
+export const getListsControllerDuplicateUrl = (listId: string) => {
+  return `/api/lists/${listId}/duplicate`;
+};
+
+/**
+ * @summary Duplicate a book list with its books and their order
+ */
+export const listsControllerDuplicate = async (
+  listId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<listsControllerDuplicateResponse> => {
+  return customInstance<listsControllerDuplicateResponse>(getListsControllerDuplicateUrl(listId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getListsControllerDuplicateQueryKey = (listId: string) => {
+  return ["POST", `/api/lists/${listId}/duplicate`] as const;
+};
+
+export const getListsControllerDuplicateQueryOptions = <
+  TData = Awaited<ReturnType<typeof listsControllerDuplicate>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerDuplicate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListsControllerDuplicateQueryKey(listId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listsControllerDuplicate>>> = ({
+    signal,
+  }) => listsControllerDuplicate(listId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: listId !== null && listId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listsControllerDuplicate>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListsControllerDuplicateQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listsControllerDuplicate>>
+>;
+export type ListsControllerDuplicateQueryError = void;
+
+export function useListsControllerDuplicate<
+  TData = Awaited<ReturnType<typeof listsControllerDuplicate>>,
+  TError = void,
+>(
+  listId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerDuplicate>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listsControllerDuplicate>>,
+          TError,
+          Awaited<ReturnType<typeof listsControllerDuplicate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListsControllerDuplicate<
+  TData = Awaited<ReturnType<typeof listsControllerDuplicate>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerDuplicate>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listsControllerDuplicate>>,
+          TError,
+          Awaited<ReturnType<typeof listsControllerDuplicate>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListsControllerDuplicate<
+  TData = Awaited<ReturnType<typeof listsControllerDuplicate>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerDuplicate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Duplicate a book list with its books and their order
+ */
+
+export function useListsControllerDuplicate<
+  TData = Awaited<ReturnType<typeof listsControllerDuplicate>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listsControllerDuplicate>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListsControllerDuplicateQueryOptions(listId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -1254,6 +1430,15 @@ export const getListDetailsControllerDetailUrl = (
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["author", "format", "genre", "owner", "status"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? "null" : String(value));
     }
@@ -1403,6 +1588,509 @@ export function useListDetailsControllerDetail<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListDetailsControllerDetailQueryOptions(listId, params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type listDetailsControllerFacetsResponse200 = {
+  data: ListFacetsViewDto;
+  status: 200;
+};
+
+export type listDetailsControllerFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type listDetailsControllerFacetsResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type listDetailsControllerFacetsResponseSuccess = listDetailsControllerFacetsResponse200 & {
+  headers: Headers;
+};
+export type listDetailsControllerFacetsResponseError = (
+  listDetailsControllerFacetsResponse401 | listDetailsControllerFacetsResponse404
+) & {
+  headers: Headers;
+};
+
+export type listDetailsControllerFacetsResponse =
+  listDetailsControllerFacetsResponseSuccess | listDetailsControllerFacetsResponseError;
+
+export const getListDetailsControllerFacetsUrl = (listId: string) => {
+  return `/api/lists/${listId}/facets`;
+};
+
+/**
+ * @summary Get the filter facets of a book list of the current user
+ */
+export const listDetailsControllerFacets = async (
+  listId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<listDetailsControllerFacetsResponse> => {
+  return customInstance<listDetailsControllerFacetsResponse>(
+    getListDetailsControllerFacetsUrl(listId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDetailsControllerFacetsQueryKey = (listId: string) => {
+  return [`/api/lists/${listId}/facets`] as const;
+};
+
+export const getListDetailsControllerFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDetailsControllerFacetsQueryKey(listId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDetailsControllerFacets>>> = ({
+    signal,
+  }) => listDetailsControllerFacets(listId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: listId !== null && listId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListDetailsControllerFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDetailsControllerFacets>>
+>;
+export type ListDetailsControllerFacetsQueryError = void;
+
+export function useListDetailsControllerFacets<
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof listDetailsControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDetailsControllerFacets<
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof listDetailsControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDetailsControllerFacets<
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the filter facets of a book list of the current user
+ */
+
+export function useListDetailsControllerFacets<
+  TData = Awaited<ReturnType<typeof listDetailsControllerFacets>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListDetailsControllerFacetsQueryOptions(listId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type listDetailsControllerOverviewResponse200 = {
+  data: ListOverviewViewDto;
+  status: 200;
+};
+
+export type listDetailsControllerOverviewResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type listDetailsControllerOverviewResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type listDetailsControllerOverviewResponseSuccess =
+  listDetailsControllerOverviewResponse200 & {
+    headers: Headers;
+  };
+export type listDetailsControllerOverviewResponseError = (
+  listDetailsControllerOverviewResponse401 | listDetailsControllerOverviewResponse404
+) & {
+  headers: Headers;
+};
+
+export type listDetailsControllerOverviewResponse =
+  listDetailsControllerOverviewResponseSuccess | listDetailsControllerOverviewResponseError;
+
+export const getListDetailsControllerOverviewUrl = (listId: string) => {
+  return `/api/lists/${listId}/overview`;
+};
+
+/**
+ * @summary Get the aggregate overview of a book list of the current user
+ */
+export const listDetailsControllerOverview = async (
+  listId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<listDetailsControllerOverviewResponse> => {
+  return customInstance<listDetailsControllerOverviewResponse>(
+    getListDetailsControllerOverviewUrl(listId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDetailsControllerOverviewQueryKey = (listId: string) => {
+  return [`/api/lists/${listId}/overview`] as const;
+};
+
+export const getListDetailsControllerOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDetailsControllerOverview>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDetailsControllerOverviewQueryKey(listId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDetailsControllerOverview>>> = ({
+    signal,
+  }) => listDetailsControllerOverview(listId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: listId !== null && listId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerOverview>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListDetailsControllerOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDetailsControllerOverview>>
+>;
+export type ListDetailsControllerOverviewQueryError = void;
+
+export function useListDetailsControllerOverview<
+  TData = Awaited<ReturnType<typeof listDetailsControllerOverview>>,
+  TError = void,
+>(
+  listId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDetailsControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof listDetailsControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDetailsControllerOverview<
+  TData = Awaited<ReturnType<typeof listDetailsControllerOverview>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDetailsControllerOverview>>,
+          TError,
+          Awaited<ReturnType<typeof listDetailsControllerOverview>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDetailsControllerOverview<
+  TData = Awaited<ReturnType<typeof listDetailsControllerOverview>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the aggregate overview of a book list of the current user
+ */
+
+export function useListDetailsControllerOverview<
+  TData = Awaited<ReturnType<typeof listDetailsControllerOverview>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListDetailsControllerOverviewQueryOptions(listId, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type listDetailsControllerRelatedResponse200 = {
+  data: ListRelatedViewDto;
+  status: 200;
+};
+
+export type listDetailsControllerRelatedResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type listDetailsControllerRelatedResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type listDetailsControllerRelatedResponseSuccess =
+  listDetailsControllerRelatedResponse200 & {
+    headers: Headers;
+  };
+export type listDetailsControllerRelatedResponseError = (
+  listDetailsControllerRelatedResponse401 | listDetailsControllerRelatedResponse404
+) & {
+  headers: Headers;
+};
+
+export type listDetailsControllerRelatedResponse =
+  listDetailsControllerRelatedResponseSuccess | listDetailsControllerRelatedResponseError;
+
+export const getListDetailsControllerRelatedUrl = (listId: string) => {
+  return `/api/lists/${listId}/related`;
+};
+
+/**
+ * @summary Get the lists that share books with a book list of the current user
+ */
+export const listDetailsControllerRelated = async (
+  listId: string,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<listDetailsControllerRelatedResponse> => {
+  return customInstance<listDetailsControllerRelatedResponse>(
+    getListDetailsControllerRelatedUrl(listId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListDetailsControllerRelatedQueryKey = (listId: string) => {
+  return [`/api/lists/${listId}/related`] as const;
+};
+
+export const getListDetailsControllerRelatedQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDetailsControllerRelated>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerRelated>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListDetailsControllerRelatedQueryKey(listId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listDetailsControllerRelated>>> = ({
+    signal,
+  }) => listDetailsControllerRelated(listId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: listId !== null && listId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerRelated>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type ListDetailsControllerRelatedQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDetailsControllerRelated>>
+>;
+export type ListDetailsControllerRelatedQueryError = void;
+
+export function useListDetailsControllerRelated<
+  TData = Awaited<ReturnType<typeof listDetailsControllerRelated>>,
+  TError = void,
+>(
+  listId: string,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerRelated>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDetailsControllerRelated>>,
+          TError,
+          Awaited<ReturnType<typeof listDetailsControllerRelated>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDetailsControllerRelated<
+  TData = Awaited<ReturnType<typeof listDetailsControllerRelated>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerRelated>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listDetailsControllerRelated>>,
+          TError,
+          Awaited<ReturnType<typeof listDetailsControllerRelated>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListDetailsControllerRelated<
+  TData = Awaited<ReturnType<typeof listDetailsControllerRelated>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerRelated>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the lists that share books with a book list of the current user
+ */
+
+export function useListDetailsControllerRelated<
+  TData = Awaited<ReturnType<typeof listDetailsControllerRelated>>,
+  TError = void,
+>(
+  listId: string,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listDetailsControllerRelated>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListDetailsControllerRelatedQueryOptions(listId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;
@@ -1596,6 +2284,225 @@ export function useListMembershipControllerAddBooks<
   const queryOptions = getListMembershipControllerAddBooksQueryOptions(
     listId,
     addBooksToListInputDto,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type listMembershipControllerRemoveBooksResponse200 = {
+  data: RemoveBooksFromListResultDto;
+  status: 200;
+};
+
+export type listMembershipControllerRemoveBooksResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type listMembershipControllerRemoveBooksResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type listMembershipControllerRemoveBooksResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type listMembershipControllerRemoveBooksResponseSuccess =
+  listMembershipControllerRemoveBooksResponse200 & {
+    headers: Headers;
+  };
+export type listMembershipControllerRemoveBooksResponseError = (
+  | listMembershipControllerRemoveBooksResponse400
+  | listMembershipControllerRemoveBooksResponse401
+  | listMembershipControllerRemoveBooksResponse404
+) & {
+  headers: Headers;
+};
+
+export type listMembershipControllerRemoveBooksResponse =
+  | listMembershipControllerRemoveBooksResponseSuccess
+  | listMembershipControllerRemoveBooksResponseError;
+
+export const getListMembershipControllerRemoveBooksUrl = (listId: string) => {
+  return `/api/lists/${listId}/books/remove`;
+};
+
+/**
+ * @summary Remove several books from a custom list and re-sequence positions
+ */
+export const listMembershipControllerRemoveBooks = async (
+  listId: string,
+  removeBooksFromListInputDto: RemoveBooksFromListInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<listMembershipControllerRemoveBooksResponse> => {
+  return customInstance<listMembershipControllerRemoveBooksResponse>(
+    getListMembershipControllerRemoveBooksUrl(listId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(removeBooksFromListInputDto),
+    },
+  );
+};
+
+export const getListMembershipControllerRemoveBooksQueryKey = (
+  listId: string,
+  removeBooksFromListInputDto?: RemoveBooksFromListInputDto,
+) => {
+  return ["POST", `/api/lists/${listId}/books/remove`, removeBooksFromListInputDto] as const;
+};
+
+export const getListMembershipControllerRemoveBooksQueryOptions = <
+  TData = Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+  TError = void,
+>(
+  listId: string,
+  removeBooksFromListInputDto: RemoveBooksFromListInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getListMembershipControllerRemoveBooksQueryKey(listId, removeBooksFromListInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>> = ({
+    signal,
+  }) =>
+    listMembershipControllerRemoveBooks(listId, removeBooksFromListInputDto, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: listId !== null && listId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListMembershipControllerRemoveBooksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>
+>;
+export type ListMembershipControllerRemoveBooksQueryError = void;
+
+export function useListMembershipControllerRemoveBooks<
+  TData = Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+  TError = void,
+>(
+  listId: string,
+  removeBooksFromListInputDto: RemoveBooksFromListInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+          TError,
+          Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListMembershipControllerRemoveBooks<
+  TData = Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+  TError = void,
+>(
+  listId: string,
+  removeBooksFromListInputDto: RemoveBooksFromListInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+          TError,
+          Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListMembershipControllerRemoveBooks<
+  TData = Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+  TError = void,
+>(
+  listId: string,
+  removeBooksFromListInputDto: RemoveBooksFromListInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Remove several books from a custom list and re-sequence positions
+ */
+
+export function useListMembershipControllerRemoveBooks<
+  TData = Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+  TError = void,
+>(
+  listId: string,
+  removeBooksFromListInputDto: RemoveBooksFromListInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listMembershipControllerRemoveBooks>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListMembershipControllerRemoveBooksQueryOptions(
+    listId,
+    removeBooksFromListInputDto,
     options,
   );
 
@@ -1824,7 +2731,7 @@ export const getListMembershipControllerMoveBookUrl = (listId: string, bookId: s
 };
 
 /**
- * @summary Move a book up or down within a custom list
+ * @summary Move a book one step or to an explicit position within a custom list
  */
 export const listMembershipControllerMoveBook = async (
   listId: string,
@@ -1958,7 +2865,7 @@ export function useListMembershipControllerMoveBook<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 /**
- * @summary Move a book up or down within a custom list
+ * @summary Move a book one step or to an explicit position within a custom list
  */
 
 export function useListMembershipControllerMoveBook<

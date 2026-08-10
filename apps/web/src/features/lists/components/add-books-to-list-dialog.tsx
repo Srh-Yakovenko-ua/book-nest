@@ -3,7 +3,6 @@
 import type { BookView } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import Image from "next/image";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -11,7 +10,6 @@ import type { LibraryListParams } from "@/features/books/model/library-query";
 
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,11 +19,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { useLibraryBooks } from "@/features/books/api/use-books";
+import { BookPickerResults, BookPickerSelected } from "@/features/books/components/book-picker";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { readingStatuses } from "@/lib/book-status";
-import { cn } from "@/lib/utils";
 
 import { useAddBooksToList } from "../api/use-list-membership";
 
@@ -33,18 +29,12 @@ const SEARCH_DEBOUNCE_MS = 250;
 const LIBRARY_PAGE_SIZE = 24;
 
 type AddBooksToListDialogProps = {
-  listBookIds: string[];
   listId: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
 
-export function AddBooksToListDialog({
-  listBookIds,
-  listId,
-  onOpenChange,
-  open,
-}: AddBooksToListDialogProps) {
+export function AddBooksToListDialog({ listId, onOpenChange, open }: AddBooksToListDialogProps) {
   const t = useTranslations("lists.addBooks");
 
   return (
@@ -54,27 +44,13 @@ export function AddBooksToListDialog({
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("subtitle")}</DialogDescription>
         </DialogHeader>
-        {open ? (
-          <AddBooksForm
-            listBookIds={listBookIds}
-            listId={listId}
-            onDone={() => onOpenChange(false)}
-          />
-        ) : null}
+        {open ? <AddBooksForm listId={listId} /> : null}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AddBooksForm({
-  listBookIds,
-  listId,
-  onDone,
-}: {
-  listBookIds: string[];
-  listId: string;
-  onDone: () => void;
-}) {
+function AddBooksForm({ listId }: { listId: string }) {
   const t = useTranslations("lists.addBooks");
   const tStatus = useTranslations("books.readingStatus.options");
   const tToast = useTranslations("lists.details.toast");
@@ -86,12 +62,12 @@ function AddBooksForm({
 
   const addBooks = useAddBooksToList(listId);
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } = useLibraryBooks(
-    libraryParams(debouncedSearch),
+    libraryParams({ listId, search: debouncedSearch }),
   );
 
-  const inListIds = new Set(listBookIds);
   const selectedIds = new Set(selected.map((book) => book.id));
   const results = (data?.pages ?? []).flatMap((page) => page.items);
+  const unselectedResults = results.filter((book) => !selectedIds.has(book.id));
 
   function toggle(book: BookView) {
     setSelected((current) =>
@@ -109,7 +85,7 @@ function AddBooksForm({
         onError: () => toast.error(tToast("error")),
         onSuccess: (result) => {
           toast.success(t("toast", { count: result.added }));
-          onDone();
+          setSelected([]);
         },
       },
     );
@@ -135,11 +111,21 @@ function AddBooksForm({
             value={search}
           />
         </div>
+        {results.length === 0 ? null : (
+          <Button
+            className="self-start"
+            disabled={unselectedResults.length === 0}
+            onClick={() => setSelected((current) => [...current, ...unselectedResults])}
+            size="sm"
+            variant="ghost"
+          >
+            <UiIcon name="check-check" size={16} />
+            {t("selectLoaded", { count: results.length })}
+          </Button>
+        )}
         <ScrollArea className="h-72 rounded-lg border border-border">
-          <LibraryResults
-            alreadyLabel={t("alreadyInList")}
+          <BookPickerResults
             emptyLabel={t("empty")}
-            inListIds={inListIds}
             isPending={isPending}
             loadingLabel={tCommon("loading")}
             onToggle={toggle}
@@ -175,7 +161,7 @@ function AddBooksForm({
           ) : null}
         </div>
         <ScrollArea className="h-72 rounded-lg border border-border">
-          <SelectedBooks
+          <BookPickerSelected
             books={selected}
             emptyLabel={t("emptySelected")}
             onRemove={toggle}
@@ -194,28 +180,7 @@ function AddBooksForm({
   );
 }
 
-function BookThumb({ book }: { book: BookView }) {
-  if (book.cover === null || book.cover === undefined) {
-    return (
-      <span className="grid h-12 w-9 shrink-0 place-items-center rounded-sm bg-accent text-icon">
-        <UiIcon name="book" size={16} />
-      </span>
-    );
-  }
-
-  return (
-    <Image
-      alt={book.title}
-      className="h-12 w-9 shrink-0 rounded-sm object-cover"
-      height={48}
-      src={book.cover.urls.thumb}
-      unoptimized
-      width={36}
-    />
-  );
-}
-
-function libraryParams(search: string): LibraryListParams {
+function libraryParams({ listId, search }: { listId: string; search: string }): LibraryListParams {
   const q = search.trim();
   return {
     ageCategory: [],
@@ -223,6 +188,7 @@ function libraryParams(search: string): LibraryListParams {
     format: [],
     genre: [],
     language: [],
+    notInList: listId,
     owner: [],
     pageSize: LIBRARY_PAGE_SIZE,
     publisher: [],
@@ -230,133 +196,4 @@ function libraryParams(search: string): LibraryListParams {
     tag: [],
     ...(q === "" ? {} : { q }),
   };
-}
-
-function LibraryResults({
-  alreadyLabel,
-  emptyLabel,
-  inListIds,
-  isPending,
-  loadingLabel,
-  onToggle,
-  readingLabel,
-  results,
-  selectedIds,
-}: {
-  alreadyLabel: string;
-  emptyLabel: string;
-  inListIds: Set<string>;
-  isPending: boolean;
-  loadingLabel: string;
-  onToggle: (book: BookView) => void;
-  readingLabel: (status: BookView["readingStatus"]) => string;
-  results: BookView[];
-  selectedIds: Set<string>;
-}) {
-  if (isPending) {
-    return (
-      <p className="grid h-full place-items-center p-4 text-sm text-muted-foreground">
-        {loadingLabel}
-      </p>
-    );
-  }
-
-  if (results.length === 0) {
-    return (
-      <p className="grid h-full place-items-center p-4 text-sm text-muted-foreground">
-        {emptyLabel}
-      </p>
-    );
-  }
-
-  return (
-    <ul className="flex flex-col gap-1 p-2">
-      {results.map((book) => {
-        const inList = inListIds.has(book.id);
-        const readingBase = readingStatuses.find((entry) => entry.value === book.readingStatus);
-        return (
-          <li key={book.id}>
-            <label
-              className={cn(
-                "flex items-center gap-3 rounded-lg border border-transparent p-2 transition-colors",
-                inList
-                  ? "cursor-not-allowed opacity-60"
-                  : "cursor-pointer hover:border-accent-border hover:bg-secondary/50",
-              )}
-            >
-              <Checkbox
-                checked={inList || selectedIds.has(book.id)}
-                disabled={inList}
-                onCheckedChange={() => onToggle(book)}
-              />
-              <BookThumb book={book} />
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="truncate text-sm font-medium text-ink">{book.title}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {book.authors.map((author) => author.name).join(", ")}
-                </span>
-              </div>
-              {inList ? (
-                <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                  {alreadyLabel}
-                </span>
-              ) : readingBase === undefined ? null : (
-                <StatusBadge
-                  className="shrink-0"
-                  entry={{ ...readingBase, label: readingLabel(book.readingStatus) }}
-                />
-              )}
-            </label>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function SelectedBooks({
-  books,
-  emptyLabel,
-  onRemove,
-  removeLabel,
-}: {
-  books: BookView[];
-  emptyLabel: string;
-  onRemove: (book: BookView) => void;
-  removeLabel: string;
-}) {
-  if (books.length === 0) {
-    return (
-      <p className="grid h-full place-items-center p-4 text-center text-sm text-muted-foreground">
-        {emptyLabel}
-      </p>
-    );
-  }
-
-  return (
-    <ul className="flex flex-col gap-1 p-2">
-      {books.map((book) => (
-        <li
-          className="flex items-center gap-3 rounded-lg border border-transparent p-2"
-          key={book.id}
-        >
-          <BookThumb book={book} />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="truncate text-sm font-medium text-ink">{book.title}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {book.authors.map((author) => author.name).join(", ")}
-            </span>
-          </div>
-          <button
-            aria-label={removeLabel}
-            className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md border border-transparent text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-            onClick={() => onRemove(book)}
-            type="button"
-          >
-            <UiIcon name="x" size={16} />
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
 }

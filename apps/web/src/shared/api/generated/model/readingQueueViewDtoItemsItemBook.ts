@@ -90,4 +90,6 @@ export type ReadingQueueViewDtoItemsItemBook = {
   translator: string | null;
   updatedAt: string;
   userId: string;
+  /** @nullable */
+  wishlistAddedAt: string | null;
 };

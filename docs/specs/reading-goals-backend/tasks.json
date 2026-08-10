@@ -1,0 +1,897 @@
+{
+  "spec": "docs/reading-goals/backend-spec.md",
+  "supportingSpec": "docs/reading-goals/README.md",
+  "generatedAt": "2026-08-07T20:55:52Z",
+  "branch": "dev",
+  "scope": {
+    "included": [
+      "README «Порядок робіт» крок 1 — модель + міграція + частковий унікальний індекс + raw-sql-indexes.test.ts + CLAUDE.md §6",
+      "README «Порядок робіт» крок 2 — репозиторій, домен обчислення прогресу, сервіс, контролер",
+      "backend-spec §1 Модель, §2 Контракти, §3 Ендпоїнти, §4 Обчислення прогресу, §5 Каскади, §6 Тести, §7 Гейти"
+    ],
+    "excluded": [
+      "docs/reading-goals/frontend-spec.md у повному обсязі — frontend, separate release.",
+      "README крок 3 (блок у правому барі сторінки списку + модалка створення) — frontend, separate release.",
+      "README крок 4 (сторінка /goals/:id) — frontend, separate release.",
+      "README крок 5 (запис у changelog через changelog-writer) — фіча невидима користувачу, поки не зроблені кроки 3-4; changelog-writer логує лише завершені з FE фічі. Перезапустити на FE-релізі.",
+      "Нагадування про дедлайн / readingGoalReminders — README прямо ставить поза обсягом. Прапорець уже існує (prisma/schema.prisma:563, packages/shared/src/profile.ts:217) і лишається неактивним. Ніяких BullMQ-джоб і cron.",
+      "Загальні цілі (listId IS NULL) — README обмежує першу реалізацію цілями за списком. Колонка listId лишається nullable, щоб додати їх пізніше без міграції; жодного ендпоїнта чи гілки коду під них зараз.",
+      "Таблиця-знімок reading_goal_books — README «Відома поведінка» називає її майбутнім лікуванням регресії прогресу при перечитуванні; свідомо відкладено.",
+      "Індексна сторінка /goals і пункт у навігації — README прямо каже, що їх немає.",
+      "Будь-який рукописний код в apps/web/**. Виняток, який НЕ є рукописним кодом: pnpm gen:api перегенеровує apps/web/src/shared/api/generated/** — це вихід кодогенератора і частина власного списку гейтів спеки §7 (T22)."
+    ]
+  },
+  "assumptions": [
+    {
+      "id": "D1",
+      "decision": "Слідувати спеці: один контролер. Прецедент уже є — apps/api/src/modules/notes/api/note.controller.ts:43 оголошує голий @Controller() і вішає повні шляхи (@Get(\"api/books/:id/notes\") на :60). Маршрути в обох варіантах однакові, контракт не змінюється, а один файл на шість роутів не порушує жодного правила розміру.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T17"]
+    },
+    {
+      "id": "D2",
+      "decision": "Prisma query builder. Join повністю виражається у Prisma (BookListItem -> Book -> BookReadingProgress, prisma/schema.prisma:538-549, :253-254, :305-322), тому $queryRaw додав би церемонію Zod-парсингу сирих рядків без жодної переваги. У цьому репо $queryRaw тримають для того, чого Prisma не вміє (CTE-агрегати publishers). Семантика WHERE лишається дослівно як у спеці: i.list_id = listId AND b.deleted_at IS NULL AND b.user_id = userId AND p.finished_at >= since, ORDER BY p.finished_at ASC.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T10"]
+    },
+    {
+      "id": "D3",
+      "decision": "startOfUtcDay. date-fns startOfDay не використовується в apps/api ЖОДНОГО разу (перевірено grep по всьому src). Канон репо — startOfUtcDay: series.service.ts:165, loans/domain/loan-ui-status.ts:39, books/application/book-view-assembler.ts:26, delivery/domain/delivery-ui-status.ts:18. Колонки @db.Date повертаються як UTC-північ (core/iso-date.ts:23-25 через fromZonedTime UTC), тому локальний startOfDay зсунув би межу на офсет хоста і зробив би зарахування книг залежним від таймзони сервера — рівно те, чого спека §1 хотіла уникнути, обираючи @db.Date.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T12", "T14"]
+    },
+    {
+      "id": "D4",
+      "decision": "fields. BadRequestError приймає { fields?: FieldError[] } (core/exceptions/errors.ts:35-41), FieldError = { field, message } (packages/shared/src/common.ts:21), і саме так це роблять quotes.service.ts:162, auth.service.ts:124, books/domain/queue-priority.ts:101. Отже new BadRequestError(msg, { fields: [{ field: \"deadline\", message: msg }] }). Побічно: ValidationError у цьому репо — 422, не 400, тому для цих двох перевірок він не підходить.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T14"]
+    },
+    {
+      "id": "D5",
+      "decision": "Репозиторій. acquireAdvisoryLock виконує $executeRaw (core/database/advisory-lock.ts:31) — це Prisma, а CLAUDE.md §5.3 забороняє Prisma поза репозиторієм. Усі вісім наявних викликів — у репозиторіях: series.repository.ts:152, lists.repository.ts:127, books.repository.ts:383, tags.repository.ts:59, book-store-link.repository.ts:43, list-membership.repository.ts:72, social-link.repository.ts:16, character-merge.repository.ts:61. Сервіс відкриває TransactionRunner.run і першим ділом кличе repository.acquireCreateLock(listId, tx).",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T9", "T14"]
+    },
+    {
+      "id": "D6",
+      "decision": "isUniqueConstraintErrorOn. rethrowUniqueConstraintAs (core/prisma-errors.ts:64) ловить БУДЬ-ЯКИЙ P2002 і перетворює його на переданy помилку — на таблиці з двома унікальними (PK + частковий індекс) це означає, що колізія по PK колись мовчки прикинеться «для цього списку вже є активна ціль». Іменована перевірка вже є поруч, у тому ж файлі (core/prisma-errors.ts:43), і читає ім'я констрейнта навіть крізь driver-adapter-обгортку (:78-88).",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T14"]
+    },
+    {
+      "id": "D7",
+      "decision": "ListsService.countActiveBooks({ listId }) -> this.listsRepository.countItems(listId). Метод countItems уже існує і вже фільтрує book: SOFT_DELETE_SCOPE.active (lists.repository.ts:132-136) — це дослівно те, що потрібно обом місцям. Дублювати цей count у ReadingGoalsRepository означало б два джерела правди для «скільки книг у списку». Модуль reading-goals і так імпортує ListsModule заради assertOwned, і ListsModule уже exports: [ListsService] (lists.module.ts:18).",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T11", "T14", "T15"]
+    },
+    {
+      "id": "D8",
+      "decision": "Два голі експорти, як пише спека. Правило §8.10 б'є по «junk-drawer»-розсипу констант у фічевому коді, а packages/shared послідовно експортує ліміти схем поіменно: SERIES_NAME_MIN (series.ts), PROFILE_BIO_MAX (profile.ts), TAXONOMY_NAME_MIN (taxonomy.ts). Один файл, що вибивається з пакета, коштує більше, ніж виграє.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T8"]
+    },
+    {
+      "id": "D9",
+      "decision": "Усі три опційні; name додатково приймає null, щоб ціль можна було знеіменувати (колонка name String? — спека §1). PATCH за визначенням часткова, а обов'язковий targetCount змусив би фронт щоразу переприсилати число, яке користувач не чіпав. Кожне ПРИСУТНЄ поле проходить ті самі перевірки, що й на створенні.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T8", "T14"]
+    },
+    {
+      "id": "D10",
+      "decision": "Перевіряти й на PATCH. Інакше користувач одним PATCH переносить дедлайн у минуле, ціль стає expired на вимогу, а правило створення перетворюється на декорацію. Та сама помилка, той самий fields: [{ field: \"deadline\" }].",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T14", "T20"]
+    },
+    {
+      "id": "D11",
+      "decision": "@Res({ passthrough: true }) і response.status(HTTP_STATUS.NO_CONTENT) з поверненням undefined. Прецедент у репо: auth/api/auth.controller.ts:141. Це єдиний спосіб у Nest перемкнути статус за умовою, не ламаючи повернення значення. Swagger оголошує обидві відповіді: @ApiOkResponse({ type: ReadingGoalViewDto }) + @ApiNoContentResponse().",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T17"]
+    },
+    {
+      "id": "D12",
+      "decision": "200 зі status: \"archived\". Значення archived є в ReadingGoalStatusSchema (спека §2); якщо GET ховатиме архівовані, це значення стане недосяжним через жоден ендпоїнт, і сторінка /goals/:id зламається рівно в момент, коли створення нової цілі авто-архівує стару (спека §3, крок 4) — тобто посилання, яке щойно працювало, віддасть 404.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T14", "T21"]
+    },
+    {
+      "id": "D13",
+      "decision": "Ідемпотентні 200, archivedAt не переписується. Жодного інваріанта це не порушує (частковий унікальний індекс стереже тільки неархівовані рядки), а подвійний клік по кнопці не має віддавати помилку. Це не суперечить забороні PATCH: PATCH змінює зміст історичного запису, archive — ні.",
+      "source": "Adopted verbatim from spec-auditor recommendation. User granted fully autonomous execution and explicitly asked not to be consulted.",
+      "blocks": ["T14"]
+    },
+    {
+      "id": "D14",
+      "decision": "A goal CAN be born already completed, and that is the accepted behaviour. The README rationale said a goal should never start complete, but finished_at is a DATE, so \"earlier today\" and \"later today\" are the same value and the >= start-of-creation-day cutoff admits both. The literal spec rule (count books finished on or after the creation DAY) wins over the rationale, because moving the cutoff to the next day would stop counting a book the user finishes minutes after creating the goal, which is far more surprising. Integration tests pin the chosen semantics on both sides of the boundary.",
+      "source": "code-reviewer finding 1; resolved by the orchestrator in favour of the literal spec rule.",
+      "blocks": []
+    },
+    {
+      "id": "D15",
+      "decision": "Deferred follow-ups from the reading-goals review, none of them defects: (a) the listId-is-null branches are unreachable because the FK cascades on list deletion and create always takes listId from the route, so either the column should be non-null or the FK should be SetNull if a goal is meant to outlive its list; (b) GET /api/goals/:goalId scans the counted-books join twice, once unbounded for completedCount and once capped for the listing; (c) ListsRepository.countItems does not filter book.userId while countedBookWhere does, a latent asymmetry that is harmless while the ownership invariant holds; (d) archive() makes three round trips where update() makes one; (e) countedSince is public on the view builder only so the assembler can pass the same cutoff to another repository method, and would sit better in domain/.",
+      "source": "code-reviewer nits 2, 3, 5, 6 and the collaborator-split note, stage reading-goals.",
+      "blocks": []
+    }
+  ],
+  "openDecisions": [
+    {
+      "id": "D1",
+      "question": "Форма контролера: один @Controller(\"api\") з явними повними шляхами (як каже спека §3) чи два префіксні контролери (api/lists + api/goals)?",
+      "options": [
+        "один контролер @Controller(\"api\") з явними шляхами",
+        "два контролери: @Controller(\"api/lists\") + @Controller(\"api/goals\")"
+      ],
+      "recommendation": "Слідувати спеці: один контролер. Прецедент уже є — apps/api/src/modules/notes/api/note.controller.ts:43 оголошує голий @Controller() і вішає повні шляхи (@Get(\"api/books/:id/notes\") на :60). Маршрути в обох варіантах однакові, контракт не змінюється, а один файл на шість роутів не порушує жодного правила розміру.",
+      "specRef": "backend-spec §3, вступ",
+      "blocks": ["T17"],
+      "answer": "Слідувати спеці: один контролер. Прецедент уже є — apps/api/src/modules/notes/api/note.controller.ts:43 оголошує голий @Controller() і вішає повні шляхи (@Get(\"api/books/:id/notes\") на :60). Маршрути в обох варіантах однакові, контракт не змінюється, а один файл на шість роутів не порушує жодного правила розміру.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D2",
+      "question": "Запит прогресу: $queryRaw (спека §4 дає готовий SQL) чи Prisma query builder?",
+      "options": [
+        "$queryRaw + Zod-парс рядків",
+        "prisma.bookListItem.findMany з вкладеним book.readingProgress"
+      ],
+      "recommendation": "Prisma query builder. Join повністю виражається у Prisma (BookListItem -> Book -> BookReadingProgress, prisma/schema.prisma:538-549, :253-254, :305-322), тому $queryRaw додав би церемонію Zod-парсингу сирих рядків без жодної переваги. У цьому репо $queryRaw тримають для того, чого Prisma не вміє (CTE-агрегати publishers). Семантика WHERE лишається дослівно як у спеці: i.list_id = listId AND b.deleted_at IS NULL AND b.user_id = userId AND p.finished_at >= since, ORDER BY p.finished_at ASC.",
+      "specRef": "backend-spec §4 «Репозиторій»",
+      "blocks": ["T10"],
+      "answer": "Prisma query builder. Join повністю виражається у Prisma (BookListItem -> Book -> BookReadingProgress, prisma/schema.prisma:538-549, :253-254, :305-322), тому $queryRaw додав би церемонію Zod-парсингу сирих рядків без жодної переваги. У цьому репо $queryRaw тримають для того, чого Prisma не вміє (CTE-агрегати publishers). Семантика WHERE лишається дослівно як у спеці: i.list_id = listId AND b.deleted_at IS NULL AND b.user_id = userId AND p.finished_at >= since, ORDER BY p.finished_at ASC.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D3",
+      "question": "Як брати «початок дня»: date-fns startOfDay (спека §4, §3) чи startOfUtcDay з core/iso-date.ts?",
+      "options": ["startOfDay з date-fns", "startOfUtcDay з apps/api/src/core/iso-date.ts:27"],
+      "recommendation": "startOfUtcDay. date-fns startOfDay не використовується в apps/api ЖОДНОГО разу (перевірено grep по всьому src). Канон репо — startOfUtcDay: series.service.ts:165, loans/domain/loan-ui-status.ts:39, books/application/book-view-assembler.ts:26, delivery/domain/delivery-ui-status.ts:18. Колонки @db.Date повертаються як UTC-північ (core/iso-date.ts:23-25 через fromZonedTime UTC), тому локальний startOfDay зсунув би межу на офсет хоста і зробив би зарахування книг залежним від таймзони сервера — рівно те, чого спека §1 хотіла уникнути, обираючи @db.Date.",
+      "specRef": "backend-spec §3 «Валідація», §4 «Що зараховується», §4 «Похідні поля»",
+      "blocks": ["T12", "T14"],
+      "answer": "startOfUtcDay. date-fns startOfDay не використовується в apps/api ЖОДНОГО разу (перевірено grep по всьому src). Канон репо — startOfUtcDay: series.service.ts:165, loans/domain/loan-ui-status.ts:39, books/application/book-view-assembler.ts:26, delivery/domain/delivery-ui-status.ts:18. Колонки @db.Date повертаються як UTC-північ (core/iso-date.ts:23-25 через fromZonedTime UTC), тому локальний startOfDay зсунув би межу на офсет хоста і зробив би зарахування книг залежним від таймзони сервера — рівно те, чого спека §1 хотіла уникнути, обираючи @db.Date.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D4",
+      "question": "Форма 400-помилки з прив'язкою до поля: спека пише path: [\"deadline\"], але такого поля в контракті помилок цього репо немає.",
+      "options": ["вигадати path", "використати наявний fields: FieldError[]"],
+      "recommendation": "fields. BadRequestError приймає { fields?: FieldError[] } (core/exceptions/errors.ts:35-41), FieldError = { field, message } (packages/shared/src/common.ts:21), і саме так це роблять quotes.service.ts:162, auth.service.ts:124, books/domain/queue-priority.ts:101. Отже new BadRequestError(msg, { fields: [{ field: \"deadline\", message: msg }] }). Побічно: ValidationError у цьому репо — 422, не 400, тому для цих двох перевірок він не підходить.",
+      "specRef": "backend-spec §3 «Валідація»",
+      "blocks": ["T14"],
+      "answer": "fields. BadRequestError приймає { fields?: FieldError[] } (core/exceptions/errors.ts:35-41), FieldError = { field, message } (packages/shared/src/common.ts:21), і саме так це роблять quotes.service.ts:162, auth.service.ts:124, books/domain/queue-priority.ts:101. Отже new BadRequestError(msg, { fields: [{ field: \"deadline\", message: msg }] }). Побічно: ValidationError у цьому репо — 422, не 400, тому для цих двох перевірок він не підходить.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D5",
+      "question": "Де брати advisory-lock: у сервісі (спека §3 «Правила створення») чи в репозиторії?",
+      "options": [
+        "acquireAdvisoryLock напряму в сервісі",
+        "метод репозиторію acquireCreateLock(listId, client)"
+      ],
+      "recommendation": "Репозиторій. acquireAdvisoryLock виконує $executeRaw (core/database/advisory-lock.ts:31) — це Prisma, а CLAUDE.md §5.3 забороняє Prisma поза репозиторієм. Усі вісім наявних викликів — у репозиторіях: series.repository.ts:152, lists.repository.ts:127, books.repository.ts:383, tags.repository.ts:59, book-store-link.repository.ts:43, list-membership.repository.ts:72, social-link.repository.ts:16, character-merge.repository.ts:61. Сервіс відкриває TransactionRunner.run і першим ділом кличе repository.acquireCreateLock(listId, tx).",
+      "specRef": "backend-spec §3 «Правила створення», крок 0",
+      "blocks": ["T9", "T14"],
+      "answer": "Репозиторій. acquireAdvisoryLock виконує $executeRaw (core/database/advisory-lock.ts:31) — це Prisma, а CLAUDE.md §5.3 забороняє Prisma поза репозиторієм. Усі вісім наявних викликів — у репозиторіях: series.repository.ts:152, lists.repository.ts:127, books.repository.ts:383, tags.repository.ts:59, book-store-link.repository.ts:43, list-membership.repository.ts:72, social-link.repository.ts:16, character-merge.repository.ts:61. Сервіс відкриває TransactionRunner.run і першим ділом кличе repository.acquireCreateLock(listId, tx).",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D6",
+      "question": "Мапінг P2002: rethrowUniqueConstraintAs (спека §3, крок 6) чи іменована перевірка індексу?",
+      "options": [
+        "rethrowUniqueConstraintAs",
+        "isUniqueConstraintErrorOn(error, \"reading_goals_active_list_idx\")"
+      ],
+      "recommendation": "isUniqueConstraintErrorOn. rethrowUniqueConstraintAs (core/prisma-errors.ts:64) ловить БУДЬ-ЯКИЙ P2002 і перетворює його на переданy помилку — на таблиці з двома унікальними (PK + частковий індекс) це означає, що колізія по PK колись мовчки прикинеться «для цього списку вже є активна ціль». Іменована перевірка вже є поруч, у тому ж файлі (core/prisma-errors.ts:43), і читає ім'я констрейнта навіть крізь driver-adapter-обгортку (:78-88).",
+      "specRef": "backend-spec §3 «Правила створення», крок 6",
+      "blocks": ["T14"],
+      "answer": "isUniqueConstraintErrorOn. rethrowUniqueConstraintAs (core/prisma-errors.ts:64) ловить БУДЬ-ЯКИЙ P2002 і перетворює його на переданy помилку — на таблиці з двома унікальними (PK + частковий індекс) це означає, що колізія по PK колись мовчки прикинеться «для цього списку вже є активна ціль». Іменована перевірка вже є поруч, у тому ж файлі (core/prisma-errors.ts:43), і читає ім'я констрейнта навіть крізь driver-adapter-обгортку (:78-88).",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D7",
+      "question": "Звідки береться кількість активних книг списку — і для верхньої межі targetCount, і для listBookCount у ReadingGoalDetail?",
+      "options": [
+        "новий count у ReadingGoalsRepository",
+        "новий метод ListsService, що делегує наявний ListsRepository.countItems"
+      ],
+      "recommendation": "ListsService.countActiveBooks({ listId }) -> this.listsRepository.countItems(listId). Метод countItems уже існує і вже фільтрує book: SOFT_DELETE_SCOPE.active (lists.repository.ts:132-136) — це дослівно те, що потрібно обом місцям. Дублювати цей count у ReadingGoalsRepository означало б два джерела правди для «скільки книг у списку». Модуль reading-goals і так імпортує ListsModule заради assertOwned, і ListsModule уже exports: [ListsService] (lists.module.ts:18).",
+      "specRef": "backend-spec §2 (listBookCount), §3 «Валідація» (верхня межа targetCount)",
+      "blocks": ["T11", "T14", "T15"],
+      "answer": "ListsService.countActiveBooks({ listId }) -> this.listsRepository.countItems(listId). Метод countItems уже існує і вже фільтрує book: SOFT_DELETE_SCOPE.active (lists.repository.ts:132-136) — це дослівно те, що потрібно обом місцям. Дублювати цей count у ReadingGoalsRepository означало б два джерела правди для «скільки книг у списку». Модуль reading-goals і так імпортує ListsModule заради assertOwned, і ListsModule уже exports: [ListsService] (lists.module.ts:18).",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D8",
+      "question": "Форма констант у packages/shared: два голі експорти (спека §2) чи один згрупований об'єкт (CLAUDE.md §8.10)?",
+      "options": [
+        "READING_GOAL_NAME_MAX + READING_GOAL_TARGET_MAX",
+        "READING_GOAL_LIMITS = { name, target }"
+      ],
+      "recommendation": "Два голі експорти, як пише спека. Правило §8.10 б'є по «junk-drawer»-розсипу констант у фічевому коді, а packages/shared послідовно експортує ліміти схем поіменно: SERIES_NAME_MIN (series.ts), PROFILE_BIO_MAX (profile.ts), TAXONOMY_NAME_MIN (taxonomy.ts). Один файл, що вибивається з пакета, коштує більше, ніж виграє.",
+      "specRef": "backend-spec §2, перші два рядки",
+      "blocks": ["T8"],
+      "answer": "Два голі експорти, як пише спека. Правило §8.10 б'є по «junk-drawer»-розсипу констант у фічевому коді, а packages/shared послідовно експортує ліміти схем поіменно: SERIES_NAME_MIN (series.ts), PROFILE_BIO_MAX (profile.ts), TAXONOMY_NAME_MIN (taxonomy.ts). Один файл, що вибивається з пакета, коштує більше, ніж виграє.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D9",
+      "question": "Спека називає поля UpdateReadingGoalInput (name, targetCount, deadline), але не каже, чи вони опційні і чи можна очистити name.",
+      "options": ["всі три обов'язкові (повна заміна)", "всі три опційні, name ще й nullable"],
+      "recommendation": "Усі три опційні; name додатково приймає null, щоб ціль можна було знеіменувати (колонка name String? — спека §1). PATCH за визначенням часткова, а обов'язковий targetCount змусив би фронт щоразу переприсилати число, яке користувач не чіпав. Кожне ПРИСУТНЄ поле проходить ті самі перевірки, що й на створенні.",
+      "specRef": "backend-spec §3, рядок PATCH",
+      "blocks": ["T8", "T14"],
+      "answer": "Усі три опційні; name додатково приймає null, щоб ціль можна було знеіменувати (колонка name String? — спека §1). PATCH за визначенням часткова, а обов'язковий targetCount змусив би фронт щоразу переприсилати число, яке користувач не чіпав. Кожне ПРИСУТНЄ поле проходить ті самі перевірки, що й на створенні.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D10",
+      "question": "Чи перевіряти «дедлайн пізніше за сьогодні» на PATCH? Спека формулює правило лише в контексті створення.",
+      "options": ["перевіряти лише на POST", "перевіряти й на PATCH, коли deadline присутній"],
+      "recommendation": "Перевіряти й на PATCH. Інакше користувач одним PATCH переносить дедлайн у минуле, ціль стає expired на вимогу, а правило створення перетворюється на декорацію. Та сама помилка, той самий fields: [{ field: \"deadline\" }].",
+      "specRef": "backend-spec §3 «Валідація»",
+      "blocks": ["T14", "T20"],
+      "answer": "Перевіряти й на PATCH. Інакше користувач одним PATCH переносить дедлайн у минуле, ціль стає expired на вимогу, а правило створення перетворюється на декорацію. Та сама помилка, той самий fields: [{ field: \"deadline\" }].",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D11",
+      "question": "Як технічно віддати 204 з GET /api/lists/:listId/goal, коли цілі немає, і 200 з тілом, коли є?",
+      "options": [
+        "@Res({ passthrough: true }) + response.status(204)",
+        "окремий ендпоїнт / завжди 200 з null"
+      ],
+      "recommendation": "@Res({ passthrough: true }) і response.status(HTTP_STATUS.NO_CONTENT) з поверненням undefined. Прецедент у репо: auth/api/auth.controller.ts:141. Це єдиний спосіб у Nest перемкнути статус за умовою, не ламаючи повернення значення. Swagger оголошує обидві відповіді: @ApiOkResponse({ type: ReadingGoalViewDto }) + @ApiNoContentResponse().",
+      "specRef": "backend-spec §3, останній буллет",
+      "blocks": ["T17"],
+      "answer": "@Res({ passthrough: true }) і response.status(HTTP_STATUS.NO_CONTENT) з поверненням undefined. Прецедент у репо: auth/api/auth.controller.ts:141. Це єдиний спосіб у Nest перемкнути статус за умовою, не ламаючи повернення значення. Swagger оголошує обидві відповіді: @ApiOkResponse({ type: ReadingGoalViewDto }) + @ApiNoContentResponse().",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D12",
+      "question": "GET /api/goals/:goalId для архівованої цілі — 200 чи 404? Спека забороняє лише PATCH над архівованою.",
+      "options": ["200 зі status: \"archived\"", "404"],
+      "recommendation": "200 зі status: \"archived\". Значення archived є в ReadingGoalStatusSchema (спека §2); якщо GET ховатиме архівовані, це значення стане недосяжним через жоден ендпоїнт, і сторінка /goals/:id зламається рівно в момент, коли створення нової цілі авто-архівує стару (спека §3, крок 4) — тобто посилання, яке щойно працювало, віддасть 404.",
+      "specRef": "backend-spec §2 (ReadingGoalStatusSchema), §3 (PATCH над архівованою -> 400)",
+      "blocks": ["T14", "T21"],
+      "answer": "200 зі status: \"archived\". Значення archived є в ReadingGoalStatusSchema (спека §2); якщо GET ховатиме архівовані, це значення стане недосяжним через жоден ендпоїнт, і сторінка /goals/:id зламається рівно в момент, коли створення нової цілі авто-архівує стару (спека §3, крок 4) — тобто посилання, яке щойно працювало, віддасть 404.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    },
+    {
+      "id": "D13",
+      "question": "POST /api/goals/:goalId/archive над уже архівованою ціллю — 200 чи 400?",
+      "options": ["ідемпотентні 200 без зміни archivedAt", "400"],
+      "recommendation": "Ідемпотентні 200, archivedAt не переписується. Жодного інваріанта це не порушує (частковий унікальний індекс стереже тільки неархівовані рядки), а подвійний клік по кнопці не має віддавати помилку. Це не суперечить забороні PATCH: PATCH змінює зміст історичного запису, archive — ні.",
+      "specRef": "backend-spec §3, рядок POST /archive",
+      "blocks": ["T14"],
+      "answer": "Ідемпотентні 200, archivedAt не переписується. Жодного інваріанта це не порушує (частковий унікальний індекс стереже тільки неархівовані рядки), а подвійний клік по кнопці не має віддавати помилку. Це не суперечить забороні PATCH: PATCH змінює зміст історичного запису, archive — ні.",
+      "answeredBy": "orchestrator (autonomous mandate)"
+    }
+  ],
+  "verifiedAssertions": [
+    {
+      "claim": "Домен скидає finishedAt при будь-якому переході зі статусу «Прочитано», зокрема в «Перечитую» — apps/api/src/modules/books/domain/reading-status-transition.ts:82",
+      "specRef": "README «Відома поведінка»; backend-spec §4 «Наслідок, який приймаємо»",
+      "verdict": "MOVED",
+      "evidence": "Поведінка правильна, номер рядка на одиницю менший. apps/api/src/modules/books/domain/reading-status-transition.ts:83 — це progress.finishedAt = null у гілці case \"reading\"/\"rereading\" (:78-88); рядок :82 — це progress.abandonedAt = null. Ширше твердження «при БУДЬ-ЯКОМУ переході» теж підтверджується: finishedAt = null у всіх чотирьох інших гілках — :32 (dnf), :58 (not_started/want_to_read), :72 (paused), :83 (reading/rereading)."
+    },
+    {
+      "claim": "finishedAt уже є в BookReadingProgress і має тип «лише день»",
+      "specRef": "backend-spec §1 «Немає completedAt», §4 «Чому startOfDay від дати створення»",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:310 — finishedAt DateTime? @map(\"finished_at\") @db.Date. Зв'язок 1:1 з книгою: bookId String @unique (:307) і Book.readingProgress BookReadingProgress? (:254)."
+    },
+    {
+      "claim": "«Прочитані після створення цілі» можна запитати join-ом book_list_items -> books -> book_reading_progress",
+      "specRef": "backend-spec §4 «Репозиторій»",
+      "verdict": "CONFIRMED",
+      "evidence": "Весь шлях існує: BookListItem (prisma/schema.prisma:538-549, PK [listId, bookId], FK обидва Cascade) -> Book (userId :213, deletedAt :243, lists BookListItem[] :253, readingProgress :254) -> BookReadingProgress.finishedAt :310. Застереження: @db.Date повертається як UTC-північ, тому межу since треба будувати startOfUtcDay (core/iso-date.ts:27), а не date-fns startOfDay — див. D3."
+    },
+    {
+      "claim": "Модуль кастомних списків, поруч із яким має стати модуль цілей, — це один модуль",
+      "specRef": "backend-spec «Межі», §3 «Володіння списком — через listsService.assertOwned»",
+      "verdict": "MOVED",
+      "evidence": "Списки живуть у двох модулях, не в одному. CRUD/кошик/purge + ListsService.assertOwned — у apps/api/src/modules/lists/** (lists.service.ts:91). Але деталі списку й членство книг — у модулі books: books/api/list-details.controller.ts:23 і books/api/list-membership.controller.ts:36, обидва @Controller(\"api/lists\"). Тобто api/lists/:listId/goal стане ТРЕТІМ контролером на тому самому префіксі. Колізій маршрутів немає: @Get(\":listId\") (list-details.controller.ts:34), @Patch(\":listId\") / @Delete(\":listId\") (lists.controller.ts:144, :158) не перекривають \":listId/goal\"."
+    },
+    {
+      "claim": "BookListItem / членство в списку змодельовані так, що прогрес можна рахувати по списку",
+      "specRef": "backend-spec §4 «Що зараховується»",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/prisma/schema.prisma:538-549: composite PK @@id([listId, bookId]), position Int, addedAt, @@index([bookId]), обидва FK onDelete: Cascade. Soft-delete на рядку зв'язку НЕМАЄ — книга в кошику лишається в списку, тому запит прогресу мусить сам фільтрувати book.deletedAt IS NULL. Наявний ListsRepository.countItems уже так робить (lists.repository.ts:132-136, where: { book: SOFT_DELETE_SCOPE.active, listId })."
+    },
+    {
+      "claim": "series_user_id_normalized_name_key — найближчий за формою прецедент часткового унікального індексу для копіювання",
+      "specRef": "backend-spec §1 «Частковий унікальний індекс — руками в міграції»",
+      "verdict": "MOVED",
+      "evidence": "series_user_id_normalized_name_key НЕ був створений частковим: спершу звичайний UNIQUE у prisma/migrations/20260611111150_book_series/migration.sql:24, і лише через півтора місяця DROP+CREATE з предикатом у 20260729192108_add_series_soft_delete/migration.sql:10-11. Найближчий прецедент за формою «окрема міграція, що ставить один частковий унікальний індекс із коментарем-обґрунтуванням» — prisma/migrations/20260729215318_timeline_name_partial_unique/migration.sql:1-6. Найближчий прецедент за формою «нова таблиця + індекси + Cascade-FK на users» — prisma/migrations/20260730123324_add_notifications/migration.sql:1-61 (CREATE TABLE :2-17, CREATE INDEX :35-45, CHECK :54, FK ON DELETE CASCADE :57)."
+    },
+    {
+      "claim": "raw-sql-indexes.test.ts зараз стверджує, що існує дев'ять raw-SQL-індексів; стане десять",
+      "specRef": "backend-spec §1, «Три обов'язкові дії», пункт 1",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/database/raw-sql-indexes.test.ts:34-44 — RAW_SQL_INDEXES має рівно 9 записів: authors_search_text_trgm_idx, publishers_search_text_trgm_idx, book_deliveries_active_book_idx, book_loans_active_book_idx, books_user_queue_position_idx, books_series_id_part_number_key, series_user_id_normalized_name_key, book_lists_user_id_normalized_name_key, book_timelines_book_id_name_lower_idx. Окремий блок :103-112 додатково вимагає UNIQUE від чотирьох із них (заголовок тесту каже «three», перелічує чотири — наявна дрібна неточність, не чіпати без потреби)."
+    },
+    {
+      "claim": "CLAUDE.md §6 «Raw-SQL-index trap» каже «Nine» і його треба змінити на «Ten»",
+      "specRef": "backend-spec §1, «Три обов'язкові дії», пункт 2",
+      "verdict": "CONFIRMED",
+      "evidence": "CLAUDE.md:103 — один довгий рядок, слово зустрічається ДВІЧІ: «Nine indexes live in hand-written SQL» на початку і «asserts all nine still exist with their predicates» ближче до кінця. Обидва треба правити. (Запис у пам'яті проєкту про «вісім» — застарілий.)"
+    },
+    {
+      "claim": "У ADVISORY_LOCK_CLASS вільний ідентифікатор 14 для readingGoals",
+      "specRef": "backend-spec §1 «Новий клас advisory-lock»",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/database/advisory-lock.ts:3-16 — тринадцять класів, максимум bookLists: 13. 14 вільний і не конфліктує."
+    },
+    {
+      "claim": "rethrowUniqueConstraintAs уже є в core/prisma-errors.ts",
+      "specRef": "backend-spec §3 «Правила створення», крок 6",
+      "verdict": "CONFIRMED",
+      "evidence": "apps/api/src/core/prisma-errors.ts:64-75. Але він ловить будь-який P2002 без прив'язки до імені індексу; іменований варіант — isUniqueConstraintErrorOn на :43-56, який читає ім'я констрейнта навіть крізь driver-adapter (:78-88). Див. D6."
+    },
+    {
+      "claim": "assertOwned не бачить видалений список, тому GET /api/lists/:listId/goal недосяжний після soft-delete",
+      "specRef": "backend-spec §5, рядок «Список у кошик»",
+      "verdict": "CONFIRMED",
+      "evidence": "ListsService.assertOwned — apps/api/src/modules/lists/application/lists.service.ts:91-96, кидає NotFoundError; спирається на ListsRepository.findOwnedById — lists.repository.ts:192-194, where: { ...SOFT_DELETE_SCOPE.active, id, userId }, а SOFT_DELETE_SCOPE.active = { deletedAt: null } (core/database/soft-delete.ts:4)."
+    },
+    {
+      "claim": "Помилка валідації віддається як 400 з path: [\"deadline\"] / path: [\"targetCount\"]",
+      "specRef": "backend-spec §3 «Валідація»",
+      "verdict": "FALSE",
+      "evidence": "Поля path у контракті помилок цього репо не існує. BadRequestError несе fields?: FieldError[] (core/exceptions/errors.ts:35-41); FieldError = { field: string; message: string } (packages/shared/src/common.ts:21); відповідь клієнту — { errorsMessages: FieldError[] } (common.ts:10). Наявні виклики: quotes.service.ts:162, auth.service.ts:124 і :140, books/domain/queue-priority.ts:101. Додатково: ValidationError у цьому репо мапиться на 422 (errors.ts:86-91), тому для цих перевірок він не годиться. Див. D4."
+    },
+    {
+      "claim": "«Усі дати — через date-fns... startOfDay, isAfter, isBefore — і все»",
+      "specRef": "backend-spec «Межі»; §3 «Валідація»; §4 «Похідні поля»",
+      "verdict": "STALE",
+      "evidence": "date-fns startOfDay не імпортується в apps/api ЖОДНОГО разу. Канон — startOfUtcDay з core/iso-date.ts:27 (реалізований як parseIsoDate(toIsoDate(date)), тобто UTC-північ), використаний у series/application/series.service.ts:165, loans/domain/loan-ui-status.ts:39, books/application/book-view-assembler.ts:26, delivery/domain/delivery-ui-status.ts:18. Для daysLeft поруч є daysBetweenIsoDates (core/iso-date.ts:13-21, обгортка над differenceInCalendarDays). Див. D3."
+    },
+    {
+      "claim": "У транзакції під acquireAdvisoryLock({ classId: readingGoals, key: listId }) — тобто лок бере сервіс",
+      "specRef": "backend-spec §3 «Правила створення», вступ",
+      "verdict": "FALSE",
+      "evidence": "Порушує CLAUDE.md §5.3: acquireAdvisoryLock виконує client.$executeRaw (core/database/advisory-lock.ts:31), тобто це Prisma. Усі вісім наявних викликів — у репозиторіях: series.repository.ts:152, lists.repository.ts:127, books.repository.ts:383, tags.repository.ts:59, book-store-link.repository.ts:43, list-membership.repository.ts:72, social-link.repository.ts:16, character-merge.repository.ts:61. Див. D5."
+    },
+    {
+      "claim": "Треба перевірити, що list-purge.processor.ts не падає на новому FK",
+      "specRef": "backend-spec §5, рядок «Список остаточно вичищено (purge)»",
+      "verdict": "CONFIRMED",
+      "evidence": "Шлях purge: ListPurgeProcessor.process (lists/application/list-purge.processor.ts:31-33) -> ListLifecycleService.purge (list-lifecycle.service.ts:51-62) -> ListsRepository.hardDeleteIfTrashed (lists.repository.ts:233-246) = prisma.bookList.deleteMany. Cascade-FK на list_id прибере ціль тим самим стейтментом — змін у коді не потрібно, потрібен інтеграційний тест (T21)."
+    },
+    {
+      "claim": "Нова таблиця вимагає оновити тестовий helper очистки БД",
+      "specRef": "виведено з backend-spec §6 «Інтеграційні»",
+      "verdict": "ALREADY DONE",
+      "evidence": "apps/api/src/test/truncate.ts:6-11 перелічує таблиці динамічно з pg_tables (schemaname = 'public' AND tablename NOT LIKE '_prisma%'), тому reading_goals підхопиться сам. Задачі немає."
+    },
+    {
+      "claim": "Прапорець readingGoalReminders у профілі лишається неактивним",
+      "specRef": "README «Прийняті рішення», рядок «Нагадування про дедлайн»",
+      "verdict": "ALREADY DONE",
+      "evidence": "Колонка вже є: apps/api/prisma/schema.prisma:563 — readingGoalReminders Boolean @default(false) @map(\"reading_goal_reminders\"); у контракті — packages/shared/src/profile.ts:217 і дефолт :303. Змін не потрібно, задачі немає."
+    },
+    {
+      "claim": "Нічого з фічі цілей ще не написано",
+      "specRef": "весь документ",
+      "verdict": "CONFIRMED",
+      "evidence": "grep -rn \"ReadingGoal\" по apps/api/src/modules і packages/shared/src не дає жодного збігу (єдині входження readingGoalReminders — це прапорець профілю вище). Директорії apps/api/src/modules/reading-goals не існує; ls apps/api/src/modules показує 26 модулів без неї."
+    },
+    {
+      "claim": "z.iso.date() доступний у поточній версії zod",
+      "specRef": "backend-spec §2",
+      "verdict": "CONFIRMED",
+      "evidence": "pnpm-workspace.yaml:142 — zod: ^4.4.3 (catalog). Уже вживається: packages/shared/src/books.ts:337, :358, :378, notifications.ts:65, :72."
+    },
+    {
+      "claim": "collapseSpaces і NoHtmlString імпортуються з @app/shared",
+      "specRef": "backend-spec §2, CreateReadingGoalInputSchema",
+      "verdict": "MOVED",
+      "evidence": "Обидва існують, але в різних файлах і з різною видимістю: collapseSpaces — packages/shared/src/common.ts:90 (баррель експортує ./common.js); NoHtmlString — packages/shared/src/internal.ts:6, і index.ts НЕ реекспортує ./internal.js. Отже новий reading-goals.ts має імпортувати { collapseSpaces } from \"./common.js\" і { NoHtmlString } from \"./internal.js\" — рівно як це роблять taxonomy.ts:3-4 і delivery-services.ts:3-4."
+    },
+    {
+      "claim": "MediaViewSchema і BookAuthorRefSchema існують і придатні для ReadingGoalBookSchema",
+      "specRef": "backend-spec §2, ReadingGoalBookSchema",
+      "verdict": "CONFIRMED",
+      "evidence": "packages/shared/src/media.ts:41-56 (contentType, createdAt, height, id, kind, name, sizeBytes, urls{card,full,thumb}, width) і packages/shared/src/authors.ts:86-89 ({ id, name }). Побудувати MediaView з рядка бази вміє MediaService.buildViewOrNull (media/application/media.service.ts:101), експортований через modules/media/index.ts:1."
+    },
+    {
+      "claim": "Контролер може оголосити @Controller(\"api\") з явними шляхами",
+      "specRef": "backend-spec §3, вступ",
+      "verdict": "CONFIRMED",
+      "evidence": "Прецедент: notes/api/note.controller.ts:43 — @Controller() без префікса, повні шляхи на методах (@Get(\"api/books/:id/notes\") :60, @Post(\"api/books/:id/notes\") :73). Решта 40+ контролерів використовують префікс."
+    },
+    {
+      "claim": "204 за умовою (ціль є / цілі немає) технічно можливий у цьому стеку",
+      "specRef": "backend-spec §3, останній буллет",
+      "verdict": "CONFIRMED",
+      "evidence": "@Res({ passthrough: true }) уже використовується в auth/api/auth.controller.ts:141, :160, :178, :199. Безумовний 204 робиться через @HttpCode(HTTP_STATUS.NO_CONTENT) (core/http-status.ts:11), приклади: list-membership.controller.ts:66, changelog.controller.ts:60."
+    },
+    {
+      "claim": "MUTATION_THROTTLE / READ_THROTTLE / JwtProtected доступні",
+      "specRef": "backend-spec §3, перший буллет",
+      "verdict": "CONFIRMED",
+      "evidence": "core/throttle.ts:14 (MUTATION_THROTTLE, 60/60s) і :18 (READ_THROTTLE, 120/60s); JwtProtected експортується з modules/auth/index.ts:2, оголошений у auth/api/guards/jwt-protected.decorator.ts:6. CurrentUser — там само."
+    },
+    {
+      "claim": "Предикат індексу WHERE archived_at IS NULL AND list_id IS NOT NULL",
+      "specRef": "backend-spec §1, блок SQL",
+      "verdict": "CONFIRMED",
+      "evidence": "Синтаксично і семантично коректний. Частина list_id IS NOT NULL надлишкова для btree-unique (NULL-и в унікальному індексі не конфліктують), але вона тримає індекс меншим і стане змістовною, коли з'являться загальні цілі з listId = NULL. Лишити дослівно як у спеці."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Додати модель ReadingGoal і зворотні зв'язки в User і BookList",
+      "step": 1,
+      "specRef": "backend-spec §1 «Модель»",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/schema.prisma"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "model ReadingGoal містить рівно поля: id (uuid PK, @db.Uuid), userId (@map(\"user_id\") @db.Uuid), listId (String?, @map(\"list_id\") @db.Uuid), name (String?), targetCount (Int, @map(\"target_count\")), deadline (DateTime @db.Date — НЕ Timestamptz), archivedAt (DateTime? @map(\"archived_at\") @db.Timestamptz), createdAt (@default(now()) @db.Timestamptz), updatedAt (@updatedAt @db.Timestamptz)",
+        "user User @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "list BookList? @relation(fields: [listId], references: [id], onDelete: Cascade)",
+        "@@index([userId, archivedAt]) і @@map(\"reading_goals\")",
+        "у model User (schema.prisma:20-67) додано readingGoals ReadingGoal[]",
+        "у model BookList (schema.prisma:520-536) додано readingGoals ReadingGoal[]",
+        "колонки БД у snake_case через @map — жодної camelCase-колонки",
+        "немає колонок status і completedAt (спека §1 явно їх забороняє)",
+        "pnpm --filter @app/api db:generate проходить, у src/generated/prisma з'явився делегат readingGoal"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T2",
+      "title": "Згенерувати create-only міграцію add_reading_goals",
+      "step": 1,
+      "specRef": "backend-spec «Межі»; §7 «Гейти»",
+      "layer": "migration",
+      "files": ["apps/api/prisma/migrations/<timestamp>_add_reading_goals/migration.sql"],
+      "dependsOn": ["T1"],
+      "mandatory": true,
+      "doneWhen": [
+        "запущено рівно `pnpm --filter @app/api db:migrate --name add_reading_goals` (обгортка apps/api/scripts/migrate.ts, prisma migrate dev --create-only)",
+        "з'явилася нова директорія apps/api/prisma/migrations/<timestamp>_add_reading_goals/ з migration.sql",
+        "міграцію НЕ застосовано на цьому кроці (жодного db:migrate:deploy, жодного db push)",
+        "цільова БД — лише локальний docker Postgres на :5432, ніколи :5532/:5533"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T3",
+      "title": "Вирізати паразитні DROP INDEX і дописати reading_goals_active_list_idx у migration.sql",
+      "step": 1,
+      "specRef": "backend-spec §1 «Частковий унікальний індекс», «Три обов'язкові дії» п.3; CLAUDE.md §6 Raw-SQL-index trap",
+      "layer": "migration",
+      "files": ["apps/api/prisma/migrations/<timestamp>_add_reading_goals/migration.sql"],
+      "dependsOn": ["T2"],
+      "mandatory": true,
+      "doneWhen": [
+        "у migration.sql НЕМАЄ жодного DROP INDEX для дев'яти імен із raw-sql-indexes.test.ts:35-43 (authors_search_text_trgm_idx, publishers_search_text_trgm_idx, book_deliveries_active_book_idx, book_loans_active_book_idx, books_user_queue_position_idx, books_series_id_part_number_key, series_user_id_normalized_name_key, book_lists_user_id_normalized_name_key, book_timelines_book_id_name_lower_idx)",
+        "перевірено командою: grep -c 'DROP INDEX' на файлі повертає 0",
+        "у файл дописано дослівно: CREATE UNIQUE INDEX \"reading_goals_active_list_idx\" ON \"reading_goals\" (\"list_id\") WHERE \"archived_at\" IS NULL AND \"list_id\" IS NOT NULL;",
+        "над CREATE UNIQUE INDEX стоїть SQL-коментар з інваріантом «не більше однієї неархівованої цілі на список» — за зразком prisma/migrations/20260729215318_timeline_name_partial_unique/migration.sql:1-4",
+        "обидва FK у файлі — ON DELETE CASCADE: reading_goals.user_id -> users(id) і reading_goals.list_id -> book_lists(id)",
+        "є CREATE INDEX по (user_id, archived_at)",
+        "deadline оголошено як DATE, archived_at/created_at/updated_at — як TIMESTAMPTZ"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T4",
+      "title": "Рев'ю міграції через migration-reviewer і застосування db:migrate:deploy",
+      "step": 1,
+      "specRef": "backend-spec §1 «Рев'ю міграції»; §7 «Гейти»",
+      "layer": "migration",
+      "files": ["apps/api/prisma/migrations/<timestamp>_add_reading_goals/migration.sql"],
+      "dependsOn": ["T3"],
+      "mandatory": true,
+      "doneWhen": [
+        "migration-reviewer відпрацював і повернув класифікацію; очікувано SAFE (CREATE TABLE + CREATE INDEX на порожній таблиці, без блокувань, відкат = DROP TABLE)",
+        "`pnpm --filter @app/api db:migrate:deploy` виконано на локальному :5432 і завершилося успіхом",
+        "`pnpm --filter @app/api db:migrate:status` показує відсутність незастосованих міграцій",
+        "у БД перевірено фактичну наявність предиката: SELECT indexdef FROM pg_indexes WHERE indexname = 'reading_goals_active_list_idx' повертає рядок, що містить 'archived_at IS NULL'",
+        "у БД перевірено, що жоден із дев'яти raw-SQL-індексів не зник (той самий запит по кожному імені або запуск T5-тесту)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T5",
+      "title": "Внести reading_goals_active_list_idx у raw-sql-indexes.test.ts (девʼять -> десять)",
+      "step": 1,
+      "specRef": "backend-spec §1 «Три обов'язкові дії», п.1; README крок 1",
+      "layer": "test",
+      "files": ["apps/api/src/core/database/raw-sql-indexes.test.ts"],
+      "dependsOn": ["T4"],
+      "mandatory": true,
+      "doneWhen": [
+        "константа RAW_SQL_INDEXES (raw-sql-indexes.test.ts:34-44) має рівно 10 записів",
+        "новий запис: { name: \"reading_goals_active_list_idx\", requires: \"archived_at IS NULL\" }",
+        "новий індекс також перевіряється на UNIQUE — або додано в перелік блоку :103-112, або окремим it з expect(indexes.get(...)).toContain(\"UNIQUE\")",
+        "жоден із дев'яти наявних записів не змінено і не видалено",
+        "`pnpm exec vitest run apps/api/src/core/database/raw-sql-indexes.test.ts` зелений на локальній БД"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T6",
+      "title": "Оновити CLAUDE.md §6 «Raw-SQL-index trap»: Nine -> Ten і новий індекс у переліку",
+      "step": 1,
+      "specRef": "backend-spec §1 «Три обов'язкові дії», п.2; README крок 1",
+      "layer": "docs",
+      "files": ["CLAUDE.md"],
+      "dependsOn": ["T5"],
+      "mandatory": true,
+      "doneWhen": [
+        "у CLAUDE.md:103 обидва входження слова змінено: «Nine indexes live in hand-written SQL» -> «Ten indexes...» і «asserts all nine still exist» -> «asserts all ten still exist»",
+        "у перелік індексів додано reading_goals_active_list_idx з предикатом (WHERE archived_at IS NULL AND list_id IS NOT NULL) і з інваріантом «одна неархівована ціль на список»",
+        "grep -n 'nine' CLAUDE.md не повертає жодного рядка з розділу Raw-SQL-index trap",
+        "решта §6 не переписана — правка точкова"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T7",
+      "title": "Додати клас advisory-lock readingGoals: 14",
+      "step": 1,
+      "specRef": "backend-spec §1 «Новий клас advisory-lock»",
+      "layer": "repository",
+      "files": ["apps/api/src/core/database/advisory-lock.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ADVISORY_LOCK_CLASS (advisory-lock.ts:3-16) містить readingGoals: 14",
+        "жодне з тринадцяти наявних значень не змінено",
+        "14 не дублює жодного наявного числа",
+        "ключ readingGoals вставлено між reading: 11 і series: 12 (natural sort ключів, як у решті обʼєкта). Примітка: perfectionist/sort-objects вимкнено (eslint.config.mjs:163), тому порядок ключів обʼєктів ESLint не ловить — це вимога читабельності, не лінтера"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T8",
+      "title": "Контракти: packages/shared/src/reading-goals.ts + підключення в баррель",
+      "step": 2,
+      "specRef": "backend-spec §2 «Контракти»",
+      "layer": "shared-dto",
+      "files": ["packages/shared/src/reading-goals.ts", "packages/shared/src/index.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "експортуються READING_GOAL_NAME_MAX = 120 і READING_GOAL_TARGET_MAX = 1000 (D8)",
+        "ReadingGoalStatusSchema = z.enum([\"active\", \"completed\", \"expired\", \"archived\"]) — рівно чотири значення; експортовано тип ReadingGoalStatus",
+        "CreateReadingGoalInputSchema: deadline z.iso.date(); name z.string().transform(collapseSpaces).pipe(NoHtmlString.max(READING_GOAL_NAME_MAX)).optional(); targetCount z.number().int().min(1).max(READING_GOAL_TARGET_MAX)",
+        "UpdateReadingGoalInputSchema: ті самі три поля, усі optional, name додатково nullable для очистки (D9)",
+        "ReadingGoalViewSchema має рівно 11 полів: completedAt (nullable), completedCount, createdAt, daysLeft (nullable), deadline (z.iso.date()), id, list ({id,name} nullable), name (nullable), remainingCount, status, targetCount",
+        "ReadingGoalBookSchema: authors z.array(BookAuthorRefSchema), cover MediaViewSchema.nullable(), finishedAt z.iso.date(), id, title",
+        "ReadingGoalDetailSchema = ReadingGoalViewSchema.extend({ countedBooks: z.array(ReadingGoalBookSchema), listBookCount: z.number().int().nonnegative() })",
+        "експортовано inferred-типи для кожної схеми (ReadingGoalView, ReadingGoalDetail, ReadingGoalBook, CreateReadingGoalInput, UpdateReadingGoalInput)",
+        "імпорти саме звідти, де символи живуть: collapseSpaces from \"./common.js\", NoHtmlString from \"./internal.js\", BookAuthorRefSchema from \"./authors.js\", MediaViewSchema from \"./media.js\"",
+        "packages/shared/src/index.ts має export * from \"./reading-goals.js\" на натуральній позиції між \"./quotes.js\" і \"./reading-queue.js\"",
+        "жодного z.any / as; ключі об'єктів у натуральному порядку (eslint perfectionist)",
+        "жодного z.any і жодного as; у type-літералах ключі відсортовані (perfectionist/sort-object-types активний через recommended-natural, eslint.config.mjs:39; sort-objects вимкнено на :163)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T9",
+      "title": "ReadingGoalsRepository: CRUD цілі + advisory lock",
+      "step": 2,
+      "specRef": "backend-spec §4 «Репозиторій»; §3 «Правила створення»; D5",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts"],
+      "dependsOn": ["T1", "T7"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Injectable(), інжектить лише PrismaService — жодного іншого сервісу",
+        "методи: acquireCreateLock, findActiveByListId, findOwnedById, create, update, archive, deleteOwned",
+        "acquireCreateLock(listId, client) викликає acquireAdvisoryLock({ classId: ADVISORY_LOCK_CLASS.readingGoals, key: listId }, client) — лок бере репозиторій, не сервіс (CLAUDE.md §5.3)",
+        "кожен метод, що бере участь у транзакції створення, має трейлінг-параметр client: Prisma.TransactionClient = this.prisma",
+        "findActiveByListId фільтрує archivedAt: null і userId",
+        "findOwnedById / update / archive / deleteOwned завжди мають userId у where — володіння перевіряється запитом, а не після нього",
+        "повертає рядки Prisma (ReadingGoal, з include list за потреби) або числа — НІКОЛИ ReadingGoalView",
+        "жодного new Date() усередині репозиторію для бізнес-семантики: now приходить параметром там, де потрібен (archivedAt)",
+        "жодного startOfDay / getTime() / мілісекундних літералів"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "title": "Запити прогресу: findCountedFinishedDates і findCountedBooks",
+      "step": 2,
+      "specRef": "backend-spec §4 «Репозиторій»; §4 «Що зараховується»; D2",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/reading-goals/infrastructure/reading-goals.repository.ts"],
+      "dependsOn": ["T9"],
+      "mandatory": true,
+      "doneWhen": [
+        "findCountedFinishedDates({ listId, since, userId }): Promise<Date[]> — повертає ЛИШЕ дати, відсортовані ASC",
+        "findCountedBooks({ listId, since, userId, limit }) повертає рядки з id, title, finishedAt, authors (BookAuthor -> Author, за position) і coverMedia — окремий метод, щоб дешевий ReadingGoalView не тягнув обкладинки (спека §4, останній абзац)",
+        "обидва фільтрують: book.deletedAt = null, book.userId = userId, readingProgress.finishedAt не null І >= since",
+        "обидва фільтрують по listId через book_list_items",
+        "порядок ORDER BY finishedAt ASC в обох",
+        "у findCountedBooks є take = limit (виклик передає 100, див. T15)",
+        "since обчислює викликач (сервіс), репозиторій його не будує"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "title": "Виставити ListsService.countActiveBooks для верхньої межі targetCount і listBookCount",
+      "step": 2,
+      "specRef": "backend-spec §2 (listBookCount), §3 «Валідація»; D7",
+      "layer": "service",
+      "files": ["apps/api/src/modules/lists/application/lists.service.ts"],
+      "dependsOn": [],
+      "mandatory": true,
+      "doneWhen": [
+        "ListsService має публічний countActiveBooks({ listId }: { listId: string }): Promise<number>, що делегує наявний this.listsRepository.countItems(listId) (lists.repository.ts:132-136)",
+        "жодного дубля count-логіки в модулі reading-goals",
+        "ListsModule уже exports: [ListsService] (lists.module.ts:18) — додаткової правки модуля не потрібно; якщо потрібна, вона зроблена",
+        "решта ListsService не змінена"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T12",
+      "title": "Домен: reading-goal-progress.ts — чисті обчислення статусу і похідних полів",
+      "step": 2,
+      "specRef": "backend-spec §4 «Похідні поля»; D3",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/reading-goals/domain/reading-goal-progress.ts"],
+      "dependsOn": ["T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "файл не імпортує Prisma, PrismaService, @nestjs/common і не викликає new Date() — now приходить параметром (спека §4, останній рядок)",
+        "статус обчислюється рівно в цьому порядку: archivedAt !== null -> \"archived\"; completedCount >= targetCount -> \"completed\"; дедлайн у минулому -> \"expired\"; інакше \"active\"",
+        "виконана до дедлайну і неархівована ціль лишається \"completed\" і після дедлайну (перевірка порядку, спека §4)",
+        "remainingCount = Math.max(0, targetCount - completedCount) — ніколи не від'ємний",
+        "completedAt = елемент [targetCount - 1] масиву зарахованих finishedAt, відсортованого ASC; null, коли completedCount < targetCount",
+        "daysLeft = differenceInCalendarDays(deadline, startOfUtcDay(now)); null для \"completed\" і \"archived\"; від'ємне число для \"expired\"",
+        "початок дня береться через startOfUtcDay з core/iso-date.ts:27, а НЕ через date-fns startOfDay (D3)",
+        "жодного getTime(), жодних 24*60*60*1000, жодних setHours/setDate/setFullYear",
+        "функція(ї) експортовані і викликаються з сервісу — не приватні"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T13",
+      "title": "Домен: reading-goal.mapper.ts — рядок БД + прогрес -> ReadingGoalView",
+      "step": 2,
+      "specRef": "backend-spec §2 «ReadingGoalView»",
+      "layer": "domain",
+      "files": ["apps/api/src/modules/reading-goals/domain/reading-goal.mapper.ts"],
+      "dependsOn": ["T12"],
+      "mandatory": true,
+      "doneWhen": [
+        "функція повертає рівно ReadingGoalView з @app/shared — усі 11 полів, жодного зайвого",
+        "list мапиться у { id, name } або null, коли listId порожній",
+        "deadline віддається як ISO-день через toIsoDate (core/iso-date.ts:34), createdAt — як повний ISO через toISOString",
+        "completedAt віддається як ISO-день (це finishedAt книги, тип @db.Date) — через toNullableIsoDate (core/iso-date.ts:38)",
+        "мапер чистий: без Prisma, без new Date(), без HTTP",
+        "жодних ручних T | null — Nullable<T> з @app/shared"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T14",
+      "title": "ReadingGoalsService: створення, оновлення, архівація, видалення",
+      "step": 2,
+      "specRef": "backend-spec §3 «Правила створення», «Валідація»; D4 D5 D6 D7 D9 D10 D12 D13",
+      "layer": "service",
+      "files": ["apps/api/src/modules/reading-goals/application/reading-goals.service.ts"],
+      "dependsOn": ["T9", "T10", "T11", "T12", "T13"],
+      "mandatory": true,
+      "doneWhen": [
+        "@Injectable(); НЕ інжектить PrismaService; інжектить ReadingGoalsRepository, ListsService, TransactionRunner",
+        "create виконується всередині TransactionRunner.run і першою дією викликає repository.acquireCreateLock(listId, tx)",
+        "create послідовність: assertOwned(listId, userId) -> findActiveByListId -> якщо статус активної цілі \"active\" -> ConflictError -> якщо \"completed\" або \"expired\" -> проставити їй archivedAt = now і йти далі -> створити нову",
+        "на P2002 по reading_goals_active_list_idx кидається той самий ConflictError; перевірка через isUniqueConstraintErrorOn(error, \"reading_goals_active_list_idx\") (core/prisma-errors.ts:43), а не через загальний rethrowUniqueConstraintAs (D6)",
+        "перевірка дедлайну: isAfter(parseIsoDate(deadline), startOfUtcDay(now)); дедлайн сьогодні або в минулому -> BadRequestError з fields: [{ field: \"deadline\", ... }] (D3, D4)",
+        "перевірка targetCount: верхня межа = min(READING_GOAL_TARGET_MAX, listsService.countActiveBooks({ listId })); перевищення -> BadRequestError з fields: [{ field: \"targetCount\", ... }] (D4, D7)",
+        "update: 404 (NotFoundError) на чужу або неіснуючу ціль — ніколи 403; PATCH над ціллю з archivedAt !== null -> BadRequestError (400); присутній deadline перевіряється тим самим правилом майбутнього (D10)",
+        "archive над уже архівованою ціллю — ідемпотентні 200 без переписування archivedAt (D13)",
+        "delete повертає void і теж 404 на чужу ціль",
+        "усі читання цілі скоуповані по userId у where — тобто чужий ресурс невідрізнимий від неіснуючого",
+        "жодного Prisma-виклику в цьому файлі; жодного req/res",
+        "файл не перевищує 200 рядків; якщо перевищує — розділений за відповідальністю (write-path / read-path), а не за типом файлу"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T15",
+      "title": "Читання цілі: GET по списку і збірка ReadingGoalDetail із зарахованими книгами",
+      "step": 2,
+      "specRef": "backend-spec §2 «countedBooks», §3 рядки GET; D11 D12",
+      "layer": "service",
+      "files": ["apps/api/src/modules/reading-goals/application/reading-goal-detail.assembler.ts"],
+      "dependsOn": ["T10", "T12", "T13", "T14"],
+      "mandatory": true,
+      "doneWhen": [
+        "findActiveByList({ listId, userId }) викликає listsService.assertOwned і повертає Nullable<ReadingGoalView> — null означає «немає неархівованої цілі» (контролер перетворює це на 204)",
+        "findDetail({ goalId, userId }) повертає ReadingGoalDetail і НЕ ховає архівовані цілі (D12)",
+        "countedBooks відсортовані finishedAt ASC",
+        "ліміт зарахованих книг — 100; при перевищенні викликається log.warn через createLogger(\"reading-goals...\") з core/logger.ts, а не console",
+        "listBookCount береться з listsService.countActiveBooks({ listId }) (D7)",
+        "обкладинки будуються через MediaService.buildViewOrNull (media/application/media.service.ts:101), а не ручним склеюванням URL",
+        "authors мапляться у BookAuthorRef ({ id, name }) у порядку BookAuthor.position",
+        "дешевий шлях (ReadingGoalView) не робить запиту за книгами/обкладинками — окремий метод репозиторію, як вимагає спека §4"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T16",
+      "title": "DTO-класи для Swagger: input-dto і view-dto",
+      "step": 2,
+      "specRef": "backend-spec §3; CLAUDE.md §6 крок 6",
+      "layer": "controller",
+      "files": [
+        "apps/api/src/modules/reading-goals/api/input-dto/create-reading-goal.input-dto.ts",
+        "apps/api/src/modules/reading-goals/api/input-dto/update-reading-goal.input-dto.ts",
+        "apps/api/src/modules/reading-goals/api/view-dto/reading-goal.view-dto.ts",
+        "apps/api/src/modules/reading-goals/api/view-dto/reading-goal-detail.view-dto.ts"
+      ],
+      "dependsOn": ["T8"],
+      "mandatory": true,
+      "doneWhen": [
+        "кожен клас = createZodDto(<Schema з @app/shared>) — жодної ручної Swagger-схеми і жодного дубля Zod",
+        "один клас на файл, іменування *.input-dto.ts / *.view-dto.ts за наявною конвенцією (пор. lists/api/input-dto/, lists/api/view-dto/)",
+        "ReadingGoalViewDto і ReadingGoalDetailDto реально вживаються в @ApiOkResponse/@ApiCreatedResponse контролера — інакше OpenAPI їх не побачить"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T17",
+      "title": "Контролер: шість ендпоїнтів із повним Swagger, guard і throttle",
+      "step": 2,
+      "specRef": "backend-spec §3 «Ендпоїнти»; D1 D11",
+      "layer": "controller",
+      "files": ["apps/api/src/modules/reading-goals/api/reading-goals.controller.ts"],
+      "dependsOn": ["T14", "T15", "T16"],
+      "mandatory": true,
+      "doneWhen": [
+        "маршрути рівно шість і рівно ці: POST api/lists/:listId/goal -> 201 ReadingGoalView; GET api/lists/:listId/goal -> 200 ReadingGoalView або 204; GET api/goals/:goalId -> 200 ReadingGoalDetail; PATCH api/goals/:goalId -> 200 ReadingGoalView; POST api/goals/:goalId/archive -> 200 ReadingGoalView; DELETE api/goals/:goalId -> 204",
+        "@JwtProtected() на класі; @Throttle(MUTATION_THROTTLE) на POST/PATCH/DELETE/archive; @Throttle(READ_THROTTLE) на обох GET",
+        "usі :listId і :goalId проходять ParseUUIDPipe",
+        "тіла валідуються через new ZodBodyPipe(<Schema>) (core/pipes/zod-body.pipe.ts), а не class-validator",
+        "GET api/lists/:listId/goal віддає 204 через @Res({ passthrough: true }) + response.status(HTTP_STATUS.NO_CONTENT), коли цілі немає, і НЕ віддає 404 у цьому випадку (D11)",
+        "DELETE має @HttpCode(HTTP_STATUS.NO_CONTENT)",
+        "кожен метод має @ApiOperation + @ApiParam + відповідні @ApiOkResponse/@ApiCreatedResponse/@ApiNoContentResponse/@ApiNotFoundResponse/@ApiConflictResponse/@ApiBadRequestResponse; @ApiTags(\"reading-goals\") на класі",
+        "у контролері немає Prisma, немає бізнес-логіки, немає обчислення статусу — тільки валідація і делегування",
+        "userId береться з @CurrentUser(), а не з тіла чи query"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T18",
+      "title": "Модуль reading-goals + баррель + підключення в app.module.ts",
+      "step": 2,
+      "specRef": "backend-spec «Межі»; CLAUDE.md §6 крок 8",
+      "layer": "module",
+      "files": [
+        "apps/api/src/modules/reading-goals/reading-goals.module.ts",
+        "apps/api/src/modules/reading-goals/index.ts",
+        "apps/api/src/app.module.ts"
+      ],
+      "dependsOn": ["T17"],
+      "mandatory": true,
+      "doneWhen": [
+        "структура директорій рівно feature-sliced: api/ (+ input-dto/, view-dto/), application/, domain/, infrastructure/ — жодного файлу цілей у modules/books/** або modules/lists/** (крім T11)",
+        "ReadingGoalsModule імпортує AuthModule, ListsModule, MediaModule; providers містять ReadingGoalsService, ReadingGoalDetailAssembler, ReadingGoalsRepository; controllers — ReadingGoalsController",
+        "index.ts експортує ReadingGoalsModule (і ReadingGoalsService лише якщо його реально імпортує інший модуль — інакше knip позначить експорт мертвим)",
+        "ReadingGoalsModule доданий у imports app.module.ts поруч із рештою фічевих модулів",
+        "`pnpm dev:api` стартує чисто, `curl -i http://localhost:4000/api/health` -> 200 з x-request-id"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T19",
+      "title": "Тести домену (без БД)",
+      "step": 2,
+      "specRef": "backend-spec §6 «Домен»",
+      "layer": "test",
+      "files": ["apps/api/src/modules/reading-goals/domain/reading-goal-progress.test.ts"],
+      "dependsOn": ["T12"],
+      "mandatory": true,
+      "doneWhen": [
+        "покриті всі чотири гілки status: active, completed, expired, archived",
+        "є тест пріоритету: ціль виконана і дедлайн уже минув -> \"completed\", а не \"expired\"",
+        "є тест пріоритету archived над усім: archivedAt !== null при completedCount >= targetCount -> \"archived\"",
+        "completedAt дорівнює finishedAt рівно target-ї книги, а не останньої (кейс: 5 зарахованих, target 3 -> completedAt = третя дата)",
+        "completedAt = null, коли зарахованих менше за target",
+        "daysLeft від'ємний для простроченої; null для \"completed\"; null для \"archived\"",
+        "remainingCount = 0 при перевиконанні (completedCount > targetCount), не від'ємне число",
+        "жодного моку часу через системний годинник — now передається параметром",
+        "`pnpm exec vitest run <шлях до файлу>` зелений"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T20",
+      "title": "Тести сервісу (репозиторій замоканий)",
+      "step": 2,
+      "specRef": "backend-spec §6 «Сервіс»; D10",
+      "layer": "test",
+      "files": ["apps/api/src/modules/reading-goals/application/reading-goals.service.test.ts"],
+      "dependsOn": ["T14"],
+      "mandatory": true,
+      "doneWhen": [
+        "створення при наявній АКТИВНІЙ цілі -> ConflictError (409), нова ціль не створюється",
+        "створення при наявній ВИКОНАНІЙ цілі -> попередня отримує archivedAt, нова створюється (перевірено виклик archive і виклик create)",
+        "створення при наявній ПРОСТРОЧЕНІЙ цілі -> та сама поведінка, що й для виконаної",
+        "targetCount більший за кількість активних книг списку -> BadRequestError з fields, де field === \"targetCount\"",
+        "дедлайн сьогодні -> BadRequestError з field === \"deadline\"; дедлайн у минулому -> те саме",
+        "PATCH над архівованою ціллю -> BadRequestError (400)",
+        "PATCH з дедлайном у минулому -> BadRequestError з field === \"deadline\" (D10)",
+        "чужа ціль -> NotFoundError на update, archive, delete і на читанні деталі — жодного ForbiddenError",
+        "перевірено, що create викликає repository.acquireCreateLock ПЕРЕД читанням активної цілі",
+        "`pnpm exec vitest run <шлях до файлу>` зелений"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T21",
+      "title": "Інтеграційні тести (реальна БД)",
+      "step": 2,
+      "specRef": "backend-spec §6 «Інтеграційні»; §5 «Каскади»",
+      "layer": "test",
+      "files": ["apps/api/src/modules/reading-goals/api/reading-goals.controller.test.ts"],
+      "dependsOn": ["T18"],
+      "mandatory": true,
+      "doneWhen": [
+        "дві паралельні спроби створити ціль для одного списку -> рівно одна 201 і рівно одна 409 (доказ, що індекс ловить гонку, а не лише сервісна перевірка)",
+        "книга, дочитана ДО створення цілі, не зараховується",
+        "книга, дочитана ПІСЛЯ створення цілі, зараховується",
+        "книга, дочитана того самого дня ДО моменту створення цілі, ЗАРАХОВУЄТЬСЯ (межа startOfUtcDay — ціль створена ввечері, книга дочитана вранці)",
+        "книга в кошику (deleted_at не null) не зараховується",
+        "прибирання книги зі списку зменшує completedCount",
+        "purge списку видаляє ціль: soft-delete списку -> ListLifecycleService.purge -> рядка reading_goals більше немає, і сам purge не падає на новому FK (backend-spec §5)",
+        "soft-delete списку ціль НЕ чіпає: рядок reading_goals лишається, після restore GET знову віддає ціль",
+        "чужа ціль -> 404 на GET, PATCH, DELETE і archive (жодної 403)",
+        "GET /api/lists/:listId/goal без активної цілі -> 204 з порожнім тілом; GET на чужий/неіснуючий список -> 404",
+        "видалення користувача каскадно прибирає його цілі",
+        "тест побудований на createAuthTestContext + truncateAllTables за зразком lists/api/lists.controller.test.ts:21-36",
+        "`pnpm exec vitest run <шлях до файлу>` зелений на локальному Postgres :5432"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T22",
+      "title": "Перегенерувати OpenAPI і типізований клієнт",
+      "step": 2,
+      "specRef": "backend-spec §7 «Гейти»; CLAUDE.md §6 крок 10",
+      "layer": "shared-dto",
+      "files": ["apps/api/openapi.json", "apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T18"],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm --filter @app/api generate:openapi` виконано, у openapi.json з'явилися всі шість шляхів і схеми ReadingGoalView / ReadingGoalDetail / CreateReadingGoalInput / UpdateReadingGoalInput",
+        "`pnpm gen:api` виконано, вихід orval оновлено",
+        "у apps/web змінені ЛИШЕ файли під src/shared/api/generated/** — жодного рукописного FE-коду",
+        "кореневий `pnpm typecheck` зелений після генерації (генерований клієнт компілюється)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T23",
+      "title": "Гейти + живий curl повного циклу",
+      "step": 2,
+      "specRef": "backend-spec §7 «Гейти», останній абзац",
+      "layer": "test",
+      "files": [],
+      "dependsOn": ["T5", "T6", "T19", "T20", "T21", "T22"],
+      "mandatory": true,
+      "doneWhen": [
+        "`pnpm typecheck` зелений (кореневий, не --filter — правка в packages/shared)",
+        "`pnpm lint` і `pnpm format:check` зелені",
+        "`pnpm knip` не додає жодного нового unused export / unused file / unused dependency; зокрема кожен експорт packages/shared/src/reading-goals.ts комусь потрібен",
+        "вузькі vitest-прогони T5, T19, T20, T21 зелені локально; повний `pnpm test` — у CI на push у dev, не локально",
+        "живий curl-цикл зафіксовано у виводі: створити ціль -> POST перевести книгу зі списку у finished -> GET /api/goals/:goalId і побачити completedCount на одиницю більший",
+        "у тому ж curl-циклі зафіксовано 204 від GET /api/lists/:listId/goal до створення цілі",
+        "жоден гейт не оголошено пройденим без вставленого виводу команди"
+      ],
+      "status": "done",
+      "note": "Live curl of the whole cycle captured: 204 with no goal, 201 create, 200 read, 409 on a duplicate while the first is active, progress 0->2 as books are finished with status flipping to completed, archive 200 and re-archive idempotent 200, archived goal still readable 200 with status archived, DELETE 204 then GET 404."
+    }
+  ]
+}

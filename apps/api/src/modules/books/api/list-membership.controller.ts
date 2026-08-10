@@ -1,6 +1,14 @@
-import type { AddBooksToListResult } from "@app/shared";
+import type {
+  AddBooksToListResult,
+  MoveListBookInput,
+  RemoveBooksFromListResult,
+} from "@app/shared";
 
-import { AddBooksToListInputSchema, MoveListBookInputSchema } from "@app/shared";
+import {
+  AddBooksToListInputSchema,
+  MoveListBookInputSchema,
+  RemoveBooksFromListInputSchema,
+} from "@app/shared";
 import {
   Body,
   Controller,
@@ -30,7 +38,9 @@ import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ListMembershipService } from "../application/list-membership.service.js";
 import { AddBooksToListInputDto } from "./input-dto/add-books-to-list.input-dto.js";
 import { MoveListBookInputDto } from "./input-dto/move-list-book.input-dto.js";
+import { RemoveBooksFromListInputDto } from "./input-dto/remove-books-from-list.input-dto.js";
 import { AddBooksToListResultDto } from "./view-dto/add-books-to-list-result.view-dto.js";
+import { RemoveBooksFromListResultDto } from "./view-dto/remove-books-from-list-result.view-dto.js";
 
 @ApiTags("lists")
 @Controller("api/lists")
@@ -57,6 +67,25 @@ export class ListMembershipController {
     return this.listMembershipService.addBooks({ input: body, listId, userId: user.id });
   }
 
+  @ApiBadRequestResponse({ description: "Validation failed" })
+  @ApiBody({ type: RemoveBooksFromListInputDto })
+  @ApiNotFoundResponse({ description: "List not found" })
+  @ApiOkResponse({
+    description: "How many memberships were removed and the new total count",
+    type: RemoveBooksFromListResultDto,
+  })
+  @ApiOperation({ summary: "Remove several books from a custom list and re-sequence positions" })
+  @ApiParam({ name: "listId", required: true })
+  @HttpCode(HTTP_STATUS.OK)
+  @Post(":listId/books/remove")
+  removeBooks(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("listId", ParseUUIDPipe) listId: string,
+    @Body(new ZodBodyPipe(RemoveBooksFromListInputSchema)) body: RemoveBooksFromListInputDto,
+  ): Promise<RemoveBooksFromListResult> {
+    return this.listMembershipService.removeBooks({ input: body, listId, userId: user.id });
+  }
+
   @ApiNoContentResponse({ description: "The book was removed from the list" })
   @ApiNotFoundResponse({ description: "List not found or the book is not in the list" })
   @ApiOperation({ summary: "Remove a book from a custom list and re-sequence positions" })
@@ -73,12 +102,15 @@ export class ListMembershipController {
   }
 
   @ApiBadRequestResponse({
-    description: "Validation failed or the book is already at the top or bottom",
+    description:
+      "Validation failed, the book is already at the top or bottom, or the list holds too many books to reorder",
   })
   @ApiBody({ type: MoveListBookInputDto })
   @ApiNoContentResponse({ description: "The book was moved" })
   @ApiNotFoundResponse({ description: "List not found or the book is not in the list" })
-  @ApiOperation({ summary: "Move a book up or down within a custom list" })
+  @ApiOperation({
+    summary: "Move a book one step or to an explicit position within a custom list",
+  })
   @ApiParam({ name: "listId", required: true })
   @ApiParam({ name: "bookId", required: true })
   @HttpCode(HTTP_STATUS.NO_CONTENT)
@@ -87,11 +119,11 @@ export class ListMembershipController {
     @CurrentUser() user: AuthenticatedUser,
     @Param("listId", ParseUUIDPipe) listId: string,
     @Param("bookId", ParseUUIDPipe) bookId: string,
-    @Body(new ZodBodyPipe(MoveListBookInputSchema)) body: MoveListBookInputDto,
+    @Body(new ZodBodyPipe(MoveListBookInputSchema)) body: MoveListBookInput,
   ): Promise<void> {
     return this.listMembershipService.moveBook({
       bookId,
-      direction: body.direction,
+      input: body,
       listId,
       userId: user.id,
     });

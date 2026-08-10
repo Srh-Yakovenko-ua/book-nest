@@ -2,19 +2,23 @@ import type {
   BestOfferView,
   Currency,
   Nullable,
+  WishlistCountsView,
   WishlistCurrencyEstimate,
   WishlistSummaryView,
 } from "@app/shared";
 
 export function computeWishlistSummary({
   bestOffers,
+  counts,
   storeNames,
 }: {
   bestOffers: Nullable<BestOfferView>[];
+  counts: WishlistCountsView;
   storeNames: string[];
 }): WishlistSummaryView {
   return {
     booksCount: bestOffers.length,
+    counts,
     estimates: computeEstimates(bestOffers),
     trackedStoresCount: new Set(storeNames).size,
   };

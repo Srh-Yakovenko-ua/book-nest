@@ -1,8 +1,15 @@
-import type { BestOfferView, Nullable } from "@app/shared";
+import type { BestOfferView, Nullable, WishlistCountsView } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
 import { computeWishlistSummary } from "./wishlist-summary.js";
+
+const ZERO_COUNTS: WishlistCountsView = {
+  addedLast30Days: 0,
+  missingFromSeries: { booksCount: 0, seriesCount: 0 },
+  nextInSeries: { booksCount: 0, seriesCount: 0 },
+  waitingOverSixMonths: 0,
+};
 
 function offer(currency: BestOfferView["currency"], price: number): BestOfferView {
   return { currency, price };
@@ -10,16 +17,47 @@ function offer(currency: BestOfferView["currency"], price: number): BestOfferVie
 
 describe("computeWishlistSummary", () => {
   it("returns zeros for an empty wishlist", () => {
-    expect(computeWishlistSummary({ bestOffers: [], storeNames: [] })).toEqual({
-      booksCount: 0,
-      estimates: [],
-      trackedStoresCount: 0,
+    expect(computeWishlistSummary({ bestOffers: [], counts: ZERO_COUNTS, storeNames: [] })).toEqual(
+      {
+        booksCount: 0,
+        counts: {
+          addedLast30Days: 0,
+          missingFromSeries: { booksCount: 0, seriesCount: 0 },
+          nextInSeries: { booksCount: 0, seriesCount: 0 },
+          waitingOverSixMonths: 0,
+        },
+        estimates: [],
+        trackedStoresCount: 0,
+      },
+    );
+  });
+
+  it("carries the precomputed counts through without recomputing them from the offers", () => {
+    const counts: WishlistCountsView = {
+      addedLast30Days: 3,
+      missingFromSeries: { booksCount: 4, seriesCount: 2 },
+      nextInSeries: { booksCount: 1, seriesCount: 1 },
+      waitingOverSixMonths: 2,
+    };
+
+    const result = computeWishlistSummary({
+      bestOffers: [offer("UAH", 100)],
+      counts,
+      storeNames: [],
+    });
+
+    expect(result.counts).toEqual({
+      addedLast30Days: 3,
+      missingFromSeries: { booksCount: 4, seriesCount: 2 },
+      nextInSeries: { booksCount: 1, seriesCount: 1 },
+      waitingOverSixMonths: 2,
     });
   });
 
   it("aggregates total, average and best for a single currency", () => {
     const result = computeWishlistSummary({
       bestOffers: [offer("UAH", 349), offer("UAH", 199.5)],
+      counts: ZERO_COUNTS,
       storeNames: ["Yakaboo", "Book24"],
     });
 
@@ -32,6 +70,7 @@ describe("computeWishlistSummary", () => {
   it("groups estimates by currency without conversion and sorts by currency", () => {
     const result = computeWishlistSummary({
       bestOffers: [offer("USD", 20), offer("EUR", 5), offer("UAH", 100), offer("UAH", 200)],
+      counts: ZERO_COUNTS,
       storeNames: [],
     });
 
@@ -45,6 +84,7 @@ describe("computeWishlistSummary", () => {
   it("counts distinct store names across all books", () => {
     const result = computeWishlistSummary({
       bestOffers: [offer("UAH", 100)],
+      counts: ZERO_COUNTS,
       storeNames: ["Yakaboo", "Book24", "Yakaboo"],
     });
 
@@ -54,7 +94,11 @@ describe("computeWishlistSummary", () => {
   it("excludes books without a best offer from the estimates but counts them in booksCount", () => {
     const bestOffers: Nullable<BestOfferView>[] = [offer("UAH", 100), null, null];
 
-    const result = computeWishlistSummary({ bestOffers, storeNames: ["Yakaboo"] });
+    const result = computeWishlistSummary({
+      bestOffers,
+      counts: ZERO_COUNTS,
+      storeNames: ["Yakaboo"],
+    });
 
     expect(result.booksCount).toBe(3);
     expect(result.estimates).toEqual([

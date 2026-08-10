@@ -16,7 +16,13 @@ export const ListDetailsControllerDetailSort = {
   title_asc: "title_asc",
   title_desc: "title_desc",
   author_asc: "author_asc",
+  author_desc: "author_desc",
   rating_desc: "rating_desc",
+  rating_asc: "rating_asc",
   pages_desc: "pages_desc",
   pages_asc: "pages_asc",
+  year_desc: "year_desc",
+  year_asc: "year_asc",
+  status_unread_first: "status_unread_first",
+  status_read_first: "status_read_first",
 } as const;

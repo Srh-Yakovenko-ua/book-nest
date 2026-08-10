@@ -6,13 +6,12 @@ import { z } from "zod";
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
-import { buildBookSearchConditions } from "./book-search.js";
+import { buildLibraryWhere, type LibraryFilter } from "./book-where.js";
 import {
   ACTIVE_BOOK_SQL,
   type BookWithRelations,
   GenreCountRowSchema,
   LIBRARY_ORDER_BY,
-  type LibraryFilter,
   withRelations,
 } from "./books.repository.js";
 
@@ -312,15 +311,30 @@ export class BookLibraryReadRepository {
     userId: string;
   }): Promise<string[]> {
     const rows = await this.prisma.$queryRaw`
-      SELECT purchase.store_name AS "storeName"
-      FROM book_purchase_info purchase
-      JOIN books book ON book.id = purchase.book_id
-      WHERE book.user_id = ${userId}::uuid
-          ${ACTIVE_BOOK_SQL}
-        AND purchase.store_name IS NOT NULL
-        AND btrim(purchase.store_name) <> ''
-      GROUP BY purchase.store_name
-      ORDER BY max(book.created_at) DESC
+      WITH entered_store_name AS (
+        SELECT btrim(purchase.store_name) AS store_name, purchase.created_at AS entered_at
+        FROM book_purchase_info purchase
+        JOIN books book ON book.id = purchase.book_id
+        WHERE book.user_id = ${userId}::uuid
+            ${ACTIVE_BOOK_SQL}
+          AND purchase.store_name IS NOT NULL
+          AND btrim(purchase.store_name) <> ''
+        UNION ALL
+        SELECT btrim(store_link.store_name) AS store_name, store_link.created_at AS entered_at
+        FROM book_store_links store_link
+        JOIN books book ON book.id = store_link.book_id
+        WHERE book.user_id = ${userId}::uuid
+            ${ACTIVE_BOOK_SQL}
+          AND btrim(store_link.store_name) <> ''
+      ),
+      latest_store_name AS (
+        SELECT DISTINCT ON (lower(store_name)) store_name, entered_at
+        FROM entered_store_name
+        ORDER BY lower(store_name), entered_at DESC, store_name ASC
+      )
+      SELECT store_name AS "storeName"
+      FROM latest_store_name
+      ORDER BY entered_at DESC, store_name ASC
       LIMIT ${limit}
     `;
     return z
@@ -387,109 +401,4 @@ export class BookLibraryReadRepository {
       return name === undefined ? [] : [{ count: entry._count.tagId, id: entry.tagId, name }];
     });
   }
-}
-
-function buildIntRange({
-  max,
-  min,
-}: {
-  max?: number;
-  min?: number;
-}): undefined | { gte?: number; lte?: number } {
-  if (min === undefined && max === undefined) {
-    return undefined;
-  }
-  const range: { gte?: number; lte?: number } = {};
-  if (min !== undefined) {
-    range.gte = min;
-  }
-  if (max !== undefined) {
-    range.lte = max;
-  }
-  return range;
-}
-
-function buildLibraryWhere(filter: LibraryFilter): Prisma.BookWhereInput {
-  const where: Prisma.BookWhereInput = { ...SOFT_DELETE_SCOPE.active, userId: filter.userId };
-
-  if (filter.readingStatuses !== undefined) {
-    where.readingStatus = { in: filter.readingStatuses };
-  }
-  if (filter.ownershipStatuses !== undefined) {
-    where.ownershipStatus = { in: filter.ownershipStatuses };
-  }
-  if (filter.formats !== undefined) {
-    where.formats = { hasSome: filter.formats };
-  }
-  if (filter.genreKeys !== undefined) {
-    where.genres = { hasSome: filter.genreKeys };
-  }
-  if (filter.tagIds !== undefined) {
-    where.tags = { some: { tagId: { in: filter.tagIds } } };
-  }
-  if (filter.authorIds !== undefined) {
-    where.authors = { some: { authorId: { in: filter.authorIds } } };
-  }
-  if (filter.publisherPresence === "missing") {
-    where.publisherId = null;
-  } else if (filter.publisherPresence === "assigned") {
-    where.publisherId = { not: null };
-  } else if (filter.publisherIds !== undefined) {
-    where.publisherId = { in: filter.publisherIds };
-  }
-  if (filter.ageCategories !== undefined) {
-    where.ageCategory = { in: filter.ageCategories };
-  }
-  if (filter.languages !== undefined) {
-    where.language = { in: filter.languages };
-  }
-  if (filter.bookType === "solo") {
-    where.seriesId = null;
-  }
-  if (filter.bookType === "series_part") {
-    where.seriesId = { not: null };
-  }
-  if (filter.isFavorite !== undefined) {
-    where.isFavorite = filter.isFavorite;
-  }
-  if (filter.hasCover === true) {
-    where.coverMediaId = { not: null };
-  }
-  if (filter.hasCover === false) {
-    where.coverMediaId = null;
-  }
-  if (filter.hasDedication === false) {
-    where.AND = [{ OR: [{ dedication: null }, { dedication: "" }] }];
-  }
-  if (filter.hasDedication === true) {
-    where.AND = [{ AND: [{ dedication: { not: null } }, { dedication: { not: "" } }] }];
-  }
-
-  const rating = buildIntRange({ max: filter.ratingMax, min: filter.ratingMin });
-  if (rating !== undefined) {
-    where.readingProgress = { is: { rating } };
-  } else if (filter.hasRating === true) {
-    where.readingProgress = { is: { rating: { not: null } } };
-  }
-  if (filter.hasRating === false) {
-    where.NOT = { readingProgress: { is: { rating: { not: null } } } };
-  }
-  const publicationYear = buildIntRange({ max: filter.yearMax, min: filter.yearMin });
-  if (publicationYear !== undefined) {
-    where.publicationYear = publicationYear;
-  }
-  const pagesCount = buildIntRange({ max: filter.pagesMax, min: filter.pagesMin });
-  if (pagesCount !== undefined) {
-    where.pagesCount = pagesCount;
-  }
-
-  const searchConditions = buildBookSearchConditions({
-    search: filter.search,
-    searchGenreKeys: filter.searchGenreKeys,
-  });
-  if (searchConditions !== undefined) {
-    where.OR = searchConditions;
-  }
-
-  return where;
 }

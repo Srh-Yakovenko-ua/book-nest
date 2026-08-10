@@ -695,6 +695,7 @@ export const BooksControllerCreateResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -715,6 +716,9 @@ export const booksControllerListQueryGenreMax = 100;
 
 export const booksControllerListQueryLanguageMax = 100;
 
+export const booksControllerListQueryNotInListRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
 export const booksControllerListQueryOwnerMax = 100;
 
 export const booksControllerListQueryPageNumberDefault = 1;
@@ -789,11 +793,13 @@ export const BooksControllerListQueryParams = zod.object({
   hasCover: zod.string().optional(),
   hasDedication: zod.string().optional(),
   hasRating: zod.string().optional(),
+  inQueue: zod.string().optional(),
   isFavorite: zod.string().optional(),
   language: zod
     .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
     .max(booksControllerListQueryLanguageMax)
     .optional(),
+  notInList: zod.uuid().regex(booksControllerListQueryNotInListRegExp).optional(),
   owner: zod
     .array(
       zod.enum([
@@ -1295,6 +1301,7 @@ export const BooksControllerListResponse = zod.object({
       translator: zod.string().nullable(),
       updatedAt: zod.string(),
       userId: zod.string(),
+      wishlistAddedAt: zod.string().nullable(),
     }),
   ),
   page: zod.int().min(booksControllerListResponsePageMin).max(booksControllerListResponsePageMax),
@@ -1743,6 +1750,7 @@ export const BooksControllerOverviewResponse = zod.object({
       translator: zod.string().nullable(),
       updatedAt: zod.string(),
       userId: zod.string(),
+      wishlistAddedAt: zod.string().nullable(),
     }),
   ),
   summary: zod.object({
@@ -1843,6 +1851,123 @@ export const BooksControllerFavoritesSummaryResponse = zod.object({
 /**
  * @summary Get the current user books-to-buy wishlist
  */
+export const booksControllerWishlistQueryAgeMax = 100;
+
+export const booksControllerWishlistQueryAuthorItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerWishlistQueryAuthorMax = 100;
+
+export const booksControllerWishlistQueryCurrencyMax = 100;
+
+export const booksControllerWishlistQueryFormatMax = 100;
+
+export const booksControllerWishlistQueryGenreItemMax = 64;
+
+export const booksControllerWishlistQueryGenreMax = 100;
+
+export const booksControllerWishlistQueryLanguageMax = 100;
+
+export const booksControllerWishlistQueryPagesMaxMin = 0;
+export const booksControllerWishlistQueryPagesMaxMax = 9007199254740991;
+
+export const booksControllerWishlistQueryPagesMinMin = 0;
+export const booksControllerWishlistQueryPagesMinMax = 9007199254740991;
+
+export const booksControllerWishlistQueryPriceMaxMin = 0;
+
+export const booksControllerWishlistQueryPriceMinMin = 0;
+
+export const booksControllerWishlistQueryPublisherItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerWishlistQueryPublisherMax = 100;
+
+export const booksControllerWishlistQueryQMax = 200;
+
+export const booksControllerWishlistQueryStoreMax = 100;
+
+export const booksControllerWishlistQuerySeriesPlacementMax = 100;
+
+export const booksControllerWishlistQueryTagItemRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const booksControllerWishlistQueryTagMax = 100;
+
+export const booksControllerWishlistQueryYearMaxMin = -9007199254740991;
+export const booksControllerWishlistQueryYearMaxMax = 9007199254740991;
+
+export const booksControllerWishlistQueryYearMinMin = -9007199254740991;
+export const booksControllerWishlistQueryYearMinMax = 9007199254740991;
+
+export const BooksControllerWishlistQueryParams = zod.object({
+  age: zod
+    .array(zod.enum(["recent", "middle", "long"]))
+    .max(booksControllerWishlistQueryAgeMax)
+    .optional(),
+  author: zod
+    .array(zod.uuid().regex(booksControllerWishlistQueryAuthorItemRegExp))
+    .max(booksControllerWishlistQueryAuthorMax)
+    .optional(),
+  bookType: zod.enum(["solo", "series_part"]).optional(),
+  currency: zod
+    .array(zod.enum(["UAH", "EUR", "USD"]))
+    .max(booksControllerWishlistQueryCurrencyMax)
+    .optional(),
+  format: zod
+    .array(zod.enum(["paper", "ebook", "audiobook"]))
+    .max(booksControllerWishlistQueryFormatMax)
+    .optional(),
+  genre: zod
+    .array(zod.string().min(1).max(booksControllerWishlistQueryGenreItemMax))
+    .max(booksControllerWishlistQueryGenreMax)
+    .optional(),
+  hasCover: zod.string().optional(),
+  isFavorite: zod.string().optional(),
+  language: zod
+    .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
+    .max(booksControllerWishlistQueryLanguageMax)
+    .optional(),
+  link: zod.enum(["has_links", "without_links", "has_price", "without_price"]).optional(),
+  pagesMax: zod
+    .int()
+    .min(booksControllerWishlistQueryPagesMaxMin)
+    .max(booksControllerWishlistQueryPagesMaxMax)
+    .optional(),
+  pagesMin: zod
+    .int()
+    .min(booksControllerWishlistQueryPagesMinMin)
+    .max(booksControllerWishlistQueryPagesMinMax)
+    .optional(),
+  priceCurrency: zod.enum(["UAH", "EUR", "USD"]).optional(),
+  priceMax: zod.number().min(booksControllerWishlistQueryPriceMaxMin).optional(),
+  priceMin: zod.number().min(booksControllerWishlistQueryPriceMinMin).optional(),
+  publisher: zod
+    .array(zod.uuid().regex(booksControllerWishlistQueryPublisherItemRegExp))
+    .max(booksControllerWishlistQueryPublisherMax)
+    .optional(),
+  q: zod.string().max(booksControllerWishlistQueryQMax).optional(),
+  store: zod.array(zod.string()).max(booksControllerWishlistQueryStoreMax).optional(),
+  seriesPlacement: zod
+    .array(zod.enum(["gap", "continuation"]))
+    .max(booksControllerWishlistQuerySeriesPlacementMax)
+    .optional(),
+  tag: zod
+    .array(zod.uuid().regex(booksControllerWishlistQueryTagItemRegExp))
+    .max(booksControllerWishlistQueryTagMax)
+    .optional(),
+  yearMax: zod
+    .int()
+    .min(booksControllerWishlistQueryYearMaxMin)
+    .max(booksControllerWishlistQueryYearMaxMax)
+    .optional(),
+  yearMin: zod
+    .int()
+    .min(booksControllerWishlistQueryYearMinMin)
+    .max(booksControllerWishlistQueryYearMinMax)
+    .optional(),
+});
+
 export const booksControllerWishlistResponseBooksItemQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -2234,6 +2359,7 @@ export const BooksControllerWishlistResponse = zod.object({
       translator: zod.string().nullable(),
       updatedAt: zod.string(),
       userId: zod.string(),
+      wishlistAddedAt: zod.string().nullable(),
       bestOffer: zod
         .object({
           currency: zod.enum(["UAH", "EUR", "USD"]),
@@ -2258,6 +2384,18 @@ export const BooksControllerWishlistResponse = zod.object({
   ),
   summary: zod.object({
     booksCount: zod.number(),
+    counts: zod.object({
+      addedLast30Days: zod.number(),
+      missingFromSeries: zod.object({
+        booksCount: zod.number(),
+        seriesCount: zod.number(),
+      }),
+      nextInSeries: zod.object({
+        booksCount: zod.number(),
+        seriesCount: zod.number(),
+      }),
+      waitingOverSixMonths: zod.number(),
+    }),
     estimates: zod.array(
       zod.object({
         average: zod.number(),
@@ -2269,6 +2407,7 @@ export const BooksControllerWishlistResponse = zod.object({
     ),
     trackedStoresCount: zod.number(),
   }),
+  totalBooksCount: zod.number(),
 });
 
 /**
@@ -2717,6 +2856,7 @@ export const BooksControllerDedicationsResponse = zod.object({
       translator: zod.string().nullable(),
       updatedAt: zod.string(),
       userId: zod.string(),
+      wishlistAddedAt: zod.string().nullable(),
     }),
   ),
   page: zod
@@ -3216,6 +3356,7 @@ export const BooksControllerGetByIdResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -3901,6 +4042,7 @@ export const BooksControllerUpdateResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -4279,6 +4421,7 @@ export const BooksControllerRestoreResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -4827,6 +4970,7 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -5216,6 +5360,7 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -5582,6 +5727,7 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -5948,6 +6094,7 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -6316,6 +6463,7 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -6704,6 +6852,7 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -7093,6 +7242,7 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -7475,6 +7625,7 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -7856,6 +8007,7 @@ export const BookLoanControllerEditLoanResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -8218,6 +8370,7 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -8611,6 +8764,7 @@ export const BookDeliveryControllerCreateResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -9040,6 +9194,7 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -9414,6 +9569,7 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
@@ -9784,6 +9940,7 @@ export const BookDeliveryControllerCancelResponse = zod.object({
   translator: zod.string().nullable(),
   updatedAt: zod.string(),
   userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
 });
 
 /**
