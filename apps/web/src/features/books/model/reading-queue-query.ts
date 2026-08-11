@@ -55,7 +55,7 @@ export const readingQueueQueryParsers = {
 
 export type ReadingQueueQueryState = inferParserType<typeof readingQueueQueryParsers>;
 
-export type ReadingQueueRangeFlags = {
+type ReadingQueueRangeFlags = {
   pages: boolean;
   rating: boolean;
   year: boolean;
@@ -109,25 +109,8 @@ export function countActiveReadingQueueFilters(state: ReadingQueueQueryState): n
   );
 }
 
-export function hasActiveReadingQueueFilters(state: ReadingQueueQueryState): boolean {
-  return countActiveReadingQueueFilters(state) > 0;
-}
-
 export function hasActiveReadingQueueSearch(state: ReadingQueueQueryState): boolean {
   return state.q.trim() !== "";
-}
-
-export function isReadingQueueRangeValid(state: ReadingQueueQueryState): boolean {
-  const flags = readingQueueRangeFlags(state);
-  return !flags.pages && !flags.rating && !flags.year;
-}
-
-export function readingQueueRangeFlags(state: ReadingQueueQueryState): ReadingQueueRangeFlags {
-  return {
-    pages: isInvertedRange({ max: state.pagesMax, min: state.pagesMin }),
-    rating: isInvertedRange({ max: state.ratingMax, min: state.ratingMin }),
-    year: isInvertedRange({ max: state.yearMax, min: state.yearMin }),
-  };
 }
 
 export function toReadingQueueParams(
@@ -181,4 +164,12 @@ function boundedRange({
 
 function isInvertedRange({ max, min }: { max: null | number; min: null | number }): boolean {
   return min !== null && max !== null && min > max;
+}
+
+function readingQueueRangeFlags(state: ReadingQueueQueryState): ReadingQueueRangeFlags {
+  return {
+    pages: isInvertedRange({ max: state.pagesMax, min: state.pagesMin }),
+    rating: isInvertedRange({ max: state.ratingMax, min: state.ratingMin }),
+    year: isInvertedRange({ max: state.yearMax, min: state.yearMin }),
+  };
 }
