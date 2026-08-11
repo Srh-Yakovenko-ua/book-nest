@@ -82,8 +82,83 @@ export const UpdateSeriesInputSchema = z.object({
 
 export type UpdateSeriesInput = z.infer<typeof UpdateSeriesInputSchema>;
 
+export const SeriesSortSchema = z.enum([
+  "activity_desc",
+  "books_desc",
+  "name_asc",
+  "name_desc",
+  "progress_asc",
+  "progress_desc",
+]);
+
+export type SeriesSort = z.infer<typeof SeriesSortSchema>;
+
+export const SERIES_SORT_DEFAULT: SeriesSort = "name_asc";
+
+export const SeriesCompletenessSchema = z.enum(["complete", "incomplete", "no_plan"]);
+
+export type SeriesCompleteness = z.infer<typeof SeriesCompletenessSchema>;
+
+export const SeriesReadingStateSchema = z.enum([
+  "completed",
+  "empty",
+  "in_progress",
+  "not_started",
+]);
+
+export type SeriesReadingState = z.infer<typeof SeriesReadingStateSchema>;
+
+export const SeriesAttentionReasonSchema = z.enum([
+  "empty",
+  "incomplete_data",
+  "incomplete_set",
+  "missing_parts",
+  "next_unavailable",
+  "unknown_status",
+]);
+
+export type SeriesAttentionReason = z.infer<typeof SeriesAttentionReasonSchema>;
+
+export const SeriesAttentionFilterSchema = z.union([z.literal("any"), SeriesAttentionReasonSchema]);
+
+export type SeriesAttentionFilter = z.infer<typeof SeriesAttentionFilterSchema>;
+
+export const SeriesTabSchema = z.enum(["all", "unfinished"]);
+
+export type SeriesTab = z.infer<typeof SeriesTabSchema>;
+
+const SERIES_PROGRESS_MIN = 0;
+const SERIES_PROGRESS_MAX = 100;
+
+const seriesProgressBound = () =>
+  z.coerce.number().int().min(SERIES_PROGRESS_MIN).max(SERIES_PROGRESS_MAX);
+
 export const SeriesSearchQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
+  attention: SeriesAttentionFilterSchema.optional(),
   authorIds: queryStringArray(z.uuid()),
+  booksMax: z.coerce.number().int().nonnegative().optional(),
+  booksMin: z.coerce.number().int().nonnegative().optional(),
+  completeness: queryStringArray(SeriesCompletenessSchema),
+  genres: queryStringArray(z.string()),
+  progressMax: seriesProgressBound().optional(),
+  progressMin: seriesProgressBound().optional(),
+  reading: SeriesReadingStateSchema.optional(),
+  sort: SeriesSortSchema.default(SERIES_SORT_DEFAULT),
+  status: SeriesStatusSchema.optional(),
+  tab: SeriesTabSchema.default("all"),
+}).superRefine((value, context) => {
+  const ranges = [
+    { max: value.booksMax, min: value.booksMin, name: "books" },
+    { max: value.progressMax, min: value.progressMin, name: "progress" },
+  ];
+  for (const range of ranges) {
+    if (range.min === undefined || range.max === undefined || range.min <= range.max) continue;
+    context.addIssue({
+      code: "custom",
+      message: `${range.name}Min must not exceed ${range.name}Max`,
+      path: [`${range.name}Min`],
+    });
+  }
 });
 
 export type SeriesSearchQuery = z.infer<typeof SeriesSearchQuerySchema>;
@@ -199,7 +274,20 @@ export const SeriesDetailsViewSchema = SeriesViewSchema.extend({
 
 export type SeriesDetailsView = z.infer<typeof SeriesDetailsViewSchema>;
 
+export const SeriesAttentionCountsSchema = z.object({
+  empty: z.number().int(),
+  incomplete_data: z.number().int(),
+  incomplete_set: z.number().int(),
+  missing_parts: z.number().int(),
+  next_unavailable: z.number().int(),
+  unknown_status: z.number().int(),
+});
+
+export type SeriesAttentionCounts = z.infer<typeof SeriesAttentionCountsSchema>;
+
 export const SeriesOverviewViewSchema = z.object({
+  almostRead: z.array(SeriesViewSchema).default([]),
+  attentionCounts: SeriesAttentionCountsSchema,
   booksInSeries: z.number(),
   booksLeftInUnfinishedSeries: z.number().optional(),
   finishedBooksInSeries: z.number().optional(),

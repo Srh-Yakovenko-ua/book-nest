@@ -44,6 +44,7 @@ import { AuthorsService } from "../../authors/index.js";
 import { GenresService } from "../../genres/index.js";
 import { MediaService } from "../../media/index.js";
 import { assembleContinuations } from "../domain/favorite-continuations.js";
+import { countSeriesAttention, selectAlmostReadSeries } from "../domain/series-attention.js";
 import {
   computeSeriesLastActivityAt,
   countFinishedBooks,
@@ -62,6 +63,7 @@ const SERIES_TOTAL_BELOW_BOOKS_MESSAGE =
   "Total books cannot be less than the number of books already in the series";
 const SERIES_TOTAL_BELOW_PART_MESSAGE = "Total books cannot be less than an existing part number";
 const SERIES_LIST_LIMITS = {
+  almostRead: 3,
   overviewTop: 3,
 } as const;
 
@@ -194,17 +196,26 @@ export class SeriesService {
       statusCounts[SeriesStatusSchema.parse(series.status)] += 1;
     }
 
+    const views = allSeries.map((series) =>
+      toSeriesView({ coverByBookId: this.buildCoverByBookId(series.books), series }),
+    );
+    const viewById = new Map(views.map((view) => [view.id, view]));
+
     const topUnfinished = [...unfinished]
       .sort(compareByUnfinishedRank)
       .slice(0, SERIES_LIST_LIMITS.overviewTop)
-      .map((entry) =>
-        toSeriesView({
-          coverByBookId: this.buildCoverByBookId(entry.series.books),
-          series: entry.series,
-        }),
-      );
+      .flatMap((entry) => {
+        const view = viewById.get(entry.series.id);
+        return view === undefined ? [] : [view];
+      });
 
     return {
+      almostRead: selectAlmostReadSeries({
+        excludeId: topUnfinished[0]?.id,
+        items: views,
+        limit: SERIES_LIST_LIMITS.almostRead,
+      }),
+      attentionCounts: countSeriesAttention(views),
       booksInSeries,
       booksLeftInUnfinishedSeries,
       finishedBooksInSeries,
@@ -270,16 +281,15 @@ export class SeriesService {
   }
 
   async search(userId: string, query: SeriesSearchQuery): Promise<Paginator<SeriesView>> {
-    const { authorIds, pageNumber, pageSize, search } = query;
+    const { pageNumber, pageSize } = query;
 
     const [series, totalCount] = await Promise.all([
       this.seriesRepository.searchOwned({
-        authorIds,
-        query: search,
+        query,
         userId,
         ...pageSlice({ pageNumber, pageSize }),
       }),
-      this.seriesRepository.countOwned({ authorIds, query: search, userId }),
+      this.seriesRepository.countOwned({ query, userId }),
     ]);
 
     return buildPaginator({
