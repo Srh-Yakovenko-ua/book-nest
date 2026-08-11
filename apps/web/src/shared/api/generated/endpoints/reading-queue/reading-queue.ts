@@ -21,6 +21,7 @@ import type {
 import type {
   AddToReadingQueueInputDto,
   ApplySeriesOrderFixResponseDto,
+  ReadingQueueControllerGetQueueParams,
   ReadingQueueSummaryViewDto,
   ReadingQueueViewDto,
   ReadingQueueVolumeSummaryViewDto,
@@ -73,18 +74,53 @@ export type readingQueueControllerGetQueueResponseError =
 export type readingQueueControllerGetQueueResponse =
   readingQueueControllerGetQueueResponseSuccess | readingQueueControllerGetQueueResponseError;
 
-export const getReadingQueueControllerGetQueueUrl = () => {
-  return `/api/reading-queue`;
+export const getReadingQueueControllerGetQueueUrl = (
+  params?: ReadingQueueControllerGetQueueParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = [
+      "ageCategory",
+      "author",
+      "format",
+      "genre",
+      "language",
+      "owner",
+      "priority",
+      "publisher",
+      "status",
+      "tag",
+    ];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? "null" : String(v));
+      });
+      return;
+    }
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reading-queue?${stringifiedParams}`
+    : `/api/reading-queue`;
 };
 
 /**
  * @summary Get the current user reading queue
  */
 export const readingQueueControllerGetQueue = async (
+  params?: ReadingQueueControllerGetQueueParams,
   options?: Parameters<typeof customInstance>[1],
 ): Promise<readingQueueControllerGetQueueResponse> => {
   return customInstance<readingQueueControllerGetQueueResponse>(
-    getReadingQueueControllerGetQueueUrl(),
+    getReadingQueueControllerGetQueueUrl(params),
     {
       ...options,
       method: "GET",
@@ -92,26 +128,31 @@ export const readingQueueControllerGetQueue = async (
   );
 };
 
-export const getReadingQueueControllerGetQueueQueryKey = () => {
-  return [`/api/reading-queue`] as const;
+export const getReadingQueueControllerGetQueueQueryKey = (
+  params?: ReadingQueueControllerGetQueueParams,
+) => {
+  return [`/api/reading-queue`, ...(params ? [params] : [])] as const;
 };
 
 export const getReadingQueueControllerGetQueueQueryOptions = <
   TData = Awaited<ReturnType<typeof readingQueueControllerGetQueue>>,
   TError = void,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<Awaited<ReturnType<typeof readingQueueControllerGetQueue>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof customInstance>;
-}) => {
+>(
+  params?: ReadingQueueControllerGetQueueParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof readingQueueControllerGetQueue>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getReadingQueueControllerGetQueueQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getReadingQueueControllerGetQueueQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof readingQueueControllerGetQueue>>> = ({
     signal,
-  }) => readingQueueControllerGetQueue({ signal, ...requestOptions });
+  }) => readingQueueControllerGetQueue(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof readingQueueControllerGetQueue>>,
@@ -129,6 +170,7 @@ export function useReadingQueueControllerGetQueue<
   TData = Awaited<ReturnType<typeof readingQueueControllerGetQueue>>,
   TError = void,
 >(
+  params: undefined | ReadingQueueControllerGetQueueParams,
   options: {
     query: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof readingQueueControllerGetQueue>>, TError, TData>
@@ -149,6 +191,7 @@ export function useReadingQueueControllerGetQueue<
   TData = Awaited<ReturnType<typeof readingQueueControllerGetQueue>>,
   TError = void,
 >(
+  params?: ReadingQueueControllerGetQueueParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof readingQueueControllerGetQueue>>, TError, TData>
@@ -169,6 +212,7 @@ export function useReadingQueueControllerGetQueue<
   TData = Awaited<ReturnType<typeof readingQueueControllerGetQueue>>,
   TError = void,
 >(
+  params?: ReadingQueueControllerGetQueueParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof readingQueueControllerGetQueue>>, TError, TData>
@@ -185,6 +229,7 @@ export function useReadingQueueControllerGetQueue<
   TData = Awaited<ReturnType<typeof readingQueueControllerGetQueue>>,
   TError = void,
 >(
+  params?: ReadingQueueControllerGetQueueParams,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof readingQueueControllerGetQueue>>, TError, TData>
@@ -193,7 +238,7 @@ export function useReadingQueueControllerGetQueue<
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-  const queryOptions = getReadingQueueControllerGetQueueQueryOptions(options);
+  const queryOptions = getReadingQueueControllerGetQueueQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

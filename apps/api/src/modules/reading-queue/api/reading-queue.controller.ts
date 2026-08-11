@@ -1,4 +1,5 @@
 import type {
+  ReadingQueueQuery,
   ReadingQueueSummaryView,
   ReadingQueueView,
   ReadingQueueVolumeSummaryView,
@@ -6,6 +7,7 @@ import type {
 
 import {
   AddToReadingQueueInputSchema,
+  ReadingQueueQuerySchema,
   ReorderReadingQueueInputSchema,
   StartReadingFromQueueInputSchema,
 } from "@app/shared";
@@ -19,6 +21,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
 } from "@nestjs/common";
 import {
   ApiBadRequestResponse,
@@ -36,10 +39,12 @@ import type { AuthenticatedUser } from "../../auth/index.js";
 
 import { HTTP_STATUS } from "../../../core/http-status.js";
 import { ZodBodyPipe } from "../../../core/pipes/zod-body.pipe.js";
+import { ZodQueryPipe } from "../../../core/pipes/zod-query.pipe.js";
 import { MUTATION_THROTTLE } from "../../../core/throttle.js";
 import { CurrentUser, JwtProtected } from "../../auth/index.js";
 import { ReadingQueueService } from "../application/reading-queue.service.js";
 import { AddToReadingQueueInputDto } from "./input-dto/add-to-reading-queue.input-dto.js";
+import { ReadingQueueQueryDto } from "./input-dto/reading-queue-query.input-dto.js";
 import { ReorderReadingQueueInputDto } from "./input-dto/reorder-reading-queue.input-dto.js";
 import { StartReadingFromQueueInputDto } from "./input-dto/start-reading-from-queue.input-dto.js";
 import { ReadingQueueSummaryViewDto } from "./view-dto/reading-queue-summary.view-dto.js";
@@ -57,8 +62,11 @@ export class ReadingQueueController {
   @ApiOperation({ summary: "Get the current user reading queue" })
   @Get()
   @JwtProtected()
-  getQueue(@CurrentUser() user: AuthenticatedUser): Promise<ReadingQueueView> {
-    return this.readingQueueService.getQueue(user.id);
+  getQueue(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ZodQueryPipe(ReadingQueueQuerySchema)) query: ReadingQueueQueryDto,
+  ): Promise<ReadingQueueView> {
+    return this.readingQueueService.getQueue(user.id, query as ReadingQueueQuery);
   }
   @ApiOkResponse({
     description: "Aggregated statistics for the current user reading queue",

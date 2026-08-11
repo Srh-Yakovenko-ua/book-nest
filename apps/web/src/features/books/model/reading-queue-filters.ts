@@ -9,6 +9,8 @@ import type {
   BooksControllerListStatusItem,
 } from "@/shared/api/generated/model";
 
+import type { ReadingQueueQueryState } from "./reading-queue-query";
+
 export const QUEUE_PRIORITY_VALUES = [
   "high",
   "normal",
@@ -125,6 +127,56 @@ export function matchesQueueSearch(item: ReadingQueueItemView, query: string): b
     ...book.tags.map((tag) => tag.name),
   ];
   return haystack.some((part) => part.toLowerCase().includes(query));
+}
+
+export function toQueueFilterPatch(state: QueueFilterState) {
+  return {
+    ageCategory: emptyToNull(state.ageCategory),
+    author: emptyToNull(state.author),
+    bookType: state.bookType,
+    format: emptyToNull(state.format),
+    genre: emptyToNull(state.genre),
+    hasCover: state.hasCover,
+    language: emptyToNull(state.language),
+    owner: emptyToNull(state.owner),
+    pagesMax: state.pagesMax,
+    pagesMin: state.pagesMin,
+    priority: emptyToNull(state.priority),
+    publisher: emptyToNull(state.publisher),
+    ratingMax: state.ratingMax,
+    ratingMin: state.ratingMin,
+    status: emptyToNull(state.status),
+    tag: emptyToNull(state.tag),
+    yearMax: state.yearMax,
+    yearMin: state.yearMin,
+  };
+}
+
+export function toQueueFilterState(state: ReadingQueueQueryState): QueueFilterState {
+  return {
+    ageCategory: state.ageCategory,
+    author: state.author,
+    bookType: state.bookType,
+    format: state.format,
+    genre: state.genre,
+    hasCover: state.hasCover,
+    language: state.language,
+    owner: state.owner,
+    pagesMax: state.pagesMax,
+    pagesMin: state.pagesMin,
+    priority: state.priority,
+    publisher: state.publisher,
+    ratingMax: state.ratingMax,
+    ratingMin: state.ratingMin,
+    status: state.status,
+    tag: state.tag,
+    yearMax: state.yearMax,
+    yearMin: state.yearMin,
+  };
+}
+
+function emptyToNull<TValue>(values: TValue[]): null | TValue[] {
+  return values.length === 0 ? null : values;
 }
 
 function matchesRange(

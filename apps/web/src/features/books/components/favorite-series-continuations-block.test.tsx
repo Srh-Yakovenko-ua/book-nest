@@ -110,6 +110,7 @@ function readingQueueView(): ReadingQueueView {
   return {
     count: 1,
     items: [{ book: makeBookView({ id: "queued-book" }), position: 1 }],
+    totalCount: 1,
     totalPagesCount: 0,
   };
 }

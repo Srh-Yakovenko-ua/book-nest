@@ -28,14 +28,12 @@ import { useTagsSearch } from "../api/use-tags-search";
 import { useQueueSummaryCards } from "../hooks/use-queue-summary-cards";
 import { toQueuePickerItems } from "../model/queue-placement";
 import {
-  activeQueueFilterCount,
-  EMPTY_QUEUE_FILTERS,
-  hasActiveQueueFilters,
-  matchesQueueFilters,
-  matchesQueueSearch,
   type QueueFilterState,
+  toQueueFilterPatch,
+  toQueueFilterState,
 } from "../model/reading-queue-filters";
 import { SERIES_ORDER_SIDEBAR_LIMIT } from "../model/series-order-check";
+import { useReadingQueueQuery } from "../model/use-reading-queue-query";
 import { useRemoveFromQueueWithUndo } from "../model/use-remove-from-queue-with-undo";
 import { AddBookToQueueDialog } from "./add-book-to-queue-dialog";
 import { QueueSummaryCards, QueueSummaryCardsSkeleton } from "./queue-summary-cards";
@@ -64,22 +62,21 @@ export function ReadingQueueView() {
   const tAgeCategory = useTranslations("books.classification.ageCategoryLabels");
   const router = useRouter();
 
-  const { data, isError, isPending, refetch } = useReadingQueue();
+  const queue = useReadingQueueQuery();
+  const { data, isError, isPending, refetch } = useReadingQueue(queue.listParams);
   const summary = useReadingQueueSummary();
   const seriesOrderIssues = useSeriesOrderIssues({ limit: SERIES_ORDER_SIDEBAR_LIMIT });
   const genres = useGenres();
   const tags = useTagsSearch("");
   const removeFromQueue = useRemoveFromQueueWithUndo();
-  const reorder = useReorderReadingQueue();
+  const reorder = useReorderReadingQueue(queue.listParams);
 
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<QueueFilterState>(EMPTY_QUEUE_FILTERS);
   const [entityLabels, setEntityLabels] = useState<Record<string, string>>({});
   const [addOpen, setAddOpen] = useState(false);
   const [startTarget, setStartTarget] = useState<null | StartTarget>(null);
 
   const serverItems = data?.items ?? [];
-  const count = data?.count ?? 0;
+  const count = data?.totalCount ?? 0;
 
   const serverOrderKey = serverItems.map((item) => item.book.id).join("\n");
   const [localOrder, setLocalOrder] = useState<string[]>(() =>
@@ -142,22 +139,15 @@ export function ReadingQueueView() {
     summary: summary.data ?? null,
   });
 
-  const normalizedQuery = search.trim().toLowerCase();
-  const hasSearch = normalizedQuery !== "";
-  const hasActiveFilters = hasActiveQueueFilters(filters);
-  const filterCount = activeQueueFilterCount(filters);
-  const displayItems = localItems.filter(
-    (item) =>
-      (!hasSearch || matchesQueueSearch(item, normalizedQuery)) &&
-      (!hasActiveFilters || matchesQueueFilters(item.book, filters)),
-  );
-  const isFiltered = hasSearch || hasActiveFilters;
+  const filterCount = queue.activeFilterCount;
+  const displayItems = localItems;
+  const isFiltered = queue.isFiltered;
   const draggable = !isFiltered && !reorder.isPending;
   const canMove = !isFiltered;
+  const filters: QueueFilterState = toQueueFilterState(queue.state);
 
   function clearQueueFilters() {
-    setSearch("");
-    setFilters(EMPTY_QUEUE_FILTERS);
+    queue.clearAll();
   }
 
   function commitOrder(items: ReadingQueueItemView[]) {
@@ -251,15 +241,15 @@ export function ReadingQueueView() {
                 filters={
                   <ReadingQueueFilters
                     activeCount={filterCount}
-                    onApply={setFilters}
+                    onApply={(next) => void queue.setState(toQueueFilterPatch(next))}
                     onRememberEntity={rememberEntity}
                     resolveEntityName={resolveEntityName}
                     state={filters}
                   />
                 }
-                onClearSearch={() => setSearch("")}
-                onSearchChange={setSearch}
-                search={search}
+                onClearSearch={queue.clearSearch}
+                onSearchChange={queue.setSearch}
+                search={queue.state.q}
               />
               {isFiltered && displayItems.length === 0 ? (
                 <EmptyState onPrimary={clearQueueFilters} state={noResultsState} />
