@@ -44,7 +44,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 function queueView(items: { book: BookView; position: number }[]) {
-  return { count: items.length, items, totalPagesCount: 0 };
+  return { count: items.length, items, totalCount: items.length, totalPagesCount: 0 };
 }
 
 function renderDialog(book: BookView, context: "detail" | "list" = "list") {
