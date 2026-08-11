@@ -1,4 +1,4 @@
-import type { BookView, Nullable } from "@app/shared";
+import type { BookView, Nullable, ReadingQueueQuery } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -21,16 +21,20 @@ const BOOK_ID = "22222222-2222-4222-8222-222222222222";
 
 type QueueRow = { id: string; pagesCount: Nullable<number>; queuePosition: Nullable<number> };
 
-function buildService(rows: QueueRow[]): {
+function buildService(
+  rows: QueueRow[],
+  queuedCount: number = rows.length,
+): {
   listQueue: ReturnType<typeof vi.fn>;
   service: ReadingQueueService;
   viewOf: ReturnType<typeof vi.fn>;
 } {
   const listQueue = vi.fn().mockResolvedValue(rows);
+  const count = vi.fn().mockResolvedValue(queuedCount);
   const viewOf = vi.fn((book: QueueRow): BookView =>
     fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
   );
-  const repository = fakeOf<ReadingQueueRepository>({ listQueue });
+  const repository = fakeOf<ReadingQueueRepository>({ count, listQueue });
   const assembler = fakeOf<BookViewAssembler>({ viewOf });
   const bookAccess = fakeOf<BookAccessService>();
   const transactionRunner = fakeOf<TransactionRunner>();
@@ -89,7 +93,15 @@ describe("ReadingQueueService.getQueue", () => {
 
     const result = await service.getQueue(USER_ID);
 
-    expect(result).toEqual({ count: 0, items: [], totalPagesCount: 0 });
+    expect(result).toEqual({ count: 0, items: [], totalCount: 0, totalPagesCount: 0 });
+  });
+
+  it("reports the unfiltered queue size as totalCount when a filter narrows the items", async () => {
+    const { service } = buildService([{ id: "book-a", pagesCount: 100, queuePosition: 2 }], 7);
+
+    const result = await service.getQueue(USER_ID, { q: "dune" });
+
+    expect(result).toMatchObject({ count: 1, totalCount: 7 });
   });
 
   it("requests the queue for the passed user id", async () => {
@@ -97,7 +109,16 @@ describe("ReadingQueueService.getQueue", () => {
 
     await service.getQueue(USER_ID);
 
-    expect(listQueue).toHaveBeenCalledWith(USER_ID);
+    expect(listQueue).toHaveBeenCalledWith(USER_ID, undefined);
+  });
+
+  it("passes the query through to the repository listing", async () => {
+    const { listQueue, service } = buildService([]);
+    const query: ReadingQueueQuery = { q: "dune", status: ["reading"] };
+
+    await service.getQueue(USER_ID, query);
+
+    expect(listQueue).toHaveBeenCalledWith(USER_ID, query);
   });
 });
 
@@ -257,8 +278,9 @@ describe("ReadingQueueService.addToQueue", () => {
   });
 
   it("returns the reloaded queue view after inserting the book", async () => {
-    const { findOwnedByIdOrThrow, listQueue, service } = buildAddToQueueService();
+    const { count, findOwnedByIdOrThrow, listQueue, service } = buildAddToQueueService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(null));
+    count.mockResolvedValue(2);
     listQueue.mockResolvedValue([
       { id: "book-a", pagesCount: 120, queuePosition: 1 },
       { id: "book-b", pagesCount: 30, queuePosition: 2 },
@@ -272,6 +294,7 @@ describe("ReadingQueueService.addToQueue", () => {
         { book: { id: "book-a", pagesCount: 120 }, position: 1 },
         { book: { id: "book-b", pagesCount: 30 }, position: 2 },
       ],
+      totalCount: 2,
       totalPagesCount: 150,
     });
   });
@@ -280,6 +303,7 @@ describe("ReadingQueueService.addToQueue", () => {
 function buildRemoveFromQueueService(): {
   acquireUserQueueLock: ReturnType<typeof vi.fn>;
   clearPosition: ReturnType<typeof vi.fn>;
+  count: ReturnType<typeof vi.fn>;
   findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
   findQueuePosition: ReturnType<typeof vi.fn>;
   listQueue: ReturnType<typeof vi.fn>;
@@ -293,6 +317,7 @@ function buildRemoveFromQueueService(): {
   const findQueuePosition = vi.fn().mockResolvedValue(null);
   const clearPosition = vi.fn().mockResolvedValue(undefined);
   const shiftUpAfter = vi.fn().mockResolvedValue(undefined);
+  const count = vi.fn().mockResolvedValue(0);
   const listQueue = vi.fn().mockResolvedValue([]);
   const viewOf = vi.fn((book: QueueRow): BookView =>
     fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
@@ -304,6 +329,7 @@ function buildRemoveFromQueueService(): {
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     clearPosition,
+    count,
     findQueuePosition,
     listQueue,
     shiftUpAfter,
@@ -320,6 +346,7 @@ function buildRemoveFromQueueService(): {
   return {
     acquireUserQueueLock,
     clearPosition,
+    count,
     findOwnedByIdOrThrow,
     findQueuePosition,
     listQueue,
@@ -389,10 +416,11 @@ describe("ReadingQueueService.removeFromQueue", () => {
   });
 
   it("returns the reloaded queue view after removing the book", async () => {
-    const { findOwnedByIdOrThrow, findQueuePosition, listQueue, service } =
+    const { count, findOwnedByIdOrThrow, findQueuePosition, listQueue, service } =
       buildRemoveFromQueueService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(2));
     findQueuePosition.mockResolvedValue(2);
+    count.mockResolvedValue(2);
     listQueue.mockResolvedValue([
       { id: "book-a", pagesCount: 100, queuePosition: 1 },
       { id: "book-c", pagesCount: 50, queuePosition: 2 },
@@ -406,6 +434,7 @@ describe("ReadingQueueService.removeFromQueue", () => {
         { book: { id: "book-a", pagesCount: 100 }, position: 1 },
         { book: { id: "book-c", pagesCount: 50 }, position: 2 },
       ],
+      totalCount: 2,
       totalPagesCount: 150,
     });
   });
@@ -413,6 +442,7 @@ describe("ReadingQueueService.removeFromQueue", () => {
 
 function buildReorderService(): {
   acquireUserQueueLock: ReturnType<typeof vi.fn>;
+  count: ReturnType<typeof vi.fn>;
   findQueuedBookIds: ReturnType<typeof vi.fn>;
   listQueue: ReturnType<typeof vi.fn>;
   service: ReadingQueueService;
@@ -423,6 +453,7 @@ function buildReorderService(): {
   const acquireUserQueueLock = vi.fn().mockResolvedValue(undefined);
   const findQueuedBookIds = vi.fn().mockResolvedValue([]);
   const setPosition = vi.fn().mockResolvedValue(undefined);
+  const count = vi.fn().mockResolvedValue(0);
   const listQueue = vi.fn().mockResolvedValue([]);
   const viewOf = vi.fn((book: QueueRow): BookView =>
     fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
@@ -433,6 +464,7 @@ function buildReorderService(): {
   const assembler = fakeOf<BookViewAssembler>({ viewOf });
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
+    count,
     findQueuedBookIds,
     listQueue,
     setPosition,
@@ -446,12 +478,13 @@ function buildReorderService(): {
     repository,
     transactionRunner,
   );
-  return { acquireUserQueueLock, findQueuedBookIds, listQueue, service, setPosition, tx };
+  return { acquireUserQueueLock, count, findQueuedBookIds, listQueue, service, setPosition, tx };
 }
 
 function buildStartReadingService(): {
   acquireUserQueueLock: ReturnType<typeof vi.fn>;
   clearPosition: ReturnType<typeof vi.fn>;
+  count: ReturnType<typeof vi.fn>;
   findOwnedByIdOrThrow: ReturnType<typeof vi.fn>;
   findQueuePosition: ReturnType<typeof vi.fn>;
   listQueue: ReturnType<typeof vi.fn>;
@@ -467,6 +500,7 @@ function buildStartReadingService(): {
   const startReading = vi.fn().mockResolvedValue(undefined);
   const clearPosition = vi.fn().mockResolvedValue(undefined);
   const shiftUpAfter = vi.fn().mockResolvedValue(undefined);
+  const count = vi.fn().mockResolvedValue(0);
   const listQueue = vi.fn().mockResolvedValue([]);
   const viewOf = vi.fn((book: QueueRow): BookView =>
     fakeOf<BookView>({ id: book.id, pagesCount: book.pagesCount }),
@@ -479,6 +513,7 @@ function buildStartReadingService(): {
   const repository = fakeOf<ReadingQueueRepository>({
     acquireUserQueueLock,
     clearPosition,
+    count,
     findQueuePosition,
     listQueue,
     shiftUpAfter,
@@ -495,6 +530,7 @@ function buildStartReadingService(): {
   return {
     acquireUserQueueLock,
     clearPosition,
+    count,
     findOwnedByIdOrThrow,
     findQueuePosition,
     listQueue,
@@ -573,8 +609,9 @@ describe("ReadingQueueService.reorder", () => {
   });
 
   it("returns the reloaded queue view after reordering", async () => {
-    const { findQueuedBookIds, listQueue, service } = buildReorderService();
+    const { count, findQueuedBookIds, listQueue, service } = buildReorderService();
     findQueuedBookIds.mockResolvedValue(["book-a", "book-b", "book-c"]);
+    count.mockResolvedValue(3);
     listQueue.mockResolvedValue([
       { id: "book-c", pagesCount: 30, queuePosition: 1 },
       { id: "book-a", pagesCount: 100, queuePosition: 2 },
@@ -590,6 +627,7 @@ describe("ReadingQueueService.reorder", () => {
         { book: { id: "book-a", pagesCount: 100 }, position: 2 },
         { book: { id: "book-b", pagesCount: 250 }, position: 3 },
       ],
+      totalCount: 3,
       totalPagesCount: 380,
     });
   });
@@ -686,8 +724,9 @@ describe("ReadingQueueService.startReading", () => {
   });
 
   it("returns the reloaded queue view after starting reading", async () => {
-    const { findOwnedByIdOrThrow, listQueue, service } = buildStartReadingService();
+    const { count, findOwnedByIdOrThrow, listQueue, service } = buildStartReadingService();
     findOwnedByIdOrThrow.mockResolvedValue(ownedBook(1));
+    count.mockResolvedValue(2);
     listQueue.mockResolvedValue([
       { id: "book-a", pagesCount: 100, queuePosition: 1 },
       { id: "book-b", pagesCount: 250, queuePosition: 2 },
@@ -701,6 +740,7 @@ describe("ReadingQueueService.startReading", () => {
         { book: { id: "book-a", pagesCount: 100 }, position: 1 },
         { book: { id: "book-b", pagesCount: 250 }, position: 2 },
       ],
+      totalCount: 2,
       totalPagesCount: 350,
     });
   });
