@@ -247,7 +247,7 @@ export const getSeriesControllerSearchUrl = (params?: SeriesControllerSearchPara
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    const explodeParameters = ["authorIds"];
+    const explodeParameters = ["authorIds", "completeness", "genres"];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {

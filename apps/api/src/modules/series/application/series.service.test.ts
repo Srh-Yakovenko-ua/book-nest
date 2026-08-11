@@ -1,6 +1,7 @@
 import type { MediaView, Nullable } from "@app/shared";
 import type { Mock } from "vitest";
 
+import { SERIES_SORT_DEFAULT } from "@app/shared";
 import { describe, expect, it, vi } from "vitest";
 
 import type { MediaAssetModel, SeriesModel } from "../../../generated/prisma/models.js";
@@ -577,6 +578,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page).toEqual({
@@ -644,6 +647,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items).toEqual([
@@ -737,6 +742,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items).toEqual([
@@ -797,6 +804,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items[0]?.averageRating).toBeNull();
@@ -819,6 +828,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items[0]?.missingPartNumbers).toEqual([]);
@@ -838,6 +849,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items[0]?.hasPublisher).toBe(false);
@@ -857,6 +870,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items[0]?.hasPublicationYears).toBe(false);
@@ -883,6 +898,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items[0]?.nextBook?.ownershipStatus).toBe("borrowed_from_someone");
@@ -895,6 +912,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items).toEqual([expect.objectContaining({ booksInSeries: 4 })]);
@@ -907,6 +926,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items).toEqual([
@@ -921,6 +942,8 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(page.items).toEqual([
@@ -935,18 +958,18 @@ describe("SeriesService.search", () => {
       pageNumber: 3,
       pageSize: 20,
       search: "throne",
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
     expect(repository.searchOwned).toHaveBeenCalledWith({
-      authorIds: undefined,
-      query: "throne",
+      query: expect.objectContaining({ search: "throne" }),
       skip: 40,
       take: 20,
       userId: USER_ID,
     });
     expect(repository.countOwned).toHaveBeenCalledWith({
-      authorIds: undefined,
-      query: "throne",
+      query: expect.objectContaining({ search: "throne" }),
       userId: USER_ID,
     });
   });
@@ -960,10 +983,16 @@ describe("SeriesService.search", () => {
       pageNumber: 1,
       pageSize: 10,
       search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
     });
 
-    expect(repository.searchOwned).toHaveBeenCalledWith(expect.objectContaining({ authorIds }));
-    expect(repository.countOwned).toHaveBeenCalledWith(expect.objectContaining({ authorIds }));
+    expect(repository.searchOwned).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ authorIds }) }),
+    );
+    expect(repository.countOwned).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ authorIds }) }),
+    );
   });
 });
 
@@ -982,7 +1011,13 @@ describe("SeriesService.search covers", () => {
       ],
     });
 
-    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
+    });
 
     expect(page.items[0]?.covers).toEqual([
       { bookId: "book-1", cover: mediaView("media-1"), title: "Book" },
@@ -1003,7 +1038,13 @@ describe("SeriesService.search covers", () => {
       ],
     });
 
-    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
+    });
 
     expect(page.items[0]?.covers).toEqual([]);
   });
@@ -1023,7 +1064,13 @@ describe("SeriesService.search covers", () => {
       ],
     });
 
-    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
+    });
 
     expect(page.items[0]?.covers.map((cover) => cover.bookId)).toEqual([
       "book-1",
@@ -1045,7 +1092,13 @@ describe("SeriesService.search covers", () => {
       ],
     });
 
-    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
+    });
 
     expect(page.items[0]?.covers.map((cover) => cover.bookId)).toEqual(["book-1", "book-null"]);
   });
@@ -1069,7 +1122,13 @@ describe("SeriesService nextBook cover", () => {
       ],
     });
 
-    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
+    });
 
     expect(page.items[0]?.nextBook).toEqual({
       cover: mediaView("media-1"),
@@ -1092,7 +1151,13 @@ describe("SeriesService nextBook cover", () => {
       ],
     });
 
-    const page = await service.search(USER_ID, { pageNumber: 1, pageSize: 10, search: undefined });
+    const page = await service.search(USER_ID, {
+      pageNumber: 1,
+      pageSize: 10,
+      search: undefined,
+      sort: SERIES_SORT_DEFAULT,
+      tab: "all",
+    });
 
     expect(page.items[0]?.nextBook?.cover).toBeNull();
   });

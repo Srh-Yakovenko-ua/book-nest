@@ -149,6 +149,15 @@ export function makeSeriesOverview(
   overrides: Partial<SeriesOverviewView> = {},
 ): SeriesOverviewView {
   return {
+    almostRead: [],
+    attentionCounts: {
+      empty: 0,
+      incomplete_data: 0,
+      incomplete_set: 0,
+      missing_parts: 0,
+      next_unavailable: 0,
+      unknown_status: 0,
+    },
     booksInSeries: 14,
     fullyReadSeries: 2,
     statusCounts: { completed: 3, ongoing: 4, unknown: 1 },

@@ -35,7 +35,6 @@ import type { SeriesAdvancedFilters as SeriesAdvancedFiltersValue } from "../mod
 import {
   countActiveSeriesFilters,
   EMPTY_SERIES_ADVANCED_FILTERS,
-  hasActiveSeriesFilters,
   SERIES_COMPLETENESS_VALUES,
 } from "../model/series-derive";
 
@@ -232,7 +231,7 @@ export function SeriesAdvancedFilters({
 
         <SheetFooter>
           <Button
-            disabled={!hasActiveSeriesFilters(draft)}
+            disabled={countActiveSeriesFilters(draft) === 0}
             onClick={() => setDraft(EMPTY_SERIES_ADVANCED_FILTERS)}
             type="button"
             variant="ghost"
