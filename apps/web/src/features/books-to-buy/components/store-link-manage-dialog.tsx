@@ -185,7 +185,7 @@ function StoreLinkManageContent({
       ) : null}
 
       {sortedLinks.length > 0 ? (
-        <ul aria-label={tDialog("title")} className="flex flex-col gap-2" ref={listRef}>
+        <ul aria-label={tDialog("title")} className="flex min-w-0 flex-col gap-2" ref={listRef}>
           {sortedLinks.map((link, index) => (
             <StoreLinkRow
               isCheapest={link.id === bestOfferLinkId}
@@ -246,26 +246,23 @@ function StoreLinkRow({
       )}
     >
       <UiIcon className="mt-1.5 shrink-0 text-muted-foreground" name="store" size={14} />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-0.5">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <StoreNameLink link={link} />
-          {priceText === null ? null : (
-            <span
-              className={cn(
-                "text-sm tabular-nums",
-                isCheapest ? "font-semibold text-success" : "text-muted-foreground",
-              )}
-            >
-              {priceText}
-            </span>
-          )}
-          {isCheapest ? (
-            <span className="rounded-full bg-success-soft px-2 py-0.5 text-[0.65rem] font-medium text-success">
-              {tDialog("cheapest")}
-            </span>
-          ) : null}
-        </div>
-        <p className="truncate text-xs text-muted-foreground">{link.url}</p>
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 py-0.5">
+        <StoreNameLink link={link} />
+        {priceText === null ? null : (
+          <span
+            className={cn(
+              "text-sm tabular-nums",
+              isCheapest ? "font-semibold text-success" : "text-muted-foreground",
+            )}
+          >
+            {priceText}
+          </span>
+        )}
+        {isCheapest ? (
+          <span className="rounded-full bg-success-soft px-2 py-0.5 text-[0.65rem] font-medium text-success">
+            {tDialog("cheapest")}
+          </span>
+        ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Button
@@ -308,6 +305,7 @@ function StoreNameLink({ link }: { link: BookStoreLinkView }) {
       href={link.url}
       rel="noopener noreferrer"
       target="_blank"
+      title={link.url}
     >
       <span className="min-w-0 truncate">{link.storeName}</span>
       <UiIcon className="text-muted-foreground" name="external" size={12} />

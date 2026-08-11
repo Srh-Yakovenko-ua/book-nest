@@ -62,6 +62,7 @@ import type {
   UpdateLoanInputDto,
   UpdateReadingProgressInputDto,
   WantToBuyInputDto,
+  WishlistFacetsViewDto,
   WishlistViewDto,
 } from "../../model";
 
@@ -964,8 +965,8 @@ export const getBooksControllerWishlistUrl = (params?: BooksControllerWishlistPa
       "genre",
       "language",
       "publisher",
-      "store",
       "seriesPlacement",
+      "store",
       "tag",
     ];
 
@@ -1110,6 +1111,157 @@ export function useBooksControllerWishlist<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerWishlistQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type booksControllerWishlistFacetsResponse200 = {
+  data: WishlistFacetsViewDto;
+  status: 200;
+};
+
+export type booksControllerWishlistFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerWishlistFacetsResponseSuccess =
+  booksControllerWishlistFacetsResponse200 & {
+    headers: Headers;
+  };
+export type booksControllerWishlistFacetsResponseError =
+  booksControllerWishlistFacetsResponse401 & {
+    headers: Headers;
+  };
+
+export type booksControllerWishlistFacetsResponse =
+  booksControllerWishlistFacetsResponseSuccess | booksControllerWishlistFacetsResponseError;
+
+export const getBooksControllerWishlistFacetsUrl = () => {
+  return `/api/books/wishlist/facets`;
+};
+
+/**
+ * @summary Get the filter facets of the current user books-to-buy wishlist
+ */
+export const booksControllerWishlistFacets = async (
+  options?: Parameters<typeof customInstance>[1],
+): Promise<booksControllerWishlistFacetsResponse> => {
+  return customInstance<booksControllerWishlistFacetsResponse>(
+    getBooksControllerWishlistFacetsUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getBooksControllerWishlistFacetsQueryKey = () => {
+  return [`/api/books/wishlist/facets`] as const;
+};
+
+export const getBooksControllerWishlistFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerWishlistFacets>>,
+  TError = void,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlistFacets>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof customInstance>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerWishlistFacetsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerWishlistFacets>>> = ({
+    signal,
+  }) => booksControllerWishlistFacets({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerWishlistFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerWishlistFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerWishlistFacets>>
+>;
+export type BooksControllerWishlistFacetsQueryError = void;
+
+export function useBooksControllerWishlistFacets<
+  TData = Awaited<ReturnType<typeof booksControllerWishlistFacets>>,
+  TError = void,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlistFacets>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerWishlistFacets>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerWishlistFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerWishlistFacets<
+  TData = Awaited<ReturnType<typeof booksControllerWishlistFacets>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlistFacets>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerWishlistFacets>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerWishlistFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerWishlistFacets<
+  TData = Awaited<ReturnType<typeof booksControllerWishlistFacets>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlistFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the filter facets of the current user books-to-buy wishlist
+ */
+
+export function useBooksControllerWishlistFacets<
+  TData = Awaited<ReturnType<typeof booksControllerWishlistFacets>>,
+  TError = void,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerWishlistFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerWishlistFacetsQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

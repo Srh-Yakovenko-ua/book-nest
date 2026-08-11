@@ -1885,9 +1885,10 @@ export const booksControllerWishlistQueryPublisherMax = 100;
 
 export const booksControllerWishlistQueryQMax = 200;
 
-export const booksControllerWishlistQueryStoreMax = 100;
-
 export const booksControllerWishlistQuerySeriesPlacementMax = 100;
+
+export const booksControllerWishlistQuerySortDefault = `added_asc`;
+export const booksControllerWishlistQueryStoreMax = 100;
 
 export const booksControllerWishlistQueryTagItemRegExp = new RegExp(
   "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
@@ -1947,11 +1948,23 @@ export const BooksControllerWishlistQueryParams = zod.object({
     .max(booksControllerWishlistQueryPublisherMax)
     .optional(),
   q: zod.string().max(booksControllerWishlistQueryQMax).optional(),
-  store: zod.array(zod.string()).max(booksControllerWishlistQueryStoreMax).optional(),
   seriesPlacement: zod
     .array(zod.enum(["gap", "continuation"]))
     .max(booksControllerWishlistQuerySeriesPlacementMax)
     .optional(),
+  sort: zod
+    .enum([
+      "added_asc",
+      "added_desc",
+      "author_asc",
+      "price_asc",
+      "price_desc",
+      "publisher_asc",
+      "stores_desc",
+      "title_asc",
+    ])
+    .default(booksControllerWishlistQuerySortDefault),
+  store: zod.array(zod.string()).max(booksControllerWishlistQueryStoreMax).optional(),
   tag: zod
     .array(zod.uuid().regex(booksControllerWishlistQueryTagItemRegExp))
     .max(booksControllerWishlistQueryTagMax)
@@ -2408,6 +2421,24 @@ export const BooksControllerWishlistResponse = zod.object({
     trackedStoresCount: zod.number(),
   }),
   totalBooksCount: zod.number(),
+});
+
+/**
+ * @summary Get the filter facets of the current user books-to-buy wishlist
+ */
+export const booksControllerWishlistFacetsResponseStoresItemCountMin = 0;
+export const booksControllerWishlistFacetsResponseStoresItemCountMax = 9007199254740991;
+
+export const BooksControllerWishlistFacetsResponse = zod.object({
+  stores: zod.array(
+    zod.object({
+      count: zod
+        .int()
+        .min(booksControllerWishlistFacetsResponseStoresItemCountMin)
+        .max(booksControllerWishlistFacetsResponseStoresItemCountMax),
+      name: zod.string(),
+    }),
+  ),
 });
 
 /**

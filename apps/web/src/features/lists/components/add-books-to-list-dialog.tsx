@@ -20,8 +20,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLibraryBooks } from "@/features/books/api/use-books";
-import { BookPickerResults, BookPickerSelected } from "@/features/books/components/book-picker";
+import {
+  BOOK_PICKER_SCROLL_AREA,
+  BookPickerResults,
+  BookPickerSelected,
+} from "@/features/books/components/book-picker";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { cn } from "@/lib/utils";
 
 import { useAddBooksToList } from "../api/use-list-membership";
 
@@ -123,7 +128,7 @@ function AddBooksForm({ listId }: { listId: string }) {
             {t("selectLoaded", { count: results.length })}
           </Button>
         )}
-        <ScrollArea className="h-72 rounded-lg border border-border">
+        <ScrollArea className={cn("h-72", BOOK_PICKER_SCROLL_AREA)}>
           <BookPickerResults
             emptyLabel={t("empty")}
             isPending={isPending}
@@ -160,7 +165,7 @@ function AddBooksForm({ listId }: { listId: string }) {
             </Button>
           ) : null}
         </div>
-        <ScrollArea className="h-72 rounded-lg border border-border">
+        <ScrollArea className={cn("h-72", BOOK_PICKER_SCROLL_AREA)}>
           <BookPickerSelected
             books={selected}
             emptyLabel={t("emptySelected")}

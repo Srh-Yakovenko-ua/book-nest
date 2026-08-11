@@ -14,24 +14,17 @@ import { LibrarySummaryDetails } from "@/features/books/components/library-summa
 
 import type { WishlistBestOffer } from "../model/books-to-buy-derive";
 
-import {
-  WishlistBestOffersBlock,
-  WishlistHowItWorksBlock,
-  WishlistQuickActionsBlock,
-  WishlistUnsetOwnershipBlock,
-} from "./books-to-buy-sidebar";
+import { WishlistBestOffersBlock, WishlistUnsetOwnershipBlock } from "./books-to-buy-sidebar";
 
 type BooksToBuyOverviewPanelProps = {
   bestOffers: WishlistBestOffer[];
   isLoading: boolean;
-  onShowBestOffers: () => void;
   summaryCards: LibrarySummaryCard[];
 };
 
 export function BooksToBuyOverviewPanel({
   bestOffers,
   isLoading,
-  onShowBestOffers,
   summaryCards,
 }: BooksToBuyOverviewPanelProps) {
   const t = useTranslations("booksToBuy.overviewPanel");
@@ -46,28 +39,14 @@ export function BooksToBuyOverviewPanel({
     },
     {
       badge: bestOffers.length,
-      content: (
-        <div className="flex flex-col gap-4">
-          <WishlistBestOffersBlock
-            bestOffers={bestOffers}
-            isLoading={isLoading}
-            onShowBestOffers={() => panel.closeThen(onShowBestOffers)}
-          />
-        </div>
-      ),
+      content: <WishlistBestOffersBlock bestOffers={bestOffers} isLoading={isLoading} />,
       id: "offers",
       label: t("tabs.offers"),
     },
     {
-      content: (
-        <div className="flex flex-col gap-4">
-          <WishlistUnsetOwnershipBlock />
-          <WishlistQuickActionsBlock />
-          <WishlistHowItWorksBlock />
-        </div>
-      ),
-      id: "actions",
-      label: t("tabs.actions"),
+      content: <WishlistUnsetOwnershipBlock />,
+      id: "attention",
+      label: t("tabs.attention"),
     },
   ];
 

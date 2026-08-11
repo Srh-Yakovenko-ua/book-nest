@@ -19,11 +19,12 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { ownershipStatuses } from "@/lib/book-status";
+import { cn } from "@/lib/utils";
 
 import { useBulkOwnershipStatus } from "../api/use-book-actions";
 import { useLibraryBooks } from "../api/use-books";
 import { UNSET_OWNERSHIP, unsetOwnershipParams } from "../model/unset-ownership";
-import { BookPickerResults, BookPickerSelected } from "./book-picker";
+import { BOOK_PICKER_SCROLL_AREA, BookPickerResults, BookPickerSelected } from "./book-picker";
 import { StatusChipGroup } from "./status-chip-group";
 
 export function UnsetOwnershipDialog({
@@ -143,7 +144,7 @@ function UnsetOwnershipForm({ onDone }: { onDone: () => void }) {
             value={search}
           />
         </div>
-        <ScrollArea className="h-72 rounded-lg border border-border">
+        <ScrollArea className={cn("h-72", BOOK_PICKER_SCROLL_AREA)}>
           <BookPickerResults
             emptyLabel={t("empty")}
             isPending={isPending}
@@ -180,7 +181,7 @@ function UnsetOwnershipForm({ onDone }: { onDone: () => void }) {
             </Button>
           ) : null}
         </div>
-        <ScrollArea className="h-48 rounded-lg border border-border">
+        <ScrollArea className={cn("h-48", BOOK_PICKER_SCROLL_AREA)}>
           <BookPickerSelected
             books={selected}
             emptyLabel={t("emptySelected")}
@@ -189,6 +190,7 @@ function UnsetOwnershipForm({ onDone }: { onDone: () => void }) {
           />
         </ScrollArea>
         <StatusChipGroup
+          chipClassName="max-sm:gap-1 max-sm:px-3.5 max-sm:py-1.5 max-sm:text-[0.8125rem] max-sm:[&_svg]:size-3.5"
           label={t("statusLabel")}
           onValueChange={(next) => {
             const match = UNSET_OWNERSHIP.bulkStatuses.find((value) => value === next);
