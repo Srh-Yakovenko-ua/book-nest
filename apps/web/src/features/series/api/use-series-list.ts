@@ -1,5 +1,5 @@
 import { LIST_PAGE_SIZE_MAX, PaginatedSeriesSchema } from "@app/shared";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { z } from "zod";
 
@@ -18,6 +18,7 @@ export function useSeriesList(params: SeriesControllerSearchParams = {}) {
     getNextPageParam: (lastPage: SeriesPage) =>
       lastPage.page < lastPage.pagesCount ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
+    placeholderData: keepPreviousData,
     queryFn: async ({ pageParam }): Promise<SeriesPage> => {
       const response = await seriesControllerSearch({ ...listParams, pageNumber: pageParam });
       return PaginatedSeriesSchema.parse(response);

@@ -7,7 +7,7 @@ import type {
 import type { QueryClient } from "@tanstack/react-query";
 
 import { ReadingQueueSummaryViewSchema, ReadingQueueViewSchema } from "@app/shared";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { ReadingQueueControllerGetQueueParams } from "@/shared/api/generated/model";
 
@@ -42,6 +42,7 @@ export function useAddToReadingQueue() {
 export function useReadingQueue(params?: ReadingQueueControllerGetQueueParams) {
   return useReadingQueueControllerGetQueue(params, {
     query: {
+      placeholderData: keepPreviousData,
       select: selectReadingQueueView,
     },
   });
