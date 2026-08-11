@@ -822,7 +822,6 @@
         "sections": {
           "readingStatus": "Статус читання",
           "ownershipStatus": "Статус володіння",
-          "format": "Формат книги",
           "genre": "Жанри",
           "tag": "Теги",
           "ageCategory": "Вікова категорія",
@@ -1150,6 +1149,7 @@
     },
     "format": {
       "title": "Формат",
+      "filterTitle": "Формат книги",
       "description": "У якому форматі ця книга? Можна обрати декілька.",
       "options": {
         "paper": "Паперова",
@@ -1942,10 +1942,97 @@
       "title": "Фільтри списку бажань",
       "description": "Звузьте список за пропозиціями та даними книги.",
       "clear": "Очистити фільтри",
-      "apply": "Застосувати фільтри"
+      "apply": "Застосувати фільтри",
+      "more": "Більше фільтрів",
+      "sections": {
+        "link": "Посилання та ціни",
+        "price": "Ціна та валюта",
+        "store": "Магазини",
+        "age": "Скільки чекає",
+        "seriesPlacement": "Пропущені й наступні в серіях",
+        "genre": "Жанри",
+        "tag": "Теги",
+        "author": "Автор",
+        "publisher": "Видавництво",
+        "language": "Мова книги",
+        "bookType": "Тип книги",
+        "year": "Рік видання",
+        "pages": "Кількість сторінок",
+        "cover": "Обкладинка",
+        "favorite": "Улюблені"
+      },
+      "linkAny": "Усі",
+      "currencyLabel": "Валюта",
+      "pricePickCurrency": "Оберіть валюту, щоб задати діапазон ціни",
+      "priceOneCurrency": "Лишіть одну валюту, щоб задати діапазон ціни",
+      "age": {
+        "recent": "До 30 днів",
+        "middle": "Від 1 до 6 місяців",
+        "long": "Понад 6 місяців"
+      },
+      "seriesPlacement": {
+        "gap": "Пропущені в серії",
+        "continuation": "Наступні в серії"
+      },
+      "bookType": {
+        "all": "Усі",
+        "solo": "Соло книги",
+        "series_part": "Частина серії"
+      },
+      "cover": {
+        "all": "Усі",
+        "with": "Є обкладинка",
+        "without": "Немає обкладинки"
+      },
+      "favorite": {
+        "all": "Усі",
+        "only": "Лише улюблені",
+        "without": "Без улюблених"
+      },
+      "range": {
+        "min": "Від",
+        "max": "До",
+        "priceMin": "Ціна від",
+        "priceMax": "Ціна до",
+        "yearMin": "Рік від",
+        "yearMax": "Рік до",
+        "pagesMin": "Сторінок від",
+        "pagesMax": "Сторінок до",
+        "invalid": "Мінімум не може перевищувати максимум"
+      },
+      "yearPicker": {
+        "prev": "Попередні роки",
+        "next": "Наступні роки",
+        "clear": "Очистити рік"
+      },
+      "chips": {
+        "priceFrom": "Ціна від {value} {currency}",
+        "priceTo": "Ціна до {value} {currency}",
+        "priceRange": "Ціна {min}–{max} {currency}"
+      },
+      "storePlaceholder": "Оберіть магазини",
+      "storeSearch": "Пошук магазину…",
+      "storeEmpty": "Магазинів не знайдено",
+      "genrePlaceholder": "Оберіть жанри",
+      "genreSearch": "Пошук жанру…",
+      "genreEmpty": "Жанрів не знайдено",
+      "languagePlaceholder": "Оберіть мови",
+      "languageSearch": "Пошук мови…",
+      "languageEmpty": "Мов не знайдено",
+      "tagPlaceholder": "Пошук тегів…",
+      "tagSearching": "Шукаємо теги…",
+      "tagEmpty": "Тегів не знайдено",
+      "removeTag": "Прибрати тег {name}",
+      "authorPlaceholder": "Пошук автора…",
+      "authorSearching": "Шукаємо авторів…",
+      "authorEmpty": "Авторів не знайдено",
+      "removeAuthor": "Прибрати автора {name}",
+      "publisherPlaceholder": "Пошук видавництва…",
+      "publisherSearching": "Шукаємо видавництва…",
+      "publisherEmpty": "Видавництв не знайдено",
+      "removePublisher": "Прибрати видавництво {name}"
     },
     "summary": {
-      "empty": "—",
       "microfact": {
         "addedLast30Days": "{count, plural, =0 {За 30 днів книг не додавали} one {+# за останні 30 днів} few {+# за останні 30 днів} many {+# за останні 30 днів} other {+# за останні 30 днів}}",
         "missingFromSeries": "{count, plural, =0 {Немає серій із пропусками} one {Закривають пропуски в # серії} few {Закривають пропуски у # серіях} many {Закривають пропуски у # серіях} other {Закривають пропуски в # серії}}",
@@ -1958,46 +2045,29 @@
           "books": "Книги",
           "missingFromSeries": "Пропущені",
           "nextInSeries": "Наступні",
-          "waitingLong": "Давно",
-          "stores": "Магазини",
-          "best": "Найкраща",
-          "average": "Середня",
-          "total": "Сума"
+          "waitingLong": "Давно"
         },
         "detailed": {
           "books": "Усього в списку",
           "missingFromSeries": "Пропущені в серіях",
           "nextInSeries": "Наступні в серіях",
-          "waitingLong": "Давно чекають",
-          "stores": "Магазинів відстежується",
-          "best": "Найвигідніша пропозиція",
-          "average": "Середня ціна",
-          "total": "Орієнтовна сума"
+          "waitingLong": "Давно чекають"
         }
       }
     },
     "overviewPanel": {
       "trigger": "Огляд бажань",
       "title": "Огляд бажань",
-      "subtitle": "Статистика, вигідні пропозиції та швидкі дії",
+      "subtitle": "Статистика, вигідні пропозиції та книги, що потребують уваги",
       "close": "Закрити огляд",
       "tabs": {
         "overview": "Огляд",
         "offers": "Пропозиції",
-        "actions": "Дії"
+        "attention": "Увага"
       }
     },
     "sidebar": {
       "label": "Огляд бажань",
-      "stats": {
-        "title": "Коротка статистика",
-        "booksCount": "Книг у списку",
-        "storesCount": "Магазинів відстежується",
-        "average": "Середня ціна",
-        "best": "Найвигідніша пропозиція",
-        "currencyGroup": "{currency} · {count, plural, one {# книга з ціною} few {# книги з ціною} many {# книг з ціною} other {# книг з ціною}}",
-        "pricesEmpty": "Ціни ще не додані. Додайте посилання на магазин із ціною, щоб побачити оцінку."
-      },
       "attention": {
         "title": "Потребують уваги",
         "allClear": "Усі книги розібрані",
@@ -2009,42 +2079,16 @@
       },
       "bestOffers": {
         "title": "Найвигідніші пропозиції",
-        "empty": "Тут з'являться книги з найнижчими цінами.",
-        "showAll": "Переглянути всі"
-      },
-      "quickActions": {
-        "title": "Швидкі дії",
-        "addBook": "Додати книгу",
-        "openLibrary": "Відкрити бібліотеку",
-        "inTransit": "Книги в дорозі"
-      },
-      "howItWorks": {
-        "title": "Як це працює",
-        "bought": "Коли ви позначаєте книгу як куплену, вона зникає з цього списку, а її статус володіння стає «У наявності».",
-        "delivery": "Якщо книгу вже замовлено, але ви ще її не отримали, позначте її як «У дорозі»."
+        "empty": "Тут з'являться книги з найнижчими цінами."
       }
     },
     "toolbar": {
       "searchLabel": "Пошук у списку бажань",
       "searchPlaceholder": "Назва книги, автор або видавництво…",
       "searchClear": "Очистити пошук",
-      "linkFilterLabel": "Фільтр за посиланнями та цінами",
-      "sortLabel": "Сортування",
-      "storeLabel": "За магазином",
-      "storeAny": "Усі магазини",
-      "storeShort": "Магазин",
-      "publisherLabel": "За видавництвом",
-      "publisherAny": "Усі видавництва",
-      "publisherShort": "Видавництво",
-      "genreLabel": "За жанром",
-      "genreAny": "Усі жанри",
-      "genreShort": "Жанр",
-      "tagLabel": "За тегом",
-      "tagAny": "Усі теги",
-      "tagShort": "Тег"
+      "sortLabel": "Сортування"
     },
     "linkFilter": {
-      "all": "Усі",
       "has_links": "Є посилання",
       "without_links": "Без посилань",
       "has_price": "З ціною",
@@ -2063,6 +2107,24 @@
     "sortMobile": {
       "title": "Сортування",
       "close": "Закрити",
+      "groups": {
+        "added": "Дата додавання",
+        "author": "Автор",
+        "price": "Ціна",
+        "publisher": "Видавництво",
+        "stores": "Магазини",
+        "title": "Назва"
+      },
+      "options": {
+        "added_asc": "Спочатку старі",
+        "added_desc": "Спочатку нові",
+        "author_asc": "А–Я",
+        "price_asc": "Від нижчої",
+        "price_desc": "Від вищої",
+        "publisher_asc": "А–Я",
+        "stores_desc": "Найбільше магазинів",
+        "title_asc": "А–Я"
+      },
       "trigger": {
         "added_asc": "Старі",
         "added_desc": "Нові",
@@ -2135,8 +2197,9 @@
       "empty": "Посилання на магазини ще не додані",
       "bestOffer": "Найкраща ціна",
       "more": "ще {count, plural, one {# магазин} few {# магазини} many {# магазинів} other {# магазина}}",
-      "moreMixedCurrency": "ще {count, plural, one {# магазин} few {# магазини} many {# магазинів} other {# магазина}} · інші валюти",
-      "noPrices": "{count, plural, one {# магазин} few {# магазини} many {# магазинів} other {# магазина}} · ціни не вказані",
+      "mixedCurrencyNote": "інші валюти",
+      "storeCount": "{count, plural, one {# магазин} few {# магазини} many {# магазинів} other {# магазина}}",
+      "noPricesNote": "ціни не вказані",
       "manage": "Магазини та ціни",
       "manageWithCount": "Магазини та ціни ({count})",
       "manageAction": "Керувати посиланнями",
@@ -3342,7 +3405,6 @@
         "groups": {
           "status": "Статус читання",
           "ownership": "Наявність книги",
-          "format": "Формат",
           "queue": "У черзі читання",
           "favorite": "Тільки улюблені",
           "author": "Автор",

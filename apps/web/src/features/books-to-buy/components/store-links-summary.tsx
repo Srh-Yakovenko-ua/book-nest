@@ -1,7 +1,6 @@
 "use client";
 
 import type { BestOfferView, BookStoreLinkView, Nullable } from "@app/shared";
-import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
@@ -36,9 +35,11 @@ export function StoreLinksSummary({
   if (offeredLink === undefined) {
     return (
       <div className={cn("flex min-w-0 flex-col items-start", className)}>
-        <ManageButton onClick={onManage}>
-          {t("noPrices", { count: storeLinks.length })}
-        </ManageButton>
+        <ManageButton
+          label={t("storeCount", { count: storeLinks.length })}
+          note={t("noPricesNote")}
+          onClick={onManage}
+        />
       </div>
     );
   }
@@ -52,25 +53,43 @@ export function StoreLinksSummary({
       ) : null}
       <OfferedLinkChip link={offeredLink} />
       {otherCount > 0 ? (
-        <ManageButton onClick={onManage}>
-          {hasMultipleCurrencies(storeLinks)
-            ? t("moreMixedCurrency", { count: otherCount })
-            : t("more", { count: otherCount })}
-        </ManageButton>
+        <ManageButton
+          label={t("more", { count: otherCount })}
+          note={hasMultipleCurrencies(storeLinks) ? t("mixedCurrencyNote") : undefined}
+          onClick={onManage}
+        />
       ) : null}
     </div>
   );
 }
 
-function ManageButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+function ManageButton({
+  label,
+  note,
+  onClick,
+}: {
+  label: string;
+  note?: string;
+  onClick: () => void;
+}) {
   return (
     <button
-      className="inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-primary transition-colors outline-none hover:text-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none"
+      className="flex min-w-0 cursor-pointer items-start gap-1 rounded-md px-1.5 py-0.5 text-left text-xs font-medium text-primary transition-colors outline-none hover:text-primary-hover focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none sm:items-center"
       onClick={onClick}
       type="button"
     >
-      <UiIcon name="store" size={12} />
-      {children}
+      <UiIcon className="mt-0.5 shrink-0 sm:mt-0" name="store" size={12} />
+      <span className="flex min-w-0 flex-col items-start sm:flex-row sm:items-center">
+        <span className="min-w-0">{label}</span>
+        {note === undefined ? null : (
+          <span className="min-w-0 max-sm:text-muted-foreground">
+            <span aria-hidden className="max-sm:hidden">
+              {" · "}
+            </span>
+            {note}
+          </span>
+        )}
+      </span>
     </button>
   );
 }
@@ -78,7 +97,7 @@ function ManageButton({ children, onClick }: { children: ReactNode; onClick: () 
 function OfferedLinkChip({ link }: { link: BookStoreLinkView }) {
   const tCommon = useTranslations("common");
   const chipClassName =
-    "flex w-full min-w-0 items-center gap-1.5 rounded-md border border-border bg-secondary/40 px-2.5 py-2 text-xs text-foreground";
+    "flex w-full min-w-0 items-start gap-1.5 rounded-md border border-border bg-secondary/40 px-2.5 py-2 text-xs text-foreground sm:items-center";
 
   if (!isHttpsUrl(link.url)) {
     return (
@@ -100,7 +119,7 @@ function OfferedLinkChip({ link }: { link: BookStoreLinkView }) {
     >
       <OfferedLinkChipContent link={link} />
       <UiIcon
-        className="text-muted-foreground transition-colors group-hover:text-primary"
+        className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary sm:mt-0"
         name="external"
         size={12}
       />
@@ -118,11 +137,13 @@ function OfferedLinkChipContent({ link }: { link: BookStoreLinkView }) {
 
   return (
     <>
-      <UiIcon className="text-icon" name="store" size={12} />
-      <span className="min-w-0 flex-1 truncate">{link.storeName}</span>
-      {priceText === null ? null : (
-        <span className="font-semibold text-ink tabular-nums">{priceText}</span>
-      )}
+      <UiIcon className="mt-0.5 shrink-0 text-icon sm:mt-0" name="store" size={12} />
+      <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-1.5">
+        <span className="w-full truncate sm:w-auto sm:min-w-0">{link.storeName}</span>
+        {priceText === null ? null : (
+          <span className="shrink-0 font-semibold text-ink tabular-nums">{priceText}</span>
+        )}
+      </span>
     </>
   );
 }

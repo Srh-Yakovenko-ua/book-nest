@@ -231,3 +231,260 @@ describe("GET /api/books/wishlist", () => {
     expect(titles).toEqual(["Owner Book"]);
   });
 });
+
+function getWishlistFacets(accessToken: string): request.Test {
+  return request(app.getHttpServer())
+    .get("/api/books/wishlist/facets")
+    .set("Authorization", `Bearer ${accessToken}`);
+}
+
+describe("GET /api/books/wishlist/facets", () => {
+  it("returns 401 without an Authorization header", async () => {
+    const res = await request(app.getHttpServer()).get("/api/books/wishlist/facets");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns an empty store list for an empty wishlist", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getWishlistFacets(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ stores: [] });
+  });
+
+  it("counts each store once per book and orders by count then name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const first = await createBook(accessToken, {
+      ownershipStatus: "want_to_buy",
+      title: "First",
+    });
+    await addStoreLink(accessToken, first, {
+      storeName: "Bookstore",
+      url: "https://example.com/first-hardcover",
+    });
+    await addStoreLink(accessToken, first, {
+      storeName: "Bookstore",
+      url: "https://example.com/first-paperback",
+    });
+    await addStoreLink(accessToken, first, {
+      storeName: "Alpha",
+      url: "https://example.com/first-alpha",
+    });
+    const second = await createBook(accessToken, {
+      ownershipStatus: "want_to_buy",
+      title: "Second",
+    });
+    await addStoreLink(accessToken, second, {
+      storeName: "Bookstore",
+      url: "https://example.com/second",
+    });
+
+    const res = await getWishlistFacets(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.stores).toEqual([
+      { count: 2, name: "Bookstore" },
+      { count: 1, name: "Alpha" },
+    ]);
+  });
+
+  it("ignores books that left the wishlist", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const owned = await createBook(accessToken, { ownershipStatus: "owned", title: "Owned" });
+    await addStoreLink(accessToken, owned, {
+      storeName: "Bookstore",
+      url: "https://example.com/owned",
+    });
+
+    const res = await getWishlistFacets(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ stores: [] });
+  });
+
+  it("never leaks store names that belong to another user", async () => {
+    const owner = await context.registerVerifyAndLogin();
+    const ownerBook = await createBook(owner.accessToken, {
+      ownershipStatus: "want_to_buy",
+      title: "Owner Book",
+    });
+    await addStoreLink(owner.accessToken, ownerBook, {
+      storeName: "Owner Store",
+      url: "https://example.com/owner",
+    });
+
+    const stranger = await context.registerVerifyAndLogin({
+      email: "stranger@example.com",
+      nickname: "stranger",
+    });
+    const strangerBook = await createBook(stranger.accessToken, {
+      ownershipStatus: "want_to_buy",
+      title: "Stranger Book",
+    });
+    await addStoreLink(stranger.accessToken, strangerBook, {
+      storeName: "Stranger Store",
+      url: "https://example.com/stranger",
+    });
+
+    const res = await getWishlistFacets(owner.accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.stores).toEqual([{ count: 1, name: "Owner Store" }]);
+  });
+});
+
+describe("GET /api/books/wishlist sorting", () => {
+  async function seedSortableWishlist(accessToken: string) {
+    const cheap = await createBook(accessToken, {
+      authors: [{ name: "Ярош" }],
+      ownershipStatus: "want_to_buy",
+      publisherName: "Наш Формат",
+      title: "Бета",
+    });
+    await addStoreLink(accessToken, cheap, {
+      currency: "UAH",
+      price: 100,
+      storeName: "Alpha",
+      url: "https://example.com/cheap",
+    });
+    await addStoreLink(accessToken, cheap, {
+      currency: "UAH",
+      price: 900,
+      storeName: "Beta",
+      url: "https://example.com/cheap-second",
+    });
+
+    const pricey = await createBook(accessToken, {
+      authors: [{ name: "Андрухович" }],
+      ownershipStatus: "want_to_buy",
+      publisherName: "Астролябія",
+      title: "Альфа",
+    });
+    await addStoreLink(accessToken, pricey, {
+      currency: "UAH",
+      price: 500,
+      storeName: "Alpha",
+      url: "https://example.com/pricey",
+    });
+
+    const unpriced = await createBook(accessToken, {
+      authors: [{ name: "Забужко" }],
+      ownershipStatus: "want_to_buy",
+      title: "Гамма",
+    });
+
+    return { cheap, pricey, unpriced };
+  }
+
+  it("orders by the wishlist entry date, oldest first, by default", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBook(accessToken, { ownershipStatus: "want_to_buy", title: "Перша" });
+    await createBook(accessToken, { ownershipStatus: "want_to_buy", title: "Друга" });
+
+    const res = await getWishlist(accessToken);
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.map((book: WishlistBook) => book.title)).toEqual(["Перша", "Друга"]);
+  });
+
+  it("reverses the entry order when asked for the newest first", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBook(accessToken, { ownershipStatus: "want_to_buy", title: "Перша" });
+    await createBook(accessToken, { ownershipStatus: "want_to_buy", title: "Друга" });
+
+    const res = await getWishlist(accessToken, "?sort=added_desc");
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.map((book: WishlistBook) => book.title)).toEqual(["Друга", "Перша"]);
+  });
+
+  it("orders by title", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSortableWishlist(accessToken);
+
+    const res = await getWishlist(accessToken, "?sort=title_asc");
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.map((book: WishlistBook) => book.title)).toEqual([
+      "Альфа",
+      "Бета",
+      "Гамма",
+    ]);
+  });
+
+  it("orders by the first author name", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSortableWishlist(accessToken);
+
+    const res = await getWishlist(accessToken, "?sort=author_asc");
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.map((book: WishlistBook) => book.title)).toEqual([
+      "Альфа",
+      "Гамма",
+      "Бета",
+    ]);
+  });
+
+  it("puts books without a publisher last when ordering by publisher", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSortableWishlist(accessToken);
+
+    const res = await getWishlist(accessToken, "?sort=publisher_asc");
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.map((book: WishlistBook) => book.title)).toEqual([
+      "Альфа",
+      "Бета",
+      "Гамма",
+    ]);
+  });
+
+  it("orders by the cheapest offer and puts unpriced books last", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSortableWishlist(accessToken);
+
+    const res = await getWishlist(accessToken, "?sort=price_asc");
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.map((book: WishlistBook) => book.title)).toEqual([
+      "Бета",
+      "Альфа",
+      "Гамма",
+    ]);
+  });
+
+  it("still puts unpriced books last when ordering by the highest price", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSortableWishlist(accessToken);
+
+    const res = await getWishlist(accessToken, "?sort=price_desc");
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.map((book: WishlistBook) => book.title)).toEqual([
+      "Альфа",
+      "Бета",
+      "Гамма",
+    ]);
+  });
+
+  it("orders by how many stores track the book", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await seedSortableWishlist(accessToken);
+
+    const res = await getWishlist(accessToken, "?sort=stores_desc");
+
+    expect(res.status).toBe(200);
+    expect(res.body.books.map((book: WishlistBook) => book.title)[0]).toBe("Бета");
+  });
+
+  it("rejects an unknown sort", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await getWishlist(accessToken, "?sort=cheapest");
+
+    expect(res.status).toBe(400);
+  });
+});

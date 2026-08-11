@@ -11,6 +11,9 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
+export const BOOK_PICKER_SCROLL_AREA =
+  "rounded-lg border border-border [&>[data-slot=scroll-area-viewport]>div]:block!";
+
 type BookPickerResultsProps = {
   disabledIds?: ReadonlySet<string>;
   disabledLabel?: string;
@@ -65,17 +68,19 @@ export function BookPickerResults({
                 onCheckedChange={() => onToggle(book)}
               />
               <BookThumb book={book} />
-              <BookPickerCaption book={book} />
-              {isDisabled && disabledLabel !== undefined ? (
-                <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                  {disabledLabel}
-                </span>
-              ) : readingBase === undefined ? null : (
-                <StatusBadge
-                  className="shrink-0"
-                  entry={{ ...readingBase, label: readingLabel(book.readingStatus) }}
-                />
-              )}
+              <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+                <BookPickerCaption book={book} />
+                {isDisabled && disabledLabel !== undefined ? (
+                  <span className="shrink-0 text-xs font-medium text-muted-foreground max-sm:text-[0.6875rem]">
+                    {disabledLabel}
+                  </span>
+                ) : readingBase === undefined ? null : (
+                  <StatusBadge
+                    className="shrink-0 max-sm:h-5 max-sm:gap-1 max-sm:px-2 max-sm:text-[0.6875rem] max-sm:[&>svg]:size-3"
+                    entry={{ ...readingBase, label: readingLabel(book.readingStatus) }}
+                  />
+                )}
+              </div>
             </label>
           </li>
         );
@@ -141,7 +146,7 @@ export function BookThumb({ book }: { book: BookView }) {
 function BookPickerCaption({ book }: { book: BookView }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-      <span className="truncate text-sm font-medium text-ink">{book.title}</span>
+      <span className="text-sm font-medium break-words text-ink sm:truncate">{book.title}</span>
       <span className="truncate text-xs text-muted-foreground">
         {book.authors.map((author) => author.name).join(", ")}
       </span>

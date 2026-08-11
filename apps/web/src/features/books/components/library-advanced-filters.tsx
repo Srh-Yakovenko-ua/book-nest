@@ -29,7 +29,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { YearPicker } from "@/components/ui/year-picker";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
-import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-status";
+import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 import { cn } from "@/lib/utils";
 
 import type { LibraryQueryState, LibraryScope } from "../model/library-query";
@@ -51,6 +51,7 @@ import {
   libraryRangeFlags,
   scopedOwnerValues,
 } from "../model/library-query";
+import { BookFormatFilter } from "./book-format-filter";
 import { LibraryEntityMultiselect } from "./library-entity-multiselect";
 import { LibraryTagFilter } from "./library-tag-filter";
 
@@ -117,7 +118,6 @@ export function LibraryAdvancedFilters({
   const tPublisher = useTranslations("books.publisher");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwner = useTranslations("books.ownershipStatus.options");
-  const tFormat = useTranslations("books.format.options");
   const tAge = useTranslations("books.classification.ageCategoryLabels");
   const tLanguage = useTranslations("books.classification.languageLabels");
   const tClassification = useTranslations("books.classification");
@@ -231,28 +231,11 @@ export function LibraryAdvancedFilters({
             />
           </FilterSection>
 
-          <FilterSection title={t("sections.format")}>
-            <ChipGroup
-              label={t("sections.format")}
-              mode="multi"
-              onValueChange={(next) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  format: LIBRARY_FORMAT_VALUES.filter((v) => next.includes(v)),
-                }))
-              }
-              options={LIBRARY_FORMAT_VALUES.map((value) => {
-                const entry = bookFormats.find((item) => item.value === value);
-                return {
-                  icon: entry ? <UiIcon name={entry.icon} /> : undefined,
-                  label: tFormat(value),
-                  value,
-                };
-              })}
-              size="sm"
-              value={draft.format}
-            />
-          </FilterSection>
+          <BookFormatFilter
+            onValueChange={(format) => setDraft((prev) => ({ ...prev, format }))}
+            options={LIBRARY_FORMAT_VALUES}
+            value={draft.format}
+          />
 
           <FilterSection title={t("sections.genre")}>
             <Multiselect

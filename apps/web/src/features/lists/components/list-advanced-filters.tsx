@@ -26,7 +26,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { bookFormats, ownershipStatuses, readingStatuses } from "@/lib/book-status";
+import { BookFormatFilter } from "@/features/books";
+import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 import { ListDetailsControllerDetailOwnerItem } from "@/shared/api/generated/model";
 
 import type { ListDetailQueryState } from "../model/list-detail-query";
@@ -65,7 +66,6 @@ export function ListAdvancedFilters({ id, setState, state }: ListAdvancedFilters
   const t = useTranslations("lists.details.filters");
   const tStatus = useTranslations("books.readingStatus.options");
   const tOwner = useTranslations("books.ownershipStatus.options");
-  const tFormat = useTranslations("books.format.options");
   const tCommon = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<ListFiltersDraft>(() => draftFromState(state));
@@ -171,28 +171,11 @@ export function ListAdvancedFilters({ id, setState, state }: ListAdvancedFilters
         />
       </FilterSection>
 
-      <FilterSection title={t("groups.format")}>
-        <ChipGroup
-          label={t("groups.format")}
-          mode="multi"
-          onValueChange={(next) =>
-            setDraft((prev) => ({
-              ...prev,
-              format: LIST_DETAIL_VALUES.format.filter((value) => next.includes(value)),
-            }))
-          }
-          options={LIST_DETAIL_VALUES.format.map((value) => {
-            const entry = bookFormats.find((item) => item.value === value);
-            return {
-              icon: entry ? <UiIcon name={entry.icon} /> : undefined,
-              label: tFormat(value),
-              value,
-            };
-          })}
-          size="sm"
-          value={draft.format}
-        />
-      </FilterSection>
+      <BookFormatFilter
+        onValueChange={(format) => setDraft((prev) => ({ ...prev, format }))}
+        options={LIST_DETAIL_VALUES.format}
+        value={draft.format}
+      />
 
       <FilterSection title={t("groups.queue")}>
         <Select

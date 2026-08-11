@@ -822,7 +822,6 @@
         "sections": {
           "readingStatus": "Reading status",
           "ownershipStatus": "Ownership status",
-          "format": "Format",
           "genre": "Genres",
           "tag": "Tags",
           "ageCategory": "Age category",
@@ -1150,6 +1149,7 @@
     },
     "format": {
       "title": "Format",
+      "filterTitle": "Format",
       "description": "Which format is this book? You can pick more than one.",
       "options": {
         "paper": "Paper",
@@ -1940,12 +1940,99 @@
     "filters": {
       "trigger": "Filters",
       "title": "Wishlist filters",
-      "description": "Narrow the list by offers and book details.",
+      "description": "Narrow the list down by offers and book details.",
       "clear": "Clear filters",
-      "apply": "Apply filters"
+      "apply": "Apply filters",
+      "more": "More filters",
+      "sections": {
+        "link": "Links and prices",
+        "price": "Price and currency",
+        "store": "Stores",
+        "age": "Time on the list",
+        "seriesPlacement": "Missing and next in series",
+        "genre": "Genres",
+        "tag": "Tags",
+        "author": "Author",
+        "publisher": "Publisher",
+        "language": "Language",
+        "bookType": "Book type",
+        "year": "Publication year",
+        "pages": "Page count",
+        "cover": "Cover",
+        "favorite": "Favorites"
+      },
+      "linkAny": "All",
+      "currencyLabel": "Currency",
+      "pricePickCurrency": "Pick a currency to set a price range",
+      "priceOneCurrency": "Keep a single currency to set a price range",
+      "age": {
+        "recent": "Up to 30 days",
+        "middle": "1 to 6 months",
+        "long": "Over 6 months"
+      },
+      "seriesPlacement": {
+        "gap": "Missing from series",
+        "continuation": "Next in series"
+      },
+      "bookType": {
+        "all": "All",
+        "solo": "Standalone",
+        "series_part": "Part of a series"
+      },
+      "cover": {
+        "all": "All",
+        "with": "Has cover",
+        "without": "No cover"
+      },
+      "favorite": {
+        "all": "All",
+        "only": "Favorites only",
+        "without": "Not favorites"
+      },
+      "range": {
+        "min": "From",
+        "max": "To",
+        "priceMin": "Price from",
+        "priceMax": "Price to",
+        "yearMin": "Year from",
+        "yearMax": "Year to",
+        "pagesMin": "Pages from",
+        "pagesMax": "Pages to",
+        "invalid": "Minimum cannot exceed maximum"
+      },
+      "yearPicker": {
+        "prev": "Previous years",
+        "next": "Next years",
+        "clear": "Clear year"
+      },
+      "chips": {
+        "priceFrom": "Price from {value} {currency}",
+        "priceTo": "Price up to {value} {currency}",
+        "priceRange": "Price {min}–{max} {currency}"
+      },
+      "storePlaceholder": "Select stores",
+      "storeSearch": "Search store…",
+      "storeEmpty": "No stores found",
+      "genrePlaceholder": "Select genres",
+      "genreSearch": "Search genre…",
+      "genreEmpty": "No genres found",
+      "languagePlaceholder": "Select languages",
+      "languageSearch": "Search language…",
+      "languageEmpty": "No languages found",
+      "tagPlaceholder": "Search tags…",
+      "tagSearching": "Searching tags…",
+      "tagEmpty": "No tags found",
+      "removeTag": "Remove tag {name}",
+      "authorPlaceholder": "Search author…",
+      "authorSearching": "Searching authors…",
+      "authorEmpty": "No authors found",
+      "removeAuthor": "Remove author {name}",
+      "publisherPlaceholder": "Search publisher…",
+      "publisherSearching": "Searching publishers…",
+      "publisherEmpty": "No publishers found",
+      "removePublisher": "Remove publisher {name}"
     },
     "summary": {
-      "empty": "—",
       "microfact": {
         "addedLast30Days": "{count, plural, =0 {Nothing in the last 30 days} one {+# in the last 30 days} other {+# in the last 30 days}}",
         "missingFromSeries": "{count, plural, =0 {No series with gaps} one {Fill gaps in # series} other {Fill gaps in # series}}",
@@ -1958,46 +2045,29 @@
           "books": "Books",
           "missingFromSeries": "Missing",
           "nextInSeries": "Next",
-          "waitingLong": "Waiting",
-          "stores": "Stores",
-          "best": "Best",
-          "average": "Average",
-          "total": "Total"
+          "waitingLong": "Waiting"
         },
         "detailed": {
           "books": "Total in the list",
           "missingFromSeries": "Missing from series",
           "nextInSeries": "Next in series",
-          "waitingLong": "Waiting a long time",
-          "stores": "Stores tracked",
-          "best": "Best offer",
-          "average": "Average price",
-          "total": "Estimated total"
+          "waitingLong": "Waiting a long time"
         }
       }
     },
     "overviewPanel": {
       "trigger": "Wishlist overview",
       "title": "Wishlist overview",
-      "subtitle": "Stats, best deals and quick actions",
+      "subtitle": "Stats, best offers and the books that need attention",
       "close": "Close overview",
       "tabs": {
         "overview": "Overview",
         "offers": "Deals",
-        "actions": "Actions"
+        "attention": "Attention"
       }
     },
     "sidebar": {
       "label": "Wishlist overview",
-      "stats": {
-        "title": "Quick statistics",
-        "booksCount": "Books in the list",
-        "storesCount": "Stores tracked",
-        "average": "Average price",
-        "best": "Best offer",
-        "currencyGroup": "{currency} · {count, plural, one {# book with a price} other {# books with a price}}",
-        "pricesEmpty": "No prices yet. Add a store link with a price to see the estimate."
-      },
       "attention": {
         "title": "Needs attention",
         "allClear": "Every book is sorted out",
@@ -2009,42 +2079,16 @@
       },
       "bestOffers": {
         "title": "Best deals",
-        "empty": "Books with the lowest prices will appear here.",
-        "showAll": "View all"
-      },
-      "quickActions": {
-        "title": "Quick actions",
-        "addBook": "Add book",
-        "openLibrary": "Open library",
-        "inTransit": "Books in transit"
-      },
-      "howItWorks": {
-        "title": "How it works",
-        "bought": "When you mark a book as bought, it disappears from this list and its ownership status becomes “Owned”.",
-        "delivery": "If a book is already ordered but not yet received, mark it as “In transit”."
+        "empty": "Books with the lowest prices will appear here."
       }
     },
     "toolbar": {
       "searchLabel": "Search the wishlist",
       "searchPlaceholder": "Search the list...",
       "searchClear": "Clear search",
-      "linkFilterLabel": "Filter by links and prices",
-      "sortLabel": "Sorting",
-      "storeLabel": "By store",
-      "storeAny": "All stores",
-      "storeShort": "Store",
-      "publisherLabel": "By publisher",
-      "publisherAny": "All publishers",
-      "publisherShort": "Publisher",
-      "genreLabel": "By genre",
-      "genreAny": "All genres",
-      "genreShort": "Genre",
-      "tagLabel": "By tag",
-      "tagAny": "All tags",
-      "tagShort": "Tag"
+      "sortLabel": "Sorting"
     },
     "linkFilter": {
-      "all": "All",
       "has_links": "With links",
       "without_links": "Without links",
       "has_price": "With price",
@@ -2063,6 +2107,24 @@
     "sortMobile": {
       "title": "Sorting",
       "close": "Close",
+      "groups": {
+        "added": "Date added",
+        "author": "Author",
+        "price": "Price",
+        "publisher": "Publisher",
+        "stores": "Stores",
+        "title": "Title"
+      },
+      "options": {
+        "added_asc": "Oldest first",
+        "added_desc": "Newest first",
+        "author_asc": "A–Z",
+        "price_asc": "Lowest first",
+        "price_desc": "Highest first",
+        "publisher_asc": "A–Z",
+        "stores_desc": "Most stores",
+        "title_asc": "A–Z"
+      },
       "trigger": {
         "added_asc": "Oldest",
         "added_desc": "Newest",
@@ -2135,8 +2197,9 @@
       "empty": "No store links added yet",
       "bestOffer": "Best price",
       "more": "{count, plural, one {# more store} other {# more stores}}",
-      "moreMixedCurrency": "{count, plural, one {# more store} other {# more stores}} · other currencies",
-      "noPrices": "{count, plural, one {# store} other {# stores}} · no prices",
+      "mixedCurrencyNote": "other currencies",
+      "storeCount": "{count, plural, one {# store} other {# stores}}",
+      "noPricesNote": "no prices",
       "manage": "Stores and prices",
       "manageWithCount": "Stores and prices ({count})",
       "manageAction": "Manage links",
@@ -3342,7 +3405,6 @@
         "groups": {
           "status": "Reading status",
           "ownership": "Ownership",
-          "format": "Format",
           "queue": "Reading queue",
           "favorite": "Favorites only",
           "author": "Author",

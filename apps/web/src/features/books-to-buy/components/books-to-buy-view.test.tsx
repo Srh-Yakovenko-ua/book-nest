@@ -1,8 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 
 import type { WishlistBookView, WishlistSummaryView } from "@app/shared";
+import type { OnUrlUpdateFunction } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
+import { NuqsTestingAdapter } from "nuqs/adapters/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DETAILS_GENRES_FIXTURE } from "@/features/books/components/book-details.fixtures";
@@ -37,8 +39,19 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+function renderWishlist(searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
+  return renderWithProviders(
+    <NuqsTestingAdapter onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
+      <BooksToBuyView />
+    </NuqsTestingAdapter>,
+  );
+}
+
 function wishlistCallCount() {
-  return fetchMock.mock.calls.filter(([url]) => String(url).includes("/api/books/wishlist")).length;
+  return fetchMock.mock.calls.filter(([url]) => {
+    const value = String(url);
+    return value.includes("/api/books/wishlist") && !value.includes("/facets");
+  }).length;
 }
 
 function wishlistOf(books: WishlistBookView[], summary?: Partial<WishlistSummaryView>) {
@@ -56,6 +69,14 @@ beforeEach(() => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
     if (url.includes("/api/genres")) return Promise.resolve(jsonResponse(DETAILS_GENRES_FIXTURE));
+    if (url.includes("/api/books/wishlist/facets")) {
+      return Promise.resolve(jsonResponse({ stores: [] }));
+    }
+    if (url.includes("/api/tags")) {
+      return Promise.resolve(
+        jsonResponse({ items: [], page: 1, pagesCount: 1, pageSize: 20, totalCount: 0 }),
+      );
+    }
     if (url.includes("/api/books/wishlist")) return respondToWishlist(url);
     return Promise.reject(new Error(`unexpected ${method} ${url}`));
   });
@@ -83,14 +104,14 @@ describe("BooksToBuyView", () => {
         ),
       );
 
-    renderWithProviders(<BooksToBuyView />);
+    renderWishlist();
 
     expect(await screen.findByRole("heading", { name: "Альфа" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Бета" })).toBeInTheDocument();
   });
 
   it("switches between grid cards and horizontal list rows", async () => {
-    renderWithProviders(<BooksToBuyView />);
+    renderWishlist();
 
     expect(await screen.findByRole("heading", { name: "Останнє бажання" })).toBeInTheDocument();
     expect(document.querySelector("[data-slot=book-card]")).toBeInTheDocument();
@@ -104,31 +125,27 @@ describe("BooksToBuyView", () => {
   it("shows a busy skeleton while the wishlist loads", () => {
     respondToWishlist = () => new Promise<Response>(() => {});
 
-    renderWithProviders(<BooksToBuyView />);
+    renderWishlist();
 
     expect(document.querySelector("[aria-busy]")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("radiogroup", { name: "Фільтр за посиланнями та цінами" }),
-    ).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Посилання та ціни" })).toBeNull();
   });
 
   it("announces a failed wishlist load and hides the toolbar and sidebar", async () => {
     respondToWishlist = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
 
-    renderWithProviders(<BooksToBuyView />);
+    renderWishlist();
 
     const alert = await screen.findByRole("alert");
     expect(within(alert).getByText("Не вдалося завантажити")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("radiogroup", { name: "Фільтр за посиланнями та цінами" }),
-    ).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Посилання та ціни" })).toBeNull();
     expect(screen.queryByRole("complementary", { name: "Огляд бажань" })).toBeNull();
   });
 
   it("refetches the wishlist when the reader retries", async () => {
     respondToWishlist = () => Promise.resolve(jsonResponse({ message: "boom" }, 500));
 
-    renderWithProviders(<BooksToBuyView />);
+    renderWishlist();
 
     const alert = await screen.findByRole("alert");
     const callsBeforeRetry = wishlistCallCount();
@@ -140,16 +157,14 @@ describe("BooksToBuyView", () => {
   it("invites the reader to add a book when the wishlist is empty", async () => {
     respondToWishlist = () => Promise.resolve(jsonResponse(wishlistOf([])));
 
-    renderWithProviders(<BooksToBuyView />);
+    renderWishlist();
 
     expect(await screen.findByText("Збережи книги для майбутніх покупок")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("radiogroup", { name: "Фільтр за посиланнями та цінами" }),
-    ).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Посилання та ціни" })).toBeNull();
   });
 
   it("shows the wishlist overview alongside a loaded wishlist", async () => {
-    renderWithProviders(<BooksToBuyView />);
+    renderWishlist();
 
     expect(await screen.findByRole("complementary", { name: "Огляд бажань" })).toBeInTheDocument();
   });
@@ -170,7 +185,7 @@ describe("BooksToBuyView", () => {
         ),
       );
 
-    renderWithProviders(<BooksToBuyView />);
+    renderWishlist();
 
     const total = await screen.findByText("Усього в списку");
     expect(total.closest("[data-slot=stat-card]")).toHaveTextContent("33книги");
@@ -191,39 +206,61 @@ describe("BooksToBuyView", () => {
     expect(waiting.closest("[data-slot=stat-card]")).toHaveTextContent("Понад 6 місяців у списку");
   });
 
-  it("tells a filtered-out wishlist apart from an empty one and restores it on reset", async () => {
-    respondToWishlist = (url) =>
-      Promise.resolve(
-        jsonResponse(
-          url.includes("link=without_links")
-            ? { ...wishlistOf([]), totalBooksCount: 1 }
-            : wishlistOf([
-                makeWishlistBook({
-                  id: "alpha",
-                  storeLinks: [makeStoreLink({ id: "link-alpha" })],
-                  title: "Альфа",
-                }),
-              ]),
-        ),
-      );
+  it("repeats the same four stats on the narrow tiles the desktop cards show", async () => {
+    renderWishlist();
 
-    renderWithProviders(<BooksToBuyView />);
+    await screen.findByText("Усього в списку");
 
-    expect(await screen.findByText("Показано 1 з 1 книги")).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole("button", { name: "Фільтри" }));
-    const chips = screen.getByRole("radiogroup", {
-      name: "Фільтр за посиланнями та цінами",
-    });
-    await userEvent.click(within(chips).getByRole("radio", { name: /Без посилань/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Застосувати фільтри" }));
+    for (const tile of ["Книги", "Пропущені", "Наступні", "Давно"]) {
+      expect(screen.getByText(tile)).toBeInTheDocument();
+    }
+  });
+
+  it("tells a filtered-out wishlist apart from an empty one", async () => {
+    respondToWishlist = () =>
+      Promise.resolve(jsonResponse({ ...wishlistOf([]), totalBooksCount: 1 }));
+
+    renderWishlist("?link=without_links");
 
     expect(await screen.findByText("Нічого не знайдено")).toBeInTheDocument();
     expect(await screen.findByText(/^Показано 0 з /)).toBeInTheDocument();
     expect(screen.queryByText("Збережи книги для майбутніх покупок")).not.toBeInTheDocument();
+  });
 
-    await userEvent.click(screen.getByRole("button", { name: "Очистити фільтри" }));
+  it("drops every filter from the url when the reader clears a filtered-out list", async () => {
+    respondToWishlist = () =>
+      Promise.resolve(jsonResponse({ ...wishlistOf([]), totalBooksCount: 1 }));
+    const events: string[] = [];
 
-    expect(await screen.findByRole("heading", { name: "Альфа" })).toBeInTheDocument();
+    renderWishlist("?link=without_links", (event) => {
+      events.push(event.queryString);
+    });
+
+    await userEvent.click(await screen.findByRole("button", { name: "Очистити фільтри" }));
+
+    await waitFor(() => expect(events.at(-1)).toBe(""));
+  });
+
+  it("hands the chosen sort to the endpoint", async () => {
+    respondToWishlist = () => Promise.resolve(jsonResponse(wishlistOf([makeWishlistBook()])));
+
+    renderWishlist("?sort=price_asc");
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=price_asc"))).toBe(
+        true,
+      ),
+    );
+  });
+
+  it("keeps a filter chip for every applied filter", async () => {
+    respondToWishlist = () => Promise.resolve(jsonResponse(wishlistOf([makeWishlistBook()])));
+
+    renderWishlist("?link=has_price&currency=USD");
+
+    const chips = await screen.findByRole("group", { name: "Активні фільтри" });
+    expect(within(chips).getByText("З ціною")).toBeInTheDocument();
+    expect(within(chips).getByText("USD")).toBeInTheDocument();
   });
 
   it("sends link filters to the wishlist endpoint", async () => {
@@ -241,21 +278,19 @@ describe("BooksToBuyView", () => {
         ),
       );
 
-    renderWithProviders(<BooksToBuyView />);
+    renderWishlist();
 
     await userEvent.click(await screen.findByRole("button", { name: "Фільтри" }));
     const chips = screen.getByRole("radiogroup", {
-      name: "Фільтр за посиланнями та цінами",
+      name: "Посилання та ціни",
     });
     await userEvent.click(within(chips).getByRole("radio", { name: "Є посилання" }));
     await userEvent.click(screen.getByRole("button", { name: "Застосувати фільтри" }));
 
     await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(([url]) =>
-          String(url).includes("/api/books/wishlist?link=has_links"),
-        ),
-      ).toBe(true),
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("link=has_links"))).toBe(
+        true,
+      ),
     );
   });
 });

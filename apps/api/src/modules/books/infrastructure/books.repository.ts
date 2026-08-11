@@ -7,9 +7,15 @@ import type {
   OwnershipStatus,
   ReadingStatus,
   WishlistQuery,
+  WishlistSort,
 } from "@app/shared";
 
-import { DELIVERY_ACTIVE_STATUSES, LoanTypeSchema } from "@app/shared";
+import {
+  DEFAULT_CURRENCY,
+  DELIVERY_ACTIVE_STATUSES,
+  LoanTypeSchema,
+  WISHLIST_SORT_DEFAULT,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { subDays, subMonths } from "date-fns";
 import { z } from "zod";
@@ -46,6 +52,17 @@ const CLEARED_QUEUE_PLACEMENT = {
 
 const WISHLIST_MAX_BOOKS = 1000;
 const READING_STATUS_FINISHED = "finished";
+
+const WISHLIST_ORDER_SQL: Record<WishlistSort, Prisma.Sql> = {
+  added_asc: Prisma.sql`COALESCE(book.wishlist_added_at, book.created_at) ASC`,
+  added_desc: Prisma.sql`COALESCE(book.wishlist_added_at, book.created_at) DESC`,
+  author_asc: Prisma.sql`first_author.name ASC NULLS LAST`,
+  price_asc: Prisma.sql`best_offer.price ASC NULLS LAST`,
+  price_desc: Prisma.sql`best_offer.price DESC NULLS LAST`,
+  publisher_asc: Prisma.sql`publisher.name ASC NULLS LAST`,
+  stores_desc: Prisma.sql`store_count.total DESC`,
+  title_asc: Prisma.sql`book.title ASC`,
+};
 
 function buildWishlistWhere({
   now,
@@ -122,6 +139,13 @@ function buildWishlistWhere({
 }
 
 const GenreKeyRowSchema = z.object({ key: z.string() });
+
+const WishlistStoreFacetRowSchema = z.object({
+  count: z.number().int().nonnegative(),
+  name: z.string(),
+});
+
+export type WishlistStoreFacetRow = z.infer<typeof WishlistStoreFacetRowSchema>;
 
 export const GenreCountRowSchema = z.object({ count: z.bigint(), key: z.string() });
 
@@ -892,15 +916,27 @@ export class BooksRepository {
     userId: string;
   }): Promise<WishlistBookRow[]> {
     const db = client ?? this.prisma;
-    const rows = await db.book.findMany({
-      include: wishlistWithRelations,
-      orderBy: LIBRARY_ORDER_BY.created_desc,
-      take: WISHLIST_MAX_BOOKS,
+    const matches = await db.book.findMany({
+      select: { id: true },
       where: buildWishlistWhere({ now, query, userId }),
     });
-    if (rows.length === WISHLIST_MAX_BOOKS) {
+    const orderedIds = await this.orderWishlistIds({
+      db,
+      ids: matches.map((match) => match.id),
+      sort: query.sort ?? WISHLIST_SORT_DEFAULT,
+    });
+    if (orderedIds.length === WISHLIST_MAX_BOOKS) {
       log.warn({ cap: WISHLIST_MAX_BOOKS, userId }, "wishlist truncated at the safety cap");
     }
+    const unordered = await db.book.findMany({
+      include: wishlistWithRelations,
+      where: { id: { in: orderedIds } },
+    });
+    const byId = new Map(unordered.map((row) => [row.id, row]));
+    const rows = orderedIds.flatMap((id) => {
+      const row = byId.get(id);
+      return row === undefined ? [] : [row];
+    });
     if (query.seriesPlacement === undefined) {
       return rows;
     }
@@ -920,6 +956,20 @@ export class BooksRepository {
       const placement = placeWishlistBookInSeries({ anchorBySeriesId, book });
       return placement !== null && query.seriesPlacement?.includes(placement.kind) === true;
     });
+  }
+
+  async listWishlistStoreFacets(userId: string): Promise<WishlistStoreFacetRow[]> {
+    const rows = await this.prisma.$queryRaw`
+      SELECT link.store_name AS name, count(DISTINCT link.book_id)::int AS count
+      FROM book_store_links link
+      JOIN books book ON book.id = link.book_id
+      WHERE book.user_id = ${userId}::uuid
+        AND book.ownership_status = ${WISHLIST_OWNERSHIP_STATUS}
+        ${ACTIVE_BOOK_SQL}
+      GROUP BY link.store_name
+      ORDER BY count DESC, name ASC
+    `;
+    return z.array(WishlistStoreFacetRowSchema).parse(rows);
   }
 
   async maxQueuePosition(
@@ -1178,6 +1228,54 @@ export class BooksRepository {
       where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
     });
     return exists === null ? "not-found" : "status-conflict";
+  }
+
+  private async orderWishlistIds({
+    db,
+    ids,
+    sort,
+  }: {
+    db: Prisma.TransactionClient | PrismaService;
+    ids: string[];
+    sort: WishlistSort;
+  }): Promise<string[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    const rows = await db.$queryRaw`
+      SELECT book.id
+      FROM books book
+      LEFT JOIN publishers publisher ON publisher.id = book.publisher_id
+      LEFT JOIN LATERAL (
+        SELECT author.name
+        FROM book_authors book_author
+        JOIN authors author ON author.id = book_author.author_id
+        WHERE book_author.book_id = book.id
+        ORDER BY book_author.position ASC
+        LIMIT 1
+      ) first_author ON true
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(
+          min(link.price) FILTER (WHERE COALESCE(link.currency, ${DEFAULT_CURRENCY}) = 'UAH'),
+          min(link.price) FILTER (WHERE link.currency = 'EUR'),
+          min(link.price) FILTER (WHERE link.currency = 'USD')
+        ) AS price
+        FROM book_store_links link
+        WHERE link.book_id = book.id AND link.price IS NOT NULL
+      ) best_offer ON true
+      LEFT JOIN LATERAL (
+        SELECT count(*)::int AS total
+        FROM book_store_links link
+        WHERE link.book_id = book.id
+      ) store_count ON true
+      WHERE book.id = ANY(${ids}::uuid[])
+      ORDER BY ${WISHLIST_ORDER_SQL[sort]}, book.created_at DESC, book.id ASC
+      LIMIT ${WISHLIST_MAX_BOOKS}
+    `;
+    return z
+      .array(z.object({ id: z.uuid() }))
+      .parse(rows)
+      .map((row) => row.id);
   }
 }
 

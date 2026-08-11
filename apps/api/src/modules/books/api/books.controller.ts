@@ -7,6 +7,7 @@ import type {
   PaginatedTrashedBooks,
   Paginator,
   RecentPurchaseStores,
+  WishlistFacetsView,
   WishlistQuery,
   WishlistView,
 } from "@app/shared";
@@ -71,6 +72,7 @@ import { FavoritesSummaryViewDto } from "./view-dto/favorites-summary.view-dto.j
 import { LibraryOverviewViewDto } from "./view-dto/library-overview.view-dto.js";
 import { PaginatedBooksDto } from "./view-dto/paginated-books.view-dto.js";
 import { PaginatedTrashedBooksDto } from "./view-dto/paginated-trashed-books.view-dto.js";
+import { WishlistFacetsViewDto } from "./view-dto/wishlist-facets.view-dto.js";
 import { WishlistViewDto } from "./view-dto/wishlist.view-dto.js";
 
 const CREATE_BOOK_TTL_SECONDS = 60;
@@ -167,6 +169,17 @@ export class BooksController {
     @Query(new ZodQueryPipe(WishlistQuerySchema)) query: WishlistQueryDto,
   ): Promise<WishlistView> {
     return this.wishlistService.getWishlist({ query: query as WishlistQuery, userId: user.id });
+  }
+  @ApiOkResponse({
+    description: "Store names available across the whole wishlist, ignoring the active filters",
+    type: WishlistFacetsViewDto,
+  })
+  @ApiOperation({ summary: "Get the filter facets of the current user books-to-buy wishlist" })
+  @Get("wishlist/facets")
+  @JwtProtected()
+  @Throttle(READ_THROTTLE)
+  wishlistFacets(@CurrentUser() user: AuthenticatedUser): Promise<WishlistFacetsView> {
+    return this.wishlistService.getFacets({ userId: user.id });
   }
   @ApiOkResponse({
     description: "A page of the current user books that carry a dedication",

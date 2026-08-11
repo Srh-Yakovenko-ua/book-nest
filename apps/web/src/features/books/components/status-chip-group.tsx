@@ -6,6 +6,7 @@ import { chipVariants } from "@/components/ui/chip-group";
 import { cn } from "@/lib/utils";
 
 type MultiStatusChipGroupProps = {
+  chipClassName?: string;
   label: string;
   mode: "multi";
   onValueChange: (value: string[]) => void;
@@ -14,6 +15,7 @@ type MultiStatusChipGroupProps = {
 };
 
 type SingleStatusChipGroupProps = {
+  chipClassName?: string;
   label: string;
   mode?: "single";
   onValueChange: (value: string) => void;
@@ -35,7 +37,13 @@ export function StatusChipGroup(props: MultiStatusChipGroupProps | SingleStatusC
   return <SingleStatusChipGroup {...props} />;
 }
 
-function MultiStatusChipGroup({ label, onValueChange, options, value }: MultiStatusChipGroupProps) {
+function MultiStatusChipGroup({
+  chipClassName,
+  label,
+  onValueChange,
+  options,
+  value,
+}: MultiStatusChipGroupProps) {
   function toggle(option: string) {
     const next = value.includes(option)
       ? value.filter((item) => item !== option)
@@ -50,7 +58,7 @@ function MultiStatusChipGroup({ label, onValueChange, options, value }: MultiSta
         return (
           <button
             aria-pressed={pressed}
-            className={cn(chipVariants(), "cursor-pointer")}
+            className={cn(chipVariants(), "cursor-pointer", chipClassName)}
             data-state={pressed ? "on" : "off"}
             key={option.value}
             onClick={() => toggle(option.value)}
@@ -66,6 +74,7 @@ function MultiStatusChipGroup({ label, onValueChange, options, value }: MultiSta
 }
 
 function SingleStatusChipGroup({
+  chipClassName,
   label,
   onValueChange,
   options,
@@ -91,7 +100,7 @@ function SingleStatusChipGroup({
         return (
           <button
             aria-checked={checked}
-            className={cn(chipVariants(), "cursor-pointer")}
+            className={cn(chipVariants(), "cursor-pointer", chipClassName)}
             data-state={checked ? "on" : "off"}
             id={`${groupId}-${option.value}`}
             key={option.value}
