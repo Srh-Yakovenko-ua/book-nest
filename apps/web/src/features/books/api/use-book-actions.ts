@@ -4,6 +4,7 @@ import type { InfiniteData, QueryKey } from "@tanstack/react-query";
 import { BulkActionResultSchema } from "@app/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { listKeys } from "@/features/lists/api/list-keys";
 import { seriesKeys } from "@/features/series/api/series-keys";
 import {
   booksControllerDelete,
@@ -56,7 +57,7 @@ export function useBulkAddToList() {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookKeys.root });
-      void queryClient.invalidateQueries({ queryKey: ["lists"] });
+      void queryClient.invalidateQueries({ queryKey: listKeys.root });
     },
   });
 }
