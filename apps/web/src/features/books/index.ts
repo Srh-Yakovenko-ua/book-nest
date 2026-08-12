@@ -1,4 +1,3 @@
-export { useAuthorOptions } from "./api/use-author-options";
 export { useBook } from "./api/use-book";
 export { useToggleFavorite } from "./api/use-book-actions";
 export { useBookFacets } from "./api/use-book-facets";
@@ -7,8 +6,6 @@ export { useCreateDelivery } from "./api/use-delivery";
 export { useGenres } from "./api/use-genres";
 export { useMarkOwned, useRemoveFromWishlist } from "./api/use-ownership";
 export { usePublishersSearch } from "./api/use-publishers-search";
-export { useRecentAuthors } from "./api/use-recent-authors";
-export { useRecentGenres } from "./api/use-recent-genres";
 export { useRecentPublishers } from "./api/use-recent-publishers";
 export { AuthorsField } from "./components/authors-field";
 export { BookActionDialogs } from "./components/book-action-dialogs";
