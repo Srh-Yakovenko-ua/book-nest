@@ -4,9 +4,7 @@ import type { WishlistSort } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 
-import type { MobileSortGroup } from "@/components/ui/mobile-sort-sheet";
-
-import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
+import { buildMobileSortGroups, MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 
 import { WISHLIST_SORT_VALUES } from "../model/wishlist-query";
 
@@ -33,21 +31,16 @@ const SORT_GROUP_BY_VALUE: Record<WishlistSort, SortGroupKey> = {
 export function WishlistSortSheet({ className, label, onChange, value }: WishlistSortSheetProps) {
   const t = useTranslations("booksToBuy.sortMobile");
 
-  const groups: MobileSortGroup<WishlistSort>[] = [];
-
-  for (const option of WISHLIST_SORT_VALUES) {
-    const key = SORT_GROUP_BY_VALUE[option];
-    const entry = { label: t(`options.${option}`), value: option };
-    const group = groups.find((candidate) => candidate.key === key);
-    if (group === undefined) groups.push({ key, label: t(`groups.${key}`), options: [entry] });
-    else group.options.push(entry);
-  }
-
   return (
     <MobileSortSheet
       className={className}
       closeLabel={t("close")}
-      groups={groups}
+      groups={buildMobileSortGroups({
+        groupKeyByValue: SORT_GROUP_BY_VALUE,
+        groupLabel: (key) => t(`groups.${key}`),
+        optionLabel: (option) => t(`options.${option}`),
+        values: WISHLIST_SORT_VALUES,
+      })}
       id="books-to-buy-sort"
       label={label}
       onChange={onChange}

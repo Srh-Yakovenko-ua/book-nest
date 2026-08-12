@@ -49,13 +49,13 @@ export function AddBooksToListDialog({ listId, onOpenChange, open }: AddBooksToL
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>{t("subtitle")}</DialogDescription>
         </DialogHeader>
-        {open ? <AddBooksForm listId={listId} /> : null}
+        {open ? <AddBooksForm listId={listId} onDone={() => onOpenChange(false)} /> : null}
       </DialogContent>
     </Dialog>
   );
 }
 
-function AddBooksForm({ listId }: { listId: string }) {
+function AddBooksForm({ listId, onDone }: { listId: string; onDone: () => void }) {
   const t = useTranslations("lists.addBooks");
   const tStatus = useTranslations("books.readingStatus.options");
   const tToast = useTranslations("lists.details.toast");
@@ -90,7 +90,7 @@ function AddBooksForm({ listId }: { listId: string }) {
         onError: () => toast.error(tToast("error")),
         onSuccess: (result) => {
           toast.success(t("toast", { count: result.added }));
-          setSelected([]);
+          onDone();
         },
       },
     );

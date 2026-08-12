@@ -20,6 +20,13 @@ export type MobileSortOption<TValue extends string> = {
   value: TValue;
 };
 
+type MobileSortGroupsInput<TValue extends string, TGroupKey extends string> = {
+  groupKeyByValue: Record<TValue, TGroupKey>;
+  groupLabel: (key: TGroupKey) => string;
+  optionLabel: (value: TValue) => string;
+  values: readonly TValue[];
+};
+
 type MobileSortSheetProps<TValue extends string> = {
   className?: string;
   closeLabel: string;
@@ -31,6 +38,25 @@ type MobileSortSheetProps<TValue extends string> = {
   triggerLabel: string;
   value: TValue;
 };
+
+export function buildMobileSortGroups<TValue extends string, TGroupKey extends string>({
+  groupKeyByValue,
+  groupLabel,
+  optionLabel,
+  values,
+}: MobileSortGroupsInput<TValue, TGroupKey>): MobileSortGroup<TValue>[] {
+  const groups: MobileSortGroup<TValue>[] = [];
+
+  for (const value of values) {
+    const key = groupKeyByValue[value];
+    const option = { label: optionLabel(value), value };
+    const group = groups.find((candidate) => candidate.key === key);
+    if (group === undefined) groups.push({ key, label: groupLabel(key), options: [option] });
+    else group.options.push(option);
+  }
+
+  return groups;
+}
 
 export function MobileSortSheet<TValue extends string>({
   className,

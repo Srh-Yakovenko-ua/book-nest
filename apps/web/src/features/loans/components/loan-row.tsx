@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Link } from "@/i18n/navigation";
 import { ownershipStatuses } from "@/lib/book-status";
@@ -60,7 +61,14 @@ export function LoanRow({ loan, onEdit, onReturn, today }: LoanRowProps) {
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {loan.remindToReturn ? (
-              <UiIcon className="text-warning" name="bell" size={16} title={tRow("reminderOn")} />
+              <TooltipHint label={tRow("reminderOn")}>
+                <UiIcon
+                  aria-label={tRow("reminderOn")}
+                  className="text-warning"
+                  name="bell"
+                  size={16}
+                />
+              </TooltipHint>
             ) : null}
             <LoanActionsMenu loan={loan} onEdit={onEdit} onReturn={onReturn} />
           </div>

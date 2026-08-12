@@ -16,11 +16,14 @@ export function canReorderListDetail({
   isFetching: boolean;
   state: ListDetailQueryState;
 }): boolean {
+  return isListDetailOrderView(state) && !isFetching;
+}
+
+export function isListDetailOrderView(state: ListDetailQueryState): boolean {
   if (state.sort !== LIST_BOOK_SORT_DEFAULT) return false;
   if (hasActiveListDetailSearch(state)) return false;
   if (hasActiveListDetailFilters(state)) return false;
-  if (activeListDetailTab(state) !== ListDetailsControllerDetailTab.all) return false;
-  return !isFetching;
+  return activeListDetailTab(state) === ListDetailsControllerDetailTab.all;
 }
 
 export function listBookReorder({

@@ -32,6 +32,7 @@ import { useEffect } from "react";
 import { LocalePicker } from "@/components/locale-picker";
 import { SessionMenu } from "@/components/session-menu";
 import { ThemePicker } from "@/components/theme-picker";
+import { TooltipHint } from "@/components/tooltip-hint";
 import {
   Sidebar,
   SidebarContent,
@@ -198,7 +199,7 @@ function AppSidebar() {
         {!collapsed && (
           <Image
             alt=""
-            className="mx-auto block h-auto w-4/5 select-none"
+            className="mx-auto block size-[150px] select-none lg:h-auto lg:w-4/5"
             height={500}
             priority={false}
             src="/illustrations/sidebar.png"
@@ -207,7 +208,12 @@ function AppSidebar() {
         )}
       </SidebarFooter>
 
-      <SidebarRail />
+      <TooltipHint label={collapsed ? tShell("expandSidebar") : tShell("collapseSidebar")}>
+        <SidebarRail
+          aria-label={collapsed ? tShell("expandSidebar") : tShell("collapseSidebar")}
+          title={undefined}
+        />
+      </TooltipHint>
     </Sidebar>
   );
 }

@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -300,16 +301,17 @@ function StoreNameLink({ link }: { link: BookStoreLinkView }) {
   }
 
   return (
-    <a
-      className="inline-flex min-w-0 items-center gap-1 rounded-md text-sm font-medium text-foreground transition-colors outline-none hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none"
-      href={link.url}
-      rel="noopener noreferrer"
-      target="_blank"
-      title={link.url}
-    >
-      <span className="min-w-0 truncate">{link.storeName}</span>
-      <UiIcon className="text-muted-foreground" name="external" size={12} />
-      <span className="sr-only">{tCommon("opensInNewTab")}</span>
-    </a>
+    <TooltipHint label={link.url}>
+      <a
+        className="inline-flex min-w-0 items-center gap-1 rounded-md text-sm font-medium text-foreground transition-colors outline-none hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none"
+        href={link.url}
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        <span className="min-w-0 truncate">{link.storeName}</span>
+        <UiIcon className="text-muted-foreground" name="external" size={12} />
+        <span className="sr-only">{tCommon("opensInNewTab")}</span>
+      </a>
+    </TooltipHint>
   );
 }

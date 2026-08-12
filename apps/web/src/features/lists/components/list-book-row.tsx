@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toLibraryBook } from "@/features/books/model/library-book";
@@ -79,22 +80,25 @@ export function ListBookRow({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <h3
-          className="line-clamp-1 text-sm leading-tight font-semibold text-ink"
-          title={book.title}
-        >
-          <Link
-            className="text-ink no-underline transition-colors group-hover/list-row:text-primary after:absolute after:inset-0"
-            href={libraryBook.href}
-          >
-            {book.title}
-          </Link>
-        </h3>
-        <p className="line-clamp-1 text-xs text-muted-foreground" title={authorsText}>
-          {authorsText}
-        </p>
+        <TooltipHint label={book.title}>
+          <h3 className="line-clamp-1 text-sm leading-tight font-semibold text-ink">
+            <Link
+              className="text-ink no-underline transition-colors group-hover/list-row:text-primary after:absolute after:inset-0"
+              href={libraryBook.href}
+            >
+              {book.title}
+            </Link>
+          </h3>
+        </TooltipHint>
+        <TooltipHint label={authorsText}>
+          <p className="line-clamp-1 text-xs text-muted-foreground">{authorsText}</p>
+        </TooltipHint>
         {showPosition ? (
-          <Badge className="mt-0.5 w-fit tabular-nums" variant="secondary">
+          <Badge
+            aria-label={t("positionLabel", { n: book.position })}
+            className="mt-0.5 w-fit tabular-nums"
+            variant="secondary"
+          >
             {t("position", { n: book.position })}
           </Badge>
         ) : null}

@@ -6,6 +6,7 @@ import { LayoutGrid, List, SquareCheckBig } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
+import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/segmented";
 import {
@@ -31,6 +32,7 @@ type ListDetailsToolbarProps = {
   chips: ActiveFilterChip[];
   counterLabel: string;
   id: string;
+  isReorderLocked: boolean;
   isSelecting: boolean;
   onClearAll: () => void;
   onSearchChange: (value: string) => void;
@@ -46,6 +48,7 @@ export function ListDetailsToolbar({
   chips,
   counterLabel,
   id,
+  isReorderLocked,
   isSelecting,
   onClearAll,
   onSearchChange,
@@ -57,6 +60,7 @@ export function ListDetailsToolbar({
   state,
 }: ListDetailsToolbarProps) {
   const t = useTranslations("lists.details.toolbar");
+  const tReorder = useTranslations("lists.details.reorder");
   const tSelection = useTranslations("lists.details.selection");
   const tSort = useTranslations("lists.details.toolbar.sort");
   const tView = useTranslations("lists.details.view");
@@ -69,10 +73,10 @@ export function ListDetailsToolbar({
           <DebouncedSearchInput
             clearLabel={tCommon("clear")}
             isCommittable={alwaysCommittable}
-            label={t("search")}
+            label={t("searchLabel")}
             onClear={() => onSearchChange("")}
             onSearch={onSearchChange}
-            placeholder={t("search")}
+            placeholder={t("searchPlaceholder")}
             value={state.q}
           />
         </div>
@@ -137,6 +141,16 @@ export function ListDetailsToolbar({
       {quickFilters}
 
       <LibraryActiveFilters chips={chips} onClearAll={onClearAll} />
+
+      {isReorderLocked ? (
+        <div
+          className="flex items-start gap-2 rounded-md border border-info/30 bg-info-soft/60 px-3 py-2 text-xs text-info"
+          role="status"
+        >
+          <UiIcon aria-hidden className="mt-px shrink-0" name="info" size={14} />
+          <span>{tReorder("hint")}</span>
+        </div>
+      ) : null}
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
         {counterLabel}
