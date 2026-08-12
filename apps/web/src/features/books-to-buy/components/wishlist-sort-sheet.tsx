@@ -35,6 +35,7 @@ export function WishlistSortSheet({ className, label, onChange, value }: Wishlis
     <MobileSortSheet
       className={className}
       closeLabel={t("close")}
+      description={t("description")}
       groups={buildMobileSortGroups({
         groupKeyByValue: SORT_GROUP_BY_VALUE,
         groupLabel: (key) => t(`groups.${key}`),

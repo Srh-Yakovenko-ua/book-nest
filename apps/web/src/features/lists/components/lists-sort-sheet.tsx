@@ -34,6 +34,7 @@ export function ListsSortSheet({ className, label, onChange, value }: ListsSortS
     <MobileSortSheet
       className={className}
       closeLabel={t("close")}
+      description={t("description")}
       groups={buildMobileSortGroups({
         groupKeyByValue: SORT_GROUP_BY_VALUE,
         groupLabel: (key) => t(`groups.${key}`),

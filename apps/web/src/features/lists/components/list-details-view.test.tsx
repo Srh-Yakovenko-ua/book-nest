@@ -161,6 +161,14 @@ function sidebar() {
   return within(screen.getByRole("complementary", { name: "Більше про добірку" }));
 }
 
+function stubMobileViewport() {
+  vi.stubGlobal("matchMedia", () => ({
+    addEventListener: vi.fn(),
+    matches: false,
+    removeEventListener: vi.fn(),
+  }));
+}
+
 function trackUrl() {
   const events: UrlUpdateEvent[] = [];
   const onUrlUpdate: OnUrlUpdateFunction = (event) => {
@@ -416,6 +424,36 @@ describe("ListDetailsView statistics cards", () => {
     expect(screen.queryByText("У черзі читання")).not.toBeInTheDocument();
     expect(screen.queryByText("Є у власності")).not.toBeInTheDocument();
     expect(screen.queryByText("Ще жодної прочитаної книги")).not.toBeInTheDocument();
+  });
+});
+
+describe("ListDetailsView mobile overview", () => {
+  it("condenses the statistics into compact tiles next to the overview trigger", async () => {
+    renderPopulatedList();
+
+    expect(await screen.findByText("Книг")).toBeInTheDocument();
+    expect(screen.getByText("Є вдома")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Огляд добірки" })).toBeInTheDocument();
+  });
+
+  it("moves the sidebar blocks into the overview panel", async () => {
+    stubMobileViewport();
+    respondToRelated = () =>
+      jsonResponse({
+        lists: [makeRelatedListView({ id: "33333333-3333-4333-8333-333333333331", name: "Осінь" })],
+      });
+    renderPopulatedList();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Огляд добірки" }));
+
+    const panel = within(await screen.findByRole("dialog", { name: "Огляд добірки" }));
+
+    expect(panel.getByText("Детальна статистика")).toBeInTheDocument();
+    expect(panel.getByText("Про добірку")).toBeInTheDocument();
+
+    await userEvent.click(panel.getByRole("radio", { name: "Схожі 1" }));
+
+    expect(panel.getByRole("link", { name: /Осінь/ })).toBeInTheDocument();
   });
 });
 

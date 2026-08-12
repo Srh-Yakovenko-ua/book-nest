@@ -9,7 +9,7 @@ import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 
-import { ListSidebarCard, ListSidebarCollapsible } from "./list-sidebar";
+import { ListSidebarCard } from "./list-sidebar";
 
 type ListRelatedCardProps = {
   lists: RelatedListView[];
@@ -26,18 +26,6 @@ export function ListRelatedCard({ lists }: ListRelatedCardProps) {
     <ListSidebarCard icon="layers" title={t("title")}>
       <RelatedRows lists={lists} />
     </ListSidebarCard>
-  );
-}
-
-export function ListRelatedCollapsible({ lists }: ListRelatedCardProps) {
-  const t = useTranslations("lists.details.sidebar.related");
-
-  if (lists.length === 0) return null;
-
-  return (
-    <ListSidebarCollapsible icon="layers" title={t("title")}>
-      <RelatedRows lists={lists} />
-    </ListSidebarCollapsible>
   );
 }
 

@@ -86,6 +86,7 @@ export function NotesArchiveToolbar({
         <MobileSortSheet
           className="max-w-[9.5rem] sm:hidden"
           closeLabel={tSortMobile("close")}
+          description={tSortMobile("description")}
           groups={[
             {
               key: "sort",

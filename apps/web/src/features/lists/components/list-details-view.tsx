@@ -49,17 +49,18 @@ import { useListDetailQuery } from "../model/use-list-detail-query";
 import { AddBooksToListDialog } from "./add-books-to-list-dialog";
 import { DeleteListDialog } from "./delete-list-dialog";
 import { EditListDialog } from "./edit-list-dialog";
-import { ListAboutCard, ListAboutCollapsible } from "./list-about-card";
+import { ListAboutCard } from "./list-about-card";
 import { ListBookCard } from "./list-book-card";
 import { ListBookRow } from "./list-book-row";
 import { ListBulkActions } from "./list-bulk-actions";
 import { ListCurrentlyReadingCard } from "./list-currently-reading-card";
 import { ListDetailsHeader } from "./list-details-header";
+import { ListDetailsOverviewPanel } from "./list-details-overview-panel";
 import { ListDetailsToolbar } from "./list-details-toolbar";
 import { ListQuickFilters } from "./list-quick-filters";
-import { ListRelatedCard, ListRelatedCollapsible } from "./list-related-card";
+import { ListRelatedCard } from "./list-related-card";
 import { ListSidebar } from "./list-sidebar";
-import { ListStatsCards } from "./list-stats-cards";
+import { ListStatsCards, useListSummaryCards } from "./list-stats-cards";
 
 type ListDetailsViewProps = {
   hasNextPage: boolean;
@@ -102,6 +103,7 @@ export function ListDetailsView({
   const relatedQuery = useListRelated(id);
   const overview = overviewQuery.data ?? null;
   const relatedLists = relatedQuery.data?.lists ?? [];
+  const summaryCards = useListSummaryCards(overview);
   const authorNameById = new Map((facets.data?.authors ?? []).map((item) => [item.id, item.name]));
   const facetGenreNameByKey = new Map(
     (facets.data?.genres ?? []).map((item) => [item.key, item.name]),
@@ -336,10 +338,10 @@ export function ListDetailsView({
 
         <div
           className={cn(
-            "grid gap-5",
+            "grid gap-5 max-sm:gap-3",
             isListView
               ? "grid-cols-1"
-              : "grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]",
+              : "grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(16rem,1fr))]",
           )}
         >
           {books.map((book) =>
@@ -383,11 +385,21 @@ export function ListDetailsView({
 
       {isListEmpty ? null : (
         <>
-          <div className="lg:hidden">
-            <ListCurrentlyReadingCard overview={overview} />
-          </div>
-
-          <ListStatsCards isPending={overviewQuery.isPending} overview={overview} />
+          <ListStatsCards
+            isPending={overviewQuery.isPending}
+            mobileAction={
+              <ListDetailsOverviewPanel
+                bookCount={bookCount}
+                isLoading={overviewQuery.isPending}
+                listId={id}
+                listName={firstPage.name}
+                overview={overview}
+                relatedLists={relatedLists}
+                summaryCards={summaryCards}
+              />
+            }
+            overview={overview}
+          />
 
           <ListDetailsToolbar
             chips={chips}
@@ -429,12 +441,6 @@ export function ListDetailsView({
           <ListCurrentlyReadingCard overview={overview} />
           <ListRelatedCard lists={relatedLists} />
         </ListSidebar>
-      </div>
-
-      <div className="flex flex-col gap-6 lg:hidden">
-        <ListAboutCollapsible overview={overview} />
-        <ListGoalCard bookCount={bookCount} listId={id} listName={firstPage.name} />
-        <ListRelatedCollapsible lists={relatedLists} />
       </div>
 
       <AddBooksToListDialog listId={id} onOpenChange={setAddBooksOpen} open={addBooksOpen} />

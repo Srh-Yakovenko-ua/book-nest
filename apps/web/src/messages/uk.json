@@ -703,6 +703,7 @@
         },
         "mobile": {
           "title": "Сортування",
+          "description": "Виберіть порядок книг у бібліотеці.",
           "close": "Закрити",
           "groups": {
             "date": "Дата",
@@ -2110,6 +2111,7 @@
     },
     "sortMobile": {
       "title": "Сортування",
+      "description": "Виберіть порядок книг у списку бажань.",
       "close": "Закрити",
       "groups": {
         "added": "Дата додавання",
@@ -2293,6 +2295,7 @@
       "publication_year_desc": "За роком видання: спочатку нові",
       "mobile": {
         "title": "Сортування",
+        "description": "Виберіть порядок присвят.",
         "close": "Закрити",
         "trigger": {
           "newest": "Нові",
@@ -2951,6 +2954,7 @@
       "activity_desc": "За датою оновлення: спочатку нові",
       "mobile": {
         "title": "Сортування",
+        "description": "Виберіть порядок серій.",
         "close": "Закрити",
         "trigger": {
           "name_asc": "А–Я",
@@ -3293,7 +3297,51 @@
           "rating_desc": "За рейтингом: від вищого",
           "rating_asc": "За рейтингом: від нижчого",
           "pages_desc": "За кількістю сторінок: від більшої",
-          "pages_asc": "За кількістю сторінок: від меншої"
+          "pages_asc": "За кількістю сторінок: від меншої",
+          "mobile": {
+            "title": "Сортування",
+            "description": "Виберіть порядок книг у списку.",
+            "close": "Закрити",
+            "groups": {
+              "position": "Позиція у списку",
+              "date": "Дата додавання",
+              "title": "Назва",
+              "author": "Автор",
+              "status": "Статус читання",
+              "rating": "Рейтинг",
+              "pages": "Сторінки"
+            },
+            "options": {
+              "position": "Як у списку",
+              "added_desc": "Спочатку нові",
+              "added_asc": "Спочатку старі",
+              "title_asc": "А–Я",
+              "title_desc": "Я–А",
+              "author_asc": "А–Я",
+              "author_desc": "Я–А",
+              "status_unread_first": "Спочатку непрочитані",
+              "status_read_first": "Спочатку прочитані",
+              "rating_desc": "Від вищого",
+              "rating_asc": "Від нижчого",
+              "pages_desc": "Від більшої",
+              "pages_asc": "Від меншої"
+            },
+            "trigger": {
+              "position": "Позиція",
+              "added_desc": "Нові",
+              "added_asc": "Старі",
+              "title_asc": "Назва А–Я",
+              "title_desc": "Назва Я–А",
+              "author_asc": "Автор А–Я",
+              "author_desc": "Автор Я–А",
+              "status_unread_first": "Непрочитані",
+              "status_read_first": "Прочитані",
+              "rating_desc": "Рейтинг ↓",
+              "rating_asc": "Рейтинг ↑",
+              "pages_desc": "Сторінок ↓",
+              "pages_asc": "Сторінок ↑"
+            }
+          }
         }
       },
       "header": {
@@ -3479,6 +3527,32 @@
           "caption": "{count, plural, one {# книга ще не у власності} few {# книги ще не у власності} many {# книг ще не у власності} other {# книг ще не у власності}}",
           "captionEmpty": "Жодної книги ще немає у власності",
           "captionFull": "Уся добірка у власності"
+        },
+        "mobile": {
+          "title": "Детальна статистика",
+          "compact": {
+            "total": "Книг",
+            "finished": "Прочитано",
+            "inQueue": "У черзі",
+            "owned": "Є вдома"
+          },
+          "detailed": {
+            "total": "Усього книг",
+            "finished": "Прочитано",
+            "inQueue": "У черзі читання",
+            "owned": "Є у власності"
+          }
+        }
+      },
+      "overviewPanel": {
+        "trigger": "Огляд добірки",
+        "title": "Огляд добірки",
+        "subtitle": "Статистика, читання та схожі списки",
+        "close": "Закрити огляд",
+        "tabs": {
+          "overview": "Огляд",
+          "reading": "Читання",
+          "related": "Схожі"
         }
       },
       "sidebar": {
@@ -3557,6 +3631,7 @@
         "books_count_asc": "За кількістю книг: спочатку менше",
         "mobile": {
           "title": "Сортування",
+          "description": "Виберіть порядок списків.",
           "close": "Закрити",
           "groups": {
             "date": "Дата",
@@ -3818,6 +3893,7 @@
       "return_soonest": "Спочатку найближчі повернення",
       "mobile": {
         "title": "Сортування",
+        "description": "Виберіть порядок позичених книг.",
         "close": "Закрити",
         "trigger": {
           "return_date": "Повернення",
@@ -4012,6 +4088,7 @@
       },
       "sortMobile": {
         "title": "Сортування",
+        "description": "Виберіть порядок нотаток.",
         "close": "Закрити",
         "trigger": {
           "newest": "Нові",
@@ -4264,6 +4341,8 @@
     },
     "sortMobile": {
       "title": "Сортування",
+      "genreDescription": "Виберіть порядок жанрів.",
+      "tagDescription": "Виберіть порядок тегів.",
       "close": "Закрити",
       "genreTrigger": {
         "books_count_desc": "Книги ↓",
@@ -4580,6 +4659,7 @@
     },
     "sortMobile": {
       "title": "Сортування",
+      "description": "Виберіть порядок цитат.",
       "close": "Закрити",
       "trigger": {
         "newest": "Нові",
@@ -4996,6 +5076,7 @@
       },
       "sortMobile": {
         "title": "Сортування",
+        "description": "Виберіть порядок видавництв.",
         "close": "Закрити",
         "trigger": {
           "name": "Назва",

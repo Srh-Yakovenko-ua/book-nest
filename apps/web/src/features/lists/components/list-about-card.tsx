@@ -9,7 +9,7 @@ import type { UiIconName } from "@/components/icons";
 
 import { GenreIcon, isGenreIconName, UiIcon } from "@/components/icons";
 
-import { ListSidebarCard, ListSidebarCollapsible } from "./list-sidebar";
+import { ListSidebarCard } from "./list-sidebar";
 
 type ListAboutCardProps = {
   overview: Nullable<ListOverviewView>;
@@ -24,18 +24,6 @@ export function ListAboutCard({ overview }: ListAboutCardProps) {
     <ListSidebarCard icon="info" title={t("title")}>
       <AboutFacts overview={overview} />
     </ListSidebarCard>
-  );
-}
-
-export function ListAboutCollapsible({ overview }: ListAboutCardProps) {
-  const t = useTranslations("lists.details.sidebar.about");
-
-  if (!hasAboutData(overview)) return null;
-
-  return (
-    <ListSidebarCollapsible icon="info" title={t("title")}>
-      <AboutFacts overview={overview} />
-    </ListSidebarCollapsible>
   );
 }
 

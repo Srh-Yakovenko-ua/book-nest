@@ -1,6 +1,7 @@
 "use client";
 
 import type { ListOverviewView, Nullable } from "@app/shared";
+import type { ReactNode } from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
@@ -9,24 +10,55 @@ import type { LibrarySummaryCard } from "@/features/books/components/library-sum
 import { LibrarySummaryCards } from "@/features/books/components/library-summary-cards";
 import { formatNumber } from "@/lib/format";
 
+type ListStatKey = "finished" | "inQueue" | "owned" | "total";
+
 type ListStatsCardsProps = {
   isPending: boolean;
+  mobileAction?: ReactNode;
   overview: Nullable<ListOverviewView>;
 };
 
 const LIST_STAT_CARD_COUNT = 4;
 
-export function ListStatsCards({ isPending, overview }: ListStatsCardsProps) {
+export function ListStatsCards({ isPending, mobileAction, overview }: ListStatsCardsProps) {
+  const cards = useListSummaryCards(overview);
+
+  if (isPending) {
+    return (
+      <LibrarySummaryCards
+        cards={[]}
+        isLoading
+        mobileAction={mobileAction}
+        mobileLayout="compact"
+        skeletonCount={LIST_STAT_CARD_COUNT}
+      />
+    );
+  }
+
+  if (cards.length === 0) return null;
+
+  return (
+    <LibrarySummaryCards
+      cards={cards}
+      isLoading={false}
+      mobileAction={mobileAction}
+      mobileLayout="compact"
+    />
+  );
+}
+
+export function useListSummaryCards(overview: Nullable<ListOverviewView>): LibrarySummaryCard[] {
   const t = useTranslations("lists.details.stats");
   const locale = useLocale();
 
-  if (isPending) {
-    return <LibrarySummaryCards cards={[]} isLoading skeletonCount={LIST_STAT_CARD_COUNT} />;
-  }
-
-  if (overview === null || overview.totalBooks === 0) return null;
+  if (overview === null || overview.totalBooks === 0) return [];
 
   const { distinctAuthorsCount, finishedCount, inQueueCount, ownedCount, totalBooks } = overview;
+
+  const mobileLabels = (key: ListStatKey) => ({
+    compact: t(`mobile.compact.${key}`),
+    detailed: t(`mobile.detailed.${key}`),
+  });
 
   function finishedCaption() {
     if (finishedCount === 0) return t("finished.captionEmpty");
@@ -45,12 +77,13 @@ export function ListStatsCards({ isPending, overview }: ListStatsCardsProps) {
     return t("owned.caption", { count: totalBooks - ownedCount });
   }
 
-  const cards: LibrarySummaryCard[] = [
+  return [
     {
       icon: "library",
       iconTone: "primary",
       label: t("total.title"),
       microfact: t("total.caption", { count: distinctAuthorsCount }),
+      mobileLabels: mobileLabels("total"),
       unit: t("total.value", { count: totalBooks }),
       value: formatNumber(totalBooks, locale),
     },
@@ -59,6 +92,7 @@ export function ListStatsCards({ isPending, overview }: ListStatsCardsProps) {
       iconTone: "success",
       label: t("finished.title"),
       microfact: finishedCaption(),
+      mobileLabels: mobileLabels("finished"),
       unit: t("finished.value", { count: finishedCount }),
       value: formatNumber(finishedCount, locale),
     },
@@ -67,6 +101,7 @@ export function ListStatsCards({ isPending, overview }: ListStatsCardsProps) {
       iconTone: "info",
       label: t("inQueue.title"),
       microfact: inQueueCaption(),
+      mobileLabels: mobileLabels("inQueue"),
       unit: t("inQueue.value", { count: inQueueCount }),
       value: formatNumber(inQueueCount, locale),
     },
@@ -75,10 +110,9 @@ export function ListStatsCards({ isPending, overview }: ListStatsCardsProps) {
       iconTone: "ink",
       label: t("owned.title"),
       microfact: ownedCaption(),
+      mobileLabels: mobileLabels("owned"),
       unit: t("owned.value", { count: ownedCount }),
       value: formatNumber(ownedCount, locale),
     },
   ];
-
-  return <LibrarySummaryCards cards={cards} isLoading={false} />;
 }

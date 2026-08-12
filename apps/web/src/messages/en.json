@@ -703,6 +703,7 @@
         },
         "mobile": {
           "title": "Sorting",
+          "description": "Choose the order of books in your library.",
           "close": "Close",
           "groups": {
             "date": "Date",
@@ -2110,6 +2111,7 @@
     },
     "sortMobile": {
       "title": "Sorting",
+      "description": "Choose the order of books in your wishlist.",
       "close": "Close",
       "groups": {
         "added": "Date added",
@@ -2293,6 +2295,7 @@
       "publication_year_desc": "Publication year: newest first",
       "mobile": {
         "title": "Sorting",
+        "description": "Choose the order of dedications.",
         "close": "Close",
         "trigger": {
           "newest": "Newest",
@@ -2951,6 +2954,7 @@
       "activity_desc": "Date updated: newest first",
       "mobile": {
         "title": "Sorting",
+        "description": "Choose the order of series.",
         "close": "Close",
         "trigger": {
           "name_asc": "A–Z",
@@ -3293,7 +3297,51 @@
           "rating_desc": "Rating: highest first",
           "rating_asc": "Rating: lowest first",
           "pages_desc": "Page count: most first",
-          "pages_asc": "Page count: fewest first"
+          "pages_asc": "Page count: fewest first",
+          "mobile": {
+            "title": "Sorting",
+            "description": "Choose the order of books in this list.",
+            "close": "Close",
+            "groups": {
+              "position": "Position in list",
+              "date": "Date added",
+              "title": "Title",
+              "author": "Author",
+              "status": "Reading status",
+              "rating": "Rating",
+              "pages": "Pages"
+            },
+            "options": {
+              "position": "List order",
+              "added_desc": "Newest first",
+              "added_asc": "Oldest first",
+              "title_asc": "A–Z",
+              "title_desc": "Z–A",
+              "author_asc": "A–Z",
+              "author_desc": "Z–A",
+              "status_unread_first": "Unread first",
+              "status_read_first": "Read first",
+              "rating_desc": "Highest first",
+              "rating_asc": "Lowest first",
+              "pages_desc": "Most first",
+              "pages_asc": "Fewest first"
+            },
+            "trigger": {
+              "position": "Position",
+              "added_desc": "Newest",
+              "added_asc": "Oldest",
+              "title_asc": "Title A–Z",
+              "title_desc": "Title Z–A",
+              "author_asc": "Author A–Z",
+              "author_desc": "Author Z–A",
+              "status_unread_first": "Unread",
+              "status_read_first": "Read",
+              "rating_desc": "Rating ↓",
+              "rating_asc": "Rating ↑",
+              "pages_desc": "Pages ↓",
+              "pages_asc": "Pages ↑"
+            }
+          }
         }
       },
       "header": {
@@ -3479,6 +3527,32 @@
           "caption": "{count, plural, one {# book is not owned yet} other {# books are not owned yet}}",
           "captionEmpty": "None of the books are owned yet",
           "captionFull": "The whole list is owned"
+        },
+        "mobile": {
+          "title": "Detailed stats",
+          "compact": {
+            "total": "Books",
+            "finished": "Finished",
+            "inQueue": "Queued",
+            "owned": "Owned"
+          },
+          "detailed": {
+            "total": "Total books",
+            "finished": "Finished",
+            "inQueue": "Reading queue",
+            "owned": "Owned"
+          }
+        }
+      },
+      "overviewPanel": {
+        "trigger": "List overview",
+        "title": "List overview",
+        "subtitle": "Stats, reading and related lists",
+        "close": "Close overview",
+        "tabs": {
+          "overview": "Overview",
+          "reading": "Reading",
+          "related": "Related"
         }
       },
       "sidebar": {
@@ -3557,6 +3631,7 @@
         "books_count_asc": "Book count: fewest first",
         "mobile": {
           "title": "Sorting",
+          "description": "Choose the order of your lists.",
           "close": "Close",
           "groups": {
             "date": "Date",
@@ -3818,6 +3893,7 @@
       "return_soonest": "Soonest returns first",
       "mobile": {
         "title": "Sorting",
+        "description": "Choose the order of borrowed books.",
         "close": "Close",
         "trigger": {
           "return_date": "Return date",
@@ -4012,6 +4088,7 @@
       },
       "sortMobile": {
         "title": "Sorting",
+        "description": "Choose the order of notes.",
         "close": "Close",
         "trigger": {
           "newest": "Newest",
@@ -4264,6 +4341,8 @@
     },
     "sortMobile": {
       "title": "Sorting",
+      "genreDescription": "Choose the order of genres.",
+      "tagDescription": "Choose the order of tags.",
       "close": "Close",
       "genreTrigger": {
         "books_count_desc": "Books ↓",
@@ -4580,6 +4659,7 @@
     },
     "sortMobile": {
       "title": "Sorting",
+      "description": "Choose the order of quotes.",
       "close": "Close",
       "trigger": {
         "newest": "Newest",
@@ -4996,6 +5076,7 @@
       },
       "sortMobile": {
         "title": "Sorting",
+        "description": "Choose the order of publishers.",
         "close": "Close",
         "trigger": {
           "name": "Name",
