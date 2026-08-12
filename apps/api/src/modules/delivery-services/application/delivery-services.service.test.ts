@@ -83,8 +83,22 @@ describe("DeliveryServicesService.search", () => {
     });
 
     expect(result.items).toEqual([
-      { countryCode: null, id: GLOBAL_ID, isCustom: false, name: "Нова Пошта" },
-      { countryCode: null, id: CUSTOM_ID, isCustom: true, name: "My Courier" },
+      {
+        countryCode: null,
+        id: GLOBAL_ID,
+        isCustom: false,
+        name: "Нова Пошта",
+        providerKey: null,
+        trackingUrlTemplate: null,
+      },
+      {
+        countryCode: null,
+        id: CUSTOM_ID,
+        isCustom: true,
+        name: "My Courier",
+        providerKey: null,
+        trackingUrlTemplate: null,
+      },
     ]);
   });
 
@@ -256,7 +270,14 @@ describe("DeliveryServicesService.recent", () => {
     const result = await service.recent({ limit: 8, userId: USER_ID });
 
     expect(result).toEqual([
-      { countryCode: null, id: GLOBAL_ID, isCustom: false, name: "Нова Пошта" },
+      {
+        countryCode: null,
+        id: GLOBAL_ID,
+        isCustom: false,
+        name: "Нова Пошта",
+        providerKey: null,
+        trackingUrlTemplate: null,
+      },
     ]);
   });
 
@@ -275,7 +296,14 @@ describe("DeliveryServicesService.recent", () => {
     const result = await service.recent({ limit: 8, userId: USER_ID });
 
     expect(result).toEqual([
-      { countryCode: "UA", id: GLOBAL_ID, isCustom: false, name: "Нова Пошта" },
+      {
+        countryCode: "UA",
+        id: GLOBAL_ID,
+        isCustom: false,
+        name: "Нова Пошта",
+        providerKey: null,
+        trackingUrlTemplate: null,
+      },
     ]);
   });
 });

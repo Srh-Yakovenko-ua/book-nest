@@ -15,7 +15,14 @@ import { ListsModule } from "../../lists/lists.module.js";
 import { DeliveryServicesModule } from "../delivery-services.module.js";
 
 const MISSING_UUID = "00000000-0000-4000-8000-000000000000";
-const DELIVERY_SERVICE_VIEW_KEYS = ["countryCode", "id", "isCustom", "name"];
+const DELIVERY_SERVICE_VIEW_KEYS = [
+  "countryCode",
+  "id",
+  "isCustom",
+  "name",
+  "providerKey",
+  "trackingUrlTemplate",
+];
 
 let context: AuthTestContext;
 let app: INestApplication;

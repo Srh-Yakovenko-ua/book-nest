@@ -9,7 +9,7 @@ import type {
   UpdateDeliveryInput,
 } from "@app/shared";
 
-import { DeliveryStatusSchema, isActiveDeliveryStatus, OwnershipStatusSchema } from "@app/shared";
+import { isActiveShipmentStatus, OwnershipStatusSchema, ShipmentStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
@@ -234,7 +234,7 @@ export class BookDeliveryService {
     if (record === undefined) {
       throw new NotFoundError("Delivery not found");
     }
-    if (!isActiveDeliveryStatus(DeliveryStatusSchema.parse(record.status))) {
+    if (!isActiveShipmentStatus(ShipmentStatusSchema.parse(record.status))) {
       throw new ConflictError(DELIVERY_NOT_ACTIVE_MESSAGE);
     }
   }
@@ -248,7 +248,7 @@ export class BookDeliveryService {
 
   private assertNoActiveDelivery(book: BookWithRelations): void {
     const active = book.deliveries.find((delivery) =>
-      isActiveDeliveryStatus(DeliveryStatusSchema.parse(delivery.status)),
+      isActiveShipmentStatus(ShipmentStatusSchema.parse(delivery.status)),
     );
     if (active !== undefined) {
       throw new ConflictError(ACTIVE_DELIVERY_EXISTS_MESSAGE);

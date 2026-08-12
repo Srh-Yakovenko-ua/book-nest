@@ -2,9 +2,9 @@ import type { INestApplication } from "@nestjs/common";
 
 import {
   DeliveryStatisticsViewSchema,
-  type DeliveryStatus,
   type Nullable,
   type OwnershipStatus,
+  type ShipmentStatus,
 } from "@app/shared";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -37,7 +37,7 @@ type DeliverySeed = {
   ownershipStatus: OwnershipStatus;
   price?: Nullable<number>;
   receivedAt?: Nullable<Date>;
-  status: DeliveryStatus;
+  status: ShipmentStatus;
   storeName?: Nullable<string>;
   trackingNumber?: Nullable<string>;
   trackingUrl?: Nullable<string>;

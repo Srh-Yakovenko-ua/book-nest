@@ -72,7 +72,7 @@ export function queuePriorityReasonSupportsDate(reason: QueuePriorityReason): bo
   return QUEUE_PRIORITY_DATE_REASON_SET.has(reason);
 }
 
-export const DeliveryStatusSchema = z.enum([
+export const ShipmentStatusSchema = z.enum([
   "ordered",
   "in_transit",
   "ready_for_pickup",
@@ -80,19 +80,23 @@ export const DeliveryStatusSchema = z.enum([
   "cancelled",
 ]);
 
-export type DeliveryStatus = z.infer<typeof DeliveryStatusSchema>;
+export type ShipmentStatus = z.infer<typeof ShipmentStatusSchema>;
 
-export const DELIVERY_ACTIVE_STATUSES = ["ordered", "in_transit", "ready_for_pickup"] as const;
+export const SHIPMENT_ACTIVE_STATUSES = ["ordered", "in_transit", "ready_for_pickup"] as const;
 
-const DELIVERY_ACTIVE_STATUS_SET: ReadonlySet<DeliveryStatus> = new Set(DELIVERY_ACTIVE_STATUSES);
+const SHIPMENT_ACTIVE_STATUS_SET: ReadonlySet<ShipmentStatus> = new Set(SHIPMENT_ACTIVE_STATUSES);
 
-export const ActiveDeliveryStatusSchema = z.enum(DELIVERY_ACTIVE_STATUSES);
+export const ActiveShipmentStatusSchema = z.enum(SHIPMENT_ACTIVE_STATUSES);
 
-export type ActiveDeliveryStatus = z.infer<typeof ActiveDeliveryStatusSchema>;
+export type ActiveShipmentStatus = z.infer<typeof ActiveShipmentStatusSchema>;
 
-export function isActiveDeliveryStatus(status: DeliveryStatus): status is ActiveDeliveryStatus {
-  return DELIVERY_ACTIVE_STATUS_SET.has(status);
+export function isActiveShipmentStatus(status: ShipmentStatus): status is ActiveShipmentStatus {
+  return SHIPMENT_ACTIVE_STATUS_SET.has(status);
 }
+
+export const DeliveryUiStatusSchema = z.enum(["delayed", "arriving_soon", "no_delivery_date"]);
+
+export type DeliveryUiStatus = z.infer<typeof DeliveryUiStatusSchema>;
 
 export const BookFormatSchema = z.enum(["paper", "ebook", "audiobook"]);
 

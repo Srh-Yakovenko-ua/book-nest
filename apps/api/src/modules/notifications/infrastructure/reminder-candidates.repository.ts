@@ -1,6 +1,6 @@
 import type { LoanStatus, Nullable } from "@app/shared";
 
-import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
+import { SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -21,7 +21,7 @@ const REMINDABLE_LOAN_FILTER = {
 const REMINDABLE_DELIVERY_FILTER = {
   book: SOFT_DELETE_SCOPE.active,
   expectedDeliveryDate: { not: null },
-  status: { in: [...DELIVERY_ACTIVE_STATUSES] },
+  status: { in: [...SHIPMENT_ACTIVE_STATUSES] },
 } as const satisfies Prisma.BookDeliveryWhereInput;
 
 const CANDIDATE_USER_FILTER = {

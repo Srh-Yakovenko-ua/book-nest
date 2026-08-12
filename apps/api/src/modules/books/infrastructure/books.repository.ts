@@ -12,8 +12,8 @@ import type {
 
 import {
   DEFAULT_CURRENCY,
-  DELIVERY_ACTIVE_STATUSES,
   LoanTypeSchema,
+  SHIPMENT_ACTIVE_STATUSES,
   WISHLIST_SORT_DEFAULT,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
@@ -1399,14 +1399,14 @@ async function applyDeliveryBlock(
   if (change.kind === "cancel") {
     await tx.bookDelivery.updateMany({
       data: { cancelledAt: change.cancelledAt, status: "cancelled" },
-      where: { bookId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
+      where: { bookId, status: { in: [...SHIPMENT_ACTIVE_STATUSES] } },
     });
     return;
   }
 
   const active = await tx.bookDelivery.findFirst({
     select: { id: true },
-    where: { bookId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
+    where: { bookId, status: { in: [...SHIPMENT_ACTIVE_STATUSES] } },
   });
   if (active === null) {
     await tx.bookDelivery.create({ data: { ...change.create, bookId, userId } });

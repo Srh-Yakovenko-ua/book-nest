@@ -15,7 +15,14 @@ import { BooksModule } from "../../books/books.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { DeliveryServicesModule } from "../delivery-services.module.js";
 
-const DELIVERY_SERVICE_VIEW_KEYS = ["countryCode", "id", "isCustom", "name"];
+const DELIVERY_SERVICE_VIEW_KEYS = [
+  "countryCode",
+  "id",
+  "isCustom",
+  "name",
+  "providerKey",
+  "trackingUrlTemplate",
+];
 
 let context: AuthTestContext;
 let app: INestApplication;

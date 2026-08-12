@@ -1,9 +1,9 @@
 import {
   CurrencySchema,
-  DeliveryStatusSchema,
   type DeliverySummaryView,
   type DeliveryView,
-  isActiveDeliveryStatus,
+  isActiveShipmentStatus,
+  ShipmentStatusSchema,
 } from "@app/shared";
 
 import type { BookDeliveryModel } from "../../../generated/prisma/models.js";
@@ -12,7 +12,7 @@ import { toNullableIsoDate, toNullableIsoDateTime } from "../../../core/iso-date
 
 export function toDeliverySummaryView(deliveries: BookDeliveryModel[]): DeliverySummaryView {
   const views = deliveries.map(toDeliveryView);
-  const active = views.find((view) => isActiveDeliveryStatus(view.status)) ?? null;
+  const active = views.find((view) => isActiveShipmentStatus(view.status)) ?? null;
   const latest = views[0] ?? null;
 
   return { active, latest, totalCount: views.length };
@@ -32,7 +32,7 @@ export function toDeliveryView(delivery: BookDeliveryModel): DeliveryView {
     orderNumber: delivery.orderNumber,
     price: delivery.price === null ? null : delivery.price.toNumber(),
     receivedAt: toNullableIsoDateTime(delivery.receivedAt),
-    status: DeliveryStatusSchema.parse(delivery.status),
+    status: ShipmentStatusSchema.parse(delivery.status),
     storeName: delivery.storeName,
     trackingNumber: delivery.trackingNumber,
     trackingUrl: delivery.trackingUrl,

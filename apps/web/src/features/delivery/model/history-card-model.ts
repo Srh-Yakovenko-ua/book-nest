@@ -1,6 +1,6 @@
-import type { DeliveryListItemView, DeliveryStatus, DeliveryUiStatus, Nullable } from "@app/shared";
+import type { DeliveryListItemView, DeliveryUiStatus, Nullable, ShipmentStatus } from "@app/shared";
 
-import { isActiveDeliveryStatus } from "@app/shared";
+import { isActiveShipmentStatus } from "@app/shared";
 
 import type { UiIconName } from "@/components/icons";
 import type { StatusEntry, StatusTone } from "@/lib/book-status";
@@ -97,7 +97,7 @@ export function toHistoryCardModel(
         ? null
         : formatDate(delivery.expectedDeliveryDate, options.locale),
     id: item.id,
-    isActive: isActiveDeliveryStatus(delivery.status),
+    isActive: isActiveShipmentStatus(delivery.status),
     note: delivery.note,
     orderDateText:
       delivery.orderDate === null ? null : formatDate(delivery.orderDate, options.locale),
@@ -119,7 +119,7 @@ export function toHistoryCardModel(
 }
 
 function resolveHistoryBadge(
-  input: { status: DeliveryStatus; uiStatus: Nullable<DeliveryUiStatus> },
+  input: { status: ShipmentStatus; uiStatus: Nullable<DeliveryUiStatus> },
   label: (key: DeliveryHistoryBadgeKey) => string,
 ): StatusEntry {
   if (input.uiStatus !== null) {

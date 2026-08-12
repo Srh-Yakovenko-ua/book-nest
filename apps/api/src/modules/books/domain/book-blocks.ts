@@ -1,11 +1,11 @@
 import type {
   DeliveryInfoInput,
-  DeliveryStatus,
   LoanInfoInput,
   OwnershipStatus,
   PurchaseInfoInput,
   ReadingProgressInput,
   ReadingStatus,
+  ShipmentStatus,
   UpdateBookInput,
 } from "@app/shared";
 
@@ -41,7 +41,7 @@ const STATUSES_WITH_READING_PROGRESS: ReadonlySet<ReadingStatus> = new Set([
 
 const OWNERSHIP_STATUS_IN_TRANSIT: OwnershipStatus = "in_transit";
 
-const DEFAULT_DELIVERY_STATUS: DeliveryStatus = "ordered";
+const DEFAULT_DELIVERY_STATUS: ShipmentStatus = "ordered";
 
 export function buildDeliveryInfoData(deliveryInfo: DefinedDeliveryInfo): CreateDeliveryData {
   return {

@@ -10,8 +10,8 @@ import type {
 import {
   CurrencySchema,
   DEFAULT_CURRENCY,
-  DELIVERY_ACTIVE_STATUSES,
-  DeliveryStatusSchema,
+  SHIPMENT_ACTIVE_STATUSES,
+  ShipmentStatusSchema,
 } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
@@ -182,7 +182,7 @@ export class DeliveryRepository {
               select: { bookId: true },
               where: {
                 bookId: { in: [...ownedIds] },
-                status: { in: [...DELIVERY_ACTIVE_STATUSES] },
+                status: { in: [...SHIPMENT_ACTIVE_STATUSES] },
                 userId,
               },
             });
@@ -193,7 +193,7 @@ export class DeliveryRepository {
           data: transition.delivery,
           where: {
             bookId: { in: [...receivedIds] },
-            status: { in: [...DELIVERY_ACTIVE_STATUSES] },
+            status: { in: [...SHIPMENT_ACTIVE_STATUSES] },
             userId,
           },
         });
@@ -246,7 +246,7 @@ export class DeliveryRepository {
         SELECT
           (count(*))::int AS "totalOrders",
           (count(*) FILTER (
-            WHERE bd.status IN (${Prisma.join([...DELIVERY_ACTIVE_STATUSES])})
+            WHERE bd.status IN (${Prisma.join([...SHIPMENT_ACTIVE_STATUSES])})
           ))::int AS "activeCount",
           (count(*) FILTER (WHERE bd.status = ${DELIVERY_STATUS_RECEIVED}))::int AS "receivedCount",
           (count(*) FILTER (WHERE bd.status = ${DELIVERY_STATUS_CANCELLED}))::int AS "cancelledCount"
@@ -350,7 +350,7 @@ export class DeliveryRepository {
       currency: row.currency === null ? null : CurrencySchema.parse(row.currency),
       orderDate: row.orderDate,
       price: row.price === null ? null : row.price.toNumber(),
-      status: DeliveryStatusSchema.parse(row.status),
+      status: ShipmentStatusSchema.parse(row.status),
       storeName: row.storeName,
     }));
   }
@@ -381,7 +381,7 @@ export class DeliveryRepository {
         WHERE bd.user_id = ${userId}::uuid
           AND b.deleted_at IS NULL
           AND b.ownership_status = ${OWNERSHIP_STATUS_IN_TRANSIT}
-          AND bd.status IN (${Prisma.join([...DELIVERY_ACTIVE_STATUSES])})
+          AND bd.status IN (${Prisma.join([...SHIPMENT_ACTIVE_STATUSES])})
       `),
       this.prisma.bookDelivery.groupBy({ by: ["storeName"], where: base }),
       this.prisma.bookDelivery.groupBy({
@@ -447,7 +447,7 @@ const IN_TRANSIT_SORT_ORDER_BY: Record<
 function activeInTransitBase(userId: string): Prisma.BookDeliveryWhereInput {
   return {
     book: { ...SOFT_DELETE_SCOPE.active, ownershipStatus: "in_transit", userId },
-    status: { in: [...DELIVERY_ACTIVE_STATUSES] },
+    status: { in: [...SHIPMENT_ACTIVE_STATUSES] },
   };
 }
 
@@ -481,7 +481,7 @@ function applyHistoryTab({
 }): void {
   switch (tab) {
     case "active":
-      where.status = { in: [...DELIVERY_ACTIVE_STATUSES] };
+      where.status = { in: [...SHIPMENT_ACTIVE_STATUSES] };
       return;
     case "all":
       return;

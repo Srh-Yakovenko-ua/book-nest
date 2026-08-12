@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { BookAuthorRefSchema, BookAuthorsInputSchema } from "./authors.js";
 import {
-  ActiveDeliveryStatusSchema,
+  ActiveShipmentStatusSchema,
   AgeCategorySchema,
   BookFormatSchema,
   BookFormatsSchema,
@@ -30,14 +30,21 @@ import { DeliveryServiceSchema } from "./delivery-services.js";
 import { DeliverySummaryViewSchema } from "./delivery-view.js";
 import { BookGenresSchema, GenreKeySchema } from "./genres.js";
 import {
-  boundedUrlSchema,
-  HTTP_OR_HTTPS_PROTOCOL,
+  CancelReasonSchema,
+  EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
+  isExpectedNotBeforeOrder,
   NoHtmlString,
   notInFutureDate,
+  OwnershipNoteSchema,
+  OwnershipOrderNumberSchema,
+  OwnershipPriceSchema,
+  OwnershipStoreNameSchema,
+  OwnershipStoreUrlSchema,
   queryStringArray,
   ratingBound,
   RECENT_USED_LIMIT_DEFAULT,
   RECENT_USED_LIMIT_MAX,
+  TrackingNumberSchema,
 } from "./internal.js";
 import {
   BookListViewSchema,
@@ -226,44 +233,17 @@ export const UpdateReadingProgressInputSchema = z.object({
   updateDate: notInFutureDate("Update date must not be in the future").optional(),
 });
 
-export const OWNERSHIP_STORE_NAME_MAX = 100;
-const OWNERSHIP_STORE_URL_MAX = 300;
-const OWNERSHIP_ORDER_NUMBER_MAX = 100;
-const OWNERSHIP_NOTE_MAX = 300;
 const LOAN_NOTE_MAX = 500;
 const OWNERSHIP_PERSON_NAME_MIN = 1;
 export const OWNERSHIP_PERSON_NAME_MAX = 100;
 const OWNERSHIP_CONTACT_MAX = 100;
-const OWNERSHIP_PRICE_MIN = 0;
-const OWNERSHIP_PRICE_MAX = 99999999.99;
 
-export const OwnershipStoreNameSchema = z
-  .string()
-  .transform(collapseSpaces)
-  .pipe(
-    NoHtmlString.max(OWNERSHIP_STORE_NAME_MAX, "Store name must be at most 100 characters long"),
-  );
-
-export const OwnershipStoreUrlSchema = boundedUrlSchema({
-  maxLength: OWNERSHIP_STORE_URL_MAX,
-  protocol: HTTP_OR_HTTPS_PROTOCOL,
-  urlError: "Enter a valid link",
-});
-
-const OwnershipOrderNumberSchema = z
-  .string()
-  .transform(collapseSpaces)
-  .pipe(
-    NoHtmlString.max(
-      OWNERSHIP_ORDER_NUMBER_MAX,
-      "Order number must be at most 100 characters long",
-    ),
-  );
-
-const OwnershipNoteSchema = z
-  .string()
-  .transform(collapseHorizontalSpaces)
-  .pipe(NoHtmlString.max(OWNERSHIP_NOTE_MAX, "Note must be at most 300 characters long"));
+export {
+  OWNERSHIP_STORE_NAME_MAX,
+  OwnershipPriceSchema,
+  OwnershipStoreNameSchema,
+  OwnershipStoreUrlSchema,
+} from "./internal.js";
 
 const LoanNoteSchema = z
   .string()
@@ -284,11 +264,6 @@ const OwnershipContactSchema = z
   .string()
   .transform(collapseSpaces)
   .pipe(NoHtmlString.max(OWNERSHIP_CONTACT_MAX, "Contact must be at most 100 characters long"));
-
-export const OwnershipPriceSchema = z
-  .number()
-  .min(OWNERSHIP_PRICE_MIN, "Price cannot be negative")
-  .max(OWNERSHIP_PRICE_MAX, "Price must be at most 99999999.99");
 
 const PurchaseInfoFieldsSchema = z.object({
   currency: CurrencySchema.nullable().optional(),
@@ -311,46 +286,22 @@ export const MarkBoughtInputSchema = z.object({
 
 export type MarkBoughtInput = z.infer<typeof MarkBoughtInputSchema>;
 
-const DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE = "Expected delivery cannot be before the order date";
-
-const isExpectedNotBeforeOrder = (value: {
-  expectedDeliveryDate?: Nullable<string>;
-  orderDate?: Nullable<string>;
-}): boolean =>
-  value.orderDate === undefined ||
-  value.orderDate === null ||
-  value.expectedDeliveryDate === undefined ||
-  value.expectedDeliveryDate === null ||
-  value.expectedDeliveryDate >= value.orderDate;
-
-const DELIVERY_TRACKING_NUMBER_MAX = 100;
-
-const DeliveryTrackingNumberSchema = z
-  .string()
-  .transform(collapseSpaces)
-  .pipe(
-    NoHtmlString.max(
-      DELIVERY_TRACKING_NUMBER_MAX,
-      "Tracking number must be at most 100 characters long",
-    ),
-  );
-
 export const DeliveryInfoInputSchema = z
   .object({
     currency: CurrencySchema.nullable().optional(),
     deliveryService: DeliveryServiceSchema.nullable().optional(),
-    deliveryStatus: ActiveDeliveryStatusSchema.optional(),
+    deliveryStatus: ActiveShipmentStatusSchema.optional(),
     expectedDeliveryDate: z.iso.date().nullable().optional(),
     note: OwnershipNoteSchema.nullable().optional(),
     orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
     orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
     price: OwnershipPriceSchema.nullable().optional(),
     storeName: OwnershipStoreNameSchema.nullable().optional(),
-    trackingNumber: DeliveryTrackingNumberSchema.nullable().optional(),
+    trackingNumber: TrackingNumberSchema.nullable().optional(),
     trackingUrl: OwnershipStoreUrlSchema.nullable().optional(),
   })
   .refine(isExpectedNotBeforeOrder, {
-    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
+    error: EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
     path: ["expectedDeliveryDate"],
   })
   .optional();
@@ -367,11 +318,11 @@ export const CreateDeliveryInputSchema = z
     orderNumber: OwnershipOrderNumberSchema.optional(),
     price: OwnershipPriceSchema.optional(),
     storeName: OwnershipStoreNameSchema,
-    trackingNumber: DeliveryTrackingNumberSchema.optional(),
+    trackingNumber: TrackingNumberSchema.optional(),
     trackingUrl: OwnershipStoreUrlSchema.optional(),
   })
   .refine(isExpectedNotBeforeOrder, {
-    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
+    error: EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
     path: ["expectedDeliveryDate"],
   });
 
@@ -386,33 +337,20 @@ export const UpdateDeliveryInputSchema = z
     orderDate: notInFutureDate("Order date must not be in the future").nullable().optional(),
     orderNumber: OwnershipOrderNumberSchema.nullable().optional(),
     price: OwnershipPriceSchema.nullable().optional(),
-    status: ActiveDeliveryStatusSchema.optional(),
+    status: ActiveShipmentStatusSchema.optional(),
     storeName: OwnershipStoreNameSchema.nullable().optional(),
-    trackingNumber: DeliveryTrackingNumberSchema.nullable().optional(),
+    trackingNumber: TrackingNumberSchema.nullable().optional(),
     trackingUrl: OwnershipStoreUrlSchema.nullable().optional(),
   })
   .refine(isExpectedNotBeforeOrder, {
-    error: DELIVERY_EXPECTED_BEFORE_ORDER_MESSAGE,
+    error: EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
     path: ["expectedDeliveryDate"],
   });
 
 export type UpdateDeliveryInput = z.infer<typeof UpdateDeliveryInputSchema>;
 
-const DELIVERY_CANCEL_REASON_MAX = 500;
-
-const DeliveryCancelReasonSchema = z
-  .string()
-  .transform(collapseHorizontalSpaces)
-  .pipe(
-    NoHtmlString.max(
-      DELIVERY_CANCEL_REASON_MAX,
-      "Cancel reason must be at most 500 characters long",
-    ),
-  )
-  .transform((value) => (value.length === 0 ? null : value));
-
 export const CancelDeliveryInputSchema = z.object({
-  cancelReason: DeliveryCancelReasonSchema.nullable().optional(),
+  cancelReason: CancelReasonSchema.nullable().optional(),
   keepAsWantToBuy: z.boolean().default(true),
 });
 

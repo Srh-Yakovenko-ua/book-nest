@@ -1,6 +1,6 @@
 import type { Nullable, OwnershipStatus, QueuePriority, ReadingStatus } from "@app/shared";
 
-import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
+import { SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
@@ -263,7 +263,7 @@ export class BulkBooksRepository {
           data: { cancelledAt: now, status: "cancelled" },
           where: {
             bookId: { in: bookIds },
-            status: { in: [...DELIVERY_ACTIVE_STATUSES] },
+            status: { in: [...SHIPMENT_ACTIVE_STATUSES] },
             userId,
           },
         });

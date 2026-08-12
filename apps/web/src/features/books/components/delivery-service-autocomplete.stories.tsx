@@ -65,6 +65,8 @@ function toServiceView(item: DeliveryServiceSeed): DeliveryServiceView {
     id: item.id,
     isCustom: item.isCustom ?? false,
     name: item.name,
+    providerKey: null,
+    trackingUrlTemplate: null,
   };
 }
 

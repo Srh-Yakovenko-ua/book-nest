@@ -1,6 +1,6 @@
 import type { Nullable, OwnershipStatus } from "@app/shared";
 
-import { DELIVERY_ACTIVE_STATUSES } from "@app/shared";
+import { SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
@@ -69,7 +69,7 @@ export class BookDeliveriesRepository {
 
       const updated = await tx.bookDelivery.updateMany({
         data: transition.delivery,
-        where: { id: deliveryId, status: { in: [...DELIVERY_ACTIVE_STATUSES] } },
+        where: { id: deliveryId, status: { in: [...SHIPMENT_ACTIVE_STATUSES] } },
       });
       if (updated.count === 0) {
         return "not-active";

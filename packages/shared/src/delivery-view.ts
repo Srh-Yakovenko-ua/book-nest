@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CurrencySchema, DeliveryStatusSchema } from "./book-enums.js";
+import { CurrencySchema, ShipmentStatusSchema } from "./book-enums.js";
 
 export const DeliveryViewSchema = z.object({
   cancelledAt: z.string().nullable(),
@@ -15,7 +15,7 @@ export const DeliveryViewSchema = z.object({
   orderNumber: z.string().nullable(),
   price: z.number().nullable(),
   receivedAt: z.string().nullable(),
-  status: DeliveryStatusSchema,
+  status: ShipmentStatusSchema,
   storeName: z.string().nullable(),
   trackingNumber: z.string().nullable(),
   trackingUrl: z.string().nullable(),

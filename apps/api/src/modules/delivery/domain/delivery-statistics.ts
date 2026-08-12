@@ -7,12 +7,12 @@ import type {
   DeliveryStatisticsStore,
   DeliveryStatisticsSummary,
   DeliveryStatisticsView,
-  DeliveryStatus,
   DeliveryTopOrder,
   Nullable,
+  ShipmentStatus,
 } from "@app/shared";
 
-import { collapseSpaces, CurrencySchema, isActiveDeliveryStatus } from "@app/shared";
+import { collapseSpaces, CurrencySchema, isActiveShipmentStatus } from "@app/shared";
 
 import { toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
@@ -29,7 +29,7 @@ export type StatisticsRecord = {
   currency: Nullable<Currency>;
   orderDate: Nullable<Date>;
   price: Nullable<number>;
-  status: DeliveryStatus;
+  status: ShipmentStatus;
   storeName: Nullable<string>;
 };
 
@@ -156,7 +156,7 @@ function buildStatusBreakdown(
 ): DeliveryStatisticsView["statusBreakdown"] {
   const priced = records.filter(hasPrice);
   return {
-    active: buildStatusGroup(priced.filter((record) => isActiveDeliveryStatus(record.status))),
+    active: buildStatusGroup(priced.filter((record) => isActiveShipmentStatus(record.status))),
     cancelled: buildStatusGroup(priced.filter((record) => record.status === "cancelled")),
     received: buildStatusGroup(priced.filter((record) => record.status === "received")),
   };
@@ -178,7 +178,7 @@ function buildSummary({
 
   return {
     activeByCurrency: sumByCurrency(
-      priced.filter((record) => isActiveDeliveryStatus(record.status)),
+      priced.filter((record) => isActiveShipmentStatus(record.status)),
     ),
     averageByCurrency: averageByCurrency(mainPriced),
     cancelledByCurrency: sumByCurrency(priced.filter((record) => record.status === "cancelled")),
