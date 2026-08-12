@@ -623,17 +623,26 @@ export const listDetailsControllerDetailResponseBooksPageSizeMax = 9007199254740
 export const listDetailsControllerDetailResponseBooksTotalCountMin = -9007199254740991;
 export const listDetailsControllerDetailResponseBooksTotalCountMax = 9007199254740991;
 
-export const listDetailsControllerDetailResponseStatusCountsAllMin = 0;
-export const listDetailsControllerDetailResponseStatusCountsAllMax = 9007199254740991;
+export const listDetailsControllerDetailResponseQuickCountsAllMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsAllMax = 9007199254740991;
 
-export const listDetailsControllerDetailResponseStatusCountsFinishedMin = 0;
-export const listDetailsControllerDetailResponseStatusCountsFinishedMax = 9007199254740991;
+export const listDetailsControllerDetailResponseQuickCountsFavoritesMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsFavoritesMax = 9007199254740991;
 
-export const listDetailsControllerDetailResponseStatusCountsNotStartedMin = 0;
-export const listDetailsControllerDetailResponseStatusCountsNotStartedMax = 9007199254740991;
+export const listDetailsControllerDetailResponseQuickCountsFinishedMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsFinishedMax = 9007199254740991;
 
-export const listDetailsControllerDetailResponseStatusCountsReadingMin = 0;
-export const listDetailsControllerDetailResponseStatusCountsReadingMax = 9007199254740991;
+export const listDetailsControllerDetailResponseQuickCountsInQueueMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsInQueueMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseQuickCountsNotStartedMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsNotStartedMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseQuickCountsReadingMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsReadingMax = 9007199254740991;
+
+export const listDetailsControllerDetailResponseQuickCountsSeriesMin = 0;
+export const listDetailsControllerDetailResponseQuickCountsSeriesMax = 9007199254740991;
 
 export const ListDetailsControllerDetailResponse = zod.object({
   bookCount: zod.number(),
@@ -1079,23 +1088,35 @@ export const ListDetailsControllerDetailResponse = zod.object({
       width: zod.number(),
     }),
   ),
-  statusCounts: zod.object({
+  quickCounts: zod.object({
     all: zod
       .int()
-      .min(listDetailsControllerDetailResponseStatusCountsAllMin)
-      .max(listDetailsControllerDetailResponseStatusCountsAllMax),
+      .min(listDetailsControllerDetailResponseQuickCountsAllMin)
+      .max(listDetailsControllerDetailResponseQuickCountsAllMax),
+    favorites: zod
+      .int()
+      .min(listDetailsControllerDetailResponseQuickCountsFavoritesMin)
+      .max(listDetailsControllerDetailResponseQuickCountsFavoritesMax),
     finished: zod
       .int()
-      .min(listDetailsControllerDetailResponseStatusCountsFinishedMin)
-      .max(listDetailsControllerDetailResponseStatusCountsFinishedMax),
+      .min(listDetailsControllerDetailResponseQuickCountsFinishedMin)
+      .max(listDetailsControllerDetailResponseQuickCountsFinishedMax),
+    in_queue: zod
+      .int()
+      .min(listDetailsControllerDetailResponseQuickCountsInQueueMin)
+      .max(listDetailsControllerDetailResponseQuickCountsInQueueMax),
     not_started: zod
       .int()
-      .min(listDetailsControllerDetailResponseStatusCountsNotStartedMin)
-      .max(listDetailsControllerDetailResponseStatusCountsNotStartedMax),
+      .min(listDetailsControllerDetailResponseQuickCountsNotStartedMin)
+      .max(listDetailsControllerDetailResponseQuickCountsNotStartedMax),
     reading: zod
       .int()
-      .min(listDetailsControllerDetailResponseStatusCountsReadingMin)
-      .max(listDetailsControllerDetailResponseStatusCountsReadingMax),
+      .min(listDetailsControllerDetailResponseQuickCountsReadingMin)
+      .max(listDetailsControllerDetailResponseQuickCountsReadingMax),
+    series: zod
+      .int()
+      .min(listDetailsControllerDetailResponseQuickCountsSeriesMin)
+      .max(listDetailsControllerDetailResponseQuickCountsSeriesMax),
   }),
   updatedAt: zod.string(),
 });

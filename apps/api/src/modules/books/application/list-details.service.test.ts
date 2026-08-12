@@ -14,10 +14,20 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const LIST_ID = "22222222-2222-4222-8222-222222222222";
 const BOOK_ID = "33333333-3333-4333-8333-333333333333";
 
+const EMPTY_QUICK_COUNTS = {
+  all: 0,
+  favorites: 0,
+  finished: 0,
+  inQueue: 0,
+  notStarted: 0,
+  reading: 0,
+  series: 0,
+};
+
 function buildService(): {
   repository: {
     countBooks: ReturnType<typeof vi.fn>;
-    countByTab: ReturnType<typeof vi.fn>;
+    countQuickFilters: ReturnType<typeof vi.fn>;
     listBooks: ReturnType<typeof vi.fn>;
     listPositionRanks: ReturnType<typeof vi.fn>;
   };
@@ -25,7 +35,7 @@ function buildService(): {
 } {
   const repository = {
     countBooks: vi.fn().mockResolvedValue(0),
-    countByTab: vi.fn().mockResolvedValue({ all: 0, finished: 0, notStarted: 0, reading: 0 }),
+    countQuickFilters: vi.fn().mockResolvedValue(EMPTY_QUICK_COUNTS),
     listBooks: vi.fn().mockResolvedValue([]),
     listPositionRanks: vi.fn().mockResolvedValue(new Map<string, number>()),
   };
@@ -136,5 +146,102 @@ describe("ListDetailsService.detail position ranks", () => {
     });
 
     expect(detail.books.items[0]?.position).toBe(7);
+  });
+});
+
+describe("ListDetailsService.detail quick counts", () => {
+  it("counts the chips against a filter with every chip axis cleared", async () => {
+    const { repository, service } = buildService();
+
+    await service.detail({
+      listId: LIST_ID,
+      query: query({
+        bookType: "series_part",
+        genre: "fantasy",
+        inQueue: "true",
+        isFavorite: "true",
+        owner: "owned",
+        tab: "reading",
+      }),
+      userId: USER_ID,
+    });
+
+    expect(repository.countQuickFilters).toHaveBeenCalledWith({
+      filter: {
+        genreKeys: ["fantasy"],
+        ownershipStatuses: ["owned"],
+        userId: USER_ID,
+      },
+      listId: LIST_ID,
+    });
+  });
+
+  it("keeps the page filtered by the chip while the counts ignore it", async () => {
+    const { repository, service } = buildService();
+
+    await service.detail({
+      listId: LIST_ID,
+      query: query({ isFavorite: "true" }),
+      userId: USER_ID,
+    });
+
+    expect(repository.listBooks).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: expect.objectContaining({ isFavorite: true }) }),
+    );
+  });
+
+  it("reports the unfiltered list size as the page total when no chip is pressed", async () => {
+    const { repository, service } = buildService();
+    repository.countQuickFilters.mockResolvedValue({ ...EMPTY_QUICK_COUNTS, all: 12 });
+
+    const detail = await service.detail({ listId: LIST_ID, query: query(), userId: USER_ID });
+
+    expect(repository.countBooks).not.toHaveBeenCalled();
+    expect(detail.books.totalCount).toBe(12);
+  });
+
+  it.each([
+    { chip: "favourites", overrides: { isFavorite: "true" } },
+    { chip: "in queue", overrides: { inQueue: "true" } },
+    { chip: "part of a series", overrides: { bookType: "series_part" } },
+    { chip: "finished", overrides: { tab: "finished" } },
+  ])("reports the narrowed count as the page total for the $chip chip", async ({ overrides }) => {
+    const { repository, service } = buildService();
+    repository.countQuickFilters.mockResolvedValue({ ...EMPTY_QUICK_COUNTS, all: 12 });
+    repository.countBooks.mockResolvedValue(3);
+
+    const detail = await service.detail({
+      listId: LIST_ID,
+      query: query(overrides),
+      userId: USER_ID,
+    });
+
+    expect(detail.books.totalCount).toBe(3);
+    expect(detail.quickCounts.all).toBe(12);
+  });
+
+  it("maps the repository counters onto the response keys", async () => {
+    const { repository, service } = buildService();
+    repository.countQuickFilters.mockResolvedValue({
+      all: 9,
+      favorites: 5,
+      finished: 4,
+      inQueue: 6,
+      notStarted: 3,
+      reading: 2,
+      series: 7,
+    });
+
+    const detail = await service.detail({ listId: LIST_ID, query: query(), userId: USER_ID });
+
+    expect(detail.quickCounts).toEqual({
+      all: 9,
+      favorites: 5,
+      finished: 4,
+      in_queue: 6,
+      not_started: 3,
+      reading: 2,
+      series: 7,
+    });
   });
 });

@@ -1,30 +1,40 @@
 import type { ReadingStatus } from "@app/shared";
 
-import { ReadingStatusSchema } from "@app/shared";
+import { LIST_TAB_READING_STATUSES, ReadingStatusSchema } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
-import { resolveListBookStatuses, TAB_STATUSES, toListStatusCounts } from "./list-status-counts.js";
+import { resolveListBookStatuses, toListQuickCountsView } from "./list-quick-counts.js";
 
-describe("TAB_STATUSES", () => {
+const COUNTS = {
+  all: 9,
+  favorites: 5,
+  finished: 4,
+  inQueue: 6,
+  notStarted: 3,
+  reading: 2,
+  series: 7,
+};
+
+describe("LIST_TAB_READING_STATUSES", () => {
   it("counts a wanted book as not started", () => {
-    expect(TAB_STATUSES.not_started).toEqual(["not_started", "want_to_read"]);
+    expect(LIST_TAB_READING_STATUSES.not_started).toEqual(["not_started", "want_to_read"]);
   });
 
   it("counts a reread as currently reading", () => {
-    expect(TAB_STATUSES.reading).toEqual(["reading", "rereading"]);
+    expect(LIST_TAB_READING_STATUSES.reading).toEqual(["reading", "rereading"]);
   });
 
   it("counts only a finished book as finished", () => {
-    expect(TAB_STATUSES.finished).toEqual(["finished"]);
+    expect(LIST_TAB_READING_STATUSES.finished).toEqual(["finished"]);
   });
 
   it("asks for no status at all on the all tab", () => {
-    expect(TAB_STATUSES.all).toBeUndefined();
+    expect(LIST_TAB_READING_STATUSES.all).toBeUndefined();
   });
 
   it("leaves exactly the paused and abandoned books outside every tab", () => {
     const covered = new Set<ReadingStatus>(
-      Object.values(TAB_STATUSES).flatMap((statuses) => statuses ?? []),
+      Object.values(LIST_TAB_READING_STATUSES).flatMap((statuses) => statuses ?? []),
     );
 
     expect(ReadingStatusSchema.options.filter((status) => !covered.has(status))).toEqual([
@@ -66,20 +76,29 @@ describe("resolveListBookStatuses", () => {
   });
 });
 
-describe("toListStatusCounts", () => {
-  it("reports the not started counter under the snake case response key", () => {
-    expect(toListStatusCounts({ all: 9, finished: 4, notStarted: 3, reading: 2 })).toEqual({
+describe("toListQuickCountsView", () => {
+  it("reports the multi word counters under their snake case response keys", () => {
+    expect(toListQuickCountsView(COUNTS)).toEqual({
       all: 9,
+      favorites: 5,
       finished: 4,
+      in_queue: 6,
       not_started: 3,
       reading: 2,
+      series: 7,
     });
   });
 
-  it("reports the whole list as the total even though the tab counters add up to less", () => {
-    const counts = toListStatusCounts({ all: 12, finished: 4, notStarted: 3, reading: 2 });
+  it("reports the whole list as the total even though the reading counters add up to less", () => {
+    const counts = toListQuickCountsView({ ...COUNTS, all: 12 });
 
     expect(counts.all).toBe(12);
     expect(counts.finished + counts.not_started + counts.reading).toBe(9);
+  });
+
+  it("leaves the favourite, queued and series counters free to overlap the reading counters", () => {
+    const counts = toListQuickCountsView({ ...COUNTS, all: 9 });
+
+    expect(counts.favorites + counts.in_queue + counts.series).toBeGreaterThan(counts.all);
   });
 });

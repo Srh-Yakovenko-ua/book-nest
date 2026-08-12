@@ -34,7 +34,7 @@ import type { UseListDetailQueryResult } from "../model/use-list-detail-query";
 
 import { useListFacets } from "../api/use-list-facets";
 import { activeListDetailFilterCount, LIST_DETAIL_VALUES } from "../model/list-detail-query";
-import { listDetailStatusPatch } from "../model/list-detail-tabs";
+import { listDetailStatusPatch } from "../model/list-quick-filters";
 
 const QUEUE_CHOICES = ["all", "in", "notIn"] as const;
 

@@ -2,7 +2,11 @@ import type { CustomListBooksQuery } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
-import { buildListBookFilter } from "./list-book-filter.js";
+import {
+  buildListBookFilter,
+  clearQuickFilterAxes,
+  hasQuickFilterAxis,
+} from "./list-book-filter.js";
 
 function filterFor(
   overrides: Partial<CustomListBooksQuery> = {},
@@ -122,5 +126,69 @@ describe("buildListBookFilter", () => {
       searchGenreKeys: ["sci_fi"],
       userId: "user-1",
     });
+  });
+});
+
+describe("clearQuickFilterAxes", () => {
+  it("drops every axis the quick filter chips own", () => {
+    const cleared = clearQuickFilterAxes(
+      filterFor({ bookType: "series_part", inQueue: true, isFavorite: true, tab: "reading" }),
+    );
+
+    expect(cleared.bookType).toBeUndefined();
+    expect(cleared.inQueue).toBeUndefined();
+    expect(cleared.isFavorite).toBeUndefined();
+    expect(cleared.readingStatuses).toBeUndefined();
+  });
+
+  it("keeps every filter the chips do not own", () => {
+    const cleared = clearQuickFilterAxes(
+      filterFor(
+        { author: ["author-1"], format: ["ebook"], isFavorite: true, owner: ["owned"] },
+        { search: "dune" },
+      ),
+    );
+
+    expect(cleared).toEqual({
+      authorIds: ["author-1"],
+      formats: ["ebook"],
+      ownershipStatuses: ["owned"],
+      search: "dune",
+      userId: "user-1",
+    });
+  });
+
+  it("leaves the original filter untouched", () => {
+    const filter = filterFor({ isFavorite: true });
+
+    clearQuickFilterAxes(filter);
+
+    expect(filter.isFavorite).toBe(true);
+  });
+});
+
+describe("hasQuickFilterAxis", () => {
+  it("reports no quick filter for an unfiltered list", () => {
+    expect(hasQuickFilterAxis(filterFor())).toBe(false);
+  });
+
+  it("reports no quick filter when only filters outside the chip group are set", () => {
+    expect(hasQuickFilterAxis(filterFor({ genre: ["fantasy"], owner: ["owned"] }))).toBe(false);
+  });
+
+  it("reports a quick filter for the reading statuses of a tab", () => {
+    expect(hasQuickFilterAxis(filterFor({ tab: "finished" }))).toBe(true);
+  });
+
+  it("reports a quick filter for favourites", () => {
+    expect(hasQuickFilterAxis(filterFor({ isFavorite: true }))).toBe(true);
+  });
+
+  it("reports a quick filter for books kept out of the reading queue", () => {
+    expect(hasQuickFilterAxis(filterFor({ inQueue: false }))).toBe(true);
+  });
+
+  it("reports a quick filter for series parts", () => {
+    expect(hasQuickFilterAxis(filterFor({ bookType: "series_part" }))).toBe(true);
   });
 });

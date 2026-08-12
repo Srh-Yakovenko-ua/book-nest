@@ -9,6 +9,8 @@ import type {
 
 import { makeBookView } from "@/features/books/components/book-details.fixtures";
 
+import type { ListDetailQueryState } from "./list-detail-query";
+
 type CustomListDetailOverrides = Partial<Omit<CustomListDetail, "books">> & {
   books?: Partial<CustomListDetail["books"]>;
 };
@@ -36,11 +38,14 @@ export function makeCustomListDetail(overrides: CustomListDetailOverrides = {}):
     id: "list-1",
     name: "Осіннє читання",
     previewCovers: [],
-    statusCounts: {
+    quickCounts: {
       all: items.length,
+      favorites: 0,
       finished: 0,
+      in_queue: 0,
       not_started: items.length,
       reading: 0,
+      series: 0,
     },
     updatedAt: "2026-01-05T00:00:00.000Z",
     ...rest,
@@ -57,6 +62,26 @@ export function makeCustomListDetail(overrides: CustomListDetailOverrides = {}):
 export function makeListBookView(overrides: Partial<ListBookView> = {}): ListBookView {
   const { position, ...bookOverrides } = overrides;
   return { ...makeBookView(bookOverrides), position: position ?? 1 };
+}
+
+export function makeListDetailQueryState(
+  overrides: Partial<ListDetailQueryState> = {},
+): ListDetailQueryState {
+  return {
+    author: [],
+    bookType: null,
+    format: [],
+    genre: [],
+    inQueue: null,
+    isFavorite: null,
+    owner: [],
+    q: "",
+    sort: "position",
+    status: [],
+    tab: "all",
+    view: "grid",
+    ...overrides,
+  };
 }
 
 export function makeListOverviewView(overrides: Partial<ListOverviewView> = {}): ListOverviewView {

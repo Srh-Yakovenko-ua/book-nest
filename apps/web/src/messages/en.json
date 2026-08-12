@@ -3365,12 +3365,15 @@
         "errorDescription": "Try refreshing the page.",
         "back": "Back to lists"
       },
-      "tabs": {
-        "label": "Quick status filters",
+      "quickFilters": {
+        "label": "Quick filters",
         "all": "All",
         "not_started": "Not started",
         "reading": "Reading",
-        "finished": "Finished"
+        "finished": "Finished",
+        "favorites": "Favorites",
+        "in_queue": "In the queue",
+        "series": "Part of a series"
       },
       "view": {
         "label": "View mode",

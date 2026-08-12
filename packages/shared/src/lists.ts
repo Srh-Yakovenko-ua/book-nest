@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { ReadingStatus } from "./book-enums.js";
+
 import {
   BookFormatSchema,
   BookTypeSchema,
@@ -153,6 +155,13 @@ export type ListBookSort = z.infer<typeof ListBookSortSchema>;
 export const ListBookTabSchema = z.enum(["all", "not_started", "reading", "finished"]);
 
 export type ListBookTab = z.infer<typeof ListBookTabSchema>;
+
+export const LIST_TAB_READING_STATUSES: Record<ListBookTab, ReadingStatus[] | undefined> = {
+  all: undefined,
+  finished: ["finished"],
+  not_started: ["not_started", "want_to_read"],
+  reading: ["reading", "rereading"],
+};
 
 export const CustomListBooksQuerySchema = TaxonomySearchPaginationQuerySchema.extend({
   author: queryStringArray(z.uuid()),

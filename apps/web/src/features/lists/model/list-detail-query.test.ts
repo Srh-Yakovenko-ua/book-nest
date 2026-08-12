@@ -1,31 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { ListDetailQueryState } from "./list-detail-query";
-
 import {
   activeListDetailFilterCount,
   listDetailEmptyReason,
   toListDetailParams,
 } from "./list-detail-query";
-import { activeListDetailTab, listDetailStatusPatch, listDetailTabPatch } from "./list-detail-tabs";
-
-function makeState(overrides: Partial<ListDetailQueryState> = {}): ListDetailQueryState {
-  return {
-    author: [],
-    bookType: null,
-    format: [],
-    genre: [],
-    inQueue: null,
-    isFavorite: null,
-    owner: [],
-    q: "",
-    sort: "position",
-    status: [],
-    tab: "all",
-    view: "grid",
-    ...overrides,
-  };
-}
+import { makeListDetailQueryState as makeState } from "./lists.fixtures";
 
 describe("activeListDetailFilterCount", () => {
   it("counts a multiselect with three values as one condition", () => {
@@ -50,29 +30,6 @@ describe("activeListDetailFilterCount", () => {
   it("ignores the search query, the tab, the sort and the view mode", () => {
     const state = makeState({ q: "толкін", sort: "title_asc", tab: "finished", view: "list" });
     expect(activeListDetailFilterCount(state)).toBe(0);
-  });
-});
-
-describe("list detail tabs", () => {
-  it("highlights a tab only while no explicit status is selected", () => {
-    expect(activeListDetailTab(makeState({ tab: "finished" }))).toBe("finished");
-    expect(activeListDetailTab(makeState({ status: ["reading"], tab: "finished" }))).toBeNull();
-  });
-
-  it("clears the statuses when a tab is picked", () => {
-    expect(listDetailTabPatch("finished")).toEqual({ status: null, tab: "finished" });
-    expect(listDetailTabPatch("all")).toEqual({ status: null, tab: null });
-  });
-
-  it("returns the tab to all when explicit statuses are picked", () => {
-    expect(listDetailStatusPatch(["finished", "dnf"])).toEqual({
-      status: ["finished", "dnf"],
-      tab: null,
-    });
-  });
-
-  it("leaves the tab alone when the statuses are cleared", () => {
-    expect(listDetailStatusPatch([])).toEqual({ status: null });
   });
 });
 

@@ -1242,11 +1242,14 @@ export const CustomListDetailSchema = z.object({
   id: z.string(),
   name: z.string(),
   previewCovers: z.array(MediaViewSchema),
-  statusCounts: z.object({
+  quickCounts: z.object({
     all: z.number().int().nonnegative(),
+    favorites: z.number().int().nonnegative(),
     finished: z.number().int().nonnegative(),
+    in_queue: z.number().int().nonnegative(),
     not_started: z.number().int().nonnegative(),
     reading: z.number().int().nonnegative(),
+    series: z.number().int().nonnegative(),
   }),
   updatedAt: z.string(),
 });

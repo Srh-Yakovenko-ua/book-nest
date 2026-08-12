@@ -537,7 +537,7 @@ export * from "./customListDetailDtoBooksItemsItemTagsItem";
 export * from "./customListDetailDtoPreviewCoversItem";
 export * from "./customListDetailDtoPreviewCoversItemKind";
 export * from "./customListDetailDtoPreviewCoversItemUrls";
-export * from "./customListDetailDtoStatusCounts";
+export * from "./customListDetailDtoQuickCounts";
 export * from "./dedicationsSummaryViewDto";
 export * from "./dedicationsSummaryViewDtoTopAuthor";
 export * from "./dedicationsSummaryViewDtoTopGenre";

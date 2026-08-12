@@ -18,8 +18,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 import type { ListBookItemProps } from "../model/list-book-item";
-import type { ListDetailEmptyReason } from "../model/list-detail-query";
-import type { ListDetailTab } from "../model/list-detail-tabs";
+import type { ListDetailEmptyReason, ListDetailQueryState } from "../model/list-detail-query";
 
 import { useDeleteList } from "../api/use-delete-list";
 import { useDuplicateList } from "../api/use-duplicate-list";
@@ -57,7 +56,7 @@ import { ListBulkActions } from "./list-bulk-actions";
 import { ListCurrentlyReadingCard } from "./list-currently-reading-card";
 import { ListDetailsHeader } from "./list-details-header";
 import { ListDetailsToolbar } from "./list-details-toolbar";
-import { ListQuickTabs } from "./list-quick-tabs";
+import { ListQuickFilters } from "./list-quick-filters";
 import { ListRelatedCard, ListRelatedCollapsible } from "./list-related-card";
 import { ListSidebar } from "./list-sidebar";
 import { ListStatsCards } from "./list-stats-cards";
@@ -76,7 +75,7 @@ type NoResultsProps = {
   onClearFilters: () => void;
   onClearSearch: () => void;
   reason: ListDetailEmptyReason;
-  tab: ListDetailTab;
+  tab: ListDetailQueryState["tab"];
 };
 
 export function ListDetailsView({
@@ -405,10 +404,10 @@ export function ListDetailsView({
             onToggleSelecting={selectionMode ? exitSelection : enterSelection}
             onViewChange={listQuery.setView}
             quickFilters={
-              <ListQuickTabs
-                counts={firstPage.statusCounts}
-                onSelect={listQuery.selectTab}
-                value={listQuery.tab}
+              <ListQuickFilters
+                counts={firstPage.quickCounts}
+                onSelect={listQuery.selectQuickFilter}
+                value={listQuery.quickFilter}
               />
             }
             setState={listQuery.setState}

@@ -6,7 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 
-export type CustomListDetailDtoStatusCounts = {
+export type CustomListDetailDtoQuickCounts = {
   /**
    * @minimum 0
    * @maximum 9007199254740991
@@ -16,7 +16,17 @@ export type CustomListDetailDtoStatusCounts = {
    * @minimum 0
    * @maximum 9007199254740991
    */
+  favorites: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
   finished: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  in_queue: number;
   /**
    * @minimum 0
    * @maximum 9007199254740991
@@ -27,4 +37,9 @@ export type CustomListDetailDtoStatusCounts = {
    * @maximum 9007199254740991
    */
   reading: number;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  series: number;
 };

@@ -1,10 +1,12 @@
-import type { LibrarySort, ListBookSort, ReadingStatus } from "@app/shared";
+import type { LibrarySort, ListBookSort } from "@app/shared";
 
+import { LIST_TAB_READING_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
 import type { Prisma } from "../../../generated/prisma/client.js";
-import type { ListTabCounts } from "../domain/list-status-counts.js";
+import type { QuickFilterAxis } from "../domain/list-book-filter.js";
+import type { ListQuickCounts } from "../domain/list-quick-counts.js";
 import type { LibraryFilter } from "./book-where.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -16,7 +18,6 @@ import {
   isStatusSort,
   selectStatusSortedPage,
 } from "../domain/list-book-status-sort.js";
-import { TAB_STATUSES } from "../domain/list-status-counts.js";
 import { buildLibraryWhere } from "./book-where.js";
 import { LIBRARY_ORDER_BY, withRelations } from "./books.repository.js";
 
@@ -46,8 +47,20 @@ type CountListBooksInput = {
   listId: string;
 };
 
-type CountTabInput = CountListBooksInput & {
-  statuses: ReadingStatus[] | undefined;
+type QuickFilterOverlay = Partial<Pick<LibraryFilter, QuickFilterAxis>>;
+
+const QUICK_COUNT_OVERLAYS = {
+  all: {},
+  favorites: { isFavorite: true },
+  finished: { readingStatuses: LIST_TAB_READING_STATUSES.finished },
+  inQueue: { inQueue: true },
+  notStarted: { readingStatuses: LIST_TAB_READING_STATUSES.not_started },
+  reading: { readingStatuses: LIST_TAB_READING_STATUSES.reading },
+  series: { bookType: "series_part" },
+} satisfies Record<keyof ListQuickCounts, QuickFilterOverlay>;
+
+type CountQuickFilterInput = CountListBooksInput & {
+  overlay: QuickFilterOverlay;
 };
 
 type ListListBooksInput = CountListBooksInput & {
@@ -69,14 +82,17 @@ export class ListBooksRepository {
     return this.prisma.bookListItem.count({ where: buildListItemWhere({ filter, listId }) });
   }
 
-  async countByTab({ filter, listId }: CountListBooksInput): Promise<ListTabCounts> {
-    const [all, finished, notStarted, reading] = await Promise.all([
-      this.countForStatuses({ filter, listId, statuses: TAB_STATUSES.all }),
-      this.countForStatuses({ filter, listId, statuses: TAB_STATUSES.finished }),
-      this.countForStatuses({ filter, listId, statuses: TAB_STATUSES.not_started }),
-      this.countForStatuses({ filter, listId, statuses: TAB_STATUSES.reading }),
+  async countQuickFilters({ filter, listId }: CountListBooksInput): Promise<ListQuickCounts> {
+    const [all, favorites, finished, inQueue, notStarted, reading, series] = await Promise.all([
+      this.countWithOverlay({ filter, listId, overlay: QUICK_COUNT_OVERLAYS.all }),
+      this.countWithOverlay({ filter, listId, overlay: QUICK_COUNT_OVERLAYS.favorites }),
+      this.countWithOverlay({ filter, listId, overlay: QUICK_COUNT_OVERLAYS.finished }),
+      this.countWithOverlay({ filter, listId, overlay: QUICK_COUNT_OVERLAYS.inQueue }),
+      this.countWithOverlay({ filter, listId, overlay: QUICK_COUNT_OVERLAYS.notStarted }),
+      this.countWithOverlay({ filter, listId, overlay: QUICK_COUNT_OVERLAYS.reading }),
+      this.countWithOverlay({ filter, listId, overlay: QUICK_COUNT_OVERLAYS.series }),
     ]);
-    return { all, finished, notStarted, reading };
+    return { all, favorites, finished, inQueue, notStarted, reading, series };
   }
 
   listBooks({
@@ -119,9 +135,9 @@ export class ListBooksRepository {
     return new Map(rows.map((row) => [row.bookId, row.rank]));
   }
 
-  private countForStatuses({ filter, listId, statuses }: CountTabInput): Promise<number> {
+  private countWithOverlay({ filter, listId, overlay }: CountQuickFilterInput): Promise<number> {
     return this.prisma.bookListItem.count({
-      where: buildListItemWhere({ filter: { ...filter, readingStatuses: statuses }, listId }),
+      where: buildListItemWhere({ filter: { ...filter, ...overlay }, listId }),
     });
   }
 
