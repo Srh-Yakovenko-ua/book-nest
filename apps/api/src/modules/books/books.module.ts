@@ -23,6 +23,7 @@ import { ListMembershipController } from "./api/list-membership.controller.js";
 import { BookAccessService } from "./application/book-access.service.js";
 import { BookCoverCleanup } from "./application/book-cover-cleanup.js";
 import { BookDeliveryService } from "./application/book-delivery.service.js";
+import { BookFacetsService } from "./application/book-facets.service.js";
 import { BookLibraryReadService } from "./application/book-library-read.service.js";
 import { BookLifecycleService } from "./application/book-lifecycle.service.js";
 import { BookListsService } from "./application/book-lists.service.js";
@@ -45,6 +46,7 @@ import { ListOverviewService } from "./application/list-overview.service.js";
 import { WishlistService } from "./application/wishlist.service.js";
 import { BOOK_PURGE_QUEUE_NAME } from "./domain/book-purge.js";
 import { BookDeliveriesRepository } from "./infrastructure/book-deliveries.repository.js";
+import { BookFacetsRepository } from "./infrastructure/book-facets.repository.js";
 import { BookLibraryReadRepository } from "./infrastructure/book-library-read.repository.js";
 import { BookListsRepository } from "./infrastructure/book-lists.repository.js";
 import { BookStoreLinkRepository } from "./infrastructure/book-store-link.repository.js";
@@ -109,6 +111,8 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     ListBooksRepository,
     ListFacetsService,
     ListFacetsRepository,
+    BookFacetsService,
+    BookFacetsRepository,
     ListOverviewService,
     ListOverviewRepository,
     ListMembershipService,

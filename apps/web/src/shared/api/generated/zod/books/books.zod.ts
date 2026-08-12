@@ -2424,6 +2424,45 @@ export const BooksControllerWishlistResponse = zod.object({
 });
 
 /**
+ * @summary Get the author and genre filter facets of a book scope, authors optionally searched
+ */
+export const booksControllerFacetsQueryQMax = 200;
+
+export const BooksControllerFacetsQueryParams = zod.object({
+  q: zod.string().min(1).max(booksControllerFacetsQueryQMax).optional(),
+  scope: zod.enum(["all", "favorites", "my", "queue", "series", "wishlist"]),
+});
+
+export const booksControllerFacetsResponseAuthorsItemCountExclusiveMin = 0;
+export const booksControllerFacetsResponseAuthorsItemCountMax = 9007199254740991;
+
+export const booksControllerFacetsResponseGenresItemCountExclusiveMin = 0;
+export const booksControllerFacetsResponseGenresItemCountMax = 9007199254740991;
+
+export const BooksControllerFacetsResponse = zod.object({
+  authors: zod.array(
+    zod.object({
+      count: zod
+        .int()
+        .gt(booksControllerFacetsResponseAuthorsItemCountExclusiveMin)
+        .max(booksControllerFacetsResponseAuthorsItemCountMax),
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  genres: zod.array(
+    zod.object({
+      count: zod
+        .int()
+        .gt(booksControllerFacetsResponseGenresItemCountExclusiveMin)
+        .max(booksControllerFacetsResponseGenresItemCountMax),
+      key: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+});
+
+/**
  * @summary Get the filter facets of the current user books-to-buy wishlist
  */
 export const booksControllerWishlistFacetsResponseStoresItemCountMin = 0;

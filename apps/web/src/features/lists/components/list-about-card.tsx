@@ -7,8 +7,7 @@ import { useTranslations } from "next-intl";
 
 import type { UiIconName } from "@/components/icons";
 
-import { UiIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/badge";
+import { GenreIcon, isGenreIconName, UiIcon } from "@/components/icons";
 
 import { ListSidebarCard, ListSidebarCollapsible } from "./list-sidebar";
 
@@ -73,12 +72,21 @@ function AboutFacts({ overview }: { overview: ListOverviewView }) {
       </ul>
 
       {overview.topGenres.length === 0 ? null : (
-        <div className="flex flex-wrap gap-1.5">
-          {overview.topGenres.map((genre) => (
-            <Badge key={genre.key} variant="secondary">
-              {genre.name}
-            </Badge>
-          ))}
+        <div className="flex flex-col gap-1.5">
+          <p className="text-xs font-medium text-muted-foreground">{t("topGenres")}</p>
+          <ul className="flex flex-wrap gap-1.5">
+            {overview.topGenres.map((genre) => (
+              <li
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-tag px-2.5 py-0.5 text-xs font-medium text-tag-foreground"
+                key={genre.key}
+              >
+                {isGenreIconName(genre.key) ? (
+                  <GenreIcon className="shrink-0 text-brand/90" name={genre.key} size={14} />
+                ) : null}
+                <span className="min-w-0 truncate">{genre.name}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

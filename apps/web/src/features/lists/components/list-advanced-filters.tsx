@@ -3,12 +3,12 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { FacetMultiselect } from "@/components/facet-multiselect";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/chip-group";
 import { FilterSection } from "@/components/ui/filter-panel";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -25,7 +25,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Switch } from "@/components/ui/switch";
 import { BookFormatFilter } from "@/features/books";
 import { ownershipStatuses, readingStatuses } from "@/lib/book-status";
 import { ListDetailsControllerDetailOwnerItem } from "@/shared/api/generated/model";
@@ -36,9 +35,10 @@ import type { UseListDetailQueryResult } from "../model/use-list-detail-query";
 import { useListFacets } from "../api/use-list-facets";
 import { activeListDetailFilterCount, LIST_DETAIL_VALUES } from "../model/list-detail-query";
 import { listDetailStatusPatch } from "../model/list-detail-tabs";
-import { ListFacetFilter } from "./list-facet-filter";
 
 const QUEUE_CHOICES = ["all", "in", "notIn"] as const;
+
+const FAVORITE_CHOICES = ["all", "only", "without"] as const;
 
 type ListFiltersDraft = Pick<
   ListDetailQueryState,
@@ -83,6 +83,7 @@ export function ListAdvancedFilters({ id, setState, state }: ListAdvancedFilters
     value: genre.key,
   }));
   const queueChoice = draft.inQueue === null ? "all" : draft.inQueue ? "in" : "notIn";
+  const favoriteChoice = draft.isFavorite === null ? "all" : draft.isFavorite ? "only" : "without";
 
   function handleOpenChange(next: boolean) {
     if (next) setDraft(draftFromState(state));
@@ -204,22 +205,33 @@ export function ListAdvancedFilters({ id, setState, state }: ListAdvancedFilters
       </FilterSection>
 
       <FilterSection title={t("groups.favorite")}>
-        <div className="flex items-center gap-2.5">
-          <Switch
-            checked={draft.isFavorite === true}
-            id="list-filter-favorite"
-            onCheckedChange={(checked) =>
-              setDraft((prev) => ({ ...prev, isFavorite: checked ? true : null }))
-            }
-          />
-          <Label className="cursor-pointer" htmlFor="list-filter-favorite">
-            {t("favorite.only")}
-          </Label>
-        </div>
+        <Select
+          onValueChange={(next) =>
+            setDraft((prev) => ({ ...prev, isFavorite: favoriteChoiceToValue(next) }))
+          }
+          value={favoriteChoice}
+        >
+          <SelectTrigger
+            aria-label={t("groups.favorite")}
+            className="h-10 w-full data-[size=default]:h-10"
+            clearLabel={tCommon("clear")}
+            isClearable={draft.isFavorite !== null}
+            onClear={() => setDraft((prev) => ({ ...prev, isFavorite: null }))}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FAVORITE_CHOICES.map((choice) => (
+              <SelectItem key={choice} value={choice}>
+                {t(`favorite.${choice}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </FilterSection>
 
       <FilterSection title={t("groups.author")}>
-        <ListFacetFilter
+        <FacetMultiselect
           emptyText={t("author.empty")}
           label={t("groups.author")}
           onValueChange={(next) => setDraft((prev) => ({ ...prev, author: next }))}
@@ -232,7 +244,7 @@ export function ListAdvancedFilters({ id, setState, state }: ListAdvancedFilters
       </FilterSection>
 
       <FilterSection title={t("groups.genre")}>
-        <ListFacetFilter
+        <FacetMultiselect
           emptyText={t("genre.empty")}
           label={t("groups.genre")}
           onValueChange={(next) => setDraft((prev) => ({ ...prev, genre: next }))}
@@ -244,7 +256,7 @@ export function ListAdvancedFilters({ id, setState, state }: ListAdvancedFilters
         />
       </FilterSection>
 
-      <FilterSection title={t("groups.series")}>
+      <FilterSection title={t("groups.bookType")}>
         <Select
           onValueChange={(next) =>
             setDraft((prev) => ({
@@ -255,7 +267,7 @@ export function ListAdvancedFilters({ id, setState, state }: ListAdvancedFilters
           value={draft.bookType ?? "all"}
         >
           <SelectTrigger
-            aria-label={t("groups.series")}
+            aria-label={t("groups.bookType")}
             className="h-10 w-full data-[size=default]:h-10"
             clearLabel={tCommon("clear")}
             isClearable={draft.bookType !== null}
@@ -264,10 +276,10 @@ export function ListAdvancedFilters({ id, setState, state }: ListAdvancedFilters
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t("series.all")}</SelectItem>
+            <SelectItem value="all">{t("bookType.all")}</SelectItem>
             {LIST_DETAIL_VALUES.bookType.map((value) => (
               <SelectItem key={value} value={value}>
-                {t(`series.${value}`)}
+                {t(`bookType.${value}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -322,6 +334,12 @@ function draftFromState(state: ListDetailQueryState): ListFiltersDraft {
 
 function emptyToNull<TValue>(values: TValue[]): null | TValue[] {
   return values.length === 0 ? null : values;
+}
+
+function favoriteChoiceToValue(choice: string): boolean | null {
+  if (choice === "only") return true;
+  if (choice === "without") return false;
+  return null;
 }
 
 function queueChoiceToValue(choice: string): boolean | null {

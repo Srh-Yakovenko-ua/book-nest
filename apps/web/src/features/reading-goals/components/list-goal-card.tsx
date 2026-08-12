@@ -41,7 +41,7 @@ export function ListGoalCard({ bookCount, listId, listName }: ListGoalCardProps)
   const state = resolveState({ goal: data ?? null, isPending });
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-soft">
+    <section className="sidebar-card-leaf flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-5 shadow-soft">
       <h2 className="flex items-center gap-2 font-heading text-sm font-semibold text-ink">
         <UiIcon aria-hidden className="shrink-0 text-primary/70" name="target" size={20} />
         {t("title")}

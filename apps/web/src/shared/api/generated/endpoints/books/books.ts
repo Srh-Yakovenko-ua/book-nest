@@ -20,12 +20,14 @@ import type {
 
 import type {
   BookDeletionResultDto,
+  BookFacetsViewDto,
   BookListsViewDto,
   BookReadingControllerGetReadingHistoryParams,
   BookStoreLinkViewDto,
   BookStoreLinksViewDto,
   BookViewDto,
   BooksControllerDedicationsParams,
+  BooksControllerFacetsParams,
   BooksControllerListParams,
   BooksControllerListTrashParams,
   BooksControllerOverviewParams,
@@ -1111,6 +1113,171 @@ export function useBooksControllerWishlist<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBooksControllerWishlistQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type booksControllerFacetsResponse200 = {
+  data: BookFacetsViewDto;
+  status: 200;
+};
+
+export type booksControllerFacetsResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type booksControllerFacetsResponseSuccess = booksControllerFacetsResponse200 & {
+  headers: Headers;
+};
+export type booksControllerFacetsResponseError = booksControllerFacetsResponse401 & {
+  headers: Headers;
+};
+
+export type booksControllerFacetsResponse =
+  booksControllerFacetsResponseSuccess | booksControllerFacetsResponseError;
+
+export const getBooksControllerFacetsUrl = (params: BooksControllerFacetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/books/facets?${stringifiedParams}`
+    : `/api/books/facets`;
+};
+
+/**
+ * @summary Get the author and genre filter facets of a book scope, authors optionally searched
+ */
+export const booksControllerFacets = async (
+  params: BooksControllerFacetsParams,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<booksControllerFacetsResponse> => {
+  return customInstance<booksControllerFacetsResponse>(getBooksControllerFacetsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getBooksControllerFacetsQueryKey = (params?: BooksControllerFacetsParams) => {
+  return [`/api/books/facets`, ...(params ? [params] : [])] as const;
+};
+
+export const getBooksControllerFacetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof booksControllerFacets>>,
+  TError = void,
+>(
+  params: BooksControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getBooksControllerFacetsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof booksControllerFacets>>> = ({ signal }) =>
+    booksControllerFacets(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof booksControllerFacets>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BooksControllerFacetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof booksControllerFacets>>
+>;
+export type BooksControllerFacetsQueryError = void;
+
+export function useBooksControllerFacets<
+  TData = Awaited<ReturnType<typeof booksControllerFacets>>,
+  TError = void,
+>(
+  params: BooksControllerFacetsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerFacets<
+  TData = Awaited<ReturnType<typeof booksControllerFacets>>,
+  TError = void,
+>(
+  params: BooksControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerFacets>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof booksControllerFacets>>,
+          TError,
+          Awaited<ReturnType<typeof booksControllerFacets>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBooksControllerFacets<
+  TData = Awaited<ReturnType<typeof booksControllerFacets>>,
+  TError = void,
+>(
+  params: BooksControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Get the author and genre filter facets of a book scope, authors optionally searched
+ */
+
+export function useBooksControllerFacets<
+  TData = Awaited<ReturnType<typeof booksControllerFacets>>,
+  TError = void,
+>(
+  params: BooksControllerFacetsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof booksControllerFacets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBooksControllerFacetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

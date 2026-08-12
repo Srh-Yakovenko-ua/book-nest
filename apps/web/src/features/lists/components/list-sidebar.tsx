@@ -18,7 +18,8 @@ type ListSidebarCardProps = {
 const SIDEBAR_CARD = {
   heading: "flex items-center gap-2 font-heading text-sm font-semibold text-ink",
   icon: "shrink-0 text-primary/70",
-  shell: "flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-soft",
+  shell:
+    "sidebar-card-leaf flex flex-col gap-3 overflow-hidden rounded-xl border border-border bg-card p-5 shadow-soft",
   trigger:
     "group flex w-full cursor-pointer items-center justify-between gap-2 rounded-md text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
   triggerChevron:
