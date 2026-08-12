@@ -39,7 +39,12 @@ import {
   RECENT_USED_LIMIT_DEFAULT,
   RECENT_USED_LIMIT_MAX,
 } from "./internal.js";
-import { BookListViewSchema, ListGenreFacetSchema, NewListInputSchema } from "./lists.js";
+import {
+  BookListViewSchema,
+  ListFacetEntrySchema,
+  ListGenreFacetSchema,
+  NewListInputSchema,
+} from "./lists.js";
 import { LoanInfoViewSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
 import { BookPublisherRefSchema } from "./publishers.js";
@@ -1269,3 +1274,28 @@ export const ListOverviewViewSchema = z.object({
 });
 
 export type ListOverviewView = z.infer<typeof ListOverviewViewSchema>;
+
+export const BookFacetScopeSchema = z.enum([
+  "all",
+  "favorites",
+  "my",
+  "queue",
+  "series",
+  "wishlist",
+]);
+
+export type BookFacetScope = z.infer<typeof BookFacetScopeSchema>;
+
+export const BookFacetsQuerySchema = z.object({
+  q: z.string().trim().min(1).max(LIBRARY_SEARCH_MAX).optional(),
+  scope: BookFacetScopeSchema,
+});
+
+export type BookFacetsQuery = z.infer<typeof BookFacetsQuerySchema>;
+
+export const BookFacetsViewSchema = z.object({
+  authors: z.array(ListFacetEntrySchema),
+  genres: z.array(ListGenreFacetSchema),
+});
+
+export type BookFacetsView = z.infer<typeof BookFacetsViewSchema>;
