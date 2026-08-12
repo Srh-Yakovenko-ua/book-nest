@@ -27,6 +27,7 @@ import type { UseListDetailQueryResult } from "../model/use-list-detail-query";
 
 import { LIST_BOOK_SORT_DEFAULT, LIST_BOOK_SORT_OPTIONS } from "../model/list-book-sort";
 import { ListAdvancedFilters } from "./list-advanced-filters";
+import { ListBookSortSheet } from "./list-book-sort-sheet";
 
 type ListDetailsToolbarProps = {
   chips: ActiveFilterChip[];
@@ -82,7 +83,14 @@ export function ListDetailsToolbar({
         </div>
 
         <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2.5">
-          <div className="min-w-0 flex-1 sm:w-80 sm:flex-none">
+          <ListBookSortSheet
+            className="sm:hidden"
+            label={t("sort.label")}
+            onChange={onSortChange}
+            value={state.sort}
+          />
+
+          <div className="hidden sm:block sm:w-80 sm:flex-none">
             <Select onValueChange={(next) => onSortChange(toSortOption(next))} value={state.sort}>
               <SelectTrigger
                 aria-label={t("sort.label")}

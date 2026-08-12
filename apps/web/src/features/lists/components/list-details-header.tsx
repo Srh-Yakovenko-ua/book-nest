@@ -46,9 +46,9 @@ export function ListDetailsHeader({
   const covers = previewCovers.slice(0, HERO_COVERS_LIMIT);
 
   return (
-    <header className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-detail-block sm:flex-row sm:items-start sm:gap-5 md:p-7">
+    <header className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-detail-block sm:flex-row sm:items-start sm:gap-5 sm:p-5 md:p-7">
       {covers.length === 0 ? null : (
-        <div className="grid w-24 shrink-0 grid-cols-2 gap-1.5 lg:w-48 lg:gap-2">
+        <div className="hidden shrink-0 grid-cols-2 gap-1.5 sm:grid sm:w-24 lg:w-48 lg:gap-2">
           {covers.map((cover) => (
             <span
               className="relative aspect-square overflow-hidden rounded-md bg-accent shadow-soft lg:rounded-lg"
@@ -69,7 +69,7 @@ export function ListDetailsHeader({
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5 max-sm:pr-12">
             <h1 className="font-heading text-2xl font-semibold text-ink">{name}</h1>
             <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
               <UiIcon className="shrink-0 text-icon" name="clock" size={15} />
@@ -77,14 +77,19 @@ export function ListDetailsHeader({
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <Button onClick={onAddBooks}>
+          <div className="flex shrink-0 items-center gap-2 max-sm:w-full">
+            <Button className="max-sm:flex-1" onClick={onAddBooks}>
               <UiIcon name="plus" size={16} />
               {tHeader("addBooks")}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button aria-label={tHeader("manage")} size="icon" variant="outline">
+                <Button
+                  aria-label={tHeader("manage")}
+                  className="max-sm:absolute max-sm:top-4 max-sm:right-4"
+                  size="icon"
+                  variant="outline"
+                >
                   <UiIcon name="more" size={18} />
                 </Button>
               </DropdownMenuTrigger>

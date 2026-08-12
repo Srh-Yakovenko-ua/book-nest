@@ -4,7 +4,13 @@ import { ArrowUpDown, X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Drawer, DrawerClose, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
@@ -30,6 +36,7 @@ type MobileSortGroupsInput<TValue extends string, TGroupKey extends string> = {
 type MobileSortSheetProps<TValue extends string> = {
   className?: string;
   closeLabel: string;
+  description: string;
   groups: MobileSortGroup<TValue>[];
   id: string;
   label: string;
@@ -61,6 +68,7 @@ export function buildMobileSortGroups<TValue extends string, TGroupKey extends s
 export function MobileSortSheet<TValue extends string>({
   className,
   closeLabel,
+  description,
   groups,
   id,
   label,
@@ -98,6 +106,7 @@ export function MobileSortSheet<TValue extends string>({
           <DrawerTitle className="flex-1 text-left font-heading text-lg font-semibold text-ink">
             {title}
           </DrawerTitle>
+          <DrawerDescription className="sr-only">{description}</DrawerDescription>
           <DrawerClose asChild>
             <Button
               aria-label={closeLabel}
