@@ -15,6 +15,7 @@ import type {
 import { collapseSpaces, CurrencySchema, isActiveDeliveryStatus } from "@app/shared";
 
 import { toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
+import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 
 export const STATISTICS_TOP_LIMIT = 10;
 
@@ -114,7 +115,8 @@ function buildByStore({
     }))
     .sort(
       (left, right) =>
-        right.ordersCount - left.ordersCount || left.store.localeCompare(right.store),
+        right.ordersCount - left.ordersCount ||
+        UKRAINIAN_COLLATION.compare(left.store, right.store),
     );
 }
 

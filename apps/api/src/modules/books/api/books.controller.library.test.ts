@@ -1507,3 +1507,97 @@ describe("GET /api/books pagination", () => {
     expect([...returnedIds].sort()).toEqual(seeded.map((book) => book.id).sort());
   });
 });
+
+describe("GET /api/books Ukrainian alphabetical sorting", () => {
+  const UKRAINIAN_ALPHABET = {
+    authorsInCodepointOrder: [
+      "Єшкілєв Олег",
+      "Івченко Михайло",
+      "Їжакевич Іван",
+      "Андрухович Юрій",
+      "Багряний Іван",
+      "Гончар Олесь",
+      "Еллан-Блакитний Василь",
+      "Забужко Оксана",
+      "Йогансен Майк",
+      "Яновський Юрій",
+      "Ґжицький Володимир",
+    ],
+    authorsInUkrainianOrder: [
+      "Андрухович Юрій",
+      "Багряний Іван",
+      "Гончар Олесь",
+      "Ґжицький Володимир",
+      "Еллан-Блакитний Василь",
+      "Єшкілєв Олег",
+      "Забужко Оксана",
+      "Івченко Михайло",
+      "Їжакевич Іван",
+      "Йогансен Майк",
+      "Яновський Юрій",
+    ],
+    titlesInCodepointOrder: [
+      "Єва",
+      "Ігри",
+      "Їжак",
+      "Аркан",
+      "Бездоганний",
+      "Гарний",
+      "Едем",
+      "Зима",
+      "Йорж",
+      "Яблуко",
+      "Ґудзик",
+    ],
+    titlesInUkrainianOrder: [
+      "Аркан",
+      "Бездоганний",
+      "Гарний",
+      "Ґудзик",
+      "Едем",
+      "Єва",
+      "Зима",
+      "Ігри",
+      "Їжак",
+      "Йорж",
+      "Яблуко",
+    ],
+  } as const;
+
+  function authorNamesOf(body: {
+    items: { authors: { name: string }[] }[];
+  }): (string | undefined)[] {
+    return body.items.map((item) => item.authors[0]?.name);
+  }
+
+  it("orders titles with Ґ after Г, Є after Е and І between З and Й", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const author = await seedAuthor({ name: "Ліна Костенко", userId });
+    for (const title of UKRAINIAN_ALPHABET.titlesInCodepointOrder) {
+      await seedBook({ authorId: author.id, title, userId });
+    }
+
+    const res = await listBooks(accessToken, "sort=title_asc");
+
+    expect(res.status).toBe(200);
+    expect(titlesOf(res.body)).toEqual(UKRAINIAN_ALPHABET.titlesInUkrainianOrder);
+  });
+
+  it("orders author names with Ґ after Г, Є after Е and І between З and Й", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    for (const [index, name] of UKRAINIAN_ALPHABET.authorsInCodepointOrder.entries()) {
+      const author = await seedAuthor({ name, userId });
+      await seedBook({
+        authorId: author.id,
+        firstAuthorName: name,
+        title: `Book ${index + 1}`,
+        userId,
+      });
+    }
+
+    const res = await listBooks(accessToken, "sort=author_asc");
+
+    expect(res.status).toBe(200);
+    expect(authorNamesOf(res.body)).toEqual(UKRAINIAN_ALPHABET.authorsInUkrainianOrder);
+  });
+});
