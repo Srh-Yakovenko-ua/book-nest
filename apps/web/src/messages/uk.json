@@ -869,6 +869,8 @@
         },
         "genrePlaceholder": "Оберіть жанри",
         "genreSearch": "Пошук жанру…",
+        "genreSelected": "{count, plural, one {# жанр} few {# жанри} many {# жанрів} other {# жанрів}}",
+        "authorSelected": "{count, plural, one {# автор} few {# автори} many {# авторів} other {# авторів}}",
         "genreEmpty": "Жанрів не знайдено",
         "languagePlaceholder": "Оберіть мови",
         "languageSearch": "Пошук мови…",
@@ -2030,7 +2032,9 @@
       "publisherPlaceholder": "Пошук видавництва…",
       "publisherSearching": "Шукаємо видавництва…",
       "publisherEmpty": "Видавництв не знайдено",
-      "removePublisher": "Прибрати видавництво {name}"
+      "removePublisher": "Прибрати видавництво {name}",
+      "authorSelected": "{count, plural, one {# автор} few {# автори} many {# авторів} other {# авторів}}",
+      "genreSelected": "{count, plural, one {# жанр} few {# жанри} many {# жанрів} other {# жанрів}}"
     },
     "summary": {
       "microfact": {
@@ -2992,7 +2996,11 @@
       "empty": "Немає доступних варіантів",
       "authorEmpty": "Авторів не знайдено",
       "authorSearching": "Шукаємо авторів…",
-      "removeAuthor": "Прибрати автора {name}"
+      "removeAuthor": "Прибрати автора {name}",
+      "authorSelected": "{count, plural, one {# автор} few {# автори} many {# авторів} other {# авторів}}",
+      "genreSelected": "{count, plural, one {# жанр} few {# жанри} many {# жанрів} other {# жанрів}}",
+      "genreEmpty": "Жанрів не знайдено",
+      "genreSearch": "Пошук жанру…"
     },
     "status": {
       "completed": "Завершена",
@@ -3407,10 +3415,10 @@
           "status": "Статус читання",
           "ownership": "Наявність книги",
           "queue": "У черзі читання",
-          "favorite": "Тільки улюблені",
+          "favorite": "Улюблені",
           "author": "Автор",
           "genre": "Жанр",
-          "series": "Серійність"
+          "bookType": "Тип книги"
         },
         "ownership": {
           "none": "Немає у власності"
@@ -3421,12 +3429,14 @@
           "notIn": "Не в черзі"
         },
         "favorite": {
-          "only": "Показувати лише улюблені"
-        },
-        "series": {
           "all": "Усі",
-          "series_part": "Серійні книги",
-          "solo": "Окремі книги"
+          "only": "Лише улюблені",
+          "without": "Без улюблених"
+        },
+        "bookType": {
+          "all": "Усі",
+          "solo": "Соло книги",
+          "series_part": "Частина серії"
         },
         "author": {
           "placeholder": "Будь-який автор",
@@ -3472,7 +3482,6 @@
         "label": "Більше про добірку",
         "currentlyReading": {
           "title": "Зараз читаються",
-          "cta": "Продовжити читання",
           "coverAlt": "Обкладинка книги «{title}»",
           "unknownAuthor": "Автор невідомий",
           "progress": "стор. {current} з {total} · {percent}%",
@@ -3482,6 +3491,7 @@
         },
         "about": {
           "title": "Про добірку",
+          "topGenres": "Найпопулярніші жанри",
           "genres": "{count, plural, one {# жанр} few {# жанри} many {# жанрів} other {# жанрів}}",
           "seriesAndSolo": "{series, plural, one {# серія} few {# серії} many {# серій} other {# серій}} · {solo, plural, one {# окрема книга} few {# окремі книги} many {# окремих книг} other {# окремих книг}}",
           "pages": "{count, plural, one {# сторінка} few {# сторінки} many {# сторінок} other {# сторінок}}",

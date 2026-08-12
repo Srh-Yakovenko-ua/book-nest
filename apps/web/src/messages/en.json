@@ -869,6 +869,8 @@
         },
         "genrePlaceholder": "Select genres",
         "genreSearch": "Search genre…",
+        "genreSelected": "{count, plural, one {# genre} other {# genres}}",
+        "authorSelected": "{count, plural, one {# author} other {# authors}}",
         "genreEmpty": "No genres found",
         "languagePlaceholder": "Select languages",
         "languageSearch": "Search language…",
@@ -2030,7 +2032,9 @@
       "publisherPlaceholder": "Search publisher…",
       "publisherSearching": "Searching publishers…",
       "publisherEmpty": "No publishers found",
-      "removePublisher": "Remove publisher {name}"
+      "removePublisher": "Remove publisher {name}",
+      "authorSelected": "{count, plural, one {# author} other {# authors}}",
+      "genreSelected": "{count, plural, one {# genre} other {# genres}}"
     },
     "summary": {
       "microfact": {
@@ -2992,7 +2996,11 @@
       "empty": "No options available",
       "authorEmpty": "No authors found",
       "authorSearching": "Searching authors…",
-      "removeAuthor": "Remove author {name}"
+      "removeAuthor": "Remove author {name}",
+      "authorSelected": "{count, plural, one {# author} other {# authors}}",
+      "genreSelected": "{count, plural, one {# genre} other {# genres}}",
+      "genreEmpty": "No genres found",
+      "genreSearch": "Search genres…"
     },
     "status": {
       "completed": "Completed",
@@ -3407,10 +3415,10 @@
           "status": "Reading status",
           "ownership": "Ownership",
           "queue": "Reading queue",
-          "favorite": "Favorites only",
+          "favorite": "Favorites",
           "author": "Author",
           "genre": "Genre",
-          "series": "Series"
+          "bookType": "Book type"
         },
         "ownership": {
           "none": "Not owned"
@@ -3421,12 +3429,14 @@
           "notIn": "Not in the queue"
         },
         "favorite": {
-          "only": "Show favorites only"
-        },
-        "series": {
           "all": "All",
-          "series_part": "Part of a series",
-          "solo": "Standalone books"
+          "only": "Favorites only",
+          "without": "Not favorites"
+        },
+        "bookType": {
+          "all": "All",
+          "solo": "Standalone",
+          "series_part": "Part of a series"
         },
         "author": {
           "placeholder": "Any author",
@@ -3472,7 +3482,6 @@
         "label": "More about this list",
         "currentlyReading": {
           "title": "Currently reading",
-          "cta": "Continue reading",
           "coverAlt": "Cover of “{title}”",
           "unknownAuthor": "Author unknown",
           "progress": "p. {current} of {total} · {percent}%",
@@ -3482,6 +3491,7 @@
         },
         "about": {
           "title": "About this list",
+          "topGenres": "Most common genres",
           "genres": "{count, plural, one {# genre} other {# genres}}",
           "seriesAndSolo": "{series, plural, one {# series} other {# series}} · {solo, plural, one {# standalone book} other {# standalone books}}",
           "pages": "{count, plural, one {# page} other {# pages}}",

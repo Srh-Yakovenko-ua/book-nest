@@ -5,6 +5,7 @@ import type { Nullable } from "@app/shared";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { FacetMultiselect, type FacetOption } from "@/components/facet-multiselect";
 import { UiIcon } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,13 +35,11 @@ import {
   BookFormatFilter,
   LibraryEntityMultiselect,
   LibraryTagFilter,
-  useAuthorOptions,
-  useGenres,
+  useBookFacets,
   usePublishersSearch,
-  useRecentAuthors,
-  useRecentGenres,
   useRecentPublishers,
 } from "@/features/books";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { blockNegativeNumberKeys } from "@/lib/block-negative-number-keys";
 import { cn } from "@/lib/utils";
 
@@ -97,6 +96,8 @@ type WishlistAdvancedFiltersProps = {
   storeOptions: WishlistFilterOption[];
 };
 
+const FACET_SEARCH_DEBOUNCE_MS = 250;
+
 export function WishlistAdvancedFilters({
   activeCount,
   onRememberEntity,
@@ -107,33 +108,25 @@ export function WishlistAdvancedFilters({
 }: WishlistAdvancedFiltersProps) {
   const t = useTranslations("booksToBuy.filters");
   const tLink = useTranslations("booksToBuy.linkFilter");
-  const tAuthor = useTranslations("books.author");
   const tPublisher = useTranslations("books.publisher");
   const tLanguage = useTranslations("books.classification.languageLabels");
   const tClassification = useTranslations("books.classification");
+  const [authorTerm, setAuthorTerm] = useState("");
+  const debouncedAuthorTerm = useDebouncedValue(authorTerm, FACET_SEARCH_DEBOUNCE_MS);
+  const facets = useBookFacets("wishlist", debouncedAuthorTerm);
+  const authorFacetOptions = (facets.data?.authors ?? []).map((author) => ({
+    count: author.count,
+    label: author.name,
+    value: author.id,
+  }));
+  const genreFacetOptions = (facets.data?.genres ?? []).map((genre) => ({
+    count: genre.count,
+    label: genre.name,
+    value: genre.key,
+  }));
   const [open, setOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [draft, setDraft] = useState<WishlistFiltersDraft>(() => draftFromState(state));
-
-  const genres = useGenres();
-  const recentGenres = useRecentGenres();
-  const genreList = genres.data ?? [];
-  const genreNameByKey = new Map(genreList.map((genre) => [genre.key, genre.name]));
-  const recentHeading = tClassification("genresRecentHeading");
-  const recentKeys = (recentGenres.data ?? [])
-    .map((genre) => genre.key)
-    .filter((key) => genreNameByKey.has(key));
-  const recentKeySet = new Set(recentKeys);
-  const genreOptions = [
-    ...recentKeys.map((key) => ({
-      group: recentHeading,
-      label: genreNameByKey.get(key) ?? key,
-      value: key,
-    })),
-    ...genreList
-      .filter((genre) => !recentKeySet.has(genre.key))
-      .map((genre) => ({ group: genre.groupName, label: genre.name, value: genre.key })),
-  ];
 
   const rangeFlags = wishlistRangeFlags(draft);
   const hasInvalidRange = rangeFlags.pages || rangeFlags.price || rangeFlags.year;
@@ -298,12 +291,14 @@ export function WishlistAdvancedFilters({
           </FilterSection>
 
           <FilterSection title={t("sections.genre")}>
-            <Multiselect
+            <FacetMultiselect
               emptyText={t("genreEmpty")}
+              label={t("sections.genre")}
               onValueChange={(next) => setDraft((prev) => ({ ...prev, genre: next }))}
-              options={genreOptions}
+              options={genreFacetOptions}
               placeholder={t("genrePlaceholder")}
               searchPlaceholder={t("genreSearch")}
+              selectedText={(count) => t("genreSelected", { count })}
               value={draft.genre}
             />
           </FilterSection>
@@ -330,25 +325,24 @@ export function WishlistAdvancedFilters({
           </FilterSection>
 
           <FilterSection title={t("sections.author")}>
-            <LibraryEntityMultiselect
-              allHeading={tAuthor("allHeading")}
-              empty={t("authorEmpty")}
-              icon="user"
-              id="wishlist-filter-author"
-              onAdd={(item) => {
-                onRememberEntity(item.id, item.name);
-                setDraft((prev) => ({ ...prev, author: [...prev.author, item.id] }));
+            <FacetMultiselect
+              emptyText={t("authorEmpty")}
+              isSearching={facets.isFetching}
+              label={t("sections.author")}
+              onSearchChange={setAuthorTerm}
+              onValueChange={(next) => {
+                rememberFacetNames({
+                  ids: next,
+                  onRemember: onRememberEntity,
+                  options: authorFacetOptions,
+                });
+                setDraft((prev) => ({ ...prev, author: next }));
               }}
-              onRemove={(id) =>
-                setDraft((prev) => ({ ...prev, author: prev.author.filter((v) => v !== id) }))
-              }
+              options={authorFacetOptions}
               placeholder={t("authorPlaceholder")}
-              recentHeading={tAuthor("recentHeading")}
-              removeLabel={(name) => t("removeAuthor", { name })}
-              resolveName={resolveEntityName}
-              searching={t("authorSearching")}
-              useRecent={useRecentAuthors}
-              useSearch={useAuthorOptions}
+              searchingText={t("authorSearching")}
+              searchPlaceholder={t("authorPlaceholder")}
+              selectedText={(count) => t("authorSelected", { count })}
               value={draft.author}
             />
           </FilterSection>
@@ -624,6 +618,21 @@ function pickRareFilters(draft: WishlistFiltersDraft): Partial<WishlistFiltersDr
     yearMax: draft.yearMax,
     yearMin: draft.yearMin,
   };
+}
+
+function rememberFacetNames({
+  ids,
+  onRemember,
+  options,
+}: {
+  ids: string[];
+  onRemember: (id: string, name: string) => void;
+  options: FacetOption[];
+}): void {
+  for (const id of ids) {
+    const option = options.find((entry) => entry.value === id);
+    if (option !== undefined) onRemember(id, option.label);
+  }
 }
 
 function resolvePriceHint(currency: string[]): Nullable<"priceOneCurrency" | "pricePickCurrency"> {

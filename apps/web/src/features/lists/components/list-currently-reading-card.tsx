@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Link } from "@/i18n/navigation";
 
@@ -68,13 +67,6 @@ export function ListCurrentlyReadingCard({ overview }: { overview: Nullable<List
           ) : null}
         </div>
       )}
-
-      <Button asChild className="w-full" variant="secondary">
-        <Link href={href}>
-          <UiIcon name="arrow-right" size={16} />
-          {t("cta")}
-        </Link>
-      </Button>
 
       {othersCount === 0 ? null : (
         <p className="text-xs text-muted-foreground">{t("others", { count: othersCount })}</p>

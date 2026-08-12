@@ -425,16 +425,16 @@ export function ListDetailsView({
         </section>
 
         <ListSidebar>
+          <ListAboutCard overview={overview} />
           <ListGoalCard bookCount={bookCount} listId={id} listName={firstPage.name} />
           <ListCurrentlyReadingCard overview={overview} />
-          <ListAboutCard overview={overview} />
           <ListRelatedCard lists={relatedLists} />
         </ListSidebar>
       </div>
 
       <div className="flex flex-col gap-6 lg:hidden">
-        <ListGoalCard bookCount={bookCount} listId={id} listName={firstPage.name} />
         <ListAboutCollapsible overview={overview} />
+        <ListGoalCard bookCount={bookCount} listId={id} listName={firstPage.name} />
         <ListRelatedCollapsible lists={relatedLists} />
       </div>
 

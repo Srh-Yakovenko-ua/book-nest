@@ -1,6 +1,7 @@
 export { useAuthorOptions } from "./api/use-author-options";
 export { useBook } from "./api/use-book";
 export { useToggleFavorite } from "./api/use-book-actions";
+export { useBookFacets } from "./api/use-book-facets";
 export { useLibraryBooks } from "./api/use-books";
 export { useCreateDelivery } from "./api/use-delivery";
 export { useGenres } from "./api/use-genres";
