@@ -2972,7 +2972,7 @@
         "progress": "Reading progress",
         "booksCount": "Added books in series",
         "completeness": "Books added",
-        "genre": "Genre",
+        "genre": "Genres",
         "author": "Author"
       },
       "completeness": {
@@ -3417,7 +3417,7 @@
           "queue": "Reading queue",
           "favorite": "Favorites",
           "author": "Author",
-          "genre": "Genre",
+          "genre": "Genres",
           "bookType": "Book type"
         },
         "ownership": {

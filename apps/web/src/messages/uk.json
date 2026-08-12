@@ -2972,7 +2972,7 @@
         "progress": "Прогрес читання",
         "booksCount": "Додано книг у серії",
         "completeness": "Скільки книг додано",
-        "genre": "Жанр",
+        "genre": "Жанри",
         "author": "Автор"
       },
       "completeness": {
@@ -3417,7 +3417,7 @@
           "queue": "У черзі читання",
           "favorite": "Улюблені",
           "author": "Автор",
-          "genre": "Жанр",
+          "genre": "Жанри",
           "bookType": "Тип книги"
         },
         "ownership": {
