@@ -68,15 +68,15 @@ export function BookPickerResults({
                 onCheckedChange={() => onToggle(book)}
               />
               <BookThumb book={book} />
-              <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <BookPickerCaption book={book} />
                 {isDisabled && disabledLabel !== undefined ? (
-                  <span className="shrink-0 text-xs font-medium text-muted-foreground max-sm:text-[0.6875rem]">
+                  <span className="self-start text-xs font-medium text-muted-foreground max-sm:text-[0.6875rem]">
                     {disabledLabel}
                   </span>
                 ) : readingBase === undefined ? null : (
                   <StatusBadge
-                    className="shrink-0 max-sm:h-5 max-sm:gap-1 max-sm:px-2 max-sm:text-[0.6875rem] max-sm:[&>svg]:size-3"
+                    className="self-start max-sm:h-5 max-sm:gap-1 max-sm:px-2 max-sm:text-[0.6875rem] max-sm:[&>svg]:size-3"
                     entry={{ ...readingBase, label: readingLabel(book.readingStatus) }}
                   />
                 )}

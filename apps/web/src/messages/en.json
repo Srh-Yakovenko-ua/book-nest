@@ -3268,7 +3268,8 @@
       "booksHeading": "Books in this list",
       "loadMore": "Show more",
       "toolbar": {
-        "search": "Search in list…",
+        "searchLabel": "Search in list",
+        "searchPlaceholder": "Search by title, author, or series",
         "counter": "Showing {shown} of {total, plural, one {# book} other {# books}}",
         "sort": {
           "label": "Sort",
@@ -3298,8 +3299,8 @@
       },
       "book": {
         "actions": "Book actions: {title}",
-        "position": "Position {n}",
-        "view": "View book",
+        "position": "#{n}",
+        "positionLabel": "Position {n}",
         "remove": "Remove from list",
         "moveUp": "Move up",
         "moveDown": "Move down",
@@ -3308,10 +3309,8 @@
         "goToQueue": "Go to queue",
         "addToOtherList": "Add to another list",
         "cta": {
-          "continue": "Continue reading",
           "resume": "Resume reading",
-          "start": "Start reading",
-          "view": "View book"
+          "start": "Start reading"
         },
         "favorite": "Add to favorites",
         "unfavorite": "Remove from favorites",
@@ -3324,6 +3323,7 @@
       "toast": {
         "addedToQueue": "Book added to the reading queue",
         "error": "Something went wrong",
+        "moved": "Book “{title}” moved to position {position}",
         "startedReading": "Reading started"
       },
       "noResults": {
@@ -3372,6 +3372,7 @@
       "reorder": {
         "announced": "Book “{title}” moved to position {n} of {total}",
         "handle": "Reorder “{title}”",
+        "handlePosition": "Reorder “{title}” · position {n}",
         "handleHint": "Drag to reorder, or use the arrow keys",
         "hint": "To reorder the books, choose the “Position in list” sorting and clear the search and filters."
       },
@@ -3544,6 +3545,20 @@
         "mobile": {
           "title": "Sorting",
           "close": "Close",
+          "groups": {
+            "date": "Date",
+            "title": "Name",
+            "books_count": "Book count"
+          },
+          "options": {
+            "updated_desc": "Recently updated",
+            "created_desc": "Newest first",
+            "created_asc": "Oldest first",
+            "title_asc": "A–Z",
+            "title_desc": "Z–A",
+            "books_count_desc": "Most books",
+            "books_count_asc": "Fewest books"
+          },
           "trigger": {
             "updated_desc": "Updated",
             "created_desc": "Newest",

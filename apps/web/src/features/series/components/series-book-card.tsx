@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import type { LibraryBook } from "@/features/books/model/library-book";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -136,28 +137,29 @@ export function SeriesBookCard({
         coverAspect="portrait"
         kebab={
           <div className="flex items-center gap-0.5">
-            <Button
-              aria-label={favoriteLabel}
-              aria-pressed={book.isFavorite}
-              className={cn(
-                "size-8 rounded-lg border transition-all duration-[180ms] ease-out",
-                book.isFavorite
-                  ? "border-brand bg-brand text-white shadow-btn hover:border-primary-hover hover:bg-primary-hover hover:text-white dark:hover:bg-primary-hover"
-                  : "border-border bg-card text-muted-foreground hover:border-brand hover:text-brand",
-              )}
-              disabled={toggleFavorite.isPending}
-              onClick={() =>
-                toggleFavorite.mutate(
-                  { isFavorite: !book.isFavorite },
-                  { onError: () => toast.error(tToast("error")) },
-                )
-              }
-              size="icon-sm"
-              title={favoriteLabel}
-              variant="ghost"
-            >
-              <UiIcon name={book.isFavorite ? "heart-fill" : "heart"} size={18} />
-            </Button>
+            <TooltipHint label={favoriteLabel}>
+              <Button
+                aria-label={favoriteLabel}
+                aria-pressed={book.isFavorite}
+                className={cn(
+                  "size-8 rounded-lg border transition-all duration-[180ms] ease-out",
+                  book.isFavorite
+                    ? "border-brand bg-brand text-white shadow-btn hover:border-primary-hover hover:bg-primary-hover hover:text-white dark:hover:bg-primary-hover"
+                    : "border-border bg-card text-muted-foreground hover:border-brand hover:text-brand",
+                )}
+                disabled={toggleFavorite.isPending}
+                onClick={() =>
+                  toggleFavorite.mutate(
+                    { isFavorite: !book.isFavorite },
+                    { onError: () => toast.error(tToast("error")) },
+                  )
+                }
+                size="icon-sm"
+                variant="ghost"
+              >
+                <UiIcon name={book.isFavorite ? "heart-fill" : "heart"} size={18} />
+              </Button>
+            </TooltipHint>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

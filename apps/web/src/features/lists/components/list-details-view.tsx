@@ -38,7 +38,11 @@ import {
 import { useListOverview } from "../api/use-list-overview";
 import { useListRelated } from "../api/use-list-related";
 import { LIST_BOOK_SORT_DEFAULT } from "../model/list-book-sort";
-import { canReorderListDetail, listBookReorder } from "../model/list-reorder";
+import {
+  canReorderListDetail,
+  isListDetailOrderView,
+  listBookReorder,
+} from "../model/list-reorder";
 import { useListSelectionStore } from "../model/list-selection-store";
 import { useListBookDrag } from "../model/use-list-book-drag";
 import { useListDetailChips } from "../model/use-list-detail-chips";
@@ -154,6 +158,7 @@ export function ListDetailsView({
     setMoveAnnouncement(
       t("reorder.announced", { n: position, title: book.title, total: bookCount }),
     );
+    toast.success(t("toast.moved", { position, title: book.title }));
   }
 
   const buildDrag = useListBookDrag({
@@ -366,7 +371,6 @@ export function ListDetailsView({
   return (
     <div className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-2 lg:gap-8">
       <ListDetailsHeader
-        bookCount={bookCount}
         description={firstPage.description}
         isDuplicating={duplicateList.isPending}
         name={firstPage.name}
@@ -393,6 +397,7 @@ export function ListDetailsView({
               total: firstPage.books.totalCount,
             })}
             id={id}
+            isReorderLocked={!isListDetailOrderView(listQuery.state)}
             isSelecting={selectionMode}
             onClearAll={listQuery.clearAll}
             onSearchChange={listQuery.setSearch}

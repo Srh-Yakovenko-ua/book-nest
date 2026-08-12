@@ -169,8 +169,8 @@ describe("ListDetailsView", () => {
     ]);
 
     expect(screen.getByRole("heading", { level: 1, name: "Мій список" })).toBeInTheDocument();
-    expect(screen.getByText("Позиція 1")).toBeInTheDocument();
-    expect(screen.getByText("Позиція 2")).toBeInTheDocument();
+    expect(screen.getByText("#1")).toBeInTheDocument();
+    expect(screen.getByText("#2")).toBeInTheDocument();
   });
 
   it("shows the empty state when the list has no books", () => {
@@ -501,7 +501,7 @@ describe("ListDetailsView manual order", () => {
     renderTwoBookList();
 
     expect(
-      screen.getByRole("button", { name: "Змінити порядок книги «Друга»" }),
+      screen.getByRole("button", { name: /^Змінити порядок книги «Друга»/u }),
     ).toBeInTheDocument();
 
     await openBookMenu("Друга");
@@ -514,7 +514,7 @@ describe("ListDetailsView manual order", () => {
     renderTwoBookList({ searchParams: { q: "толкін" } });
 
     expect(
-      screen.queryByRole("button", { name: "Змінити порядок книги «Друга»" }),
+      screen.queryByRole("button", { name: /^Змінити порядок книги «Друга»/u }),
     ).not.toBeInTheDocument();
 
     await openBookMenu("Друга");
@@ -527,7 +527,7 @@ describe("ListDetailsView manual order", () => {
     renderTwoBookList({ searchParams: { genre: "fantasy" } });
 
     expect(
-      screen.queryByRole("button", { name: "Змінити порядок книги «Друга»" }),
+      screen.queryByRole("button", { name: /^Змінити порядок книги «Друга»/u }),
     ).not.toBeInTheDocument();
 
     await openBookMenu("Друга");
@@ -540,7 +540,7 @@ describe("ListDetailsView manual order", () => {
     renderTwoBookList({ searchParams: { sort: "title_asc" } });
 
     expect(
-      screen.queryByRole("button", { name: "Змінити порядок книги «Друга»" }),
+      screen.queryByRole("button", { name: /^Змінити порядок книги «Друга»/u }),
     ).not.toBeInTheDocument();
 
     await openBookMenu("Друга");

@@ -12,6 +12,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -288,9 +289,11 @@ function DetailsHeader({
           <h3 className="font-heading text-xl leading-tight text-ink">{displayName}</h3>
           <div className="flex shrink-0 items-center gap-1.5">
             {character.isFavorite ? (
-              <span className="text-brand" title={t("favorite")}>
-                <UiIcon aria-label={t("favorite")} name="heart-fill" size={18} />
-              </span>
+              <TooltipHint label={t("favorite")}>
+                <span className="text-brand">
+                  <UiIcon aria-label={t("favorite")} name="heart-fill" size={18} />
+                </span>
+              </TooltipHint>
             ) : null}
             <Button aria-label={t("edit")} onClick={onEdit} size="icon-sm" variant="ghost">
               <UiIcon name="edit" size={18} />

@@ -20,6 +20,7 @@ import { z } from "zod";
 import type { BooksControllerListFormatItem } from "@/shared/api/generated/model";
 
 import { UiIcon } from "@/components/icons";
+import { TooltipHint } from "@/components/tooltip-hint";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -534,9 +535,9 @@ function VolumeRow({
       )}
     >
       <div className="flex min-w-0 flex-col gap-0.5">
-        <p className="truncate text-sm font-medium text-ink" title={meta.item.book.title}>
-          {meta.item.book.title}
-        </p>
+        <TooltipHint label={meta.item.book.title}>
+          <p className="truncate text-sm font-medium text-ink">{meta.item.book.title}</p>
+        </TooltipHint>
         <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <UiIcon
             aria-hidden
