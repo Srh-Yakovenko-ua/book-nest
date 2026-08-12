@@ -8,7 +8,7 @@ export function toDeliveryServiceView(deliveryService: DeliveryServiceModel): De
     id: deliveryService.id,
     isCustom: deliveryService.userId !== null,
     name: deliveryService.name,
-    providerKey: null,
-    trackingUrlTemplate: null,
+    providerKey: deliveryService.providerKey,
+    trackingUrlTemplate: deliveryService.trackingUrlTemplate,
   };
 }

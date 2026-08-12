@@ -35,6 +35,8 @@ const RAW_SQL_INDEXES = [
   { name: "authors_search_text_trgm_idx", requires: "gin_trgm_ops" },
   { name: "publishers_search_text_trgm_idx", requires: "gin_trgm_ops" },
   { name: "book_deliveries_active_book_idx", requires: "WHERE" },
+  { name: "book_order_items_active_book_idx", requires: "cancelled_at IS NULL" },
+  { name: "delivery_services_global_provider_key_idx", requires: "user_id IS NULL" },
   { name: "book_loans_active_book_idx", requires: "WHERE" },
   { name: "books_user_queue_position_idx", requires: "deleted_at IS NULL" },
   { name: "books_series_id_part_number_key", requires: "deleted_at IS NULL" },
