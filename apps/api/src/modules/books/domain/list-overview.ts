@@ -54,5 +54,7 @@ export function selectTopGenres({
   nameByKey: Map<string, string>;
   rows: GenreCountRow[];
 }): ListGenreFacet[] {
-  return nameGenreFacets({ nameByKey, rows: rows.slice(0, limit) });
+  return nameGenreFacets({ nameByKey, rows })
+    .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
+    .slice(0, limit);
 }

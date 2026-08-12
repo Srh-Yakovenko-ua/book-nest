@@ -102,6 +102,24 @@ describe("nameGenreFacets", () => {
 });
 
 describe("selectTopGenres", () => {
+  it("breaks a tie by the genre name instead of the technical key", () => {
+    expect(
+      selectTopGenres({
+        limit: 3,
+        nameByKey: new Map([
+          ["detektyv", "Детектив"],
+          ["fentezi", "Фентезі"],
+          ["tryler", "Трилер"],
+        ]),
+        rows: [
+          { count: 4, key: "detektyv" },
+          { count: 4, key: "fentezi" },
+          { count: 4, key: "tryler" },
+        ],
+      }).map((genre) => genre.name),
+    ).toEqual(["Детектив", "Трилер", "Фентезі"]);
+  });
+
   it("keeps the leading genres up to the limit in the order they arrive", () => {
     expect(
       selectTopGenres({
