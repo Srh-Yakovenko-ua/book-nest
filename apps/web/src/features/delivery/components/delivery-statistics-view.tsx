@@ -17,7 +17,6 @@ import {
   DeliveryStoreBreakdown,
   DeliveryTopOrders,
 } from "./delivery-stat-breakdowns";
-import { DeliverySubnav } from "./delivery-subnav";
 
 const DeliveryMonthlyChart = dynamic(
   () => import("./delivery-monthly-chart").then((m) => m.DeliveryMonthlyChart),
@@ -56,8 +55,6 @@ export function DeliveryStatisticsScreen({
 
   return (
     <div className="flex flex-col gap-6">
-      <DeliverySubnav />
-
       <header className="flex flex-col gap-6 motion-safe:animate-in motion-safe:duration-500 motion-safe:fill-mode-both motion-safe:fade-in motion-safe:slide-in-from-bottom-1">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
