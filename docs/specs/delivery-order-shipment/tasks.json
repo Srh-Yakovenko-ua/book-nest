@@ -523,7 +523,7 @@
         "кожен метод запису має необов'язковий останній параметр client: Prisma.TransactionClient",
         "усі вибірки відсікають книги в кошику через SOFT_DELETE_SCOPE (як delivery.repository.ts:308,449,602)"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T23",
@@ -542,7 +542,7 @@
         "оновлення статусу виконується умовним updateMany з WHERE по активних статусах і повертає лічильник — щоб гонка не давала подвійний receive (прецедент book-deliveries.repository.ts:70-76)",
         "жодного повернення ViewModel"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T24",
@@ -562,7 +562,7 @@
         "є метод масової позначки items отриманими для одного shipment, який пропускає скасовані items (§18)",
         "усі методи приймають client: Prisma.TransactionClient"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T25",
@@ -584,7 +584,7 @@
         "порядок delayed_first: прострочені → сьогодні → найближчі майбутні → без дати в кінці; порядок closest_delivery — за рішенням D9",
         "пагінація лишається серверною (skip/take), сортування не робиться в JS після вибірки"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T26",
@@ -605,7 +605,7 @@
         "nextExpectedDelivery повертає найближчу майбутню дату серед активних посилок або null",
         "результат парситься Zod-схемою рядка, як делает delivery.repository.ts:50-60"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T27",
@@ -626,7 +626,7 @@
         "фільтри currency/store/status/from/to збережені та застосовані до рівня замовлення",
         "книги в кошику виключені через SOFT_DELETE_SCOPE"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T28",
@@ -923,7 +923,9 @@
         "повторний receive або receive скасованої посилки дає ConflictError, а не мовчазний no-op",
         "кожна мутація обгорнута в TransactionRunner.run; сервіс не знає про req/res",
         "expectedDeliveryDate посилки не можна виставити раніше orderDate її замовлення — перевірка на рівні сервісу",
-        "PATCH по вже отриманій або скасованій посилці відхиляється, включно з правками trackingNumber/note — контракт цього не ловить свідомо"
+        "PATCH по вже отриманій або скасованій посилці відхиляється, включно з правками trackingNumber/note — контракт цього не ловить свідомо",
+        "скасування посилки і скасування її активних позицій відбуваються в ОДНІЙ TransactionRunner.run — інакше позиція лишається активною, зникає зі списку й далі тримає слот книги в book_order_items_active_book_idx",
+        "moveToShipment бере SELECT ... FOR UPDATE на цільовій посилці всередині тієї ж транзакції — реляційна перевірка у WHERE не бачить паралельне скасування цілі (EvalPlanQual)"
       ],
       "status": "todo"
     },
@@ -1012,7 +1014,8 @@
       "mandatory": true,
       "doneWhen": [
         "масова операція отримання працює в одиницях, погоджених у D3, і зберігає розрізнення skipped-причин (not_found / not_active), як сьогодні delivery.service.ts:61-77",
-        "масова операція не отримує книги з посилки, яку користувач не вказав (§3 останній пункт)"
+        "масова операція не отримує книги з посилки, яку користувач не вказав (§3 останній пункт)",
+        "масова зміна ownership, що знімає книгу з in_transit, скасовує її активні book_order_items — без цього книга лишається у списку «у дорозі» й тримає слот індексу"
       ],
       "status": "todo"
     },
@@ -1399,6 +1402,47 @@
         "book-preview має рівно одне визначення в packages/shared, спільне для delivery.ts і orders.ts"
       ],
       "status": "done"
+    },
+    {
+      "id": "T25b",
+      "title": "Репозиторій списку «Історія замовлень»: вкладки, фільтри, сортування, summary",
+      "specRef": "§10, §11, §15",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts"
+      ],
+      "dependsOn": [
+        "T13",
+        "T11a"
+      ],
+      "mandatory": true,
+      "doneWhen": [
+        "є item-shaped вибірка історії — наступник listHistory/countHistory зі старого delivery.repository.ts, з тими самими вкладками all/active/received/cancelled",
+        "збережені фільтри store/service/currency/from/to/priceMin/priceMax/hasTrackingNumber/hasTrackingUrl/search і сім сортувань історії",
+        "historySummary рахує замовлення, посилки й книги окремо, а не рядки книг",
+        "пагінація лишається серверною"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T62",
+      "title": "Підняти escapeLikePattern у core/ (третя копія)",
+      "specRef": "CLAUDE.md §8.7",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/core/",
+        "apps/api/src/modules/series/infrastructure/series-search-sql.ts",
+        "apps/api/src/modules/books/infrastructure/book-facets.repository.ts",
+        "apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts"
+      ],
+      "dependsOn": [
+        "T25"
+      ],
+      "mandatory": false,
+      "doneWhen": [
+        "escapeLikePattern має рівно одне визначення в core/ і три споживачі імпортують його звідти"
+      ],
+      "status": "in-progress"
     }
   ],
   "openDecisions": [

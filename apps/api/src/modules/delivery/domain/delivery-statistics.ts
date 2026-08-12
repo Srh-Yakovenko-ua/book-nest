@@ -23,6 +23,32 @@ const DEFAULT_CURRENCY: Currency = "UAH";
 const MONTH_KEY_LENGTH = 7;
 const CURRENCY_ORDER: readonly Currency[] = CurrencySchema.options;
 
+export type OrderStatisticsItemRecord = {
+  bookId: string;
+  bookTitle: string;
+  cancelledAt: Nullable<Date>;
+  price: Nullable<number>;
+  receivedAt: Nullable<Date>;
+};
+
+export type OrderStatisticsRecord = {
+  currency: Nullable<Currency>;
+  id: string;
+  items: OrderStatisticsItemRecord[];
+  orderDate: Nullable<Date>;
+  orderNumber: Nullable<string>;
+  shipments: OrderStatisticsShipmentRecord[];
+  storeName: string;
+  totalAmount: Nullable<number>;
+};
+
+export type OrderStatisticsShipmentRecord = {
+  cancelledAt: Nullable<Date>;
+  id: string;
+  receivedAt: Nullable<Date>;
+  status: ShipmentStatus;
+};
+
 export type StatisticsRecord = {
   bookId: string;
   bookTitle: string;

@@ -1,0 +1,181 @@
+import type { Nullable } from "@app/shared";
+
+import { SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
+import { Injectable } from "@nestjs/common";
+
+import { PrismaService } from "../../../core/database/prisma.service.js";
+import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
+import { Prisma } from "../../../generated/prisma/client.js";
+
+const bookOrderItemContext = {
+  include: { order: true, shipment: true },
+} satisfies Prisma.BookOrderItemDefaultArgs;
+
+export type BookOrderItemWithContext = Prisma.BookOrderItemGetPayload<typeof bookOrderItemContext>;
+
+export type OrderItemBookRef = {
+  bookId: string;
+  id: string;
+};
+
+type CancelBooksInput = CancelInput & {
+  bookIds: string[];
+};
+
+type CancelInput = {
+  cancelledAt: Date;
+  cancelReason: Nullable<string>;
+  userId: string;
+};
+
+type CancelShipmentItemsInput = CancelInput & {
+  shipmentId: string;
+};
+
+type CancelSingleItemInput = CancelInput & {
+  itemId: string;
+};
+
+type MoveItemsInput = {
+  itemIds: string[];
+  orderId: string;
+  shipmentId: Nullable<string>;
+  userId: string;
+};
+
+type ReceiveShipmentItemsInput = {
+  receivedAt: Date;
+  shipmentId: string;
+  userId: string;
+};
+
+@Injectable()
+export class BookOrderItemsRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  cancelActiveForBooks(
+    { bookIds, cancelledAt, cancelReason, userId }: CancelBooksInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<OrderItemBookRef[]> {
+    return this.cancelActiveMatching({
+      client,
+      data: { cancelledAt, cancelReason },
+      match: { bookId: { in: bookIds } },
+      userId,
+    });
+  }
+
+  cancelActiveForShipment(
+    { cancelledAt, cancelReason, shipmentId, userId }: CancelShipmentItemsInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<OrderItemBookRef[]> {
+    return this.cancelActiveMatching({
+      client,
+      data: { cancelledAt, cancelReason },
+      match: { shipmentId },
+      userId,
+    });
+  }
+
+  async cancelOne(
+    { cancelledAt, cancelReason, itemId, userId }: CancelSingleItemInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const cancelled = await client.bookOrderItem.updateMany({
+      data: { cancelledAt, cancelReason },
+      where: { ...activeItemWhere(userId), id: itemId },
+    });
+    return cancelled.count;
+  }
+
+  findOwnedById({
+    itemId,
+    userId,
+  }: {
+    itemId: string;
+    userId: string;
+  }): Promise<Nullable<BookOrderItemWithContext>> {
+    return this.prisma.bookOrderItem.findFirst({
+      where: { book: SOFT_DELETE_SCOPE.active, id: itemId, order: { userId } },
+      ...bookOrderItemContext,
+    });
+  }
+
+  async moveToShipment(
+    { itemIds, orderId, shipmentId, userId }: MoveItemsInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const moved = await client.bookOrderItem.updateMany({
+      data: { shipmentId },
+      where: {
+        ...activeItemWhere(userId),
+        id: { in: itemIds },
+        order: targetOrderWhere({ orderId, shipmentId, userId }),
+      },
+    });
+    return moved.count;
+  }
+
+  async receiveForShipment(
+    { receivedAt, shipmentId, userId }: ReceiveShipmentItemsInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<OrderItemBookRef[]> {
+    const received = await client.bookOrderItem.updateManyAndReturn({
+      data: { receivedAt },
+      select: { bookId: true, id: true },
+      where: { ...activeItemWhere(userId), shipmentId },
+    });
+    return sortById(received);
+  }
+
+  private async cancelActiveMatching({
+    client,
+    data,
+    match,
+    userId,
+  }: {
+    client: Prisma.TransactionClient;
+    data: { cancelledAt: Date; cancelReason: Nullable<string> };
+    match: Prisma.BookOrderItemWhereInput;
+    userId: string;
+  }): Promise<OrderItemBookRef[]> {
+    const cancelled = await client.bookOrderItem.updateManyAndReturn({
+      data,
+      select: { bookId: true, id: true },
+      where: { ...activeItemWhere(userId), ...match },
+    });
+    return sortById(cancelled);
+  }
+}
+
+function activeItemWhere(userId: string): Prisma.BookOrderItemWhereInput {
+  return {
+    book: SOFT_DELETE_SCOPE.active,
+    cancelledAt: null,
+    order: { userId },
+    receivedAt: null,
+  };
+}
+
+function sortById(rows: OrderItemBookRef[]): OrderItemBookRef[] {
+  return [...rows].sort((left, right) => (left.id < right.id ? -1 : 1));
+}
+
+function targetOrderWhere({
+  orderId,
+  shipmentId,
+  userId,
+}: {
+  orderId: string;
+  shipmentId: Nullable<string>;
+  userId: string;
+}): Prisma.BookOrderWhereInput {
+  if (shipmentId === null) {
+    return { id: orderId, userId };
+  }
+  return {
+    id: orderId,
+    shipments: { some: { id: shipmentId, status: { in: [...SHIPMENT_ACTIVE_STATUSES] } } },
+    userId,
+  };
+}
