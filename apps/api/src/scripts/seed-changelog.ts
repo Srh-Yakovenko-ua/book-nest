@@ -571,6 +571,18 @@ const CHANGELOG_ENTRIES: ChangelogSeedEntry[] = [
     titleUk: "Оновлена сторінка списку",
     version: null,
   },
+  {
+    bodyEn:
+      "Alphabetical lists now sort by Ukrainian rules, so І sits between З and Й, Є comes after Е, and Ґ right after Г. Before this, І and Є jumped to the top of the list ahead of А and Ґ fell to the very bottom after Я, which you could see in the library, the wishlist, series, publishers, lists, characters, tags, genres, loans and deliveries, including when sorting by author.",
+    bodyUk:
+      "Списки за абеткою тепер упорядковуються за українськими правилами: І стоїть між З і Й, Є після Е, а Ґ одразу після Г. Раніше І та Є опинялися на початку перед А, а Ґ у самому кінці після Я, і це було помітно в бібліотеці, списку бажань, серіях, видавництвах, списках, персонажах, тегах, жанрах, позиках і доставках, зокрема під час сортування за автором.",
+    category: "fix",
+    publishedAt: "2026-08-12T00:00:00.000Z",
+    slug: "ukrainian-alphabet-sorting",
+    titleEn: "Ukrainian alphabetical sorting",
+    titleUk: "Сортування за українською абеткою",
+    version: null,
+  },
 ];
 
 type PrismaClientInstance = InstanceType<typeof PrismaClient>;
