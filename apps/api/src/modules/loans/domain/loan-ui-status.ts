@@ -1,10 +1,11 @@
 import type { LoanUiStatus, Nullable } from "@app/shared";
 
+import { LOAN_STATS_WINDOWS } from "@app/shared";
 import { addDays, differenceInCalendarDays } from "date-fns";
 
 import { startOfUtcDay } from "../../../core/iso-date.js";
 
-const RETURN_SOON_DAYS = 7;
+const RETURN_SOON_DAYS = LOAN_STATS_WINDOWS.returnSoonDays;
 const DAYS_FROM_MONDAY_TO_SUNDAY = 6;
 
 export type LoanDateBounds = {

@@ -2,7 +2,7 @@ import type { LoanListItemView } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
-import { formatLoanDate, loanRelative, nearestReturns } from "./loans-derive";
+import { daysBetweenLoanDates, formatLoanDate, loanRelative, nearestReturns } from "./loans-derive";
 
 function makeLoan(overrides: Partial<LoanListItemView> = {}): LoanListItemView {
   return {
@@ -86,5 +86,21 @@ describe("nearestReturns", () => {
     const result = nearestReturns(items, today);
     expect(result).toHaveLength(5);
     expect(result[0]?.date).toBe("01.06");
+  });
+});
+
+describe("daysBetweenLoanDates", () => {
+  it("counts calendar days between two ISO days", () => {
+    expect(daysBetweenLoanDates("2024-05-12", "2024-05-24")).toBe(12);
+  });
+
+  it("returns a negative count when the dates are reversed", () => {
+    expect(daysBetweenLoanDates("2024-05-24", "2024-05-12")).toBe(-12);
+  });
+
+  it("returns null for a missing or malformed date", () => {
+    expect(daysBetweenLoanDates(null, "2024-05-24")).toBeNull();
+    expect(daysBetweenLoanDates("2024-05-12", null)).toBeNull();
+    expect(daysBetweenLoanDates("12.05.2024", "2024-05-24")).toBeNull();
   });
 });

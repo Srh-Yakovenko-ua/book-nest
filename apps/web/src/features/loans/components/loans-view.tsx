@@ -44,8 +44,8 @@ type LoansContentProps = {
   onOpenOtherPage: () => void;
   onRetry: () => void;
   onReturn: (loan: LoanListItemView) => void;
+  otherTypeCount: number;
   today: string;
-  totalActive: number;
 };
 
 export function LoansView({ type }: { type: LoanType }) {
@@ -64,11 +64,16 @@ export function LoansView({ type }: { type: LoanType }) {
   const today = todayIso();
   const nearest = nearestReturns(items, today);
 
-  const summaryCards = useLoansSummaryCards(summary.data);
+  const summaryCards = useLoansSummaryCards(summary.data, type);
 
-  const totalActive = (summary.data?.borrowedCount ?? 0) + (summary.data?.lentCount ?? 0);
-  const hasAnyLoans = totalActive > 0 || items.length > 0;
+  const isBorrowedPage = type === "borrowed_from_someone";
+  const borrowedCount = summary.data?.borrowedCount ?? 0;
+  const lentCount = summary.data?.lentCount ?? 0;
+  const activeOfOtherType = isBorrowedPage ? lentCount : borrowedCount;
+  const hasAnyLoans = borrowedCount + lentCount > 0 || items.length > 0;
   const showChrome = !list.isError && (list.isPending || hasAnyLoans);
+  const showSummaryCards =
+    !isBorrowedPage || summary.isPending || summary.isError || borrowedCount > 0;
 
   const loansContent = (
     <LoansContent
@@ -85,8 +90,8 @@ export function LoansView({ type }: { type: LoanType }) {
       onOpenOtherPage={() => router.push(LOAN_PAGES[page.otherType].href)}
       onRetry={() => void list.refetch()}
       onReturn={setReturnTarget}
+      otherTypeCount={activeOfOtherType}
       today={today}
-      totalActive={totalActive}
     />
   );
 
@@ -105,20 +110,22 @@ export function LoansView({ type }: { type: LoanType }) {
           </p>
         </div>
 
-        <LoansSummaryCards
-          cards={summaryCards}
-          isError={summary.isError}
-          isLoading={summary.isPending}
-          mobileAction={
-            <LoansOverviewPanel
-              isLoading={list.isPending}
-              nearest={nearest}
-              onAddBook={() => router.push("/books/new")}
-              summaryCards={summaryCards}
-            />
-          }
-          onRetry={() => void summary.refetch()}
-        />
+        {showSummaryCards ? (
+          <LoansSummaryCards
+            cards={summaryCards}
+            isError={summary.isError}
+            isLoading={summary.isPending}
+            mobileAction={
+              <LoansOverviewPanel
+                isLoading={list.isPending}
+                nearest={nearest}
+                onAddBook={() => router.push("/books/new")}
+                summaryCards={summaryCards}
+              />
+            }
+            onRetry={() => void summary.refetch()}
+          />
+        ) : null}
       </header>
 
       {showChrome ? (
@@ -202,8 +209,8 @@ function LoansContent({
   onOpenOtherPage,
   onRetry,
   onReturn,
+  otherTypeCount,
   today,
-  totalActive,
 }: LoansContentProps) {
   const t = useTranslations("loans.states");
   const tLoans = useTranslations("loans");
@@ -244,24 +251,35 @@ function LoansContent({
       return <EmptyState onPrimary={onClearFilters} state={noResults} />;
     }
 
-    if (totalActive === 0) {
-      const emptyState: EmptyStateEntry = {
-        desc: t("empty.description"),
-        illu: "empty-borrowed",
-        primary: { icon: "plus", label: t("empty.cta") },
-        secondary: { icon: "book", label: t("empty.secondary") },
-        title: t("empty.title"),
-      };
-      return <EmptyState onPrimary={onAddBook} onSecondary={onOpenLibrary} state={emptyState} />;
-    }
-
     const typeEmpty: EmptyStateEntry = {
-      desc: t("typeEmpty.description"),
+      desc: t(`typeEmpty.${copyKey}.description`),
       illu: "empty-borrowed",
-      primary: { icon: "swap", label: t(`typeEmpty.${copyKey}.openOther`) },
       title: t(`typeEmpty.${copyKey}.title`),
     };
-    return <EmptyState onPrimary={onOpenOtherPage} state={typeEmpty} />;
+
+    if (otherTypeCount === 0) {
+      return (
+        <EmptyState
+          onPrimary={onAddBook}
+          onSecondary={onOpenLibrary}
+          state={{
+            ...typeEmpty,
+            primary: { icon: "plus", label: t("empty.cta") },
+            secondary: { icon: "book", label: t("empty.secondary") },
+          }}
+        />
+      );
+    }
+
+    return (
+      <EmptyState
+        onPrimary={onOpenOtherPage}
+        state={{
+          ...typeEmpty,
+          primary: { icon: "swap", label: t(`typeEmpty.${copyKey}.openOther`) },
+        }}
+      />
+    );
   }
 
   return (
