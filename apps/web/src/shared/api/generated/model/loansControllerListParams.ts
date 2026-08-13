@@ -24,6 +24,10 @@ export type LoansControllerListParams = {
   /**
    * @maxLength 100
    */
+  person?: string;
+  /**
+   * @maxLength 100
+   */
   search?: string;
   sort?: LoansControllerListSort;
   type?: LoansControllerListType;

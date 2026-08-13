@@ -6,6 +6,7 @@
  * OpenAPI spec version: 1.0
  */
 import type { LoansSummaryViewDtoLentLongHeldLoansItem } from "./loansSummaryViewDtoLentLongHeldLoansItem";
+import type { LoansSummaryViewDtoLentTopPeopleItem } from "./loansSummaryViewDtoLentTopPeopleItem";
 import type { LoansSummaryViewDtoLentUpcomingReturnsItem } from "./loansSummaryViewDtoLentUpcomingReturnsItem";
 
 export type LoansSummaryViewDtoLent = {
@@ -19,6 +20,11 @@ export type LoansSummaryViewDtoLent = {
   longHeldLoans: LoansSummaryViewDtoLentLongHeldLoansItem[];
   /** @nullable */
   nearestReturnDate: string | null;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  noReminderWithDateCount: number;
   /**
    * @minimum 0
    * @maximum 9007199254740991
@@ -46,6 +52,7 @@ export type LoansSummaryViewDtoLent = {
    * @maximum 9007199254740991
    */
   returningSoonCount: number;
+  topPeople: LoansSummaryViewDtoLentTopPeopleItem[];
   /**
    * @minimum 0
    * @maximum 9007199254740991

@@ -15,7 +15,7 @@ import {
 import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
 import type { LoanDirection } from "../model/loan-pages";
-import type { LoansAttention } from "./loans-sidebar";
+import type { LoansAttention, LoansPeople } from "./loans-sidebar";
 
 import { LoansSidebarSections } from "./loans-sidebar";
 
@@ -25,6 +25,7 @@ type LoansOverviewPanelProps = {
   isLoading: boolean;
   longHeldLoans: LoanListItemView[];
   onAddBook: () => void;
+  people: LoansPeople;
   summaryCards: LibrarySummaryCard[];
   upcomingReturns: LoanListItemView[];
 };
@@ -35,6 +36,7 @@ export function LoansOverviewPanel({
   isLoading,
   longHeldLoans,
   onAddBook,
+  people,
   summaryCards,
   upcomingReturns,
 }: LoansOverviewPanelProps) {
@@ -65,6 +67,11 @@ export function LoansOverviewPanel({
             isLoading={isLoading}
             longHeldLoans={longHeldLoans}
             onAddBook={() => panel.closeThen(onAddBook)}
+            people={{
+              ...people,
+              onPersonSelect: (personName) =>
+                panel.closeThen(() => people.onPersonSelect(personName)),
+            }}
             upcomingReturns={upcomingReturns}
           />
         </div>

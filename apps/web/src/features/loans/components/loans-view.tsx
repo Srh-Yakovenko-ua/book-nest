@@ -15,7 +15,7 @@ import { todayIso } from "@/features/books/model/reading-progress";
 import { useRouter } from "@/i18n/navigation";
 
 import type { LoanDirection } from "../model/loan-pages";
-import type { LoansAttention } from "./loans-sidebar";
+import type { LoansAttention, LoansPeople } from "./loans-sidebar";
 
 import { useLoansList } from "../api/use-loans-list";
 import { useLoansSummary } from "../api/use-loans-summary";
@@ -72,14 +72,19 @@ export function LoansView({ type }: { type: LoanType }) {
   const showChrome = !list.isError && (list.isPending || hasAnyLoans);
   const showSummaryCards = summary.isPending || summary.isError || activeOfThisType > 0;
 
-  const attention: Nullable<LoansAttention> =
-    page.direction === "borrowed" && !summary.isError
-      ? {
-          activeFilter: query.filter,
-          onFilterSelect: query.setFilter,
-          stats: summary.data?.borrowed ?? null,
-        }
-      : null;
+  const attention: Nullable<LoansAttention> = summary.isError
+    ? null
+    : {
+        activeFilter: query.filter,
+        onFilterSelect: query.setFilter,
+        stats: directionSummary ?? null,
+      };
+
+  const people: LoansPeople = {
+    activePerson: query.person,
+    items: summary.isError ? [] : (directionSummary?.topPeople ?? []),
+    onPersonSelect: (personName) => query.setPerson(personName === query.person ? "" : personName),
+  };
 
   const loansContent = (
     <LoansContent
@@ -128,6 +133,7 @@ export function LoansView({ type }: { type: LoanType }) {
                 isLoading={summary.isPending}
                 longHeldLoans={directionSummary?.longHeldLoans ?? []}
                 onAddBook={() => router.push("/books/new")}
+                people={people}
                 summaryCards={summaryCards}
                 upcomingReturns={directionSummary?.upcomingReturns ?? []}
               />
@@ -174,6 +180,7 @@ export function LoansView({ type }: { type: LoanType }) {
               isLoading={summary.isPending}
               longHeldLoans={directionSummary?.longHeldLoans ?? []}
               onAddBook={() => router.push("/books/new")}
+              people={people}
               upcomingReturns={directionSummary?.upcomingReturns ?? []}
             />
           </div>

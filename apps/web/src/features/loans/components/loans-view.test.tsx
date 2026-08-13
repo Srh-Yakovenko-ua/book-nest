@@ -30,6 +30,7 @@ const copy = messages.loans;
 const stats = messages.loans.stats;
 const attention = messages.loans.sidebar.attention;
 const longHeld = messages.loans.sidebar.longHeld;
+const people = messages.loans.sidebar.people;
 const upcoming = messages.loans.sidebar.upcoming;
 const requestedUrls: string[] = [];
 
@@ -38,12 +39,14 @@ const EMPTY_DIRECTION_SUMMARY: LoanDirectionSummary = {
   longHeldCount: 0,
   longHeldLoans: [],
   nearestReturnDate: null,
+  noReminderWithDateCount: 0,
   noReturnDateCount: 0,
   noReturnDatePeopleCount: 0,
   oldestOverdueReturnDate: null,
   overdueCount: 0,
   peopleCount: 0,
   returningSoonCount: 0,
+  topPeople: [],
   totalCount: 0,
   upcomingReturns: [],
 };
@@ -272,7 +275,9 @@ describe("LoansView", () => {
     expect(within(overdueRow).getByText("Найдовше — на 11 днів")).toBeInTheDocument();
 
     const noReturnDateRow = screen.getByRole("button", { name: /3 книги без дати повернення/ });
-    expect(within(noReturnDateRow).getByText(attention.no_return_date.detail)).toBeInTheDocument();
+    expect(
+      within(noReturnDateRow).getByText(attention.borrowed.no_return_date.detail),
+    ).toBeInTheDocument();
   });
 
   it("applies the existing loans filter when an attention row is clicked", async () => {
@@ -302,19 +307,66 @@ describe("LoansView", () => {
     renderLoans("borrowed_from_someone");
 
     expect(await screen.findByText(attention.allClear.title)).toBeInTheDocument();
-    expect(screen.getByText(attention.allClear.text)).toBeInTheDocument();
+    expect(screen.getByText(attention.borrowed.allClearText)).toBeInTheDocument();
   });
 
-  it("keeps the attention block off the lent page", async () => {
+  it("lists what needs attention in the lent sidebar, most urgent first", async () => {
     mockLoans([loanItem("lent_to_someone", "Дюна")], {
-      lent: { ...EMPTY_DIRECTION_SUMMARY, noReturnDateCount: 2, overdueCount: 1, totalCount: 3 },
+      lent: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        noReminderWithDateCount: 5,
+        noReturnDateCount: 4,
+        noReturnDatePeopleCount: 3,
+        oldestOverdueReturnDate: isoDaysFromToday(-12),
+        overdueCount: 3,
+        totalCount: 12,
+      },
     });
 
     renderLoans("lent_to_someone");
 
-    await findStatCard(stats.lent.total.label);
-    expect(screen.queryByText(attention.title)).not.toBeInTheDocument();
-    expect(screen.queryByText(attention.allClear.title)).not.toBeInTheDocument();
+    const block = await findSidebarBlock(attention.title);
+    const rows = within(block).getAllByRole("button");
+
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent("3 книги не повернули вчасно");
+    expect(rows[0]).toHaveTextContent("Найдовше — на 12 днів");
+    expect(rows[1]).toHaveTextContent("4 книги без дати повернення");
+    expect(rows[1]).toHaveTextContent("У 3 різних людей");
+    expect(rows[2]).toHaveTextContent("5 книг без нагадування");
+    expect(rows[2]).toHaveTextContent("Для 5 вказано дату повернення");
+  });
+
+  it("applies the without reminder filter when its attention row is clicked", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: { ...EMPTY_DIRECTION_SUMMARY, noReminderWithDateCount: 2, totalCount: 6 },
+    });
+
+    renderLoans("lent_to_someone");
+
+    await userEvent.click(await screen.findByRole("button", { name: /2 книги без нагадування/ }));
+
+    await waitFor(() => {
+      expect(requestedUrls.some((url) => url.includes("filter=without_reminder"))).toBe(true);
+    });
+  });
+
+  it("keeps loans that are merely due soon out of the lent attention block", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        nearestReturnDate: isoDaysFromToday(1),
+        returningSoonCount: 4,
+        totalCount: 4,
+      },
+    });
+
+    renderLoans("lent_to_someone");
+
+    const block = await findSidebarBlock(attention.title);
+    expect(within(block).queryAllByRole("button")).toHaveLength(0);
+    expect(within(block).getByText(attention.allClear.title)).toBeInTheDocument();
+    expect(within(block).getByText(attention.lent.allClearText)).toBeInTheDocument();
   });
 
   it("builds the upcoming returns block from the summary, not from the visible page", async () => {
@@ -359,6 +411,74 @@ describe("LoansView", () => {
 
     const block = await findSidebarBlock(upcoming.title);
     expect(within(block).getByText(upcoming.empty)).toBeInTheDocument();
+  });
+
+  it("lists the people holding the most books, with their book counts", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        topPeople: [
+          { bookCount: 4, covers: [], personName: "Олена" },
+          { bookCount: 2, covers: [], personName: "Петро" },
+          { bookCount: 1, covers: [], personName: "Ірина" },
+        ],
+        totalCount: 7,
+      },
+    });
+
+    renderLoans("lent_to_someone");
+
+    const block = await findSidebarBlock(people.title);
+    const rows = within(block).getAllByRole("button");
+
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toHaveTextContent("Олена");
+    expect(rows[0]).toHaveTextContent("4 книги");
+    expect(rows[1]).toHaveTextContent("Петро");
+    expect(rows[1]).toHaveTextContent("2 книги");
+    expect(rows[2]).toHaveTextContent("Ірина");
+    expect(rows[2]).toHaveTextContent("1 книга");
+  });
+
+  it("filters the list by a person when the row is clicked, and clears it on a second click", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        topPeople: [{ bookCount: 3, covers: [], personName: "Олена" }],
+        totalCount: 3,
+      },
+    });
+
+    renderLoans("lent_to_someone");
+
+    const block = await findSidebarBlock(people.title);
+    const row = within(block).getByRole("button", { name: /Олена/ });
+
+    await userEvent.click(row);
+    await waitFor(() => {
+      expect(
+        requestedUrls.some((url) => url.includes(`person=${encodeURIComponent("Олена")}`)),
+      ).toBe(true);
+    });
+    expect(row).toHaveAttribute("aria-pressed", "true");
+
+    requestedUrls.length = 0;
+    await userEvent.click(row);
+    await waitFor(() => {
+      expect(row).toHaveAttribute("aria-pressed", "false");
+    });
+    expect(requestedUrls.every((url) => !url.includes("person="))).toBe(true);
+  });
+
+  it("hides the people block when nobody is holding a book", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 0 },
+    });
+
+    renderLoans("lent_to_someone");
+
+    await findSidebarBlock(upcoming.title);
+    expect(within(sidebar()).queryByText(people.title)).not.toBeInTheDocument();
   });
 
   it("lists the long-held loans of the borrowed page, oldest first", async () => {
@@ -432,6 +552,7 @@ describe("LoansView", () => {
     await findSidebarBlock(longHeld.title);
     expect(within(sidebar()).queryByText(upcoming.title)).not.toBeInTheDocument();
     expect(within(sidebar()).queryByText(copy.sidebar.cta.title)).not.toBeInTheDocument();
+    expect(within(sidebar()).queryByText(people.title)).not.toBeInTheDocument();
   });
 
   it("sends the reader to the other page when this one has no loans", async () => {

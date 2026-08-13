@@ -13,6 +13,9 @@ import * as zod from "zod";
 export const loansControllerSummaryResponseBorrowedLongHeldCountMin = 0;
 export const loansControllerSummaryResponseBorrowedLongHeldCountMax = 9007199254740991;
 
+export const loansControllerSummaryResponseBorrowedNoReminderWithDateCountMin = 0;
+export const loansControllerSummaryResponseBorrowedNoReminderWithDateCountMax = 9007199254740991;
+
 export const loansControllerSummaryResponseBorrowedNoReturnDateCountMin = 0;
 export const loansControllerSummaryResponseBorrowedNoReturnDateCountMax = 9007199254740991;
 
@@ -28,11 +31,17 @@ export const loansControllerSummaryResponseBorrowedPeopleCountMax = 900719925474
 export const loansControllerSummaryResponseBorrowedReturningSoonCountMin = 0;
 export const loansControllerSummaryResponseBorrowedReturningSoonCountMax = 9007199254740991;
 
+export const loansControllerSummaryResponseBorrowedTopPeopleItemBookCountMin = 0;
+export const loansControllerSummaryResponseBorrowedTopPeopleItemBookCountMax = 9007199254740991;
+
 export const loansControllerSummaryResponseBorrowedTotalCountMin = 0;
 export const loansControllerSummaryResponseBorrowedTotalCountMax = 9007199254740991;
 
 export const loansControllerSummaryResponseLentLongHeldCountMin = 0;
 export const loansControllerSummaryResponseLentLongHeldCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseLentNoReminderWithDateCountMin = 0;
+export const loansControllerSummaryResponseLentNoReminderWithDateCountMax = 9007199254740991;
 
 export const loansControllerSummaryResponseLentNoReturnDateCountMin = 0;
 export const loansControllerSummaryResponseLentNoReturnDateCountMax = 9007199254740991;
@@ -48,6 +57,9 @@ export const loansControllerSummaryResponseLentPeopleCountMax = 9007199254740991
 
 export const loansControllerSummaryResponseLentReturningSoonCountMin = 0;
 export const loansControllerSummaryResponseLentReturningSoonCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseLentTopPeopleItemBookCountMin = 0;
+export const loansControllerSummaryResponseLentTopPeopleItemBookCountMax = 9007199254740991;
 
 export const loansControllerSummaryResponseLentTotalCountMin = 0;
 export const loansControllerSummaryResponseLentTotalCountMax = 9007199254740991;
@@ -112,6 +124,10 @@ export const LoansControllerSummaryResponse = zod.object({
       }),
     ),
     nearestReturnDate: zod.string().nullable(),
+    noReminderWithDateCount: zod
+      .int()
+      .min(loansControllerSummaryResponseBorrowedNoReminderWithDateCountMin)
+      .max(loansControllerSummaryResponseBorrowedNoReminderWithDateCountMax),
     noReturnDateCount: zod
       .int()
       .min(loansControllerSummaryResponseBorrowedNoReturnDateCountMin)
@@ -133,6 +149,32 @@ export const LoansControllerSummaryResponse = zod.object({
       .int()
       .min(loansControllerSummaryResponseBorrowedReturningSoonCountMin)
       .max(loansControllerSummaryResponseBorrowedReturningSoonCountMax),
+    topPeople: zod.array(
+      zod.object({
+        bookCount: zod
+          .int()
+          .min(loansControllerSummaryResponseBorrowedTopPeopleItemBookCountMin)
+          .max(loansControllerSummaryResponseBorrowedTopPeopleItemBookCountMax),
+        covers: zod.array(
+          zod.object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          }),
+        ),
+        personName: zod.string(),
+      }),
+    ),
     totalCount: zod
       .int()
       .min(loansControllerSummaryResponseBorrowedTotalCountMin)
@@ -249,6 +291,10 @@ export const LoansControllerSummaryResponse = zod.object({
       }),
     ),
     nearestReturnDate: zod.string().nullable(),
+    noReminderWithDateCount: zod
+      .int()
+      .min(loansControllerSummaryResponseLentNoReminderWithDateCountMin)
+      .max(loansControllerSummaryResponseLentNoReminderWithDateCountMax),
     noReturnDateCount: zod
       .int()
       .min(loansControllerSummaryResponseLentNoReturnDateCountMin)
@@ -270,6 +316,32 @@ export const LoansControllerSummaryResponse = zod.object({
       .int()
       .min(loansControllerSummaryResponseLentReturningSoonCountMin)
       .max(loansControllerSummaryResponseLentReturningSoonCountMax),
+    topPeople: zod.array(
+      zod.object({
+        bookCount: zod
+          .int()
+          .min(loansControllerSummaryResponseLentTopPeopleItemBookCountMin)
+          .max(loansControllerSummaryResponseLentTopPeopleItemBookCountMax),
+        covers: zod.array(
+          zod.object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          }),
+        ),
+        personName: zod.string(),
+      }),
+    ),
     totalCount: zod
       .int()
       .min(loansControllerSummaryResponseLentTotalCountMin)
@@ -339,6 +411,8 @@ export const loansControllerListQueryPageNumberMax = 21474836;
 export const loansControllerListQueryPageSizeDefault = 10;
 export const loansControllerListQueryPageSizeMax = 100;
 
+export const loansControllerListQueryPersonMax = 100;
+
 export const loansControllerListQuerySearchMax = 100;
 
 export const loansControllerListQuerySortDefault = `return_date`;
@@ -357,6 +431,7 @@ export const LoansControllerListQueryParams = zod.object({
     .min(1)
     .max(loansControllerListQueryPageSizeMax)
     .default(loansControllerListQueryPageSizeDefault),
+  person: zod.string().max(loansControllerListQueryPersonMax).optional(),
   search: zod.string().max(loansControllerListQuerySearchMax).optional(),
   sort: zod
     .enum([
