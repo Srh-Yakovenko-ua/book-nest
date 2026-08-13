@@ -1,11 +1,6 @@
 import type { LoanType } from "@app/shared";
 
-import {
-  type inferParserType,
-  parseAsInteger,
-  parseAsString,
-  parseAsStringLiteral,
-} from "nuqs/server";
+import { type inferParserType, parseAsString, parseAsStringLiteral } from "nuqs/server";
 
 import type { LoansControllerListParams } from "@/shared/api/generated/model";
 
@@ -21,11 +16,12 @@ export const LOANS_SORT_VALUES = Object.values(LoansControllerListSort);
 
 export const loansQueryParsers = {
   filter: parseAsStringLiteral(LOANS_FILTER_VALUES).withDefault(LOANS_FILTER_DEFAULT),
-  page: parseAsInteger.withDefault(1),
   person: parseAsString.withDefault(""),
   q: parseAsString.withDefault(""),
   sort: parseAsStringLiteral(LOANS_SORT_VALUES).withDefault(LOANS_SORT_DEFAULT),
 };
+
+export type LoansListParams = Omit<LoansControllerListParams, "pageNumber">;
 
 export type LoansQueryState = inferParserType<typeof loansQueryParsers>;
 
@@ -37,16 +33,12 @@ export function hasActiveLoanSearch(state: LoansQueryState): boolean {
   return state.q.trim() !== "";
 }
 
-export function toLoansListParams(
-  state: LoansQueryState,
-  type: LoanType,
-): LoansControllerListParams {
+export function toLoansListParams(state: LoansQueryState, type: LoanType): LoansListParams {
   const search = state.q.trim();
   const person = state.person.trim();
 
   return {
     filter: state.filter,
-    pageNumber: state.page,
     pageSize: LOANS_PAGE_SIZE,
     sort: state.sort,
     type,
@@ -57,7 +49,6 @@ export function toLoansListParams(
 
 export const LOANS_FILTERS_RESET = {
   filter: null,
-  page: null,
   person: null,
   q: null,
 } satisfies Partial<Record<keyof LoansQueryState, null>>;

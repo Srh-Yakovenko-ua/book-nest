@@ -17,7 +17,6 @@ import type { UiIconName } from "@/components/icons";
 
 import { AttentionBlock } from "@/components/attention-block";
 import { UiIcon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
 import { MobilePageOverviewLink } from "@/components/ui/mobile-page-overview-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { todayIso } from "@/features/books/model/reading-progress";
@@ -62,7 +61,6 @@ type LoansSidebarProps = {
   direction: LoanDirection;
   isLoading: boolean;
   longHeldLoans: LoanListItemView[];
-  onAddBook: () => void;
   people: LoansPeople;
   upcomingReturns: LoanListItemView[];
 };
@@ -85,7 +83,6 @@ export function LoansSidebarSections({
   direction,
   isLoading,
   longHeldLoans,
-  onAddBook,
   people,
   upcomingReturns,
 }: LoansSidebarProps) {
@@ -124,14 +121,6 @@ export function LoansSidebarSections({
       </SidebarBlock>
 
       <LoansPeopleBlock {...people} isLoading={isLoading} />
-
-      <SidebarBlock title={t("cta.title")}>
-        <p className="text-xs leading-relaxed text-muted-foreground">{t("cta.text")}</p>
-        <Button className="justify-start" onClick={onAddBook} variant="secondary">
-          <UiIcon name="plus" size={16} />
-          {t("cta.button")}
-        </Button>
-      </SidebarBlock>
     </>
   );
 }

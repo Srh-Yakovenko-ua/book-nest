@@ -8,7 +8,6 @@ import { useState } from "react";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
-import { UiIcon } from "@/components/icons";
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
 import { todayIso } from "@/features/books/model/reading-progress";
@@ -59,8 +58,9 @@ export function LoansView({ type }: { type: LoanType }) {
   const [editTarget, setEditTarget] = useState<LoanListItemView | null>(null);
   const [returnTarget, setReturnTarget] = useState<LoanListItemView | null>(null);
 
-  const listPage = list.data;
-  const items = listPage?.items ?? [];
+  const loadedPages = list.data?.pages ?? [];
+  const items = loadedPages.flatMap((loadedPage) => loadedPage.items);
+  const totalCount = loadedPages[0]?.totalCount ?? items.length;
   const today = todayIso();
 
   const summaryCards = useLoansSummaryCards(summary.data, type);
@@ -132,7 +132,6 @@ export function LoansView({ type }: { type: LoanType }) {
                 direction={page.direction}
                 isLoading={summary.isPending}
                 longHeldLoans={directionSummary?.longHeldLoans ?? []}
-                onAddBook={() => router.push("/books/new")}
                 people={people}
                 summaryCards={summaryCards}
                 upcomingReturns={directionSummary?.upcomingReturns ?? []}
@@ -158,18 +157,15 @@ export function LoansView({ type }: { type: LoanType }) {
           <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
             <div className="flex min-w-0 flex-1 flex-col gap-6">
               <p className="sr-only" role="status">
-                {list.isPending
-                  ? ""
-                  : t("resultsCount", { count: listPage?.totalCount ?? items.length })}
+                {list.isPending ? "" : t("resultsCount", { count: totalCount })}
               </p>
               {loansContent}
 
-              {listPage && items.length > 0 && listPage.pagesCount > 1 ? (
-                <LoansPager
-                  currentPage={listPage.page}
-                  isFetching={list.isFetching}
-                  onPageChange={query.setPage}
-                  pagesCount={listPage.pagesCount}
+              {items.length > 0 && list.hasNextPage ? (
+                <LoansLoadMore
+                  isFetchingNextPage={list.isFetchingNextPage}
+                  isLoadMoreError={list.isFetchNextPageError}
+                  onLoadMore={() => void list.fetchNextPage()}
                 />
               ) : null}
             </div>
@@ -179,7 +175,6 @@ export function LoansView({ type }: { type: LoanType }) {
               direction={page.direction}
               isLoading={summary.isPending}
               longHeldLoans={directionSummary?.longHeldLoans ?? []}
-              onAddBook={() => router.push("/books/new")}
               people={people}
               upcomingReturns={directionSummary?.upcomingReturns ?? []}
             />
@@ -320,41 +315,31 @@ function LoansContent({
   );
 }
 
-function LoansPager({
-  currentPage,
-  isFetching,
-  onPageChange,
-  pagesCount,
+function LoansLoadMore({
+  isFetchingNextPage,
+  isLoadMoreError,
+  onLoadMore,
 }: {
-  currentPage: number;
-  isFetching: boolean;
-  onPageChange: (value: number) => void;
-  pagesCount: number;
+  isFetchingNextPage: boolean;
+  isLoadMoreError: boolean;
+  onLoadMore: () => void;
 }) {
-  const t = useTranslations("loans.pagination");
+  const t = useTranslations("loans");
 
   return (
-    <div className="flex items-center justify-center gap-3">
+    <div className="flex flex-col items-center gap-2">
+      {isLoadMoreError ? (
+        <p className="text-sm text-error" role="alert">
+          {t("loadMoreError")}
+        </p>
+      ) : null}
       <Button
-        disabled={currentPage <= 1 || isFetching}
-        onClick={() => onPageChange(currentPage - 1)}
-        size="sm"
+        disabled={isFetchingNextPage}
+        loading={isFetchingNextPage}
+        onClick={onLoadMore}
         variant="secondary"
       >
-        <UiIcon name="chevron-left" size={16} />
-        {t("previous")}
-      </Button>
-      <span className="text-sm text-muted-foreground tabular-nums">
-        {t("status", { page: currentPage, total: pagesCount })}
-      </span>
-      <Button
-        disabled={currentPage >= pagesCount || isFetching}
-        onClick={() => onPageChange(currentPage + 1)}
-        size="sm"
-        variant="secondary"
-      >
-        {t("next")}
-        <UiIcon name="chevron-right" size={16} />
+        {t("loadMore")}
       </Button>
     </div>
   );

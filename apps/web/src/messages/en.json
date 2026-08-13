@@ -4062,18 +4062,10 @@
         "today": "Today",
         "tomorrow": "Tomorrow",
         "inDays": "In {count, plural, one {# day} other {# days}}"
-      },
-      "cta": {
-        "title": "Keep track of your books",
-        "text": "Track who has your books and who needs to return your stories.",
-        "button": "Add a book you lent to someone"
       }
     },
-    "pagination": {
-      "previous": "Previous",
-      "next": "Next",
-      "status": "Page {page} of {total}"
-    }
+    "loadMore": "Show more",
+    "loadMoreError": "Couldn't load more loans"
   },
   "changelog": {
     "category": {

@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
+import { LOANS_PAGE_SIZE } from "../model/loans-query";
 import { LoansView } from "./loans-view";
 
 const push = vi.fn();
@@ -95,13 +96,40 @@ describe("LoansView", () => {
   it("keeps search and filters from the URL in the request", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
 
-    renderLoans("borrowed_from_someone", "?q=hobbit&filter=overdue&sort=title&page=2");
+    renderLoans("borrowed_from_someone", "?q=hobbit&filter=overdue&sort=title");
 
     await screen.findByText("Гобіт");
     expect(listUrl()).toContain("search=hobbit");
     expect(listUrl()).toContain("filter=overdue");
     expect(listUrl()).toContain("sort=title");
-    expect(listUrl()).toContain("pageNumber=2");
+  });
+
+  it("shows the next loans in place instead of paging through them", async () => {
+    mockLoans(
+      Array.from({ length: 12 }, (_, index) =>
+        loanItem("borrowed_from_someone", `Книга ${index + 1}`),
+      ),
+    );
+
+    renderLoans("borrowed_from_someone");
+
+    expect(await screen.findByText("Книга 1")).toBeInTheDocument();
+    expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+
+    expect(await screen.findByText("Книга 11")).toBeInTheDocument();
+    expect(screen.getByText("Книга 1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: copy.loadMore })).not.toBeInTheDocument();
+  });
+
+  it("keeps the show-more button away when every loan already fits", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
+
+    renderLoans("borrowed_from_someone");
+
+    await screen.findByText("Гобіт");
+    expect(screen.queryByRole("button", { name: copy.loadMore })).not.toBeInTheDocument();
   });
 
   it("builds the borrowed stat cards from the summary", async () => {
@@ -460,7 +488,9 @@ describe("LoansView", () => {
         requestedUrls.some((url) => url.includes(`person=${encodeURIComponent("Олена")}`)),
       ).toBe(true);
     });
-    expect(row).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => {
+      expect(row).toHaveAttribute("aria-pressed", "true");
+    });
 
     requestedUrls.length = 0;
     await userEvent.click(row);
@@ -542,7 +572,7 @@ describe("LoansView", () => {
     expect(within(block).getByText(longHeld.empty)).toBeInTheDocument();
   });
 
-  it("keeps the upcoming returns and the call to action off the borrowed page", async () => {
+  it("keeps the lent-only sidebar blocks off the borrowed page", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
       borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 1 },
     });
@@ -551,7 +581,6 @@ describe("LoansView", () => {
 
     await findSidebarBlock(longHeld.title);
     expect(within(sidebar()).queryByText(upcoming.title)).not.toBeInTheDocument();
-    expect(within(sidebar()).queryByText(copy.sidebar.cta.title)).not.toBeInTheDocument();
     expect(within(sidebar()).queryByText(people.title)).not.toBeInTheDocument();
   });
 
@@ -644,6 +673,20 @@ function loanItem(
   };
 }
 
+function loansPage(items: LoanListItemView[], url: string) {
+  const params = new URL(url, "http://localhost").searchParams;
+  const pageSize = Number(params.get("pageSize") ?? LOANS_PAGE_SIZE);
+  const page = Number(params.get("pageNumber") ?? 1);
+
+  return {
+    items: items.slice((page - 1) * pageSize, page * pageSize),
+    page,
+    pagesCount: Math.ceil(items.length / pageSize),
+    pageSize,
+    totalCount: items.length,
+  };
+}
+
 function mockLoans(items: LoanListItemView[], summaryOverrides?: Partial<LoansSummaryView>) {
   const summary: LoansSummaryView = {
     borrowed: countedStats(items, "borrowed_from_someone"),
@@ -657,17 +700,7 @@ function mockLoans(items: LoanListItemView[], summaryOverrides?: Partial<LoansSu
       const url = String(input);
       requestedUrls.push(url);
       if (url.includes("/api/loans/summary")) return Promise.resolve(jsonResponse(summary));
-      if (url.includes("/api/loans")) {
-        return Promise.resolve(
-          jsonResponse({
-            items,
-            page: 1,
-            pagesCount: items.length === 0 ? 0 : 1,
-            pageSize: 10,
-            totalCount: items.length,
-          }),
-        );
-      }
+      if (url.includes("/api/loans")) return Promise.resolve(jsonResponse(loansPage(items, url)));
       return Promise.reject(new Error(`unexpected fetch: ${url}`));
     }),
   );
@@ -675,7 +708,7 @@ function mockLoans(items: LoanListItemView[], summaryOverrides?: Partial<LoansSu
 
 function renderLoans(type: LoanType, searchParams = "") {
   return renderWithProviders(
-    <NuqsTestingAdapter searchParams={searchParams}>
+    <NuqsTestingAdapter hasMemory searchParams={searchParams}>
       <LoansView type={type} />
     </NuqsTestingAdapter>,
   );
