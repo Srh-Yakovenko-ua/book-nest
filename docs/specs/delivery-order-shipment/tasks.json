@@ -250,7 +250,7 @@
         "FK від users і books мають onDelete: Cascade — як book_deliveries у migration.sql:32-35 (O10)",
         "User.bookDeliveries і Book.deliveries замінені на нові relation-поля"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T14",
@@ -265,7 +265,7 @@
         "providerKey унікальний серед глобальних записів (userId IS NULL) або має явно записане обґрунтування, чому унікальність не потрібна",
         "delivery-service.mapper.ts більше не повертає літеральні providerKey: null / trackingUrlTemplate: null — обидва поля читаються з колонок (тимчасова заглушка зі зрізу 1)"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T15",
@@ -281,7 +281,7 @@
         "у файлі немає DROP INDEX на жоден з восьми часткових індексів зі списку raw-sql-indexes.test.ts:34-45, окрім book_deliveries_active_book_idx у міграції T18",
         "міграцію переглянув migration-reviewer (запис у PR/звіті)"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T16",
@@ -298,7 +298,7 @@
         "SET LOCAL lock_timeout виставлений, якщо міграція робить ALTER на існуючих таблицях (прецедент migration 20260812115219:16)",
         "кожен рукописний індекс має коментар-рядок, чому Prisma не може його описати"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T17a",
@@ -313,7 +313,7 @@
         "для кожної групи-кандидата зафіксовано, чи змішує вона різні статуси (наприклад cancelled з активними)",
         "результат зафіксований як таблиця у файлі, а не як твердження в чаті"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T17",
@@ -334,7 +334,7 @@
         "невідомий legacy-статус зупиняє міграцію помилкою, а не перетворюється на скасовану позицію з вигаданим cancelled_at",
         "рядки різних класів статусу розводяться по різних замовленнях лише коли це один і той самий book_id (cancel→reorder), а не будь-які різні книги одного замовлення"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T18",
@@ -350,7 +350,8 @@
         "DROP INDEX book_deliveries_active_book_idx не потрібен окремо (падає разом із таблицею) — у діффі немає жодного іншого DROP INDEX",
         "grep -rn \"bookDelivery\\|BookDelivery\\|book_deliveries\" apps/api/src --include=\"*.ts\" (без src/generated) повертає 0",
         "data-міграція T17 і DROP TABLE T18 потрапляють в ОДИН деплой — інакше все, що застосунок запише в book_deliveries між ними, зникає на cutover (H1 з ревʼю міграцій)",
-        "у задачі записано, що повторне створення таблиці не є відкатом: після DROP рядки не відновлюються, тому rollback-DELETE через збережені legacy-id має бути виконаний ДО дропу, поки нові таблиці ще не приймають записів"
+        "у задачі записано, що повторне створення таблиці не є відкатом: після DROP рядки не відновлюються, тому rollback-DELETE через збережені legacy-id має бути виконаний ДО дропу, поки нові таблиці ще не приймають записів",
+        "ЗАБЛОКОВАНО не кодом: hook PreToolUse у .claude/settings.json відмовляє в Edit/Write на apps/api/prisma/migrations/*/migration.sql, а нову міграцію треба вичитати і зачистити DROP INDEX перед deploy. Потрібне рішення maintainer: звузити hook до вже застосованих міграцій або провести цей крок вручну."
       ],
       "status": "todo"
     },
