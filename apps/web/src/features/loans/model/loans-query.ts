@@ -9,7 +9,7 @@ import { LoansControllerListFilter, LoansControllerListSort } from "@/shared/api
 export const LOANS_PAGE_SIZE = 10;
 
 export const LOANS_FILTER_DEFAULT = LoansControllerListFilter.all;
-export const LOANS_SORT_DEFAULT = LoansControllerListSort.return_date;
+export const LOANS_SORT_DEFAULT = LoansControllerListSort.overdue_first;
 
 export const LOANS_FILTER_VALUES = Object.values(LoansControllerListFilter);
 export const LOANS_SORT_VALUES = Object.values(LoansControllerListSort);

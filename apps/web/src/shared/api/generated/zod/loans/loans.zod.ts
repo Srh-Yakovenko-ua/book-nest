@@ -415,7 +415,7 @@ export const loansControllerListQueryPersonMax = 100;
 
 export const loansControllerListQuerySearchMax = 100;
 
-export const loansControllerListQuerySortDefault = `return_date`;
+export const loansControllerListQuerySortDefault = `overdue_first`;
 
 export const LoansControllerListQueryParams = zod.object({
   filter: zod
@@ -434,15 +434,7 @@ export const LoansControllerListQueryParams = zod.object({
   person: zod.string().max(loansControllerListQueryPersonMax).optional(),
   search: zod.string().max(loansControllerListQuerySearchMax).optional(),
   sort: zod
-    .enum([
-      "return_date",
-      "loan_date",
-      "title",
-      "author",
-      "person",
-      "overdue_first",
-      "return_soonest",
-    ])
+    .enum(["overdue_first", "return_date", "loan_date", "title", "author", "person"])
     .default(loansControllerListQuerySortDefault),
   type: zod.enum(["borrowed_from_someone", "lent_to_someone"]).optional(),
 });

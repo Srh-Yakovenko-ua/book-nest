@@ -8,7 +8,6 @@ import type {
 } from "@/shared/api/generated/model";
 
 import { DebouncedSearchInput } from "@/components/debounced-search-input";
-import { MobileSortSheet } from "@/components/ui/mobile-sort-sheet";
 import {
   Select,
   SelectContent,
@@ -17,9 +16,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import type { LoanDirection } from "../model/loan-pages";
+
 import { LOANS_FILTER_VALUES, LOANS_SORT_DEFAULT, LOANS_SORT_VALUES } from "../model/loans-query";
+import { LoansSortSheet } from "./loans-sort-sheet";
 
 type LoansToolbarProps = {
+  direction: LoanDirection;
   filter: LoansControllerListFilter;
   onFilterChange: (value: LoansControllerListFilter) => void;
   onSearchChange: (value: string) => void;
@@ -30,6 +33,7 @@ type LoansToolbarProps = {
 };
 
 export function LoansToolbar({
+  direction,
   filter,
   onFilterChange,
   onSearchChange,
@@ -41,8 +45,7 @@ export function LoansToolbar({
   const t = useTranslations("loans.toolbar");
   const tCommon = useTranslations("common");
   const tFilters = useTranslations("loans.filters");
-  const tSort = useTranslations("loans.sort");
-  const tSortMobile = useTranslations("loans.sort.mobile");
+  const tSort = useTranslations(`loans.sort.${direction}`);
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -67,21 +70,11 @@ export function LoansToolbar({
           />
         </div>
 
-        <MobileSortSheet
+        <LoansSortSheet
           className="sm:hidden"
-          closeLabel={tSortMobile("close")}
-          description={tSortMobile("description")}
-          groups={[
-            {
-              key: "sort",
-              options: LOANS_SORT_VALUES.map((value) => ({ label: tSort(value), value })),
-            },
-          ]}
-          id="loans-sort"
+          direction={direction}
           label={t("sortLabel")}
           onChange={onSortChange}
-          title={tSortMobile("title")}
-          triggerLabel={tSortMobile(`trigger.${sort}`)}
           value={sort}
         />
 

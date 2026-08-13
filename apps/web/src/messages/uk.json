@@ -3921,25 +3921,49 @@
       "without_reminder": "Без нагадування"
     },
     "sort": {
-      "return_date": "За датою повернення",
-      "loan_date": "За датою позики",
-      "title": "За назвою книги",
-      "author": "За автором",
-      "person": "За людиною",
-      "overdue_first": "Спочатку прострочені",
-      "return_soonest": "Спочатку найближчі повернення",
+      "borrowed": {
+        "overdue_first": "За терміновістю",
+        "return_date": "За датою повернення",
+        "loan_date": "За датою позики",
+        "title": "За назвою",
+        "author": "За автором",
+        "person": "За власником"
+      },
+      "lent": {
+        "overdue_first": "За терміновістю",
+        "return_date": "За датою повернення",
+        "loan_date": "За датою передачі",
+        "title": "За назвою",
+        "author": "За автором",
+        "person": "За отримувачем"
+      },
       "mobile": {
         "title": "Сортування",
         "description": "Виберіть порядок позичених книг.",
         "close": "Закрити",
+        "groups": {
+          "urgency": "Терміновість",
+          "date": "Дата",
+          "book": "Книга",
+          "person": "Людина"
+        },
         "trigger": {
-          "return_date": "Повернення",
-          "loan_date": "Позика",
-          "title": "Назва",
-          "author": "Автор",
-          "person": "Людина",
-          "overdue_first": "Прострочені",
-          "return_soonest": "Найближчі"
+          "borrowed": {
+            "overdue_first": "Терміновість",
+            "return_date": "Повернення",
+            "loan_date": "Позика",
+            "title": "Назва",
+            "author": "Автор",
+            "person": "Власник"
+          },
+          "lent": {
+            "overdue_first": "Терміновість",
+            "return_date": "Повернення",
+            "loan_date": "Передача",
+            "title": "Назва",
+            "author": "Автор",
+            "person": "Отримувач"
+          }
         }
       }
     },

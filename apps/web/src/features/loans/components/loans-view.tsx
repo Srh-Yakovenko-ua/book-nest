@@ -145,6 +145,7 @@ export function LoansView({ type }: { type: LoanType }) {
       {showChrome ? (
         <div className="flex flex-col gap-4">
           <LoansToolbar
+            direction={page.direction}
             filter={query.filter}
             onFilterChange={query.setFilter}
             onSearchChange={query.setSearch}

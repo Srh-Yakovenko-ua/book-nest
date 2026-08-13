@@ -3921,25 +3921,49 @@
       "without_reminder": "Without reminder"
     },
     "sort": {
-      "return_date": "By return date",
-      "loan_date": "By loan date",
-      "title": "By book title",
-      "author": "By author",
-      "person": "By person",
-      "overdue_first": "Overdue first",
-      "return_soonest": "Soonest returns first",
+      "borrowed": {
+        "overdue_first": "By urgency",
+        "return_date": "By return date",
+        "loan_date": "By borrow date",
+        "title": "By title",
+        "author": "By author",
+        "person": "By owner"
+      },
+      "lent": {
+        "overdue_first": "By urgency",
+        "return_date": "By return date",
+        "loan_date": "By handover date",
+        "title": "By title",
+        "author": "By author",
+        "person": "By recipient"
+      },
       "mobile": {
         "title": "Sorting",
         "description": "Choose the order of borrowed books.",
         "close": "Close",
+        "groups": {
+          "urgency": "Urgency",
+          "date": "Date",
+          "book": "Book",
+          "person": "Person"
+        },
         "trigger": {
-          "return_date": "Return date",
-          "loan_date": "Loan date",
-          "title": "Title",
-          "author": "Author",
-          "person": "Person",
-          "overdue_first": "Overdue",
-          "return_soonest": "Soonest"
+          "borrowed": {
+            "overdue_first": "Urgency",
+            "return_date": "Return date",
+            "loan_date": "Borrow date",
+            "title": "Title",
+            "author": "Author",
+            "person": "Owner"
+          },
+          "lent": {
+            "overdue_first": "Urgency",
+            "return_date": "Return date",
+            "loan_date": "Handover date",
+            "title": "Title",
+            "author": "Author",
+            "person": "Recipient"
+          }
         }
       }
     },

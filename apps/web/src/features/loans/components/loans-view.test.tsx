@@ -32,6 +32,7 @@ const stats = messages.loans.stats;
 const attention = messages.loans.sidebar.attention;
 const longHeld = messages.loans.sidebar.longHeld;
 const people = messages.loans.sidebar.people;
+const sort = messages.loans.sort;
 const upcoming = messages.loans.sidebar.upcoming;
 const requestedUrls: string[] = [];
 
@@ -102,6 +103,57 @@ describe("LoansView", () => {
     expect(listUrl()).toContain("search=hobbit");
     expect(listUrl()).toContain("filter=overdue");
     expect(listUrl()).toContain("sort=title");
+  });
+
+  it("asks for the urgency order by default", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
+
+    renderLoans("borrowed_from_someone");
+
+    await screen.findByText("Гобіт");
+    expect(listUrl()).toContain("sort=overdue_first");
+  });
+
+  it("falls back to the urgency order when the URL still asks for the retired sort", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
+
+    renderLoans("borrowed_from_someone", "?sort=return_soonest");
+
+    await screen.findByText("Гобіт");
+    expect(listUrl()).toContain("sort=overdue_first");
+    expect(listUrl()).not.toContain("return_soonest");
+  });
+
+  it("names the sorts after the page the reader is on", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
+
+    renderLoans("borrowed_from_someone", "?sort=person");
+
+    await screen.findByText("Гобіт");
+    await userEvent.click(screen.getByText(sort.mobile.trigger.borrowed.person));
+
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText(sort.borrowed.overdue_first)).toBeInTheDocument();
+    expect(within(sheet).getByText(sort.borrowed.loan_date)).toBeInTheDocument();
+    expect(within(sheet).getByText(sort.borrowed.person)).toBeInTheDocument();
+    expect(within(sheet).queryByText(sort.lent.loan_date)).not.toBeInTheDocument();
+    expect(within(sheet).queryByText(sort.lent.person)).not.toBeInTheDocument();
+  });
+
+  it("names the same sorts after the lent page", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")]);
+
+    renderLoans("lent_to_someone", "?sort=person");
+
+    await screen.findByText("Дюна");
+    await userEvent.click(screen.getByText(sort.mobile.trigger.lent.person));
+
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText(sort.lent.overdue_first)).toBeInTheDocument();
+    expect(within(sheet).getByText(sort.lent.loan_date)).toBeInTheDocument();
+    expect(within(sheet).getByText(sort.lent.person)).toBeInTheDocument();
+    expect(within(sheet).queryByText(sort.borrowed.loan_date)).not.toBeInTheDocument();
+    expect(within(sheet).queryByText(sort.borrowed.person)).not.toBeInTheDocument();
   });
 
   it("shows the next loans in place instead of paging through them", async () => {
