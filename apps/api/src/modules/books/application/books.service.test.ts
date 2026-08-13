@@ -18,6 +18,7 @@ import type {
 
 import { BadRequestError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { fakeOf } from "../../../test/fake.js";
+import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import { BookCoverCleanup } from "./book-cover-cleanup.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
 import { BooksService } from "./books.service.js";
@@ -174,6 +175,7 @@ function buildService(
     viewAssembler,
     fakeOf<BookCoverCleanup>(coverCleanup),
     fakeOf<TransactionRunner>(transactionRunner),
+    fakeOf<ReadingGoalSyncService>({ syncBooks: vi.fn().mockResolvedValue(undefined) }),
   );
 
   return { coverCleanup, relationsResolver, repository, service };

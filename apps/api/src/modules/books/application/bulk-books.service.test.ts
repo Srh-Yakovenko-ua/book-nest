@@ -16,6 +16,7 @@ import type { BookPurgeScheduler } from "./book-purge.scheduler.js";
 import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 import { fakeOf } from "../../../test/fake.js";
+import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import { BulkBooksService } from "./bulk-books.service.js";
 
 const TX = fakeOf<Prisma.TransactionClient>();
@@ -54,6 +55,7 @@ function buildService(
   bulkBooksRepository: BulkRepository;
   listsService: { resolveListsForBook: ReturnType<typeof vi.fn> };
   purgeScheduler: { scheduleMany: ReturnType<typeof vi.fn> };
+  readingGoalSyncService: ReadingGoalSyncService;
   service: BulkBooksService;
   tagsService: { resolveOrCreateMany: ReturnType<typeof vi.fn> };
 } {
@@ -80,15 +82,27 @@ function buildService(
     run: vi.fn(<T>(work: (client: Prisma.TransactionClient) => Promise<T>): Promise<T> => work(TX)),
   };
 
+  const readingGoalSyncService = fakeOf<ReadingGoalSyncService>({
+    syncBooks: vi.fn().mockResolvedValue(undefined),
+  });
+
   const service = new BulkBooksService(
     bulkBooksRepository as unknown as BulkBooksRepository,
     tagsService as unknown as TagsService,
     listsService as unknown as ListsService,
     purgeScheduler as unknown as BookPurgeScheduler,
     transactionRunner as unknown as TransactionRunner,
+    readingGoalSyncService,
   );
 
-  return { bulkBooksRepository, listsService, purgeScheduler, service, tagsService };
+  return {
+    bulkBooksRepository,
+    listsService,
+    purgeScheduler,
+    readingGoalSyncService,
+    service,
+    tagsService,
+  };
 }
 
 describe("BulkBooksService.addTags", () => {
@@ -227,12 +241,15 @@ describe("BulkBooksService.setReadingStatus", () => {
 
     await service.setReadingStatus({ input, userId: USER_ID });
 
-    expect(bulkBooksRepository.setReadingStatus).toHaveBeenCalledWith({
-      bookIds: [BOOK_A],
-      clearProgress: true,
-      readingStatus: "not_started",
-      userId: USER_ID,
-    });
+    expect(bulkBooksRepository.setReadingStatus).toHaveBeenCalledWith(
+      {
+        bookIds: [BOOK_A],
+        clearProgress: true,
+        readingStatus: "not_started",
+        userId: USER_ID,
+      },
+      TX,
+    );
   });
 
   it("keeps progress when the new status uses reading progress", async () => {
@@ -241,12 +258,15 @@ describe("BulkBooksService.setReadingStatus", () => {
 
     await service.setReadingStatus({ input, userId: USER_ID });
 
-    expect(bulkBooksRepository.setReadingStatus).toHaveBeenCalledWith({
-      bookIds: [BOOK_A],
-      clearProgress: false,
-      readingStatus: "reading",
-      userId: USER_ID,
-    });
+    expect(bulkBooksRepository.setReadingStatus).toHaveBeenCalledWith(
+      {
+        bookIds: [BOOK_A],
+        clearProgress: false,
+        readingStatus: "reading",
+        userId: USER_ID,
+      },
+      TX,
+    );
   });
 });
 
@@ -327,16 +347,31 @@ describe("BulkBooksService.delete", () => {
       userId: USER_ID,
     });
 
-    expect(bulkBooksRepository.softDelete).toHaveBeenCalledWith({
-      bookIds: [BOOK_A, BOOK_B],
-      stamp: { deletedAt: expect.any(Date), purgeAt: expect.any(Date) },
-      userId: USER_ID,
-    });
+    expect(bulkBooksRepository.softDelete).toHaveBeenCalledWith(
+      {
+        bookIds: [BOOK_A, BOOK_B],
+        stamp: { deletedAt: expect.any(Date), purgeAt: expect.any(Date) },
+        userId: USER_ID,
+      },
+      TX,
+    );
     expect(purgeScheduler.scheduleMany).toHaveBeenCalledWith({
       bookIds: [BOOK_A, BOOK_B],
       userId: USER_ID,
     });
     expect(result).toEqual({ affected: 2 });
+  });
+
+  it("uncounts the trashed books from their reading goals in the same transaction", async () => {
+    const { readingGoalSyncService, service } = buildService({ softDeletedIds: [BOOK_A] });
+
+    await service.delete({ input: { bookIds: [BOOK_A, BOOK_B] }, userId: USER_ID });
+
+    expect(readingGoalSyncService.syncBooks).toHaveBeenCalledWith({
+      bookIds: [BOOK_A],
+      client: TX,
+      userId: USER_ID,
+    });
   });
 
   it("reports zero affected when no owned book matched", async () => {

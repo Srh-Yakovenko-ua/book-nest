@@ -5,29 +5,47 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { ReadingGoalDetailDtoActivityPreviewItem } from "./readingGoalDetailDtoActivityPreviewItem";
+import type { ReadingGoalDetailDtoCheckpointsItem } from "./readingGoalDetailDtoCheckpointsItem";
 import type { ReadingGoalDetailDtoCountedBooksItem } from "./readingGoalDetailDtoCountedBooksItem";
 import type { ReadingGoalDetailDtoList } from "./readingGoalDetailDtoList";
+import type { ReadingGoalDetailDtoPace } from "./readingGoalDetailDtoPace";
+import type { ReadingGoalDetailDtoProjectionConfidence } from "./readingGoalDetailDtoProjectionConfidence";
+import type { ReadingGoalDetailDtoRemainingBooksItem } from "./readingGoalDetailDtoRemainingBooksItem";
+import type { ReadingGoalDetailDtoResult } from "./readingGoalDetailDtoResult";
+import type { ReadingGoalDetailDtoRiskLevel } from "./readingGoalDetailDtoRiskLevel";
+import type { ReadingGoalDetailDtoRiskReasonsItem } from "./readingGoalDetailDtoRiskReasonsItem";
 import type { ReadingGoalDetailDtoStatus } from "./readingGoalDetailDtoStatus";
 
 export interface ReadingGoalDetailDto {
-  /**
-   * @nullable
-   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
-   */
-  completedAt: string | null;
   /**
    * @minimum 0
    * @maximum 9007199254740991
    */
   completedCount: number;
-  /** @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$ */
-  createdAt: string;
   /**
    * @minimum -9007199254740991
    * @maximum 9007199254740991
    * @nullable
    */
   daysLeft: number | null;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  remainingCount: number;
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$
+   */
+  archivedAt: string | null;
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  completedAt: string | null;
+  /** @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$ */
+  createdAt: string;
   /** @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$ */
   deadline: string;
   id: string;
@@ -35,21 +53,99 @@ export interface ReadingGoalDetailDto {
   list: ReadingGoalDetailDtoList;
   /** @nullable */
   name: string | null;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  remainingCount: number;
+  /** @nullable */
+  result: ReadingGoalDetailDtoResult;
   status: ReadingGoalDetailDtoStatus;
   /**
    * @maximum 9007199254740991
    * @exclusiveMinimum 0
    */
   targetCount: number;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  actualBooksPerDay: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  averageDaysPerBook: number | null;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   * @nullable
+   */
+  daysSinceLastCounted: number | null;
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  elapsedDays: number;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  elapsedPercent: number;
+  /** @minimum 0 */
+  expectedCompletedCount: number;
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  lastCountedAt: string | null;
+  /** @nullable */
+  pace: ReadingGoalDetailDtoPace;
+  /** @nullable */
+  paceDeltaBooks: number | null;
+  /** @nullable */
+  paceDeltaPercent: number | null;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  progressPercent: number;
+  /**
+   * @nullable
+   * @pattern ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))$
+   */
+  projectedCompletionDate: string | null;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   * @nullable
+   */
+  projectedDaysDelta: number | null;
+  projectionConfidence: ReadingGoalDetailDtoProjectionConfidence;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  requiredBooksPerDay: number | null;
+  /**
+   * @minimum 0
+   * @nullable
+   */
+  requiredDaysPerBook: number | null;
+  riskLevel: ReadingGoalDetailDtoRiskLevel;
+  riskReasons: ReadingGoalDetailDtoRiskReasonsItem[];
+  /**
+   * @maximum 9007199254740991
+   * @exclusiveMinimum 0
+   */
+  totalDays: number;
+  activityPreview: ReadingGoalDetailDtoActivityPreviewItem[];
+  checkpoints: ReadingGoalDetailDtoCheckpointsItem[];
   countedBooks: ReadingGoalDetailDtoCountedBooksItem[];
   /**
    * @minimum 0
    * @maximum 9007199254740991
    */
   listBookCount: number;
+  remainingBooks: ReadingGoalDetailDtoRemainingBooksItem[];
+  /**
+   * @minimum 0
+   * @maximum 9007199254740991
+   */
+  snapshotBookCount: number;
 }

@@ -8,6 +8,7 @@ import { GenresModule } from "../genres/index.js";
 import { ListsModule } from "../lists/index.js";
 import { MediaModule } from "../media/index.js";
 import { PublishersModule } from "../publishers/index.js";
+import { ReadingGoalsModule } from "../reading-goals/index.js";
 import { SeriesModule } from "../series/index.js";
 import { TagsModule } from "../tags/index.js";
 import { BookDeliveryController } from "./api/book-delivery.controller.js";
@@ -81,6 +82,7 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     GenresModule,
     MediaModule,
     DeliveryServicesModule,
+    ReadingGoalsModule,
     BullModule.registerQueue({ name: BOOK_PURGE_QUEUE_NAME }),
   ],
   providers: [

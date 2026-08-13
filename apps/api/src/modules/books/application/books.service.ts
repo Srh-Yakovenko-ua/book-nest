@@ -8,6 +8,7 @@ import {
   TransactionRunner,
 } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import {
   buildDeliveryInfoData,
   buildLoanInfoData,
@@ -49,6 +50,7 @@ export class BooksService {
     private readonly viewAssembler: BookViewAssembler,
     private readonly coverCleanup: BookCoverCleanup,
     private readonly transactionRunner: TransactionRunner,
+    private readonly readingGoalSyncService: ReadingGoalSyncService,
   ) {}
 
   async create(userId: string, input: CreateBookInput): Promise<BookView> {
@@ -197,7 +199,7 @@ export class BooksService {
         applyDedicationFields({ current, fields, input });
         applyWishlistFields({ current, fields, input, now });
 
-        return this.booksRepository.updateOwned(
+        const updated = await this.booksRepository.updateOwned(
           userId,
           bookId,
           {
@@ -224,6 +226,10 @@ export class BooksService {
           now,
           client,
         );
+
+        await this.readingGoalSyncService.syncBooks({ bookIds: [bookId], client, userId });
+
+        return updated;
       }, HEAVY_TRANSACTION_OPTIONS);
     } catch (error) {
       throw await this.relationsResolver.mapSeriesPartNumberWriteError({

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReadingGoalBook } from "@app/shared";
+import type { Nullable, ReadingGoalBookView } from "@app/shared";
 
 import { compareAsc, parseISO } from "date-fns";
 import { useLocale, useTranslations } from "next-intl";
@@ -11,13 +11,13 @@ import { Link } from "@/i18n/navigation";
 import { formatDate } from "@/lib/format";
 
 type GoalCountedBooksProps = {
-  books: ReadingGoalBook[];
+  books: ReadingGoalBookView[];
 };
 
 export function GoalCountedBooks({ books }: GoalCountedBooksProps) {
   const t = useTranslations("goals.detail");
   const ordered = [...books].sort((left, right) =>
-    compareAsc(parseISO(left.finishedAt), parseISO(right.finishedAt)),
+    compareCountedAt(left.countedFinishedAt, right.countedFinishedAt),
   );
 
   return (
@@ -47,7 +47,7 @@ export function GoalCountedBooks({ books }: GoalCountedBooksProps) {
   );
 }
 
-function BookCover({ book }: { book: ReadingGoalBook }) {
+function BookCover({ book }: { book: ReadingGoalBookView }) {
   const t = useTranslations("goals.detail");
 
   if (book.cover === null) {
@@ -72,7 +72,14 @@ function BookCover({ book }: { book: ReadingGoalBook }) {
   );
 }
 
-function CountedBookRow({ book }: { book: ReadingGoalBook }) {
+function compareCountedAt(left: Nullable<string>, right: Nullable<string>): number {
+  if (left === null || right === null) {
+    return Number(left === null) - Number(right === null);
+  }
+  return compareAsc(parseISO(left), parseISO(right));
+}
+
+function CountedBookRow({ book }: { book: ReadingGoalBookView }) {
   const t = useTranslations("goals.detail");
   const locale = useLocale();
   const authors = book.authors.map((author) => author.name).join(", ");
@@ -92,9 +99,11 @@ function CountedBookRow({ book }: { book: ReadingGoalBook }) {
             <p className="truncate text-xs text-muted-foreground">{authors}</p>
           )}
         </div>
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {t("finishedOn", { date: formatDate(book.finishedAt, locale) })}
-        </span>
+        {book.countedFinishedAt === null ? null : (
+          <span className="shrink-0 text-xs text-muted-foreground">
+            {t("finishedOn", { date: formatDate(book.countedFinishedAt, locale) })}
+          </span>
+        )}
       </Link>
     </li>
   );

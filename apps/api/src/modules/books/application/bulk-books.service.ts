@@ -18,6 +18,7 @@ import { TransactionRunner } from "../../../core/database/transaction-runner.js"
 import { BadRequestError } from "../../../core/exceptions/errors.js";
 import { TRASH_RETENTION } from "../../../core/trash-retention.js";
 import { ListsService } from "../../lists/index.js";
+import { ReadingGoalSyncService } from "../../reading-goals/index.js";
 import { TagsService } from "../../tags/index.js";
 import {
   ownershipStatusKeepsPurchase,
@@ -38,6 +39,7 @@ export class BulkBooksService {
     private readonly listsService: ListsService,
     private readonly purgeScheduler: BookPurgeScheduler,
     private readonly transactionRunner: TransactionRunner,
+    private readonly readingGoalSyncService: ReadingGoalSyncService,
   ) {}
 
   async addTags({
@@ -119,10 +121,13 @@ export class BulkBooksService {
     input: BulkBookIds;
     userId: string;
   }): Promise<BulkActionResult> {
-    const deletedIds = await this.bulkBooksRepository.softDelete({
-      bookIds: input.bookIds,
-      stamp: TRASH_RETENTION.stamp(),
-      userId,
+    const deletedIds = await this.transactionRunner.run(async (tx) => {
+      const softDeleted = await this.bulkBooksRepository.softDelete(
+        { bookIds: input.bookIds, stamp: TRASH_RETENTION.stamp(), userId },
+        tx,
+      );
+      await this.readingGoalSyncService.syncBooks({ bookIds: softDeleted, client: tx, userId });
+      return softDeleted;
     });
     await this.purgeScheduler.scheduleMany({ bookIds: deletedIds, userId });
     return { affected: deletedIds.length };
@@ -176,11 +181,22 @@ export class BulkBooksService {
     input: BulkReadingStatusInput;
     userId: string;
   }): Promise<BulkActionResult> {
-    const affected = await this.bulkBooksRepository.setReadingStatus({
-      bookIds: input.bookIds,
-      clearProgress: !readingStatusUsesProgress(input.readingStatus),
-      readingStatus: input.readingStatus,
-      userId,
+    const affected = await this.transactionRunner.run(async (tx) => {
+      const updated = await this.bulkBooksRepository.setReadingStatus(
+        {
+          bookIds: input.bookIds,
+          clearProgress: !readingStatusUsesProgress(input.readingStatus),
+          readingStatus: input.readingStatus,
+          userId,
+        },
+        tx,
+      );
+      await this.readingGoalSyncService.syncBooks({
+        bookIds: input.bookIds,
+        client: tx,
+        userId,
+      });
+      return updated;
     });
     return { affected };
   }

@@ -25,44 +25,55 @@ export const ReadingGoalsControllerCreateBody = zod.object({
   targetCount: zod.int().min(1).max(readingGoalsControllerCreateBodyTargetCountMax),
 });
 
-export const readingGoalsControllerCreateResponseCompletedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerCreateResponseCompletedCountMin = 0;
 export const readingGoalsControllerCreateResponseCompletedCountMax = 9007199254740991;
 
-export const readingGoalsControllerCreateResponseCreatedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-);
 export const readingGoalsControllerCreateResponseDaysLeftMin = -9007199254740991;
 export const readingGoalsControllerCreateResponseDaysLeftMax = 9007199254740991;
 
-export const readingGoalsControllerCreateResponseDeadlineRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerCreateResponseRemainingCountMin = 0;
 export const readingGoalsControllerCreateResponseRemainingCountMax = 9007199254740991;
 
+export const readingGoalsControllerCreateResponseArchivedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerCreateResponseCompletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerCreateResponseCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerCreateResponseDeadlineRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const readingGoalsControllerCreateResponseTargetCountExclusiveMin = 0;
 export const readingGoalsControllerCreateResponseTargetCountMax = 9007199254740991;
 
 export const ReadingGoalsControllerCreateResponse = zod.object({
-  completedAt: zod.iso
-    .date()
-    .regex(readingGoalsControllerCreateResponseCompletedAtRegExp)
-    .nullable(),
   completedCount: zod
     .int()
     .min(readingGoalsControllerCreateResponseCompletedCountMin)
     .max(readingGoalsControllerCreateResponseCompletedCountMax),
-  createdAt: zod.iso
-    .datetime({ offset: true })
-    .regex(readingGoalsControllerCreateResponseCreatedAtRegExp),
   daysLeft: zod
     .int()
     .min(readingGoalsControllerCreateResponseDaysLeftMin)
     .max(readingGoalsControllerCreateResponseDaysLeftMax)
     .nullable(),
+  remainingCount: zod
+    .int()
+    .min(readingGoalsControllerCreateResponseRemainingCountMin)
+    .max(readingGoalsControllerCreateResponseRemainingCountMax),
+  archivedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerCreateResponseArchivedAtRegExp)
+    .nullable(),
+  completedAt: zod.iso
+    .date()
+    .regex(readingGoalsControllerCreateResponseCompletedAtRegExp)
+    .nullable(),
+  createdAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerCreateResponseCreatedAtRegExp),
   deadline: zod.iso.date().regex(readingGoalsControllerCreateResponseDeadlineRegExp),
   id: zod.string(),
   list: zod
@@ -72,10 +83,9 @@ export const ReadingGoalsControllerCreateResponse = zod.object({
     })
     .nullable(),
   name: zod.string().nullable(),
-  remainingCount: zod
-    .int()
-    .min(readingGoalsControllerCreateResponseRemainingCountMin)
-    .max(readingGoalsControllerCreateResponseRemainingCountMax),
+  result: zod
+    .union([zod.literal("completed"), zod.literal("expired"), zod.literal(null)])
+    .nullable(),
   status: zod.enum(["active", "completed", "expired", "archived"]),
   targetCount: zod
     .int()
@@ -90,44 +100,55 @@ export const ReadingGoalsControllerFindByListParams = zod.object({
   listId: zod.string(),
 });
 
-export const readingGoalsControllerFindByListResponseCompletedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerFindByListResponseCompletedCountMin = 0;
 export const readingGoalsControllerFindByListResponseCompletedCountMax = 9007199254740991;
 
-export const readingGoalsControllerFindByListResponseCreatedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-);
 export const readingGoalsControllerFindByListResponseDaysLeftMin = -9007199254740991;
 export const readingGoalsControllerFindByListResponseDaysLeftMax = 9007199254740991;
 
-export const readingGoalsControllerFindByListResponseDeadlineRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerFindByListResponseRemainingCountMin = 0;
 export const readingGoalsControllerFindByListResponseRemainingCountMax = 9007199254740991;
 
+export const readingGoalsControllerFindByListResponseArchivedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerFindByListResponseCompletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerFindByListResponseCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerFindByListResponseDeadlineRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const readingGoalsControllerFindByListResponseTargetCountExclusiveMin = 0;
 export const readingGoalsControllerFindByListResponseTargetCountMax = 9007199254740991;
 
 export const ReadingGoalsControllerFindByListResponse = zod.object({
-  completedAt: zod.iso
-    .date()
-    .regex(readingGoalsControllerFindByListResponseCompletedAtRegExp)
-    .nullable(),
   completedCount: zod
     .int()
     .min(readingGoalsControllerFindByListResponseCompletedCountMin)
     .max(readingGoalsControllerFindByListResponseCompletedCountMax),
-  createdAt: zod.iso
-    .datetime({ offset: true })
-    .regex(readingGoalsControllerFindByListResponseCreatedAtRegExp),
   daysLeft: zod
     .int()
     .min(readingGoalsControllerFindByListResponseDaysLeftMin)
     .max(readingGoalsControllerFindByListResponseDaysLeftMax)
     .nullable(),
+  remainingCount: zod
+    .int()
+    .min(readingGoalsControllerFindByListResponseRemainingCountMin)
+    .max(readingGoalsControllerFindByListResponseRemainingCountMax),
+  archivedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerFindByListResponseArchivedAtRegExp)
+    .nullable(),
+  completedAt: zod.iso
+    .date()
+    .regex(readingGoalsControllerFindByListResponseCompletedAtRegExp)
+    .nullable(),
+  createdAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerFindByListResponseCreatedAtRegExp),
   deadline: zod.iso.date().regex(readingGoalsControllerFindByListResponseDeadlineRegExp),
   id: zod.string(),
   list: zod
@@ -137,15 +158,344 @@ export const ReadingGoalsControllerFindByListResponse = zod.object({
     })
     .nullable(),
   name: zod.string().nullable(),
-  remainingCount: zod
-    .int()
-    .min(readingGoalsControllerFindByListResponseRemainingCountMin)
-    .max(readingGoalsControllerFindByListResponseRemainingCountMax),
+  result: zod
+    .union([zod.literal("completed"), zod.literal("expired"), zod.literal(null)])
+    .nullable(),
   status: zod.enum(["active", "completed", "expired", "archived"]),
   targetCount: zod
     .int()
     .gt(readingGoalsControllerFindByListResponseTargetCountExclusiveMin)
     .max(readingGoalsControllerFindByListResponseTargetCountMax),
+});
+
+/**
+ * @summary List the reading goals of the current user
+ */
+export const readingGoalsControllerListQueryCursorMax = 512;
+
+export const readingGoalsControllerListQueryLimitDefault = 20;
+export const readingGoalsControllerListQueryLimitMax = 100;
+
+export const readingGoalsControllerListQueryListIdRegExp = new RegExp(
+  "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+);
+export const readingGoalsControllerListQuerySortDefault = `created_desc`;
+
+export const ReadingGoalsControllerListQueryParams = zod.object({
+  cursor: zod.string().max(readingGoalsControllerListQueryCursorMax).optional(),
+  limit: zod
+    .int()
+    .min(1)
+    .max(readingGoalsControllerListQueryLimitMax)
+    .default(readingGoalsControllerListQueryLimitDefault),
+  listId: zod.uuid().regex(readingGoalsControllerListQueryListIdRegExp).optional(),
+  sort: zod
+    .enum([
+      "created_desc",
+      "created_asc",
+      "deadline_asc",
+      "deadline_desc",
+      "progress_desc",
+      "progress_asc",
+      "risk_desc",
+    ])
+    .default(readingGoalsControllerListQuerySortDefault),
+  status: zod.enum(["active", "completed", "expired", "archived"]).optional(),
+});
+
+export const readingGoalsControllerListResponseItemsItemCompletedCountMin = 0;
+export const readingGoalsControllerListResponseItemsItemCompletedCountMax = 9007199254740991;
+
+export const readingGoalsControllerListResponseItemsItemDaysLeftMin = -9007199254740991;
+export const readingGoalsControllerListResponseItemsItemDaysLeftMax = 9007199254740991;
+
+export const readingGoalsControllerListResponseItemsItemRemainingCountMin = 0;
+export const readingGoalsControllerListResponseItemsItemRemainingCountMax = 9007199254740991;
+
+export const readingGoalsControllerListResponseItemsItemArchivedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerListResponseItemsItemCompletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerListResponseItemsItemCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerListResponseItemsItemDeadlineRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerListResponseItemsItemTargetCountExclusiveMin = 0;
+export const readingGoalsControllerListResponseItemsItemTargetCountMax = 9007199254740991;
+
+export const readingGoalsControllerListResponseItemsItemActualBooksPerDayMin = 0;
+
+export const readingGoalsControllerListResponseItemsItemAverageDaysPerBookMin = 0;
+
+export const readingGoalsControllerListResponseItemsItemDaysSinceLastCountedMin = -9007199254740991;
+export const readingGoalsControllerListResponseItemsItemDaysSinceLastCountedMax = 9007199254740991;
+
+export const readingGoalsControllerListResponseItemsItemElapsedDaysMin = 0;
+export const readingGoalsControllerListResponseItemsItemElapsedDaysMax = 9007199254740991;
+
+export const readingGoalsControllerListResponseItemsItemElapsedPercentMin = 0;
+export const readingGoalsControllerListResponseItemsItemElapsedPercentMax = 100;
+
+export const readingGoalsControllerListResponseItemsItemExpectedCompletedCountMin = 0;
+
+export const readingGoalsControllerListResponseItemsItemLastCountedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerListResponseItemsItemProgressPercentMin = 0;
+export const readingGoalsControllerListResponseItemsItemProgressPercentMax = 100;
+
+export const readingGoalsControllerListResponseItemsItemProjectedCompletionDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerListResponseItemsItemProjectedDaysDeltaMin = -9007199254740991;
+export const readingGoalsControllerListResponseItemsItemProjectedDaysDeltaMax = 9007199254740991;
+
+export const readingGoalsControllerListResponseItemsItemRequiredBooksPerDayMin = 0;
+
+export const readingGoalsControllerListResponseItemsItemRequiredDaysPerBookMin = 0;
+
+export const readingGoalsControllerListResponseItemsItemTotalDaysExclusiveMin = 0;
+export const readingGoalsControllerListResponseItemsItemTotalDaysMax = 9007199254740991;
+
+export const ReadingGoalsControllerListResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      completedCount: zod
+        .int()
+        .min(readingGoalsControllerListResponseItemsItemCompletedCountMin)
+        .max(readingGoalsControllerListResponseItemsItemCompletedCountMax),
+      daysLeft: zod
+        .int()
+        .min(readingGoalsControllerListResponseItemsItemDaysLeftMin)
+        .max(readingGoalsControllerListResponseItemsItemDaysLeftMax)
+        .nullable(),
+      remainingCount: zod
+        .int()
+        .min(readingGoalsControllerListResponseItemsItemRemainingCountMin)
+        .max(readingGoalsControllerListResponseItemsItemRemainingCountMax),
+      archivedAt: zod.iso
+        .datetime({ offset: true })
+        .regex(readingGoalsControllerListResponseItemsItemArchivedAtRegExp)
+        .nullable(),
+      completedAt: zod.iso
+        .date()
+        .regex(readingGoalsControllerListResponseItemsItemCompletedAtRegExp)
+        .nullable(),
+      createdAt: zod.iso
+        .datetime({ offset: true })
+        .regex(readingGoalsControllerListResponseItemsItemCreatedAtRegExp),
+      deadline: zod.iso.date().regex(readingGoalsControllerListResponseItemsItemDeadlineRegExp),
+      id: zod.string(),
+      list: zod
+        .object({
+          id: zod.string(),
+          name: zod.string(),
+        })
+        .nullable(),
+      name: zod.string().nullable(),
+      result: zod
+        .union([zod.literal("completed"), zod.literal("expired"), zod.literal(null)])
+        .nullable(),
+      status: zod.enum(["active", "completed", "expired", "archived"]),
+      targetCount: zod
+        .int()
+        .gt(readingGoalsControllerListResponseItemsItemTargetCountExclusiveMin)
+        .max(readingGoalsControllerListResponseItemsItemTargetCountMax),
+      actualBooksPerDay: zod
+        .number()
+        .min(readingGoalsControllerListResponseItemsItemActualBooksPerDayMin)
+        .nullable(),
+      averageDaysPerBook: zod
+        .number()
+        .min(readingGoalsControllerListResponseItemsItemAverageDaysPerBookMin)
+        .nullable(),
+      daysSinceLastCounted: zod
+        .int()
+        .min(readingGoalsControllerListResponseItemsItemDaysSinceLastCountedMin)
+        .max(readingGoalsControllerListResponseItemsItemDaysSinceLastCountedMax)
+        .nullable(),
+      elapsedDays: zod
+        .int()
+        .min(readingGoalsControllerListResponseItemsItemElapsedDaysMin)
+        .max(readingGoalsControllerListResponseItemsItemElapsedDaysMax),
+      elapsedPercent: zod
+        .number()
+        .min(readingGoalsControllerListResponseItemsItemElapsedPercentMin)
+        .max(readingGoalsControllerListResponseItemsItemElapsedPercentMax),
+      expectedCompletedCount: zod
+        .number()
+        .min(readingGoalsControllerListResponseItemsItemExpectedCompletedCountMin),
+      lastCountedAt: zod.iso
+        .date()
+        .regex(readingGoalsControllerListResponseItemsItemLastCountedAtRegExp)
+        .nullable(),
+      pace: zod
+        .union([
+          zod.literal("ahead"),
+          zod.literal("on_track"),
+          zod.literal("behind"),
+          zod.literal("critical"),
+          zod.literal(null),
+        ])
+        .nullable(),
+      paceDeltaBooks: zod.number().nullable(),
+      paceDeltaPercent: zod.number().nullable(),
+      progressPercent: zod
+        .number()
+        .min(readingGoalsControllerListResponseItemsItemProgressPercentMin)
+        .max(readingGoalsControllerListResponseItemsItemProgressPercentMax),
+      projectedCompletionDate: zod.iso
+        .date()
+        .regex(readingGoalsControllerListResponseItemsItemProjectedCompletionDateRegExp)
+        .nullable(),
+      projectedDaysDelta: zod
+        .int()
+        .min(readingGoalsControllerListResponseItemsItemProjectedDaysDeltaMin)
+        .max(readingGoalsControllerListResponseItemsItemProjectedDaysDeltaMax)
+        .nullable(),
+      projectionConfidence: zod.enum(["none", "low", "medium", "high"]),
+      requiredBooksPerDay: zod
+        .number()
+        .min(readingGoalsControllerListResponseItemsItemRequiredBooksPerDayMin)
+        .nullable(),
+      requiredDaysPerBook: zod
+        .number()
+        .min(readingGoalsControllerListResponseItemsItemRequiredDaysPerBookMin)
+        .nullable(),
+      riskLevel: zod.enum(["none", "low", "medium", "high", "critical"]),
+      riskReasons: zod.array(
+        zod.enum(["behind_schedule", "deadline_soon", "no_recent_progress", "required_pace_high"]),
+      ),
+      totalDays: zod
+        .int()
+        .gt(readingGoalsControllerListResponseItemsItemTotalDaysExclusiveMin)
+        .max(readingGoalsControllerListResponseItemsItemTotalDaysMax),
+    }),
+  ),
+  nextCursor: zod.string().nullable(),
+});
+
+/**
+ * @summary Get the reading-goal overview of the current user
+ */
+export const readingGoalsControllerOverviewResponseActiveNeedsAttentionMin = 0;
+export const readingGoalsControllerOverviewResponseActiveNeedsAttentionMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseActiveOnTrackMin = 0;
+export const readingGoalsControllerOverviewResponseActiveOnTrackMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseActiveTotalMin = 0;
+export const readingGoalsControllerOverviewResponseActiveTotalMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseBestResultCompletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerOverviewResponseBestResultDaysBeforeDeadlineMin = 0;
+export const readingGoalsControllerOverviewResponseBestResultDaysBeforeDeadlineMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseBestResultTargetCountExclusiveMin = 0;
+export const readingGoalsControllerOverviewResponseBestResultTargetCountMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseBooksCountedCurrentYearMin = 0;
+export const readingGoalsControllerOverviewResponseBooksCountedCurrentYearMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseCompletedCompletedOnOrBeforeDeadlineMin = 0;
+export const readingGoalsControllerOverviewResponseCompletedCompletedOnOrBeforeDeadlineMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseCompletedTotalMin = 0;
+export const readingGoalsControllerOverviewResponseCompletedTotalMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseSuccessFinishedGoalsMin = 0;
+export const readingGoalsControllerOverviewResponseSuccessFinishedGoalsMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseSuccessSuccessfulGoalsMin = 0;
+export const readingGoalsControllerOverviewResponseSuccessSuccessfulGoalsMax = 9007199254740991;
+
+export const readingGoalsControllerOverviewResponseSuccessSuccessRatePercentMin = 0;
+export const readingGoalsControllerOverviewResponseSuccessSuccessRatePercentMax = 100;
+
+export const ReadingGoalsControllerOverviewResponse = zod.object({
+  active: zod.object({
+    needsAttention: zod
+      .int()
+      .min(readingGoalsControllerOverviewResponseActiveNeedsAttentionMin)
+      .max(readingGoalsControllerOverviewResponseActiveNeedsAttentionMax),
+    onTrack: zod
+      .int()
+      .min(readingGoalsControllerOverviewResponseActiveOnTrackMin)
+      .max(readingGoalsControllerOverviewResponseActiveOnTrackMax),
+    total: zod
+      .int()
+      .min(readingGoalsControllerOverviewResponseActiveTotalMin)
+      .max(readingGoalsControllerOverviewResponseActiveTotalMax),
+  }),
+  attention: zod.array(
+    zod.object({
+      goalId: zod.string(),
+      goalName: zod.string().nullable(),
+      listName: zod.string().nullable(),
+      messageData: zod.record(zod.string(), zod.union([zod.number(), zod.string()])),
+      reason: zod.enum([
+        "behind_schedule",
+        "deadline_soon",
+        "no_recent_progress",
+        "required_pace_high",
+      ]),
+      severity: zod.enum(["medium", "high", "critical"]),
+    }),
+  ),
+  bestResult: zod
+    .object({
+      completedAt: zod.iso
+        .date()
+        .regex(readingGoalsControllerOverviewResponseBestResultCompletedAtRegExp),
+      daysBeforeDeadline: zod
+        .int()
+        .min(readingGoalsControllerOverviewResponseBestResultDaysBeforeDeadlineMin)
+        .max(readingGoalsControllerOverviewResponseBestResultDaysBeforeDeadlineMax),
+      goalId: zod.string(),
+      goalName: zod.string().nullable(),
+      listName: zod.string().nullable(),
+      targetCount: zod
+        .int()
+        .gt(readingGoalsControllerOverviewResponseBestResultTargetCountExclusiveMin)
+        .max(readingGoalsControllerOverviewResponseBestResultTargetCountMax),
+    })
+    .nullable(),
+  booksCounted: zod.object({
+    currentYear: zod
+      .int()
+      .min(readingGoalsControllerOverviewResponseBooksCountedCurrentYearMin)
+      .max(readingGoalsControllerOverviewResponseBooksCountedCurrentYearMax),
+  }),
+  completed: zod.object({
+    completedOnOrBeforeDeadline: zod
+      .int()
+      .min(readingGoalsControllerOverviewResponseCompletedCompletedOnOrBeforeDeadlineMin)
+      .max(readingGoalsControllerOverviewResponseCompletedCompletedOnOrBeforeDeadlineMax),
+    total: zod
+      .int()
+      .min(readingGoalsControllerOverviewResponseCompletedTotalMin)
+      .max(readingGoalsControllerOverviewResponseCompletedTotalMax),
+  }),
+  success: zod.object({
+    finishedGoals: zod
+      .int()
+      .min(readingGoalsControllerOverviewResponseSuccessFinishedGoalsMin)
+      .max(readingGoalsControllerOverviewResponseSuccessFinishedGoalsMax),
+    successfulGoals: zod
+      .int()
+      .min(readingGoalsControllerOverviewResponseSuccessSuccessfulGoalsMin)
+      .max(readingGoalsControllerOverviewResponseSuccessSuccessfulGoalsMax),
+    successRatePercent: zod
+      .number()
+      .min(readingGoalsControllerOverviewResponseSuccessSuccessRatePercentMin)
+      .max(readingGoalsControllerOverviewResponseSuccessSuccessRatePercentMax),
+  }),
 });
 
 /**
@@ -155,50 +505,130 @@ export const ReadingGoalsControllerFindOneParams = zod.object({
   goalId: zod.string(),
 });
 
-export const readingGoalsControllerFindOneResponseCompletedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerFindOneResponseCompletedCountMin = 0;
 export const readingGoalsControllerFindOneResponseCompletedCountMax = 9007199254740991;
 
-export const readingGoalsControllerFindOneResponseCreatedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-);
 export const readingGoalsControllerFindOneResponseDaysLeftMin = -9007199254740991;
 export const readingGoalsControllerFindOneResponseDaysLeftMax = 9007199254740991;
 
-export const readingGoalsControllerFindOneResponseDeadlineRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerFindOneResponseRemainingCountMin = 0;
 export const readingGoalsControllerFindOneResponseRemainingCountMax = 9007199254740991;
 
+export const readingGoalsControllerFindOneResponseArchivedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerFindOneResponseCompletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerFindOneResponseCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerFindOneResponseDeadlineRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const readingGoalsControllerFindOneResponseTargetCountExclusiveMin = 0;
 export const readingGoalsControllerFindOneResponseTargetCountMax = 9007199254740991;
 
-export const readingGoalsControllerFindOneResponseCountedBooksItemFinishedAtRegExp = new RegExp(
+export const readingGoalsControllerFindOneResponseActualBooksPerDayMin = 0;
+
+export const readingGoalsControllerFindOneResponseAverageDaysPerBookMin = 0;
+
+export const readingGoalsControllerFindOneResponseDaysSinceLastCountedMin = -9007199254740991;
+export const readingGoalsControllerFindOneResponseDaysSinceLastCountedMax = 9007199254740991;
+
+export const readingGoalsControllerFindOneResponseElapsedDaysMin = 0;
+export const readingGoalsControllerFindOneResponseElapsedDaysMax = 9007199254740991;
+
+export const readingGoalsControllerFindOneResponseElapsedPercentMin = 0;
+export const readingGoalsControllerFindOneResponseElapsedPercentMax = 100;
+
+export const readingGoalsControllerFindOneResponseExpectedCompletedCountMin = 0;
+
+export const readingGoalsControllerFindOneResponseLastCountedAtRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
+export const readingGoalsControllerFindOneResponseProgressPercentMin = 0;
+export const readingGoalsControllerFindOneResponseProgressPercentMax = 100;
+
+export const readingGoalsControllerFindOneResponseProjectedCompletionDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerFindOneResponseProjectedDaysDeltaMin = -9007199254740991;
+export const readingGoalsControllerFindOneResponseProjectedDaysDeltaMax = 9007199254740991;
+
+export const readingGoalsControllerFindOneResponseRequiredBooksPerDayMin = 0;
+
+export const readingGoalsControllerFindOneResponseRequiredDaysPerBookMin = 0;
+
+export const readingGoalsControllerFindOneResponseTotalDaysExclusiveMin = 0;
+export const readingGoalsControllerFindOneResponseTotalDaysMax = 9007199254740991;
+
+export const readingGoalsControllerFindOneResponseActivityPreviewItemCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerFindOneResponseCheckpointsItemAchievedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerFindOneResponseCheckpointsItemCurrentCompletedCountMin = 0;
+export const readingGoalsControllerFindOneResponseCheckpointsItemCurrentCompletedCountMax = 9007199254740991;
+
+export const readingGoalsControllerFindOneResponseCheckpointsItemDueDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerFindOneResponseCheckpointsItemTargetCountExclusiveMin = 0;
+export const readingGoalsControllerFindOneResponseCheckpointsItemTargetCountMax = 9007199254740991;
+
+export const readingGoalsControllerFindOneResponseCountedBooksItemCountedFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const readingGoalsControllerFindOneResponseCountedBooksItemReadingPagesCountMin = 0;
+export const readingGoalsControllerFindOneResponseCountedBooksItemReadingPagesCountMax = 9007199254740991;
+
+export const readingGoalsControllerFindOneResponseCountedBooksItemSnapshotPositionMin = 0;
+export const readingGoalsControllerFindOneResponseCountedBooksItemSnapshotPositionMax = 9007199254740991;
+
 export const readingGoalsControllerFindOneResponseListBookCountMin = 0;
 export const readingGoalsControllerFindOneResponseListBookCountMax = 9007199254740991;
 
+export const readingGoalsControllerFindOneResponseRemainingBooksItemCountedFinishedAtRegExp =
+  new RegExp(
+    "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+  );
+export const readingGoalsControllerFindOneResponseRemainingBooksItemReadingPagesCountMin = 0;
+export const readingGoalsControllerFindOneResponseRemainingBooksItemReadingPagesCountMax = 9007199254740991;
+
+export const readingGoalsControllerFindOneResponseRemainingBooksItemSnapshotPositionMin = 0;
+export const readingGoalsControllerFindOneResponseRemainingBooksItemSnapshotPositionMax = 9007199254740991;
+
+export const readingGoalsControllerFindOneResponseSnapshotBookCountMin = 0;
+export const readingGoalsControllerFindOneResponseSnapshotBookCountMax = 9007199254740991;
+
 export const ReadingGoalsControllerFindOneResponse = zod.object({
-  completedAt: zod.iso
-    .date()
-    .regex(readingGoalsControllerFindOneResponseCompletedAtRegExp)
-    .nullable(),
   completedCount: zod
     .int()
     .min(readingGoalsControllerFindOneResponseCompletedCountMin)
     .max(readingGoalsControllerFindOneResponseCompletedCountMax),
-  createdAt: zod.iso
-    .datetime({ offset: true })
-    .regex(readingGoalsControllerFindOneResponseCreatedAtRegExp),
   daysLeft: zod
     .int()
     .min(readingGoalsControllerFindOneResponseDaysLeftMin)
     .max(readingGoalsControllerFindOneResponseDaysLeftMax)
     .nullable(),
+  remainingCount: zod
+    .int()
+    .min(readingGoalsControllerFindOneResponseRemainingCountMin)
+    .max(readingGoalsControllerFindOneResponseRemainingCountMax),
+  archivedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerFindOneResponseArchivedAtRegExp)
+    .nullable(),
+  completedAt: zod.iso
+    .date()
+    .regex(readingGoalsControllerFindOneResponseCompletedAtRegExp)
+    .nullable(),
+  createdAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerFindOneResponseCreatedAtRegExp),
   deadline: zod.iso.date().regex(readingGoalsControllerFindOneResponseDeadlineRegExp),
   id: zod.string(),
   list: zod
@@ -208,15 +638,129 @@ export const ReadingGoalsControllerFindOneResponse = zod.object({
     })
     .nullable(),
   name: zod.string().nullable(),
-  remainingCount: zod
-    .int()
-    .min(readingGoalsControllerFindOneResponseRemainingCountMin)
-    .max(readingGoalsControllerFindOneResponseRemainingCountMax),
+  result: zod
+    .union([zod.literal("completed"), zod.literal("expired"), zod.literal(null)])
+    .nullable(),
   status: zod.enum(["active", "completed", "expired", "archived"]),
   targetCount: zod
     .int()
     .gt(readingGoalsControllerFindOneResponseTargetCountExclusiveMin)
     .max(readingGoalsControllerFindOneResponseTargetCountMax),
+  actualBooksPerDay: zod
+    .number()
+    .min(readingGoalsControllerFindOneResponseActualBooksPerDayMin)
+    .nullable(),
+  averageDaysPerBook: zod
+    .number()
+    .min(readingGoalsControllerFindOneResponseAverageDaysPerBookMin)
+    .nullable(),
+  daysSinceLastCounted: zod
+    .int()
+    .min(readingGoalsControllerFindOneResponseDaysSinceLastCountedMin)
+    .max(readingGoalsControllerFindOneResponseDaysSinceLastCountedMax)
+    .nullable(),
+  elapsedDays: zod
+    .int()
+    .min(readingGoalsControllerFindOneResponseElapsedDaysMin)
+    .max(readingGoalsControllerFindOneResponseElapsedDaysMax),
+  elapsedPercent: zod
+    .number()
+    .min(readingGoalsControllerFindOneResponseElapsedPercentMin)
+    .max(readingGoalsControllerFindOneResponseElapsedPercentMax),
+  expectedCompletedCount: zod
+    .number()
+    .min(readingGoalsControllerFindOneResponseExpectedCompletedCountMin),
+  lastCountedAt: zod.iso
+    .date()
+    .regex(readingGoalsControllerFindOneResponseLastCountedAtRegExp)
+    .nullable(),
+  pace: zod
+    .union([
+      zod.literal("ahead"),
+      zod.literal("on_track"),
+      zod.literal("behind"),
+      zod.literal("critical"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  paceDeltaBooks: zod.number().nullable(),
+  paceDeltaPercent: zod.number().nullable(),
+  progressPercent: zod
+    .number()
+    .min(readingGoalsControllerFindOneResponseProgressPercentMin)
+    .max(readingGoalsControllerFindOneResponseProgressPercentMax),
+  projectedCompletionDate: zod.iso
+    .date()
+    .regex(readingGoalsControllerFindOneResponseProjectedCompletionDateRegExp)
+    .nullable(),
+  projectedDaysDelta: zod
+    .int()
+    .min(readingGoalsControllerFindOneResponseProjectedDaysDeltaMin)
+    .max(readingGoalsControllerFindOneResponseProjectedDaysDeltaMax)
+    .nullable(),
+  projectionConfidence: zod.enum(["none", "low", "medium", "high"]),
+  requiredBooksPerDay: zod
+    .number()
+    .min(readingGoalsControllerFindOneResponseRequiredBooksPerDayMin)
+    .nullable(),
+  requiredDaysPerBook: zod
+    .number()
+    .min(readingGoalsControllerFindOneResponseRequiredDaysPerBookMin)
+    .nullable(),
+  riskLevel: zod.enum(["none", "low", "medium", "high", "critical"]),
+  riskReasons: zod.array(
+    zod.enum(["behind_schedule", "deadline_soon", "no_recent_progress", "required_pace_high"]),
+  ),
+  totalDays: zod
+    .int()
+    .gt(readingGoalsControllerFindOneResponseTotalDaysExclusiveMin)
+    .max(readingGoalsControllerFindOneResponseTotalDaysMax),
+  activityPreview: zod.array(
+    zod.object({
+      book: zod
+        .object({
+          id: zod.string(),
+          title: zod.string(),
+        })
+        .nullable(),
+      createdAt: zod.iso
+        .datetime({ offset: true })
+        .regex(readingGoalsControllerFindOneResponseActivityPreviewItemCreatedAtRegExp),
+      id: zod.string(),
+      metadata: zod.record(zod.string(), zod.unknown()).nullable(),
+      type: zod.enum([
+        "goal_created",
+        "book_counted",
+        "book_uncounted",
+        "target_changed",
+        "deadline_changed",
+        "goal_renamed",
+        "goal_completed",
+        "goal_expired",
+        "goal_archived",
+      ]),
+    }),
+  ),
+  checkpoints: zod.array(
+    zod.object({
+      achievedAt: zod.iso
+        .date()
+        .regex(readingGoalsControllerFindOneResponseCheckpointsItemAchievedAtRegExp)
+        .nullable(),
+      currentCompletedCount: zod
+        .int()
+        .min(readingGoalsControllerFindOneResponseCheckpointsItemCurrentCompletedCountMin)
+        .max(readingGoalsControllerFindOneResponseCheckpointsItemCurrentCompletedCountMax),
+      dueDate: zod.iso
+        .date()
+        .regex(readingGoalsControllerFindOneResponseCheckpointsItemDueDateRegExp),
+      status: zod.enum(["achieved", "upcoming", "missed"]),
+      targetCount: zod
+        .int()
+        .gt(readingGoalsControllerFindOneResponseCheckpointsItemTargetCountExclusiveMin)
+        .max(readingGoalsControllerFindOneResponseCheckpointsItemTargetCountMax),
+    }),
+  ),
   countedBooks: zod.array(
     zod.object({
       authors: zod.array(
@@ -225,6 +769,10 @@ export const ReadingGoalsControllerFindOneResponse = zod.object({
           name: zod.string(),
         }),
       ),
+      countedFinishedAt: zod.iso
+        .date()
+        .regex(readingGoalsControllerFindOneResponseCountedBooksItemCountedFinishedAtRegExp)
+        .nullable(),
       cover: zod
         .object({
           contentType: zod.string(),
@@ -242,10 +790,39 @@ export const ReadingGoalsControllerFindOneResponse = zod.object({
           width: zod.number(),
         })
         .nullable(),
-      finishedAt: zod.iso
-        .date()
-        .regex(readingGoalsControllerFindOneResponseCountedBooksItemFinishedAtRegExp),
       id: zod.string(),
+      ownershipStatus: zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+      qualifies: zod.boolean(),
+      reading: zod.object({
+        currentPage: zod.number().nullable(),
+        finishedAt: zod.string().nullable(),
+        startedAt: zod.string().nullable(),
+        pagesCount: zod
+          .int()
+          .min(readingGoalsControllerFindOneResponseCountedBooksItemReadingPagesCountMin)
+          .max(readingGoalsControllerFindOneResponseCountedBooksItemReadingPagesCountMax)
+          .nullable(),
+        status: zod.enum([
+          "not_started",
+          "want_to_read",
+          "reading",
+          "paused",
+          "finished",
+          "dnf",
+          "rereading",
+        ]),
+      }),
+      snapshotPosition: zod
+        .int()
+        .min(readingGoalsControllerFindOneResponseCountedBooksItemSnapshotPositionMin)
+        .max(readingGoalsControllerFindOneResponseCountedBooksItemSnapshotPositionMax),
       title: zod.string(),
     }),
   ),
@@ -253,6 +830,75 @@ export const ReadingGoalsControllerFindOneResponse = zod.object({
     .int()
     .min(readingGoalsControllerFindOneResponseListBookCountMin)
     .max(readingGoalsControllerFindOneResponseListBookCountMax),
+  remainingBooks: zod.array(
+    zod.object({
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      countedFinishedAt: zod.iso
+        .date()
+        .regex(readingGoalsControllerFindOneResponseRemainingBooksItemCountedFinishedAtRegExp)
+        .nullable(),
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullable(),
+      id: zod.string(),
+      ownershipStatus: zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+      qualifies: zod.boolean(),
+      reading: zod.object({
+        currentPage: zod.number().nullable(),
+        finishedAt: zod.string().nullable(),
+        startedAt: zod.string().nullable(),
+        pagesCount: zod
+          .int()
+          .min(readingGoalsControllerFindOneResponseRemainingBooksItemReadingPagesCountMin)
+          .max(readingGoalsControllerFindOneResponseRemainingBooksItemReadingPagesCountMax)
+          .nullable(),
+        status: zod.enum([
+          "not_started",
+          "want_to_read",
+          "reading",
+          "paused",
+          "finished",
+          "dnf",
+          "rereading",
+        ]),
+      }),
+      snapshotPosition: zod
+        .int()
+        .min(readingGoalsControllerFindOneResponseRemainingBooksItemSnapshotPositionMin)
+        .max(readingGoalsControllerFindOneResponseRemainingBooksItemSnapshotPositionMax),
+      title: zod.string(),
+    }),
+  ),
+  snapshotBookCount: zod
+    .int()
+    .min(readingGoalsControllerFindOneResponseSnapshotBookCountMin)
+    .max(readingGoalsControllerFindOneResponseSnapshotBookCountMax),
 });
 
 /**
@@ -273,44 +919,55 @@ export const ReadingGoalsControllerUpdateBody = zod.object({
   targetCount: zod.int().min(1).max(readingGoalsControllerUpdateBodyTargetCountMax).optional(),
 });
 
-export const readingGoalsControllerUpdateResponseCompletedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerUpdateResponseCompletedCountMin = 0;
 export const readingGoalsControllerUpdateResponseCompletedCountMax = 9007199254740991;
 
-export const readingGoalsControllerUpdateResponseCreatedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-);
 export const readingGoalsControllerUpdateResponseDaysLeftMin = -9007199254740991;
 export const readingGoalsControllerUpdateResponseDaysLeftMax = 9007199254740991;
 
-export const readingGoalsControllerUpdateResponseDeadlineRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerUpdateResponseRemainingCountMin = 0;
 export const readingGoalsControllerUpdateResponseRemainingCountMax = 9007199254740991;
 
+export const readingGoalsControllerUpdateResponseArchivedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerUpdateResponseCompletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerUpdateResponseCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerUpdateResponseDeadlineRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const readingGoalsControllerUpdateResponseTargetCountExclusiveMin = 0;
 export const readingGoalsControllerUpdateResponseTargetCountMax = 9007199254740991;
 
 export const ReadingGoalsControllerUpdateResponse = zod.object({
-  completedAt: zod.iso
-    .date()
-    .regex(readingGoalsControllerUpdateResponseCompletedAtRegExp)
-    .nullable(),
   completedCount: zod
     .int()
     .min(readingGoalsControllerUpdateResponseCompletedCountMin)
     .max(readingGoalsControllerUpdateResponseCompletedCountMax),
-  createdAt: zod.iso
-    .datetime({ offset: true })
-    .regex(readingGoalsControllerUpdateResponseCreatedAtRegExp),
   daysLeft: zod
     .int()
     .min(readingGoalsControllerUpdateResponseDaysLeftMin)
     .max(readingGoalsControllerUpdateResponseDaysLeftMax)
     .nullable(),
+  remainingCount: zod
+    .int()
+    .min(readingGoalsControllerUpdateResponseRemainingCountMin)
+    .max(readingGoalsControllerUpdateResponseRemainingCountMax),
+  archivedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerUpdateResponseArchivedAtRegExp)
+    .nullable(),
+  completedAt: zod.iso
+    .date()
+    .regex(readingGoalsControllerUpdateResponseCompletedAtRegExp)
+    .nullable(),
+  createdAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerUpdateResponseCreatedAtRegExp),
   deadline: zod.iso.date().regex(readingGoalsControllerUpdateResponseDeadlineRegExp),
   id: zod.string(),
   list: zod
@@ -320,10 +977,9 @@ export const ReadingGoalsControllerUpdateResponse = zod.object({
     })
     .nullable(),
   name: zod.string().nullable(),
-  remainingCount: zod
-    .int()
-    .min(readingGoalsControllerUpdateResponseRemainingCountMin)
-    .max(readingGoalsControllerUpdateResponseRemainingCountMax),
+  result: zod
+    .union([zod.literal("completed"), zod.literal("expired"), zod.literal(null)])
+    .nullable(),
   status: zod.enum(["active", "completed", "expired", "archived"]),
   targetCount: zod
     .int()
@@ -341,50 +997,233 @@ export const ReadingGoalsControllerDeleteParams = zod.object({
 export const ReadingGoalsControllerDeleteResponse = zod.void();
 
 /**
+ * @summary List the books of a reading goal snapshot
+ */
+export const ReadingGoalsControllerListBooksParams = zod.object({
+  goalId: zod.string(),
+});
+
+export const readingGoalsControllerListBooksQueryCursorMax = 512;
+
+export const readingGoalsControllerListBooksQueryLimitDefault = 20;
+export const readingGoalsControllerListBooksQueryLimitMax = 100;
+
+export const readingGoalsControllerListBooksQueryScopeDefault = `all`;
+
+export const ReadingGoalsControllerListBooksQueryParams = zod.object({
+  cursor: zod.string().max(readingGoalsControllerListBooksQueryCursorMax).optional(),
+  limit: zod
+    .int()
+    .min(1)
+    .max(readingGoalsControllerListBooksQueryLimitMax)
+    .default(readingGoalsControllerListBooksQueryLimitDefault),
+  scope: zod
+    .enum(["counted", "remaining", "all"])
+    .default(readingGoalsControllerListBooksQueryScopeDefault),
+});
+
+export const readingGoalsControllerListBooksResponseItemsItemCountedFinishedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerListBooksResponseItemsItemReadingPagesCountMin = 0;
+export const readingGoalsControllerListBooksResponseItemsItemReadingPagesCountMax = 9007199254740991;
+
+export const readingGoalsControllerListBooksResponseItemsItemSnapshotPositionMin = 0;
+export const readingGoalsControllerListBooksResponseItemsItemSnapshotPositionMax = 9007199254740991;
+
+export const ReadingGoalsControllerListBooksResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      countedFinishedAt: zod.iso
+        .date()
+        .regex(readingGoalsControllerListBooksResponseItemsItemCountedFinishedAtRegExp)
+        .nullable(),
+      cover: zod
+        .object({
+          contentType: zod.string(),
+          createdAt: zod.string(),
+          height: zod.number(),
+          id: zod.string(),
+          kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+          name: zod.string().nullable(),
+          sizeBytes: zod.number(),
+          urls: zod.object({
+            card: zod.string(),
+            full: zod.string(),
+            thumb: zod.string(),
+          }),
+          width: zod.number(),
+        })
+        .nullable(),
+      id: zod.string(),
+      ownershipStatus: zod.enum([
+        "none",
+        "want_to_buy",
+        "in_transit",
+        "owned",
+        "borrowed_from_someone",
+        "lent_to_someone",
+      ]),
+      qualifies: zod.boolean(),
+      reading: zod.object({
+        currentPage: zod.number().nullable(),
+        finishedAt: zod.string().nullable(),
+        startedAt: zod.string().nullable(),
+        pagesCount: zod
+          .int()
+          .min(readingGoalsControllerListBooksResponseItemsItemReadingPagesCountMin)
+          .max(readingGoalsControllerListBooksResponseItemsItemReadingPagesCountMax)
+          .nullable(),
+        status: zod.enum([
+          "not_started",
+          "want_to_read",
+          "reading",
+          "paused",
+          "finished",
+          "dnf",
+          "rereading",
+        ]),
+      }),
+      snapshotPosition: zod
+        .int()
+        .min(readingGoalsControllerListBooksResponseItemsItemSnapshotPositionMin)
+        .max(readingGoalsControllerListBooksResponseItemsItemSnapshotPositionMax),
+      title: zod.string(),
+    }),
+  ),
+  nextCursor: zod.string().nullable(),
+});
+
+/**
+ * @summary List the activity of a reading goal
+ */
+export const ReadingGoalsControllerListActivityParams = zod.object({
+  goalId: zod.string(),
+});
+
+export const readingGoalsControllerListActivityQueryCursorMax = 512;
+
+export const readingGoalsControllerListActivityQueryLimitDefault = 20;
+export const readingGoalsControllerListActivityQueryLimitMax = 100;
+
+export const ReadingGoalsControllerListActivityQueryParams = zod.object({
+  cursor: zod.string().max(readingGoalsControllerListActivityQueryCursorMax).optional(),
+  limit: zod
+    .int()
+    .min(1)
+    .max(readingGoalsControllerListActivityQueryLimitMax)
+    .default(readingGoalsControllerListActivityQueryLimitDefault),
+  type: zod
+    .enum([
+      "goal_created",
+      "book_counted",
+      "book_uncounted",
+      "target_changed",
+      "deadline_changed",
+      "goal_renamed",
+      "goal_completed",
+      "goal_expired",
+      "goal_archived",
+    ])
+    .optional(),
+});
+
+export const readingGoalsControllerListActivityResponseItemsItemCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+
+export const ReadingGoalsControllerListActivityResponse = zod.object({
+  items: zod.array(
+    zod.object({
+      book: zod
+        .object({
+          id: zod.string(),
+          title: zod.string(),
+        })
+        .nullable(),
+      createdAt: zod.iso
+        .datetime({ offset: true })
+        .regex(readingGoalsControllerListActivityResponseItemsItemCreatedAtRegExp),
+      id: zod.string(),
+      metadata: zod.record(zod.string(), zod.unknown()).nullable(),
+      type: zod.enum([
+        "goal_created",
+        "book_counted",
+        "book_uncounted",
+        "target_changed",
+        "deadline_changed",
+        "goal_renamed",
+        "goal_completed",
+        "goal_expired",
+        "goal_archived",
+      ]),
+    }),
+  ),
+  nextCursor: zod.string().nullable(),
+});
+
+/**
  * @summary Archive a reading goal so its list can take a new one
  */
 export const ReadingGoalsControllerArchiveParams = zod.object({
   goalId: zod.string(),
 });
 
-export const readingGoalsControllerArchiveResponseCompletedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerArchiveResponseCompletedCountMin = 0;
 export const readingGoalsControllerArchiveResponseCompletedCountMax = 9007199254740991;
 
-export const readingGoalsControllerArchiveResponseCreatedAtRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-);
 export const readingGoalsControllerArchiveResponseDaysLeftMin = -9007199254740991;
 export const readingGoalsControllerArchiveResponseDaysLeftMax = 9007199254740991;
 
-export const readingGoalsControllerArchiveResponseDeadlineRegExp = new RegExp(
-  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
-);
 export const readingGoalsControllerArchiveResponseRemainingCountMin = 0;
 export const readingGoalsControllerArchiveResponseRemainingCountMax = 9007199254740991;
 
+export const readingGoalsControllerArchiveResponseArchivedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerArchiveResponseCompletedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const readingGoalsControllerArchiveResponseCreatedAtRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+);
+export const readingGoalsControllerArchiveResponseDeadlineRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
 export const readingGoalsControllerArchiveResponseTargetCountExclusiveMin = 0;
 export const readingGoalsControllerArchiveResponseTargetCountMax = 9007199254740991;
 
 export const ReadingGoalsControllerArchiveResponse = zod.object({
-  completedAt: zod.iso
-    .date()
-    .regex(readingGoalsControllerArchiveResponseCompletedAtRegExp)
-    .nullable(),
   completedCount: zod
     .int()
     .min(readingGoalsControllerArchiveResponseCompletedCountMin)
     .max(readingGoalsControllerArchiveResponseCompletedCountMax),
-  createdAt: zod.iso
-    .datetime({ offset: true })
-    .regex(readingGoalsControllerArchiveResponseCreatedAtRegExp),
   daysLeft: zod
     .int()
     .min(readingGoalsControllerArchiveResponseDaysLeftMin)
     .max(readingGoalsControllerArchiveResponseDaysLeftMax)
     .nullable(),
+  remainingCount: zod
+    .int()
+    .min(readingGoalsControllerArchiveResponseRemainingCountMin)
+    .max(readingGoalsControllerArchiveResponseRemainingCountMax),
+  archivedAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerArchiveResponseArchivedAtRegExp)
+    .nullable(),
+  completedAt: zod.iso
+    .date()
+    .regex(readingGoalsControllerArchiveResponseCompletedAtRegExp)
+    .nullable(),
+  createdAt: zod.iso
+    .datetime({ offset: true })
+    .regex(readingGoalsControllerArchiveResponseCreatedAtRegExp),
   deadline: zod.iso.date().regex(readingGoalsControllerArchiveResponseDeadlineRegExp),
   id: zod.string(),
   list: zod
@@ -394,10 +1233,9 @@ export const ReadingGoalsControllerArchiveResponse = zod.object({
     })
     .nullable(),
   name: zod.string().nullable(),
-  remainingCount: zod
-    .int()
-    .min(readingGoalsControllerArchiveResponseRemainingCountMin)
-    .max(readingGoalsControllerArchiveResponseRemainingCountMax),
+  result: zod
+    .union([zod.literal("completed"), zod.literal("expired"), zod.literal(null)])
+    .nullable(),
   status: zod.enum(["active", "completed", "expired", "archived"]),
   targetCount: zod
     .int()

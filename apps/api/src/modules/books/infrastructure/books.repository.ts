@@ -1050,11 +1050,16 @@ export class BooksRepository {
     });
   }
 
-  async restore({ bookId, userId }: { bookId: string; userId: string }): Promise<number> {
-    const restored = await this.prisma.book.updateMany({
-      data: SOFT_DELETE_SCOPE.restored,
-      where: { ...SOFT_DELETE_SCOPE.trashed, id: bookId, userId },
-    });
+  async restore(
+    { bookId, userId }: { bookId: string; userId: string },
+    client?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const restored = await runInClient({ client, prisma: this.prisma }, (tx) =>
+      tx.book.updateMany({
+        data: SOFT_DELETE_SCOPE.restored,
+        where: { ...SOFT_DELETE_SCOPE.trashed, id: bookId, userId },
+      }),
+    );
     return restored.count;
   }
 

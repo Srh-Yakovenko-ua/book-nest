@@ -63,6 +63,7 @@ model User {
   characterGraphLayouts     CharacterGraphLayout[]
   notifications             Notification[]
   readingGoals              ReadingGoal[]
+  readingGoalActivities     ReadingGoalActivity[]
 
   @@map("users")
 }
@@ -268,6 +269,8 @@ model Book {
   characterGroupMemberships     CharacterGroupMembership[]
   characterTheories             CharacterTheory[]
   characterRelationshipStates   CharacterRelationshipBookState[]
+  readingGoalBooks              ReadingGoalBook[]
+  readingGoalActivities         ReadingGoalActivity[]
 
   @@index([userId, firstAuthorName])
   @@index([userId, createdAt(sort: Desc), id])
@@ -552,9 +555,50 @@ model ReadingGoal {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   list        BookList? @relation(fields: [listId], references: [id], onDelete: Cascade)
 
+  books      ReadingGoalBook[]
+  activities ReadingGoalActivity[]
+
   @@index([userId, archivedAt])
+  @@index([userId, createdAt])
+  @@index([userId, deadline])
   @@index([listId])
   @@map("reading_goals")
+}
+
+model ReadingGoalBook {
+  goalId              String    @map("goal_id") @db.Uuid
+  bookId              String    @map("book_id") @db.Uuid
+  position            Int       @default(0)
+  qualifiedFinishedAt DateTime? @map("qualified_finished_at") @db.Date
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  goal ReadingGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  book Book        @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@id([goalId, bookId])
+  @@index([bookId])
+  @@index([goalId, qualifiedFinishedAt])
+  @@map("reading_goal_books")
+}
+
+model ReadingGoalActivity {
+  id        String   @id @default(uuid()) @db.Uuid
+  goalId    String   @map("goal_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  type      String
+  bookId    String?  @map("book_id") @db.Uuid
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  goal ReadingGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book?       @relation(fields: [bookId], references: [id], onDelete: SetNull)
+
+  @@index([goalId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([bookId])
+  @@map("reading_goal_activities")
 }
 
 model BookListItem {
