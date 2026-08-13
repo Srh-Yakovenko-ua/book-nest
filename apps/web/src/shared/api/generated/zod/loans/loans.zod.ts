@@ -59,6 +59,58 @@ export const LoansControllerSummaryResponse = zod.object({
       .int()
       .min(loansControllerSummaryResponseBorrowedLongHeldCountMin)
       .max(loansControllerSummaryResponseBorrowedLongHeldCountMax),
+    longHeldLoans: zod.array(
+      zod.object({
+        book: zod.object({
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
+          firstAuthorName: zod.string(),
+          id: zod.string(),
+          originalTitle: zod.string().nullable(),
+          ownershipStatus: zod.enum([
+            "none",
+            "want_to_buy",
+            "in_transit",
+            "owned",
+            "borrowed_from_someone",
+            "lent_to_someone",
+          ]),
+          publisher: zod
+            .object({
+              id: zod.string(),
+              name: zod.string(),
+            })
+            .nullable(),
+          title: zod.string(),
+        }),
+        contact: zod.string().nullable(),
+        createdAt: zod.string(),
+        expectedReturnDate: zod.string().nullable(),
+        id: zod.string(),
+        loanDate: zod.string().nullable(),
+        loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
+        note: zod.string().nullable(),
+        personName: zod.string(),
+        remindToReturn: zod.boolean(),
+        type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+        updatedAt: zod.string(),
+      }),
+    ),
     nearestReturnDate: zod.string().nullable(),
     noReturnDateCount: zod
       .int()
@@ -85,6 +137,58 @@ export const LoansControllerSummaryResponse = zod.object({
       .int()
       .min(loansControllerSummaryResponseBorrowedTotalCountMin)
       .max(loansControllerSummaryResponseBorrowedTotalCountMax),
+    upcomingReturns: zod.array(
+      zod.object({
+        book: zod.object({
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
+          firstAuthorName: zod.string(),
+          id: zod.string(),
+          originalTitle: zod.string().nullable(),
+          ownershipStatus: zod.enum([
+            "none",
+            "want_to_buy",
+            "in_transit",
+            "owned",
+            "borrowed_from_someone",
+            "lent_to_someone",
+          ]),
+          publisher: zod
+            .object({
+              id: zod.string(),
+              name: zod.string(),
+            })
+            .nullable(),
+          title: zod.string(),
+        }),
+        contact: zod.string().nullable(),
+        createdAt: zod.string(),
+        expectedReturnDate: zod.string().nullable(),
+        id: zod.string(),
+        loanDate: zod.string().nullable(),
+        loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
+        note: zod.string().nullable(),
+        personName: zod.string(),
+        remindToReturn: zod.boolean(),
+        type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+        updatedAt: zod.string(),
+      }),
+    ),
   }),
   lent: zod.object({
     earliestLoanDate: zod.string().nullable(),
@@ -92,6 +196,58 @@ export const LoansControllerSummaryResponse = zod.object({
       .int()
       .min(loansControllerSummaryResponseLentLongHeldCountMin)
       .max(loansControllerSummaryResponseLentLongHeldCountMax),
+    longHeldLoans: zod.array(
+      zod.object({
+        book: zod.object({
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
+          firstAuthorName: zod.string(),
+          id: zod.string(),
+          originalTitle: zod.string().nullable(),
+          ownershipStatus: zod.enum([
+            "none",
+            "want_to_buy",
+            "in_transit",
+            "owned",
+            "borrowed_from_someone",
+            "lent_to_someone",
+          ]),
+          publisher: zod
+            .object({
+              id: zod.string(),
+              name: zod.string(),
+            })
+            .nullable(),
+          title: zod.string(),
+        }),
+        contact: zod.string().nullable(),
+        createdAt: zod.string(),
+        expectedReturnDate: zod.string().nullable(),
+        id: zod.string(),
+        loanDate: zod.string().nullable(),
+        loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
+        note: zod.string().nullable(),
+        personName: zod.string(),
+        remindToReturn: zod.boolean(),
+        type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+        updatedAt: zod.string(),
+      }),
+    ),
     nearestReturnDate: zod.string().nullable(),
     noReturnDateCount: zod
       .int()
@@ -118,6 +274,58 @@ export const LoansControllerSummaryResponse = zod.object({
       .int()
       .min(loansControllerSummaryResponseLentTotalCountMin)
       .max(loansControllerSummaryResponseLentTotalCountMax),
+    upcomingReturns: zod.array(
+      zod.object({
+        book: zod.object({
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullable(),
+          firstAuthorName: zod.string(),
+          id: zod.string(),
+          originalTitle: zod.string().nullable(),
+          ownershipStatus: zod.enum([
+            "none",
+            "want_to_buy",
+            "in_transit",
+            "owned",
+            "borrowed_from_someone",
+            "lent_to_someone",
+          ]),
+          publisher: zod
+            .object({
+              id: zod.string(),
+              name: zod.string(),
+            })
+            .nullable(),
+          title: zod.string(),
+        }),
+        contact: zod.string().nullable(),
+        createdAt: zod.string(),
+        expectedReturnDate: zod.string().nullable(),
+        id: zod.string(),
+        loanDate: zod.string().nullable(),
+        loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
+        note: zod.string().nullable(),
+        personName: zod.string(),
+        remindToReturn: zod.boolean(),
+        type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+        updatedAt: zod.string(),
+      }),
+    ),
   }),
 });
 

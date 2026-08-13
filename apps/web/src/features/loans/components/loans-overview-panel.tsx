@@ -1,5 +1,7 @@
 "use client";
 
+import type { LoanListItemView, Nullable } from "@app/shared";
+
 import { useTranslations } from "next-intl";
 
 import type { MobilePageOverviewTab } from "@/components/ui/mobile-page-overview-panel";
@@ -12,22 +14,29 @@ import {
 } from "@/components/ui/mobile-page-overview-panel";
 import { LibrarySummaryDetails } from "@/features/books/components/library-summary-mobile";
 
-import type { NearestReturn } from "../model/loans-derive";
+import type { LoanDirection } from "../model/loan-pages";
+import type { LoansAttention } from "./loans-sidebar";
 
 import { LoansSidebarSections } from "./loans-sidebar";
 
 type LoansOverviewPanelProps = {
+  attention: Nullable<LoansAttention>;
+  direction: LoanDirection;
   isLoading: boolean;
-  nearest: NearestReturn[];
+  longHeldLoans: LoanListItemView[];
   onAddBook: () => void;
   summaryCards: LibrarySummaryCard[];
+  upcomingReturns: LoanListItemView[];
 };
 
 export function LoansOverviewPanel({
+  attention,
+  direction,
   isLoading,
-  nearest,
+  longHeldLoans,
   onAddBook,
   summaryCards,
+  upcomingReturns,
 }: LoansOverviewPanelProps) {
   const t = useTranslations("loans.overviewPanel");
   const tDetails = useTranslations("loans.summary.mobile");
@@ -43,9 +52,20 @@ export function LoansOverviewPanel({
       content: (
         <div className="flex flex-col gap-4">
           <LoansSidebarSections
+            attention={
+              attention === null
+                ? null
+                : {
+                    ...attention,
+                    onFilterSelect: (filter) =>
+                      panel.closeThen(() => attention.onFilterSelect(filter)),
+                  }
+            }
+            direction={direction}
             isLoading={isLoading}
-            nearest={nearest}
+            longHeldLoans={longHeldLoans}
             onAddBook={() => panel.closeThen(onAddBook)}
+            upcomingReturns={upcomingReturns}
           />
         </div>
       ),

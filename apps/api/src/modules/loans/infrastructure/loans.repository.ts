@@ -49,10 +49,24 @@ type ListLoansInput = LoansFilterInput & {
   take: number;
 };
 
+type LongHeldLoansInput = {
+  loanedBefore: Date;
+  take: number;
+  type: LoanType;
+  userId: string;
+};
+
 type SummaryInput = {
   longHeldBefore: Date;
   soonEnd: Date;
   today: Date;
+  userId: string;
+};
+
+type UpcomingReturnsInput = {
+  take: number;
+  today: Date;
+  type: LoanType;
   userId: string;
 };
 
@@ -70,6 +84,18 @@ export class LoansRepository {
       skip,
       take,
       where: buildLoansWhere(filter),
+      ...loanBookInclude,
+    });
+  }
+
+  longHeldLoans({ loanedBefore, take, type, userId }: LongHeldLoansInput): Promise<LoanWithBook[]> {
+    return this.prisma.bookLoan.findMany({
+      orderBy: LOAN_DATE_ASC_ORDER,
+      take,
+      where: {
+        ...buildActiveLoansWhere({ type, userId }),
+        loanDate: { lte: loanedBefore },
+      },
       ...loanBookInclude,
     });
   }
@@ -124,9 +150,26 @@ export class LoansRepository {
 
     return z.array(LoanDirectionCountsRowSchema).parse(rows);
   }
+
+  upcomingReturns({ take, today, type, userId }: UpcomingReturnsInput): Promise<LoanWithBook[]> {
+    return this.prisma.bookLoan.findMany({
+      orderBy: LOAN_SORT_ORDER_BY.return_date,
+      take,
+      where: {
+        ...buildActiveLoansWhere({ type, userId }),
+        expectedReturnDate: { gte: today },
+      },
+      ...loanBookInclude,
+    });
+  }
 }
 
 const ID_TIEBREAKER: Prisma.BookLoanOrderByWithRelationInput = { id: "asc" };
+
+const LOAN_DATE_ASC_ORDER: Prisma.BookLoanOrderByWithRelationInput[] = [
+  { loanDate: { nulls: "last", sort: "asc" } },
+  ID_TIEBREAKER,
+];
 
 const RETURN_DATE_ORDER: Prisma.BookLoanOrderByWithRelationInput[] = [
   { expectedReturnDate: { nulls: "last", sort: "asc" } },
@@ -180,6 +223,26 @@ function applyLoanFilter({
   }
 }
 
+function buildActiveLoansWhere({
+  type,
+  userId,
+}: {
+  type: LoanType | undefined;
+  userId: string;
+}): Prisma.BookLoanWhereInput {
+  const where: Prisma.BookLoanWhereInput = {
+    book: SOFT_DELETE_SCOPE.active,
+    status: LOAN_STATUS_ACTIVE,
+    userId,
+  };
+
+  if (type !== undefined) {
+    where.type = type;
+  }
+
+  return where;
+}
+
 function buildLoanSearchConditions(search: string): Prisma.BookLoanWhereInput[] {
   const contains = { contains: search, mode: "insensitive" } as const;
   return [
@@ -198,15 +261,7 @@ function buildLoansWhere({
   type,
   userId,
 }: LoansFilterInput): Prisma.BookLoanWhereInput {
-  const where: Prisma.BookLoanWhereInput = {
-    book: SOFT_DELETE_SCOPE.active,
-    status: "active",
-    userId,
-  };
-
-  if (type !== undefined) {
-    where.type = type;
-  }
+  const where = buildActiveLoansWhere({ type, userId });
 
   applyLoanFilter({ filter, soonEnd, today, where });
 

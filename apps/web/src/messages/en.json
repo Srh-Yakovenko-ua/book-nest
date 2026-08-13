@@ -4016,16 +4016,32 @@
       }
     },
     "sidebar": {
-      "tips": {
-        "title": "Tips for borrowed books",
-        "note": "Add notes so you don't forget the important things.",
-        "reminder": "Set reminders to return books on time.",
-        "care": "Treat books as if they were your own.",
-        "footer": "Every book is trust between readers."
+      "label": "Loans overview",
+      "attention": {
+        "title": "Needs attention",
+        "overdue": {
+          "label": "{count, plural, one {# book overdue} other {# books overdue}}"
+        },
+        "no_return_date": {
+          "label": "{count, plural, one {# book without a return date} other {# books without a return date}}",
+          "detail": "No return deadline set"
+        },
+        "allClear": {
+          "title": "Everything under control",
+          "text": "No overdue books and no loans without a return date."
+        }
       },
-      "nearest": {
+      "longHeld": {
+        "title": "With you a while",
+        "days": "{count, plural, one {# day with you} other {# days with you}}",
+        "empty": "No book has been with you long"
+      },
+      "upcoming": {
         "title": "Nearest returns",
-        "empty": "No scheduled returns yet."
+        "empty": "No scheduled returns",
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "inDays": "In {count, plural, one {# day} other {# days}}"
       },
       "cta": {
         "title": "Keep track of your books",
