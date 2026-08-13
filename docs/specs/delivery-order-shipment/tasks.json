@@ -514,7 +514,7 @@
         "запит читає служби з shipments у порядку спадання останнього використання",
         "тест apps/api/src/modules/delivery-services/api/delivery-services.controller.recent.test.ts оновлений і зелений"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T29",
@@ -535,7 +535,7 @@
         "dedupe-ключ (notification-dedupe.ts:10-17) будується від id посилки, і в діффі зафіксовано рішення щодо старих ключів формату delivery:<oldId>:<stage> — або одноразове перенесення, або свідоме прийняття повторного нагадування",
         "тести notification-reminder.sweeper.test.ts і notification-dedupe.test.ts оновлені й зелені"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T30",
@@ -551,7 +551,7 @@
         "створення книги з блоком доставки (зараз :608) працює за тим самим рішенням",
         "grep tx.bookDelivery по файлу повертає 0"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T31",
@@ -566,7 +566,7 @@
         "скасування однієї книги не змінює статус посилки, у якій їдуть інші книги (§8) — покрито тестом з T54",
         "усе лишається всередині того самого runInClient-транзакційного блоку"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T32",
@@ -689,9 +689,10 @@
         "Decimal-поля конвертуються через .toNumber(), дати — через toNullableIsoDate/toNullableIsoDateTime (як delivery.mapper.ts:21-40)",
         "статуси парсяться ShipmentStatusSchema на межі, а не приводяться через as",
         "мапер order підставляє derivedStatus з T34 і trackingUrl з T37",
-        "старі мапери toDeliveryView/toDeliverySummaryView видалені (їх споживачі — book.mapper.ts:51, series.mapper.ts:196 — переведені)"
+        "старі мапери toDeliveryView/toDeliverySummaryView видалені (їх споживачі — book.mapper.ts:51, series.mapper.ts:196 — переведені)",
+        "Старі мапери лишаються лише для легасі-читального шляху; вони помруть разом із ним у T59. Книжкове й серійне представлення вже на book-delivery.mapper.ts."
       ],
-      "status": "partial"
+      "status": "done"
     },
     {
       "id": "T40",
@@ -784,7 +785,7 @@
         "grep bookDelivery по apps/api/src/modules/books повертає 0",
         "старе повідомлення «This book already has an active delivery» або збережене з новим інваріантом (D4), або замінене на явно нове"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T45",
@@ -1198,7 +1199,7 @@
         "findVisibleByNormalizedName отримує orderBy: { userId: { nulls: \"first\" } } — зараз при колізії глобальної і власної служби вибір недетермінований",
         "blast-radius по споживачах delivery-services пройдений"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T66",
@@ -1212,7 +1213,7 @@
         "після видалення поитемних планів у зрізі 5 ніхто не читає shipment.items — include лишився зайвим вибиранням на кожному читанні й записі посилки",
         "експортований тип ShipmentWithRelations оновлений разом зі споживачами"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T67",
@@ -1294,6 +1295,34 @@
         "вирішено й реалізовано: або посилка переходить у received, коли отримано її останню активну позицію, або явно зафіксовано, що статус посилки керує лише користувач",
         "поки що посилка з усіма отриманими позиціями лишається ordered і далі рахується в activeShipmentsCount та у фільтрах за статусом",
         "GET /api/delivery/orders/:orderId лишився без власного throttle — вирішити разом"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T72",
+      "title": "Правка спільного замовлення з картки книги",
+      "specRef": "§5, D6",
+      "layer": "application",
+      "files": ["apps/api/src/modules/delivery/application/single-book-order.service.ts"],
+      "dependsOn": ["T44"],
+      "mandatory": false,
+      "doneWhen": [
+        "зараз спільні поля замовлення й посилки відхиляються з ConflictError, якщо замовлення несе більше однієї живої книги — редагована лишається тільки ціна позиції",
+        "коли зʼявиться UI замовлень, вирішити чи цього досить, чи книжкова картка має вести на екран замовлення"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T73",
+      "title": "Бекфіл ключів дедуплікації нагадувань",
+      "specRef": "§14",
+      "layer": "prisma",
+      "files": ["apps/api/prisma/migrations"],
+      "dependsOn": ["T18"],
+      "mandatory": false,
+      "doneWhen": [
+        "старі ключі delivery:<deliveryId>:<stage> не мігровані, тому перше підмітання після cutover повторить щонайбільше одне нагадування на книгу в дорозі на кожну стадію",
+        "якщо повтор неприйнятний — бекфіл їде разом із міграцією T18, бо потребує читання book_deliveries до дропу"
       ],
       "status": "todo"
     }
