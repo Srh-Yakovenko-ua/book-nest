@@ -13,6 +13,12 @@ import * as zod from "zod";
 export const loansControllerSummaryResponseBorrowedLongHeldCountMin = 0;
 export const loansControllerSummaryResponseBorrowedLongHeldCountMax = 9007199254740991;
 
+export const loansControllerSummaryResponseBorrowedNoReturnDateCountMin = 0;
+export const loansControllerSummaryResponseBorrowedNoReturnDateCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseBorrowedNoReturnDatePeopleCountMin = 0;
+export const loansControllerSummaryResponseBorrowedNoReturnDatePeopleCountMax = 9007199254740991;
+
 export const loansControllerSummaryResponseBorrowedOverdueCountMin = 0;
 export const loansControllerSummaryResponseBorrowedOverdueCountMax = 9007199254740991;
 
@@ -22,23 +28,29 @@ export const loansControllerSummaryResponseBorrowedPeopleCountMax = 900719925474
 export const loansControllerSummaryResponseBorrowedReturningSoonCountMin = 0;
 export const loansControllerSummaryResponseBorrowedReturningSoonCountMax = 9007199254740991;
 
-export const loansControllerSummaryResponseBorrowedCountMin = 0;
-export const loansControllerSummaryResponseBorrowedCountMax = 9007199254740991;
+export const loansControllerSummaryResponseBorrowedTotalCountMin = 0;
+export const loansControllerSummaryResponseBorrowedTotalCountMax = 9007199254740991;
 
-export const loansControllerSummaryResponseLentCountMin = 0;
-export const loansControllerSummaryResponseLentCountMax = 9007199254740991;
+export const loansControllerSummaryResponseLentLongHeldCountMin = 0;
+export const loansControllerSummaryResponseLentLongHeldCountMax = 9007199254740991;
 
-export const loansControllerSummaryResponseOverdueCountMin = 0;
-export const loansControllerSummaryResponseOverdueCountMax = 9007199254740991;
+export const loansControllerSummaryResponseLentNoReturnDateCountMin = 0;
+export const loansControllerSummaryResponseLentNoReturnDateCountMax = 9007199254740991;
 
-export const loansControllerSummaryResponseReturnThisWeekMin = 0;
-export const loansControllerSummaryResponseReturnThisWeekMax = 9007199254740991;
+export const loansControllerSummaryResponseLentNoReturnDatePeopleCountMin = 0;
+export const loansControllerSummaryResponseLentNoReturnDatePeopleCountMax = 9007199254740991;
 
-export const loansControllerSummaryResponseWithoutReturnDateMin = 0;
-export const loansControllerSummaryResponseWithoutReturnDateMax = 9007199254740991;
+export const loansControllerSummaryResponseLentOverdueCountMin = 0;
+export const loansControllerSummaryResponseLentOverdueCountMax = 9007199254740991;
 
-export const loansControllerSummaryResponseWithReminderMin = 0;
-export const loansControllerSummaryResponseWithReminderMax = 9007199254740991;
+export const loansControllerSummaryResponseLentPeopleCountMin = 0;
+export const loansControllerSummaryResponseLentPeopleCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseLentReturningSoonCountMin = 0;
+export const loansControllerSummaryResponseLentReturningSoonCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseLentTotalCountMin = 0;
+export const loansControllerSummaryResponseLentTotalCountMax = 9007199254740991;
 
 export const LoansControllerSummaryResponse = zod.object({
   borrowed: zod.object({
@@ -48,6 +60,14 @@ export const LoansControllerSummaryResponse = zod.object({
       .min(loansControllerSummaryResponseBorrowedLongHeldCountMin)
       .max(loansControllerSummaryResponseBorrowedLongHeldCountMax),
     nearestReturnDate: zod.string().nullable(),
+    noReturnDateCount: zod
+      .int()
+      .min(loansControllerSummaryResponseBorrowedNoReturnDateCountMin)
+      .max(loansControllerSummaryResponseBorrowedNoReturnDateCountMax),
+    noReturnDatePeopleCount: zod
+      .int()
+      .min(loansControllerSummaryResponseBorrowedNoReturnDatePeopleCountMin)
+      .max(loansControllerSummaryResponseBorrowedNoReturnDatePeopleCountMax),
     oldestOverdueReturnDate: zod.string().nullable(),
     overdueCount: zod
       .int()
@@ -61,31 +81,44 @@ export const LoansControllerSummaryResponse = zod.object({
       .int()
       .min(loansControllerSummaryResponseBorrowedReturningSoonCountMin)
       .max(loansControllerSummaryResponseBorrowedReturningSoonCountMax),
+    totalCount: zod
+      .int()
+      .min(loansControllerSummaryResponseBorrowedTotalCountMin)
+      .max(loansControllerSummaryResponseBorrowedTotalCountMax),
   }),
-  borrowedCount: zod
-    .int()
-    .min(loansControllerSummaryResponseBorrowedCountMin)
-    .max(loansControllerSummaryResponseBorrowedCountMax),
-  lentCount: zod
-    .int()
-    .min(loansControllerSummaryResponseLentCountMin)
-    .max(loansControllerSummaryResponseLentCountMax),
-  overdueCount: zod
-    .int()
-    .min(loansControllerSummaryResponseOverdueCountMin)
-    .max(loansControllerSummaryResponseOverdueCountMax),
-  returnThisWeek: zod
-    .int()
-    .min(loansControllerSummaryResponseReturnThisWeekMin)
-    .max(loansControllerSummaryResponseReturnThisWeekMax),
-  withoutReturnDate: zod
-    .int()
-    .min(loansControllerSummaryResponseWithoutReturnDateMin)
-    .max(loansControllerSummaryResponseWithoutReturnDateMax),
-  withReminder: zod
-    .int()
-    .min(loansControllerSummaryResponseWithReminderMin)
-    .max(loansControllerSummaryResponseWithReminderMax),
+  lent: zod.object({
+    earliestLoanDate: zod.string().nullable(),
+    longHeldCount: zod
+      .int()
+      .min(loansControllerSummaryResponseLentLongHeldCountMin)
+      .max(loansControllerSummaryResponseLentLongHeldCountMax),
+    nearestReturnDate: zod.string().nullable(),
+    noReturnDateCount: zod
+      .int()
+      .min(loansControllerSummaryResponseLentNoReturnDateCountMin)
+      .max(loansControllerSummaryResponseLentNoReturnDateCountMax),
+    noReturnDatePeopleCount: zod
+      .int()
+      .min(loansControllerSummaryResponseLentNoReturnDatePeopleCountMin)
+      .max(loansControllerSummaryResponseLentNoReturnDatePeopleCountMax),
+    oldestOverdueReturnDate: zod.string().nullable(),
+    overdueCount: zod
+      .int()
+      .min(loansControllerSummaryResponseLentOverdueCountMin)
+      .max(loansControllerSummaryResponseLentOverdueCountMax),
+    peopleCount: zod
+      .int()
+      .min(loansControllerSummaryResponseLentPeopleCountMin)
+      .max(loansControllerSummaryResponseLentPeopleCountMax),
+    returningSoonCount: zod
+      .int()
+      .min(loansControllerSummaryResponseLentReturningSoonCountMin)
+      .max(loansControllerSummaryResponseLentReturningSoonCountMax),
+    totalCount: zod
+      .int()
+      .min(loansControllerSummaryResponseLentTotalCountMin)
+      .max(loansControllerSummaryResponseLentTotalCountMax),
+  }),
 });
 
 /**

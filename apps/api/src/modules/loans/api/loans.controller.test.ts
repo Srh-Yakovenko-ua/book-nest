@@ -1,6 +1,8 @@
 import type { Nullable } from "@app/shared";
 import type { INestApplication } from "@nestjs/common";
 
+import { addDays } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import request from "supertest";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -14,19 +16,21 @@ import { BooksModule } from "../../books/books.module.js";
 import { ListsModule } from "../../lists/lists.module.js";
 import { LoansModule } from "../loans.module.js";
 
-const DAY_MS = 1000 * 60 * 60 * 24;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const EMPTY_BORROWED_STATS = {
+const EMPTY_DIRECTION_STATS = {
   earliestLoanDate: null,
   longHeldCount: 0,
   nearestReturnDate: null,
+  noReturnDateCount: 0,
+  noReturnDatePeopleCount: 0,
   oldestOverdueReturnDate: null,
   overdueCount: 0,
   peopleCount: 0,
   returningSoonCount: 0,
+  totalCount: 0,
 };
 const isoDay = (offsetDays: number): string =>
-  new Date(Date.now() + offsetDays * DAY_MS).toISOString().slice(0, 10);
+  formatInTimeZone(addDays(new Date(), offsetDays), "UTC", "yyyy-MM-dd");
 
 let context: AuthTestContext;
 let app: INestApplication;
@@ -300,24 +304,19 @@ describe("GET /api/loans", () => {
 });
 
 describe("GET /api/loans/summary", () => {
-  it("returns zeroed counts when there are no loans", async () => {
+  it("returns empty stats for both directions when there are no loans", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
 
     const res = await loanSummary(accessToken);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
-      borrowed: EMPTY_BORROWED_STATS,
-      borrowedCount: 0,
-      lentCount: 0,
-      overdueCount: 0,
-      returnThisWeek: 0,
-      withoutReturnDate: 0,
-      withReminder: 0,
+      borrowed: EMPTY_DIRECTION_STATS,
+      lent: EMPTY_DIRECTION_STATS,
     });
   });
 
-  it("counts active loans by type, overdue, reminder and missing return date", async () => {
+  it("counts active loans under the direction they belong to", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createBorrowedLoan(
       accessToken,
@@ -325,49 +324,38 @@ describe("GET /api/loans/summary", () => {
       "Overdue",
     );
     await createBorrowedLoan(accessToken, { personName: "Maria" }, "No Date");
-    await createLentLoan(accessToken, {
-      expectedReturnDate: isoDay(30),
-      personName: "Ivan",
-      remindToReturn: true,
-    });
+    await createLentLoan(accessToken, { expectedReturnDate: isoDay(30), personName: "Ivan" });
 
     const res = await loanSummary(accessToken);
 
     expect(res.status).toBe(200);
-    expect(res.body.borrowedCount).toBe(2);
-    expect(res.body.lentCount).toBe(1);
-    expect(res.body.overdueCount).toBe(1);
-    expect(res.body.withReminder).toBe(1);
-    expect(res.body.withoutReturnDate).toBe(1);
+    expect(res.body.borrowed.totalCount).toBe(2);
+    expect(res.body.borrowed.overdueCount).toBe(1);
+    expect(res.body.borrowed.noReturnDateCount).toBe(1);
+    expect(res.body.lent.totalCount).toBe(1);
+    expect(res.body.lent.overdueCount).toBe(0);
   });
 
-  it("counts a loan due today under returnThisWeek", async () => {
+  it("keeps the two directions from bleeding into each other", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
-    await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(0), personName: "Olha" });
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-4), loanDate: isoDay(-20), personName: "Olha" },
+      "Borrowed overdue",
+    );
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(3), personName: "Ivan" },
+      "Lent due soon",
+    );
 
     const res = await loanSummary(accessToken);
 
-    expect(res.body.returnThisWeek).toBeGreaterThanOrEqual(1);
-  });
-
-  it("does not count a loan due next week under returnThisWeek", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(8), personName: "Olha" });
-
-    const res = await loanSummary(accessToken);
-
-    expect(res.body.returnThisWeek).toBe(0);
-  });
-
-  it("excludes a loan without a return date from overdue and returnThisWeek but counts it as missing a date", async () => {
-    const { accessToken } = await context.registerVerifyAndLogin();
-    await createBorrowedLoan(accessToken, { personName: "Olha" });
-
-    const res = await loanSummary(accessToken);
-
-    expect(res.body.overdueCount).toBe(0);
-    expect(res.body.returnThisWeek).toBe(0);
-    expect(res.body.withoutReturnDate).toBe(1);
+    expect(res.body.borrowed.overdueCount).toBe(1);
+    expect(res.body.borrowed.returningSoonCount).toBe(0);
+    expect(res.body.lent.overdueCount).toBe(0);
+    expect(res.body.lent.returningSoonCount).toBe(1);
+    expect(res.body.lent.nearestReturnDate).toBe(isoDay(3));
   });
 
   it("excludes a returned loan from every count", async () => {
@@ -384,13 +372,8 @@ describe("GET /api/loans/summary", () => {
     const res = await loanSummary(accessToken);
 
     expect(res.body).toEqual({
-      borrowed: EMPTY_BORROWED_STATS,
-      borrowedCount: 0,
-      lentCount: 0,
-      overdueCount: 0,
-      returnThisWeek: 0,
-      withoutReturnDate: 0,
-      withReminder: 0,
+      borrowed: EMPTY_DIRECTION_STATS,
+      lent: EMPTY_DIRECTION_STATS,
     });
   });
 });
@@ -404,7 +387,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
 
     const res = await loanSummary(accessToken);
 
-    expect(res.body.borrowedCount).toBe(3);
+    expect(res.body.borrowed.totalCount).toBe(3);
     expect(res.body.borrowed.peopleCount).toBe(2);
   });
 
@@ -475,8 +458,8 @@ describe("GET /api/loans/summary borrowed stats", () => {
 
     const res = await loanSummary(accessToken);
 
-    expect(res.body.lentCount).toBe(1);
-    expect(res.body.borrowed).toEqual(EMPTY_BORROWED_STATS);
+    expect(res.body.lent.totalCount).toBe(1);
+    expect(res.body.borrowed).toEqual(EMPTY_DIRECTION_STATS);
   });
 
   it("excludes a returned borrowed loan from the borrowed stats", async () => {
@@ -492,7 +475,99 @@ describe("GET /api/loans/summary borrowed stats", () => {
 
     const res = await loanSummary(accessToken);
 
-    expect(res.body.borrowed).toEqual(EMPTY_BORROWED_STATS);
+    expect(res.body.borrowed).toEqual(EMPTY_DIRECTION_STATS);
+  });
+});
+
+describe("GET /api/loans/summary lent stats", () => {
+  it("counts unique people holding the books the user lent out", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Ivan" }, "First");
+    await createLentLoan(accessToken, { personName: "Ivan" }, "Second");
+    await createLentLoan(accessToken, { personName: "Petro" }, "Third");
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent.totalCount).toBe(3);
+    expect(res.body.lent.peopleCount).toBe(2);
+  });
+
+  it("counts lent returns due within the next seven days and reports the nearest one", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { expectedReturnDate: isoDay(2) }, "Soon");
+    await createLentLoan(accessToken, { expectedReturnDate: isoDay(6) }, "Later this week");
+    await createLentLoan(accessToken, { expectedReturnDate: isoDay(20) }, "Next month");
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent.returningSoonCount).toBe(2);
+    expect(res.body.lent.nearestReturnDate).toBe(isoDay(2));
+  });
+
+  it("counts overdue lent loans and reports the oldest return date", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-11), loanDate: isoDay(-20) },
+      "Long overdue",
+    );
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-2), loanDate: isoDay(-20) },
+      "Just overdue",
+    );
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent.overdueCount).toBe(2);
+    expect(res.body.lent.oldestOverdueReturnDate).toBe(isoDay(-11));
+  });
+
+  it("counts lent loans without a return date and the people holding them", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Ivan" }, "No date one");
+    await createLentLoan(accessToken, { personName: "Ivan" }, "No date two");
+    await createLentLoan(accessToken, { personName: "Petro" }, "No date three");
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(5), personName: "Sofia" },
+      "With a date",
+    );
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent.noReturnDateCount).toBe(3);
+    expect(res.body.lent.noReturnDatePeopleCount).toBe(2);
+  });
+
+  it("leaves lent stats empty when the user only borrowed books", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(accessToken, {
+      expectedReturnDate: isoDay(-5),
+      loanDate: isoDay(-60),
+      personName: "Olha",
+    });
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.borrowed.totalCount).toBe(1);
+    expect(res.body.lent).toEqual(EMPTY_DIRECTION_STATS);
+  });
+
+  it("excludes a returned lent loan from the lent stats", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createLentLoan(accessToken, {
+      expectedReturnDate: isoDay(-6),
+      loanDate: isoDay(-40),
+      personName: "Ivan",
+    });
+    await request(app.getHttpServer())
+      .post(`/api/books/${bookId}/loan/return`)
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent).toEqual(EMPTY_DIRECTION_STATS);
   });
 });
 

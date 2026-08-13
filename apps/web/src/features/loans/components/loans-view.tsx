@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { todayIso } from "@/features/books/model/reading-progress";
 import { useRouter } from "@/i18n/navigation";
 
+import type { LoanDirection } from "../model/loan-pages";
+
 import { useLoansList } from "../api/use-loans-list";
 import { useLoansSummary } from "../api/use-loans-summary";
 import { LOAN_PAGES } from "../model/loan-pages";
@@ -28,10 +30,8 @@ import { LoansSummaryCards, useLoansSummaryCards } from "./loans-summary-cards";
 import { LoansToolbar } from "./loans-toolbar";
 import { ReturnLoanDialog } from "./return-loan-dialog";
 
-type LoanPageCopyKey = (typeof LOAN_PAGES)[LoanType]["copyKey"];
-
 type LoansContentProps = {
-  copyKey: LoanPageCopyKey;
+  direction: LoanDirection;
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   isError: boolean;
@@ -66,18 +66,15 @@ export function LoansView({ type }: { type: LoanType }) {
 
   const summaryCards = useLoansSummaryCards(summary.data, type);
 
-  const isBorrowedPage = type === "borrowed_from_someone";
-  const borrowedCount = summary.data?.borrowedCount ?? 0;
-  const lentCount = summary.data?.lentCount ?? 0;
-  const activeOfOtherType = isBorrowedPage ? lentCount : borrowedCount;
-  const hasAnyLoans = borrowedCount + lentCount > 0 || items.length > 0;
+  const activeOfThisType = summary.data?.[page.direction].totalCount ?? 0;
+  const activeOfOtherType = summary.data?.[LOAN_PAGES[page.otherType].direction].totalCount ?? 0;
+  const hasAnyLoans = activeOfThisType + activeOfOtherType > 0 || items.length > 0;
   const showChrome = !list.isError && (list.isPending || hasAnyLoans);
-  const showSummaryCards =
-    !isBorrowedPage || summary.isPending || summary.isError || borrowedCount > 0;
+  const showSummaryCards = summary.isPending || summary.isError || activeOfThisType > 0;
 
   const loansContent = (
     <LoansContent
-      copyKey={page.copyKey}
+      direction={page.direction}
       hasActiveFilters={query.hasActiveFilters}
       hasActiveSearch={query.hasActiveSearch}
       isError={list.isError}
@@ -101,12 +98,12 @@ export function LoansView({ type }: { type: LoanType }) {
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
-              {t(`pages.${page.copyKey}.title`)}
+              {t(`pages.${page.direction}.title`)}
             </h1>
             <TitleLeaf />
           </div>
           <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
-            {t(`pages.${page.copyKey}.subtitle`)}
+            {t(`pages.${page.direction}.subtitle`)}
           </p>
         </div>
 
@@ -196,7 +193,7 @@ export function LoansView({ type }: { type: LoanType }) {
 }
 
 function LoansContent({
-  copyKey,
+  direction,
   hasActiveFilters,
   hasActiveSearch,
   isError,
@@ -252,9 +249,9 @@ function LoansContent({
     }
 
     const typeEmpty: EmptyStateEntry = {
-      desc: t(`typeEmpty.${copyKey}.description`),
+      desc: t(`typeEmpty.${direction}.description`),
       illu: "empty-borrowed",
-      title: t(`typeEmpty.${copyKey}.title`),
+      title: t(`typeEmpty.${direction}.title`),
     };
 
     if (otherTypeCount === 0) {
@@ -276,7 +273,7 @@ function LoansContent({
         onPrimary={onOpenOtherPage}
         state={{
           ...typeEmpty,
-          primary: { icon: "swap", label: t(`typeEmpty.${copyKey}.openOther`) },
+          primary: { icon: "swap", label: t(`typeEmpty.${direction}.openOther`) },
         }}
       />
     );
@@ -284,7 +281,7 @@ function LoansContent({
 
   return (
     <>
-      <h2 className="sr-only">{tLoans(`pages.${copyKey}.listHeading`)}</h2>
+      <h2 className="sr-only">{tLoans(`pages.${direction}.listHeading`)}</h2>
       <ul className="flex flex-col gap-3">
         {items.map((loan) => (
           <li key={loan.id}>

@@ -1,5 +1,6 @@
 import type { LoanFilter, LoanSort, LoanType } from "@app/shared";
 
+import { LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
@@ -10,44 +11,26 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import { buildBookTextSearchConditions } from "../../books/index.js";
 
 const LOAN_STATUS_ACTIVE = "active";
-const LOAN_TYPE_BORROWED = "borrowed_from_someone";
-const LOAN_TYPE_LENT = "lent_to_someone";
 
-const LoanSummaryCountsRowSchema = z.object({
-  borrowedCount: z.number(),
-  borrowedEarliestLoanDate: z.string().nullable(),
-  borrowedLongHeldCount: z.number(),
-  borrowedNearestReturnDate: z.string().nullable(),
-  borrowedOldestOverdueReturnDate: z.string().nullable(),
-  borrowedOverdueCount: z.number(),
-  borrowedPeopleCount: z.number(),
-  borrowedReturningSoonCount: z.number(),
-  lentCount: z.number(),
+const LoanDirectionCountsRowSchema = z.object({
+  earliestLoanDate: z.string().nullable(),
+  longHeldCount: z.number(),
+  nearestReturnDate: z.string().nullable(),
+  noReturnDateCount: z.number(),
+  noReturnDatePeopleCount: z.number(),
+  oldestOverdueReturnDate: z.string().nullable(),
   overdueCount: z.number(),
-  returnThisWeek: z.number(),
-  withoutReturnDate: z.number(),
-  withReminder: z.number(),
+  peopleCount: z.number(),
+  returningSoonCount: z.number(),
+  totalCount: z.number(),
+  type: LoanTypeSchema,
 });
-
-const EMPTY_LOAN_COUNTS: z.infer<typeof LoanSummaryCountsRowSchema> = {
-  borrowedCount: 0,
-  borrowedEarliestLoanDate: null,
-  borrowedLongHeldCount: 0,
-  borrowedNearestReturnDate: null,
-  borrowedOldestOverdueReturnDate: null,
-  borrowedOverdueCount: 0,
-  borrowedPeopleCount: 0,
-  borrowedReturningSoonCount: 0,
-  lentCount: 0,
-  overdueCount: 0,
-  returnThisWeek: 0,
-  withoutReturnDate: 0,
-  withReminder: 0,
-};
 
 const loanBookInclude = {
   include: { book: { include: { coverMedia: true, publisher: true } } },
 } satisfies Prisma.BookLoanDefaultArgs;
+
+export type LoanDirectionCounts = z.infer<typeof LoanDirectionCountsRowSchema>;
 
 export type LoansFilterInput = {
   filter: LoanFilter;
@@ -57,8 +40,6 @@ export type LoansFilterInput = {
   type: LoanType | undefined;
   userId: string;
 };
-
-export type LoanSummaryCounts = z.infer<typeof LoanSummaryCountsRowSchema>;
 
 export type LoanWithBook = Prisma.BookLoanGetPayload<typeof loanBookInclude>;
 
@@ -73,8 +54,6 @@ type SummaryInput = {
   soonEnd: Date;
   today: Date;
   userId: string;
-  weekEnd: Date;
-  weekStart: Date;
 };
 
 @Injectable()
@@ -100,68 +79,50 @@ export class LoansRepository {
     soonEnd,
     today,
     userId,
-    weekEnd,
-    weekStart,
-  }: SummaryInput): Promise<LoanSummaryCounts> {
+  }: SummaryInput): Promise<LoanDirectionCounts[]> {
     const todayIso = toIsoDate(today);
     const soonEndIso = toIsoDate(soonEnd);
     const longHeldBeforeIso = toIsoDate(longHeldBefore);
-    const weekStartIso = toIsoDate(weekStart);
-    const weekEndIso = toIsoDate(weekEnd);
 
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT
-        (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_BORROWED}))::int AS "borrowedCount",
-        (count(*) FILTER (WHERE loan.type = ${LOAN_TYPE_LENT}))::int AS "lentCount",
-        (count(*) FILTER (WHERE loan.expected_return_date < ${todayIso}::date))::int AS "overdueCount",
+        loan.type AS "type",
+        (count(*))::int AS "totalCount",
+        (count(DISTINCT loan.person_name))::int AS "peopleCount",
         (count(*) FILTER (
-          WHERE loan.expected_return_date >= ${weekStartIso}::date
-            AND loan.expected_return_date <= ${weekEndIso}::date
-        ))::int AS "returnThisWeek",
-        (count(*) FILTER (WHERE loan.remind_to_return = true))::int AS "withReminder",
-        (count(*) FILTER (WHERE loan.expected_return_date IS NULL))::int AS "withoutReturnDate",
-        (count(DISTINCT loan.person_name) FILTER (
-          WHERE loan.type = ${LOAN_TYPE_BORROWED}
-        ))::int AS "borrowedPeopleCount",
-        (count(*) FILTER (
-          WHERE loan.type = ${LOAN_TYPE_BORROWED}
-            AND loan.expected_return_date >= ${todayIso}::date
+          WHERE loan.expected_return_date >= ${todayIso}::date
             AND loan.expected_return_date <= ${soonEndIso}::date
-        ))::int AS "borrowedReturningSoonCount",
+        ))::int AS "returningSoonCount",
         to_char(
           min(loan.expected_return_date) FILTER (
-            WHERE loan.type = ${LOAN_TYPE_BORROWED}
-              AND loan.expected_return_date >= ${todayIso}::date
+            WHERE loan.expected_return_date >= ${todayIso}::date
           ),
           'YYYY-MM-DD'
-        ) AS "borrowedNearestReturnDate",
-        (count(*) FILTER (
-          WHERE loan.type = ${LOAN_TYPE_BORROWED}
-            AND loan.expected_return_date < ${todayIso}::date
-        ))::int AS "borrowedOverdueCount",
+        ) AS "nearestReturnDate",
+        (count(*) FILTER (WHERE loan.expected_return_date < ${todayIso}::date))::int AS "overdueCount",
         to_char(
           min(loan.expected_return_date) FILTER (
-            WHERE loan.type = ${LOAN_TYPE_BORROWED}
-              AND loan.expected_return_date < ${todayIso}::date
+            WHERE loan.expected_return_date < ${todayIso}::date
           ),
           'YYYY-MM-DD'
-        ) AS "borrowedOldestOverdueReturnDate",
+        ) AS "oldestOverdueReturnDate",
         (count(*) FILTER (
-          WHERE loan.type = ${LOAN_TYPE_BORROWED}
-            AND loan.loan_date <= ${longHeldBeforeIso}::date
-        ))::int AS "borrowedLongHeldCount",
-        to_char(
-          min(loan.loan_date) FILTER (WHERE loan.type = ${LOAN_TYPE_BORROWED}),
-          'YYYY-MM-DD'
-        ) AS "borrowedEarliestLoanDate"
+          WHERE loan.loan_date <= ${longHeldBeforeIso}::date
+        ))::int AS "longHeldCount",
+        to_char(min(loan.loan_date), 'YYYY-MM-DD') AS "earliestLoanDate",
+        (count(*) FILTER (WHERE loan.expected_return_date IS NULL))::int AS "noReturnDateCount",
+        (count(DISTINCT loan.person_name) FILTER (
+          WHERE loan.expected_return_date IS NULL
+        ))::int AS "noReturnDatePeopleCount"
       FROM book_loans loan
       JOIN books book ON book.id = loan.book_id
       WHERE loan.user_id = ${userId}::uuid
         AND book.deleted_at IS NULL
         AND loan.status = ${LOAN_STATUS_ACTIVE}
+      GROUP BY loan.type
     `);
 
-    return z.array(LoanSummaryCountsRowSchema).parse(rows)[0] ?? EMPTY_LOAN_COUNTS;
+    return z.array(LoanDirectionCountsRowSchema).parse(rows);
   }
 }
 

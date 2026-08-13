@@ -6,37 +6,9 @@
  * OpenAPI spec version: 1.0
  */
 import type { LoansSummaryViewDtoBorrowed } from "./loansSummaryViewDtoBorrowed";
+import type { LoansSummaryViewDtoLent } from "./loansSummaryViewDtoLent";
 
 export interface LoansSummaryViewDto {
   borrowed: LoansSummaryViewDtoBorrowed;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  borrowedCount: number;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  lentCount: number;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  overdueCount: number;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  returnThisWeek: number;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  withoutReturnDate: number;
-  /**
-   * @minimum 0
-   * @maximum 9007199254740991
-   */
-  withReminder: number;
+  lent: LoansSummaryViewDtoLent;
 }

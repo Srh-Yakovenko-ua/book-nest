@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { BorrowedLoansStats, LoanListItemView, LoansSummaryView, LoanType } from "@app/shared";
+import type { LoanDirectionStats, LoanListItemView, LoansSummaryView, LoanType } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { addDays, format } from "date-fns";
@@ -22,17 +22,20 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const copy = messages.loans;
-const stats = messages.loans.borrowedStats;
+const stats = messages.loans.stats;
 const requestedUrls: string[] = [];
 
-const EMPTY_BORROWED_STATS: BorrowedLoansStats = {
+const EMPTY_DIRECTION_STATS: LoanDirectionStats = {
   earliestLoanDate: null,
   longHeldCount: 0,
   nearestReturnDate: null,
+  noReturnDateCount: 0,
+  noReturnDatePeopleCount: 0,
   oldestOverdueReturnDate: null,
   overdueCount: 0,
   peopleCount: 0,
   returningSoonCount: 0,
+  totalCount: 0,
 };
 
 afterEach(() => {
@@ -91,6 +94,7 @@ describe("LoansView", () => {
   it("builds the borrowed stat cards from the summary", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
       borrowed: {
+        ...EMPTY_DIRECTION_STATS,
         earliestLoanDate: isoDaysFromToday(-47),
         longHeldCount: 2,
         nearestReturnDate: isoDaysFromToday(2),
@@ -98,13 +102,13 @@ describe("LoansView", () => {
         overdueCount: 3,
         peopleCount: 5,
         returningSoonCount: 4,
+        totalCount: 8,
       },
-      borrowedCount: 8,
     });
 
     renderLoans("borrowed_from_someone");
 
-    const total = await findStatCard(stats.total.label);
+    const total = await findStatCard(stats.borrowed.total.label);
     expect(within(total).getByText("8")).toBeInTheDocument();
     expect(within(total).getByText("книг")).toBeInTheDocument();
     expect(within(total).getByText("Від 5 різних людей")).toBeInTheDocument();
@@ -117,19 +121,66 @@ describe("LoansView", () => {
     expect(within(overdue).getByText("3")).toBeInTheDocument();
     expect(within(overdue).getByText("Найдовше — на 11 днів")).toBeInTheDocument();
 
-    const longHeld = await findStatCard(stats.longHeld.label);
+    const longHeld = await findStatCard(stats.borrowed.longHeld.label);
     expect(within(longHeld).getByText("2")).toBeInTheDocument();
     expect(within(longHeld).getByText("Найдовше — 47 днів")).toBeInTheDocument();
+  });
+
+  it("builds the lent stat cards from the summary", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: {
+        ...EMPTY_DIRECTION_STATS,
+        nearestReturnDate: isoDaysFromToday(2),
+        noReturnDateCount: 4,
+        noReturnDatePeopleCount: 3,
+        oldestOverdueReturnDate: isoDaysFromToday(-11),
+        overdueCount: 3,
+        peopleCount: 5,
+        returningSoonCount: 4,
+        totalCount: 8,
+      },
+    });
+
+    renderLoans("lent_to_someone");
+
+    const total = await findStatCard(stats.lent.total.label);
+    expect(within(total).getByText("8")).toBeInTheDocument();
+    expect(within(total).getByText("книг")).toBeInTheDocument();
+    expect(within(total).getByText("У 5 різних людей")).toBeInTheDocument();
+
+    const returningSoon = await findStatCard(stats.returningSoon.label);
+    expect(within(returningSoon).getByText("4")).toBeInTheDocument();
+    expect(within(returningSoon).getByText("Найближче — через 2 дні")).toBeInTheDocument();
+
+    const overdue = await findStatCard(stats.overdue.label);
+    expect(within(overdue).getByText("3")).toBeInTheDocument();
+    expect(within(overdue).getByText("Найдовше — на 11 днів")).toBeInTheDocument();
+
+    const noReturnDate = await findStatCard(stats.lent.noReturnDate.label);
+    expect(within(noReturnDate).getByText("4")).toBeInTheDocument();
+    expect(within(noReturnDate).getByText("У 3 різних людей")).toBeInTheDocument();
+  });
+
+  it("keeps the borrowed-only cards off the lent page", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: { ...EMPTY_DIRECTION_STATS, totalCount: 1 },
+    });
+
+    renderLoans("lent_to_someone");
+
+    await findStatCard(stats.lent.total.label);
+    expect(screen.queryByText(stats.borrowed.total.label)).not.toBeInTheDocument();
+    expect(screen.queryByText(stats.borrowed.longHeld.label)).not.toBeInTheDocument();
   });
 
   it("names today and tomorrow instead of counting days to the nearest return", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
       borrowed: {
-        ...EMPTY_BORROWED_STATS,
+        ...EMPTY_DIRECTION_STATS,
         nearestReturnDate: isoDaysFromToday(1),
         returningSoonCount: 1,
+        totalCount: 1,
       },
-      borrowedCount: 1,
     });
 
     renderLoans("borrowed_from_someone");
@@ -140,8 +191,7 @@ describe("LoansView", () => {
 
   it("falls back to the calm wording when a borrowed stat is empty", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
-      borrowed: EMPTY_BORROWED_STATS,
-      borrowedCount: 1,
+      borrowed: { ...EMPTY_DIRECTION_STATS, totalCount: 1 },
     });
 
     renderLoans("borrowed_from_someone");
@@ -154,35 +204,47 @@ describe("LoansView", () => {
     const overdue = await findStatCard(stats.overdue.label);
     expect(within(overdue).getByText(stats.overdue.empty)).toBeInTheDocument();
 
-    const longHeld = await findStatCard(stats.longHeld.label);
+    const longHeld = await findStatCard(stats.borrowed.longHeld.label);
     expect(
       within(longHeld).getByText("Немає книг, позичених 30 днів і більше"),
     ).toBeInTheDocument();
   });
 
+  it("falls back to the calm wording when every lent loan has a return date", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: { ...EMPTY_DIRECTION_STATS, totalCount: 1 },
+    });
+
+    renderLoans("lent_to_someone");
+
+    const noReturnDate = await findStatCard(stats.lent.noReturnDate.label);
+    expect(within(noReturnDate).getByText(stats.lent.noReturnDate.empty)).toBeInTheDocument();
+  });
+
   it("hides the stat cards and explains the page when nothing is borrowed", async () => {
-    mockLoans([], { borrowedCount: 0, lentCount: 2 });
+    mockLoans([], { lent: { ...EMPTY_DIRECTION_STATS, totalCount: 2 } });
 
     renderLoans("borrowed_from_someone");
 
     expect(await screen.findByText(copy.states.typeEmpty.borrowed.title)).toBeInTheDocument();
     expect(screen.getByText(copy.states.typeEmpty.borrowed.description)).toBeInTheDocument();
-    expect(screen.queryByText(stats.total.label)).not.toBeInTheDocument();
+    expect(screen.queryByText(stats.borrowed.total.label)).not.toBeInTheDocument();
     expect(screen.queryByText(stats.overdue.label)).not.toBeInTheDocument();
   });
 
-  it("keeps the shared overview cards on the lent page", async () => {
-    mockLoans([loanItem("lent_to_someone", "Дюна")], { borrowedCount: 0, lentCount: 1 });
+  it("hides the stat cards and explains the page when nothing is lent out", async () => {
+    mockLoans([], { borrowed: { ...EMPTY_DIRECTION_STATS, totalCount: 2 } });
 
     renderLoans("lent_to_someone");
 
-    expect(await findStatCard(copy.summary.borrowed)).toBeInTheDocument();
-    expect(await findStatCard(copy.summary.lent)).toBeInTheDocument();
-    expect(screen.queryByText(stats.total.label)).not.toBeInTheDocument();
+    expect(await screen.findByText(copy.states.typeEmpty.lent.title)).toBeInTheDocument();
+    expect(screen.getByText(copy.states.typeEmpty.lent.description)).toBeInTheDocument();
+    expect(screen.queryByText(stats.lent.total.label)).not.toBeInTheDocument();
+    expect(screen.queryByText(stats.overdue.label)).not.toBeInTheDocument();
   });
 
   it("sends the reader to the other page when this one has no loans", async () => {
-    mockLoans([], { borrowedCount: 0, lentCount: 3 });
+    mockLoans([], { lent: { ...EMPTY_DIRECTION_STATS, totalCount: 3 } });
 
     renderLoans("borrowed_from_someone");
 
@@ -193,6 +255,13 @@ describe("LoansView", () => {
     expect(push).toHaveBeenCalledWith("/loans/lent");
   });
 });
+
+function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionStats {
+  return {
+    ...EMPTY_DIRECTION_STATS,
+    totalCount: items.filter((item) => item.type === type).length,
+  };
+}
 
 function findStatCard(label: string): Promise<HTMLElement> {
   return waitFor(() => {
@@ -247,16 +316,11 @@ function loanItem(type: LoanType, title: string): LoanListItemView {
   };
 }
 
-function mockLoans(items: LoanListItemView[], summaryCounts?: Partial<LoansSummaryView>) {
+function mockLoans(items: LoanListItemView[], summaryOverrides?: Partial<LoansSummaryView>) {
   const summary: LoansSummaryView = {
-    borrowed: EMPTY_BORROWED_STATS,
-    borrowedCount: items.length,
-    lentCount: 0,
-    overdueCount: 0,
-    returnThisWeek: 0,
-    withoutReturnDate: 0,
-    withReminder: 0,
-    ...summaryCounts,
+    borrowed: countedStats(items, "borrowed_from_someone"),
+    lent: countedStats(items, "lent_to_someone"),
+    ...summaryOverrides,
   };
 
   vi.stubGlobal(
