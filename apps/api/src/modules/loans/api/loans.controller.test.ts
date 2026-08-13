@@ -99,11 +99,13 @@ async function createBorrowedLoan(
     ownershipStatus: "none",
     title,
   });
-  await startLoan(accessToken, created.body.id, {
+  const started = await startLoan(accessToken, created.body.id, {
     direction: "borrowed",
     loanDate: isoDay(0),
+    personName: "Olha",
     ...loan,
   });
+  expect(started.status).toBe(200);
   return created.body.id;
 }
 
@@ -117,11 +119,13 @@ async function createLentLoan(
     ownershipStatus: "owned",
     title,
   });
-  await startLoan(accessToken, created.body.id, {
+  const started = await startLoan(accessToken, created.body.id, {
     direction: "lent",
     loanDate: isoDay(0),
+    personName: "Ivan",
     ...loan,
   });
+  expect(started.status).toBe(200);
   return created.body.id;
 }
 
@@ -418,7 +422,11 @@ describe("GET /api/loans/summary borrowed stats", () => {
 
   it("keeps overdue loans out of the returning soon count", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
-    await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(-4) }, "Overdue");
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-4), loanDate: isoDay(-20) },
+      "Overdue",
+    );
 
     const res = await loanSummary(accessToken);
 
@@ -428,8 +436,16 @@ describe("GET /api/loans/summary borrowed stats", () => {
 
   it("counts overdue borrowed loans and reports the oldest return date", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
-    await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(-11) }, "Long overdue");
-    await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(-2) }, "Just overdue");
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-11), loanDate: isoDay(-20) },
+      "Long overdue",
+    );
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-2), loanDate: isoDay(-20) },
+      "Just overdue",
+    );
 
     const res = await loanSummary(accessToken);
 
