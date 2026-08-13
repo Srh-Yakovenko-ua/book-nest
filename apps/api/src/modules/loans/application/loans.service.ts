@@ -2,6 +2,7 @@ import type {
   LoanBookPreview,
   LoanDirectionSummary,
   LoanListItemView,
+  LoanPersonSummary,
   LoansQuery,
   LoansSummaryView,
   LoanType,
@@ -28,13 +29,19 @@ import {
 } from "../infrastructure/loans.repository.js";
 
 const SIDEBAR_LOANS_LIMIT = 5;
+const SIDEBAR_PEOPLE_LIMIT = 5;
 
-type DirectionLoanLists = Pick<LoanDirectionSummary, "longHeldLoans" | "upcomingReturns">;
+type DirectionLoanLists = DirectionSidebarLoans & Pick<LoanDirectionSummary, "topPeople">;
+
+type DirectionSidebarLoans = Pick<LoanDirectionSummary, "longHeldLoans" | "upcomingReturns">;
+
+type PersonSummaryWithType = LoanPersonSummary & { type: LoanType };
 
 const EMPTY_DIRECTION_COUNTS = {
   earliestLoanDate: null,
   longHeldCount: 0,
   nearestReturnDate: null,
+  noReminderWithDateCount: 0,
   noReturnDateCount: 0,
   noReturnDatePeopleCount: 0,
   oldestOverdueReturnDate: null,
@@ -42,7 +49,7 @@ const EMPTY_DIRECTION_COUNTS = {
   peopleCount: 0,
   returningSoonCount: 0,
   totalCount: 0,
-} satisfies Omit<LoanDirectionSummary, "longHeldLoans" | "upcomingReturns">;
+} satisfies Omit<LoanDirectionSummary, keyof DirectionLoanLists>;
 
 @Injectable()
 export class LoansService {
@@ -62,6 +69,7 @@ export class LoansService {
     const search = normalizeSearch(query.search);
     const filter = {
       filter: query.filter,
+      person: normalizeSearch(query.person),
       search,
       soonEnd,
       today,
@@ -90,15 +98,22 @@ export class LoansService {
     const { soonEnd, today } = loanDateBounds(new Date());
     const longHeldBefore = subDays(today, LOAN_STATS_WINDOWS.longHeldDays);
 
-    const [counts, borrowedLoans, lentLoans] = await Promise.all([
+    const [counts, people, borrowedLoans, lentLoans] = await Promise.all([
       this.loansRepository.summary({ longHeldBefore, soonEnd, today, userId }),
+      this.topPeople(userId),
       this.sidebarLoans({ longHeldBefore, today, type: "borrowed_from_someone", userId }),
       this.sidebarLoans({ longHeldBefore, today, type: "lent_to_someone", userId }),
     ]);
 
     return {
-      borrowed: toDirectionSummary(counts, "borrowed_from_someone", borrowedLoans),
-      lent: toDirectionSummary(counts, "lent_to_someone", lentLoans),
+      borrowed: toDirectionSummary(counts, "borrowed_from_someone", {
+        ...borrowedLoans,
+        topPeople: toPersonSummaries(people, "borrowed_from_someone"),
+      }),
+      lent: toDirectionSummary(counts, "lent_to_someone", {
+        ...lentLoans,
+        topPeople: toPersonSummaries(people, "lent_to_someone"),
+      }),
     };
   }
 
@@ -112,7 +127,7 @@ export class LoansService {
     today: Date;
     type: LoanType;
     userId: string;
-  }): Promise<DirectionLoanLists> {
+  }): Promise<DirectionSidebarLoans> {
     const [longHeldLoans, upcomingReturns] = await Promise.all([
       this.loansRepository.longHeldLoans({
         loanedBefore: longHeldBefore,
@@ -158,6 +173,25 @@ export class LoansService {
       updatedAt: loan.updatedAt.toISOString(),
     };
   }
+
+  private async topPeople(userId: string): Promise<PersonSummaryWithType[]> {
+    const rows = await this.loansRepository.topPeople({ take: SIDEBAR_PEOPLE_LIMIT, userId });
+    const coverIds = rows.flatMap((row) => row.coverMediaIds ?? []);
+    const assets = coverIds.length === 0 ? [] : await this.loansRepository.coverAssets(coverIds);
+    const coverViews = new Map(
+      assets.map((asset) => [asset.id, this.mediaService.buildViewOrNull(asset)]),
+    );
+
+    return rows.map((row) => ({
+      bookCount: row.bookCount,
+      covers: (row.coverMediaIds ?? []).flatMap((id) => {
+        const view = coverViews.get(id);
+        return view === undefined || view === null ? [] : [view];
+      }),
+      personName: row.personName,
+      type: row.type,
+    }));
+  }
 }
 
 function toDirectionSummary(
@@ -175,13 +209,21 @@ function toDirectionSummary(
     longHeldCount: row.longHeldCount,
     longHeldLoans: loans.longHeldLoans,
     nearestReturnDate: row.nearestReturnDate,
+    noReminderWithDateCount: row.noReminderWithDateCount,
     noReturnDateCount: row.noReturnDateCount,
     noReturnDatePeopleCount: row.noReturnDatePeopleCount,
     oldestOverdueReturnDate: row.oldestOverdueReturnDate,
     overdueCount: row.overdueCount,
     peopleCount: row.peopleCount,
     returningSoonCount: row.returningSoonCount,
+    topPeople: loans.topPeople,
     totalCount: row.totalCount,
     upcomingReturns: loans.upcomingReturns,
   };
+}
+
+function toPersonSummaries(people: PersonSummaryWithType[], type: LoanType): LoanPersonSummary[] {
+  return people
+    .filter((person) => person.type === type)
+    .map(({ bookCount, covers, personName }) => ({ bookCount, covers, personName }));
 }

@@ -4,6 +4,8 @@ import { LoanTypeSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import type { MediaAssetModel } from "../../../generated/prisma/models.js";
+
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { toIsoDate } from "../../../core/iso-date.js";
@@ -12,10 +14,15 @@ import { buildBookTextSearchConditions } from "../../books/index.js";
 
 const LOAN_STATUS_ACTIVE = "active";
 
+const PERSON_COVERS_LIMIT = 3;
+
+const PERSON_COVERS_SLICE = Prisma.raw(`[1:${PERSON_COVERS_LIMIT}]`);
+
 const LoanDirectionCountsRowSchema = z.object({
   earliestLoanDate: z.string().nullable(),
   longHeldCount: z.number(),
   nearestReturnDate: z.string().nullable(),
+  noReminderWithDateCount: z.number(),
   noReturnDateCount: z.number(),
   noReturnDatePeopleCount: z.number(),
   oldestOverdueReturnDate: z.string().nullable(),
@@ -26,14 +33,24 @@ const LoanDirectionCountsRowSchema = z.object({
   type: LoanTypeSchema,
 });
 
+const LoanPersonCountsRowSchema = z.object({
+  bookCount: z.number(),
+  coverMediaIds: z.array(z.uuid()).nullable(),
+  personName: z.string(),
+  type: LoanTypeSchema,
+});
+
 const loanBookInclude = {
   include: { book: { include: { coverMedia: true, publisher: true } } },
 } satisfies Prisma.BookLoanDefaultArgs;
 
 export type LoanDirectionCounts = z.infer<typeof LoanDirectionCountsRowSchema>;
 
+export type LoanPersonCounts = z.infer<typeof LoanPersonCountsRowSchema>;
+
 export type LoansFilterInput = {
   filter: LoanFilter;
+  person: string | undefined;
   search: string | undefined;
   soonEnd: Date;
   today: Date;
@@ -63,6 +80,11 @@ type SummaryInput = {
   userId: string;
 };
 
+type TopPeopleInput = {
+  take: number;
+  userId: string;
+};
+
 type UpcomingReturnsInput = {
   take: number;
   today: Date;
@@ -76,6 +98,10 @@ export class LoansRepository {
 
   countLoans(input: LoansFilterInput): Promise<number> {
     return this.prisma.bookLoan.count({ where: buildLoansWhere(input) });
+  }
+
+  coverAssets(ids: string[]): Promise<MediaAssetModel[]> {
+    return this.prisma.mediaAsset.findMany({ where: { id: { in: ids } } });
   }
 
   listLoans({ skip, sort, take, ...filter }: ListLoansInput): Promise<LoanWithBook[]> {
@@ -136,6 +162,10 @@ export class LoansRepository {
           WHERE loan.loan_date <= ${longHeldBeforeIso}::date
         ))::int AS "longHeldCount",
         to_char(min(loan.loan_date), 'YYYY-MM-DD') AS "earliestLoanDate",
+        (count(*) FILTER (
+          WHERE loan.expected_return_date IS NOT NULL
+            AND loan.remind_to_return = false
+        ))::int AS "noReminderWithDateCount",
         (count(*) FILTER (WHERE loan.expected_return_date IS NULL))::int AS "noReturnDateCount",
         (count(DISTINCT loan.person_name) FILTER (
           WHERE loan.expected_return_date IS NULL
@@ -149,6 +179,35 @@ export class LoansRepository {
     `);
 
     return z.array(LoanDirectionCountsRowSchema).parse(rows);
+  }
+
+  async topPeople({ take, userId }: TopPeopleInput): Promise<LoanPersonCounts[]> {
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      WITH ranked AS (
+        SELECT
+          loan.type AS "type",
+          loan.person_name AS "personName",
+          (count(*))::int AS "bookCount",
+          (array_agg(book.cover_media_id ORDER BY loan.loan_date DESC NULLS LAST, loan.id)
+            FILTER (WHERE book.cover_media_id IS NOT NULL))${PERSON_COVERS_SLICE} AS "coverMediaIds",
+          row_number() OVER (
+            PARTITION BY loan.type
+            ORDER BY count(*) DESC, loan.person_name ASC
+          ) AS "rank"
+        FROM book_loans loan
+        JOIN books book ON book.id = loan.book_id
+        WHERE loan.user_id = ${userId}::uuid
+          AND book.deleted_at IS NULL
+          AND loan.status = ${LOAN_STATUS_ACTIVE}
+        GROUP BY loan.type, loan.person_name
+      )
+      SELECT "type", "personName", "bookCount", "coverMediaIds"
+      FROM ranked
+      WHERE "rank" <= ${take}
+      ORDER BY "type", "rank"
+    `);
+
+    return z.array(LoanPersonCountsRowSchema).parse(rows);
   }
 
   upcomingReturns({ take, today, type, userId }: UpcomingReturnsInput): Promise<LoanWithBook[]> {
@@ -214,6 +273,7 @@ function applyLoanFilter({
       where.expectedReturnDate = { gte: today, lte: soonEnd };
       return;
     case "without_reminder":
+      where.expectedReturnDate = { not: null };
       where.remindToReturn = false;
       return;
     default: {
@@ -255,6 +315,7 @@ function buildLoanSearchConditions(search: string): Prisma.BookLoanWhereInput[] 
 
 function buildLoansWhere({
   filter,
+  person,
   search,
   soonEnd,
   today,
@@ -264,6 +325,10 @@ function buildLoansWhere({
   const where = buildActiveLoansWhere({ type, userId });
 
   applyLoanFilter({ filter, soonEnd, today, where });
+
+  if (person !== undefined) {
+    where.personName = person;
+  }
 
   if (search !== undefined) {
     where.OR = buildLoanSearchConditions(search);

@@ -22,12 +22,14 @@ const EMPTY_DIRECTION_SUMMARY = {
   longHeldCount: 0,
   longHeldLoans: [],
   nearestReturnDate: null,
+  noReminderWithDateCount: 0,
   noReturnDateCount: 0,
   noReturnDatePeopleCount: 0,
   oldestOverdueReturnDate: null,
   overdueCount: 0,
   peopleCount: 0,
   returningSoonCount: 0,
+  topPeople: [],
   totalCount: 0,
   upcomingReturns: [],
 };
@@ -546,6 +548,38 @@ describe("GET /api/loans/summary lent stats", () => {
     expect(res.body.lent.noReturnDatePeopleCount).toBe(2);
   });
 
+  it("counts lent loans that have a return date but no reminder", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { expectedReturnDate: isoDay(5) }, "Silent one");
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-3), loanDate: isoDay(-10) },
+      "Silent and overdue",
+    );
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(9), remindToReturn: true },
+      "With a reminder",
+    );
+    await createLentLoan(accessToken, {}, "Without a date");
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent.noReminderWithDateCount).toBe(2);
+    expect(res.body.lent.noReturnDateCount).toBe(1);
+  });
+
+  it("keeps the loans without a reminder on their own side of the summary", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { expectedReturnDate: isoDay(4) }, "Lent silently");
+    await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(4) }, "Borrowed silently");
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent.noReminderWithDateCount).toBe(1);
+    expect(res.body.borrowed.noReminderWithDateCount).toBe(1);
+  });
+
   it("leaves lent stats empty when the user only borrowed books", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createBorrowedLoan(accessToken, {
@@ -641,6 +675,29 @@ describe("GET /api/loans/summary upcoming returns", () => {
     expect(loanTitles(res.body.lent.upcomingReturns)).toEqual(["Lent soon"]);
   });
 
+  it("builds the lent upcoming returns the same way, without the overdue ones", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    for (const offset of [6, 4, 2, 1, 3, 5]) {
+      await createLentLoan(accessToken, { expectedReturnDate: isoDay(offset) }, `In ${offset}`);
+    }
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-4), loanDate: isoDay(-20) },
+      "Overdue",
+    );
+    await createLentLoan(accessToken, {}, "No date");
+
+    const res = await loanSummary(accessToken);
+
+    expect(loanTitles(res.body.lent.upcomingReturns)).toEqual([
+      "In 1",
+      "In 2",
+      "In 3",
+      "In 4",
+      "In 5",
+    ]);
+  });
+
   it("drops a returned loan from the upcoming returns", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const bookId = await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(2) });
@@ -651,6 +708,89 @@ describe("GET /api/loans/summary upcoming returns", () => {
     const res = await loanSummary(accessToken);
 
     expect(res.body.borrowed.upcomingReturns).toEqual([]);
+  });
+});
+
+describe("GET /api/loans/summary top people", () => {
+  it("groups the lent loans by person and ranks the five biggest holders", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const holdings: [string, number][] = [
+      ["Olha", 4],
+      ["Ivan", 3],
+      ["Petro", 2],
+      ["Maria", 2],
+      ["Sofia", 1],
+      ["Andrii", 1],
+    ];
+    for (const [personName, books] of holdings) {
+      for (let index = 0; index < books; index += 1) {
+        await createLentLoan(accessToken, { personName }, `${personName} ${index}`);
+      }
+    }
+
+    const res = await loanSummary(accessToken);
+
+    expect(
+      res.body.lent.topPeople.map(
+        (person: { bookCount: number; personName: string }) =>
+          `${person.personName}:${person.bookCount}`,
+      ),
+    ).toEqual(["Olha:4", "Ivan:3", "Maria:2", "Petro:2", "Andrii:1"]);
+  });
+
+  it("keeps the top people of the two directions apart and ignores returned loans", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Ivan" }, "Lent one");
+    await createBorrowedLoan(accessToken, { personName: "Olha" }, "Borrowed one");
+    const returnedBookId = await createLentLoan(accessToken, { personName: "Petro" }, "Returned");
+    await request(app.getHttpServer())
+      .post(`/api/books/${returnedBookId}/loan/return`)
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.lent.topPeople).toEqual([{ bookCount: 1, covers: [], personName: "Ivan" }]);
+    expect(res.body.borrowed.topPeople).toEqual([{ bookCount: 1, covers: [], personName: "Olha" }]);
+  });
+});
+
+describe("GET /api/loans by person", () => {
+  it("returns only the loans of the requested person", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(accessToken, { personName: "Olha" }, "Hers");
+    await createLentLoan(accessToken, { personName: "Ivan" }, "His");
+
+    const res = await listLoans(accessToken, `?person=${encodeURIComponent("Olha")}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.totalCount).toBe(1);
+    expect(loanTitles(res.body.items)).toEqual(["Hers"]);
+  });
+
+  it("combines the person with the other list filters", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-3), loanDate: isoDay(-10), personName: "Olha" },
+      "Hers overdue",
+    );
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(6), personName: "Olha" },
+      "Hers on time",
+    );
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-4), loanDate: isoDay(-10), personName: "Ivan" },
+      "His overdue",
+    );
+
+    const res = await listLoans(
+      accessToken,
+      `?person=${encodeURIComponent("Olha")}&filter=overdue`,
+    );
+
+    expect(loanTitles(res.body.items)).toEqual(["Hers overdue"]);
   });
 });
 
@@ -924,14 +1064,19 @@ describe("GET /api/loans additional filters", () => {
     expect(res.body.items[0].loanUiStatus).toBe("return_soon");
   });
 
-  it("filters loans that have no reminder", async () => {
+  it("filters loans that have a return date but no reminder", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createLentLoan(accessToken, {
       expectedReturnDate: isoDay(10),
       personName: "Ivan",
       remindToReturn: true,
     });
-    await createBorrowedLoan(accessToken, { personName: "Olha" }, "No Reminder");
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(8), personName: "Olha" },
+      "No Reminder",
+    );
+    await createBorrowedLoan(accessToken, { personName: "Maria" }, "No Date At All");
 
     const res = await listLoans(accessToken, "?filter=without_reminder");
 

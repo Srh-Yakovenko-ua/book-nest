@@ -5,6 +5,7 @@ import { createPaginatedSchema, paginationQueryFields } from "./common.js";
 import { MediaViewSchema } from "./media.js";
 
 const LOAN_SEARCH_MAX = 100;
+const LOAN_PERSON_QUERY_MAX = 100;
 
 export const LoanUiStatusSchema = z.enum(["overdue", "return_soon", "no_return_date", "on_time"]);
 
@@ -49,6 +50,7 @@ export type LoanSort = z.infer<typeof LoanSortSchema>;
 export const LoansQuerySchema = z.object({
   filter: LoanFilterSchema.default("all"),
   ...paginationQueryFields({ pageSizeDefault: 10 }),
+  person: z.string().trim().max(LOAN_PERSON_QUERY_MAX).optional(),
   search: z.string().trim().max(LOAN_SEARCH_MAX).optional(),
   sort: LoanSortSchema.default("return_date"),
   type: LoanTypeSchema.optional(),
@@ -92,17 +94,27 @@ export const LOAN_STATS_WINDOWS = {
   returnSoonDays: 7,
 } as const;
 
+export const LoanPersonSummarySchema = z.object({
+  bookCount: z.number().int().nonnegative(),
+  covers: z.array(MediaViewSchema),
+  personName: z.string(),
+});
+
+export type LoanPersonSummary = z.infer<typeof LoanPersonSummarySchema>;
+
 export const LoanDirectionSummarySchema = z.object({
   earliestLoanDate: z.string().nullable(),
   longHeldCount: z.number().int().nonnegative(),
   longHeldLoans: z.array(LoanListItemViewSchema),
   nearestReturnDate: z.string().nullable(),
+  noReminderWithDateCount: z.number().int().nonnegative(),
   noReturnDateCount: z.number().int().nonnegative(),
   noReturnDatePeopleCount: z.number().int().nonnegative(),
   oldestOverdueReturnDate: z.string().nullable(),
   overdueCount: z.number().int().nonnegative(),
   peopleCount: z.number().int().nonnegative(),
   returningSoonCount: z.number().int().nonnegative(),
+  topPeople: z.array(LoanPersonSummarySchema),
   totalCount: z.number().int().nonnegative(),
   upcomingReturns: z.array(LoanListItemViewSchema),
 });

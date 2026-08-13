@@ -22,6 +22,7 @@ export const LOANS_SORT_VALUES = Object.values(LoansControllerListSort);
 export const loansQueryParsers = {
   filter: parseAsStringLiteral(LOANS_FILTER_VALUES).withDefault(LOANS_FILTER_DEFAULT),
   page: parseAsInteger.withDefault(1),
+  person: parseAsString.withDefault(""),
   q: parseAsString.withDefault(""),
   sort: parseAsStringLiteral(LOANS_SORT_VALUES).withDefault(LOANS_SORT_DEFAULT),
 };
@@ -29,7 +30,7 @@ export const loansQueryParsers = {
 export type LoansQueryState = inferParserType<typeof loansQueryParsers>;
 
 export function hasActiveLoanFilters(state: LoansQueryState): boolean {
-  return state.filter !== LOANS_FILTER_DEFAULT;
+  return state.filter !== LOANS_FILTER_DEFAULT || state.person.trim() !== "";
 }
 
 export function hasActiveLoanSearch(state: LoansQueryState): boolean {
@@ -41,6 +42,7 @@ export function toLoansListParams(
   type: LoanType,
 ): LoansControllerListParams {
   const search = state.q.trim();
+  const person = state.person.trim();
 
   return {
     filter: state.filter,
@@ -48,6 +50,7 @@ export function toLoansListParams(
     pageSize: LOANS_PAGE_SIZE,
     sort: state.sort,
     type,
+    ...(person === "" ? {} : { person }),
     ...(search === "" ? {} : { search }),
   };
 }
@@ -55,5 +58,6 @@ export function toLoansListParams(
 export const LOANS_FILTERS_RESET = {
   filter: null,
   page: null,
+  person: null,
   q: null,
 } satisfies Partial<Record<keyof LoansQueryState, null>>;

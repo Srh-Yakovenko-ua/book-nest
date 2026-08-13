@@ -26,8 +26,10 @@ export type UseLoansQueryResult = {
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   listParams: LoansControllerListParams;
+  person: string;
   setFilter: (value: LoansControllerListFilter) => void;
   setPage: (value: number) => void;
+  setPerson: (value: string) => void;
   setSearch: (value: string) => void;
   setSort: (value: LoansControllerListSort) => void;
   sort: LoansControllerListSort;
@@ -43,8 +45,10 @@ export function useLoansQuery(type: LoanType): UseLoansQueryResult {
     hasActiveFilters: hasActiveLoanFilters(state),
     hasActiveSearch: hasActiveLoanSearch(state),
     listParams: toLoansListParams(state, type),
+    person: state.person,
     setFilter: (value) => void setState({ filter: value, page: null }),
     setPage: (value) => void setState({ page: value }),
+    setPerson: (value) => void setState({ page: null, person: value === "" ? null : value }),
     setSearch: (value) => void setState({ page: null, q: value }),
     setSort: (value) => void setState({ page: null, sort: value }),
     sort: state.sort,
