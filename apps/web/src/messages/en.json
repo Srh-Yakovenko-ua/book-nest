@@ -19,6 +19,8 @@
     "series": "Series",
     "genresTags": "Genres / Tags",
     "loans": "Borrowed books",
+    "loansBorrowed": "To return",
+    "loansLent": "Lent out",
     "lists": "Lists",
     "notes": "Notes",
     "delivery": "Deliveries",
@@ -3823,10 +3825,20 @@
     }
   },
   "loans": {
-    "metaTitle": "Borrowed books",
-    "title": "Borrowed books",
-    "subtitle": "Keep track of books shared between you and other readers",
-    "listHeading": "Borrowed books list",
+    "pages": {
+      "borrowed": {
+        "metaTitle": "To return",
+        "title": "To return",
+        "subtitle": "Books you borrowed from other readers — keep track so you return them on time",
+        "listHeading": "List of books to return"
+      },
+      "lent": {
+        "metaTitle": "Lent out",
+        "title": "Lent out",
+        "subtitle": "Books you lent to other readers — keep track so they come back to you",
+        "listHeading": "List of books you lent out"
+      }
+    },
     "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
     "summary": {
       "borrowed": "Borrowed from someone",
@@ -3863,10 +3875,6 @@
         "overview": "Overview",
         "schedule": "Returns"
       }
-    },
-    "tabs": {
-      "borrowed": "Borrowed from someone",
-      "lent": "Lent to someone"
     },
     "toolbar": {
       "searchLabel": "Search borrowed books",
@@ -3957,12 +3965,16 @@
         "cta": "Add borrowed book",
         "secondary": "View all books"
       },
-      "tabEmpty": {
-        "titleBorrowed": "Nothing in “Borrowed from someone” yet",
-        "titleLent": "Nothing in “Lent to someone” yet",
+      "typeEmpty": {
         "description": "Loans of this type will appear here once you add them.",
-        "switchToBorrowed": "View “Borrowed from someone”",
-        "switchToLent": "View “Lent to someone”"
+        "borrowed": {
+          "title": "Nothing to return right now",
+          "openOther": "View “Lent out”"
+        },
+        "lent": {
+          "title": "Nothing lent out yet",
+          "openOther": "View “To return”"
+        }
       },
       "noResults": {
         "title": "Nothing found",
