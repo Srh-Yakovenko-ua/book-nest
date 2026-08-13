@@ -1,8 +1,10 @@
 import type {
   LoanBookPreview,
+  LoanDirectionStats,
   LoanListItemView,
   LoansQuery,
   LoansSummaryView,
+  LoanType,
   Paginator,
 } from "@app/shared";
 
@@ -19,7 +21,24 @@ import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
 import { getLoanUiStatus, loanDateBounds } from "../domain/loan-ui-status.js";
-import { LoansRepository, type LoanWithBook } from "../infrastructure/loans.repository.js";
+import {
+  type LoanDirectionCounts,
+  LoansRepository,
+  type LoanWithBook,
+} from "../infrastructure/loans.repository.js";
+
+const EMPTY_DIRECTION_STATS: LoanDirectionStats = {
+  earliestLoanDate: null,
+  longHeldCount: 0,
+  nearestReturnDate: null,
+  noReturnDateCount: 0,
+  noReturnDatePeopleCount: 0,
+  oldestOverdueReturnDate: null,
+  overdueCount: 0,
+  peopleCount: 0,
+  returningSoonCount: 0,
+  totalCount: 0,
+};
 
 @Injectable()
 export class LoansService {
@@ -64,33 +83,18 @@ export class LoansService {
   }
 
   async summary({ userId }: { userId: string }): Promise<LoansSummaryView> {
-    const { soonEnd, today, weekEnd, weekStart } = loanDateBounds(new Date());
+    const { soonEnd, today } = loanDateBounds(new Date());
     const longHeldBefore = subDays(today, LOAN_STATS_WINDOWS.longHeldDays);
     const counts = await this.loansRepository.summary({
       longHeldBefore,
       soonEnd,
       today,
       userId,
-      weekEnd,
-      weekStart,
     });
 
     return {
-      borrowed: {
-        earliestLoanDate: counts.borrowedEarliestLoanDate,
-        longHeldCount: counts.borrowedLongHeldCount,
-        nearestReturnDate: counts.borrowedNearestReturnDate,
-        oldestOverdueReturnDate: counts.borrowedOldestOverdueReturnDate,
-        overdueCount: counts.borrowedOverdueCount,
-        peopleCount: counts.borrowedPeopleCount,
-        returningSoonCount: counts.borrowedReturningSoonCount,
-      },
-      borrowedCount: counts.borrowedCount,
-      lentCount: counts.lentCount,
-      overdueCount: counts.overdueCount,
-      returnThisWeek: counts.returnThisWeek,
-      withoutReturnDate: counts.withoutReturnDate,
-      withReminder: counts.withReminder,
+      borrowed: toDirectionStats(counts, "borrowed_from_someone"),
+      lent: toDirectionStats(counts, "lent_to_someone"),
     };
   }
 
@@ -123,4 +127,24 @@ export class LoansService {
       updatedAt: loan.updatedAt.toISOString(),
     };
   }
+}
+
+function toDirectionStats(counts: LoanDirectionCounts[], type: LoanType): LoanDirectionStats {
+  const row = counts.find((candidate) => candidate.type === type);
+  if (row === undefined) {
+    return EMPTY_DIRECTION_STATS;
+  }
+
+  return {
+    earliestLoanDate: row.earliestLoanDate,
+    longHeldCount: row.longHeldCount,
+    nearestReturnDate: row.nearestReturnDate,
+    noReturnDateCount: row.noReturnDateCount,
+    noReturnDatePeopleCount: row.noReturnDatePeopleCount,
+    oldestOverdueReturnDate: row.oldestOverdueReturnDate,
+    overdueCount: row.overdueCount,
+    peopleCount: row.peopleCount,
+    returningSoonCount: row.returningSoonCount,
+    totalCount: row.totalCount,
+  };
 }

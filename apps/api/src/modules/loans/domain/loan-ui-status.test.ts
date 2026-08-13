@@ -47,11 +47,4 @@ describe("loanDateBounds", () => {
 
     expect(soonEnd.toISOString()).toBe("2026-07-15T00:00:00.000Z");
   });
-
-  it("spans the Monday-to-Sunday week that contains today", () => {
-    const { weekEnd, weekStart } = loanDateBounds(new Date("2026-07-08T15:30:00.000Z"));
-
-    expect(weekStart.toISOString()).toBe("2026-07-06T00:00:00.000Z");
-    expect(weekEnd.toISOString()).toBe("2026-07-12T00:00:00.000Z");
-  });
 });

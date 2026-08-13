@@ -3841,39 +3841,17 @@
     },
     "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
     "summary": {
-      "borrowed": "Borrowed from someone",
-      "lent": "Lent to someone",
-      "returnThisWeek": "Return this week",
-      "overdue": "Overdue",
       "error": {
         "title": "Could not load the summary",
         "description": "We couldn't load your loan summary.",
         "retry": "Try again"
       },
       "mobile": {
-        "title": "Detailed stats",
-        "compact": {
-          "borrowed": "Borrowed",
-          "lent": "Lent",
-          "returnThisWeek": "This week",
-          "overdue": "Overdue"
-        },
-        "detailed": {
-          "borrowed": "Borrowed from someone",
-          "lent": "Lent to someone",
-          "returnThisWeek": "Return this week",
-          "overdue": "Overdue"
-        }
+        "title": "Detailed stats"
       }
     },
-    "borrowedStats": {
-      "total": {
-        "label": "Borrowed in total",
-        "unit": "{count, plural, one {book} other {books}}",
-        "people": "From {count, plural, one {# person} other {# different people}}",
-        "empty": "No active loans",
-        "mobile": { "compact": "Borrowed", "detailed": "Borrowed in total" }
-      },
+    "stats": {
+      "unit": "{count, plural, one {book} other {books}}",
       "returningSoon": {
         "label": "Upcoming returns",
         "today": "Nearest one — today",
@@ -3888,11 +3866,33 @@
         "empty": "Every deadline met",
         "mobile": { "compact": "Overdue", "detailed": "Overdue" }
       },
-      "longHeld": {
-        "label": "With you a while",
-        "longest": "Longest — {count, plural, one {# day} other {# days}}",
-        "empty": "No books borrowed {days} days ago or earlier",
-        "mobile": { "compact": "A while", "detailed": "With you a while" }
+      "borrowed": {
+        "total": {
+          "label": "Borrowed in total",
+          "people": "From {count, plural, one {# person} other {# different people}}",
+          "empty": "No active loans",
+          "mobile": { "compact": "Borrowed", "detailed": "Borrowed in total" }
+        },
+        "longHeld": {
+          "label": "With you a while",
+          "longest": "Longest — {count, plural, one {# day} other {# days}}",
+          "empty": "No books borrowed {days} days ago or earlier",
+          "mobile": { "compact": "A while", "detailed": "With you a while" }
+        }
+      },
+      "lent": {
+        "total": {
+          "label": "Lent out in total",
+          "people": "With {count, plural, one {# person} other {# different people}}",
+          "empty": "No active loans",
+          "mobile": { "compact": "Lent out", "detailed": "Lent out in total" }
+        },
+        "noReturnDate": {
+          "label": "No return date",
+          "people": "With {count, plural, one {# person} other {# different people}}",
+          "empty": "Every loan has a return date",
+          "mobile": { "compact": "No date", "detailed": "No return date" }
+        }
       }
     },
     "overviewPanel": {
@@ -4000,7 +4000,7 @@
         },
         "lent": {
           "title": "Nothing lent out yet",
-          "description": "Loans of this type will appear here once you add them.",
+          "description": "Books you lend to other readers will show up here with who has them and when they are due back.",
           "openOther": "View “To return”"
         }
       },

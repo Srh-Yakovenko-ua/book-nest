@@ -92,26 +92,24 @@ export const LOAN_STATS_WINDOWS = {
   returnSoonDays: 7,
 } as const;
 
-export const BorrowedLoansStatsSchema = z.object({
+export const LoanDirectionStatsSchema = z.object({
   earliestLoanDate: z.string().nullable(),
   longHeldCount: z.number().int().nonnegative(),
   nearestReturnDate: z.string().nullable(),
+  noReturnDateCount: z.number().int().nonnegative(),
+  noReturnDatePeopleCount: z.number().int().nonnegative(),
   oldestOverdueReturnDate: z.string().nullable(),
   overdueCount: z.number().int().nonnegative(),
   peopleCount: z.number().int().nonnegative(),
   returningSoonCount: z.number().int().nonnegative(),
+  totalCount: z.number().int().nonnegative(),
 });
 
-export type BorrowedLoansStats = z.infer<typeof BorrowedLoansStatsSchema>;
+export type LoanDirectionStats = z.infer<typeof LoanDirectionStatsSchema>;
 
 export const LoansSummaryViewSchema = z.object({
-  borrowed: BorrowedLoansStatsSchema,
-  borrowedCount: z.number().int().nonnegative(),
-  lentCount: z.number().int().nonnegative(),
-  overdueCount: z.number().int().nonnegative(),
-  returnThisWeek: z.number().int().nonnegative(),
-  withoutReturnDate: z.number().int().nonnegative(),
-  withReminder: z.number().int().nonnegative(),
+  borrowed: LoanDirectionStatsSchema,
+  lent: LoanDirectionStatsSchema,
 });
 
 export type LoansSummaryView = z.infer<typeof LoansSummaryViewSchema>;

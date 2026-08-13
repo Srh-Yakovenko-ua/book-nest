@@ -767,6 +767,7 @@ export * from "./loansControllerListSort";
 export * from "./loansControllerListType";
 export * from "./loansSummaryViewDto";
 export * from "./loansSummaryViewDtoBorrowed";
+export * from "./loansSummaryViewDtoLent";
 export * from "./loginInputDto";
 export * from "./markBoughtInputDto";
 export * from "./markBoughtInputDtoCurrency";
