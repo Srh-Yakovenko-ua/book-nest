@@ -12,6 +12,7 @@ import {
   Feather,
   HandHelping,
   Heart,
+  History,
   Home,
   Landmark,
   Layers,
@@ -78,6 +79,7 @@ type NavKey =
   | "lists"
   | "loans"
   | "loansBorrowed"
+  | "loansHistory"
   | "loansLent"
   | "myLibrary"
   | "notes"
@@ -106,6 +108,7 @@ const NAV_ITEMS: readonly NavItem[] = [
     items: [
       { icon: CircleArrowDown, key: "loansBorrowed", to: "/loans/borrowed" },
       { icon: ArrowUpRight, key: "loansLent", to: "/loans/lent" },
+      { icon: History, key: "loansHistory", to: "/loans/history" },
     ],
     key: "loans",
   },

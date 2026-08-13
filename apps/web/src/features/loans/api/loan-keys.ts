@@ -1,16 +1,30 @@
 import type { QueryKey } from "@tanstack/react-query";
 
+import type { LoanHistoryControllerOverviewParams } from "@/shared/api/generated/model";
+
+import type { LoanHistoryListParams } from "../model/loan-history-query";
 import type { LoansListParams } from "../model/loans-query";
 
-const LOANS_ROOT = "/api/loans";
-const LOANS_SUMMARY_ROOT = "/api/loans/summary";
-const LOANS_INDEX = [LOANS_ROOT, "list"] as const;
+const LOAN_ROOTS = {
+  active: "/api/loans",
+  history: "/api/loans/history",
+} as const;
 
 export const loanKeys = {
-  list: (params: LoansListParams) => [...LOANS_INDEX, params] as const,
+  history: {
+    detail: (loanId: string) => [LOAN_ROOTS.history, "detail", loanId] as const,
+    list: (params: LoanHistoryListParams) => [LOAN_ROOTS.history, "list", params] as const,
+    lists: [LOAN_ROOTS.history, "list"] as const,
+    overview: (params: LoanHistoryControllerOverviewParams) =>
+      [LOAN_ROOTS.history, "overview", params] as const,
+    overviews: [LOAN_ROOTS.history, "overview"] as const,
+    people: [LOAN_ROOTS.history, "people"] as const,
+  },
+  list: (params: LoansListParams) => [LOAN_ROOTS.active, "list", params] as const,
 };
 
 export function matchesLoans(query: { queryKey: QueryKey }): boolean {
-  const root = query.queryKey[0];
-  return root === LOANS_ROOT || root === LOANS_SUMMARY_ROOT;
+  const [root] = query.queryKey;
+  if (typeof root !== "string") return false;
+  return root === LOAN_ROOTS.active || root.startsWith(`${LOAN_ROOTS.active}/`);
 }
