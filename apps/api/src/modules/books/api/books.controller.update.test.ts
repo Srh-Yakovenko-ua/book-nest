@@ -296,13 +296,17 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     expect(rows).toHaveLength(0);
   });
 
-  it("marks the loan returned when ownership moves away from borrowed", async () => {
+  it("marks the loan returned and clears its reminder when ownership moves away from borrowed", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     const created = await createBook(accessToken, {
       authors: [{ name: "Frank Herbert" }],
-      loanInfo: { personName: "Olha" },
+      loanInfo: { expectedReturnDate: "2026-09-01", personName: "Olha" },
       ownershipStatus: "borrowed_from_someone",
       title: "Dune",
+    });
+    await prisma.bookLoan.updateMany({
+      data: { remindBeforeDays: 3, remindToReturn: true },
+      where: { bookId: created.body.id },
     });
 
     const res = await updateBook(accessToken, created.body.id, { ownershipStatus: "owned" });
@@ -313,6 +317,8 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.status).toBe("returned");
     expect(rows[0]?.returnedAt).not.toBeNull();
+    expect(rows[0]?.remindToReturn).toBe(false);
+    expect(rows[0]?.remindBeforeDays).toBeNull();
   });
 
   it("creates a purchase row when ownership moves to want_to_buy", async () => {

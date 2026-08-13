@@ -45,7 +45,7 @@ import {
   ListGenreFacetSchema,
   NewListInputSchema,
 } from "./lists.js";
-import { LoanInfoViewSchema } from "./loans.js";
+import { LoanInfoViewSchema, LoanNoteSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
 import { LOAN_REMINDER_LEAD_DAYS } from "./profile.js";
 import { BookPublisherRefSchema } from "./publishers.js";
@@ -231,7 +231,6 @@ export const OWNERSHIP_STORE_NAME_MAX = 100;
 const OWNERSHIP_STORE_URL_MAX = 300;
 const OWNERSHIP_ORDER_NUMBER_MAX = 100;
 const OWNERSHIP_NOTE_MAX = 300;
-const LOAN_NOTE_MAX = 500;
 const OWNERSHIP_PERSON_NAME_MIN = 1;
 export const OWNERSHIP_PERSON_NAME_MAX = 100;
 const OWNERSHIP_CONTACT_MAX = 100;
@@ -265,11 +264,6 @@ const OwnershipNoteSchema = z
   .string()
   .transform(collapseHorizontalSpaces)
   .pipe(NoHtmlString.max(OWNERSHIP_NOTE_MAX, "Note must be at most 300 characters long"));
-
-const LoanNoteSchema = z
-  .string()
-  .transform(collapseHorizontalSpaces)
-  .pipe(NoHtmlString.max(LOAN_NOTE_MAX, "Note must be at most 500 characters long"));
 
 const OwnershipPersonNameSchema = z
   .string()

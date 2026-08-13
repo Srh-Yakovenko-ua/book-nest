@@ -401,7 +401,7 @@ model BookLoan {
   book               Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
-  @@index([userId, status])
+  @@index([userId, status, returnedAt])
   @@index([status, remindToReturn, returnedAt, expectedReturnDate])
   @@map("book_loans")
 }

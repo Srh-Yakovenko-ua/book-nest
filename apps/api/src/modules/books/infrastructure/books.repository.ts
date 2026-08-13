@@ -1460,7 +1460,12 @@ async function applyLoanBlock(
 ): Promise<void> {
   if (change.kind === "return") {
     await tx.bookLoan.updateMany({
-      data: { returnedAt: change.returnedAt, status: "returned" },
+      data: {
+        remindBeforeDays: null,
+        remindToReturn: false,
+        returnedAt: change.returnedAt,
+        status: "returned",
+      },
       where: { bookId, status: "active" },
     });
     return;

@@ -270,7 +270,12 @@ export class BulkBooksRepository {
       }
       if (clearLoan) {
         await tx.bookLoan.updateMany({
-          data: { returnedAt: now, status: "returned" },
+          data: {
+            remindBeforeDays: null,
+            remindToReturn: false,
+            returnedAt: now,
+            status: "returned",
+          },
           where: { bookId: { in: bookIds }, status: "active", userId },
         });
       }

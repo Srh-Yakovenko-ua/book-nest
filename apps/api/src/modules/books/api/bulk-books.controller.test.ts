@@ -325,7 +325,7 @@ describe("PATCH /api/books/bulk/reading-status", () => {
 });
 
 describe("PATCH /api/books/bulk/ownership-status", () => {
-  it("marks the loan returned when ownership moves away from a loan status", async () => {
+  it("marks the loan returned and clears its reminder when ownership moves away from a loan status", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const author = await seedAuthor({ name: "Frank Herbert", userId });
     const book = await seedBook({
@@ -335,7 +335,14 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
       userId,
     });
     await prisma.bookLoan.create({
-      data: { bookId: book.id, personName: "Olha", type: "borrowed_from_someone", userId },
+      data: {
+        bookId: book.id,
+        personName: "Olha",
+        remindBeforeDays: 3,
+        remindToReturn: true,
+        type: "borrowed_from_someone",
+        userId,
+      },
     });
 
     const res = await patch(accessToken, "ownership-status", {
@@ -347,6 +354,8 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
     const loan = await prisma.bookLoan.findFirst({ where: { bookId: book.id } });
     expect(loan?.status).toBe("returned");
     expect(loan?.returnedAt).not.toBeNull();
+    expect(loan?.remindToReturn).toBe(false);
+    expect(loan?.remindBeforeDays).toBeNull();
   });
 
   it("rejects bulk-setting a loan ownership status and leaves books unchanged", async () => {
