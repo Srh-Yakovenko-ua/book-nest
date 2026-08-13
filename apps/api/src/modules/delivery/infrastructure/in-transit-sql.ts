@@ -8,6 +8,7 @@ import {
 
 import type { DeliveryDateBounds } from "../domain/delivery-ui-status.js";
 
+import { assertNever } from "../../../core/assert-never.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { toIsoDate } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
@@ -148,6 +149,16 @@ export function buildInTransitConditions({
   return Prisma.join(conditions, " AND ");
 }
 
+export function currencySql(currency: Currency): Prisma.Sql {
+  if (currency !== DEFAULT_CURRENCY) {
+    return Prisma.sql`book_order.currency = ${currency}`;
+  }
+  return Prisma.sql`(
+    book_order.currency = ${currency}
+    OR (book_order.currency IS NULL AND item.price IS NOT NULL)
+  )`;
+}
+
 export function inTransitCategorySql({
   soonEndIso,
   todayIso,
@@ -180,7 +191,7 @@ export function inTransitOrderSql({
 }): Prisma.Sql {
   const order = isExpectedDateSort(sort)
     ? EXPECTED_DATE_ORDER_SQL[sort](todayIso)
-    : IN_TRANSIT_ORDER_SQL[sort];
+    : plainInTransitOrderSql(sort);
   return Prisma.sql`${order}, item.id ASC`;
 }
 
@@ -222,16 +233,6 @@ export function toIsoBounds({
   };
 }
 
-function currencySql(currency: Currency): Prisma.Sql {
-  if (currency !== DEFAULT_CURRENCY) {
-    return Prisma.sql`book_order.currency = ${currency}`;
-  }
-  return Prisma.sql`(
-    book_order.currency = ${currency}
-    OR (book_order.currency IS NULL AND item.price IS NOT NULL)
-  )`;
-}
-
 function inTransitFilterSql({
   categories,
   filter,
@@ -268,15 +269,20 @@ function inTransitFilterSql({
       return categories.withoutTrackingNumber;
     case "without_tracking_url":
       return categories.withoutTrackingUrl;
-    default: {
-      const _exhaustiveCheck: never = filter;
-      return _exhaustiveCheck;
-    }
+    default:
+      return assertNever(filter);
   }
 }
 
 function isExpectedDateSort(sort: InTransitSort): sort is ExpectedDateSort {
-  return sort in IN_TRANSIT_EXPECTED_DATE_ORDER;
+  return Object.hasOwn(IN_TRANSIT_EXPECTED_DATE_ORDER, sort);
+}
+
+function plainInTransitOrderSql(sort: Exclude<InTransitSort, ExpectedDateSort>): Prisma.Sql {
+  if (!Object.hasOwn(IN_TRANSIT_ORDER_SQL, sort)) {
+    throw new Error(`Unsupported in-transit sort: ${String(sort)}`);
+  }
+  return IN_TRANSIT_ORDER_SQL[sort];
 }
 
 function searchSql(search: string): Prisma.Sql {

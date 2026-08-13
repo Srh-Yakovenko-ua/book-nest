@@ -41,7 +41,7 @@ export function resolveTrackingUrl({
 }): Nullable<string> {
   const typedUrl = trackingUrl?.trim() ?? "";
   if (typedUrl.length > 0) {
-    return typedUrl;
+    return toHttpUrl(typedUrl);
   }
 
   return buildTrackingUrlFromTemplate({ template, trackingNumber });

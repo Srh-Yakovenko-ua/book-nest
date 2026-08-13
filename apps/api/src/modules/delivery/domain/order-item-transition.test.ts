@@ -1,4 +1,4 @@
-import type { OwnershipStatus } from "@app/shared";
+import type { OwnershipStatus, ShipmentStatus } from "@app/shared";
 
 import { describe, expect, it } from "vitest";
 
@@ -21,21 +21,29 @@ const EARLIER_CANCELLED_AT = new Date("2026-03-01T08:00:00.000Z");
 const EARLIER_RECEIVED_AT = new Date("2026-03-02T08:00:00.000Z");
 
 const PARCEL = "shipment-a";
-const SIBLING_PARCEL = "shipment-b";
+const TERMINAL_STATUSES: ShipmentStatus[] = ["received", "cancelled"];
+
+function cancelledPlan(
+  plan: ShipmentCancellationPlan,
+): Extract<ShipmentCancellationPlan, { outcome: "cancelled" }> {
+  if (plan.outcome === "rejected") {
+    throw new Error(`expected a cancellation plan, got ${plan.reason}`);
+  }
+  return plan;
+}
 
 function cancelParcel({
-  items,
   keepAsWantToBuy = true,
+  status = "in_transit",
 }: {
-  items: OrderItemState[];
   keepAsWantToBuy?: boolean;
-}): ShipmentCancellationPlan {
+  status?: ShipmentStatus;
+} = {}): ShipmentCancellationPlan {
   return planShipmentCancellation({
     cancelReason: "Store cancelled the parcel",
-    items,
     keepAsWantToBuy,
     now: NOW,
-    shipmentId: PARCEL,
+    status,
   });
 }
 
@@ -50,12 +58,17 @@ function makeItem(id: string, overrides: Partial<OrderItemState> = {}): OrderIte
   };
 }
 
-function patchedItemIds(plan: ShipmentCancellationPlan | ShipmentReceiptPlan): string[] {
-  return plan.items.map((item) => item.itemId);
+function receiptPlan(
+  plan: ShipmentReceiptPlan,
+): Extract<ShipmentReceiptPlan, { outcome: "received" }> {
+  if (plan.outcome === "rejected") {
+    throw new Error(`expected a receipt plan, got ${plan.reason}`);
+  }
+  return plan;
 }
 
-function receiveParcel(items: OrderItemState[]): ShipmentReceiptPlan {
-  return planShipmentReceipt({ items, receivedAt: RECEIVED_AT, shipmentId: PARCEL });
+function receiveParcel(status: ShipmentStatus = "in_transit"): ShipmentReceiptPlan {
+  return planShipmentReceipt({ receivedAt: RECEIVED_AT, status });
 }
 
 describe("planOrderItemCancellation", () => {
@@ -121,46 +134,8 @@ describe("planOrderItemCancellation", () => {
 });
 
 describe("planShipmentCancellation", () => {
-  it("cancels every live book of the parcel", () => {
-    const plan = cancelParcel({ items: [makeItem("item-1"), makeItem("item-2")] });
-
-    expect(patchedItemIds(plan)).toEqual(["item-1", "item-2"]);
-  });
-
-  it("leaves the books of a sibling parcel untouched", () => {
-    const plan = cancelParcel({
-      items: [makeItem("item-1"), makeItem("item-3", { shipmentId: SIBLING_PARCEL })],
-    });
-
-    expect(patchedItemIds(plan)).toEqual(["item-1"]);
-  });
-
-  it("leaves a book that has not been put in any parcel untouched", () => {
-    const plan = cancelParcel({
-      items: [makeItem("item-1"), makeItem("item-4", { shipmentId: null })],
-    });
-
-    expect(patchedItemIds(plan)).toEqual(["item-1"]);
-  });
-
-  it("skips a book of the parcel that was already cancelled", () => {
-    const plan = cancelParcel({
-      items: [makeItem("item-1"), makeItem("item-5", { cancelledAt: EARLIER_CANCELLED_AT })],
-    });
-
-    expect(patchedItemIds(plan)).toEqual(["item-1"]);
-  });
-
-  it("skips a book of the parcel that had already arrived", () => {
-    const plan = cancelParcel({
-      items: [makeItem("item-1"), makeItem("item-6", { receivedAt: EARLIER_RECEIVED_AT })],
-    });
-
-    expect(patchedItemIds(plan)).toEqual(["item-1"]);
-  });
-
   it("carries the parcel half of the transition with the injected now and the reason", () => {
-    const plan = cancelParcel({ items: [makeItem("item-1")] });
+    const plan = cancelledPlan(cancelParcel());
 
     expect(plan.shipment).toEqual({
       cancelledAt: NOW,
@@ -169,79 +144,41 @@ describe("planShipmentCancellation", () => {
     });
   });
 
-  it("stamps the same cancellation on every book it touches", () => {
-    const plan = cancelParcel({ items: [makeItem("item-1"), makeItem("item-2")] });
-
-    expect(plan.items.map((item) => item.item)).toEqual([
-      { cancelledAt: NOW, cancelReason: "Store cancelled the parcel" },
-      { cancelledAt: NOW, cancelReason: "Store cancelled the parcel" },
-    ]);
+  it("hands the caller one ownership target for every book of the parcel", () => {
+    expect(cancelledPlan(cancelParcel()).ownership).toEqual({
+      ownershipStatus: "want_to_buy",
+    });
+    expect(cancelledPlan(cancelParcel({ keepAsWantToBuy: false })).ownership).toEqual({
+      ownershipStatus: "none",
+    });
   });
 
-  it("returns every cancelled book to none when the reader does not keep them as wanted", () => {
-    const plan = cancelParcel({
-      items: [makeItem("item-1"), makeItem("item-2")],
-      keepAsWantToBuy: false,
+  it.each(TERMINAL_STATUSES)("refuses to cancel a parcel that is already %s", (status) => {
+    expect(cancelParcel({ status })).toEqual({
+      outcome: "rejected",
+      reason: "shipment_is_terminal",
     });
-
-    expect(plan.items.map((item) => item.book)).toEqual([
-      { ownershipStatus: "none" },
-      { ownershipStatus: "none" },
-    ]);
   });
 });
 
 describe("planShipmentReceipt", () => {
-  it("marks every live book of the parcel as owned and stamps the receipt moment", () => {
-    const plan = receiveParcel([makeItem("item-1"), makeItem("item-2")]);
-
-    expect(plan.items).toEqual([
-      {
-        book: { ownershipStatus: "owned" },
-        bookId: "book-of-item-1",
-        item: { receivedAt: RECEIVED_AT },
-        itemId: "item-1",
-      },
-      {
-        book: { ownershipStatus: "owned" },
-        bookId: "book-of-item-2",
-        item: { receivedAt: RECEIVED_AT },
-        itemId: "item-2",
-      },
-    ]);
-  });
-
-  it("never revives a cancelled book when its parcel arrives", () => {
-    const plan = receiveParcel([
-      makeItem("item-1"),
-      makeItem("item-5", { cancelledAt: EARLIER_CANCELLED_AT }),
-    ]);
-
-    expect(patchedItemIds(plan)).toEqual(["item-1"]);
-  });
-
-  it("leaves the books of a sibling parcel travelling", () => {
-    const plan = receiveParcel([
-      makeItem("item-1"),
-      makeItem("item-3", { shipmentId: SIBLING_PARCEL }),
-    ]);
-
-    expect(patchedItemIds(plan)).toEqual(["item-1"]);
-  });
-
-  it("does not stamp a second receipt on a book that had already arrived", () => {
-    const plan = receiveParcel([
-      makeItem("item-1"),
-      makeItem("item-6", { receivedAt: EARLIER_RECEIVED_AT }),
-    ]);
-
-    expect(patchedItemIds(plan)).toEqual(["item-1"]);
-  });
-
   it("stamps the parcel with the given receipt moment and the received status", () => {
-    const plan = receiveParcel([makeItem("item-1")]);
+    const plan = receiptPlan(receiveParcel());
 
     expect(plan.shipment).toEqual({ receivedAt: RECEIVED_AT, status: "received" });
+  });
+
+  it("hands the caller one ownership target for every book of the parcel", () => {
+    expect(receiptPlan(receiveParcel()).ownership).toEqual({
+      ownershipStatus: "owned",
+    });
+  });
+
+  it.each(TERMINAL_STATUSES)("refuses to receive a parcel that is already %s", (status) => {
+    expect(receiveParcel(status)).toEqual({
+      outcome: "rejected",
+      reason: "shipment_is_terminal",
+    });
   });
 });
 

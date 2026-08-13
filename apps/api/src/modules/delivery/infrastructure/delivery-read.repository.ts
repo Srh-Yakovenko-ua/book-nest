@@ -1,4 +1,4 @@
-import type { InTransitSort } from "@app/shared";
+import type { DeliveryHistorySort, InTransitSort } from "@app/shared";
 
 import { SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
@@ -6,7 +6,9 @@ import { z } from "zod";
 
 import type { InTransitSummaryData } from "../domain/delivery-summary.js";
 import type { DeliveryDateBounds } from "../domain/delivery-ui-status.js";
+import type { OrderHistorySummaryData } from "../domain/order-history-summary.js";
 import type { InTransitFilterInput } from "./in-transit-sql.js";
+import type { HistoryFilterInput } from "./order-history-sql.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
@@ -22,6 +24,12 @@ import {
   ordersWithActiveItemsSource,
   toIsoBounds,
 } from "./in-transit-sql.js";
+import {
+  buildHistoryConditions,
+  HISTORY_ITEM_SOURCE,
+  historyOrderSql,
+  LIVE_HISTORY_ITEM_SQL,
+} from "./order-history-sql.js";
 
 const inTransitRowRelations = {
   include: {
@@ -39,8 +47,15 @@ const inTransitRowRelations = {
 } satisfies Prisma.BookOrderItemDefaultArgs;
 
 export type { InTransitFilterInput } from "./in-transit-sql.js";
+export type { HistoryFilterInput } from "./order-history-sql.js";
 
 export type BookOrderItemRow = Prisma.BookOrderItemGetPayload<typeof inTransitRowRelations>;
+
+type ListHistoryInput = HistoryFilterInput & {
+  skip: number;
+  sort: DeliveryHistorySort;
+  take: number;
+};
 
 type ListInTransitInput = InTransitFilterInput & {
   skip: number;
@@ -63,6 +78,24 @@ const ActiveOrdersRowSchema = z.object({
 });
 
 const ActiveShipmentsRowSchema = z.object({ activeShipmentsCount: z.number().int() });
+
+const HistorySummaryRowSchema = z.object({
+  activeBooksCount: z.number().int(),
+  booksCount: z.number().int(),
+  cancelledBooksCount: z.number().int(),
+  ordersCount: z.number().int(),
+  receivedBooksCount: z.number().int(),
+  shipmentsCount: z.number().int(),
+});
+
+const EMPTY_HISTORY_SUMMARY: z.infer<typeof HistorySummaryRowSchema> = {
+  activeBooksCount: 0,
+  booksCount: 0,
+  cancelledBooksCount: 0,
+  ordersCount: 0,
+  receivedBooksCount: 0,
+  shipmentsCount: 0,
+};
 
 const ItemCountsRowSchema = z.object({
   activeBooksCount: z.number().int(),
@@ -104,6 +137,15 @@ const EMPTY_SUMMARY_ROWS: {
 export class DeliveryReadRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async countHistory(filter: HistoryFilterInput): Promise<number> {
+    const rows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT (count(*))::int AS "totalCount"
+      ${HISTORY_ITEM_SOURCE}
+      WHERE ${buildHistoryConditions(filter)}
+    `);
+    return z.array(TotalCountRowSchema).parse(rows)[0]?.totalCount ?? 0;
+  }
+
   async countInTransit(filter: InTransitFilterInput): Promise<number> {
     const rows = await this.prisma.$queryRaw(Prisma.sql`
       SELECT (count(*))::int AS "totalCount"
@@ -111,6 +153,48 @@ export class DeliveryReadRepository {
       WHERE ${buildInTransitConditions(filter)}
     `);
     return z.array(TotalCountRowSchema).parse(rows)[0]?.totalCount ?? 0;
+  }
+
+  async historySummary({
+    includeCancelled,
+    userId,
+  }: {
+    includeCancelled: boolean;
+    userId: string;
+  }): Promise<OrderHistorySummaryData> {
+    const ownedItems = Prisma.sql`book_order.user_id = ${userId}::uuid AND ${LIVE_HISTORY_ITEM_SQL}`;
+    const pricedItems = includeCancelled
+      ? Prisma.sql`item.price IS NOT NULL`
+      : Prisma.sql`item.price IS NOT NULL AND item.cancelled_at IS NULL`;
+
+    const [countRows, currencyRows] = await Promise.all([
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT
+          (count(*))::int AS "booksCount",
+          (count(*) FILTER (
+            WHERE item.cancelled_at IS NULL AND item.received_at IS NULL
+          ))::int AS "activeBooksCount",
+          (count(*) FILTER (WHERE item.received_at IS NOT NULL))::int AS "receivedBooksCount",
+          (count(*) FILTER (WHERE item.cancelled_at IS NOT NULL))::int AS "cancelledBooksCount",
+          (count(DISTINCT item.order_id))::int AS "ordersCount",
+          (count(DISTINCT item.shipment_id))::int AS "shipmentsCount"
+        ${HISTORY_ITEM_SOURCE}
+        WHERE ${ownedItems}
+      `),
+      this.prisma.$queryRaw(Prisma.sql`
+        SELECT book_order.currency AS "currency", (sum(item.price))::float8 AS "total"
+        ${HISTORY_ITEM_SOURCE}
+        WHERE ${ownedItems} AND ${pricedItems}
+        GROUP BY book_order.currency
+      `),
+    ]);
+
+    const counts = z.array(HistorySummaryRowSchema).parse(countRows)[0] ?? EMPTY_HISTORY_SUMMARY;
+
+    return {
+      ...counts,
+      currencyTotals: z.array(CurrencyTotalRowSchema).parse(currencyRows),
+    };
   }
 
   async inTransitSummary({
@@ -201,6 +285,24 @@ export class DeliveryReadRepository {
     };
   }
 
+  async listHistory({
+    skip,
+    sort,
+    take,
+    ...filter
+  }: ListHistoryInput): Promise<BookOrderItemRow[]> {
+    const idRows = await this.prisma.$queryRaw(Prisma.sql`
+      SELECT item.id::text AS "id"
+      ${HISTORY_ITEM_SOURCE}
+      WHERE ${buildHistoryConditions(filter)}
+      ORDER BY ${historyOrderSql(sort)}
+      OFFSET ${skip}::int
+      LIMIT ${take}::int
+    `);
+
+    return this.loadRowsInOrder({ idRows, userId: filter.userId });
+  }
+
   async listInTransit({
     skip,
     sort,
@@ -215,6 +317,17 @@ export class DeliveryReadRepository {
       OFFSET ${skip}::int
       LIMIT ${take}::int
     `);
+
+    return this.loadRowsInOrder({ idRows, userId: filter.userId });
+  }
+
+  private async loadRowsInOrder({
+    idRows,
+    userId,
+  }: {
+    idRows: unknown;
+    userId: string;
+  }): Promise<BookOrderItemRow[]> {
     const orderedIds = z
       .array(OrderedIdRowSchema)
       .parse(idRows)
@@ -224,7 +337,7 @@ export class DeliveryReadRepository {
     }
 
     const items = await this.prisma.bookOrderItem.findMany({
-      where: { book: SOFT_DELETE_SCOPE.active, id: { in: orderedIds } },
+      where: { book: SOFT_DELETE_SCOPE.active, id: { in: orderedIds }, order: { userId } },
       ...inTransitRowRelations,
     });
     const itemById = new Map(items.map((item) => [item.id, item]));

@@ -43,6 +43,12 @@ type MoveItemsInput = {
   userId: string;
 };
 
+type ReceiveBooksInput = {
+  bookIds: string[];
+  receivedAt: Date;
+  userId: string;
+};
+
 type ReceiveShipmentItemsInput = {
   receivedAt: Date;
   shipmentId: string;
@@ -88,14 +94,28 @@ export class BookOrderItemsRepository {
     return cancelled.count;
   }
 
-  findOwnedById({
-    itemId,
-    userId,
-  }: {
-    itemId: string;
-    userId: string;
-  }): Promise<Nullable<BookOrderItemWithContext>> {
-    return this.prisma.bookOrderItem.findFirst({
+  async findActiveBookIds(
+    { bookIds, userId }: { bookIds: string[]; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<string[]> {
+    if (bookIds.length === 0) {
+      return [];
+    }
+
+    const rows = await client.bookOrderItem.findMany({
+      distinct: ["bookId"],
+      orderBy: { bookId: "asc" },
+      select: { bookId: true },
+      where: { ...activeItemWhere(userId), bookId: { in: bookIds } },
+    });
+    return rows.map((row) => row.bookId);
+  }
+
+  findOwnedById(
+    { itemId, userId }: { itemId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<BookOrderItemWithContext>> {
+    return client.bookOrderItem.findFirst({
       where: { book: SOFT_DELETE_SCOPE.active, id: itemId, order: { userId } },
       ...bookOrderItemContext,
     });
@@ -108,12 +128,29 @@ export class BookOrderItemsRepository {
     const moved = await client.bookOrderItem.updateMany({
       data: { shipmentId },
       where: {
-        ...activeItemWhere(userId),
-        id: { in: itemIds },
-        order: targetOrderWhere({ orderId, shipmentId, userId }),
+        AND: [
+          activeItemWhere(userId),
+          { id: { in: itemIds }, order: targetOrderWhere({ orderId, shipmentId, userId }) },
+        ],
       },
     });
     return moved.count;
+  }
+
+  async receiveForBooks(
+    { bookIds, receivedAt, userId }: ReceiveBooksInput,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<OrderItemBookRef[]> {
+    if (bookIds.length === 0) {
+      return [];
+    }
+
+    const received = await client.bookOrderItem.updateManyAndReturn({
+      data: { receivedAt },
+      select: { bookId: true, id: true },
+      where: { ...activeItemWhere(userId), bookId: { in: bookIds } },
+    });
+    return sortById(received);
   }
 
   async receiveForShipment(
@@ -136,13 +173,13 @@ export class BookOrderItemsRepository {
   }: {
     client: Prisma.TransactionClient;
     data: { cancelledAt: Date; cancelReason: Nullable<string> };
-    match: Prisma.BookOrderItemWhereInput;
+    match: Omit<Prisma.BookOrderItemWhereInput, "order">;
     userId: string;
   }): Promise<OrderItemBookRef[]> {
     const cancelled = await client.bookOrderItem.updateManyAndReturn({
       data,
       select: { bookId: true, id: true },
-      where: { ...activeItemWhere(userId), ...match },
+      where: { AND: [activeItemWhere(userId), match] },
     });
     return sortById(cancelled);
   }

@@ -56,7 +56,7 @@ export function buildInTransitSummaryView(data: InTransitSummaryData): InTransit
   };
 }
 
-function toCurrencyTotals(totals: InTransitCurrencyTotal[]): CurrencyTotal[] {
+export function toCurrencyTotals(totals: InTransitCurrencyTotal[]): CurrencyTotal[] {
   const merged = new Map<Currency, number>();
   for (const entry of totals) {
     const currency =

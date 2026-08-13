@@ -125,8 +125,11 @@ export class BookOrdersRepository {
     });
   }
 
-  findOwnedById({ orderId, userId }: OwnedOrderRef): Promise<Nullable<BookOrderWithRelations>> {
-    return this.prisma.bookOrder.findFirst({
+  findOwnedById(
+    { orderId, userId }: OwnedOrderRef,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<BookOrderWithRelations>> {
+    return client.bookOrder.findFirst({
       where: { id: orderId, userId },
       ...bookOrderRelations,
     });

@@ -1,8 +1,14 @@
-import type { Nullable, OwnershipStatus, ValueOf } from "@app/shared";
+import type { Nullable, OwnershipStatus, ShipmentStatus, ValueOf } from "@app/shared";
 
 import { OwnershipStatusSchema, ShipmentStatusSchema } from "@app/shared";
 
-import type { ShipmentCancelPatch, ShipmentReceivePatch } from "./shipment-transition.js";
+import type {
+  ShipmentCancelPatch,
+  ShipmentReceivePatch,
+  ShipmentTransitionRejected,
+} from "./shipment-transition.js";
+
+import { rejectTerminalShipment } from "./shipment-transition.js";
 
 export const ORDERABLE_OWNERSHIP_STATUSES = ["in_transit", "none", "want_to_buy"] as const;
 
@@ -43,17 +49,6 @@ export type OrderItemOwnershipPatch = {
   ownershipStatus: OwnershipStatus;
 };
 
-export type OrderItemReceipt = {
-  book: OrderItemOwnershipPatch;
-  bookId: string;
-  item: OrderItemReceivePatch;
-  itemId: string;
-};
-
-export type OrderItemReceivePatch = {
-  receivedAt: Date;
-};
-
 export type OrderItemState = {
   bookId: string;
   cancelledAt: Nullable<Date>;
@@ -62,14 +57,24 @@ export type OrderItemState = {
   shipmentId: Nullable<string>;
 };
 
-export type ShipmentCancellationPlan = {
-  items: OrderItemCancellation[];
-  shipment: ShipmentCancelPatch;
-};
+export type ShipmentCancellationPlan =
+  | ShipmentTransitionRejected
+  | {
+      outcome: "cancelled";
+      ownership: OrderItemOwnershipPatch;
+      shipment: ShipmentCancelPatch;
+    };
 
-export type ShipmentReceiptPlan = {
-  items: OrderItemReceipt[];
-  shipment: ShipmentReceivePatch;
+export type ShipmentReceiptPlan =
+  | ShipmentTransitionRejected
+  | {
+      outcome: "received";
+      ownership: OrderItemOwnershipPatch;
+      shipment: ShipmentReceivePatch;
+    };
+
+export const RECEIVED_BOOK_OWNERSHIP: OrderItemOwnershipPatch = {
+  ownershipStatus: OwnershipStatusSchema.enum.owned,
 };
 
 const ORDERABLE_OWNERSHIP_STATUS_SET: ReadonlySet<OwnershipStatus> = new Set(
@@ -77,6 +82,14 @@ const ORDERABLE_OWNERSHIP_STATUS_SET: ReadonlySet<OwnershipStatus> = new Set(
 );
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
+
+export function cancelledBookOwnership(keepAsWantToBuy: boolean): OrderItemOwnershipPatch {
+  return {
+    ownershipStatus: keepAsWantToBuy
+      ? OwnershipStatusSchema.enum.want_to_buy
+      : OwnershipStatusSchema.enum.none,
+  };
+}
 
 export function evaluateBookOrderEntry({
   hasActiveOrderItem,
@@ -121,21 +134,23 @@ export function planOrderItemCancellation({
 
 export function planShipmentCancellation({
   cancelReason,
-  items,
   keepAsWantToBuy,
   now,
-  shipmentId,
+  status,
 }: {
   cancelReason: Nullable<string> | undefined;
-  items: readonly OrderItemState[];
   keepAsWantToBuy: boolean;
   now: Date;
-  shipmentId: string;
+  status: ShipmentStatus;
 }): ShipmentCancellationPlan {
+  const rejection = rejectTerminalShipment(status);
+  if (rejection !== null) {
+    return rejection;
+  }
+
   return {
-    items: items
-      .filter((item) => isActiveItemOfShipment({ item, shipmentId }))
-      .map((item) => toCancellation({ cancelReason, item, keepAsWantToBuy, now })),
+    outcome: "cancelled",
+    ownership: cancelledBookOwnership(keepAsWantToBuy),
     shipment: {
       cancelledAt: now,
       cancelReason: cancelReason ?? null,
@@ -145,35 +160,22 @@ export function planShipmentCancellation({
 }
 
 export function planShipmentReceipt({
-  items,
   receivedAt,
-  shipmentId,
+  status,
 }: {
-  items: readonly OrderItemState[];
   receivedAt: Date;
-  shipmentId: string;
+  status: ShipmentStatus;
 }): ShipmentReceiptPlan {
+  const rejection = rejectTerminalShipment(status);
+  if (rejection !== null) {
+    return rejection;
+  }
+
   return {
-    items: items
-      .filter((item) => isActiveItemOfShipment({ item, shipmentId }))
-      .map((item) => ({
-        book: { ownershipStatus: OwnershipStatusSchema.enum.owned },
-        bookId: item.bookId,
-        item: { receivedAt },
-        itemId: item.id,
-      })),
+    outcome: "received",
+    ownership: RECEIVED_BOOK_OWNERSHIP,
     shipment: { receivedAt, status: SHIPMENT_STATUS.received },
   };
-}
-
-function isActiveItemOfShipment({
-  item,
-  shipmentId,
-}: {
-  item: OrderItemState;
-  shipmentId: string;
-}): boolean {
-  return item.shipmentId === shipmentId && item.cancelledAt === null && item.receivedAt === null;
 }
 
 function toCancellation({
@@ -188,11 +190,7 @@ function toCancellation({
   now: Date;
 }): OrderItemCancellation {
   return {
-    book: {
-      ownershipStatus: keepAsWantToBuy
-        ? OwnershipStatusSchema.enum.want_to_buy
-        : OwnershipStatusSchema.enum.none,
-    },
+    book: cancelledBookOwnership(keepAsWantToBuy),
     bookId: item.bookId,
     item: { cancelledAt: now, cancelReason: cancelReason ?? null },
     itemId: item.id,

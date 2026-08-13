@@ -28,9 +28,12 @@ export type ShipmentStatusPatch = {
 export type ShipmentTransition =
   ShipmentTransitionRejected | { outcome: "allowed"; shipment: ShipmentStatusPatch };
 
-export type ShipmentTransitionRejection = ValueOf<typeof SHIPMENT_TRANSITION_REJECTIONS>;
+export type ShipmentTransitionRejected = {
+  outcome: "rejected";
+  reason: ShipmentTransitionRejection;
+};
 
-type ShipmentTransitionRejected = { outcome: "rejected"; reason: ShipmentTransitionRejection };
+export type ShipmentTransitionRejection = ValueOf<typeof SHIPMENT_TRANSITION_REJECTIONS>;
 
 export function evaluateShipmentEdit(status: ShipmentStatus): ShipmentEdit {
   const rejection = rejectTerminalShipment(status);
@@ -48,6 +51,16 @@ export function evaluateShipmentTransition({
   return rejection ?? { outcome: "allowed", shipment: { status: to } };
 }
 
+export function rejectTerminalShipment(
+  status: ShipmentStatus,
+): Nullable<ShipmentTransitionRejected> {
+  if (isActiveShipmentStatus(status)) {
+    return null;
+  }
+
+  return { outcome: "rejected", reason: SHIPMENT_TRANSITION_REJECTIONS.terminalShipment };
+}
+
 export function resolveShipmentReceivedAt({
   now,
   receivedAt,
@@ -56,12 +69,4 @@ export function resolveShipmentReceivedAt({
   receivedAt: Nullable<string> | undefined;
 }): Date {
   return receivedAt === null || receivedAt === undefined ? now : parseIsoDate(receivedAt);
-}
-
-function rejectTerminalShipment(status: ShipmentStatus): Nullable<ShipmentTransitionRejected> {
-  if (isActiveShipmentStatus(status)) {
-    return null;
-  }
-
-  return { outcome: "rejected", reason: SHIPMENT_TRANSITION_REJECTIONS.terminalShipment };
 }

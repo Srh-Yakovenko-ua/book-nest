@@ -122,4 +122,24 @@ describe("resolveTrackingUrl", () => {
       resolveTrackingUrl({ template: null, trackingNumber: "TTN-1", trackingUrl: null }),
     ).toBeNull();
   });
+
+  it.each([
+    "javascript:alert(document.domain)",
+    "data:text/html,<script>alert(1)</script>",
+    "file:///etc/passwd",
+  ])("never hands back a stored %s link", (trackingUrl) => {
+    expect(resolveTrackingUrl({ template: TEMPLATE, trackingNumber: "TTN-1", trackingUrl })).toBe(
+      null,
+    );
+  });
+
+  it("still hands back a stored link that really is http", () => {
+    expect(
+      resolveTrackingUrl({
+        template: TEMPLATE,
+        trackingNumber: "TTN-1",
+        trackingUrl: "http://my-own-link.example.com/parcel",
+      }),
+    ).toBe("http://my-own-link.example.com/parcel");
+  });
 });

@@ -2,6 +2,7 @@ import type { ActiveShipmentStatus, Nullable } from "@app/shared";
 
 import { SHIPMENT_ACTIVE_STATUSES, ShipmentStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { z } from "zod";
 
 import type { NewShipmentData } from "./book-orders.repository.js";
 
@@ -20,6 +21,8 @@ const shipmentRelations = {
     order: true,
   },
 } satisfies Prisma.ShipmentDefaultArgs;
+
+const LockedShipmentRowsSchema = z.array(z.object({ id: z.uuid() }));
 
 export type ShipmentPatch = {
   deliveryServiceId?: Nullable<string>;
@@ -88,14 +91,32 @@ export class ShipmentsRepository {
     });
   }
 
-  findOwnedById({
-    shipmentId,
-    userId,
-  }: OwnedShipmentRef): Promise<Nullable<ShipmentWithRelations>> {
-    return this.prisma.shipment.findFirst({
+  findOwnedById(
+    { shipmentId, userId }: OwnedShipmentRef,
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<ShipmentWithRelations>> {
+    return client.shipment.findFirst({
       where: { id: shipmentId, order: { userId } },
       ...shipmentRelations,
     });
+  }
+
+  async lockActive(
+    { orderId, shipmentId, userId }: OwnedShipmentRef & { orderId: string },
+    client: Prisma.TransactionClient,
+  ): Promise<boolean> {
+    const rows = await client.$queryRaw(Prisma.sql`
+      SELECT shipment.id::text AS "id"
+      FROM shipments shipment
+      JOIN book_orders book_order ON book_order.id = shipment.order_id
+      WHERE shipment.id = ${shipmentId}::uuid
+        AND shipment.order_id = ${orderId}::uuid
+        AND book_order.user_id = ${userId}::uuid
+        AND shipment.status = ANY(${[...SHIPMENT_ACTIVE_STATUSES]}::text[])
+      FOR UPDATE OF shipment
+    `);
+
+    return LockedShipmentRowsSchema.parse(rows).length === 1;
   }
 
   receiveActive(
