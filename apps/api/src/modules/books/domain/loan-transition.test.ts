@@ -1,5 +1,6 @@
 import type { CreateLoanInput } from "@app/shared";
 
+import { LOAN_REMINDER_LEAD_DAYS } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
 import { computeLoanChange } from "./loan-transition.js";
@@ -66,6 +67,7 @@ describe("computeLoanChange create loan info", () => {
       loanDate: PARSED_LOAN_DATE,
       note: null,
       personName: "Olha",
+      remindBeforeDays: null,
       remindToReturn: false,
       type: "borrowed_from_someone",
     });
@@ -90,6 +92,7 @@ describe("computeLoanChange create loan info", () => {
       loanDate: PARSED_LOAN_DATE,
       note: "hardcover copy",
       personName: "Olha",
+      remindBeforeDays: LOAN_REMINDER_LEAD_DAYS.default,
       remindToReturn: true,
       type: "lent_to_someone",
     });

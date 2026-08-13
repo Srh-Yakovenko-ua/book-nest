@@ -887,6 +887,7 @@ describe("POST /api/books", () => {
       loanUiStatus: "no_return_date",
       note: null,
       personName: "Olha",
+      remindBeforeDays: null,
       remindToReturn: false,
     });
   });
