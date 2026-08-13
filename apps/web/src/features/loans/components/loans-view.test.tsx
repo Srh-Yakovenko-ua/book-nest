@@ -1,6 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 
-import type { LoanDirectionStats, LoanListItemView, LoansSummaryView, LoanType } from "@app/shared";
+import type {
+  LoanDirectionSummary,
+  LoanListItemView,
+  LoansSummaryView,
+  LoanType,
+} from "@app/shared";
 import type { ReactNode } from "react";
 
 import { addDays, format } from "date-fns";
@@ -23,11 +28,15 @@ vi.mock("@/i18n/navigation", () => ({
 
 const copy = messages.loans;
 const stats = messages.loans.stats;
+const attention = messages.loans.sidebar.attention;
+const longHeld = messages.loans.sidebar.longHeld;
+const upcoming = messages.loans.sidebar.upcoming;
 const requestedUrls: string[] = [];
 
-const EMPTY_DIRECTION_STATS: LoanDirectionStats = {
+const EMPTY_DIRECTION_SUMMARY: LoanDirectionSummary = {
   earliestLoanDate: null,
   longHeldCount: 0,
+  longHeldLoans: [],
   nearestReturnDate: null,
   noReturnDateCount: 0,
   noReturnDatePeopleCount: 0,
@@ -36,6 +45,7 @@ const EMPTY_DIRECTION_STATS: LoanDirectionStats = {
   peopleCount: 0,
   returningSoonCount: 0,
   totalCount: 0,
+  upcomingReturns: [],
 };
 
 afterEach(() => {
@@ -94,7 +104,7 @@ describe("LoansView", () => {
   it("builds the borrowed stat cards from the summary", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
       borrowed: {
-        ...EMPTY_DIRECTION_STATS,
+        ...EMPTY_DIRECTION_SUMMARY,
         earliestLoanDate: isoDaysFromToday(-47),
         longHeldCount: 2,
         nearestReturnDate: isoDaysFromToday(2),
@@ -129,7 +139,7 @@ describe("LoansView", () => {
   it("builds the lent stat cards from the summary", async () => {
     mockLoans([loanItem("lent_to_someone", "Дюна")], {
       lent: {
-        ...EMPTY_DIRECTION_STATS,
+        ...EMPTY_DIRECTION_SUMMARY,
         nearestReturnDate: isoDaysFromToday(2),
         noReturnDateCount: 4,
         noReturnDatePeopleCount: 3,
@@ -163,7 +173,7 @@ describe("LoansView", () => {
 
   it("keeps the borrowed-only cards off the lent page", async () => {
     mockLoans([loanItem("lent_to_someone", "Дюна")], {
-      lent: { ...EMPTY_DIRECTION_STATS, totalCount: 1 },
+      lent: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 1 },
     });
 
     renderLoans("lent_to_someone");
@@ -176,7 +186,7 @@ describe("LoansView", () => {
   it("names today and tomorrow instead of counting days to the nearest return", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
       borrowed: {
-        ...EMPTY_DIRECTION_STATS,
+        ...EMPTY_DIRECTION_SUMMARY,
         nearestReturnDate: isoDaysFromToday(1),
         returningSoonCount: 1,
         totalCount: 1,
@@ -191,7 +201,7 @@ describe("LoansView", () => {
 
   it("falls back to the calm wording when a borrowed stat is empty", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
-      borrowed: { ...EMPTY_DIRECTION_STATS, totalCount: 1 },
+      borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 1 },
     });
 
     renderLoans("borrowed_from_someone");
@@ -212,7 +222,7 @@ describe("LoansView", () => {
 
   it("falls back to the calm wording when every lent loan has a return date", async () => {
     mockLoans([loanItem("lent_to_someone", "Дюна")], {
-      lent: { ...EMPTY_DIRECTION_STATS, totalCount: 1 },
+      lent: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 1 },
     });
 
     renderLoans("lent_to_someone");
@@ -222,7 +232,7 @@ describe("LoansView", () => {
   });
 
   it("hides the stat cards and explains the page when nothing is borrowed", async () => {
-    mockLoans([], { lent: { ...EMPTY_DIRECTION_STATS, totalCount: 2 } });
+    mockLoans([], { lent: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 2 } });
 
     renderLoans("borrowed_from_someone");
 
@@ -233,7 +243,7 @@ describe("LoansView", () => {
   });
 
   it("hides the stat cards and explains the page when nothing is lent out", async () => {
-    mockLoans([], { borrowed: { ...EMPTY_DIRECTION_STATS, totalCount: 2 } });
+    mockLoans([], { borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 2 } });
 
     renderLoans("lent_to_someone");
 
@@ -243,8 +253,189 @@ describe("LoansView", () => {
     expect(screen.queryByText(stats.overdue.label)).not.toBeInTheDocument();
   });
 
+  it("lists what needs attention in the borrowed sidebar", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        noReturnDateCount: 3,
+        oldestOverdueReturnDate: isoDaysFromToday(-11),
+        overdueCount: 2,
+        totalCount: 8,
+      },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    expect(await screen.findByText(attention.title)).toBeInTheDocument();
+
+    const overdueRow = await screen.findByRole("button", { name: /2 книги прострочено/ });
+    expect(within(overdueRow).getByText("Найдовше — на 11 днів")).toBeInTheDocument();
+
+    const noReturnDateRow = screen.getByRole("button", { name: /3 книги без дати повернення/ });
+    expect(within(noReturnDateRow).getByText(attention.no_return_date.detail)).toBeInTheDocument();
+  });
+
+  it("applies the existing loans filter when an attention row is clicked", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        oldestOverdueReturnDate: isoDaysFromToday(-3),
+        overdueCount: 1,
+        totalCount: 4,
+      },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    await userEvent.click(await screen.findByRole("button", { name: /1 книга прострочена/ }));
+
+    await waitFor(() => {
+      expect(requestedUrls.some((url) => url.includes("filter=overdue"))).toBe(true);
+    });
+  });
+
+  it("reassures the reader when no borrowed loan needs attention", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 2 },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    expect(await screen.findByText(attention.allClear.title)).toBeInTheDocument();
+    expect(screen.getByText(attention.allClear.text)).toBeInTheDocument();
+  });
+
+  it("keeps the attention block off the lent page", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: { ...EMPTY_DIRECTION_SUMMARY, noReturnDateCount: 2, overdueCount: 1, totalCount: 3 },
+    });
+
+    renderLoans("lent_to_someone");
+
+    await findStatCard(stats.lent.total.label);
+    expect(screen.queryByText(attention.title)).not.toBeInTheDocument();
+    expect(screen.queryByText(attention.allClear.title)).not.toBeInTheDocument();
+  });
+
+  it("builds the upcoming returns block from the summary, not from the visible page", async () => {
+    mockLoans([loanItem("lent_to_someone", "Гобіт")], {
+      lent: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        totalCount: 9,
+        upcomingReturns: [
+          loanItem("lent_to_someone", "Дюна", {
+            expectedReturnDate: isoDaysFromToday(0),
+            personName: "Ігор",
+          }),
+          loanItem("lent_to_someone", "Соляріс", {
+            expectedReturnDate: isoDaysFromToday(1),
+            personName: "Марта",
+          }),
+          loanItem("lent_to_someone", "Кобзар", {
+            expectedReturnDate: isoDaysFromToday(3),
+            personName: "Тарас",
+          }),
+        ],
+      },
+    });
+
+    renderLoans("lent_to_someone");
+
+    const block = await findSidebarBlock(upcoming.title);
+    expect(within(block).getByText("Дюна")).toBeInTheDocument();
+    expect(within(block).getByText("Ігор")).toBeInTheDocument();
+    expect(within(block).getByText(upcoming.today)).toBeInTheDocument();
+    expect(within(block).getByText(upcoming.tomorrow)).toBeInTheDocument();
+    expect(within(block).getByText("Через 3 дні")).toBeInTheDocument();
+    expect(within(block).queryByText("Гобіт")).not.toBeInTheDocument();
+  });
+
+  it("says there is nothing scheduled when no return is upcoming", async () => {
+    mockLoans([loanItem("lent_to_someone", "Гобіт")], {
+      lent: { ...EMPTY_DIRECTION_SUMMARY, noReturnDateCount: 1, totalCount: 1 },
+    });
+
+    renderLoans("lent_to_someone");
+
+    const block = await findSidebarBlock(upcoming.title);
+    expect(within(block).getByText(upcoming.empty)).toBeInTheDocument();
+  });
+
+  it("lists the long-held loans of the borrowed page, oldest first", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        longHeldCount: 2,
+        longHeldLoans: [
+          loanItem("borrowed_from_someone", "Дюна", {
+            loanDate: isoDaysFromToday(-47),
+            personName: "Ігор",
+          }),
+          loanItem("borrowed_from_someone", "Соляріс", {
+            loanDate: isoDaysFromToday(-31),
+            personName: "Марта",
+          }),
+        ],
+        totalCount: 9,
+      },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    const block = await findSidebarBlock(longHeld.title);
+    expect(within(block).getByText("Дюна")).toBeInTheDocument();
+    expect(within(block).getByText("Ігор")).toBeInTheDocument();
+    expect(within(block).getByText("47 днів у вас")).toBeInTheDocument();
+    expect(within(block).getByText("31 день у вас")).toBeInTheDocument();
+    expect(within(block).queryByText("Гобіт")).not.toBeInTheDocument();
+  });
+
+  it("opens the book behind a long-held loan", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        longHeldCount: 1,
+        longHeldLoans: [
+          loanItem("borrowed_from_someone", "Дюна", { loanDate: isoDaysFromToday(-33) }),
+        ],
+        totalCount: 2,
+      },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    const block = await findSidebarBlock(longHeld.title);
+    expect(within(block).getByRole("link", { name: /Дюна/ })).toHaveAttribute(
+      "href",
+      "/books/book-Дюна",
+    );
+  });
+
+  it("says no book has been held long when none is", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 1 },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    const block = await findSidebarBlock(longHeld.title);
+    expect(within(block).getByText(longHeld.empty)).toBeInTheDocument();
+  });
+
+  it("keeps the upcoming returns and the call to action off the borrowed page", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 1 },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    await findSidebarBlock(longHeld.title);
+    expect(within(sidebar()).queryByText(upcoming.title)).not.toBeInTheDocument();
+    expect(within(sidebar()).queryByText(copy.sidebar.cta.title)).not.toBeInTheDocument();
+  });
+
   it("sends the reader to the other page when this one has no loans", async () => {
-    mockLoans([], { lent: { ...EMPTY_DIRECTION_STATS, totalCount: 3 } });
+    mockLoans([], { lent: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 3 } });
 
     renderLoans("borrowed_from_someone");
 
@@ -256,11 +447,22 @@ describe("LoansView", () => {
   });
 });
 
-function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionStats {
+function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionSummary {
   return {
-    ...EMPTY_DIRECTION_STATS,
+    ...EMPTY_DIRECTION_SUMMARY,
     totalCount: items.filter((item) => item.type === type).length,
   };
+}
+
+function findSidebarBlock(title: string): Promise<HTMLElement> {
+  return waitFor(() => {
+    const block = within(sidebar()).getByText(title).closest<HTMLElement>("section");
+    if (block === null) throw new Error(`Sidebar block not found: ${title}`);
+    if (block.querySelector('[data-slot="skeleton"]') !== null) {
+      throw new Error(`Sidebar block is still loading: ${title}`);
+    }
+    return block;
+  });
 }
 
 function findStatCard(label: string): Promise<HTMLElement> {
@@ -291,7 +493,11 @@ function listUrl(): string {
   return found;
 }
 
-function loanItem(type: LoanType, title: string): LoanListItemView {
+function loanItem(
+  type: LoanType,
+  title: string,
+  overrides: Partial<LoanListItemView> = {},
+): LoanListItemView {
   return {
     book: {
       cover: null,
@@ -313,6 +519,7 @@ function loanItem(type: LoanType, title: string): LoanListItemView {
     remindToReturn: false,
     type,
     updatedAt: "2026-01-05T10:00:00.000Z",
+    ...overrides,
   };
 }
 
@@ -351,4 +558,8 @@ function renderLoans(type: LoanType, searchParams = "") {
       <LoansView type={type} />
     </NuqsTestingAdapter>,
   );
+}
+
+function sidebar(): HTMLElement {
+  return screen.getByRole("complementary", { name: copy.sidebar.label });
 }

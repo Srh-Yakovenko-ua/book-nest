@@ -17,9 +17,10 @@ import { ListsModule } from "../../lists/lists.module.js";
 import { LoansModule } from "../loans.module.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const EMPTY_DIRECTION_STATS = {
+const EMPTY_DIRECTION_SUMMARY = {
   earliestLoanDate: null,
   longHeldCount: 0,
+  longHeldLoans: [],
   nearestReturnDate: null,
   noReturnDateCount: 0,
   noReturnDatePeopleCount: 0,
@@ -28,6 +29,7 @@ const EMPTY_DIRECTION_STATS = {
   peopleCount: 0,
   returningSoonCount: 0,
   totalCount: 0,
+  upcomingReturns: [],
 };
 const isoDay = (offsetDays: number): string =>
   formatInTimeZone(addDays(new Date(), offsetDays), "UTC", "yyyy-MM-dd");
@@ -143,6 +145,10 @@ function loanSummary(accessToken: string): request.Test {
   return request(app.getHttpServer())
     .get("/api/loans/summary")
     .set("Authorization", `Bearer ${accessToken}`);
+}
+
+function loanTitles(loans: { book: { title: string } }[]): string[] {
+  return loans.map((loan) => loan.book.title);
 }
 
 function startLoan(accessToken: string, id: string, body: Record<string, unknown>): request.Test {
@@ -311,8 +317,8 @@ describe("GET /api/loans/summary", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
-      borrowed: EMPTY_DIRECTION_STATS,
-      lent: EMPTY_DIRECTION_STATS,
+      borrowed: EMPTY_DIRECTION_SUMMARY,
+      lent: EMPTY_DIRECTION_SUMMARY,
     });
   });
 
@@ -372,8 +378,8 @@ describe("GET /api/loans/summary", () => {
     const res = await loanSummary(accessToken);
 
     expect(res.body).toEqual({
-      borrowed: EMPTY_DIRECTION_STATS,
-      lent: EMPTY_DIRECTION_STATS,
+      borrowed: EMPTY_DIRECTION_SUMMARY,
+      lent: EMPTY_DIRECTION_SUMMARY,
     });
   });
 });
@@ -459,7 +465,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
     const res = await loanSummary(accessToken);
 
     expect(res.body.lent.totalCount).toBe(1);
-    expect(res.body.borrowed).toEqual(EMPTY_DIRECTION_STATS);
+    expect(res.body.borrowed).toEqual(EMPTY_DIRECTION_SUMMARY);
   });
 
   it("excludes a returned borrowed loan from the borrowed stats", async () => {
@@ -475,7 +481,7 @@ describe("GET /api/loans/summary borrowed stats", () => {
 
     const res = await loanSummary(accessToken);
 
-    expect(res.body.borrowed).toEqual(EMPTY_DIRECTION_STATS);
+    expect(res.body.borrowed).toEqual(EMPTY_DIRECTION_SUMMARY);
   });
 });
 
@@ -551,7 +557,7 @@ describe("GET /api/loans/summary lent stats", () => {
     const res = await loanSummary(accessToken);
 
     expect(res.body.borrowed.totalCount).toBe(1);
-    expect(res.body.lent).toEqual(EMPTY_DIRECTION_STATS);
+    expect(res.body.lent).toEqual(EMPTY_DIRECTION_SUMMARY);
   });
 
   it("excludes a returned lent loan from the lent stats", async () => {
@@ -567,7 +573,170 @@ describe("GET /api/loans/summary lent stats", () => {
 
     const res = await loanSummary(accessToken);
 
-    expect(res.body.lent).toEqual(EMPTY_DIRECTION_STATS);
+    expect(res.body.lent).toEqual(EMPTY_DIRECTION_SUMMARY);
+  });
+});
+
+describe("GET /api/loans/summary upcoming returns", () => {
+  it("keeps only dated future returns, soonest first", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(9) }, "Later");
+    await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(0) }, "Today");
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-2), loanDate: isoDay(-20) },
+      "Overdue",
+    );
+    await createBorrowedLoan(accessToken, {}, "No date");
+
+    const res = await loanSummary(accessToken);
+
+    expect(loanTitles(res.body.borrowed.upcomingReturns)).toEqual(["Today", "Later"]);
+  });
+
+  it("takes the five nearest returns even when the list paginates", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    for (const offset of [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]) {
+      await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(offset) }, `In ${offset}`);
+    }
+
+    const res = await loanSummary(accessToken);
+
+    expect(loanTitles(res.body.borrowed.upcomingReturns)).toEqual([
+      "In 1",
+      "In 2",
+      "In 3",
+      "In 4",
+      "In 5",
+    ]);
+  });
+
+  it("carries the person and the book preview of each upcoming return", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(4), personName: "Maria" },
+      "Dune",
+    );
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.borrowed.upcomingReturns).toHaveLength(1);
+    expect(res.body.borrowed.upcomingReturns[0]).toMatchObject({
+      book: { cover: null, firstAuthorName: "Frank Herbert", title: "Dune" },
+      expectedReturnDate: isoDay(4),
+      personName: "Maria",
+    });
+    expect(res.body.borrowed.upcomingReturns[0].book.id).toMatch(UUID);
+  });
+
+  it("keeps the upcoming returns of the two directions apart", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(2) }, "Borrowed soon");
+    await createLentLoan(accessToken, { expectedReturnDate: isoDay(5) }, "Lent soon");
+
+    const res = await loanSummary(accessToken);
+
+    expect(loanTitles(res.body.borrowed.upcomingReturns)).toEqual(["Borrowed soon"]);
+    expect(loanTitles(res.body.lent.upcomingReturns)).toEqual(["Lent soon"]);
+  });
+
+  it("drops a returned loan from the upcoming returns", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBorrowedLoan(accessToken, { expectedReturnDate: isoDay(2) });
+    await request(app.getHttpServer())
+      .post(`/api/books/${bookId}/loan/return`)
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.borrowed.upcomingReturns).toEqual([]);
+  });
+});
+
+describe("GET /api/loans/summary long-held loans", () => {
+  it("keeps only loans held for thirty days or more, oldest first", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(accessToken, { loanDate: isoDay(-31) }, "Held 31");
+    await createBorrowedLoan(accessToken, { loanDate: isoDay(-47) }, "Held 47");
+    await createBorrowedLoan(accessToken, { loanDate: isoDay(-30) }, "Held 30");
+    await createBorrowedLoan(accessToken, { loanDate: isoDay(-29) }, "Held 29");
+
+    const res = await loanSummary(accessToken);
+
+    expect(loanTitles(res.body.borrowed.longHeldLoans)).toEqual(["Held 47", "Held 31", "Held 30"]);
+  });
+
+  it("takes the five oldest loans and carries the person and the book preview", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    for (const age of [40, 45, 50, 55, 60, 65, 70]) {
+      await createBorrowedLoan(
+        accessToken,
+        { loanDate: isoDay(-age), personName: `Person ${age}` },
+        `Held ${age}`,
+      );
+    }
+
+    const res = await loanSummary(accessToken);
+
+    expect(loanTitles(res.body.borrowed.longHeldLoans)).toEqual([
+      "Held 70",
+      "Held 65",
+      "Held 60",
+      "Held 55",
+      "Held 50",
+    ]);
+    expect(res.body.borrowed.longHeldLoans[0]).toMatchObject({
+      book: { cover: null, firstAuthorName: "Frank Herbert", title: "Held 70" },
+      loanDate: isoDay(-70),
+      personName: "Person 70",
+    });
+  });
+
+  it("ignores the return date when picking long-held loans", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-5), loanDate: isoDay(-40) },
+      "Overdue and old",
+    );
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(20), loanDate: isoDay(-35) },
+      "On time and old",
+    );
+    await createBorrowedLoan(accessToken, { loanDate: isoDay(-33) }, "No date and old");
+
+    const res = await loanSummary(accessToken);
+
+    expect(loanTitles(res.body.borrowed.longHeldLoans)).toEqual([
+      "Overdue and old",
+      "On time and old",
+      "No date and old",
+    ]);
+  });
+
+  it("keeps the long-held loans of the two directions apart", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(accessToken, { loanDate: isoDay(-40) }, "Borrowed long ago");
+    await createLentLoan(accessToken, { loanDate: isoDay(-60) }, "Lent long ago");
+
+    const res = await loanSummary(accessToken);
+
+    expect(loanTitles(res.body.borrowed.longHeldLoans)).toEqual(["Borrowed long ago"]);
+    expect(loanTitles(res.body.lent.longHeldLoans)).toEqual(["Lent long ago"]);
+  });
+
+  it("drops a returned loan from the long-held loans", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    const bookId = await createBorrowedLoan(accessToken, { loanDate: isoDay(-40) });
+    await request(app.getHttpServer())
+      .post(`/api/books/${bookId}/loan/return`)
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    const res = await loanSummary(accessToken);
+
+    expect(res.body.borrowed.longHeldLoans).toEqual([]);
   });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import type { LoanListItemView, LoanType } from "@app/shared";
+import type { LoanListItemView, LoanType, Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
@@ -15,11 +15,11 @@ import { todayIso } from "@/features/books/model/reading-progress";
 import { useRouter } from "@/i18n/navigation";
 
 import type { LoanDirection } from "../model/loan-pages";
+import type { LoansAttention } from "./loans-sidebar";
 
 import { useLoansList } from "../api/use-loans-list";
 import { useLoansSummary } from "../api/use-loans-summary";
 import { LOAN_PAGES } from "../model/loan-pages";
-import { nearestReturns } from "../model/loans-derive";
 import { useLoansQuery } from "../model/use-loans-query";
 import { EditLoanDialog } from "./edit-loan-dialog";
 import { LoanRow } from "./loan-row";
@@ -62,15 +62,24 @@ export function LoansView({ type }: { type: LoanType }) {
   const listPage = list.data;
   const items = listPage?.items ?? [];
   const today = todayIso();
-  const nearest = nearestReturns(items, today);
 
   const summaryCards = useLoansSummaryCards(summary.data, type);
+  const directionSummary = summary.data?.[page.direction];
 
   const activeOfThisType = summary.data?.[page.direction].totalCount ?? 0;
   const activeOfOtherType = summary.data?.[LOAN_PAGES[page.otherType].direction].totalCount ?? 0;
   const hasAnyLoans = activeOfThisType + activeOfOtherType > 0 || items.length > 0;
   const showChrome = !list.isError && (list.isPending || hasAnyLoans);
   const showSummaryCards = summary.isPending || summary.isError || activeOfThisType > 0;
+
+  const attention: Nullable<LoansAttention> =
+    page.direction === "borrowed" && !summary.isError
+      ? {
+          activeFilter: query.filter,
+          onFilterSelect: query.setFilter,
+          stats: summary.data?.borrowed ?? null,
+        }
+      : null;
 
   const loansContent = (
     <LoansContent
@@ -114,10 +123,13 @@ export function LoansView({ type }: { type: LoanType }) {
             isLoading={summary.isPending}
             mobileAction={
               <LoansOverviewPanel
-                isLoading={list.isPending}
-                nearest={nearest}
+                attention={attention}
+                direction={page.direction}
+                isLoading={summary.isPending}
+                longHeldLoans={directionSummary?.longHeldLoans ?? []}
                 onAddBook={() => router.push("/books/new")}
                 summaryCards={summaryCards}
+                upcomingReturns={directionSummary?.upcomingReturns ?? []}
               />
             }
             onRetry={() => void summary.refetch()}
@@ -157,9 +169,12 @@ export function LoansView({ type }: { type: LoanType }) {
             </div>
 
             <LoansSidebar
-              isLoading={list.isPending}
-              nearest={nearest}
+              attention={attention}
+              direction={page.direction}
+              isLoading={summary.isPending}
+              longHeldLoans={directionSummary?.longHeldLoans ?? []}
               onAddBook={() => router.push("/books/new")}
+              upcomingReturns={directionSummary?.upcomingReturns ?? []}
             />
           </div>
         </div>

@@ -5,6 +5,8 @@
  * REST API for the book-nest project
  * OpenAPI spec version: 1.0
  */
+import type { LoansSummaryViewDtoBorrowedLongHeldLoansItem } from "./loansSummaryViewDtoBorrowedLongHeldLoansItem";
+import type { LoansSummaryViewDtoBorrowedUpcomingReturnsItem } from "./loansSummaryViewDtoBorrowedUpcomingReturnsItem";
 
 export type LoansSummaryViewDtoBorrowed = {
   /** @nullable */
@@ -14,6 +16,7 @@ export type LoansSummaryViewDtoBorrowed = {
    * @maximum 9007199254740991
    */
   longHeldCount: number;
+  longHeldLoans: LoansSummaryViewDtoBorrowedLongHeldLoansItem[];
   /** @nullable */
   nearestReturnDate: string | null;
   /**
@@ -48,4 +51,5 @@ export type LoansSummaryViewDtoBorrowed = {
    * @maximum 9007199254740991
    */
   totalCount: number;
+  upcomingReturns: LoansSummaryViewDtoBorrowedUpcomingReturnsItem[];
 };

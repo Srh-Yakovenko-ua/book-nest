@@ -18,6 +18,7 @@ export type AttentionItem<TId extends string> = {
 type AttentionBlockProps<TId extends string> = {
   activeId: Nullable<TId>;
   allClearLabel: string;
+  allClearTitle?: string;
   isLoading: boolean;
   items: AttentionItem<TId>[];
   onSelect: (id: TId) => void;
@@ -32,6 +33,7 @@ type AttentionBlockProps<TId extends string> = {
 export function AttentionBlock<TId extends string>({
   activeId,
   allClearLabel,
+  allClearTitle,
   isLoading,
   items,
   onSelect,
@@ -47,10 +49,7 @@ export function AttentionBlock<TId extends string>({
       {isLoading ? (
         <AttentionSkeleton />
       ) : items.length === 0 ? (
-        <div className="flex items-center gap-2">
-          <UiIcon aria-hidden className="shrink-0 text-success" name="check-circle" size={16} />
-          <span className="text-xs text-muted-foreground">{allClearLabel}</span>
-        </div>
+        <AttentionAllClear label={allClearLabel} title={allClearTitle} />
       ) : (
         <div className="flex flex-col gap-2">
           <ul className="-mx-1.5 flex flex-col gap-0.5">
@@ -85,6 +84,27 @@ export function AttentionBlock<TId extends string>({
         </div>
       )}
     </section>
+  );
+}
+
+function AttentionAllClear({ label, title }: { label: string; title?: string }) {
+  if (title === undefined) {
+    return (
+      <div className="flex items-center gap-2">
+        <UiIcon aria-hidden className="shrink-0 text-success" name="check-circle" size={16} />
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-2">
+      <UiIcon aria-hidden className="mt-px shrink-0 text-success" name="check-circle" size={16} />
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-xs font-medium text-ink">{title}</span>
+        <span className="text-xs leading-snug text-muted-foreground">{label}</span>
+      </span>
+    </div>
   );
 }
 

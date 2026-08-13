@@ -1,6 +1,6 @@
 "use client";
 
-import type { LoanDirectionStats, LoansSummaryView, LoanType } from "@app/shared";
+import type { LoanDirectionSummary, LoansSummaryView, LoanType } from "@app/shared";
 import type { ReactNode } from "react";
 
 import { LOAN_STATS_WINDOWS } from "@app/shared";
@@ -84,7 +84,7 @@ export function useLoansSummaryCards(
 }
 
 function useDirectionCards(
-  stats: LoanDirectionStats | undefined,
+  stats: LoanDirectionSummary | undefined,
   direction: LoanDirection,
 ): LibrarySummaryCard[] {
   const t = useTranslations("loans.stats");

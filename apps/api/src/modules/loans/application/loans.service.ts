@@ -1,6 +1,6 @@
 import type {
   LoanBookPreview,
-  LoanDirectionStats,
+  LoanDirectionSummary,
   LoanListItemView,
   LoansQuery,
   LoansSummaryView,
@@ -27,7 +27,11 @@ import {
   type LoanWithBook,
 } from "../infrastructure/loans.repository.js";
 
-const EMPTY_DIRECTION_STATS: LoanDirectionStats = {
+const SIDEBAR_LOANS_LIMIT = 5;
+
+type DirectionLoanLists = Pick<LoanDirectionSummary, "longHeldLoans" | "upcomingReturns">;
+
+const EMPTY_DIRECTION_COUNTS = {
   earliestLoanDate: null,
   longHeldCount: 0,
   nearestReturnDate: null,
@@ -38,7 +42,7 @@ const EMPTY_DIRECTION_STATS: LoanDirectionStats = {
   peopleCount: 0,
   returningSoonCount: 0,
   totalCount: 0,
-};
+} satisfies Omit<LoanDirectionSummary, "longHeldLoans" | "upcomingReturns">;
 
 @Injectable()
 export class LoansService {
@@ -85,16 +89,43 @@ export class LoansService {
   async summary({ userId }: { userId: string }): Promise<LoansSummaryView> {
     const { soonEnd, today } = loanDateBounds(new Date());
     const longHeldBefore = subDays(today, LOAN_STATS_WINDOWS.longHeldDays);
-    const counts = await this.loansRepository.summary({
-      longHeldBefore,
-      soonEnd,
-      today,
-      userId,
-    });
+
+    const [counts, borrowedLoans, lentLoans] = await Promise.all([
+      this.loansRepository.summary({ longHeldBefore, soonEnd, today, userId }),
+      this.sidebarLoans({ longHeldBefore, today, type: "borrowed_from_someone", userId }),
+      this.sidebarLoans({ longHeldBefore, today, type: "lent_to_someone", userId }),
+    ]);
 
     return {
-      borrowed: toDirectionStats(counts, "borrowed_from_someone"),
-      lent: toDirectionStats(counts, "lent_to_someone"),
+      borrowed: toDirectionSummary(counts, "borrowed_from_someone", borrowedLoans),
+      lent: toDirectionSummary(counts, "lent_to_someone", lentLoans),
+    };
+  }
+
+  private async sidebarLoans({
+    longHeldBefore,
+    today,
+    type,
+    userId,
+  }: {
+    longHeldBefore: Date;
+    today: Date;
+    type: LoanType;
+    userId: string;
+  }): Promise<DirectionLoanLists> {
+    const [longHeldLoans, upcomingReturns] = await Promise.all([
+      this.loansRepository.longHeldLoans({
+        loanedBefore: longHeldBefore,
+        take: SIDEBAR_LOANS_LIMIT,
+        type,
+        userId,
+      }),
+      this.loansRepository.upcomingReturns({ take: SIDEBAR_LOANS_LIMIT, today, type, userId }),
+    ]);
+
+    return {
+      longHeldLoans: longHeldLoans.map((loan) => this.toListItemView(loan, today)),
+      upcomingReturns: upcomingReturns.map((loan) => this.toListItemView(loan, today)),
     };
   }
 
@@ -129,15 +160,20 @@ export class LoansService {
   }
 }
 
-function toDirectionStats(counts: LoanDirectionCounts[], type: LoanType): LoanDirectionStats {
+function toDirectionSummary(
+  counts: LoanDirectionCounts[],
+  type: LoanType,
+  loans: DirectionLoanLists,
+): LoanDirectionSummary {
   const row = counts.find((candidate) => candidate.type === type);
   if (row === undefined) {
-    return EMPTY_DIRECTION_STATS;
+    return { ...EMPTY_DIRECTION_COUNTS, ...loans };
   }
 
   return {
     earliestLoanDate: row.earliestLoanDate,
     longHeldCount: row.longHeldCount,
+    longHeldLoans: loans.longHeldLoans,
     nearestReturnDate: row.nearestReturnDate,
     noReturnDateCount: row.noReturnDateCount,
     noReturnDatePeopleCount: row.noReturnDatePeopleCount,
@@ -146,5 +182,6 @@ function toDirectionStats(counts: LoanDirectionCounts[], type: LoanType): LoanDi
     peopleCount: row.peopleCount,
     returningSoonCount: row.returningSoonCount,
     totalCount: row.totalCount,
+    upcomingReturns: loans.upcomingReturns,
   };
 }
