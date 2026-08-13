@@ -1,4 +1,4 @@
-import type { LoanListItemView } from "@app/shared";
+import type { LoanListItemView, Nullable } from "@app/shared";
 
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 
@@ -18,6 +18,15 @@ export type NearestReturn = {
   id: string;
   title: string;
 };
+
+export function daysBetweenLoanDates(
+  fromIso: Nullable<string>,
+  toIso: Nullable<string>,
+): Nullable<number> {
+  if (fromIso === null || toIso === null) return null;
+  if (!ISO_DATE_PATTERN.test(fromIso) || !ISO_DATE_PATTERN.test(toIso)) return null;
+  return differenceInCalendarDays(parseISO(toIso), parseISO(fromIso));
+}
 
 export function formatLoanDate(iso: null | string): null | string {
   if (iso === null || !ISO_DATE_PATTERN.test(iso)) return null;

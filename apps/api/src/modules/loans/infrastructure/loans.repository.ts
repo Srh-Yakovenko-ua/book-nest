@@ -15,6 +15,13 @@ const LOAN_TYPE_LENT = "lent_to_someone";
 
 const LoanSummaryCountsRowSchema = z.object({
   borrowedCount: z.number(),
+  borrowedEarliestLoanDate: z.string().nullable(),
+  borrowedLongHeldCount: z.number(),
+  borrowedNearestReturnDate: z.string().nullable(),
+  borrowedOldestOverdueReturnDate: z.string().nullable(),
+  borrowedOverdueCount: z.number(),
+  borrowedPeopleCount: z.number(),
+  borrowedReturningSoonCount: z.number(),
   lentCount: z.number(),
   overdueCount: z.number(),
   returnThisWeek: z.number(),
@@ -24,6 +31,13 @@ const LoanSummaryCountsRowSchema = z.object({
 
 const EMPTY_LOAN_COUNTS: z.infer<typeof LoanSummaryCountsRowSchema> = {
   borrowedCount: 0,
+  borrowedEarliestLoanDate: null,
+  borrowedLongHeldCount: 0,
+  borrowedNearestReturnDate: null,
+  borrowedOldestOverdueReturnDate: null,
+  borrowedOverdueCount: 0,
+  borrowedPeopleCount: 0,
+  borrowedReturningSoonCount: 0,
   lentCount: 0,
   overdueCount: 0,
   returnThisWeek: 0,
@@ -44,14 +58,7 @@ export type LoansFilterInput = {
   userId: string;
 };
 
-export type LoanSummaryCounts = {
-  borrowedCount: number;
-  lentCount: number;
-  overdueCount: number;
-  returnThisWeek: number;
-  withoutReturnDate: number;
-  withReminder: number;
-};
+export type LoanSummaryCounts = z.infer<typeof LoanSummaryCountsRowSchema>;
 
 export type LoanWithBook = Prisma.BookLoanGetPayload<typeof loanBookInclude>;
 
@@ -62,6 +69,8 @@ type ListLoansInput = LoansFilterInput & {
 };
 
 type SummaryInput = {
+  longHeldBefore: Date;
+  soonEnd: Date;
   today: Date;
   userId: string;
   weekEnd: Date;
@@ -86,8 +95,17 @@ export class LoansRepository {
     });
   }
 
-  async summary({ today, userId, weekEnd, weekStart }: SummaryInput): Promise<LoanSummaryCounts> {
+  async summary({
+    longHeldBefore,
+    soonEnd,
+    today,
+    userId,
+    weekEnd,
+    weekStart,
+  }: SummaryInput): Promise<LoanSummaryCounts> {
     const todayIso = toIsoDate(today);
+    const soonEndIso = toIsoDate(soonEnd);
+    const longHeldBeforeIso = toIsoDate(longHeldBefore);
     const weekStartIso = toIsoDate(weekStart);
     const weekEndIso = toIsoDate(weekEnd);
 
@@ -101,7 +119,41 @@ export class LoansRepository {
             AND loan.expected_return_date <= ${weekEndIso}::date
         ))::int AS "returnThisWeek",
         (count(*) FILTER (WHERE loan.remind_to_return = true))::int AS "withReminder",
-        (count(*) FILTER (WHERE loan.expected_return_date IS NULL))::int AS "withoutReturnDate"
+        (count(*) FILTER (WHERE loan.expected_return_date IS NULL))::int AS "withoutReturnDate",
+        (count(DISTINCT loan.person_name) FILTER (
+          WHERE loan.type = ${LOAN_TYPE_BORROWED}
+        ))::int AS "borrowedPeopleCount",
+        (count(*) FILTER (
+          WHERE loan.type = ${LOAN_TYPE_BORROWED}
+            AND loan.expected_return_date >= ${todayIso}::date
+            AND loan.expected_return_date <= ${soonEndIso}::date
+        ))::int AS "borrowedReturningSoonCount",
+        to_char(
+          min(loan.expected_return_date) FILTER (
+            WHERE loan.type = ${LOAN_TYPE_BORROWED}
+              AND loan.expected_return_date >= ${todayIso}::date
+          ),
+          'YYYY-MM-DD'
+        ) AS "borrowedNearestReturnDate",
+        (count(*) FILTER (
+          WHERE loan.type = ${LOAN_TYPE_BORROWED}
+            AND loan.expected_return_date < ${todayIso}::date
+        ))::int AS "borrowedOverdueCount",
+        to_char(
+          min(loan.expected_return_date) FILTER (
+            WHERE loan.type = ${LOAN_TYPE_BORROWED}
+              AND loan.expected_return_date < ${todayIso}::date
+          ),
+          'YYYY-MM-DD'
+        ) AS "borrowedOldestOverdueReturnDate",
+        (count(*) FILTER (
+          WHERE loan.type = ${LOAN_TYPE_BORROWED}
+            AND loan.loan_date <= ${longHeldBeforeIso}::date
+        ))::int AS "borrowedLongHeldCount",
+        to_char(
+          min(loan.loan_date) FILTER (WHERE loan.type = ${LOAN_TYPE_BORROWED}),
+          'YYYY-MM-DD'
+        ) AS "borrowedEarliestLoanDate"
       FROM book_loans loan
       JOIN books book ON book.id = loan.book_id
       WHERE loan.user_id = ${userId}::uuid

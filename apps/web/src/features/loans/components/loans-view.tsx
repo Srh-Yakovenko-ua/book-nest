@@ -1,27 +1,23 @@
 "use client";
 
-import type { LoanListItemView } from "@app/shared";
+import type { LoanListItemView, LoanType } from "@app/shared";
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
-import type { PageTabsItem } from "@/components/page-tabs";
 import type { EmptyStateEntry } from "@/lib/empty-states";
 
 import { EmptyState } from "@/components/empty-state";
 import { UiIcon } from "@/components/icons";
-import { PageTabs, PageTabsPanel } from "@/components/page-tabs";
 import { TitleLeaf } from "@/components/title-leaf";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { todayIso } from "@/features/books/model/reading-progress";
 import { useRouter } from "@/i18n/navigation";
-import { LoansControllerListType } from "@/shared/api/generated/model";
 
 import { useLoansList } from "../api/use-loans-list";
 import { useLoansSummary } from "../api/use-loans-summary";
+import { LOAN_PAGES } from "../model/loan-pages";
 import { nearestReturns } from "../model/loans-derive";
-import { LOANS_TAB_VALUES } from "../model/loans-query";
 import { useLoansQuery } from "../model/use-loans-query";
 import { EditLoanDialog } from "./edit-loan-dialog";
 import { LoanRow } from "./loan-row";
@@ -32,7 +28,10 @@ import { LoansSummaryCards, useLoansSummaryCards } from "./loans-summary-cards";
 import { LoansToolbar } from "./loans-toolbar";
 import { ReturnLoanDialog } from "./return-loan-dialog";
 
+type LoanPageCopyKey = (typeof LOAN_PAGES)[LoanType]["copyKey"];
+
 type LoansContentProps = {
+  copyKey: LoanPageCopyKey;
   hasActiveFilters: boolean;
   hasActiveSearch: boolean;
   isError: boolean;
@@ -42,52 +41,43 @@ type LoansContentProps = {
   onClearFilters: () => void;
   onEdit: (loan: LoanListItemView) => void;
   onOpenLibrary: () => void;
+  onOpenOtherPage: () => void;
   onRetry: () => void;
   onReturn: (loan: LoanListItemView) => void;
-  onSwitchTab: (value: LoansControllerListType) => void;
-  tab: LoansControllerListType;
+  otherTypeCount: number;
   today: string;
-  totalActive: number;
 };
 
-export function LoansView() {
+export function LoansView({ type }: { type: LoanType }) {
+  const page = LOAN_PAGES[type];
   const t = useTranslations("loans");
   const router = useRouter();
-  const query = useLoansQuery();
+  const query = useLoansQuery(type);
   const summary = useLoansSummary();
   const list = useLoansList(query.listParams);
 
   const [editTarget, setEditTarget] = useState<LoanListItemView | null>(null);
   const [returnTarget, setReturnTarget] = useState<LoanListItemView | null>(null);
 
-  const page = list.data;
-  const items = page?.items ?? [];
+  const listPage = list.data;
+  const items = listPage?.items ?? [];
   const today = todayIso();
   const nearest = nearestReturns(items, today);
 
-  const summaryCards = useLoansSummaryCards(summary.data);
+  const summaryCards = useLoansSummaryCards(summary.data, type);
 
+  const isBorrowedPage = type === "borrowed_from_someone";
   const borrowedCount = summary.data?.borrowedCount ?? 0;
   const lentCount = summary.data?.lentCount ?? 0;
-  const totalActive = borrowedCount + lentCount;
-  const hasAnyLoans = totalActive > 0 || items.length > 0;
+  const activeOfOtherType = isBorrowedPage ? lentCount : borrowedCount;
+  const hasAnyLoans = borrowedCount + lentCount > 0 || items.length > 0;
   const showChrome = !list.isError && (list.isPending || hasAnyLoans);
-
-  const tabItems: PageTabsItem[] = [
-    {
-      badge: <Badge variant="secondary">{borrowedCount}</Badge>,
-      label: t("tabs.borrowed"),
-      value: LoansControllerListType.borrowed_from_someone,
-    },
-    {
-      badge: <Badge variant="secondary">{lentCount}</Badge>,
-      label: t("tabs.lent"),
-      value: LoansControllerListType.lent_to_someone,
-    },
-  ];
+  const showSummaryCards =
+    !isBorrowedPage || summary.isPending || summary.isError || borrowedCount > 0;
 
   const loansContent = (
     <LoansContent
+      copyKey={page.copyKey}
       hasActiveFilters={query.hasActiveFilters}
       hasActiveSearch={query.hasActiveSearch}
       isError={list.isError}
@@ -97,12 +87,11 @@ export function LoansView() {
       onClearFilters={query.clearFilters}
       onEdit={setEditTarget}
       onOpenLibrary={() => router.push("/books")}
+      onOpenOtherPage={() => router.push(LOAN_PAGES[page.otherType].href)}
       onRetry={() => void list.refetch()}
       onReturn={setReturnTarget}
-      onSwitchTab={query.setTab}
-      tab={query.tab}
+      otherTypeCount={activeOfOtherType}
       today={today}
-      totalActive={totalActive}
     />
   );
 
@@ -112,39 +101,35 @@ export function LoansView() {
         <div className="flex flex-col gap-1">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-heading text-[clamp(1.75rem,3.5vw,2.5rem)] leading-tight font-semibold text-ink">
-              {t("title")}
+              {t(`pages.${page.copyKey}.title`)}
             </h1>
             <TitleLeaf />
           </div>
-          <p className="max-w-2xl text-sm text-muted-foreground md:text-base">{t("subtitle")}</p>
+          <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
+            {t(`pages.${page.copyKey}.subtitle`)}
+          </p>
         </div>
 
-        <LoansSummaryCards
-          cards={summaryCards}
-          isError={summary.isError}
-          isLoading={summary.isPending}
-          mobileAction={
-            <LoansOverviewPanel
-              isLoading={list.isPending}
-              nearest={nearest}
-              onAddBook={() => router.push("/books/new")}
-              summaryCards={summaryCards}
-            />
-          }
-          onRetry={() => void summary.refetch()}
-        />
+        {showSummaryCards ? (
+          <LoansSummaryCards
+            cards={summaryCards}
+            isError={summary.isError}
+            isLoading={summary.isPending}
+            mobileAction={
+              <LoansOverviewPanel
+                isLoading={list.isPending}
+                nearest={nearest}
+                onAddBook={() => router.push("/books/new")}
+                summaryCards={summaryCards}
+              />
+            }
+            onRetry={() => void summary.refetch()}
+          />
+        ) : null}
       </header>
 
       {showChrome ? (
-        <PageTabs
-          className="gap-4"
-          items={tabItems}
-          onValueChange={(value) => {
-            const match = LOANS_TAB_VALUES.find((item) => item === value);
-            if (match !== undefined) query.setTab(match);
-          }}
-          value={query.tab}
-        >
+        <div className="flex flex-col gap-4">
           <LoansToolbar
             filter={query.filter}
             onFilterChange={query.setFilter}
@@ -157,21 +142,19 @@ export function LoansView() {
 
           <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
             <div className="flex min-w-0 flex-1 flex-col gap-6">
-              <PageTabsPanel className="flex flex-col gap-6" value={query.tab}>
-                <p className="sr-only" role="status">
-                  {list.isPending
-                    ? ""
-                    : t("resultsCount", { count: page?.totalCount ?? items.length })}
-                </p>
-                {loansContent}
-              </PageTabsPanel>
+              <p className="sr-only" role="status">
+                {list.isPending
+                  ? ""
+                  : t("resultsCount", { count: listPage?.totalCount ?? items.length })}
+              </p>
+              {loansContent}
 
-              {page && items.length > 0 && page.pagesCount > 1 ? (
+              {listPage && items.length > 0 && listPage.pagesCount > 1 ? (
                 <LoansPager
-                  currentPage={page.page}
+                  currentPage={listPage.page}
                   isFetching={list.isFetching}
                   onPageChange={query.setPage}
-                  pagesCount={page.pagesCount}
+                  pagesCount={listPage.pagesCount}
                 />
               ) : null}
             </div>
@@ -182,7 +165,7 @@ export function LoansView() {
               onAddBook={() => router.push("/books/new")}
             />
           </div>
-        </PageTabs>
+        </div>
       ) : (
         <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
           <div className="flex min-w-0 flex-1 flex-col gap-6">{loansContent}</div>
@@ -213,6 +196,7 @@ export function LoansView() {
 }
 
 function LoansContent({
+  copyKey,
   hasActiveFilters,
   hasActiveSearch,
   isError,
@@ -222,12 +206,11 @@ function LoansContent({
   onClearFilters,
   onEdit,
   onOpenLibrary,
+  onOpenOtherPage,
   onRetry,
   onReturn,
-  onSwitchTab,
-  tab,
+  otherTypeCount,
   today,
-  totalActive,
 }: LoansContentProps) {
   const t = useTranslations("loans.states");
   const tLoans = useTranslations("loans");
@@ -268,36 +251,40 @@ function LoansContent({
       return <EmptyState onPrimary={onClearFilters} state={noResults} />;
     }
 
-    if (totalActive === 0) {
-      const emptyState: EmptyStateEntry = {
-        desc: t("empty.description"),
-        illu: "empty-borrowed",
-        primary: { icon: "plus", label: t("empty.cta") },
-        secondary: { icon: "book", label: t("empty.secondary") },
-        title: t("empty.title"),
-      };
-      return <EmptyState onPrimary={onAddBook} onSecondary={onOpenLibrary} state={emptyState} />;
+    const typeEmpty: EmptyStateEntry = {
+      desc: t(`typeEmpty.${copyKey}.description`),
+      illu: "empty-borrowed",
+      title: t(`typeEmpty.${copyKey}.title`),
+    };
+
+    if (otherTypeCount === 0) {
+      return (
+        <EmptyState
+          onPrimary={onAddBook}
+          onSecondary={onOpenLibrary}
+          state={{
+            ...typeEmpty,
+            primary: { icon: "plus", label: t("empty.cta") },
+            secondary: { icon: "book", label: t("empty.secondary") },
+          }}
+        />
+      );
     }
 
-    const isBorrowed = tab === LoansControllerListType.borrowed_from_someone;
-    const otherTab = isBorrowed
-      ? LoansControllerListType.lent_to_someone
-      : LoansControllerListType.borrowed_from_someone;
-    const tabEmpty: EmptyStateEntry = {
-      desc: t("tabEmpty.description"),
-      illu: "empty-borrowed",
-      primary: {
-        icon: "swap",
-        label: isBorrowed ? t("tabEmpty.switchToLent") : t("tabEmpty.switchToBorrowed"),
-      },
-      title: isBorrowed ? t("tabEmpty.titleBorrowed") : t("tabEmpty.titleLent"),
-    };
-    return <EmptyState onPrimary={() => onSwitchTab(otherTab)} state={tabEmpty} />;
+    return (
+      <EmptyState
+        onPrimary={onOpenOtherPage}
+        state={{
+          ...typeEmpty,
+          primary: { icon: "swap", label: t(`typeEmpty.${copyKey}.openOther`) },
+        }}
+      />
+    );
   }
 
   return (
     <>
-      <h2 className="sr-only">{tLoans("listHeading")}</h2>
+      <h2 className="sr-only">{tLoans(`pages.${copyKey}.listHeading`)}</h2>
       <ul className="flex flex-col gap-3">
         {items.map((loan) => (
           <li key={loan.id}>

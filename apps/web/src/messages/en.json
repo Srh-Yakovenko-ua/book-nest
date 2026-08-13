@@ -19,6 +19,8 @@
     "series": "Series",
     "genresTags": "Genres / Tags",
     "loans": "Borrowed books",
+    "loansBorrowed": "To return",
+    "loansLent": "Lent out",
     "lists": "Lists",
     "notes": "Notes",
     "delivery": "Deliveries",
@@ -3823,10 +3825,20 @@
     }
   },
   "loans": {
-    "metaTitle": "Borrowed books",
-    "title": "Borrowed books",
-    "subtitle": "Keep track of books shared between you and other readers",
-    "listHeading": "Borrowed books list",
+    "pages": {
+      "borrowed": {
+        "metaTitle": "To return",
+        "title": "To return",
+        "subtitle": "Books you borrowed from other readers — keep track so you return them on time",
+        "listHeading": "List of books to return"
+      },
+      "lent": {
+        "metaTitle": "Lent out",
+        "title": "Lent out",
+        "subtitle": "Books you lent to other readers — keep track so they come back to you",
+        "listHeading": "List of books you lent out"
+      }
+    },
     "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
     "summary": {
       "borrowed": "Borrowed from someone",
@@ -3854,6 +3866,35 @@
         }
       }
     },
+    "borrowedStats": {
+      "total": {
+        "label": "Borrowed in total",
+        "unit": "{count, plural, one {book} other {books}}",
+        "people": "From {count, plural, one {# person} other {# different people}}",
+        "empty": "No active loans",
+        "mobile": { "compact": "Borrowed", "detailed": "Borrowed in total" }
+      },
+      "returningSoon": {
+        "label": "Upcoming returns",
+        "today": "Nearest one — today",
+        "tomorrow": "Nearest one — tomorrow",
+        "inDays": "Nearest one — in {count, plural, one {# day} other {# days}}",
+        "empty": "No returns in the next {days} days",
+        "mobile": { "compact": "Soon", "detailed": "Upcoming returns" }
+      },
+      "overdue": {
+        "label": "Overdue",
+        "longest": "Longest — {count, plural, one {# day} other {# days}} late",
+        "empty": "Every deadline met",
+        "mobile": { "compact": "Overdue", "detailed": "Overdue" }
+      },
+      "longHeld": {
+        "label": "With you a while",
+        "longest": "Longest — {count, plural, one {# day} other {# days}}",
+        "empty": "No books borrowed {days} days ago or earlier",
+        "mobile": { "compact": "A while", "detailed": "With you a while" }
+      }
+    },
     "overviewPanel": {
       "trigger": "Loans overview",
       "title": "Loans overview",
@@ -3863,10 +3904,6 @@
         "overview": "Overview",
         "schedule": "Returns"
       }
-    },
-    "tabs": {
-      "borrowed": "Borrowed from someone",
-      "lent": "Lent to someone"
     },
     "toolbar": {
       "searchLabel": "Search borrowed books",
@@ -3952,17 +3989,20 @@
     "states": {
       "loading": "Loading your borrowed books...",
       "empty": {
-        "title": "Keep borrowed books under control",
-        "description": "Add a book, note who has it now, and set a return date so nothing gets forgotten.",
         "cta": "Add borrowed book",
         "secondary": "View all books"
       },
-      "tabEmpty": {
-        "titleBorrowed": "Nothing in “Borrowed from someone” yet",
-        "titleLent": "Nothing in “Lent to someone” yet",
-        "description": "Loans of this type will appear here once you add them.",
-        "switchToBorrowed": "View “Borrowed from someone”",
-        "switchToLent": "View “Lent to someone”"
+      "typeEmpty": {
+        "borrowed": {
+          "title": "No books to return yet",
+          "description": "Books you borrow from other readers will show up here with their return dates and reminders.",
+          "openOther": "View “Lent out”"
+        },
+        "lent": {
+          "title": "Nothing lent out yet",
+          "description": "Loans of this type will appear here once you add them.",
+          "openOther": "View “To return”"
+        }
       },
       "noResults": {
         "title": "Nothing found",

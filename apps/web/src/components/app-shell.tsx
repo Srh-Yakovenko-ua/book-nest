@@ -3,9 +3,12 @@
 import type { ReactNode } from "react";
 
 import {
+  ArrowUpRight,
   BookCopy,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CircleArrowDown,
   Feather,
   HandHelping,
   Heart,
@@ -27,12 +30,13 @@ import { motion } from "motion/react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { LocalePicker } from "@/components/locale-picker";
 import { SessionMenu } from "@/components/session-menu";
 import { ThemePicker } from "@/components/theme-picker";
 import { TooltipHint } from "@/components/tooltip-hint";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Sidebar,
   SidebarContent,
@@ -43,6 +47,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
@@ -52,29 +59,41 @@ import { NotificationBell } from "@/features/notifications";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
-type NavItem = {
+type NavGroup = {
   icon: React.ElementType;
-  key:
-    | "allBooks"
-    | "buyList"
-    | "dedications"
-    | "delivery"
-    | "favorites"
-    | "genresTags"
-    | "home"
-    | "lists"
-    | "loans"
-    | "myLibrary"
-    | "notes"
-    | "publishers"
-    | "quotes"
-    | "readingQueue"
-    | "series"
-    | "settings";
+  items: readonly NavLink[];
+  key: NavKey;
+};
+
+type NavItem = NavGroup | NavLink;
+
+type NavKey =
+  | "allBooks"
+  | "buyList"
+  | "dedications"
+  | "delivery"
+  | "favorites"
+  | "genresTags"
+  | "home"
+  | "lists"
+  | "loans"
+  | "loansBorrowed"
+  | "loansLent"
+  | "myLibrary"
+  | "notes"
+  | "publishers"
+  | "quotes"
+  | "readingQueue"
+  | "series"
+  | "settings";
+
+type NavLink = {
+  icon: React.ElementType;
+  key: NavKey;
   to: string;
 };
 
-const NAV_ITEMS: NavItem[] = [
+const NAV_ITEMS: readonly NavItem[] = [
   { icon: Home, key: "home", to: "/" },
   { icon: LibraryBig, key: "allBooks", to: "/books" },
   { icon: Library, key: "myLibrary", to: "/my-library" },
@@ -82,7 +101,14 @@ const NAV_ITEMS: NavItem[] = [
   { icon: Quote, key: "quotes", to: "/quotes" },
   { icon: ListOrdered, key: "readingQueue", to: "/reading-queue" },
   { icon: ShoppingBag, key: "buyList", to: "/books-to-buy" },
-  { icon: HandHelping, key: "loans", to: "/loans" },
+  {
+    icon: HandHelping,
+    items: [
+      { icon: CircleArrowDown, key: "loansBorrowed", to: "/loans/borrowed" },
+      { icon: ArrowUpRight, key: "loansLent", to: "/loans/lent" },
+    ],
+    key: "loans",
+  },
   { icon: Truck, key: "delivery", to: "/delivery/in-transit" },
   { icon: Feather, key: "dedications", to: "/dedications" },
   { icon: BookCopy, key: "series", to: "/series" },
@@ -105,7 +131,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function AppSidebar() {
-  const tNav = useTranslations("nav");
   const tShell = useTranslations("appShell");
   const pathname = usePathname();
   const { isMobile, setOpenMobile, state, toggleSidebar } = useSidebar();
@@ -141,45 +166,13 @@ function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {NAV_ITEMS.map(({ icon: Icon, key, to }) => {
-                const isActive = pathname === to;
-                return (
-                  <SidebarMenuItem key={key}>
-                    <SidebarMenuButton
-                      asChild
-                      className={cn(
-                        "relative cursor-pointer gap-3 transition-all duration-150",
-                        isActive
-                          ? "bg-primary/10 text-sidebar-active-foreground hover:bg-primary/15 hover:text-sidebar-active-foreground"
-                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                      )}
-                      isActive={isActive}
-                      tooltip={tNav(key)}
-                    >
-                      <Link href={to}>
-                        <Icon
-                          className={cn(
-                            "size-[18px] shrink-0 transition-colors duration-150",
-                            isActive
-                              ? "text-sidebar-active-foreground"
-                              : "text-sidebar-foreground/70",
-                          )}
-                        />
-                        <span className="font-mono text-[12px] font-medium tracking-[0.14em] uppercase">
-                          {tNav(key)}
-                        </span>
-                        {isActive && (
-                          <motion.div
-                            className="absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
-                            layoutId="sidebar-active-indicator"
-                            transition={{ damping: 34, stiffness: 420, type: "spring" }}
-                          />
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {NAV_ITEMS.map((item) =>
+                "items" in item ? (
+                  <NavGroupItem group={item} key={item.key} />
+                ) : (
+                  <NavLinkItem key={item.key} link={item} />
+                ),
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -252,5 +245,124 @@ function ContentArea({ children }: { children: ReactNode }) {
       </header>
       <div className="relative z-10 flex flex-1 flex-col">{children}</div>
     </div>
+  );
+}
+
+function NavGroupItem({ group }: { group: NavGroup }) {
+  const tNav = useTranslations("nav");
+  const pathname = usePathname();
+  const { isMobile, state } = useSidebar();
+  const hasActiveChild = group.items.some((item) => item.to === pathname);
+  const [open, setOpen] = useState(hasActiveChild);
+  const [wasOnChildPage, setWasOnChildPage] = useState(hasActiveChild);
+
+  if (hasActiveChild !== wasOnChildPage) {
+    setWasOnChildPage(hasActiveChild);
+    if (hasActiveChild) setOpen(true);
+  }
+
+  if (!isMobile && state === "collapsed") {
+    return group.items.map((item) => <NavLinkItem key={item.key} link={item} />);
+  }
+
+  const GroupIcon = group.icon;
+
+  return (
+    <Collapsible asChild onOpenChange={setOpen} open={open}>
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            className={cn(
+              "cursor-pointer gap-3 transition-all duration-150",
+              hasActiveChild
+                ? "text-sidebar-active-foreground hover:bg-sidebar-accent hover:text-sidebar-active-foreground"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+            )}
+            tooltip={tNav(group.key)}
+          >
+            <GroupIcon
+              className={cn(
+                "size-[18px] shrink-0 transition-colors duration-150",
+                hasActiveChild ? "text-sidebar-active-foreground" : "text-sidebar-foreground/70",
+              )}
+            />
+            <span className="font-mono text-[12px] font-medium tracking-[0.14em] uppercase">
+              {tNav(group.key)}
+            </span>
+            <ChevronDown
+              className={cn(
+                "ml-auto size-4 shrink-0 transition-transform duration-200",
+                open && "rotate-180",
+              )}
+            />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <SidebarMenuSub className="mt-1 gap-1">
+            {group.items.map(({ icon: ItemIcon, key, to }) => {
+              const isActive = pathname === to;
+              return (
+                <SidebarMenuSubItem key={key}>
+                  <SidebarMenuSubButton
+                    asChild
+                    className="h-8 cursor-pointer gap-2.5"
+                    isActive={isActive}
+                  >
+                    <Link href={to}>
+                      <ItemIcon className="size-4 shrink-0" />
+                      <span className="font-mono text-[11px] font-medium tracking-[0.12em] uppercase">
+                        {tNav(key)}
+                      </span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+}
+
+function NavLinkItem({ link: { icon: LinkIcon, key, to } }: { link: NavLink }) {
+  const tNav = useTranslations("nav");
+  const pathname = usePathname();
+  const isActive = pathname === to;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        className={cn(
+          "relative cursor-pointer gap-3 transition-all duration-150",
+          isActive
+            ? "bg-primary/10 text-sidebar-active-foreground hover:bg-primary/15 hover:text-sidebar-active-foreground"
+            : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+        )}
+        isActive={isActive}
+        tooltip={tNav(key)}
+      >
+        <Link href={to}>
+          <LinkIcon
+            className={cn(
+              "size-[18px] shrink-0 transition-colors duration-150",
+              isActive ? "text-sidebar-active-foreground" : "text-sidebar-foreground/70",
+            )}
+          />
+          <span className="font-mono text-[12px] font-medium tracking-[0.14em] uppercase">
+            {tNav(key)}
+          </span>
+          {isActive && (
+            <motion.div
+              className="absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
+              layoutId="sidebar-active-indicator"
+              transition={{ damping: 34, stiffness: 420, type: "spring" }}
+            />
+          )}
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }

@@ -6,8 +6,14 @@ import type {
   Paginator,
 } from "@app/shared";
 
-import { LoanTypeSchema, normalizeSearch, OwnershipStatusSchema } from "@app/shared";
+import {
+  LOAN_STATS_WINDOWS,
+  LoanTypeSchema,
+  normalizeSearch,
+  OwnershipStatusSchema,
+} from "@app/shared";
 import { Injectable } from "@nestjs/common";
+import { subDays } from "date-fns";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
@@ -58,10 +64,27 @@ export class LoansService {
   }
 
   async summary({ userId }: { userId: string }): Promise<LoansSummaryView> {
-    const { today, weekEnd, weekStart } = loanDateBounds(new Date());
-    const counts = await this.loansRepository.summary({ today, userId, weekEnd, weekStart });
+    const { soonEnd, today, weekEnd, weekStart } = loanDateBounds(new Date());
+    const longHeldBefore = subDays(today, LOAN_STATS_WINDOWS.longHeldDays);
+    const counts = await this.loansRepository.summary({
+      longHeldBefore,
+      soonEnd,
+      today,
+      userId,
+      weekEnd,
+      weekStart,
+    });
 
     return {
+      borrowed: {
+        earliestLoanDate: counts.borrowedEarliestLoanDate,
+        longHeldCount: counts.borrowedLongHeldCount,
+        nearestReturnDate: counts.borrowedNearestReturnDate,
+        oldestOverdueReturnDate: counts.borrowedOldestOverdueReturnDate,
+        overdueCount: counts.borrowedOverdueCount,
+        peopleCount: counts.borrowedPeopleCount,
+        returningSoonCount: counts.borrowedReturningSoonCount,
+      },
       borrowedCount: counts.borrowedCount,
       lentCount: counts.lentCount,
       overdueCount: counts.overdueCount,

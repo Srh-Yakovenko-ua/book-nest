@@ -87,7 +87,25 @@ export type LoanListItemView = z.infer<typeof LoanListItemViewSchema>;
 
 export const PaginatedLoansSchema = createPaginatedSchema(LoanListItemViewSchema);
 
+export const LOAN_STATS_WINDOWS = {
+  longHeldDays: 30,
+  returnSoonDays: 7,
+} as const;
+
+export const BorrowedLoansStatsSchema = z.object({
+  earliestLoanDate: z.string().nullable(),
+  longHeldCount: z.number().int().nonnegative(),
+  nearestReturnDate: z.string().nullable(),
+  oldestOverdueReturnDate: z.string().nullable(),
+  overdueCount: z.number().int().nonnegative(),
+  peopleCount: z.number().int().nonnegative(),
+  returningSoonCount: z.number().int().nonnegative(),
+});
+
+export type BorrowedLoansStats = z.infer<typeof BorrowedLoansStatsSchema>;
+
 export const LoansSummaryViewSchema = z.object({
+  borrowed: BorrowedLoansStatsSchema,
   borrowedCount: z.number().int().nonnegative(),
   lentCount: z.number().int().nonnegative(),
   overdueCount: z.number().int().nonnegative(),

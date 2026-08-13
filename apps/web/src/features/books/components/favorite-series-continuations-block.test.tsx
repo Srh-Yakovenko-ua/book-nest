@@ -231,7 +231,7 @@ describe("FavoriteSeriesContinuationsBlock", () => {
     renderWithProviders(<FavoriteSeriesContinuationsBlock />);
 
     const link = await screen.findByRole("link", { name: actions.openLoan });
-    expect(link).toHaveAttribute("href", "/loans");
+    expect(link).toHaveAttribute("href", "/loans/lent");
   });
 
   it("links to the delivery order without a purchase button for in_transit items", async () => {

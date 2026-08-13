@@ -10,6 +10,18 @@ import * as zod from "zod";
 /**
  * @summary Get summary counts for the current user's active loans
  */
+export const loansControllerSummaryResponseBorrowedLongHeldCountMin = 0;
+export const loansControllerSummaryResponseBorrowedLongHeldCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseBorrowedOverdueCountMin = 0;
+export const loansControllerSummaryResponseBorrowedOverdueCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseBorrowedPeopleCountMin = 0;
+export const loansControllerSummaryResponseBorrowedPeopleCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseBorrowedReturningSoonCountMin = 0;
+export const loansControllerSummaryResponseBorrowedReturningSoonCountMax = 9007199254740991;
+
 export const loansControllerSummaryResponseBorrowedCountMin = 0;
 export const loansControllerSummaryResponseBorrowedCountMax = 9007199254740991;
 
@@ -29,6 +41,27 @@ export const loansControllerSummaryResponseWithReminderMin = 0;
 export const loansControllerSummaryResponseWithReminderMax = 9007199254740991;
 
 export const LoansControllerSummaryResponse = zod.object({
+  borrowed: zod.object({
+    earliestLoanDate: zod.string().nullable(),
+    longHeldCount: zod
+      .int()
+      .min(loansControllerSummaryResponseBorrowedLongHeldCountMin)
+      .max(loansControllerSummaryResponseBorrowedLongHeldCountMax),
+    nearestReturnDate: zod.string().nullable(),
+    oldestOverdueReturnDate: zod.string().nullable(),
+    overdueCount: zod
+      .int()
+      .min(loansControllerSummaryResponseBorrowedOverdueCountMin)
+      .max(loansControllerSummaryResponseBorrowedOverdueCountMax),
+    peopleCount: zod
+      .int()
+      .min(loansControllerSummaryResponseBorrowedPeopleCountMin)
+      .max(loansControllerSummaryResponseBorrowedPeopleCountMax),
+    returningSoonCount: zod
+      .int()
+      .min(loansControllerSummaryResponseBorrowedReturningSoonCountMin)
+      .max(loansControllerSummaryResponseBorrowedReturningSoonCountMax),
+  }),
   borrowedCount: zod
     .int()
     .min(loansControllerSummaryResponseBorrowedCountMin)
