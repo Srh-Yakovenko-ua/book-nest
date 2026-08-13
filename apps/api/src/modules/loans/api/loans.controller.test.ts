@@ -551,7 +551,11 @@ describe("GET /api/loans/summary lent stats", () => {
   it("counts lent loans that have a return date but no reminder", async () => {
     const { accessToken } = await context.registerVerifyAndLogin();
     await createLentLoan(accessToken, { expectedReturnDate: isoDay(5) }, "Silent one");
-    await createLentLoan(accessToken, { expectedReturnDate: isoDay(-3) }, "Silent and overdue");
+    await createLentLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-3), loanDate: isoDay(-10) },
+      "Silent and overdue",
+    );
     await createLentLoan(
       accessToken,
       { expectedReturnDate: isoDay(9), remindToReturn: true },
