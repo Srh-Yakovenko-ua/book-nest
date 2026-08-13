@@ -10,18 +10,12 @@ import type {
   WishlistSort,
 } from "@app/shared";
 
-import {
-  DEFAULT_CURRENCY,
-  LoanTypeSchema,
-  SHIPMENT_ACTIVE_STATUSES,
-  WISHLIST_SORT_DEFAULT,
-} from "@app/shared";
+import { DEFAULT_CURRENCY, LoanTypeSchema, WISHLIST_SORT_DEFAULT } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { subDays, subMonths } from "date-fns";
 import { z } from "zod";
 
 import type { TrashStamp } from "../../../core/trash-retention.js";
-import type { CreateDeliveryData, UpdateDeliveryData } from "../../delivery/index.js";
 
 import { acquireAdvisoryLock, ADVISORY_LOCK_CLASS } from "../../../core/database/advisory-lock.js";
 import { PrismaService } from "../../../core/database/prisma.service.js";
@@ -31,6 +25,7 @@ import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/databa
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { createLogger } from "../../../core/logger.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { BOOK_DELIVERY_SUMMARY } from "../../delivery/index.js";
 import { WISHLIST_OWNERSHIP_STATUS } from "../domain/wishlist-added-at.js";
 import { placeWishlistBookInSeries } from "../domain/wishlist-counts.js";
 import { buildBookSearchConditions } from "./book-search.js";
@@ -138,6 +133,10 @@ function buildWishlistWhere({
   return where;
 }
 
+function ownedOrderItemsWhere(userId: string): Prisma.BookOrderItemWhereInput {
+  return { order: { userId } };
+}
+
 const GenreKeyRowSchema = z.object({ key: z.string() });
 
 const WishlistStoreFacetRowSchema = z.object({
@@ -167,50 +166,60 @@ const EMPTY_DEDICATIONS_COUNTS: z.infer<typeof DedicationsSummaryCountsRowSchema
   unfinishedCount: 0,
 };
 
-export const withRelations = {
-  authors: { include: { author: true }, orderBy: { position: "asc" } },
-  coverMedia: true,
-  deliveries: { orderBy: { createdAt: "desc" } },
-  lists: { include: { list: true }, where: { list: SOFT_DELETE_SCOPE.active } },
-  loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
-  publisher: true,
-  purchaseInfo: true,
-  readingProgress: true,
-  series: {
-    include: {
-      _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
-      authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
-      books: {
-        select: {
-          ageCategory: true,
-          authors: { include: { author: true }, orderBy: { position: "asc" } },
-          createdAt: true,
-          formats: true,
-          id: true,
-          isFavorite: true,
-          language: true,
-          ownershipStatus: true,
-          pagesCount: true,
-          partNumber: true,
-          publicationYear: true,
-          publisherId: true,
-          readingProgress: { select: { rating: true } },
-          readingStatus: true,
-          tags: { select: { tag: { select: { id: true, name: true } } } },
-          title: true,
-          updatedAt: true,
+export function wishlistWithRelations(userId: string) {
+  return {
+    ...withRelations(userId),
+    storeLinks: { orderBy: { createdAt: "asc" } },
+  } satisfies Prisma.BookInclude;
+}
+
+export function withRelations(userId: string) {
+  return {
+    _count: { select: { orderItems: { where: ownedOrderItemsWhere(userId) } } },
+    authors: { include: { author: true }, orderBy: { position: "asc" } },
+    coverMedia: true,
+    lists: { include: { list: true }, where: { list: SOFT_DELETE_SCOPE.active } },
+    loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
+    orderItems: {
+      include: { order: true, shipment: { include: { deliveryService: true } } },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: BOOK_DELIVERY_SUMMARY.itemsTake,
+      where: ownedOrderItemsWhere(userId),
+    },
+    publisher: true,
+    purchaseInfo: true,
+    readingProgress: true,
+    series: {
+      include: {
+        _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
+        authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
+        books: {
+          select: {
+            ageCategory: true,
+            authors: { include: { author: true }, orderBy: { position: "asc" } },
+            createdAt: true,
+            formats: true,
+            id: true,
+            isFavorite: true,
+            language: true,
+            ownershipStatus: true,
+            pagesCount: true,
+            partNumber: true,
+            publicationYear: true,
+            publisherId: true,
+            readingProgress: { select: { rating: true } },
+            readingStatus: true,
+            tags: { select: { tag: { select: { id: true, name: true } } } },
+            title: true,
+            updatedAt: true,
+          },
+          where: SOFT_DELETE_SCOPE.active,
         },
-        where: SOFT_DELETE_SCOPE.active,
       },
     },
-  },
-  tags: { include: { tag: true } },
-} satisfies Prisma.BookInclude;
-
-export const wishlistWithRelations = {
-  ...withRelations,
-  storeLinks: { orderBy: { createdAt: "asc" } },
-} satisfies Prisma.BookInclude;
+    tags: { include: { tag: true } },
+  } satisfies Prisma.BookInclude;
+}
 
 const trashedSelect = {
   authors: { include: { author: true }, orderBy: { position: "asc" } },
@@ -254,7 +263,7 @@ export type BookOwnershipFields = {
 export type BookPurgeRow = Prisma.BookGetPayload<{ select: typeof purgeSelect }>;
 
 export type BookWithRelations = Prisma.BookGetPayload<{
-  include: typeof withRelations;
+  include: ReturnType<typeof withRelations>;
 }>;
 
 export type CreateLoanInfoData = {
@@ -293,11 +302,6 @@ export type DedicationsFilter = {
   searchGenreKeys?: string[];
   userId: string;
 };
-
-export type DeliveryBlockChange =
-  | { cancelledAt: Date; kind: "cancel" }
-  | { create: CreateDeliveryData; kind: "upsertActive"; update: UpdateDeliveryData }
-  | { kind: "skip" };
 
 export type GuardedChangeOutcome = "applied" | "not-found" | "status-conflict";
 
@@ -360,7 +364,6 @@ export type UpdateActiveLoanData = {
 
 export type UpdateBookData = {
   authorIds?: string[];
-  deliveryInfo: DeliveryBlockChange;
   fields: Prisma.BookUncheckedUpdateManyInput;
   listIds?: string[];
   loanInfo: LoanBlockChange;
@@ -377,7 +380,7 @@ export type UpdatePurchaseInfoData = Partial<CreatePurchaseInfoData>;
 export type UpdateReadingProgressData = Partial<CreateReadingProgressData>;
 
 export type WishlistBookRow = Prisma.BookGetPayload<{
-  include: typeof wishlistWithRelations;
+  include: ReturnType<typeof wishlistWithRelations>;
 }>;
 
 type BlockDelegate<TCreate, TUpdate> = {
@@ -394,7 +397,6 @@ type CreateBookData = {
   authorIds: string[];
   coverMediaId: Nullable<string>;
   dedication: Nullable<string>;
-  deliveryInfo: Nullable<CreateDeliveryData>;
   description: Nullable<string>;
   favoriteAddedAt: Nullable<Date>;
   firstAuthorName: string;
@@ -588,16 +590,8 @@ export class BooksRepository {
     now: Date,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<BookWithRelations> {
-    const {
-      authorIds,
-      deliveryInfo,
-      listIds,
-      loanInfo,
-      purchaseInfo,
-      readingProgress,
-      tagIds,
-      ...bookData
-    } = data;
+    const { authorIds, listIds, loanInfo, purchaseInfo, readingProgress, tagIds, ...bookData } =
+      data;
 
     const created = await client.book.create({
       data: {
@@ -605,7 +599,6 @@ export class BooksRepository {
         authors: {
           create: authorIds.map((authorId, position) => ({ authorId, position })),
         },
-        deliveries: deliveryInfo === null ? undefined : { create: { ...deliveryInfo, userId } },
         loans:
           loanInfo === null
             ? undefined
@@ -638,7 +631,10 @@ export class BooksRepository {
       }
     }
 
-    return client.book.findFirstOrThrow({ include: withRelations, where: { id: created.id } });
+    return client.book.findFirstOrThrow({
+      include: withRelations(userId),
+      where: { id: created.id },
+    });
   }
 
   async dedicationsSummary({ userId }: { userId: string }): Promise<DedicationsSummaryResult> {
@@ -749,7 +745,7 @@ export class BooksRepository {
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<Nullable<BookWithRelations>> {
     return client.book.findFirst({
-      include: withRelations,
+      include: withRelations(userId),
       where: { ...SOFT_DELETE_SCOPE.active, id, userId },
     });
   }
@@ -848,7 +844,7 @@ export class BooksRepository {
     take: number;
   }): Promise<BookWithRelations[]> {
     return this.prisma.book.findMany({
-      include: withRelations,
+      include: withRelations(filter.userId),
       orderBy: DEDICATIONS_ORDER_BY[sort],
       skip,
       take,
@@ -929,7 +925,7 @@ export class BooksRepository {
       log.warn({ cap: WISHLIST_MAX_BOOKS, userId }, "wishlist truncated at the safety cap");
     }
     const unordered = await db.book.findMany({
-      include: wishlistWithRelations,
+      include: wishlistWithRelations(userId),
       where: { id: { in: orderedIds } },
     });
     const byId = new Map(unordered.map((row) => [row.id, row]));
@@ -1126,7 +1122,6 @@ export class BooksRepository {
 
       await applyBlockUpsert(tx.bookReadingProgress, bookId, data.readingProgress);
       await applyBlockUpsert(tx.bookPurchaseInfo, bookId, data.purchaseInfo);
-      await applyDeliveryBlock(tx, bookId, userId, data.deliveryInfo);
       await applyLoanBlock(tx, bookId, userId, data.loanInfo);
 
       if (data.authorIds !== undefined) {
@@ -1190,7 +1185,7 @@ export class BooksRepository {
       }
 
       return tx.book.findFirstOrThrow({
-        include: withRelations,
+        include: withRelations(userId),
         where: { ...SOFT_DELETE_SCOPE.active, id: bookId, userId },
       });
     });
@@ -1384,36 +1379,6 @@ function applyDedicationStatusFilter(where: Prisma.BookWhereInput, filter: Dedic
       return _exhaustiveCheck;
     }
   }
-}
-
-async function applyDeliveryBlock(
-  tx: Prisma.TransactionClient,
-  bookId: string,
-  userId: string,
-  change: DeliveryBlockChange,
-): Promise<void> {
-  if (change.kind === "skip") {
-    return;
-  }
-
-  if (change.kind === "cancel") {
-    await tx.bookDelivery.updateMany({
-      data: { cancelledAt: change.cancelledAt, status: "cancelled" },
-      where: { bookId, status: { in: [...SHIPMENT_ACTIVE_STATUSES] } },
-    });
-    return;
-  }
-
-  const active = await tx.bookDelivery.findFirst({
-    select: { id: true },
-    where: { bookId, status: { in: [...SHIPMENT_ACTIVE_STATUSES] } },
-  });
-  if (active === null) {
-    await tx.bookDelivery.create({ data: { ...change.create, bookId, userId } });
-    return;
-  }
-
-  await tx.bookDelivery.update({ data: change.update, where: { id: active.id } });
 }
 
 async function applyLoanBlock(

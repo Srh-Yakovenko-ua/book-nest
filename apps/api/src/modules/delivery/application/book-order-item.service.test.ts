@@ -217,25 +217,3 @@ describe("BookOrderItemService.bulkReceive", () => {
     );
   });
 });
-
-describe("BookOrderItemService.cancelActiveForBooks", () => {
-  it("cancels the live items of the given books on the caller's transaction", async () => {
-    const now = new Date("2026-08-10T10:00:00.000Z");
-    const { items, service } = buildService({
-      items: {
-        cancelActiveForBooks: vi.fn().mockResolvedValue([{ bookId: BOOK_A, id: ITEM_ID }]),
-      },
-    });
-
-    const cancelled = await service.cancelActiveForBooks(
-      { bookIds: [BOOK_A], cancelReason: null, now, userId: USER },
-      TX,
-    );
-
-    expect(items.cancelActiveForBooks).toHaveBeenCalledWith(
-      { bookIds: [BOOK_A], cancelledAt: now, cancelReason: null, userId: USER },
-      TX,
-    );
-    expect(cancelled).toEqual([{ bookId: BOOK_A, id: ITEM_ID }]);
-  });
-});

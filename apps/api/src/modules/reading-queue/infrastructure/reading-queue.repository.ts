@@ -142,7 +142,7 @@ export class ReadingQueueRepository {
 
   listQueue(userId: string, query?: ReadingQueueQuery): Promise<BookWithRelations[]> {
     return this.prisma.book.findMany({
-      include: withRelations,
+      include: withRelations(userId),
       orderBy: [{ queuePosition: "asc" }, { id: "asc" }],
       where: buildQueueWhere({ query, userId }),
     });

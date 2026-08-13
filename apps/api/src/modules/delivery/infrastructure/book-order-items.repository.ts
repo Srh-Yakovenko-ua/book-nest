@@ -8,8 +8,25 @@ import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
 const bookOrderItemContext = {
-  include: { order: true, shipment: true },
+  include: {
+    order: {
+      include: {
+        items: {
+          select: { bookId: true, shipmentId: true },
+          where: { book: SOFT_DELETE_SCOPE.active },
+        },
+        shipments: { select: { expectedDeliveryDate: true, id: true } },
+      },
+    },
+    shipment: true,
+  },
 } satisfies Prisma.BookOrderItemDefaultArgs;
+
+const bookOrderItemHistory = {
+  include: { order: true, shipment: { include: { deliveryService: true } } },
+} satisfies Prisma.BookOrderItemDefaultArgs;
+
+export type BookOrderItemHistoryRow = Prisma.BookOrderItemGetPayload<typeof bookOrderItemHistory>;
 
 export type BookOrderItemWithContext = Prisma.BookOrderItemGetPayload<typeof bookOrderItemContext>;
 
@@ -111,6 +128,17 @@ export class BookOrderItemsRepository {
     return rows.map((row) => row.bookId);
   }
 
+  findActiveForBook(
+    { bookId, userId }: { bookId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<Nullable<BookOrderItemWithContext>> {
+    return client.bookOrderItem.findFirst({
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      where: { ...activeItemWhere(userId), bookId },
+      ...bookOrderItemContext,
+    });
+  }
+
   findOwnedById(
     { itemId, userId }: { itemId: string; userId: string },
     client: Prisma.TransactionClient = this.prisma,
@@ -118,6 +146,17 @@ export class BookOrderItemsRepository {
     return client.bookOrderItem.findFirst({
       where: { book: SOFT_DELETE_SCOPE.active, id: itemId, order: { userId } },
       ...bookOrderItemContext,
+    });
+  }
+
+  listForBook(
+    { bookId, userId }: { bookId: string; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<BookOrderItemHistoryRow[]> {
+    return client.bookOrderItem.findMany({
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      where: { book: SOFT_DELETE_SCOPE.active, bookId, order: { userId } },
+      ...bookOrderItemHistory,
     });
   }
 
@@ -163,6 +202,17 @@ export class BookOrderItemsRepository {
       where: { ...activeItemWhere(userId), shipmentId },
     });
     return sortById(received);
+  }
+
+  async updateActivePrice(
+    { itemId, price, userId }: { itemId: string; price: Nullable<number>; userId: string },
+    client: Prisma.TransactionClient = this.prisma,
+  ): Promise<number> {
+    const updated = await client.bookOrderItem.updateMany({
+      data: { price },
+      where: { ...activeItemWhere(userId), id: itemId },
+    });
+    return updated.count;
   }
 
   private async cancelActiveMatching({

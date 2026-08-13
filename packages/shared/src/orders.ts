@@ -33,7 +33,7 @@ import {
 
 export { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "./internal.js";
 
-const BOOK_ORDER_LIMITS = {
+export const BOOK_ORDER_LIMITS = {
   itemsMax: 100,
   pageSizeDefault: 10,
   searchMax: 100,

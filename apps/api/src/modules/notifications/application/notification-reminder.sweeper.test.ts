@@ -151,6 +151,40 @@ async function seedLoanCandidate(): Promise<{ bookId: string; loanId: string; us
   return { bookId, loanId, userId };
 }
 
+async function seedShipment({
+  bookId,
+  cancelledBookId,
+  expectedDeliveryDate,
+  storeName,
+  userId,
+}: {
+  bookId: string;
+  cancelledBookId?: string;
+  expectedDeliveryDate: Date;
+  storeName: string;
+  userId: string;
+}): Promise<{ id: string }> {
+  const order = await prisma.bookOrder.create({ data: { storeName, userId } });
+  const shipment = await prisma.shipment.create({
+    data: { expectedDeliveryDate, orderId: order.id, status: "ordered" },
+    select: { id: true },
+  });
+  await prisma.bookOrderItem.create({
+    data: { bookId, orderId: order.id, shipmentId: shipment.id },
+  });
+  if (cancelledBookId !== undefined) {
+    await prisma.bookOrderItem.create({
+      data: {
+        bookId: cancelledBookId,
+        cancelledAt: new Date("2026-07-20T00:00:00.000Z"),
+        orderId: order.id,
+        shipmentId: shipment.id,
+      },
+    });
+  }
+  return shipment;
+}
+
 describe("NotificationReminderSweeper", () => {
   it("creates one reminder for a loan due in exactly the default lead time", async () => {
     const { bookId, loanId, userId } = await seedLoanCandidate();
@@ -437,15 +471,11 @@ describe("NotificationReminderSweeper", () => {
   it("creates a delivery reminder on the exact arriving-soon day", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const bookId = await createBook({ token: accessToken });
-    const delivery = await prisma.bookDelivery.create({
-      data: {
-        bookId,
-        expectedDeliveryDate: DUE_IN_DEFAULT_LEAD,
-        status: "ordered",
-        storeName: "Yakaboo",
-        userId,
-      },
-      select: { id: true },
+    const shipment = await seedShipment({
+      bookId,
+      expectedDeliveryDate: DUE_IN_DEFAULT_LEAD,
+      storeName: "Yakaboo",
+      userId,
     });
 
     await sweeper.run({ now: NINE_LOCAL_IN_KYIV });
@@ -453,7 +483,7 @@ describe("NotificationReminderSweeper", () => {
     const notifications = await readNotifications(userId);
     expect(notifications).toHaveLength(1);
     expect(notifications[0]).toMatchObject({
-      dedupeKey: `delivery:${delivery.id}:arriving_soon`,
+      dedupeKey: `delivery:${shipment.id}:${bookId}:arriving_soon`,
       level: "passive",
       reason: "global_setting",
       type: "delivery.arriving_soon",
@@ -466,18 +496,38 @@ describe("NotificationReminderSweeper", () => {
     });
   });
 
+  it("reminds once per live book of a shipment and skips the cancelled one", async () => {
+    const { accessToken, userId } = await context.registerVerifyAndLogin();
+    const arrivingBookId = await createBook({ title: "Dune", token: accessToken });
+    const cancelledBookId = await createBook({ title: "Dune Messiah", token: accessToken });
+    const shipment = await seedShipment({
+      bookId: arrivingBookId,
+      cancelledBookId,
+      expectedDeliveryDate: DUE_IN_DEFAULT_LEAD,
+      storeName: "Yakaboo",
+      userId,
+    });
+
+    await sweeper.run({ now: NINE_LOCAL_IN_KYIV });
+
+    const notifications = await readNotifications(userId);
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toMatchObject({
+      dedupeKey: `delivery:${shipment.id}:${arrivingBookId}:arriving_soon`,
+      entityId: arrivingBookId,
+    });
+  });
+
   it("still writes the delivery reminders when a loan write fails", async () => {
     const { accessToken, userId } = await context.registerVerifyAndLogin();
     const loanBookId = await createBook({ title: "Dune 1", token: accessToken });
     await createLoan({ bookId: loanBookId, expectedReturnDate: DUE_TODAY, userId });
     const deliveryBookId = await createBook({ title: "Dune 2", token: accessToken });
-    await prisma.bookDelivery.create({
-      data: {
-        bookId: deliveryBookId,
-        expectedDeliveryDate: DUE_IN_DEFAULT_LEAD,
-        status: "ordered",
-        userId,
-      },
+    await seedShipment({
+      bookId: deliveryBookId,
+      expectedDeliveryDate: DUE_IN_DEFAULT_LEAD,
+      storeName: "Yakaboo",
+      userId,
     });
 
     vi.spyOn(app.get(NotificationWriterService), "write").mockRejectedValueOnce(

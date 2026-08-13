@@ -3,13 +3,9 @@ import type {
   BulkReceiveOrderItemsInput,
   BulkReceiveOrderItemsResultView,
   CancelBookOrderItemInput,
-  Nullable,
 } from "@app/shared";
 
 import { Injectable } from "@nestjs/common";
-
-import type { Prisma } from "../../../generated/prisma/client.js";
-import type { OrderItemBookRef } from "../infrastructure/book-order-items.repository.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
@@ -126,26 +122,6 @@ export class BookOrderItemService {
 
       return this.viewLoader.loadOrThrow({ orderId: item.orderId, userId }, tx);
     });
-  }
-
-  cancelActiveForBooks(
-    {
-      bookIds,
-      cancelReason,
-      now,
-      userId,
-    }: {
-      bookIds: string[];
-      cancelReason: Nullable<string>;
-      now: Date;
-      userId: string;
-    },
-    client: Prisma.TransactionClient,
-  ): Promise<OrderItemBookRef[]> {
-    return this.bookOrderItemsRepository.cancelActiveForBooks(
-      { bookIds, cancelledAt: now, cancelReason, userId },
-      client,
-    );
   }
 }
 

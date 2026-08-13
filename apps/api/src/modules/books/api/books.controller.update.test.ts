@@ -355,10 +355,12 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     expect(res.status).toBe(200);
     expect(res.body.delivery.active).toBeNull();
     expect(res.body.loanInfo).toMatchObject({ personName: "Olha" });
-    const delivery = await prisma.bookDelivery.findMany({ where: { bookId: created.body.id } });
+    const orderedBooks = await prisma.bookOrderItem.findMany({
+      where: { bookId: created.body.id },
+    });
     const loan = await prisma.bookLoan.findMany({ where: { bookId: created.body.id } });
-    expect(delivery).toHaveLength(1);
-    expect(delivery[0]?.status).toBe("cancelled");
+    expect(orderedBooks).toHaveLength(1);
+    expect(orderedBooks[0]?.cancelledAt).not.toBeNull();
     expect(loan).toHaveLength(1);
     expect(loan[0]?.status).toBe("active");
   });
@@ -382,7 +384,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
       storeName: "Nova Poshta",
     });
     expect(res.body.delivery.totalCount).toBe(1);
-    const rows = await prisma.bookDelivery.findMany({ where: { bookId: created.body.id } });
+    const rows = await prisma.bookOrderItem.findMany({ where: { bookId: created.body.id } });
     expect(rows).toHaveLength(1);
   });
 
@@ -402,7 +404,7 @@ describe("PATCH /api/books/:id status to block transitions", () => {
     expect(res.body.ownershipStatus).toBe("in_transit");
     expect(res.body.delivery.active).toMatchObject({ status: "ordered", storeName: "Yakaboo" });
     expect(res.body.delivery.totalCount).toBe(1);
-    const rows = await prisma.bookDelivery.findMany({ where: { bookId: created.body.id } });
+    const rows = await prisma.bookOrderItem.findMany({ where: { bookId: created.body.id } });
     expect(rows).toHaveLength(1);
   });
 });
@@ -435,10 +437,13 @@ describe("PATCH /api/books/:id delivery field parity", () => {
       trackingNumber: "TN-9",
       trackingUrl: "https://parcel.example.com",
     });
-    const row = await prisma.bookDelivery.findFirstOrThrow({ where: { bookId: created.body.id } });
-    expect(row.deliveryService).toBe("Ukrposhta");
-    expect(row.trackingNumber).toBe("TN-9");
-    expect(row.currency).toBe("USD");
+    const row = await prisma.bookOrderItem.findFirstOrThrow({
+      include: { order: true, shipment: true },
+      where: { bookId: created.body.id },
+    });
+    expect(row.shipment?.deliveryServiceName).toBe("Ukrposhta");
+    expect(row.shipment?.trackingNumber).toBe("TN-9");
+    expect(row.order.currency).toBe("USD");
     expect(row.price?.toString()).toBe("199.99");
   });
 

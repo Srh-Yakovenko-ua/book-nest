@@ -86,7 +86,7 @@ export class ListOverviewRepository {
     userId,
   }: StatusScope): Promise<Nullable<BookListItemWithBook>> {
     return this.prisma.bookListItem.findFirst({
-      include: { book: { include: withRelations } },
+      include: { book: { include: withRelations(userId) } },
       orderBy: [
         { book: { readingProgress: { lastProgressUpdateAt: { nulls: "last", sort: "desc" } } } },
         { book: { updatedAt: "desc" } },

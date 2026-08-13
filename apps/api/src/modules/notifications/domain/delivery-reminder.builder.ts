@@ -15,7 +15,7 @@ export type DeliveryReminderCandidate = {
   bookId: string;
   bookTitle: string;
   expectedDeliveryDate: Nullable<Date>;
-  id: string;
+  shipmentId: string;
   storeName: Nullable<string>;
 };
 
@@ -48,7 +48,11 @@ export function buildDeliveryReminder({
   }
 
   return {
-    dedupeKey: buildDeliveryDedupeKey({ deliveryId: candidate.id, stage }),
+    dedupeKey: buildDeliveryDedupeKey({
+      bookId: candidate.bookId,
+      shipmentId: candidate.shipmentId,
+      stage,
+    }),
     entityId: candidate.bookId,
     entityType: BOOK_ENTITY_TYPE,
     payload: toDeliveryPayload({ candidate, expectedDate, stage }),

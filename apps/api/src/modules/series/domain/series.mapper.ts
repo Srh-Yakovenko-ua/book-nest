@@ -23,7 +23,7 @@ import type { SeriesBookRow } from "./series-preview.js";
 
 import { toNullableIsoDate } from "../../../core/iso-date.js";
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
-import { toDeliverySummaryView } from "../../delivery/index.js";
+import { toActiveBookDeliveryView } from "../../delivery/index.js";
 import { toLoanInfoView } from "../../loans/index.js";
 import { summarizeSeriesAggregates } from "./series-aggregates.js";
 import {
@@ -193,7 +193,7 @@ function toSeriesBookView({
   today: Date;
 }): SeriesBookView {
   return {
-    activeDelivery: toDeliverySummaryView(book.deliveries).active,
+    activeDelivery: toActiveBookDeliveryView(book.orderItems),
     ageCategory: AgeCategorySchema.parse(book.ageCategory),
     authors: book.authors.map((bookAuthor) => ({
       id: bookAuthor.author.id,

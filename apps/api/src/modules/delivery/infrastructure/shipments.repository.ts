@@ -8,18 +8,10 @@ import type { NewShipmentData } from "./book-orders.repository.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
-import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 
 const shipmentRelations = {
-  include: {
-    deliveryService: true,
-    items: {
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-      where: { book: SOFT_DELETE_SCOPE.active },
-    },
-    order: true,
-  },
+  include: { deliveryService: true, order: true },
 } satisfies Prisma.ShipmentDefaultArgs;
 
 const LockedShipmentRowsSchema = z.array(z.object({ id: z.uuid() }));

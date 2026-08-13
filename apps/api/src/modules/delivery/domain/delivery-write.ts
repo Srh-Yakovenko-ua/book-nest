@@ -14,8 +14,6 @@ export type CreateDeliveryData = {
   trackingUrl: Nullable<string>;
 };
 
-export type CreateDeliveryOutcome = "book-not-found" | "created" | "status-conflict";
-
 export type CreateDeliveryTransition = {
   book: DeliveryBookPatch;
   delivery: CreateDeliveryData;
@@ -25,8 +23,6 @@ export type DeliveryBookPatch = {
   ownershipStatus: OwnershipStatus;
   wishlistAddedAt?: Nullable<Date>;
 };
-
-export type RecordDeliveryOutcome = "applied" | "not-active" | "not-found";
 
 export type RecordDeliveryTransition = {
   book: Nullable<DeliveryBookPatch>;

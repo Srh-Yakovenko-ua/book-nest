@@ -8,13 +8,15 @@ const DEDUPE_HOUR_FORMAT = "yyyy-MM-dd'T'HH";
 const DEDUPE_TIME_ZONE = "UTC";
 
 export function buildDeliveryDedupeKey({
-  deliveryId,
+  bookId,
+  shipmentId,
   stage,
 }: {
-  deliveryId: string;
+  bookId: string;
+  shipmentId: string;
   stage: DeliveryReminderStage;
 }): string {
-  return `delivery:${deliveryId}:${stage}`;
+  return `delivery:${shipmentId}:${bookId}:${stage}`;
 }
 
 export function buildLoanDedupeKey({

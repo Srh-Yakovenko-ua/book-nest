@@ -18,27 +18,50 @@ const REMINDABLE_LOAN_FILTER = {
   status: ACTIVE_LOAN_STATUS,
 } as const satisfies Prisma.BookLoanWhereInput;
 
-const REMINDABLE_DELIVERY_FILTER = {
+const REMINDABLE_SHIPMENT_ITEM_FILTER = {
   book: SOFT_DELETE_SCOPE.active,
+  cancelledAt: null,
+  receivedAt: null,
+} as const satisfies Prisma.BookOrderItemWhereInput;
+
+const REMINDABLE_DELIVERY_FILTER = {
   expectedDeliveryDate: { not: null },
+  items: { some: REMINDABLE_SHIPMENT_ITEM_FILTER },
   status: { in: [...SHIPMENT_ACTIVE_STATUSES] },
-} as const satisfies Prisma.BookDeliveryWhereInput;
+} as const satisfies Prisma.ShipmentWhereInput;
 
 const CANDIDATE_USER_FILTER = {
   OR: [
     { bookLoans: { some: REMINDABLE_LOAN_FILTER } },
-    { bookDeliveries: { some: REMINDABLE_DELIVERY_FILTER } },
+    { bookOrders: { some: { shipments: { some: REMINDABLE_DELIVERY_FILTER } } } },
   ],
 } as const satisfies Prisma.UserWhereInput;
 
-const deliveryCandidateArgs = {
-  select: {
-    book: { select: { id: true, title: true } },
-    expectedDeliveryDate: true,
-    id: true,
-    storeName: true,
-  },
-} satisfies Prisma.BookDeliveryDefaultArgs;
+function deliveryCandidateArgs({
+  itemsPerShipment,
+  userId,
+}: {
+  itemsPerShipment: number;
+  userId: string;
+}) {
+  return {
+    select: {
+      expectedDeliveryDate: true,
+      id: true,
+      items: {
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        select: { book: { select: { id: true, title: true } } },
+        take: itemsPerShipment,
+        where: {
+          ...REMINDABLE_SHIPMENT_ITEM_FILTER,
+          book: { ...SOFT_DELETE_SCOPE.active, userId },
+          order: { userId },
+        },
+      },
+      order: { select: { storeName: true } },
+    },
+  } satisfies Prisma.ShipmentDefaultArgs;
+}
 
 const loanCandidateArgs = {
   select: {
@@ -64,7 +87,9 @@ const reminderRecipientArgs = {
   },
 } satisfies Prisma.UserDefaultArgs;
 
-export type DeliveryCandidateRow = Prisma.BookDeliveryGetPayload<typeof deliveryCandidateArgs>;
+export type DeliveryCandidateRow = Prisma.ShipmentGetPayload<
+  ReturnType<typeof deliveryCandidateArgs>
+>;
 
 export type LoanCandidateRow = Prisma.BookLoanGetPayload<typeof loanCandidateArgs>;
 
@@ -76,6 +101,10 @@ type CandidateQueryInput = {
   dueTo: Date;
   limit: number;
   userId: string;
+};
+
+type DeliveryCandidateQueryInput = CandidateQueryInput & {
+  itemsPerShipment: number;
 };
 
 type RecipientQueryInput = {
@@ -117,18 +146,18 @@ export class ReminderCandidatesRepository {
   }
 
   findDeliveryCandidates(
-    { afterId, dueFrom, dueTo, limit, userId }: CandidateQueryInput,
+    { afterId, dueFrom, dueTo, itemsPerShipment, limit, userId }: DeliveryCandidateQueryInput,
     client: Prisma.TransactionClient = this.prisma,
   ): Promise<DeliveryCandidateRow[]> {
-    return client.bookDelivery.findMany({
+    return client.shipment.findMany({
       orderBy: { id: "asc" },
-      select: deliveryCandidateArgs.select,
+      select: deliveryCandidateArgs({ itemsPerShipment, userId }).select,
       take: limit,
       where: {
         ...REMINDABLE_DELIVERY_FILTER,
         ...afterIdFilter(afterId),
         expectedDeliveryDate: { gte: dueFrom, lte: dueTo },
-        userId,
+        order: { userId },
       },
     });
   }
@@ -191,10 +220,14 @@ export class ReminderCandidatesRepository {
                 },
               },
               {
-                bookDeliveries: {
+                bookOrders: {
                   some: {
-                    ...REMINDABLE_DELIVERY_FILTER,
-                    expectedDeliveryDate: { gte: deliveryDueFrom, lte: deliveryDueTo },
+                    shipments: {
+                      some: {
+                        ...REMINDABLE_DELIVERY_FILTER,
+                        expectedDeliveryDate: { gte: deliveryDueFrom, lte: deliveryDueTo },
+                      },
+                    },
                   },
                 },
               },

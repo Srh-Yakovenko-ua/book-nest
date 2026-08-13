@@ -12,6 +12,7 @@ import { PrismaService } from "../../../core/database/prisma.service.js";
 import { runInClient } from "../../../core/database/run-in-client.js";
 import { isTrashed, SOFT_DELETE_SCOPE, type Trashed } from "../../../core/database/soft-delete.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
+import { BOOK_DELIVERY_SUMMARY } from "../../delivery/index.js";
 import { buildSeriesCountQuery, buildSeriesPageQuery } from "./series-search-sql.js";
 
 export type CreateSeriesData = {
@@ -66,28 +67,35 @@ const seriesWithBookCountArgs = {
 
 export type SeriesWithBookCount = Prisma.SeriesGetPayload<typeof seriesWithBookCountArgs>;
 
-const seriesDetailsArgs = {
-  include: {
-    _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
-    authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
-    books: {
-      include: {
-        authors: { include: { author: true }, orderBy: { position: "asc" } },
-        coverMedia: true,
-        deliveries: { orderBy: { createdAt: "desc" } },
-        loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
-        publisher: true,
-        readingProgress: {
-          select: { currentPage: true, finishedAt: true, rating: true, startedAt: true },
-        },
-        tags: { include: { tag: true } },
-      },
-      where: SOFT_DELETE_SCOPE.active,
-    },
-  },
-} satisfies Prisma.SeriesDefaultArgs;
+export type SeriesWithDetails = Prisma.SeriesGetPayload<ReturnType<typeof seriesDetailsArgs>>;
 
-export type SeriesWithDetails = Prisma.SeriesGetPayload<typeof seriesDetailsArgs>;
+function seriesDetailsArgs(userId: string) {
+  return {
+    include: {
+      _count: { select: { books: { where: SOFT_DELETE_SCOPE.active } } },
+      authors: { include: { author: true }, orderBy: { author: { name: "asc" } } },
+      books: {
+        include: {
+          authors: { include: { author: true }, orderBy: { position: "asc" } },
+          coverMedia: true,
+          loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
+          orderItems: {
+            include: { order: true, shipment: { include: { deliveryService: true } } },
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+            take: BOOK_DELIVERY_SUMMARY.itemsTake,
+            where: { order: { userId } },
+          },
+          publisher: true,
+          readingProgress: {
+            select: { currentPage: true, finishedAt: true, rating: true, startedAt: true },
+          },
+          tags: { include: { tag: true } },
+        },
+        where: SOFT_DELETE_SCOPE.active,
+      },
+    },
+  } satisfies Prisma.SeriesDefaultArgs;
+}
 
 const favoriteContinuationBookArgs = {
   select: {
@@ -243,7 +251,7 @@ export class SeriesRepository {
   findOwnedDetailsById(userId: string, id: string): Promise<Nullable<SeriesWithDetails>> {
     return this.prisma.series.findFirst({
       where: { ...SOFT_DELETE_SCOPE.active, id, userId },
-      ...seriesDetailsArgs,
+      ...seriesDetailsArgs(userId),
     });
   }
 

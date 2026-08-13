@@ -3,7 +3,7 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/index.js";
 import { AuthorsModule } from "../authors/index.js";
-import { DeliveryServicesModule } from "../delivery-services/index.js";
+import { DeliveryModule } from "../delivery/index.js";
 import { GenresModule } from "../genres/index.js";
 import { ListsModule } from "../lists/index.js";
 import { MediaModule } from "../media/index.js";
@@ -45,7 +45,6 @@ import { ListMembershipService } from "./application/list-membership.service.js"
 import { ListOverviewService } from "./application/list-overview.service.js";
 import { WishlistService } from "./application/wishlist.service.js";
 import { BOOK_PURGE_QUEUE_NAME } from "./domain/book-purge.js";
-import { BookDeliveriesRepository } from "./infrastructure/book-deliveries.repository.js";
 import { BookFacetsRepository } from "./infrastructure/book-facets.repository.js";
 import { BookLibraryReadRepository } from "./infrastructure/book-library-read.repository.js";
 import { BookListsRepository } from "./infrastructure/book-lists.repository.js";
@@ -80,7 +79,7 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     ListsModule,
     GenresModule,
     MediaModule,
-    DeliveryServicesModule,
+    DeliveryModule,
     BullModule.registerQueue({ name: BOOK_PURGE_QUEUE_NAME }),
   ],
   providers: [
@@ -103,7 +102,6 @@ import { ListOverviewRepository } from "./infrastructure/list-overview.repositor
     DedicationsService,
     BookLibraryReadRepository,
     BooksRepository,
-    BookDeliveriesRepository,
     BookStoreLinkRepository,
     BulkBooksService,
     BulkBooksRepository,

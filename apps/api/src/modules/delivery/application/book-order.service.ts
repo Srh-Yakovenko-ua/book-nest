@@ -14,25 +14,23 @@ import type {
   NewBookOrderData,
   NewOrderShipment,
 } from "../infrastructure/book-orders.repository.js";
-import type { DeliveryDay } from "./delivery-write-errors.js";
 import type { ShipmentDeliveryServiceSnapshot } from "./shipment-delivery-service.resolver.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
 import { toCreateDate, toUpdateDate } from "../../../core/iso-date.js";
-import { isUniqueConstraintErrorOn } from "../../../core/prisma-errors.js";
-import { evaluateBookOrderEntry, ORDER_ENTRY_REJECTIONS } from "../domain/order-item-transition.js";
+import { evaluateBookOrderEntry } from "../domain/order-item-transition.js";
 import { toBookOrderView } from "../domain/order.mapper.js";
 import { BookOrderItemsRepository } from "../infrastructure/book-order-items.repository.js";
 import { BookOrdersRepository } from "../infrastructure/book-orders.repository.js";
 import { OrderBooksRepository } from "../infrastructure/order-books.repository.js";
 import { BookOrderViewLoader } from "./book-order-view.loader.js";
 import {
-  ACTIVE_ORDER_ITEM_CONSTRAINT,
-  assertExpectedDeliveryNotBeforeOrder,
+  assertShipmentsExpectedAfter,
   DELIVERY_WRITE_MESSAGES,
   orderEntryError,
   orderNotFoundError,
+  toActiveOrderItemConflict,
 } from "./delivery-write-errors.js";
 import { ShipmentDeliveryServiceResolver } from "./shipment-delivery-service.resolver.js";
 
@@ -194,28 +192,6 @@ export class BookOrderService {
     }
     return built;
   }
-}
-
-function assertShipmentsExpectedAfter({
-  orderDate,
-  shipments,
-}: {
-  orderDate: DeliveryDay;
-  shipments: readonly { expectedDeliveryDate?: DeliveryDay }[];
-}): void {
-  for (const shipment of shipments) {
-    assertExpectedDeliveryNotBeforeOrder({
-      expectedDeliveryDate: shipment.expectedDeliveryDate,
-      orderDate,
-    });
-  }
-}
-
-function toActiveOrderItemConflict(error: unknown): unknown {
-  if (isUniqueConstraintErrorOn(error, ACTIVE_ORDER_ITEM_CONSTRAINT)) {
-    return orderEntryError(ORDER_ENTRY_REJECTIONS.bookAlreadyOrdered);
-  }
-  return error;
 }
 
 function toNewOrderData(input: CreateBookOrderInput): NewBookOrderData {

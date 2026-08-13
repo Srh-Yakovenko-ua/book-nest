@@ -15,10 +15,10 @@ import { DeliveryReadService } from "./application/delivery-read.service.js";
 import { DeliveryService } from "./application/delivery.service.js";
 import { ShipmentDeliveryServiceResolver } from "./application/shipment-delivery-service.resolver.js";
 import { ShipmentService } from "./application/shipment.service.js";
+import { SingleBookOrderService } from "./application/single-book-order.service.js";
 import { BookOrderItemsRepository } from "./infrastructure/book-order-items.repository.js";
 import { BookOrdersRepository } from "./infrastructure/book-orders.repository.js";
 import { DeliveryReadRepository } from "./infrastructure/delivery-read.repository.js";
-import { DeliveryServiceLookupRepository } from "./infrastructure/delivery-service-lookup.repository.js";
 import { DeliveryStatisticsRepository } from "./infrastructure/delivery-statistics.repository.js";
 import { DeliveryRepository } from "./infrastructure/delivery.repository.js";
 import { OrderBooksRepository } from "./infrastructure/order-books.repository.js";
@@ -32,6 +32,12 @@ import { ShipmentsRepository } from "./infrastructure/shipments.repository.js";
     ShipmentsController,
     BookOrderItemsController,
   ],
+  exports: [
+    BookOrderService,
+    BookOrderItemService,
+    BookOrderItemsRepository,
+    SingleBookOrderService,
+  ],
   imports: [AuthModule, MediaModule, DeliveryServicesModule],
   providers: [
     DeliveryService,
@@ -39,6 +45,7 @@ import { ShipmentsRepository } from "./infrastructure/shipments.repository.js";
     BookOrderService,
     ShipmentService,
     BookOrderItemService,
+    SingleBookOrderService,
     DeliveryReadService,
     BookOrderViewLoader,
     ShipmentDeliveryServiceResolver,
@@ -48,7 +55,6 @@ import { ShipmentsRepository } from "./infrastructure/shipments.repository.js";
     OrderBooksRepository,
     DeliveryReadRepository,
     DeliveryStatisticsRepository,
-    DeliveryServiceLookupRepository,
   ],
 })
 export class DeliveryModule {}
