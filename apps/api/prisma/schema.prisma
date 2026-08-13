@@ -392,6 +392,7 @@ model BookLoan {
   expectedReturnDate DateTime? @map("expected_return_date") @db.Date
   note               String?
   remindToReturn     Boolean   @default(false) @map("remind_to_return")
+  remindBeforeDays   Int?      @map("remind_before_days")
   status             String    @default("active")
   returnedAt         DateTime? @map("returned_at") @db.Timestamptz
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz

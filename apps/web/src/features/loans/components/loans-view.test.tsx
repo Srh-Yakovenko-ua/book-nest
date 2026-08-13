@@ -10,8 +10,10 @@ import type { ReactNode } from "react";
 
 import { addDays, format } from "date-fns";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
@@ -19,6 +21,10 @@ import { LOANS_PAGE_SIZE } from "../model/loans-query";
 import { LoansView } from "./loans-view";
 
 const push = vi.fn();
+
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+}));
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -28,10 +34,12 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const copy = messages.loans;
+const actions = messages.loans.actions;
 const stats = messages.loans.stats;
 const attention = messages.loans.sidebar.attention;
 const longHeld = messages.loans.sidebar.longHeld;
 const people = messages.loans.sidebar.people;
+const row = messages.loans.row;
 const sort = messages.loans.sort;
 const upcoming = messages.loans.sidebar.upcoming;
 const requestedUrls: string[] = [];
@@ -103,6 +111,137 @@ describe("LoansView", () => {
     expect(listUrl()).toContain("search=hobbit");
     expect(listUrl()).toContain("filter=overdue");
     expect(listUrl()).toContain("sort=title");
+  });
+
+  it("leads the borrowed card with the term and the owner", async () => {
+    mockLoans([
+      loanItem("borrowed_from_someone", "Гобіт", {
+        expectedReturnDate: isoDaysFromToday(5),
+        personName: "Ігор",
+      }),
+    ]);
+
+    renderLoans("borrowed_from_someone");
+
+    const card = await findLoanCard("Гобіт");
+    expect(within(card).getByText("Повернути через 5 днів")).toBeInTheDocument();
+    expect(within(card).getByText("Ігор")).toBeInTheDocument();
+    expect(within(card).getByText(row.personBorrowed)).toBeInTheDocument();
+  });
+
+  it("counts how long a lent book is overdue and closes the loan from the menu", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: isoDaysFromToday(-8),
+        loanUiStatus: "overdue",
+        personName: "Олена",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    const card = await findLoanCard("Дюна");
+    expect(within(card).getByText("Прострочено на 8 днів")).toBeInTheDocument();
+    expect(within(card).getByText(row.personLent)).toBeInTheDocument();
+
+    const menuTriggers = within(card).getAllByRole("button", {
+      name: messages.loans.actions.menu,
+    });
+    await userEvent.click(menuTriggers[0] ?? card);
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: messages.loans.actions.markReturned }),
+    );
+
+    expect(
+      await screen.findByRole("alertdialog", { name: messages.loans.return.titleLent }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers the quick actions of a dated loan", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: isoDaysFromToday(5),
+        remindBeforeDays: 3,
+        remindToReturn: true,
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    await openLoanMenu("Дюна");
+
+    expect(await screen.findByRole("menuitem", { name: actions.changeReturnDate })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Продовжити на 7 днів" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Продовжити на 14 днів" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: /Нагадування: за 3 дні/ })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: actions.edit })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: actions.markReturned })).toBeVisible();
+  });
+
+  it("asks the API to push the return date and names the new one", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна", { expectedReturnDate: isoDaysFromToday(5) })]);
+
+    renderLoans("lent_to_someone");
+
+    await openLoanMenu("Дюна");
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Продовжити на 7 днів" }));
+
+    await waitFor(() => {
+      expect(requestedUrls.some((url) => url.includes("/loan/extend"))).toBe(true);
+    });
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining("Строк повернення продовжено до"),
+      );
+    });
+  });
+
+  it("keeps the extend and reminder actions away from a loan without a return date", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: null,
+        loanUiStatus: "no_return_date",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    await openLoanMenu("Дюна");
+
+    expect(await screen.findByRole("menuitem", { name: actions.setReturnDate })).toBeVisible();
+    expect(screen.queryByRole("menuitem", { name: /Продовжити/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Нагадування/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: actions.reminderSetup })).not.toBeInTheDocument();
+  });
+
+  it("keeps the reminder away from an overdue loan", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: isoDaysFromToday(-4),
+        loanUiStatus: "overdue",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    await openLoanMenu("Дюна");
+
+    expect(await screen.findByRole("menuitem", { name: /Продовжити на 7 днів/ })).toBeVisible();
+    expect(screen.queryByRole("menuitem", { name: actions.reminderSetup })).not.toBeInTheDocument();
+  });
+
+  it("says a loan has no return date instead of leaving the term blank", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: null,
+        loanUiStatus: "no_return_date",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    const card = await findLoanCard("Дюна");
+    expect(within(card).getByText(row.term.none)).toBeInTheDocument();
   });
 
   it("asks for the urgency order by default", async () => {
@@ -656,6 +795,29 @@ function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionS
   };
 }
 
+function extendedBookView() {
+  return makeBookView({
+    loanInfo: {
+      contact: null,
+      expectedReturnDate: isoDaysFromToday(12),
+      loanDate: isoDaysFromToday(-3),
+      loanType: "lent_to_someone",
+      loanUiStatus: "on_time",
+      note: null,
+      personName: "Оля",
+      remindBeforeDays: null,
+      remindToReturn: false,
+    },
+    ownershipStatus: "lent_to_someone",
+  });
+}
+
+async function findLoanCard(title: string): Promise<HTMLElement> {
+  const card = (await screen.findByText(title)).closest<HTMLElement>("article");
+  if (card === null) throw new Error(`Loan card not found: ${title}`);
+  return card;
+}
+
 function findSidebarBlock(title: string): Promise<HTMLElement> {
   return waitFor(() => {
     const block = within(sidebar()).getByText(title).closest<HTMLElement>("section");
@@ -718,6 +880,7 @@ function loanItem(
     loanUiStatus: "on_time",
     note: null,
     personName: "Оля",
+    remindBeforeDays: null,
     remindToReturn: false,
     type,
     updatedAt: "2026-01-05T10:00:00.000Z",
@@ -753,9 +916,18 @@ function mockLoans(items: LoanListItemView[], summaryOverrides?: Partial<LoansSu
       requestedUrls.push(url);
       if (url.includes("/api/loans/summary")) return Promise.resolve(jsonResponse(summary));
       if (url.includes("/api/loans")) return Promise.resolve(jsonResponse(loansPage(items, url)));
+      if (url.includes("/loan/extend") || url.includes("/loan/reminder")) {
+        return Promise.resolve(jsonResponse(extendedBookView()));
+      }
       return Promise.reject(new Error(`unexpected fetch: ${url}`));
     }),
   );
+}
+
+async function openLoanMenu(title: string): Promise<void> {
+  const card = await findLoanCard(title);
+  const [trigger] = within(card).getAllByRole("button", { name: messages.loans.actions.menu });
+  await userEvent.click(trigger ?? card);
 }
 
 function renderLoans(type: LoanType, searchParams = "") {

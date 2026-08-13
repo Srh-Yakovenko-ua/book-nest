@@ -47,6 +47,7 @@ import {
 } from "./lists.js";
 import { LoanInfoViewSchema } from "./loans.js";
 import { MediaViewSchema } from "./media.js";
+import { LOAN_REMINDER_LEAD_DAYS } from "./profile.js";
 import { BookPublisherRefSchema } from "./publishers.js";
 import { NewSeriesInputSchema, SeriesViewSchema } from "./series.js";
 import { BookTagsInputSchema, TagViewSchema } from "./tags.js";
@@ -426,6 +427,28 @@ export type ReceiveDeliveryInput = z.infer<typeof ReceiveDeliveryInputSchema>;
 
 const RETURN_BEFORE_LOAN_MESSAGE = "Expected return cannot be before the loan date";
 const REMINDER_NEEDS_RETURN_DATE_MESSAGE = "Select a return date for the reminder";
+
+export const LOAN_QUICK_ACTIONS = {
+  extendDays: [7, 14],
+  reminderBeforeDays: [1, 3, 7],
+} as const;
+
+export const ExtendLoanInputSchema = z.object({
+  days: z.literal([...LOAN_QUICK_ACTIONS.extendDays]),
+});
+
+export type ExtendLoanInput = z.infer<typeof ExtendLoanInputSchema>;
+
+export const SetLoanReminderInputSchema = z.object({
+  remindBeforeDays: z
+    .number()
+    .int()
+    .min(LOAN_REMINDER_LEAD_DAYS.min)
+    .max(LOAN_REMINDER_LEAD_DAYS.max)
+    .nullable(),
+});
+
+export type SetLoanReminderInput = z.infer<typeof SetLoanReminderInputSchema>;
 
 const isReturnNotBeforeLoan = (value: {
   expectedReturnDate?: Nullable<string>;

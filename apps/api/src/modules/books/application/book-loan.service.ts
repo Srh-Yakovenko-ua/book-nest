@@ -1,18 +1,22 @@
 import type {
   BookView,
   CreateLoanInput,
+  ExtendLoanInput,
   LoanDirection,
   OwnershipStatus,
+  SetLoanReminderInput,
   UpdateLoanInput,
 } from "@app/shared";
 
 import { OwnershipStatusSchema, ownershipStatusUsesLoan } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
+import type { BookLoanModel } from "../../../generated/prisma/models.js";
 import type { GuardedChangeOutcome } from "../infrastructure/books.repository.js";
 
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
+import { extendReturnDate, resolveReminderFields } from "../domain/loan-quick-actions.js";
 import { buildLoanEditData, computeLoanChange } from "../domain/loan-transition.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
 import { BookViewAssembler } from "./book-view-assembler.js";
@@ -24,6 +28,8 @@ const LEND_REQUIRES_OWNED_MESSAGE = 'Book must have ownership status "owned" to 
 const RETURN_REQUIRES_LOAN_MESSAGE = "Book must be borrowed or lent to be returned";
 const ACTIVE_LOAN_EXISTS_MESSAGE = "This book already has an active loan";
 const LOAN_NOT_FOUND_MESSAGE = "Loan not found";
+const EXTEND_REQUIRES_RETURN_DATE_MESSAGE = "Set a return date before extending the loan";
+const REMINDER_REQUIRES_RETURN_DATE_MESSAGE = "Set a return date before turning the reminder on";
 
 const LOAN_ACTIVE_OWNERSHIP_STATUSES: OwnershipStatus[] = [
   "borrowed_from_someone",
@@ -79,8 +85,34 @@ export class BookLoanService {
       throw new NotFoundError(LOAN_NOT_FOUND_MESSAGE);
     }
 
-    const data = buildLoanEditData({ existingLoanDate: active.loanDate, input });
+    const data = buildLoanEditData({
+      existingLoanDate: active.loanDate,
+      existingRemindBeforeDays: active.remindBeforeDays,
+      input,
+    });
     await this.booksRepository.updateActiveLoan(userId, bookId, data);
+
+    return this.viewAssembler.loadView({ bookId, userId });
+  }
+
+  async extendLoan(userId: string, bookId: string, input: ExtendLoanInput): Promise<BookView> {
+    const active = await this.loadActiveLoanOrThrow(userId, bookId);
+    if (active.expectedReturnDate === null) {
+      throw new ConflictError(EXTEND_REQUIRES_RETURN_DATE_MESSAGE);
+    }
+
+    const expectedReturnDate = extendReturnDate({
+      days: input.days,
+      expectedReturnDate: active.expectedReturnDate,
+      now: new Date(),
+    });
+    await this.booksRepository.updateActiveLoanSchedule(userId, bookId, {
+      expectedReturnDate,
+      ...resolveReminderFields({
+        expectedReturnDate,
+        remindBeforeDays: active.remindToReturn ? active.remindBeforeDays : null,
+      }),
+    });
 
     return this.viewAssembler.loadView({ bookId, userId });
   }
@@ -104,6 +136,38 @@ export class BookLoanService {
     }
 
     return this.viewAssembler.loadView({ bookId, userId });
+  }
+
+  async setLoanReminder(
+    userId: string,
+    bookId: string,
+    input: SetLoanReminderInput,
+  ): Promise<BookView> {
+    const active = await this.loadActiveLoanOrThrow(userId, bookId);
+    if (input.remindBeforeDays !== null && active.expectedReturnDate === null) {
+      throw new ConflictError(REMINDER_REQUIRES_RETURN_DATE_MESSAGE);
+    }
+
+    await this.booksRepository.updateActiveLoanReminder(
+      userId,
+      bookId,
+      resolveReminderFields({
+        expectedReturnDate: active.expectedReturnDate,
+        remindBeforeDays: input.remindBeforeDays,
+      }),
+    );
+
+    return this.viewAssembler.loadView({ bookId, userId });
+  }
+
+  private async loadActiveLoanOrThrow(userId: string, bookId: string): Promise<BookLoanModel> {
+    const book = await this.booksRepository.findOwnedByIdOrThrow(userId, bookId);
+    const active = book.loans[0];
+    if (active === undefined) {
+      throw new NotFoundError(LOAN_NOT_FOUND_MESSAGE);
+    }
+
+    return active;
   }
 }
 

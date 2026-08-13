@@ -84,6 +84,7 @@ describe("OwnershipStatusSection purchase note removal", () => {
             loanUiStatus: "on_time",
             note: "Повернути після відпустки",
             personName: "Ольга",
+            remindBeforeDays: null,
             remindToReturn: false,
           },
           ownershipStatus: "borrowed_from_someone",

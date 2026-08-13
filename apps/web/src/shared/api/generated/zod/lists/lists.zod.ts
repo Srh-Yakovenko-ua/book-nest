@@ -589,6 +589,10 @@ export const ListDetailsControllerDetailQueryParams = zod.object({
     .default(listDetailsControllerDetailQueryTabDefault),
 });
 
+export const listDetailsControllerDetailResponseBooksItemsItemLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const listDetailsControllerDetailResponseBooksItemsItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const listDetailsControllerDetailResponseBooksItemsItemQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -791,6 +795,11 @@ export const ListDetailsControllerDetailResponse = zod.object({
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(listDetailsControllerDetailResponseBooksItemsItemLoanInfoRemindBeforeDaysMin)
+              .max(listDetailsControllerDetailResponseBooksItemsItemLoanInfoRemindBeforeDaysMax)
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -1164,6 +1173,10 @@ export const ListDetailsControllerOverviewParams = zod.object({
   listId: zod.string(),
 });
 
+export const listDetailsControllerOverviewResponseCurrentlyReadingBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const listDetailsControllerOverviewResponseCurrentlyReadingBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const listDetailsControllerOverviewResponseCurrentlyReadingBookQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -1370,6 +1383,15 @@ export const ListDetailsControllerOverviewResponse = zod.object({
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(
+                listDetailsControllerOverviewResponseCurrentlyReadingBookLoanInfoRemindBeforeDaysMin,
+              )
+              .max(
+                listDetailsControllerOverviewResponseCurrentlyReadingBookLoanInfoRemindBeforeDaysMax,
+              )
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),

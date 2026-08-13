@@ -113,6 +113,7 @@ export const SubmitSuccessCloses: Story = {
           loanUiStatus: "no_return_date",
           note: null,
           personName: "Тест",
+          remindBeforeDays: null,
           remindToReturn: false,
         },
         ownershipStatus: "borrowed_from_someone",

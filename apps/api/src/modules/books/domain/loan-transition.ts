@@ -7,6 +7,8 @@ import type {
   UpdateLoanInput,
 } from "@app/shared";
 
+import { LOAN_REMINDER_LEAD_DAYS } from "@app/shared";
+
 import type {
   CreateLoanInfoData,
   LoanChangePatch,
@@ -15,6 +17,7 @@ import type {
 
 import { parseIsoDate } from "../../../core/iso-date.js";
 import { buildBookOwnershipFields } from "./book-ownership-fields.js";
+import { resolveReminderFields } from "./loan-quick-actions.js";
 
 export type LoanTransitionInput = (
   { fields: CreateLoanInput; kind: "create" } | { kind: "return" }
@@ -25,17 +28,21 @@ export type LoanTransitionInput = (
 
 export function buildLoanEditData({
   existingLoanDate,
+  existingRemindBeforeDays,
   input,
 }: {
   existingLoanDate: Nullable<Date>;
+  existingRemindBeforeDays: Nullable<number>;
   input: UpdateLoanInput;
 }): UpdateActiveLoanData {
+  const expectedReturnDate =
+    input.expectedReturnDate === undefined || input.expectedReturnDate === null
+      ? null
+      : parseIsoDate(input.expectedReturnDate);
+
   return {
     contact: input.contact ?? null,
-    expectedReturnDate:
-      input.expectedReturnDate === undefined || input.expectedReturnDate === null
-        ? null
-        : parseIsoDate(input.expectedReturnDate),
+    expectedReturnDate,
     loanDate:
       input.loanDate === undefined
         ? existingLoanDate
@@ -44,7 +51,13 @@ export function buildLoanEditData({
           : parseIsoDate(input.loanDate),
     note: input.note ?? null,
     personName: input.personName,
-    remindToReturn: input.remindToReturn ?? false,
+    ...resolveReminderFields({
+      expectedReturnDate,
+      remindBeforeDays:
+        input.remindToReturn === true
+          ? (existingRemindBeforeDays ?? LOAN_REMINDER_LEAD_DAYS.default)
+          : null,
+    }),
   };
 }
 
@@ -83,13 +96,18 @@ export function computeLoanChange(input: LoanTransitionInput): LoanChangePatch {
 }
 
 function buildLoanInfo(fields: CreateLoanInput): CreateLoanInfoData {
+  const expectedReturnDate = toReturnDate(fields.expectedReturnDate);
+
   return {
     contact: fields.contact ?? null,
-    expectedReturnDate: toReturnDate(fields.expectedReturnDate),
+    expectedReturnDate,
     loanDate: parseIsoDate(fields.loanDate),
     note: fields.note ?? null,
     personName: fields.personName,
-    remindToReturn: fields.remindToReturn ?? false,
+    ...resolveReminderFields({
+      expectedReturnDate,
+      remindBeforeDays: fields.remindToReturn === true ? LOAN_REMINDER_LEAD_DAYS.default : null,
+    }),
   };
 }
 

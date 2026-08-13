@@ -23,6 +23,12 @@ export type LoansSummaryViewDtoLentLongHeldLoansItem = {
   /** @nullable */
   note: string | null;
   personName: string;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   * @nullable
+   */
+  remindBeforeDays: number | null;
   remindToReturn: boolean;
   type: LoansSummaryViewDtoLentLongHeldLoansItemType;
   updatedAt: string;

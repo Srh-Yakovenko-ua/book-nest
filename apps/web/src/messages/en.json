@@ -3973,42 +3973,54 @@
       "overdue": "Overdue",
       "no_return_date": "No date"
     },
-    "relative": {
-      "overdue": "{days, plural, one {# day} other {# days}} overdue",
-      "soon": "in {days, plural, one {# day} other {# days}}",
-      "today": "today"
-    },
     "row": {
       "personBorrowed": "Borrowed from:",
       "personLent": "Lent to:",
       "contact": "Contact:",
       "loanDateBorrowed": "Loan date:",
       "loanDateLent": "Handover date:",
-      "returnDateBorrowed": "Return by:",
-      "returnDateLent": "Expected return:",
       "note": "Note",
-      "reminderOn": "Reminder on"
+      "reminderOn": "Reminder on",
+      "term": {
+        "today": "Return today",
+        "tomorrow": "Return tomorrow",
+        "inDays": "Return in {days, plural, one {# day} other {# days}}",
+        "overdue": "Overdue by {days, plural, one {# day} other {# days}}",
+        "none": "No return date"
+      }
     },
     "actions": {
       "menu": "Loan actions",
-      "returnBorrowed": "Mark as returned",
-      "returnLent": "Mark as returned to me",
-      "edit": "Edit",
-      "goToBook": "Go to book"
+      "setReturnDate": "Set a return date",
+      "changeReturnDate": "Change the return date",
+      "extend": "Extend by {days, plural, one {# day} other {# days}}",
+      "extendSuccess": "Return date pushed to {date}",
+      "extendSuccessPlain": "Return date pushed",
+      "extendError": "Couldn’t extend the loan",
+      "reminderSetup": "Set up a reminder",
+      "reminderCurrent": "Reminder: {days, plural, one {# day} other {# days}} before",
+      "reminderOption": "{days, plural, one {# day} other {# days}} before",
+      "reminderOff": "Turn the reminder off",
+      "reminderOnDone": "Reminder set",
+      "reminderOffDone": "Reminder turned off",
+      "reminderError": "Couldn’t change the reminder",
+      "markReturned": "Mark the book as returned",
+      "edit": "Edit the loan"
     },
     "edit": {
       "title": "Edit loan",
       "description": "Update the details of this loan."
     },
     "return": {
-      "titleBorrowed": "Mark as returned?",
-      "titleLent": "Mark as returned to me?",
-      "descriptionBorrowed": "The book will no longer appear in your borrowed list.",
-      "descriptionLent": "The book will return to your library.",
-      "confirm": "Mark as returned",
+      "titleBorrowed": "Returned “{title}”?",
+      "titleLent": "Got the book back?",
+      "descriptionBorrowed": "The book leaves the “To return” list. The loan history stays.",
+      "descriptionLent": "“{title}” goes back to your library and the loan record closes.",
+      "confirm": "Yes, returned",
       "returning": "Saving…",
-      "success": "Loan completed",
-      "error": "Could not complete the loan"
+      "successBorrowed": "Loan closed: “{title}”",
+      "successLent": "“{title}” is back in your library",
+      "error": "Couldn’t close the loan. Please try again."
     },
     "states": {
       "loading": "Loading your borrowed books...",

@@ -155,7 +155,7 @@ export class RecipientReminderSweeper {
                     loanDate: candidate.loanDate,
                     personName: candidate.personName,
                   },
-                  leadDays,
+                  leadDays: candidate.remindBeforeDays ?? leadDays,
                   today,
                 }),
               candidateId: candidate.id,

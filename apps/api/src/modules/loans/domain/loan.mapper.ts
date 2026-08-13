@@ -25,6 +25,7 @@ export function toLoanInfoView({
     loanUiStatus: getLoanUiStatus({ expectedReturnDate: loan.expectedReturnDate, today }),
     note: loan.note,
     personName: loan.personName,
+    remindBeforeDays: loan.remindBeforeDays,
     remindToReturn: loan.remindToReturn,
   };
 }

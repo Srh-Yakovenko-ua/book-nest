@@ -23,6 +23,12 @@ export type LoansSummaryViewDtoBorrowedUpcomingReturnsItem = {
   /** @nullable */
   note: string | null;
   personName: string;
+  /**
+   * @minimum -9007199254740991
+   * @maximum 9007199254740991
+   * @nullable
+   */
+  remindBeforeDays: number | null;
   remindToReturn: boolean;
   type: LoansSummaryViewDtoBorrowedUpcomingReturnsItemType;
   updatedAt: string;

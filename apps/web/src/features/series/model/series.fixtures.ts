@@ -42,6 +42,7 @@ export function makeLoanInfo(overrides: Partial<LoanInfoView> = {}): LoanInfoVie
     loanUiStatus: "no_return_date",
     note: null,
     personName: "Олена",
+    remindBeforeDays: null,
     remindToReturn: false,
     ...overrides,
   };

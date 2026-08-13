@@ -11,6 +11,13 @@ export type LoanRelative =
   | { kind: "none" }
   | { kind: "today" };
 
+export type LoanTerm =
+  | { days: number; kind: "inDays" }
+  | { days: number; kind: "overdue" }
+  | { kind: "none" }
+  | { kind: "today" }
+  | { kind: "tomorrow" };
+
 export function daysBetweenLoanDates(
   fromIso: Nullable<string>,
   toIso: Nullable<string>,
@@ -34,4 +41,14 @@ export function loanRelative(expectedReturnDate: null | string, today: string): 
   if (diff < 0) return { days: -diff, kind: "overdue" };
   if (diff === 0) return { kind: "today" };
   return { days: diff, kind: "soon" };
+}
+
+export function loanTerm(expectedReturnDate: null | string, today: string): LoanTerm {
+  const relative = loanRelative(expectedReturnDate, today);
+
+  if (relative.kind === "none") return { kind: "none" };
+  if (relative.kind === "today") return { kind: "today" };
+  if (relative.kind === "overdue") return { days: relative.days, kind: "overdue" };
+  if (relative.days === 1) return { kind: "tomorrow" };
+  return { days: relative.days, kind: "inDays" };
 }

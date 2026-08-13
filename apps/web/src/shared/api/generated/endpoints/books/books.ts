@@ -50,6 +50,7 @@ import type {
   CreateLoanInputDto,
   DedicationsSummaryViewDto,
   DeliveryViewDto,
+  ExtendLoanInputDto,
   FavoritesSummaryViewDto,
   LibraryOverviewViewDto,
   MarkBoughtInputDto,
@@ -58,6 +59,7 @@ import type {
   ReadingHistoryViewDto,
   ReceiveDeliveryInputDto,
   SetBookListsInputDto,
+  SetLoanReminderInputDto,
   UpdateBookInputDto,
   UpdateBookStoreLinkInputDto,
   UpdateDeliveryInputDto,
@@ -4590,6 +4592,400 @@ export function useBookLoanControllerEditLoan<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getBookLoanControllerEditLoanQueryOptions(id, updateLoanInputDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type bookLoanControllerExtendLoanResponse200 = {
+  data: BookViewDto;
+  status: 200;
+};
+
+export type bookLoanControllerExtendLoanResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bookLoanControllerExtendLoanResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookLoanControllerExtendLoanResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bookLoanControllerExtendLoanResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type bookLoanControllerExtendLoanResponseSuccess =
+  bookLoanControllerExtendLoanResponse200 & {
+    headers: Headers;
+  };
+export type bookLoanControllerExtendLoanResponseError = (
+  | bookLoanControllerExtendLoanResponse400
+  | bookLoanControllerExtendLoanResponse401
+  | bookLoanControllerExtendLoanResponse404
+  | bookLoanControllerExtendLoanResponse409
+) & {
+  headers: Headers;
+};
+
+export type bookLoanControllerExtendLoanResponse =
+  bookLoanControllerExtendLoanResponseSuccess | bookLoanControllerExtendLoanResponseError;
+
+export const getBookLoanControllerExtendLoanUrl = (id: string) => {
+  return `/api/books/${id}/loan/extend`;
+};
+
+/**
+ * @summary Push the expected return date of an active loan by 7 or 14 days
+ */
+export const bookLoanControllerExtendLoan = async (
+  id: string,
+  extendLoanInputDto: ExtendLoanInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<bookLoanControllerExtendLoanResponse> => {
+  return customInstance<bookLoanControllerExtendLoanResponse>(
+    getBookLoanControllerExtendLoanUrl(id),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(extendLoanInputDto),
+    },
+  );
+};
+
+export const getBookLoanControllerExtendLoanQueryKey = (
+  id: string,
+  extendLoanInputDto?: ExtendLoanInputDto,
+) => {
+  return ["POST", `/api/books/${id}/loan/extend`, extendLoanInputDto] as const;
+};
+
+export const getBookLoanControllerExtendLoanQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>,
+  TError = void,
+>(
+  id: string,
+  extendLoanInputDto: ExtendLoanInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getBookLoanControllerExtendLoanQueryKey(id, extendLoanInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>> = ({
+    signal,
+  }) => bookLoanControllerExtendLoan(id, extendLoanInputDto, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+};
+
+export type BookLoanControllerExtendLoanQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>
+>;
+export type BookLoanControllerExtendLoanQueryError = void;
+
+export function useBookLoanControllerExtendLoan<
+  TData = Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>,
+  TError = void,
+>(
+  id: string,
+  extendLoanInputDto: ExtendLoanInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>,
+          TError,
+          Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookLoanControllerExtendLoan<
+  TData = Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>,
+  TError = void,
+>(
+  id: string,
+  extendLoanInputDto: ExtendLoanInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>,
+          TError,
+          Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookLoanControllerExtendLoan<
+  TData = Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>,
+  TError = void,
+>(
+  id: string,
+  extendLoanInputDto: ExtendLoanInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Push the expected return date of an active loan by 7 or 14 days
+ */
+
+export function useBookLoanControllerExtendLoan<
+  TData = Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>,
+  TError = void,
+>(
+  id: string,
+  extendLoanInputDto: ExtendLoanInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerExtendLoan>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookLoanControllerExtendLoanQueryOptions(id, extendLoanInputDto, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type bookLoanControllerSetLoanReminderResponse200 = {
+  data: BookViewDto;
+  status: 200;
+};
+
+export type bookLoanControllerSetLoanReminderResponse400 = {
+  data: void;
+  status: 400;
+};
+
+export type bookLoanControllerSetLoanReminderResponse401 = {
+  data: void;
+  status: 401;
+};
+
+export type bookLoanControllerSetLoanReminderResponse404 = {
+  data: void;
+  status: 404;
+};
+
+export type bookLoanControllerSetLoanReminderResponse409 = {
+  data: void;
+  status: 409;
+};
+
+export type bookLoanControllerSetLoanReminderResponseSuccess =
+  bookLoanControllerSetLoanReminderResponse200 & {
+    headers: Headers;
+  };
+export type bookLoanControllerSetLoanReminderResponseError = (
+  | bookLoanControllerSetLoanReminderResponse400
+  | bookLoanControllerSetLoanReminderResponse401
+  | bookLoanControllerSetLoanReminderResponse404
+  | bookLoanControllerSetLoanReminderResponse409
+) & {
+  headers: Headers;
+};
+
+export type bookLoanControllerSetLoanReminderResponse =
+  bookLoanControllerSetLoanReminderResponseSuccess | bookLoanControllerSetLoanReminderResponseError;
+
+export const getBookLoanControllerSetLoanReminderUrl = (id: string) => {
+  return `/api/books/${id}/loan/reminder`;
+};
+
+/**
+ * @summary Turn the return reminder of an active loan on or off
+ */
+export const bookLoanControllerSetLoanReminder = async (
+  id: string,
+  setLoanReminderInputDto: SetLoanReminderInputDto,
+  options?: Parameters<typeof customInstance>[1],
+): Promise<bookLoanControllerSetLoanReminderResponse> => {
+  return customInstance<bookLoanControllerSetLoanReminderResponse>(
+    getBookLoanControllerSetLoanReminderUrl(id),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(setLoanReminderInputDto),
+    },
+  );
+};
+
+export const getBookLoanControllerSetLoanReminderQueryKey = (
+  id: string,
+  setLoanReminderInputDto?: SetLoanReminderInputDto,
+) => {
+  return ["PATCH", `/api/books/${id}/loan/reminder`, setLoanReminderInputDto] as const;
+};
+
+export const getBookLoanControllerSetLoanReminderQueryOptions = <
+  TData = Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>,
+  TError = void,
+>(
+  id: string,
+  setLoanReminderInputDto: SetLoanReminderInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getBookLoanControllerSetLoanReminderQueryKey(id, setLoanReminderInputDto);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>> = ({
+    signal,
+  }) =>
+    bookLoanControllerSetLoanReminder(id, setLoanReminderInputDto, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type BookLoanControllerSetLoanReminderQueryResult = NonNullable<
+  Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>
+>;
+export type BookLoanControllerSetLoanReminderQueryError = void;
+
+export function useBookLoanControllerSetLoanReminder<
+  TData = Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>,
+  TError = void,
+>(
+  id: string,
+  setLoanReminderInputDto: SetLoanReminderInputDto,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>,
+          TError,
+          Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookLoanControllerSetLoanReminder<
+  TData = Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>,
+  TError = void,
+>(
+  id: string,
+  setLoanReminderInputDto: SetLoanReminderInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>,
+          TError,
+          Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useBookLoanControllerSetLoanReminder<
+  TData = Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>,
+  TError = void,
+>(
+  id: string,
+  setLoanReminderInputDto: SetLoanReminderInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+/**
+ * @summary Turn the return reminder of an active loan on or off
+ */
+
+export function useBookLoanControllerSetLoanReminder<
+  TData = Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>,
+  TError = void,
+>(
+  id: string,
+  setLoanReminderInputDto: SetLoanReminderInputDto,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof bookLoanControllerSetLoanReminder>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customInstance>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getBookLoanControllerSetLoanReminderQueryOptions(
+    id,
+    setLoanReminderInputDto,
+    options,
+  );
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

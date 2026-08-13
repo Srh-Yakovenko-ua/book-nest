@@ -9,6 +9,9 @@ import {
   type StatusEntry,
 } from "@/lib/book-status";
 
+export type BookRowBook = Omit<LibraryBook, "isFavorite" | "readingStatus" | "status"> &
+  Partial<Pick<LibraryBook, "isFavorite" | "readingStatus" | "status">>;
+
 export type LibraryBook = {
   ageBadge?: string;
   authors: string[];

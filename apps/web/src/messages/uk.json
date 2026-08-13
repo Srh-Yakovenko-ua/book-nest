@@ -3973,42 +3973,54 @@
       "overdue": "Прострочено",
       "no_return_date": "Без дати"
     },
-    "relative": {
-      "overdue": "на {days, plural, one {# день} few {# дні} many {# днів} other {# днів}} пізніше",
-      "soon": "через {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
-      "today": "сьогодні"
-    },
     "row": {
-      "personBorrowed": "Позичила у:",
-      "personLent": "Дала кому:",
+      "personBorrowed": "У кого позичено:",
+      "personLent": "Кому передано:",
       "contact": "Контакт:",
       "loanDateBorrowed": "Дата позики:",
       "loanDateLent": "Дата передачі:",
-      "returnDateBorrowed": "Повернути до:",
-      "returnDateLent": "Очікуване повернення:",
       "note": "Нотатка",
-      "reminderOn": "Нагадування увімкнено"
+      "reminderOn": "Нагадування увімкнено",
+      "term": {
+        "today": "Повернути сьогодні",
+        "tomorrow": "Повернути завтра",
+        "inDays": "Повернути через {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "overdue": "Прострочено на {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "none": "Без дати повернення"
+      }
     },
     "actions": {
       "menu": "Дії з позикою",
-      "returnBorrowed": "Позначити як повернуту",
-      "returnLent": "Позначити як повернену мені",
-      "edit": "Редагувати",
-      "goToBook": "Перейти до книги"
+      "setReturnDate": "Встановити дату повернення",
+      "changeReturnDate": "Змінити дату повернення",
+      "extend": "Продовжити на {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "extendSuccess": "Строк повернення продовжено до {date}",
+      "extendSuccessPlain": "Строк повернення продовжено",
+      "extendError": "Не вдалося продовжити строк",
+      "reminderSetup": "Налаштувати нагадування",
+      "reminderCurrent": "Нагадування: за {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "reminderOption": "За {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "reminderOff": "Вимкнути нагадування",
+      "reminderOnDone": "Нагадування налаштовано",
+      "reminderOffDone": "Нагадування вимкнено",
+      "reminderError": "Не вдалося змінити нагадування",
+      "markReturned": "Позначити книгу повернутою",
+      "edit": "Редагувати позику"
     },
     "edit": {
       "title": "Редагувати позику",
       "description": "Оновіть деталі цієї позики."
     },
     "return": {
-      "titleBorrowed": "Позначити як повернуту?",
-      "titleLent": "Позначити як повернену мені?",
-      "descriptionBorrowed": "Книга більше не буде у списку позичених.",
-      "descriptionLent": "Книга повернеться до вашої бібліотеки.",
-      "confirm": "Позначити повернутою",
+      "titleBorrowed": "Повернули «{title}»?",
+      "titleLent": "Книгу повернули?",
+      "descriptionBorrowed": "Книга зникне зі списку «Треба повернути», історія позики збережеться.",
+      "descriptionLent": "«{title}» повертається до твоєї бібліотеки, запис про передачу закриється.",
+      "confirm": "Так, повернуто",
       "returning": "Зберігаємо…",
-      "success": "Позику завершено",
-      "error": "Не вдалося завершити позику"
+      "successBorrowed": "Позику закрито: «{title}»",
+      "successLent": "«{title}» повернулася до твоєї бібліотеки",
+      "error": "Не вдалося закрити позику. Спробуй ще раз."
     },
     "states": {
       "loading": "Завантажуємо позичені книги...",

@@ -19,6 +19,7 @@ export const LoanInfoViewSchema = z.object({
   loanUiStatus: LoanUiStatusSchema,
   note: z.string().nullable(),
   personName: z.string(),
+  remindBeforeDays: z.number().int().nullable(),
   remindToReturn: z.boolean(),
 });
 
@@ -79,6 +80,7 @@ export const LoanListItemViewSchema = z.object({
   loanUiStatus: LoanUiStatusSchema,
   note: z.string().nullable(),
   personName: z.string(),
+  remindBeforeDays: z.number().int().nullable(),
   remindToReturn: z.boolean(),
   type: LoanTypeSchema,
   updatedAt: z.string(),

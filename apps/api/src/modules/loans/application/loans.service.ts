@@ -168,6 +168,7 @@ export class LoansService {
       loanUiStatus: getLoanUiStatus({ expectedReturnDate: loan.expectedReturnDate, today }),
       note: loan.note,
       personName: loan.personName,
+      remindBeforeDays: loan.remindBeforeDays,
       remindToReturn: loan.remindToReturn,
       type: LoanTypeSchema.parse(loan.type),
       updatedAt: loan.updatedAt.toISOString(),

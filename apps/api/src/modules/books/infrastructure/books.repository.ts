@@ -263,6 +263,7 @@ export type CreateLoanInfoData = {
   loanDate: Nullable<Date>;
   note: Nullable<string>;
   personName: string;
+  remindBeforeDays: Nullable<number>;
   remindToReturn: boolean;
 };
 
@@ -314,6 +315,11 @@ export type LoanChangePatch =
     }
   | { book: BookOwnershipFields; kind: "return"; returnedAt: Date };
 
+export type LoanReminderData = {
+  remindBeforeDays: Nullable<number>;
+  remindToReturn: boolean;
+};
+
 export type OwnershipChangePatch = {
   book: BookOwnershipFields;
   purchaseInfo?: "delete" | OwnershipPurchaseInfoPatch;
@@ -355,6 +361,7 @@ export type UpdateActiveLoanData = {
   loanDate: Nullable<Date>;
   note: Nullable<string>;
   personName: string;
+  remindBeforeDays: Nullable<number>;
   remindToReturn: boolean;
 };
 
@@ -496,7 +503,12 @@ export class BooksRepository {
       }
 
       await tx.bookLoan.updateMany({
-        data: { returnedAt: patch.returnedAt, status: "returned" },
+        data: {
+          remindBeforeDays: null,
+          remindToReturn: false,
+          returnedAt: patch.returnedAt,
+          status: "returned",
+        },
         where: { bookId, status: "active" },
       });
       return "applied";
@@ -1087,13 +1099,23 @@ export class BooksRepository {
     bookId: string,
     data: UpdateActiveLoanData,
   ): Promise<void> {
-    const updated = await this.prisma.bookLoan.updateMany({
-      data,
-      where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, bookId, status: "active" },
-    });
-    if (updated.count === 0) {
-      throw new NotFoundError("Loan not found");
-    }
+    await this.updateActiveLoanFields(userId, bookId, data);
+  }
+
+  async updateActiveLoanReminder(
+    userId: string,
+    bookId: string,
+    data: LoanReminderData,
+  ): Promise<void> {
+    await this.updateActiveLoanFields(userId, bookId, data);
+  }
+
+  async updateActiveLoanSchedule(
+    userId: string,
+    bookId: string,
+    data: LoanReminderData & { expectedReturnDate: Date },
+  ): Promise<void> {
+    await this.updateActiveLoanFields(userId, bookId, data);
   }
 
   updateOwned(
@@ -1276,6 +1298,20 @@ export class BooksRepository {
       .array(z.object({ id: z.uuid() }))
       .parse(rows)
       .map((row) => row.id);
+  }
+
+  private async updateActiveLoanFields(
+    userId: string,
+    bookId: string,
+    data: Prisma.BookLoanUncheckedUpdateManyInput,
+  ): Promise<void> {
+    const updated = await this.prisma.bookLoan.updateMany({
+      data,
+      where: { book: { ...SOFT_DELETE_SCOPE.active, userId }, bookId, status: "active" },
+    });
+    if (updated.count === 0) {
+      throw new NotFoundError("Loan not found");
+    }
   }
 }
 
