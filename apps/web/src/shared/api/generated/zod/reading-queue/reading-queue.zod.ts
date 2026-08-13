@@ -173,6 +173,10 @@ export const ReadingQueueControllerGetQueueQueryParams = zod.object({
 export const readingQueueControllerGetQueueResponseCountMin = 0;
 export const readingQueueControllerGetQueueResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerGetQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerGetQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const readingQueueControllerGetQueueResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -355,6 +359,11 @@ export const ReadingQueueControllerGetQueueResponse = zod.object({
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(readingQueueControllerGetQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin)
+              .max(readingQueueControllerGetQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax)
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -654,6 +663,10 @@ export const ReadingQueueControllerAddToQueueBody = zod.object({
 export const readingQueueControllerAddToQueueResponseCountMin = 0;
 export const readingQueueControllerAddToQueueResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerAddToQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerAddToQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const readingQueueControllerAddToQueueResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -836,6 +849,11 @@ export const ReadingQueueControllerAddToQueueResponse = zod.object({
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(readingQueueControllerAddToQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin)
+              .max(readingQueueControllerAddToQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax)
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -1346,6 +1364,10 @@ export const ReadingQueueControllerReorderBody = zod.object({
 export const readingQueueControllerReorderResponseCountMin = 0;
 export const readingQueueControllerReorderResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerReorderResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerReorderResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const readingQueueControllerReorderResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -1527,6 +1549,11 @@ export const ReadingQueueControllerReorderResponse = zod.object({
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(readingQueueControllerReorderResponseItemsItemBookLoanInfoRemindBeforeDaysMin)
+              .max(readingQueueControllerReorderResponseItemsItemBookLoanInfoRemindBeforeDaysMax)
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -1816,6 +1843,10 @@ export const ReadingQueueControllerStartReadingBody = zod.object({
 export const readingQueueControllerStartReadingResponseCountMin = 0;
 export const readingQueueControllerStartReadingResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerStartReadingResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerStartReadingResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const readingQueueControllerStartReadingResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -1998,6 +2029,15 @@ export const ReadingQueueControllerStartReadingResponse = zod.object({
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(
+                readingQueueControllerStartReadingResponseItemsItemBookLoanInfoRemindBeforeDaysMin,
+              )
+              .max(
+                readingQueueControllerStartReadingResponseItemsItemBookLoanInfoRemindBeforeDaysMax,
+              )
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),
@@ -2293,6 +2333,10 @@ export const ReadingQueueControllerRemoveFromQueueParams = zod.object({
 export const readingQueueControllerRemoveFromQueueResponseCountMin = 0;
 export const readingQueueControllerRemoveFromQueueResponseCountMax = 9007199254740991;
 
+export const readingQueueControllerRemoveFromQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const readingQueueControllerRemoveFromQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const readingQueueControllerRemoveFromQueueResponseItemsItemBookQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -2476,6 +2520,15 @@ export const ReadingQueueControllerRemoveFromQueueResponse = zod.object({
             loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
             note: zod.string().nullable(),
             personName: zod.string(),
+            remindBeforeDays: zod
+              .int()
+              .min(
+                readingQueueControllerRemoveFromQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMin,
+              )
+              .max(
+                readingQueueControllerRemoveFromQueueResponseItemsItemBookLoanInfoRemindBeforeDaysMax,
+              )
+              .nullable(),
             remindToReturn: zod.boolean(),
           })
           .nullable(),

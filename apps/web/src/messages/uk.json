@@ -3921,25 +3921,49 @@
       "without_reminder": "Без нагадування"
     },
     "sort": {
-      "return_date": "За датою повернення",
-      "loan_date": "За датою позики",
-      "title": "За назвою книги",
-      "author": "За автором",
-      "person": "За людиною",
-      "overdue_first": "Спочатку прострочені",
-      "return_soonest": "Спочатку найближчі повернення",
+      "borrowed": {
+        "overdue_first": "За терміновістю",
+        "return_date": "За датою повернення",
+        "loan_date": "За датою позики",
+        "title": "За назвою",
+        "author": "За автором",
+        "person": "За власником"
+      },
+      "lent": {
+        "overdue_first": "За терміновістю",
+        "return_date": "За датою повернення",
+        "loan_date": "За датою передачі",
+        "title": "За назвою",
+        "author": "За автором",
+        "person": "За отримувачем"
+      },
       "mobile": {
         "title": "Сортування",
         "description": "Виберіть порядок позичених книг.",
         "close": "Закрити",
+        "groups": {
+          "urgency": "Терміновість",
+          "date": "Дата",
+          "book": "Книга",
+          "person": "Людина"
+        },
         "trigger": {
-          "return_date": "Повернення",
-          "loan_date": "Позика",
-          "title": "Назва",
-          "author": "Автор",
-          "person": "Людина",
-          "overdue_first": "Прострочені",
-          "return_soonest": "Найближчі"
+          "borrowed": {
+            "overdue_first": "Терміновість",
+            "return_date": "Повернення",
+            "loan_date": "Позика",
+            "title": "Назва",
+            "author": "Автор",
+            "person": "Власник"
+          },
+          "lent": {
+            "overdue_first": "Терміновість",
+            "return_date": "Повернення",
+            "loan_date": "Передача",
+            "title": "Назва",
+            "author": "Автор",
+            "person": "Отримувач"
+          }
         }
       }
     },
@@ -3949,42 +3973,54 @@
       "overdue": "Прострочено",
       "no_return_date": "Без дати"
     },
-    "relative": {
-      "overdue": "на {days, plural, one {# день} few {# дні} many {# днів} other {# днів}} пізніше",
-      "soon": "через {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
-      "today": "сьогодні"
-    },
     "row": {
-      "personBorrowed": "Позичила у:",
-      "personLent": "Дала кому:",
+      "personBorrowed": "У кого позичено:",
+      "personLent": "Кому передано:",
       "contact": "Контакт:",
       "loanDateBorrowed": "Дата позики:",
       "loanDateLent": "Дата передачі:",
-      "returnDateBorrowed": "Повернути до:",
-      "returnDateLent": "Очікуване повернення:",
       "note": "Нотатка",
-      "reminderOn": "Нагадування увімкнено"
+      "reminderOn": "Нагадування увімкнено",
+      "term": {
+        "today": "Повернути сьогодні",
+        "tomorrow": "Повернути завтра",
+        "inDays": "Повернути через {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "overdue": "Прострочено на {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+        "none": "Без дати повернення"
+      }
     },
     "actions": {
       "menu": "Дії з позикою",
-      "returnBorrowed": "Позначити як повернуту",
-      "returnLent": "Позначити як повернену мені",
-      "edit": "Редагувати",
-      "goToBook": "Перейти до книги"
+      "setReturnDate": "Встановити дату повернення",
+      "changeReturnDate": "Змінити дату повернення",
+      "extend": "Продовжити на {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "extendSuccess": "Строк повернення продовжено до {date}",
+      "extendSuccessPlain": "Строк повернення продовжено",
+      "extendError": "Не вдалося продовжити строк",
+      "reminderSetup": "Налаштувати нагадування",
+      "reminderCurrent": "Нагадування: за {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "reminderOption": "За {days, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "reminderOff": "Вимкнути нагадування",
+      "reminderOnDone": "Нагадування налаштовано",
+      "reminderOffDone": "Нагадування вимкнено",
+      "reminderError": "Не вдалося змінити нагадування",
+      "markReturned": "Позначити книгу повернутою",
+      "edit": "Редагувати позику"
     },
     "edit": {
       "title": "Редагувати позику",
       "description": "Оновіть деталі цієї позики."
     },
     "return": {
-      "titleBorrowed": "Позначити як повернуту?",
-      "titleLent": "Позначити як повернену мені?",
-      "descriptionBorrowed": "Книга більше не буде у списку позичених.",
-      "descriptionLent": "Книга повернеться до вашої бібліотеки.",
-      "confirm": "Позначити повернутою",
+      "titleBorrowed": "Повернули «{title}»?",
+      "titleLent": "Книгу повернули?",
+      "descriptionBorrowed": "Книга зникне зі списку «Треба повернути», історія позики збережеться.",
+      "descriptionLent": "«{title}» повертається до твоєї бібліотеки, запис про передачу закриється.",
+      "confirm": "Так, повернуто",
       "returning": "Зберігаємо…",
-      "success": "Позику завершено",
-      "error": "Не вдалося завершити позику"
+      "successBorrowed": "Позику закрито: «{title}»",
+      "successLent": "«{title}» повернулася до твоєї бібліотеки",
+      "error": "Не вдалося закрити позику. Спробуй ще раз."
     },
     "states": {
       "loading": "Завантажуємо позичені книги...",
@@ -4062,18 +4098,10 @@
         "today": "Сьогодні",
         "tomorrow": "Завтра",
         "inDays": "Через {count, plural, one {# день} few {# дні} many {# днів} other {# днів}}"
-      },
-      "cta": {
-        "title": "Стежте за своїми книгами",
-        "text": "Відстежуйте, у кого ваші книги і хто має повернути вам ваші історії.",
-        "button": "Додати книгу, яку дали комусь"
       }
     },
-    "pagination": {
-      "previous": "Назад",
-      "next": "Далі",
-      "status": "Сторінка {page} з {total}"
-    }
+    "loadMore": "Показати ще",
+    "loadMoreError": "Не вдалося завантажити ще позичені книги"
   },
   "changelog": {
     "category": {

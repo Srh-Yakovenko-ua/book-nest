@@ -10,14 +10,21 @@ import type { ReactNode } from "react";
 
 import { addDays, format } from "date-fns";
 import { NuqsTestingAdapter } from "nuqs/adapters/testing";
+import { toast } from "sonner";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { makeBookView } from "@/features/books/components/book-details.fixtures";
 import messages from "@/messages/uk.json";
 import { renderWithProviders, screen, userEvent, waitFor, within } from "@/test-utils";
 
+import { LOANS_PAGE_SIZE } from "../model/loans-query";
 import { LoansView } from "./loans-view";
 
 const push = vi.fn();
+
+vi.mock("sonner", () => ({
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
+}));
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -27,10 +34,13 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 
 const copy = messages.loans;
+const actions = messages.loans.actions;
 const stats = messages.loans.stats;
 const attention = messages.loans.sidebar.attention;
 const longHeld = messages.loans.sidebar.longHeld;
 const people = messages.loans.sidebar.people;
+const row = messages.loans.row;
+const sort = messages.loans.sort;
 const upcoming = messages.loans.sidebar.upcoming;
 const requestedUrls: string[] = [];
 
@@ -95,13 +105,222 @@ describe("LoansView", () => {
   it("keeps search and filters from the URL in the request", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
 
-    renderLoans("borrowed_from_someone", "?q=hobbit&filter=overdue&sort=title&page=2");
+    renderLoans("borrowed_from_someone", "?q=hobbit&filter=overdue&sort=title");
 
     await screen.findByText("Гобіт");
     expect(listUrl()).toContain("search=hobbit");
     expect(listUrl()).toContain("filter=overdue");
     expect(listUrl()).toContain("sort=title");
-    expect(listUrl()).toContain("pageNumber=2");
+  });
+
+  it("leads the borrowed card with the term and the owner", async () => {
+    mockLoans([
+      loanItem("borrowed_from_someone", "Гобіт", {
+        expectedReturnDate: isoDaysFromToday(5),
+        personName: "Ігор",
+      }),
+    ]);
+
+    renderLoans("borrowed_from_someone");
+
+    const card = await findLoanCard("Гобіт");
+    expect(within(card).getByText("Повернути через 5 днів")).toBeInTheDocument();
+    expect(within(card).getByText("Ігор")).toBeInTheDocument();
+    expect(within(card).getByText(row.personBorrowed)).toBeInTheDocument();
+  });
+
+  it("counts how long a lent book is overdue and closes the loan from the menu", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: isoDaysFromToday(-8),
+        loanUiStatus: "overdue",
+        personName: "Олена",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    const card = await findLoanCard("Дюна");
+    expect(within(card).getByText("Прострочено на 8 днів")).toBeInTheDocument();
+    expect(within(card).getByText(row.personLent)).toBeInTheDocument();
+
+    const menuTriggers = within(card).getAllByRole("button", {
+      name: messages.loans.actions.menu,
+    });
+    await userEvent.click(menuTriggers[0] ?? card);
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: messages.loans.actions.markReturned }),
+    );
+
+    expect(
+      await screen.findByRole("alertdialog", { name: messages.loans.return.titleLent }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers the quick actions of a dated loan", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: isoDaysFromToday(5),
+        remindBeforeDays: 3,
+        remindToReturn: true,
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    await openLoanMenu("Дюна");
+
+    expect(await screen.findByRole("menuitem", { name: actions.changeReturnDate })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Продовжити на 7 днів" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: "Продовжити на 14 днів" })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: /Нагадування: за 3 дні/ })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: actions.edit })).toBeVisible();
+    expect(screen.getByRole("menuitem", { name: actions.markReturned })).toBeVisible();
+  });
+
+  it("asks the API to push the return date and names the new one", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна", { expectedReturnDate: isoDaysFromToday(5) })]);
+
+    renderLoans("lent_to_someone");
+
+    await openLoanMenu("Дюна");
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Продовжити на 7 днів" }));
+
+    await waitFor(() => {
+      expect(requestedUrls.some((url) => url.includes("/loan/extend"))).toBe(true);
+    });
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining("Строк повернення продовжено до"),
+      );
+    });
+  });
+
+  it("keeps the extend and reminder actions away from a loan without a return date", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: null,
+        loanUiStatus: "no_return_date",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    await openLoanMenu("Дюна");
+
+    expect(await screen.findByRole("menuitem", { name: actions.setReturnDate })).toBeVisible();
+    expect(screen.queryByRole("menuitem", { name: /Продовжити/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: /Нагадування/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: actions.reminderSetup })).not.toBeInTheDocument();
+  });
+
+  it("keeps the reminder away from an overdue loan", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: isoDaysFromToday(-4),
+        loanUiStatus: "overdue",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    await openLoanMenu("Дюна");
+
+    expect(await screen.findByRole("menuitem", { name: /Продовжити на 7 днів/ })).toBeVisible();
+    expect(screen.queryByRole("menuitem", { name: actions.reminderSetup })).not.toBeInTheDocument();
+  });
+
+  it("says a loan has no return date instead of leaving the term blank", async () => {
+    mockLoans([
+      loanItem("lent_to_someone", "Дюна", {
+        expectedReturnDate: null,
+        loanUiStatus: "no_return_date",
+      }),
+    ]);
+
+    renderLoans("lent_to_someone");
+
+    const card = await findLoanCard("Дюна");
+    expect(within(card).getByText(row.term.none)).toBeInTheDocument();
+  });
+
+  it("asks for the urgency order by default", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
+
+    renderLoans("borrowed_from_someone");
+
+    await screen.findByText("Гобіт");
+    expect(listUrl()).toContain("sort=overdue_first");
+  });
+
+  it("falls back to the urgency order when the URL still asks for the retired sort", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
+
+    renderLoans("borrowed_from_someone", "?sort=return_soonest");
+
+    await screen.findByText("Гобіт");
+    expect(listUrl()).toContain("sort=overdue_first");
+    expect(listUrl()).not.toContain("return_soonest");
+  });
+
+  it("names the sorts after the page the reader is on", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
+
+    renderLoans("borrowed_from_someone", "?sort=person");
+
+    await screen.findByText("Гобіт");
+    await userEvent.click(screen.getByText(sort.mobile.trigger.borrowed.person));
+
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText(sort.borrowed.overdue_first)).toBeInTheDocument();
+    expect(within(sheet).getByText(sort.borrowed.loan_date)).toBeInTheDocument();
+    expect(within(sheet).getByText(sort.borrowed.person)).toBeInTheDocument();
+    expect(within(sheet).queryByText(sort.lent.loan_date)).not.toBeInTheDocument();
+    expect(within(sheet).queryByText(sort.lent.person)).not.toBeInTheDocument();
+  });
+
+  it("names the same sorts after the lent page", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")]);
+
+    renderLoans("lent_to_someone", "?sort=person");
+
+    await screen.findByText("Дюна");
+    await userEvent.click(screen.getByText(sort.mobile.trigger.lent.person));
+
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText(sort.lent.overdue_first)).toBeInTheDocument();
+    expect(within(sheet).getByText(sort.lent.loan_date)).toBeInTheDocument();
+    expect(within(sheet).getByText(sort.lent.person)).toBeInTheDocument();
+    expect(within(sheet).queryByText(sort.borrowed.loan_date)).not.toBeInTheDocument();
+    expect(within(sheet).queryByText(sort.borrowed.person)).not.toBeInTheDocument();
+  });
+
+  it("shows the next loans in place instead of paging through them", async () => {
+    mockLoans(
+      Array.from({ length: 12 }, (_, index) =>
+        loanItem("borrowed_from_someone", `Книга ${index + 1}`),
+      ),
+    );
+
+    renderLoans("borrowed_from_someone");
+
+    expect(await screen.findByText("Книга 1")).toBeInTheDocument();
+    expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+
+    expect(await screen.findByText("Книга 11")).toBeInTheDocument();
+    expect(screen.getByText("Книга 1")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: copy.loadMore })).not.toBeInTheDocument();
+  });
+
+  it("keeps the show-more button away when every loan already fits", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")]);
+
+    renderLoans("borrowed_from_someone");
+
+    await screen.findByText("Гобіт");
+    expect(screen.queryByRole("button", { name: copy.loadMore })).not.toBeInTheDocument();
   });
 
   it("builds the borrowed stat cards from the summary", async () => {
@@ -460,7 +679,9 @@ describe("LoansView", () => {
         requestedUrls.some((url) => url.includes(`person=${encodeURIComponent("Олена")}`)),
       ).toBe(true);
     });
-    expect(row).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => {
+      expect(row).toHaveAttribute("aria-pressed", "true");
+    });
 
     requestedUrls.length = 0;
     await userEvent.click(row);
@@ -542,7 +763,7 @@ describe("LoansView", () => {
     expect(within(block).getByText(longHeld.empty)).toBeInTheDocument();
   });
 
-  it("keeps the upcoming returns and the call to action off the borrowed page", async () => {
+  it("keeps the lent-only sidebar blocks off the borrowed page", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
       borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 1 },
     });
@@ -551,7 +772,6 @@ describe("LoansView", () => {
 
     await findSidebarBlock(longHeld.title);
     expect(within(sidebar()).queryByText(upcoming.title)).not.toBeInTheDocument();
-    expect(within(sidebar()).queryByText(copy.sidebar.cta.title)).not.toBeInTheDocument();
     expect(within(sidebar()).queryByText(people.title)).not.toBeInTheDocument();
   });
 
@@ -573,6 +793,29 @@ function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionS
     ...EMPTY_DIRECTION_SUMMARY,
     totalCount: items.filter((item) => item.type === type).length,
   };
+}
+
+function extendedBookView() {
+  return makeBookView({
+    loanInfo: {
+      contact: null,
+      expectedReturnDate: isoDaysFromToday(12),
+      loanDate: isoDaysFromToday(-3),
+      loanType: "lent_to_someone",
+      loanUiStatus: "on_time",
+      note: null,
+      personName: "Оля",
+      remindBeforeDays: null,
+      remindToReturn: false,
+    },
+    ownershipStatus: "lent_to_someone",
+  });
+}
+
+async function findLoanCard(title: string): Promise<HTMLElement> {
+  const card = (await screen.findByText(title)).closest<HTMLElement>("article");
+  if (card === null) throw new Error(`Loan card not found: ${title}`);
+  return card;
 }
 
 function findSidebarBlock(title: string): Promise<HTMLElement> {
@@ -637,10 +880,25 @@ function loanItem(
     loanUiStatus: "on_time",
     note: null,
     personName: "Оля",
+    remindBeforeDays: null,
     remindToReturn: false,
     type,
     updatedAt: "2026-01-05T10:00:00.000Z",
     ...overrides,
+  };
+}
+
+function loansPage(items: LoanListItemView[], url: string) {
+  const params = new URL(url, "http://localhost").searchParams;
+  const pageSize = Number(params.get("pageSize") ?? LOANS_PAGE_SIZE);
+  const page = Number(params.get("pageNumber") ?? 1);
+
+  return {
+    items: items.slice((page - 1) * pageSize, page * pageSize),
+    page,
+    pagesCount: Math.ceil(items.length / pageSize),
+    pageSize,
+    totalCount: items.length,
   };
 }
 
@@ -657,25 +915,24 @@ function mockLoans(items: LoanListItemView[], summaryOverrides?: Partial<LoansSu
       const url = String(input);
       requestedUrls.push(url);
       if (url.includes("/api/loans/summary")) return Promise.resolve(jsonResponse(summary));
-      if (url.includes("/api/loans")) {
-        return Promise.resolve(
-          jsonResponse({
-            items,
-            page: 1,
-            pagesCount: items.length === 0 ? 0 : 1,
-            pageSize: 10,
-            totalCount: items.length,
-          }),
-        );
+      if (url.includes("/api/loans")) return Promise.resolve(jsonResponse(loansPage(items, url)));
+      if (url.includes("/loan/extend") || url.includes("/loan/reminder")) {
+        return Promise.resolve(jsonResponse(extendedBookView()));
       }
       return Promise.reject(new Error(`unexpected fetch: ${url}`));
     }),
   );
 }
 
+async function openLoanMenu(title: string): Promise<void> {
+  const card = await findLoanCard(title);
+  const [trigger] = within(card).getAllByRole("button", { name: messages.loans.actions.menu });
+  await userEvent.click(trigger ?? card);
+}
+
 function renderLoans(type: LoanType, searchParams = "") {
   return renderWithProviders(
-    <NuqsTestingAdapter searchParams={searchParams}>
+    <NuqsTestingAdapter hasMemory searchParams={searchParams}>
       <LoansView type={type} />
     </NuqsTestingAdapter>,
   );

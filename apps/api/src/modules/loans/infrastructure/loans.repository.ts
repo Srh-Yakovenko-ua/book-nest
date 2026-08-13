@@ -236,13 +236,18 @@ const RETURN_DATE_ORDER: Prisma.BookLoanOrderByWithRelationInput[] = [
   ID_TIEBREAKER,
 ];
 
+const URGENCY_ORDER: Prisma.BookLoanOrderByWithRelationInput[] = [
+  { expectedReturnDate: { nulls: "last", sort: "asc" } },
+  { loanDate: { nulls: "last", sort: "asc" } },
+  ID_TIEBREAKER,
+];
+
 const LOAN_SORT_ORDER_BY: Record<LoanSort, Prisma.BookLoanOrderByWithRelationInput[]> = {
   author: [{ book: { firstAuthorName: "asc" } }, ID_TIEBREAKER],
   loan_date: [{ loanDate: { nulls: "last", sort: "desc" } }, ID_TIEBREAKER],
-  overdue_first: RETURN_DATE_ORDER,
+  overdue_first: URGENCY_ORDER,
   person: [{ personName: "asc" }, ID_TIEBREAKER],
   return_date: RETURN_DATE_ORDER,
-  return_soonest: RETURN_DATE_ORDER,
   title: [{ book: { title: "asc" } }, ID_TIEBREAKER],
 };
 

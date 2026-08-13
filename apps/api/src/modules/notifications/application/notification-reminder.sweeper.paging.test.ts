@@ -105,6 +105,7 @@ function buildLoanCandidates({
     id: `loan-${userId}-${String(index).padStart(4, "0")}`,
     loanDate: null,
     personName: "Paul",
+    remindBeforeDays: null,
   }));
   const start = afterId === null ? 0 : all.findIndex((candidate) => candidate.id === afterId) + 1;
   return all.slice(start, start + CANDIDATE_PAGE_SIZE);

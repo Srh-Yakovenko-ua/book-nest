@@ -1152,6 +1152,9 @@ export const seriesControllerGetByIdResponseOwnershipTotalMin = -900719925474099
 export const seriesControllerGetByIdResponseOwnershipTotalMax = 9007199254740991;
 
 export const seriesControllerGetByIdResponseTagsDefault = [];
+export const seriesControllerGetByIdResponseBooksItemLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const seriesControllerGetByIdResponseBooksItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const SeriesControllerGetByIdResponse = zod.object({
   ageCategories: zod
@@ -1351,6 +1354,11 @@ export const SeriesControllerGetByIdResponse = zod.object({
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
           note: zod.string().nullable(),
           personName: zod.string(),
+          remindBeforeDays: zod
+            .int()
+            .min(seriesControllerGetByIdResponseBooksItemLoanInfoRemindBeforeDaysMin)
+            .max(seriesControllerGetByIdResponseBooksItemLoanInfoRemindBeforeDaysMax)
+            .nullable(),
           remindToReturn: zod.boolean(),
         })
         .nullable(),
@@ -1656,6 +1664,9 @@ export const seriesControllerRestoreResponseOwnershipTotalMin = -900719925474099
 export const seriesControllerRestoreResponseOwnershipTotalMax = 9007199254740991;
 
 export const seriesControllerRestoreResponseTagsDefault = [];
+export const seriesControllerRestoreResponseBooksItemLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const seriesControllerRestoreResponseBooksItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const SeriesControllerRestoreResponse = zod.object({
   ageCategories: zod
@@ -1855,6 +1866,11 @@ export const SeriesControllerRestoreResponse = zod.object({
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
           note: zod.string().nullable(),
           personName: zod.string(),
+          remindBeforeDays: zod
+            .int()
+            .min(seriesControllerRestoreResponseBooksItemLoanInfoRemindBeforeDaysMin)
+            .max(seriesControllerRestoreResponseBooksItemLoanInfoRemindBeforeDaysMax)
+            .nullable(),
           remindToReturn: zod.boolean(),
         })
         .nullable(),

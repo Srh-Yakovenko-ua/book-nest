@@ -13,6 +13,10 @@ import * as zod from "zod";
 export const loansControllerSummaryResponseBorrowedLongHeldCountMin = 0;
 export const loansControllerSummaryResponseBorrowedLongHeldCountMax = 9007199254740991;
 
+export const loansControllerSummaryResponseBorrowedLongHeldLoansItemRemindBeforeDaysMin =
+  -9007199254740991;
+export const loansControllerSummaryResponseBorrowedLongHeldLoansItemRemindBeforeDaysMax = 9007199254740991;
+
 export const loansControllerSummaryResponseBorrowedNoReminderWithDateCountMin = 0;
 export const loansControllerSummaryResponseBorrowedNoReminderWithDateCountMax = 9007199254740991;
 
@@ -37,8 +41,16 @@ export const loansControllerSummaryResponseBorrowedTopPeopleItemBookCountMax = 9
 export const loansControllerSummaryResponseBorrowedTotalCountMin = 0;
 export const loansControllerSummaryResponseBorrowedTotalCountMax = 9007199254740991;
 
+export const loansControllerSummaryResponseBorrowedUpcomingReturnsItemRemindBeforeDaysMin =
+  -9007199254740991;
+export const loansControllerSummaryResponseBorrowedUpcomingReturnsItemRemindBeforeDaysMax = 9007199254740991;
+
 export const loansControllerSummaryResponseLentLongHeldCountMin = 0;
 export const loansControllerSummaryResponseLentLongHeldCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseLentLongHeldLoansItemRemindBeforeDaysMin =
+  -9007199254740991;
+export const loansControllerSummaryResponseLentLongHeldLoansItemRemindBeforeDaysMax = 9007199254740991;
 
 export const loansControllerSummaryResponseLentNoReminderWithDateCountMin = 0;
 export const loansControllerSummaryResponseLentNoReminderWithDateCountMax = 9007199254740991;
@@ -63,6 +75,10 @@ export const loansControllerSummaryResponseLentTopPeopleItemBookCountMax = 90071
 
 export const loansControllerSummaryResponseLentTotalCountMin = 0;
 export const loansControllerSummaryResponseLentTotalCountMax = 9007199254740991;
+
+export const loansControllerSummaryResponseLentUpcomingReturnsItemRemindBeforeDaysMin =
+  -9007199254740991;
+export const loansControllerSummaryResponseLentUpcomingReturnsItemRemindBeforeDaysMax = 9007199254740991;
 
 export const LoansControllerSummaryResponse = zod.object({
   borrowed: zod.object({
@@ -118,6 +134,11 @@ export const LoansControllerSummaryResponse = zod.object({
         loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
         note: zod.string().nullable(),
         personName: zod.string(),
+        remindBeforeDays: zod
+          .int()
+          .min(loansControllerSummaryResponseBorrowedLongHeldLoansItemRemindBeforeDaysMin)
+          .max(loansControllerSummaryResponseBorrowedLongHeldLoansItemRemindBeforeDaysMax)
+          .nullable(),
         remindToReturn: zod.boolean(),
         type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
         updatedAt: zod.string(),
@@ -226,6 +247,11 @@ export const LoansControllerSummaryResponse = zod.object({
         loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
         note: zod.string().nullable(),
         personName: zod.string(),
+        remindBeforeDays: zod
+          .int()
+          .min(loansControllerSummaryResponseBorrowedUpcomingReturnsItemRemindBeforeDaysMin)
+          .max(loansControllerSummaryResponseBorrowedUpcomingReturnsItemRemindBeforeDaysMax)
+          .nullable(),
         remindToReturn: zod.boolean(),
         type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
         updatedAt: zod.string(),
@@ -285,6 +311,11 @@ export const LoansControllerSummaryResponse = zod.object({
         loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
         note: zod.string().nullable(),
         personName: zod.string(),
+        remindBeforeDays: zod
+          .int()
+          .min(loansControllerSummaryResponseLentLongHeldLoansItemRemindBeforeDaysMin)
+          .max(loansControllerSummaryResponseLentLongHeldLoansItemRemindBeforeDaysMax)
+          .nullable(),
         remindToReturn: zod.boolean(),
         type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
         updatedAt: zod.string(),
@@ -393,6 +424,11 @@ export const LoansControllerSummaryResponse = zod.object({
         loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
         note: zod.string().nullable(),
         personName: zod.string(),
+        remindBeforeDays: zod
+          .int()
+          .min(loansControllerSummaryResponseLentUpcomingReturnsItemRemindBeforeDaysMin)
+          .max(loansControllerSummaryResponseLentUpcomingReturnsItemRemindBeforeDaysMax)
+          .nullable(),
         remindToReturn: zod.boolean(),
         type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
         updatedAt: zod.string(),
@@ -415,7 +451,7 @@ export const loansControllerListQueryPersonMax = 100;
 
 export const loansControllerListQuerySearchMax = 100;
 
-export const loansControllerListQuerySortDefault = `return_date`;
+export const loansControllerListQuerySortDefault = `overdue_first`;
 
 export const LoansControllerListQueryParams = zod.object({
   filter: zod
@@ -434,18 +470,13 @@ export const LoansControllerListQueryParams = zod.object({
   person: zod.string().max(loansControllerListQueryPersonMax).optional(),
   search: zod.string().max(loansControllerListQuerySearchMax).optional(),
   sort: zod
-    .enum([
-      "return_date",
-      "loan_date",
-      "title",
-      "author",
-      "person",
-      "overdue_first",
-      "return_soonest",
-    ])
+    .enum(["overdue_first", "return_date", "loan_date", "title", "author", "person"])
     .default(loansControllerListQuerySortDefault),
   type: zod.enum(["borrowed_from_someone", "lent_to_someone"]).optional(),
 });
+
+export const loansControllerListResponseItemsItemRemindBeforeDaysMin = -9007199254740991;
+export const loansControllerListResponseItemsItemRemindBeforeDaysMax = 9007199254740991;
 
 export const loansControllerListResponsePageMin = -9007199254740991;
 export const loansControllerListResponsePageMax = 9007199254740991;
@@ -507,6 +538,11 @@ export const LoansControllerListResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(loansControllerListResponseItemsItemRemindBeforeDaysMin)
+        .max(loansControllerListResponseItemsItemRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
       type: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
       updatedAt: zod.string(),

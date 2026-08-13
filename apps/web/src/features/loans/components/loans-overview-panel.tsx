@@ -24,7 +24,6 @@ type LoansOverviewPanelProps = {
   direction: LoanDirection;
   isLoading: boolean;
   longHeldLoans: LoanListItemView[];
-  onAddBook: () => void;
   people: LoansPeople;
   summaryCards: LibrarySummaryCard[];
   upcomingReturns: LoanListItemView[];
@@ -35,7 +34,6 @@ export function LoansOverviewPanel({
   direction,
   isLoading,
   longHeldLoans,
-  onAddBook,
   people,
   summaryCards,
   upcomingReturns,
@@ -66,7 +64,6 @@ export function LoansOverviewPanel({
             direction={direction}
             isLoading={isLoading}
             longHeldLoans={longHeldLoans}
-            onAddBook={() => panel.closeThen(onAddBook)}
             people={{
               ...people,
               onPersonSelect: (personName) =>

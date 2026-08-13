@@ -975,6 +975,105 @@ describe("GET /api/loans sorting", () => {
       ),
     ).toEqual([isoDay(2), isoDay(5), null]);
   });
+
+  it("puts the most overdue first and the dateless loans last when sorting by urgency", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(accessToken, { personName: "NoDate" }, "No Date");
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(6), personName: "Later" },
+      "Later",
+    );
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(2), personName: "Soon" },
+      "Soon",
+    );
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(0), personName: "Today" },
+      "Today",
+    );
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-3), loanDate: isoDay(-10), personName: "Late" },
+      "Late",
+    );
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-12), loanDate: isoDay(-30), personName: "Worst" },
+      "Worst",
+    );
+
+    const res = await listLoans(accessToken, "?sort=overdue_first");
+
+    expect(res.body.items.map((item: { personName: string }) => item.personName)).toEqual([
+      "Worst",
+      "Late",
+      "Today",
+      "Soon",
+      "Later",
+      "NoDate",
+    ]);
+  });
+
+  it("breaks a tie on the return date with the older loan first", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(3), loanDate: isoDay(-2), personName: "Recent" },
+      "Recent",
+    );
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(3), loanDate: isoDay(-20), personName: "Oldest" },
+      "Oldest",
+    );
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(3), loanDate: isoDay(-9), personName: "Middle" },
+      "Middle",
+    );
+
+    const res = await listLoans(accessToken, "?sort=overdue_first");
+
+    expect(res.body.items.map((item: { personName: string }) => item.personName)).toEqual([
+      "Oldest",
+      "Middle",
+      "Recent",
+    ]);
+  });
+
+  it("sorts by urgency when no sort is asked for", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+    await createBorrowedLoan(accessToken, { personName: "NoDate" }, "No Date");
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(4), personName: "Later" },
+      "Later",
+    );
+    await createBorrowedLoan(
+      accessToken,
+      { expectedReturnDate: isoDay(-5), loanDate: isoDay(-15), personName: "Overdue" },
+      "Overdue",
+    );
+
+    const res = await listLoans(accessToken);
+
+    expect(res.body.items.map((item: { personName: string }) => item.personName)).toEqual([
+      "Overdue",
+      "Later",
+      "NoDate",
+    ]);
+  });
+
+  it("rejects the retired return_soonest sort", async () => {
+    const { accessToken } = await context.registerVerifyAndLogin();
+
+    const res = await listLoans(accessToken, "?sort=return_soonest");
+
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("GET /api/loans pagination", () => {

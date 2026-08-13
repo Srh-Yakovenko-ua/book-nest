@@ -19,6 +19,7 @@ export const LoanInfoViewSchema = z.object({
   loanUiStatus: LoanUiStatusSchema,
   note: z.string().nullable(),
   personName: z.string(),
+  remindBeforeDays: z.number().int().nullable(),
   remindToReturn: z.boolean(),
 });
 
@@ -36,13 +37,12 @@ export const LoanFilterSchema = z.enum([
 export type LoanFilter = z.infer<typeof LoanFilterSchema>;
 
 export const LoanSortSchema = z.enum([
+  "overdue_first",
   "return_date",
   "loan_date",
   "title",
   "author",
   "person",
-  "overdue_first",
-  "return_soonest",
 ]);
 
 export type LoanSort = z.infer<typeof LoanSortSchema>;
@@ -52,7 +52,7 @@ export const LoansQuerySchema = z.object({
   ...paginationQueryFields({ pageSizeDefault: 10 }),
   person: z.string().trim().max(LOAN_PERSON_QUERY_MAX).optional(),
   search: z.string().trim().max(LOAN_SEARCH_MAX).optional(),
-  sort: LoanSortSchema.default("return_date"),
+  sort: LoanSortSchema.default("overdue_first"),
   type: LoanTypeSchema.optional(),
 });
 
@@ -80,6 +80,7 @@ export const LoanListItemViewSchema = z.object({
   loanUiStatus: LoanUiStatusSchema,
   note: z.string().nullable(),
   personName: z.string(),
+  remindBeforeDays: z.number().int().nullable(),
   remindToReturn: z.boolean(),
   type: LoanTypeSchema,
   updatedAt: z.string(),

@@ -346,6 +346,9 @@ export const BooksControllerCreateBody = zod.object({
   translator: zod.string().nullish(),
 });
 
+export const booksControllerCreateResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const booksControllerCreateResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const booksControllerCreateResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -479,6 +482,11 @@ export const BooksControllerCreateResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(booksControllerCreateResponseLoanInfoRemindBeforeDaysMin)
+        .max(booksControllerCreateResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -900,6 +908,9 @@ export const BooksControllerListQueryParams = zod.object({
     .optional(),
 });
 
+export const booksControllerListResponseItemsItemLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const booksControllerListResponseItemsItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const booksControllerListResponseItemsItemQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -1076,6 +1087,11 @@ export const BooksControllerListResponse = zod.object({
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
           note: zod.string().nullable(),
           personName: zod.string(),
+          remindBeforeDays: zod
+            .int()
+            .min(booksControllerListResponseItemsItemLoanInfoRemindBeforeDaysMin)
+            .max(booksControllerListResponseItemsItemLoanInfoRemindBeforeDaysMax)
+            .nullable(),
           remindToReturn: zod.boolean(),
         })
         .nullable(),
@@ -1338,6 +1354,10 @@ export const BooksControllerOverviewQueryParams = zod.object({
     .describe("Scope the overview to these ownership statuses (physical library)"),
 });
 
+export const booksControllerOverviewResponseRecentlyAddedItemLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const booksControllerOverviewResponseRecentlyAddedItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const booksControllerOverviewResponseRecentlyAddedItemQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -1519,6 +1539,11 @@ export const BooksControllerOverviewResponse = zod.object({
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
           note: zod.string().nullable(),
           personName: zod.string(),
+          remindBeforeDays: zod
+            .int()
+            .min(booksControllerOverviewResponseRecentlyAddedItemLoanInfoRemindBeforeDaysMin)
+            .max(booksControllerOverviewResponseRecentlyAddedItemLoanInfoRemindBeforeDaysMax)
+            .nullable(),
           remindToReturn: zod.boolean(),
         })
         .nullable(),
@@ -1981,6 +2006,10 @@ export const BooksControllerWishlistQueryParams = zod.object({
     .optional(),
 });
 
+export const booksControllerWishlistResponseBooksItemLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const booksControllerWishlistResponseBooksItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const booksControllerWishlistResponseBooksItemQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -2147,6 +2176,11 @@ export const BooksControllerWishlistResponse = zod.object({
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
           note: zod.string().nullable(),
           personName: zod.string(),
+          remindBeforeDays: zod
+            .int()
+            .min(booksControllerWishlistResponseBooksItemLoanInfoRemindBeforeDaysMin)
+            .max(booksControllerWishlistResponseBooksItemLoanInfoRemindBeforeDaysMax)
+            .nullable(),
           remindToReturn: zod.boolean(),
         })
         .nullable(),
@@ -2524,6 +2558,10 @@ export const BooksControllerDedicationsQueryParams = zod.object({
     .default(booksControllerDedicationsQuerySortDefault),
 });
 
+export const booksControllerDedicationsResponseItemsItemLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const booksControllerDedicationsResponseItemsItemLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const booksControllerDedicationsResponseItemsItemQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -2701,6 +2739,11 @@ export const BooksControllerDedicationsResponse = zod.object({
           loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
           note: zod.string().nullable(),
           personName: zod.string(),
+          remindBeforeDays: zod
+            .int()
+            .min(booksControllerDedicationsResponseItemsItemLoanInfoRemindBeforeDaysMin)
+            .max(booksControllerDedicationsResponseItemsItemLoanInfoRemindBeforeDaysMax)
+            .nullable(),
           remindToReturn: zod.boolean(),
         })
         .nullable(),
@@ -3077,6 +3120,9 @@ export const BooksControllerGetByIdParams = zod.object({
   id: zod.string(),
 });
 
+export const booksControllerGetByIdResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const booksControllerGetByIdResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const booksControllerGetByIdResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -3210,6 +3256,11 @@ export const BooksControllerGetByIdResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(booksControllerGetByIdResponseLoanInfoRemindBeforeDaysMin)
+        .max(booksControllerGetByIdResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -3763,6 +3814,9 @@ export const BooksControllerUpdateBody = zod.object({
   translator: zod.string().nullish(),
 });
 
+export const booksControllerUpdateResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const booksControllerUpdateResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const booksControllerUpdateResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -3896,6 +3950,11 @@ export const BooksControllerUpdateResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(booksControllerUpdateResponseLoanInfoRemindBeforeDaysMin)
+        .max(booksControllerUpdateResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -4142,6 +4201,9 @@ export const BooksControllerRestoreParams = zod.object({
   id: zod.string(),
 });
 
+export const booksControllerRestoreResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const booksControllerRestoreResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const booksControllerRestoreResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -4275,6 +4337,11 @@ export const BooksControllerRestoreResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(booksControllerRestoreResponseLoanInfoRemindBeforeDaysMin)
+        .max(booksControllerRestoreResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -4681,6 +4748,10 @@ export const BookReadingControllerChangeReadingStatusBody = zod.object({
   ]),
 });
 
+export const bookReadingControllerChangeReadingStatusResponseLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const bookReadingControllerChangeReadingStatusResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookReadingControllerChangeReadingStatusResponseQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -4817,6 +4888,11 @@ export const BookReadingControllerChangeReadingStatusResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookReadingControllerChangeReadingStatusResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookReadingControllerChangeReadingStatusResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -5069,6 +5145,10 @@ export const BookReadingControllerUpdateReadingProgressBody = zod.object({
     .optional(),
 });
 
+export const bookReadingControllerUpdateReadingProgressResponseLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const bookReadingControllerUpdateReadingProgressResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookReadingControllerUpdateReadingProgressResponseQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -5205,6 +5285,11 @@ export const BookReadingControllerUpdateReadingProgressResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookReadingControllerUpdateReadingProgressResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookReadingControllerUpdateReadingProgressResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -5440,6 +5525,10 @@ export const BookOwnershipControllerMarkOwnedParams = zod.object({
   id: zod.string(),
 });
 
+export const bookOwnershipControllerMarkOwnedResponseLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const bookOwnershipControllerMarkOwnedResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookOwnershipControllerMarkOwnedResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -5574,6 +5663,11 @@ export const BookOwnershipControllerMarkOwnedResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookOwnershipControllerMarkOwnedResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookOwnershipControllerMarkOwnedResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -5807,6 +5901,10 @@ export const BookOwnershipControllerRemoveOwnedParams = zod.object({
   id: zod.string(),
 });
 
+export const bookOwnershipControllerRemoveOwnedResponseLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const bookOwnershipControllerRemoveOwnedResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookOwnershipControllerRemoveOwnedResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -5941,6 +6039,11 @@ export const BookOwnershipControllerRemoveOwnedResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookOwnershipControllerRemoveOwnedResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookOwnershipControllerRemoveOwnedResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -6174,6 +6277,10 @@ export const BookOwnershipControllerRemoveFromWishlistParams = zod.object({
   id: zod.string(),
 });
 
+export const bookOwnershipControllerRemoveFromWishlistResponseLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const bookOwnershipControllerRemoveFromWishlistResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookOwnershipControllerRemoveFromWishlistResponseQueuePriorityTargetDateRegExp =
   new RegExp(
     "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -6310,6 +6417,11 @@ export const BookOwnershipControllerRemoveFromWishlistResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookOwnershipControllerRemoveFromWishlistResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookOwnershipControllerRemoveFromWishlistResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -6565,6 +6677,10 @@ export const BookOwnershipControllerWantToBuyBody = zod.object({
     .optional(),
 });
 
+export const bookOwnershipControllerWantToBuyResponseLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const bookOwnershipControllerWantToBuyResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookOwnershipControllerWantToBuyResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -6699,6 +6815,11 @@ export const BookOwnershipControllerWantToBuyResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookOwnershipControllerWantToBuyResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookOwnershipControllerWantToBuyResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -6955,6 +7076,10 @@ export const BookOwnershipControllerMarkBoughtBody = zod.object({
   storeName: zod.string().nullish(),
 });
 
+export const bookOwnershipControllerMarkBoughtResponseLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const bookOwnershipControllerMarkBoughtResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookOwnershipControllerMarkBoughtResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -7089,6 +7214,11 @@ export const BookOwnershipControllerMarkBoughtResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookOwnershipControllerMarkBoughtResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookOwnershipControllerMarkBoughtResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -7342,6 +7472,9 @@ export const BookLoanControllerCreateLoanBody = zod.object({
   remindToReturn: zod.boolean().optional(),
 });
 
+export const bookLoanControllerCreateLoanResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const bookLoanControllerCreateLoanResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookLoanControllerCreateLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -7475,6 +7608,11 @@ export const BookLoanControllerCreateLoanResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookLoanControllerCreateLoanResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookLoanControllerCreateLoanResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -7724,6 +7862,9 @@ export const BookLoanControllerEditLoanBody = zod.object({
   remindToReturn: zod.boolean().optional(),
 });
 
+export const bookLoanControllerEditLoanResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const bookLoanControllerEditLoanResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookLoanControllerEditLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -7857,6 +7998,11 @@ export const BookLoanControllerEditLoanResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookLoanControllerEditLoanResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookLoanControllerEditLoanResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -8081,11 +8227,775 @@ export const BookLoanControllerEditLoanResponse = zod.object({
 });
 
 /**
+ * @summary Push the expected return date of an active loan by 7 or 14 days
+ */
+export const BookLoanControllerExtendLoanParams = zod.object({
+  id: zod.string(),
+});
+
+export const BookLoanControllerExtendLoanBody = zod.object({
+  days: zod.union([zod.literal(7), zod.literal(14)]),
+});
+
+export const bookLoanControllerExtendLoanResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const bookLoanControllerExtendLoanResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
+export const bookLoanControllerExtendLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerExtendLoanResponseSeriesAgeCategoriesDefault = [];
+export const bookLoanControllerExtendLoanResponseSeriesFormatsDefault = [];
+export const bookLoanControllerExtendLoanResponseSeriesHasFavoriteBookDefault = false;
+export const bookLoanControllerExtendLoanResponseSeriesHasPublicationYearsDefault = false;
+export const bookLoanControllerExtendLoanResponseSeriesHasPublisherDefault = false;
+export const bookLoanControllerExtendLoanResponseSeriesLanguagesDefault = [];
+export const bookLoanControllerExtendLoanResponseSeriesMissingPartNumbersItemMax = 999;
+
+export const bookLoanControllerExtendLoanResponseSeriesMissingPartNumbersDefault = [];
+export const bookLoanControllerExtendLoanResponseSeriesOwnershipOwnedCountMin = -9007199254740991;
+export const bookLoanControllerExtendLoanResponseSeriesOwnershipOwnedCountMax = 9007199254740991;
+
+export const bookLoanControllerExtendLoanResponseSeriesOwnershipTotalMin = -9007199254740991;
+export const bookLoanControllerExtendLoanResponseSeriesOwnershipTotalMax = 9007199254740991;
+
+export const bookLoanControllerExtendLoanResponseSeriesTagsDefault = [];
+
+export const BookLoanControllerExtendLoanResponse = zod.object({
+  ageCategory: zod.enum([
+    "not_specified",
+    "no_restrictions",
+    "6_plus",
+    "12_plus",
+    "14_plus",
+    "16_plus",
+    "18_plus",
+  ]),
+  authors: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  bookType: zod.enum(["solo", "series_part"]),
+  cover: zod
+    .object({
+      contentType: zod.string(),
+      createdAt: zod.string(),
+      height: zod.number(),
+      id: zod.string(),
+      kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+      name: zod.string().nullable(),
+      sizeBytes: zod.number(),
+      urls: zod.object({
+        card: zod.string(),
+        full: zod.string(),
+        thumb: zod.string(),
+      }),
+      width: zod.number(),
+    })
+    .nullish(),
+  createdAt: zod.string(),
+  dedication: zod.string().nullable(),
+  delivery: zod.object({
+    active: zod
+      .object({
+        cancelledAt: zod.string().nullable(),
+        cancelReason: zod.string().nullable(),
+        createdAt: zod.string(),
+        currency: zod
+          .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+          .nullable(),
+        deliveryService: zod.string().nullable(),
+        expectedDeliveryDate: zod.string().nullable(),
+        id: zod.string(),
+        note: zod.string().nullable(),
+        orderDate: zod.string().nullable(),
+        orderNumber: zod.string().nullable(),
+        price: zod.number().nullable(),
+        receivedAt: zod.string().nullable(),
+        status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
+        storeName: zod.string().nullable(),
+        trackingNumber: zod.string().nullable(),
+        trackingUrl: zod.string().nullable(),
+        updatedAt: zod.string(),
+      })
+      .nullable(),
+    latest: zod
+      .object({
+        cancelledAt: zod.string().nullable(),
+        cancelReason: zod.string().nullable(),
+        createdAt: zod.string(),
+        currency: zod
+          .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+          .nullable(),
+        deliveryService: zod.string().nullable(),
+        expectedDeliveryDate: zod.string().nullable(),
+        id: zod.string(),
+        note: zod.string().nullable(),
+        orderDate: zod.string().nullable(),
+        orderNumber: zod.string().nullable(),
+        price: zod.number().nullable(),
+        receivedAt: zod.string().nullable(),
+        status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
+        storeName: zod.string().nullable(),
+        trackingNumber: zod.string().nullable(),
+        trackingUrl: zod.string().nullable(),
+        updatedAt: zod.string(),
+      })
+      .nullable(),
+    totalCount: zod.number(),
+  }),
+  description: zod.string().nullable(),
+  favoriteAddedAt: zod.string().nullable(),
+  formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
+  genres: zod.array(zod.string()),
+  hasUnreadEarlierSeriesParts: zod.boolean().nullable(),
+  id: zod.string(),
+  illustrator: zod.string().nullable(),
+  isbn: zod.string().nullable(),
+  isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
+  isInReadingQueue: zod.boolean(),
+  language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
+  lists: zod.array(
+    zod.object({
+      description: zod.string().nullable(),
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  loanInfo: zod
+    .object({
+      contact: zod.string().nullable(),
+      expectedReturnDate: zod.string().nullable(),
+      loanDate: zod.string().nullable(),
+      loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+      loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
+      note: zod.string().nullable(),
+      personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookLoanControllerExtendLoanResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookLoanControllerExtendLoanResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
+      remindToReturn: zod.boolean(),
+    })
+    .nullable(),
+  originalTitle: zod.string().nullable(),
+  ownershipStatus: zod.enum([
+    "none",
+    "want_to_buy",
+    "in_transit",
+    "owned",
+    "borrowed_from_someone",
+    "lent_to_someone",
+  ]),
+  pagesCount: zod.number().nullable(),
+  pagesCountUnavailable: zod.boolean(),
+  partNumber: zod.number().nullable(),
+  publicationYear: zod.number().nullable(),
+  publisher: zod
+    .object({
+      id: zod.string(),
+      name: zod.string(),
+    })
+    .nullable(),
+  purchaseInfo: zod
+    .object({
+      currency: zod
+        .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+        .nullable(),
+      expectedPrice: zod.number().nullable(),
+      note: zod.string().nullable(),
+      purchasedAt: zod.string().nullable(),
+      storeName: zod.string().nullable(),
+      storeUrl: zod.string().nullable(),
+    })
+    .nullable(),
+  queuePriority: zod
+    .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookLoanControllerExtendLoanResponseQueuePriorityTargetDateRegExp)
+    .nullable(),
+  readingProgress: zod
+    .object({
+      abandonedAt: zod.string().nullable(),
+      currentPage: zod.number().nullable(),
+      finishedAt: zod.string().nullable(),
+      impression: zod.string().nullable(),
+      lastProgressUpdateAt: zod.string().nullable(),
+      note: zod.string().nullable(),
+      pausedAt: zod.string().nullable(),
+      rating: zod.number().nullable(),
+      startedAt: zod.string().nullable(),
+    })
+    .nullable(),
+  readingStatus: zod.enum([
+    "not_started",
+    "want_to_read",
+    "reading",
+    "paused",
+    "finished",
+    "dnf",
+    "rereading",
+  ]),
+  series: zod
+    .object({
+      ageCategories: zod
+        .array(
+          zod.enum([
+            "not_specified",
+            "no_restrictions",
+            "6_plus",
+            "12_plus",
+            "14_plus",
+            "16_plus",
+            "18_plus",
+          ]),
+        )
+        .default(bookLoanControllerExtendLoanResponseSeriesAgeCategoriesDefault),
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      averagePages: zod.number().nullish(),
+      averageRating: zod.number().nullish(),
+      booksInSeries: zod.number(),
+      covers: zod.array(
+        zod.object({
+          bookId: zod.string(),
+          cover: zod.object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          }),
+          title: zod.string(),
+        }),
+      ),
+      createdAt: zod.string(),
+      description: zod.string().nullable(),
+      finishedInSeries: zod.number(),
+      formats: zod
+        .array(zod.enum(["paper", "ebook", "audiobook"]))
+        .default(bookLoanControllerExtendLoanResponseSeriesFormatsDefault),
+      genres: zod.array(zod.string()),
+      hasFavoriteBook: zod
+        .boolean()
+        .default(bookLoanControllerExtendLoanResponseSeriesHasFavoriteBookDefault),
+      hasPublicationYears: zod
+        .boolean()
+        .default(bookLoanControllerExtendLoanResponseSeriesHasPublicationYearsDefault),
+      hasPublisher: zod
+        .boolean()
+        .default(bookLoanControllerExtendLoanResponseSeriesHasPublisherDefault),
+      id: zod.string(),
+      languages: zod
+        .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
+        .default(bookLoanControllerExtendLoanResponseSeriesLanguagesDefault),
+      lastActivityAt: zod.string(),
+      missingPartNumbers: zod
+        .array(
+          zod.int().min(1).max(bookLoanControllerExtendLoanResponseSeriesMissingPartNumbersItemMax),
+        )
+        .default(bookLoanControllerExtendLoanResponseSeriesMissingPartNumbersDefault),
+      name: zod.string(),
+      nextBook: zod
+        .object({
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullish(),
+          id: zod.string(),
+          ownershipStatus: zod
+            .union([
+              zod.literal("none"),
+              zod.literal("want_to_buy"),
+              zod.literal("in_transit"),
+              zod.literal("owned"),
+              zod.literal("borrowed_from_someone"),
+              zod.literal("lent_to_someone"),
+              zod.literal(null),
+            ])
+            .nullish(),
+          partNumber: zod.number().nullable(),
+          title: zod.string(),
+        })
+        .nullable(),
+      ownership: zod
+        .object({
+          ownedCount: zod
+            .int()
+            .min(bookLoanControllerExtendLoanResponseSeriesOwnershipOwnedCountMin)
+            .max(bookLoanControllerExtendLoanResponseSeriesOwnershipOwnedCountMax),
+          total: zod
+            .int()
+            .min(bookLoanControllerExtendLoanResponseSeriesOwnershipTotalMin)
+            .max(bookLoanControllerExtendLoanResponseSeriesOwnershipTotalMax),
+        })
+        .optional(),
+      pagesCount: zod.number().nullish(),
+      readingInSeries: zod.number(),
+      status: zod.enum(["completed", "ongoing", "unknown"]),
+      tags: zod
+        .array(
+          zod.object({
+            id: zod.string(),
+            name: zod.string(),
+          }),
+        )
+        .default(bookLoanControllerExtendLoanResponseSeriesTagsDefault),
+      totalBooks: zod.number().nullable(),
+    })
+    .nullable(),
+  tags: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  title: zod.string(),
+  translator: zod.string().nullable(),
+  updatedAt: zod.string(),
+  userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
+});
+
+/**
+ * @summary Turn the return reminder of an active loan on or off
+ */
+export const BookLoanControllerSetLoanReminderParams = zod.object({
+  id: zod.string(),
+});
+
+export const bookLoanControllerSetLoanReminderBodyRemindBeforeDaysMax = 14;
+
+export const BookLoanControllerSetLoanReminderBody = zod.object({
+  remindBeforeDays: zod
+    .int()
+    .min(1)
+    .max(bookLoanControllerSetLoanReminderBodyRemindBeforeDaysMax)
+    .nullable(),
+});
+
+export const bookLoanControllerSetLoanReminderResponseLoanInfoRemindBeforeDaysMin =
+  -9007199254740991;
+export const bookLoanControllerSetLoanReminderResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
+export const bookLoanControllerSetLoanReminderResponseQueuePriorityTargetDateRegExp = new RegExp(
+  "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+);
+export const bookLoanControllerSetLoanReminderResponseSeriesAgeCategoriesDefault = [];
+export const bookLoanControllerSetLoanReminderResponseSeriesFormatsDefault = [];
+export const bookLoanControllerSetLoanReminderResponseSeriesHasFavoriteBookDefault = false;
+export const bookLoanControllerSetLoanReminderResponseSeriesHasPublicationYearsDefault = false;
+export const bookLoanControllerSetLoanReminderResponseSeriesHasPublisherDefault = false;
+export const bookLoanControllerSetLoanReminderResponseSeriesLanguagesDefault = [];
+export const bookLoanControllerSetLoanReminderResponseSeriesMissingPartNumbersItemMax = 999;
+
+export const bookLoanControllerSetLoanReminderResponseSeriesMissingPartNumbersDefault = [];
+export const bookLoanControllerSetLoanReminderResponseSeriesOwnershipOwnedCountMin =
+  -9007199254740991;
+export const bookLoanControllerSetLoanReminderResponseSeriesOwnershipOwnedCountMax = 9007199254740991;
+
+export const bookLoanControllerSetLoanReminderResponseSeriesOwnershipTotalMin = -9007199254740991;
+export const bookLoanControllerSetLoanReminderResponseSeriesOwnershipTotalMax = 9007199254740991;
+
+export const bookLoanControllerSetLoanReminderResponseSeriesTagsDefault = [];
+
+export const BookLoanControllerSetLoanReminderResponse = zod.object({
+  ageCategory: zod.enum([
+    "not_specified",
+    "no_restrictions",
+    "6_plus",
+    "12_plus",
+    "14_plus",
+    "16_plus",
+    "18_plus",
+  ]),
+  authors: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  bookType: zod.enum(["solo", "series_part"]),
+  cover: zod
+    .object({
+      contentType: zod.string(),
+      createdAt: zod.string(),
+      height: zod.number(),
+      id: zod.string(),
+      kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+      name: zod.string().nullable(),
+      sizeBytes: zod.number(),
+      urls: zod.object({
+        card: zod.string(),
+        full: zod.string(),
+        thumb: zod.string(),
+      }),
+      width: zod.number(),
+    })
+    .nullish(),
+  createdAt: zod.string(),
+  dedication: zod.string().nullable(),
+  delivery: zod.object({
+    active: zod
+      .object({
+        cancelledAt: zod.string().nullable(),
+        cancelReason: zod.string().nullable(),
+        createdAt: zod.string(),
+        currency: zod
+          .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+          .nullable(),
+        deliveryService: zod.string().nullable(),
+        expectedDeliveryDate: zod.string().nullable(),
+        id: zod.string(),
+        note: zod.string().nullable(),
+        orderDate: zod.string().nullable(),
+        orderNumber: zod.string().nullable(),
+        price: zod.number().nullable(),
+        receivedAt: zod.string().nullable(),
+        status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
+        storeName: zod.string().nullable(),
+        trackingNumber: zod.string().nullable(),
+        trackingUrl: zod.string().nullable(),
+        updatedAt: zod.string(),
+      })
+      .nullable(),
+    latest: zod
+      .object({
+        cancelledAt: zod.string().nullable(),
+        cancelReason: zod.string().nullable(),
+        createdAt: zod.string(),
+        currency: zod
+          .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+          .nullable(),
+        deliveryService: zod.string().nullable(),
+        expectedDeliveryDate: zod.string().nullable(),
+        id: zod.string(),
+        note: zod.string().nullable(),
+        orderDate: zod.string().nullable(),
+        orderNumber: zod.string().nullable(),
+        price: zod.number().nullable(),
+        receivedAt: zod.string().nullable(),
+        status: zod.enum(["ordered", "in_transit", "ready_for_pickup", "received", "cancelled"]),
+        storeName: zod.string().nullable(),
+        trackingNumber: zod.string().nullable(),
+        trackingUrl: zod.string().nullable(),
+        updatedAt: zod.string(),
+      })
+      .nullable(),
+    totalCount: zod.number(),
+  }),
+  description: zod.string().nullable(),
+  favoriteAddedAt: zod.string().nullable(),
+  formats: zod.array(zod.enum(["paper", "ebook", "audiobook"])),
+  genres: zod.array(zod.string()),
+  hasUnreadEarlierSeriesParts: zod.boolean().nullable(),
+  id: zod.string(),
+  illustrator: zod.string().nullable(),
+  isbn: zod.string().nullable(),
+  isFavorite: zod.boolean(),
+  isFavoriteDedication: zod.boolean(),
+  isInReadingQueue: zod.boolean(),
+  language: zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]),
+  lists: zod.array(
+    zod.object({
+      description: zod.string().nullable(),
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  loanInfo: zod
+    .object({
+      contact: zod.string().nullable(),
+      expectedReturnDate: zod.string().nullable(),
+      loanDate: zod.string().nullable(),
+      loanType: zod.enum(["borrowed_from_someone", "lent_to_someone"]),
+      loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
+      note: zod.string().nullable(),
+      personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookLoanControllerSetLoanReminderResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookLoanControllerSetLoanReminderResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
+      remindToReturn: zod.boolean(),
+    })
+    .nullable(),
+  originalTitle: zod.string().nullable(),
+  ownershipStatus: zod.enum([
+    "none",
+    "want_to_buy",
+    "in_transit",
+    "owned",
+    "borrowed_from_someone",
+    "lent_to_someone",
+  ]),
+  pagesCount: zod.number().nullable(),
+  pagesCountUnavailable: zod.boolean(),
+  partNumber: zod.number().nullable(),
+  publicationYear: zod.number().nullable(),
+  publisher: zod
+    .object({
+      id: zod.string(),
+      name: zod.string(),
+    })
+    .nullable(),
+  purchaseInfo: zod
+    .object({
+      currency: zod
+        .union([zod.literal("UAH"), zod.literal("EUR"), zod.literal("USD"), zod.literal(null)])
+        .nullable(),
+      expectedPrice: zod.number().nullable(),
+      note: zod.string().nullable(),
+      purchasedAt: zod.string().nullable(),
+      storeName: zod.string().nullable(),
+      storeUrl: zod.string().nullable(),
+    })
+    .nullable(),
+  queuePriority: zod
+    .union([zod.literal("low"), zod.literal("normal"), zod.literal("high"), zod.literal(null)])
+    .nullable(),
+  queuePriorityReason: zod
+    .union([
+      zod.literal("book_club"),
+      zod.literal("buddy_read"),
+      zod.literal("event_or_deadline"),
+      zod.literal("return_due"),
+      zod.literal("series_order"),
+      zod.literal("reading_goal"),
+      zod.literal("anticipated_release"),
+      zod.literal("other"),
+      zod.literal(null),
+    ])
+    .nullable(),
+  queuePriorityReasonCustomText: zod.string().nullable(),
+  queuePriorityTargetDate: zod.iso
+    .date()
+    .regex(bookLoanControllerSetLoanReminderResponseQueuePriorityTargetDateRegExp)
+    .nullable(),
+  readingProgress: zod
+    .object({
+      abandonedAt: zod.string().nullable(),
+      currentPage: zod.number().nullable(),
+      finishedAt: zod.string().nullable(),
+      impression: zod.string().nullable(),
+      lastProgressUpdateAt: zod.string().nullable(),
+      note: zod.string().nullable(),
+      pausedAt: zod.string().nullable(),
+      rating: zod.number().nullable(),
+      startedAt: zod.string().nullable(),
+    })
+    .nullable(),
+  readingStatus: zod.enum([
+    "not_started",
+    "want_to_read",
+    "reading",
+    "paused",
+    "finished",
+    "dnf",
+    "rereading",
+  ]),
+  series: zod
+    .object({
+      ageCategories: zod
+        .array(
+          zod.enum([
+            "not_specified",
+            "no_restrictions",
+            "6_plus",
+            "12_plus",
+            "14_plus",
+            "16_plus",
+            "18_plus",
+          ]),
+        )
+        .default(bookLoanControllerSetLoanReminderResponseSeriesAgeCategoriesDefault),
+      authors: zod.array(
+        zod.object({
+          id: zod.string(),
+          name: zod.string(),
+        }),
+      ),
+      averagePages: zod.number().nullish(),
+      averageRating: zod.number().nullish(),
+      booksInSeries: zod.number(),
+      covers: zod.array(
+        zod.object({
+          bookId: zod.string(),
+          cover: zod.object({
+            contentType: zod.string(),
+            createdAt: zod.string(),
+            height: zod.number(),
+            id: zod.string(),
+            kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+            name: zod.string().nullable(),
+            sizeBytes: zod.number(),
+            urls: zod.object({
+              card: zod.string(),
+              full: zod.string(),
+              thumb: zod.string(),
+            }),
+            width: zod.number(),
+          }),
+          title: zod.string(),
+        }),
+      ),
+      createdAt: zod.string(),
+      description: zod.string().nullable(),
+      finishedInSeries: zod.number(),
+      formats: zod
+        .array(zod.enum(["paper", "ebook", "audiobook"]))
+        .default(bookLoanControllerSetLoanReminderResponseSeriesFormatsDefault),
+      genres: zod.array(zod.string()),
+      hasFavoriteBook: zod
+        .boolean()
+        .default(bookLoanControllerSetLoanReminderResponseSeriesHasFavoriteBookDefault),
+      hasPublicationYears: zod
+        .boolean()
+        .default(bookLoanControllerSetLoanReminderResponseSeriesHasPublicationYearsDefault),
+      hasPublisher: zod
+        .boolean()
+        .default(bookLoanControllerSetLoanReminderResponseSeriesHasPublisherDefault),
+      id: zod.string(),
+      languages: zod
+        .array(zod.enum(["ukrainian", "english", "polish", "german", "french", "spanish", "other"]))
+        .default(bookLoanControllerSetLoanReminderResponseSeriesLanguagesDefault),
+      lastActivityAt: zod.string(),
+      missingPartNumbers: zod
+        .array(
+          zod
+            .int()
+            .min(1)
+            .max(bookLoanControllerSetLoanReminderResponseSeriesMissingPartNumbersItemMax),
+        )
+        .default(bookLoanControllerSetLoanReminderResponseSeriesMissingPartNumbersDefault),
+      name: zod.string(),
+      nextBook: zod
+        .object({
+          cover: zod
+            .object({
+              contentType: zod.string(),
+              createdAt: zod.string(),
+              height: zod.number(),
+              id: zod.string(),
+              kind: zod.enum(["avatar", "book_cover", "series_cover"]),
+              name: zod.string().nullable(),
+              sizeBytes: zod.number(),
+              urls: zod.object({
+                card: zod.string(),
+                full: zod.string(),
+                thumb: zod.string(),
+              }),
+              width: zod.number(),
+            })
+            .nullish(),
+          id: zod.string(),
+          ownershipStatus: zod
+            .union([
+              zod.literal("none"),
+              zod.literal("want_to_buy"),
+              zod.literal("in_transit"),
+              zod.literal("owned"),
+              zod.literal("borrowed_from_someone"),
+              zod.literal("lent_to_someone"),
+              zod.literal(null),
+            ])
+            .nullish(),
+          partNumber: zod.number().nullable(),
+          title: zod.string(),
+        })
+        .nullable(),
+      ownership: zod
+        .object({
+          ownedCount: zod
+            .int()
+            .min(bookLoanControllerSetLoanReminderResponseSeriesOwnershipOwnedCountMin)
+            .max(bookLoanControllerSetLoanReminderResponseSeriesOwnershipOwnedCountMax),
+          total: zod
+            .int()
+            .min(bookLoanControllerSetLoanReminderResponseSeriesOwnershipTotalMin)
+            .max(bookLoanControllerSetLoanReminderResponseSeriesOwnershipTotalMax),
+        })
+        .optional(),
+      pagesCount: zod.number().nullish(),
+      readingInSeries: zod.number(),
+      status: zod.enum(["completed", "ongoing", "unknown"]),
+      tags: zod
+        .array(
+          zod.object({
+            id: zod.string(),
+            name: zod.string(),
+          }),
+        )
+        .default(bookLoanControllerSetLoanReminderResponseSeriesTagsDefault),
+      totalBooks: zod.number().nullable(),
+    })
+    .nullable(),
+  tags: zod.array(
+    zod.object({
+      id: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  title: zod.string(),
+  translator: zod.string().nullable(),
+  updatedAt: zod.string(),
+  userId: zod.string(),
+  wishlistAddedAt: zod.string().nullable(),
+});
+
+/**
  * @summary Return a borrowed or lent book, clearing its loan
  */
 export const BookLoanControllerReturnLoanParams = zod.object({
   id: zod.string(),
 });
+
+export const bookLoanControllerReturnLoanResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const bookLoanControllerReturnLoanResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
 
 export const bookLoanControllerReturnLoanResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
@@ -8220,6 +9130,11 @@ export const BookLoanControllerReturnLoanResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookLoanControllerReturnLoanResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookLoanControllerReturnLoanResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -8481,6 +9396,9 @@ export const BookDeliveryControllerCreateBody = zod.object({
   trackingUrl: zod.string().max(bookDeliveryControllerCreateBodyTrackingUrlMax).optional(),
 });
 
+export const bookDeliveryControllerCreateResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const bookDeliveryControllerCreateResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookDeliveryControllerCreateResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -8614,6 +9532,11 @@ export const BookDeliveryControllerCreateResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookDeliveryControllerCreateResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookDeliveryControllerCreateResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -8911,6 +9834,9 @@ export const BookDeliveryControllerUpdateBody = zod.object({
   trackingUrl: zod.string().max(bookDeliveryControllerUpdateBodyTrackingUrlMax).nullish(),
 });
 
+export const bookDeliveryControllerUpdateResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const bookDeliveryControllerUpdateResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookDeliveryControllerUpdateResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -9044,6 +9970,11 @@ export const BookDeliveryControllerUpdateResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookDeliveryControllerUpdateResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookDeliveryControllerUpdateResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -9283,6 +10214,9 @@ export const BookDeliveryControllerReceiveBody = zod.object({
   receivedAt: zod.iso.date().regex(bookDeliveryControllerReceiveBodyReceivedAtRegExp).optional(),
 });
 
+export const bookDeliveryControllerReceiveResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const bookDeliveryControllerReceiveResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookDeliveryControllerReceiveResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -9416,6 +10350,11 @@ export const BookDeliveryControllerReceiveResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookDeliveryControllerReceiveResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookDeliveryControllerReceiveResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),
@@ -9657,6 +10596,9 @@ export const BookDeliveryControllerCancelBody = zod.object({
   keepAsWantToBuy: zod.boolean().default(bookDeliveryControllerCancelBodyKeepAsWantToBuyDefault),
 });
 
+export const bookDeliveryControllerCancelResponseLoanInfoRemindBeforeDaysMin = -9007199254740991;
+export const bookDeliveryControllerCancelResponseLoanInfoRemindBeforeDaysMax = 9007199254740991;
+
 export const bookDeliveryControllerCancelResponseQueuePriorityTargetDateRegExp = new RegExp(
   "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
 );
@@ -9790,6 +10732,11 @@ export const BookDeliveryControllerCancelResponse = zod.object({
       loanUiStatus: zod.enum(["overdue", "return_soon", "no_return_date", "on_time"]),
       note: zod.string().nullable(),
       personName: zod.string(),
+      remindBeforeDays: zod
+        .int()
+        .min(bookDeliveryControllerCancelResponseLoanInfoRemindBeforeDaysMin)
+        .max(bookDeliveryControllerCancelResponseLoanInfoRemindBeforeDaysMax)
+        .nullable(),
       remindToReturn: zod.boolean(),
     })
     .nullable(),

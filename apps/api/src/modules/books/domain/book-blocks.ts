@@ -82,6 +82,7 @@ export function buildLoanInfoData(loanInfo: DefinedLoanInfo): CreateLoanInfoData
     loanDate: toCreateDate(loanInfo.loanDate),
     note: loanInfo.note ?? null,
     personName: loanInfo.personName ?? "",
+    remindBeforeDays: null,
     remindToReturn: false,
   };
 }

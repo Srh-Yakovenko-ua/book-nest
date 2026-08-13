@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { daysBetweenLoanDates, formatLoanDate, loanRelative } from "./loans-derive";
+import { daysBetweenLoanDates, formatLoanDate, loanRelative, loanTerm } from "./loans-derive";
 
 describe("formatLoanDate", () => {
   it("formats an ISO date as dd.MM.yyyy", () => {
@@ -33,6 +33,27 @@ describe("loanRelative", () => {
 
   it("counts upcoming days as a positive number", () => {
     expect(loanRelative("2024-05-26", today)).toEqual({ days: 2, kind: "soon" });
+  });
+});
+
+describe("loanTerm", () => {
+  const today = "2024-05-24";
+
+  it("names the day instead of counting to it", () => {
+    expect(loanTerm("2024-05-24", today)).toEqual({ kind: "today" });
+    expect(loanTerm("2024-05-25", today)).toEqual({ kind: "tomorrow" });
+  });
+
+  it("counts the days left from the day after tomorrow on", () => {
+    expect(loanTerm("2024-05-29", today)).toEqual({ days: 5, kind: "inDays" });
+  });
+
+  it("counts how long a return is overdue", () => {
+    expect(loanTerm("2024-05-16", today)).toEqual({ days: 8, kind: "overdue" });
+  });
+
+  it("has no term without a return date", () => {
+    expect(loanTerm(null, today)).toEqual({ kind: "none" });
   });
 });
 
