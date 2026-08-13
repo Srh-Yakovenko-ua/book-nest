@@ -37,11 +37,7 @@
       "id": "AS1",
       "claim": "Dev-база містить 46 книг і 49 рядків BookDelivery, серед них три книги з двома доставками (cancelled → re-ordered), багатовалютні ціни й null у price/currency/tracking/expected date/store.",
       "status": "НЕ ВЕРИФІКОВАНО в цьому запуску: на 5432 немає слухача, docker у середовищі відсутній. Прийнято зі слів замовника.",
-      "blocks": [
-        "T17a",
-        "T17",
-        "T57"
-      ]
+      "blocks": ["T17a", "T17", "T57"]
     }
   ],
   "tasks": [
@@ -50,9 +46,7 @@
       "title": "Перейменувати delivery-статуси на shipment-статуси в shared",
       "specRef": "§2, §15",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/book-enums.ts"
-      ],
+      "files": ["packages/shared/src/book-enums.ts"],
       "dependsOn": [],
       "mandatory": true,
       "doneWhen": [
@@ -67,13 +61,8 @@
       "title": "Створити shared view-схеми BookOrder / BookOrderItem / Shipment",
       "specRef": "§1, §15, §20",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts",
-        "packages/shared/src/index.ts"
-      ],
-      "dependsOn": [
-        "T1"
-      ],
+      "files": ["packages/shared/src/orders.ts", "packages/shared/src/index.ts"],
+      "dependsOn": ["T1"],
       "mandatory": true,
       "doneWhen": [
         "BookOrderViewSchema містить id, storeName, orderNumber, orderDate, currency, totalAmount, deliveryPrice, discount, note, createdAt, updatedAt, derivedStatus, items[], shipments[]",
@@ -89,12 +78,8 @@
       "title": "Derived-статус замовлення як shared-контракт (без persist)",
       "specRef": "§4",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts"
-      ],
-      "dependsOn": [
-        "T2"
-      ],
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T2"],
       "mandatory": true,
       "doneWhen": [
         "BookOrderDerivedStatusSchema експортує узгоджений у D1 набір значень (щонайменше active, partially_shipped, partially_received, received, cancelled)",
@@ -108,12 +93,8 @@
       "title": "Контракт створення замовлення з items[] і shipments[]",
       "specRef": "§5",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts"
-      ],
-      "dependsOn": [
-        "T2"
-      ],
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T2"],
       "mandatory": true,
       "doneWhen": [
         "CreateBookOrderInputSchema приймає storeName, orderNumber?, orderDate?, currency?, totalAmount?, deliveryPrice?, discount?, note?, items (min 1) з {bookId, price?}, shipments? з {deliveryService*, trackingNumber?, trackingUrl?, expectedDeliveryDate?, pickupUntil?, status?, bookIds}",
@@ -129,12 +110,8 @@
       "title": "Контракти операцій над Shipment із терміналами поза PATCH",
       "specRef": "§6, §18",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts"
-      ],
-      "dependsOn": [
-        "T2"
-      ],
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T2"],
       "mandatory": true,
       "doneWhen": [
         "UpdateShipmentInputSchema або не має поля status, або типізує його ActiveShipmentStatusSchema — received/cancelled через нього недосяжні",
@@ -149,12 +126,8 @@
       "title": "Контракти item-level cancel і переміщення items між shipments",
       "specRef": "§6, §8",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts"
-      ],
-      "dependsOn": [
-        "T2"
-      ],
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T2"],
       "mandatory": true,
       "doneWhen": [
         "CancelBookOrderItemInputSchema має cancelReason? і keepAsWantToBuy (default true)",
@@ -168,12 +141,8 @@
       "title": "Схема фільтрів списку «У дорозі» з ready_for_pickup",
       "specRef": "§11",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts"
-      ],
-      "dependsOn": [
-        "T2"
-      ],
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T2"],
       "mandatory": true,
       "doneWhen": [
         "filter-enum містить усі 13 наявних значень з packages/shared/src/delivery.ts:38-52 плюс ready_for_pickup",
@@ -187,12 +156,8 @@
       "title": "Схема сортування з розділеною семантикою closest_delivery / delayed_first",
       "specRef": "§12",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts"
-      ],
-      "dependsOn": [
-        "T2"
-      ],
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T2"],
       "mandatory": true,
       "doneWhen": [
         "sort-enum зберігає обидва значення closest_delivery і delayed_first",
@@ -206,12 +171,8 @@
       "title": "Схема summary сторінки «У дорозі» (14 показників)",
       "specRef": "§10",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts"
-      ],
-      "dependsOn": [
-        "T2"
-      ],
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T2"],
       "mandatory": true,
       "doneWhen": [
         "схема містить activeBooksCount, activeOrdersCount, activeShipmentsCount, orderedCount, inTransitCount, readyForPickupCount, delayedCount, expectedThisWeekCount, withoutExpectedDateCount, withoutTrackingCount, withoutPriceCount, attentionCount, nextExpectedDelivery (nullable ISO-дата)",
@@ -225,12 +186,8 @@
       "title": "Схеми статистики з розділеними ordersCount / shipmentsCount / booksCount",
       "specRef": "§9",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts"
-      ],
-      "dependsOn": [
-        "T2"
-      ],
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T2"],
       "mandatory": true,
       "doneWhen": [
         "верхньорівнева статистика містить ordersCount, shipmentsCount, booksCount, receivedBooksCount, activeBooksCount, activeShipmentsCount",
@@ -245,9 +202,7 @@
       "title": "Розширити view служби доставки на providerKey і trackingUrlTemplate",
       "specRef": "§13",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/delivery-services.ts"
-      ],
+      "files": ["packages/shared/src/delivery-services.ts"],
       "dependsOn": [],
       "mandatory": true,
       "doneWhen": [
@@ -268,17 +223,7 @@
         "packages/shared/src/series.ts",
         "packages/shared/src/index.ts"
       ],
-      "dependsOn": [
-        "T2",
-        "T3",
-        "T4",
-        "T5",
-        "T6",
-        "T7",
-        "T8",
-        "T9",
-        "T10"
-      ],
+      "dependsOn": ["T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"],
       "mandatory": true,
       "doneWhen": [
         "grep -rn \"DeliveryViewSchema\\|DeliverySummaryViewSchema\\|CreateDeliveryInputSchema\\|UpdateDeliveryInputSchema\\|CancelDeliveryInputSchema\\|ReceiveDeliveryInputSchema\\|DeliveryListItemViewSchema\" packages/shared/src повертає 0",
@@ -293,12 +238,8 @@
       "title": "Prisma-моделі BookOrder, BookOrderItem, Shipment",
       "specRef": "§1, §20",
       "layer": "prisma",
-      "files": [
-        "apps/api/prisma/schema.prisma"
-      ],
-      "dependsOn": [
-        "T2"
-      ],
+      "files": ["apps/api/prisma/schema.prisma"],
+      "dependsOn": ["T2"],
       "mandatory": true,
       "doneWhen": [
         "три моделі з UUID PK, snake_case @map на кожній колонці і @@map на таблиці — у стилі schema.prisma:355-382",
@@ -316,12 +257,8 @@
       "title": "Колонки providerKey і trackingUrlTemplate у моделі DeliveryService",
       "specRef": "§13",
       "layer": "prisma",
-      "files": [
-        "apps/api/prisma/schema.prisma"
-      ],
-      "dependsOn": [
-        "T11"
-      ],
+      "files": ["apps/api/prisma/schema.prisma"],
+      "dependsOn": ["T11"],
       "mandatory": true,
       "doneWhen": [
         "DeliveryService має providerKey String? @map(\"provider_key\") і trackingUrlTemplate String? @map(\"tracking_url_template\")",
@@ -335,13 +272,8 @@
       "title": "Згенерувати create-only міграцію нових таблиць і вичитати кожен DROP INDEX",
       "specRef": "§14, CLAUDE.md §6",
       "layer": "prisma",
-      "files": [
-        "apps/api/prisma/migrations/**/migration.sql"
-      ],
-      "dependsOn": [
-        "T13",
-        "T14"
-      ],
+      "files": ["apps/api/prisma/migrations/**/migration.sql"],
+      "dependsOn": ["T13", "T14"],
       "mandatory": true,
       "doneWhen": [
         "міграція створена командою pnpm --filter @app/api db:migrate --name <snake_case> (create-only), а не db push",
@@ -356,12 +288,8 @@
       "title": "Рукописний SQL у міграції: часткові індекси, колація, інваріант активного item",
       "specRef": "§14, §18, O1, O3",
       "layer": "prisma",
-      "files": [
-        "apps/api/prisma/migrations/**/migration.sql"
-      ],
-      "dependsOn": [
-        "T15"
-      ],
+      "files": ["apps/api/prisma/migrations/**/migration.sql"],
+      "dependsOn": ["T15"],
       "mandatory": true,
       "doneWhen": [
         "book_orders.store_name і текстова колонка служби доставки в shipments отримали COLLATE \"uk-UA-x-icu\" (як migration 20260812115219:33-34)",
@@ -377,12 +305,8 @@
       "title": "Зняти профіль legacy-даних перед написанням data-міграції",
       "specRef": "§14",
       "layer": "prisma",
-      "files": [
-        "docs/specs/delivery-order-shipment/legacy-profile.md"
-      ],
-      "dependsOn": [
-        "T13"
-      ],
+      "files": ["docs/specs/delivery-order-shipment/legacy-profile.md"],
+      "dependsOn": ["T13"],
       "mandatory": true,
       "doneWhen": [
         "виконані та збережені лічильники по book_deliveries: усього рядків; з order_number IS NULL; груп (user_id, store_name, order_number) з count > 1; груп (user_id, tracking_number) з count > 1 при order_number IS NULL; книг з >1 рядком; рядків, де book.deleted_at IS NOT NULL",
@@ -396,13 +320,8 @@
       "title": "Data-міграція book_deliveries → book_orders / book_order_items / shipments",
       "specRef": "§14",
       "layer": "prisma",
-      "files": [
-        "apps/api/prisma/migrations/**/migration.sql"
-      ],
-      "dependsOn": [
-        "T16",
-        "T17a"
-      ],
+      "files": ["apps/api/prisma/migrations/**/migration.sql"],
+      "dependsOn": ["T16", "T17a"],
       "mandatory": true,
       "doneWhen": [
         "правило групування реалізоване рівно так, як вирішено в D7, і кожна гілка правила має коментар у SQL",
@@ -422,17 +341,8 @@
       "title": "Видалити таблицю book_deliveries після перенесення даних",
       "specRef": "§14, §20",
       "layer": "prisma",
-      "files": [
-        "apps/api/prisma/schema.prisma",
-        "apps/api/prisma/migrations/**/migration.sql"
-      ],
-      "dependsOn": [
-        "T17",
-        "T30",
-        "T31",
-        "T32",
-        "T33"
-      ],
+      "files": ["apps/api/prisma/schema.prisma", "apps/api/prisma/migrations/**/migration.sql"],
+      "dependsOn": ["T17", "T30", "T31", "T32", "T33"],
       "mandatory": true,
       "doneWhen": [
         "model BookDelivery відсутня у schema.prisma",
@@ -449,13 +359,8 @@
       "title": "Оновити тест рукописних індексів",
       "specRef": "O1, O2, CLAUDE.md §6",
       "layer": "test",
-      "files": [
-        "apps/api/src/core/database/raw-sql-indexes.test.ts"
-      ],
-      "dependsOn": [
-        "T16",
-        "T18"
-      ],
+      "files": ["apps/api/src/core/database/raw-sql-indexes.test.ts"],
+      "dependsOn": ["T16", "T18"],
       "mandatory": true,
       "doneWhen": [
         "рядок { name: \"book_deliveries_active_book_idx\" } (зараз :37) видалений",
@@ -469,13 +374,8 @@
       "title": "Оновити тест колацій",
       "specRef": "O3",
       "layer": "test",
-      "files": [
-        "apps/api/src/core/database/collated-columns.test.ts"
-      ],
-      "dependsOn": [
-        "T16",
-        "T18"
-      ],
+      "files": ["apps/api/src/core/database/collated-columns.test.ts"],
+      "dependsOn": ["T16", "T18"],
       "mandatory": true,
       "doneWhen": [
         "book_deliveries.store_name і book_deliveries.delivery_service (зараз :33-34) прибрані зі списку",
@@ -493,9 +393,7 @@
         "apps/api/src/scripts/seed-delivery-services.ts",
         "apps/api/src/scripts/data/delivery-services.dataset.json"
       ],
-      "dependsOn": [
-        "T14"
-      ],
+      "dependsOn": ["T14"],
       "mandatory": true,
       "doneWhen": [
         "куровані служби (seed-delivery-services.ts:11-28) отримали providerKey у snake_case",
@@ -510,12 +408,8 @@
       "title": "Репозиторій замовлень",
       "specRef": "§5, §16",
       "layer": "repository",
-      "files": [
-        "apps/api/src/modules/delivery/infrastructure/book-orders.repository.ts"
-      ],
-      "dependsOn": [
-        "T13"
-      ],
+      "files": ["apps/api/src/modules/delivery/infrastructure/book-orders.repository.ts"],
+      "dependsOn": ["T13"],
       "mandatory": true,
       "doneWhen": [
         "клас @Injectable() інжектить PrismaService і не імпортує нічого з application/",
@@ -530,12 +424,8 @@
       "title": "Репозиторій посилок",
       "specRef": "§6, §7",
       "layer": "repository",
-      "files": [
-        "apps/api/src/modules/delivery/infrastructure/shipments.repository.ts"
-      ],
-      "dependsOn": [
-        "T13"
-      ],
+      "files": ["apps/api/src/modules/delivery/infrastructure/shipments.repository.ts"],
+      "dependsOn": ["T13"],
       "mandatory": true,
       "doneWhen": [
         "методи створення, оновлення, зміни статусу і скасування приймають client: Prisma.TransactionClient",
@@ -549,12 +439,8 @@
       "title": "Репозиторій позицій замовлення",
       "specRef": "§6, §7, §8, §18",
       "layer": "repository",
-      "files": [
-        "apps/api/src/modules/delivery/infrastructure/book-order-items.repository.ts"
-      ],
-      "dependsOn": [
-        "T13"
-      ],
+      "files": ["apps/api/src/modules/delivery/infrastructure/book-order-items.repository.ts"],
+      "dependsOn": ["T13"],
       "mandatory": true,
       "doneWhen": [
         "є метод перенесення items між shipments, який відмовляє, якщо shipment належить іншому order (перевірка в WHERE, не в сервісі)",
@@ -569,14 +455,8 @@
       "title": "Репозиторій списку «У дорозі»: фільтри й обидва сортування",
       "specRef": "§11, §12",
       "layer": "repository",
-      "files": [
-        "apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts"
-      ],
-      "dependsOn": [
-        "T13",
-        "T7",
-        "T8"
-      ],
+      "files": ["apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts"],
+      "dependsOn": ["T13", "T7", "T8"],
       "mandatory": true,
       "doneWhen": [
         "усі значення filter-enum з T7 мапляться у WHERE, і switch має exhaustive-перевірку через never (як delivery.repository.ts:555-558)",
@@ -591,13 +471,8 @@
       "title": "Репозиторій summary сторінки «У дорозі»",
       "specRef": "§10",
       "layer": "repository",
-      "files": [
-        "apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts"
-      ],
-      "dependsOn": [
-        "T13",
-        "T9"
-      ],
+      "files": ["apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts"],
+      "dependsOn": ["T13", "T9"],
       "mandatory": true,
       "doneWhen": [
         "лічильники замовлень, посилок і книг рахуються трьома різними count-ами по трьох різних таблицях, а не одним по одній",
@@ -612,13 +487,8 @@
       "title": "Репозиторій статистики в одиницях замовлень",
       "specRef": "§9",
       "layer": "repository",
-      "files": [
-        "apps/api/src/modules/delivery/infrastructure/delivery-statistics.repository.ts"
-      ],
-      "dependsOn": [
-        "T13",
-        "T10"
-      ],
+      "files": ["apps/api/src/modules/delivery/infrastructure/delivery-statistics.repository.ts"],
+      "dependsOn": ["T13", "T10"],
       "mandatory": true,
       "doneWhen": [
         "вибірка повертає записи рівня BookOrder з вкладеними позиціями, а не плоскі рядки книг",
@@ -636,9 +506,7 @@
       "files": [
         "apps/api/src/modules/delivery-services/infrastructure/delivery-services.repository.ts"
       ],
-      "dependsOn": [
-        "T13"
-      ],
+      "dependsOn": ["T13"],
       "mandatory": true,
       "doneWhen": [
         "recentDeliveryServiceNames (зараз :83-102) більше не містить FROM book_deliveries",
@@ -658,9 +526,7 @@
         "apps/api/src/modules/notifications/domain/delivery-reminder.builder.ts",
         "apps/api/src/modules/notifications/domain/notification-dedupe.ts"
       ],
-      "dependsOn": [
-        "T13"
-      ],
+      "dependsOn": ["T13"],
       "mandatory": true,
       "doneWhen": [
         "REMINDABLE_DELIVERY_FILTER (зараз :21-25) працює по shipments, а не по bookDelivery",
@@ -675,13 +541,8 @@
       "title": "Перевести books.repository з deliveries на нову модель",
       "specRef": "O8, O9",
       "layer": "repository",
-      "files": [
-        "apps/api/src/modules/books/infrastructure/books.repository.ts"
-      ],
-      "dependsOn": [
-        "T13",
-        "T12"
-      ],
+      "files": ["apps/api/src/modules/books/infrastructure/books.repository.ts"],
+      "dependsOn": ["T13", "T12"],
       "mandatory": true,
       "doneWhen": [
         "withRelations.deliveries (зараз :173) замінений на include нових сутностей у формі, погодженій у D6",
@@ -696,13 +557,8 @@
       "title": "Перевести масову зміну ownership на скасування позицій замовлення",
       "specRef": "O7",
       "layer": "repository",
-      "files": [
-        "apps/api/src/modules/books/infrastructure/bulk-books.repository.ts"
-      ],
-      "dependsOn": [
-        "T13",
-        "T24"
-      ],
+      "files": ["apps/api/src/modules/books/infrastructure/bulk-books.repository.ts"],
+      "dependsOn": ["T13", "T24"],
       "mandatory": true,
       "doneWhen": [
         "гілка clearDelivery (зараз :261-268) скасовує активні позиції замовлення для вказаних книг замість updateMany по bookDelivery",
@@ -716,13 +572,8 @@
       "title": "Domain: переходи станів посилки з термінальними станами",
       "specRef": "§6, §18",
       "layer": "domain",
-      "files": [
-        "apps/api/src/modules/delivery/domain/shipment-transition.ts"
-      ],
-      "dependsOn": [
-        "T1",
-        "T5"
-      ],
+      "files": ["apps/api/src/modules/delivery/domain/shipment-transition.ts"],
+      "dependsOn": ["T1", "T5"],
       "mandatory": true,
       "doneWhen": [
         "чиста функція повертає дозволений перехід або типізовану відмову для пар (поточний статус → цільовий)",
@@ -737,12 +588,8 @@
       "title": "Domain: item-level скасування і його вплив на ownership",
       "specRef": "§3, §8",
       "layer": "domain",
-      "files": [
-        "apps/api/src/modules/delivery/domain/order-item-transition.ts"
-      ],
-      "dependsOn": [
-        "T6"
-      ],
+      "files": ["apps/api/src/modules/delivery/domain/order-item-transition.ts"],
+      "dependsOn": ["T6"],
       "mandatory": true,
       "doneWhen": [
         "чиста функція повертає патч позиції + патч книги для скасування однієї книги, зберігаючи поточну політику want_to_buy/none (delivery-transition.ts:11-24)",
@@ -757,12 +604,8 @@
       "title": "Domain: обчислення derived-статусу замовлення",
       "specRef": "§4",
       "layer": "domain",
-      "files": [
-        "apps/api/src/modules/delivery/domain/order-derived-status.ts"
-      ],
-      "dependsOn": [
-        "T3"
-      ],
+      "files": ["apps/api/src/modules/delivery/domain/order-derived-status.ts"],
+      "dependsOn": ["T3"],
       "mandatory": true,
       "doneWhen": [
         "чиста функція приймає позиції та посилки замовлення і повертає значення BookOrderDerivedStatusSchema",
@@ -776,13 +619,8 @@
       "title": "Domain: перерахунок статистики в одиницях замовлень",
       "specRef": "§9",
       "layer": "domain",
-      "files": [
-        "apps/api/src/modules/delivery/domain/delivery-statistics.ts"
-      ],
-      "dependsOn": [
-        "T10",
-        "T27"
-      ],
+      "files": ["apps/api/src/modules/delivery/domain/delivery-statistics.ts"],
+      "dependsOn": ["T10", "T27"],
       "mandatory": true,
       "doneWhen": [
         "ordersCount у byStore і monthly інкрементується один раз на BookOrder — у діффі видно, що ітерація йде по замовленнях, а не по книгах (сьогодні delivery-statistics.ts:104,137)",
@@ -797,13 +635,8 @@
       "title": "Domain: обчислення summary з унікальним attentionCount",
       "specRef": "§10",
       "layer": "domain",
-      "files": [
-        "apps/api/src/modules/delivery/domain/delivery-summary.ts"
-      ],
-      "dependsOn": [
-        "T9",
-        "T26"
-      ],
+      "files": ["apps/api/src/modules/delivery/domain/delivery-summary.ts"],
+      "dependsOn": ["T9", "T26"],
       "mandatory": true,
       "doneWhen": [
         "attentionCount рахує унікальні сутності: одна проблемна посилка/книга, що підпадає під дві категорії (наприклад delayed і без tracking), додає 1, а не 2 — зафіксовано тестом",
@@ -817,13 +650,8 @@
       "title": "Domain: побудова tracking URL із шаблону служби",
       "specRef": "§13",
       "layer": "domain",
-      "files": [
-        "apps/api/src/modules/delivery/domain/tracking-url.ts"
-      ],
-      "dependsOn": [
-        "T11",
-        "T14"
-      ],
+      "files": ["apps/api/src/modules/delivery/domain/tracking-url.ts"],
+      "dependsOn": ["T11", "T14"],
       "mandatory": true,
       "doneWhen": [
         "чиста функція приймає шаблон і номер відстеження та повертає URL або null (немає шаблону / немає номера)",
@@ -838,12 +666,8 @@
       "title": "Domain: UI-статус і межі дат для нової моделі",
       "specRef": "§10, §11, §12",
       "layer": "domain",
-      "files": [
-        "apps/api/src/modules/delivery/domain/delivery-ui-status.ts"
-      ],
-      "dependsOn": [
-        "T7"
-      ],
+      "files": ["apps/api/src/modules/delivery/domain/delivery-ui-status.ts"],
+      "dependsOn": ["T7"],
       "mandatory": true,
       "doneWhen": [
         "deliveryDateBounds і getDeliveryUiStatus (зараз :17-46) працюють від дати посилки, а не рядка доставки",
@@ -857,14 +681,8 @@
       "title": "Domain: мапери order / item / shipment → view",
       "specRef": "§15, §16",
       "layer": "domain",
-      "files": [
-        "apps/api/src/modules/delivery/domain/order.mapper.ts"
-      ],
-      "dependsOn": [
-        "T2",
-        "T34",
-        "T37"
-      ],
+      "files": ["apps/api/src/modules/delivery/domain/order.mapper.ts"],
+      "dependsOn": ["T2", "T34", "T37"],
       "mandatory": true,
       "doneWhen": [
         "Decimal-поля конвертуються через .toNumber(), дати — через toNullableIsoDate/toNullableIsoDateTime (як delivery.mapper.ts:21-40)",
@@ -879,16 +697,8 @@
       "title": "Application: створення замовлення з позиціями і посилками",
       "specRef": "§5, §3, §18",
       "layer": "application",
-      "files": [
-        "apps/api/src/modules/delivery/application/book-order.service.ts"
-      ],
-      "dependsOn": [
-        "T22",
-        "T23",
-        "T24",
-        "T32",
-        "T33"
-      ],
+      "files": ["apps/api/src/modules/delivery/application/book-order.service.ts"],
+      "dependsOn": ["T22", "T23", "T24", "T32", "T33"],
       "mandatory": true,
       "doneWhen": [
         "сервіс не інжектить PrismaService (CLAUDE.md §5.2) і виконує весь потік у TransactionRunner.run",
@@ -899,22 +709,15 @@
         "власна служба доставки створюється в каталозі в тій самій транзакції (прецедент book-delivery.service.ts:258-269)",
         "зміна orderDate не може зробити його пізнішим за expectedDeliveryDate будь-якої посилки замовлення — перевірка на рівні сервісу, бо жоден payload не несе обидві половини"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T41",
       "title": "Application: операції над посилкою",
       "specRef": "§6, §7",
       "layer": "application",
-      "files": [
-        "apps/api/src/modules/delivery/application/shipment.service.ts"
-      ],
-      "dependsOn": [
-        "T23",
-        "T24",
-        "T32",
-        "T33"
-      ],
+      "files": ["apps/api/src/modules/delivery/application/shipment.service.ts"],
+      "dependsOn": ["T23", "T24", "T32", "T33"],
       "mandatory": true,
       "doneWhen": [
         "є окремі методи create, update, moveItems, markInTransit, markReadyForPickup, markReceived, cancel — по одному на операцію зі §6",
@@ -928,20 +731,15 @@
         "moveToShipment бере SELECT ... FOR UPDATE на цільовій посилці всередині тієї ж транзакції — реляційна перевірка у WHERE не бачить паралельне скасування цілі (EvalPlanQual)",
         "planShipmentReceipt і planShipmentCancellation самі відхиляють термінальну посилку, а не покладаються на те, що сервіс спершу спитає evaluateShipmentEdit — інакше доменна гарантія тримається на домовленості"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T42",
       "title": "Application: скасування окремої книги в замовленні",
       "specRef": "§8",
       "layer": "application",
-      "files": [
-        "apps/api/src/modules/delivery/application/book-order-item.service.ts"
-      ],
-      "dependsOn": [
-        "T24",
-        "T33"
-      ],
+      "files": ["apps/api/src/modules/delivery/application/book-order-item.service.ts"],
+      "dependsOn": ["T24", "T33"],
       "mandatory": true,
       "doneWhen": [
         "скасування однієї позиції лишає інші позиції тієї самої посилки активними, а статус посилки незмінним (§8)",
@@ -949,25 +747,15 @@
         "скасувати вже скасовану або вже отриману позицію не можна — ConflictError",
         "усе в одній транзакції"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T43",
       "title": "Application: читання списку, summary і статистики",
       "specRef": "§9, §10, §11, §12",
       "layer": "application",
-      "files": [
-        "apps/api/src/modules/delivery/application/delivery-read.service.ts"
-      ],
-      "dependsOn": [
-        "T25",
-        "T26",
-        "T27",
-        "T35",
-        "T36",
-        "T38",
-        "T39"
-      ],
+      "files": ["apps/api/src/modules/delivery/application/delivery-read.service.ts"],
+      "dependsOn": ["T25", "T26", "T27", "T35", "T36", "T38", "T39"],
       "mandatory": true,
       "doneWhen": [
         "сервіс мапить рядки моделі у view і не містить SQL",
@@ -975,7 +763,7 @@
         "історія замовлень (аналог сьогоднішнього /history) повертає одиницю, погоджену в D3",
         "жодне число у відповіді не рахується двічі: summary й список беруть одні й ті самі межі дат з T38"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T44",
@@ -987,11 +775,7 @@
         "apps/api/src/modules/books/application/books.service.ts",
         "apps/api/src/modules/books/domain/book-blocks.ts"
       ],
-      "dependsOn": [
-        "T40",
-        "T41",
-        "T30"
-      ],
+      "dependsOn": ["T40", "T41", "T30"],
       "mandatory": true,
       "doneWhen": [
         "рішення D6 реалізоване: або per-book ендпоінти видалені, або вони стали тонкою обгорткою над use-case замовлення й НЕ мають власного запису в БД",
@@ -1006,19 +790,15 @@
       "title": "Application: масовий receive",
       "specRef": "§7, §19.4",
       "layer": "application",
-      "files": [
-        "apps/api/src/modules/delivery/application/delivery-read.service.ts"
-      ],
-      "dependsOn": [
-        "T41"
-      ],
+      "files": ["apps/api/src/modules/delivery/application/delivery-read.service.ts"],
+      "dependsOn": ["T41"],
       "mandatory": true,
       "doneWhen": [
         "масова операція отримання працює в одиницях, погоджених у D3, і зберігає розрізнення skipped-причин (not_found / not_active), як сьогодні delivery.service.ts:61-77",
         "масова операція не отримує книги з посилки, яку користувач не вказав (§3 останній пункт)",
         "масова зміна ownership, що знімає книгу з in_transit, скасовує її активні book_order_items — без цього книга лишається у списку «у дорозі» й тримає слот індексу"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T46",
@@ -1030,10 +810,7 @@
         "apps/api/src/modules/delivery/api/input-dto/*.ts",
         "apps/api/src/modules/delivery/api/view-dto/*.ts"
       ],
-      "dependsOn": [
-        "T40",
-        "T43"
-      ],
+      "dependsOn": ["T40", "T43"],
       "mandatory": true,
       "doneWhen": [
         "маршрути іменують сутність замовленням, а не доставкою (§15), і не називають позицію словом order",
@@ -1053,10 +830,7 @@
         "apps/api/src/modules/delivery/api/shipments.controller.ts",
         "apps/api/src/modules/delivery/api/input-dto/*.ts"
       ],
-      "dependsOn": [
-        "T41",
-        "T42"
-      ],
+      "dependsOn": ["T41", "T42"],
       "mandatory": true,
       "doneWhen": [
         "переходи markInTransit/markReadyForPickup/markReceived/cancel — окремі POST-маршрути, а не значення status у PATCH (§6)",
@@ -1075,9 +849,7 @@
         "apps/api/src/modules/delivery/api/delivery-read.controller.ts",
         "apps/api/src/modules/delivery/api/view-dto/*.ts"
       ],
-      "dependsOn": [
-        "T43"
-      ],
+      "dependsOn": ["T43"],
       "mandatory": true,
       "doneWhen": [
         "усі п'ять сьогоднішніх read-маршрутів (delivery.controller.ts:51,68,82,113,132) мають наступників або записані в excluded з причиною",
@@ -1098,12 +870,7 @@
         "apps/api/src/modules/books/books.module.ts",
         "apps/api/src/modules/books/api/book-delivery.controller.ts"
       ],
-      "dependsOn": [
-        "T46",
-        "T47",
-        "T48",
-        "T44"
-      ],
+      "dependsOn": ["T46", "T47", "T48", "T44"],
       "mandatory": true,
       "doneWhen": [
         "нові контролери й сервіси зареєстровані в модулі, застосунок стартує (pnpm dev:api без помилок DI)",
@@ -1118,13 +885,8 @@
       "title": "Перегенерувати OpenAPI і типізований клієнт",
       "specRef": "§17, O14",
       "layer": "contract",
-      "files": [
-        "apps/api/openapi.json",
-        "apps/web/src/shared/api/generated/**"
-      ],
-      "dependsOn": [
-        "T49"
-      ],
+      "files": ["apps/api/openapi.json", "apps/web/src/shared/api/generated/**"],
+      "dependsOn": ["T49"],
       "mandatory": true,
       "doneWhen": [
         "pnpm --filter @app/api generate:openapi виконано і openapi.json оновлений",
@@ -1138,12 +900,8 @@
       "title": "Тести: створення замовлень усіх трьох конфігурацій",
       "specRef": "§19.1, §19.2, §19.3",
       "layer": "test",
-      "files": [
-        "apps/api/src/modules/delivery/api/book-orders.controller.test.ts"
-      ],
-      "dependsOn": [
-        "T46"
-      ],
+      "files": ["apps/api/src/modules/delivery/api/book-orders.controller.test.ts"],
+      "dependsOn": ["T46"],
       "mandatory": true,
       "doneWhen": [
         "є тест «1 книга + 1 посилка», «3 книги + 1 посилка», «5 книг + 2 посилки»",
@@ -1157,12 +915,8 @@
       "title": "Тести: часткове отримання і часткове скасування",
       "specRef": "§19.4, §19.5, §19.7, §19.15",
       "layer": "test",
-      "files": [
-        "apps/api/src/modules/delivery/api/shipments.controller.test.ts"
-      ],
-      "dependsOn": [
-        "T47"
-      ],
+      "files": ["apps/api/src/modules/delivery/api/shipments.controller.test.ts"],
+      "dependsOn": ["T47"],
       "mandatory": true,
       "doneWhen": [
         "receive однієї з двох посилок: 3 книги owned, 2 лишаються in_transit, замовлення не завершене",
@@ -1177,12 +931,8 @@
       "title": "Тести: скасування однієї книги всередині посилки",
       "specRef": "§19.6, §19.7",
       "layer": "test",
-      "files": [
-        "apps/api/src/modules/delivery/api/book-order-items.controller.test.ts"
-      ],
-      "dependsOn": [
-        "T47"
-      ],
+      "files": ["apps/api/src/modules/delivery/api/book-order-items.controller.test.ts"],
+      "dependsOn": ["T47"],
       "mandatory": true,
       "doneWhen": [
         "після скасування Book 2 з трьох: Book 1 і Book 3 лишаються in_transit, статус посилки незмінний",
@@ -1196,12 +946,8 @@
       "title": "Тести: фільтри й сортування",
       "specRef": "§19.8, §19.9, §19.10, §12",
       "layer": "test",
-      "files": [
-        "apps/api/src/modules/delivery/api/delivery-read.controller.test.ts"
-      ],
-      "dependsOn": [
-        "T48"
-      ],
+      "files": ["apps/api/src/modules/delivery/api/delivery-read.controller.test.ts"],
+      "dependsOn": ["T48"],
       "mandatory": true,
       "doneWhen": [
         "є тест фільтра ready_for_pickup",
@@ -1220,10 +966,7 @@
         "apps/api/src/modules/delivery/domain/delivery-statistics.test.ts",
         "apps/api/src/modules/delivery/api/delivery-read.controller.test.ts"
       ],
-      "dependsOn": [
-        "T35",
-        "T48"
-      ],
+      "dependsOn": ["T35", "T48"],
       "mandatory": true,
       "doneWhen": [
         "тест на замовлення з 3 книг стверджує ordersCount=1, booksCount=3, shipmentsCount=1",
@@ -1237,12 +980,8 @@
       "title": "Тести: транзакційність",
       "specRef": "§19.16, §3",
       "layer": "test",
-      "files": [
-        "apps/api/src/modules/delivery/application/shipment.service.test.ts"
-      ],
-      "dependsOn": [
-        "T41"
-      ],
+      "files": ["apps/api/src/modules/delivery/application/shipment.service.test.ts"],
+      "dependsOn": ["T41"],
       "mandatory": true,
       "doneWhen": [
         "є тест, де помилка в середині потоку залишає і замовлення, і книги в початковому стані (rollback)",
@@ -1255,12 +994,8 @@
       "title": "Тест data-міграції legacy BookDelivery",
       "specRef": "§19.14, §14",
       "layer": "test",
-      "files": [
-        "apps/api/src/modules/delivery/infrastructure/legacy-migration.test.ts"
-      ],
-      "dependsOn": [
-        "T17"
-      ],
+      "files": ["apps/api/src/modules/delivery/infrastructure/legacy-migration.test.ts"],
+      "dependsOn": ["T17"],
       "mandatory": true,
       "doneWhen": [
         "тест перевіряє щонайменше чотири кейси з профілю T17a: спільний orderNumber → один order; порожній orderNumber і спільний tracking → поведінка за D7; різні книги без спільних ознак → різні orders; книга з парою cancelled+active рядків → два різні orders, не злиті",
@@ -1289,13 +1024,7 @@
         "apps/api/src/modules/notifications/**/*.test.ts",
         "apps/api/src/modules/delivery-services/**/*.test.ts"
       ],
-      "dependsOn": [
-        "T44",
-        "T29",
-        "T28",
-        "T30",
-        "T31"
-      ],
+      "dependsOn": ["T44", "T29", "T28", "T30", "T31"],
       "mandatory": true,
       "doneWhen": [
         "жоден тест не створює рядок bookDelivery (grep по apps/api/src повертає 0 поза src/generated)",
@@ -1322,10 +1051,7 @@
         "apps/api/src/modules/books/api/input-dto/cancel-delivery.input-dto.ts",
         "apps/api/src/modules/books/api/input-dto/receive-delivery.input-dto.ts"
       ],
-      "dependsOn": [
-        "T49",
-        "T58"
-      ],
+      "dependsOn": ["T49", "T58"],
       "mandatory": true,
       "doneWhen": [
         "файли, що описують стару 1:1 модель, видалені, а не залишені порожніми обгортками",
@@ -1340,18 +1066,7 @@
       "specRef": "§20.6, §20.7, CLAUDE.md §9",
       "layer": "test",
       "files": [],
-      "dependsOn": [
-        "T50",
-        "T51",
-        "T52",
-        "T53",
-        "T54",
-        "T55",
-        "T56",
-        "T57",
-        "T58",
-        "T59"
-      ],
+      "dependsOn": ["T50", "T51", "T52", "T53", "T54", "T55", "T56", "T57", "T58", "T59"],
       "mandatory": true,
       "doneWhen": [
         "pnpm typecheck, pnpm lint, pnpm format:check — зелені, вивід збережений",
@@ -1367,12 +1082,8 @@
       "title": "Перелічити фронтенд-місця, які потребують адаптації",
       "specRef": "§17, §20.8",
       "layer": "contract",
-      "files": [
-        "docs/specs/delivery-order-shipment/frontend-impact.md"
-      ],
-      "dependsOn": [
-        "T50"
-      ],
+      "files": ["docs/specs/delivery-order-shipment/frontend-impact.md"],
+      "dependsOn": ["T50"],
       "mandatory": true,
       "doneWhen": [
         "перелічені всі 51 файл apps/web/src/features/delivery/** з позначкою, що саме ламається",
@@ -1388,13 +1099,8 @@
       "title": "Shared: row-view списків «У дорозі» та «Історія» + paginated-обгортка",
       "specRef": "§10, §11, §15",
       "layer": "shared",
-      "files": [
-        "packages/shared/src/orders.ts"
-      ],
-      "dependsOn": [
-        "T2",
-        "T7"
-      ],
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T2", "T7"],
       "mandatory": true,
       "doneWhen": [
         "існує row-view з одиницею «один BookOrderItem» (D3), що несе book-preview, поля позиції, nullable-контекст посилки і контекст замовлення",
@@ -1409,13 +1115,8 @@
       "title": "Репозиторій списку «Історія замовлень»: вкладки, фільтри, сортування, summary",
       "specRef": "§10, §11, §15",
       "layer": "repository",
-      "files": [
-        "apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts"
-      ],
-      "dependsOn": [
-        "T13",
-        "T11a"
-      ],
+      "files": ["apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts"],
+      "dependsOn": ["T13", "T11a"],
       "mandatory": true,
       "doneWhen": [
         "є item-shaped вибірка історії — наступник listHistory/countHistory зі старого delivery.repository.ts, з тими самими вкладками all/active/received/cancelled",
@@ -1423,7 +1124,7 @@
         "historySummary рахує замовлення, посилки й книги окремо, а не рядки книг",
         "пагінація лишається серверною"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T62",
@@ -1436,14 +1137,95 @@
         "apps/api/src/modules/books/infrastructure/book-facets.repository.ts",
         "apps/api/src/modules/delivery/infrastructure/delivery-read.repository.ts"
       ],
-      "dependsOn": [
-        "T25"
-      ],
+      "dependsOn": ["T25"],
       "mandatory": false,
       "doneWhen": [
         "escapeLikePattern має рівно одне визначення в core/ і три споживачі імпортують його звідти"
       ],
       "status": "done"
+    },
+    {
+      "id": "T63",
+      "title": "Контракт історії замовлень у shared",
+      "specRef": "§10, §15",
+      "layer": "shared",
+      "files": ["packages/shared/src/orders.ts"],
+      "dependsOn": ["T11a", "T25b"],
+      "mandatory": true,
+      "doneWhen": [
+        "BookOrderHistoryTabSchema / BookOrderHistorySortSchema / BookOrderHistoryQuerySchema замінюють легасі DeliveryHistoryQuery/Sort/Tab, які зріз 5 споживає тимчасово",
+        "BookOrderHistorySummaryViewSchema описує розділені лічильники: activeBooksCount, booksCount, cancelledBooksCount, ordersCount, receivedBooksCount, shipmentsCount, totalByCurrency — старий DeliveryHistorySummaryView цього не вміє, тому це нова схема, а не перейменування",
+        "delivery-read.service.ts і delivery-read.repository.ts переходять на нові типи",
+        "у контракті явно зафіксовано, що shipmentsCount = count(DISTINCT shipment_id) по книжкових рядках, тож посилка без активних книг у число не потрапляє"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T64",
+      "title": "Підняти правило «очікувана дата не раніше замовлення» зі shared/internal",
+      "specRef": "§18",
+      "layer": "shared",
+      "files": [
+        "packages/shared/src/internal.ts",
+        "packages/shared/src/index.ts",
+        "apps/api/src/modules/delivery/application/delivery-write-errors.ts"
+      ],
+      "dependsOn": ["T63"],
+      "mandatory": false,
+      "doneWhen": [
+        "EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE існує в одному місці — зараз рядок посимвольно продубльований у delivery-write-errors.ts, бо internal.ts не реекспортується з барелю",
+        "сервісна перевірка і Zod-refine відповідають однаковим текстом"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T65",
+      "title": "DeliveryServicesService повертає рядок служби замість void",
+      "specRef": "D5",
+      "layer": "repository",
+      "files": [
+        "apps/api/src/modules/delivery-services/application/delivery-services.service.ts",
+        "apps/api/src/modules/delivery-services/infrastructure/delivery-services.repository.ts",
+        "apps/api/src/modules/delivery/infrastructure/delivery-service-lookup.repository.ts"
+      ],
+      "dependsOn": ["T41"],
+      "mandatory": false,
+      "doneWhen": [
+        "ensureCustomForName повертає { id, name }, тож знімок D5 не потребує другого SELECT у тій самій транзакції",
+        "delivery-service-lookup.repository.ts видалений",
+        "findVisibleByNormalizedName отримує orderBy: { userId: { nulls: \"first\" } } — зараз при колізії глобальної і власної служби вибір недетермінований",
+        "blast-radius по споживачах delivery-services пройдений"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T66",
+      "title": "Прибрати мертвий include items у shipmentRelations",
+      "specRef": "§20.5",
+      "layer": "repository",
+      "files": ["apps/api/src/modules/delivery/infrastructure/shipments.repository.ts"],
+      "dependsOn": ["T41"],
+      "mandatory": false,
+      "doneWhen": [
+        "після видалення поитемних планів у зрізі 5 ніхто не читає shipment.items — include лишився зайвим вибиранням на кожному читанні й записі посилки",
+        "експортований тип ShipmentWithRelations оновлений разом зі споживачами"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T67",
+      "title": "Тест: tenant-scoping нових репозиторіїв на живій БД",
+      "specRef": "§18",
+      "layer": "test",
+      "files": ["apps/api/src/modules/delivery/infrastructure/delivery-tenancy.test.ts"],
+      "dependsOn": ["T49"],
+      "mandatory": true,
+      "doneWhen": [
+        "усі публічні входи нових сервісів перевірені під другим користувачем — зараз межа орендаря живе у where-клаузах репозиторіїв, а всі тести зрізу 5 мокають репозиторії й тому не можуть спіймати втрачений userId",
+        "форма тесту повторює scratchpad/sec-idor-proof.mts: два користувачі, чужі id на кожному вході, перевірка що рядки жертви не змінилися",
+        "тест іде у CI-шард, бо локально Postgres може бути відсутній"
+      ],
+      "status": "todo"
     }
   ],
   "openDecisions": [
@@ -1458,10 +1240,7 @@
       ],
       "codebaseLeans": "Проєкт уже має прецедент чистих обчислюваних станів у domain (delivery-ui-status.ts:27-46, series attentionCounts). Persist-колонка вимагала б підтримки в кожній транзакції.",
       "recommendation": "Варіант 1 з набором active / partially_shipped / partially_received / received / cancelled. Фільтрація по ньому в SQL робиться через стани посилок, а не через збережене поле.",
-      "blocks": [
-        "T3",
-        "T34"
-      ],
+      "blocks": ["T3", "T34"],
       "answer": "Варіант 1 з набором active / partially_shipped / partially_received / received / cancelled. Фільтрація по ньому в SQL робиться через стани посилок, а не через збережене поле.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1477,11 +1256,7 @@
       ],
       "codebaseLeans": "Проєкт скрізь позначає завершення часовою міткою: BookLoan.returnedAt (schema.prisma:396), BookDelivery.cancelledAt/receivedAt (schema.prisma:371-372). Enum на item специфікація забороняє (§2, §8).",
       "recommendation": "Варіант 1. Він не дублює статус посилки і дає часткові індекси, яких enum не дав би.",
-      "blocks": [
-        "T6",
-        "T13",
-        "T33"
-      ],
+      "blocks": ["T6", "T13", "T33"],
       "answer": "Варіант 1. Він не дублює статус посилки і дає часткові індекси, яких enum не дав би.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1497,11 +1272,7 @@
       ],
       "codebaseLeans": "Сьогодні одиниця — книга: DeliveryListItemView = book + delivery (delivery.ts:99-104), і всі FE-картки книжкові (features/delivery/components/delivery-card.tsx). §10 просить і activeBooksCount, і activeShipmentsCount, тобто числа рівня обох.",
       "recommendation": "Варіант 1 зараз. Він зберігає форму FE-карток і сортування за назвою/автором/ціною книги; посилковий вигляд додається пізніше окремим ендпоінтом, коли з'явиться UI під нього.",
-      "blocks": [
-        "T25",
-        "T43",
-        "T45"
-      ],
+      "blocks": ["T25", "T43", "T45"],
       "answer": "Варіант 1 зараз. Він зберігає форму FE-карток і сортування за назвою/автором/ціною книги; посилковий вигляд додається пізніше окремим ендпоінтом, коли з'явиться UI під нього.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1517,12 +1288,7 @@
       ],
       "codebaseLeans": "Інваріант зараз enforced базою (migration 20260702113600:50) і перевіряється тестом (raw-sql-indexes.test.ts:37); на нього спирається ConflictError у book-delivery.service.ts:249-256 і однозначність Book.ownershipStatus. Вільний клас advisory lock — 15 (advisory-lock.ts:3-18).",
       "recommendation": "Варіант 1 (він же вимагає D2=часові мітки). База лишається джерелом правди, як зараз, і P2002 мапиться в дружню помилку. Варіант 3 обрати можна лише свідомо: він змінює сенс ownershipStatus.",
-      "blocks": [
-        "T13",
-        "T16",
-        "T19",
-        "T40"
-      ],
+      "blocks": ["T13", "T16", "T19", "T40"],
       "answer": "Варіант 1 (він же вимагає D2=часові мітки). База лишається джерелом правди, як зараз, і P2002 мапиться в дружню помилку. Варіант 3 обрати можна лише свідомо: він змінює сенс ownershipStatus.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1538,13 +1304,7 @@
       ],
       "codebaseLeans": "Зараз це вільний текст (schema.prisma:365) з авто-створенням рядка каталогу з набраної назви (book-delivery.service.ts:258-269). FK потягне за собою три речі: видалення власної служби більше не безпечне (delivery-services.repository.ts:53-57 не перевіряє посилань), сортування за службою піде через JOIN замість колації на колонці (delivery.repository.ts:442), а «нещодавні служби» перепишуться на group by id (delivery-services.repository.ts:83-102). trackingUrlTemplate (§13) без FK працює лише через пошук за назвою.",
       "recommendation": "Варіант 3: FK для шаблону трекінгу й аналітики + знімок назви на посилці, щоб історія не змінювалася при перейменуванні служби. Видалення власної служби перевести на ON DELETE SET NULL.",
-      "blocks": [
-        "T2",
-        "T13",
-        "T21",
-        "T28",
-        "T37"
-      ],
+      "blocks": ["T2", "T13", "T21", "T28", "T37"],
       "answer": "Варіант 3: FK для шаблону трекінгу й аналітики + знімок назви на посилці, щоб історія не змінювалася при перейменуванні служби. Видалення власної служби перевести на ON DELETE SET NULL.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1560,11 +1320,7 @@
       ],
       "codebaseLeans": "Точок входу на рівні однієї книги зараз п'ять: POST/GET/PATCH/receive/cancel (book-delivery.controller.ts:50,65,82,104,123) плюс блок deliveryInfo у створенні й редагуванні книги (books.ts:520,629 → books.repository.ts:608,1389-1417). Їх споживають delivery-block.tsx (337 рядків), delivery-dialog.tsx (590), order-delivery-form.tsx (233), wishlist-status-dialog.tsx.",
       "recommendation": "Варіанти 2+3. Обгортка не тягне за собою стару модель (§17 забороняє саме стару модель, а не зручний use-case), і зменшує FE-переробку з п'яти екранів до одного. Варіант 1 обирати лише якщо ви готові переписати книжкову форму в тому ж спринті.",
-      "blocks": [
-        "T12",
-        "T30",
-        "T44"
-      ],
+      "blocks": ["T12", "T30", "T44"],
       "answer": "Варіанти 2+3. Обгортка не тягне за собою стару модель (§17 забороняє саме стару модель, а не зручний use-case), і зменшує FE-переробку з п'яти екранів до одного. Варіант 1 обирати лише якщо ви готові переписати книжкову форму в тому ж спринті.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1580,10 +1336,7 @@
       ],
       "codebaseLeans": "Прецедент data-міграції всередині Prisma-міграції вже є (20260702113600:37-47). Форма даних у dev-базі в цьому запуску НЕ перевірена (БД недоступна) — T17a знімає профіль перед написанням SQL. Ключовий ризик: пари «cancelled → re-ordered» на одній книзі мають однакові store і часто однаковий order_number.",
       "recommendation": "Варіант 2 з жорсткою додатковою умовою: рядки різних класів статусу (cancelled проти активних/received) ніколи не зливаються в один order. Варіант 3 відхилити — однакова дата в одному магазині не доводить одне замовлення (§14.3).",
-      "blocks": [
-        "T17",
-        "T57"
-      ],
+      "blocks": ["T17", "T57"],
       "answer": "Варіант 2 з жорсткою додатковою умовою: рядки різних класів статусу (cancelled проти активних/received) ніколи не зливаються в один order. Варіант 3 відхилити — однакова дата в одному магазині не доводить одне замовлення (§14.3).",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1592,18 +1345,10 @@
       "id": "D8",
       "question": "Що саме рахує attentionCount як «унікальну проблемну сутність»",
       "specRef": "§10",
-      "options": [
-        "Унікальні книги (order items)",
-        "Унікальні посилки",
-        "Унікальні замовлення"
-      ],
+      "options": ["Унікальні книги (order items)", "Унікальні посилки", "Унікальні замовлення"],
       "codebaseLeans": "Якщо список книжковий (D3=1), то бейдж має збігатися з кількістю рядків, які користувач побачить після натискання.",
       "recommendation": "Варіант 1, узгоджено з D3. Категорії (delayed, без tracking, без ціни, без дати) лишаються самостійними лічильниками й можуть перетинатися.",
-      "blocks": [
-        "T9",
-        "T26",
-        "T36"
-      ],
+      "blocks": ["T9", "T26", "T36"],
       "answer": "Варіант 1, узгоджено з D3. Категорії (delayed, без tracking, без ціни, без дати) лишаються самостійними лічильниками й можуть перетинатися.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1619,10 +1364,7 @@
       ],
       "codebaseLeans": "Сьогодні обидва — це expected_delivery_date ASC NULLS LAST (delivery.repository.ts:413-417,437-438), тобто варіант 2 фактично не дав би різниці, а §12 прямо забороняє два значення з одним SQL. Різні порядки потребують CASE-виразу, якого Prisma orderBy не вміє — знадобиться $queryRaw або обчислювана колонка.",
       "recommendation": "Варіант 1: closest_delivery відповідає на «що приїде найближчим часом», delayed_first — на «що вже горить». Реалізувати через $queryRaw зі стабільним tie-breaker по id.",
-      "blocks": [
-        "T8",
-        "T25"
-      ],
+      "blocks": ["T8", "T25"],
       "answer": "Варіант 1: closest_delivery відповідає на «що приїде найближчим часом», delayed_first — на «що вже горить». Реалізувати через $queryRaw зі стабільним tie-breaker по id.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1638,12 +1380,7 @@
       ],
       "codebaseLeans": "FE-маршрути /[locale]/(app)/delivery/* і кеш-ключі побудовані на префіксі /api/delivery (delivery-cache.ts:5), і саме навігацію зараз рефакторить інший агент. Замовлення й посилки завжди читаються разом, тому два модулі дали б взаємні імпорти.",
       "recommendation": "Варіант 1 для модуля (один модуль, менше зв'язності) + маршрути виду /api/delivery/orders, /api/delivery/shipments. Назви сутностей у DTO при цьому чітко розділені (§15), а FE-кеш-ключі і навігація не ламаються додатково.",
-      "blocks": [
-        "T46",
-        "T47",
-        "T48",
-        "T49"
-      ],
+      "blocks": ["T46", "T47", "T48", "T49"],
       "answer": "Варіант 1 для модуля (один модуль, менше зв'язності) + маршрути виду /api/delivery/orders, /api/delivery/shipments. Назви сутностей у DTO при цьому чітко розділені (§15), а FE-кеш-ключі і навігація не ламаються додатково.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1659,11 +1396,7 @@
       ],
       "codebaseLeans": "Deploy у CI викликає ci.yml зі статичними перевірками й web-сьютом на кожен push у dev — червоний typecheck блокує деплой усього продукту, не лише доставок. Ламається ~50 FE-файлів і 346 i18n-ключів на локаль (A31 показує, що фронтенд реалізований повністю, а не «частково», як припускає §17).",
       "recommendation": "Варіант 1, але з умовою: працювати в довгій feature-гілці й не мержити в dev, поки FE-follow-up не готовий. Варіант 2 коштує майже стільки ж, скільки повна FE-переробка, бо типи проникають у форми й моделі. Це рішення треба ухвалити ДО початку кодування, бо воно визначає стратегію гілок.",
-      "blocks": [
-        "T12",
-        "T50",
-        "T61"
-      ],
+      "blocks": ["T12", "T50", "T61"],
       "answer": "Варіант 1, але з умовою: працювати в довгій feature-гілці й не мержити в dev, поки FE-follow-up не готовий. Варіант 2 коштує майже стільки ж, скільки повна FE-переробка, бо типи проникають у форми й моделі. Це рішення треба ухвалити ДО початку кодування, бо воно визначає стратегію гілок.",
       "answeredBy": "maintainer",
       "status": "answered"
@@ -1938,22 +1671,39 @@
   "slices": [
     {
       "name": "slice-1-shared-contracts",
-      "tasks": [
-        "T1",
-        "T2",
-        "T3",
-        "T4",
-        "T5",
-        "T6",
-        "T7",
-        "T8",
-        "T9",
-        "T10",
-        "T11",
-        "T11a"
-      ],
+      "tasks": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T11a"],
       "reviewedBy": "code-reviewer",
-      "verdict": "approved-with-nits"
+      "verdict": "approved-with-nits",
+      "commit": "4449c482"
+    },
+    {
+      "name": "slice-2-prisma",
+      "tasks": ["T13", "T14", "T15", "T16", "T17a", "T17"],
+      "reviewedBy": "migration-reviewer",
+      "verdict": "changes-applied",
+      "commit": "d5250f78"
+    },
+    {
+      "name": "slice-3-repositories",
+      "tasks": ["T22", "T23", "T24", "T25", "T26", "T27", "T62"],
+      "reviewedBy": "code-reviewer",
+      "verdict": "changes-applied",
+      "commit": "4c34b1e8"
+    },
+    {
+      "name": "slice-4-domain",
+      "tasks": ["T32", "T33", "T34", "T35", "T36", "T37", "T38", "T39"],
+      "reviewedBy": "code-reviewer",
+      "verdict": "changes-applied",
+      "commit": "60612d16"
+    },
+    {
+      "name": "slice-5-application",
+      "tasks": ["T25b", "T40", "T41", "T42", "T43", "T45"],
+      "reviewedBy": "code-reviewer + security-reviewer",
+      "verdict": "changes-applied",
+      "commit": "1b095032",
+      "notes": "9 findings fixed; 148 checks re-run against a real Postgres via pglite; deferred to T63-T67"
     }
   ]
 }
