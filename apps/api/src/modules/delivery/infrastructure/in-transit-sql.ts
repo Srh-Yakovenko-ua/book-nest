@@ -11,6 +11,7 @@ import type { DeliveryDateBounds } from "../domain/delivery-ui-status.js";
 import { ilikeContains } from "../../../core/database/like-pattern.js";
 import { toIsoDate } from "../../../core/iso-date.js";
 import { Prisma } from "../../../generated/prisma/client.js";
+import { IN_TRANSIT_ATTENTION_CATEGORIES } from "../domain/delivery-summary.js";
 
 const SHIPMENT_STATUS = ShipmentStatusSchema.enum;
 
@@ -100,12 +101,10 @@ const IN_TRANSIT_SEARCH_COLUMNS: Prisma.Sql[] = [
 ];
 
 export function attentionSql(categories: InTransitCategorySql): Prisma.Sql {
-  return Prisma.sql`(
-    ${categories.delayed}
-    OR ${categories.withoutExpectedDate}
-    OR ${categories.withoutTrackingNumber}
-    OR ${categories.withoutPrice}
-  )`;
+  const predicates = IN_TRANSIT_ATTENTION_CATEGORIES.map(
+    (category) => Prisma.sql`(${categories[category]})`,
+  );
+  return Prisma.sql`(${Prisma.join(predicates, " OR ")})`;
 }
 
 export function buildInTransitConditions({

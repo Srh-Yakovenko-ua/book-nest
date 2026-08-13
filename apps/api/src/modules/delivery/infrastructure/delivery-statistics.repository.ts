@@ -3,7 +3,7 @@ import type { Currency, ShipmentStatus } from "@app/shared";
 import { CurrencySchema, DEFAULT_CURRENCY, ShipmentStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { OrderStatisticsRecord } from "../domain/delivery-statistics.js";
+import type { OrderStatisticsRecord } from "../domain/order-statistics.js";
 
 import { PrismaService } from "../../../core/database/prisma.service.js";
 import { SOFT_DELETE_SCOPE } from "../../../core/database/soft-delete.js";
@@ -30,6 +30,7 @@ const orderStatisticsSelect = {
         cancelledAt: true,
         price: true,
         receivedAt: true,
+        shipmentId: true,
       },
       where: { book: SOFT_DELETE_SCOPE.active },
     },
@@ -146,6 +147,7 @@ function toOrderStatisticsRecord(row: OrderStatisticsRow): OrderStatisticsRecord
       cancelledAt: item.cancelledAt,
       price: item.price === null ? null : item.price.toNumber(),
       receivedAt: item.receivedAt,
+      shipmentId: item.shipmentId,
     })),
     orderDate: row.orderDate,
     orderNumber: row.orderNumber,

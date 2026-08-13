@@ -54,6 +54,7 @@ const hasUniqueValues = (values: readonly string[]): boolean =>
 export const BookOrderDerivedStatusSchema = z.enum([
   "active",
   "partially_shipped",
+  "shipped",
   "partially_received",
   "received",
   "cancelled",

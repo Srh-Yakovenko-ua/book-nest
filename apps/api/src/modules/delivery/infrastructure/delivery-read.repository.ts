@@ -1,9 +1,10 @@
-import type { InTransitSort, Nullable } from "@app/shared";
+import type { InTransitSort } from "@app/shared";
 
 import { SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 
+import type { InTransitSummaryData } from "../domain/delivery-summary.js";
 import type { DeliveryDateBounds } from "../domain/delivery-ui-status.js";
 import type { InTransitFilterInput } from "./in-transit-sql.js";
 
@@ -40,30 +41,6 @@ const inTransitRowRelations = {
 export type { InTransitFilterInput } from "./in-transit-sql.js";
 
 export type BookOrderItemRow = Prisma.BookOrderItemGetPayload<typeof inTransitRowRelations>;
-
-export type InTransitCurrencyTotal = {
-  currency: Nullable<string>;
-  total: number;
-};
-
-export type InTransitSummaryData = {
-  activeBooksCount: number;
-  activeOrdersCount: number;
-  activeShipmentsCount: number;
-  attentionCount: number;
-  bookTotals: InTransitCurrencyTotal[];
-  delayedCount: number;
-  expectedThisWeekCount: number;
-  inTransitCount: number;
-  nextExpectedDelivery: Nullable<string>;
-  orderedCount: number;
-  orderTotals: InTransitCurrencyTotal[];
-  readyForPickupCount: number;
-  uniqueStoresCount: number;
-  withoutExpectedDateCount: number;
-  withoutPriceCount: number;
-  withoutTrackingCount: number;
-};
 
 type ListInTransitInput = InTransitFilterInput & {
   skip: number;

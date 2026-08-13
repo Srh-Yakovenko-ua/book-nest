@@ -730,7 +730,7 @@
         "guards, які сьогодні живуть в application (book-delivery.service.ts:232-240,242-247,249-256), перенесені сюди — в application лишається лише кидання HttpError",
         "функції не імпортують нічого з infrastructure/ і не приймають Prisma-типи"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T33",
@@ -750,7 +750,7 @@
         "функція отримання посилки повертає ownership=owned лише для нескасованих позицій (§18: «cancelled item не повинен змінювати ownership при receive shipment»)",
         "жодна з функцій не пише в БД"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T34",
@@ -769,7 +769,7 @@
         "покриті кейси: усі скасовані → cancelled; усі отримані → received; частина отримана → partially_received; частина в посилках, частина без → partially_shipped; решта → active",
         "порядок перевірок такий, що змішані стани не дають несподіваного результату — зафіксовано таблицею кейсів у тесті"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T35",
@@ -790,7 +790,7 @@
         "averageOrderAmount рахується від суми замовлення, averageBookPrice — від ціни позиції; обидва по валютах",
         "замовлення без ціни більше не зникає з byStore мовчки (сьогодні :87-93 відкидає такі записи) — або рахується в booksCount, або поведінка задокументована в тесті"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T36",
@@ -810,7 +810,7 @@
         "категорійні лічильники (delayedCount, withoutTrackingCount, withoutPriceCount, withoutExpectedDateCount) лишаються незалежними і можуть перетинатися",
         "функція чиста, дати порівнюються через date-fns (CLAUDE.md §8.11)"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T37",
@@ -831,7 +831,7 @@
         "у файлі немає жодного літерала конкретної служби доставки",
         "явно визначено, що має пріоритет: введений користувачем trackingUrl чи згенерований — і це відображено у мапері з T39"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T38",
@@ -850,7 +850,7 @@
         "ready_for_pickup враховано в UI-статусі або явно записано, чому він лишається окремим фільтром без UI-статусу",
         "жодної ручної арифметики з мілісекундами не додано"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T39",
@@ -872,7 +872,7 @@
         "мапер order підставляє derivedStatus з T34 і trackingUrl з T37",
         "старі мапери toDeliveryView/toDeliverySummaryView видалені (їх споживачі — book.mapper.ts:51, series.mapper.ts:196 — переведені)"
       ],
-      "status": "todo"
+      "status": "partial"
     },
     {
       "id": "T40",
@@ -925,7 +925,8 @@
         "expectedDeliveryDate посилки не можна виставити раніше orderDate її замовлення — перевірка на рівні сервісу",
         "PATCH по вже отриманій або скасованій посилці відхиляється, включно з правками trackingNumber/note — контракт цього не ловить свідомо",
         "скасування посилки і скасування її активних позицій відбуваються в ОДНІЙ TransactionRunner.run — інакше позиція лишається активною, зникає зі списку й далі тримає слот книги в book_order_items_active_book_idx",
-        "moveToShipment бере SELECT ... FOR UPDATE на цільовій посилці всередині тієї ж транзакції — реляційна перевірка у WHERE не бачить паралельне скасування цілі (EvalPlanQual)"
+        "moveToShipment бере SELECT ... FOR UPDATE на цільовій посилці всередині тієї ж транзакції — реляційна перевірка у WHERE не бачить паралельне скасування цілі (EvalPlanQual)",
+        "planShipmentReceipt і planShipmentCancellation самі відхиляють термінальну посилку, а не покладаються на те, що сервіс спершу спитає evaluateShipmentEdit — інакше доменна гарантія тримається на домовленості"
       ],
       "status": "todo"
     },
@@ -1442,7 +1443,7 @@
       "doneWhen": [
         "escapeLikePattern має рівно одне визначення в core/ і три споживачі імпортують його звідти"
       ],
-      "status": "in-progress"
+      "status": "done"
     }
   ],
   "openDecisions": [
@@ -1678,6 +1679,21 @@
       "codebaseLeans": "D4 переніс інваріант активності на рівень позиції саме тому, що одну книгу можна скасувати всередині живої посилки. Буквальне D7 суперечить цьому на найпоширенішому реальному замовленні й лишає дублікати номера замовлення й трекінгу в нових таблицях.",
       "recommendation": "Звузити.",
       "answer": "Звузити — ухвалено після ревʼю міграцій, реалізовано у виправленні H3.",
+      "answeredBy": "assistant-with-review",
+      "status": "answered"
+    },
+    {
+      "id": "D13",
+      "question": "Чи розширювати набір derived-статусів з D1 значенням shipped",
+      "specRef": "§4",
+      "options": [
+        "Додати shipped: усі живі позиції в живих посилках, жодна ще не отримана",
+        "Лишити набір D1 і вважати «усе відправлено» станом active",
+        "Лишити набір D1 і розширити partially_shipped на випадок «усе відправлено»"
+      ],
+      "codebaseLeans": "Набір D1 давав немонотонний статус: order-derived-status.ts повертав partially_shipped, поки одна з двох позицій лежала в посилці, і повертався до active, щойно в посилку клали другу. Статус їхав назад саме тоді, коли замовлення просувалося. Варіант 3 зламав би буквальне значення слова partially для FE-бейджа, варіант 2 лишає користувача без відмінності «ще збирають» і «все виїхало».",
+      "recommendation": "Варіант 1.",
+      "answer": "Варіант 1 — ухвалено під час ревʼю доменного зрізу. BookOrderDerivedStatusSchema отримує shipped між partially_shipped і partially_received; partially_shipped зберігає буквальне значення «частина відправлена, частина ні», shipped означає «усе покинуло магазин, нічого не отримано», і прогресія active → partially_shipped → shipped → partially_received → received більше не йде назад. Статус ніде не зберігається (T3), тому міграція не потрібна; радіус змін — packages/shared/src/orders.ts, domain/order-derived-status.ts і switch у domain/order-statistics.ts, де shipped рахується активними грішми.",
       "answeredBy": "assistant-with-review",
       "status": "answered"
     }

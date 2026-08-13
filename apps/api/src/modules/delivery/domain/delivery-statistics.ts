@@ -12,42 +12,20 @@ import type {
   ShipmentStatus,
 } from "@app/shared";
 
-import { collapseSpaces, CurrencySchema, isActiveShipmentStatus } from "@app/shared";
+import {
+  collapseSpaces,
+  CurrencySchema,
+  DEFAULT_CURRENCY,
+  isActiveShipmentStatus,
+} from "@app/shared";
 
 import { toIsoDate, toNullableIsoDate } from "../../../core/iso-date.js";
 import { UKRAINIAN_COLLATION } from "../../../core/ukrainian-collation.js";
 
 export const STATISTICS_TOP_LIMIT = 10;
 
-const DEFAULT_CURRENCY: Currency = "UAH";
 const MONTH_KEY_LENGTH = 7;
 const CURRENCY_ORDER: readonly Currency[] = CurrencySchema.options;
-
-export type OrderStatisticsItemRecord = {
-  bookId: string;
-  bookTitle: string;
-  cancelledAt: Nullable<Date>;
-  price: Nullable<number>;
-  receivedAt: Nullable<Date>;
-};
-
-export type OrderStatisticsRecord = {
-  currency: Nullable<Currency>;
-  id: string;
-  items: OrderStatisticsItemRecord[];
-  orderDate: Nullable<Date>;
-  orderNumber: Nullable<string>;
-  shipments: OrderStatisticsShipmentRecord[];
-  storeName: string;
-  totalAmount: Nullable<number>;
-};
-
-export type OrderStatisticsShipmentRecord = {
-  cancelledAt: Nullable<Date>;
-  id: string;
-  receivedAt: Nullable<Date>;
-  status: ShipmentStatus;
-};
 
 export type StatisticsRecord = {
   bookId: string;
@@ -82,7 +60,7 @@ export function computeDeliveryStatistics({
 function averageByCurrency(records: PricedStatisticsRecord[]): CurrencyAverage[] {
   const accumulators = new Map<Currency, { count: number; sum: number }>();
   for (const record of records) {
-    const currency = effectiveCurrency(record);
+    const currency = effectiveCurrency(record.currency);
     const current = accumulators.get(currency) ?? { count: 0, sum: 0 };
     accumulators.set(currency, { count: current.count + 1, sum: current.sum + record.price });
   }
@@ -128,7 +106,7 @@ function buildByStore({
       totals: new Map<Currency, number>(),
     };
     bucket.ordersCount += 1;
-    const currency = effectiveCurrency(record);
+    const currency = effectiveCurrency(record.currency);
     bucket.totals.set(currency, (bucket.totals.get(currency) ?? 0) + record.price);
     buckets.set(key, bucket);
   }
@@ -162,7 +140,7 @@ function buildMonthly({
     const bucket = buckets.get(month) ?? { ordersCount: 0, totals: new Map<Currency, number>() };
     bucket.ordersCount += 1;
     if (hasPrice(record)) {
-      const currency = effectiveCurrency(record);
+      const currency = effectiveCurrency(record.currency);
       bucket.totals.set(currency, (bucket.totals.get(currency) ?? 0) + record.price);
     }
     buckets.set(month, bucket);
@@ -251,8 +229,8 @@ function compareTopOrders(left: PricedStatisticsRecord, right: PricedStatisticsR
   return left.bookId.localeCompare(right.bookId);
 }
 
-function effectiveCurrency(record: StatisticsRecord): Currency {
-  return record.currency ?? DEFAULT_CURRENCY;
+function effectiveCurrency(currency: Nullable<Currency>): Currency {
+  return currency ?? DEFAULT_CURRENCY;
 }
 
 function hasPrice(record: StatisticsRecord): record is PricedStatisticsRecord {
@@ -272,7 +250,7 @@ function isMainIncluded({
 function sumByCurrency(records: PricedStatisticsRecord[]): CurrencyTotal[] {
   const totals = new Map<Currency, number>();
   for (const record of records) {
-    const currency = effectiveCurrency(record);
+    const currency = effectiveCurrency(record.currency);
     totals.set(currency, (totals.get(currency) ?? 0) + record.price);
   }
   return toSortedCurrencyTotals(totals);
