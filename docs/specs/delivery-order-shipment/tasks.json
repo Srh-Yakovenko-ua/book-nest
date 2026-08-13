@@ -819,7 +819,7 @@
         "повний набір @Api* декораторів, включно з @ApiConflictResponse на переходах",
         "існує PATCH /api/delivery/orders/:orderId для полів рівня замовлення (store/number/date/currency/суми/note), який споживає UpdateBookOrderInputSchema"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T47",
@@ -838,7 +838,7 @@
         "скасування окремої книги має власний маршрут рівня item (§8)",
         "@Throttle(MUTATION_THROTTLE) стоїть на кожній мутації, як у delivery.controller.ts:148"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T48",
@@ -856,7 +856,7 @@
         "кожен query-параметр описаний @ApiQuery({ required: false })",
         "відповіді типізовані новими view-DTO з T2/T9/T10"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T49",
@@ -876,9 +876,10 @@
         "нові контролери й сервіси зареєстровані в модулі, застосунок стартує (pnpm dev:api без помилок DI)",
         "delivery/index.ts більше не експортує computeCreateDelivery/computeUpdateDelivery/computeCancelDelivery/computeReceiveDelivery/toDeliveryView/toDeliverySummaryView або їх немає в природі",
         "видалені файли перелічені у звіті §20.5",
-        "curl -i http://localhost:4000/api/health віддає 200 з x-request-id (CLAUDE.md §9)"
+        "curl -i http://localhost:4000/api/health віддає 200 з x-request-id (CLAUDE.md §9)",
+        "ЗРІЗ 6 закрив лише додавальну половину: нові контролери, сервіси й репозиторії зареєстровані, застосунок стартує, health 200. Знімання старих точок входу лишається і залежить від T44/T30."
       ],
-      "status": "todo"
+      "status": "partial"
     },
     {
       "id": "T50",
@@ -1158,7 +1159,7 @@
         "delivery-read.service.ts і delivery-read.repository.ts переходять на нові типи",
         "у контракті явно зафіксовано, що shipmentsCount = count(DISTINCT shipment_id) по книжкових рядках, тож посилка без активних книг у число не потрапляє"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T64",
@@ -1176,7 +1177,7 @@
         "EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE існує в одному місці — зараз рядок посимвольно продубльований у delivery-write-errors.ts, бо internal.ts не реекспортується з барелю",
         "сервісна перевірка і Zod-refine відповідають однаковим текстом"
       ],
-      "status": "todo"
+      "status": "done"
     },
     {
       "id": "T65",
@@ -1224,6 +1225,74 @@
         "усі публічні входи нових сервісів перевірені під другим користувачем — зараз межа орендаря живе у where-клаузах репозиторіїв, а всі тести зрізу 5 мокають репозиторії й тому не можуть спіймати втрачений userId",
         "форма тесту повторює scratchpad/sec-idor-proof.mts: два користувачі, чужі id на кожному вході, перевірка що рядки жертви не змінилися",
         "тест іде у CI-шард, бо локально Postgres може бути відсутній"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T68",
+      "title": "Маршрут масового отримання + прибрати дубльовані контракти на cutover",
+      "specRef": "§7, §19.4",
+      "layer": "api",
+      "files": [
+        "apps/api/src/modules/delivery/api/book-order-items.controller.ts",
+        "packages/shared/src/orders.ts",
+        "packages/shared/src/delivery.ts"
+      ],
+      "dependsOn": ["T45"],
+      "mandatory": true,
+      "doneWhen": [
+        "POST /api/delivery/books/receive існує як наступник легасі POST /api/delivery/receive — задача додана заднім числом, бо жодна API-задача не давала route сервісу з T45",
+        "BulkReceiveOrderItems* у orders.ts і легасі BulkReceiveDeliveries* у delivery.ts зараз свідомо співіснують: старий контролер і FE-хук use-bulk-receive.ts ще на старих іменах",
+        "T12 видаляє легасі-пару разом із delivery.ts, а не лишає її як аліас"
+      ],
+      "status": "done"
+    },
+    {
+      "id": "T69",
+      "title": "Ліміт власних служб доставки на користувача",
+      "specRef": "O13",
+      "layer": "application",
+      "files": ["apps/api/src/modules/delivery-services/application/delivery-services.service.ts"],
+      "dependsOn": ["T41"],
+      "mandatory": false,
+      "doneWhen": [
+        "ensureCustomForName не дає безмежно плодити рядки каталогу: одне замовлення з 20 різними невідомими назвами створює 20 записів, і ніщо не заважає повторити",
+        "дедуплікація назв у buildShipments уже зроблена у зрізі 6, лишається саме стеля на користувача"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T70",
+      "title": "Обмежити рік у решті z.iso.date() поза модулем замовлень",
+      "specRef": "O15",
+      "layer": "shared",
+      "files": [
+        "packages/shared/src/books.ts",
+        "packages/shared/src/auth.ts",
+        "packages/shared/src/notifications.ts",
+        "packages/shared/src/reading-goals.ts",
+        "packages/shared/src/reading-queue.ts"
+      ],
+      "dependsOn": ["T63"],
+      "mandatory": false,
+      "doneWhen": [
+        "isoDay() застосований до голих z.iso.date() у перелічених файлах — той самий латентний 500 через рік 0000, який зріз 6 закрив у orders.ts і delivery.ts",
+        "кожна заміна покрита тестом межі 0000 / 0001"
+      ],
+      "status": "todo"
+    },
+    {
+      "id": "T71",
+      "title": "Статус посилки після масового отримання",
+      "specRef": "§7",
+      "layer": "application",
+      "files": ["apps/api/src/modules/delivery/application/book-order-item.service.ts"],
+      "dependsOn": ["T45"],
+      "mandatory": true,
+      "doneWhen": [
+        "вирішено й реалізовано: або посилка переходить у received, коли отримано її останню активну позицію, або явно зафіксовано, що статус посилки керує лише користувач",
+        "поки що посилка з усіма отриманими позиціями лишається ordered і далі рахується в activeShipmentsCount та у фільтрах за статусом",
+        "GET /api/delivery/orders/:orderId лишився без власного throttle — вирішити разом"
       ],
       "status": "todo"
     }
@@ -1429,6 +1498,19 @@
       "answer": "Варіант 1 — ухвалено під час ревʼю доменного зрізу. BookOrderDerivedStatusSchema отримує shipped між partially_shipped і partially_received; partially_shipped зберігає буквальне значення «частина відправлена, частина ні», shipped означає «усе покинуло магазин, нічого не отримано», і прогресія active → partially_shipped → shipped → partially_received → received більше не йде назад. Статус ніде не зберігається (T3), тому міграція не потрібна; радіус змін — packages/shared/src/orders.ts, domain/order-derived-status.ts і switch у domain/order-statistics.ts, де shipped рахується активними грішми.",
       "answeredBy": "assistant-with-review",
       "status": "answered"
+    },
+    {
+      "id": "D14",
+      "question": "Чи лишати сегмент books/ у read-маршрутах після cutover",
+      "specRef": "§15, §17",
+      "options": [
+        "Зробити books/ постійним і просто видалити легасі-шляхи",
+        "Прибрати books/ на cutover, повернувши /api/delivery/history та /in-transit"
+      ],
+      "codebaseLeans": "Чотири read-маршрути отримали префікс books/ у зрізі 6, щоб не зіткнутися з живим легасі-контролером. Одиниця цих списків — книжковий рядок (BookOrderItemRowView), тож books/history чесніше описує вміст, ніж /history. §17 забороняє тимчасові аліаси без реальної потреби, а шлях, який уже вирішено перейменувати, саме таким і є.",
+      "recommendation": "Варіант 1. Клієнт і openapi.json генеруються заново на T50, тож churn коштує однаково, зате зникає другий перейменувальний прохід і різнобій із orders/statistics.",
+      "blocks": ["T50", "T61"],
+      "status": "open"
     }
   ],
   "verifiedAssertions": [
