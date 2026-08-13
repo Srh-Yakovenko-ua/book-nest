@@ -191,6 +191,43 @@ describe("BookOrderService.create", () => {
     expect(createArgs?.shipments[0]?.data.deliveryServiceName).toBe("Nova Poshta");
   });
 
+  it("looks a delivery service up once however many parcels name it", async () => {
+    const parcels = [
+      { bookId: "b1", deliveryService: "Nova Poshta" },
+      { bookId: "b2", deliveryService: "Nova Poshta" },
+      { bookId: "b3", deliveryService: "Nova Poshta" },
+      { bookId: "b4", deliveryService: "Ukrposhta" },
+      { bookId: "b5", deliveryService: "Ukrposhta" },
+      { bookId: "b6", deliveryService: undefined },
+    ];
+    const { orders, resolver, service } = buildService({
+      books: {
+        listOwned: vi
+          .fn()
+          .mockResolvedValue(
+            parcels.map((parcel) => ({ id: parcel.bookId, ownershipStatus: "want_to_buy" })),
+          ),
+      },
+    });
+
+    await service.create({
+      input: createInput({
+        items: parcels.map((parcel) => ({ bookId: parcel.bookId })),
+        shipments: parcels.map((parcel) => ({
+          bookIds: [parcel.bookId],
+          deliveryService: parcel.deliveryService,
+        })),
+      }),
+      userId: USER,
+    });
+
+    expect(resolver.resolve).toHaveBeenCalledTimes(3);
+    const createArgs = vi.mocked(orders.create).mock.calls[0]?.[0];
+    expect(createArgs?.shipments.map((shipment) => shipment.bookIds)).toEqual(
+      parcels.map((parcel) => [parcel.bookId]),
+    );
+  });
+
   it("turns the active-item index violation into a friendly conflict", async () => {
     const { service } = buildService({
       orders: { create: vi.fn().mockRejectedValue(activeOrderItemConflict()) },

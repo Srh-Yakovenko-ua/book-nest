@@ -167,8 +167,7 @@ describe("BookOrderItemService.bulkReceive", () => {
     });
 
     const result = await service.bulkReceive({
-      bookIds: [BOOK_A, BOOK_B, BOOK_C, BOOK_A],
-      receivedAt: undefined,
+      input: { bookIds: [BOOK_A, BOOK_B, BOOK_C, BOOK_A] },
       userId: USER,
     });
 
@@ -190,8 +189,7 @@ describe("BookOrderItemService.bulkReceive", () => {
     });
 
     await service.bulkReceive({
-      bookIds: [BOOK_A],
-      receivedAt: "2026-08-09",
+      input: { bookIds: [BOOK_A], receivedAt: "2026-08-09" },
       userId: USER,
     });
 
@@ -210,7 +208,7 @@ describe("BookOrderItemService.bulkReceive", () => {
       items: { receiveForBooks: vi.fn().mockResolvedValue([{ bookId: BOOK_A, id: ITEM_ID }]) },
     });
 
-    await service.bulkReceive({ bookIds: [BOOK_A], receivedAt: undefined, userId: USER });
+    await service.bulkReceive({ input: { bookIds: [BOOK_A] }, userId: USER });
 
     expect(transactionRunner.run).toHaveBeenCalledTimes(1);
     expect(books.applyOwnership).toHaveBeenCalledWith(

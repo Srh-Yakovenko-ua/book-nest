@@ -1,4 +1,4 @@
-import type { CurrencyTotal } from "@app/shared";
+import type { BookOrderHistorySummaryView } from "@app/shared";
 
 import type { InTransitCurrencyTotal } from "./delivery-summary.js";
 
@@ -14,19 +14,9 @@ export type OrderHistorySummaryData = {
   shipmentsCount: number;
 };
 
-export type OrderHistorySummaryView = {
-  activeBooksCount: number;
-  booksCount: number;
-  cancelledBooksCount: number;
-  ordersCount: number;
-  receivedBooksCount: number;
-  shipmentsCount: number;
-  totalByCurrency: CurrencyTotal[];
-};
-
 export function buildOrderHistorySummaryView(
   data: OrderHistorySummaryData,
-): OrderHistorySummaryView {
+): BookOrderHistorySummaryView {
   return {
     activeBooksCount: data.activeBooksCount,
     booksCount: data.booksCount,

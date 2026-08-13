@@ -1,4 +1,4 @@
-import type { Currency, DeliveryHistorySort, DeliveryHistoryTab } from "@app/shared";
+import type { BookOrderHistorySort, BookOrderHistoryTab, Currency } from "@app/shared";
 
 import { ShipmentStatusSchema } from "@app/shared";
 
@@ -36,12 +36,12 @@ export type HistoryFilterInput = {
   search: string | undefined;
   service: string | undefined;
   store: string | undefined;
-  tab: DeliveryHistoryTab;
+  tab: BookOrderHistoryTab;
   to: Date | undefined;
   userId: string;
 };
 
-const HISTORY_ORDER_SQL: Record<DeliveryHistorySort, Prisma.Sql> = {
+const HISTORY_ORDER_SQL: Record<BookOrderHistorySort, Prisma.Sql> = {
   newest_orders: Prisma.sql`book_order.order_date DESC NULLS LAST`,
   oldest_orders: Prisma.sql`book_order.order_date ASC NULLS LAST`,
   price: Prisma.sql`item.price DESC NULLS LAST`,
@@ -136,18 +136,18 @@ export function buildHistoryConditions({
   return Prisma.join(conditions, " AND ");
 }
 
-export function historyOrderSql(sort: DeliveryHistorySort): Prisma.Sql {
+export function historyOrderSql(sort: BookOrderHistorySort): Prisma.Sql {
   return Prisma.sql`${historySortSql(sort)}, item.id ASC`;
 }
 
-function historySortSql(sort: DeliveryHistorySort): Prisma.Sql {
+function historySortSql(sort: BookOrderHistorySort): Prisma.Sql {
   if (!Object.hasOwn(HISTORY_ORDER_SQL, sort)) {
     throw new Error(`Unsupported delivery history sort: ${String(sort)}`);
   }
   return HISTORY_ORDER_SQL[sort];
 }
 
-function historyTabSql(tab: DeliveryHistoryTab): Prisma.Sql {
+function historyTabSql(tab: BookOrderHistoryTab): Prisma.Sql {
   switch (tab) {
     case "active":
       return Prisma.sql`item.cancelled_at IS NULL AND item.received_at IS NULL`;

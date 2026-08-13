@@ -9,8 +9,6 @@ export const IN_TRANSIT_ATTENTION_CATEGORIES = [
   "withoutPrice",
 ] as const;
 
-export type InTransitAttentionCategory = (typeof IN_TRANSIT_ATTENTION_CATEGORIES)[number];
-
 export type InTransitCurrencyTotal = {
   currency: Nullable<string>;
   total: number;

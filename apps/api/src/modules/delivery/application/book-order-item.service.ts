@@ -1,6 +1,7 @@
 import type {
   BookOrderView,
-  BulkReceiveDeliveriesResultView,
+  BulkReceiveOrderItemsInput,
+  BulkReceiveOrderItemsResultView,
   CancelBookOrderItemInput,
   Nullable,
 } from "@app/shared";
@@ -33,14 +34,13 @@ export class BookOrderItemService {
   ) {}
 
   bulkReceive({
-    bookIds,
-    receivedAt,
+    input,
     userId,
   }: {
-    bookIds: string[];
-    receivedAt: string | undefined;
+    input: BulkReceiveOrderItemsInput;
     userId: string;
-  }): Promise<BulkReceiveDeliveriesResultView> {
+  }): Promise<BulkReceiveOrderItemsResultView> {
+    const { bookIds, receivedAt } = input;
     const now = new Date();
     const requestedBookIds = [...new Set(bookIds)];
 
@@ -157,8 +157,8 @@ function toBulkReceiveResult({
   ownedBookIds: ReadonlySet<string>;
   receivedBookIds: ReadonlySet<string>;
   requestedBookIds: string[];
-}): BulkReceiveDeliveriesResultView {
-  const skipped: BulkReceiveDeliveriesResultView["skipped"] = [];
+}): BulkReceiveOrderItemsResultView {
+  const skipped: BulkReceiveOrderItemsResultView["skipped"] = [];
   const received: string[] = [];
 
   for (const bookId of requestedBookIds) {

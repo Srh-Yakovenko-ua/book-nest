@@ -7,6 +7,7 @@ import {
   ShipmentStatusSchema,
 } from "./book-enums.js";
 import { BookPreviewSchema } from "./book-preview.js";
+import { BulkBookIdsSchema } from "./books.js";
 import {
   createPaginatedSchema,
   CurrencyAverageSchema,
@@ -18,15 +19,19 @@ import {
   CancelReasonSchema,
   EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
   isExpectedNotBeforeOrder,
+  isoDay,
   notInFutureDate,
   OwnershipNoteSchema,
   OwnershipOrderNumberSchema,
   OwnershipPriceSchema,
   OwnershipStoreNameSchema,
   OwnershipStoreUrlSchema,
+  QueryBooleanSchema,
   QueryBooleanWithDefaultSchema,
   TrackingNumberSchema,
 } from "./internal.js";
+
+export { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "./internal.js";
 
 const BOOK_ORDER_LIMITS = {
   itemsMax: 100,
@@ -131,9 +136,9 @@ export const BookOrderShipmentInputSchema = z
   .object({
     bookIds: z.array(z.uuid()).min(1).max(BOOK_ORDER_LIMITS.itemsMax),
     deliveryService: DeliveryServiceSchema.optional(),
-    expectedDeliveryDate: z.iso.date().optional(),
+    expectedDeliveryDate: isoDay().optional(),
     note: OwnershipNoteSchema.optional(),
-    pickupUntil: z.iso.date().optional(),
+    pickupUntil: isoDay().optional(),
     status: ActiveShipmentStatusSchema.optional(),
     trackingNumber: TrackingNumberSchema.optional(),
     trackingUrl: OwnershipStoreUrlSchema.optional(),
@@ -221,10 +226,10 @@ export type UpdateBookOrderInput = z.infer<typeof UpdateBookOrderInputSchema>;
 export const CreateShipmentInputSchema = z
   .object({
     deliveryService: DeliveryServiceSchema.optional(),
-    expectedDeliveryDate: z.iso.date().optional(),
+    expectedDeliveryDate: isoDay().optional(),
     itemIds: z.array(z.uuid()).min(1).max(BOOK_ORDER_LIMITS.itemsMax),
     note: OwnershipNoteSchema.optional(),
-    pickupUntil: z.iso.date().optional(),
+    pickupUntil: isoDay().optional(),
     status: ActiveShipmentStatusSchema.optional(),
     trackingNumber: TrackingNumberSchema.optional(),
     trackingUrl: OwnershipStoreUrlSchema.optional(),
@@ -238,9 +243,9 @@ export type CreateShipmentInput = z.infer<typeof CreateShipmentInputSchema>;
 
 export const UpdateShipmentInputSchema = z.object({
   deliveryService: DeliveryServiceSchema.nullable().optional(),
-  expectedDeliveryDate: z.iso.date().nullable().optional(),
+  expectedDeliveryDate: isoDay().nullable().optional(),
   note: OwnershipNoteSchema.nullable().optional(),
-  pickupUntil: z.iso.date().nullable().optional(),
+  pickupUntil: isoDay().nullable().optional(),
   status: ActiveShipmentStatusSchema.optional(),
   trackingNumber: TrackingNumberSchema.nullable().optional(),
   trackingUrl: OwnershipStoreUrlSchema.nullable().optional(),
@@ -249,14 +254,14 @@ export const UpdateShipmentInputSchema = z.object({
 export type UpdateShipmentInput = z.infer<typeof UpdateShipmentInputSchema>;
 
 export const MarkShipmentInTransitInputSchema = z.object({
-  expectedDeliveryDate: z.iso.date().nullable().optional(),
+  expectedDeliveryDate: isoDay().nullable().optional(),
   trackingNumber: TrackingNumberSchema.nullable().optional(),
 });
 
 export type MarkShipmentInTransitInput = z.infer<typeof MarkShipmentInTransitInputSchema>;
 
 export const MarkShipmentReadyForPickupInputSchema = z.object({
-  pickupUntil: z.iso.date().nullable().optional(),
+  pickupUntil: isoDay().nullable().optional(),
 });
 
 export type MarkShipmentReadyForPickupInput = z.infer<typeof MarkShipmentReadyForPickupInputSchema>;
@@ -292,6 +297,23 @@ export const MoveBookOrderItemsInputSchema = z
   });
 
 export type MoveBookOrderItemsInput = z.infer<typeof MoveBookOrderItemsInputSchema>;
+
+export const BulkReceiveOrderItemsInputSchema = BulkBookIdsSchema.extend({
+  receivedAt: notInFutureDate("Received date must not be in the future").optional(),
+});
+
+export type BulkReceiveOrderItemsInput = z.infer<typeof BulkReceiveOrderItemsInputSchema>;
+
+export const BulkReceiveOrderItemSkipReasonSchema = z.enum(["not_active", "not_found"]);
+
+export type BulkReceiveOrderItemSkipReason = z.infer<typeof BulkReceiveOrderItemSkipReasonSchema>;
+
+export const BulkReceiveOrderItemsResultViewSchema = z.object({
+  receivedBookIds: z.array(z.string()),
+  skipped: z.array(z.object({ bookId: z.string(), reason: BulkReceiveOrderItemSkipReasonSchema })),
+});
+
+export type BulkReceiveOrderItemsResultView = z.infer<typeof BulkReceiveOrderItemsResultViewSchema>;
 
 export const InTransitFilterSchema = z.enum([
   "all",
@@ -360,6 +382,64 @@ export const InTransitQuerySchema = z.object({
 
 export type InTransitQuery = z.infer<typeof InTransitQuerySchema>;
 
+export const BookOrderHistoryTabSchema = z.enum(["all", "active", "received", "cancelled"]);
+
+export type BookOrderHistoryTab = z.infer<typeof BookOrderHistoryTabSchema>;
+
+export const BookOrderHistorySortSchema = z.enum([
+  "newest_orders",
+  "oldest_orders",
+  "recently_updated",
+  "status",
+  "store",
+  "price",
+  "title",
+]);
+
+export type BookOrderHistorySort = z.infer<typeof BookOrderHistorySortSchema>;
+
+export const BookOrderHistoryQuerySchema = z.object({
+  currency: CurrencySchema.optional(),
+  from: isoDay().optional(),
+  hasTrackingNumber: QueryBooleanSchema.optional(),
+  hasTrackingUrl: QueryBooleanSchema.optional(),
+  ...paginationQueryFields({ pageSizeDefault: BOOK_ORDER_LIMITS.pageSizeDefault }),
+  priceMax: z.coerce.number().nonnegative().optional(),
+  priceMin: z.coerce.number().nonnegative().optional(),
+  search: z.string().trim().max(BOOK_ORDER_LIMITS.searchMax).optional(),
+  service: DeliveryServiceSchema.optional(),
+  sort: BookOrderHistorySortSchema.default("newest_orders"),
+  store: z.string().trim().max(BOOK_ORDER_LIMITS.storeMax).optional(),
+  tab: BookOrderHistoryTabSchema.default("all"),
+  to: isoDay().optional(),
+});
+
+export type BookOrderHistoryQuery = z.infer<typeof BookOrderHistoryQuerySchema>;
+
+export const BookOrderHistorySummaryQuerySchema = z.object({
+  includeCancelled: QueryBooleanWithDefaultSchema,
+});
+
+export type BookOrderHistorySummaryQuery = z.infer<typeof BookOrderHistorySummaryQuerySchema>;
+
+export const BookOrderHistorySummaryViewSchema = z.object({
+  activeBooksCount: CountSchema,
+  booksCount: CountSchema,
+  cancelledBooksCount: CountSchema,
+  ordersCount: CountSchema,
+  receivedBooksCount: CountSchema,
+  shipmentsCount: CountSchema.describe(
+    "How many distinct shipments carry the counted books. A shipment that carries no counted book is not part of this number.",
+  ),
+  totalByCurrency: z
+    .array(CurrencyTotalSchema)
+    .describe(
+      "The only field the includeCancelled flag narrows. Every count above spans cancelled books as well, and reports them separately.",
+    ),
+});
+
+export type BookOrderHistorySummaryView = z.infer<typeof BookOrderHistorySummaryViewSchema>;
+
 export const BookOrderItemRowOrderViewSchema = z.object({
   currency: CurrencySchema.nullable(),
   id: z.string(),
@@ -422,11 +502,11 @@ export type InTransitSummaryView = z.infer<typeof InTransitSummaryViewSchema>;
 
 export const BookOrderStatisticsQuerySchema = z.object({
   currency: CurrencySchema.optional(),
-  from: z.iso.date().optional(),
+  from: isoDay().optional(),
   includeCancelled: QueryBooleanWithDefaultSchema,
   status: ShipmentStatusSchema.optional(),
   store: z.string().trim().max(BOOK_ORDER_LIMITS.storeMax).optional(),
-  to: z.iso.date().optional(),
+  to: isoDay().optional(),
 });
 
 export type BookOrderStatisticsQuery = z.infer<typeof BookOrderStatisticsQuerySchema>;

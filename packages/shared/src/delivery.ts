@@ -11,7 +11,12 @@ import {
 } from "./common.js";
 import { DeliveryServiceSchema } from "./delivery-services.js";
 import { DeliveryViewSchema } from "./delivery-view.js";
-import { notInFutureDate, QueryBooleanSchema, QueryBooleanWithDefaultSchema } from "./internal.js";
+import {
+  isoDay,
+  notInFutureDate,
+  QueryBooleanSchema,
+  QueryBooleanWithDefaultSchema,
+} from "./internal.js";
 
 const DELIVERY_SEARCH_MAX = 100;
 const DELIVERY_STORE_MAX = 200;
@@ -98,7 +103,7 @@ export type DeliveryHistorySort = z.infer<typeof DeliveryHistorySortSchema>;
 
 export const DeliveryHistoryQuerySchema = z.object({
   currency: CurrencySchema.optional(),
-  from: z.iso.date().optional(),
+  from: isoDay().optional(),
   hasTrackingNumber: QueryBooleanSchema.optional(),
   hasTrackingUrl: QueryBooleanSchema.optional(),
   ...paginationQueryFields({ pageSizeDefault: 10 }),
@@ -109,7 +114,7 @@ export const DeliveryHistoryQuerySchema = z.object({
   sort: DeliveryHistorySortSchema.default("newest_orders"),
   store: z.string().trim().max(DELIVERY_STORE_MAX).optional(),
   tab: DeliveryHistoryTabSchema.default("all"),
-  to: z.iso.date().optional(),
+  to: isoDay().optional(),
 });
 
 export type DeliveryHistoryQuery = z.infer<typeof DeliveryHistoryQuerySchema>;
@@ -132,11 +137,11 @@ export type DeliveryHistorySummaryView = z.infer<typeof DeliveryHistorySummaryVi
 
 export const DeliveryStatisticsQuerySchema = z.object({
   currency: CurrencySchema.optional(),
-  from: z.iso.date().optional(),
+  from: isoDay().optional(),
   includeCancelled: QueryBooleanWithDefaultSchema,
   status: ShipmentStatusSchema.optional(),
   store: z.string().trim().max(DELIVERY_STORE_MAX).optional(),
-  to: z.iso.date().optional(),
+  to: isoDay().optional(),
 });
 
 export type DeliveryStatisticsQuery = z.infer<typeof DeliveryStatisticsQuerySchema>;

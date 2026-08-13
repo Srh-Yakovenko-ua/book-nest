@@ -1,9 +1,11 @@
 import type {
+  BookOrderHistoryQuery,
+  BookOrderHistorySummaryQuery,
+  BookOrderHistorySummaryView,
   BookOrderItemRowView,
   BookOrderStatisticsQuery,
   BookOrderStatisticsView,
   BookPreview,
-  DeliveryHistoryQuery,
   InTransitQuery,
   InTransitSummaryView,
   Paginator,
@@ -12,7 +14,6 @@ import type {
 import { normalizeSearch, OwnershipStatusSchema, ReadingStatusSchema } from "@app/shared";
 import { Injectable } from "@nestjs/common";
 
-import type { OrderHistorySummaryView } from "../domain/order-history-summary.js";
 import type { BookOrderItemRow } from "../infrastructure/delivery-read.repository.js";
 
 import { parseIsoDate } from "../../../core/iso-date.js";
@@ -41,7 +42,7 @@ export class DeliveryReadService {
     query,
     userId,
   }: {
-    query: DeliveryHistoryQuery;
+    query: BookOrderHistoryQuery;
     userId: string;
   }): Promise<Paginator<BookOrderItemRowView>> {
     const { today } = deliveryDateBounds(new Date());
@@ -78,13 +79,16 @@ export class DeliveryReadService {
   }
 
   async historySummary({
-    includeCancelled,
+    query,
     userId,
   }: {
-    includeCancelled: boolean;
+    query: BookOrderHistorySummaryQuery;
     userId: string;
-  }): Promise<OrderHistorySummaryView> {
-    const data = await this.deliveryReadRepository.historySummary({ includeCancelled, userId });
+  }): Promise<BookOrderHistorySummaryView> {
+    const data = await this.deliveryReadRepository.historySummary({
+      includeCancelled: query.includeCancelled,
+      userId,
+    });
 
     return buildOrderHistorySummaryView(data);
   }

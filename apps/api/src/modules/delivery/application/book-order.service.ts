@@ -2,7 +2,6 @@ import type {
   BookOrderShipmentInput,
   BookOrderView,
   CreateBookOrderInput,
-  Nullable,
   UpdateBookOrderInput,
 } from "@app/shared";
 
@@ -16,6 +15,7 @@ import type {
   NewOrderShipment,
 } from "../infrastructure/book-orders.repository.js";
 import type { DeliveryDay } from "./delivery-write-errors.js";
+import type { ShipmentDeliveryServiceSnapshot } from "./shipment-delivery-service.resolver.js";
 
 import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { NotFoundError } from "../../../core/exceptions/errors.js";
@@ -166,39 +166,33 @@ export class BookOrderService {
     input: CreateBookOrderInput;
     userId: string;
   }): Promise<NewOrderShipment[]> {
+    const servicesByName = new Map<string, ShipmentDeliveryServiceSnapshot>();
+    const resolveServiceOnce = async (
+      name: string | undefined,
+    ): Promise<ShipmentDeliveryServiceSnapshot> => {
+      if (name === undefined) {
+        return this.deliveryServiceResolver.resolve({ name, userId }, client);
+      }
+      const alreadyResolved = servicesByName.get(name);
+      if (alreadyResolved !== undefined) {
+        return alreadyResolved;
+      }
+      const resolved = await this.deliveryServiceResolver.resolve({ name, userId }, client);
+      servicesByName.set(name, resolved);
+      return resolved;
+    };
+
     const built: NewOrderShipment[] = [];
     for (const shipment of input.shipments ?? []) {
       built.push({
         bookIds: shipment.bookIds,
-        data: await this.toNewShipmentData({ client, shipment, userId }),
+        data: toNewShipmentData({
+          service: await resolveServiceOnce(shipment.deliveryService),
+          shipment,
+        }),
       });
     }
     return built;
-  }
-
-  private async toNewShipmentData({
-    client,
-    shipment,
-    userId,
-  }: {
-    client: Prisma.TransactionClient;
-    shipment: BookOrderShipmentInput;
-    userId: string;
-  }): Promise<NewOrderShipment["data"]> {
-    const service = await this.deliveryServiceResolver.resolve(
-      { name: shipment.deliveryService, userId },
-      client,
-    );
-
-    return {
-      ...service,
-      expectedDeliveryDate: toCreateDate(shipment.expectedDeliveryDate),
-      note: shipment.note ?? null,
-      pickupUntil: toCreateDate(shipment.pickupUntil),
-      status: shipment.status ?? ShipmentStatusSchema.enum.ordered,
-      trackingNumber: shipment.trackingNumber ?? null,
-      trackingUrl: shipment.trackingUrl ?? null,
-    };
   }
 }
 
@@ -234,6 +228,24 @@ function toNewOrderData(input: CreateBookOrderInput): NewBookOrderData {
     orderNumber: input.orderNumber ?? null,
     storeName: input.storeName,
     totalAmount: input.totalAmount ?? null,
+  };
+}
+
+function toNewShipmentData({
+  service,
+  shipment,
+}: {
+  service: ShipmentDeliveryServiceSnapshot;
+  shipment: BookOrderShipmentInput;
+}): NewOrderShipment["data"] {
+  return {
+    ...service,
+    expectedDeliveryDate: toCreateDate(shipment.expectedDeliveryDate),
+    note: shipment.note ?? null,
+    pickupUntil: toCreateDate(shipment.pickupUntil),
+    status: shipment.status ?? ShipmentStatusSchema.enum.ordered,
+    trackingNumber: shipment.trackingNumber ?? null,
+    trackingUrl: shipment.trackingUrl ?? null,
   };
 }
 

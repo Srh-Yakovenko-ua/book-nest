@@ -1,4 +1,4 @@
-import type { DeliveryHistorySort, InTransitSort } from "@app/shared";
+import type { BookOrderHistorySort, InTransitSort } from "@app/shared";
 
 import { SHIPMENT_ACTIVE_STATUSES } from "@app/shared";
 import { Injectable } from "@nestjs/common";
@@ -53,7 +53,7 @@ export type BookOrderItemRow = Prisma.BookOrderItemGetPayload<typeof inTransitRo
 
 type ListHistoryInput = HistoryFilterInput & {
   skip: number;
-  sort: DeliveryHistorySort;
+  sort: BookOrderHistorySort;
   take: number;
 };
 

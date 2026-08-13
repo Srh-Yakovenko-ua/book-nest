@@ -1,6 +1,6 @@
 import type { Nullable } from "@app/shared";
 
-import { isBefore } from "date-fns";
+import { EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE, isExpectedNotBeforeOrder } from "@app/shared";
 
 import type { HttpError } from "../../../core/exceptions/errors.js";
 import type {
@@ -10,7 +10,7 @@ import type {
 
 import { assertNever } from "../../../core/assert-never.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
-import { parseIsoDate, startOfUtcDay } from "../../../core/iso-date.js";
+import { toIsoDate, toIsoDateFromIsoString } from "../../../core/iso-date.js";
 import {
   ORDER_ENTRY_REJECTIONS,
   ORDER_ITEM_CANCEL_REJECTIONS,
@@ -24,7 +24,7 @@ export const DELIVERY_WRITE_MESSAGES = {
   bookAlreadyOrdered: "This book already has an active delivery",
   bookNotFound: "Book not found",
   bookNotOrderable: "A delivery can only be started for a book you do not yet own",
-  expectedBeforeOrderDate: "Expected delivery cannot be before the order date",
+  expectedBeforeOrderDate: EXPECTED_DELIVERY_BEFORE_ORDER_MESSAGE,
   itemAlreadyCancelled: "This book was already cancelled",
   itemAlreadyReceived: "This book has already arrived",
   itemNotFound: "Order item not found",
@@ -41,12 +41,11 @@ export function assertExpectedDeliveryNotBeforeOrder({
   expectedDeliveryDate: DeliveryDay;
   orderDate: DeliveryDay;
 }): void {
-  const expected = toUtcDay(expectedDeliveryDate);
-  const ordered = toUtcDay(orderDate);
-  if (expected === null || ordered === null) {
-    return;
-  }
-  if (isBefore(expected, ordered)) {
+  const matchesRule = isExpectedNotBeforeOrder({
+    expectedDeliveryDate: toIsoDay(expectedDeliveryDate),
+    orderDate: toIsoDay(orderDate),
+  });
+  if (!matchesRule) {
     throw new BadRequestError(DELIVERY_WRITE_MESSAGES.expectedBeforeOrderDate);
   }
 }
@@ -81,9 +80,9 @@ export function shipmentNotActiveError(): ConflictError {
   return new ConflictError(DELIVERY_WRITE_MESSAGES.shipmentNotActive);
 }
 
-function toUtcDay(value: DeliveryDay): Nullable<Date> {
+function toIsoDay(value: DeliveryDay): Nullable<string> {
   if (value === undefined || value === null) {
     return null;
   }
-  return typeof value === "string" ? parseIsoDate(value) : startOfUtcDay(value);
+  return typeof value === "string" ? toIsoDateFromIsoString(value) : toIsoDate(value);
 }

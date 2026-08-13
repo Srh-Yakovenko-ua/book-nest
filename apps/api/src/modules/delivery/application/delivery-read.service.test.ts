@@ -1,4 +1,4 @@
-import type { BookOrderStatisticsQuery, DeliveryHistoryQuery, InTransitQuery } from "@app/shared";
+import type { BookOrderHistoryQuery, BookOrderStatisticsQuery, InTransitQuery } from "@app/shared";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -61,7 +61,7 @@ function buildService(overrides: {
   };
 }
 
-function historyQuery(overrides: Partial<DeliveryHistoryQuery> = {}): DeliveryHistoryQuery {
+function historyQuery(overrides: Partial<BookOrderHistoryQuery> = {}): BookOrderHistoryQuery {
   return {
     pageNumber: 1,
     pageSize: 10,
@@ -291,7 +291,10 @@ describe("DeliveryReadService.historySummary", () => {
       },
     });
 
-    const summary = await service.historySummary({ includeCancelled: false, userId: USER });
+    const summary = await service.historySummary({
+      query: { includeCancelled: false },
+      userId: USER,
+    });
 
     expect(summary).toEqual({
       activeBooksCount: 2,

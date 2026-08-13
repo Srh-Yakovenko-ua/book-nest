@@ -32,7 +32,15 @@ const isNotInFuture = (value: string): boolean => {
   return !isAfter(new Date(`${value}T00:00:00.000Z`), latestAcceptable);
 };
 
-export const notInFutureDate = (message: string) => z.iso.date().refine(isNotInFuture, message);
+const EARLIEST_STORABLE_DAY = "0001-01-01";
+const EARLIEST_STORABLE_DAY_MESSAGE = `Date must not be earlier than ${EARLIEST_STORABLE_DAY}`;
+
+const isStorableDay = (value: string): boolean =>
+  !isBefore(parseISO(value), parseISO(EARLIEST_STORABLE_DAY));
+
+export const isoDay = () => z.iso.date().refine(isStorableDay, EARLIEST_STORABLE_DAY_MESSAGE);
+
+export const notInFutureDate = (message: string) => isoDay().refine(isNotInFuture, message);
 
 export const HTTPS_PROTOCOL = /^https$/;
 
