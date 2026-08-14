@@ -134,6 +134,7 @@ export function LoanHistoryRow({
         aria-describedby={titleId}
         aria-label={t("row.openDetails")}
         className="absolute inset-0 cursor-pointer rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        data-loan-trigger={loan.id}
         onClick={onOpenDetails}
         type="button"
       />
@@ -242,24 +243,29 @@ function LoanHistoryTimeline({ loan }: { loan: LoanHistoryListItemView }) {
   ];
 
   return (
-    <ol className="flex min-w-0 flex-1 flex-col gap-2 @xl/history-row:flex-row @xl/history-row:items-start @xl/history-row:gap-1">
+    <ol className="flex min-w-0 flex-1 flex-col gap-2 @5xl/history-row:flex-row @5xl/history-row:items-start @5xl/history-row:gap-1">
       {nodes.map((node, index) => (
         <li
-          className="flex min-w-0 items-start gap-1.5 @xl/history-row:flex-1 @xl/history-row:basis-0"
+          className="flex min-w-0 items-start gap-1.5 @5xl/history-row:flex-1 @5xl/history-row:basis-0"
           key={node.label}
         >
           {index === 0 ? null : (
             <UiIcon
               aria-hidden
-              className="mt-1 hidden shrink-0 text-muted-foreground/50 @xl/history-row:block"
+              className="mt-1 hidden shrink-0 text-muted-foreground/50 @5xl/history-row:block"
               name="arrow-right"
               size={14}
             />
           )}
           <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-foreground tabular-nums">
-              <UiIcon aria-hidden className="shrink-0 text-icon" name={node.icon} size={14} />
-              <span className="truncate">{node.value}</span>
+            <span className="flex items-start gap-1.5 text-sm font-medium text-foreground tabular-nums">
+              <UiIcon
+                aria-hidden
+                className="mt-0.5 shrink-0 text-icon"
+                name={node.icon}
+                size={14}
+              />
+              <span>{node.value}</span>
             </span>
             <span className="pl-5 text-xs text-muted-foreground">{node.label}</span>
           </span>

@@ -19,6 +19,7 @@ export * from "./delivery-view.js";
 export * from "./delivery.js";
 export * from "./genres.js";
 export * from "./lists.js";
+export * from "./loan-contacts.js";
 export * from "./loans.js";
 export * from "./media.js";
 export * from "./notes.js";

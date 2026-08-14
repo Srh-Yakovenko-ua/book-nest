@@ -12,6 +12,8 @@ import {
   useWatch,
 } from "react-hook-form";
 
+import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+
 import { UiIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/field-error";
@@ -25,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { LoanContactPicker } from "@/features/loans/components/loan-contact-picker";
 import {
   blockNegativeNumberKeys,
   blockNegativeNumberPaste,
@@ -66,7 +69,9 @@ type OwnershipNoteName = "deliveryInfo.note" | "loanInfo.note";
 type OwnershipStatusSectionProps = {
   control: Control<CreateBookFormValues>;
   errors: FieldErrors<CreateBookFormValues>;
+  loanContact: LoanContactSelection | null;
   mode: BookFormMode;
+  onLoanContactChange: (selection: LoanContactSelection | null) => void;
   onRequestChange?: (next: OwnershipStatus, apply: () => void) => void;
   register: UseFormRegister<CreateBookFormValues>;
   setValue: UseFormSetValue<CreateBookFormValues>;
@@ -75,7 +80,9 @@ type OwnershipStatusSectionProps = {
 export function OwnershipStatusSection({
   control,
   errors,
+  loanContact,
   mode,
+  onLoanContactChange,
   onRequestChange,
   register,
   setValue,
@@ -85,6 +92,7 @@ export function OwnershipStatusSection({
   const deliveryStatusOptions =
     mode === "edit" ? EDIT_DELIVERY_STATUS_OPTIONS : CREATE_DELIVERY_STATUS_OPTIONS;
   const complete = useSectionCompletion(control, OWNERSHIP_FIELDS);
+  const loanContactError = errors.loanInfo?.loanContactId ?? errors.loanInfo?.personName;
 
   return (
     <FormSection
@@ -391,17 +399,17 @@ export function OwnershipStatusSection({
           <p className="text-sm font-medium text-foreground">{t("loanInfo.title")}</p>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="loan-person-name">{t("loanInfo.fields.personName")}</Label>
-            <Input
-              aria-describedby={errors.loanInfo?.personName ? "loan-person-name-error" : undefined}
-              aria-invalid={errors.loanInfo?.personName !== undefined}
-              autoComplete="off"
-              className="h-10"
-              id="loan-person-name"
+            <Label htmlFor="loan-contact-picker">{t("loanInfo.fields.personName")}</Label>
+            <LoanContactPicker
+              describedBy={loanContactError ? "loan-contact-picker-error" : undefined}
+              id="loan-contact-picker"
+              invalid={loanContactError !== undefined}
+              label={t("loanInfo.fields.personName")}
+              onChange={onLoanContactChange}
               placeholder={t("loanInfo.fields.personNamePlaceholder")}
-              {...register("loanInfo.personName", { setValueAs: emptyToUndefined })}
+              value={loanContact}
             />
-            <FieldError error={errors.loanInfo?.personName} id="loan-person-name-error" />
+            <FieldError error={loanContactError} id="loan-contact-picker-error" />
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">

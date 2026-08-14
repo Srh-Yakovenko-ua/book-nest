@@ -6,6 +6,7 @@ import type {
   LoansSummaryView,
   LoanType,
 } from "@app/shared";
+import type { OnUrlUpdateFunction, UrlUpdateEvent } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
 
 import { addDays, format } from "date-fns";
@@ -33,12 +34,20 @@ vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
 }));
 
+const CONTACT_IDS = {
+  iryna: "33333333-3333-4333-8333-333333333333",
+  olena: "11111111-1111-4111-8111-111111111111",
+  olya: "44444444-4444-4444-8444-444444444444",
+  petro: "22222222-2222-4222-8222-222222222222",
+} as const;
+
 const copy = messages.loans;
 const actions = messages.loans.actions;
 const stats = messages.loans.stats;
 const attention = messages.loans.sidebar.attention;
 const longHeld = messages.loans.sidebar.longHeld;
 const people = messages.loans.sidebar.people;
+const quickFilters = messages.loans.quickFilters;
 const row = messages.loans.row;
 const sort = messages.loans.sort;
 const upcoming = messages.loans.sidebar.upcoming;
@@ -111,6 +120,96 @@ describe("LoansView", () => {
     expect(listUrl()).toContain("search=hobbit");
     expect(listUrl()).toContain("filter=overdue");
     expect(listUrl()).toContain("sort=title");
+  });
+
+  it("counts the quick filter chips from the summary, zero included", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        noReturnDateCount: 2,
+        overdueCount: 3,
+        returningSoonCount: 0,
+        totalCount: 9,
+      },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    await waitFor(() => {
+      expect(within(chip(quickFilters.all)).getByText("9")).toBeInTheDocument();
+    });
+    expect(within(chip(quickFilters.overdue)).getByText("3")).toBeInTheDocument();
+    expect(within(chip(quickFilters.return_soon)).getByText("0")).toBeInTheDocument();
+    expect(within(chip(quickFilters.no_return_date)).getByText("2")).toBeInTheDocument();
+  });
+
+  it("offers the reminder chip on the lent page", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: { ...EMPTY_DIRECTION_SUMMARY, noReminderWithDateCount: 5, totalCount: 6 },
+    });
+
+    renderLoans("lent_to_someone");
+
+    await waitFor(() => {
+      expect(within(chip(quickFilters.without_reminder)).getByText("5")).toBeInTheDocument();
+    });
+  });
+
+  it("keeps the reminder chip away from the borrowed page", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 3 },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    await findChip(quickFilters.all);
+    expect(
+      screen.queryByRole("radio", { name: chipName(quickFilters.without_reminder) }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("filters the list from a chip and starts it over at the first page", async () => {
+    const { events, onUrlUpdate } = trackUrl();
+    mockLoans(
+      Array.from({ length: 12 }, (_, index) =>
+        loanItem("borrowed_from_someone", `Книга ${index + 1}`),
+      ),
+      { borrowed: { ...EMPTY_DIRECTION_SUMMARY, overdueCount: 4, totalCount: 12 } },
+    );
+
+    renderLoans("borrowed_from_someone", "", onUrlUpdate);
+
+    expect(await screen.findByText("Книга 1")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: copy.loadMore }));
+    expect(await screen.findByText("Книга 11")).toBeInTheDocument();
+    expect(listUrls().some((url) => url.includes("pageNumber=2"))).toBe(true);
+
+    requestedUrls.length = 0;
+    await userEvent.click(await findChip(quickFilters.overdue));
+
+    await waitFor(() => {
+      expect(events.at(-1)?.searchParams.get("filter")).toBe("overdue");
+    });
+    await waitFor(() => {
+      expect(listUrls().some((url) => url.includes("filter=overdue"))).toBe(true);
+    });
+    expect(listUrls().every((url) => url.includes("pageNumber=1"))).toBe(true);
+    await waitFor(() => {
+      expect(screen.queryByText("Книга 11")).not.toBeInTheDocument();
+    });
+  });
+
+  it("counts the shown loans against every active loan of this page", async () => {
+    mockLoans(
+      Array.from({ length: 12 }, (_, index) =>
+        loanItem("borrowed_from_someone", `Книга ${index + 1}`),
+      ),
+      { borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 17 } },
+    );
+
+    renderLoans("borrowed_from_someone");
+
+    expect(await screen.findByText("Показано 12 із 17 книг")).toBeInTheDocument();
   });
 
   it("leads the borrowed card with the term and the owner", async () => {
@@ -518,6 +617,28 @@ describe("LoansView", () => {
     });
   });
 
+  it("lights up the matching chip when an attention row applies its filter", async () => {
+    mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
+      borrowed: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        noReturnDateCount: 3,
+        overdueCount: 2,
+        totalCount: 8,
+      },
+    });
+
+    renderLoans("borrowed_from_someone");
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /3 книги без дати повернення/ }),
+    );
+
+    await waitFor(() => {
+      expect(chip(quickFilters.no_return_date)).toBeChecked();
+    });
+    expect(chip(quickFilters.all)).not.toBeChecked();
+  });
+
   it("reassures the reader when no borrowed loan needs attention", async () => {
     mockLoans([loanItem("borrowed_from_someone", "Гобіт")], {
       borrowed: { ...EMPTY_DIRECTION_SUMMARY, totalCount: 2 },
@@ -637,9 +758,9 @@ describe("LoansView", () => {
       lent: {
         ...EMPTY_DIRECTION_SUMMARY,
         topPeople: [
-          { bookCount: 4, covers: [], personName: "Олена" },
-          { bookCount: 2, covers: [], personName: "Петро" },
-          { bookCount: 1, covers: [], personName: "Ірина" },
+          { bookCount: 4, contactId: CONTACT_IDS.olena, covers: [], personName: "Олена" },
+          { bookCount: 2, contactId: CONTACT_IDS.petro, covers: [], personName: "Петро" },
+          { bookCount: 1, contactId: CONTACT_IDS.iryna, covers: [], personName: "Ірина" },
         ],
         totalCount: 7,
       },
@@ -663,7 +784,9 @@ describe("LoansView", () => {
     mockLoans([loanItem("lent_to_someone", "Дюна")], {
       lent: {
         ...EMPTY_DIRECTION_SUMMARY,
-        topPeople: [{ bookCount: 3, covers: [], personName: "Олена" }],
+        topPeople: [
+          { bookCount: 3, contactId: CONTACT_IDS.olena, covers: [], personName: "Олена" },
+        ],
         totalCount: 3,
       },
     });
@@ -675,9 +798,9 @@ describe("LoansView", () => {
 
     await userEvent.click(row);
     await waitFor(() => {
-      expect(
-        requestedUrls.some((url) => url.includes(`person=${encodeURIComponent("Олена")}`)),
-      ).toBe(true);
+      expect(requestedUrls.some((url) => url.includes(`contactId=${CONTACT_IDS.olena}`))).toBe(
+        true,
+      );
     });
     await waitFor(() => {
       expect(row).toHaveAttribute("aria-pressed", "true");
@@ -688,7 +811,31 @@ describe("LoansView", () => {
     await waitFor(() => {
       expect(row).toHaveAttribute("aria-pressed", "false");
     });
-    expect(requestedUrls.every((url) => !url.includes("person="))).toBe(true);
+    expect(requestedUrls.every((url) => !url.includes("contactId="))).toBe(true);
+  });
+
+  it("drops a legacy person filter from the URL instead of asking the API for it", async () => {
+    mockLoans([loanItem("lent_to_someone", "Дюна")], {
+      lent: {
+        ...EMPTY_DIRECTION_SUMMARY,
+        topPeople: [
+          { bookCount: 3, contactId: CONTACT_IDS.olena, covers: [], personName: "Олена" },
+        ],
+        totalCount: 3,
+      },
+    });
+
+    renderLoans("lent_to_someone", `?person=${encodeURIComponent("Олена")}&contactId=olena`);
+
+    expect(await screen.findByText("Дюна")).toBeInTheDocument();
+    expect(listUrl()).not.toContain("person=");
+    expect(listUrl()).not.toContain("contactId=");
+
+    const block = await findSidebarBlock(people.title);
+    expect(within(block).getByRole("button", { name: /Олена/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   it("hides the people block when nobody is holding a book", async () => {
@@ -788,6 +935,14 @@ describe("LoansView", () => {
   });
 });
 
+function chip(label: string): HTMLElement {
+  return screen.getByRole("radio", { name: chipName(label) });
+}
+
+function chipName(label: string): (name: string) => boolean {
+  return (name) => name.startsWith(label);
+}
+
 function countedStats(items: LoanListItemView[], type: LoanType): LoanDirectionSummary {
   return {
     ...EMPTY_DIRECTION_SUMMARY,
@@ -800,6 +955,7 @@ function extendedBookView() {
     loanInfo: {
       contact: null,
       expectedReturnDate: isoDaysFromToday(12),
+      loanContactId: CONTACT_IDS.olya,
       loanDate: isoDaysFromToday(-3),
       loanType: "lent_to_someone",
       loanUiStatus: "on_time",
@@ -810,6 +966,10 @@ function extendedBookView() {
     },
     ownershipStatus: "lent_to_someone",
   });
+}
+
+function findChip(label: string): Promise<HTMLElement> {
+  return screen.findByRole("radio", { name: chipName(label) });
 }
 
 async function findLoanCard(title: string): Promise<HTMLElement> {
@@ -852,9 +1012,15 @@ function jsonResponse(body: unknown): Response {
 }
 
 function listUrl(): string {
-  const found = requestedUrls.find((url) => !url.includes("/api/loans/summary"));
+  const [found] = listUrls();
   if (found === undefined) throw new Error("the loans list was never requested");
   return found;
+}
+
+function listUrls(): string[] {
+  return requestedUrls.filter(
+    (url) => url.includes("/api/loans") && !url.includes("/api/loans/summary"),
+  );
 }
 
 function loanItem(
@@ -876,6 +1042,7 @@ function loanItem(
     createdAt: "2026-01-05T10:00:00.000Z",
     expectedReturnDate: "2026-02-01",
     id: `loan-${title}`,
+    loanContactId: CONTACT_IDS.olya,
     loanDate: "2026-01-05",
     loanUiStatus: "on_time",
     note: null,
@@ -930,9 +1097,9 @@ async function openLoanMenu(title: string): Promise<void> {
   await userEvent.click(trigger ?? card);
 }
 
-function renderLoans(type: LoanType, searchParams = "") {
+function renderLoans(type: LoanType, searchParams = "", onUrlUpdate?: OnUrlUpdateFunction) {
   return renderWithProviders(
-    <NuqsTestingAdapter hasMemory searchParams={searchParams}>
+    <NuqsTestingAdapter hasMemory onUrlUpdate={onUrlUpdate} searchParams={searchParams}>
       <LoansView type={type} />
     </NuqsTestingAdapter>,
   );
@@ -940,4 +1107,12 @@ function renderLoans(type: LoanType, searchParams = "") {
 
 function sidebar(): HTMLElement {
   return screen.getByRole("complementary", { name: copy.sidebar.label });
+}
+
+function trackUrl() {
+  const events: UrlUpdateEvent[] = [];
+  const onUrlUpdate: OnUrlUpdateFunction = (event) => {
+    events.push(event);
+  };
+  return { events, onUrlUpdate };
 }

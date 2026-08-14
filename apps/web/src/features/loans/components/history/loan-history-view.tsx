@@ -3,7 +3,7 @@
 import type { Nullable } from "@app/shared";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { TitleLeaf } from "@/components/title-leaf";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import type { LoanHistoryCorrectionMode } from "./loan-history-correction-dialog
 
 import { useLoanHistory } from "../../api/use-loan-history";
 import { useLoanHistoryOverview } from "../../api/use-loan-history-overview";
+import { restoreFocusTo, restoreLoanTriggerFocus } from "../../model/loan-focus";
 import { useLoanHistoryQuery } from "../../model/use-loan-history-query";
 import { LoanHistoryCorrectionDialog } from "./loan-history-correction-dialog";
 import { LoanHistoryDetailDrawer } from "./loan-history-detail-drawer";
@@ -23,6 +24,7 @@ import { LoanHistoryToolbar } from "./loan-history-toolbar";
 type LoanHistoryCorrection = {
   loanId: string;
   mode: LoanHistoryCorrectionMode;
+  origin: "detail" | "row";
 };
 
 export function LoanHistoryView() {
@@ -35,6 +37,14 @@ export function LoanHistoryView() {
 
   const [detailLoanId, setDetailLoanId] = useState<Nullable<string>>(null);
   const [correction, setCorrection] = useState<Nullable<LoanHistoryCorrection>>(null);
+  const detailActionRef = useRef<Nullable<HTMLElement>>(null);
+
+  function correctFromDetail(mode: LoanHistoryCorrectionMode) {
+    if (detailLoanId === null) return;
+    const opener = document.activeElement;
+    detailActionRef.current = opener instanceof HTMLElement ? opener : null;
+    setCorrection({ loanId: detailLoanId, mode, origin: "detail" });
+  }
 
   const loadedPages = list.data?.pages ?? [];
   const items = loadedPages.flatMap((page) => page.items);
@@ -46,10 +56,10 @@ export function LoanHistoryView() {
   const showChrome = !list.isError && !isHistoryEmpty;
 
   const analytics = {
-    activePerson: query.person,
+    activeContactId: query.contactId,
     isLoading: overview.isPending,
-    onPersonSelect: (personName: string) =>
-      query.setPerson(personName === query.person ? "" : personName),
+    onPersonSelect: (contactId: string) =>
+      query.setContactId(contactId === query.contactId ? "" : contactId),
     overview: overview.data,
   };
 
@@ -60,8 +70,8 @@ export function LoanHistoryView() {
       isPending={list.isPending}
       items={items}
       onClearFilters={query.clearFilters}
-      onCorrectDate={(loanId) => setCorrection({ loanId, mode: "date" })}
-      onEditNote={(loanId) => setCorrection({ loanId, mode: "note" })}
+      onCorrectDate={(loanId) => setCorrection({ loanId, mode: "date", origin: "row" })}
+      onEditNote={(loanId) => setCorrection({ loanId, mode: "note", origin: "row" })}
       onOpenDetails={setDetailLoanId}
       onRetry={() => void list.refetch()}
     />
@@ -123,12 +133,8 @@ export function LoanHistoryView() {
 
       <LoanHistoryDetailDrawer
         loanId={detailLoanId}
-        onCorrectDate={() =>
-          setCorrection(detailLoanId === null ? null : { loanId: detailLoanId, mode: "date" })
-        }
-        onEditNote={() =>
-          setCorrection(detailLoanId === null ? null : { loanId: detailLoanId, mode: "note" })
-        }
+        onCorrectDate={() => correctFromDetail("date")}
+        onEditNote={() => correctFromDetail("note")}
         onOpenChange={(open) => {
           if (!open) setDetailLoanId(null);
         }}
@@ -139,6 +145,13 @@ export function LoanHistoryView() {
         <LoanHistoryCorrectionDialog
           loanId={correction.loanId}
           mode={correction.mode}
+          onCloseAutoFocus={(event) => {
+            if (correction.origin === "detail") {
+              restoreFocusTo(event, detailActionRef.current);
+              return;
+            }
+            restoreLoanTriggerFocus(event, correction.loanId);
+          }}
           onOpenChange={(open) => {
             if (!open) setCorrection(null);
           }}

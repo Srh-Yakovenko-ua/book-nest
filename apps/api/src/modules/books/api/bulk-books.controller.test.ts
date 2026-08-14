@@ -334,9 +334,13 @@ describe("PATCH /api/books/bulk/ownership-status", () => {
       title: "A",
       userId,
     });
+    const loanContact = await prisma.loanContact.create({
+      data: { name: "Olha", normalizedName: "olha", userId },
+    });
     await prisma.bookLoan.create({
       data: {
         bookId: book.id,
+        loanContactId: loanContact.id,
         personName: "Olha",
         remindBeforeDays: 3,
         remindToReturn: true,

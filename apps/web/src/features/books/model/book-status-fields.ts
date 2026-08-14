@@ -118,7 +118,7 @@ function activeOwnershipKeys(status: OwnershipStatus): readonly string[] {
       "deliveryStatus",
       "note",
     ];
-  if (ownershipUsesLoan(status)) return ["personName", "loanDate", "expectedReturnDate", "note"];
+  if (ownershipUsesLoan(status)) return ["loanContactId", "loanDate", "expectedReturnDate", "note"];
   return [];
 }
 

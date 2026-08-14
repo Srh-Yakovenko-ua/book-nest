@@ -454,8 +454,18 @@ const isReturnNotBeforeLoan = (value: {
   value.expectedReturnDate === null ||
   value.expectedReturnDate >= value.loanDate;
 
+export const LOAN_PERSON_REQUIRED_MESSAGE = "Enter the person's name";
+
+export function hasLoanPersonIdentity(value: {
+  loanContactId?: string;
+  personName?: string;
+}): boolean {
+  return value.loanContactId !== undefined || (value.personName ?? "").length > 0;
+}
+
 const LoanInfoFieldsSchema = z.object({
   expectedReturnDate: z.iso.date().nullable().optional(),
+  loanContactId: z.uuid().optional(),
   loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
   note: LoanNoteSchema.nullable().optional(),
   personName: OwnershipPersonNameSchema.optional(),
@@ -473,14 +483,19 @@ export const CreateLoanInputSchema = z
     contact: OwnershipContactSchema.nullable().optional(),
     direction: LoanDirectionSchema,
     expectedReturnDate: z.iso.date().nullable().optional(),
+    loanContactId: z.uuid().optional(),
     loanDate: notInFutureDate("Loan date must not be in the future"),
     note: LoanNoteSchema.nullable().optional(),
-    personName: OwnershipPersonNameSchema,
+    personName: OwnershipPersonNameSchema.optional(),
     remindToReturn: z.boolean().optional(),
   })
   .refine(isReturnNotBeforeLoan, {
     error: RETURN_BEFORE_LOAN_MESSAGE,
     path: ["expectedReturnDate"],
+  })
+  .refine(hasLoanPersonIdentity, {
+    error: LOAN_PERSON_REQUIRED_MESSAGE,
+    path: ["personName"],
   })
   .refine(
     (value) =>
@@ -498,14 +513,19 @@ export const UpdateLoanInputSchema = z
   .object({
     contact: OwnershipContactSchema.nullable().optional(),
     expectedReturnDate: z.iso.date().nullable().optional(),
+    loanContactId: z.uuid().optional(),
     loanDate: notInFutureDate("Loan date must not be in the future").nullable().optional(),
     note: LoanNoteSchema.nullable().optional(),
-    personName: OwnershipPersonNameSchema,
+    personName: OwnershipPersonNameSchema.optional(),
     remindToReturn: z.boolean().optional(),
   })
   .refine(isReturnNotBeforeLoan, {
     error: RETURN_BEFORE_LOAN_MESSAGE,
     path: ["expectedReturnDate"],
+  })
+  .refine(hasLoanPersonIdentity, {
+    error: LOAN_PERSON_REQUIRED_MESSAGE,
+    path: ["personName"],
   })
   .refine(
     (value) =>
@@ -592,11 +612,11 @@ export const CreateBookInputSchema = z
 
     if (
       ownershipStatusUsesLoan(value.ownershipStatus) &&
-      (value.loanInfo?.personName ?? "").length === 0
+      !hasLoanPersonIdentity(value.loanInfo ?? {})
     ) {
       context.addIssue({
         code: "custom",
-        message: "Enter the person's name",
+        message: LOAN_PERSON_REQUIRED_MESSAGE,
         path: ["loanInfo", "personName"],
       });
     }

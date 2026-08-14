@@ -75,7 +75,12 @@ const seriesDetailsArgs = {
         authors: { include: { author: true }, orderBy: { position: "asc" } },
         coverMedia: true,
         deliveries: { orderBy: { createdAt: "desc" } },
-        loans: { orderBy: { createdAt: "desc" }, take: 1, where: { status: "active" } },
+        loans: {
+          include: { loanContact: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          where: { status: "active" },
+        },
         publisher: true,
         readingProgress: {
           select: { currentPage: true, finishedAt: true, rating: true, startedAt: true },

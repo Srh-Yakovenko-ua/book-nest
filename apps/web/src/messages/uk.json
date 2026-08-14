@@ -1824,8 +1824,6 @@
         },
         "submit": "Зберегти",
         "errors": {
-          "personNameMin": "Імʼя має містити щонайменше {min} символи.",
-          "personNameMax": "Не більше за {max} символів.",
           "dateInvalid": "Оберіть коректну дату.",
           "loanDateFuture": "Дата не може бути в майбутньому.",
           "returnBeforeLoan": "Повернення не може бути раніше за дату позики.",
@@ -3826,6 +3824,22 @@
     }
   },
   "loans": {
+    "contactPicker": {
+      "searching": "Шукаємо контакти…",
+      "empty": "Контактів не знайдено.",
+      "contactsHeading": "Ваші контакти",
+      "createHeading": "Новий контакт",
+      "createAction": "Створити «{name}»",
+      "creating": "Створюємо…",
+      "loanCount": "{count, plural, one {# позика} few {# позики} many {# позик} other {# позик}}",
+      "clear": "Очистити",
+      "required": "Оберіть людину зі списку або створіть нову.",
+      "errors": {
+        "archivedName": "Це імʼя зайняте архівним контактом. Оберіть інше імʼя.",
+        "duplicateName": "Контакт із таким імʼям уже існує. Оберіть його зі списку.",
+        "createFailed": "Не вдалося створити контакт. Спробуйте ще раз."
+      }
+    },
     "pages": {
       "borrowed": {
         "metaTitle": "Треба повернути",
@@ -3847,6 +3861,7 @@
       }
     },
     "resultsCount": "Знайдено {count, plural, one {# позичену книгу} few {# позичені книги} many {# позичених книг} other {# позичених книг}}",
+    "shownCount": "Показано {shown} із {total, plural, one {# книги} few {# книг} many {# книг} other {# книг}}",
     "summary": {
       "error": {
         "title": "Не вдалося завантажити зведення",
@@ -3913,36 +3928,38 @@
       }
     },
     "toolbar": {
-      "searchLabel": "Пошук позичених книг",
-      "searchPlaceholder": "Пошук по позичених книгах...",
+      "searchLabel": {
+        "borrowed": "Пошук позичених книг",
+        "lent": "Пошук переданих книг"
+      },
+      "searchPlaceholder": "Назва книги, автор або людина",
       "searchClear": "Очистити пошук",
-      "filterLabel": "Фільтр",
       "sortLabel": "Сортування"
     },
-    "filters": {
+    "quickFilters": {
+      "label": "Швидкі фільтри",
       "all": "Усі",
-      "return_soon": "Повернути скоро",
       "overdue": "Прострочені",
-      "no_return_date": "Без дати повернення",
-      "has_reminder": "З нагадуванням",
+      "return_soon": "Повернути скоро",
+      "no_return_date": "Без дати",
       "without_reminder": "Без нагадування"
     },
     "sort": {
       "borrowed": {
-        "overdue_first": "За терміновістю",
-        "return_date": "За датою повернення",
-        "loan_date": "За датою позики",
-        "title": "За назвою",
-        "author": "За автором",
-        "person": "За власником"
+        "overdue_first": "За терміновістю: спочатку прострочені",
+        "return_date": "За датою повернення: спочатку найближчі",
+        "loan_date": "За датою позики: спочатку нові",
+        "title": "За назвою: А–Я",
+        "author": "За автором: А–Я",
+        "person": "За власником: А–Я"
       },
       "lent": {
-        "overdue_first": "За терміновістю",
-        "return_date": "За датою повернення",
-        "loan_date": "За датою передачі",
-        "title": "За назвою",
-        "author": "За автором",
-        "person": "За отримувачем"
+        "overdue_first": "За терміновістю: спочатку прострочені",
+        "return_date": "За датою повернення: спочатку найближчі",
+        "loan_date": "За датою передачі: спочатку нові",
+        "title": "За назвою: А–Я",
+        "author": "За автором: А–Я",
+        "person": "За отримувачем: А–Я"
       },
       "mobile": {
         "title": "Сортування",
@@ -4141,7 +4158,7 @@
       },
       "toolbar": {
         "searchLabel": "Пошук в історії позик",
-        "searchPlaceholder": "Пошук за книгою або людиною…",
+        "searchPlaceholder": "Назва книги, автор або людина",
         "searchClear": "Очистити пошук",
         "directionLabel": "Напрямок",
         "resultLabel": "Результат",

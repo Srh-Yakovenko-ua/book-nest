@@ -1824,8 +1824,6 @@
         },
         "submit": "Save",
         "errors": {
-          "personNameMin": "Name must be at least {min} characters.",
-          "personNameMax": "No more than {max} characters.",
           "dateInvalid": "Pick a valid date.",
           "loanDateFuture": "The date can’t be in the future.",
           "returnBeforeLoan": "Return can’t be before the loan date.",
@@ -3826,6 +3824,22 @@
     }
   },
   "loans": {
+    "contactPicker": {
+      "searching": "Searching contacts…",
+      "empty": "No contacts found.",
+      "contactsHeading": "Your contacts",
+      "createHeading": "New contact",
+      "createAction": "Create “{name}”",
+      "creating": "Creating…",
+      "loanCount": "{count, plural, one {# loan} other {# loans}}",
+      "clear": "Clear",
+      "required": "Pick a person from the list or create a new one.",
+      "errors": {
+        "archivedName": "An archived contact already uses this name. Pick a different name.",
+        "duplicateName": "A contact with this name already exists. Pick it from the list.",
+        "createFailed": "Couldn’t create the contact. Please try again."
+      }
+    },
     "pages": {
       "borrowed": {
         "metaTitle": "To return",
@@ -3847,6 +3861,7 @@
       }
     },
     "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
+    "shownCount": "Showing {shown} of {total, plural, one {# book} other {# books}}",
     "summary": {
       "error": {
         "title": "Could not load the summary",
@@ -3913,36 +3928,38 @@
       }
     },
     "toolbar": {
-      "searchLabel": "Search borrowed books",
-      "searchPlaceholder": "Search borrowed books...",
+      "searchLabel": {
+        "borrowed": "Search borrowed books",
+        "lent": "Search lent books"
+      },
+      "searchPlaceholder": "Book title, author or person",
       "searchClear": "Clear search",
-      "filterLabel": "Filter",
       "sortLabel": "Sort"
     },
-    "filters": {
+    "quickFilters": {
+      "label": "Quick filters",
       "all": "All",
-      "return_soon": "Returning soon",
       "overdue": "Overdue",
-      "no_return_date": "No return date",
-      "has_reminder": "With reminder",
-      "without_reminder": "Without reminder"
+      "return_soon": "Returning soon",
+      "no_return_date": "No date",
+      "without_reminder": "No reminder"
     },
     "sort": {
       "borrowed": {
-        "overdue_first": "By urgency",
-        "return_date": "By return date",
-        "loan_date": "By borrow date",
-        "title": "By title",
-        "author": "By author",
-        "person": "By owner"
+        "overdue_first": "Urgency: most overdue first",
+        "return_date": "Return date: soonest first",
+        "loan_date": "Borrow date: newest first",
+        "title": "Title: A–Z",
+        "author": "Author: A–Z",
+        "person": "Owner: A–Z"
       },
       "lent": {
-        "overdue_first": "By urgency",
-        "return_date": "By return date",
-        "loan_date": "By handover date",
-        "title": "By title",
-        "author": "By author",
-        "person": "By recipient"
+        "overdue_first": "Urgency: most overdue first",
+        "return_date": "Return date: soonest first",
+        "loan_date": "Handover date: newest first",
+        "title": "Title: A–Z",
+        "author": "Author: A–Z",
+        "person": "Recipient: A–Z"
       },
       "mobile": {
         "title": "Sorting",
@@ -4141,7 +4158,7 @@
       },
       "toolbar": {
         "searchLabel": "Search the loan history",
-        "searchPlaceholder": "Search by book or person…",
+        "searchPlaceholder": "Book title, author or person",
         "searchClear": "Clear search",
         "directionLabel": "Direction",
         "resultLabel": "Result",

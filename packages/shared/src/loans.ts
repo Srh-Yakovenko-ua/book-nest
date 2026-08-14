@@ -31,6 +31,7 @@ export type LoanUiStatus = z.infer<typeof LoanUiStatusSchema>;
 export const LoanInfoViewSchema = z.object({
   contact: z.string().nullable(),
   expectedReturnDate: z.string().nullable(),
+  loanContactId: z.string(),
   loanDate: z.string().nullable(),
   loanType: LoanTypeSchema,
   loanUiStatus: LoanUiStatusSchema,
@@ -65,9 +66,9 @@ export const LoanSortSchema = z.enum([
 export type LoanSort = z.infer<typeof LoanSortSchema>;
 
 export const LoansQuerySchema = z.object({
+  contactId: z.uuid().optional(),
   filter: LoanFilterSchema.default("all"),
   ...paginationQueryFields({ pageSizeDefault: 10 }),
-  person: z.string().trim().max(LOAN_PERSON_QUERY_MAX).optional(),
   search: z.string().trim().max(LOAN_SEARCH_MAX).optional(),
   sort: LoanSortSchema.default("overdue_first"),
   type: LoanTypeSchema.optional(),
@@ -93,6 +94,7 @@ export const LoanListItemViewSchema = z.object({
   createdAt: z.string(),
   expectedReturnDate: z.string().nullable(),
   id: z.string(),
+  loanContactId: z.string(),
   loanDate: z.string().nullable(),
   loanUiStatus: LoanUiStatusSchema,
   note: z.string().nullable(),
@@ -114,6 +116,7 @@ export const LOAN_STATS_WINDOWS = {
 
 export const LoanPersonSummarySchema = z.object({
   bookCount: z.number().int().nonnegative(),
+  contactId: z.string(),
   covers: z.array(MediaViewSchema),
   personName: z.string(),
 });
@@ -174,8 +177,8 @@ const isReturnedRangeOrdered = (value: { returnedFrom?: string; returnedTo?: str
 
 export const LoanHistoryQuerySchema = z
   .object({
+    contactId: z.uuid().optional(),
     ...paginationQueryFields({ pageSizeDefault: 10 }),
-    person: z.string().trim().max(LOAN_PERSON_QUERY_MAX).optional(),
     result: LoanHistoryResultFilterSchema.default("all"),
     returnedFrom: z.iso.date().optional(),
     returnedTo: z.iso.date().optional(),
@@ -189,7 +192,7 @@ export type LoanHistoryQuery = z.infer<typeof LoanHistoryQuerySchema>;
 
 export const LoanHistoryOverviewQuerySchema = z
   .object({
-    person: z.string().trim().max(LOAN_PERSON_QUERY_MAX).optional(),
+    contactId: z.uuid().optional(),
     returnedFrom: z.iso.date().optional(),
     returnedTo: z.iso.date().optional(),
     type: LoanTypeSchema.optional(),
@@ -205,6 +208,7 @@ export const LoanHistoryListItemViewSchema = z.object({
   expectedReturnDate: z.string().nullable(),
   historyResult: LoanHistoryResultSchema,
   id: z.string(),
+  loanContactId: z.string(),
   loanDate: z.string().nullable(),
   personName: z.string(),
   returnedAt: z.string(),
@@ -227,6 +231,7 @@ export type LoanHistoryDetailView = z.infer<typeof LoanHistoryDetailViewSchema>;
 
 export const LoanHistoryPersonStatsSchema = z.object({
   borrowedCount: z.number().int().nonnegative(),
+  contactId: z.string(),
   lentCount: z.number().int().nonnegative(),
   personName: z.string(),
   totalCount: z.number().int().nonnegative(),
@@ -278,6 +283,7 @@ export const LoanHistoryPeopleQuerySchema = z.object({
 export type LoanHistoryPeopleQuery = z.infer<typeof LoanHistoryPeopleQuerySchema>;
 
 export const LoanHistoryPersonOptionSchema = z.object({
+  contactId: z.string(),
   personName: z.string(),
   totalCount: z.number().int().nonnegative(),
 });

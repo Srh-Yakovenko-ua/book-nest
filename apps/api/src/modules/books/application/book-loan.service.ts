@@ -14,8 +14,10 @@ import { Injectable } from "@nestjs/common";
 import type { BookLoanModel } from "../../../generated/prisma/models.js";
 import type { GuardedChangeOutcome } from "../infrastructure/books.repository.js";
 
+import { TransactionRunner } from "../../../core/database/transaction-runner.js";
 import { ConflictError, NotFoundError } from "../../../core/exceptions/errors.js";
 import { rethrowUniqueConstraintAs } from "../../../core/prisma-errors.js";
+import { LoanContactResolver } from "../../loans/index.js";
 import { extendReturnDate, resolveReminderFields } from "../domain/loan-quick-actions.js";
 import { buildLoanEditData, computeLoanChange } from "../domain/loan-transition.js";
 import { BooksRepository } from "../infrastructure/books.repository.js";
@@ -41,6 +43,8 @@ export class BookLoanService {
   constructor(
     private readonly booksRepository: BooksRepository,
     private readonly viewAssembler: BookViewAssembler,
+    private readonly transactionRunner: TransactionRunner,
+    private readonly loanContactResolver: LoanContactResolver,
   ) {}
 
   async createLoan(userId: string, bookId: string, input: CreateLoanInput): Promise<BookView> {
@@ -51,16 +55,35 @@ export class BookLoanService {
       throw guard.conflictError;
     }
 
-    const patch = computeLoanChange({
-      fields: input,
-      kind: "create",
-      now: new Date(),
-      ownershipStatus,
-    });
+    const now = new Date();
     let outcome: GuardedChangeOutcome;
     try {
-      outcome = await this.booksRepository.applyLoanChange(userId, bookId, patch, {
-        expectedStatuses: guard.expectedStatuses,
+      outcome = await this.transactionRunner.run(async (client) => {
+        const loanContact = await this.loanContactResolver.resolve(
+          {
+            attached: null,
+            contact: input.contact,
+            loanContactId: input.loanContactId,
+            personName: input.personName,
+            userId,
+          },
+          client,
+        );
+        const patch = computeLoanChange({
+          fields: input,
+          kind: "create",
+          loanContact,
+          now,
+          ownershipStatus,
+        });
+
+        return this.booksRepository.applyLoanChange(
+          userId,
+          bookId,
+          patch,
+          { expectedStatuses: guard.expectedStatuses },
+          client,
+        );
       });
     } catch (error) {
       rethrowUniqueConstraintAs({
@@ -85,12 +108,26 @@ export class BookLoanService {
       throw new NotFoundError(LOAN_NOT_FOUND_MESSAGE);
     }
 
-    const data = buildLoanEditData({
-      existingLoanDate: active.loanDate,
-      existingRemindBeforeDays: active.remindBeforeDays,
-      input,
+    await this.transactionRunner.run(async (client) => {
+      const loanContact = await this.loanContactResolver.resolve(
+        {
+          attached: active,
+          contact: input.contact,
+          loanContactId: input.loanContactId,
+          personName: input.personName,
+          userId,
+        },
+        client,
+      );
+      const data = buildLoanEditData({
+        existingLoanDate: active.loanDate,
+        existingRemindBeforeDays: active.remindBeforeDays,
+        input,
+        loanContact,
+      });
+
+      await this.booksRepository.updateActiveLoan(userId, bookId, data, client);
     });
-    await this.booksRepository.updateActiveLoan(userId, bookId, data);
 
     return this.viewAssembler.loadView({ bookId, userId });
   }

@@ -19,10 +19,12 @@ import type { LoansAttention, LoansPeople } from "./loans-sidebar";
 import { useLoansList } from "../api/use-loans-list";
 import { useLoansSummary } from "../api/use-loans-summary";
 import { LOAN_PAGES } from "../model/loan-pages";
+import { loansQuickFilterCounts } from "../model/loans-quick-filters";
 import { useLoansQuery } from "../model/use-loans-query";
 import { EditLoanDialog } from "./edit-loan-dialog";
 import { LoanRow } from "./loan-row";
 import { LoansOverviewPanel } from "./loans-overview-panel";
+import { LoansQuickFilters } from "./loans-quick-filters";
 import { LoansSidebar } from "./loans-sidebar";
 import { LoansListSkeleton } from "./loans-skeleton";
 import { LoansSummaryCards, useLoansSummaryCards } from "./loans-summary-cards";
@@ -81,9 +83,10 @@ export function LoansView({ type }: { type: LoanType }) {
       };
 
   const people: LoansPeople = {
-    activePerson: query.person,
+    activeContactId: query.contactId,
     items: summary.isError ? [] : (directionSummary?.topPeople ?? []),
-    onPersonSelect: (personName) => query.setPerson(personName === query.person ? "" : personName),
+    onPersonSelect: (contactId) =>
+      query.setContactId(contactId === query.contactId ? "" : contactId),
   };
 
   const loansContent = (
@@ -146,8 +149,6 @@ export function LoansView({ type }: { type: LoanType }) {
         <div className="flex flex-col gap-4">
           <LoansToolbar
             direction={page.direction}
-            filter={query.filter}
-            onFilterChange={query.setFilter}
             onSearchChange={query.setSearch}
             onSearchClear={() => query.setSearch("")}
             onSortChange={query.setSort}
@@ -155,11 +156,23 @@ export function LoansView({ type }: { type: LoanType }) {
             sort={query.sort}
           />
 
+          <LoansQuickFilters
+            counts={
+              directionSummary === undefined ? undefined : loansQuickFilterCounts(directionSummary)
+            }
+            direction={page.direction}
+            onSelect={query.setFilter}
+            value={query.filter}
+          />
+
+          <p className="text-sm text-muted-foreground" role="status">
+            {list.isPending || directionSummary === undefined
+              ? ""
+              : t("shownCount", { shown: totalCount, total: directionSummary.totalCount })}
+          </p>
+
           <div className="mt-2 flex flex-col gap-8 xl:flex-row xl:items-start xl:gap-6">
             <div className="flex min-w-0 flex-1 flex-col gap-6">
-              <p className="sr-only" role="status">
-                {list.isPending ? "" : t("resultsCount", { count: totalCount })}
-              </p>
               {loansContent}
 
               {items.length > 0 && list.hasNextPage ? (

@@ -3,6 +3,8 @@ import type { CreateLoanInput } from "@app/shared";
 import { LOAN_REMINDER_LEAD_DAYS } from "@app/shared";
 import { describe, expect, it } from "vitest";
 
+import type { ResolvedLoanContact } from "../../loans/index.js";
+
 import { computeLoanChange } from "./loan-transition.js";
 
 const LOAN_DATE = "2026-01-20";
@@ -12,11 +14,19 @@ const PARSED_RETURN_DATE = new Date("2026-03-01T00:00:00.000Z");
 const RETURNED_AT = new Date("2026-02-10T09:30:00.000Z");
 const NOW = new Date("2026-01-20T08:00:00.000Z");
 
+const LOAN_CONTACT: ResolvedLoanContact = {
+  contact: null,
+  loanContactId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  personName: "Olha",
+  refreshesPersonName: true,
+};
+
 describe("computeLoanChange create direction mapping", () => {
   it("maps a borrowed loan to the borrowed_from_someone ownership status and type", () => {
     const patch = computeLoanChange({
       fields: { direction: "borrowed", loanDate: LOAN_DATE, personName: "Olha" },
       kind: "create",
+      loanContact: LOAN_CONTACT,
       now: NOW,
       ownershipStatus: "none",
     });
@@ -29,6 +39,7 @@ describe("computeLoanChange create direction mapping", () => {
     const patch = computeLoanChange({
       fields: { direction: "lent", loanDate: LOAN_DATE, personName: "Olha" },
       kind: "create",
+      loanContact: LOAN_CONTACT,
       now: NOW,
       ownershipStatus: "owned",
     });
@@ -41,6 +52,7 @@ describe("computeLoanChange create direction mapping", () => {
     const patch = computeLoanChange({
       fields: { direction: "borrowed", loanDate: LOAN_DATE, personName: "Olha" },
       kind: "create",
+      loanContact: LOAN_CONTACT,
       now: NOW,
       ownershipStatus: "want_to_buy",
     });
@@ -57,6 +69,7 @@ describe("computeLoanChange create loan info", () => {
     const patch = computeLoanChange({
       fields: { direction: "borrowed", loanDate: LOAN_DATE, personName: "Olha" },
       kind: "create",
+      loanContact: LOAN_CONTACT,
       now: NOW,
       ownershipStatus: "none",
     });
@@ -64,6 +77,7 @@ describe("computeLoanChange create loan info", () => {
     expect(patch.kind === "create" ? patch.loan : null).toEqual({
       contact: null,
       expectedReturnDate: null,
+      loanContactId: LOAN_CONTACT.loanContactId,
       loanDate: PARSED_LOAN_DATE,
       note: null,
       personName: "Olha",
@@ -84,11 +98,18 @@ describe("computeLoanChange create loan info", () => {
       remindToReturn: true,
     };
 
-    const patch = computeLoanChange({ fields, kind: "create", now: NOW, ownershipStatus: "owned" });
+    const patch = computeLoanChange({
+      fields,
+      kind: "create",
+      loanContact: { ...LOAN_CONTACT, contact: "olha@example.com" },
+      now: NOW,
+      ownershipStatus: "owned",
+    });
 
     expect(patch.kind === "create" ? patch.loan : null).toEqual({
       contact: "olha@example.com",
       expectedReturnDate: PARSED_RETURN_DATE,
+      loanContactId: LOAN_CONTACT.loanContactId,
       loanDate: PARSED_LOAN_DATE,
       note: "hardcover copy",
       personName: "Olha",
@@ -102,6 +123,7 @@ describe("computeLoanChange create loan info", () => {
     const patch = computeLoanChange({
       fields: { direction: "borrowed", loanDate: LOAN_DATE, personName: "Olha" },
       kind: "create",
+      loanContact: LOAN_CONTACT,
       now: NOW,
       ownershipStatus: "none",
     });
@@ -118,6 +140,7 @@ describe("computeLoanChange create loan info", () => {
         personName: "Olha",
       },
       kind: "create",
+      loanContact: LOAN_CONTACT,
       now: NOW,
       ownershipStatus: "none",
     });

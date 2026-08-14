@@ -2,6 +2,8 @@ import type { BookView, MediaView, Nullable } from "@app/shared";
 
 import { isActiveDeliveryStatus } from "@app/shared";
 
+import type { LoanContactSelection } from "@/features/loans/model/loan-contact-selection";
+
 import type {
   AuthorSelection,
   CreateBookFormValues,
@@ -14,6 +16,7 @@ import { createBookFormDefaults } from "./create-book-form";
 export type BookFormInitialState = {
   authorSelections: AuthorSelection[];
   cover: Nullable<MediaView>;
+  loanContactSelection: LoanContactSelection | null;
   publisherSelection: null | PublisherSelection;
   seriesSelection: null | SeriesSelection;
   values: CreateBookFormValues;
@@ -87,6 +90,8 @@ export function bookViewToFormState(book: BookView): BookFormInitialState {
   return {
     authorSelections,
     cover: book.cover ?? null,
+    loanContactSelection:
+      book.loanInfo === null ? null : { kind: "saved", name: book.loanInfo.personName },
     publisherSelection,
     seriesSelection,
     values,
@@ -118,7 +123,6 @@ function loanToInput(book: BookView): CreateBookFormValues["loanInfo"] {
     expectedReturnDate: info.expectedReturnDate ?? undefined,
     loanDate: info.loanDate ?? undefined,
     note: info.note ?? undefined,
-    personName: info.personName,
   };
 }
 

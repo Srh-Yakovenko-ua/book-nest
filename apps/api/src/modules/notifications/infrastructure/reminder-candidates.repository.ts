@@ -45,8 +45,8 @@ const loanCandidateArgs = {
     book: { select: { id: true, title: true } },
     expectedReturnDate: true,
     id: true,
+    loanContact: { select: { name: true } },
     loanDate: true,
-    personName: true,
     remindBeforeDays: true,
   },
 } satisfies Prisma.BookLoanDefaultArgs;

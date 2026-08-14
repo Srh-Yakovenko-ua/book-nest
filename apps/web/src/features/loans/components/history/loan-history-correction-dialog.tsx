@@ -35,6 +35,7 @@ export type LoanHistoryCorrectionMode = "date" | "note";
 type LoanHistoryCorrectionDialogProps = {
   loanId: string;
   mode: LoanHistoryCorrectionMode;
+  onCloseAutoFocus: (event: Event) => void;
   onOpenChange: (open: boolean) => void;
   open: boolean;
 };
@@ -50,6 +51,7 @@ const NOTE_MAX = 500;
 export function LoanHistoryCorrectionDialog({
   loanId,
   mode,
+  onCloseAutoFocus,
   onOpenChange,
   open,
 }: LoanHistoryCorrectionDialogProps) {
@@ -65,7 +67,7 @@ export function LoanHistoryCorrectionDialog({
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>

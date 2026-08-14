@@ -153,7 +153,7 @@ export class RecipientReminderSweeper {
                     expectedReturnDate: candidate.expectedReturnDate,
                     id: candidate.id,
                     loanDate: candidate.loanDate,
-                    personName: candidate.personName,
+                    personName: candidate.loanContact.name,
                   },
                   leadDays: candidate.remindBeforeDays ?? leadDays,
                   today,

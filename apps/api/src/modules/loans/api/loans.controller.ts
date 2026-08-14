@@ -36,6 +36,7 @@ export class LoansController {
   @ApiOperation({ summary: "List the current user's active loans" })
   @ApiQuery({ name: "type", required: false })
   @ApiQuery({ name: "filter", required: false })
+  @ApiQuery({ name: "contactId", required: false })
   @ApiQuery({ name: "search", required: false })
   @ApiQuery({ name: "sort", required: false })
   @ApiQuery({ name: "pageNumber", required: false })

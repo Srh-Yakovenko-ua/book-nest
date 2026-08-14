@@ -9,6 +9,7 @@ import type {
 
 import { LOAN_REMINDER_LEAD_DAYS } from "@app/shared";
 
+import type { ResolvedLoanContact } from "../../loans/index.js";
 import type {
   CreateLoanInfoData,
   LoanChangePatch,
@@ -20,7 +21,7 @@ import { buildBookOwnershipFields } from "./book-ownership-fields.js";
 import { resolveReminderFields } from "./loan-quick-actions.js";
 
 export type LoanTransitionInput = (
-  { fields: CreateLoanInput; kind: "create" } | { kind: "return" }
+  { fields: CreateLoanInput; kind: "create"; loanContact: ResolvedLoanContact } | { kind: "return" }
 ) & {
   now: Date;
   ownershipStatus: OwnershipStatus;
@@ -30,10 +31,12 @@ export function buildLoanEditData({
   existingLoanDate,
   existingRemindBeforeDays,
   input,
+  loanContact,
 }: {
   existingLoanDate: Nullable<Date>;
   existingRemindBeforeDays: Nullable<number>;
   input: UpdateLoanInput;
+  loanContact: ResolvedLoanContact;
 }): UpdateActiveLoanData {
   const expectedReturnDate =
     input.expectedReturnDate === undefined || input.expectedReturnDate === null
@@ -41,8 +44,9 @@ export function buildLoanEditData({
       : parseIsoDate(input.expectedReturnDate);
 
   return {
-    contact: input.contact ?? null,
+    contact: loanContact.contact,
     expectedReturnDate,
+    loanContactId: loanContact.loanContactId,
     loanDate:
       input.loanDate === undefined
         ? existingLoanDate
@@ -50,7 +54,7 @@ export function buildLoanEditData({
           ? null
           : parseIsoDate(input.loanDate),
     note: input.note ?? null,
-    personName: input.personName,
+    personName: loanContact.refreshesPersonName ? loanContact.personName : undefined,
     ...resolveReminderFields({
       expectedReturnDate,
       remindBeforeDays:
@@ -77,7 +81,10 @@ export function computeLoanChange(input: LoanTransitionInput): LoanChangePatch {
           now: input.now,
         }),
         kind: "create",
-        loan: { ...buildLoanInfo(input.fields), type },
+        loan: {
+          ...buildLoanInfo({ fields: input.fields, loanContact: input.loanContact }),
+          type,
+        },
       };
     }
     case "return":
@@ -95,15 +102,22 @@ export function computeLoanChange(input: LoanTransitionInput): LoanChangePatch {
   }
 }
 
-function buildLoanInfo(fields: CreateLoanInput): CreateLoanInfoData {
+function buildLoanInfo({
+  fields,
+  loanContact,
+}: {
+  fields: CreateLoanInput;
+  loanContact: ResolvedLoanContact;
+}): CreateLoanInfoData {
   const expectedReturnDate = toReturnDate(fields.expectedReturnDate);
 
   return {
-    contact: fields.contact ?? null,
+    contact: loanContact.contact,
     expectedReturnDate,
+    loanContactId: loanContact.loanContactId,
     loanDate: parseIsoDate(fields.loanDate),
     note: fields.note ?? null,
-    personName: fields.personName,
+    personName: loanContact.personName,
     ...resolveReminderFields({
       expectedReturnDate,
       remindBeforeDays: fields.remindToReturn === true ? LOAN_REMINDER_LEAD_DAYS.default : null,

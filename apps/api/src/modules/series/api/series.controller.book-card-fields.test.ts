@@ -115,10 +115,14 @@ describe("GET /api/series/:id book card fields", () => {
         userId,
       },
     });
+    const loanContact = await prisma.loanContact.create({
+      data: { name: "Olena", normalizedName: "olena", userId },
+    });
     await prisma.bookLoan.create({
       data: {
         bookId: lent.id,
         expectedReturnDate: new Date("2026-07-01T00:00:00.000Z"),
+        loanContactId: loanContact.id,
         personName: "Olena",
         status: "active",
         type: "lent_to_someone",

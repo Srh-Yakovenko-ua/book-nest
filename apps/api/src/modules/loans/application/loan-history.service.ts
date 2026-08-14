@@ -6,6 +6,8 @@ import type {
   LoanHistoryOverviewView,
   LoanHistoryPeopleQuery,
   LoanHistoryPeopleView,
+  LoanHistoryPersonOption,
+  LoanHistoryPersonStats,
   LoanHistoryQuery,
   Nullable,
   Paginator,
@@ -18,6 +20,8 @@ import { isBefore } from "date-fns";
 
 import type {
   CompletedLoanWithBook,
+  LoanHistoryPersonCountsRow,
+  LoanHistoryPersonOptionRow,
   LoanHistoryScope,
 } from "../infrastructure/loan-history.repository.js";
 
@@ -26,6 +30,7 @@ import { parseIsoDate, startOfUtcDay, toNullableIsoDate } from "../../../core/is
 import { buildPaginator, pageSlice } from "../../../core/paginator.js";
 import { MediaService } from "../../media/index.js";
 import { deriveLoanHistoryOutcome } from "../domain/loan-history-result.js";
+import { resolveLoanPerson } from "../domain/loan-person.js";
 import { LoanHistoryRepository } from "../infrastructure/loan-history.repository.js";
 
 const TOP_PEOPLE_LIMIT = 5;
@@ -146,7 +151,7 @@ export class LoanHistoryService {
         onTimePercent,
         totalCompleted: row.totalCompleted,
       },
-      topPeople,
+      topPeople: topPeople.map((row) => toPersonStats(row)),
     };
   }
 
@@ -157,12 +162,12 @@ export class LoanHistoryService {
     query: LoanHistoryPeopleQuery;
     userId: string;
   }): Promise<LoanHistoryPeopleView> {
-    const items = await this.loanHistoryRepository.people({
+    const rows = await this.loanHistoryRepository.people({
       limit: query.limit,
       search: normalizeSearch(query.search),
       userId,
     });
-    return { items };
+    return { items: rows.map((row) => toPersonOption(row)) };
   }
 
   private async requireCompletedLoan({
@@ -195,7 +200,7 @@ export class LoanHistoryService {
   private toDetailView(loan: CompletedLoanWithBook): LoanHistoryDetailView {
     return {
       ...this.toListItemView(loan),
-      contact: loan.contact,
+      contact: resolveLoanPerson(loan).contact,
       createdAt: loan.createdAt.toISOString(),
       note: loan.note,
       updatedAt: loan.updatedAt.toISOString(),
@@ -208,6 +213,7 @@ export class LoanHistoryService {
       loanDate: loan.loanDate,
       returnedAt: loan.returnedAt,
     });
+    const person = resolveLoanPerson(loan);
 
     return {
       book: this.toBookPreview(loan.book),
@@ -216,8 +222,9 @@ export class LoanHistoryService {
       expectedReturnDate: toNullableIsoDate(loan.expectedReturnDate),
       historyResult,
       id: loan.id,
+      loanContactId: person.loanContactId,
       loanDate: toNullableIsoDate(loan.loanDate),
-      personName: loan.personName,
+      personName: person.personName,
       returnedAt: loan.returnedAt.toISOString(),
       returnedDate,
       type: LoanTypeSchema.parse(loan.type),
@@ -253,11 +260,11 @@ function toHistoryScope({
   query,
   userId,
 }: {
-  query: Pick<LoanHistoryQuery, "person" | "returnedFrom" | "returnedTo" | "type">;
+  query: Pick<LoanHistoryQuery, "contactId" | "returnedFrom" | "returnedTo" | "type">;
   userId: string;
 }): LoanHistoryScope {
   return {
-    person: normalizeSearch(query.person),
+    contactId: query.contactId,
     returnedFrom: query.returnedFrom,
     returnedTo: query.returnedTo,
     type: query.type,
@@ -267,4 +274,18 @@ function toHistoryScope({
 
 function toPercent({ part, whole }: { part: number; whole: number }): number {
   return whole === 0 ? 0 : Math.round((part / whole) * 100);
+}
+
+function toPersonOption(row: LoanHistoryPersonOptionRow): LoanHistoryPersonOption {
+  return { contactId: row.contactId, personName: row.name, totalCount: row.totalCount };
+}
+
+function toPersonStats(row: LoanHistoryPersonCountsRow): LoanHistoryPersonStats {
+  return {
+    borrowedCount: row.borrowedCount,
+    contactId: row.contactId,
+    lentCount: row.lentCount,
+    personName: row.name,
+    totalCount: row.totalCount,
+  };
 }
