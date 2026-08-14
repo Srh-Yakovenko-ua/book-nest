@@ -3856,7 +3856,6 @@
         "listHeading": "List of completed loans"
       }
     },
-    "resultsCount": "Found {count, plural, one {# borrowed book} other {# borrowed books}}",
     "summary": {
       "error": {
         "title": "Could not load the summary",
@@ -3875,26 +3874,38 @@
         "tomorrow": "Nearest one — tomorrow",
         "inDays": "Nearest one — in {count, plural, one {# day} other {# days}}",
         "empty": "No returns in the next {days} days",
-        "mobile": { "compact": "Soon", "detailed": "Upcoming returns" }
+        "mobile": {
+          "compact": "Soon",
+          "detailed": "Upcoming returns"
+        }
       },
       "overdue": {
         "label": "Overdue",
         "longest": "Longest — {count, plural, one {# day} other {# days}} late",
         "empty": "Every deadline met",
-        "mobile": { "compact": "Overdue", "detailed": "Overdue" }
+        "mobile": {
+          "compact": "Overdue",
+          "detailed": "Overdue"
+        }
       },
       "borrowed": {
         "total": {
           "label": "Borrowed in total",
           "people": "From {count, plural, one {# person} other {# different people}}",
           "empty": "No active loans",
-          "mobile": { "compact": "Borrowed", "detailed": "Borrowed in total" }
+          "mobile": {
+            "compact": "Borrowed",
+            "detailed": "Borrowed in total"
+          }
         },
         "longHeld": {
           "label": "With you a while",
           "longest": "Longest — {count, plural, one {# day} other {# days}}",
           "empty": "No books borrowed {days} days ago or earlier",
-          "mobile": { "compact": "A while", "detailed": "With you a while" }
+          "mobile": {
+            "compact": "A while",
+            "detailed": "With you a while"
+          }
         }
       },
       "lent": {
@@ -3902,13 +3913,19 @@
           "label": "Lent out in total",
           "people": "With {count, plural, one {# person} other {# different people}}",
           "empty": "No active loans",
-          "mobile": { "compact": "Lent out", "detailed": "Lent out in total" }
+          "mobile": {
+            "compact": "Lent out",
+            "detailed": "Lent out in total"
+          }
         },
         "noReturnDate": {
           "label": "No return date",
           "people": "With {count, plural, one {# person} other {# different people}}",
           "empty": "Every loan has a return date",
-          "mobile": { "compact": "No date", "detailed": "No return date" }
+          "mobile": {
+            "compact": "No date",
+            "detailed": "No return date"
+          }
         }
       }
     },
@@ -3923,36 +3940,30 @@
       }
     },
     "toolbar": {
-      "searchLabel": "Search borrowed books",
-      "searchPlaceholder": "Search borrowed books...",
+      "searchLabel": {
+        "borrowed": "Search borrowed books",
+        "lent": "Search lent books"
+      },
+      "searchPlaceholder": "Book title, author or person",
       "searchClear": "Clear search",
-      "filterLabel": "Filter",
       "sortLabel": "Sort"
-    },
-    "filters": {
-      "all": "All",
-      "return_soon": "Returning soon",
-      "overdue": "Overdue",
-      "no_return_date": "No return date",
-      "has_reminder": "With reminder",
-      "without_reminder": "Without reminder"
     },
     "sort": {
       "borrowed": {
-        "overdue_first": "By urgency",
-        "return_date": "By return date",
-        "loan_date": "By borrow date",
-        "title": "By title",
-        "author": "By author",
-        "person": "By owner"
+        "overdue_first": "Urgency: most overdue first",
+        "return_date": "Return date: soonest first",
+        "loan_date": "Borrow date: newest first",
+        "title": "Title: A–Z",
+        "author": "Author: A–Z",
+        "person": "Owner: A–Z"
       },
       "lent": {
-        "overdue_first": "By urgency",
-        "return_date": "By return date",
-        "loan_date": "By handover date",
-        "title": "By title",
-        "author": "By author",
-        "person": "By recipient"
+        "overdue_first": "Urgency: most overdue first",
+        "return_date": "Return date: soonest first",
+        "loan_date": "Handover date: newest first",
+        "title": "Title: A–Z",
+        "author": "Author: A–Z",
+        "person": "Recipient: A–Z"
       },
       "mobile": {
         "title": "Sorting",
@@ -4129,29 +4140,41 @@
         "total": {
           "label": "Completed in total",
           "microfact": "{lent} lent out · {borrowed} borrowed",
-          "mobile": { "compact": "Completed", "detailed": "Completed in total" }
+          "mobile": {
+            "compact": "Completed",
+            "detailed": "Completed in total"
+          }
         },
         "onTime": {
           "label": "Returned on time",
           "microfact": "{percent}% of everything completed",
-          "mobile": { "compact": "On time", "detailed": "Returned on time" }
+          "mobile": {
+            "compact": "On time",
+            "detailed": "Returned on time"
+          }
         },
         "late": {
           "label": "Returned late",
           "microfact": "On average — {count, plural, one {# day} other {# days}} late",
           "allOnTime": "Every loan with a deadline came back on time",
-          "mobile": { "compact": "Late", "detailed": "Returned late" }
+          "mobile": {
+            "compact": "Late",
+            "detailed": "Returned late"
+          }
         },
         "duration": {
           "label": "Average duration",
           "microfact": "From the loan or handover to the return",
           "empty": "No loan with a known duration yet",
-          "mobile": { "compact": "Duration", "detailed": "Average duration" }
+          "mobile": {
+            "compact": "Duration",
+            "detailed": "Average duration"
+          }
         }
       },
       "toolbar": {
         "searchLabel": "Search the loan history",
-        "searchPlaceholder": "Search by book or person…",
+        "searchPlaceholder": "Book title, author or person",
         "searchClear": "Clear search",
         "directionLabel": "Direction",
         "resultLabel": "Result",
@@ -4344,7 +4367,16 @@
         "error": "Couldn't save the note",
         "tooLong": "The note cannot be longer than {max} characters"
       }
-    }
+    },
+    "quickFilters": {
+      "label": "Quick filters",
+      "all": "All",
+      "overdue": "Overdue",
+      "return_soon": "Returning soon",
+      "no_return_date": "No date",
+      "without_reminder": "No reminder"
+    },
+    "shownCount": "Showing {shown} of {total, plural, one {# book} other {# books}}"
   },
   "changelog": {
     "category": {

@@ -65,8 +65,18 @@ const OVERVIEW: LoanHistoryOverviewView = {
     totalCompleted: 37,
   },
   topPeople: [
-    { borrowedCount: 3, lentCount: 5, personName: "Олена", totalCount: 8 },
-    { borrowedCount: 2, lentCount: 0, personName: "Ігор", totalCount: 2 },
+    {
+      borrowedCount: 3,
+      lentCount: 5,
+      personName: "Олена",
+      totalCount: 8,
+    },
+    {
+      borrowedCount: 2,
+      lentCount: 0,
+      personName: "Ігор",
+      totalCount: 2,
+    },
   ],
 };
 
@@ -281,6 +291,27 @@ describe("LoanHistoryView toolbar", () => {
     await waitFor(() => {
       expect(lastListUrl()).toContain(`person=${encodeURIComponent("Олена")}`);
     });
+  });
+
+  it("goes back to every person when the reader clears the person filter", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await findRow("Дюна");
+    await pickOption(copy.toolbar.personLabel, /Олена/);
+
+    await waitFor(() => {
+      expect(personFilter()).toHaveTextContent("Олена");
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: messages.common.clear }));
+
+    await waitFor(() => {
+      expect(personFilter()).toHaveTextContent(copy.person.all);
+    });
+    expect(personFilter()).not.toHaveTextContent("Олена");
+    expect(lastListUrl()).not.toContain("person=");
   });
 
   it("asks for another order when the reader changes the sort", async () => {
@@ -541,6 +572,77 @@ describe("LoanHistoryView detail sheet", () => {
 
     const sheet = await screen.findByRole("dialog", { name: copy.detail.title });
     expect(within(sheet).getByText(copy.detail.noteEmpty)).toBeInTheDocument();
+  });
+});
+
+describe("LoanHistoryView focus", () => {
+  it("hands focus back to the row when the details sheet closes", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    const trigger = within(row).getByRole("button", { name: copy.row.openDetails });
+
+    await userEvent.click(trigger);
+    await screen.findByRole("dialog", { name: copy.detail.title });
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: copy.detail.title })).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
+  });
+
+  it("hands focus back to the row when a correction opened from the row menu closes", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    await openCorrectionDialog(copy.actions.correctDate);
+    await screen.findByRole("dialog", { name: copy.correctDate.title });
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: copy.correctDate.title }),
+      ).not.toBeInTheDocument();
+    });
+
+    const row = await findRow("Дюна");
+    await waitFor(() => {
+      expect(within(row).getByRole("button", { name: copy.row.openDetails })).toHaveFocus();
+    });
+  });
+
+  it("keeps focus inside the details sheet when a correction opened there closes", async () => {
+    mockHistory([historyItem()]);
+
+    renderHistory();
+
+    const row = await findRow("Дюна");
+    await userEvent.click(within(row).getByRole("button", { name: copy.row.openDetails }));
+
+    const sheet = await screen.findByRole("dialog", { name: copy.detail.title });
+    const sheetAction = await within(sheet).findByRole("button", {
+      name: copy.actions.correctDate,
+    });
+
+    await userEvent.click(sheetAction);
+    await screen.findByRole("dialog", { name: copy.correctDate.title });
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: copy.correctDate.title }),
+      ).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(sheetAction).toHaveFocus();
+    });
+    expect(screen.getByRole("dialog", { name: copy.detail.title })).toBeInTheDocument();
   });
 });
 
@@ -891,7 +993,9 @@ function mockHistory(items: HistoryFixture[], options: MockOptions = {}) {
 
       if (url.includes("/api/loans/history/people")) {
         return Promise.resolve(
-          jsonResponse({ items: options.people ?? [{ personName: "Олена", totalCount: 8 }] }),
+          jsonResponse({
+            items: options.people ?? [{ personName: "Олена", totalCount: 8 }],
+          }),
         );
       }
 
@@ -933,6 +1037,10 @@ async function openCorrectionDialog(action: string) {
   const row = await findRow("Дюна");
   await userEvent.click(within(row).getByRole("button", { name: copy.actions.menu }));
   await userEvent.click(await screen.findByRole("menuitem", { name: action }));
+}
+
+function personFilter(): HTMLElement {
+  return screen.getByRole("combobox", { name: copy.toolbar.personLabel });
 }
 
 function personFilterLabel(name: string): string {

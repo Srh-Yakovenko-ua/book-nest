@@ -162,7 +162,7 @@ function PersonSelect({
 
   return (
     <div className="min-w-0 sm:w-48">
-      <Select onValueChange={onChange} value={value === "" ? undefined : value}>
+      <Select onValueChange={onChange} value={value}>
         <SelectTrigger
           aria-label={label}
           className="h-10 w-full data-[size=default]:h-10"
